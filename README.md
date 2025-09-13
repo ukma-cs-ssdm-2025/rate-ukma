@@ -1,5 +1,5 @@
 # Rate UKMA
-![CI](https://img.shields.io/badge/build-passing-brightgreen)
+[![Linting](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/linting.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/linting.yml)
 
 **Rate. Review. Discover your best courses at NaUKMA.**
 
