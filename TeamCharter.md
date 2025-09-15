@@ -57,6 +57,6 @@ All team members will follow the **ACM Code of Ethics** and maintain strict **ac
 ## 8. Signatures
 
 * [x] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))
-* [ ] Anastasiia (GitHub: [@stasiaaleks](https://github.com/stasiaaleks))
+* [x] Anastasiia (GitHub: [@stasiaaleks](https://github.com/stasiaaleks))
 * [ x ] Milana (GitHub: [@miqdok](https://github.com/miqdok))
 * [x] Andrii (GitHub: [@Fybex](https://github.com/Fybex))
