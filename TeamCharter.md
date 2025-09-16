@@ -26,8 +26,8 @@
 
 ## 4. Collaboration Workflow
 
-* **Task Workflow:** Our task workflow can be tracked on **Kanban board** in the Projects section of the repository.
-* **Branching Strategy:** GitHub Flow + Trunk-based Development approach. The `main` branch is always stable and only updated via Pull Requests (PRs). Each new feature or bug fix is to be developed on a dedicated branch.These branches should be deleted promptly after successful merge to maintain clean and organized repository.
+* **Task Workflow:** Tasks are tracked on the **Kanban board** and should be small and atomic, completed within a few days. Larger features must be split into smaller tasks and delivered incrementally, ensuring fast reviews and continuous integration into `main`.
+* **Branching Strategy:** GitHub Flow approach. The `main` branch is always stable and only updated via Pull Requests (PRs). Each new feature or bug fix is to be developed on a dedicated branch.These branches should be deleted promptly after successful merge to maintain clean and organized repository.
 * **Branch Naming:** Use the format `type/#<issue-number>-short-description` (e.g., `docs/#3-teamcharter-setup`).
 * **Commit Conventions:** Use semantic commits with an issue link. The format is `<type>(#<issue-number>): short message` (e.g., `docs(#3): add TeamCharter.md`).
 * **Code Review Rules:** Each PR must  be reviewed and approved by at least one other team member before it can be merged.
