@@ -30,7 +30,7 @@
 * **Branching Strategy:** GitHub Flow approach. The `main` branch is always stable and only updated via Pull Requests (PRs). Each new feature or bug fix is to be developed on a dedicated branch.These branches should be deleted promptly after successful merge to maintain clean and organized repository.
 * **Branch Naming:** Use the format `type/#<issue-number>-short-description` (e.g., `docs/#3-teamcharter-setup`).
 * **Commit Conventions:** Use semantic commits with an issue link. The format is `<type>(#<issue-number>): short message` (e.g., `docs(#3): add TeamCharter.md`).
-* **Code Review Rules:** Each PR must  be reviewed and approved by at least one other team member before it can be merged.
+* **Code Review Rules:** Each PR must be reviewed and approved by at least one other team member before it can be merged. We also run [CodeRabbit](https://www.coderabbit.ai/) for automated review to catch issues early.
 * **Integration:** Merge branches into `main` frequently to avoid long-lived branches and large merge conflicts.
 
 ## 5. Conflict Resolution
