@@ -13,10 +13,10 @@
 
 ## 2. Roles & Responsibilities
 
-* **Repo Maintainer:** Kateryna
-* **CI Maintainer:** Anastasiia
-* **Documentation Lead:** Milana
-* **Issue Tracker Lead:** Andrii
+* **Requirements Lead:** Andrii
+* **Quality Lead:** Milana
+* **Documentation Lead:** Anastasiia
+* **Traceability Lead:** Kateryna
 
 ## 3. Communication Plan
 
