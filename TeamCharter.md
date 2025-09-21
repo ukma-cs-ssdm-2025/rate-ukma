@@ -18,45 +18,27 @@
 * **Documentation Lead:** Anastasiia
 * **Traceability Lead:** Kateryna
 
-## 3. Communication Plan
+## 2. Collaboration Practices
 
-* **Primary Channel:** Discord
-* **Weekly Meetings:** Every **Friday at 13:00** Kyiv time. Additional meetings between team members can be scheduled as needed.
-* **Reply Expectation:** Team members are expected to reply within **24 hours**
+* **User Story Review:** All user stories will be reviewed before merging into the `main` branch. At least **one team member** must approve each PR, but it is **recommended that all members participate in review process**. All comments must be addressed and resolved before merging.
+* **Non-Functional Requirements Verification:** Non-functional requirements will be evaluated through **team review session**. If consensus is not reached, the team will hold a **vote** to determine approval based on measurable criteria.
 
-## 4. Collaboration Workflow
+## 3. Artifact Management
 
-* **Task Workflow:** Tasks are tracked on the **Kanban board** and should be small and atomic, completed within a few days. Larger features must be split into smaller tasks and delivered incrementally, ensuring fast reviews and continuous integration into `main`.
-* **Branching Strategy:** GitHub Flow approach. The `main` branch is always stable and only updated via Pull Requests (PRs). Each new feature or bug fix is to be developed on a dedicated branch.These branches should be deleted promptly after successful merge to maintain clean and organized repository.
-* **Branch Naming:** Use the format `type/#<issue-number>-short-description` (e.g., `docs/#3-teamcharter-setup`).
-* **Commit Conventions:** Use semantic commits with an issue link. The format is `<type>(#<issue-number>): short message` (e.g., `docs(#3): add TeamCharter.md`).
-* **Code Review Rules:** Each PR must be reviewed and approved by at least one other team member before it can be merged. We also run [CodeRabbit](https://www.coderabbit.ai/) for automated review to catch issues early.
-* **Integration:** Merge branches into `main` frequently to avoid long-lived branches and large merge conflicts.
+* **Requirements Storage:** All requirement documents will be stored in the `/docs/requirements/` directory of the repository.  
+* **README Maintenance:** The `README.md` file must be kept up-to-date and approved by all team members.
 
-## 5. Conflict Resolution
+## 4. Individual Contributions
 
-We will follow a three-step process for resolving conflicts:
+* **Contribution Evidence:** Each team member will create a **Loom video presentation** demonstrating their contribution. This may include user stories written, functional/non-functional requirements defined, or entries in the Requirement Traceability Matrix (RTM).  
+* **Collection and Verification:** These videos will be **shared within the team** and stored in the `/labs/` directory of the repository.
 
-1. **Majority Vote:** We will first attempt to resolve disagreements through a majority vote among team members.
-2. **Seek Compromise:** If a majority vote does not lead to a resolution, we will collectively propose and discuss potential compromises. A new vote will be held on the most viable compromise.
-3. **Instructor Mediation:** As a last resort, if strong arguments persist and no compromise can be reached, we will escalate the issue to the course instructor for mediation.
-
-## 6. Availability & Workload
-
-All team members will aim for approximately **6 hours** of work **per week**. If a team member is overwhelmed and/or the workload becomes unbalanced, we will re-distribute tasks to ensure no one is overburdened. The team will prioritize a **healthy work-life balance** for all members.
-
-## 7. Ethics
-
-All team members will follow the **ACM Code of Ethics** and maintain strict **academic honesty** throughout the project.
-
-* We agree not to plagiarize any code or documentation.
-* We will treat other team members with respect.
 
 ---
 
 ## 8. Signatures
 
-* [x] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))
+* [ ] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))
 * [x] Anastasiia (GitHub: [@stasiaaleks](https://github.com/stasiaaleks))
-* [x] Milana (GitHub: [@miqdok](https://github.com/miqdok))
-* [x] Andrii (GitHub: [@Fybex](https://github.com/Fybex))
+* [ ] Milana (GitHub: [@miqdok](https://github.com/miqdok))
+* [ ] Andrii (GitHub: [@Fybex](https://github.com/Fybex))
