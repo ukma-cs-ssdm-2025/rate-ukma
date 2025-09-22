@@ -77,7 +77,7 @@ Project Requirements:
 
 ## 10. Signatures
 
-* [ ] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))  
+* [x] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))  
 * [x] Anastasiia (GitHub: [@stasiaaleks](https://github.com/stasiaaleks))  
 * [ ] Milana (GitHub: [@miqdok](https://github.com/miqdok))  
 * [ ] Andrii (GitHub: [@Fybex](https://github.com/Fybex))  
