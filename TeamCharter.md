@@ -13,50 +13,71 @@
 
 ## 2. Roles & Responsibilities
 
-* **Repo Maintainer:** Kateryna
-* **CI Maintainer:** Anastasiia
-* **Documentation Lead:** Milana
+Core:
+
+* **Repo Maintainer:** Kateryna  
+* **CI Maintainer:** Anastasiia  
+* **Documentation Lead:** Milana  
 * **Issue Tracker Lead:** Andrii
+
+Project Requirements:
+
+* **Requirements Lead:** Andrii  
+* **Quality Lead:** Milana  
+* **Traceability Lead:** Kateryna  
+* **Documentation Lead:** Anastasiia
 
 ## 3. Communication Plan
 
-* **Primary Channel:** Discord
-* **Weekly Meetings:** Every **Friday at 13:00** Kyiv time. Additional meetings between team members can be scheduled as needed.
-* **Reply Expectation:** Team members are expected to reply within **24 hours**
+* **Primary Channel:** Discord  
+* **Weekly Meetings:** Every **Friday at 13:00** Kyiv time. Additional meetings can be scheduled as needed.  
+* **Reply Expectation:** Within **24 hours**  
 
 ## 4. Collaboration Workflow
 
-* **Task Workflow:** Tasks are tracked on the **Kanban board** and should be small and atomic, completed within a few days. Larger features must be split into smaller tasks and delivered incrementally, ensuring fast reviews and continuous integration into `main`.
-* **Branching Strategy:** GitHub Flow approach. The `main` branch is always stable and only updated via Pull Requests (PRs). Each new feature or bug fix is to be developed on a dedicated branch.These branches should be deleted promptly after successful merge to maintain clean and organized repository.
-* **Branch Naming:** Use the format `type/#<issue-number>-short-description` (e.g., `docs/#3-teamcharter-setup`).
-* **Commit Conventions:** Use semantic commits with an issue link. The format is `<type>(#<issue-number>): short message` (e.g., `docs(#3): add TeamCharter.md`).
-* **Code Review Rules:** Each PR must be reviewed and approved by at least one other team member before it can be merged. We also run [CodeRabbit](https://www.coderabbit.ai/) for automated review to catch issues early.
-* **Integration:** Merge branches into `main` frequently to avoid long-lived branches and large merge conflicts.
+* **Task Workflow:** Tasks tracked on **Kanban board**. Tasks must be small and atomic, larger features split into smaller increments.  
+* **Branching Strategy:** GitHub Flow. The `main` branch is always stable and updated only via PRs. Branches deleted after merge.  
+* **Branch Naming:** `type/#<issue-number>-short-description` (e.g., `docs/#3-teamcharter-setup`).  
+* **Commit Conventions:** `<type>(#<issue-number>): short message` (e.g., `docs(#3): add TeamCharter.md`).  
+* **Code Review Rules:** Each PR requires at least one approval. [CodeRabbit](https://www.coderabbit.ai/) is used for automated review.  
+* **Integration:** Merge frequently to avoid long-lived branches.  
+* **User Story Review:** All user stories must be reviewed before merging. At least one approval required, all comments resolved. Recommended that all members review.  
+* **Non-Functional Requirements Verification:** Evaluated in a team review session. If no consensus, resolved via vote.  
 
-## 5. Conflict Resolution
+## 5. Artifact Management
 
-We will follow a three-step process for resolving conflicts:
+* **Requirements Storage:** `/docs/requirements/` directory.  
+* **README Maintenance:** `README.md` kept up-to-date and approved by all team members.  
 
-1. **Majority Vote:** We will first attempt to resolve disagreements through a majority vote among team members.
-2. **Seek Compromise:** If a majority vote does not lead to a resolution, we will collectively propose and discuss potential compromises. A new vote will be held on the most viable compromise.
-3. **Instructor Mediation:** As a last resort, if strong arguments persist and no compromise can be reached, we will escalate the issue to the course instructor for mediation.
+## 6. Individual Contributions
 
-## 6. Availability & Workload
+* **Contribution Evidence:** Each member records a **Loom video** showing their contribution (e.g., user stories, requirements, RTM entries).  
+* **Collection and Verification:** Videos shared with the team and stored in `/labs/` directory.  
 
-All team members will aim for approximately **6 hours** of work **per week**. If a team member is overwhelmed and/or the workload becomes unbalanced, we will re-distribute tasks to ensure no one is overburdened. The team will prioritize a **healthy work-life balance** for all members.
+## 7. Conflict Resolution
 
-## 7. Ethics
+1. **Majority Vote**  
+2. **Seek Compromise**  
+3. **Instructor Mediation**  
 
-All team members will follow the **ACM Code of Ethics** and maintain strict **academic honesty** throughout the project.
+## 8. Availability & Workload
 
-* We agree not to plagiarize any code or documentation.
-* We will treat other team members with respect.
+* Each member contributes ~**6 hours per week**.  
+* If workload becomes unbalanced, tasks will be redistributed.  
+* Healthy work-life balance prioritized.  
+
+## 9. Ethics
+
+* Follow **ACM Code of Ethics**.  
+* Maintain **academic honesty**.  
+* No plagiarism.  
+* Respect all team members.  
 
 ---
 
-## 8. Signatures
+## 10. Signatures
 
-* [x] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))
-* [x] Anastasiia (GitHub: [@stasiaaleks](https://github.com/stasiaaleks))
-* [x] Milana (GitHub: [@miqdok](https://github.com/miqdok))
-* [x] Andrii (GitHub: [@Fybex](https://github.com/Fybex))
+* [x] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))  
+* [x] Anastasiia (GitHub: [@stasiaaleks](https://github.com/stasiaaleks))  
+* [ ] Milana (GitHub: [@miqdok](https://github.com/miqdok))  
+* [ ] Andrii (GitHub: [@Fybex](https://github.com/Fybex))  
