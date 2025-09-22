@@ -79,5 +79,5 @@ Project Requirements:
 
 * [x] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))  
 * [x] Anastasiia (GitHub: [@stasiaaleks](https://github.com/stasiaaleks))  
-* [ ] Milana (GitHub: [@miqdok](https://github.com/miqdok))  
+* [x] Milana (GitHub: [@miqdok](https://github.com/miqdok))  
 * [x] Andrii (GitHub: [@Fybex](https://github.com/Fybex))  
