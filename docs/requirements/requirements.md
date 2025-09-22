@@ -23,7 +23,7 @@ This document defines the **Functional Requirements (FR)** and **Non-Functional 
 
 | Category | ID | Description | Measurable Metric |
 |--------------|------------|--------------------|------------------------|
-| **Performance Efficiency** | NFR-PE-001 | The system shall load the course list page within 2 seconds under normal network conditions. | Page load time ≤ 2 sec (95% of requests) |
+| **Performance Efficiency** | NFR-PE-001 | The system shall load any page within 1.5 seconds under normal network conditions. | Page load time ≤ 1.5 sec |
 | | NFR-PE-002 | The system shall display search results in real-time with a maximum response time of 1 second. | Response time ≤ 1 sec after input |
 | | NFR-PE-003 | The scatter plot on the home page shall render completely within 2 seconds for up to 500 courses. | Scatter plot rendering ≤ 2 sec |
 | | NFR-PE-004 | Filtering on scatter plot or course list shall update results within 1.5 seconds. | Filter response ≤ 1.5 sec |
