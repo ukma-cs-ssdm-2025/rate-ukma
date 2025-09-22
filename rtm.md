@@ -1,0 +1,53 @@
+# Requirements Traceability Matrix
+
+This document defines the **Requirements Traceability Matrix** for the _Rate UKMA_ system.
+
+| **User Story ID** | **Requirement ID** | **Requirement Description** | **Non-Functional Requirement ID** | **Potential Test Case** | 
+|-------------|---------------|----------------------------------------------------------------|----------------------------|--------------------------------------------------------------------------------|
+|US-001       |FR-001         |Login with corporate email                                      |NFR-S-001                   |Test-01: Authenticated user accesses protected page                             |
+|             |FR-001         |Login with corporate email                                      |NFR-S-001                   |Test-02: User provides correct creditentials                                    |
+|             |FR-001         |Login with corporate email                                      |NFR-S-001                   |Test-03: User provides incorrect creditentials                                  |
+|             |FR-001         |Login with corporate email                                      |NFR-S-003                   |Test-04: Authenticated  user is inactive for 30+ minutes                        |
+|US-002       |FR-002         |User browses courses                                            |NFR-PE-001                  |Test-01: 300 users access courses' list                                         |
+|             |FR-002         |User browses courses                                            | 	NFR-PE-002                |Test-02: 300 users paginate courses                                             |
+|US-003       |FR-004         |User searches courses                                           |NFR-PE-002                  |Test-01: 300 users attempt course searching                                     |
+|             |FR-004         |User searches courses                                           |NFR-PE-002                  |Test-02: Search for partial course name                                         |
+|             |FR-004         |User searches courses                                           |NFR-PE-002                  |Test-03: Search with no match                                                   |
+|             |FR-004         |User searches courses                                           |NFR-PE-002 / NFR-RB-001     |Test-04: Clear search input                                                     |
+|             |FR-004         |User searches courses                                           |NFR-PE-002                  |Test-05: Case-insensitive search                                                |
+|US-004       |FR-005         |User applies filters to list of courses                         |NFR-PE-002                  |Test-01: 300 users attempt filtering queries                                    |
+|             |FR-005         |User applies filters to list of courses                         |NFR-PE-002                  |Test-02: No filter search                                                       |
+|             |FR-005         |User applies filters to list of courses                         |NFR-PE-002                  |Test-03: Search + filters                                                       |
+|             |FR-005         |User applies filters to list of courses                         |NFR-PE-002                  |Test-04: Filter with no match                                                   |
+|             |FR-005         |User applies filters to list of courses                         |NFR-PE-002                  |Test-05: Separate filters                                                       |
+|             |FR-005         |User applies filters to list of courses                         |NFR-PE-002                  |Test-06: Multiple filters at the same time                                      |
+|             |FR-005         |User applies filters to list of courses                         |NFR-PE-002                  |Test-06: Clear filters                                                          |
+|US-005       |FR-009         |User sees/interacts with scatter plot of courses                |NFR-PE-003                  |Test-01: 300 users attempt rendering scatter plot                               |
+|             |FR-009         |User sees/interacts with scatter plot of courses                |NFR-PE-004                  |Test-02: 300 users attempt rendering scatter plot with filters applied          |
+|             |FR-009         |User sees/interacts with scatter plot of courses                |NFR-PE-004                  |Test-03: Apply filter returning zero courses                                    |
+|             |FR-009         |User sees/interacts with scatter plot of courses                |NFR-PE-003                  |Test-04: Hovering over points to display metadata                               |
+|             |FR-009         |User sees/interacts with scatter plot of courses                |NFR-PE-003                  |Test-05: Navigate to the course's page via point                                |
+|US-006       |FR-003 / FR-008|User sees course's page (inc. metadata, ratings)                |NFR-PE-001                  |Test-01: 300 users access courses' pages                                        |
+|             |FR-003 / FR-008|User sees course's page (inc. metadata, ratings)                |NFR-U-002                   |Test-01: Automated readability                                                  |
+|             |FR-003 / FR-008|User sees course's page (inc. metadata, ratings)                |NFR-U-002                   |Test-02: UI desktop                                                             |
+|             |FR-003 / FR-008|User sees course's page (inc. metadata, ratings)                |NFR-U-002                   |Test-03: UI mobile                                                              |
+|US-007       |FR-010         |User sees personalized course recommendation on course's page   |NFR-RB-001                  |Test-01: Not enough rating/enroll data for proper algorithm work                |
+|US-007       |FR-010         |User sees personalized course recommendation on course's page   |                            |Test-02: Recommendations update when new ratings/enrollments are added          |
+|US-007       |FR-010         |User sees personalized course recommendation on course's page   |                            |Test-03: Student clicks on the recommended course                               |
+|US-008       |FR-010         |User sees personalized course recommendation on home page       |NFR-RB-001                  |Test-01: User has not rated any course yet                                      |
+|             |FR-010         |User sees personalized course recommendation on home page       |                            |Test-02: User has rated a number of courses                                     |
+|             |FR-010         |User sees personalized course recommendation on home page       |                            |Test-03: Recommendations update after user submits new ratings                  |
+|US-009       |FR-006         |Student submits ratings and optional reviews                    |NFR-R-001                   |Test-01: User submits a rating                                                  |
+|             |FR-006         |Student submits ratings and optional reviews                    |NFR-R-003                   |Test-02: Submission failure occurs during rating/review submission              |
+|             |FR-006         |Student submits ratings and optional reviews                    |NFR-S-002                   |Test-03: User submits review anonymously                                        |
+|             |FR-007         |Student submits ratings and optional reviews                    |NFR-R-001                   |Test-04: User edits an existing review                                          |
+|             |FR-007         |Student submits ratings and optional reviews                    |NFR-R-003                   |Test-05: User deletes an existing review                                        |
+|US-010       |FR-011         |Student sees his overall progress in course rating              |NFR-PE-001                  |Test-01: 300 users attempt viewing their profile                                |
+|             |FR-011         |Student sees his progress in course rating                      |NFR-R-001                   |Test-02: Verify that no ratings or feedback data are lost when loading profile  |
+|             |FR-011         |Student sees his progress in course rating                      |NFR-RB-001                  |Test-03: Student has not rated any courses yet                                  |
+|US-011       |FR-011         |Student sees information about courses rated in current semester|NFR-PE-001                  |Test-01: 300 students opens ratings page                                        |
+|             |FR-011         |Student sees information about courses rated in current semester|NFR-U-001                   |Test-02: 90% of first-time users understand their semester progress within 3 min|
+|             |FR-011         |Student sees information about courses rated in current semester|NFR-U-002                   |Test-03: Progress bar visible and readable on desktop/mobile                    |
+|             |FR-011         |Student sees information about courses rated in current semester|NFR-PE-004                  |Test-04: Filter updates results ? 1.5 sec                                       |
+|US-012       |FR-012         |Admin sees evaluating statistics                                |NFR-PE-001                  |Test-01: Admin opens statistics page                                            |
+|             |FR-012         |Admin sees evaluating statistics                                |NFR-PE-004                  |Test-02: Admin applies filters on statistics                                    |
