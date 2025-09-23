@@ -40,3 +40,4 @@ For comprehensive project information, please refer to the following documents:
 - [Team Charter](TeamCharter.md) - Detailed information about our team structure, workflows, and collaboration guidelines
 - [Project Description](Project-Description.md) - An overview of our project's core idea, goals, and key features
 - [User Stories](docs/requirements/user-stories.md) - Detailed information about project user stories
+- [Requirements Traceability Matrix](docs/requirements/rtm.md) - Mapping of user stories to functional and non-functional requirements
