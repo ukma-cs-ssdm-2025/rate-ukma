@@ -35,11 +35,8 @@ See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/
 | |FR-003 / FR-008 |User sees course's page (inc. metadata, ratings) |NFR-U-002 |Test-03: UI desktop |
 | |FR-003 / FR-008 |User sees course's page (inc. metadata, ratings) |NFR-U-002 |Test-04: UI mobile |
 |[US-007](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-007-course-recommendations-on-course-page) |FR-010 |User sees personalized course recommendation on course's page |NFR-RB-001 |Test-01: Not enough rating/enroll data for proper algorithm work |
-| |FR-010 |User sees personalized course recommendation on course's page | |Test-02: Recommendations update when new ratings/enrollments are added |
-| |FR-010 |User sees personalized course recommendation on course's page | |Test-03: Student clicks on the recommended course |
 |[US-008](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-008-course-recommendations-on-home-page) |FR-010 |User sees personalized course recommendation on home page |NFR-RB-001 |Test-01: User has not rated any course yet |
 | |FR-010 |User sees personalized course recommendation on home page | |Test-02: User has rated a number of courses |
-| |FR-010 |User sees personalized course recommendation on home page | |Test-03: Recommendations update after user submits new ratings |
 |[US-009](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-009-course-grading) |FR-006 |Student submits ratings and optional reviews |NFR-R-001 |Test-01: User submits a rating |
 | |FR-006 |Student submits ratings and optional reviews |NFR-R-003 |Test-02: Submission failure occurs during rating/review submission |
 | |FR-006 |Student submits ratings and optional reviews |NFR-S-002 |Test-03: User submits review anonymously |
