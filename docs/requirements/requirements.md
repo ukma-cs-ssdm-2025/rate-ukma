@@ -23,7 +23,7 @@ This document defines the **Functional Requirements (FR)** and **Non-Functional 
 
 | Category | ID | Description | Measurable Metric |
 |--------------|------------|--------------------|------------------------|
-| **Performance Efficiency** | NFR-PE-001 | The system shall load the course list page within 2 seconds under normal network conditions. | Page load time ≤ 2 sec (95% of requests) |
+| **Performance Efficiency** | NFR-PE-001 | The system shall load any page within 1.5 seconds under normal network conditions. | Page load time ≤ 1.5 sec |
 | | NFR-PE-002 | The system shall display search results in real-time with a maximum response time of 1 second. | Response time ≤ 1 sec after input |
 | | NFR-PE-003 | The scatter plot on the home page shall render completely within 2 seconds for up to 500 courses. | Scatter plot rendering ≤ 2 sec |
 | | NFR-PE-004 | Filtering on scatter plot or course list shall update results within 1.5 seconds. | Filter response ≤ 1.5 sec |
@@ -33,6 +33,7 @@ This document defines the **Functional Requirements (FR)** and **Non-Functional 
 | | NFR-R-004 | Backups of all ratings and comments shall occur every 24 hours. | Backup frequency = daily |
 | **Usability** | NFR-U-001 | 90% of first-time users shall be able to successfully log in and find a course within 3 minutes without external help. | Success rate ≥ 90% in usability test |
 | | NFR-U-002 | Ratings and reviews shall be clearly visible and readable on desktop and mobile devices. | Readability test score ≥ 90% |
+| **Robustness** | NFR-RB-001 | The system shall correctly handle cases when a user has no data available without errors or broken UI. | System returns valid empty state within ≤ 1 sec |
 | **Security** | NFR-S-001 | The system shall require corporate email login using secure authentication. | 100% authentication via secure protocol |
 | | NFR-S-002 | Student ratings must remain anonymous to other users. | 0 data leaks in security tests |
 | | NFR-S-003 | User sessions shall expire after 30 minutes of inactivity. | Session timeout = 30 minutes |
