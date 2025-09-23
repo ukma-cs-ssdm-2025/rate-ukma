@@ -60,5 +60,5 @@ See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/
 | |FR-011 |Student sees information about courses rated in current semester| NFR-R-002 | Test-04: Monitor endpoint for 14 days; ensure ≥ 99.5% availability |
 |[US-012](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/main/docs/requirements/user-stories.md#us-012-course-evaluation-statistics-for-admin) |FR-012 |Admin sees evaluating statistics |NFR-PE-001 |Test-01: Admin opens statistics page |
 | |FR-012 |Admin sees evaluating statistics |NFR-PE-004 |Test-02: Admin applies filters on statistics |
-| |FR-012 |Admin sees evaluating statistics |NFR-PE-004 |Test-03: Statistics include data restored from backups. |
+| |FR-012 |Admin sees evaluation statistics |NFR-R-004 |Test-03: Statistics include data restored from backups. |
 | |FR-012 |Admin sees evaluating statistics | NFR-R-002 |Test-04: Monitor endpoint for 14 days; ensure ≥ 99.5% availability |
