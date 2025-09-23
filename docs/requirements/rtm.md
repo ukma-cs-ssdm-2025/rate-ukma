@@ -36,7 +36,6 @@ See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/
 | |FR-003 / FR-008 |User sees course's page (inc. metadata, ratings) |NFR-U-002 |Test-04: UI mobile |
 |[US-007](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-007-course-recommendations-on-course-page) |FR-010 |User sees personalized course recommendation on course's page |NFR-RB-001 |Test-01: Not enough rating/enroll data for proper algorithm work |
 |[US-008](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-008-course-recommendations-on-home-page) |FR-010 |User sees personalized course recommendation on home page |NFR-RB-001 |Test-01: User has not rated any course yet |
-| |FR-010 |User sees personalized course recommendation on home page | |Test-02: User has rated a number of courses |
 |[US-009](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-009-course-grading) |FR-006 |Student submits ratings and optional reviews |NFR-R-001 |Test-01: User submits a rating |
 | |FR-006 |Student submits ratings and optional reviews |NFR-R-003 |Test-02: Submission failure occurs during rating/review submission |
 | |FR-006 |Student submits ratings and optional reviews |NFR-S-002 |Test-03: User submits review anonymously |
@@ -46,7 +45,7 @@ See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/
 | |FR-011 |Student sees his progress in course rating |NFR-R-001 |Test-02: Verify that no ratings or feedback data are lost when loading profile |
 | |FR-011 |Student sees his progress in course rating |NFR-RB-001 |Test-03: Student has not rated any courses yet |
 |[US-011](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-011-students-evaluated-courses-per-semester) |FR-011 |Student sees information about courses rated in current semester |NFR-PE-001 |Test-01: 300 students opens ratings page |
-| |FR-011 |Student sees information about courses rated in current semester |NFR-U-001 |Test-02: 90% of first-time users understand their semester progress within 3 min |
+
 | |FR-011 |Student sees information about courses rated in current semester |NFR-U-002 |Test-03: Progress bar visible and readable on desktop/mobile |
 | |FR-011 |Student sees information about courses rated in current semester |NFR-PE-004 |Test-04: Filter updates results < 1.5 sec |
 |[US-012](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-012-course-evaluation-statistics-for-admin) |FR-012 |Admin sees evaluating statistics |NFR-PE-001 |Test-01: Admin opens statistics page |
