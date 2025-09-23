@@ -11,6 +11,7 @@ See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/
 | |FR-001 |Login with corporate email |NFR-S-001 |Test-02: User provides correct creditentials |
 | |FR-001 |Login with corporate email |NFR-S-001 |Test-03: User provides incorrect creditentials |
 | |FR-001 |Login with corporate email |NFR-S-003 |Test-04: Authenticated user is inactive for 30+ minutes |
+| |FR-001 |Login with corporate email |NFR-U-001 |Test-05: Most first-time users (9/10) spend less than 3 minutes logging in|
 |[US-002](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-002-course-browsing) |FR-002 |User browses courses |NFR-PE-001 |Test-01: 300 users access courses' list |
 | |FR-002 |User browses courses |NFR-PE-002 |Test-02: 300 users paginate courses |
 |[US-003](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-003-course-search) |FR-004 |User searches courses |NFR-PE-002 |Test-01: 300 users attempt course searching |
