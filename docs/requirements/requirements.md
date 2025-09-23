@@ -33,7 +33,9 @@ This document defines the **Functional Requirements (FR)** and **Non-Functional 
 | | NFR-R-004 | Backups of all ratings and comments shall occur every 24 hours. | Backup frequency = daily |
 | **Usability** | NFR-U-001 | 90% of first-time users shall be able to successfully log in and find a course within 3 minutes without external help. | Success rate ≥ 90% in usability test |
 | | NFR-U-002 | Ratings and reviews shall be clearly visible and readable on desktop and mobile devices. | Readability test score ≥ 90% |
+| | NFR-U-003 | All interactive elements (e.g., recommended courses, scatter plot) shall provide intuitive navigation to the target page. | Readability test score ≥ 90% |
 | **Robustness** | NFR-RB-001 | The system shall correctly handle cases when a user has no data available without errors or broken UI. | System returns valid empty state within ≤ 1 sec |
+| | NFR-RB-002 | The system shall reflect changes in user data in relevant outputs within 2 seconds. | Recommendation update ≤ 2 sec |
 | **Security** | NFR-S-001 | The system shall require corporate email login using secure authentication. | 100% authentication via secure protocol |
 | | NFR-S-002 | Student ratings must remain anonymous to other users. | 0 data leaks in security tests |
 | | NFR-S-003 | User sessions shall expire after 30 minutes of inactivity. | Session timeout = 30 minutes |
