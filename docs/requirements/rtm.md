@@ -1,6 +1,10 @@
 # Requirements Traceability Matrix
 This document defines the **Requirements Traceability Matrix** for the *Rate UKMA* system.
 
+See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/main/docs/requirements/requirements.md)
+
+
+
 | **User Story ID** | **Requirement ID** | **Requirement Description** | **Non-Functional Requirement ID** | **Potential Test Case** | 
 |-------------|---------------|----------------------------------------------------------------|----------------------------|--------------------------------------------------------------------------------|
 |[US-001](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-001-login-with-corporate-email) |FR-001 |Login with corporate email |NFR-S-001 |Test-01: Authenticated user accesses protected page |
