@@ -34,6 +34,7 @@ See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/
 | |FR-003 / FR-008 |User sees course's page (inc. metadata, ratings) |NFR-U-002 |Test-02: Automated readability |
 | |FR-003 / FR-008 |User sees course's page (inc. metadata, ratings) |NFR-U-002 |Test-03: UI desktop |
 | |FR-003 / FR-008 |User sees course's page (inc. metadata, ratings) |NFR-U-002 |Test-04: UI mobile |
+| |FR-003 / FR-008 |User sees course's page (inc. metadata, ratings) |NFR-R-004 |Test-05: Course ratings display correctly after backup restoration |
 |[US-007](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-007-course-recommendations-on-course-page) |FR-010 |User sees personalized course recommendation on course's page |NFR-RB-001 |Test-01: Not enough rating/enroll data for proper algorithm work |
 |[US-008](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-008-course-recommendations-on-home-page) |FR-010 |User sees personalized course recommendation on home page |NFR-RB-001 |Test-01: User has not rated any course yet |
 |[US-009](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-009-course-grading) |FR-006 |Student submits ratings and optional reviews |NFR-R-001 |Test-01: User submits a rating |
@@ -41,11 +42,14 @@ See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/
 | |FR-006 |Student submits ratings and optional reviews |NFR-S-002 |Test-03: User submits review anonymously |
 | |FR-007 |Student submits ratings and optional reviews |NFR-R-001 |Test-04: User edits an existing review |
 | |FR-007 |Student submits ratings and optional reviews |NFR-R-003 |Test-05: User deletes an existing review |
+| |FR-007 |Student submits ratings and optional reviews |NFR-R-004 |Test-06: Daily backup includes newly submitted ratings and comments|
 |[US-010](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-010-students-total-evaluated-courses) |FR-011 |Student sees his overall progress in course rating |NFR-PE-001 |Test-01: 300 users attempt viewing their profile |
 | |FR-011 |Student sees his progress in course rating |NFR-R-001 |Test-02: Verify that no ratings or feedback data are lost when loading profile |
 | |FR-011 |Student sees his progress in course rating |NFR-RB-001 |Test-03: Student has not rated any courses yet |
+| |FR-011 |Student sees his progress in course rating |NFR-R-004 |Test-04: Student progress data is recoverable from daily backups |
 |[US-011](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-011-students-evaluated-courses-per-semester) |FR-011 |Student sees information about courses rated in current semester |NFR-PE-001 |Test-01: 300 students opens ratings page |
 | |FR-011 |Student sees information about courses rated in current semester |NFR-U-002 |Test-02: Progress bar visible and readable on desktop/mobile |
 | |FR-011 |Student sees information about courses rated in current semester |NFR-PE-004 |Test-03: Filter updates results < 1.5 sec |
 |[US-012](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-012-course-evaluation-statistics-for-admin) |FR-012 |Admin sees evaluating statistics |NFR-PE-001 |Test-01: Admin opens statistics page |
 | |FR-012 |Admin sees evaluating statistics |NFR-PE-004 |Test-02: Admin applies filters on statistics |
+| |FR-012 |Admin sees evaluating statistics |NFR-PE-004 |Test-03: Statistics include data restored from backups. |
