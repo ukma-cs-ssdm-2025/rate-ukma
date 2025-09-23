@@ -1,7 +1,7 @@
 # Requirements Traceability Matrix
 This document defines the **Requirements Traceability Matrix** for the *Rate UKMA* system.
 
-See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/main/docs/requirements/requirements.md)
+See also: [requirements.md](./requirements.md)
 
 
 
