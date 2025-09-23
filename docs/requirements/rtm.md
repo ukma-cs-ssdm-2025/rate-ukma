@@ -8,8 +8,8 @@ See also: [requirements.md](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/
 | **User Story ID** | **Requirement ID** | **Requirement Description** | **Non-Functional Requirement ID** | **Potential Test Case** | 
 |-------------|---------------|----------------------------------------------------------------|----------------------------|--------------------------------------------------------------------------------|
 |[US-001](https://github.com/ukma-cs-ssdm-2025/rate-ukma/blob/docs/%2314-add-requirements-traceability-matrix/docs/requirements/user-stories.md#us-001-login-with-corporate-email) |FR-001 |Login with corporate email |NFR-S-001 |Test-01: Authenticated user accesses protected page |
-| |FR-001 |Login with corporate email |NFR-S-001 |Test-02: User provides correct creditentials |
-| |FR-001 |Login with corporate email |NFR-S-001 |Test-03: User provides incorrect creditentials |
+| |FR-001 |Login with corporate email |NFR-S-001 |Test-02: User provides correct credentials |
+| |FR-001 |Login with corporate email |NFR-S-001 |Test-03: User provides incorrect credentials |
 | |FR-001 |Login with corporate email |NFR-S-003 |Test-04: Authenticated user is inactive for 30+ minutes |
 | |FR-001 |Login with corporate email |NFR-U-001 |Test-05: Most first-time users (9/10) spend less than 3 minutes logging in|
 | |FR-001 |Login with corporate email | NFR-R-002 | Test-06: Monitor login endpoint for 14 days; ensure ≥ 99.5% availability |
