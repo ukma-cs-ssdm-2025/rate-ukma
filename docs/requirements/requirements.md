@@ -37,4 +37,3 @@ This document defines the **Functional Requirements (FR)** and **Non-Functional 
 | **Security** | NFR-S-001 | The system shall require corporate email login using secure authentication. | 100% authentication via secure protocol |
 | | NFR-S-002 | Student ratings must remain anonymous to other users. | 0 data leaks in security tests |
 | | NFR-S-003 | User sessions shall expire after 30 minutes of inactivity. | Session timeout = 30 minutes |
-|
