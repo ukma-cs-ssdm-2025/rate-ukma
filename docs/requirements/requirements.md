@@ -37,7 +37,4 @@ This document defines the **Functional Requirements (FR)** and **Non-Functional 
 | **Security** | NFR-S-001 | The system shall require corporate email login using secure authentication. | 100% authentication via secure protocol |
 | | NFR-S-002 | Student ratings must remain anonymous to other users. | 0 data leaks in security tests |
 | | NFR-S-003 | User sessions shall expire after 30 minutes of inactivity. | Session timeout = 30 minutes |
-| **Maintainability** | NFR-M-001 | The system code shall be modular, with at least 80% of modules having independent unit tests. | Unit test coverage ≥ 80% |
-| | NFR-M-002 | Any configuration changes (e.g., adding a new filter field) shall require no more than 2 hours of development time. | Change implementation time ≤ 2 hours |
-| | NFR-M-003 | The system shall log all errors with timestamps for debugging and analysis. | 100% of errors logged |
-| | NFR-M-004 | The platform shall support adding new recommendation algorithms without modifying core code by using a plugin architecture. | 100% compliance with plugin structure |
+|
