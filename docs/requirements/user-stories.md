@@ -20,6 +20,10 @@
   **When:** I try to log in  
   **Then:** I see an error message indicating invalid email or password  
 
+- **Given:** I am on the login page  
+  **When:** I click "Login with Outlook" and enter a valid Outlook email and password, but the email is not part of the corporate university domain  
+  **Then:** I am redirected back to the login page and I see a notification that only emails from the corporate university domain can access the site  
+
 - **Given:** I am successfully logged in  
   **When:** I access any protected page  
   **Then:** I can access it without logging in again until my session expires  
