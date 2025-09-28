@@ -48,9 +48,7 @@ List all alternatives that were seriously considered. Briefly explain why each r
 
 1. **Direct streaming from primary servers**
     * Rejection Reason: Cannot scale to 10K concurrent users.
-
 2. **P2P (Peer-to-Peer) streaming**
     * Rejection Reason: Security concerns and unreliability/instability.
-
 3. **Third-party service (YouTube, Vimeo)**
     * Rejection Reason: Limited control and branding issues.
