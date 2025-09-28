@@ -1,0 +1,39 @@
+@startuml login-sequence
+title [US-001] Login with Corporate Email
+
+actor Student
+participant "WebApp (React SPA)" as WebApp
+participant "Auth Middleware (Django)" as Auth
+participant "Microsoft OIDC Provider" as OIDC
+database "PostgreSQL" as DB
+
+Student -> WebApp : Request protected page
+WebApp -> Auth : Validate session (cookie + CSRF)
+Auth -> DB : Check session record
+
+alt Session valid
+  DB --> Auth : Session found
+  Auth --> WebApp : OK (user authenticated)
+  WebApp --> Student : Render Home Page
+
+else Session missing / expired
+  DB --> Auth : Session not found
+  Auth --> WebApp : Require login
+  WebApp --> Student : Show Login Page (with Outlook button)
+
+  Student -> WebApp : Click "Login with Outlook"
+  WebApp -> OIDC : Redirect to Microsoft login
+  Student -> OIDC : Enter email & password
+  OIDC --> WebApp : Redirect back with Auth Code
+  WebApp -> Auth : Send Auth Code
+  Auth -> OIDC : Exchange code for tokens
+  OIDC --> Auth : ID Token + Access Token
+
+  Auth -> Auth : Validate ID Token, extract identity
+  Auth -> DB : Create new session
+  DB --> Auth : OK
+  Auth --> WebApp : Set-Cookie (sessionid) + CSRF
+  WebApp --> Student : Redirect to Home Page
+end
+
+@enduml
