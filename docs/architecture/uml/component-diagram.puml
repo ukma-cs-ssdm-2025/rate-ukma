@@ -1,0 +1,58 @@
+@startuml component-diagram
+title Rate UKMA Component Diagram (v1.0)
+
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+left to right direction
+
+package "Client" {
+  [React (Single-Page Application)] <<component>> as WebApp
+}
+
+package "External Systems" {
+  [Microsoft OIDC Identity Provider] <<component>> as MicrosoftOIDC
+}
+
+package "Server (Django)" #EEE {
+
+  interface "REST API (OpenAPI v3)" as RestFacade
+
+  [Authentication Middleware] <<component>> as AuthMiddleware
+  [Recommendation Service]   <<component>> as RecommendationService
+  [Rating Service]           <<component>> as RatingService
+  [Course Service]           <<component>> as CourseService
+  [User Service]             <<component>> as UserService
+  [Scraper Service]          <<component>> as ScraperService
+  [Django ORM]               <<component>> as DjangoORM
+  [File Storage]             <<component>> as FileStorage
+  
+  database "PostgreSQL" as PostgreSQL
+
+  RestFacade --> RecommendationService : fetch recommendations
+  RestFacade --> RatingService         : submit & fetch ratings
+  RestFacade --> CourseService         : manage courses
+  RestFacade --> UserService           : manage user profiles
+
+  RestFacade ..> AuthMiddleware        : validate session cookie & CSRF
+
+  RecommendationService --> RatingService   : get rating data
+  RecommendationService --> CourseService   : get course catalog
+  RatingService         --> UserService     : resolve rating author
+  RatingService         --> CourseService   : resolve rated course
+  ScraperService        --> CourseService   : import courses
+
+  AuthMiddleware  --> DjangoORM
+  CourseService   --> DjangoORM
+  RatingService   --> DjangoORM
+  UserService     --> DjangoORM
+
+  DjangoORM --> PostgreSQL : read/write structured data
+
+  ScraperService --> FileStorage : export JSON dumps
+}
+
+WebApp --> RestFacade       : HTTPS (API calls)
+WebApp --> MicrosoftOIDC    : redirect for login (OIDC)
+AuthMiddleware --> MicrosoftOIDC : code exchange & token validation
+
+@enduml
