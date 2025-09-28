@@ -10,14 +10,14 @@
 
 - **Given:** I am not logged in  
   **When:** I try to access any protected page  
-  **Then:** I am redirected to the login page  
+  **Then:** I am redirected to the platform’s login page (with "Login with Outlook" option)  
 
 - **Given:** I am on the login page  
-  **When:** I enter a valid corporate email and password  
-  **Then:** I am logged in and redirected to the home page  
+  **When:** I click "Login with Outlook" and enter a valid corporate email and password  
+  **Then:** I am authenticated and redirected to the home page  
 
-- **Given:** I have entered an invalid email or incorrect password  
-  **When:** I try to log in  
+- **Given:** I am on the login page  
+  **When:** I click "Login with Outlook" but enter an invalid email or incorrect password  
   **Then:** I see an error message indicating invalid email or password  
 
 - **Given:** I am on the login page  
@@ -26,7 +26,7 @@
 
 - **Given:** I am successfully logged in  
   **When:** I access any protected page  
-  **Then:** I can access it without logging in again until my session expires  
+  **Then:** I can access it without logging in again until my session expires
 
 ---
 
