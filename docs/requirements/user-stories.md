@@ -46,6 +46,10 @@
   **When:** The student clicks on a specific course  
   **Then:** They are navigated to a page with detailed information about that course  
 
+- **Given:** There are no courses available
+  **When:** The student opens the "Courses" page
+  **Then:** A message saying "No courses available" is displayed
+
 ---
 
 ## US-003: Course Search
@@ -68,6 +72,10 @@
   **When:** There are courses with similar names  
   **Then:** The system displays courses that partially match the query  
 
+- **Given:** The student enters a search query
+  **When:** No courses match the query
+  **Then:** A message saying "No courses found" is displayed
+
 ---
 
 ## US-004: Course Filtering
@@ -89,6 +97,10 @@
 - **Given:** Multiple filters are applied  
   **When:** The student clicks the "Clear Filters" button  
   **Then:** All filters are removed, and the full course list is displayed again  
+
+- **Given:** One or more filters are applied
+  **When:** No courses match the filter criteria
+  **Then:** A message saying "No courses match your filters" is displayed
 
 ---
 
@@ -123,6 +135,10 @@
 - **Given:** I am on the home page with the scatter plot displayed  
   **When:** I apply filters (year, semester, faculty, course type, credits, professor, level of study)  
   **Then:** Only the courses matching the applied filters are shown in the scatter plot  
+
+- **Given:** I am on the home page with the scatter plot displayed
+  **When:** There is no data or no courses match the filters
+  **Then:** A message saying "No data available" is displayed
 
 ---
 
@@ -160,13 +176,17 @@
 
 **Acceptance Criteria:**  
 
-- **Given:** I am logged in as a student  
+- **Given:** I am logged in as a student and there are courses to recommend
   **When:** I open any course page  
   **Then:** I see a section labeled _“Students who took this course also liked:”_ with a short list of recommended courses  
 
 - **Given:** Recommended courses are displayed  
   **When:** I click on a recommended course  
   **Then:** I can view its detail page  
+
+- **Given:** I am logged in and there are no recommended courses available
+  **When:** I open the course page
+  **Then:** I see a message saying "No recommendations available"
 
 ---
 
@@ -178,7 +198,7 @@
 
 **Acceptance Criteria:**  
 
-- **Given:** I am logged in as a student  
+- **Given:** I am logged in as a student and there are courses to recommend
   **When:** I open the home page  
   **Then:** I see a section labeled _“Because you liked _:”_ showing a recommended course  
 
@@ -189,6 +209,10 @@
 - **Given:** I am logged in and have not rated (highly) any courses yet  
   **When:** I open the home page  
   **Then:** I do not see any recommendations based on my ratings  
+
+- **Given:** I am logged in and there are no recommended courses available
+  **When:** I open the home page
+  **Then:** I see a message saying "No recommendations available"
 
 ---
 
@@ -278,7 +302,7 @@
 
 **Acceptance Criteria:**  
 
-- **Given:** I am logged in as an administrator  
+- **Given:** I am logged in as an administrator and there are ratings in the system
   **When:** I open the course evaluation statistics page  
   **Then:** I see the number of ratings for each course  
 
@@ -289,3 +313,7 @@
 - **Given:** I am logged in as an administrator  
   **When:** I open the statistics page  
   **Then:** I can filter results by semester, academic year, course name, and other entity fields  
+
+- **Given:** I am logged in as an administrator and there are no ratings in the system
+  **When:** I open the course evaluation statistics page
+  **Then:** A message saying "No ratings available" is displayed
