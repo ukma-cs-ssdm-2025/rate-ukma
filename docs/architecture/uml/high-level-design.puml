@@ -1,21 +1,18 @@
-@startuml
+@startuml high-level-architecture
 title Rate UKMA – High-Level Architecture (v1.0)
 
 skinparam componentStyle rectangle
 skinparam packageStyle  rectangle
 
-'───────────── Presentation ─────────────
 package "Presentation Layer" {
   [Web Frontend (SPA)] as WebApp
 }
 
-'───────────── Backend Boundary ─────────
 package "Edge Layer" as EDGE {
   interface "REST API (OpenAPI v3)" as REST
   [Authentication Middleware] as Auth
 }
 
-'───────────── Business Logic ───────────
 package "Business Logic Layer" as BL {
   [Course Service]          as CourseSvc
   [Rating Service]          as RatingSvc
@@ -27,25 +24,33 @@ package "Business Logic Layer" as BL {
   RatingSvc --> UserSvc
   RecoSvc   --> RatingSvc
   RecoSvc   --> CourseSvc
+  RecoSvc   --> UserSvc
+  ScraperSvc --> CourseSvc
+  ScraperSvc --> UserSvc
 }
 
-'───────────── Data-Access Layer ────────
 package "Data Access Layer" {
-  [ORM] as ORM
+  [Course Repository]   as CourseRepository
+  [Rating Repository]   as RatingRepository
+  [User Repository]     as UserRepository
+  [Scraper Repository]  as ScraperRepository
 }
 
-'───────────── Data Layer ───────────────
 package "Data Layer" {
   database "PostgreSQL" as MainDB
   [File Storage] as FileStore
 }
 
-'───────────── External Systems ─────────
 package "External Systems" {
   [Microsoft OIDC Identity Provider] as OIDC
+  [my.ukma.edu.ua (University Portal)] as UkmaPortal
 }
 
-'───────────── Flows ────────────────────
+CourseSvc   --> CourseRepository
+RatingSvc   --> RatingRepository
+UserSvc     --> UserRepository
+ScraperSvc  --> ScraperRepository
+
 WebApp --> REST
 REST ..> Auth : session cookie + CSRF
 REST --> CourseSvc
@@ -54,11 +59,11 @@ REST --> UserSvc
 REST --> RecoSvc
 Auth --> OIDC
 
-CourseSvc --> ORM
-RatingSvc --> ORM
-UserSvc   --> ORM
-ORM --> MainDB
+CourseRepository   --> MainDB
+RatingRepository   --> MainDB
+UserRepository     --> MainDB
+ScraperRepository  --> FileStore
 
-ScraperSvc --> FileStore
-ScraperSvc --> CourseSvc
+ScraperSvc --> UkmaPortal : scrape course & enrollment data
+
 @enduml
