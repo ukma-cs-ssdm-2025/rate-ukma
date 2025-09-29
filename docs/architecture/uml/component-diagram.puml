@@ -11,6 +11,7 @@ package "Client" {
 
 package "External Systems" {
   [Microsoft OIDC Identity Provider] <<component>> as MicrosoftOIDC
+  [my.ukma.edu.ua (University Portal)] <<component>> as UkmaPortal
 }
 
 package "Server (Django)" #EEE {
@@ -23,10 +24,14 @@ package "Server (Django)" #EEE {
   [Course Service]           <<component>> as CourseService
   [User Service]             <<component>> as UserService
   [Scraper Service]          <<component>> as ScraperService
-  [Django ORM]               <<component>> as DjangoORM
-  [File Storage]             <<component>> as FileStorage
-  
-  database "PostgreSQL" as PostgreSQL
+
+  [Course Repository]        <<component>> as CourseRepository
+  [Rating Repository]        <<component>> as RatingRepository
+  [User Repository]          <<component>> as UserRepository
+  [Scraper Repository]       <<component>> as ScraperRepository
+
+  [File Storage]     <<component>> as FileStorage
+  database "PostgreSQL"      as PostgreSQL
 
   RestFacade --> RecommendationService : fetch recommendations
   RestFacade --> RatingService         : submit & fetch ratings
@@ -37,22 +42,26 @@ package "Server (Django)" #EEE {
 
   RecommendationService --> RatingService   : get rating data
   RecommendationService --> CourseService   : get course catalog
+  RecommendationService --> UserService     : get user history
   RatingService         --> UserService     : resolve rating author
   RatingService         --> CourseService   : resolve rated course
-  ScraperService        --> CourseService   : import courses
+  ScraperService        --> CourseService   : update courses
+  ScraperService        --> UserService     : update enrollments
 
-  AuthMiddleware  --> DjangoORM
-  CourseService   --> DjangoORM
-  RatingService   --> DjangoORM
-  UserService     --> DjangoORM
+  CourseService   --> CourseRepository
+  RatingService   --> RatingRepository
+  UserService     --> UserRepository
+  ScraperService  --> ScraperRepository
 
-  DjangoORM --> PostgreSQL : read/write structured data
-
-  ScraperService --> FileStorage : export JSON dumps
+  CourseRepository   --> PostgreSQL
+  RatingRepository   --> PostgreSQL
+  UserRepository     --> PostgreSQL
+  ScraperRepository  --> FileStorage
 }
 
 WebApp --> RestFacade       : HTTPS (API calls)
 WebApp --> MicrosoftOIDC    : redirect for login (OIDC)
 AuthMiddleware --> MicrosoftOIDC : code exchange & token validation
+ScraperService --> UkmaPortal    : scrape course & enrollment data
 
 @enduml
