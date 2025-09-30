@@ -13,19 +13,21 @@
 
 ## 2. Roles & Responsibilities
 
-Core:
+| Name | Core | Project Requirements | Architecture & Design |
+| :--- | :--- | :--- | :--- |
+| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper |
+| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead |
+| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead |
+| **Milana** | Documentation Lead | Quality Lead | Documentation Lead |
 
-* **Repo Maintainer:** Kateryna  
-* **CI Maintainer:** Anastasiia  
-* **Documentation Lead:** Milana  
-* **Issue Tracker Lead:** Andrii
+---
 
-Project Requirements:
+Backend / Frontend Responsibilities:
 
-* **Requirements Lead:** Andrii  
-* **Quality Lead:** Milana  
-* **Traceability Lead:** Kateryna  
-* **Documentation Lead:** Anastasiia
+* **Anastasiia:** Backend++ (focus: authorization)
+* **Kateryna:** Frontend+, Backend+ (focus: API)
+* **Andrii:** Frontend+, Backend+ (focus: parser)
+* **Milana:** Frontend+, Backend+ (focus: deduplication)
 
 ## 3. Communication Plan
 
@@ -40,6 +42,7 @@ Project Requirements:
 * **Branch Naming:** `type/#<issue-number>-short-description` (e.g., `docs/#3-teamcharter-setup`).  
 * **Commit Conventions:** `<type>(#<issue-number>): short message` (e.g., `docs(#3): add TeamCharter.md`).  
 * **Code Review Rules:** Each PR requires at least one approval. [CodeRabbit](https://www.coderabbit.ai/) is used for automated review.  
+* **Team Charter Changes:** All PRs with Team Charter changes must be approved by every team member before merging. This ensures full visibility and alignment on foundational team agreements.
 * **Integration:** Merge frequently to avoid long-lived branches.  
 * **User Story Review:** All user stories must be reviewed before merging. At least one approval required, all comments resolved. Recommended that all members review.  
 * **Non-Functional Requirements Verification:** Evaluated in a team review session. If no consensus, resolved via vote.  
@@ -80,4 +83,4 @@ Project Requirements:
 * [x] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))  
 * [x] Anastasiia (GitHub: [@stasiaaleks](https://github.com/stasiaaleks))  
 * [x] Milana (GitHub: [@miqdok](https://github.com/miqdok))  
-* [x] Andrii (GitHub: [@Fybex](https://github.com/Fybex))  
+* [x] Andrii (GitHub: [@Fybex](https://github.com/Fybex))
