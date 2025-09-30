@@ -21,6 +21,7 @@ The Rate UKMA platform enables students of NaUKMA to browse courses, submit rati
 ![High-Level Architecture Diagram](./uml/high-level-design.svg)
 
 **References:**
+
 - [Download Diagram (SVG)](./uml/high-level-design.svg)
 - [View PlantUML Source](./uml/high-level-design.puml)
 
