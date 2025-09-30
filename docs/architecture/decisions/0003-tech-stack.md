@@ -40,7 +40,8 @@ The technology stack will consist of:
 
 ### Backend Programming Language
 1. **Java**
-   * Mature, performant, strong typing. Rejected due to higher complexity for a small team.
+   * Mature, performant, strongly typed. Rejected because the development environment can be heavier to set up across different OS'es, Java tooling typically requires more system resources, and the development process involves more boilerplate compared to Django/Python, which would slow down the team.
+
 2. **Rust**
    * High performance and safety. Rejected due to steep learning curve and lack of rapid web development libraries.
 
