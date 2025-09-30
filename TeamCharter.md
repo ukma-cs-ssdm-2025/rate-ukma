@@ -50,6 +50,7 @@ Backend / Frontend Responsibilities:
 ## 5. Artifact Management
 
 * **Requirements Storage:** `/docs/requirements/` directory.  
+* **Architecture Storage:** `/docs/architecture/` directory.
 * **README Maintenance:** `README.md` kept up-to-date and approved by all team members.  
 
 ## 6. Individual Contributions
