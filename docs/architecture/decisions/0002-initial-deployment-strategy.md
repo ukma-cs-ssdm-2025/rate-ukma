@@ -60,7 +60,10 @@ We will start with a **simple, single-instance deployment** with upgrade paths:
    - Nginx for reverse proxy and static files
    - Django with Gunicorn for application backend server
    - PostgreSQL in Docker as database
-   - Daily backup script with rsync dump copy to a separate server
+   - Secrets: AWS SSM/Secrets Manager; no static secrets in code/Actions
+   - Network: strict security groups, DB not exposed publicly
+   - TLS: Let’s Encrypt; HTTP Strict Transport Security + modern ciphers
+   - Daily encrypted backup script with rsync dump copy to a separate server. Integrity: checksums.
    - Basic monitoring via CloudWatch or custom script
 
 4. **Deployment Process**
