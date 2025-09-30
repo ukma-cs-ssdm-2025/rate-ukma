@@ -1,0 +1,25 @@
+# Virtual environments
+**/*venv*/
+**/venv/
+**/.venv/
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+
+# Cache directories
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
