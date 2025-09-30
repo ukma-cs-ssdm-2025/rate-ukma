@@ -1,0 +1,105 @@
+@startuml deployment-diagram
+
+title Rate UKMA Deployment Diagram (v1.0)
+
+skinparam rectangle BorderColor #1976D2
+skinparam node BorderColor #1976D2
+skinparam database BackgroundColor #C8E6C9
+
+actor "Student/Admin" as User
+
+node "GitHub" {
+    component "Main Branch" as MainBranch
+    component "Live Branch" as LiveBranch
+}
+
+node "Development Environment" <<local>> {
+    node "Docker Compose" as DevDocker {
+        component "React Dev Server\n(port 3000)" as DevReact
+        component "Django Dev Server\n(port 8000)" as DevDjango
+        database "PostgreSQL" as DevDB
+    }
+}
+
+cloud "AWS Cloud" {
+    rectangle "Staging Environment" {
+        node "EC2 Instance (Staging)\nt3.micro (2 vCPU, 1GB RAM)\nUbuntu 22.04 LTS, 15GB SSD" as StagingEC2 {
+            node "Docker" as StagingDocker {
+                component "React (Static)" as StagingReact
+                component "Django + Gunicorn" as StagingDjango
+                component "Nginx" as StagingNginx
+                database "PostgreSQL" as StagingDB
+            }
+        }
+        component "GitHub Actions\n(Auto-deploy)" as StagingCI
+    }
+    
+    rectangle "Production Environment" {
+        node "EC2 Instance (Production)\nt3.small (2 vCPU, 2GB RAM)\nUbuntu 22.04 LTS, 20GB SSD" as ProdEC2 {
+            node "Docker" as ProdDocker {
+                component "React (Static)" as ProdReact
+                component "Django + Gunicorn" as ProdDjango
+                component "Nginx" as ProdNginx
+                database "PostgreSQL" as ProdDB
+            }
+            
+            component "DB Backup Script\n(Daily Systemd Timer)" as BackupScript
+            component "AWS CloudWatch\nor Custom Script" as MonitoringService
+        }
+        
+        node "Backup Server\nt3.micro (2 vCPU, 1GB RAM)\nUbuntu 22.04 LTS, 30GB SSD" as BackupEC2 {
+            database "Backup Storage" as BackupStorage
+        }
+        
+        component "GitHub Actions\n(Auto-deploy)" as ProdCI
+    }
+}
+
+' Development
+User --> DevReact : "localhost:3000"
+User --> DevDjango : "localhost:8000/api"
+DevDjango --> DevDB
+
+' CI/CD
+MainBranch --> StagingCI : "push triggers"
+StagingCI --> StagingEC2 : "deploy"
+LiveBranch --> ProdCI : "push triggers"
+ProdCI --> ProdEC2 : "deploy"
+
+' Staging
+User --> StagingNginx : staging domain
+StagingNginx --> StagingReact
+StagingNginx --> StagingDjango
+StagingDjango --> StagingDB
+
+' Production
+User --> ProdNginx : production domain
+ProdNginx --> ProdReact : "serve static files"
+ProdNginx --> ProdDjango : "proxy API requests"
+ProdDjango --> ProdDB
+BackupScript --> ProdDB : "dump"
+BackupScript --> BackupStorage : "rsync copy daily"
+MonitoringService --> MonitoringService : "collect metrics,\nnotify"
+
+note right of BackupScript
+  **Daily Backups:**
+  - pg_dump at 3 AM
+  - rsync to backup server (dump copy)
+  - 7-day retention
+end note
+
+note right of MonitoringService
+  **Basic Monitoring:**
+  - CPU, Memory, Disk
+  - Error logs
+  - Custom metrics
+end note
+
+note right of ProdEC2
+  **Load Balancing and Auto-scaling:**
+  - AWS Application Load Balancer
+  - Auto-scaling group for EC2 instances
+  - For later versions (users number increase)
+end note
+
+@enduml
