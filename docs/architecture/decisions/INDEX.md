@@ -8,3 +8,4 @@ This document serves as the central index and log for all significant **Architec
 
 * [ADR-0000](0000-use-adrs.md) - Use Architecture Decision Records
 * [ADR-0001](0001-n-tier-arch.md) - N-tier Architecture
+* [ADR-0003](0003-tech-stack.md) - Technology Stack
