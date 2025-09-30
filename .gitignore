@@ -7,3 +7,5 @@ __pycache__/
 *.pyw
 *.pyz
 
+.ruff_cache/
+.pytest_cache/

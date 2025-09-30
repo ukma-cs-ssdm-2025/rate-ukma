@@ -1,0 +1,36 @@
+{
+    "cSpell.words": [
+        "backlink",
+        "chunker",
+        "Disconnectable",
+        "docstore",
+        "docstores",
+        "faiss",
+        "gdrive",
+        "hubspot",
+        "nlist",
+        "nprobe",
+        "ntotal",
+        "standardmetrics",
+        "StandardMetrics",
+        "technexus",
+        "undrifted"
+    ],
+    "python.analysis.typeCheckingMode": "standard",
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "ruff.enable": true
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+        "source.organizeImports": "always"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "eslint.workingDirectories": ["src/webapp"]
+}
