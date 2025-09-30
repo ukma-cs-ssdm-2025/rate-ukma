@@ -1,0 +1,156 @@
+@startuml core-domain-model
+title Rate UKMA – Domain Model (v1.0)
+
+class User {
+  +id    : UUID [1]
+  +email : Email [1]
+}
+
+abstract class Person {
+  +id         : UUID [1]
+  +firstName  : string [1]
+  +patronymic : string [0..1]
+  +lastName   : string [1]
+}
+
+class Student {
+  +educationLevel : EducationLevel [1]
+  /overallRatedCourses : int
+  /ratedCoursesThisSem : int
+}
+User "1" -- "0..1" Student
+Student --|> Person
+
+class Instructor {
+  +academicDegree     : AcademicDegree [0..1]
+  +academicTitle      : AcademicTitle [0..1]
+  +isLecturer         : bool [1]
+  +isPracticumTeacher : bool [1]
+}
+Instructor --|> Person
+
+class Faculty {
+  +id   : UUID [1]
+  +name : string [1]
+}
+
+class Department {
+  +id   : UUID [1]
+  +name : string [1]
+}
+
+class Speciality {
+  +id   : UUID [1]
+  +name : string [1]
+}
+
+class Course {
+  +id           : UUID [1]
+  +code         : string [1]
+  +title        : string [1]
+  +description  : text [0..1]
+  +status       : CourseStatus [1]
+  +typeKind     : CourseTypeKind [1]
+  /avgDifficulty : float
+  /avgUsefulness : float
+  /ratingsCount  : int
+}
+Course "*" -- "1" Faculty
+Course "*" -- "1" Department
+Course "*" -- "*" Speciality : pro-oriented for
+
+class Semester {
+  +id   : UUID [1]
+  +year : int [1]
+  +term : SemesterTerm [1]
+}
+
+class CourseOffering {
+  +id            : UUID [1]
+  +credits       : float [1]
+  +weeklyHours   : int [1]
+  +lectureCount  : int [0..1]
+  +practiceCount : int [0..1]
+  +practiceType  : PracticeType [0..1]
+  +examType      : ExamType [1]
+  +maxStudents   : int [0..1]
+  +maxGroups     : int [0..1]
+  +groupSizeMin  : int [0..1]
+  +groupSizeMax  : int [0..1]
+  /occupiedSeats : int
+  /freeSeats     : int
+}
+Course "1"   -- "*" CourseOffering
+Semester "1" -- "*" CourseOffering
+CourseOffering "*" -- "*" Instructor : taught_by
+
+class Enrollment {
+  +id         : UUID [1]
+  +status     : EnrollmentStatus [1]
+  +enrolledAt : datetime [1]
+}
+Student "1"        -- "*" Enrollment
+CourseOffering "1" -- "*" Enrollment
+
+class Rating {
+  +id         : UUID [1]
+  +difficulty : int [1]    ' 1–5
+  +usefulness : int [1]    ' 1–5
+  +comment    : text [0..1]
+  +createdAt  : datetime [1]
+}
+Student "1" -- "*" Rating
+Course  "1" -- "*" Rating
+
+enum EducationLevel {
+  Bachelor
+  Master
+}
+
+enum CourseStatus {
+  Planned
+  Active
+  Finished
+}
+
+enum CourseTypeKind {
+  Compulsory
+  Elective
+}
+
+enum SemesterTerm {
+  Fall
+  Spring
+  Summer
+}
+
+enum ExamType {
+  Exam
+  Credit
+}
+
+enum PracticeType {
+  Practice
+  Seminar
+}
+
+enum EnrollmentStatus {
+  Enrolled
+  Dropped
+  Forced
+}
+
+enum AcademicDegree {
+  PhD
+  DoctorOfSciences
+}
+
+enum AcademicTitle {
+  Assistant
+  Lecturer
+  SeniorLecturer
+  AssociateProfessor   
+  Professor            
+}
+
+@enduml

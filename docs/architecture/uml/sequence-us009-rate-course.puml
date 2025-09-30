@@ -1,0 +1,53 @@
+@startuml sequence-us009-rate-course
+title [US-009] Submit Course Rating & Review
+
+actor Student
+participant "WebApp (React SPA)" as WebApp
+participant "REST Façade" as RestFacade
+participant "Auth Middleware" as Auth
+participant "User Service" as UserService
+participant "Rating Service" as RatingService
+participant "Course Service" as CourseService
+database "PostgreSQL" as DB
+
+Student -> WebApp : Open Grading Section
+WebApp -> RestFacade : GET /user/me
+RestFacade -> UserService : Get user profile
+UserService -> Auth : Check session cookie
+Auth -> DB : Validate session
+
+alt Session valid
+  DB --> Auth : OK
+  Auth --> UserService : User info
+  UserService --> RestFacade : Profile + completed courses
+  RestFacade --> WebApp : Profile + completed courses
+  WebApp --> Student : Show grading list
+
+  Student -> WebApp : Submit rating + optional comment
+  WebApp -> RestFacade : POST /ratings
+  RestFacade -> Auth : Validate session
+  Auth -> DB : Validate session
+  DB --> Auth : OK
+  Auth --> RestFacade : User id
+
+  RestFacade -> RatingService : Submit rating
+  RestFacade -> CourseService : Verify course
+  CourseService -> DB : Lookup
+  DB --> CourseService : OK
+  CourseService --> RestFacade : Course info
+
+  RestFacade -> RatingService : Submit rating with course info
+  RatingService -> DB : Store or update rating
+  DB --> RatingService : Success
+  RatingService --> RestFacade : Confirmation
+  RestFacade --> WebApp : Confirmation
+  WebApp --> Student : Show updated feedback
+
+else Session invalid / expired
+  DB --> Auth : Not found
+  Auth --> RestFacade : 401 Unauthorized
+  RestFacade --> WebApp : Session invalid
+  WebApp --> Student : Redirect to login
+end
+
+@enduml

@@ -1,0 +1,55 @@
+@startuml login-sequence
+title [US-001] Login with Corporate Email
+
+actor Student
+participant "WebApp (React SPA)" as WebApp
+participant "REST Façade" as RestFacade
+participant "Auth Middleware" as Auth
+participant "User Service" as UserService
+participant "Microsoft OIDC Provider" as OIDC
+database "PostgreSQL" as DB
+
+Student -> WebApp : Request protected page
+WebApp -> RestFacade : Validate session (cookie + CSRF)
+RestFacade -> Auth : Session validation
+Auth -> DB : Check session record
+
+alt Session valid
+  DB --> Auth : Session found
+  Auth --> RestFacade : Session OK
+  RestFacade --> WebApp : OK (user authenticated)
+  WebApp --> Student : Render Home Page
+
+else Session missing/expired
+  DB --> Auth : Session not found
+  Auth --> RestFacade : Session invalid
+  RestFacade --> WebApp : Require login
+  WebApp --> Student : Show Login Page (with Outlook button)
+
+  Student -> WebApp : Click "Login with Outlook"
+  WebApp -> OIDC : Redirect to Microsoft login
+  Student -> OIDC : Enter email & password
+  OIDC --> RestFacade : Redirect to /auth/callback?code=XYZ
+  RestFacade -> Auth : Handle /auth/callback with code
+  Auth -> OIDC : Exchange code for tokens
+  OIDC --> Auth : ID Token + Access Token
+  Auth -> Auth : Validate ID Token + check corporate domain
+
+  alt Invalid or unauthorized
+    Auth --> RestFacade : 401 / 403
+    RestFacade --> WebApp : Show Login Error
+    WebApp --> Student : Display error message
+
+  else Valid corporate credentials
+    Auth -> DB : Create new session record
+    DB --> Auth : OK
+    Auth -> UserService : Ensure user exists in platform
+    UserService -> DB : Lookup/create user
+    DB --> UserService : User record
+    UserService --> Auth : OK
+    Auth --> RestFacade : Session created
+    RestFacade --> WebApp : Set-Cookie (sessionid) + CSRF
+    WebApp --> Student : Redirect to Home Page
+  end
+end
+@enduml
