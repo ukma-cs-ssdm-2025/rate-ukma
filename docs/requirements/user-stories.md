@@ -248,7 +248,7 @@
 
 **INVEST:**
 
-- **I:** Indepentent of other course recommendation features.  
+- **I:** Independent of other course recommendation features.  
 - **N:** Recommendation logic is flexible.  
 - **V:** Helps students find related useful courses.  
 - **E:** Estimable as it reuses existing course data.  
