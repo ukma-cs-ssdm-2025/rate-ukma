@@ -2,7 +2,7 @@
 # High-Level Architecture Overview
 
 The **Rate UKMA** system is built using a **layered / N-tier architecture**  
-(see [ADR-0001: N-tier Architecture](../decisions/0001-n-tier-arch.md)), separating the application into presentation, edge/API, business logic, data access, and data layers, while integrating external systems.
+(see [ADR-0001: N-tier Architecture](./decisions/0001-n-tier-arch.md)), separating the application into presentation, edge/API, business logic, data access, and data layers, while integrating external systems.
 
 ---
 
