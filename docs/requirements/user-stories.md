@@ -59,9 +59,9 @@
   **When:** The student clicks on a specific course  
   **Then:** They are navigated to a page with detailed information about that course  
 
-- **Given:** There are no courses available
-  **When:** The student opens the "Courses" page
-  **Then:** A message saying "No courses available" is displayed
+- **Given:** There are no courses available  
+  **When:** The student opens the "Courses" page  
+  **Then:** A message saying "No courses available" is displayed  
 
 **INVEST:**
 
