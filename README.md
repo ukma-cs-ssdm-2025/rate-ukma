@@ -42,4 +42,4 @@ For comprehensive project information, please refer to the following documents:
 - [Architecture](docs/architecture/) - High-level design, ADRs, and UML diagrams
 - [User Stories](docs/requirements/user-stories.md) - Detailed information about project user stories
 - [Requirements Specification](docs/requirements/requirements.md) - Functional and non-functional requirements
-- [Requirements Traceability Matrix](docs/requirements/rtm.md) - Mapping of user stories to functional and non-functional requirements
+- [Traceability Matrix](docs/traceability-matrix.md) - Mapping of user stories to functional and non-functional requirements
