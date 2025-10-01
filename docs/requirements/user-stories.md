@@ -94,9 +94,9 @@
   **When:** There are courses with similar names  
   **Then:** The system displays courses that partially match the query  
 
-- **Given:** The student enters a search query
-  **When:** No courses match the query
-  **Then:** A message saying "No courses found" is displayed
+- **Given:** The student enters a search query  
+  **When:** No courses match the query  
+  **Then:** A message saying "No courses found" is displayed  
 
 **INVEST:**
 
@@ -129,9 +129,9 @@
   **When:** The student clicks the "Clear Filters" button  
   **Then:** All filters are removed, and the full course list is displayed again  
 
-- **Given:** One or more filters are applied
-  **When:** No courses match the filter criteria
-  **Then:** A message saying "No courses match your filters" is displayed
+- **Given:** One or more filters are applied  
+  **When:** No courses match the filter criteria  
+  **Then:** A message saying "No courses match your filters" is displayed  
 
 **INVEST:**
 
@@ -176,9 +176,9 @@
   **When:** I apply filters (year, semester, faculty, course type, credits, professor, level of study)  
   **Then:** Only the courses matching the applied filters are shown in the scatter plot  
 
-- **Given:** I am on the home page with the scatter plot displayed
-  **When:** There is no data or no courses match the filters
-  **Then:** A message saying "No data available" is displayed
+- **Given:** I am on the home page with the scatter plot displayed  
+  **When:** There is no data or no courses match the filters  
+  **Then:** A message saying "No data available" is displayed  
 
 **INVEST:**
 
@@ -234,7 +234,7 @@
 
 **Acceptance Criteria:**  
 
-- **Given:** I am logged in as a student and there are courses to recommend
+- **Given:** I am logged in as a student and there are courses to recommend  
   **When:** I open any course page  
   **Then:** I see a section labeled _“Students who took this course also liked:”_ with a short list of recommended courses  
 
@@ -242,9 +242,9 @@
   **When:** I click on a recommended course  
   **Then:** I can view its detail page  
 
-- **Given:** I am logged in and there are no recommended courses available
-  **When:** I open the course page
-  **Then:** I see a message saying "No recommendations available"
+- **Given:** I am logged in and there are no recommended courses available  
+  **When:** I open the course page  
+  **Then:** I see a message saying "No recommendations available"  
 
 **INVEST:**
 
@@ -265,7 +265,7 @@
 
 **Acceptance Criteria:**  
 
-- **Given:** I am logged in as a student and there are courses to recommend
+- **Given:** I am logged in as a student and there are courses to recommend  
   **When:** I open the home page  
   **Then:** I see a section labeled _“Because you liked _:”_ showing a recommended course  
 
@@ -277,9 +277,9 @@
   **When:** I open the home page  
   **Then:** I do not see any recommendations based on my ratings  
 
-- **Given:** I am logged in and there are no recommended courses available
-  **When:** I open the home page
-  **Then:** I see a message saying "No recommendations available"
+- **Given:** I am logged in and there are no recommended courses available  
+  **When:** I open the home page  
+  **Then:** I see a message saying "No recommendations available"  
 
 **INVEST:**  
 
@@ -405,7 +405,7 @@
 
 **Acceptance Criteria:**  
 
-- **Given:** I am logged in as an administrator and there are ratings in the system
+- **Given:** I am logged in as an administrator and there are ratings in the system  
   **When:** I open the course evaluation statistics page  
   **Then:** I see the number of ratings for each course  
 
@@ -417,9 +417,9 @@
   **When:** I open the statistics page  
   **Then:** I can filter results by semester, academic year, course name, and other entity fields  
 
-- **Given:** I am logged in as an administrator and there are no ratings in the system
-  **When:** I open the course evaluation statistics page
-  **Then:** A message saying "No ratings available" is displayed
+- **Given:** I am logged in as an administrator and there are no ratings in the system  
+  **When:** I open the course evaluation statistics page  
+  **Then:** A message saying "No ratings available" is displayed  
 
 **INVEST:**  
 
