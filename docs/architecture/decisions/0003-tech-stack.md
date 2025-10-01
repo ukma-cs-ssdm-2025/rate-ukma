@@ -27,13 +27,12 @@ The technology stack will consist of:
 
 
 ## Consequences
-* ✅ Clear separation of concerns: React handles UI, Django handles backend logic, and PostgreSQL handles data persistence. This reduces coupling and improves maintainability.  
-* ✅ Rapid development: Django provides built-in ORM, authentication, and admin interface, enabling faster feature implementation.  
-* ✅ Wide community support: All chosen technologies are mature, well-documented, and widely used, reducing the risk of knowledge gaps or unsupported features.  
-* ✅ Scalable architecture: The monolithic Django backend can be horizontally replicated; modules can be extracted into separate services later if needed.  
-* ✅ Cross-platform compatibility: React is browser-based, Django supports multiple OS deployments, and PostgreSQL runs on most platforms.  
-* ⚠️ Module boundaries must be enforced: Without careful modularization, the monolith could become tightly coupled and harder to maintain.  
-* ⚠️ Limited component-level scaling: Unlike microservices, specific parts of the system (e.g., recommendation engine) cannot be independently scaled without scaling the whole backend. 
+* ✅ **Clear separation of concerns**: React handles UI, Django handles backend logic, and PostgreSQL handles data persistence.  
+* ✅ **Rapid development**: Django provides built-in ORM, authentication, and admin interface, speeding up implementation.  
+* ✅ **Wide community support**: All chosen technologies are mature, well-documented, and widely used, reducing development risks.  
+* ✅ **Cross-platform compatibility**: React is browser-based, Django supports multiple OS deployments, and PostgreSQL runs on most platforms.  
+* ⚠️ **Learning curve**: Some team members will need to learn React and Django conventions to stay productive.  
+
 
 
 ## Considered Alternatives
