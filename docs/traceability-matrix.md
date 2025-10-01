@@ -10,9 +10,9 @@ See also:
 - [high-level-design.puml](./architecture/uml/high-level-design.puml)
 - [domain-model.puml](./architecture/uml/domain-model.puml)
 
-**Note:** [ADR-0001: N-tier Architecture](./architecture/decisions/0001-n-tier-arch.md) applies to all requirements as the foundational system architecture.
+**Note:** [ADR-0001: N-tier Architecture](./architecture/decisions/0001-n-tier-arch.md) and [ADR-0003: Technology Stack](./architecture/decisions/0003-tech-stack.md) apply to all requirements as the foundational system architecture and technology stack.
 
-| **User Story ID** | **Sequence Diagram** | **Requirement ID** | **Requirement Description** | **Non-Functional Requirement ID** | **Potential Test Case** | **Component** | **ADR** |
+| **User Story ID** | **Sequence Diagram** | **Requirement ID** | **Requirement Description** | **Non-Functional Requirement ID** | **Potential Test Case** | **Component** | **ADRs** |
 |-------------------|----------------|--------------------|-----------------------------|-----------------------------------|-------------------------|---------------|---------|
 |[US-001](./requirements/user-stories.md#us-001-login-with-corporate-email) |[Sequence Diagram 001](../architecture/uml/sequence-us001-login.puml) | [FR-001](./requirements/requirements.md#fr-001) |Login with corporate email |[NFR-S-001](./requirements/requirements.md#nfr-s-001) |Test-01: Authenticated user accesses protected page | WebApp, AuthMiddleware, MicrosoftOIDC | [ADR-002](./architecture/decisions/0002-initial-deployment-strategy.md) |
 | | | [FR-001](./requirements/requirements.md#fr-001) |Login with corporate email |[NFR-S-001](./requirements/requirements.md#nfr-s-001) |Test-02: User provides correct credentials | WebApp, AuthMiddleware, MicrosoftOIDC | |
