@@ -28,6 +28,15 @@
   **When:** I access any protected page  
   **Then:** I can access it without logging in again until my session expires
 
+**INVEST:**
+
+- **I (Independent):** Independent of other stories.  
+- **N (Negotiable):** Exact login provider (Outlook) can be swapped if needed.  
+- **V (Valuable):** Ensures only real students access the system.  
+- **E (Estimable):** Scope is clear (integration with Outlook, domain validation).  
+- **S (Small):** Limited only to login functionality.  
+- **T (Testable):** Acceptance criteria define specific scenarios.
+
 ---
 
 ## US-002: Course Browsing
@@ -50,9 +59,18 @@
   **When:** The student clicks on a specific course  
   **Then:** They are navigated to a page with detailed information about that course  
 
-- **Given:** There are no courses available
-  **When:** The student opens the "Courses" page
-  **Then:** A message saying "No courses available" is displayed
+- **Given:** There are no courses available  
+  **When:** The student opens the "Courses" page  
+  **Then:** A message saying "No courses available" is displayed  
+
+**INVEST:**
+
+- **I:** Independent of login, rating and other stories.  
+- **N:** UI specifics (pagination vs infinite scroll) can be adjusted.  
+- **V:** Core functionality to help students discover courses.  
+- **E:** Easy to estimate; course listing is standard functionality.  
+- **S:** Well-defined limited scope - web page with fetched data and empty state handling.  
+- **T:** Each acceptance criterion is testable.
 
 ---
 
@@ -76,9 +94,18 @@
   **When:** There are courses with similar names  
   **Then:** The system displays courses that partially match the query  
 
-- **Given:** The student enters a search query
-  **When:** No courses match the query
-  **Then:** A message saying "No courses found" is displayed
+- **Given:** The student enters a search query  
+  **When:** No courses match the query  
+  **Then:** A message saying "No courses found" is displayed  
+
+**INVEST:**
+
+- **I:** Independent of browsing, filtering, rating and other course features.  
+- **N:** Search method (exact vs partial match) is flexible.  
+- **V:** Saves time for students searching specific courses.  
+- **E:** Clear scope, straightforward text search.  
+- **S:** Defined only for search functionality.  
+- **T:** Fully testable via search results and edge cases.
 
 ---
 
@@ -102,9 +129,18 @@
   **When:** The student clicks the "Clear Filters" button  
   **Then:** All filters are removed, and the full course list is displayed again  
 
-- **Given:** One or more filters are applied
-  **When:** No courses match the filter criteria
-  **Then:** A message saying "No courses match your filters" is displayed
+- **Given:** One or more filters are applied  
+  **When:** No courses match the filter criteria  
+  **Then:** A message saying "No courses match your filters" is displayed  
+
+**INVEST:**
+
+- **I:** Independent of search, browsing, rating and other course features.  
+- **N:** Filter criteria can evolve (faculty, semester, etc.).  
+- **V:** Helps refine course choices effectively.  
+- **E:** Clear functional boundaries.  
+- **S:** Well-defined limited scope within filtering UI and logic.  
+- **T:** Defined acceptance criteria for testing.
 
 ---
 
@@ -140,9 +176,18 @@
   **When:** I apply filters (year, semester, faculty, course type, credits, professor, level of study)  
   **Then:** Only the courses matching the applied filters are shown in the scatter plot  
 
-- **Given:** I am on the home page with the scatter plot displayed
-  **When:** There is no data or no courses match the filters
-  **Then:** A message saying "No data available" is displayed
+- **Given:** I am on the home page with the scatter plot displayed  
+  **When:** There is no data or no courses match the filters  
+  **Then:** A message saying "No data available" is displayed  
+
+**INVEST:**
+
+- **I:** Independent of other course visualization features.  
+- **N:** Design of axes or filters is adjustable.  
+- **V:** Provides quick comparative insights.  
+- **E:** Estimable based on charting library usage.  
+- **S:** Defined only as a single chart implementation.  
+- **T:** Testable through visible plot, filters, tooltips, and navigation.
 
 ---
 
@@ -170,6 +215,15 @@
   **When:** The page loads  
   **Then:** They appear in reverse chronological order (most recent first)  
 
+**INVEST:**
+
+- **I:** Does not depend on other course rating features.  
+- **N:** Display format can be adjusted.  
+- **V:** Directly supports student decisions.  
+- **E:** Clearly defined scope.  
+- **S:** Simple presentation layer with data fetching.  
+- **T:** Each acceptance criterion is testable.
+
 ---
 
 ## US-007: Course Recommendations on Course Page
@@ -180,7 +234,7 @@
 
 **Acceptance Criteria:**  
 
-- **Given:** I am logged in as a student and there are courses to recommend
+- **Given:** I am logged in as a student and there are courses to recommend  
   **When:** I open any course page  
   **Then:** I see a section labeled _“Students who took this course also liked:”_ with a short list of recommended courses  
 
@@ -188,9 +242,18 @@
   **When:** I click on a recommended course  
   **Then:** I can view its detail page  
 
-- **Given:** I am logged in and there are no recommended courses available
-  **When:** I open the course page
-  **Then:** I see a message saying "No recommendations available"
+- **Given:** I am logged in and there are no recommended courses available  
+  **When:** I open the course page  
+  **Then:** I see a message saying "No recommendations available"  
+
+**INVEST:**
+
+- **I:** Independent of other course recommendation features.  
+- **N:** Recommendation logic is flexible.  
+- **V:** Helps students find related useful courses.  
+- **E:** Estimable as it reuses existing course data.  
+- **S:** Defined only for course page presentation.  
+- **T:** Testable through course presence/absence.
 
 ---
 
@@ -202,7 +265,7 @@
 
 **Acceptance Criteria:**  
 
-- **Given:** I am logged in as a student and there are courses to recommend
+- **Given:** I am logged in as a student and there are courses to recommend  
   **When:** I open the home page  
   **Then:** I see a section labeled _“Because you liked _:”_ showing a recommended course  
 
@@ -214,9 +277,18 @@
   **When:** I open the home page  
   **Then:** I do not see any recommendations based on my ratings  
 
-- **Given:** I am logged in and there are no recommended courses available
-  **When:** I open the home page
-  **Then:** I see a message saying "No recommendations available"
+- **Given:** I am logged in and there are no recommended courses available  
+  **When:** I open the home page  
+  **Then:** I see a message saying "No recommendations available"  
+
+**INVEST:**  
+
+- **I:** Independent of courses evaluation and other stories.  
+- **N:** Recommendation logic is flexible.  
+- **V:** Helps student exploration of new courses.  
+- **E:** Clearly defined scope (homepage recommendations).  
+- **S:** Single recommendation section.  
+- **T:** Testable per acceptance criteria.
 
 ---
 
@@ -248,6 +320,15 @@
   **When:** I return later to that course’s grading section  
   **Then:** I can edit my own feedback  
 
+**INVEST:**  
+
+- **I:** Independent of other stories.  
+- **N:** Feedback fields can be extended.  
+- **V:** Provides critical peer-based insight.  
+- **E:** Clear scope (ratings + comments).  
+- **S:** Defined only for students and their personal feedback.  
+- **T:** Fully testable with feedback submission and editing.
+
 ---
 
 ## US-010: Student’s Total Evaluated Courses
@@ -265,6 +346,15 @@
 - **Given:** I am logged in as a student  
   **When:** I open my profile  
   **Then:** I see the total number of evaluated courses  
+
+**INVEST:**
+
+- **I:** Independent of grading submission and other student features.  
+- **N:** Format of statistics can change.  
+- **V:** Allows personal tracking of contributions.  
+- **E:** Easy to estimate; simple aggregation.  
+- **S:** Defined only for students and their personal statistics.  
+- **T:** Acceptance criteria define clear tests.
 
 ---
 
@@ -296,6 +386,15 @@
   **When:** The rating is submitted  
   **Then:** The progress is updated and changes are applied to personal statistics  
 
+**INVEST:**  
+
+- **I:** Independent of all courses statistics.  
+- **N:** Display method can be flexible.  
+- **V:** Helps student track semester obligations.  
+- **E:** Straightforward to estimate.  
+- **S:** Defined per semester only.  
+- **T:** Testable via completion metrics.
+
 ---
 
 ## US-012: Course Evaluation Statistics for Admin
@@ -306,7 +405,7 @@
 
 **Acceptance Criteria:**  
 
-- **Given:** I am logged in as an administrator and there are ratings in the system
+- **Given:** I am logged in as an administrator and there are ratings in the system  
   **When:** I open the course evaluation statistics page  
   **Then:** I see the number of ratings for each course  
 
@@ -318,6 +417,15 @@
   **When:** I open the statistics page  
   **Then:** I can filter results by semester, academic year, course name, and other entity fields  
 
-- **Given:** I am logged in as an administrator and there are no ratings in the system
-  **When:** I open the course evaluation statistics page
-  **Then:** A message saying "No ratings available" is displayed
+- **Given:** I am logged in as an administrator and there are no ratings in the system  
+  **When:** I open the course evaluation statistics page  
+  **Then:** A message saying "No ratings available" is displayed  
+
+**INVEST:**  
+
+- **I:** Does not depend on other stories.  
+- **N:** Specific charts or metrics can be adjusted.  
+- **V:** Provides insight into engagement for administrators.  
+- **E:** Scope is measurable.  
+- **S:** Defined only for admins and regarding statistics.  
+- **T:** Fully testable with statistics output.

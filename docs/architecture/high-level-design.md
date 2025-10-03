@@ -2,7 +2,7 @@
 # High-Level Architecture Overview
 
 The **Rate UKMA** system is built using a **layered / N-tier architecture**  
-(see [ADR-0001: N-tier Architecture](../decisions/0001-n-tier-arch.md)), separating the application into presentation, edge/API, business logic, data access, and data layers, while integrating external systems.
+(see [ADR-0001: N-tier Architecture](./decisions/0001-n-tier-arch.md)), separating the application into presentation, edge/API, business logic, data access, and data layers, while integrating external systems.
 
 ---
 
@@ -21,6 +21,7 @@ The Rate UKMA platform enables students of NaUKMA to browse courses, submit rati
 ![High-Level Architecture Diagram](./uml/high-level-design.svg)
 
 **References:**
+
 - [Download Diagram (SVG)](./uml/high-level-design.svg)
 - [View PlantUML Source](./uml/high-level-design.puml)
 
