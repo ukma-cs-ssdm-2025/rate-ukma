@@ -1,0 +1,19 @@
+{
+    "cSpell.words": [],
+    "python.analysis.typeCheckingMode": "standard",
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "ruff.enable": true
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+        "source.organizeImports": "always"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+}

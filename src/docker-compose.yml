@@ -1,0 +1,36 @@
+services:
+  db-rateukma:
+    image: postgres:15
+    container_name: "${COMPOSE_PROJECT_NAME}_postgres"
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: "${COMPOSE_PROJECT_NAME}_django_backend"
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+      - media-volume:/app/media
+      - static-volume:/app/static
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db-rateukma
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_DEBUG=1
+
+  #* webapp will be added in the other issue
+
+volumes:
+  postgres_data:
+  media-volume:
+  static-volume:

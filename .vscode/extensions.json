@@ -1,0 +1,19 @@
+{
+    "recommendations": [
+        // * python-related extensions
+        "ms-python.autopep8",
+        "ms-python.debugpy",
+        "ms-python.isort",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "streetsidesoftware.code-spell-checker",
+        // * frontend-related extensions
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-vscode.vscode-typescript-next",
+        // * other extensions
+        "davidanson.vscode-markdownlint",
+        "wayou.vscode-todo-highlight"
+    ]
+}
