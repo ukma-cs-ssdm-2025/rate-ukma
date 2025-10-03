@@ -1,21 +1,5 @@
 {
-    "cSpell.words": [
-        "backlink",
-        "chunker",
-        "Disconnectable",
-        "docstore",
-        "docstores",
-        "faiss",
-        "gdrive",
-        "hubspot",
-        "nlist",
-        "nprobe",
-        "ntotal",
-        "standardmetrics",
-        "StandardMetrics",
-        "technexus",
-        "undrifted"
-    ],
+    "cSpell.words": [],
     "python.analysis.typeCheckingMode": "standard",
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
@@ -32,5 +16,4 @@
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
-    "eslint.workingDirectories": ["src/webapp"]
 }

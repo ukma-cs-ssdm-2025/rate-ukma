@@ -42,3 +42,70 @@ For comprehensive project information, please refer to the following documents:
 - [User Stories](docs/requirements/user-stories.md) - Detailed information about project user stories
 - [Requirements Specification](docs/requirements/requirements.md) - Functional and non-functional requirements
 - [Requirements Traceability Matrix](docs/requirements/rtm.md) - Mapping of user stories to functional and non-functional requirements
+
+## 🚀 Running Project
+
+### Prerequisites
+
+- Python 3.11+
+- Docker Engine 24.0+
+- Docker Compose V2
+- Git
+
+### Starting Development Environment
+
+1. Clone the repository:
+
+   ```bash
+   git clone <repository-url>
+   cd rate-ukma
+   ```
+
+2. Create and configure environment variables:
+
+   ```bash
+   cd src
+   cp .env.sample .env
+   ```
+
+   Add actual values to `.env`.
+
+3. Create and activate virtual environment:
+
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate
+   ```
+
+4. Build containers and start development environment:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+5. Create a superuser:
+
+   ```bash
+   docker exec -it <backend_container_name> bash
+   python manage.py createsuperuser
+
+   # Or one-liner:
+   docker exec -it <backend_container_name> python manage.py createsuperuser
+   ```
+
+### Making Migrations
+
+```bash
+docker exec -it <backend_container_name> bash
+python manage.py makemigrations
+# Or a similar one-liner as above
+```
+
+Then restart the containers - migrations are run on startup
+
+### Running Tests
+
+```bash
+docker exec -it <backend_container_name> pytest
+```
