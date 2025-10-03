@@ -1,15 +1,6 @@
 import reversion
-from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-
-
-def year_format_validator(value):
-    if not (1000 <= value <= 9999):
-        raise ValidationError(
-            f"{value} is not a four-digit year",
-            params={"value": value},
-        )
 
 
 @reversion.register()
@@ -21,10 +12,16 @@ class Course(models.Model):
             MinValueValidator(
                 1991, message="Year cannot be earlier than 1991 (NaUKMA foundation)"
             ),
-            year_format_validator,
+            MaxValueValidator(9999, message="Year is a 4-digit value"),
         ]
     )
-    ukma_id = models.CharField(max_length=6, unique=True)
+    ukma_id = models.IntegerField(
+        unique=True,
+        validators=[
+            MinValueValidator(100000, message="UKMA ID is a 6-digit value"),
+            MaxValueValidator(999999, message="UKMA ID is a 6-digit value"),
+        ],
+    )
 
     def __str__(self):
         return f"{self.name} ({self.ukma_id})"
