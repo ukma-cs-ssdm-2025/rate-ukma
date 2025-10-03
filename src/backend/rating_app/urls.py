@@ -1,3 +1,9 @@
-# TODO: add urlpatterns()
+from django.urls import path
 
-urlpatterns = []
+from .views import CourseListView
+
+app_name = "rating_app"
+
+urlpatterns = [
+    path("courses/", CourseListView.as_view(), name="courses"),
+]

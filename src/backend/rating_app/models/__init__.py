@@ -1,5 +1,5 @@
-from .models import *  # noqa: F403
+from .course import Course
 
-__all__ = []
-
-# * Will be split into multiple files as models number increases
+__all__ = [
+    "Course",
+]

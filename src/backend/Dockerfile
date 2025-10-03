@@ -6,8 +6,9 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
-
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+COPY django-entrypoint.sh /django-entrypoint.sh
+RUN chmod +x /django-entrypoint.sh
+
+ENTRYPOINT ["/django-entrypoint.sh"]
