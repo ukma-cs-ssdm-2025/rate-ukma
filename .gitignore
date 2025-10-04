@@ -26,8 +26,5 @@ __pycache__/
 media/
 static/
 
-# Node modules
-node_modules/
-
 # macOS
 .DS_Store
