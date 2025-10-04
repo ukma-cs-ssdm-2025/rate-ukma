@@ -1,5 +1,14 @@
 {
-	"cSpell.words": ["esbuild", "shadcn", "UKMA"],
+	"cSpell.words": [
+		"createsuperuser",
+		"esbuild",
+		"makemigrations",
+		"pytest",
+		"runserver",
+		"shadcn",
+		"UKMA",
+		"venv"
+	],
 	"editor.formatOnSave": true,
 	"editor.codeActionsOnSave": {
 		"source.organizeImports.biome": "explicit",

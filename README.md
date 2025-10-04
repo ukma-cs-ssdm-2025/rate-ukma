@@ -19,17 +19,17 @@
 
 ## 🧑‍💻 Team
 
-| Name | GitHub |
-|------|--------|
-| Anastasiia Aleksieienko | [@stasiaaleks](https://github.com/stasiaaleks) |
-| Kateryna Bratiuk | [@katerynabratiuk](https://github.com/katerynabratiuk) |
-| Andrii Valenia | [@Fybex](https://github.com/Fybex) |
-| Milana Horalevych | [@miqdok](https://github.com/miqdok) |
+| Name                    | GitHub                                                 |
+| ----------------------- | ------------------------------------------------------ |
+| Anastasiia Aleksieienko | [@stasiaaleks](https://github.com/stasiaaleks)         |
+| Kateryna Bratiuk        | [@katerynabratiuk](https://github.com/katerynabratiuk) |
+| Andrii Valenia          | [@Fybex](https://github.com/Fybex)                     |
+| Milana Horalevych       | [@miqdok](https://github.com/miqdok)                   |
 
 ## 🛠️ Tech Stack
 
 - **Backend:** Django
-- **Frontend:** React
+- **Frontend:** React with TanStack Router, Tailwind CSS, and shadcn/ui
 - **Database:** PostgreSQL
 - **API Contract:** OpenAPI
 
@@ -39,6 +39,7 @@ For comprehensive project information, please refer to the following documents:
 
 - [Team Charter](TeamCharter.md) - Detailed information about our team structure, workflows, and collaboration guidelines
 - [Project Description](Project-Description.md) - An overview of our project's core idea, goals, and key features
+- [Frontend Development](src/webapp/README.md) - Frontend setup, local itdevelopment, and component guides
 - [Architecture](docs/architecture/) - High-level design, ADRs, and UML diagrams
 - [User Stories](docs/requirements/user-stories.md) - Detailed information about project user stories
 - [Requirements Specification](docs/requirements/requirements.md) - Functional and non-functional requirements
@@ -48,7 +49,6 @@ For comprehensive project information, please refer to the following documents:
 
 ### Prerequisites
 
-- Python 3.11+
 - Docker Engine 24.0+
 - Docker Compose V2
 - Git
@@ -71,21 +71,13 @@ For comprehensive project information, please refer to the following documents:
 
    Add actual values to `.env`.
 
-3. Create and activate virtual environment:
-
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate
-   ```
-
-4. Build containers and start development environment:
+3. Build containers and start development environment:
 
    ```bash
    docker compose up -d --build
    ```
 
-5. Create a superuser:
+4. Create a superuser:
 
    ```bash
    docker exec -it <backend_container_name> bash
@@ -105,8 +97,11 @@ python manage.py makemigrations
 
 Then restart the containers - migrations are run on startup
 
-### Running Tests
+## 💻 Development Resources
 
-```bash
-docker exec -it <backend_container_name> pytest
-```
+For detailed development instructions, IDE setup, and additional commands:
+
+- **Backend Development:** See [Backend README](src/backend/README.md) - Django setup, virtual environment, and IDE integration
+- **Frontend Development:** See [Webapp README](src/webapp/README.md) - React setup, local dependencies, and IDE integration
+
+**Important:** While the project runs entirely in Docker, installing dependencies locally provides better IDE integration, IntelliSense, and real-time linting.
