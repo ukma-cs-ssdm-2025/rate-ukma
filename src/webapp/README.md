@@ -9,71 +9,32 @@
 - **Biome** for linting and formatting
 - **Vitest** for testing
 
-## 🚀 Development
+## 🚀 IDE Setup for Better Development Experience
 
-### Docker Setup (Recommended)
+The application runs in Docker containers as described in the main [README](../../README.md). For fast IDE feedback and IntelliSense, set up local Node.js environment:
 
-The frontend runs in Docker containers as part of the main project:
+### Prerequisites
 
-```bash
-# From project root
-docker compose up -d --build
-```
+- Node.js v20+ and pnpm
 
-The app will be available at `http://localhost:3000`.
-
-### Local Development Setup
-
-For the best IDE experience with full IntelliSense, linting, and hot reload:
-
-1. **Install dependencies:**
-
-   ```bash
-   cd src/webapp
-   pnpm install
-   ```
-
-2. **VS Code Setup**
-
-   Install recommended extensions from [`.vscode/extensions.json`](../../.vscode/extensions.json) when VS Code prompts you.
-
-3. **Start development server:**
-
-   ```bash
-   pnpm start
-   ```
-
-4. **Build for production:**
-
-   ```bash
-   pnpm build
-   ```
-
-## 🧪 Testing
-
-Run tests with Vitest:
+### 0. Install pnpm
 
 ```bash
-pnpm test
+npm install -g pnpm
 ```
 
-## 🔧 Code Quality
-
-**Linting & Formatting with Biome:**
+### 1. Install Dependencies
 
 ```bash
-pnpm lint            # Check for issues
-pnpm format          # Check code format issues
-pnpm format --write  # Resolve code format issues
-pnpm check           # Run all checks
+cd src/webapp
+pnpm install
 ```
 
-## 🔗 IDE Integration
+### 2. VS Code Integration
 
-For optimal development experience:
+Install recommended extensions from [`.vscode/extensions.json`](../../.vscode/extensions.json) when VS Code prompts you.
 
-1. **Install recommended extensions** from [`.vscode/extensions.json`](../../.vscode/extensions.json) when VS Code prompts you
-2. **Use local dependencies** (not Docker) for full IDE features
+That's it! Your IDE will now provide full React/TypeScript support while the application continues running in Docker.
 
 ## 🛠️ Useful Commands
 
