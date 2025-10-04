@@ -26,9 +26,22 @@ services:
       - db-rateukma
     environment:
       - PYTHONUNBUFFERED=1
-      - DJANGO_DEBUG=1
+      - DJANGO_DEBUG=1 # TODO: abstract this later after creation of production environment
 
-  #* webapp will be added in the other issue
+  webapp:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    container_name: "${COMPOSE_PROJECT_NAME}_webapp"
+    volumes:
+      - ./webapp:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development # TODO: abstract this later after creation of production environment
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

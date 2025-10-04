@@ -1,5 +1,5 @@
 {
-	"cSpell.words": ["shadcn", "UKMA"],
+	"cSpell.words": ["esbuild", "shadcn", "UKMA"],
 	"editor.formatOnSave": true,
 	"editor.codeActionsOnSave": {
 		"source.organizeImports.biome": "explicit",
