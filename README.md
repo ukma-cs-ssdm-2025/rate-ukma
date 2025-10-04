@@ -77,6 +77,12 @@ For comprehensive project information, please refer to the following documents:
    docker compose up -d --build
    ```
 
+   The following services will be available:
+
+   - **Webapp:** <http://localhost:3000>
+   - **Backend API:** <http://localhost:8000>
+   - **Admin Panel:** <http://localhost:8000/admin>
+
 4. Create a superuser:
 
    ```bash
