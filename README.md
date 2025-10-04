@@ -29,7 +29,7 @@
 ## 🛠️ Tech Stack
 
 - **Backend:** Django
-- **Frontend:** React with TanStack Router, Tailwind CSS, and shadcn/ui
+- **Frontend:** React
 - **Database:** PostgreSQL
 - **API Contract:** OpenAPI
 
@@ -39,7 +39,6 @@ For comprehensive project information, please refer to the following documents:
 
 - [Team Charter](TeamCharter.md) - Detailed information about our team structure, workflows, and collaboration guidelines
 - [Project Description](Project-Description.md) - An overview of our project's core idea, goals, and key features
-- [Frontend Development](src/webapp/README.md) - Frontend setup, local itdevelopment, and component guides
 - [Architecture](docs/architecture/) - High-level design, ADRs, and UML diagrams
 - [User Stories](docs/requirements/user-stories.md) - Detailed information about project user stories
 - [Requirements Specification](docs/requirements/requirements.md) - Functional and non-functional requirements
