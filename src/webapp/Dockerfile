@@ -1,5 +1,5 @@
 # Use Node.js 20 LTS as base image
-FROM node:20-alpine AS base
+FROM --platform=$BUILDPLATFORM node:20-alpine
 
 # Install pnpm
 RUN npm install -g pnpm
