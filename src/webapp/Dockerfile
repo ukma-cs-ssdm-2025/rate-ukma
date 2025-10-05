@@ -12,8 +12,7 @@ COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies with pnpm
 # Use --frozen-lockfile for reproducible builds
-# --prefer-frozen-lockfile ensures the lockfile is respected
-RUN pnpm install --frozen-lockfile --prefer-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .

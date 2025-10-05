@@ -6,7 +6,7 @@
 	"packageManager": "pnpm",
 	"git": true,
 	"version": 1,
-	"framework": "react-cra",
+	"framework": "react-vite",
 	"chosenAddOns": [
 		"biome",
 		"form",
