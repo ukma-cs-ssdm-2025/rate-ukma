@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "corsheaders",
     "reversion",
+    "drf_spectacular",
     "rating_app",
     "scraper",
 ]
@@ -167,4 +168,12 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Rate UKMA API",
+    "DESCRIPTION": "An API for rating UKMA courses and professors",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }

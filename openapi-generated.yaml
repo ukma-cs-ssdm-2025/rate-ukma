@@ -1,0 +1,28 @@
+openapi: 3.0.3
+info:
+  title: Rate UKMA API
+  version: 1.0.0
+  description: An API for rating UKMA courses and professors
+paths:
+  /courses/:
+    get:
+      operationId: courses_retrieve
+      tags:
+      - courses
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          description: No response body
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"
