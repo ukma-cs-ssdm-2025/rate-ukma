@@ -42,7 +42,7 @@ The API covers course discovery, evaluation, recommendation, and analytics capab
 - **Description**: Difficulty/usefulness evaluations created by students.
 - **Key Attributes**: `id`, `difficulty`, `usefulness`, `comment`, `createdAt`
 - **Relationships**: Belongs to students, contributes to course aggregates.
-- **Typical Operations**: `GET /courses/{courseId}/ratings` for anonymized reviews, `POST`/`PATCH`/`DELETE` on the same collection for student-owned feedback.
+- **Typical Operations**: `GET /courses/{courseId}/ratings` for anonymized reviews, `POST /courses/{courseId}/ratings` for creating new ratings, `PATCH /courses/{courseId}/ratings/{ratingId}` and `DELETE /courses/{courseId}/ratings/{ratingId}` for mutating existing ratings. These mutation endpoints require ownership/authorization checks - only the student who created the rating may update or delete it.
 
 ### Recommendations Resource
 
