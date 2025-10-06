@@ -43,6 +43,7 @@ For comprehensive project information, please refer to the following documents:
 - [User Stories](docs/requirements/user-stories.md) - Detailed information about project user stories
 - [Requirements Specification](docs/requirements/requirements.md) - Functional and non-functional requirements
 - [Traceability Matrix](docs/traceability-matrix.md) - Mapping of user stories to functional and non-functional requirements
+- [API Documentation](docs/api/api-documentation.md) - OpenAPI schema generation, Swagger UI setup, and API versioning guide
 
 ## 🚀 Running Project
 
