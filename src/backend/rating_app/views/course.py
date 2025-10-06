@@ -7,10 +7,9 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
 @extend_schema_view(
     list=extend_schema(
         summary="List all courses",
-        description="API: Retrieve a list of all courses ordered by year (descending) and name",
+        description="Retrieve a list of all courses ordered by year (descending) and name",
         tags=["courses"],
         deprecated=False,
-        operation_id="courses_v1_list",
     )
 )
 class CourseListView(generics.ListAPIView):

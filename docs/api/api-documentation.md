@@ -92,7 +92,7 @@ When adding new API endpoints, ensure proper documentation by:
    @extend_schema_view(
        list=extend_schema(
            summary="Brief description",
-           description="API: Detailed description",
+           description="Detailed description",
            tags=["endpoint-group"],
            operation_id="endpoint_v1_list",
        )
@@ -107,7 +107,7 @@ When adding new API endpoints, ensure proper documentation by:
    ```python
    @extend_schema(
        summary="Brief description",
-       description="API: Detailed description",
+       description="Detailed description",
        tags=["endpoint-group"],
        operation_id="endpoint_v1_action"
    )
