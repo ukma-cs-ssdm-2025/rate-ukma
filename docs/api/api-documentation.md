@@ -6,9 +6,9 @@ This project uses `drf-spectacular` for automatic OpenAPI 3.0 schema generation 
 
 ### Settings
 
-- `drf_spectacular` is added to `INSTALLED_APPS` in `rateukma/settings/_base.py:55`
-- `DEFAULT_SCHEMA_CLASS` is set to `drf_spectacular.openapi.AutoSchema` in `rateukma/settings/_base.py:171`
-- `SPECTACULAR_SETTINGS` are configured with project metadata in `rateukma/settings/_base.py:174-179`
+- `drf_spectacular` is added to `INSTALLED_APPS`
+- `DEFAULT_SCHEMA_CLASS` is set to `drf_spectacular.openapi.AutoSchema`
+- `SPECTACULAR_SETTINGS` are configured with project metadata
 
 ### URLs
 
@@ -45,7 +45,7 @@ The API is configured to only allow version `v1`. Future versions will be added 
 3. Export the schema directly:
 
    ```bash
-   curl http://localhost:8000/api/schema/ -o openapi-generated.yaml
+   curl http://localhost:8000/api/schema/ -o ../../docs/api/openapi-generated.yaml
    ```
 
    The generated schema will show versioned paths (e.g., `/api/v1/courses/`) and include version information in the API metadata.
@@ -55,7 +55,7 @@ The API is configured to only allow version `v1`. Future versions will be added 
 Generate the OpenAPI schema without starting the server:
 
 ```bash
-python manage.py spectacular --file openapi-generated.yaml
+python manage.py spectacular --file ../../docs/api/openapi-generated.yaml
 ```
 
 This command is ideal for CI/CD pipelines as it:
@@ -74,7 +74,7 @@ The generated schema file `openapi-generated.yaml` contains versioned endpoints 
 - API testing automation
 - Documentation synchronization
 
-For frontend autogeneration, the schema file should be available at: `/docs/api/openapi-generated.yaml`
+For frontend autogeneration, the schema file should be available at: [`docs/api/openapi-generated.yaml`](./openapi-generated.yaml)
 
 **Important**: When generating frontend clients, ensure the base URL includes the version prefix (e.g., `/api/v1/`).
 
@@ -84,14 +84,30 @@ When adding new API endpoints, ensure proper documentation by:
 
 1. **Use GenericAPIView**: Extend from DRF's generic view classes when possible
 2. **Add serializer_class**: Specify the serializer class for automatic schema generation
-3. **Use @extend_schema**: For custom documentation, use the `@extend_schema` decorator with version information:
+3. **Use @extend_schema_view**: For generic views, use the class-level decorator:
 
    ```python
-   from drf_spectacular.utils import extend_schema
+   from drf_spectacular.utils import extend_schema_view, extend_schema
 
+   @extend_schema_view(
+       list=extend_schema(
+           summary="Brief description",
+           description="API: Detailed description",
+           tags=["endpoint-group"],
+           operation_id="endpoint_v1_list",
+       )
+   )
+   class MyListView(generics.ListAPIView):
+       queryset = MyModel.objects.all()
+       serializer_class = MySerializer
+   ```
+
+   For custom view methods, use `@extend_schema`:
+
+   ```python
    @extend_schema(
-       summary="Brief description (v1)",
-       description="API v1: Detailed description",
+       summary="Brief description",
+       description="API: Detailed description",
        tags=["endpoint-group"],
        operation_id="endpoint_v1_action"
    )
@@ -106,7 +122,7 @@ When adding new API endpoints, ensure proper documentation by:
 After making changes, verify the schema:
 
 ```bash
-python manage.py spectacular --validate --file openapi-generated.yaml
+python manage.py spectacular --validate --file ../../docs/api/openapi-generated.yaml
 ```
 
 This will validate the generated schema and report any issues.

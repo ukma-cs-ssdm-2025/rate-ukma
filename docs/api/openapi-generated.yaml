@@ -6,10 +6,7 @@ info:
 paths:
   /api/v1/courses/:
     get:
-      operationId: courses_v1_list
-      description: 'API v1: Retrieve a list of all courses ordered by year (descending)
-        and name'
-      summary: List all courses (v1)
+      operationId: courses_list
       parameters:
       - name: page
         required: false
