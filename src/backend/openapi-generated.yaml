@@ -4,12 +4,12 @@ info:
   version: 1.0.0
   description: An API for rating UKMA courses and professors
 paths:
-  /courses/:
+  /api/v1/courses/:
     get:
-      operationId: courses_list
-      description: Retrieve a list of all courses ordered by year (descending) and
-        name
-      summary: List all courses
+      operationId: courses_v1_list
+      description: 'API v1: Retrieve a list of all courses ordered by year (descending)
+        and name'
+      summary: List all courses (v1)
       parameters:
       - name: page
         required: false
