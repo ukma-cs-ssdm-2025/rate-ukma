@@ -1,23 +1,57 @@
 {
-  "cSpell.words": [
-    "autogeneration",
-    "runserver",
-    "venv"
-  ],
-  "python.analysis.typeCheckingMode": "standard",
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "ruff.enable": true
-  },
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit",
-    "source.organizeImports": "always"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+	"cSpell.words": [
+		"createsuperuser",
+		"esbuild",
+		"makemigrations",
+		"pytest",
+		"runserver",
+		"shadcn",
+		"UKMA",
+		"venv"
+	],
+	"editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+		"source.organizeImports.biome": "explicit",
+		"source.fixAll": "explicit",
+		"source.organizeImports": "always"
+	},
+	"files.watcherExclude": {
+		"**/routeTree.gen.ts": true
+	},
+	"search.exclude": {
+		"**/routeTree.gen.ts": true
+	},
+	"files.readonlyInclude": {
+		"**/routeTree.gen.ts": true
+	},
+	"python.analysis.typeCheckingMode": "standard",
+	"[python]": {
+		"editor.defaultFormatter": "charliermarsh.ruff"
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[javascriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[css]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"files.associations": {
+		"*.css": "tailwindcss"
+	},
+	"biome.lsp.bin": "./src/webapp/node_modules/.bin/biome",
+	"biome.configurationPath": "./src/webapp/biome.json"
 }

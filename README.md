@@ -19,12 +19,12 @@
 
 ## 🧑‍💻 Team
 
-| Name | GitHub |
-|------|--------|
-| Anastasiia Aleksieienko | [@stasiaaleks](https://github.com/stasiaaleks) |
-| Kateryna Bratiuk | [@katerynabratiuk](https://github.com/katerynabratiuk) |
-| Andrii Valenia | [@Fybex](https://github.com/Fybex) |
-| Milana Horalevych | [@miqdok](https://github.com/miqdok) |
+| Name                    | GitHub                                                 |
+| ----------------------- | ------------------------------------------------------ |
+| Anastasiia Aleksieienko | [@stasiaaleks](https://github.com/stasiaaleks)         |
+| Kateryna Bratiuk        | [@katerynabratiuk](https://github.com/katerynabratiuk) |
+| Andrii Valenia          | [@Fybex](https://github.com/Fybex)                     |
+| Milana Horalevych       | [@miqdok](https://github.com/miqdok)                   |
 
 ## 🛠️ Tech Stack
 
@@ -49,7 +49,6 @@ For comprehensive project information, please refer to the following documents:
 
 ### Prerequisites
 
-- Python 3.11+
 - Docker Engine 24.0+
 - Docker Compose V2
 - Git
@@ -72,21 +71,19 @@ For comprehensive project information, please refer to the following documents:
 
    Add actual values to `.env`.
 
-3. Create and activate virtual environment:
-
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate
-   ```
-
-4. Build containers and start development environment:
+3. Build containers and start development environment:
 
    ```bash
    docker compose up -d --build
    ```
 
-5. Create a superuser:
+   The following services will be available:
+
+   - **Webapp:** <http://localhost:3000>
+   - **Backend API:** <http://localhost:8000>
+   - **Admin Panel:** <http://localhost:8000/admin>
+
+4. Create a superuser:
 
    ```bash
    docker exec -it <backend_container_name> bash
@@ -106,8 +103,11 @@ python manage.py makemigrations
 
 Then restart the containers - migrations are run on startup
 
-### Running Tests
+## 💻 Development Resources
 
-```bash
-docker exec -it <backend_container_name> pytest
-```
+For detailed development instructions, IDE setup, and additional commands:
+
+- **Backend Development:** See [Backend README](src/backend/README.md) - Django setup, virtual environment, and IDE integration
+- **Frontend Development:** See [Webapp README](src/webapp/README.md) - React setup, local dependencies, and IDE integration
+
+**Important:** While the project runs entirely in Docker, installing dependencies locally provides better IDE integration, IntelliSense, and real-time linting.
