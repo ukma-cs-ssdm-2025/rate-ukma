@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-- **Base URL**: `http://localhost:3000/api/v1`
+- **Base URL**: `http://localhost:8000/api/v1`
 - **API Style**: RESTful
 - **Authentication**: HttpOnly session cookie issued after Microsoft OIDC login, protected with CSRF token
 - **Response Format**: JSON
