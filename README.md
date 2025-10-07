@@ -44,6 +44,7 @@ For comprehensive project information, please refer to the following documents:
 - [Requirements Specification](docs/requirements/requirements.md) - Functional and non-functional requirements
 - [Traceability Matrix](docs/traceability-matrix.md) - Mapping of user stories to functional and non-functional requirements
 - [API Documentation](docs/api/api-documentation.md) - OpenAPI schema generation, Swagger UI setup, and API versioning guide
+- [API Quality Attributes](docs/api/api-quality-attributes.md) - Performance, security, reliability, usability, and maintainability targets for the API
 
 ## 🚀 Running Project
 
