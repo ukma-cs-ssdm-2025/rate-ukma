@@ -38,6 +38,16 @@ jobs:
             scp /tmp/${{ env.ARCHIVE_NAME }} ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }}:/tmp/deploy/
             rm -f /tmp/${{ env.ARCHIVE_NAME }}
 
+            echo "Creating backup of current version..."
+            backup_dir="/tmp/backup_src"
+            mkdir -p "$backup_dir"
+
+            if [ -d "${{ env.PROJECT_SOURCE_CODE }}" ]; then
+              echo "Backing up current source code..."
+              cp -r ${{ env.PROJECT_SOURCE_CODE }} "$backup_dir/"
+              echo "Backup created at $backup_dir"
+            fi
+
             echo "Stopping existing services..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
             docker compose down || true
@@ -54,17 +64,47 @@ jobs:
             cp ${{ env.PROJECT_DIR }}/.env ${{ env.PROJECT_SOURCE_CODE }}/.env
 
             echo "Starting services..."
-            docker compose up -d --build
-            sleep 5
+            docker compose --profile prod up -d --build
 
-            echo "Checking services logs..."
-            docker compose logs --tail 50 rate_ukma_django_backend
-            docker compose logs --tail 50 rate_ukma_webapp
+            echo "Waiting for services to be up and running..."
+            max_attempts=12
+            attempt=1
+            services_healthy=false
 
-            echo "Verifying services..."
-            if ! docker compose ps | grep -q "Up"; then
-              echo "Services failed to start"
+            while [ $attempt -le $max_attempts ]; do
+              echo "Up and running check attempt $attempt/$max_attempts..."
+              
+              if docker compose ps | grep -q "Up" && \
+                 [ -f "${{ env.PROJECT_DIR }}/static/index.html" ]; then
+                services_healthy=true
+                break
+              fi
+              
+              echo "Services not ready yet, waiting..."
+              sleep 10
+              attempt=$((attempt + 1))
+            done
+
+            if [ "$services_healthy" = true ]; then
+              echo "Services are up and healthy"
+              echo "Cleaning up backup directory..."
+              rm -rf "$backup_dir"
+              echo "Deployment finished successfully"
+            else
+              echo "Services failed to start properly. Rolling back..."
+              
+              # Stop current services
+              docker compose down || true
+              
+              # Restore old code
+              echo "Restoring previous version from $backup_dir"
+              rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
+              cp -r "$backup_dir/src/"* ${{ env.PROJECT_SOURCE_CODE }}/
+              
+              # Start old version
+              cd ${{ env.PROJECT_SOURCE_CODE }}
+              docker compose --profile prod up -d --build
+              
+              echo "Rollback completed. Deployment failed."
               exit 1
             fi
-
-            echo "Deployment finished"
