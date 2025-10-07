@@ -63,6 +63,10 @@ jobs:
           script: |
             echo "Deploying to ${{ env.ENVIRONMENT }} environment..."
 
+            echo "Setting up project directory ownership..."
+            sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.PROJECT_DIR }} || true
+            sudo chmod -R 755 ${{ env.PROJECT_DIR }} || true
+
             echo "Creating backup of current version..."
 
             mkdir -p "${{ env.REMOTE_TMP_DEPLOY_DIR }}"
