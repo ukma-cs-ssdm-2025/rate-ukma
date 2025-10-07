@@ -33,21 +33,11 @@ We will provide a **REST API** between the frontend and backend, with the follow
   - Contract testing
   - TypeScript client generation
 
-#### ⚠️Error Handling
+#### Error Handling
 
 - Default **DRF exception handling** will be used for consistency and simplicity.
-- Errors are returned as standard JSON responses with a `detail` message and, when needed, field-level validation errors.
+- Detailed error response formats and status code specifications are documented in the [`api-design.md`](../../api/api-design.md#error-handling-contract).
 - We may later **extend responses toward RFC 7807-like structure** (`application/problem+json`) if cross-service error consistency or standardization becomes beneficial.
-
-**Example:**
-
-```json
-{
-  "detail": "Missing required field: email",
-  "status": 400,
-  "fields": { "email": ["This field is required."] }
-}
-```
 
 ## Consequences
 
