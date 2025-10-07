@@ -9,6 +9,10 @@
 
 **Rate UKMA** is a web platform designed for students of NaUKMA to share and view feedback on university courses. Our goal is to create a centralized hub for course reviews and ratings, empowering students to make more informed decisions about their academic choices.
 
+**Staging**: <https://staging.rateukma.com>
+
+**Live**: <https://rateukma.com>
+
 ## 🧩 Features
 
 - Rate courses and leave reviews
@@ -76,7 +80,7 @@ For comprehensive project information, please refer to the following documents:
 3. Build containers and start development environment:
 
    ```bash
-   docker compose up -d --build
+   docker compose --profile dev up -d --build
    ```
 
    The following services will be available:

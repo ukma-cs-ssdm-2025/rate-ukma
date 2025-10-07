@@ -1,4 +1,65 @@
 #!/bin/bash
 
-python manage.py migrate
-python manage.py runserver 0.0.0.0:8000
+set -e # exit on error
+set -o pipefail # exit on pipe error
+set -o nounset # exit on unset variable
+set -m # enable job control
+
+
+gunicorn_process=""
+
+# function to handle gunicorn shutdown
+shutdown() {
+    echo "Shutting down gunicorn gracefully..."
+
+    if [[ -n ${gunicorn_process:-} ]]; then
+        kill -SIGINT "$gunicorn_process" 2>/dev/null || true
+        wait "$gunicorn_process" 2>/dev/null || true
+    fi
+
+    echo "Gunicorn shutdown complete"
+    exit 0
+}
+
+# trap SIGTERM and SIGINT
+trap shutdown SIGTERM SIGINT
+
+# starting django project
+python manage.py migrate --noinput
+mkdir -p "${STATIC_ROOT}"
+python manage.py collectstatic --noinput
+
+# optimal number of workers
+CORES=$(nproc)
+WORKERS=$((2 * CORES + 1))
+
+# available memory in MB
+AVAILABLE_MEMORY=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
+MAX_REQUESTS=$((AVAILABLE_MEMORY * 2 / 1024))
+
+# start gunicorn
+echo "Starting gunicorn with $WORKERS workers and $MAX_REQUESTS max requests"
+
+GUNICORN_ARGS=(
+    --timeout 300
+    --bind 0.0.0.0:8000
+    --workers "$WORKERS"
+    --worker-class gthread
+    --threads 4
+    --access-logfile -
+    --max-requests "$MAX_REQUESTS"
+    --max-requests-jitter "$((MAX_REQUESTS / 10))"
+    --keep-alive 5
+)
+
+# environment-specific settings
+if [ "${DJANGO_SETTINGS_MODULE:-}" = "rateukma.settings.dev" ]; then
+    echo "Development environment detected, hot reload enabled"
+    GUNICORN_ARGS+=( --reload )
+fi
+
+gunicorn rateukma.wsgi:application "${GUNICORN_ARGS[@]}" &
+
+# keeping gunicorn process running
+gunicorn_process=$!
+wait "$gunicorn_process"

@@ -8,6 +8,9 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    profiles:
+      - dev
+      - prod
 
   backend:
     build:
@@ -18,32 +21,45 @@ services:
       - .env
     volumes:
       - ./backend:/app
-      - media-volume:/app/media
-      - static-volume:/app/static
+      - ${MEDIA_ROOT}:/media
+      - ${STATIC_ROOT}:/static
     ports:
       - "8000:8000"
     depends_on:
       - db-rateukma
-    environment:
-      - PYTHONUNBUFFERED=1
-      - DJANGO_DEBUG=1 # TODO: abstract this later after creation of production environment
+    profiles:
+      - dev
+      - prod
 
   webapp:
     build:
       context: ./webapp
       dockerfile: Dockerfile
+      target: ${NODE_ENV:-development}
     container_name: "${COMPOSE_PROJECT_NAME}_webapp"
     volumes:
       - ./webapp:/app
       - /app/node_modules
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=development # TODO: abstract this later after creation of production environment
+    env_file:
+      - .env
     depends_on:
       - backend
+    profiles:
+      - dev
+
+  webapp-build:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+      target: production
+    env_file:
+      - .env
+    volumes:
+      - ${STATIC_ROOT}:/static
+    profiles:
+      - prod
 
 volumes:
   postgres_data:
-  media-volume:
-  static-volume:
