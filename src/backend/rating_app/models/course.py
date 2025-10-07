@@ -1,34 +1,41 @@
-import reversion
-from django.core.validators import MaxValueValidator, MinValueValidator
+import uuid
 from django.db import models
+from django.core.validators import MinLengthValidator, MaxLengthValidator
+from django.db.models import Avg, Count
+from rating_app.models.choices import CourseTypeKind, CourseStatus
 
-
-@reversion.register()
 class Course(models.Model):
-    name = models.CharField(max_length=255)
-    faculty = models.CharField(max_length=255)
-    year = models.IntegerField(
-        validators=[
-            MinValueValidator(
-                1991, message="Year cannot be earlier than 1991 (NaUKMA foundation)"
-            ),
-            MaxValueValidator(9999, message="Year is a 4-digit value"),
-        ]
-    )
-    ukma_id = models.IntegerField(
-        unique=True,
-        validators=[
-            MinValueValidator(100000, message="UKMA ID is a 6-digit value"),
-            MaxValueValidator(999999, message="UKMA ID is a 6-digit value"),
-        ],
-    )
 
-    def __str__(self):
-        return f"{self.name} ({self.ukma_id})"
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    code        = models.CharField(
+                    max_length = 6,
+                    unique=True,
+                    validators=[MinLengthValidator(6), MaxLengthValidator(6)],
+                )
+    title       = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    status      = models.CharField(max_length=16, choices=CourseStatus.choices)
+    type_kind   = models.CharField(max_length=16, choices=CourseTypeKind.choices)
 
-    def __repr__(self):
-        return f"{self.name} ({self.ukma_id})"
+    faculty    = models.ForeignKey("rating_app.Faculty", on_delete=models.PROTECT, related_name="courses")
+    department = models.ForeignKey("rating_app.Department", on_delete=models.PROTECT, related_name="courses")
+    specialities = models.ManyToManyField("rating_app.Speciality", related_name="pro_oriented_courses", blank=True)
 
     class Meta:
-        verbose_name = "Course"
-        verbose_name_plural = "Courses"
+        indexes = [models.Index(fields=["code"])]
+        managed = False
+
+    def __str__(self):
+        return f"{self.code} — {self.title}"
+
+    @property
+    def avg_difficulty(self):
+        return self.ratings.aggregate(v=Avg('difficulty'))['v']
+
+    @property
+    def avg_usefulness(self):
+        return self.ratings.aggregate(v=Avg('usefulness'))['v']
+
+    @property
+    def ratings_count(self):
+        return self.ratings.count()
