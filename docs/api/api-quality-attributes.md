@@ -54,9 +54,9 @@ This document outlines the primary quality attributes for the Rate UKMA API. Eac
 
 ## Trade-offs Analysis
 
-| Quality                            | Trade-off                        | Impact                   | Mitigation                                                     |
-| ---------------------------------- | -------------------------------- | ------------------------ | -------------------------------------------------------------- |
-| Security (validation)              | +20ms latency                    | Minimal                  | Optimize validators, reuse cached reference data               |
-| Performance (pagination)           | Limited data per request         | Multiple requests needed | Provide elevated limits for admins, evaluate cursor pagination |
-| Reliability (error detail)         | Potential information disclosure | Security concern         | Sanitize messages                                              |
-| Maintainability (strict contracts) | Upfront documentation effort     | Slower initial iteration | Automate contract generation, integrate schema linting         |
+| ID | Quality | Trade-off | Impact | Mitigation |
+|----|---------|-----------|---------|------------|
+| [API-QA-002](#api-qa-002-security) | Security (validation) | +20ms latency | Minimal | Optimize validators, reuse cached reference data |
+| [API-QA-001](#api-qa-001-performance) | Performance (pagination) | Limited data per request | Multiple requests needed | Provide elevated limits for admins, evaluate cursor pagination |
+| [API-QA-003](#api-qa-003-reliability) | Reliability (error detail) | Potential information disclosure | Security concern | Sanitize messages |
+| [API-QA-005](#api-qa-005-maintainability--evolvability) | Maintainability (strict contracts) | Upfront documentation effort | Slower initial iteration | Automate contract generation, integrate schema linting |
