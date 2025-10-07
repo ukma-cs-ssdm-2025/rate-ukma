@@ -80,7 +80,7 @@ For comprehensive project information, please refer to the following documents:
 3. Build containers and start development environment:
 
    ```bash
-   docker compose up -d --build
+   docker compose --profile dev up -d --build
    ```
 
    The following services will be available:
