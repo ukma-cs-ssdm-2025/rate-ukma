@@ -1,0 +1,70 @@
+name: Deploy Live
+
+on:
+  push:
+    branches: [live]
+  workflow_dispatch:
+
+env:
+  PROJECT_DIR: /opt/rateukma
+  PROJECT_SOURCE_CODE: /opt/rateukma/src
+  ARCHIVE_NAME: rate-ukma-live.tar.gz
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create deployment archive
+        run: |
+          cd ${{ env.PROJECT_SOURCE_CODE }}
+          tar -czf ../${{ env.ARCHIVE_NAME }} .
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.LIVE_SSH_HOST }}
+          username: ${{ secrets.LIVE_SSH_USER }}
+          key: ${{ secrets.LIVE_SSH_KEY }}
+          script_stop: true
+          command_timeout: "30m"
+          script: |
+            echo "Copying deployment archive..."
+            mkdir -p /tmp/deploy
+            cd /tmp/deploy
+
+            scp /tmp/${{ env.ARCHIVE_NAME }} ${{ secrets.LIVE_SSH_USER }}@${{ secrets.LIVE_SSH_HOST }}:/tmp/deploy/
+            rm -f /tmp/${{ env.ARCHIVE_NAME }}
+
+            echo "Stopping existing services..."
+            cd ${{ env.PROJECT_SOURCE_CODE }}
+            docker compose down || true
+
+            echo "Cleaning project directory..."
+            rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
+
+            echo "Extracting new version..."
+            cd ${{ env.PROJECT_SOURCE_CODE }}
+            tar xzf /tmp/deploy/${{ env.ARCHIVE_NAME }}
+            rm -rf /tmp/deploy
+
+            echo "Copying environment file..."
+            cp ${{ env.PROJECT_DIR }}/.env ${{ env.PROJECT_SOURCE_CODE }}/.env
+
+            echo "Starting services..."
+            docker compose up -d --build
+            sleep 5
+
+            echo "Checking services logs..."
+            docker compose logs --tail 50 rate_ukma_django_backend
+            docker compose logs --tail 50 rate_ukma_webapp
+
+            echo "Verifying services..."
+            if ! docker compose ps | grep -q "Up"; then
+              echo "Services failed to start"
+              exit 1
+            fi
+
+            echo "Deployment finished"

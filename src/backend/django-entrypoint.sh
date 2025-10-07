@@ -46,8 +46,9 @@ GUNICORN_ARGS=(
     --keep-alive 5
 )
 
+# environment-specific settings
 if [ "${DJANGO_SETTINGS_MODULE:-}" = "rateukma.settings.dev" ]; then
-    echo "Dev environment detected, hot reload enabled"
+    echo "Development environment detected, hot reload enabled"
     GUNICORN_ARGS+=( --reload )
 fi
 

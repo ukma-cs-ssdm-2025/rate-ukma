@@ -18,15 +18,12 @@ services:
       - .env
     volumes:
       - ./backend:/app
-      - media-volume:/app/media
-      - static-volume:/app/static
+      - ./media:${MEDIA_ROOT}
+      - ./static:${STATIC_ROOT}
     ports:
       - "8000:8000"
     depends_on:
       - db-rateukma
-    environment:
-      - PYTHONUNBUFFERED=1
-      - DJANGO_DEBUG=1 # TODO: abstract this later after creation of production environment
 
   webapp:
     build:
@@ -38,12 +35,10 @@ services:
       - /app/node_modules
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=development # TODO: abstract this later after creation of production environment
+    env_file:
+      - .env
     depends_on:
       - backend
 
 volumes:
   postgres_data:
-  media-volume:
-  static-volume:

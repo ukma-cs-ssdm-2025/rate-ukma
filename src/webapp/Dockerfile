@@ -17,9 +17,17 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Expose port 3000 (as configured in package.json dev script)
+# Build step for production
+RUN if [ "$NODE_ENV" = "production" ]; then \
+      pnpm build; \
+    fi
+
+# Expose port 3000
 EXPOSE 3000
 
-# Default command for development
-# Bind to 0.0.0.0 to make it accessible from outside the container
-CMD ["pnpm", "dev", "--host", "0.0.0.0"]
+# Start command based on environment
+CMD if [ "$NODE_ENV" = "production" ]; then \
+      pnpm serve dist --host 0.0.0.0; \
+    else \
+      pnpm dev --host 0.0.0.0; \
+    fi
