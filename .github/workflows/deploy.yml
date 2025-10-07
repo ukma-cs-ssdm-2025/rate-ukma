@@ -22,6 +22,7 @@ env:
   PROJECT_SOURCE_CODE: /opt/rateukma/src
   REMOTE_TMP_DEPLOY_DIR: /tmp/deploy
   REMOTE_BACKUP_CODE_DIR: /tmp/deploy/src-backup
+  STATIC_ROOT: /opt/rateukma/static
   MAX_ATTEMPTS: 12
   SERVICES_HEALTHCHECK_TIMEOUT: 10
 
@@ -103,7 +104,7 @@ jobs:
               echo "Up and running check attempt $attempt/$max_attempts..."
               
               if docker compose ps --status=running | grep -q "running" && \
-                 [ -f "${{ env.PROJECT_DIR }}/static/index.html" ]; then
+                 [ -f ${{ env.STATIC_ROOT }}/index.html ]; then
                 services_healthy=true
                 break
               fi
