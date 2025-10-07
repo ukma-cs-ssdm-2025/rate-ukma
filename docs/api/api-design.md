@@ -90,3 +90,94 @@ The API covers course discovery, evaluation, recommendation, and analytics capab
 
 - Microsoft OIDC provides identity proofing; session state stores the user identifier and role used by the API gateway for authorization.
 - All student-centric endpoints require authenticated student role.
+
+### Error Handling Contract
+
+The API follows a standardized error response format based on Django REST Framework conventions. All errors return consistent JSON responses with clear status codes and human-readable messages.
+
+#### Error Response Format
+
+All errors return JSON responses with the following structure:
+
+```json
+{
+  "detail": "Human-readable error description",
+  "status": 400,
+  "fields": {
+    "fieldName": ["Field-specific validation errors"]
+  }
+}
+```
+
+**Response Fields:**
+
+- **detail** (string, required): Human-readable description of the error suitable for display in UI
+- **status** (number, required): HTTP status code matching the response status
+- **fields** (object, optional): Object containing field-level validation errors, where keys are field names and values are arrays of error messages
+
+#### Common Error Types
+
+##### Validation Errors (400)
+
+```json
+{
+  "detail": "Validation failed",
+  "status": 400,
+  "fields": {
+    "email": ["This field is required"],
+    "rating": ["Ensure this value is between 1 and 5"]
+  }
+}
+```
+
+##### Authentication Errors (401)
+
+```json
+{
+  "detail": "Authentication credentials were not provided",
+  "status": 401
+}
+```
+
+##### Authorization Errors (403)
+
+```json
+{
+  "detail": "You do not have permission to perform this action",
+  "status": 403
+}
+```
+
+##### Not Found Errors (404)
+
+```json
+{
+  "detail": "Course not found",
+  "status": 404
+}
+```
+
+#### Standard Status Codes
+
+| Status Code | Usage                 | Example Scenarios                                                    |
+| ----------- | --------------------- | -------------------------------------------------------------------- |
+| **200**     | Success               | GET requests completed successfully                                  |
+| **201**     | Created               | POST requests that create resources                                  |
+| **204**     | No Content            | DELETE requests, successful updates with no response body            |
+| **400**     | Bad Request           | Validation failures, malformed request data, missing required fields |
+| **401**     | Unauthorized          | Missing or invalid authentication, session expired                   |
+| **403**     | Forbidden             | Insufficient permissions, accessing another user's data              |
+| **404**     | Not Found             | Requested resource does not exist                                    |
+| **405**     | Method Not Allowed    | Using GET on a POST-only endpoint                                    |
+| **429**     | Too Many Requests     | Rate limiting exceeded                                               |
+| **500**     | Internal Server Error | Unexpected server errors, database failures                          |
+
+#### Client Implementation Guidelines
+
+1. **Always check the HTTP status code first** - it provides the most reliable error categorization
+2. **Use the `detail` field for user-facing error messages** - these are designed to be human-readable
+3. **Handle field-level validation errors** - when `fields` is present, display errors next to the corresponding form fields
+4. **Implement retry logic** - for 5xx errors and 429 rate limiting, implement exponential backoff
+5. **Handle authentication errors** - redirect users to login flow on 401 responses
+
+This standardized format enables consistent client-side error handling and retry semantics across all API endpoints.
