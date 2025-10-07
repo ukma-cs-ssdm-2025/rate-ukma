@@ -1,5 +1,6 @@
 {
 	"cSpell.words": [
+		"anonymization",
 		"createsuperuser",
 		"esbuild",
 		"makemigrations",
