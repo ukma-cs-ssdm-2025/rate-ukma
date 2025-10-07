@@ -37,13 +37,14 @@
 
 For comprehensive project information, please refer to the following documents:
 
-- [Team Charter](TeamCharter.md) - Detailed information about our team structure, workflows, and collaboration guidelines
-- [Project Description](Project-Description.md) - An overview of our project's core idea, goals, and key features
-- [Architecture](docs/architecture/) - High-level design, ADRs, and UML diagrams
+- [Team Charter](TeamCharter.md) - Detailed information about our team structure, workflows and collaboration guidelines
+- [Project Description](Project-Description.md) - An overview of our project's core idea, goals and key features
+- [Architecture](docs/architecture/) - High-level design, ADRs and UML diagrams
 - [User Stories](docs/requirements/user-stories.md) - Detailed information about project user stories
 - [Requirements Specification](docs/requirements/requirements.md) - Functional and non-functional requirements
 - [Traceability Matrix](docs/traceability-matrix.md) - Mapping of user stories to functional and non-functional requirements
-- [API Documentation](docs/api/api-documentation.md) - OpenAPI schema generation, Swagger UI setup, and API versioning guide
+- [API Documentation](docs/api/api-documentation.md) - OpenAPI schema generation, Swagger UI setup and API versioning guide
+- [API Design](docs/api/api-design.md) - REST API architecture, resource model and design decisions
 
 ## 🚀 Running Project
 
