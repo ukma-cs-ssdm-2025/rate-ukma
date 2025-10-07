@@ -37,9 +37,6 @@ jobs:
         run: |
           echo "ENVIRONMENT=${{ inputs.environment }}" >> $GITHUB_ENV
           echo "ARCHIVE_NAME=${{ inputs.archive_name }}" >> $GITHUB_ENV
-          echo "SSH_HOST=${{ secrets.SSH_HOST }}" >> $GITHUB_ENV
-          echo "SSH_USER=${{ secrets.SSH_USER }}" >> $GITHUB_ENV
-          echo "SSH_KEY=${{ secrets.SSH_KEY }}" >> $GITHUB_ENV
 
       - name: Create deployment archive
         run: |
@@ -49,18 +46,18 @@ jobs:
       - name: Upload archive to server
         uses: appleboy/scp-action@master
         with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          key: ${{ env.SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
           source: ${{ env.ARCHIVE_NAME }}
           target: ${{ env.REMOTE_TMP_DEPLOY_DIR }}/
 
       - name: Deploy to server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          key: ${{ env.SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
           script_stop: true
           command_timeout: "30m"
           script: |
