@@ -1,0 +1,135 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      archive_name:
+        required: true
+        type: string
+    secrets:
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_KEY:
+        required: true
+
+env:
+  PROJECT_DIR: /opt/rateukma
+  PROJECT_SOURCE_CODE: /opt/rateukma/src
+  REMOTE_TMP_DEPLOY_DIR: /tmp/deploy
+  REMOTE_BACKUP_CODE_DIR: /tmp/deploy/src-backup
+  MAX_ATTEMPTS: 12
+  SERVICES_HEALTHCHECK_TIMEOUT: 10
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set environment variables
+        run: |
+          echo "ENVIRONMENT=${{ inputs.environment }}" >> $GITHUB_ENV
+          echo "ARCHIVE_NAME=${{ inputs.archive_name }}" >> $GITHUB_ENV
+          echo "SSH_HOST=${{ secrets.SSH_HOST }}" >> $GITHUB_ENV
+          echo "SSH_USER=${{ secrets.SSH_USER }}" >> $GITHUB_ENV
+          echo "SSH_KEY=${{ secrets.SSH_KEY }}" >> $GITHUB_ENV
+
+      - name: Create deployment archive
+        run: |
+          cd src
+          tar -czf ../${{ env.ARCHIVE_NAME }} .
+
+      - name: Upload archive to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          source: ${{ env.ARCHIVE_NAME }}
+          target: ${{ env.REMOTE_TMP_DEPLOY_DIR }}/
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          script_stop: true
+          command_timeout: "30m"
+          script: |
+            echo "Deploying to ${{ env.ENVIRONMENT }} environment..."
+
+            echo "Creating backup of current version..."
+
+            mkdir -p "${{ env.REMOTE_TMP_DEPLOY_DIR }}"
+            mkdir -p "${{ env.REMOTE_BACKUP_CODE_DIR }}"
+
+            if [ -d "${{ env.PROJECT_SOURCE_CODE }}" ]; then
+              echo "Backing up current source code..."
+              cp -r ${{ env.PROJECT_SOURCE_CODE }} "${{ env.REMOTE_BACKUP_CODE_DIR }}/"
+              echo "Backup created at ${{ env.REMOTE_BACKUP_CODE_DIR }}"
+            fi
+
+            echo "Stopping existing services..."
+            cd ${{ env.PROJECT_SOURCE_CODE }}
+            docker compose down || true
+
+            echo "Cleaning project directory..."
+            rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
+
+            echo "Extracting new version..."
+            cd ${{ env.PROJECT_SOURCE_CODE }}
+            tar xzf ${{ env.REMOTE_TMP_DEPLOY_DIR }}/${{ env.ARCHIVE_NAME }}
+            rm ${{ env.REMOTE_TMP_DEPLOY_DIR }}/${{ env.ARCHIVE_NAME }}
+
+            echo "Copying environment file..."
+            cp ${{ env.PROJECT_DIR }}/.env ${{ env.PROJECT_SOURCE_CODE }}/.env
+
+            echo "Starting services..."
+            docker compose --profile prod up -d --build
+
+            echo "Waiting for services to be up and running..."
+            max_attempts=${{ env.MAX_ATTEMPTS }}
+            attempt=1
+            services_healthy=false
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "Up and running check attempt $attempt/$max_attempts..."
+              
+              if docker compose ps --status=running | grep -q "running" && \
+                 [ -f "${{ env.PROJECT_DIR }}/static/index.html" ]; then
+                services_healthy=true
+                break
+              fi
+              
+              echo "Services not ready yet, waiting..."
+              sleep ${{ env.SERVICES_HEALTHCHECK_TIMEOUT }}
+              attempt=$((attempt + 1))
+            done
+
+            if [ "$services_healthy" = true ]; then
+              echo "Services are up and healthy"
+              echo "Cleaning up backup directory..."
+              rm -rf "${{ env.REMOTE_BACKUP_CODE_DIR }}"
+              echo "Deployment to ${{ env.ENVIRONMENT }} finished successfully"
+            else
+              echo "Services failed to start properly. Rolling back..."
+              docker compose down || true
+              
+
+              echo "Restoring previous version from ${{ env.REMOTE_BACKUP_CODE_DIR }}"
+              rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
+              cp -r "${{ env.REMOTE_BACKUP_CODE_DIR }}/src/"* ${{ env.PROJECT_SOURCE_CODE }}/
+              
+              cd ${{ env.PROJECT_SOURCE_CODE }}
+              docker compose --profile prod up -d --build
+              
+              echo "Rollback completed. Deployment to ${{ env.ENVIRONMENT }} failed."
+              exit 1
+            fi
