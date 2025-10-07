@@ -13,12 +13,12 @@
 
 ## 2. Roles & Responsibilities
 
-| Name | Core | Project Requirements | Architecture & Design |
-| :--- | :--- | :--- | :--- |
-| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper |
-| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead |
-| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead |
-| **Milana** | Documentation Lead | Quality Lead | Documentation Lead |
+| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation |
+| :--- | :--- | :--- | :--- | :--- |
+| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead |
+| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead |
+| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead | Quality Lead |
+| **Milana** | Documentation Lead | Quality Lead | Documentation Lead | Documentation Lead |
 
 ---
 
@@ -51,6 +51,7 @@ Backend / Frontend Responsibilities:
 
 * **Requirements Storage:** `/docs/requirements/` directory.  
 * **Architecture Storage:** `/docs/architecture/` directory.
+* **API Documentation:** `/docs/api/` directory.
 * **README Maintenance:** `README.md` kept up-to-date and approved by all team members.  
 
 ## 6. Individual Contributions
