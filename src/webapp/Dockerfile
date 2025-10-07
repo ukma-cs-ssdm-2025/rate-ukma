@@ -1,5 +1,5 @@
-# Use Node.js 20 LTS as base image
-FROM --platform=$BUILDPLATFORM node:20-alpine
+# Build stage
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -7,27 +7,24 @@ RUN npm install -g pnpm
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and pnpm-lock.yaml for dependency caching
+# Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies with pnpm
-# Use --frozen-lockfile for reproducible builds
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
-# Build step for production
-RUN if [ "$NODE_ENV" = "production" ]; then \
-      pnpm build; \
-    fi
+# Build the project
+RUN pnpm build
 
-# Expose port 3000
+# For development - builder stage directly
+FROM builder AS development
 EXPOSE 3000
+CMD ["pnpm", "dev", "--host", "0.0.0.0"]
 
-# Start command based on environment
-CMD if [ "$NODE_ENV" = "production" ]; then \
-      pnpm serve dist --host 0.0.0.0; \
-    else \
-      pnpm dev --host 0.0.0.0; \
-    fi
+# For production - minimal Alpine to handle file operations
+FROM alpine:3.19 AS production
+COPY --from=builder /app/dist /dist
+CMD ["cp", "-r", "/dist/.", "/static/"]
