@@ -5,12 +5,17 @@ set -o pipefail # exit on pipe error
 set -o nounset # exit on unset variable
 set -m # enable job control
 
+
+gunicorn_process=""
+
 # function to handle gunicorn shutdown
 shutdown() {
     echo "Shutting down gunicorn gracefully..."
 
-    kill -SIGINT "$gunicorn_process" 2>/dev/null || true
-    wait "$gunicorn_process" 2>/dev/null || true
+    if [[ -n ${gunicorn_process:-} ]]; then
+        kill -SIGINT "$gunicorn_process" 2>/dev/null || true
+        wait "$gunicorn_process" 2>/dev/null || true
+    fi
 
     echo "Gunicorn shutdown complete"
     exit 0

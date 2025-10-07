@@ -57,7 +57,6 @@ For comprehensive project information, please refer to the following documents:
 - Docker Engine 24.0+
 - Docker Compose V2
 - Git
-- Python 3.11+
 
 ### Starting Development Environment
 
