@@ -58,7 +58,6 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          script_stop: true
           command_timeout: "30m"
           script: |
             echo "Deploying to ${{ env.ENVIRONMENT }} environment..."
@@ -66,6 +65,10 @@ jobs:
             echo "Setting up project directory ownership..."
             sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.PROJECT_DIR }} || true
             sudo chmod -R 755 ${{ env.PROJECT_DIR }} || true
+
+            echo "Setting up tmp deploy directory ownership..."
+            sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.REMOTE_TMP_DEPLOY_DIR }} || true
+            sudo chmod -R 755 ${{ env.REMOTE_TMP_DEPLOY_DIR }} || true
 
             echo "Creating backup of current version..."
 
@@ -104,7 +107,7 @@ jobs:
             while [ $attempt -le $max_attempts ]; do
               echo "Up and running check attempt $attempt/$max_attempts..."
               
-              if docker compose ps --status=running | grep -q "running" && \
+              if docker compose ps --status=running | grep "Up" && \
                  [ -f ${{ env.STATIC_ROOT }}/index.html ]; then
                 services_healthy=true
                 break
