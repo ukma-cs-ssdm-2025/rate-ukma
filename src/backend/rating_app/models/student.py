@@ -7,11 +7,11 @@ from .person import Person
 
 
 class Student(Person):
+
     education_level = models.CharField(
         max_length=16,
         choices=EducationLevel.choices,
     )
-
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
