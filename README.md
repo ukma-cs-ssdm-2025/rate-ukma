@@ -2,6 +2,8 @@
 
 [![Linting](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/linting.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/linting.yml)
 [![Tests](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml)
+[![Deploy Staging](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-staging.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-staging.yml)
+[![Deploy Live](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-live.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-live.yml)
 
 **Rate. Review. Discover your best courses at NaUKMA.**
 
