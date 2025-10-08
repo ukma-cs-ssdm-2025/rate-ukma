@@ -18,7 +18,6 @@ from decouple import AutoConfig
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 config = AutoConfig(BASE_DIR)
-DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
 def get_list(text: str, *, sep: str = ",") -> list[str]:
     return [item.strip() for item in text.split(sep) if item.strip()]
@@ -175,7 +174,7 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSION": "v1",
     "ALLOWED_VERSIONS": ["v1"],
     
-    "EXCEPTION_HANDLER": "rating_app.exception.exception_handler",
+    "EXCEPTION_HANDLER": "rating_app.exception.exception_handler.exception_handler",
 }
 
 SPECTACULAR_SETTINGS = {
