@@ -1,4 +1,4 @@
-# Rate UKMA
+# Rate UKMA TEST
 
 [![Linting](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/linting.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/linting.yml)
 [![Tests](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml)
