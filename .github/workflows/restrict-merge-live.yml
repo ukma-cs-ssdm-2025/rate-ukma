@@ -1,0 +1,17 @@
+name: Restrict live merges to main
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+    branches: ['live']
+
+jobs:
+  block-non-main:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Block if head is not main
+        if: github.base_ref == 'live' && github.head_ref != 'main'
+        run: |
+          echo "ERROR: Only PRs from 'main' into 'live' are allowed. (Got head='${GITHUB_HEAD_REF}')"
+          exit 1
