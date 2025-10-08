@@ -75,6 +75,7 @@ def _with_request_id(resp: Response) -> Response:
     responses=R_COURSE_LIST,
 )
 class CourseListView(APIView):
+    @extend_schema(operation_id="courses_list")
     def get(self, request):
         status_q = (request.query_params.get("status") or "").upper()
         type_kind_q = (request.query_params.get("type_kind") or "").upper()
@@ -116,6 +117,7 @@ class CourseListView(APIView):
     responses=R_COURSE,
 )
 class CourseDetailView(APIView):
+    @extend_schema(operation_id="courses_retrieve")
     def get(self, request, course_id: str):
         row = next((c for c in MOCK_COURSES if str(c["id"]) == str(course_id)), None)
         if not row:
@@ -125,14 +127,14 @@ class CourseDetailView(APIView):
 
 @extend_schema(tags=["ratings"])
 class CourseRatingsListCreateView(APIView):
-    @extend_schema(summary="List ratings for a course (mock)", responses=R_RATING_LIST)
+    @extend_schema(operation_id="course_ratings_list", summary="List ratings for a course (mock)", responses=R_RATING_LIST)
     def get(self, request, course_id: str):
         if not _course_exists(course_id):
             raise NotFound("Course not found")
         data = list_ratings(course_id=course_id)
         return _with_request_id(Response(RatingSerializer(_wrap_many(data), many=True).data, status=200))
 
-    @extend_schema(summary="Create rating for a course (mock)", request=RatingSerializer, responses=R_RATING_CREATE)
+    @extend_schema(operation_id="course_ratings_create", summary="Create rating for a course (mock)", request=RatingSerializer, responses=R_RATING_CREATE)
     def post(self, request, course_id: str):
         if not _course_exists(course_id):
             raise NotFound("Course not found")
@@ -153,7 +155,7 @@ class CourseRatingsListCreateView(APIView):
 
 @extend_schema(tags=["ratings"])
 class CourseRatingDetailView(APIView):
-    @extend_schema(summary="Retrieve rating for a course (mock)", responses=R_RATING)
+    @extend_schema(operation_id="course_rating_retrieve", summary="Retrieve rating for a course (mock)", responses=R_RATING)
     def get(self, request, course_id: str, rating_id: str):
         if not _course_exists(course_id):
             raise NotFound("Course not found")
@@ -164,7 +166,7 @@ class CourseRatingDetailView(APIView):
 
         return _with_request_id(Response(RatingSerializer(_wrap_one(item)).data, status=200))
 
-    @extend_schema(summary="Update rating for a course (mock)", request=RatingSerializer, responses=R_RATING)
+    @extend_schema(operation_id="course_rating_update", summary="Update rating for a course (mock)", request=RatingSerializer, responses=R_RATING)
     def patch(self, request, course_id: str, rating_id: str):
         if not _course_exists(course_id):
             raise NotFound("Course not found")
@@ -187,7 +189,7 @@ class CourseRatingDetailView(APIView):
         updated = update_rating(rating_id, ser.validated_data)
         return _with_request_id(Response(RatingSerializer(_wrap_one(updated)).data, status=200))
 
-    @extend_schema(summary="Delete rating for a course (mock)", responses=R_NO_CONTENT)
+    @extend_schema(operation_id="course_rating_delete", summary="Delete rating for a course (mock)", responses=R_NO_CONTENT)
     def delete(self, request, course_id: str, rating_id: str):
         if not _course_exists(course_id):
             raise NotFound("Course not found")
