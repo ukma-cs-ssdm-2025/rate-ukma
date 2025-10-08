@@ -17,8 +17,8 @@ from decouple import AutoConfig
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-config = AutoConfig(BASE_DIR.parent.parent)
-
+config = AutoConfig(BASE_DIR)
+DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
 def get_list(text: str, *, sep: str = ",") -> list[str]:
     return [item.strip() for item in text.split(sep) if item.strip()]
@@ -31,7 +31,8 @@ def get_list(text: str, *, sep: str = ",") -> list[str]:
 SECRET_KEY = config("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
+
 
 ALLOWED_HOSTS = get_list(str(config("ALLOWED_HOSTS", default="127.0.0.1,localhost")))
 
@@ -92,14 +93,15 @@ WSGI_APPLICATION = "rateukma.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("POSTGRES_DB"),
-        "USER": config("POSTGRES_USER"),
-        "PASSWORD": config("POSTGRES_PASSWORD"),
-        "HOST": config("POSTGRES_HOST"),
-        "PORT": config("POSTGRES_PORT"),
+        "NAME":     config("POSTGRES_DB", default="postgres"),
+        "USER":     config("POSTGRES_USER", default="postgres"),
+        "PASSWORD": config("POSTGRES_PASSWORD", default="rateukma_pwd"),
+        "HOST":     config("POSTGRES_HOST", default="db-rateukma"),
+        "PORT":     config("POSTGRES_PORT", cast=int, default=5432),
     }
 }
 
@@ -172,6 +174,8 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
     "DEFAULT_VERSION": "v1",
     "ALLOWED_VERSIONS": ["v1"],
+    
+    "EXCEPTION_HANDLER": "rating_app.exception.exception_handler",
 }
 
 SPECTACULAR_SETTINGS = {
