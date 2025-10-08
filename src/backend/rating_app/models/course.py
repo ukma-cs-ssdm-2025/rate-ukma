@@ -1,7 +1,7 @@
 import uuid
 from django.db import models
 from django.core.validators import MinLengthValidator, MaxLengthValidator
-from django.db.models import Avg, Count
+from django.db.models import Avg
 from rating_app.models.choices import CourseTypeKind, CourseStatus
 
 class Course(models.Model):

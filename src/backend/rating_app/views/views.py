@@ -1,16 +1,24 @@
 from uuid import uuid4
 from types import SimpleNamespace
-from datetime import datetime, timedelta
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
-from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 
 from ..serializers import CourseSerializer, RatingSerializer
-from .mock_store import *
+from .mock_store import (
+    MOCK_COURSES,
+    STATUS_ENUM,
+    TYPE_ENUM,
+    list_ratings,
+    create_rating,
+    get_rating,
+    update_rating,
+    delete_rating,
+)
+
 
 # helpers
 

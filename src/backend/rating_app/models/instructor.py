@@ -1,5 +1,4 @@
 from django.db import models
-import uuid
 from rating_app.models.choices import AcademicDegree, AcademicTitle
 from .person import Person
 

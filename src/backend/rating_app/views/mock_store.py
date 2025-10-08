@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import random
 
 STATUS_ENUM = ["PLANNED", "ACTIVE", "FINISHED"]
 TYPE_ENUM   = ["COMPULSORY", "ELECTIVE"]

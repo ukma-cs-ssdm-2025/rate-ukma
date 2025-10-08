@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Avg, Count, Q
+from django.db.models import Q
 import uuid
 from rating_app.models.choices import PracticeType, ExamType, EnrollmentStatus
 
