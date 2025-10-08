@@ -97,11 +97,11 @@ WSGI_APPLICATION = "rateukma.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME":     config("POSTGRES_DB", default="postgres"),
-        "USER":     config("POSTGRES_USER", default="postgres"),
-        "PASSWORD": config("POSTGRES_PASSWORD", default="rateukma_pwd"),
-        "HOST":     config("POSTGRES_HOST", default="db-rateukma"),
-        "PORT":     config("POSTGRES_PORT", cast=int, default=5432),
+        "NAME":     config("POSTGRES_DB"),
+        "USER":     config("POSTGRES_USER"),
+        "PASSWORD": config("POSTGRES_PASSWORD"),
+        "HOST":     config("POSTGRES_HOST"),
+        "PORT":     config("POSTGRES_PORT"),
     }
 }
 
