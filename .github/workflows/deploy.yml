@@ -83,7 +83,7 @@ jobs:
 
             echo "Stopping existing services..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            docker compose down || true
+            docker compose --profile prod down || true
 
             echo "Cleaning project directory..."
             rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
