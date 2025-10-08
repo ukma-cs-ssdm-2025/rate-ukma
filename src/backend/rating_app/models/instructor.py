@@ -9,5 +9,6 @@ class Instructor(Person):
     is_lecturer          = models.BooleanField(default=False)
     is_practicum_teacher = models.BooleanField(default=False)
     
-    class Meta:
+    class Meta(Person.Meta):
+        abstract = False
         managed = False

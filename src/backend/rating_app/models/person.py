@@ -9,7 +9,6 @@ class Person(models.Model):
 
     class Meta:
         abstract = True
-        managed = False
 
     def __str__(self):
         parts = [self.last_name, self.first_name]

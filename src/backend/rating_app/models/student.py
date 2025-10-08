@@ -20,7 +20,8 @@ class Student(Person):
         related_name="student_profile",
     )
 
-    class Meta:
+    class Meta(Person.Meta):
+        abstract = False
         managed = False
 
     def _rating_qs(self):
