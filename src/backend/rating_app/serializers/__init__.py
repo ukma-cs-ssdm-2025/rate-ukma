@@ -1,3 +1,4 @@
 from .course import CourseSerializer
+from .rating import RatingSerializer
 
-__all__ = ["CourseSerializer"]
+__all__ = ["CourseSerializer", "RatingSerializer"]
