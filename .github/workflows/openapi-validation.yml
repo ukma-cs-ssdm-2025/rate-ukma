@@ -6,6 +6,7 @@ on:
 
 env:
   DJANGO_DIR: src/backend
+  SOURCE_CODE_DIR: src
   CI_GENERATED_FILE_PATH: openapi-ci-generated.yaml
   REPO_GENERATED_FILE_PATH: docs/api/openapi-generated.yaml
 
@@ -45,6 +46,7 @@ jobs:
           pip install --no-cache-dir -r requirements.txt
 
       - name: Copy default .env file
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           cp .env.sample .env
 
