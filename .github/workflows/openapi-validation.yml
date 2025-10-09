@@ -61,4 +61,6 @@ jobs:
             echo "OpenAPI schema mismatch."
             echo "Please regenerate the schema locally using 'python manage.py spectacular' and commit the changes"
             exit 1
+          else
+            echo "OpenAPI schema matches - check passed successfully."
           fi
