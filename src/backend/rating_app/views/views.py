@@ -133,7 +133,7 @@ class CourseListView(APIView):
 
 @extend_schema(
     tags=["courses"],
-    summary="Get course by IDs (mock)",
+    summary="Get course by ID (mock)",
     description="Returns a single course by ID. Version: v1.",
     responses=R_COURSE,
 )
