@@ -90,7 +90,7 @@ paths:
     get:
       operationId: courses_retrieve
       description: 'Returns a single course by ID. Version: v1.'
-      summary: Get course by IDs (mock)
+      summary: Get course by ID (mock)
       parameters:
       - in: path
         name: course_id
