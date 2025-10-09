@@ -59,7 +59,7 @@ jobs:
         run: |
           if ! diff -u "${{ env.DJANGO_DIR }}/${{ env.CI_GENERATED_FILE_PATH }}" "${{ env.REPO_GENERATED_FILE_PATH }}"; then
             echo "OpenAPI schema mismatch."
-            echo "Please regenerate the schema locally using 'python manage.py spectacular' and commit the changes"
+            echo "Please regenerate the schema locally using the correct command from project README and commit the changes"
             exit 1
           else
             echo "OpenAPI schema matches - check passed successfully."
