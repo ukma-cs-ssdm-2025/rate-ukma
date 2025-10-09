@@ -6,7 +6,6 @@ on:
 
 env:
   DJANGO_DIR: src/backend
-  PROJECT_SOURCE_CODE: src
   CI_GENERATED_FILE_PATH: openapi-ci-generated.yaml
   REPO_GENERATED_FILE_PATH: docs/api/openapi-generated.yaml
 
@@ -28,8 +27,8 @@ jobs:
             echo "Django directory not found at ${{ env.DJANGO_DIR }}"
             exit 1
           fi
-          if [ ! -f "${{ env.PROJECT_SOURCE_CODE }}/${{ env.REPO_GENERATED_FILE_PATH }}" ]; then
-            echo "OpenAPI schema not found at ${{ env.PROJECT_SOURCE_CODE }}/${{ env.REPO_GENERATED_FILE_PATH }}"
+          if [ ! -f "${{ env.REPO_GENERATED_FILE_PATH }}" ]; then
+            echo "OpenAPI schema not found at ${{ env.REPO_GENERATED_FILE_PATH }}"
             exit 1
           fi
 
@@ -52,7 +51,7 @@ jobs:
 
       - name: Check diff with repo
         run: |
-          if ! diff -u "${{ env.DJANGO_DIR }}/${{ env.CI_GENERATED_FILE_PATH }}" "${{ env.PROJECT_SOURCE_CODE }}/${{ env.REPO_GENERATED_FILE_PATH }}"; then
+          if ! diff -u "${{ env.DJANGO_DIR }}/${{ env.CI_GENERATED_FILE_PATH }}" "${{ env.REPO_GENERATED_FILE_PATH }}"; then
             echo "OpenAPI schema mismatch."
             echo "Please regenerate the schema locally using 'python manage.py spectacular' and commit the changes"
             exit 1
