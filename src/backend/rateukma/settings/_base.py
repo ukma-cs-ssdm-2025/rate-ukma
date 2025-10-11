@@ -19,6 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 config = AutoConfig(BASE_DIR)
 
+
 def get_list(text: str, *, sep: str = ",") -> list[str]:
     return [item.strip() for item in text.split(sep) if item.strip()]
 
@@ -55,7 +56,39 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "rating_app",
     "scraper",
+    "django_auth_adfs",
 ]
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "django_auth_adfs.backend.AdfsAuthCodeBackend",
+]
+
+# Microsoft Azure AD settings
+AUTH_ADFS = {
+    "TENANT_ID": config("MICROSOFT_TENANT_ID", default="common"),
+    "CLIENT_ID": config("MICROSOFT_CLIENT_ID"),
+    "CLIENT_SECRET": config("MICROSOFT_CLIENT_SECRET"),
+    "AUDIENCE": config("MICROSOFT_CLIENT_ID"),  # TODO: check if this is correct
+    "RELYING_PARTY_ID": config("MICROSOFT_CLIENT_ID"),  # TODO: check if this is correct
+    "CLAIM_MAPPING": {
+        "first_name": "given_name",
+        "last_name": "family_name",
+        "email": "upn",  # or "email"
+    },
+    "USERNAME_CLAIM": "upn",  # or "email"
+    "GROUPS_CLAIM": None,  # TODO: check if this is correct
+    "SCOPES": ["openid", "email", "profile", "User.Read"],
+    "LOGIN_EXEMPT_URLS": [
+        "^admin/.*",
+        "^api/schema/.*",
+        "^api/docs/.*",
+        "^api/redoc/.*",
+    ],
+}
+
+LOGIN_URL = "django_auth_adfs:login"
+LOGIN_REDIRECT_URL = "/"
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -66,6 +99,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_auth_adfs.middleware.LoginRequiredMiddleware",
 ]
 
 ROOT_URLCONF = "rateukma.urls"
@@ -96,11 +130,11 @@ WSGI_APPLICATION = "rateukma.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME":     config("POSTGRES_DB"),
-        "USER":     config("POSTGRES_USER"),
+        "NAME": config("POSTGRES_DB"),
+        "USER": config("POSTGRES_USER"),
         "PASSWORD": config("POSTGRES_PASSWORD"),
-        "HOST":     config("POSTGRES_HOST"),
-        "PORT":     config("POSTGRES_PORT"),
+        "HOST": config("POSTGRES_HOST"),
+        "PORT": config("POSTGRES_PORT"),
     }
 }
 
@@ -173,7 +207,6 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
     "DEFAULT_VERSION": "v1",
     "ALLOWED_VERSIONS": ["v1"],
-    
     "EXCEPTION_HANDLER": "rating_app.exception.exception_handler.exception_handler",
 }
 

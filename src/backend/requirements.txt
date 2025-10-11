@@ -1,5 +1,10 @@
 # Development
 django==5.2.3
+django-auth-adfs>1.11.6 
+cryptography<42.0,>=1.7 
+requests==2.31.0  
+PyJWT==2.9.0 
+
 psycopg2-binary==2.9.10
 django-cors-headers==4.3.1
 django-vite==3.1.0

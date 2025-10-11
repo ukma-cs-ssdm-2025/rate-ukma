@@ -33,4 +33,6 @@ urlpatterns = [
     ),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     path("api/v1/", include("rating_app.urls")),
+    # Microsoft ADFS authentication URLs
+    path("oauth2/", include("django_auth_adfs.urls", namespace="django_auth_adfs")),
 ]
