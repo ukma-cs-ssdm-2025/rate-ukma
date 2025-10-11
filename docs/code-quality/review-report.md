@@ -21,5 +21,5 @@
 
 ## Security Issues
 
-- Exposed **secret keys** and configuration; no **`.env` file**, **`DEBUG=True`**, and permissive `ALLOWED_HOSTS = ["*"]` etc.
+- Exposed **secret keys** (see [static analysis](static-analysis.md)) and configuration; no **`.env` file**, **`DEBUG=True`**, and permissive `ALLOWED_HOSTS = ["*"]` etc.
 - **CORS app** is added but is **not configured**.
