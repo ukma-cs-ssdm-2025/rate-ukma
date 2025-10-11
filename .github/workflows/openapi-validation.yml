@@ -1,0 +1,66 @@
+name: Check OpenAPI schema
+
+on:
+  push:
+  pull_request:
+
+env:
+  DJANGO_DIR: src/backend
+  SOURCE_CODE_DIR: src
+  CI_GENERATED_FILE_PATH: openapi-ci-generated.yaml
+  REPO_GENERATED_FILE_PATH: docs/api/openapi-generated.yaml
+
+jobs:
+  verify-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate paths
+        run: |
+          if [ ! -d "${{ env.DJANGO_DIR }}" ]; then
+            echo "Django directory not found at ${{ env.DJANGO_DIR }}"
+            exit 1
+          fi
+          if [ ! -f "${{ env.REPO_GENERATED_FILE_PATH }}" ]; then
+            echo "OpenAPI schema not found at ${{ env.REPO_GENERATED_FILE_PATH }}"
+            exit 1
+          fi
+
+      - name: Install dependencies with pip
+        working-directory: ${{ env.DJANGO_DIR }}
+        run: |
+          python -m pip install --upgrade pip
+
+          if [ ! -f requirements.txt ]; then
+            echo "requirements.txt not found"
+            exit 1
+          fi
+
+          pip install --no-cache-dir -r requirements.txt
+
+      - name: Copy default .env file
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          cp .env.sample .env
+
+      - name: Regenerate OpenAPI schema
+        working-directory: ${{ env.DJANGO_DIR }}
+        run: |
+          python manage.py spectacular --file ${{ env.CI_GENERATED_FILE_PATH }}
+
+      - name: Check diff with repo
+        run: |
+          if ! diff -u "${{ env.DJANGO_DIR }}/${{ env.CI_GENERATED_FILE_PATH }}" "${{ env.REPO_GENERATED_FILE_PATH }}"; then
+            echo "OpenAPI schema mismatch."
+            echo "Please regenerate the schema locally using the correct command from project README and commit the changes"
+            exit 1
+          else
+            echo "OpenAPI schema matches - check passed successfully."
+          fi
