@@ -91,14 +91,13 @@ class CourseOffering {
 Course "1"   -- "*" CourseOffering
 Semester "1" -- "*" CourseOffering
 
-class TeachingAssignment {
+class CourseInstructor {
   +id: UUID [1]
-  +role: TeachingRole [1]
+  +role: InstructorRole [1]
   {unique} (courseOffering, instructor, role)
 }
-CourseOffering "1" -- "*" TeachingAssignment
-Instructor "1" -- "*" TeachingAssignment
-
+CourseOffering "1" -- "*" CourseInstructor
+Instructor "1" -- "*" CourseInstructor
 
 class Enrollment {
   +id         : UUID [1]
@@ -173,9 +172,9 @@ enum AcademicTitle {
   Professor            
 }
 
-enum TeachingRole {
+enum InstructorRole {
   Lecturer
-  PracticumTeacher
+  PracticumInstructor
 }
 
 @enduml
