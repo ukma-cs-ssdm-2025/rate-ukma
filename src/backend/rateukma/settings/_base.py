@@ -70,44 +70,8 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
-# Microsoft OAuth2 settings (django-allauth)
-SITE_ID = 1
-# session-based auth
 REST_USE_JWT = False
 REST_SESSION_LOGIN = True
-
-SOCIALACCOUNT_PROVIDERS = {
-    "microsoft": {
-        "APPS": [
-            {
-                "client_id": config("MICROSOFT_CLIENT_ID"),
-                "secret": config("MICROSOFT_CLIENT_SECRET"),
-                "tenant": config("MICROSOFT_TENANT_ID", default="common"),
-            }
-        ],
-        "SCOPE": ["openid", "email", "profile", "User.Read"],
-        "AUTH_PARAMS": {"prompt": "select_account"},
-    }
-}
-
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_ALLOW_REGISTRATION = True
-SOCIALACCOUNT_LOGIN_ON_GET = True
-
-SOCIALACCOUNT_ADAPTER = (
-    "rating_app.auth.social_account_adapters.MicrosoftSocialAccountAdapter"
-)
-ACCOUNT_ADAPTER = "rating_app.auth.social_account_adapters.MicrosoftAccountAdapter"
-
-LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = config("LOGIN_REDIRECT_URL", default="http://localhost:3000/")
-LOGIN_ERROR_URL = config("LOGIN_ERROR_URL", default="http://localhost:3000/auth/error")
-ACCOUNT_LOGOUT_REDIRECT_URL = config(
-    "LOGOUT_REDIRECT_URL", default="http://localhost:3000/"
-)
-
-SOCIALACCOUNT_SOCIALLOGIN_SESSION_KEY = "socialaccount_sociallogin"
-# end of Microsoft OAuth2 settings (django-allauth)
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -238,4 +202,44 @@ SPECTACULAR_SETTINGS = {
 }
 
 
-# TODO: add CORS configuration
+# Microsoft OAuth2 settings (django-allauth)
+SITE_ID = 1
+
+SOCIALACCOUNT_PROVIDERS = {
+    "microsoft": {
+        "APPS": [
+            {
+                "client_id": config("MICROSOFT_CLIENT_ID"),
+                "secret": config("MICROSOFT_CLIENT_SECRET"),
+                "tenant": config("MICROSOFT_TENANT_ID", default="common"),
+            }
+        ],
+        "SCOPE": [
+            "openid",
+            "email",
+            "profile",
+            "User.Read",
+            "User.ReadBasic.All",
+            "offline_access",
+        ],
+        "AUTH_PARAMS": {
+            "prompt": "select_account",
+            "access_type": "offline",
+        },
+        "VERIFIED_EMAIL": True,
+        "ACCESS_TOKEN_METHOD": "POST",
+    }
+}
+
+ACCOUNT_ALLOW_REGISTRATION = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+SOCIALACCOUNT_ADAPTER = (
+    "rating_app.auth.microsoft_account_adapters.MicrosoftSocialAccountAdapter"
+)
+ACCOUNT_ADAPTER = "rating_app.auth.microsoft_account_adapters.MicrosoftAccountAdapter"
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = config("LOGIN_REDIRECT_URL")
+LOGIN_ERROR_URL = config("LOGIN_ERROR_URL")
+ACCOUNT_LOGOUT_REDIRECT_URL = config("LOGOUT_REDIRECT_URL")
