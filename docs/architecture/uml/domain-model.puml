@@ -38,11 +38,13 @@ class Department {
   +id   : UUID [1]
   +name : string [1]
 }
+Department "*" -- "1" Faculty
 
 class Speciality {
   +id   : UUID [1]
   +name : string [1]
 }
+Speciality "*" -- "1" Faculty
 
 class Course {
   +id           : UUID [1]
@@ -55,9 +57,7 @@ class Course {
   /avgUsefulness : float
   /ratingsCount  : int
 }
-Course "*" -- "1" Faculty
 Course "*" -- "1" Department
-Course "*" -- "*" Speciality : pro-oriented for
 
 class Semester {
   +id   : UUID [1]
