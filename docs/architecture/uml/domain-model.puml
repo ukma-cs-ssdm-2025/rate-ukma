@@ -93,6 +93,7 @@ Semester "1" -- "*" CourseOffering
 class TeachingAssignment {
   +id: UUID [1]
   +role: TeachingRole [1]
+  {unique} (courseOffering, instructor, role)
 }
 CourseOffering "1" -- "*" TeachingAssignment
 Instructor "1" -- "*" TeachingAssignment
