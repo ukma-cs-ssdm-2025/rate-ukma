@@ -116,6 +116,7 @@ enum CourseStatus {
 enum CourseTypeKind {
   Compulsory
   Elective
+  ProfOriented
 }
 
 enum SemesterTerm {
