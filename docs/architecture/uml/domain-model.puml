@@ -171,4 +171,10 @@ enum AcademicTitle {
   Professor            
 }
 
+enum TeachingRole {
+  Lecturer
+  PracticumTeacher
+  Assistant
+}
+
 @enduml
