@@ -112,6 +112,7 @@ class Rating {
   +comment    : text [0..1]
   +createdAt  : datetime [1]
   +isAnonymous : bool [1] = false
+  {unique} (student, courseOffering)
 }
 Student "1" -- "*" Rating
 CourseOffering  "1" -- "*" Rating
