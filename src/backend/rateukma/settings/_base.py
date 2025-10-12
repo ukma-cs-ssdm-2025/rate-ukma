@@ -39,8 +39,10 @@ ALLOWED_HOSTS = get_list(str(config("ALLOWED_HOSTS", default="127.0.0.1,localhos
 CSRF_TRUSTED_ORIGINS = get_list(
     str(config("CSRF_TRUSTED_ORIGINS", default="http://localhost"))
 )
-
-# Application definition
+CORS_ALLOWED_ORIGINS = get_list(
+    str(config("CORS_ALLOWED_ORIGINS", default="http://localhost:3000"))
+)
+CORS_ALLOW_CREDENTIALS = True
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -56,39 +58,56 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "rating_app",
     "scraper",
-    "django_auth_adfs",
+    "django.contrib.sites",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.microsoft",
 ]
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    "django_auth_adfs.backend.AdfsAuthCodeBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
-# Microsoft Azure AD settings
-AUTH_ADFS = {
-    "TENANT_ID": config("MICROSOFT_TENANT_ID", default="common"),
-    "CLIENT_ID": config("MICROSOFT_CLIENT_ID"),
-    "CLIENT_SECRET": config("MICROSOFT_CLIENT_SECRET"),
-    "AUDIENCE": config("MICROSOFT_CLIENT_ID"),  # TODO: check if this is correct
-    "RELYING_PARTY_ID": config("MICROSOFT_CLIENT_ID"),  # TODO: check if this is correct
-    "CLAIM_MAPPING": {
-        "first_name": "given_name",
-        "last_name": "family_name",
-        "email": "upn",  # or "email"
-    },
-    "USERNAME_CLAIM": "upn",  # or "email"
-    "GROUPS_CLAIM": None,  # TODO: check if this is correct
-    "SCOPES": ["openid", "email", "profile", "User.Read"],
-    "LOGIN_EXEMPT_URLS": [
-        "^admin/.*",
-        "^api/schema/.*",
-        "^api/docs/.*",
-        "^api/redoc/.*",
-    ],
+# Microsoft OAuth2 settings (django-allauth)
+SITE_ID = 1
+# session-based auth
+REST_USE_JWT = False
+REST_SESSION_LOGIN = True
+
+SOCIALACCOUNT_PROVIDERS = {
+    "microsoft": {
+        "APPS": [
+            {
+                "client_id": config("MICROSOFT_CLIENT_ID"),
+                "secret": config("MICROSOFT_CLIENT_SECRET"),
+                "tenant": config("MICROSOFT_TENANT_ID", default="common"),
+            }
+        ],
+        "SCOPE": ["openid", "email", "profile", "User.Read"],
+        "AUTH_PARAMS": {"prompt": "select_account"},
+    }
 }
 
-LOGIN_URL = "django_auth_adfs:login"
-LOGIN_REDIRECT_URL = "/"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_ALLOW_REGISTRATION = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+SOCIALACCOUNT_ADAPTER = (
+    "rating_app.auth.social_account_adapters.MicrosoftSocialAccountAdapter"
+)
+ACCOUNT_ADAPTER = "rating_app.auth.social_account_adapters.MicrosoftAccountAdapter"
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = config("LOGIN_REDIRECT_URL", default="http://localhost:3000/")
+LOGIN_ERROR_URL = config("LOGIN_ERROR_URL", default="http://localhost:3000/auth/error")
+ACCOUNT_LOGOUT_REDIRECT_URL = config(
+    "LOGOUT_REDIRECT_URL", default="http://localhost:3000/"
+)
+
+SOCIALACCOUNT_SOCIALLOGIN_SESSION_KEY = "socialaccount_sociallogin"
+# end of Microsoft OAuth2 settings (django-allauth)
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -99,7 +118,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_auth_adfs.middleware.LoginRequiredMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "rateukma.urls"
@@ -217,3 +236,6 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1/",
 }
+
+
+# TODO: add CORS configuration
