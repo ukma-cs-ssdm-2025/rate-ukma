@@ -60,6 +60,7 @@ Course "*" -- "1" Department
 class CourseSpeciality {
   +id           : UUID [1]
   +typeKind         : CourseTypeKind[1]
+  {unique} (course, speciality)
 }
 CourseSpeciality "*" -- "1" Course
 CourseSpeciality "*" -- "1" Speciality
