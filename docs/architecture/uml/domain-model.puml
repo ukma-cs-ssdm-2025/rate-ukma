@@ -112,7 +112,7 @@ class Rating {
   +isAnonymous : bool [1] = false
 }
 Student "1" -- "*" Rating
-Course  "1" -- "*" Rating
+CourseOffering  "1" -- "*" Rating
 
 enum EducationLevel {
   Bachelor
