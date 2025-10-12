@@ -1,5 +1,6 @@
 @startuml core-domain-model
 title Rate UKMA – Domain Model (v1.0)
+left to right direction
 
 class User {
   +id    : UUID [1]
