@@ -47,7 +47,6 @@ Speciality "*" -- "1" Faculty
 
 class Course {
   +id           : UUID [1]
-  +code         : string [1]
   +title        : string [1]
   +description  : text [0..1]
   +status       : CourseStatus [1]
@@ -75,6 +74,7 @@ class Semester {
 
 class CourseOffering {
   +id            : UUID [1]
+  +code          : string [1]
   +credits       : float [1]
   +weeklyHours   : int [1]
   +lectureCount  : int [0..1]
