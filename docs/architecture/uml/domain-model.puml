@@ -101,6 +101,7 @@ class Enrollment {
   +id         : UUID [1]
   +status     : EnrollmentStatus [1]
   +enrolledAt : datetime [1]
+  {unique} (student, courseOffering)
 }
 Student "1"        -- "*" Enrollment
 CourseOffering "1" -- "*" Enrollment
