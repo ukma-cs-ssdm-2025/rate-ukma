@@ -4,6 +4,89 @@ info:
   version: 1.0.0
   description: An API for rating UKMA courses and professors
 paths:
+  /api/v1/auth/login/microsoft/:
+    get:
+      operationId: auth_login_microsoft_retrieve
+      description: Initiates Microsoft OAuth2 authentication flow. Redirects to Microsoft
+        login page for @ukma.edu.ua accounts.Backend handles session authentication
+        and redirects to frontend login page.
+      summary: Microsoft OAuth Login
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '302':
+          description: 'Found: Temporary Redirect'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+  /api/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: Logs out current user and redirects to the configured logout URL.
+      summary: Logout
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '302':
+          description: 'Found: Temporary Redirect'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/courses/:
     get:
       operationId: courses_list
