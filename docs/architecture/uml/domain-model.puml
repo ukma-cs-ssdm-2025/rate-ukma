@@ -54,7 +54,6 @@ class Course {
   /avgDifficulty : float
   /avgUsefulness : float
   /ratingsCount  : int
-  {unique} (code)
 }
 Course "*" -- "1" Department
 
