@@ -109,6 +109,7 @@ class Rating {
   +usefulness : int [1]    ' 1–5
   +comment    : text [0..1]
   +createdAt  : datetime [1]
+  +isAnonymous : bool [1] = false
 }
 Student "1" -- "*" Rating
 Course  "1" -- "*" Rating
