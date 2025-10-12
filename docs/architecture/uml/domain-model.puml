@@ -50,12 +50,18 @@ class Course {
   +title        : string [1]
   +description  : text [0..1]
   +status       : CourseStatus [1]
-  +typeKind     : CourseTypeKind [1]
   /avgDifficulty : float
   /avgUsefulness : float
   /ratingsCount  : int
 }
 Course "*" -- "1" Department
+
+class CourseSpeciality {
+  +id           : UUID [1]
+  +typeKind         : CourseTypeKind[1]
+}
+CourseSpeciality "*" -- "1" Course
+CourseSpeciality "*" -- "1" Speciality
 
 class Semester {
   +id   : UUID [1]
