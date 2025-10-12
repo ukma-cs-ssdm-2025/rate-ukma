@@ -173,7 +173,7 @@ enum AcademicTitle {
 }
 
 enum InstructorRole {
-  Lecturer
+  LectureInstructor
   PracticumInstructor
 }
 
