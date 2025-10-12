@@ -53,6 +53,7 @@ class Course {
   /avgDifficulty : float
   /avgUsefulness : float
   /ratingsCount  : int
+  {unique} (code)
 }
 Course "*" -- "1" Department
 
@@ -67,6 +68,7 @@ class Semester {
   +id   : UUID [1]
   +year : int [1]
   +term : SemesterTerm [1]
+  {unique} (year, term)
 }
 
 class CourseOffering {
