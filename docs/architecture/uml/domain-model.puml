@@ -24,8 +24,6 @@ Student --|> Person
 class Instructor {
   +academicDegree     : AcademicDegree [0..1]
   +academicTitle      : AcademicTitle [0..1]
-  +isLecturer         : bool [1]
-  +isPracticumTeacher : bool [1]
 }
 Instructor --|> Person
 
@@ -82,7 +80,14 @@ class CourseOffering {
 }
 Course "1"   -- "*" CourseOffering
 Semester "1" -- "*" CourseOffering
-CourseOffering "*" -- "*" Instructor : taught_by
+
+class TeachingAssignment {
+  +id: UUID [1]
+  +role: TeachingRole [1]
+}
+CourseOffering "1" -- "*" TeachingAssignment
+Instructor "1" -- "*" TeachingAssignment
+
 
 class Enrollment {
   +id         : UUID [1]
