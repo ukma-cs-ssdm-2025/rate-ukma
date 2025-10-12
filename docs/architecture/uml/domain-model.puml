@@ -19,6 +19,7 @@ class Student {
   /ratedCoursesThisSem : int
 }
 User "1" -- "0..1" Student
+Student "*" -- "1" Speciality
 Student --|> Person
 
 class Instructor {
