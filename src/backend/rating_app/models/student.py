@@ -1,13 +1,12 @@
-from django.db import models
-from django.conf import settings
 from django.apps import apps
-
+from django.conf import settings
+from django.db import models
 from rating_app.models.choices import EducationLevel
+
 from .person import Person
 
 
 class Student(Person):
-
     education_level = models.CharField(
         max_length=16,
         choices=EducationLevel.choices,
@@ -18,6 +17,13 @@ class Student(Person):
         null=True,
         blank=True,
         related_name="student_profile",
+    )
+    specialty = models.ForeignKey(
+        "Specialty",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="students",
     )
 
     class Meta(Person.Meta):
