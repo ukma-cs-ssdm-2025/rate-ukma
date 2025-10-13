@@ -21,8 +21,6 @@ class Student(Person):
     specialty = models.ForeignKey(
         "Speciality",
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
         related_name="students",
     )
 
