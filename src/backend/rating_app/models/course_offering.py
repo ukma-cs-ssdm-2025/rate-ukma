@@ -26,7 +26,6 @@ class CourseOffering(models.Model):
     group_size_min = models.PositiveIntegerField(null=True, blank=True)
     group_size_max = models.PositiveIntegerField(null=True, blank=True)
 
-    instructors    = models.ManyToManyField("rating_app.Instructor", related_name="offerings", blank=True)
 
     class Meta:
         ordering = ["-semester__year", "-semester__term", "course__code"]
