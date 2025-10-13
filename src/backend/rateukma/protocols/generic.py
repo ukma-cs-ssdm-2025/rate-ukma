@@ -43,7 +43,7 @@ class ICloser(Protocol):
 class ILock(Protocol):
     def acquire(self) -> bool: ...
 
-    def release(self) -> bool: ...
+    def release(self) -> bool | None: ...
 
     def locked(self) -> bool: ...
 
@@ -54,7 +54,7 @@ class ILock(Protocol):
 
     def __exit__(self, *args: Any, **kwargs: Any) -> None:
         released = self.release()
-        if not released:
+        if released is False:
             raise RuntimeError("Failed to release lock")
 
 

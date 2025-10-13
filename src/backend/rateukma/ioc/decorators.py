@@ -1,9 +1,6 @@
 import threading
 from functools import wraps
-from typing import Callable, ParamSpec, TypeVar
-
-_once_read_lock = threading.Lock()
-_once_write_lock = threading.Lock()
+from typing import Callable, ParamSpec, TypeVar, cast
 
 _P = ParamSpec("_P")
 _RT = TypeVar("_RT", covariant=True)
@@ -30,33 +27,28 @@ def once(func: Callable[_P, _RT]) -> Callable[_P, _RT]:
     Returns:
         Callable[_P, _RT]: The decorated function.
     """
-    called = False
     result: _RT | NotSetType = NOT_SET
+    called = False
+    _lock = threading.RLock()
 
     @wraps(func)
     def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _RT:
-        nonlocal called, result
+        nonlocal result, called
 
-        thread_called: bool
-        with _once_read_lock:
+        with _lock:
+            if result is not NOT_SET:
+                return cast(_RT, result)
+
             if called:
-                thread_called = True
-            else:
-                called = True
-                thread_called = False
-
-        if thread_called:
-            if result is NOT_SET or isinstance(result, NotSetType):
                 raise RuntimeError(
-                    f"Function was called more than once: {func.__name__}. Check if initialized services are not in circular dependency."
+                    f"Circular dependency detected while initializing: {func.__name__}"
                 )
-            return result
 
-        thread_result = func(*args, **kwargs)
-
-        with _once_write_lock:
             called = True
-            result = thread_result
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                called = False
 
         return result
 

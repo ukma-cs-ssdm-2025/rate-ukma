@@ -104,7 +104,7 @@ def implements(method: Callable[_P, _RT]) -> Callable[_P, _RT]:
         global_vars = vars(sys.modules[method.__module__])
     method_implementation_found = False
     base_classes = _get_base_classes(sys._getframe(2), global_vars)
-    direct_parents_implementations = []
+    direct_parents_count = 0
 
     for super_class in base_classes:
         if not hasattr(super_class, "_is_protocol") or not super_class._is_protocol:
@@ -114,18 +114,14 @@ def implements(method: Callable[_P, _RT]) -> Callable[_P, _RT]:
         method_in_all_parent_classes_tree = hasattr(super_class, method.__name__)
 
         if method_in_all_parent_classes_tree:
-            if (
-                method_implementation_found
-                and method.__name__ in direct_parents_implementations
-            ):
-                raise TypeError(
-                    f"{method.__qualname__}: multiple interfaces with the same method name"
-                )
-
             method_implementation_found = True
 
         if method_in_direct_parents:
-            direct_parents_implementations.append(method.__name__)
+            direct_parents_count += 1
+            if direct_parents_count > 1:
+                raise TypeError(
+                    f"{method.__qualname__}: multiple direct Protocols define '{method.__name__}'"
+                )
 
     if not method_implementation_found:
         raise TypeError(
