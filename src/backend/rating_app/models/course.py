@@ -14,7 +14,6 @@ class Course(models.Model):
         "rating_app.Department", on_delete=models.PROTECT, related_name="courses"
     )
     class Meta:
-        indexes = [models.Index(fields=["code"])]
         managed = False
 
     def __str__(self):
