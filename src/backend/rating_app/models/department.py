@@ -4,6 +4,7 @@ import uuid
 class Department(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
+    faculty = models.ForeignKey('Faculty', on_delete=models.CASCADE, related_name='departments')
 
     def __str__(self): 
         return self.name
