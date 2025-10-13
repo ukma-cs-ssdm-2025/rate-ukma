@@ -15,8 +15,8 @@ class Rating(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["course"]),
-            models.Index(fields=["student", "course"]),
+            models.Index(fields=["course_offering"]),
+            models.Index(fields=["student", "course_offering"]),
         ]
         constraints = [
             models.CheckConstraint(
