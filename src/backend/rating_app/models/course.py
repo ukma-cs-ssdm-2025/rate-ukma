@@ -20,6 +20,9 @@ class Course(models.Model):
     def __str__(self):
         return f"{self.code} — {self.title}"
 
+    def __repr__(self):
+        return f"<Course code={self.code} title={self.title}>"
+
     @property
     def avg_difficulty(self):
         return self.ratings.aggregate(v=Avg('difficulty'))['v']
