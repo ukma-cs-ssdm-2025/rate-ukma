@@ -44,12 +44,7 @@ class Student(Person):
 
     @property
     def overall_rated_courses(self) -> int:
-        return (
-            self._rating_qs()
-            .values("courseOffering__course")
-            .distinct()
-            .count()
-        )
+        return self._rating_qs().values("course_offering__course").distinct().count()
 
     @property
     def rated_courses_this_sem(self) -> int:
@@ -58,8 +53,8 @@ class Student(Person):
             return 0
         return (
             self._rating_qs()
-            .filter(courseOffering__semester=latest_sem)
-            .values("courseOffering__course")
+            .filter(course_offering__semester=latest_sem)
+            .values("course_offering__course")
             .distinct()
             .count()
         )
