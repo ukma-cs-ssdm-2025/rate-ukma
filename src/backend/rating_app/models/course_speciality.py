@@ -13,7 +13,10 @@ class CourseSpeciality(models.Model):
     speciality = models.ForeignKey(
         "Speciality", on_delete=models.CASCADE, related_name="course_specialities"
     )
-    type_kind = models.TextChoices("TypeKind", choices=CourseTypeKind.choices)
+    type_kind = models.CharField(
+        max_length=8,
+        choices=CourseTypeKind.choices,
+    )
 
     def __str__(self):
         return f"{self.course} - {self.speciality} ({self.type_kind})"

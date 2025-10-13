@@ -14,7 +14,10 @@ class CourseInstructor(models.Model):
         on_delete=models.CASCADE,
         related_name="instructor_assignments",
     )
-    role = models.TextChoices("InstructorRole", choices=InstructorRole)
+    role = models.CharField(
+        max_length=16,
+        choices=InstructorRole.choices,
+    )
 
     class Meta:
         unique_together = ("instructor", "course_offering", "role")
