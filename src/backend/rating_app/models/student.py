@@ -36,6 +36,12 @@ class Student(Person):
         Semester = apps.get_model("rating_app", "Semester")
         return Semester.objects.order_by("-year", "-term").first()
 
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} ({self.education_level})"
+
+    def __repr__(self):
+        return f"<Student id={self.id} name={self.first_name} last_name={self.last_name} education_level={self.education_level}>"
+
     @property
     def overall_rated_courses(self) -> int:
         return self._rating_qs().values("course").distinct().count()
