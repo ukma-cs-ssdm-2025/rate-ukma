@@ -24,12 +24,23 @@ class Course(models.Model):
 
     @property
     def avg_difficulty(self):
-        return self.ratings.aggregate(v=Avg('difficulty'))['v']
+        from rating_app.models import Rating
+        return (
+            Rating.objects.filter(course_offering__course=self)
+            .aggregate(v=Avg("difficulty"))
+            ["v"]
+        )
 
     @property
     def avg_usefulness(self):
-        return self.ratings.aggregate(v=Avg('usefulness'))['v']
+        from rating_app.models import Rating
+        return (
+            Rating.objects.filter(course_offering__course=self)
+            .aggregate(v=Avg("usefulness"))
+            ["v"]
+        )
 
     @property
     def ratings_count(self):
-        return self.ratings.count()
+        from rating_app.models import Rating
+        return Rating.objects.filter(course_offering__course=self).count()
