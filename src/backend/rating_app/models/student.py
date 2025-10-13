@@ -19,7 +19,7 @@ class Student(Person):
         related_name="student_profile",
     )
     specialty = models.ForeignKey(
-        "Specialty",
+        "Speciality",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
