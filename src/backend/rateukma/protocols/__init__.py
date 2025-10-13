@@ -1,4 +1,5 @@
 from .decorators import implements
+from .django import IModelSignalHandler
 from .generic import (
     ICloser,
     ICondition,
@@ -36,4 +37,5 @@ __all__ = [
     "IFactory",
     "IEventListener",
     "IEventBus",
+    "IModelSignalHandler",
 ]

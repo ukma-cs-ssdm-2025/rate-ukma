@@ -14,8 +14,7 @@ logger = structlog.get_logger(__name__)
 
 
 class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
-    def __init__(self, allowed_domains: list[str]):
-        self.ALLOWED_DOMAINS = allowed_domains
+    ALLOWED_DOMAINS = ["ukma.edu.ua"]
 
     def populate_user(
         self, request: HttpRequest, sociallogin: SocialLogin, data: dict
@@ -32,7 +31,7 @@ class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
 
         email = user_email(sociallogin.user)
         if not email:
-            logger.error("email_address_required", body=request.body)
+            logger.error("email_address_required")
             raise ImmediateHttpResponse(redirect(settings.LOGIN_ERROR_URL))
 
         User = get_user_model()
@@ -48,21 +47,13 @@ class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
     def _is_allowed_to_login(
         self, request: HttpRequest, sociallogin: SocialLogin
     ) -> bool:
-        logger.debug(
-            "received_sociallogin",
-            email_addresses=sociallogin.email_addresses,
-            user=sociallogin.user,
-            token=sociallogin.token,
-        )
-
         email = user_email(sociallogin.user)
+        domain = email.split("@")[1] if email else None
+
         if not email:
-            logger.debug(
-                "no_email_found_in_sociallogin",
-                user=sociallogin.user,
-                token=sociallogin.token,
-            )
+            logger.debug("no_email_found_in_sociallogin")
             return False
+        logger.debug("received_sociallogin", email_domain=domain)
 
         if not self._is_email_allowed(email):
             logger.error(

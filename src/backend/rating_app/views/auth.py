@@ -1,8 +1,11 @@
 from typing import cast
 
 import structlog
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as django_login
+from django.contrib.auth import logout as django_logout
+from django.http import HttpRequest
 from django.shortcuts import redirect
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -17,12 +20,18 @@ from .views import _with_request_id
 logger = structlog.get_logger(__name__)
 
 
+def _validate_referrer(request: HttpRequest) -> bool:
+    allowed_domains = settings.CORS_ALLOWED_ORIGINS
+    referrer = request.META.get("HTTP_REFERER", "")
+    return any(domain in referrer for domain in allowed_domains)
+
+
 @extend_schema(
     summary="Microsoft OAuth Login",
     description=(
         "Initiates Microsoft OAuth2 authentication flow. "
-        "Redirects to Microsoft login page for @ukma.edu.ua accounts."
-        "Backend handles session authentication and redirects to frontend"
+        "Redirects to Microsoft login page for @ukma.edu.ua accounts. "
+        "Backend handles session authentication and redirects to frontend. "
         "Version: v1."
     ),
     responses=R_OAUTH,
@@ -32,9 +41,16 @@ logger = structlog.get_logger(__name__)
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def microsoft_login(request):
-    logger.info("microsoft_login_init", user_agent=request.META.get("HTTP_USER_AGENT"))
+    if not _validate_referrer(request):
+        return Response(
+            {"detail": "Invalid request origin"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
-    # * Check if redirect url can be passed as an argument
+    logger.info(
+        "microsoft_login_init",
+        user_agent=request.META.get("HTTP_USER_AGENT"),
+    )
+
     return redirect("/accounts/microsoft/login/")
 
 
@@ -71,7 +87,7 @@ def login(request):
         return _with_request_id(response)
 
     django_login(request, user)
-    logger.info("user_login_successful", user_id=user.id)
+    logger.info("user_login_successful")
 
     response = Response({"detail": "Login Successful"})
     return _with_request_id(response)
@@ -79,7 +95,9 @@ def login(request):
 
 @extend_schema(
     summary="Logout",
-    description="Logs out current user and redirects to the configured logout URL. Version: v1.",
+    description=(
+        "Logs out current user and redirects to the configured logout URL. Version: v1."
+    ),
     responses=R_LOGOUT,
     request=None,
     tags=["auth"],
@@ -87,10 +105,9 @@ def login(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout(request):
-    logger.info(
-        "user_logout",
-        user_id=request.user.id if request.user.is_authenticated else None,
-    )
+    was_authenticated = request.user.is_authenticated
+    logger.info("user_logout", was_authenticated=was_authenticated)
 
+    django_logout(request)
     # * Check if redirect url can be passed as an argument
     return redirect("/accounts/logout/")

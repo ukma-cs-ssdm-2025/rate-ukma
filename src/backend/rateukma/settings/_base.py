@@ -231,13 +231,26 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# Allow registration through Microsoft OAuth only
 ACCOUNT_ALLOW_REGISTRATION = True
+
+# Security note: GET-based login is enabled for Microsoft OAuth flow
+# This is a security trade-off that:
+# 1. Relies on Microsoft's OAuth state parameter for CSRF protection
+# 2. Requires strict referrer validation
+# 3. Only works with trusted Microsoft domains
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
-SOCIALACCOUNT_ADAPTER = "rating_app.ioc_container.auth.microsoft_social_account_adapter"
-ACCOUNT_ADAPTER = "rating_app.ioc_container.auth.microsoft_account_adapter"
+# Allauth security settings
+SOCIALACCOUNT_STATE_REQUIRED = True
+SOCIALACCOUNT_STORE_TOKENS = False
+
+SOCIALACCOUNT_ADAPTER = (
+    "rating_app.auth.microsoft_account_adapters.MicrosoftSocialAccountAdapter"
+)
+ACCOUNT_ADAPTER = "rating_app.auth.microsoft_account_adapters.MicrosoftAccountAdapter"
 
 LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = config("LOGIN_REDIRECT_URL")
-LOGIN_ERROR_URL = config("LOGIN_ERROR_URL")
-ACCOUNT_LOGOUT_REDIRECT_URL = config("LOGOUT_REDIRECT_URL")
+LOGIN_REDIRECT_URL = config("LOGIN_REDIRECT_URL", default="/")
+LOGIN_ERROR_URL = config("LOGIN_ERROR_URL", default="/")
+ACCOUNT_LOGOUT_REDIRECT_URL = config("LOGOUT_REDIRECT_URL", default="/")

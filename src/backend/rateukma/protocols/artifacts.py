@@ -165,10 +165,10 @@ class EventBus(IEventBus[_T]):
         self.listeners = listeners
 
     @implements
-    def add_listener(self, listener: IEventListener[_T]) -> None:
+    def subscribe(self, listener: IEventListener[_T]) -> None:
         self.listeners.append(listener)
 
     @implements
-    def emit(self, event: _T, *args: Any, **kwargs: Any) -> None:
+    def publish(self, event: _T, *args: Any, **kwargs: Any) -> None:
         for listener in self.listeners:
             listener.on_event(event, *args, **kwargs)

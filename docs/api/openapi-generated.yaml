@@ -60,8 +60,8 @@ paths:
     get:
       operationId: auth_login_microsoft_retrieve
       description: 'Initiates Microsoft OAuth2 authentication flow. Redirects to Microsoft
-        login page for @ukma.edu.ua accounts.Backend handles session authentication
-        and redirects to frontendVersion: v1.'
+        login page for @ukma.edu.ua accounts. Backend handles session authentication
+        and redirects to frontend. Version: v1.'
       summary: Microsoft OAuth Login
       tags:
       - auth
