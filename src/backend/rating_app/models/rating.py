@@ -6,7 +6,7 @@ import uuid
 class Rating(models.Model):
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student     = models.ForeignKey("rating_app.Student", on_delete=models.CASCADE, related_name="ratings")
-    course      = models.ForeignKey("rating_app.Course", on_delete=models.CASCADE, related_name="ratings")
+    courseOffering      = models.ForeignKey("rating_app.CourseOffering", on_delete=models.CASCADE, related_name="ratings")
     difficulty  = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     usefulness  = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment     = models.TextField(null=True, blank=True)
