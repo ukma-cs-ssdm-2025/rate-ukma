@@ -1,6 +1,6 @@
 import uuid
 
-from choices import InstructorRole
+from .choices import InstructorRole
 from django.db import models
 
 
