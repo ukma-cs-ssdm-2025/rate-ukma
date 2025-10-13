@@ -1,5 +1,6 @@
 @startuml core-domain-model
 title Rate UKMA – Domain Model (v1.0)
+left to right direction
 
 class User {
   +id    : UUID [1]
@@ -19,13 +20,12 @@ class Student {
   /ratedCoursesThisSem : int
 }
 User "1" -- "0..1" Student
+Student "*" -- "1" Speciality
 Student --|> Person
 
 class Instructor {
   +academicDegree     : AcademicDegree [0..1]
   +academicTitle      : AcademicTitle [0..1]
-  +isLecturer         : bool [1]
-  +isPracticumTeacher : bool [1]
 }
 Instructor --|> Person
 
@@ -38,35 +38,43 @@ class Department {
   +id   : UUID [1]
   +name : string [1]
 }
+Department "*" -- "1" Faculty
 
 class Speciality {
   +id   : UUID [1]
   +name : string [1]
 }
+Speciality "*" -- "1" Faculty
 
 class Course {
   +id           : UUID [1]
-  +code         : string [1]
   +title        : string [1]
   +description  : text [0..1]
   +status       : CourseStatus [1]
-  +typeKind     : CourseTypeKind [1]
   /avgDifficulty : float
   /avgUsefulness : float
   /ratingsCount  : int
 }
-Course "*" -- "1" Faculty
 Course "*" -- "1" Department
-Course "*" -- "*" Speciality : pro-oriented for
+
+class CourseSpeciality {
+  +id           : UUID [1]
+  +typeKind         : CourseTypeKind[1]
+  {unique} (course, speciality)
+}
+CourseSpeciality "*" -- "1" Course
+CourseSpeciality "*" -- "1" Speciality
 
 class Semester {
   +id   : UUID [1]
   +year : int [1]
   +term : SemesterTerm [1]
+  {unique} (year, term)
 }
 
 class CourseOffering {
   +id            : UUID [1]
+  +code          : string [1]
   +credits       : float [1]
   +weeklyHours   : int [1]
   +lectureCount  : int [0..1]
@@ -82,12 +90,20 @@ class CourseOffering {
 }
 Course "1"   -- "*" CourseOffering
 Semester "1" -- "*" CourseOffering
-CourseOffering "*" -- "*" Instructor : taught_by
+
+class CourseInstructor {
+  +id: UUID [1]
+  +role: InstructorRole [1]
+  {unique} (courseOffering, instructor, role)
+}
+CourseOffering "1" -- "*" CourseInstructor
+Instructor "1" -- "*" CourseInstructor
 
 class Enrollment {
   +id         : UUID [1]
   +status     : EnrollmentStatus [1]
   +enrolledAt : datetime [1]
+  {unique} (student, courseOffering)
 }
 Student "1"        -- "*" Enrollment
 CourseOffering "1" -- "*" Enrollment
@@ -98,9 +114,11 @@ class Rating {
   +usefulness : int [1]    ' 1–5
   +comment    : text [0..1]
   +createdAt  : datetime [1]
+  +isAnonymous : bool [1] = false
+  {unique} (student, courseOffering)
 }
 Student "1" -- "*" Rating
-Course  "1" -- "*" Rating
+CourseOffering  "1" -- "*" Rating
 
 enum EducationLevel {
   Bachelor
@@ -116,6 +134,7 @@ enum CourseStatus {
 enum CourseTypeKind {
   Compulsory
   Elective
+  ProfOriented
 }
 
 enum SemesterTerm {
@@ -151,6 +170,11 @@ enum AcademicTitle {
   SeniorLecturer
   AssociateProfessor   
   Professor            
+}
+
+enum InstructorRole {
+  LectureInstructor
+  PracticumInstructor
 }
 
 @enduml
