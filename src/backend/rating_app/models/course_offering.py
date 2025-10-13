@@ -34,7 +34,7 @@ class CourseOffering(models.Model):
     group_size_max = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
-        ordering = ["-semester__year", "-semester__term", "course__code"]
+        ordering = ["-semester__year", "-semester__term", "course__title"]
         constraints = [
             models.CheckConstraint(
                 check=Q(credits__gt=0),
@@ -44,7 +44,7 @@ class CourseOffering(models.Model):
         managed = False
 
     def __str__(self):
-        return f"{self.course.code} @ {self.semester}"
+        return f"{self.course.title} @ {self.semester}"
 
     def __repr__(self) -> str:
         return f"<CourseOffering id={self.id} code={self.code} name={self.course.title} semester={self.semester}>"
