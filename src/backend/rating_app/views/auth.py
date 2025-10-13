@@ -7,11 +7,11 @@ from django.shortcuts import redirect
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from ..serializers.auth import LoginDto, LoginSerializer
-from .responses import R_LOGIN, R_OAUTH
+from .responses import R_LOGIN, R_LOGOUT, R_OAUTH
 from .views import _with_request_id
 
 logger = structlog.get_logger(__name__)
@@ -80,11 +80,12 @@ def login(request):
 @extend_schema(
     summary="Logout",
     description="Logs out current user and redirects to the configured logout URL. Version: v1.",
-    responses=R_OAUTH,
+    responses=R_LOGOUT,
     request=None,
     tags=["auth"],
 )
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def logout(request):
     logger.info(
         "user_logout",

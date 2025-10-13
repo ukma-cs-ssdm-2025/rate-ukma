@@ -140,6 +140,17 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
   /api/v1/courses/:
     get:
       operationId: courses_list
