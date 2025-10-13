@@ -14,7 +14,7 @@ class CourseSpeciality(models.Model):
         "Speciality", on_delete=models.CASCADE, related_name="course_specialities"
     )
     type_kind = models.CharField(
-        max_length=8,
+        max_length=16,
         choices=CourseTypeKind.choices,
     )
 
