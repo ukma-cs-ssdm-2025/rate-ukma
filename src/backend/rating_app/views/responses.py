@@ -89,3 +89,9 @@ R_OAUTH = {
     400: OpenApiResponse(Err, "Bad request", [EX_400]),
     404: OpenApiResponse(Err, "Not found", [EX_404]),
 }
+
+R_LOGIN = {
+    200: OpenApiResponse(description="Logged in"),
+    400: OpenApiResponse(Err, "Bad request", [EX_400]),
+    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+}
