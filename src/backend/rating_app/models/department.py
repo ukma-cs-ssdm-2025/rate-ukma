@@ -8,7 +8,7 @@ class Department(models.Model):
     def __str__(self): 
         return self.name
     def __repr__(self): 
-        return f"Department {self.name}"
+        return f"<Department name={self.name}> faculty_id={self.faculty.id}> faculty_name={self.faculty.name}>"
 
 
     class Meta:
