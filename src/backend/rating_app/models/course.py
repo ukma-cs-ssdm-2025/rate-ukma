@@ -18,10 +18,10 @@ class Course(models.Model):
         managed = False
 
     def __str__(self):
-        return f"{self.code} — {self.title}"
+        return f"{self.id} — {self.title}"
 
     def __repr__(self):
-        return f"<Course code={self.code} title={self.title}>"
+        return f"<Course id={self.id} title={self.title}>"
 
     @property
     def avg_difficulty(self):
