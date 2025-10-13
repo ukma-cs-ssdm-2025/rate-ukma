@@ -19,6 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 config = AutoConfig(BASE_DIR)
 
+
 def get_list(text: str, *, sep: str = ",") -> list[str]:
     return [item.strip() for item in text.split(sep) if item.strip()]
 
@@ -38,8 +39,10 @@ ALLOWED_HOSTS = get_list(str(config("ALLOWED_HOSTS", default="127.0.0.1,localhos
 CSRF_TRUSTED_ORIGINS = get_list(
     str(config("CSRF_TRUSTED_ORIGINS", default="http://localhost"))
 )
-
-# Application definition
+CORS_ALLOWED_ORIGINS = get_list(
+    str(config("CORS_ALLOWED_ORIGINS", default="http://localhost:3000"))
+)
+CORS_ALLOW_CREDENTIALS = True
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -55,7 +58,20 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "rating_app",
     "scraper",
+    "django.contrib.sites",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.microsoft",
 ]
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+REST_USE_JWT = False
+REST_SESSION_LOGIN = True
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -66,6 +82,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "rateukma.urls"
@@ -96,11 +113,11 @@ WSGI_APPLICATION = "rateukma.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME":     config("POSTGRES_DB"),
-        "USER":     config("POSTGRES_USER"),
+        "NAME": config("POSTGRES_DB"),
+        "USER": config("POSTGRES_USER"),
         "PASSWORD": config("POSTGRES_PASSWORD"),
-        "HOST":     config("POSTGRES_HOST"),
-        "PORT":     config("POSTGRES_PORT"),
+        "HOST": config("POSTGRES_HOST"),
+        "PORT": config("POSTGRES_PORT"),
     }
 }
 
@@ -173,7 +190,6 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
     "DEFAULT_VERSION": "v1",
     "ALLOWED_VERSIONS": ["v1"],
-    
     "EXCEPTION_HANDLER": "rating_app.exception.exception_handler.exception_handler",
 }
 
@@ -184,3 +200,57 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1/",
 }
+
+
+# Microsoft OAuth2 settings (django-allauth)
+SITE_ID = 1
+
+SOCIALACCOUNT_PROVIDERS = {
+    "microsoft": {
+        "APPS": [
+            {
+                "client_id": config("MICROSOFT_CLIENT_ID"),
+                "secret": config("MICROSOFT_CLIENT_SECRET"),
+                "tenant": config("MICROSOFT_TENANT_ID", default="common"),
+            }
+        ],
+        "SCOPE": [
+            "openid",
+            "email",
+            "profile",
+            "User.Read",
+            "User.ReadBasic.All",
+            "offline_access",
+        ],
+        "AUTH_PARAMS": {
+            "prompt": "select_account",
+            "access_type": "offline",
+        },
+        "VERIFIED_EMAIL": True,
+        "ACCESS_TOKEN_METHOD": "POST",
+    }
+}
+
+# Allow registration through Microsoft OAuth only
+ACCOUNT_ALLOW_REGISTRATION = True
+
+# Security note: GET-based login is enabled for Microsoft OAuth flow
+# This is a security trade-off that:
+# 1. Relies on Microsoft's OAuth state parameter for CSRF protection
+# 2. Requires strict referrer validation
+# 3. Only works with trusted Microsoft domains
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Allauth security settings
+SOCIALACCOUNT_STATE_REQUIRED = True
+SOCIALACCOUNT_STORE_TOKENS = False
+
+SOCIALACCOUNT_ADAPTER = (
+    "rating_app.auth.microsoft_account_adapters.MicrosoftSocialAccountAdapter"
+)
+ACCOUNT_ADAPTER = "rating_app.auth.microsoft_account_adapters.MicrosoftAccountAdapter"
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = config("LOGIN_REDIRECT_URL", default="/")
+LOGIN_ERROR_URL = config("LOGIN_ERROR_URL", default="/")
+ACCOUNT_LOGOUT_REDIRECT_URL = config("LOGOUT_REDIRECT_URL", default="/")
