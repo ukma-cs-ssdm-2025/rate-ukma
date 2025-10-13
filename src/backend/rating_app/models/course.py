@@ -14,6 +14,9 @@ class Course(models.Model):
     department = models.ForeignKey(
         "rating_app.Department", on_delete=models.PROTECT, related_name="courses"
     )
+    specialities = models.ManyToManyField(
+        "rating_app.Speciality", through="rating_app.CourseSpeciality", related_name="courses"
+    )
 
     class Meta:
         managed = False
