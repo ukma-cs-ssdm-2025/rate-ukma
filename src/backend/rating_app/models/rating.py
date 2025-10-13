@@ -24,6 +24,7 @@ class Rating(models.Model):
     is_anonymous = models.BooleanField(default=False)
 
     class Meta:
+        unique_together = ("student", "course_offering")
         indexes = [
             models.Index(fields=["course_offering"]),
             models.Index(fields=["student", "course_offering"]),
