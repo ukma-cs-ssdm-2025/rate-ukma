@@ -10,7 +10,7 @@ class Rating(models.Model):
     student = models.ForeignKey(
         "rating_app.Student", on_delete=models.CASCADE, related_name="ratings"
     )
-    courseOffering = models.ForeignKey(
+    course_offering = models.ForeignKey(
         "rating_app.CourseOffering", on_delete=models.CASCADE, related_name="ratings"
     )
     difficulty = models.IntegerField(
@@ -21,11 +21,12 @@ class Rating(models.Model):
     )
     comment = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_anonymous = models.BooleanField(default=False)
 
     class Meta:
         indexes = [
-            models.Index(fields=["course"]),
-            models.Index(fields=["student", "course"]),
+            models.Index(fields=["course_offering"]),
+            models.Index(fields=["student", "course_offering"]),
         ]
         constraints = [
             models.CheckConstraint(
@@ -40,4 +41,7 @@ class Rating(models.Model):
         managed = False
 
     def __str__(self):
-        return f"Rating {self.difficulty}/{self.usefulness} by {self.student} on {self.course}"
+        return f"Rating {self.difficulty}/{self.usefulness} by {self.student} on {self.course_offering}"
+
+    def __repr__(self) -> str:
+        return f"<Rating id={self.id} student={self.student} course_offering={self.course_offering} difficulty={self.difficulty} usefulness={self.usefulness}>"
