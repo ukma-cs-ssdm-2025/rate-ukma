@@ -14,7 +14,8 @@ logger = structlog.get_logger(__name__)
 
 
 class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
-    ALLOWED_DOMAINS = ["ukma.edu.ua"]
+    def __init__(self, allowed_domains: list[str]):
+        self.ALLOWED_DOMAINS = allowed_domains
 
     def populate_user(
         self, request: HttpRequest, sociallogin: SocialLogin, data: dict

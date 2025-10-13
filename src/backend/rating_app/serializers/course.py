@@ -1,12 +1,14 @@
-from rest_framework import serializers
 from rating_app.models import Course
+from rest_framework import serializers
+
 
 class CourseSerializer(serializers.ModelSerializer):
     """
-    Read serializer for Course. 
+    Read serializer for Course.
     - Relateds exposed as UUIDs (no DB lookup)
     - Computed fields included as read-only
     """
+
     faculty = serializers.UUIDField(source="faculty_id")
     department = serializers.UUIDField(source="department_id")
     specialities = serializers.ListField(
@@ -20,8 +22,17 @@ class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = [
-            "id", "code", "title", "description", "status", "type_kind",
-            "faculty", "department", "specialities",
-            "avg_difficulty", "avg_usefulness", "ratings_count",
+            "id",
+            "code",
+            "title",
+            "description",
+            "status",
+            "type_kind",
+            "faculty",
+            "department",
+            "specialities",
+            "avg_difficulty",
+            "avg_usefulness",
+            "ratings_count",
         ]
         read_only_fields = fields

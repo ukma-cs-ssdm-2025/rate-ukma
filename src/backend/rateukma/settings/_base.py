@@ -234,10 +234,8 @@ SOCIALACCOUNT_PROVIDERS = {
 ACCOUNT_ALLOW_REGISTRATION = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
-SOCIALACCOUNT_ADAPTER = (
-    "rating_app.auth.microsoft_account_adapters.MicrosoftSocialAccountAdapter"
-)
-ACCOUNT_ADAPTER = "rating_app.auth.microsoft_account_adapters.MicrosoftAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "rating_app.ioc_container.auth.microsoft_social_account_adapter"
+ACCOUNT_ADAPTER = "rating_app.ioc_container.auth.microsoft_account_adapter"
 
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = config("LOGIN_REDIRECT_URL")
