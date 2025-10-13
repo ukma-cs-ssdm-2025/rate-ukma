@@ -31,4 +31,7 @@ class Rating(models.Model):
         managed = False
 
     def __str__(self):
-        return f"Rating {self.difficulty}/{self.usefulness} by {self.student} on {self.course}"
+        return f"Rating {self.difficulty}/{self.usefulness} by {self.student} on {self.course_offering}"
+    
+    def __repr__(self) -> str:
+        return f"<Rating id={self.id} student={self.student} course_offering={self.course_offering} difficulty={self.difficulty} usefulness={self.usefulness}>"
