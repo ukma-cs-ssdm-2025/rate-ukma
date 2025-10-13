@@ -1,10 +1,17 @@
+import uuid
+from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.db import models
 from django.db.models import Q
-import uuid
-from rating_app.models.choices import PracticeType, ExamType, EnrollmentStatus
+from rating_app.models.choices import EnrollmentStatus, ExamType, PracticeType
+
 
 class CourseOffering(models.Model):
     id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    code           = models.CharField(
+                        max_length = 6,
+                        unique=True,
+                        validators=[MinLengthValidator(6), MaxLengthValidator(6)],
+                    )
     course         = models.ForeignKey("rating_app.Course", on_delete=models.CASCADE, related_name="offerings")
     semester       = models.ForeignKey("rating_app.Semester", on_delete=models.PROTECT, related_name="offerings")
 
