@@ -6,8 +6,11 @@ from .instructor import Instructor
 from .student import Student
 from .course import Course
 from .course_offering import CourseOffering
+from .course_instructor import CourseInstructor
+from .course_speciality import CourseSpeciality
 from .enrollment import Enrollment
 from .rating import Rating
+from .person import Person
 
 __all__ = [
     "Course",
@@ -18,6 +21,9 @@ __all__ = [
     "Instructor",
     "Student",
     "CourseOffering",
+    "CourseInstructor",
+    "CourseSpeciality",
     "Enrollment",
     "Rating",
+    "Person",
 ]
