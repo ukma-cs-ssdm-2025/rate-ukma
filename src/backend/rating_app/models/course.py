@@ -9,7 +9,6 @@ class Course(models.Model):
     title        = models.CharField(max_length=255)
     description  = models.TextField(null=True, blank=True)
     status       = models.CharField(max_length=16, choices=CourseStatus.choices)
-    type_kind    = models.CharField(max_length=16, choices=CourseTypeKind.choices)
 
     department = models.ForeignKey(
         "rating_app.Department", on_delete=models.PROTECT, related_name="courses"
