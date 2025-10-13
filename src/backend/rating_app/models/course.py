@@ -11,10 +11,9 @@ class Course(models.Model):
     status       = models.CharField(max_length=16, choices=CourseStatus.choices)
     type_kind    = models.CharField(max_length=16, choices=CourseTypeKind.choices)
 
-    faculty      = models.ForeignKey("rating_app.Faculty", on_delete=models.PROTECT, related_name="courses")
-    department   = models.ForeignKey("rating_app.Department", on_delete=models.PROTECT, related_name="courses")
-    specialities = models.ManyToManyField("rating_app.Speciality", related_name="pro_oriented_courses", blank=True)
-
+    department = models.ForeignKey(
+        "rating_app.Department", on_delete=models.PROTECT, related_name="courses"
+    )
     class Meta:
         indexes = [models.Index(fields=["code"])]
         managed = False
