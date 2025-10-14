@@ -3,7 +3,11 @@ import uuid
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.db import models
 from django.db.models import Q
-from rating_app.models.choices import EnrollmentStatus, ExamType, PracticeType
+
+from .choices import EnrollmentStatus, ExamType, PracticeType
+from .course import Course
+from .semester import Semester
+from .instructor import Instructor
 
 
 class CourseOffering(models.Model):
@@ -14,10 +18,10 @@ class CourseOffering(models.Model):
         validators=[MinLengthValidator(6), MaxLengthValidator(6)],
     )
     course = models.ForeignKey(
-        "rating_app.Course", on_delete=models.CASCADE, related_name="offerings"
+        Course, on_delete=models.CASCADE, related_name="offerings"
     )
     semester = models.ForeignKey(
-        "rating_app.Semester", on_delete=models.PROTECT, related_name="offerings"
+        Semester, on_delete=models.PROTECT, related_name="offerings"
     )
 
     credits = models.DecimalField(max_digits=3, decimal_places=1)
@@ -34,7 +38,7 @@ class CourseOffering(models.Model):
     group_size_max = models.PositiveIntegerField(null=True, blank=True)
 
     instructors = models.ManyToManyField(
-        "rating_app.Instructor", through="rating_app.CourseInstructor", related_name="course_offerings"
+        Instructor, through="CourseInstructor", related_name="course_offerings"
     )
 
     class Meta:

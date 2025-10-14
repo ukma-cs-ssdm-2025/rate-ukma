@@ -1,15 +1,17 @@
 from django.db import models
 import uuid
-from rating_app.models.choices import EnrollmentStatus
+from .choices import EnrollmentStatus
+from .student import Student
+from .course_offering import CourseOffering
 
 
 class Enrollment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(
-        "rating_app.Student", on_delete=models.CASCADE, related_name="enrollments"
+        Student, on_delete=models.CASCADE, related_name="enrollments"
     )
     offering = models.ForeignKey(
-        "rating_app.CourseOffering",
+        CourseOffering,
         on_delete=models.CASCADE,
         related_name="enrollments",
     )

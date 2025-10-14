@@ -4,14 +4,17 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
+from .student import Student
+from .course_offering import CourseOffering
+
 
 class Rating(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(
-        "rating_app.Student", on_delete=models.CASCADE, related_name="ratings"
+        Student, on_delete=models.CASCADE, related_name="ratings"
     )
     course_offering = models.ForeignKey(
-        "rating_app.CourseOffering", on_delete=models.CASCADE, related_name="ratings"
+        CourseOffering, on_delete=models.CASCADE, related_name="ratings"
     )
     difficulty = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)]

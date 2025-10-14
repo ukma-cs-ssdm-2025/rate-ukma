@@ -2,8 +2,11 @@ import uuid
 
 from django.db import models
 from django.db.models import Avg
-from rating_app.models.choices import CourseStatus
 
+from .choices import CourseStatus
+from .department import Department
+from .speciality import Speciality
+from .rating import Rating
 
 class Course(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -12,10 +15,10 @@ class Course(models.Model):
     status = models.CharField(max_length=16, choices=CourseStatus.choices)
 
     department = models.ForeignKey(
-        "rating_app.Department", on_delete=models.PROTECT, related_name="courses"
+        Department, on_delete=models.PROTECT, related_name="courses"
     )
     specialities = models.ManyToManyField(
-        "rating_app.Speciality", through="rating_app.CourseSpeciality", related_name="courses"
+        Speciality, through="CourseSpeciality", related_name="courses"
     )
 
 
@@ -27,22 +30,16 @@ class Course(models.Model):
 
     @property
     def avg_difficulty(self):
-        from rating_app.models import Rating
-
         return Rating.objects.filter(course_offering__course=self).aggregate(
             v=Avg("difficulty")
         )["v"]
 
     @property
     def avg_usefulness(self):
-        from rating_app.models import Rating
-
         return Rating.objects.filter(course_offering__course=self).aggregate(
             v=Avg("usefulness")
         )["v"]
 
     @property
     def ratings_count(self):
-        from rating_app.models import Rating
-
         return Rating.objects.filter(course_offering__course=self).count()
