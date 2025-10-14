@@ -1,6 +1,5 @@
 # Rate UKMA
 
-[![Linting](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/linting.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/linting.yml)
 [![Tests](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml)
 [![Deploy Staging](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-staging.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-staging.yml)
 [![Deploy Live](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-live.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-live.yml)
@@ -111,6 +110,28 @@ python manage.py makemigrations
 ```
 
 Then restart the containers - migrations are run on startup
+
+### Pre-commit Hooks Setup
+
+Pre-commit is installed with other dependencies. To use it:
+
+1. Install git hooks:
+
+   ```bash
+   pre-commit install
+   ```
+
+   This action will install git hooks from configuration in `.pre-commit-config.yaml`. to local repository.
+
+   Pre-commit will automatically run before every commit.
+
+2. To run pre-commit manually:
+
+   ```bash
+   pre-commit run --all-files # all files
+   pre-commit run --files <file1> <file2> <file3> # specific files
+   pre-commit run # all staged files
+   ```
 
 ## 💻 Development Resources
 
