@@ -7,8 +7,17 @@ export default defineConfig({
       target: 'ts-swc',
       client: 'react-query',
       override: {
-        query: {
-          useInfinite: true,
+        operations: {
+          courses_list: {
+            query: {
+              useInfinite: true,
+            },
+          },
+          course_ratings_list: {
+            query: {
+              useInfinite: true,
+            },
+          },
         },
       },
       schemas: 'src/lib/api-generated/models',
