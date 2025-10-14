@@ -6,7 +6,6 @@ from django.db.models import Avg
 from .choices import CourseStatus
 from .department import Department
 from .speciality import Speciality
-from .rating import Rating
 
 class Course(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -30,16 +29,22 @@ class Course(models.Model):
 
     @property
     def avg_difficulty(self):
+        from .rating import Rating
+
         return Rating.objects.filter(course_offering__course=self).aggregate(
             v=Avg("difficulty")
         )["v"]
 
     @property
     def avg_usefulness(self):
+        from .rating import Rating
+
         return Rating.objects.filter(course_offering__course=self).aggregate(
             v=Avg("usefulness")
         )["v"]
 
     @property
     def ratings_count(self):
+        from .rating import Rating
+
         return Rating.objects.filter(course_offering__course=self).count()
