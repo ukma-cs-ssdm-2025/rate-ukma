@@ -19,7 +19,7 @@ class Rating(models.Model):
     usefulness = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
-    comment = models.TextField(null=True, blank=True)
+    comment = models.TextField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_anonymous = models.BooleanField(default=False)
 
