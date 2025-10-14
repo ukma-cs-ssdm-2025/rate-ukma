@@ -11,9 +11,9 @@ class CourseAdmin(VersionAdmin):
         "title",
         "department",
         "status",
-        "avg_difficulty_annot",
-        "avg_usefulness_annot",
-        "ratings_count_annot",
+        "avg_difficulty",
+        "avg_usefulness",
+        "ratings_count",
     )
     list_select_related = ("department",)
     list_filter = ("department", "status")
@@ -33,3 +33,15 @@ class CourseAdmin(VersionAdmin):
                 Count("offerings__ratings__id", distinct=True), Value(0), output_field=IntegerField()
             ),
         )
+
+    @admin.display(ordering="avg_difficulty_annot", description="Avg difficulty")
+    def avg_difficulty(self, obj):
+        return getattr(obj, "avg_difficulty_annot", None)
+
+    @admin.display(ordering="avg_usefulness_annot", description="Avg usefulness")
+    def avg_usefulness(self, obj):
+        return getattr(obj, "avg_usefulness_annot", None)
+
+    @admin.display(ordering="ratings_count_annot", description="Ratings count")
+    def ratings_count(self, obj):
+        return getattr(obj, "ratings_count_annot", None)
