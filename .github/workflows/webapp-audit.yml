@@ -52,8 +52,7 @@ jobs:
         run: pnpm run security:audit
 
       - name: Snyk test (SARIF upload)
-        id: snyk
-        uses: snyk/actions/node@v4
+        uses: snyk/actions/node@master
         with:
           command: test
           args: ${{ env.FRONTEND_DIR }} --sarif-file-output=src/webapp/snyk.sarif --severity-threshold=high
