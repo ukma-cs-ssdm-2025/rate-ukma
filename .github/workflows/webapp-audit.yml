@@ -4,9 +4,6 @@ on:
   push:
     paths:
       - "src/webapp/**"
-  pull_request:
-    paths:
-      - "src/webapp/**"
   workflow_dispatch:
   schedule:
     - cron: "0 7 * * 1" # weekly Monday 07:00 UTC
@@ -44,11 +41,12 @@ jobs:
           cache: pnpm
           cache-dependency-path: src/webapp/pnpm-lock.yaml
 
+      - name: Install pnpm
+        run: npm install -g pnpm@${{ steps.versions.outputs.pnpm-version }}
+
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
         run: |
-          corepack enable
-          corepack prepare pnpm@${{ steps.versions.outputs.pnpm-version }} --activate
           pnpm install --frozen-lockfile
 
       - name: pnpm audit high severity
