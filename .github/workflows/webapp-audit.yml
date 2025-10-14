@@ -23,37 +23,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract versions from package.json
+      - name: Extract Node version from package.json
         id: versions
         working-directory: ${{ env.FRONTEND_DIR }}
         run: |
           NODE_VERSION=$(jq -r '.engines.node' package.json | sed 's/>=//')
-          PNPM_VERSION=$(jq -r '.engines.pnpm' package.json | sed 's/>=//')
           echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
-          echo "pnpm-version=$PNPM_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ${{ env.FRONTEND_DIR }}/package.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ steps.versions.outputs.node-version }}
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ steps.versions.outputs.pnpm-version }}
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          cache: 'pnpm'
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
 
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
