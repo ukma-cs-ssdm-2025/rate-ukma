@@ -13,11 +13,7 @@ export default defineConfig({
 					courses_list: {
 						query: {
 							useInfinite: true,
-						},
-					},
-					course_ratings_list: {
-						query: {
-							useInfinite: true,
+							useInfiniteQueryParam: "page",
 						},
 					},
 				},
