@@ -32,15 +32,28 @@ jobs:
           echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
           echo "pnpm-version=$PNPM_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Setup Node.js and pnpm cache
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ steps.versions.outputs.node-version }}
-          cache: pnpm
-          cache-dependency-path: src/webapp/pnpm-lock.yaml
 
-      - name: Install pnpm
-        run: npm install -g pnpm@${{ steps.versions.outputs.pnpm-version }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ steps.versions.outputs.pnpm-version }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
