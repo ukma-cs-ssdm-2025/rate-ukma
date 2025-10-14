@@ -81,3 +81,19 @@ black .
 # Docker
 docker exec -it <backend_container_name> ruff check .
 ```
+
+## Scraper Commands
+
+The backend includes web scraping functionality to collect course data from UKMA.
+
+### Main Commands
+
+```bash
+# Collect course IDs from catalog pages
+python manage.py collect_catalog
+
+# Fetch detailed information for collected course IDs
+python manage.py fetch_courses
+```
+
+Add `--help` to see all available arguments
