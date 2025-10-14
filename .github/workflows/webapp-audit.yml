@@ -57,11 +57,7 @@ jobs:
         uses: snyk/actions/node@v4
         with:
           command: test
-          args: >-
-            --severity-threshold=high
-            --sarif-file-output=${{ env.FRONTEND_DIR }}/snyk.sarif
-            --file=${{ env.FRONTEND_DIR }}/package.json
-            --package-manager=pnpm
+          args: ${{ env.FRONTEND_DIR }} --sarif-file-output=src/webapp/snyk.sarif --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
@@ -70,4 +66,4 @@ jobs:
         if: secrets.SNYK_TOKEN != '' && always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: ${{ env.FRONTEND_DIR }}/snyk.sarif
+          sarif_file: src/webapp/snyk.sarif
