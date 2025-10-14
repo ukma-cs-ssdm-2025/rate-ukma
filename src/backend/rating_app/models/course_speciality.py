@@ -16,6 +16,7 @@ class CourseSpeciality(models.Model):
     type_kind = models.CharField(
         max_length=16,
         choices=CourseTypeKind.choices,
+        null=False
     )
 
     def __str__(self):
