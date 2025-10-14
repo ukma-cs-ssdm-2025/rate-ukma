@@ -43,7 +43,9 @@ def _validate_referrer(request: HttpRequest) -> bool:
 @permission_classes([AllowAny])
 def microsoft_login(request):
     if not _validate_referrer(request):
-        return Response({"detail": "Invalid request origin"}, status=status.HTTP_400_BAD_REQUEST)
+        return _with_request_id(
+            Response({"detail": "Invalid request origin"}, status=status.HTTP_400_BAD_REQUEST)
+        )
 
     logger.info(
         "microsoft_login_init",

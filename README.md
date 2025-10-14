@@ -121,7 +121,7 @@ Pre-commit is installed with other dependencies. To use it:
    pre-commit install
    ```
 
-   This action will install git hooks from configuration in `.pre-commit-config.yaml`. to local repository.
+   This installs git hooks from `.pre-commit-config.yaml` into your local repository.
 
    Pre-commit will automatically run before every commit.
 
