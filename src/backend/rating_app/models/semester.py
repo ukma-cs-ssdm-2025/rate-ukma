@@ -11,7 +11,6 @@ class Semester(models.Model):
     class Meta:
         unique_together = ("year", "term")
         ordering = ["-year", "-term"]
-        managed = False
 
     def __str__(self):
         return f"{self.year} {self.get_term_display()}"

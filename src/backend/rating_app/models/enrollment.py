@@ -21,7 +21,5 @@ class Enrollment(models.Model):
         indexes = [
             models.Index(fields=["student", "offering"]),
         ]
-        managed = False
-
     def __str__(self):
         return f"{self.student} → {self.offering} ({self.get_status_display()})"

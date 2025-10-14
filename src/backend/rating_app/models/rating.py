@@ -39,7 +39,6 @@ class Rating(models.Model):
                 name="rating_usefulness_1_5",
             ),
         ]
-        managed = False
 
     def __str__(self):
         return f"Rating {self.difficulty}/{self.usefulness} by {self.student} on {self.course_offering}"

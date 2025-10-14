@@ -13,7 +13,6 @@ class Instructor(Person):
 
     class Meta(Person.Meta):
         abstract = False
-        managed = False
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}. ({self.academic_degree}, {self.academic_title})"

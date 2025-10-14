@@ -18,8 +18,6 @@ class Course(models.Model):
         "rating_app.Speciality", through="rating_app.CourseSpeciality", related_name="courses"
     )
 
-    class Meta:
-        managed = False
 
     def __str__(self):
         return f"{self.id} — {self.title}"

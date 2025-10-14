@@ -45,7 +45,6 @@ class CourseOffering(models.Model):
                 name="co_credits_gt_0",
             )
         ]
-        managed = False
 
     def __str__(self):
         return f"{self.course.title} @ {self.semester}"

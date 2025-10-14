@@ -26,7 +26,6 @@ class Student(Person):
 
     class Meta(Person.Meta):
         abstract = False
-        managed = False
 
     def _rating_qs(self):
         Rating = apps.get_model("rating_app", "Rating")

@@ -26,4 +26,3 @@ class CourseSpeciality(models.Model):
 
     class Meta:
         unique_together = ("course", "speciality")
-        managed = False
