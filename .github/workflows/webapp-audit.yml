@@ -10,6 +10,10 @@ permissions:
   contents: read
   security-events: write
 
+concurrency:
+  group: webapp-security-audit-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   FRONTEND_DIR: src/webapp
 
@@ -17,8 +21,6 @@ jobs:
   security-audit:
     name: Dependency Security Audit
     runs-on: ubuntu-latest
-    env:
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -30,17 +32,15 @@ jobs:
           NODE_VERSION=$(jq -r '.engines.node' package.json | sed 's/>=//')
           echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          package_json_file: ${{ env.FRONTEND_DIR }}/package.json
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ steps.versions.outputs.node-version }}
           cache: 'pnpm'
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -53,18 +53,18 @@ jobs:
 
       - name: Snyk test (SARIF upload)
         id: snyk
-        if: env.SNYK_TOKEN != ''
-        uses: snyk/actions/node@master
-        working-directory: ${{ env.FRONTEND_DIR }}
+        if: secrets.SNYK_TOKEN != ''
+        uses: snyk/actions/node@v4
         with:
           command: test
           args: --severity-threshold=high --sarif-file-output=snyk.sarif
+          projectPath: ${{ env.FRONTEND_DIR }}
         env:
-          SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
       - name: Upload SARIF results
-        if: steps.snyk.outcome == 'success' && env.SNYK_TOKEN != ''
+        if: secrets.SNYK_TOKEN != '' && always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ env.FRONTEND_DIR }}/snyk.sarif
