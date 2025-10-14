@@ -32,15 +32,17 @@ jobs:
           NODE_VERSION=$(jq -r '.engines.node' package.json | sed 's/>=//')
           echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ steps.versions.outputs.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
 
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
