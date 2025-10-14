@@ -1,9 +1,11 @@
 from rest_framework import serializers
+
 from rating_app.models import Course
+
 
 class CourseSerializer(serializers.ModelSerializer):
     """
-    Read serializer for Course. 
+    Read serializer for Course.
     - Relateds exposed as UUIDs (no DB lookup)
     - Computed fields included as read-only
     """

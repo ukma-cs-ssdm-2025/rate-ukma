@@ -1,14 +1,19 @@
-from drf_spectacular.utils import OpenApiResponse, OpenApiExample
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse
+
 from ..serializers import (
-    ErrorEnvelopeSerializer as Err,
+    CourseListResponseSerializer,
     CourseSerializer,
     RatingSerializer,
-    CourseListResponseSerializer,
 )
+from ..serializers import ErrorEnvelopeSerializer as Err
 
 EX_400 = OpenApiExample(
     "Validation error",
-    value={"detail": "Validation failed", "status": 400, "fields": {"difficulty": ["Must be between 1 and 5."]}},
+    value={
+        "detail": "Validation failed",
+        "status": 400,
+        "fields": {"difficulty": ["Must be between 1 and 5."]},
+    },
     status_codes=["400"],
 )
 EX_401 = OpenApiExample(
@@ -18,7 +23,10 @@ EX_401 = OpenApiExample(
 )
 EX_403 = OpenApiExample(
     "Forbidden",
-    value={"detail": "You do not have permission to perform this action", "status": 403},
+    value={
+        "detail": "You do not have permission to perform this action",
+        "status": 403,
+    },
     status_codes=["403"],
 )
 EX_404 = OpenApiExample(
@@ -70,4 +78,25 @@ R_NO_CONTENT = {
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
     403: OpenApiResponse(Err, "Forbidden", [EX_403]),
     404: OpenApiResponse(Err, "Not found", [EX_404]),
+}
+
+R_REDIRECT = {
+    302: OpenApiResponse(description="Found: Temporary Redirect"),
+}
+
+R_OAUTH = {
+    **R_REDIRECT,
+    400: OpenApiResponse(Err, "Bad request", [EX_400]),
+    404: OpenApiResponse(Err, "Not found", [EX_404]),
+}
+
+R_LOGIN = {
+    200: OpenApiResponse(description="Logged in"),
+    400: OpenApiResponse(Err, "Bad request", [EX_400]),
+    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+}
+
+R_LOGOUT = {
+    **R_OAUTH,
+    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
 }

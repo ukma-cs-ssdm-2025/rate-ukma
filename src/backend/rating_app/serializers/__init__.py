@@ -1,6 +1,11 @@
 from .course import CourseSerializer
-from .rating import RatingSerializer
 from .course_list_resp import CourseListResponseSerializer
 from .error_envelope import ErrorEnvelopeSerializer
+from .rating import RatingSerializer
 
-__all__ = ["CourseSerializer", "RatingSerializer", "CourseListResponseSerializer", "ErrorEnvelopeSerializer"]
+__all__ = [
+    "CourseSerializer",
+    "RatingSerializer",
+    "CourseListResponseSerializer",
+    "ErrorEnvelopeSerializer",
+]

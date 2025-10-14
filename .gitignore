@@ -26,5 +26,8 @@ __pycache__/
 media/
 static/
 
+# Generated API client
+src/webapp/src/lib/api-generated/
+
 # macOS
 .DS_Store

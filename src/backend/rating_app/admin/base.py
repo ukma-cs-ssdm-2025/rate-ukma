@@ -2,7 +2,9 @@ from django.contrib import admin
 from django.db.models import Avg, Count, Value, FloatField, IntegerField
 from django.db.models.functions import Coalesce
 from reversion.admin import VersionAdmin
+
 from rating_app.models import Course
+
 
 @admin.register(Course)
 class CourseAdmin(VersionAdmin):

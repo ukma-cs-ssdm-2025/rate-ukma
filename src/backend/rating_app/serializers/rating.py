@@ -1,5 +1,7 @@
 from rest_framework import serializers
+
 from rating_app.models import Rating
+
 
 class RatingSerializer(serializers.ModelSerializer):
     """

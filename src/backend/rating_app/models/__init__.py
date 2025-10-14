@@ -1,14 +1,10 @@
-from .faculty import Faculty
-from .department import Department
-from .speciality import Speciality
-from .semester import Semester
-from .instructor import Instructor
-from .student import Student
 from .course import Course
 from .course_offering import CourseOffering
 from .course_instructor import CourseInstructor
 from .course_speciality import CourseSpeciality
 from .enrollment import Enrollment
+from .faculty import Faculty
+from .instructor import Instructor
 from .rating import Rating
 from .person import Person
 

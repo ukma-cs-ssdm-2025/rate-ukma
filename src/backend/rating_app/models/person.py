@@ -1,5 +1,6 @@
-from django.db import models
 import uuid
+
+from django.db import models
 
 
 class Person(models.Model):
@@ -13,4 +14,4 @@ class Person(models.Model):
 
     def __str__(self):
         parts = [self.last_name, self.first_name]
-        return " ".join(p for p in parts if p)
+        return " ".join(str(p) for p in parts if p)

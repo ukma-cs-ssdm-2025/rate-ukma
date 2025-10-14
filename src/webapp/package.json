@@ -10,7 +10,9 @@
 		"test": "vitest run",
 		"format": "biome format",
 		"lint": "biome lint",
-		"check": "biome check"
+		"check": "biome check",
+		"generate-api": "orval",
+		"postinstall": "pnpm run generate-api"
 	},
 	"dependencies": {
 		"@faker-js/faker": "^10.0.0",
@@ -31,6 +33,7 @@
 		"@tanstack/react-table": "^8.21.3",
 		"@tanstack/router-plugin": "^1.132.33",
 		"@tanstack/store": "^0.7.7",
+		"axios": "^1.12.2",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"lucide-react": "^0.544.0",
@@ -51,6 +54,7 @@
 		"@types/react-dom": "^19.2.0",
 		"@vitejs/plugin-react": "^5.0.4",
 		"jsdom": "^27.0.0",
+		"orval": "^7.13.2",
 		"shadcn": "^3.3.1",
 		"typescript": "^5.9.3",
 		"vite": "^7.1.9",

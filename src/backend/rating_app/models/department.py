@@ -1,5 +1,6 @@
-from django.db import models
 import uuid
+
+from django.db import models
 
 
 class Department(models.Model):
@@ -11,9 +12,9 @@ class Department(models.Model):
 
     def __str__(self):
         return self.name
-    
-    def __repr__(self): 
-        return f"<Department id={self.id} name={self.name}> faculty_id={self.faculty.id}>"
+
+    def __repr__(self):
+        return f"Department {self.name}"
 
     class Meta:
         verbose_name = "Department"

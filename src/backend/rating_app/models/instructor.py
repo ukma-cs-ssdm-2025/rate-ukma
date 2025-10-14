@@ -1,5 +1,7 @@
 from django.db import models
+
 from rating_app.models.choices import AcademicDegree, AcademicTitle
+
 from .person import Person
 
 
