@@ -1,7 +1,6 @@
 import uuid
 
 from django.db import models
-import uuid
 from .choices import EnrollmentStatus
 from .student import Student
 from .course_offering import CourseOffering
