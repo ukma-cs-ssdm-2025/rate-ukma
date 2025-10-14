@@ -32,17 +32,17 @@ jobs:
             exit 1
           fi
 
-      - name: Install dependencies with pip
+      - name: Install dependencies
         working-directory: ${{ env.DJANGO_DIR }}
         run: |
           python -m pip install --upgrade pip
 
-          if [ ! -f requirements.txt ]; then
-            echo "requirements.txt not found"
+          if [ ! -f pyproject.toml ]; then
+            echo "pyproject.toml not found"
             exit 1
           fi
 
-          pip install --no-cache-dir -r requirements.txt
+          pip install --no-cache-dir .
 
       - name: Copy default .env file
         working-directory: ${{ env.SOURCE_CODE_DIR }}

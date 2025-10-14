@@ -31,3 +31,8 @@ src/webapp/src/lib/api-generated/
 
 # macOS
 .DS_Store
+
+# build
+build/
+dist/
+*.egg-info/

@@ -60,6 +60,16 @@ For comprehensive project information, please refer to the following documents:
 - Docker Engine 24.0+
 - Docker Compose V2
 - Git
+- uv package manager (for local development)
+  [Installation](https://docs.astral.sh/uv/getting-started/installation/)
+
+  ```bash
+  # Install uv (Linux/macOS)
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  # Or using pip
+  pip install uv
+  ```
 
 ### Starting Development Environment
 

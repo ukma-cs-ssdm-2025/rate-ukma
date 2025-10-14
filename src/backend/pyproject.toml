@@ -2,7 +2,7 @@
 name = "RateUKMA"
 version = "0.1.0"
 description = "Rate NaUKMA Courses"
-readme = "../README.md"
+readme = "README.md"
 requires-python = ">=3.11"
 
 dependencies = [
@@ -35,7 +35,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    # Development Tools
     "pre-commit==4.3.0",
     "ipython>=9.4.0",
     
@@ -47,6 +46,10 @@ dev = [
     # Linting & Formatting
     "ruff==0.9.6",
 ]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+packages = ["rateukma", "rating_app", "scraper"]
 
 [tool.ruff]
 src = [".", "rateukma", "rating_app", "scraper"]
