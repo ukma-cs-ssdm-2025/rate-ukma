@@ -1,0 +1,82 @@
+[project]
+name = "RateUKMA"
+version = "0.1.0"
+description = "Rate NaUKMA Courses"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    # Core
+    "django==5.2.3",
+    "django-allauth==65.12.0",
+    "djangorestframework>=3.14.0",
+    "django-cors-headers==4.3.1",
+    "django-vite==3.1.0",
+    "django-reversion>=5.0.8",
+    "drf-spectacular>=0.28.0",
+    
+    # Database
+    "psycopg2-binary==2.9.10",
+    
+    # Security
+    "cryptography>=41.0.0",
+    "PyJWT==2.9.0",
+    
+    # Environment & Configuration
+    "python-decouple>=3.8",
+    "requests==2.31.0",
+    
+    # Logging
+    "structlog>=24.2.0",
+    
+    # Production
+    "gunicorn>=23.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Development Tools
+    "pre-commit==4.3.0",
+    "ipython>=9.4.0",
+    
+    # Testing
+    "pytest==8.3.4",
+    "pytest-django>=4.5.2",
+    "coverage==7.3.2",
+    
+    # Linting & Formatting
+    "ruff==0.9.6",
+]
+
+[tool.ruff]
+src = [".", "rateukma", "rating_app", "scraper"]
+line-length = 100
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # logical errors
+    "I", # imports
+    "B", # bugs-prone patterns
+    "C4", # collections comprehensions
+    "UP", # use more modern Python
+    "N", # naming conventions
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["rateukma", "rating_app", "scraper"]
+section-order = ["future", "standard-library", "django", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+django = ["django", "rest_framework"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*" = ["ALL"]
