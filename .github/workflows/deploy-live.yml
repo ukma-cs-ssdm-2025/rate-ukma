@@ -49,7 +49,7 @@ jobs:
           name: ${{ steps.set_tag.outputs.title }}
           target_commitish: ${{ steps.set_tag.outputs.commit_sha }}
           body: |
-            `${{ github.event.inputs.commit_ref }}`
+            `Automatic latest stable Live release`
 
             *Tag:* `${{ steps.set_tag.outputs.tag_name }}`
             *Commit SHA:* `${{ steps.set_tag.outputs.commit_sha }}`
