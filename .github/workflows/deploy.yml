@@ -104,7 +104,7 @@ jobs:
             cp ${{ env.PROJECT_DIR }}/.env ${{ env.PROJECT_SOURCE_CODE }}/.env
 
             echo "Starting services..."
-            sudodocker compose --profile prod up -d --build
+            sudo docker compose --profile prod up -d --build
 
             echo "Waiting for services to be up and running..."
             max_attempts=${{ env.MAX_ATTEMPTS }}
