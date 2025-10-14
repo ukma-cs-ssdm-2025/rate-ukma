@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv sync --dev
+          uv sync --all-extras --dev
 
       - name: Safety check - Python dependencies
         working-directory: ${{ env.BACKEND_DIR }}
