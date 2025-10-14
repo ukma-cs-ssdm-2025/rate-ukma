@@ -55,9 +55,10 @@ jobs:
         id: snyk
         if: env.SNYK_TOKEN != ''
         uses: snyk/actions/node@master
+        working-directory: ${{ env.FRONTEND_DIR }}
         with:
           command: test
-          args: --severity-threshold=high --sarif-file-output=src/webapp/snyk.sarif
+          args: --severity-threshold=high --sarif-file-output=snyk.sarif
         env:
           SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
         continue-on-error: true
