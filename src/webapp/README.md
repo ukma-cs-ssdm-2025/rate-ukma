@@ -115,5 +115,5 @@ The API client generation is configured in [`orval.config.ts`](./orval.config.ts
 pnpm run security:audit
 
 # CI/CD
-# Runs automatically on webapp file changes
+# Runs automatically on webapp file changes and periodically
 ```

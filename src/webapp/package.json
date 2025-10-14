@@ -2,7 +2,9 @@
 	"name": "rate-ukma-webapp",
 	"private": true,
 	"type": "module",
+	"packageManager": "pnpm@9.15.9",
 	"engines": {
+		"node": ">=20",
 		"pnpm": ">=9.15.9"
 	},
 	"scripts": {
@@ -17,7 +19,7 @@
 		"generate-api": "orval",
 		"postinstall": "pnpm run generate-api",
 		"security:audit": "pnpm audit --audit-level high",
-		"security:audit-fix": "pnpm audit --audit-level moderate --fix"
+		"security:update": "pnpm up --interactive"
 	},
 	"dependencies": {
 		"@faker-js/faker": "^10.0.0",

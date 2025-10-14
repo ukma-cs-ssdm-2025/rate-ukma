@@ -8,6 +8,12 @@ on:
     paths:
       - "src/webapp/**"
   workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * 1" # weekly Monday 07:00 UTC
+
+permissions:
+  contents: read
+  security-events: write
 
 env:
   FRONTEND_DIR: src/webapp
@@ -16,14 +22,25 @@ jobs:
   security-audit:
     name: Dependency Security Audit
     runs-on: ubuntu-latest
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Extract versions from package.json
+        id: versions
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: |
+          NODE_VERSION=$(jq -r '.engines.node' package.json | sed 's/>=//')
+          PNPM_VERSION=$(jq -r '.engines.pnpm' package.json | sed 's/>=//')
+          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          echo "pnpm-version=$PNPM_VERSION" >> $GITHUB_OUTPUT
+
       - name: Setup Node.js and pnpm cache
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ steps.versions.outputs.node-version }}
           cache: pnpm
           cache-dependency-path: src/webapp/pnpm-lock.yaml
 
@@ -31,7 +48,7 @@ jobs:
         working-directory: ${{ env.FRONTEND_DIR }}
         run: |
           corepack enable
-          corepack prepare pnpm@latest --activate
+          corepack prepare pnpm@${{ steps.versions.outputs.pnpm-version }} --activate
           pnpm install --frozen-lockfile
 
       - name: pnpm audit high severity
@@ -40,18 +57,17 @@ jobs:
 
       - name: Snyk test (SARIF upload)
         id: snyk
-        if: secrets.SNYK_TOKEN != ''
-        working-directory: ${{ env.FRONTEND_DIR }}
+        if: env.SNYK_TOKEN != ''
         uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: test
-          args: --severity-threshold=high --sarif-file-output=snyk.sarif
+          args: --severity-threshold=high --sarif-file-output=src/webapp/snyk.sarif
+        env:
+          SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
         continue-on-error: true
 
       - name: Upload SARIF results
-        if: steps.snyk.outcome == 'success' && secrets.SNYK_TOKEN != ''
+        if: steps.snyk.outcome == 'success' && env.SNYK_TOKEN != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ env.FRONTEND_DIR }}/snyk.sarif
