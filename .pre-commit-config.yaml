@@ -1,7 +1,15 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.0
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.14.0
+  #   hooks:
+  #     - id: ruff-check # linting
+  #       args: [--fix]
+  #     - id: ruff-format
+
+  - repo: local
     hooks:
-      - id: ruff-check # linting
-        args: [--fix]
-      - id: ruff-format
+      - id: check-commit-message
+        name: Check commit message format
+        entry: "./semantic-commit.sh"
+        language: system
+        stages: [commit-msg]
