@@ -1,7 +1,8 @@
 import dis
 import sys
+from collections.abc import Callable
 from types import FrameType
-from typing import Callable, List, ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar
 
 _P = ParamSpec("_P")
 _RT = TypeVar("_RT", covariant=True)
@@ -14,10 +15,10 @@ def _get_base_classes(frame: FrameType, namespace: dict) -> list[type]:
     ]
 
 
-def _get_base_class_names(frame: FrameType) -> List[List[str]]:
+def _get_base_class_names(frame: FrameType) -> list[list[str]]:
     """Get baseclass names from the code object"""
-    current_item: List[str] = []
-    items: List[List[str]] = []
+    current_item: list[str] = []
+    items: list[list[str]] = []
     add_last_step = True
 
     for instruction in dis.get_instructions(frame.f_code):
@@ -98,7 +99,7 @@ def implements(method: Callable[_P, _RT]) -> Callable[_P, _RT]:
             return "https://github.com"
     ```
     """
-    setattr(method, "__implements__", True)
+    method.__implements__ = True
     global_vars = getattr(method, "__globals__", None)
     if global_vars is None:
         global_vars = vars(sys.modules[method.__module__])
@@ -124,8 +125,6 @@ def implements(method: Callable[_P, _RT]) -> Callable[_P, _RT]:
                 )
 
     if not method_implementation_found:
-        raise TypeError(
-            f"{method.__qualname__}: no interface with the method name found"
-        )
+        raise TypeError(f"{method.__qualname__}: no interface with the method name found")
 
     return method

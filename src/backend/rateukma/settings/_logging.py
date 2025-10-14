@@ -44,9 +44,9 @@ LOGGING = {
 
 def align_event_name(logger, method_name, event_dict):
     event = event_dict.get("event", "")
-    MAX_LENGTH = 45
-    if len(event) < MAX_LENGTH:
-        event_dict["event"] = event.ljust(MAX_LENGTH)
+    max_length = 45
+    if len(event) < max_length:
+        event_dict["event"] = event.ljust(max_length)
     return event_dict
 
 

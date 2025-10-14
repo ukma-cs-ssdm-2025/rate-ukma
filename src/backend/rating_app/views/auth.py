@@ -1,17 +1,18 @@
 from typing import cast
 
-import structlog
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.http import HttpRequest
 from django.shortcuts import redirect
-from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+
+import structlog
+from drf_spectacular.utils import extend_schema
 
 from ..serializers.auth import LoginDto, LoginSerializer
 from .responses import R_LOGIN, R_LOGOUT, R_OAUTH
@@ -42,8 +43,8 @@ def _validate_referrer(request: HttpRequest) -> bool:
 @permission_classes([AllowAny])
 def microsoft_login(request):
     if not _validate_referrer(request):
-        return Response(
-            {"detail": "Invalid request origin"}, status=status.HTTP_400_BAD_REQUEST
+        return _with_request_id(
+            Response({"detail": "Invalid request origin"}, status=status.HTTP_400_BAD_REQUEST)
         )
 
     logger.info(
@@ -95,9 +96,7 @@ def login(request):
 
 @extend_schema(
     summary="Logout",
-    description=(
-        "Logs out current user and redirects to the configured logout URL. Version: v1."
-    ),
+    description=("Logs out current user and redirects to the configured logout URL. Version: v1."),
     responses=R_LOGOUT,
     request=None,
     tags=["auth"],

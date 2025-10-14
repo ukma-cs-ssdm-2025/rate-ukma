@@ -75,9 +75,7 @@ def test_concurrent_first_call():
     # Assert
     assert call_count == 1, f"Expected 1 call, got {call_count}"
 
-    assert all(r == 42 for r in results), (
-        "Not all threads received the correct cached result."
-    )
+    assert all(r == 42 for r in results), "Not all threads received the correct cached result."
     assert len(results) == num_threads, "Not all threads completed successfully."
 
 

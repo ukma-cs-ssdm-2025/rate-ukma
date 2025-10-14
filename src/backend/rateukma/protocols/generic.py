@@ -65,9 +65,7 @@ class IRunner(Protocol[_P]):
 
 @runtime_checkable
 class IReasonedCondition(ICondition[_P], Protocol):
-    def check_with_reason(
-        self, *args: _P.args, **kwargs: _P.kwargs
-    ) -> tuple[bool, str]: ...
+    def check_with_reason(self, *args: _P.args, **kwargs: _P.kwargs) -> tuple[bool, str]: ...
 
 
 @runtime_checkable

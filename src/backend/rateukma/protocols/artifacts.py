@@ -1,5 +1,6 @@
 import threading
-from typing import Any, Callable, Collection, List, ParamSpec, Type, TypeVar
+from collections.abc import Callable, Collection
+from typing import Any, ParamSpec, TypeVar
 
 from .decorators import implements
 from .generic import (
@@ -29,7 +30,7 @@ class FromCallableProvider(IProvider[_P, _RT]):
 
 
 class TypeInitializerProvider(IProvider[..., _T]):
-    def __init__(self, _type: Type[_T]):
+    def __init__(self, _type: type[_T]):
         self._type = _type
 
     @implements
@@ -161,7 +162,7 @@ class LambdaCondition(ICondition[_P]):
 
 
 class EventBus(IEventBus[_T]):
-    def __init__(self, listeners: List[IEventListener[_T]]):
+    def __init__(self, listeners: list[IEventListener[_T]]):
         self.listeners = listeners
 
     @implements

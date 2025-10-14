@@ -1,6 +1,7 @@
 import threading
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, ParamSpec, TypeVar, cast
+from typing import ParamSpec, TypeVar, cast
 
 _P = ParamSpec("_P")
 _RT = TypeVar("_RT", covariant=True)

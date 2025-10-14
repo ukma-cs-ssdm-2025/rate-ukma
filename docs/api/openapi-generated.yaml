@@ -742,14 +742,14 @@ components:
           additionalProperties: {}
         page:
           type: integer
-        pageSize:
+        page_size:
           type: integer
         total:
           type: integer
       required:
       - filters
       - page
-      - pageSize
+      - page_size
       - results
       - total
     ErrorEnvelope:
