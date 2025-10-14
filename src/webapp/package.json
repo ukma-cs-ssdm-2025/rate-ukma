@@ -2,6 +2,9 @@
 	"name": "rate-ukma-webapp",
 	"private": true,
 	"type": "module",
+	"engines": {
+		"pnpm": ">=9.15.9"
+	},
 	"scripts": {
 		"dev": "vite --port 3000",
 		"start": "vite --port 3000",
@@ -12,7 +15,9 @@
 		"lint": "biome lint",
 		"check": "biome check",
 		"generate-api": "orval",
-		"postinstall": "pnpm run generate-api"
+		"postinstall": "pnpm run generate-api",
+		"security:audit": "pnpm audit --audit-level high",
+		"security:audit-fix": "pnpm audit --audit-level moderate --fix"
 	},
 	"dependencies": {
 		"@faker-js/faker": "^10.0.0",
