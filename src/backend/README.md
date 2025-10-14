@@ -86,11 +86,11 @@ docker exec -it <backend_container_name> ruff check .
 
 ```bash
 # Local
-uv run safety check --short-report  # Check for dependency vulnerabilities
+uv run safety scan --report          # Check for dependency vulnerabilities
 uv run bandit -r .                   # Static code security analysis
 
 # Docker
-docker exec -it <backend_container_name> python -m safety check --short-report
+docker exec -it <backend_container_name> python -m safety scan --report
 docker exec -it <backend_container_name> python -m bandit -r .
 ```
 

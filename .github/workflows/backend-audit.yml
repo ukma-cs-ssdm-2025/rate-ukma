@@ -47,8 +47,8 @@ jobs:
       - name: Safety check - Python dependencies
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run safety check --json --output safety-report.json || true
-          uv run safety check --short-report || true
+          uv run safety scan --json --output safety-report.json || true
+          uv run safety scan --report || true
         continue-on-error: true
 
       - name: Bandit security linter
@@ -61,16 +61,21 @@ jobs:
       - name: Django security configuration check
         working-directory: ${{ env.BACKEND_DIR }}
         env:
-          DJANGO_SETTINGS_MODULE: rateukma.settings.development
+          DJANGO_SETTINGS_MODULE: rateukma.settings.prod
         run: |
-          uv run python manage.py check --deploy --settings=rateukma.settings.development || true
+          uv run python manage.py check --deploy || true
         continue-on-error: true
+
+      - name: Generate requirements.txt for Snyk
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          uv pip freeze > requirements.txt
 
       - name: Snyk test (Python vulnerabilities)
         uses: snyk/actions/python@master
         with:
           command: test
-          args: ${{ env.BACKEND_DIR }} --sarif-file-output=backend-snyk.sarif --severity-threshold=high
+          args: --file=requirements.txt --sarif-file-output=backend-snyk.sarif --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
