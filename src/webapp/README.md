@@ -83,3 +83,27 @@ pnpm build
 # Docker
 docker exec -it <frontend_container_name> pnpm build
 ```
+
+## 🔌 API Client Generation
+
+The application uses **Orval** to automatically generate a type-safe API client from the OpenAPI specification. The generated client includes:
+
+- TypeScript interfaces for all API models
+- React Query hooks for API endpoints
+- Full type safety and IntelliSense support
+
+### Manual Generation
+
+The API client is automatically generated during `pnpm install`, but you can also regenerate it manually:
+
+```bash
+# Local
+pnpm generate-api
+
+# Docker
+docker exec -it <frontend_container_name> pnpm generate-api
+```
+
+### Configuration
+
+The API client generation is configured in [`orval.config.ts`](./orval.config.ts) and generates files to `src/lib/api-generated/`. The client uses React Query for data fetching and includes infinite query support.
