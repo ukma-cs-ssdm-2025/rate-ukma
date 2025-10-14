@@ -46,6 +46,10 @@ dev = [
     
     # Linting & Formatting
     "ruff==0.9.6",
+    
+    # Security Audit Tools
+    "safety>=3.6.2",
+    "bandit>=1.8.6",
 ]
 
 [tool.ruff]

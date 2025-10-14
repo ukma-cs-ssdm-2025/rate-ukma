@@ -1,0 +1,93 @@
+name: Backend Security Audit
+
+on:
+  push:
+    # paths:
+    #   - "src/backend/**"
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # weekly Monday 06:00 UTC (1 hour before frontend)
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: backend-security-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BACKEND_DIR: src/backend
+
+jobs:
+  security-audit:
+    name: Backend Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: normalize/abstract python setup steps from all workflows to reuse
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Install dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          uv sync --dev
+
+      - name: Safety check - Python dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          uv run safety check --json --output safety-report.json || true
+          uv run safety check --short-report || true
+        continue-on-error: true
+
+      - name: Bandit security linter
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          uv run bandit -r . -f json -o bandit-report.json || true
+          uv run bandit -r . || true
+        continue-on-error: true
+
+      - name: Django security configuration check
+        working-directory: ${{ env.BACKEND_DIR }}
+        env:
+          DJANGO_SETTINGS_MODULE: rateukma.settings.development
+        run: |
+          uv run python manage.py check --deploy --settings=rateukma.settings.development || true
+        continue-on-error: true
+
+      - name: Snyk test (Python vulnerabilities)
+        uses: snyk/actions/python@master
+        with:
+          command: test
+          args: ${{ env.BACKEND_DIR }} --sarif-file-output=backend-snyk.sarif --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload SARIF results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.BACKEND_DIR }}/backend-snyk.sarif
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-reports
+          path: |
+            ${{ env.BACKEND_DIR }}/safety-report.json
+            ${{ env.BACKEND_DIR }}/bandit-report.json
+            ${{ env.BACKEND_DIR }}/backend-snyk.sarif
+          retention-days: 30

@@ -81,3 +81,17 @@ black .
 # Docker
 docker exec -it <backend_container_name> ruff check .
 ```
+
+### Security Audit
+
+```bash
+# Local
+uv run safety check --short-report  # Check for dependency vulnerabilities
+uv run bandit -r .                   # Static code security analysis
+
+# Docker
+docker exec -it <backend_container_name> python -m safety check --short-report
+docker exec -it <backend_container_name> python -m bandit -r .
+```
+
+Security audit run automatically in CI via the [backend security audit workflow](../../.github/workflows/backend-audit.yml).
