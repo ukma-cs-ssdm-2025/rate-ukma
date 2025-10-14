@@ -20,7 +20,7 @@ class CourseOffering(models.Model):
         "rating_app.Semester", on_delete=models.PROTECT, related_name="offerings"
     )
 
-    credits = models.FloatField()
+    credits = models.DecimalField(max_digits=3, decimal_places=1)
     weekly_hours = models.PositiveIntegerField()
     lecture_count = models.PositiveIntegerField(null=True, blank=True)
     practice_count = models.PositiveIntegerField(null=True, blank=True)
