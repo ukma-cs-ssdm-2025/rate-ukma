@@ -1,8 +1,8 @@
 from .views import (
-    CourseListView,
     CourseDetailView,
-    CourseRatingsListCreateView,
+    CourseListView,
     CourseRatingDetailView,
+    CourseRatingsListCreateView,
 )
 
 __all__ = [

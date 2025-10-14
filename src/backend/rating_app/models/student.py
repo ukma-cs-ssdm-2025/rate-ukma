@@ -1,13 +1,13 @@
-from django.db import models
-from django.conf import settings
 from django.apps import apps
+from django.conf import settings
+from django.db import models
 
 from rating_app.models.choices import EducationLevel
+
 from .person import Person
 
 
 class Student(Person):
-
     education_level = models.CharField(
         max_length=16,
         choices=EducationLevel.choices,

@@ -1,11 +1,13 @@
-from django.db import models
 import uuid
 
+from django.db import models
+
+
 class Person(models.Model):
-    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     first_name = models.CharField(max_length=120)
     patronymic = models.CharField(max_length=120, null=True, blank=True)
-    last_name  = models.CharField(max_length=120)
+    last_name = models.CharField(max_length=120)
 
     class Meta:
         abstract = True

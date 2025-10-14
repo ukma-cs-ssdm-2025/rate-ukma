@@ -1,7 +1,9 @@
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
+
 from rateukma.ioc.decorators import once
 
 from ..views.auth import login, logout, microsoft_login
