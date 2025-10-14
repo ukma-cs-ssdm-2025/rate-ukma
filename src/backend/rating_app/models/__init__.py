@@ -1,13 +1,12 @@
 from .course import Course
 from .course_offering import CourseOffering
-from .department import Department
+from .course_instructor import CourseInstructor
+from .course_speciality import CourseSpeciality
 from .enrollment import Enrollment
 from .faculty import Faculty
 from .instructor import Instructor
 from .rating import Rating
-from .semester import Semester
-from .speciality import Speciality
-from .student import Student
+from .person import Person
 
 __all__ = [
     "Course",
@@ -18,6 +17,9 @@ __all__ = [
     "Instructor",
     "Student",
     "CourseOffering",
+    "CourseInstructor",
+    "CourseSpeciality",
     "Enrollment",
     "Rating",
+    "Person",
 ]

@@ -676,9 +676,6 @@ components:
           type: string
           format: uuid
           readOnly: true
-        code:
-          type: string
-          readOnly: true
         title:
           type: string
           readOnly: true
@@ -690,21 +687,20 @@ components:
           allOf:
           - $ref: '#/components/schemas/StatusEnum'
           readOnly: true
-        type_kind:
-          allOf:
-          - $ref: '#/components/schemas/TypeKindEnum'
-          readOnly: true
         faculty:
           type: string
           format: uuid
+          readOnly: true
         department:
           type: string
           format: uuid
+          readOnly: true
         specialities:
           type: array
           items:
             type: string
             format: uuid
+          readOnly: true
         avg_difficulty:
           type: number
           format: double
@@ -719,7 +715,6 @@ components:
       required:
       - avg_difficulty
       - avg_usefulness
-      - code
       - department
       - description
       - faculty
@@ -728,7 +723,6 @@ components:
       - specialities
       - status
       - title
-      - type_kind
     CourseListResponse:
       type: object
       description: Schema for GET /api/v1/courses response envelope.
@@ -793,11 +787,11 @@ components:
         student:
           type: string
           format: uuid
-          description: Student ID (UUID)
-        course:
+          readOnly: true
+        course_offering:
           type: string
           format: uuid
-          description: Course ID (UUID)
+          readOnly: true
         difficulty:
           type: integer
           maximum: 5
@@ -809,6 +803,8 @@ components:
         comment:
           type: string
           nullable: true
+        is_anonymous:
+          type: boolean
         created_at:
           type: string
           format: date-time
@@ -825,11 +821,11 @@ components:
         student:
           type: string
           format: uuid
-          description: Student ID (UUID)
-        course:
+          readOnly: true
+        course_offering:
           type: string
           format: uuid
-          description: Course ID (UUID)
+          readOnly: true
         difficulty:
           type: integer
           maximum: 5
@@ -841,12 +837,14 @@ components:
         comment:
           type: string
           nullable: true
+        is_anonymous:
+          type: boolean
         created_at:
           type: string
           format: date-time
           readOnly: true
       required:
-      - course
+      - course_offering
       - created_at
       - difficulty
       - id
@@ -862,14 +860,6 @@ components:
         * `PLANNED` - Planned
         * `ACTIVE` - Active
         * `FINISHED` - Finished
-    TypeKindEnum:
-      enum:
-      - COMPULSORY
-      - ELECTIVE
-      type: string
-      description: |-
-        * `COMPULSORY` - Compulsory
-        * `ELECTIVE` - Elective
   securitySchemes:
     cookieAuth:
       type: apiKey
