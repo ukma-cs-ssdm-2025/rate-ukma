@@ -1,49 +1,50 @@
 import uuid
 
-from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.db import models
 from django.db.models import Avg
 
-from rating_app.models.choices import CourseStatus, CourseTypeKind
-
+from .choices import CourseStatus
+from .department import Department
+from .speciality import Speciality
 
 class Course(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    code = models.CharField(
-        max_length=6,
-        unique=True,
-        validators=[MinLengthValidator(6), MaxLengthValidator(6)],
-    )
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=16, choices=CourseStatus.choices)
-    type_kind = models.CharField(max_length=16, choices=CourseTypeKind.choices)
 
-    faculty = models.ForeignKey(
-        "rating_app.Faculty", on_delete=models.PROTECT, related_name="courses"
-    )
     department = models.ForeignKey(
-        "rating_app.Department", on_delete=models.PROTECT, related_name="courses"
+        Department, on_delete=models.PROTECT, related_name="courses"
     )
     specialities = models.ManyToManyField(
-        "rating_app.Speciality", related_name="pro_oriented_courses", blank=True
+        Speciality, through="CourseSpeciality", related_name="courses"
     )
 
-    class Meta:
-        indexes = [models.Index(fields=["code"])]
-        managed = False
 
     def __str__(self):
-        return f"{self.code} — {self.title}"
+        return f"{self.id} — {self.title}"
+
+    def __repr__(self):
+        return f"<Course id={self.id} title={self.title}>"
 
     @property
     def avg_difficulty(self):
-        return self.ratings.aggregate(v=Avg("difficulty"))["v"]
+        from .rating import Rating
+
+        return Rating.objects.filter(course_offering__course=self).aggregate(
+            v=Avg("difficulty")
+        )["v"]
 
     @property
     def avg_usefulness(self):
-        return self.ratings.aggregate(v=Avg("usefulness"))["v"]
+        from .rating import Rating
+
+        return Rating.objects.filter(course_offering__course=self).aggregate(
+            v=Avg("usefulness")
+        )["v"]
 
     @property
     def ratings_count(self):
-        return self.ratings.count()
+        from .rating import Rating
+
+        return Rating.objects.filter(course_offering__course=self).count()

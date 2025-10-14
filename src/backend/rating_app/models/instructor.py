@@ -12,9 +12,12 @@ class Instructor(Person):
     academic_title = models.CharField(
         max_length=32, choices=AcademicTitle.choices, null=True, blank=True
     )
-    is_lecturer = models.BooleanField(default=False)
-    is_practicum_teacher = models.BooleanField(default=False)
 
     class Meta(Person.Meta):
         abstract = False
-        managed = False
+
+    def __str__(self) -> str:
+        return f"{self.first_name} {self.last_name}. ({self.academic_degree}, {self.academic_title})"
+
+    def __repr__(self) -> str:
+        return f"<Instructor id={self.id} last_name={self.last_name} first_name={self.first_name} degree={self.academic_degree} title={self.academic_title}>"

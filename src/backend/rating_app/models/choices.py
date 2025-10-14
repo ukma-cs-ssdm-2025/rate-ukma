@@ -15,6 +15,7 @@ class CourseStatus(models.TextChoices):
 class CourseTypeKind(models.TextChoices):
     COMPULSORY = "COMPULSORY", "Compulsory"
     ELECTIVE = "ELECTIVE", "Elective"
+    PROF_ORIENTED = "PROF_ORIENTED", "ProfOriented"
 
 
 class SemesterTerm(models.TextChoices):
@@ -42,6 +43,11 @@ class EnrollmentStatus(models.TextChoices):
 class AcademicDegree(models.TextChoices):
     PHD = "PHD", "PhD"
     DOCTOR_OF_SCIENCES = "DRSCI", "DoctorOfSciences"
+
+
+class InstructorRole(models.TextChoices):
+    LECTURE_INSTRUCTOR = "LECTURE_INSTRUCTOR", "LectureInstructor"
+    PRACTICUM_INSTRUCTOR = "PRACTICUM_INSTRUCTOR", "PracticumInstructor"
 
 
 class AcademicTitle(models.TextChoices):

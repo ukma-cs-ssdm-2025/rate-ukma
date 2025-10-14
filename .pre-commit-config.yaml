@@ -5,3 +5,11 @@ repos:
       - id: ruff-check # linting
         args: [--fix]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: check-commit-message
+        name: Check commit message format
+        entry: "./semantic-commit.sh"
+        language: system
+        stages: [commit-msg]
