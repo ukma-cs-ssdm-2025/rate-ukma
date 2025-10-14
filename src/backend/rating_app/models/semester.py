@@ -1,5 +1,7 @@
-from django.db import models
 import uuid
+
+from django.db import models
+
 from rating_app.models.choices import SemesterTerm
 
 

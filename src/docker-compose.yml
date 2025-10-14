@@ -33,8 +33,8 @@ services:
 
   webapp:
     build:
-      context: ./webapp
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: ./src/webapp/Dockerfile
       target: ${NODE_ENV:-development}
     container_name: "${COMPOSE_PROJECT_NAME}_webapp"
     volumes:
@@ -51,8 +51,8 @@ services:
 
   webapp-build:
     build:
-      context: ./webapp
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: ./src/webapp/Dockerfile
       target: production
     env_file:
       - .env

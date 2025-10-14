@@ -1,5 +1,10 @@
 # Development
 django==5.2.3
+django-allauth==65.12.0
+cryptography>=41.0.0
+requests==2.31.0  
+PyJWT==2.9.0 
+
 psycopg2-binary==2.9.10
 django-cors-headers==4.3.1
 django-vite==3.1.0
@@ -21,6 +26,7 @@ black==23.11.0
 
 # Environment
 python-decouple>=3.8
+pre-commit==4.3.0
 
 # Logging    
 structlog>=24.2.0
