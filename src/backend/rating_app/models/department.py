@@ -13,7 +13,7 @@ class Department(models.Model):
         return self.name
     
     def __repr__(self): 
-        return f"<Department name={self.name}> faculty_id={self.faculty.id}> faculty_name={self.faculty.name}>"
+        return f"<Department id={self.id} name={self.name}> faculty_id={self.faculty.id}>"
 
     class Meta:
         verbose_name = "Department"
