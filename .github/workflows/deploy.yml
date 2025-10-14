@@ -47,8 +47,7 @@ jobs:
 
       - name: Create deployment archive
         run: |
-          cd src
-          tar -czf ../${{ env.ARCHIVE_NAME }} .
+          tar -czf ${{ env.ARCHIVE_NAME }} src/ docs/api/openapi-generated.yaml
 
       - name: Upload archive to server
         uses: appleboy/scp-action@master
@@ -96,7 +95,7 @@ jobs:
             rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
 
             echo "Extracting new version..."
-            cd ${{ env.PROJECT_SOURCE_CODE }}
+            cd ${{ env.PROJECT_DIR }}
             tar xzf ${{ env.REMOTE_TMP_DEPLOY_DIR }}/${{ env.ARCHIVE_NAME }}
             rm ${{ env.REMOTE_TMP_DEPLOY_DIR }}/${{ env.ARCHIVE_NAME }}
 
