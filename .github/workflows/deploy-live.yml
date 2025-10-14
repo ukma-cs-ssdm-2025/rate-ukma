@@ -2,9 +2,11 @@ name: Deploy Live
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - live
+    inputs:
+      commit_ref:
+        description: "Commit SHA, Tag, or Branch to deploy (e.g., main, v1.2.3, 0ff828a)"
+        required: true
+        default: "live"
 
 jobs:
   deploy:
@@ -12,7 +14,44 @@ jobs:
     with:
       environment: "live"
       archive_name: "rate-ukma-live.tar.gz"
+      deployment_ref: ${{ github.event.inputs.commit_ref }}
     secrets:
       SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
       SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
+
+  create_release:
+    name: Create Tag and Release
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.commit_ref }}
+
+      - name: Set Release Tag and Title
+        id: set_tag
+        run: |
+          COMMIT_SHA=$(git rev-parse HEAD)
+          TAG_NAME="live-$(date +'%Y%m%d%H%M')-${COMMIT_SHA:0:7}"
+          TITLE="Live Release: ${COMMIT_SHA:0:7}"
+
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.set_tag.outputs.tag_name }}
+          name: ${{ steps.set_tag.outputs.title }}
+          body: |
+            `${{ github.event.inputs.commit_ref }}`
+
+            *Tag:* `${{ steps.set_tag.outputs.tag_name }}`
+            *Commit SHA:* `${{ github.sha }}`
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
