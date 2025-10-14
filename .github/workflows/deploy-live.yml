@@ -5,8 +5,8 @@ on:
     inputs:
       commit_ref:
         description: "Commit SHA, Tag, or Branch to deploy (e.g., main, v1.2.3, 0ff828a)"
-        required: true
-        default: "live"
+        required: false
+        default: "main"
 
 jobs:
   deploy:
@@ -40,17 +40,19 @@ jobs:
 
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.set_tag.outputs.tag_name }}
           name: ${{ steps.set_tag.outputs.title }}
+          target_commitish: ${{ steps.set_tag.outputs.commit_sha }}
           body: |
             `${{ github.event.inputs.commit_ref }}`
 
             *Tag:* `${{ steps.set_tag.outputs.tag_name }}`
-            *Commit SHA:* `${{ github.sha }}`
+            *Commit SHA:* `${{ steps.set_tag.outputs.commit_sha }}`
           draft: false
           prerelease: false
         env:

@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       deployment_ref:
-        description: "Commit SHA, Tag, or Branch to checkout. Defaults to the current HEAD (latest)."
+        description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
         required: false
         type: string
         default: ""
@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.deployment_ref }}
+          ref: ${{ inputs.deployment_ref || github.sha }}
 
       - name: Set environment variables
         run: |
