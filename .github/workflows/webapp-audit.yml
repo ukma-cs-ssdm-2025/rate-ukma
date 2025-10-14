@@ -57,8 +57,11 @@ jobs:
         uses: snyk/actions/node@v4
         with:
           command: test
-          args: --severity-threshold=high --sarif-file-output=snyk.sarif
-          projectPath: ${{ env.FRONTEND_DIR }}
+          args: >-
+            --severity-threshold=high
+            --sarif-file-output=${{ env.FRONTEND_DIR }}/snyk.sarif
+            --file=${{ env.FRONTEND_DIR }}/package.json
+            --package-manager=pnpm
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
