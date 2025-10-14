@@ -2,7 +2,6 @@ name: Check OpenAPI schema
 
 on:
   push:
-  pull_request:
 
 env:
   DJANGO_DIR: src/backend

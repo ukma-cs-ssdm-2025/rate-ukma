@@ -36,9 +36,7 @@ DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = get_list(str(config("ALLOWED_HOSTS", default="127.0.0.1,localhost")))
 
-CSRF_TRUSTED_ORIGINS = get_list(
-    str(config("CSRF_TRUSTED_ORIGINS", default="http://localhost"))
-)
+CSRF_TRUSTED_ORIGINS = get_list(str(config("CSRF_TRUSTED_ORIGINS", default="http://localhost")))
 CORS_ALLOWED_ORIGINS = get_list(
     str(config("CORS_ALLOWED_ORIGINS", default="http://localhost:3000"))
 )
@@ -245,9 +243,7 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_STATE_REQUIRED = True
 SOCIALACCOUNT_STORE_TOKENS = False
 
-SOCIALACCOUNT_ADAPTER = (
-    "rating_app.auth.microsoft_account_adapters.MicrosoftSocialAccountAdapter"
-)
+SOCIALACCOUNT_ADAPTER = "rating_app.auth.microsoft_account_adapters.MicrosoftSocialAccountAdapter"
 ACCOUNT_ADAPTER = "rating_app.auth.microsoft_account_adapters.MicrosoftAccountAdapter"
 
 LOGIN_URL = "/accounts/login/"

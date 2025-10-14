@@ -1,5 +1,6 @@
-from rating_app.models import Course
 from rest_framework import serializers
+
+from rating_app.models import Course
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -11,9 +12,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
     faculty = serializers.UUIDField(source="faculty_id")
     department = serializers.UUIDField(source="department_id")
-    specialities = serializers.ListField(
-        child=serializers.UUIDField(), allow_empty=True
-    )
+    specialities = serializers.ListField(child=serializers.UUIDField(), allow_empty=True)
 
     avg_difficulty = serializers.FloatField(read_only=True)
     avg_usefulness = serializers.FloatField(read_only=True)

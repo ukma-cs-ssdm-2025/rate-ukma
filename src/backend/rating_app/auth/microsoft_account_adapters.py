@@ -1,14 +1,15 @@
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
+from django.http import HttpRequest
+from django.shortcuts import redirect
+
 import structlog
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.utils import user_email
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialLogin
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import User
-from django.http import HttpRequest
-from django.shortcuts import redirect
 
 logger = structlog.get_logger(__name__)
 
@@ -16,9 +17,7 @@ logger = structlog.get_logger(__name__)
 class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
     ALLOWED_DOMAINS = ["ukma.edu.ua"]
 
-    def populate_user(
-        self, request: HttpRequest, sociallogin: SocialLogin, data: dict
-    ) -> User:
+    def populate_user(self, request: HttpRequest, sociallogin: SocialLogin, data: dict) -> User:
         user = super().populate_user(request, sociallogin, data)
         user.username = user.email
 
@@ -34,19 +33,17 @@ class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
             logger.error("email_address_required")
             raise ImmediateHttpResponse(redirect(settings.LOGIN_ERROR_URL))
 
-        User = get_user_model()
+        user_model = get_user_model()
         try:
-            existing_user = User.objects.get(email=email)
+            existing_user = user_model.objects.get(email=email)
             sociallogin.connect(request, existing_user)
             logger.info("user_connected", email=email)
-        except User.DoesNotExist:
+        except user_model.DoesNotExist:
             logger.info("new_user_registration", email=email)
 
         return super().pre_social_login(request, sociallogin)
 
-    def _is_allowed_to_login(
-        self, request: HttpRequest, sociallogin: SocialLogin
-    ) -> bool:
+    def _is_allowed_to_login(self, request: HttpRequest, sociallogin: SocialLogin) -> bool:
         email = user_email(sociallogin.user)
         domain = email.split("@")[1] if email else None
 

@@ -1,11 +1,12 @@
 from types import SimpleNamespace
 from uuid import uuid4
 
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from ..serializers import CourseSerializer, RatingSerializer
 from .mock_store import (
@@ -81,15 +82,9 @@ def _with_request_id(resp: Response) -> Response:
             required=False,
             enum=TYPE_ENUM,
         ),
-        OpenApiParameter(
-            "search", OpenApiTypes.STR, OpenApiParameter.QUERY, required=False
-        ),
-        OpenApiParameter(
-            "page", OpenApiTypes.INT, OpenApiParameter.QUERY, required=False
-        ),
-        OpenApiParameter(
-            "pageSize", OpenApiTypes.INT, OpenApiParameter.QUERY, required=False
-        ),
+        OpenApiParameter("search", OpenApiTypes.STR, OpenApiParameter.QUERY, required=False),
+        OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, required=False),
+        OpenApiParameter("pageSize", OpenApiTypes.INT, OpenApiParameter.QUERY, required=False),
     ],
     responses=R_COURSE_LIST,
 )
@@ -104,9 +99,7 @@ class CourseListView(APIView):
         if status_q:
             rows = [c for c in rows if (c.get("status") or "").upper() == status_q]
         if type_kind_q:
-            rows = [
-                c for c in rows if (c.get("type_kind") or "").upper() == type_kind_q
-            ]
+            rows = [c for c in rows if (c.get("type_kind") or "").upper() == type_kind_q]
         if search_q:
             rows = [
                 c
@@ -143,9 +136,7 @@ class CourseDetailView(APIView):
         row = next((c for c in MOCK_COURSES if str(c["id"]) == str(course_id)), None)
         if not row:
             raise NotFound("Course not found")
-        return _with_request_id(
-            Response(CourseSerializer(_wrap_one(row)).data, status=200)
-        )
+        return _with_request_id(Response(CourseSerializer(_wrap_one(row)).data, status=200))
 
 
 @extend_schema(tags=["ratings"])
@@ -184,9 +175,7 @@ class CourseRatingsListCreateView(APIView):
         ser.is_valid(raise_exception=True)
 
         created = create_rating(ser.validated_data)
-        return _with_request_id(
-            Response(RatingSerializer(_wrap_one(created)).data, status=201)
-        )
+        return _with_request_id(Response(RatingSerializer(_wrap_one(created)).data, status=201))
 
 
 @extend_schema(tags=["ratings"])
@@ -204,9 +193,7 @@ class CourseRatingDetailView(APIView):
         if not item or str(item["course"]) != str(course_id):
             raise NotFound("Rating not found")
 
-        return _with_request_id(
-            Response(RatingSerializer(_wrap_one(item)).data, status=200)
-        )
+        return _with_request_id(Response(RatingSerializer(_wrap_one(item)).data, status=200))
 
     @extend_schema(
         operation_id="course_rating_update",
@@ -237,9 +224,7 @@ class CourseRatingDetailView(APIView):
         ser.is_valid(raise_exception=True)
 
         updated = update_rating(rating_id, ser.validated_data)
-        return _with_request_id(
-            Response(RatingSerializer(_wrap_one(updated)).data, status=200)
-        )
+        return _with_request_id(Response(RatingSerializer(_wrap_one(updated)).data, status=200))
 
     @extend_schema(
         operation_id="course_rating_delete",
