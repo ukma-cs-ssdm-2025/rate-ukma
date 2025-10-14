@@ -7,14 +7,18 @@ RUN npm install -g pnpm
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Copy package files and orval config
+COPY src/webapp/package.json src/webapp/pnpm-lock.yaml src/webapp/orval.config.ts ./
+
+# Create docs/api directory structure at the correct location for orval
+RUN mkdir -p /docs/api
+COPY docs/api/openapi-generated.yaml /docs/api/openapi-generated.yaml
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
+# Copy remaining source code
+COPY src/webapp/ ./
 
 # Development stage - uses base directly without building
 FROM base AS development
