@@ -9,6 +9,11 @@ on:
       archive_name:
         required: true
         type: string
+      deployment_ref:
+        description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
+        required: false
+        type: string
+        default: ""
     secrets:
       SSH_HOST:
         required: true
@@ -32,6 +37,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.deployment_ref || github.sha }}
 
       - name: Set environment variables
         run: |
