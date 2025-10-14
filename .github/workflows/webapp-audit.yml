@@ -2,8 +2,6 @@ name: Webapp Security Audit
 
 on:
   push:
-    paths:
-      - "src/webapp/**"
   workflow_dispatch:
   schedule:
     - cron: "0 7 * * 1" # weekly Monday 07:00 UTC
