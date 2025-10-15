@@ -76,7 +76,6 @@ docker exec -it <backend_container_name> pytest
 ```bash
 # Local
 ruff check .
-black .
 
 # Docker
 docker exec -it <backend_container_name> ruff check .
@@ -105,3 +104,17 @@ python manage.py fetch_courses
 ```
 
 Add `--help` to see all available arguments
+
+### Security Audit
+
+```bash
+# Local
+uv run safety scan --report          # Check for dependency vulnerabilities
+uv run bandit -r .                   # Static code security analysis
+
+# Docker
+docker exec -it <backend_container_name> python -m safety scan --report
+docker exec -it <backend_container_name> python -m bandit -r .
+```
+
+Security audit run automatically in CI via the [backend security audit workflow](../../.github/workflows/backend-audit.yml).

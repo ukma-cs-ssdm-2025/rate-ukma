@@ -1,0 +1,92 @@
+name: Security Audit
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *" # Daily at 06:00 UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: security-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FRONTEND_DIR: src/webapp
+  BACKEND_DIR: src/backend
+
+jobs:
+  frontend-security-audit:
+    name: Frontend Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract Node version from package.json
+        id: versions
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: |
+          NODE_VERSION=$(jq -r '.engines.node // ""' package.json)
+          if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" = "null" ]; then
+            NODE_VERSION="lts/*"
+          fi
+          echo "node-version=$NODE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ${{ env.FRONTEND_DIR }}/package.json
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.versions.outputs.node-version }}
+          cache: "pnpm"
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm audit high severity
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm run security:audit
+
+  backend-security-audit:
+    name: Backend Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ env.BACKEND_DIR }}/**/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv sync --extra dev
+
+      - name: Safety check
+        uses: pyupio/safety-action@v1
+        with:
+          api-key: ${{ secrets.SAFETY_API_KEY }}
+
+      - name: Bandit security scan
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv run bandit -r . --severity-level high --confidence-level high -f sarif -o bandit-results.sarif
+        continue-on-error: true
+
+      - name: Upload Bandit SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.BACKEND_DIR }}/bandit-results.sarif
+          category: bandit
