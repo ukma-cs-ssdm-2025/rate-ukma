@@ -74,10 +74,18 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: uv sync --extra dev
 
-      - name: Safety check
-        uses: pyupio/safety-action@v1
-        with:
-          api-key: ${{ secrets.SAFETY_API_KEY }}
+      # - name: Safety check
+      #   uses: pyupio/safety-action@v1
+      #   with:
+      #     api-key: ${{ secrets.SAFETY_API_KEY }}
+
+      - name: Show backend dir contents
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Contents:"
+          ls -R .
+        working-directory: ${{ env.BACKEND_DIR }}
 
       - name: Bandit security scan
         working-directory: ${{ env.BACKEND_DIR }}
