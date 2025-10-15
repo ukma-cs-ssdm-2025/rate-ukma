@@ -30,8 +30,11 @@ jobs:
         id: versions
         working-directory: ${{ env.FRONTEND_DIR }}
         run: |
-          NODE_VERSION=$(jq -r '.engines.node' package.json | sed 's/>=//')
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          NODE_VERSION=$(jq -r '.engines.node // ""' package.json)
+          if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" = "null" ]; then
+            NODE_VERSION="lts/*"
+          fi
+          echo "node-version=$NODE_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -77,14 +80,12 @@ jobs:
           api-key: ${{ secrets.SAFETY_API_KEY }}
 
       - name: Bandit security scan
-        if: success() || failure()
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run bandit -r . -f sarif -o bandit-results.sarif
-        continue-on-error: true
+          uv run bandit -r . --severity-level high --confidence-level high -f sarif -o bandit-results.sarif
 
       - name: Upload Bandit SARIF to GitHub Security
-        if: success() || failure()
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ env.BACKEND_DIR }}/bandit-results.sarif

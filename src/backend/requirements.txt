@@ -1,4 +1,3 @@
--i https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/
 # Development
 django==5.2.7
 django-allauth==65.12.0
