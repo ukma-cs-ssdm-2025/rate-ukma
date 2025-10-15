@@ -117,7 +117,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: test
-          args: --file=${{ env.BACKEND_DIR }}/requirements.txt --sarif-file-output=backend-snyk.sarif --severity-threshold=high
+          args: --file=src/backend/requirements.txt --sarif-file-output=backend-snyk.sarif --severity-threshold=high
 
       - name: Upload SARIF results to GitHub Security
         if: always()
