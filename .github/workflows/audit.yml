@@ -77,14 +77,14 @@ jobs:
           api-key: ${{ secrets.SAFETY_API_KEY }}
 
       - name: Bandit security scan
-        if: success() or failure()
+        if: success() || failure()
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           uv run bandit -r . -f sarif -o bandit-results.sarif
         continue-on-error: true
 
       - name: Upload Bandit SARIF to GitHub Security
-        if: success() or failure()
+        if: success() || failure()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ env.BACKEND_DIR }}/bandit-results.sarif
