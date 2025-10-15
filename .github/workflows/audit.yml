@@ -93,11 +93,12 @@ jobs:
         run: uv sync --extra dev
 
       - name: Safety check - Python dependencies
-        uses: pyupio/safety-action@v1
-        with:
-          api-key: ${{ secrets.SAFETY_API_KEY }}
-          output-format: json
-          args: --output safety-report.json
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          uv run safety scan --output json > safety-report.json
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
+        continue-on-error: true
 
       - name: Bandit security linter
         working-directory: ${{ env.BACKEND_DIR }}
@@ -119,14 +120,14 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: test
-          args: --file=src/backend/requirements.txt --sarif-file-output=backend-snyk.sarif --severity-threshold=high
+          args: --file=${{ env.BACKEND_DIR }}/requirements.txt --sarif-file-output=${{ env.BACKEND_DIR }}/backend-snyk.sarif --severity-threshold=high
         continue-on-error: true
 
       - name: Upload SARIF results to GitHub Security
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: backend-snyk.sarif
+          sarif_file: ${{ env.BACKEND_DIR }}/backend-snyk.sarif
 
       - name: Upload security reports
         if: always()
@@ -136,5 +137,5 @@ jobs:
           path: |
             ${{ env.BACKEND_DIR }}/safety-report.json
             ${{ env.BACKEND_DIR }}/bandit-report.json
-            backend-snyk.sarif
+            ${{ env.BACKEND_DIR }}/backend-snyk.sarif
           retention-days: 30
