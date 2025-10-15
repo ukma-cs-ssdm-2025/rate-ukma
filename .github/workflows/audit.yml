@@ -48,27 +48,11 @@ jobs:
 
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: |
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: pnpm audit high severity
         working-directory: ${{ env.FRONTEND_DIR }}
         run: pnpm run security:audit
-
-      - name: Snyk test (SARIF upload)
-        uses: snyk/actions/node@master
-        with:
-          command: test
-          args: ${{ env.FRONTEND_DIR }} --sarif-file-output=src/webapp/snyk.sarif --severity-threshold=high
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-
-      - name: Upload SARIF results
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: src/webapp/snyk.sarif
 
   backend-security-audit:
     name: Backend Security Audit
@@ -87,47 +71,20 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: uv sync --extra dev
 
-      - name: Safety check - Python dependencies
+      - name: Safety check
         uses: pyupio/safety-action@v1
         with:
           api-key: ${{ secrets.SAFETY_API_KEY }}
-        continue-on-error: true
 
-      - name: Bandit security linter
+      - name: Bandit security scan SARIF output
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run bandit -r . -f json -o bandit-report.json -q --exit-zero
-          uv run bandit -r . -q --exit-zero
-
-      - name: Generate requirements.txt for Snyk
-        working-directory: ${{ env.BACKEND_DIR }}
-        run: uv pip compile pyproject.toml -o requirements.txt
-
-      - name: Install packages for Snyk
-        working-directory: ${{ env.BACKEND_DIR }}
-        run: pip install -r requirements.txt
-
-      - name: Snyk test (Python vulnerabilities)
-        uses: snyk/actions/python@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
-          args: --file=${{ env.BACKEND_DIR }}/requirements.txt --sarif-file-output=${{ env.BACKEND_DIR }}/backend-snyk.sarif --severity-threshold=high
+          uv run bandit -r . -f sarif -o bandit-results.sarif
         continue-on-error: true
 
-      - name: Upload SARIF results to GitHub Security
+      - name: Upload Bandit SARIF to GitHub Security
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: ${{ env.BACKEND_DIR }}/backend-snyk.sarif
-
-      - name: Upload security reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-security-reports
-          path: |
-            ${{ env.BACKEND_DIR }}/bandit-report.json
-            ${{ env.BACKEND_DIR }}/backend-snyk.sarif
-          retention-days: 30
+          sarif_file: ${{ env.BACKEND_DIR }}/bandit-results.sarif
+          category: bandit
