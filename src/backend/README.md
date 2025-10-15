@@ -86,6 +86,14 @@ docker exec -it <backend_container_name> ruff check .
 
 The backend includes web scraping functionality to collect course data from UKMA.
 
+### Setup
+
+Before running scraper commands for the first time, install Playwright browsers:
+
+```bash
+playwright install
+```
+
 ### Main Commands
 
 ```bash

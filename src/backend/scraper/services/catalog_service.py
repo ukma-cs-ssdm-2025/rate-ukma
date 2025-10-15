@@ -4,9 +4,12 @@ import structlog
 from playwright.async_api import BrowserContext
 
 from ..browser import JSONLWriter, load_existing_ids
-from ..parsers.catalog import extract_course_ids, parse_catalog_page
+from ..parsers.catalog import CatalogParser, CourseLinkParser
 
 logger = structlog.get_logger(__name__)
+
+catalog_parser = CatalogParser()
+course_link_parser = CourseLinkParser()
 
 
 async def fetch_catalog_page(context: BrowserContext, catalog_url: str, page_num: int) -> str:
@@ -54,13 +57,13 @@ async def collect_catalog_ids(
 
     if end_page is None:
         html = await fetch_catalog_page(context, catalog_url, start_page)
-        _, detected_last = parse_catalog_page(base_url, html)
+        _, detected_last = catalog_parser.parse(html, base_url=base_url)
         end_page = detected_last or start_page
 
     total_ids = 0
     for pnum in range(start_page, end_page + 1):
         html = await fetch_catalog_page(context, catalog_url, pnum)
-        ids = extract_course_ids(html)
+        ids = course_link_parser.extract_course_ids(html)
         new = 0
         for cid in ids:
             if cid not in existing:
