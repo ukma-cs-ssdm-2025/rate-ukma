@@ -76,7 +76,6 @@ docker exec -it <backend_container_name> pytest
 ```bash
 # Local
 ruff check .
-black .
 
 # Docker
 docker exec -it <backend_container_name> ruff check .
