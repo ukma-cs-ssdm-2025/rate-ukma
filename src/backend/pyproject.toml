@@ -56,7 +56,7 @@ dev = [
     
     # Security Audit Tools
     "safety>=3.6.2",
-    "bandit>=1.8.6",
+    "bandit[toml]>=1.8.6",
     "bandit-sarif-formatter>=1.1.1",
 ]
 
