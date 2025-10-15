@@ -1,8 +1,9 @@
+-i https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/
 # Development
-django==5.2.3
+django==5.2.7
 django-allauth==65.12.0
 cryptography>=41.0.0
-requests==2.31.0  
+requests==2.32.4  
 PyJWT==2.9.0 
 
 psycopg2-binary==2.9.10
@@ -22,7 +23,6 @@ ruff==0.9.6
 isort==5.12.0
 flake8==6.1.0
 ipython>=9.4.0
-black==23.11.0
 
 # Environment
 python-decouple>=3.8
