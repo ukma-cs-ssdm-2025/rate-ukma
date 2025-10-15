@@ -22,7 +22,6 @@ jobs:
   frontend-security-audit:
     name: Frontend Security Audit
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'src/webapp/') || contains(github.event.head_commit.modified, '.github/workflows/audit.yml') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +73,6 @@ jobs:
   backend-security-audit:
     name: Backend Security Audit
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'src/backend/') || contains(github.event.head_commit.modified, '.github/workflows/audit.yml') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
