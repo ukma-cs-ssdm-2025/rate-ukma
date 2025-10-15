@@ -97,7 +97,7 @@ jobs:
         with:
           api-key: ${{ secrets.SAFETY_API_KEY }}
           output-format: json
-          output-file: safety-report.json
+          args: --output safety-report.json
 
       - name: Bandit security linter
         working-directory: ${{ env.BACKEND_DIR }}
