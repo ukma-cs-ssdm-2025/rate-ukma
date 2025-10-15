@@ -93,29 +93,34 @@ jobs:
         run: uv sync --extra dev
 
       - name: Safety check - Python dependencies
-        working-directory: ${{ env.BACKEND_DIR }}
-        run: uv run safety scan --output json > safety-report.json || true
-        continue-on-error: true
+        uses: pyupio/safety-action@v1
+        with:
+          api-key: ${{ secrets.SAFETY_API_KEY }}
+          output-format: json
+          output-file: safety-report.json
 
       - name: Bandit security linter
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run bandit -r . -f json -o bandit-report.json -q
-          uv run bandit -r . -q
-        continue-on-error: true
+          uv run bandit -r . -f json -o bandit-report.json -q --exit-zero
+          uv run bandit -r . -q --exit-zero
 
       - name: Generate requirements.txt for Snyk
         working-directory: ${{ env.BACKEND_DIR }}
         run: uv pip compile pyproject.toml -o requirements.txt
 
+      - name: Install packages for Snyk
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: pip install -r requirements.txt
+
       - name: Snyk test (Python vulnerabilities)
         uses: snyk/actions/python@master
-        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: test
           args: --file=src/backend/requirements.txt --sarif-file-output=backend-snyk.sarif --severity-threshold=high
+        continue-on-error: true
 
       - name: Upload SARIF results to GitHub Security
         if: always()
