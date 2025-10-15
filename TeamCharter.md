@@ -13,12 +13,12 @@
 
 ## 2. Roles & Responsibilities
 
-| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation |
-| :--- | :--- | :--- | :--- | :--- |
-| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead |
-| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead |
-| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead | Quality Lead |
-| **Milana** | Documentation Lead | Quality Lead | Documentation Lead | Documentation Lead |
+| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation | Construction I |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead | Code Reviewer |
+| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead | Quality Lead |
+| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead | Quality Lead | Security Analyst |
+| **Milana** | Documentation Lead | Quality Lead | Documentation Lead | Documentation Lead | Documentation Lead |
 
 ---
 
@@ -54,24 +54,43 @@ Backend / Frontend Responsibilities:
 * **API Documentation:** `/docs/api/` directory.
 * **README Maintenance:** `README.md` kept up-to-date and approved by all team members.  
 
-## 6. Individual Contributions
+## 6. Coding Standards & Quality Policy
+
+### Coding Standards
+
+* All Python code must follow [PEP8](https://peps.python.org/pep-0008/) and be linted with [ruff](https://github.com/astral-sh/ruff).
+* All TypeScript/JavaScript code must follow [biome](https://biomejs.dev/) formatting and linting rules.
+* Both ruff and biome are enforced automatically on pre-commit using configured hooks to ensure consistency and prevent style regressions.
+* Code must be readable, well-documented and use meaningful naming conventions.
+
+### Quality Processes
+
+* All code changes require review and approval before merging.
+* CI/CD must pass for every PR.
+* One assigned from CODEOWNERS is responsible for reviewing the code for standards logic and test coverage.
+* Other roles (Quality Lead, Security Analyst, Documentation Lead) operate asynchronously — each ensures compliance within their scope if the changes affect their area.
+* **Security Analyst** monitors for security vulnerabilities and best practices.
+* **Documentation Lead** ensures that any affected public APIs or modules are properly documented.
+* CodeRabbit may be used for automated review, but human approval remains mandatory.
+
+## 7. Individual Contributions
 
 * **Contribution Evidence:** Each member records a **Loom video** showing their contribution (e.g., user stories, requirements, RTM entries).  
 * **Collection and Verification:** Videos shared with the team and stored in `/labs/` directory.  
 
-## 7. Conflict Resolution
+## 8. Conflict Resolution
 
 1. **Majority Vote**  
 2. **Seek Compromise**  
 3. **Instructor Mediation**  
 
-## 8. Availability & Workload
+## 9. Availability & Workload
 
 * Each member contributes ~**6 hours per week**.  
 * If workload becomes unbalanced, tasks will be redistributed.  
 * Healthy work-life balance prioritized.  
 
-## 9. Ethics
+## 10. Ethics
 
 * Follow **ACM Code of Ethics**.  
 * Maintain **academic honesty**.  
@@ -80,7 +99,7 @@ Backend / Frontend Responsibilities:
 
 ---
 
-## 10. Signatures
+## 11. Signatures
 
 * [x] Kateryna (GitHub: [@katerynabratiuk](https://github.com/katerynabratiuk))  
 * [x] Anastasiia (GitHub: [@stasiaaleks](https://github.com/stasiaaleks))  
