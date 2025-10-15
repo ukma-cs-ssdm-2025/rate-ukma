@@ -79,25 +79,18 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
-
-      - name: Cache uv dependencies
-        uses: actions/cache@v4
         with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('src/backend/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-
+          enable-cache: true
+          cache-dependency-glob: "${{ env.BACKEND_DIR }}/**/pyproject.toml"
 
       - name: Install dependencies
         working-directory: ${{ env.BACKEND_DIR }}
         run: uv sync --extra dev
 
       - name: Safety check - Python dependencies
-        working-directory: ${{ env.BACKEND_DIR }}
-        run: |
-          uv run safety scan --output json > safety-report.json
-        env:
-          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
+        uses: pyupio/safety-action@v1
+        with:
+          api-key: ${{ secrets.SAFETY_API_KEY }}
         continue-on-error: true
 
       - name: Bandit security linter
@@ -135,7 +128,6 @@ jobs:
         with:
           name: backend-security-reports
           path: |
-            ${{ env.BACKEND_DIR }}/safety-report.json
             ${{ env.BACKEND_DIR }}/bandit-report.json
             ${{ env.BACKEND_DIR }}/backend-snyk.sarif
           retention-days: 30
