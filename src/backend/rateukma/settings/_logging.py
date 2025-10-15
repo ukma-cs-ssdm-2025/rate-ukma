@@ -38,6 +38,11 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": True,
         },
+        "scraper": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True,
+        },
     },
 }
 
@@ -58,9 +63,7 @@ def format_event_name(logger, method_name, event_dict):
         event_dict["event"] = f"{module_name}.{event}"
     return event_dict
 
-
-current_processors = structlog.get_config().get("processors", [])
-updated_processors = [
+processors = [
     merge_contextvars,
     add_logger_name,
     add_log_level,
@@ -68,10 +71,10 @@ updated_processors = [
     format_event_name,
     align_event_name,
     ProcessorFormatter.wrap_for_formatter,
-] + current_processors
+]
 
 structlog.configure(
-    processors=updated_processors,
+    processors=processors,
     logger_factory=LoggerFactory(),
     wrapper_class=BoundLogger,
     cache_logger_on_first_use=True,
