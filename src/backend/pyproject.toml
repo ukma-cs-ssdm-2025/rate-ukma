@@ -31,6 +31,13 @@ dependencies = [
     
     # Production
     "gunicorn>=23.0.0",
+
+    # Scraper
+    "playwright>=1.55",
+    "beautifulsoup4>=4.14",
+    "lxml>=6.0",
+    "filelock>=3.20",
+    "pydantic>=2.12",
 ]
 
 [project.optional-dependencies]
