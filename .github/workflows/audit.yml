@@ -1,0 +1,137 @@
+name: Security Audit
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *" # Daily at 06:00 UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: security-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FRONTEND_DIR: src/webapp
+  BACKEND_DIR: src/backend
+
+jobs:
+  frontend-security-audit:
+    name: Frontend Security Audit
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'src/webapp/') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract Node version from package.json
+        id: versions
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: |
+          NODE_VERSION=$(jq -r '.engines.node' package.json | sed 's/>=//')
+          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ${{ env.FRONTEND_DIR }}/package.json
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.versions.outputs.node-version }}
+          cache: "pnpm"
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: pnpm audit high severity
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm run security:audit
+
+      - name: Snyk test (SARIF upload)
+        uses: snyk/actions/node@master
+        with:
+          command: test
+          args: ${{ env.FRONTEND_DIR }} --sarif-file-output=src/webapp/snyk.sarif --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload SARIF results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: src/webapp/snyk.sarif
+
+  backend-security-audit:
+    name: Backend Security Audit
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'src/backend/') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('src/backend/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Install dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv sync --extra dev
+
+      - name: Safety check - Python dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv run safety scan --output json > safety-report.json || true
+        continue-on-error: true
+
+      - name: Bandit security linter
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          uv run bandit -r . -f json -o bandit-report.json -q
+          uv run bandit -r . -q
+        continue-on-error: true
+
+      - name: Generate requirements.txt for Snyk
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv pip compile pyproject.toml -o requirements.txt
+
+      - name: Snyk test (Python vulnerabilities)
+        uses: snyk/actions/python@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --file=${{ env.BACKEND_DIR }}/requirements.txt --sarif-file-output=backend-snyk.sarif --severity-threshold=high
+
+      - name: Upload SARIF results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: backend-snyk.sarif
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-reports
+          path: |
+            ${{ env.BACKEND_DIR }}/safety-report.json
+            ${{ env.BACKEND_DIR }}/bandit-report.json
+            backend-snyk.sarif
+          retention-days: 30

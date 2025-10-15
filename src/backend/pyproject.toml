@@ -82,5 +82,9 @@ section-order = ["future", "standard-library", "django", "third-party", "first-p
 [tool.ruff.lint.isort.sections]
 django = ["django", "rest_framework"]
 
+[tool.bandit]
+exclude_dirs = ["tests", "migrations", ".venv", "staticfiles", "media"]
+skips = ["B108"]
+
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*" = ["ALL"]
