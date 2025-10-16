@@ -54,5 +54,8 @@
 		"*.css": "tailwindcss"
 	},
 	"biome.lsp.bin": "./src/webapp/node_modules/.bin/biome",
-	"biome.configurationPath": "./src/webapp/biome.json"
+	"biome.configurationPath": "./src/webapp/biome.json",
+	"python.testing.pytestArgs": ["src/backend"],
+	"python.testing.unittestEnabled": false,
+	"python.testing.pytestEnabled": true
 }
