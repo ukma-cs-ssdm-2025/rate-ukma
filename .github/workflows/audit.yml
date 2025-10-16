@@ -81,7 +81,7 @@ jobs:
 
       - name: Bandit security scan
         working-directory: ${{ env.BACKEND_DIR }}
-        run: uv run bandit -r . --severity-level high --confidence-level high -f sarif -o bandit-results.sarif
+        run: uv run bandit -c pyproject.toml -r . --severity-level high --confidence-level high -f sarif -o bandit-results.sarif
         continue-on-error: true
 
       - name: Upload Bandit SARIF to GitHub Security
