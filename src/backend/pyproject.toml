@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 
 dependencies = [
     # Core
-    "django==5.2.3",
+    "django==5.2.7",
     "django-allauth==65.12.0",
     "djangorestframework>=3.14.0",
     "django-cors-headers==4.3.1",
@@ -24,7 +24,7 @@ dependencies = [
     
     # Environment & Configuration
     "python-decouple>=3.8",
-    "requests==2.31.0",
+    "requests==2.32.4",
     
     # Logging
     "structlog>=24.2.0",
@@ -53,6 +53,11 @@ dev = [
     
     # Linting & Formatting
     "ruff==0.9.6",
+    
+    # Security Audit Tools
+    "safety>=3.6.2",
+    "bandit[toml]>=1.8.6",
+    "bandit-sarif-formatter>=1.1.1",
 ]
 
 [tool.ruff]
@@ -85,5 +90,23 @@ section-order = ["future", "standard-library", "django", "third-party", "first-p
 [tool.ruff.lint.isort.sections]
 django = ["django", "rest_framework"]
 
+[tool.bandit]
+exclude_dirs = [
+    "tests",
+    "migrations",
+    ".venv",
+    "venv",
+    "staticfiles",
+    "media",
+    "__pycache__",
+]
+# Skip hardcoded temp directory check (B108) - commonly safe in Django
+skips = ["B108"]
+
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*" = ["ALL"]
+
+[[tool.uv.index]]
+name = "safety"
+url = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/"
+default = false

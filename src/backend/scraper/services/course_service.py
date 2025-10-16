@@ -6,34 +6,39 @@ from playwright.async_api import BrowserContext
 
 from ..browser import JSONLWriter, load_existing_ids, read_ids
 from ..models import ParsedCourseDetails
-from ..parsers.course import parse_course_details
+from ..parsers.course import CourseDetailParser
 
 logger = structlog.get_logger(__name__)
+
+course_detail_parser = CourseDetailParser()
 
 
 async def _parse_one(context: BrowserContext, url: str) -> ParsedCourseDetails:
     page = await context.new_page()
-    await page.goto(url)
     try:
-        await page.wait_for_load_state("domcontentloaded")
-    except Exception:
-        pass
-    try:
-        await page.wait_for_load_state("networkidle")
-    except Exception:
-        pass
-    try:
-        await page.wait_for_selector(
-            "table.table.table-condensed.table-bordered, .v-data-table, div.container",
-            state="attached",
-            timeout=15000,
-        )
-    except Exception:
-        pass
-    html = await page.content()
-    await page.close()
-    data = parse_course_details(html, url)
-    return data
+        await page.goto(url)
+        try:
+            await page.wait_for_load_state("domcontentloaded")
+        except Exception:
+            pass
+        try:
+            await page.wait_for_load_state("networkidle")
+        except Exception:
+            pass
+        try:
+            await page.wait_for_selector(
+                "table.table.table-condensed.table-bordered, .v-data-table, div.container",
+                state="attached",
+                timeout=15000,
+            )
+        except Exception:
+            pass
+        html = await page.content()
+        data = course_detail_parser.parse(html, url=url)
+        return data
+    finally:
+        if page and not page.is_closed():
+            await page.close()
 
 
 async def fetch_details_by_ids(

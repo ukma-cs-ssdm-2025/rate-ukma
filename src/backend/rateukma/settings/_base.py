@@ -259,12 +259,11 @@ SCRAPER_AUTO_LOGIN = config("SCRAPER_AUTO_LOGIN", default=True, cast=bool)
 SCRAPER_SLOWMO = config("SCRAPER_SLOWMO", default=0, cast=int)
 
 # Scraper authentication
-CAZ_EMAIL = config("CAZ_EMAIL", default="")
-CAZ_PASSWORD = config("CAZ_PASSWORD", default="")
+SAZ_EMAIL = config("SAZ_EMAIL", default="")
+SAZ_PASSWORD = config("SAZ_PASSWORD", default="")
 
 # Base URL for parsing
 PARSE_BASE_URL = "https://my.ukma.edu.ua"
-
 
 # Session configuration
 SESSION_COOKIE_SECURE = not DEBUG

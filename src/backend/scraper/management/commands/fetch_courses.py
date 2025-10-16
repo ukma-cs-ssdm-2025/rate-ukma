@@ -6,8 +6,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 import structlog
 
-from scraper.auth import with_authenticated_context
-from scraper.services.course_service import fetch_details_by_ids
+from ...auth import with_authenticated_context
+from ...services.course_service import fetch_details_by_ids
 
 logger = structlog.get_logger(__name__)
 
@@ -49,12 +49,13 @@ class Command(BaseCommand):
         slowmo = options["slowmo"] or settings.SCRAPER_SLOWMO
 
         decorated_function = with_authenticated_context(
-            email=settings.CAZ_EMAIL,
-            password=settings.CAZ_PASSWORD,
+            email=settings.SAZ_EMAIL,
+            password=settings.SAZ_PASSWORD,
             base_url=settings.PARSE_BASE_URL,
             state_path=settings.SCRAPER_STATE_DIR / "storage_state.json",
             headless=settings.SCRAPER_HEADLESS,
-            slowmo=settings.SCRAPER_SLOWMO,
+            slowmo=slowmo,
+            devtools=options["devtools"],
         )(self._fetch_with_context)
 
         logger.info(

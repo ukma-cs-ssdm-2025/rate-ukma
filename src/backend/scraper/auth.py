@@ -95,9 +95,9 @@ async def login_o365(
 
         try:
             await page.wait_for_url(re.compile(r"my\.ukma\.edu\.ua"), timeout=120000)
-            logger.info("successfully_redirected_to_caz")
+            logger.info("successfully_redirected_to_saz")
         except PlaywrightTimeoutError:
-            logger.warning("redirect_timeout", message="Timeout waiting for CAZ redirect")
+            logger.warning("redirect_timeout", message="Timeout waiting for SAZ redirect")
             pass
 
         await context.storage_state(path=str(state_path))
@@ -146,8 +146,22 @@ def with_authenticated_context(
                     context = await browser.new_context(storage_state=str(state_path))
 
                 if not await check_auth_status(context, base_url):
-                    await browser.close()
-                    raise RuntimeError("Authentication failed")
+                    logger.warning(
+                        "auth_check_failed", message="Initial auth check failed, attempting refresh"
+                    )
+                    await context.close()
+
+                    if state_path.exists():
+                        logger.info("deleting_stale_storage_state", path=str(state_path))
+                        state_path.unlink()
+
+                    login_url = f"{base_url}/auth/login"
+                    await login_o365(email, password, login_url, state_path, headless)
+                    context = await browser.new_context(storage_state=str(state_path))
+
+                    if not await check_auth_status(context, base_url):
+                        await browser.close()
+                        raise RuntimeError("Authentication failed after refresh")
 
                 try:
                     kwargs["context"] = context
