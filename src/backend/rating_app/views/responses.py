@@ -8,6 +8,7 @@ EX_400 = OpenApiExample(
     value={
         "detail": "Validation failed",
         "status": 400,
+        "fields": {"difficulty": ["Must be between 1 and 5."]},
     },
     status_codes=["400"],
 )
