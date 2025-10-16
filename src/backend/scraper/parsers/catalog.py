@@ -8,7 +8,7 @@ from .base import BaseParser
 
 class CourseLinkParser(BaseParser):
     def parse(self, html: str, **kwargs) -> list[str]:
-        base_url = kwargs.get('base_url', '')
+        base_url = kwargs.get("base_url", "")
         if not base_url:
             raise ValueError("base_url is required for CourseLinkParser")
 
@@ -59,7 +59,7 @@ class CatalogParser(BaseParser):
         self.course_link_parser = CourseLinkParser()
 
     def parse(self, html: str, **kwargs) -> tuple[list[str], int | None]:
-        base_url = kwargs.get('base_url', '')
+        base_url = kwargs.get("base_url", "")
         if not base_url:
             raise ValueError("base_url is required for CatalogParser")
 

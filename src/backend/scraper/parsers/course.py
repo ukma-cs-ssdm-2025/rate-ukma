@@ -158,7 +158,7 @@ class CourseDetailParser(BaseParser):
         self.students_parser = StudentsParser()
 
     def parse(self, html: str, **kwargs) -> ParsedCourseDetails:
-        url = kwargs.get('url', '')
+        url = kwargs.get("url", "")
         if not url:
             raise ValueError("url is required for CourseDetailParser")
 
@@ -274,5 +274,3 @@ class CourseDetailParser(BaseParser):
         if not div:
             return None
         return ParserUtils.clean_text(div.get_text(" "))
-
-

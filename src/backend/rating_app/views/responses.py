@@ -1,10 +1,6 @@
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 
-from ..serializers import (
-    CourseListResponseSerializer,
-    CourseSerializer,
-    RatingSerializer,
-)
+from ..serializers import CourseListResponseSerializer, CourseSerializer, RatingSerializer
 from ..serializers import ErrorEnvelopeSerializer as Err
 
 EX_400 = OpenApiExample(

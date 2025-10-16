@@ -147,8 +147,7 @@ def with_authenticated_context(
 
                 if not await check_auth_status(context, base_url):
                     logger.warning(
-                        "auth_check_failed",
-                        message="Initial auth check failed, attempting refresh"
+                        "auth_check_failed", message="Initial auth check failed, attempting refresh"
                     )
                     await context.close()
 

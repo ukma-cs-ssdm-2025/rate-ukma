@@ -1,10 +1,8 @@
 from typing import cast
 
-from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
-from django.http import HttpRequest
 from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -19,12 +17,6 @@ from .responses import R_LOGIN, R_LOGOUT, R_OAUTH
 from .views import _with_request_id
 
 logger = structlog.get_logger(__name__)
-
-
-def _validate_referrer(request: HttpRequest) -> bool:
-    allowed_domains = settings.CORS_ALLOWED_ORIGINS
-    referrer = request.META.get("HTTP_REFERER", "")
-    return any(domain in referrer for domain in allowed_domains)
 
 
 @extend_schema(
@@ -42,11 +34,6 @@ def _validate_referrer(request: HttpRequest) -> bool:
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def microsoft_login(request):
-    if not _validate_referrer(request):
-        return _with_request_id(
-            Response({"detail": "Invalid request origin"}, status=status.HTTP_400_BAD_REQUEST)
-        )
-
     logger.info(
         "microsoft_login_init",
         user_agent=request.META.get("HTTP_USER_AGENT"),
