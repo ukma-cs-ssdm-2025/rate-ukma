@@ -264,7 +264,3 @@ SAZ_PASSWORD = config("SAZ_PASSWORD", default="")
 
 # Base URL for parsing
 PARSE_BASE_URL = "https://my.ukma.edu.ua"
-
-# Session configuration
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
