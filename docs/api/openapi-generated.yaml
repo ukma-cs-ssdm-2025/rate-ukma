@@ -40,9 +40,6 @@ paths:
                   value:
                     detail: Validation failed
                     status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
         '401':
@@ -82,9 +79,6 @@ paths:
                   value:
                     detail: Validation failed
                     status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
         '404':
@@ -123,9 +117,6 @@ paths:
                   value:
                     detail: Validation failed
                     status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
         '404':
@@ -206,9 +197,6 @@ paths:
                   value:
                     detail: Validation failed
                     status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
         '401':
@@ -324,9 +312,6 @@ paths:
                   value:
                     detail: Validation failed
                     status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
         '401':
@@ -406,9 +391,6 @@ paths:
                   value:
                     detail: Validation failed
                     status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
         '401':
@@ -482,9 +464,6 @@ paths:
                   value:
                     detail: Validation failed
                     status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
         '401':
@@ -568,9 +547,6 @@ paths:
                   value:
                     detail: Validation failed
                     status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
         '401':

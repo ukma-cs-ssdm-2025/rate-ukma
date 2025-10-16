@@ -1,10 +1,6 @@
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 
-from ..serializers import (
-    CourseListResponseSerializer,
-    CourseSerializer,
-    RatingSerializer,
-)
+from ..serializers import CourseListResponseSerializer, CourseSerializer, RatingSerializer
 from ..serializers import ErrorEnvelopeSerializer as Err
 
 EX_400 = OpenApiExample(
@@ -12,7 +8,6 @@ EX_400 = OpenApiExample(
     value={
         "detail": "Validation failed",
         "status": 400,
-        "fields": {"difficulty": ["Must be between 1 and 5."]},
     },
     status_codes=["400"],
 )
