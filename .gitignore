@@ -18,6 +18,10 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
+# Coverage reports
+.coverage
+htmlcov/
+
 # Environment files
 .env
 .env.*

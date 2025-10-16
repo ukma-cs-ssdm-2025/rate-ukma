@@ -49,7 +49,7 @@ dev = [
     # Testing
     "pytest==8.3.4",
     "pytest-django>=4.5.2",
-    "coverage==7.3.2",
+    "pytest-cov==7.0",
     
     # Linting & Formatting
     "ruff==0.9.6",
