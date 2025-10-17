@@ -56,7 +56,7 @@ class RatingInlineSerializer(serializers.ModelSerializer):
 
 class CourseSpecialityInlineSerializer(serializers.ModelSerializer):
     speciality_id = serializers.UUIDField(source="speciality.id", read_only=True)
-    speciality_title = serializers.CharField(source="speciality.title", read_only=True)
+    speciality_title = serializers.CharField(source="speciality.name", read_only=True)
 
     class Meta:
         model = CourseSpeciality
