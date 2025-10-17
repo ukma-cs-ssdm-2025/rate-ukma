@@ -74,7 +74,6 @@ class CourseDetailSerializer(serializers.ModelSerializer):
     ratings_count = serializers.IntegerField(read_only=True)
 
     course_specialities = CourseSpecialityInlineSerializer(many=True, read_only=True)
-    ratings = serializers.SerializerMethodField()
     department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
     department_name = serializers.CharField(source="department.name", read_only=True)
     faculty_name = serializers.CharField(source="department.faculty.name", read_only=True)
@@ -92,7 +91,6 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "faculty_name",
             # read
             "course_specialities",
-            "ratings",
             "avg_difficulty",
             "avg_usefulness",
             "ratings_count",
@@ -106,21 +104,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "avg_difficulty",
             "avg_usefulness",
             "ratings_count",
-            "ratings",
         ]
-
-    @extend_schema_field(RatingInlineSerializer(many=True))
-    def get_ratings(self, obj):
-        """Get all ratings for this course across all course offerings."""
-        # Collect ratings from all offerings
-        all_ratings = []
-        for offering in obj.offerings.all():
-            all_ratings.extend(offering.ratings.all())
-
-        # Sort by most recent first
-        all_ratings.sort(key=lambda r: r.created_at, reverse=True)
-
-        return RatingInlineSerializer(all_ratings, many=True).data
 
     def validate_specialities_with_kind(self, items: list[dict] | None):
         """
