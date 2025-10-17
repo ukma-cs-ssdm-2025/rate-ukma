@@ -34,67 +34,68 @@
 
 ## 4. Project Overview
 ### Backend
+
 ```text
 backend/  
 │  
-├── rateukma/ 						# Django project configuration  
-│ ├── settings/ 					# Environment-specific settings  
-│ ├── urls.py 						# Root URL configuration  
-│ └── wsgi.py / asgi.py 			# WSGI/ASGI entry points  
+├── rateukma/                      # Django project configuration  
+│   ├── settings/                  # Environment-specific settings  
+│   ├── urls.py                    # Root URL configuration  
+│   └── wsgi.py / asgi.py          # WSGI/ASGI entry points  
 │  
-├── rating_app/ 					# Main application  
-│ ├── models/ 						# Django ORM models (Domain Layer)  
-│ ├── repositories/ 				# Data Access Layer  
-│ ├── services/ 					# Business Logic Layer  
-│ ├── serializers/ 					# REST Framework Serializers  
-│ ├── views/ 						# API Endpoints (ViewSets)  
-│ ├── ioc_container/				# Dependency Injection 
-│ ├── admin/ 						# Django Admin customization  
-│ ├── auth/						    # Authentication utilities  
-│ ├── exception/ 					# Custom exception handlers  
-│ └── migrations/ 					# Database migrations  
+├── rating_app/                    # Main application  
+│   ├── models/                    # Django ORM models (Domain Layer)  
+│   ├── repositories/              # Data Access Layer  
+│   ├── services/                  # Business Logic Layer  
+│   ├── serializers/               # REST Framework Serializers  
+│   ├── views/                     # API Endpoints (ViewSets)  
+│   ├── ioc_container/             # Dependency Injection  
+│   ├── admin/                     # Django Admin customization  
+│   ├── auth/                      # Authentication utilities  
+│   ├── exception/                 # Custom exception handlers  
+│   └── migrations/                # Database migrations  
 │  
-├── scraper/ 						# Data Scraper  
-├── static/ 						# Static files (CSS, JS)  
-├── media/ 							# User-uploaded files  
-├── manage.py 					    # Django management script  
-├── requirements.txt 				# Python dependencies  
-└── Dockerfile 						# Backend container definition
+├── scraper/                       # Data Scraper  
+├── static/                        # Static files (CSS, JS)  
+├── media/                         # User-uploaded files  
+├── manage.py                      # Django management script  
+├── requirements.txt               # Python dependencies  
+└── Dockerfile                     # Backend container definition
 ```
 
 ### Webapp / Frontend
 ```text
 webapp/  
 │  
-├── src/  							 # Source files  
-│ ├── components/  					 # Reusable UI components  
-│ ├── routes/  						 # File-based routing (TanStack Router)  
-│ │ ├── __root.tsx  				 # Root layout route  
-│ │ ├── index.tsx  					 # Home page (course catalog)  
-│ │ └── my-ratings.tsx  		     # User's ratings page  
-│ │  
-│ ├── integrations/  				 # Third-party integrations  
-│ │ └── tanstack-query/  			 # React Query configuration  
-│ │  
-│ ├── lib/  					     # Utility functions  
-│ │ └── utils.ts  					 # Helper functions (cn, formatters, etc.)  
-│ │  
-│ ├── env.ts  						 # Environment configuration  
-│ ├── main.tsx  				     # Application entry point  
-│ ├── routeTree.gen.ts  		     # Auto-generated route tree  
-│ └── styles.css  					 # Global styles (Tailwind)  
+├── src/                            # Source files  
+│   ├── components/                 # Reusable UI components  
+│   ├── routes/                     # File-based routing (TanStack Router)  
+│   │   ├── __root.tsx              # Root layout route  
+│   │   ├── index.tsx               # Home page (course catalog)  
+│   │   └── my-ratings.tsx          # User's ratings page  
+│   │  
+│   ├── integrations/               # Third-party integrations  
+│   │   └── tanstack-query/         # React Query configuration  
+│   │  
+│   ├── lib/                        # Utility functions  
+│   │   └── utils.ts                # Helper functions (cn, formatters, etc.)  
+│   │  
+│   ├── env.ts                      # Environment configuration  
+│   ├── main.tsx                    # Application entry point  
+│   ├── routeTree.gen.ts            # Auto-generated route tree  
+│   └── styles.css                  # Global styles (Tailwind)  
 │  
-├── public/  						 # Static assets  
-│ ├── manifest.json  				 # PWA manifest  
-│ └── robots.txt  					 # SEO configuration  
+├── public/                         # Static assets  
+│   ├── manifest.json               # PWA manifest  
+│   └── robots.txt                  # SEO configuration  
 │  
-├── package.json  					 # Node.js dependencies  
-├── vite.config.ts  				 # Vite configuration  
-├── biome.json  					 # Biome linting rules  
-├── orval.config.ts  				 # API client generation config  
-├── tailwind.config.ts  			 # Tailwind CSS configuration  
-├── components.json  				 # shadcn/ui configuration  
-└── Dockerfile  				     # Frontend container definition
+├── package.json                    # Node.js dependencies  
+├── vite.config.ts                  # Vite configuration  
+├── biome.json                      # Biome linting rules  
+├── orval.config.ts                 # API client generation config  
+├── tailwind.config.ts              # Tailwind CSS configuration  
+├── components.json                 # shadcn/ui configuration  
+└── Dockerfile                      # Frontend container definition
 ```
 
 ## 5. Next steps
