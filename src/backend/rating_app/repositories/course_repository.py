@@ -15,6 +15,23 @@ class CourseRepository:
         return (
             Course.objects.select_related("department__faculty")
             .prefetch_related("offerings__ratings__student", "offerings__semester")
+            .annotate(
+                avg_difficulty_annot=Coalesce(
+                    Avg("offerings__ratings__difficulty"),
+                    Value(0.0),
+                    output_field=FloatField(),
+                ),
+                avg_usefulness_annot=Coalesce(
+                    Avg("offerings__ratings__usefulness"),
+                    Value(0.0),
+                    output_field=FloatField(),
+                ),
+                ratings_count_annot=Coalesce(
+                    Count("offerings__ratings__id", distinct=True),
+                    Value(0),
+                    output_field=IntegerField(),
+                ),
+            )
             .get(id=course_id)
         )
 

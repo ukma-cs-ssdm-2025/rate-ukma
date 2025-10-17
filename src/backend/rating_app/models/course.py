@@ -27,6 +27,15 @@ class Course(models.Model):
 
     @property
     def avg_difficulty(self):
+        """
+        Return average difficulty rating.
+        Uses pre-annotated value if available (from repository), otherwise queries DB.
+        """
+        # Check if value was pre-annotated by repository
+        if hasattr(self, "avg_difficulty_annot"):
+            return self.avg_difficulty_annot
+
+        # Fallback to DB query
         from .rating import Rating
 
         return Rating.objects.filter(course_offering__course=self).aggregate(v=Avg("difficulty"))[
@@ -35,6 +44,15 @@ class Course(models.Model):
 
     @property
     def avg_usefulness(self):
+        """
+        Return average usefulness rating.
+        Uses pre-annotated value if available (from repository), otherwise queries DB.
+        """
+        # Check if value was pre-annotated by repository
+        if hasattr(self, "avg_usefulness_annot"):
+            return self.avg_usefulness_annot
+
+        # Fallback to DB query
         from .rating import Rating
 
         return Rating.objects.filter(course_offering__course=self).aggregate(v=Avg("usefulness"))[
@@ -43,6 +61,15 @@ class Course(models.Model):
 
     @property
     def ratings_count(self):
+        """
+        Return total count of ratings.
+        Uses pre-annotated value if available (from repository), otherwise queries DB.
+        """
+        # Check if value was pre-annotated by repository
+        if hasattr(self, "ratings_count_annot"):
+            return self.ratings_count_annot
+
+        # Fallback to DB query
         from .rating import Rating
 
         return Rating.objects.filter(course_offering__course=self).count()
