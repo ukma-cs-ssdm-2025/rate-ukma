@@ -1,8 +1,7 @@
 from typing import Any
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import Avg, Count, FloatField, IntegerField, Value
-from django.db.models.functions import Coalesce
+from django.db.models import Avg, Count, F
 
 from rating_app.models import Course
 
@@ -16,21 +15,9 @@ class CourseRepository:
             Course.objects.select_related("department__faculty")
             .prefetch_related("offerings__ratings__student", "offerings__semester")
             .annotate(
-                avg_difficulty_annot=Coalesce(
-                    Avg("offerings__ratings__difficulty"),
-                    Value(0.0),
-                    output_field=FloatField(),
-                ),
-                avg_usefulness_annot=Coalesce(
-                    Avg("offerings__ratings__usefulness"),
-                    Value(0.0),
-                    output_field=FloatField(),
-                ),
-                ratings_count_annot=Coalesce(
-                    Count("offerings__ratings__id", distinct=True),
-                    Value(0),
-                    output_field=IntegerField(),
-                ),
+                avg_difficulty_annot=Avg("offerings__ratings__difficulty"),
+                avg_usefulness_annot=Avg("offerings__ratings__usefulness"),
+                ratings_count_annot=Count("offerings__ratings__id", distinct=True),
             )
             .get(id=course_id)
         )
@@ -82,33 +69,26 @@ class CourseRepository:
 
         # Always annotate avg ratings (needed by serializer)
         courses = courses.annotate(
-            avg_difficulty_annot=Coalesce(
-                Avg("offerings__ratings__difficulty"),
-                Value(0.0),
-                output_field=FloatField(),
-            ),
-            avg_usefulness_annot=Coalesce(
-                Avg("offerings__ratings__usefulness"),
-                Value(0.0),
-                output_field=FloatField(),
-            ),
-            ratings_count_annot=Coalesce(
-                Count("offerings__ratings__id", distinct=True),
-                Value(0),
-                output_field=IntegerField(),
-            ),
+            avg_difficulty_annot=Avg("offerings__ratings__difficulty"),
+            avg_usefulness_annot=Avg("offerings__ratings__usefulness"),
+            ratings_count_annot=Count("offerings__ratings__id", distinct=True),
         )
 
-        # Sorting logic
+        # Sorting logic with nulls last
         order_by_fields = []
         if avg_difficulty_order in ("asc", "desc"):
-            order_by_fields.append(
-                "avg_difficulty_annot" if avg_difficulty_order == "asc" else "-avg_difficulty_annot"
-            )
+            # Use F expression with nulls_last for proper null handling
+            field = F("avg_difficulty_annot")
+            if avg_difficulty_order == "asc":
+                order_by_fields.append(field.asc(nulls_last=True))
+            else:
+                order_by_fields.append(field.desc(nulls_last=True))
         if avg_usefulness_order in ("asc", "desc"):
-            order_by_fields.append(
-                "avg_usefulness_annot" if avg_usefulness_order == "asc" else "-avg_usefulness_annot"
-            )
+            field = F("avg_usefulness_annot")
+            if avg_usefulness_order == "asc":
+                order_by_fields.append(field.asc(nulls_last=True))
+            else:
+                order_by_fields.append(field.desc(nulls_last=True))
 
         if order_by_fields:
             # Apply custom sorting with title as secondary sort

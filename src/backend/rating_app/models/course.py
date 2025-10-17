@@ -62,14 +62,16 @@ class Course(models.Model):
     @property
     def ratings_count(self):
         """
-        Return total count of ratings.
+        Return total count of ratings, or None if no ratings exist.
         Uses pre-annotated value if available (from repository), otherwise queries DB.
         """
         # Check if value was pre-annotated by repository
         if hasattr(self, "ratings_count_annot"):
-            return self.ratings_count_annot
+            count = self.ratings_count_annot
+            return None if count == 0 else count
 
         # Fallback to DB query
         from .rating import Rating
 
-        return Rating.objects.filter(course_offering__course=self).count()
+        count = Rating.objects.filter(course_offering__course=self).count()
+        return None if count == 0 else count
