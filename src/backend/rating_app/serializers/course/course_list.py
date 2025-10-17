@@ -26,9 +26,13 @@ class CourseListSerializer(serializers.ModelSerializer):
     department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
     department_name = serializers.CharField(source="department.name", read_only=True)
     faculty_name = serializers.CharField(source="department.faculty.name", read_only=True)
-    avg_difficulty = serializers.FloatField(read_only=True, allow_null=True)
-    avg_usefulness = serializers.FloatField(read_only=True, allow_null=True)
-    ratings_count = serializers.IntegerField(read_only=True)
+    avg_difficulty = serializers.FloatField(
+        source="avg_difficulty_annot", read_only=True, allow_null=True
+    )
+    avg_usefulness = serializers.FloatField(
+        source="avg_usefulness_annot", read_only=True, allow_null=True
+    )
+    ratings_count = serializers.IntegerField(source="ratings_count_annot", read_only=True)
     course_specialities = CourseSpecialityInlineSerializer(many=True, read_only=True)
 
     class Meta:
