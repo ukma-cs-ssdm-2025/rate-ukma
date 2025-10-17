@@ -13,7 +13,7 @@ class CourseRepository:
     def get_by_id(self, course_id: str) -> Course:
         return (
             Course.objects.select_related("department__faculty")
-            .prefetch_related("offerings__ratings__student", "offerings__semester")
+            .prefetch_related("offerings__semester", "course_specialities__speciality")
             .annotate(
                 avg_difficulty_annot=Avg("offerings__ratings__difficulty"),
                 avg_usefulness_annot=Avg("offerings__ratings__usefulness"),
@@ -50,7 +50,7 @@ class CourseRepository:
         """
         courses = (
             Course.objects.select_related("department__faculty")
-            .prefetch_related("offerings", "offerings__ratings")
+            .prefetch_related("course_specialities__speciality")
             .all()
         )
 
