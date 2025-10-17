@@ -129,18 +129,17 @@ class CourseViewSet(viewsets.ViewSet):
             avg_usefulness_order=avg_usefulness_order,
         )
 
-        courses = result["items"]
-        total_count = result["total"]
+        page = result["page"]
         total_pages = result["total_pages"]
-        next_page = page + 1 if page < total_pages else None
-        prev_page = page - 1 if page > 1 else None
 
         response_data = {
-            "count": total_count,
-            "totalPages": total_pages,
-            "next": next_page,
-            "previous": prev_page,
-            "results": self.serializer_class(courses, many=True).data,
+            "results": self.serializer_class(result["items"], many=True).data,
+            "filters": result.get("filters", {}),
+            "page": page,
+            "page_size": result.get("page_size") or result.get("per_page"),
+            "total": result["total"],
+            "next": page + 1 if page < total_pages else None,
+            "previous": page - 1 if page > 1 else None,
         }
         return Response(response_data, status=status.HTTP_200_OK)
 
