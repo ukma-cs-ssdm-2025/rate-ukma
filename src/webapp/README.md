@@ -107,3 +107,13 @@ docker exec -it <frontend_container_name> pnpm generate-api
 ### Configuration
 
 The API client generation is configured in [`orval.config.ts`](./orval.config.ts) and generates files to `src/lib/api-generated/`. The client uses React Query for data fetching and includes infinite query support.
+
+### Security Audit
+
+```bash
+# Local
+pnpm run security:audit
+
+# CI/CD
+# Runs automatically on webapp file changes and periodically
+```

@@ -76,8 +76,45 @@ docker exec -it <backend_container_name> pytest
 ```bash
 # Local
 ruff check .
-black .
 
 # Docker
 docker exec -it <backend_container_name> ruff check .
 ```
+
+## Scraper Commands
+
+The backend includes web scraping functionality to collect course data from UKMA.
+
+### Setup
+
+Before running scraper commands for the first time, install Playwright browsers:
+
+```bash
+playwright install
+```
+
+### Main Commands
+
+```bash
+# Collect course IDs from catalog pages
+python manage.py collect_catalog
+
+# Fetch detailed information for collected course IDs
+python manage.py fetch_courses
+```
+
+Add `--help` to see all available arguments
+
+### Security Audit
+
+```bash
+# Local
+uv run safety scan --report          # Check for dependency vulnerabilities
+uv run bandit -r .                   # Static code security analysis
+
+# Docker
+docker exec -it <backend_container_name> python -m safety scan --report
+docker exec -it <backend_container_name> python -m bandit -r .
+```
+
+Security audit run automatically in CI via the [backend security audit workflow](../../.github/workflows/backend-audit.yml).
