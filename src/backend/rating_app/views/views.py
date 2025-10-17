@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from ..serializers import CourseSerializer, RatingSerializer
+from ..serializers import CourseDetailSerializer, CourseListSerializer, RatingSerializer
 from .mock_store import (
     MOCK_COURSES,
     STATUS_ENUM,
@@ -115,7 +115,7 @@ class CourseListView(APIView):
         paged = rows[start:end]
 
         payload = {
-            "results": CourseSerializer(_wrap_many(paged), many=True).data,
+            "results": CourseListSerializer(_wrap_many(paged), many=True).data,
             "filters": {"status": STATUS_ENUM, "type_kind": TYPE_ENUM},
             "page": page,
             "pageSize": page_size,
@@ -136,7 +136,7 @@ class CourseDetailView(APIView):
         row = next((c for c in MOCK_COURSES if str(c["id"]) == str(course_id)), None)
         if not row:
             raise NotFound("Course not found")
-        return _with_request_id(Response(CourseSerializer(_wrap_one(row)).data, status=200))
+        return _with_request_id(Response(CourseDetailSerializer(_wrap_one(row)).data, status=200))
 
 
 @extend_schema(tags=["ratings"])
