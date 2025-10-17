@@ -435,9 +435,15 @@ components:
         ratings_count:
           type: integer
           readOnly: true
+        course_specialities:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseSpecialityInline'
+          readOnly: true
       required:
       - avg_difficulty
       - avg_usefulness
+      - course_specialities
       - department
       - department_name
       - faculty_name
