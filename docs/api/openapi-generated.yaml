@@ -371,11 +371,6 @@ components:
           items:
             $ref: "#/components/schemas/CourseSpecialityInline"
           readOnly: true
-        ratings:
-          type: array
-          items:
-            $ref: "#/components/schemas/RatingInline"
-          readOnly: true
         avg_difficulty:
           type: number
           format: double
@@ -402,7 +397,6 @@ components:
         - department_name
         - faculty_name
         - id
-        - ratings
         - ratings_count
         - status
         - title
@@ -522,57 +516,6 @@ components:
       required:
         - password
         - username
-    RatingInline:
-      type: object
-      description: Inline serializer for displaying ratings within course detail.
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        student_id:
-          type: string
-          format: uuid
-          nullable: true
-          readOnly: true
-        student_name:
-          type: string
-          nullable: true
-          readOnly: true
-        course_offering_code:
-          type: string
-          readOnly: true
-        semester:
-          type: string
-          readOnly: true
-        difficulty:
-          type: integer
-          readOnly: true
-        usefulness:
-          type: integer
-          readOnly: true
-        comment:
-          type: string
-          readOnly: true
-          nullable: true
-        is_anonymous:
-          type: boolean
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-        - comment
-        - course_offering_code
-        - created_at
-        - difficulty
-        - id
-        - is_anonymous
-        - semester
-        - student_id
-        - student_name
-        - usefulness
     SpecialityWithKindPayload:
       type: object
       properties:
