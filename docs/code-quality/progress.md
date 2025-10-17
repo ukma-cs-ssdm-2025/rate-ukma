@@ -34,7 +34,7 @@
 
 ## 4. Project Overview
 ### Backend
-```
+```text
 backend/  
 │  
 ├── rateukma/ 						# Django project configuration  
@@ -63,7 +63,7 @@ backend/
 ```
 
 ### Webapp / Frontend
-```
+```text
 webapp/  
 │  
 ├── src/  							 # Source files  
