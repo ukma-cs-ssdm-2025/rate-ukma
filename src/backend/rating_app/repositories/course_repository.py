@@ -10,7 +10,7 @@ class CourseRepository:
     def get_all(self) -> list[Course]:
         return list(Course.objects.all())
 
-    def get_by_id(self, course_id) -> Course:
+    def get_by_id(self, course_id: str) -> Course:
         return (
             Course.objects.select_related("department__faculty")
             .prefetch_related("offerings__ratings__student", "offerings__semester")
