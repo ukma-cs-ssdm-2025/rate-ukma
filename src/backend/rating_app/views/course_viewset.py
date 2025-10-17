@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
+from rating_app.models import Course
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.services.course_service import CourseService
 
@@ -155,5 +156,5 @@ class CourseViewSet(viewsets.ViewSet):
             course = self.course_service.get_course(course_id)
             serializer = CourseDetailSerializer(course)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except NotFound:
-            return Response({"detail": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        except (Course.DoesNotExist, ValueError):
+            raise NotFound(detail="Course not found") from None
