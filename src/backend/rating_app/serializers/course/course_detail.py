@@ -10,7 +10,7 @@ from rating_app.models.choices import CourseTypeKind
 class RatingInlineSerializer(serializers.ModelSerializer):
     """Inline serializer for displaying ratings within course detail."""
 
-    student_id = serializers.UUIDField(source="student.id", read_only=True)
+    student_id = serializers.SerializerMethodField()
     student_name = serializers.SerializerMethodField()
     course_offering_code = serializers.CharField(source="course_offering.code", read_only=True)
     semester = serializers.CharField(source="course_offering.semester.__str__", read_only=True)
@@ -31,11 +31,18 @@ class RatingInlineSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    @extend_schema_field(serializers.CharField())
-    def get_student_name(self, obj):
-        """Return student name if not anonymous, otherwise hide it."""
+    @extend_schema_field(serializers.UUIDField(allow_null=True))
+    def get_student_id(self, obj):
+        """Return student ID if not anonymous, otherwise return None."""
         if obj.is_anonymous:
-            return "Anonymous"
+            return None
+        return obj.student.id
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_student_name(self, obj):
+        """Return student name if not anonymous, otherwise return None."""
+        if obj.is_anonymous:
+            return None
         # Student inherits from Person, so we access fields directly
         return obj.student.full_name if hasattr(obj.student, "full_name") else str(obj.student)
 
