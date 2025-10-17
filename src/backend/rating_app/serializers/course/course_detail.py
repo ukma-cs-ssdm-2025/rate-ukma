@@ -13,7 +13,7 @@ class RatingInlineSerializer(serializers.ModelSerializer):
     student_id = serializers.SerializerMethodField()
     student_name = serializers.SerializerMethodField()
     course_offering_code = serializers.CharField(source="course_offering.code", read_only=True)
-    semester = serializers.CharField(source="course_offering.semester.__str__", read_only=True)
+    semester = serializers.SerializerMethodField()
 
     class Meta:
         model = Rating
@@ -45,6 +45,13 @@ class RatingInlineSerializer(serializers.ModelSerializer):
             return None
         # Student inherits from Person, so we access fields directly
         return obj.student.full_name if hasattr(obj.student, "full_name") else str(obj.student)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_semester(self, obj):
+        """Return semester string if course offering exists, otherwise return None."""
+        if hasattr(obj, "course_offering") and obj.course_offering and obj.course_offering.semester:
+            return str(obj.course_offering.semester)
+        return None
 
 
 class CourseSpecialityInlineSerializer(serializers.ModelSerializer):
