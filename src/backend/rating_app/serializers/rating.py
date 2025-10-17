@@ -7,14 +7,20 @@ class RatingSerializer(serializers.ModelSerializer):
     """
     Serializer for Rating using raw UUIDs for relations to avoid DB lookups.
     """
+
     student = serializers.UUIDField(source="student_id", read_only=True)
     course_offering = serializers.UUIDField(source="course_offering_id", read_only=True)
 
     class Meta:
         model = Rating
         fields = [
-            "id", "student", "course_offering",
-            "difficulty", "usefulness", "comment", "is_anonymous",
+            "id",
+            "student",
+            "course_offering",
+            "difficulty",
+            "usefulness",
+            "comment",
+            "is_anonymous",
             "created_at",
         ]
         read_only_fields = ["id", "created_at", "student", "course_offering"]

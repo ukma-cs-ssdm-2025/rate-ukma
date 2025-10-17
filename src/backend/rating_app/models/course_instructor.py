@@ -1,7 +1,8 @@
 import uuid
 
-from .choices import InstructorRole
 from django.db import models
+
+from .choices import InstructorRole
 
 
 class CourseInstructor(models.Model):
@@ -14,11 +15,7 @@ class CourseInstructor(models.Model):
         on_delete=models.CASCADE,
         related_name="instructor_assignments",
     )
-    role = models.CharField(
-        max_length=20,
-        choices=InstructorRole.choices,
-        null=False
-    )
+    role = models.CharField(max_length=20, choices=InstructorRole.choices, null=False)
 
     class Meta:
         unique_together = ("instructor", "course_offering", "role")

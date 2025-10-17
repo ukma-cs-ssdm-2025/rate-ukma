@@ -6,8 +6,8 @@ from django.db.models import Q
 
 from .choices import EnrollmentStatus, ExamType, PracticeType
 from .course import Course
-from .semester import Semester
 from .instructor import Instructor
+from .semester import Semester
 
 
 class CourseOffering(models.Model):
@@ -17,12 +17,8 @@ class CourseOffering(models.Model):
         unique=True,
         validators=[MinLengthValidator(6), MaxLengthValidator(6)],
     )
-    course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, related_name="offerings"
-    )
-    semester = models.ForeignKey(
-        Semester, on_delete=models.PROTECT, related_name="offerings"
-    )
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="offerings")
+    semester = models.ForeignKey(Semester, on_delete=models.PROTECT, related_name="offerings")
 
     credits = models.DecimalField(max_digits=3, decimal_places=1)
     weekly_hours = models.PositiveIntegerField()
@@ -54,7 +50,10 @@ class CourseOffering(models.Model):
         return f"{self.course.title} @ {self.semester}"
 
     def __repr__(self) -> str:
-        return f"<CourseOffering id={self.id} code={self.code} name={self.course.title} semester={self.semester}>"
+        return (
+            f"<CourseOffering id={self.id} code={self.code} "
+            f"name={self.course.title} semester={self.semester}>"
+        )
 
     @property
     def occupied_seats(self) -> int:
