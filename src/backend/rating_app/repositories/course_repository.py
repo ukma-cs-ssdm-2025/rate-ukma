@@ -48,8 +48,11 @@ class CourseRepository:
             avg_difficulty_order: "asc" or "desc" (None = no sort)
             avg_usefulness_order: "asc" or "desc" (None = no sort)
         """
-        # Base queryset with optimized joins
-        courses = Course.objects.select_related("department__faculty").all()
+        courses = (
+            Course.objects.select_related("department__faculty")
+            .prefetch_related("offerings", "offerings__ratings")
+            .all()
+        )
 
         # Filters
         filters: dict[str, Any] = {}
