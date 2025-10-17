@@ -97,7 +97,7 @@ webapp/
 └── Dockerfile  				     # Frontend container definition
 ```
 
-## 4. Next steps
+## 5. Next steps
 - Add test suite.
 - Prepare minimal working prototype (MVP) for demo.
 - Course/Rating pages.
