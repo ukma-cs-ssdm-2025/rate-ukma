@@ -7,34 +7,34 @@ paths:
   /api/v1/auth/login/:
     post:
       operationId: auth_login_create
-      description: "Logs in user using Django authentication flow. Version: v1."
+      description: 'Logs in user using Django authentication flow. Version: v1.'
       summary: Django Login
       tags:
-        - auth
+      - auth
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Login"
+              $ref: '#/components/schemas/Login'
           application/x-www-form-urlencoded:
             schema:
-              $ref: "#/components/schemas/Login"
+              $ref: '#/components/schemas/Login'
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/Login"
+              $ref: '#/components/schemas/Login'
         required: true
       security:
-        - cookieAuth: []
-        - tokenAuth: []
-        - {}
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
       responses:
-        "200":
+        '200':
           description: Logged in
-        "400":
+        '400':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 ValidationError:
                   value:
@@ -42,14 +42,14 @@ paths:
                     status: 400
                     fields:
                       difficulty:
-                        - Must be between 1 and 5.
+                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
-        "401":
+        '401':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 Unauthorized:
                   value:
@@ -59,25 +59,24 @@ paths:
   /api/v1/auth/login/microsoft/:
     get:
       operationId: auth_login_microsoft_retrieve
-      description:
-        "Initiates Microsoft OAuth2 authentication flow. Redirects to Microsoft
+      description: 'Initiates Microsoft OAuth2 authentication flow. Redirects to Microsoft
         login page for @ukma.edu.ua accounts. Backend handles session authentication
-        and redirects to frontend. Version: v1."
+        and redirects to frontend. Version: v1.'
       summary: Microsoft OAuth Login
       tags:
-        - auth
+      - auth
       security:
-        - cookieAuth: []
-        - tokenAuth: []
-        - {}
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
       responses:
-        "302":
-          description: "Found: Temporary Redirect"
-        "400":
+        '302':
+          description: 'Found: Temporary Redirect'
+        '400':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 ValidationError:
                   value:
@@ -85,14 +84,14 @@ paths:
                     status: 400
                     fields:
                       difficulty:
-                        - Must be between 1 and 5.
+                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
-        "404":
+        '404':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 NotFound:
                   value:
@@ -103,23 +102,22 @@ paths:
   /api/v1/auth/logout/:
     post:
       operationId: auth_logout_create
-      description:
-        "Logs out current user and redirects to the configured logout URL.
-        Version: v1."
+      description: 'Logs out current user and redirects to the configured logout URL.
+        Version: v1.'
       summary: Logout
       tags:
-        - auth
+      - auth
       security:
-        - cookieAuth: []
-        - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
       responses:
-        "302":
-          description: "Found: Temporary Redirect"
-        "400":
+        '302':
+          description: 'Found: Temporary Redirect'
+        '400':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 ValidationError:
                   value:
@@ -127,14 +125,14 @@ paths:
                     status: 400
                     fields:
                       difficulty:
-                        - Must be between 1 and 5.
+                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
-        "404":
+        '404':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 NotFound:
                   value:
@@ -142,11 +140,11 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
-        "401":
+        '401':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 Unauthorized:
                   value:
@@ -156,82 +154,83 @@ paths:
   /api/v1/courses/:
     get:
       operationId: courses_list
-      description:
-        List courses with optional filters and pagination. Returns courses
+      description: List courses with optional filters and pagination. Returns courses
         with aggregated ratings.
       summary: List courses
       parameters:
-        - in: query
-          name: avg_difficulty_order
-          schema:
-            type: string
-            enum:
-              - asc
-              - desc
-          description: "Sort by average difficulty (values: 'asc' or 'desc')"
-        - in: query
-          name: avg_usefulness_order
-          schema:
-            type: string
-            enum:
-              - asc
-              - desc
-          description: "Sort by average usefulness (values: 'asc' or 'desc')"
-        - in: query
-          name: department
-          schema:
-            type: string
-            format: uuid
-          description: Filter by department ID
-        - in: query
-          name: faculty
-          schema:
-            type: string
-            format: uuid
-          description: Filter by faculty ID
-        - in: query
-          name: name
-          schema:
-            type: string
-          description: Filter courses by name (case-insensitive partial match)
-        - in: query
-          name: page
-          schema:
-            type: integer
-          description: "Page number (default: 1)"
-        - in: query
-          name: page_size
-          schema:
-            type: integer
-          description: "Items per page (default: 10)"
-        - in: query
-          name: speciality
-          schema:
-            type: string
-            format: uuid
-          description: Filter by speciality ID
-        - in: query
-          name: typeKind
-          schema:
-            type: string
-          description: Filter by course type (COMPULSORY, ELECTIVE, PROF_ORIENTED)
+      - in: query
+        name: avg_difficulty_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: 'Sort by average difficulty (values: ''asc'' or ''desc'')'
+      - in: query
+        name: avg_usefulness_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: 'Sort by average usefulness (values: ''asc'' or ''desc'')'
+      - in: query
+        name: department
+        schema:
+          type: string
+          format: uuid
+        description: Filter by department ID
+      - in: query
+        name: faculty
+        schema:
+          type: string
+          format: uuid
+        description: Filter by faculty ID
+      - in: query
+        name: name
+        schema:
+          type: string
+        description: Filter courses by name (case-insensitive partial match)
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: 'Page number (default: 1)'
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: 'Items per page (default: 10)'
+      - in: query
+        name: speciality
+        schema:
+          type: string
+          format: uuid
+        description: Filter by speciality ID
+      - in: query
+        name: typeKind
+        schema:
+          type: string
+        description: Filter by course type (COMPULSORY, ELECTIVE, PROF_ORIENTED)
       tags:
-        - courses
+      - courses
       security:
-        - cookieAuth: []
-        - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
       responses:
-        "200":
+        '200':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CourseListResponse"
+                type: array
+                items:
+                  $ref: '#/components/schemas/CourseListResponse'
           description: OK
-        "400":
+        '400':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 ValidationError:
                   value:
@@ -239,25 +238,25 @@ paths:
                     status: 400
                     fields:
                       difficulty:
-                        - Must be between 1 and 5.
+                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
-        "401":
+        '401':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 Unauthorized:
                   value:
                     detail: Authentication credentials were not provided
                     status: 401
           description: Unauthorized
-        "403":
+        '403':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 Forbidden:
                   value:
@@ -270,30 +269,30 @@ paths:
       description: Retrieve a single course by its ID with detailed information.
       summary: Retrieve a course
       parameters:
-        - in: path
-          name: course_id
-          schema:
-            type: string
-            format: uuid
-          description: A unique identifier for the course.
-          required: true
+      - in: path
+        name: course_id
+        schema:
+          type: string
+          format: uuid
+        description: A unique identifier for the course.
+        required: true
       tags:
-        - courses
+      - courses
       security:
-        - cookieAuth: []
-        - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
       responses:
-        "200":
+        '200':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CourseDetail"
+                $ref: '#/components/schemas/CourseDetail'
           description: OK
-        "400":
+        '400':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 ValidationError:
                   value:
@@ -301,36 +300,36 @@ paths:
                     status: 400
                     fields:
                       difficulty:
-                        - Must be between 1 and 5.
+                      - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
-        "401":
+        '401':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 Unauthorized:
                   value:
                     detail: Authentication credentials were not provided
                     status: 401
           description: Unauthorized
-        "403":
+        '403':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 Forbidden:
                   value:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
-        "404":
+        '404':
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 NotFound:
                   value:
@@ -354,7 +353,7 @@ components:
           type: string
           nullable: true
         status:
-          $ref: "#/components/schemas/StatusEnum"
+          $ref: '#/components/schemas/StatusEnum'
         department:
           type: string
           format: uuid
@@ -367,7 +366,7 @@ components:
         course_specialities:
           type: array
           items:
-            $ref: "#/components/schemas/CourseSpecialityInline"
+            $ref: '#/components/schemas/CourseSpecialityInline'
           readOnly: true
         avg_difficulty:
           type: number
@@ -385,19 +384,19 @@ components:
         specialities_with_kind:
           type: array
           items:
-            $ref: "#/components/schemas/SpecialityWithKindPayload"
+            $ref: '#/components/schemas/SpecialityWithKindPayload'
           writeOnly: true
       required:
-        - avg_difficulty
-        - avg_usefulness
-        - course_specialities
-        - department
-        - department_name
-        - faculty_name
-        - id
-        - ratings_count
-        - status
-        - title
+      - avg_difficulty
+      - avg_usefulness
+      - course_specialities
+      - department
+      - department_name
+      - faculty_name
+      - id
+      - ratings_count
+      - status
+      - title
     CourseList:
       type: object
       description: Lighter serializer for listing courses.
@@ -413,7 +412,7 @@ components:
           type: string
           nullable: true
         status:
-          $ref: "#/components/schemas/StatusEnum"
+          $ref: '#/components/schemas/StatusEnum'
         department:
           type: string
           format: uuid
@@ -437,15 +436,15 @@ components:
           type: integer
           readOnly: true
       required:
-        - avg_difficulty
-        - avg_usefulness
-        - department
-        - department_name
-        - faculty_name
-        - id
-        - ratings_count
-        - status
-        - title
+      - avg_difficulty
+      - avg_usefulness
+      - department
+      - department_name
+      - faculty_name
+      - id
+      - ratings_count
+      - status
+      - title
     CourseListResponse:
       type: object
       description: Schema for GET /api/v1/courses response envelope.
@@ -453,7 +452,7 @@ components:
         results:
           type: array
           items:
-            $ref: "#/components/schemas/CourseList"
+            $ref: '#/components/schemas/CourseList'
         filters:
           type: object
           additionalProperties: {}
@@ -464,11 +463,11 @@ components:
         total:
           type: integer
       required:
-        - filters
-        - page
-        - page_size
-        - results
-        - total
+      - filters
+      - page
+      - page_size
+      - results
+      - total
     CourseSpecialityInline:
       type: object
       properties:
@@ -480,11 +479,11 @@ components:
           type: string
           readOnly: true
         type_kind:
-          $ref: "#/components/schemas/TypeKindEnum"
+          $ref: '#/components/schemas/TypeKindEnum'
       required:
-        - speciality_id
-        - speciality_title
-        - type_kind
+      - speciality_id
+      - speciality_title
+      - type_kind
     ErrorEnvelope:
       type: object
       properties:
@@ -499,8 +498,8 @@ components:
             items:
               type: string
       required:
-        - detail
-        - status
+      - detail
+      - status
     Login:
       type: object
       properties:
@@ -512,8 +511,8 @@ components:
           writeOnly: true
           maxLength: 128
       required:
-        - password
-        - username
+      - password
+      - username
     SpecialityWithKindPayload:
       type: object
       properties:
@@ -521,15 +520,15 @@ components:
           type: string
           format: uuid
         type_kind:
-          $ref: "#/components/schemas/TypeKindEnum"
+          $ref: '#/components/schemas/TypeKindEnum'
       required:
-        - speciality
-        - type_kind
+      - speciality
+      - type_kind
     StatusEnum:
       enum:
-        - PLANNED
-        - ACTIVE
-        - FINISHED
+      - PLANNED
+      - ACTIVE
+      - FINISHED
       type: string
       description: |-
         * `PLANNED` - Planned
@@ -537,9 +536,9 @@ components:
         * `FINISHED` - Finished
     TypeKindEnum:
       enum:
-        - COMPULSORY
-        - ELECTIVE
-        - PROF_ORIENTED
+      - COMPULSORY
+      - ELECTIVE
+      - PROF_ORIENTED
       type: string
       description: |-
         * `COMPULSORY` - Compulsory
