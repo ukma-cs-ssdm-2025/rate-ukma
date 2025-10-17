@@ -77,17 +77,19 @@ class CourseViewSet(viewsets.ViewSet):
                 required=False,
             ),
             OpenApiParameter(
-                name="avg_difficulty_sort",
-                type=OpenApiTypes.BOOL,
+                name="avg_difficulty_order",
+                type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="Sort by average difficulty (true=asc, false=desc)",
+                description="Sort by average difficulty (values: 'asc' or 'desc')",
+                enum=["asc", "desc"],
                 required=False,
             ),
             OpenApiParameter(
-                name="avg_usefulness_sort",
-                type=OpenApiTypes.BOOL,
+                name="avg_usefulness_order",
+                type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="Sort by average usefulness (true=asc, false=desc)",
+                description="Sort by average usefulness (values: 'asc' or 'desc')",
+                enum=["asc", "desc"],
                 required=False,
             ),
             OpenApiParameter(
@@ -111,6 +113,10 @@ class CourseViewSet(viewsets.ViewSet):
         page = self._to_int(request.query_params.get("page"), 1)
         page_size = self._to_int(request.query_params.get("page_size"), 10)
 
+        # Handle order parameters
+        avg_difficulty_order = request.query_params.get("avg_difficulty_order")
+        avg_usefulness_order = request.query_params.get("avg_usefulness_order")
+
         result = self.course_service.filter_courses(
             page=page,
             page_size=page_size,
@@ -119,8 +125,8 @@ class CourseViewSet(viewsets.ViewSet):
             faculty=request.query_params.get("faculty"),
             department=request.query_params.get("department"),
             speciality=request.query_params.get("speciality"),
-            avg_difficulty_sort=self._to_bool(request.query_params.get("avg_difficulty_sort")),
-            avg_usefulness_sort=self._to_bool(request.query_params.get("avg_usefulness_sort")),
+            avg_difficulty_order=avg_difficulty_order,
+            avg_usefulness_order=avg_usefulness_order,
         )
 
         courses = result["items"]

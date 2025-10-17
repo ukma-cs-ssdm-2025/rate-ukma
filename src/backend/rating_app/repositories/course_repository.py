@@ -1,7 +1,7 @@
 from typing import Any
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import Avg, FloatField, Value
+from django.db.models import Avg, Count, FloatField, IntegerField, Value
 from django.db.models.functions import Coalesce
 
 from rating_app.models import Course
@@ -25,8 +25,8 @@ class CourseRepository:
         faculty: str | None = None,
         department: str | None = None,
         speciality: str | None = None,
-        avg_difficulty_sort: bool = False,
-        avg_usefulness_sort: bool = False,
+        avg_difficulty_order: str | None = None,
+        avg_usefulness_order: str | None = None,
         page_size: int = 20,
         page_number: int = 1,
     ) -> dict[str, Any]:
@@ -39,6 +39,10 @@ class CourseRepository:
               "total": 153,
               "total_pages": 8,
             }
+
+        Sorting:
+            avg_difficulty_order: "asc" or "desc" (None = no sort)
+            avg_usefulness_order: "asc" or "desc" (None = no sort)
         """
         # Base queryset with optimized joins
         courses = Course.objects.select_related("department__faculty").all()
@@ -59,24 +63,39 @@ class CourseRepository:
         if speciality:
             courses = courses.filter(course_specialities__speciality_id=speciality)
 
-        # Sorting by annotated averages
-        if avg_difficulty_sort or avg_usefulness_sort:
-            courses = courses.annotate(
-                avg_difficulty_annot=Coalesce(
-                    Avg("offerings__ratings__difficulty"),
-                    Value(0.0),
-                    output_field=FloatField(),
-                ),
-                avg_usefulness_annot=Coalesce(
-                    Avg("offerings__ratings__usefulness"),
-                    Value(0.0),
-                    output_field=FloatField(),
-                ),
+        # Always annotate avg ratings (needed by serializer)
+        courses = courses.annotate(
+            avg_difficulty_annot=Coalesce(
+                Avg("offerings__ratings__difficulty"),
+                Value(0.0),
+                output_field=FloatField(),
+            ),
+            avg_usefulness_annot=Coalesce(
+                Avg("offerings__ratings__usefulness"),
+                Value(0.0),
+                output_field=FloatField(),
+            ),
+            ratings_count_annot=Coalesce(
+                Count("offerings__ratings__id", distinct=True),
+                Value(0),
+                output_field=IntegerField(),
+            ),
+        )
+
+        # Sorting logic
+        order_by_fields = []
+        if avg_difficulty_order in ("asc", "desc"):
+            order_by_fields.append(
+                "avg_difficulty_annot" if avg_difficulty_order == "asc" else "-avg_difficulty_annot"
             )
-            if avg_difficulty_sort:
-                courses = courses.order_by("-avg_difficulty_annot")
-            elif avg_usefulness_sort:
-                courses = courses.order_by("-avg_usefulness_annot")
+        if avg_usefulness_order in ("asc", "desc"):
+            order_by_fields.append(
+                "avg_usefulness_annot" if avg_usefulness_order == "asc" else "-avg_usefulness_annot"
+            )
+
+        if order_by_fields:
+            # Apply custom sorting with title as secondary sort
+            courses = courses.order_by(*order_by_fields, "title")
         else:
             # Default ordering to avoid pagination warning
             courses = courses.order_by("title")

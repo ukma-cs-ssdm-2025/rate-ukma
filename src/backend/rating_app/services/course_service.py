@@ -24,20 +24,17 @@ class CourseService:
         faculty: str | None = None,
         department: str | None = None,
         speciality: str | None = None,
-        avg_difficulty_sort: bool | None = None,
-        avg_usefulness_sort: bool | None = None,
+        avg_difficulty_order: str | None = None,
+        avg_usefulness_order: str | None = None,
     ) -> dict[str, Any]:
-        diff_sort = bool(avg_difficulty_sort)
-        usef_sort = bool(avg_usefulness_sort)
-
         return self.course_repository.filter(
             name=name,
             type_kind=type_kind,
             faculty=faculty,
             department=department,
             speciality=speciality,
-            avg_difficulty_sort=diff_sort,
-            avg_usefulness_sort=usef_sort,
+            avg_difficulty_order=avg_difficulty_order,
+            avg_usefulness_order=avg_usefulness_order,
             page_size=page_size,
             page_number=page,
         )
