@@ -1,6 +1,7 @@
 from django.apps import apps
 from django.conf import settings
 from django.db import models
+
 from rating_app.models.choices import EducationLevel
 
 from .person import Person
@@ -39,7 +40,10 @@ class Student(Person):
         return f"{self.first_name} {self.last_name} ({self.education_level})"
 
     def __repr__(self):
-        return f"<Student id={self.id} name={self.first_name} last_name={self.last_name} education_level={self.education_level}>"
+        return (
+            f"<Student id={self.id} name={self.first_name} "
+            f"last_name={self.last_name} education_level={self.education_level}>"
+        )
 
     @property
     def overall_rated_courses(self) -> int:

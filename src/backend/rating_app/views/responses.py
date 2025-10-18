@@ -1,6 +1,10 @@
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 
-from ..serializers import CourseListResponseSerializer, CourseSerializer, RatingSerializer
+from ..serializers import (
+    CourseDetailSerializer,
+    CourseListResponseSerializer,
+    RatingSerializer,
+)
 from ..serializers import ErrorEnvelopeSerializer as Err
 
 EX_400 = OpenApiExample(
@@ -32,14 +36,15 @@ EX_404 = OpenApiExample(
 )
 
 R_COURSE_LIST = {
-    200: CourseListResponseSerializer,
+    200: OpenApiResponse(CourseListResponseSerializer, "OK"),
     400: OpenApiResponse(Err, "Bad request", [EX_400]),
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
     403: OpenApiResponse(Err, "Forbidden", [EX_403]),
 }
 
 R_COURSE = {
-    200: CourseSerializer,
+    200: OpenApiResponse(CourseDetailSerializer, "OK"),
+    400: OpenApiResponse(Err, "Bad request", [EX_400]),
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
     403: OpenApiResponse(Err, "Forbidden", [EX_403]),
     404: OpenApiResponse(Err, "Not found", [EX_404]),
