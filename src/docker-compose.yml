@@ -19,10 +19,13 @@ services:
     container_name: "${COMPOSE_PROJECT_NAME}_django_backend"
     env_file:
       - .env
+    environment:
+      - STATIC_ROOT=/static
+      - MEDIA_ROOT=/media
     volumes:
       - ./backend:/app
-      - ${MEDIA_ROOT}:${MEDIA_ROOT}
-      - ${STATIC_ROOT}:${STATIC_ROOT}
+      - ${STATIC_ROOT}:/static
+      - ${MEDIA_ROOT}:/media
     ports:
       - "8000:8000"
     depends_on:
