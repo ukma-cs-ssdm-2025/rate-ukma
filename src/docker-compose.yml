@@ -21,8 +21,8 @@ services:
       - .env
     volumes:
       - ./backend:/app
-      - ${MEDIA_ROOT}:/media
-      - ${STATIC_ROOT}:/static
+      - ${MEDIA_ROOT}:${MEDIA_ROOT}
+      - ${STATIC_ROOT}:${STATIC_ROOT}
     ports:
       - "8000:8000"
     depends_on:
