@@ -515,9 +515,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="rating",
-            index=models.Index(
-                fields=["course_offering"], name="rating_app__course__a290d7_idx"
-            ),
+            index=models.Index(fields=["course_offering"], name="rating_app__course__a290d7_idx"),
         ),
         migrations.AddIndex(
             model_name="rating",
