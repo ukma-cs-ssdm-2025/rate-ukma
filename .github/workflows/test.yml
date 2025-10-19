@@ -18,6 +18,9 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Copy .env
+        run: cp .env.example .env
+
       - name: Install dependencies
         working-directory: ${{ env.BACKEND_DIR }}
         run: uv sync --extra test

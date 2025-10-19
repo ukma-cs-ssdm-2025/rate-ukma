@@ -45,7 +45,7 @@ jobs:
       - name: Regenerate OpenAPI schema
         working-directory: ${{ env.DJANGO_DIR }}
         run: |
-          python manage.py spectacular --file ${{ env.CI_GENERATED_FILE_PATH }}
+          uv run python manage.py spectacular --file ${{ env.CI_GENERATED_FILE_PATH }}
 
       - name: Check diff with repo
         run: |
