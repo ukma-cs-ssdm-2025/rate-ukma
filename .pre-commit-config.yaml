@@ -8,6 +8,12 @@ repos:
 
   - repo: local
     hooks:
+      # Uncomment after full switch to uv #84
+      # - id: generate-openapi-schema
+      #   name: Generate OpenAPI schema
+      #   entry: bash -c "cd src/backend && uv run python manage.py spectacular --file ../../docs/api/openapi-generated.yaml"
+      #   language: system
+      #   pass_filenames: false
       - id: check-commit-message
         name: Check commit message format
         entry: "./semantic-commit.sh"
