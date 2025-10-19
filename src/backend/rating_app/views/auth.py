@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import cast
 
 from django.contrib.auth import authenticate
@@ -12,8 +13,8 @@ from rest_framework.response import Response
 import structlog
 from drf_spectacular.utils import extend_schema
 
-from ..serializers.auth import LoginDto, LoginSerializer
-from .responses import R_LOGIN, R_LOGOUT, R_OAUTH
+from ..serializers.auth import LoginDto, LoginSerializer, SessionSerializer
+from .responses import R_LOGIN, R_LOGOUT, R_OAUTH, R_SESSION
 from .views import _with_request_id
 
 logger = structlog.get_logger(__name__)
@@ -97,3 +98,48 @@ def logout(request):
     django_logout(request)
     # * Check if redirect url can be passed as an argument
     return redirect("/accounts/logout/")
+
+
+def _get_session_expiry(request) -> datetime | None:
+    try:
+        expiry = request.session.get_expiry_date()
+    except Exception:
+        return None
+    return expiry
+
+
+@extend_schema(
+    summary="Session state",
+    description=(
+        "Returns current authentication session information."
+        " Responds with 200 and user data when authenticated,"
+        " or 401 when no active session. Version: v1."
+    ),
+    responses=R_SESSION,
+    request=None,
+    tags=["auth"],
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def session(request):
+    user = request.user
+    if not user.is_authenticated:
+        logger.info("session_anonymous")
+        return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+    data = {
+        "is_authenticated": True,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        },
+        "expires_at": _get_session_expiry(request),
+    }
+
+    serializer = SessionSerializer(data=data)
+    serializer.is_valid(raise_exception=True)
+
+    logger.info("session_active", user_id=user.id)
+    return Response(serializer.data)

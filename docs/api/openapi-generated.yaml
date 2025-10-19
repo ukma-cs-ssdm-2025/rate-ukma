@@ -151,6 +151,37 @@ paths:
                     detail: Authentication credentials were not provided
                     status: 401
           description: Unauthorized
+  /api/v1/auth/session/:
+    get:
+      operationId: auth_session_retrieve
+      description: 'Returns current authentication session information. Responds with
+        200 and user data when authenticated, or 401 when no active session. Version:
+        v1.'
+      summary: Session state
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+          description: Session state
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
   /api/v1/courses/:
     get:
       operationId: courses_list
@@ -850,6 +881,39 @@ components:
       - id
       - student
       - usefulness
+    Session:
+      type: object
+      properties:
+        is_authenticated:
+          type: boolean
+        user:
+          allOf:
+          - $ref: '#/components/schemas/SessionUser'
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - is_authenticated
+      - user
+    SessionUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+      required:
+      - email
+      - first_name
+      - id
+      - last_name
     StatusEnum:
       enum:
       - PLANNED

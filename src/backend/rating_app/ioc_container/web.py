@@ -6,7 +6,7 @@ from django.urls import path
 
 from rateukma.ioc.decorators import once
 
-from ..views.auth import login, logout, microsoft_login
+from ..views.auth import login, logout, microsoft_login, session
 from ..views.views import (
     CourseDetailView,
     CourseListView,
@@ -52,6 +52,12 @@ def logout_view() -> Callable[[HttpRequest], HttpResponse]:
     return logout
 
 
+@once
+def session_view() -> Callable[[HttpRequest], HttpResponse]:
+    return session
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -68,6 +74,11 @@ def rest_urlpatterns() -> list:
             "auth/logout/",
             logout_view(),
             name="logout",
+        ),
+        path(
+            "auth/session/",
+            session_view(),
+            name="session",
         ),
         path(
             "courses/",
