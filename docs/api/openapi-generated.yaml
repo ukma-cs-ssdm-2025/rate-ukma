@@ -154,36 +154,64 @@ paths:
   /api/v1/courses/:
     get:
       operationId: courses_list
-      description: 'Returns a paginated list of courses with filters. Version: v1.'
-      summary: List courses (mock)
+      description: List courses with optional filters and pagination. Returns courses
+        with aggregated ratings.
+      summary: List courses
       parameters:
+      - in: query
+        name: avg_difficulty_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: 'Sort by average difficulty (values: ''asc'' or ''desc'')'
+      - in: query
+        name: avg_usefulness_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: 'Sort by average usefulness (values: ''asc'' or ''desc'')'
+      - in: query
+        name: department
+        schema:
+          type: string
+          format: uuid
+        description: Filter by department ID
+      - in: query
+        name: faculty
+        schema:
+          type: string
+          format: uuid
+        description: Filter by faculty ID
+      - in: query
+        name: name
+        schema:
+          type: string
+        description: Filter courses by name (case-insensitive partial match)
       - in: query
         name: page
         schema:
           type: integer
+        description: 'Page number (default: 1)'
       - in: query
-        name: pageSize
+        name: page_size
         schema:
           type: integer
+        description: 'Items per page (default: 10)'
       - in: query
-        name: search
+        name: speciality
         schema:
           type: string
+          format: uuid
+        description: Filter by speciality ID
       - in: query
-        name: status
+        name: typeKind
         schema:
           type: string
-          enum:
-          - ACTIVE
-          - FINISHED
-          - PLANNED
-      - in: query
-        name: type_kind
-        schema:
-          type: string
-          enum:
-          - COMPULSORY
-          - ELECTIVE
+        description: Filter by course type (COMPULSORY, ELECTIVE, PROF_ORIENTED)
       tags:
       - courses
       security:
@@ -194,8 +222,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CourseListResponse'
-          description: ''
+                type: array
+                items:
+                  $ref: '#/components/schemas/CourseListResponse'
+          description: OK
         '400':
           content:
             application/json:
@@ -236,13 +266,15 @@ paths:
   /api/v1/courses/{course_id}/:
     get:
       operationId: courses_retrieve
-      description: 'Returns a single course by ID. Version: v1.'
-      summary: Get course by ID (mock)
+      description: Retrieve a single course by its ID with detailed information.
+      summary: Retrieve a course
       parameters:
       - in: path
         name: course_id
         schema:
           type: string
+          format: uuid
+        description: A unique identifier for the course.
         required: true
       tags:
       - courses
@@ -254,65 +286,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Course'
-          description: ''
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Unauthorized:
-                  value:
-                    detail: Authentication credentials were not provided
-                    status: 401
-          description: Unauthorized
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Forbidden:
-                  value:
-                    detail: You do not have permission to perform this action
-                    status: 403
-          description: Forbidden
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                NotFound:
-                  value:
-                    detail: Not found
-                    status: 404
-                  summary: Not found
-          description: Not found
-  /api/v1/courses/{course_id}/ratings/:
-    get:
-      operationId: course_ratings_list
-      summary: List ratings for a course (mock)
-      parameters:
-      - in: path
-        name: course_id
-        schema:
-          type: string
-        required: true
-      tags:
-      - ratings
-      security:
-      - cookieAuth: []
-      - tokenAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Rating'
+                $ref: '#/components/schemas/CourseDetail'
           description: OK
         '400':
           content:
@@ -363,314 +337,10 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
-    post:
-      operationId: course_ratings_create
-      summary: Create rating for a course (mock)
-      parameters:
-      - in: path
-        name: course_id
-        schema:
-          type: string
-        required: true
-      tags:
-      - ratings
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Rating'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Rating'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Rating'
-        required: true
-      security:
-      - cookieAuth: []
-      - tokenAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Rating'
-          description: ''
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                ValidationError:
-                  value:
-                    detail: Validation failed
-                    status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
-                  summary: Validation error
-          description: Bad request
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Unauthorized:
-                  value:
-                    detail: Authentication credentials were not provided
-                    status: 401
-          description: Unauthorized
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Forbidden:
-                  value:
-                    detail: You do not have permission to perform this action
-                    status: 403
-          description: Forbidden
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                NotFound:
-                  value:
-                    detail: Not found
-                    status: 404
-                  summary: Not found
-          description: Not found
-  /api/v1/courses/{course_id}/ratings/{rating_id}/:
-    get:
-      operationId: course_rating_retrieve
-      summary: Retrieve rating for a course (mock)
-      parameters:
-      - in: path
-        name: course_id
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: rating_id
-        schema:
-          type: string
-        required: true
-      tags:
-      - ratings
-      security:
-      - cookieAuth: []
-      - tokenAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Rating'
-          description: ''
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                ValidationError:
-                  value:
-                    detail: Validation failed
-                    status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
-                  summary: Validation error
-          description: Bad request
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Unauthorized:
-                  value:
-                    detail: Authentication credentials were not provided
-                    status: 401
-          description: Unauthorized
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Forbidden:
-                  value:
-                    detail: You do not have permission to perform this action
-                    status: 403
-          description: Forbidden
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                NotFound:
-                  value:
-                    detail: Not found
-                    status: 404
-                  summary: Not found
-          description: Not found
-    patch:
-      operationId: course_rating_update
-      summary: Update rating for a course (mock)
-      parameters:
-      - in: path
-        name: course_id
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: rating_id
-        schema:
-          type: string
-        required: true
-      tags:
-      - ratings
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedRating'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedRating'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedRating'
-      security:
-      - cookieAuth: []
-      - tokenAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Rating'
-          description: ''
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                ValidationError:
-                  value:
-                    detail: Validation failed
-                    status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
-                  summary: Validation error
-          description: Bad request
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Unauthorized:
-                  value:
-                    detail: Authentication credentials were not provided
-                    status: 401
-          description: Unauthorized
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Forbidden:
-                  value:
-                    detail: You do not have permission to perform this action
-                    status: 403
-          description: Forbidden
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                NotFound:
-                  value:
-                    detail: Not found
-                    status: 404
-                  summary: Not found
-          description: Not found
-    delete:
-      operationId: course_rating_delete
-      summary: Delete rating for a course (mock)
-      parameters:
-      - in: path
-        name: course_id
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: rating_id
-        schema:
-          type: string
-        required: true
-      tags:
-      - ratings
-      security:
-      - cookieAuth: []
-      - tokenAuth: []
-      responses:
-        '204':
-          description: Deleted
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Unauthorized:
-                  value:
-                    detail: Authentication credentials were not provided
-                    status: 401
-          description: Unauthorized
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                Forbidden:
-                  value:
-                    detail: You do not have permission to perform this action
-                    status: 403
-          description: Forbidden
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                NotFound:
-                  value:
-                    detail: Not found
-                    status: 404
-                  summary: Not found
-          description: Not found
 components:
   schemas:
-    Course:
+    CourseDetail:
       type: object
-      description: |-
-        Read serializer for Course.
-        - Relateds exposed as UUIDs (no DB lookup)
-        - Computed fields included as read-only
       properties:
         id:
           type: string
@@ -678,49 +348,107 @@ components:
           readOnly: true
         title:
           type: string
-          readOnly: true
+          maxLength: 255
         description:
           type: string
-          readOnly: true
           nullable: true
         status:
-          allOf:
-          - $ref: '#/components/schemas/StatusEnum'
-          readOnly: true
-        faculty:
-          type: string
-          format: uuid
-          readOnly: true
+          $ref: '#/components/schemas/StatusEnum'
         department:
           type: string
           format: uuid
+        department_name:
+          type: string
           readOnly: true
-        specialities:
+        faculty_name:
+          type: string
+          readOnly: true
+        course_specialities:
           type: array
           items:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/CourseSpecialityInline'
           readOnly: true
         avg_difficulty:
           type: number
           format: double
           readOnly: true
+          nullable: true
         avg_usefulness:
           type: number
           format: double
           readOnly: true
+          nullable: true
         ratings_count:
           type: integer
+          readOnly: true
+        specialities_with_kind:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpecialityWithKindPayload'
+          writeOnly: true
+      required:
+      - avg_difficulty
+      - avg_usefulness
+      - course_specialities
+      - department
+      - department_name
+      - faculty_name
+      - id
+      - ratings_count
+      - status
+      - title
+    CourseList:
+      type: object
+      description: Lighter serializer for listing courses.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        department:
+          type: string
+          format: uuid
+        department_name:
+          type: string
+          readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
+        avg_difficulty:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        avg_usefulness:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        ratings_count:
+          type: integer
+          readOnly: true
+        course_specialities:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseSpecialityInline'
           readOnly: true
       required:
       - avg_difficulty
       - avg_usefulness
+      - course_specialities
       - department
-      - description
-      - faculty
+      - department_name
+      - faculty_name
       - id
       - ratings_count
-      - specialities
       - status
       - title
     CourseListResponse:
@@ -730,7 +458,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/Course'
+            $ref: '#/components/schemas/CourseList'
         filters:
           type: object
           additionalProperties: {}
@@ -746,6 +474,22 @@ components:
       - page_size
       - results
       - total
+    CourseSpecialityInline:
+      type: object
+      properties:
+        speciality_id:
+          type: string
+          format: uuid
+          readOnly: true
+        speciality_title:
+          type: string
+          readOnly: true
+        type_kind:
+          $ref: '#/components/schemas/TypeKindEnum'
+      required:
+      - speciality_id
+      - speciality_title
+      - type_kind
     ErrorEnvelope:
       type: object
       properties:
@@ -775,81 +519,17 @@ components:
       required:
       - password
       - username
-    PatchedRating:
+    SpecialityWithKindPayload:
       type: object
-      description: Serializer for Rating using raw UUIDs for relations to avoid DB
-        lookups.
       properties:
-        id:
+        speciality:
           type: string
           format: uuid
-          readOnly: true
-        student:
-          type: string
-          format: uuid
-          readOnly: true
-        course_offering:
-          type: string
-          format: uuid
-          readOnly: true
-        difficulty:
-          type: integer
-          maximum: 5
-          minimum: 1
-        usefulness:
-          type: integer
-          maximum: 5
-          minimum: 1
-        comment:
-          type: string
-          nullable: true
-        is_anonymous:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-    Rating:
-      type: object
-      description: Serializer for Rating using raw UUIDs for relations to avoid DB
-        lookups.
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        student:
-          type: string
-          format: uuid
-          readOnly: true
-        course_offering:
-          type: string
-          format: uuid
-          readOnly: true
-        difficulty:
-          type: integer
-          maximum: 5
-          minimum: 1
-        usefulness:
-          type: integer
-          maximum: 5
-          minimum: 1
-        comment:
-          type: string
-          nullable: true
-        is_anonymous:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
+        type_kind:
+          $ref: '#/components/schemas/TypeKindEnum'
       required:
-      - course_offering
-      - created_at
-      - difficulty
-      - id
-      - student
-      - usefulness
+      - speciality
+      - type_kind
     StatusEnum:
       enum:
       - PLANNED
@@ -860,6 +540,16 @@ components:
         * `PLANNED` - Planned
         * `ACTIVE` - Active
         * `FINISHED` - Finished
+    TypeKindEnum:
+      enum:
+      - COMPULSORY
+      - ELECTIVE
+      - PROF_ORIENTED
+      type: string
+      description: |-
+        * `COMPULSORY` - Compulsory
+        * `ELECTIVE` - Elective
+        * `PROF_ORIENTED` - ProfOriented
   securitySchemes:
     cookieAuth:
       type: apiKey

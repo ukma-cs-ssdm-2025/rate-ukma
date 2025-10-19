@@ -17,7 +17,13 @@ class Instructor(Person):
         abstract = False
 
     def __str__(self) -> str:
-        return f"{self.first_name} {self.last_name}. ({self.academic_degree}, {self.academic_title})"
+        return (
+            f"{self.first_name} {self.last_name}. ({self.academic_degree}, {self.academic_title})"
+        )
 
     def __repr__(self) -> str:
-        return f"<Instructor id={self.id} last_name={self.last_name} first_name={self.first_name} degree={self.academic_degree} title={self.academic_title}>"
+        return (
+            f"<Instructor id={self.id} last_name={self.last_name} "
+            f"first_name={self.first_name} degree={self.academic_degree} "
+            f"title={self.academic_title}>"
+        )

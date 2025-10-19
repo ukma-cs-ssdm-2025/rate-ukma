@@ -13,17 +13,16 @@ class CourseSpeciality(models.Model):
     speciality = models.ForeignKey(
         "Speciality", on_delete=models.CASCADE, related_name="course_specialities"
     )
-    type_kind = models.CharField(
-        max_length=16,
-        choices=CourseTypeKind.choices,
-        null=False
-    )
+    type_kind = models.CharField(max_length=16, choices=CourseTypeKind.choices, null=False)
 
     def __str__(self):
         return f"{self.course} - {self.speciality} ({self.type_kind})"
 
     def __repr__(self):
-        return f"<CourseSpeciality course={self.course} speciality={self.speciality} type_kind=({self.type_kind})>"
+        return (
+            f"<CourseSpeciality course={self.course} "
+            f"speciality={self.speciality} type_kind=({self.type_kind})>"
+        )
 
     class Meta:
         unique_together = ("course", "speciality")

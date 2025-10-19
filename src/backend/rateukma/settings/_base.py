@@ -250,3 +250,17 @@ LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = config("LOGIN_REDIRECT_URL", default="/")
 LOGIN_ERROR_URL = config("LOGIN_ERROR_URL", default="/")
 ACCOUNT_LOGOUT_REDIRECT_URL = config("LOGOUT_REDIRECT_URL", default="/")
+
+# Scraper Settings
+SCRAPER_STATE_DIR = BASE_DIR.parent / "scraper" / "state"
+SCRAPER_HEADLESS = config("SCRAPER_HEADLESS", default=True, cast=bool)
+SCRAPER_CONCURRENCY = config("SCRAPER_CONCURRENCY", default=4, cast=int)
+SCRAPER_AUTO_LOGIN = config("SCRAPER_AUTO_LOGIN", default=True, cast=bool)
+SCRAPER_SLOWMO = config("SCRAPER_SLOWMO", default=0, cast=int)
+
+# Scraper authentication
+SAZ_EMAIL = config("SAZ_EMAIL", default="")
+SAZ_PASSWORD = config("SAZ_PASSWORD", default="")
+
+# Base URL for parsing
+PARSE_BASE_URL = "https://my.ukma.edu.ua"

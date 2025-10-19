@@ -1,6 +1,7 @@
 from django.contrib import admin
-from django.db.models import Avg, Count, Value, FloatField, IntegerField
+from django.db.models import Avg, Count, FloatField, IntegerField, Value
 from django.db.models.functions import Coalesce
+
 from reversion.admin import VersionAdmin
 
 from rating_app.models import Course
@@ -32,7 +33,9 @@ class CourseAdmin(VersionAdmin):
                 Avg("offerings__ratings__usefulness"), Value(0.0), output_field=FloatField()
             ),
             ratings_count_annot=Coalesce(
-                Count("offerings__ratings__id", distinct=True), Value(0), output_field=IntegerField()
+                Count("offerings__ratings__id", distinct=True),
+                Value(0),
+                output_field=IntegerField(),
             ),
         )
 
