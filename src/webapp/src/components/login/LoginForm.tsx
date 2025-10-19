@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { isAxiosError } from "axios";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -26,6 +27,40 @@ export function LoginForm({ loginWithDjango, onCancel }: LoginFormProps) {
 	const [showPassword, setShowPassword] = useState(false);
 	const [formError, setFormError] = useState<string | null>(null);
 
+	const mapErrorToMessage = (error: unknown) => {
+		if (isAxiosError(error)) {
+			if (error.code === "ERR_NETWORK") {
+				return "Cannot reach the server. Check your connection and try again.";
+			}
+
+			const { status, data } = error.response ?? {};
+			const detail = data?.detail;
+
+			if (typeof detail === "string" && detail.trim().length > 0) {
+				return detail;
+			}
+
+			if (Array.isArray(detail)) {
+				const firstDetail = detail.find(
+					(item): item is string => typeof item === "string",
+				);
+				if (firstDetail) {
+					return firstDetail;
+				}
+			}
+
+			if (status === 401) {
+				return "Invalid credentials. Please double-check your username and password.";
+			}
+
+			if (status && status >= 500) {
+				return "Server error. Please try again later.";
+			}
+		}
+
+		return "Something went wrong. Please try again.";
+	};
+
 	const form = useForm<LoginFormValues>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
@@ -43,10 +78,7 @@ export function LoginForm({ loginWithDjango, onCancel }: LoginFormProps) {
 			await loginWithDjango(values.username, values.password);
 		} catch (error) {
 			console.error("Admin login failed:", error);
-			const errorMessage =
-				(error as { response?: { data?: { detail?: string } } })?.response
-					?.data?.detail || "Invalid credentials";
-			setFormError(errorMessage);
+			setFormError(mapErrorToMessage(error));
 		}
 	});
 
@@ -155,4 +187,3 @@ export function LoginForm({ loginWithDjango, onCancel }: LoginFormProps) {
 		</div>
 	);
 }
-

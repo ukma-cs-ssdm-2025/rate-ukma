@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Logo } from "./Logo";
@@ -23,8 +23,6 @@ import {
 export default function Header() {
 	const { status, user, logout } = useAuth();
 	const isAuthenticated = status === "authenticated";
-	const navigate = useNavigate();
-
 	return (
 		<header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 			<div className="container mx-auto px-6 flex h-16 items-center">
@@ -36,19 +34,19 @@ export default function Header() {
 							<NavigationMenuList className="gap-2">
 								<NavigationMenuItem>
 									<NavigationMenuLink
+										asChild
 										className="group inline-flex h-10 items-center justify-center rounded-lg px-6 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
-										onClick={() => navigate({ to: "/" })}
 									>
-										Курси
+										<Link to="/">Курси</Link>
 									</NavigationMenuLink>
 								</NavigationMenuItem>
 
 								<NavigationMenuItem>
 									<NavigationMenuLink
+										asChild
 										className="group inline-flex h-10 items-center justify-center rounded-lg px-6 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
-										onClick={() => navigate({ to: "/my-ratings" })}
 									>
-										Мої оцінки
+										<Link to="/my-ratings">Мої оцінки</Link>
 									</NavigationMenuLink>
 								</NavigationMenuItem>
 							</NavigationMenuList>

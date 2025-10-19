@@ -6,7 +6,6 @@ from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.middleware.csrf import get_token
 from django.shortcuts import redirect
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -81,7 +80,6 @@ def csrf_token(request):
 )
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@csrf_exempt
 def login(request):
     logger.info("django_login_init", user_agent=request.META.get("HTTP_USER_AGENT"))
 

@@ -1,8 +1,8 @@
+import { env } from "@/env";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { PropsWithChildren } from "react";
 import { createContext, useCallback, useMemo, useState } from "react";
-import { env } from "@/env";
 import {
 	useAuthLoginCreate,
 	useAuthLogoutCreate,
@@ -42,7 +42,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const sessionQuery = useAuthSessionRetrieve({
 		query: {
 			enabled: hasCheckedAuth && !isLoggingOut,
-			// Don't refetch automatically to prevent unnecessary requests
 			refetchOnWindowFocus: false,
 			refetchInterval: false,
 			refetchOnReconnect: false,
@@ -55,7 +54,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
 						?.status;
 				return errorStatus !== 401 && failureCount < 1;
 			},
-			// Cache for 5 minutes, keep in memory for 10 minutes
 			staleTime: 5 * 60 * 1000,
 			gcTime: 10 * 60 * 1000,
 		},
@@ -68,7 +66,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				if (!hasCheckedAuth) {
 					setHasCheckedAuth(true);
 				}
-				// Invalidate and refetch session
 				await queryClient.invalidateQueries({
 					queryKey: sessionQuery.queryKey,
 				});
@@ -77,24 +74,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		},
 	});
 
-	// Simple auth state mapping from React Query state
 	const authState = useMemo((): AuthState => {
-		// Loading state
+		if (!hasCheckedAuth) {
+			return { status: "loading", user: null };
+		}
+
 		if (sessionQuery.isLoading || sessionQuery.isFetching) {
 			return { status: "loading", user: null };
 		}
 
-		// Error state (treat as unauthenticated)
 		if (sessionQuery.error) {
 			return { status: "unauthenticated", user: null };
 		}
 
-		// Check if auth data indicates unauthenticated
 		if (!sessionQuery.data?.data?.is_authenticated) {
 			return { status: "unauthenticated", user: null };
 		}
 
-		// Authenticated state
 		const userData = sessionQuery.data?.data?.user;
 		return {
 			status: "authenticated",
@@ -108,6 +104,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				: null,
 		};
 	}, [
+		hasCheckedAuth,
 		sessionQuery.isLoading,
 		sessionQuery.isFetching,
 		sessionQuery.error,
@@ -136,7 +133,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		setIsLoggingOut(true);
 		queryClient.removeQueries({ queryKey: sessionQuery.queryKey });
 
-		// Navigate immediately, don't wait for API call
 		navigate({ to: "/login" });
 		try {
 			await logoutMutation.mutateAsync();
