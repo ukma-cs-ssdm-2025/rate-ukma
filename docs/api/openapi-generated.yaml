@@ -398,7 +398,7 @@ components:
           maxLength: 64
       required:
       - csrf_token
-    Course:
+    CourseDetail:
       type: object
       properties:
         id:
@@ -578,21 +578,6 @@ components:
       required:
       - password
       - username
-    SpecialityWithKindPayload:
-      type: object
-      properties:
-        speciality:
-          type: string
-          format: uuid
-        type_kind:
-          $ref: '#/components/schemas/TypeKindEnum'
-      required:
-      - course_offering
-      - created_at
-      - difficulty
-      - id
-      - student
-      - usefulness
     Session:
       type: object
       properties:
@@ -622,10 +607,18 @@ components:
         last_name:
           type: string
       required:
-      - email
-      - first_name
       - id
-      - last_name
+    SpecialityWithKindPayload:
+      type: object
+      properties:
+        speciality:
+          type: string
+          format: uuid
+        type_kind:
+          $ref: '#/components/schemas/TypeKindEnum'
+      required:
+      - speciality
+      - type_kind
     StatusEnum:
       enum:
       - PLANNED
