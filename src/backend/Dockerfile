@@ -2,7 +2,11 @@ FROM python:3.12-slim AS base
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl && \
+RUN set -eux; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*; \
+    apt-get update -o Acquire::CompressionTypes::Order::=gz && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     apt-get purge -y --auto-remove curl && \
     rm -rf /var/lib/apt/lists/*
@@ -19,18 +23,16 @@ COPY . .
 
 
 FROM base AS final
-RUN useradd --create-home --shell /bin/bash user
-USER user
-WORKDIR /home/user/app
+WORKDIR /app
 
 COPY --from=builder /app/.venv ./.venv
 COPY --from=builder /app/ .
 
-ENV PATH="/home/user/app/.venv/bin:$PATH"
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 
-COPY --chown=user:user django-entrypoint.sh /django-entrypoint.sh
+COPY django-entrypoint.sh /django-entrypoint.sh
 RUN chmod +x /django-entrypoint.sh
 
 ENTRYPOINT ["/django-entrypoint.sh"]

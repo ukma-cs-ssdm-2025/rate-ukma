@@ -6,6 +6,7 @@ on:
 env:
   PYTHON_VERSION: "3.12"
   BACKEND_DIR: src/backend
+  SRC_DIR: src
 
 jobs:
   test:
@@ -19,6 +20,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Copy .env
+        working-directory: ${{ env.SRC_DIR }}
         run: cp .env.sample .env
 
       - name: Install dependencies
