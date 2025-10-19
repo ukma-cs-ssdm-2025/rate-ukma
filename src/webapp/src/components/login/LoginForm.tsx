@@ -1,14 +1,21 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { isAxiosError } from "axios";
+import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
 
 const loginSchema = z.object({
@@ -141,6 +148,9 @@ export function LoginForm({ loginWithDjango, onCancel }: LoginFormProps) {
 										onClick={() => setShowPassword((prev) => !prev)}
 										className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
 										disabled={isSubmitting}
+										aria-label={
+											showPassword ? "Hide password" : "Show password"
+										}
 									>
 										{showPassword ? (
 											<EyeOff className="h-4 w-4" />
@@ -155,8 +165,14 @@ export function LoginForm({ loginWithDjango, onCancel }: LoginFormProps) {
 					/>
 
 					<div className="flex gap-3">
-						<Button type="submit" className="flex-1 gap-2" disabled={isSubmitting}>
-							{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+						<Button
+							type="submit"
+							className="flex-1 gap-2"
+							disabled={isSubmitting}
+						>
+							{isSubmitting ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : null}
 							Login
 						</Button>
 						<Button

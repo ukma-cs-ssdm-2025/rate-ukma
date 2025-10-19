@@ -20,11 +20,8 @@ export function withAuth<P extends object>(
 		const navigate = useNavigate();
 
 		useEffect(() => {
-			// Only check auth if we're unauthenticated and haven't checked yet
-			if (status === "unauthenticated") {
-				checkAuth();
-			}
-		}, [checkAuth, status]);
+			checkAuth();
+		}, [checkAuth]);
 
 		useEffect(() => {
 			// Redirect to login if unauthenticated
