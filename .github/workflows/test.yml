@@ -30,9 +30,12 @@ jobs:
       - name: Run tests with pytest
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run pytest || if [ $? -eq 5 ]; then
-            echo "No tests found. Exiting with 0."
-            exit 0
+          uv run pytest
+          EXIT_CODE=$?
+          
+          if [ $EXIT_CODE -eq 5 ]; then
+              echo "No tests found. Exiting with 0."
+              exit 0
           else
-            exit $?
+              exit $EXIT_CODE
           fi
