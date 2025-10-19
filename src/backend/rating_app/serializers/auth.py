@@ -15,12 +15,16 @@ class LoginSerializer(serializers.Serializer):
 
 class SessionUserSerializer(serializers.Serializer):
     id = serializers.IntegerField()
-    email = serializers.EmailField()
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
+    email = serializers.EmailField(allow_blank=True, required=False)
+    first_name = serializers.CharField(allow_blank=True, required=False)
+    last_name = serializers.CharField(allow_blank=True, required=False)
 
 
 class SessionSerializer(serializers.Serializer):
     is_authenticated = serializers.BooleanField()
     user = SessionUserSerializer(allow_null=True)
     expires_at = serializers.DateTimeField(allow_null=True, required=False)
+
+
+class CSRFTokenSerializer(serializers.Serializer):
+    csrf_token = serializers.CharField(max_length=64)

@@ -4,6 +4,26 @@ info:
   version: 1.0.0
   description: An API for rating UKMA courses and professors
 paths:
+  /api/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      description: 'Returns a CSRF token for use with session-based authentication.
+        The token should be included in the ''X-CSRFToken'' header for subsequent
+        POST requests that require CSRF protection. Version: v1.'
+      summary: Get CSRF Token
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CSRFToken'
+          description: CSRF token
   /api/v1/auth/login/:
     post:
       operationId: auth_login_create
@@ -696,6 +716,14 @@ paths:
           description: Not found
 components:
   schemas:
+    CSRFToken:
+      type: object
+      properties:
+        csrf_token:
+          type: string
+          maxLength: 64
+      required:
+      - csrf_token
     Course:
       type: object
       description: |-

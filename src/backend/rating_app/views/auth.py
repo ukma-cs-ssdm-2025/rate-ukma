@@ -4,7 +4,9 @@ from typing import cast
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
+from django.middleware.csrf import get_token
 from django.shortcuts import redirect
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,8 +15,8 @@ from rest_framework.response import Response
 import structlog
 from drf_spectacular.utils import extend_schema
 
-from ..serializers.auth import LoginDto, LoginSerializer, SessionSerializer
-from .responses import R_LOGIN, R_LOGOUT, R_OAUTH, R_SESSION
+from ..serializers.auth import CSRFTokenSerializer, LoginDto, LoginSerializer, SessionSerializer
+from .responses import R_CSRF_TOKEN, R_LOGIN, R_LOGOUT, R_OAUTH, R_SESSION
 from .views import _with_request_id
 
 logger = structlog.get_logger(__name__)
@@ -44,6 +46,33 @@ def microsoft_login(request):
 
 
 @extend_schema(
+    summary="Get CSRF Token",
+    description=(
+        "Returns a CSRF token for use with session-based authentication. "
+        "The token should be included in the 'X-CSRFToken' header for subsequent "
+        "POST requests that require CSRF protection. Version: v1."
+    ),
+    responses=R_CSRF_TOKEN,
+    request=None,
+    tags=["auth"],
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def csrf_token(request):
+    logger.info("csrf_token_requested", user_agent=request.META.get("HTTP_USER_AGENT"))
+
+    # Generate CSRF token
+    token = get_token(request)
+
+    data = {"csrf_token": token}
+    serializer = CSRFTokenSerializer(data=data)
+    serializer.is_valid(raise_exception=True)
+
+    logger.info("csrf_token_generated")
+    return Response(serializer.data)
+
+
+@extend_schema(
     summary="Django Login",
     description=("Logs in user using Django authentication flow. Version: v1."),
     responses=R_LOGIN,
@@ -52,6 +81,7 @@ def microsoft_login(request):
 )
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@csrf_exempt
 def login(request):
     logger.info("django_login_init", user_agent=request.META.get("HTTP_USER_AGENT"))
 
@@ -96,8 +126,7 @@ def logout(request):
     logger.info("user_logout", was_authenticated=was_authenticated)
 
     django_logout(request)
-    # * Check if redirect url can be passed as an argument
-    return redirect("/accounts/logout/")
+    return Response({"detail": "Successfully logged out"}, status=status.HTTP_200_OK)
 
 
 def _get_session_expiry(request) -> datetime | None:

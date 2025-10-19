@@ -6,7 +6,7 @@ from django.urls import path
 
 from rateukma.ioc.decorators import once
 
-from ..views.auth import login, logout, microsoft_login, session
+from ..views.auth import csrf_token, login, logout, microsoft_login, session
 from ..views.views import (
     CourseDetailView,
     CourseListView,
@@ -58,6 +58,11 @@ def session_view() -> Callable[[HttpRequest], HttpResponse]:
 
 
 @once
+def csrf_token_view() -> Callable[[HttpRequest], HttpResponse]:
+    return csrf_token
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -79,6 +84,11 @@ def rest_urlpatterns() -> list:
             "auth/session/",
             session_view(),
             name="session",
+        ),
+        path(
+            "auth/csrf/",
+            csrf_token_view(),
+            name="csrf-token",
         ),
         path(
             "courses/",

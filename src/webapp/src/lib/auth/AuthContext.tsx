@@ -1,9 +1,13 @@
-import { env } from "@/env";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { PropsWithChildren } from "react";
 import { createContext, useCallback, useMemo, useState } from "react";
-import { useAuthLogoutCreate, useAuthSessionRetrieve } from "../api/generated";
+import { env } from "@/env";
+import {
+	useAuthLoginCreate,
+	useAuthLogoutCreate,
+	useAuthSessionRetrieve,
+} from "../api/generated";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -21,6 +25,7 @@ export interface AuthState {
 
 export interface AuthContextValue extends AuthState {
 	loginWithMicrosoft: (redirect?: string) => void;
+	loginWithDjango: (username: string, password: string) => Promise<void>;
 	logout: () => Promise<void>;
 	checkAuth: () => void;
 }
@@ -57,6 +62,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	});
 
 	const logoutMutation = useAuthLogoutCreate();
+	const loginMutation = useAuthLoginCreate({
+		mutation: {
+			onSuccess: async () => {
+				if (!hasCheckedAuth) {
+					setHasCheckedAuth(true);
+				}
+				// Invalidate and refetch session
+				await queryClient.invalidateQueries({
+					queryKey: sessionQuery.queryKey,
+				});
+				await queryClient.refetchQueries({ queryKey: sessionQuery.queryKey });
+			},
+		},
+	});
 
 	// Simple auth state mapping from React Query state
 	const authState = useMemo((): AuthState => {
@@ -95,11 +114,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		sessionQuery.data,
 	]);
 
-	const loginWithMicrosoft = useCallback(() => {
-		window.location.replace(
+	const loginWithMicrosoft = useCallback((redirect?: string) => {
+		const loginUrl = new URL(
 			`${env.VITE_API_BASE_URL}/api/v1/auth/login/microsoft/`,
 		);
+		if (redirect) {
+			loginUrl.searchParams.set("redirect", redirect);
+		}
+		window.location.replace(loginUrl.toString());
 	}, []);
+
+	const loginWithDjango = useCallback(
+		async (username: string, password: string) => {
+			await loginMutation.mutateAsync({ data: { username, password } });
+		},
+		[loginMutation],
+	);
 
 	const logout = useCallback(async () => {
 		// Prevent any further auth checks during logout
@@ -108,11 +138,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
 		// Navigate immediately, don't wait for API call
 		navigate({ to: "/login" });
-
-		// Try to logout from server in the background (don't wait)
-		logoutMutation.mutateAsync().catch((error) => {
+		try {
+			await logoutMutation.mutateAsync();
+		} catch (error) {
 			console.error("Logout failed:", error);
-		});
+		} finally {
+			setHasCheckedAuth(false);
+			setIsLoggingOut(false);
+		}
 	}, [logoutMutation, navigate, queryClient, sessionQuery.queryKey]);
 
 	const checkAuth = useCallback(() => {
@@ -125,10 +158,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		() => ({
 			...authState,
 			loginWithMicrosoft,
+			loginWithDjango,
 			logout,
 			checkAuth,
 		}),
-		[authState, loginWithMicrosoft, logout, checkAuth],
+		[authState, loginWithMicrosoft, loginWithDjango, logout, checkAuth],
 	);
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -28,9 +28,5 @@ export default defineConfig({
 		input: {
 			target: "../../docs/api/openapi-generated.yaml",
 		},
-		hooks: {
-			afterAllFilesWrite:
-				"biome format --write src/lib/api/generated/**/*.{ts,tsx}",
-		},
 	},
 });

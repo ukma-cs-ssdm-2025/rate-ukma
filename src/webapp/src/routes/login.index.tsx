@@ -1,13 +1,12 @@
-import { Button } from "@/components/ui/Button";
+import { LoginForm } from "@/components/login/LoginForm";
+import { MicrosoftLoginButton } from "@/components/login/MicrosoftLoginButton";
 import { useAuth } from "@/lib/auth";
 import {
 	createFileRoute,
 	useNavigate,
 	useSearch,
 } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PiMicrosoftOutlookLogoFill } from "react-icons/pi";
 
 const REDIRECT_MESSAGES = [
 	{
@@ -56,11 +55,11 @@ export const Route = createFileRoute("/login/")({
 });
 
 function LoginPage() {
-	const { loginWithMicrosoft, status } = useAuth();
+	const { loginWithDjango, status, checkAuth } = useAuth();
 	const navigate = useNavigate();
 	const search = useSearch({ from: "/login/" });
 	const hasRedirected = useRef(false);
-	const [isButtonLoading, setIsButtonLoading] = useState(false);
+	const [showAdminLogin, setShowAdminLogin] = useState(false);
 
 	const message = useMemo(() => {
 		const index = Math.floor(Math.random() * REDIRECT_MESSAGES.length);
@@ -68,41 +67,53 @@ function LoginPage() {
 	}, []);
 
 	useEffect(() => {
-		// Only redirect once and prevent infinite loops
+		// Check auth status when component mounts
+		checkAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
 		if (status === "authenticated" && !hasRedirected.current) {
 			hasRedirected.current = true;
 			const redirectTo = search.redirect || "/";
-
-			// Use router navigation instead of window.location.replace
 			navigate({ to: redirectTo, replace: true });
 		}
 	}, [status, search.redirect, navigate]);
 
+	// Keyboard shortcut for admin login (Ctrl+Shift+D)
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.ctrlKey && e.shiftKey && e.key === "D") {
+				e.preventDefault();
+				setShowAdminLogin((prev) => !prev);
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, []);
+
 	return (
 		<>
-			<h1 className="text-3xl font-bold mb-4">Вхід</h1>
+			<h1 className="text-3xl font-bold mb-4">
+				{showAdminLogin ? "Admin Panel" : "Вхід"}
+			</h1>
 
-			<div className="space-y-3 mb-6">
-				<h2 className="text-xl font-semibold">{message.title}</h2>
-				<p className="text-base text-muted-foreground">{message.description}</p>
-			</div>
-
-			<Button
-				className="w-full gap-2 h-12 text-base font-medium bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200"
-				size="lg"
-				onClick={() => {
-					setIsButtonLoading(true);
-					loginWithMicrosoft();
-				}}
-				disabled={status === "loading" || isButtonLoading}
-			>
-				{status === "loading" || isButtonLoading ? (
-					<Loader2 className="h-6 w-6 animate-spin" />
-				) : (
-					<PiMicrosoftOutlookLogoFill size={24} />
-				)}
-				<span>Увійти</span>
-			</Button>
+			{!showAdminLogin ? (
+				<>
+					<div className="space-y-3 mb-6">
+						<h2 className="text-xl font-semibold">{message.title}</h2>
+						<p className="text-base text-muted-foreground">
+							{message.description}
+						</p>
+					</div>
+					<MicrosoftLoginButton className="w-full gap-2 h-12 text-base font-medium bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200" />
+				</>
+			) : (
+				<LoginForm
+					loginWithDjango={loginWithDjango}
+					onCancel={() => setShowAdminLogin(false)}
+				/>
+			)}
 		</>
 	);
 }

@@ -84,6 +84,22 @@ pnpm build
 docker exec -it <frontend_container_name> pnpm build
 ```
 
+## 🔐 Developer Authentication
+
+For development and testing purposes, developers can authenticate using Django credentials directly in the webapp:
+
+### Quick Authentication Shortcut
+
+- **Keyboard Shortcut:** `Ctrl+Shift+D`
+- **Purpose:** Authenticate with Django credentials without going through the normal user flow
+- **Use Case:** Development, testing, or admin access with Django superuser credentials
+
+> **Important:**
+>
+> - Ensure you enter the shortcut using an English keyboard layout
+> - This feature is intended for developers only and is hidden from regular users
+> - Use Django admin credentials when prompted
+
 ## 🔌 API Client Generation
 
 The application uses **Orval** to automatically generate a type-safe API client from the OpenAPI specification. The generated client includes:
