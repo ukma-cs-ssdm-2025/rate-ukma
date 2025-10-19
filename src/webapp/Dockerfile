@@ -14,6 +14,10 @@ COPY src/webapp/package.json src/webapp/pnpm-lock.yaml src/webapp/orval.config.t
 RUN mkdir -p /docs/api
 COPY docs/api/openapi-generated.yaml /docs/api/openapi-generated.yaml
 
+# Copy the apiClient.ts file that orval needs during install
+RUN mkdir -p ./src/lib/api
+COPY src/webapp/src/lib/api/apiClient.ts ./src/lib/api/
+
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 

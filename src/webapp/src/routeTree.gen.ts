@@ -10,11 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MyRatingsRouteImport } from './routes/my-ratings'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginIndexRouteImport } from './routes/login.index'
+import { Route as LoginFailedRouteImport } from './routes/login.failed'
 
 const MyRatingsRoute = MyRatingsRouteImport.update({
   id: '/my-ratings',
   path: '/my-ratings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,30 +30,49 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginIndexRoute = LoginIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LoginRoute,
+} as any)
+const LoginFailedRoute = LoginFailedRouteImport.update({
+  id: '/failed',
+  path: '/failed',
+  getParentRoute: () => LoginRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
+  '/login/failed': typeof LoginFailedRoute
+  '/login/': typeof LoginIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/my-ratings': typeof MyRatingsRoute
+  '/login/failed': typeof LoginFailedRoute
+  '/login': typeof LoginIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
+  '/login/failed': typeof LoginFailedRoute
+  '/login/': typeof LoginIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/my-ratings'
+  fullPaths: '/' | '/login' | '/my-ratings' | '/login/failed' | '/login/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/my-ratings'
-  id: '__root__' | '/' | '/my-ratings'
+  to: '/' | '/my-ratings' | '/login/failed' | '/login'
+  id: '__root__' | '/' | '/login' | '/my-ratings' | '/login/failed' | '/login/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRouteWithChildren
   MyRatingsRoute: typeof MyRatingsRoute
 }
 
@@ -58,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyRatingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -65,11 +99,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login/': {
+      id: '/login/'
+      path: '/'
+      fullPath: '/login/'
+      preLoaderRoute: typeof LoginIndexRouteImport
+      parentRoute: typeof LoginRoute
+    }
+    '/login/failed': {
+      id: '/login/failed'
+      path: '/failed'
+      fullPath: '/login/failed'
+      preLoaderRoute: typeof LoginFailedRouteImport
+      parentRoute: typeof LoginRoute
+    }
   }
 }
 
+interface LoginRouteChildren {
+  LoginFailedRoute: typeof LoginFailedRoute
+  LoginIndexRoute: typeof LoginIndexRoute
+}
+
+const LoginRouteChildren: LoginRouteChildren = {
+  LoginFailedRoute: LoginFailedRoute,
+  LoginIndexRoute: LoginIndexRoute,
+}
+
+const LoginRouteWithChildren = LoginRoute._addFileChildren(LoginRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRouteWithChildren,
   MyRatingsRoute: MyRatingsRoute,
 }
 export const routeTree = rootRouteImport
