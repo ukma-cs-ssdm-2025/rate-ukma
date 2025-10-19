@@ -72,7 +72,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ${{ env.BACKEND_DIR }}
-        run: uv sync --extra dev
+        run: uv sync --extra security
 
       - name: Safety check
         uses: pyupio/safety-action@v1

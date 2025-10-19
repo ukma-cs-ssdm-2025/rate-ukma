@@ -30,10 +30,12 @@ uv venv
 source .venv/bin/activate  # Activate the virtual environment
 
 # Install main dependencies
-uv pip install -e .
+uv sync 
 
-# Install dev dependencies
-uv pip install -e ".[dev]"
+# Install main + dev dependencies
+uv sync --extra dev
+
+See all available extras in [pyproject.toml](pyproject.toml).
 ```
 
 ### 3. VS Code Integration
