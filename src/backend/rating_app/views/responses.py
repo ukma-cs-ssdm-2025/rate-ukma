@@ -1,4 +1,3 @@
-<<< feat/#89-ratings-module
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 
 from ..constants import MAX_RATING_VALUE, MIN_RATING_VALUE
