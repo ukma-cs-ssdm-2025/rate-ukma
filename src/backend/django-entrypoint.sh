@@ -25,9 +25,9 @@ shutdown() {
 trap shutdown SIGTERM SIGINT
 
 # starting django project
-python manage.py migrate --noinput
+uv run python manage.py migrate --noinput
 mkdir -p "${STATIC_ROOT}"
-python manage.py collectstatic --noinput
+uv run python manage.py collectstatic --noinput
 
 # optimal number of workers
 CORES=$(nproc)

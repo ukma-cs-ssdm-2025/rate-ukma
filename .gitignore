@@ -34,3 +34,8 @@ src/backend/scraper/state
 
 # macOS
 .DS_Store
+
+# build
+build/
+dist/
+*.egg-info/
