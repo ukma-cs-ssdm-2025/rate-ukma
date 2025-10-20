@@ -34,9 +34,9 @@ uv sync
 
 # Install main + dev dependencies
 uv sync --extra dev
-
-See all available extras in [pyproject.toml](pyproject.toml).
 ```
+
+See all available extras in [pyproject.toml](./pyproject.toml).
 
 ### 3. VS Code Integration
 
