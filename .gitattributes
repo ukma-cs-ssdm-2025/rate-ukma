@@ -1,1 +1,4 @@
 src/backend/openapi-generated.yaml linguist-generated=true
+src/webapp/src/routeTree.gen.ts linguist-generated=true
+pnpm-lock.yaml linguist-generated=true
+uv.lock linguist-generated=true

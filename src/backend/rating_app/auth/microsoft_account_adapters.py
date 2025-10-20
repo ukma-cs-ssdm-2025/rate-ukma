@@ -25,12 +25,12 @@ class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
         return user
 
     def pre_social_login(self, request: HttpRequest, sociallogin: SocialLogin):
-        if not self._is_allowed_to_login(request, sociallogin):
-            raise ImmediateHttpResponse(redirect(settings.LOGIN_ERROR_URL))
-
         email = user_email(sociallogin.user)
         if not email:
             logger.error("email_address_required")
+            raise ImmediateHttpResponse(redirect(f"{settings.LOGIN_ERROR_URL}?technical=1"))
+
+        if not self._is_allowed_to_login(request, sociallogin):
             raise ImmediateHttpResponse(redirect(settings.LOGIN_ERROR_URL))
 
         user_model = get_user_model()

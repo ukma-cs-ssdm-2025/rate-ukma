@@ -15,19 +15,28 @@ The application runs in Docker containers as described in the main [README](../.
 ### Prerequisites
 
 - Python 3.11+
+- uv package manager (faster, more secure alternative to pip)
 
 ### 1. Create Virtual Environment
 
 ```bash
 cd src/backend
-python -m venv venv
+uv venv
 ```
 
 ### 2. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+source .venv/bin/activate  # Activate the virtual environment
+
+# Install main dependencies
+uv sync 
+
+# Install main + dev dependencies
+uv sync --extra dev
 ```
+
+See all available extras in [pyproject.toml](./pyproject.toml).
 
 ### 3. VS Code Integration
 

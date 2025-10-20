@@ -1,19 +1,18 @@
 import tailwindcss from "@tailwindcss/vite";
-import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+
 import { resolve } from "node:path";
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig, loadEnv } from "vite";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-	const env = loadEnv(mode, process.cwd(), '');
-	
+export default defineConfig(() => {
 	return {
 		plugins: [
-			TanStackRouterVite({ autoCodeSplitting: true }),
+			tanstackRouter({ autoCodeSplitting: true }),
 			viteReact(),
 			tailwindcss(),
 		],
@@ -24,7 +23,7 @@ export default defineConfig(({ mode }) => {
 		},
 		base: "/",
 		build: {
-			outDir: env.STATIC_ROOT || "dist",
+			outDir: "dist",
 			assetsDir: "assets",
 			manifest: true,
 			copyPublicDir: true,
