@@ -3,7 +3,8 @@ from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 from ..serializers import (
     CourseDetailSerializer,
     CourseListResponseSerializer,
-    RatingSerializer,
+    RatingCreateUpdateSerializer,
+    RatingReadSerializer,
 )
 from ..serializers import ErrorEnvelopeSerializer as Err
 
@@ -34,6 +35,14 @@ EX_404 = OpenApiExample(
     value={"detail": "Not found", "status": 404},
     status_codes=["404"],
 )
+EX_409 = OpenApiExample(
+    "Conflict - Rating already exists",
+    value={
+        "detail": "You have already rated this course offering",
+        "status": 409,
+    },
+    status_codes=["409"],
+)
 
 R_COURSE_LIST = {
     200: OpenApiResponse(CourseListResponseSerializer, "OK"),
@@ -51,7 +60,7 @@ R_COURSE = {
 }
 
 R_RATING_LIST = {
-    200: OpenApiResponse(RatingSerializer(many=True), "OK"),
+    200: OpenApiResponse(RatingReadSerializer(many=True), "OK"),
     400: OpenApiResponse(Err, "Bad request", [EX_400]),
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
     403: OpenApiResponse(Err, "Forbidden", [EX_403]),
@@ -59,15 +68,16 @@ R_RATING_LIST = {
 }
 
 R_RATING_CREATE = {
-    201: RatingSerializer,
+    201: RatingCreateUpdateSerializer,
     400: OpenApiResponse(Err, "Bad request", [EX_400]),
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
     403: OpenApiResponse(Err, "Forbidden", [EX_403]),
     404: OpenApiResponse(Err, "Not found", [EX_404]),
+    409: OpenApiResponse(Err, "Conflict - Rating already exists", [EX_409]),
 }
 
 R_RATING = {
-    200: RatingSerializer,
+    200: RatingReadSerializer,
     400: OpenApiResponse(Err, "Bad request", [EX_400]),
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
     403: OpenApiResponse(Err, "Forbidden", [EX_403]),
