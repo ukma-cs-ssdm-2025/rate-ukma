@@ -1,7 +1,8 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+
+import { Loader2 } from "lucide-react";
 import { PiMicrosoftOutlookLogoFill } from "react-icons/pi";
 
 import { Button } from "@/components/ui/Button";
@@ -48,4 +49,3 @@ export function MicrosoftLoginButton({
 		</Button>
 	);
 }
-

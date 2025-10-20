@@ -1,5 +1,6 @@
 import { createFileRoute, useRouter, useSearch } from "@tanstack/react-router";
 import { AlertCircle, RotateCcw } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 
 type LoginFailedSearch = {
