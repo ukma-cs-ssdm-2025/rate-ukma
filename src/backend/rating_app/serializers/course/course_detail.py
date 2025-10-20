@@ -44,8 +44,7 @@ class RatingInlineSerializer(serializers.ModelSerializer):
         """Return student name if not anonymous, otherwise return None."""
         if obj.is_anonymous:
             return None
-        # Student inherits from Person, so we access fields directly
-        return obj.student.full_name if hasattr(obj.student, "full_name") else str(obj.student)
+        return str(obj.student)
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_semester(self, obj):
