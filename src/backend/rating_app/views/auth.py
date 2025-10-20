@@ -1,8 +1,10 @@
+from datetime import datetime
 from typing import cast
 
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
+from django.middleware.csrf import get_token
 from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -12,8 +14,8 @@ from rest_framework.response import Response
 import structlog
 from drf_spectacular.utils import extend_schema
 
-from ..serializers.auth import LoginDto, LoginSerializer
-from .responses import R_LOGIN, R_LOGOUT, R_OAUTH
+from ..serializers.auth import CSRFTokenSerializer, LoginDto, LoginSerializer, SessionSerializer
+from .responses import R_CSRF_TOKEN, R_LOGIN, R_LOGOUT, R_OAUTH, R_SESSION
 from .views import _with_request_id
 
 logger = structlog.get_logger(__name__)
@@ -40,6 +42,33 @@ def microsoft_login(request):
     )
 
     return redirect("/accounts/microsoft/login/")
+
+
+@extend_schema(
+    summary="Get CSRF Token",
+    description=(
+        "Returns a CSRF token for use with session-based authentication. "
+        "The token should be included in the 'X-CSRFToken' header for subsequent "
+        "POST requests that require CSRF protection. Version: v1."
+    ),
+    responses=R_CSRF_TOKEN,
+    request=None,
+    tags=["auth"],
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def csrf_token(request):
+    logger.info("csrf_token_requested", user_agent=request.META.get("HTTP_USER_AGENT"))
+
+    # Generate CSRF token
+    token = get_token(request)
+
+    data = {"csrf_token": token}
+    serializer = CSRFTokenSerializer(data=data)
+    serializer.is_valid(raise_exception=True)
+
+    logger.info("csrf_token_generated")
+    return Response(serializer.data)
 
 
 @extend_schema(
@@ -95,5 +124,49 @@ def logout(request):
     logger.info("user_logout", was_authenticated=was_authenticated)
 
     django_logout(request)
-    # * Check if redirect url can be passed as an argument
-    return redirect("/accounts/logout/")
+    return Response({"detail": "Successfully logged out"}, status=status.HTTP_200_OK)
+
+
+def _get_session_expiry(request) -> datetime | None:
+    try:
+        expiry = request.session.get_expiry_date()
+    except Exception:
+        return None
+    return expiry
+
+
+@extend_schema(
+    summary="Session state",
+    description=(
+        "Returns current authentication session information."
+        " Responds with 200 and user data when authenticated,"
+        " or 401 when no active session. Version: v1."
+    ),
+    responses=R_SESSION,
+    request=None,
+    tags=["auth"],
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def session(request):
+    user = request.user
+    if not user.is_authenticated:
+        logger.info("session_anonymous")
+        return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+    data = {
+        "is_authenticated": True,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        },
+        "expires_at": _get_session_expiry(request),
+    }
+
+    serializer = SessionSerializer(data=data)
+    serializer.is_valid(raise_exception=True)
+
+    logger.info("session_active", user_id=user.id)
+    return Response(serializer.data)
