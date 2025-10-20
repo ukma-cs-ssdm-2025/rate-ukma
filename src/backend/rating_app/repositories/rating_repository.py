@@ -20,6 +20,13 @@ class RatingRepository:
             "student",
         ).get(pk=rating_id)
 
+    def exists(self, student_id: str, course_offering_id: str) -> bool:
+        """Check if a rating already exists for this student and course offering."""
+        return Rating.objects.filter(
+            student_id=student_id,
+            course_offering_id=course_offering_id,
+        ).exists()
+
     def filter(
         self,
         course_id: str | None = None,

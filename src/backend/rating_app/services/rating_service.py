@@ -1,7 +1,7 @@
 from typing import Any
 
 from ..constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
-from ..exception.rating_exceptions import NotEnrolledException
+from ..exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
 from ..repositories import EnrollmentRepository, RatingRepository
 
 
@@ -20,6 +20,10 @@ class RatingService:
 
         if not isinstance(student_id, str) or not isinstance(offering_id, str):
             raise ValueError("student_id and course_offering_id must be provided as strings")
+
+        # Check if rating already exists
+        if self.rating_repository.exists(student_id=student_id, course_offering_id=offering_id):
+            raise DuplicateRatingException()
 
         # Check if student is enrolled in the course offering
         if not self.enrollment_repository.is_student_enrolled(

@@ -10,6 +10,7 @@ from ..constants import (
     DEFAULT_PAGE_NUMBER,
     DEFAULT_PAGE_SIZE,
 )
+from ..exception.rating_exceptions import DuplicateRatingException
 from ..models import Rating, Student
 from ..repositories import EnrollmentRepository, RatingRepository
 from ..serializers import RatingCreateUpdateSerializer, RatingReadSerializer
@@ -120,26 +121,21 @@ class RatingViewSet(viewsets.ViewSet):
         serializer = RatingCreateUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Check if rating already exists for this student and course offering
         course_offering_id = serializer.validated_data["course_offering"]  # type: ignore
 
-        existing_rating = Rating.objects.filter(
-            student_id=student.id,  # type: ignore[union-attr]
-            course_offering_id=course_offering_id,
-        ).first()
-
-        if existing_rating:
+        # Create rating through service (handles duplicate and enrollment checks)
+        try:
+            rating = self.rating_service.create_rating(
+                student_id=str(student.id),  # type: ignore[union-attr]
+                course_offering_id=str(course_offering_id),
+                **{k: v for k, v in serializer.validated_data.items() if k != "course_offering"},  # type: ignore[union-attr]
+            )
+        except DuplicateRatingException as exc:
             return Response(
-                {"detail": "You have already rated this course offering"},
+                {"detail": str(exc.detail)},
                 status=status.HTTP_409_CONFLICT,
             )
 
-        # Create rating through service
-        rating = self.rating_service.create_rating(
-            student_id=str(student.id),  # type: ignore[union-attr]
-            course_offering_id=str(course_offering_id),
-            **{k: v for k, v in serializer.validated_data.items() if k != "course_offering"},  # type: ignore[union-attr]
-        )
         response_serializer = RatingReadSerializer(rating)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
