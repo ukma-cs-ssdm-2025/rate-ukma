@@ -1,0 +1,15 @@
+"""
+Application-wide constants.
+"""
+
+# PAGINATION
+DEFAULT_PAGE_SIZE = 10
+
+MAX_PAGE_SIZE = 100
+
+MIN_PAGE_SIZE = 1
+
+# RATING VALUES
+MIN_RATING_VALUE = 1
+
+MAX_RATING_VALUE = 5
