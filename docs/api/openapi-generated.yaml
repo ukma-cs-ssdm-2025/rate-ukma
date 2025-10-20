@@ -457,7 +457,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RatingCreateUpdate'
+                $ref: '#/components/schemas/RatingRead'
           description: ''
         '400':
           content:
@@ -931,7 +931,7 @@ components:
         course_specialities:
           type: array
           items:
-            $ref: '#/components/schemas/CourseSpecialityListInline'
+            $ref: '#/components/schemas/CourseSpecialityInline'
           readOnly: true
       required:
       - avg_difficulty
@@ -969,22 +969,8 @@ components:
       - total
     CourseSpecialityInline:
       type: object
-      properties:
-        speciality_id:
-          type: string
-          format: uuid
-          readOnly: true
-        speciality_title:
-          type: string
-          readOnly: true
-        type_kind:
-          $ref: '#/components/schemas/TypeKindEnum'
-      required:
-      - speciality_id
-      - speciality_title
-      - type_kind
-    CourseSpecialityListInline:
-      type: object
+      description: Inline serializer for displaying course specialities with type
+        kind.
       properties:
         speciality_id:
           type: string

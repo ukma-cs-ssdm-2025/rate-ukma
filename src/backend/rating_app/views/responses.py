@@ -4,7 +4,6 @@ from ..constants import MAX_RATING_VALUE, MIN_RATING_VALUE
 from ..serializers import (
     CourseDetailSerializer,
     CourseListResponseSerializer,
-    RatingCreateUpdateSerializer,
     RatingReadSerializer,
 )
 from ..serializers import ErrorEnvelopeSerializer as Err
@@ -69,7 +68,7 @@ R_RATING_LIST = {
 }
 
 R_RATING_CREATE = {
-    201: RatingCreateUpdateSerializer,
+    201: RatingReadSerializer,
     400: OpenApiResponse(Err, "Bad request", [EX_400]),
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
     403: OpenApiResponse(Err, "Forbidden", [EX_403]),
