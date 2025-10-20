@@ -28,10 +28,20 @@
 		}
 	},
 	"assist": {
-		"enabled": true,
 		"actions": {
 			"source": {
-				"organizeImports": "on"
+				"organizeImports": {
+					"level": "on",
+					"options": {
+						"groups": [
+							["react", "react-dom"],
+							":BLANK_LINE:",
+							":PACKAGE:",
+							":BLANK_LINE:",
+							["./**", "@/**", "~/**"]
+						]
+					}
+				}
 			}
 		}
 	}

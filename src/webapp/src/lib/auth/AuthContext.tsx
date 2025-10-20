@@ -1,8 +1,10 @@
-import { env } from "@/env";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import type { PropsWithChildren } from "react";
 import { createContext, useCallback, useMemo, useState } from "react";
+
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+
+import { env } from "@/env";
 import {
 	useAuthLoginCreate,
 	useAuthLogoutCreate,
@@ -13,9 +15,9 @@ export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 export interface AuthUser {
 	id: number;
-	email: string;
-	firstName: string;
-	lastName: string;
+	email?: string;
+	firstName?: string;
+	lastName?: string;
 }
 
 export interface AuthState {

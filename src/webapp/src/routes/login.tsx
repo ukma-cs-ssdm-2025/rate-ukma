@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+
 import { Logo } from "@/components/Logo";
 import { ModeToggle } from "@/components/ModeToggle";
 
