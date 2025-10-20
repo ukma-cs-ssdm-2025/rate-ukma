@@ -174,7 +174,10 @@ class RatingViewSet(viewsets.ViewSet):
 
             serializer = RatingCreateUpdateSerializer(rating, data=request.data, partial=False)
             serializer.is_valid(raise_exception=True)
-            rating = serializer.save()
+            rating = self.rating_service.update_rating(
+                rating_id=rating_id,
+                **serializer.validated_data,  # type: ignore[arg-type]
+            )
             response_serializer = RatingReadSerializer(rating)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         except Rating.DoesNotExist as exc:
@@ -202,7 +205,10 @@ class RatingViewSet(viewsets.ViewSet):
 
             serializer = RatingCreateUpdateSerializer(rating, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-            rating = serializer.save()
+            rating = self.rating_service.update_rating(
+                rating_id=rating_id,
+                **serializer.validated_data,  # type: ignore[arg-type]
+            )
             response_serializer = RatingReadSerializer(rating)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         except Rating.DoesNotExist as exc:
