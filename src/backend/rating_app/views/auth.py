@@ -14,8 +14,8 @@ from rest_framework.response import Response
 import structlog
 from drf_spectacular.utils import extend_schema
 
-from ..serializers.auth import LoginDto, LoginSerializer
-from .responses import R_LOGIN, R_LOGOUT, R_OAUTH
+from ..serializers.auth import CSRFTokenSerializer, LoginDto, LoginSerializer, SessionSerializer
+from .responses import R_CSRF_TOKEN, R_LOGIN, R_LOGOUT, R_OAUTH, R_SESSION
 
 logger = structlog.get_logger(__name__)
 

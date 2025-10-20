@@ -6,7 +6,7 @@ from django.urls import path
 from rateukma.ioc.decorators import once
 
 from ..views import CourseViewSet, RatingViewSet
-from ..views.auth import login, logout, microsoft_login
+from ..views.auth import csrf_token, login, logout, microsoft_login, session
 
 
 @once

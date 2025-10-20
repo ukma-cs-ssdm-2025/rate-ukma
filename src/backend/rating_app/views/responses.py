@@ -7,6 +7,7 @@ from ..serializers import (
     RatingReadSerializer,
 )
 from ..serializers import ErrorEnvelopeSerializer as Err
+from ..serializers.auth import CSRFTokenSerializer, SessionSerializer
 
 EX_400 = OpenApiExample(
     "Validation error",
@@ -110,4 +111,13 @@ R_LOGIN = {
 R_LOGOUT = {
     **R_OAUTH,
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+}
+
+R_SESSION = {
+    200: OpenApiResponse(SessionSerializer, "Session state"),
+    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+}
+
+R_CSRF_TOKEN = {
+    200: OpenApiResponse(CSRFTokenSerializer, "CSRF token"),
 }
