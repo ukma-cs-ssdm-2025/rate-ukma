@@ -5,8 +5,8 @@ from django.urls import path
 
 from rateukma.ioc.decorators import once
 
+from ..views import CourseViewSet, RatingViewSet
 from ..views.auth import login, logout, microsoft_login
-from ..views.course_viewset import CourseViewSet
 
 
 @once
@@ -19,14 +19,16 @@ def course_detail_view():
     return CourseViewSet.as_view({"get": "retrieve"})
 
 
-# @once
-# def course_ratings_list_create_view() -> AsyncViewDelegate:
-#     return CourseRatingsListCreateView.as_view()
+@once
+def course_ratings_list_create_view():
+    return RatingViewSet.as_view({"get": "list", "post": "create"})
 
 
-# @once
-# def course_rating_detail_view() -> AsyncViewDelegate:
-#     return CourseRatingDetailView.as_view()
+@once
+def course_rating_detail_view():
+    return RatingViewSet.as_view(
+        {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
+    )
 
 
 @once
@@ -71,16 +73,16 @@ def rest_urlpatterns() -> list:
             course_detail_view(),
             name="course-detail",
         ),
-        # path(
-        #     "courses/<str:course_id>/ratings/",
-        #     course_ratings_list_create_view(),
-        #     name="course-ratings",
-        # ),
-        # path(
-        #     "courses/<str:course_id>/ratings/<str:rating_id>/",
-        #     course_rating_detail_view(),
-        #     name="course-rating-detail",
-        # ),
+        path(
+            "courses/<str:course_id>/ratings/",
+            course_ratings_list_create_view(),
+            name="course-ratings",
+        ),
+        path(
+            "courses/<str:course_id>/ratings/<str:rating_id>/",
+            course_rating_detail_view(),
+            name="course-rating-detail",
+        ),
     ]
 
 

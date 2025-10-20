@@ -1,5 +1,7 @@
 from .course_viewset import CourseViewSet
+from .rating_viewset import RatingViewSet
 
-# from .ratings import CourseRatingDetailView, CourseRatingsListCreateView
-
-__all__ = ["CourseViewSet"]
+__all__ = [
+    "CourseViewSet",
+    "RatingViewSet",
+]
