@@ -1,6 +1,6 @@
 from typing import Any
 
-from ..constants import DEFAULT_PAGE_SIZE, MIN_PAGE_SIZE
+from ..constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
 from ..exception.rating_exceptions import NotEnrolledException
 from ..repositories import EnrollmentRepository, RatingRepository
 
@@ -37,7 +37,7 @@ class RatingService:
         course_id: str | None = None,
         student_id: str | None = None,
         page_size: int = DEFAULT_PAGE_SIZE,
-        page_number: int = MIN_PAGE_SIZE,
+        page_number: int = DEFAULT_PAGE_NUMBER,
     ) -> dict[str, Any]:
         return self.rating_repository.filter(
             course_id=course_id, student_id=student_id, page_size=page_size, page_number=page_number

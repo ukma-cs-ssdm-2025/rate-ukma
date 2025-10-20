@@ -7,8 +7,8 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from ..constants import (
+    DEFAULT_PAGE_NUMBER,
     DEFAULT_PAGE_SIZE,
-    MIN_PAGE_SIZE,
 )
 from ..models import Rating, Student
 from ..repositories import EnrollmentRepository, RatingRepository
@@ -80,7 +80,7 @@ class RatingViewSet(viewsets.ViewSet):
     )
     def list(self, request, course_id=None):
         student_id = request.query_params.get("student_id")
-        page = self._to_int(request.query_params.get("page"), MIN_PAGE_SIZE)
+        page = self._to_int(request.query_params.get("page"), DEFAULT_PAGE_NUMBER)
         page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_PAGE_SIZE)
 
         result = self.rating_service.filter_ratings(

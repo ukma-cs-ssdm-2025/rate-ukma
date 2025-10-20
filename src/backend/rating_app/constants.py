@@ -9,6 +9,8 @@ MAX_PAGE_SIZE = 100
 
 MIN_PAGE_SIZE = 1
 
+DEFAULT_PAGE_NUMBER = 1  # First page in pagination
+
 # COURSE
 DEFAULT_COURSE_PAGE_SIZE = 20
 

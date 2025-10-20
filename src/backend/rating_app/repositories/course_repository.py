@@ -5,6 +5,7 @@ from django.db.models import Avg, Count, F
 
 from rating_app.constants import (
     DEFAULT_COURSE_PAGE_SIZE,
+    DEFAULT_PAGE_NUMBER,
     MAX_PAGE_SIZE,
     MIN_PAGE_SIZE,
 )
@@ -37,7 +38,7 @@ class CourseRepository:
         avg_difficulty_order: str | None = None,
         avg_usefulness_order: str | None = None,
         page_size: int = DEFAULT_COURSE_PAGE_SIZE,
-        page_number: int = MIN_PAGE_SIZE,
+        page_number: int = DEFAULT_PAGE_NUMBER,
     ) -> dict[str, Any]:
         """
         Returns a paginated result:
@@ -112,7 +113,7 @@ class CourseRepository:
         page_size = max(
             MIN_PAGE_SIZE, min(int(page_size or DEFAULT_COURSE_PAGE_SIZE), MAX_PAGE_SIZE)
         )
-        page_number = max(MIN_PAGE_SIZE, int(page_number or MIN_PAGE_SIZE))
+        page_number = max(DEFAULT_PAGE_NUMBER, int(page_number or DEFAULT_PAGE_NUMBER))
 
         paginator = Paginator(courses, page_size)
         try:
