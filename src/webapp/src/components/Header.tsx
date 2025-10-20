@@ -1,6 +1,7 @@
-import { useAuth } from "@/lib/auth";
 import { Link } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
+
+import { useAuth } from "@/lib/auth";
 import { Logo } from "./Logo";
 import { ModeToggle } from "./ModeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/Avatar";

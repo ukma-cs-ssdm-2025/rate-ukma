@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Star } from "lucide-react";
+
 import Layout from "@/components/Layout";
 import { withAuth } from "@/lib/auth";
 

@@ -1,12 +1,14 @@
-import { LoginForm } from "@/components/login/LoginForm";
-import { MicrosoftLoginButton } from "@/components/login/MicrosoftLoginButton";
-import { useAuth } from "@/lib/auth";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import {
 	createFileRoute,
 	useNavigate,
 	useSearch,
 } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+
+import { LoginForm } from "@/components/login/LoginForm";
+import { MicrosoftLoginButton } from "@/components/login/MicrosoftLoginButton";
+import { useAuth } from "@/lib/auth";
 
 const REDIRECT_MESSAGES = [
 	{

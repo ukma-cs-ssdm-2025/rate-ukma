@@ -1,5 +1,7 @@
-import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+
+import { useNavigate } from "@tanstack/react-router";
+
 import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "./useAuth";
 

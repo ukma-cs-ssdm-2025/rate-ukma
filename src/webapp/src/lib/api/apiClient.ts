@@ -1,5 +1,6 @@
-import { env } from "@/env";
 import axios, { AxiosHeaders } from "axios";
+
+import { env } from "@/env";
 
 export const authorizedHttpClient = axios.create({
 	withCredentials: true,
