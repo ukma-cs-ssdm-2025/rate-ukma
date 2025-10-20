@@ -11,8 +11,9 @@ class RatingReadSerializer(serializers.ModelSerializer):
     Returns null for student_id and student_name when is_anonymous is True.
     """
 
-    student_id = serializers.SerializerMethodField(read_only=True)
-    student_name = serializers.SerializerMethodField(read_only=True)
+    student_id = serializers.SerializerMethodField(read_only=True, required=False)
+    student_name = serializers.SerializerMethodField(read_only=True, required=False)
+    comment = serializers.CharField(required=False, allow_null=True, read_only=True)
     course = serializers.UUIDField(source="course_offering.course_id", read_only=True)
     course_offering = serializers.UUIDField(source="course_offering_id", read_only=True)
 
