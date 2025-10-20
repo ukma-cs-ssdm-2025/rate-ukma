@@ -11,8 +11,9 @@ from .course_speciality import CourseSpecialityInlineSerializer, SpecialityWithK
 class RatingInlineSerializer(serializers.ModelSerializer):
     """Inline serializer for displaying ratings within course detail."""
 
-    student_id = serializers.SerializerMethodField()
-    student_name = serializers.SerializerMethodField()
+    student_id = serializers.SerializerMethodField(read_only=True, required=False)
+    student_name = serializers.SerializerMethodField(read_only=True, required=False)
+    comment = serializers.CharField(required=False, allow_null=True, read_only=True)
     course_offering_code = serializers.CharField(source="course_offering.code", read_only=True)
     semester = serializers.SerializerMethodField()
 
