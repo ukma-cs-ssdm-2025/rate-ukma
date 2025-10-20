@@ -1,5 +1,6 @@
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 
+from ..constants import MAX_RATING_VALUE, MIN_RATING_VALUE
 from ..serializers import (
     CourseDetailSerializer,
     CourseListResponseSerializer,
@@ -13,7 +14,7 @@ EX_400 = OpenApiExample(
     value={
         "detail": "Validation failed",
         "status": 400,
-        "fields": {"difficulty": ["Must be between 1 and 5."]},
+        "fields": {"difficulty": [f"Must be between {MIN_RATING_VALUE} and {MAX_RATING_VALUE}."]},
     },
     status_codes=["400"],
 )

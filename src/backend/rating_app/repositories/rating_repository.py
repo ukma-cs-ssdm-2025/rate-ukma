@@ -4,6 +4,12 @@ from django.core.paginator import EmptyPage, Paginator
 
 from rating_app.models import Rating
 
+from ..constants import (
+    DEFAULT_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+    MIN_PAGE_SIZE,
+)
+
 
 class RatingRepository:
     def get_by_id(self, rating_id: str) -> Rating:
@@ -17,8 +23,8 @@ class RatingRepository:
         self,
         course_id: str | None = None,
         student_id: str | None = None,
-        page_size: int = 10,
-        page_number: int = 1,
+        page_size: int = DEFAULT_PAGE_SIZE,
+        page_number: int = MIN_PAGE_SIZE,
     ) -> dict[str, Any]:
         """
         Returns a paginated result:
@@ -47,8 +53,8 @@ class RatingRepository:
         )
 
         # Guardrails
-        page_size = max(1, min(int(page_size or 10), 100))
-        page_number = max(1, int(page_number or 1))
+        page_size = max(MIN_PAGE_SIZE, min(int(page_size or DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE))
+        page_number = max(MIN_PAGE_SIZE, int(page_number or MIN_PAGE_SIZE))
 
         paginator = Paginator(ratings, page_size)
 

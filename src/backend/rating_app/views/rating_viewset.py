@@ -6,6 +6,10 @@ import structlog
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
+from ..constants import (
+    DEFAULT_PAGE_SIZE,
+    MIN_PAGE_SIZE,
+)
 from ..models import Rating, Student
 from ..repositories import EnrollmentRepository, RatingRepository
 from ..serializers import RatingCreateUpdateSerializer, RatingReadSerializer
@@ -68,7 +72,7 @@ class RatingViewSet(viewsets.ViewSet):
                 name="page_size",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="Items per page (default: 10)",
+                description=f"Items per page (default: {DEFAULT_PAGE_SIZE})",
                 required=False,
             ),
         ],
@@ -76,8 +80,8 @@ class RatingViewSet(viewsets.ViewSet):
     )
     def list(self, request, course_id=None):
         student_id = request.query_params.get("student_id")
-        page = self._to_int(request.query_params.get("page"), 1)
-        page_size = self._to_int(request.query_params.get("page_size"), 10)
+        page = self._to_int(request.query_params.get("page"), MIN_PAGE_SIZE)
+        page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_PAGE_SIZE)
 
         result = self.rating_service.filter_ratings(
             course_id=course_id,

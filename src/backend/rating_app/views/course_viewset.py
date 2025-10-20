@@ -9,6 +9,7 @@ from rating_app.models import Course
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.services.course_service import CourseService
 
+from ..constants import DEFAULT_PAGE_SIZE, MIN_PAGE_SIZE
 from ..serializers.course.course_detail import CourseDetailSerializer
 from ..serializers.course.course_list import CourseListSerializer
 from .responses import R_COURSE, R_COURSE_LIST
@@ -103,15 +104,15 @@ class CourseViewSet(viewsets.ViewSet):
                 name="page_size",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="Items per page (default: 10)",
+                description=f"Items per page (default: {DEFAULT_PAGE_SIZE})",
                 required=False,
             ),
         ],
         responses=R_COURSE_LIST,
     )
     def list(self, request, *args, **kwargs):
-        page = self._to_int(request.query_params.get("page"), 1)
-        page_size = self._to_int(request.query_params.get("page_size"), 10)
+        page = self._to_int(request.query_params.get("page"), MIN_PAGE_SIZE)
+        page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_PAGE_SIZE)
 
         # Handle order parameters
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")
@@ -138,8 +139,8 @@ class CourseViewSet(viewsets.ViewSet):
             "page": page,
             "page_size": result.get("page_size") or result.get("per_page"),
             "total": result["total"],
-            "next": page + 1 if page < total_pages else None,
-            "previous": page - 1 if page > 1 else None,
+            "next": page + MIN_PAGE_SIZE if page < total_pages else None,
+            "previous": page - MIN_PAGE_SIZE if page > MIN_PAGE_SIZE else None,
         }
         return Response(response_data, status=status.HTTP_200_OK)
 

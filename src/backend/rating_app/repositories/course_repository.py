@@ -3,6 +3,11 @@ from typing import Any
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Avg, Count, F
 
+from rating_app.constants import (
+    DEFAULT_COURSE_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+    MIN_PAGE_SIZE,
+)
 from rating_app.models import Course
 
 
@@ -31,8 +36,8 @@ class CourseRepository:
         speciality: str | None = None,
         avg_difficulty_order: str | None = None,
         avg_usefulness_order: str | None = None,
-        page_size: int = 20,
-        page_number: int = 1,
+        page_size: int = DEFAULT_COURSE_PAGE_SIZE,
+        page_number: int = MIN_PAGE_SIZE,
     ) -> dict[str, Any]:
         """
         Returns a paginated result:
@@ -104,8 +109,10 @@ class CourseRepository:
         courses = courses.distinct()
 
         # guardrails
-        page_size = max(1, min(int(page_size or 20), 100))
-        page_number = max(1, int(page_number or 1))
+        page_size = max(
+            MIN_PAGE_SIZE, min(int(page_size or DEFAULT_COURSE_PAGE_SIZE), MAX_PAGE_SIZE)
+        )
+        page_number = max(MIN_PAGE_SIZE, int(page_number or MIN_PAGE_SIZE))
 
         paginator = Paginator(courses, page_size)
         try:
