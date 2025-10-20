@@ -27,7 +27,7 @@ media/
 static/
 
 # Generated API client
-src/webapp/src/lib/api-generated/
+src/webapp/src/lib/api/generated
 
 # Parser
 src/backend/scraper/state
