@@ -46,6 +46,17 @@ def logout_view() -> Callable[[HttpRequest], HttpResponse]:
     return logout
 
 
+@once
+def session_view() -> Callable[[HttpRequest], HttpResponse]:
+    return session
+
+
+@once
+def csrf_token_view() -> Callable[[HttpRequest], HttpResponse]:
+    return csrf_token
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -62,6 +73,16 @@ def rest_urlpatterns() -> list:
             "auth/logout/",
             logout_view(),
             name="logout",
+        ),
+        path(
+            "auth/session/",
+            session_view(),
+            name="session",
+        ),
+        path(
+            "auth/csrf/",
+            csrf_token_view(),
+            name="csrf-token",
         ),
         path(
             "courses/",

@@ -4,6 +4,27 @@ info:
   version: 1.0.0
   description: An API for rating UKMA courses and professors
 paths:
+  /api/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      description:
+        "Returns a CSRF token for use with session-based authentication.
+        The token should be included in the 'X-CSRFToken' header for subsequent
+        POST requests that require CSRF protection. Version: v1."
+      summary: Get CSRF Token
+      tags:
+        - auth
+      security:
+        - cookieAuth: []
+        - tokenAuth: []
+        - {}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CSRFToken"
+          description: CSRF token
   /api/v1/auth/login/:
     post:
       operationId: auth_login_create
@@ -142,6 +163,38 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+  /api/v1/auth/session/:
+    get:
+      operationId: auth_session_retrieve
+      description:
+        "Returns current authentication session information. Responds with
+        200 and user data when authenticated, or 401 when no active session. Version:
+        v1."
+      summary: Session state
+      tags:
+        - auth
+      security:
+        - cookieAuth: []
+        - tokenAuth: []
+        - {}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+          description: Session state
         "401":
           content:
             application/json:
@@ -837,6 +890,14 @@ paths:
           description: Not found
 components:
   schemas:
+    CSRFToken:
+      type: object
+      properties:
+        csrf_token:
+          type: string
+          maxLength: 64
+      required:
+        - csrf_token
     CourseDetail:
       type: object
       properties:
@@ -1125,6 +1186,36 @@ components:
         - student_id
         - student_name
         - usefulness
+    Session:
+      type: object
+      properties:
+        is_authenticated:
+          type: boolean
+        user:
+          allOf:
+            - $ref: "#/components/schemas/SessionUser"
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - is_authenticated
+        - user
+    SessionUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+      required:
+        - id
     SpecialityWithKindPayload:
       type: object
       description:
