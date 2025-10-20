@@ -1,14 +1,8 @@
 from rest_framework import serializers
 
 from rating_app.models import Course, Department
-from rating_app.models.choices import CourseTypeKind
 
 from .course_speciality import CourseSpecialityInlineSerializer
-
-
-class SpecialityWithKindPayload(serializers.Serializer):
-    speciality = serializers.UUIDField()
-    type_kind = serializers.ChoiceField(choices=CourseTypeKind.choices)
 
 
 class CourseListSerializer(serializers.ModelSerializer):

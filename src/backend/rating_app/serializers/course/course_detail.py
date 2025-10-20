@@ -4,9 +4,8 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from rating_app.models import Course, CourseSpeciality, Department, Rating
-from rating_app.models.choices import CourseTypeKind
 
-from .course_speciality import CourseSpecialityInlineSerializer
+from .course_speciality import CourseSpecialityInlineSerializer, SpecialityWithKindPayload
 
 
 class RatingInlineSerializer(serializers.ModelSerializer):
@@ -54,11 +53,6 @@ class RatingInlineSerializer(serializers.ModelSerializer):
         if hasattr(obj, "course_offering") and obj.course_offering and obj.course_offering.semester:
             return str(obj.course_offering.semester)
         return None
-
-
-class SpecialityWithKindPayload(serializers.Serializer):
-    speciality = serializers.UUIDField()
-    type_kind = serializers.ChoiceField(choices=CourseTypeKind.choices)
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):
