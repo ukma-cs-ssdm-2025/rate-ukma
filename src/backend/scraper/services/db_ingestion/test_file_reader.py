@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -45,3 +46,21 @@ def test_reads_valid_json_line(
     assert len(courses) == 1
     assert isinstance(courses[0], DeduplicatedCourse)
     assert courses[0] == valid_course_data
+
+
+def test_skips_invalid_json(
+    file_reader: CourseFileReader,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    valid_course_data: DeduplicatedCourse,
+):
+    # Arrange
+    file = tmp_path / "courses.jsonl"
+    file.write_text(json.dumps(valid_course_data.model_dump_json()) + "\nInvalid JSON line\n")
+
+    # Act
+    courses = file_reader.provide(file)
+
+    # Assert
+    assert len(courses) == 1
+    assert "json_decode_error" in caplog.text
