@@ -53,6 +53,10 @@ class RatingService:
         )
 
     def update_rating(self, rating_id, **update_data):
+        if "student" in update_data:
+            raise ValueError("Updating the 'student' field is not allowed.")
+        if "course_offering" in update_data:
+            raise ValueError("Updating the 'course_offering' field is not allowed.")
         rating = self.rating_repository.get_by_id(rating_id)
         return self.rating_repository.update(rating, **update_data)
 

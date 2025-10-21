@@ -178,14 +178,19 @@ class RatingViewSet(viewsets.ViewSet):
 
             serializer = RatingCreateUpdateSerializer(rating, data=request.data, partial=False)
             serializer.is_valid(raise_exception=True)
+            update_data = dict(serializer.validated_data)  # type: ignore[arg-type]
+            update_data.pop("course_offering", None)
+            update_data.pop("student", None)
             rating = self.rating_service.update_rating(
                 rating_id=rating_id,
-                **serializer.validated_data,  # type: ignore[arg-type]
+                **update_data,
             )
             response_serializer = RatingReadSerializer(rating)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         except Rating.DoesNotExist as exc:
             raise NotFound("Rating not found") from exc
+        except (ValueError, TypeError) as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         summary="Partially update a rating",
@@ -207,8 +212,20 @@ class RatingViewSet(viewsets.ViewSet):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
+            # Guard against immutable fields
+            immutable_fields = {"student", "course_offering"}
+            disallowed = immutable_fields.intersection(request.data.keys())
+            if disallowed:
+                return Response(
+                    {"detail": f"Cannot update immutable field(s): {', '.join(disallowed)}."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             serializer = RatingCreateUpdateSerializer(rating, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
+            try:
+                serializer.is_valid(raise_exception=True)
+            except Exception as exc:
+                # If serializer error is about disallowed fields, return 400
+                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
             rating = self.rating_service.update_rating(
                 rating_id=rating_id,
                 **serializer.validated_data,  # type: ignore[arg-type]

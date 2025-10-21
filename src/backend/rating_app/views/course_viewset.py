@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from ..constants import DEFAULT_COURSE_PAGE_SIZE, DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
+from ..constants import DEFAULT_COURSE_PAGE_SIZE, DEFAULT_PAGE_NUMBER
 from ..filters import CourseFilters
 from ..ioc_container.services import course_service
 from ..models import Course
@@ -103,7 +103,7 @@ class CourseViewSet(viewsets.ViewSet):
                 name="page_size",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description=f"Items per page (default: {DEFAULT_PAGE_SIZE})",
+                description=f"Items per page (default: {DEFAULT_COURSE_PAGE_SIZE})",
                 required=False,
             ),
         ],
