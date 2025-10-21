@@ -48,8 +48,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: ${{ env.BACKEND_DIR }}/htmlcov
-          path: ${{ env.BACKEND_DIR }}/coverage.xml
+          path: |
+            ${{ env.BACKEND_DIR }}/htmlcov
+            ${{ env.BACKEND_DIR }}/coverage.xml
           retention-days: 7
 
       - name: Ensure coverage file exists
