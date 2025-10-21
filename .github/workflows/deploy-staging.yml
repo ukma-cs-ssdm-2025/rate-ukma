@@ -21,10 +21,6 @@ on:
         required: true
       SSH_KEY:
         required: true
-  workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   deploy:
