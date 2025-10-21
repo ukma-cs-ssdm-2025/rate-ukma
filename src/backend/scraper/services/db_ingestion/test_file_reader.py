@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import pytest
@@ -56,7 +55,7 @@ def test_skips_invalid_json(
 ):
     # Arrange
     file = tmp_path / "courses.jsonl"
-    file.write_text(json.dumps(valid_course_data.model_dump_json()) + "\nInvalid JSON line\n")
+    file.write_text(valid_course_data.model_dump_json() + "\n" + "Invalid JSON line\n")
 
     # Act
     courses = file_reader.provide(file)

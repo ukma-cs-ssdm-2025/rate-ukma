@@ -1,10 +1,15 @@
 import json
 from pathlib import Path
 
+import structlog
+from pydantic import ValidationError
+
 from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IProvider
 
 from ...models import DeduplicatedCourse
+
+logger = structlog.get_logger()
 
 
 class CourseFileReader(IProvider[[Path], list[DeduplicatedCourse]]):
@@ -16,7 +21,16 @@ class CourseFileReader(IProvider[[Path], list[DeduplicatedCourse]]):
         courses = []
         with file_path.open("r", encoding="utf-8") as f:
             for line in f:
-                data = json.loads(line)
-                courses.append(DeduplicatedCourse.model_validate(data))
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    logger.error("json_decode_error", line=line)
+                    continue
+
+                try:
+                    courses.append(DeduplicatedCourse.model_validate(data))
+                except ValidationError:
+                    logger.error("validation_error", line=line)
+                    continue
 
         return courses
