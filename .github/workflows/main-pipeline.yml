@@ -1,4 +1,4 @@
-name: Main Pipeline
+name: Staging Build
 on:
   push:
     branches:

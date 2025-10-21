@@ -1,9 +1,8 @@
 # Rate UKMA
 
 [![Tests](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml)
-[![Build](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/build.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/build.yml)
-[![Deploy Staging](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-staging.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-staging.yml)
-[![Deploy Live](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-live.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/deploy-live.yml)
+[![Deploy Staging](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/main-pipeline.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/main-pipeline.yml)
+[![Deploy Live](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/prod-pipeline.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/prod-pipeline.yml)
 [![OpenAPI validation](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/openapi-validation.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/openapi-validation.yml)
 [![Tests Coverage](coverage.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml)
 

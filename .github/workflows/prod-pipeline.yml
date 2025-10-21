@@ -1,4 +1,4 @@
-name: Prod Pipeline
+name: Live Build
 on:
   workflow_dispatch:
     inputs:
