@@ -2,6 +2,25 @@ name: Deploy Staging
 
 on:
   workflow_call:
+    inputs:
+        environment:
+          required: true
+          type: string
+        archive_name:
+          required: true
+          type: string
+        deployment_ref:
+          description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
+          required: false
+          type: string
+          default: ""
+    secrets:
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_KEY:
+        required: true
   workflow_dispatch:
   push:
     branches:
