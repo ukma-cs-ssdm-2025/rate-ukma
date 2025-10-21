@@ -259,6 +259,16 @@ paths:
           type: integer
         description: 'Items per page (default: 10)'
       - in: query
+        name: semesterTerm
+        schema:
+          type: string
+        description: Filter by semester term (FALL, SPRING, SUMMER)
+      - in: query
+        name: semesterYear
+        schema:
+          type: integer
+        description: Filter by semester year
+      - in: query
         name: speciality
         schema:
           type: string
