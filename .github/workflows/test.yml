@@ -45,7 +45,7 @@ jobs:
       - name: Run tests with pytest and coverage
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run pytest --cov=. --cov-report=html --cov-report=xml
+          uv run pytest --cov=. --cov-report=html --cov-report=xml --junitxml=junit.xml
           EXIT_CODE=$?
           
           if [ $EXIT_CODE -eq 5 ]; then
@@ -63,7 +63,17 @@ jobs:
           path: |
             ${{ env.BACKEND_DIR }}/htmlcov
             ${{ env.BACKEND_DIR }}/coverage.xml
+            ${{ env.BACKEND_DIR }}/junit.xml
           retention-days: 7
+
+      - name: PR coverage comment
+        if: success() && github.event_name == 'pull_request'
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-coverage-path: ${{ env.BACKEND_DIR }}/coverage.xml
+          junitxml-path: ${{ env.BACKEND_DIR }}/junit.xml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate coverage badge
         if: success()
