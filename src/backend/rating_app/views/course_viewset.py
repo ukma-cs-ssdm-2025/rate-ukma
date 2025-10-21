@@ -133,9 +133,11 @@ class CourseViewSet(viewsets.ViewSet):
         page = result.page or 1
         total_pages = result.total or 1
 
+        filters_dict = result.filters.__dict__ if result.filters else {}
+
         response_data = {
             "results": self.serializer_class(result.items, many=True).data,
-            "filters": result.filters or {},
+            "filters": filters_dict,
             "page": page,
             "page_size": result.page_size,
             "total": result.total,
