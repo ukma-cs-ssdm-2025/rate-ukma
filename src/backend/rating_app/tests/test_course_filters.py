@@ -51,3 +51,20 @@ def test_filter_by_semester_limits_to_matching_courses():
     returned_ids = {course.id for course in result["items"]}
 
     assert returned_ids == {fall_course.id}
+
+
+@pytest.mark.django_db
+def test_filter_prefetches_instructors(django_assert_num_queries):
+    repo = CourseRepository()
+
+    for _ in range(3):
+        course = CourseFactory()
+        offering = CourseOfferingFactory(course=course)
+        CourseInstructorFactory(course_offering=offering)
+
+    result = repo.filter()
+
+    with django_assert_num_queries(0):
+        for course in result["items"]:
+            for offering in course.offerings.all():
+                list(offering.instructors.all())
