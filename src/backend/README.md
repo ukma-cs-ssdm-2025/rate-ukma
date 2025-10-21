@@ -80,6 +80,18 @@ pytest
 docker exec -it <backend_container_name> pytest
 ```
 
+To generate an HTML coverage report:
+
+```bash
+# Local
+pytest --cov=rateukma --cov-report=html
+
+# Docker
+docker exec -it <backend_container_name> pytest --cov=rateukma --cov-report=html
+```
+
+Note: the default behavior remains to print the coverage report in the terminal
+
 ### Code Quality
 
 ```bash
