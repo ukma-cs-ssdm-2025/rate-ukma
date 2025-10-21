@@ -1,7 +1,13 @@
 name: Tests
 on:
   push:
+    branches:
+      - main
+    tags:
+      - 'v*'
   pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
@@ -44,10 +50,6 @@ jobs:
           else
               exit $EXIT_CODE
           fi
-
-      - name: Move coverage.xml to repo root for coverage comment
-        if: success()
-        run: mv ${{ env.BACKEND_DIR }}/coverage.xml coverage.xml
 
       - name: Store coverage report
         if: success()
