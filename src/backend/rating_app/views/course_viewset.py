@@ -6,6 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from rating_app.models import Course
+from rating_app.models.choices import SemesterTerm
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.services.course_service import CourseService
 
@@ -77,6 +78,20 @@ class CourseViewSet(viewsets.ViewSet):
                 required=False,
             ),
             OpenApiParameter(
+                name="semesterYear",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Filter by semester year",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="semesterTerm",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter by semester term (FALL, SPRING, SUMMER)",
+                required=False,
+            ),
+            OpenApiParameter(
                 name="speciality",
                 type=OpenApiTypes.UUID,
                 location=OpenApiParameter.QUERY,
@@ -124,6 +139,22 @@ class CourseViewSet(viewsets.ViewSet):
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")
         avg_usefulness_order = request.query_params.get("avg_usefulness_order")
 
+        semester_year_raw = request.query_params.get("semesterYear")
+        semester_year = None
+        if semester_year_raw is not None:
+            try:
+                semester_year = int(semester_year_raw)
+            except (ValueError, TypeError):
+                semester_year = None
+
+        semester_term = request.query_params.get("semesterTerm")
+        if semester_term:
+            normalized_term = semester_term.upper()
+            if normalized_term in SemesterTerm.values:
+                semester_term = normalized_term
+            else:
+                semester_term = None
+
         result = self.course_service.filter_courses(
             page=page,
             page_size=page_size,
@@ -132,6 +163,8 @@ class CourseViewSet(viewsets.ViewSet):
             instructor=request.query_params.get("instructor"),
             faculty=request.query_params.get("faculty"),
             department=request.query_params.get("department"),
+            semester_year=semester_year,
+            semester_term=semester_term,
             speciality=request.query_params.get("speciality"),
             avg_difficulty_order=avg_difficulty_order,
             avg_usefulness_order=avg_usefulness_order,

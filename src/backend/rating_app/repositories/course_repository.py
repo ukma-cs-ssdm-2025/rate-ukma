@@ -32,6 +32,8 @@ class CourseRepository:
         instructor: str | None = None,
         faculty: str | None = None,
         department: str | None = None,
+        semester_year: int | None = None,
+        semester_term: str | None = None,
         speciality: str | None = None,
         avg_difficulty_order: str | None = None,
         avg_usefulness_order: str | None = None,
@@ -68,6 +70,10 @@ class CourseRepository:
             filters["department_id"] = department
         if instructor:
             filters["offerings__instructors__id"] = instructor
+        if semester_year is not None:
+            filters["offerings__semester__year"] = semester_year
+        if semester_term:
+            filters["offerings__semester__term"] = semester_term
 
         courses = courses.filter(**filters)
 
