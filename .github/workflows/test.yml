@@ -6,8 +6,6 @@ on:
     tags:
       - 'v*'
   pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 env:
@@ -17,6 +15,7 @@ env:
 
 jobs:
   test:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -51,12 +50,6 @@ jobs:
               exit $EXIT_CODE
           fi
 
-      - name: Move coverage artifacts to repo root for coverage comment
-        if: success()
-        run: |
-          mv ${{ env.BACKEND_DIR }}/coverage.xml coverage.xml
-          mv ${{ env.BACKEND_DIR }}/.coverage .coverage
-
       - name: Store coverage report
         if: success()
         uses: actions/upload-artifact@v4
@@ -67,10 +60,26 @@ jobs:
             ${{ env.BACKEND_DIR }}/coverage.xml
           retention-days: 7
 
-      - name: Coverage comment
-        if: success() && github.event_name == 'pull_request'
-        uses: py-cov-action/python-coverage-comment-action@v3
+      - name: Generate coverage badge
+        if: success()
+        uses: tj-actions/coverage-badge-py@v2
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MINIMUM_GREEN: 90
-          MINIMUM_ORANGE: 70
+          output: coverage.svg
+          input: coverage.xml
+
+      - name: Upload coverage badge artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-badge
+          path: coverage.svg
+          retention-days: 7
+
+      - name: Commit coverage badge to repo (current branch)
+        if: success()
+        uses: EndBug/add-and-commit@v9.1.4
+        with:
+          add: |
+            coverage.svg
+          message: "chore(ci): update coverage badge"
+          default_author: github_actions
