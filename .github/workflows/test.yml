@@ -1,18 +1,33 @@
 name: Tests
 on:
   push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
   workflow_dispatch:
 
 env:
   PYTHON_VERSION: "3.12"
   BACKEND_DIR: src/backend
   SRC_DIR: src
+  BRANCH: ${{ github.head_ref || github.ref_name }}
+  COVERAGE_BADGE_FILE: coverage.svg
+  BADGE_COMMIT_MESSAGE: "chore(ci): update coverage badge"
 
 jobs:
   test:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ env.BRANCH }}
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v7
@@ -27,10 +42,10 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: uv sync --extra test
 
-      - name: Run tests with pytest
+      - name: Run tests with pytest and coverage
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run pytest
+          uv run pytest --cov=. --cov-report=html --cov-report=xml --junitxml=junit.xml
           EXIT_CODE=$?
           
           if [ $EXIT_CODE -eq 5 ]; then
@@ -39,3 +54,41 @@ jobs:
           else
               exit $EXIT_CODE
           fi
+
+      - name: Store coverage report
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            ${{ env.BACKEND_DIR }}/htmlcov
+            ${{ env.BACKEND_DIR }}/coverage.xml
+            ${{ env.BACKEND_DIR }}/junit.xml
+          retention-days: 7
+
+      - name: PR coverage comment
+        if: success() && github.event_name == 'pull_request'
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-coverage-path: ${{ env.BACKEND_DIR }}/coverage.xml
+          junitxml-path: ${{ env.BACKEND_DIR }}/junit.xml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate coverage badge
+        if: success()
+        uses: tj-actions/coverage-badge-py@v2
+        with:
+          working-directory: ${{ env.BACKEND_DIR }}
+          output: ${{ github.workspace }}/${{ env.COVERAGE_BADGE_FILE }}
+          overwrite: true
+
+      - name: Commit coverage badge to repo (current branch)
+        if: success()
+        uses: EndBug/add-and-commit@v9.1.4
+        with:
+          add: |
+            ${{ env.COVERAGE_BADGE_FILE }}
+          message: ${{ env.BADGE_COMMIT_MESSAGE }}
+          default_author: github_actions
+          github_token: ${{ secrets.GITHUB_TOKEN }}
