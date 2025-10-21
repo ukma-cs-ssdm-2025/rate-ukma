@@ -70,18 +70,15 @@ def test_login_invalid_credentials(mock_authenticate, api_client):
 
 @pytest.mark.django_db
 @patch("rating_app.views.auth.django_logout")
-@patch("rating_app.views.auth.redirect")
-def test_logout_redirects(mock_redirect, mock_logout, api_client):
+def test_logout_successful(mock_logout, api_client):
     # Arrange
     url = reverse("logout")
-    expected_redirect_url = "/accounts/logout/"
-    mock_redirect.return_value = HttpResponseRedirect(expected_redirect_url)
     api_client.force_authenticate(user=MagicMock())
 
     # Act
     response = api_client.post(url)
 
     # Assert
-    assert response.status_code == status.HTTP_302_FOUND
-    assert response.url == expected_redirect_url
-    mock_redirect.assert_called_once_with(expected_redirect_url)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["detail"] == "Successfully logged out"
+    mock_logout.assert_called_once()
