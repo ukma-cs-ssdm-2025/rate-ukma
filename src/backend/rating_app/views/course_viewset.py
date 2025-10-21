@@ -56,6 +56,13 @@ class CourseViewSet(viewsets.ViewSet):
                 required=False,
             ),
             OpenApiParameter(
+                name="instructor",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description="Filter by instructor ID",
+                required=False,
+            ),
+            OpenApiParameter(
                 name="faculty",
                 type=OpenApiTypes.UUID,
                 location=OpenApiParameter.QUERY,
@@ -122,6 +129,7 @@ class CourseViewSet(viewsets.ViewSet):
             page_size=page_size,
             name=request.query_params.get("name"),
             type_kind=request.query_params.get("typeKind"),
+            instructor=request.query_params.get("instructor"),
             faculty=request.query_params.get("faculty"),
             department=request.query_params.get("department"),
             speciality=request.query_params.get("speciality"),

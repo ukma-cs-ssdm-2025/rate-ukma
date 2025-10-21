@@ -26,6 +26,7 @@ class CourseRepository:
         self,
         name: str | None = None,
         type_kind: str | None = None,
+        instructor: str | None = None,
         faculty: str | None = None,
         department: str | None = None,
         speciality: str | None = None,
@@ -67,6 +68,8 @@ class CourseRepository:
 
         if type_kind:
             courses = courses.filter(course_specialities__type_kind=type_kind)
+        if instructor:
+            courses = courses.filter(offerings__instructors__id=instructor)
         if speciality:
             courses = courses.filter(course_specialities__speciality_id=speciality)
 
