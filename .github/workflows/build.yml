@@ -17,6 +17,10 @@ on:
 
 env:
   SOURCE_CODE_DIR: src
+  STATIC_ROOT: ./static
+  MEDIA_ROOT: ./media
+  POSTGRES_PORT: "5432"
+  COMPOSE_PROJECT_NAME: rate-ukma
 
 jobs:
   docker-build:
@@ -25,10 +29,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Copy default .env file
+      - name: Copy default .env file if present
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          cp .env.sample .env
+          if [ -f .env.sample ]; then
+            cp .env.sample .env
+          else
+            echo ".env.sample not found; using environment variables provided by the workflow."
+          fi
 
       - name: Build backend and frontend images
         working-directory: ${{ env.SOURCE_CODE_DIR }}

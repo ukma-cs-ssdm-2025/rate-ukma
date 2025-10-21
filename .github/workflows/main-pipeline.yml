@@ -19,8 +19,6 @@ jobs:
   build:
     needs: [test, openapi-validation, audit]
     uses: ./.github/workflows/build.yml
-    with:
-      profile: "prod"
 
   deploy-staging:
     needs: [test, openapi-validation, audit, build]
