@@ -21,6 +21,7 @@ class CourseService:
         page_size: int,
         name: str | None = None,
         type_kind: str | None = None,
+        instructor: str | None = None,
         faculty: str | None = None,
         department: str | None = None,
         speciality: str | None = None,
@@ -30,6 +31,7 @@ class CourseService:
         return self.course_repository.filter(
             name=name,
             type_kind=type_kind,
+            instructor=instructor,
             faculty=faculty,
             department=department,
             speciality=speciality,
