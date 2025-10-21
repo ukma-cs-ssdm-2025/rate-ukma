@@ -33,7 +33,8 @@ jobs:
       - name: Run tests with pytest and coverage
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run pytest --cov=. --cov-report=html --cov-report=xml
+          export PYTHONPATH=${{ env.BACKEND_DIR }}
+          uv run pytest
           EXIT_CODE=$?
           
           if [ $EXIT_CODE -eq 5 ]; then
@@ -52,13 +53,6 @@ jobs:
             ${{ env.BACKEND_DIR }}/htmlcov
             ${{ env.BACKEND_DIR }}/coverage.xml
           retention-days: 7
-
-      - name: Ensure coverage file exists
-        working-directory: ${{ env.BACKEND_DIR }}
-        run: |
-          coverage report
-          coverage json -o coverage.json
-          ls -la
 
       - name: Coverage comment
         uses: py-cov-action/python-coverage-comment-action@v3
