@@ -39,12 +39,12 @@ def test_reads_valid_json_line(
     file.write_text(valid_course_data.model_dump_json() + "\n")
 
     # Act
-    courses = file_reader.provide(file)
+    batches = list(file_reader.provide(file))
 
     # Assert
-    assert len(courses) == 1
-    assert isinstance(courses[0], DeduplicatedCourse)
-    assert courses[0] == valid_course_data
+    assert len(batches[0]) == 1
+    assert isinstance(batches[0][0], DeduplicatedCourse)
+    assert batches[0][0] == valid_course_data
 
 
 def test_skips_invalid_json(
@@ -58,10 +58,12 @@ def test_skips_invalid_json(
     file.write_text(valid_course_data.model_dump_json() + "\n" + "Invalid JSON line\n")
 
     # Act
-    courses = file_reader.provide(file)
+    batches = list(file_reader.provide(file))
 
     # Assert
-    assert len(courses) == 1
+    assert len(batches[0]) == 1
+    assert isinstance(batches[0][0], DeduplicatedCourse)
+    assert batches[0][0] == valid_course_data
     assert "json_decode_error" in caplog.text
 
 
@@ -73,7 +75,7 @@ def test_batches_by_size(
     file.write_text("\n".join(valid_course_data.model_dump_json() for _ in range(5)))
 
     # Act
-    batches = file_reader.provide(file, batch_size=2)
+    batches = list(file_reader.provide(file, batch_size=2))
 
     # Assert
     assert len(batches) == 3
