@@ -1,0 +1,27 @@
+name: Main Pipeline
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  openapi-validation:
+    uses: ./.github/workflows/openapi-validation.yml
+
+  audit:
+    uses: ./.github/workflows/audit.yml
+
+  build:
+    needs: [test, openapi-validation, audit]
+    uses: ./.github/workflows/build.yml
+    with:
+      profile: "prod"
+
+  deploy-staging:
+    needs: [test, openapi-validation, audit, build]
+    uses: ./.github/workflows/deploy-staging.yml

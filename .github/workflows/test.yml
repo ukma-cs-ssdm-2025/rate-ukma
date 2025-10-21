@@ -1,12 +1,12 @@
 name: Tests
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
-  pull_request:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      is_pr_run:
+        description: "Indicates this run originated from a PR (from caller)"
+        required: false
+        type: boolean
+        default: false
 
 env:
   PYTHON_VERSION: "3.12"
@@ -67,7 +67,7 @@ jobs:
           retention-days: 7
 
       - name: PR coverage comment
-        if: success() && github.event_name == 'pull_request'
+        if: success() && (github.event_name == 'pull_request' || github.event_name == 'workflow_run' || inputs.is_pr_run == true)
         uses: MishaKav/pytest-coverage-comment@main
         with:
           pytest-coverage-path: ${{ env.BACKEND_DIR }}/coverage.xml
