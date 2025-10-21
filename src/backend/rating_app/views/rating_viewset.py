@@ -11,10 +11,9 @@ from ..constants import (
     DEFAULT_PAGE_SIZE,
 )
 from ..exception.rating_exceptions import DuplicateRatingException
+from ..ioc_container.services import rating_service
 from ..models import Rating, Student
-from ..repositories import EnrollmentRepository, RatingRepository
 from ..serializers import RatingCreateUpdateSerializer, RatingReadSerializer
-from ..services import RatingService
 from .responses import R_NO_CONTENT, R_RATING, R_RATING_CREATE, R_RATING_LIST
 
 logger = structlog.get_logger(__name__)
@@ -27,7 +26,7 @@ class RatingViewSet(viewsets.ViewSet):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.rating_service = RatingService(RatingRepository(), EnrollmentRepository())
+        self.rating_service = rating_service()
 
     def _to_int(self, value: str | None, default: int) -> int:
         if value is None:

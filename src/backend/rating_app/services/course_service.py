@@ -1,12 +1,11 @@
-from typing import Any
-
+from ..filters import CourseFilterPayload, CourseFilters
+from ..ioc_container.repositories import course_repository
 from ..models import Course
-from ..repositories.course_repository import CourseRepository
 
 
 class CourseService:
-    def __init__(self, course_repository: CourseRepository):
-        self.course_repository = course_repository
+    def __init__(self):
+        self.course_repository = course_repository()
 
     def list_courses(self) -> list[Course]:
         return self.course_repository.get_all()
@@ -14,30 +13,8 @@ class CourseService:
     def get_course(self, course_id) -> Course:
         return self.course_repository.get_by_id(course_id)
 
-    def filter_courses(
-        self,
-        *,
-        page: int,
-        page_size: int,
-        name: str | None = None,
-        type_kind: str | None = None,
-        faculty: str | None = None,
-        department: str | None = None,
-        speciality: str | None = None,
-        avg_difficulty_order: str | None = None,
-        avg_usefulness_order: str | None = None,
-    ) -> dict[str, Any]:
-        return self.course_repository.filter(
-            name=name,
-            type_kind=type_kind,
-            faculty=faculty,
-            department=department,
-            speciality=speciality,
-            avg_difficulty_order=avg_difficulty_order,
-            avg_usefulness_order=avg_usefulness_order,
-            page_size=page_size,
-            page_number=page,
-        )
+    def filter_courses(self, filters: CourseFilters) -> CourseFilterPayload:
+        return self.course_repository.filter(filters)
 
     # -- admin functions --
     def create_course(self, **course_data) -> Course:

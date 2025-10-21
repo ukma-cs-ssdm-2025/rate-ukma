@@ -1,15 +1,17 @@
 from typing import Any
 
-from django.core.paginator import EmptyPage, Paginator
+from django.core.paginator import Paginator
 from django.db.models import Avg, Count, F
 
 from rating_app.constants import (
-    DEFAULT_COURSE_PAGE_SIZE,
     DEFAULT_PAGE_NUMBER,
     MAX_PAGE_SIZE,
     MIN_PAGE_SIZE,
 )
 from rating_app.models import Course
+
+from ..filters import CourseFilterPayload
+from ..filters.course_filters import CourseFilters
 
 
 class CourseRepository:
@@ -28,18 +30,7 @@ class CourseRepository:
             .get(id=course_id)
         )
 
-    def filter(
-        self,
-        name: str | None = None,
-        type_kind: str | None = None,
-        faculty: str | None = None,
-        department: str | None = None,
-        speciality: str | None = None,
-        avg_difficulty_order: str | None = None,
-        avg_usefulness_order: str | None = None,
-        page_size: int = DEFAULT_COURSE_PAGE_SIZE,
-        page_number: int = DEFAULT_PAGE_NUMBER,
-    ) -> dict[str, Any]:
+    def filter(self, filters: CourseFilters) -> CourseFilterPayload:
         """
         Returns a paginated result:
             {
@@ -48,6 +39,7 @@ class CourseRepository:
               "page_size": 20,
               "total": 153,
               "total_pages": 8,
+              "filters": CourseFilters(...),
             }
 
         Sorting:
@@ -61,20 +53,20 @@ class CourseRepository:
         )
 
         # Filters
-        filters: dict[str, Any] = {}
-        if name:
-            filters["title__icontains"] = name
-        if faculty:
-            filters["department__faculty_id"] = faculty
-        if department:
-            filters["department_id"] = department
+        q_filters: dict[str, Any] = {}
+        if filters.name:
+            q_filters["title__icontains"] = filters.name
+        if filters.faculty:
+            q_filters["department__faculty_id"] = filters.faculty
+        if filters.department:
+            q_filters["department_id"] = filters.department
 
-        courses = courses.filter(**filters)
+        courses = courses.filter(**q_filters)
 
-        if type_kind:
-            courses = courses.filter(course_specialities__type_kind=type_kind)
-        if speciality:
-            courses = courses.filter(course_specialities__speciality_id=speciality)
+        if filters.type_kind:
+            courses = courses.filter(course_specialities__type_kind=filters.type_kind)
+        if filters.speciality:
+            courses = courses.filter(course_specialities__speciality_id=filters.speciality)
 
         # Always annotate avg ratings (needed by serializer)
         courses = courses.annotate(
@@ -85,16 +77,15 @@ class CourseRepository:
 
         # Sorting logic with nulls last
         order_by_fields = []
-        if avg_difficulty_order in ("asc", "desc"):
-            # Use F expression with nulls_last for proper null handling
+        if filters.avg_difficulty_order:
             field = F("avg_difficulty_annot")
-            if avg_difficulty_order == "asc":
+            if filters.avg_difficulty_order == "asc":
                 order_by_fields.append(field.asc(nulls_last=True))
             else:
                 order_by_fields.append(field.desc(nulls_last=True))
-        if avg_usefulness_order in ("asc", "desc"):
+        if filters.avg_usefulness_order:
             field = F("avg_usefulness_annot")
-            if avg_usefulness_order == "asc":
+            if filters.avg_usefulness_order == "asc":
                 order_by_fields.append(field.asc(nulls_last=True))
             else:
                 order_by_fields.append(field.desc(nulls_last=True))
@@ -110,26 +101,22 @@ class CourseRepository:
         courses = courses.distinct()
 
         # guardrails
-        page_size = max(
-            MIN_PAGE_SIZE, min(int(page_size or DEFAULT_COURSE_PAGE_SIZE), MAX_PAGE_SIZE)
-        )
-        page_number = max(DEFAULT_PAGE_NUMBER, int(page_number or DEFAULT_PAGE_NUMBER))
+        page_size = max(MIN_PAGE_SIZE, min(int(filters.page_size), MAX_PAGE_SIZE))
+        page_number = max(DEFAULT_PAGE_NUMBER, int(filters.page))
 
         paginator = Paginator(courses, page_size)
-        try:
-            page_obj = paginator.page(page_number)
-        except EmptyPage:
-            page_obj = paginator.page(paginator.num_pages)
+        page_obj = paginator.get_page(page_number)
 
         items = list(page_obj.object_list)
 
-        return {
-            "items": items,
-            "page": page_obj.number,
-            "page_size": page_obj.paginator.per_page,
-            "total": paginator.count,
-            "total_pages": paginator.num_pages,
-        }
+        return CourseFilterPayload(
+            items=items,
+            page=page_obj.number,
+            page_size=page_obj.paginator.per_page,
+            total=paginator.count,
+            total_pages=paginator.num_pages,
+            filters=filters,
+        )
 
     def create(self, **course_data) -> Course:
         return Course.objects.create(**course_data)

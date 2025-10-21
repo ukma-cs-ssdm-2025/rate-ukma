@@ -5,11 +5,10 @@ from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from rating_app.models import Course
-from rating_app.repositories.course_repository import CourseRepository
-from rating_app.services.course_service import CourseService
-
 from ..constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
+from ..filters import CourseFilters
+from ..ioc_container.services import course_service
+from ..models import Course
 from ..serializers.course.course_detail import CourseDetailSerializer
 from ..serializers.course.course_list import CourseListSerializer
 from .responses import R_COURSE, R_COURSE_LIST
@@ -22,7 +21,7 @@ class CourseViewSet(viewsets.ViewSet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.course_service = CourseService(CourseRepository())
+        self.course_service = course_service()
 
     def _to_int(self, value: str | None, default: int) -> int:
         if value is None:
@@ -118,9 +117,7 @@ class CourseViewSet(viewsets.ViewSet):
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")
         avg_usefulness_order = request.query_params.get("avg_usefulness_order")
 
-        result = self.course_service.filter_courses(
-            page=page,
-            page_size=page_size,
+        filters = CourseFilters(
             name=request.query_params.get("name"),
             type_kind=request.query_params.get("typeKind"),
             faculty=request.query_params.get("faculty"),
@@ -128,17 +125,20 @@ class CourseViewSet(viewsets.ViewSet):
             speciality=request.query_params.get("speciality"),
             avg_difficulty_order=avg_difficulty_order,
             avg_usefulness_order=avg_usefulness_order,
+            page_size=page_size,
+            page=page,
         )
+        result = self.course_service.filter_courses(filters)
 
-        page = result["page"]
-        total_pages = result["total_pages"]
+        page = result.page or 1
+        total_pages = result.total or 1
 
         response_data = {
-            "results": self.serializer_class(result["items"], many=True).data,
-            "filters": result.get("filters", {}),
+            "results": self.serializer_class(result.items, many=True).data,
+            "filters": result.filters or {},
             "page": page,
-            "page_size": result.get("page_size") or result.get("per_page"),
-            "total": result["total"],
+            "page_size": result.page_size,
+            "total": result.total,
             "next": page + 1 if page < total_pages else None,
             "previous": page - 1 if page > 1 else None,
         }

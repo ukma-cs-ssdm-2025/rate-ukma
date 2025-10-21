@@ -2,17 +2,13 @@ from typing import Any
 
 from ..constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
 from ..exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
-from ..repositories import EnrollmentRepository, RatingRepository
+from ..ioc_container.repositories import enrollment_repository, rating_repository
 
 
 class RatingService:
-    def __init__(
-        self,
-        rating_repository: RatingRepository,
-        enrollment_repository: EnrollmentRepository,
-    ):
-        self.rating_repository = rating_repository
-        self.enrollment_repository = enrollment_repository
+    def __init__(self):
+        self.rating_repository = rating_repository()
+        self.enrollment_repository = enrollment_repository()
 
     def create_rating(self, **rating_data):
         student_id = rating_data.get("student_id")

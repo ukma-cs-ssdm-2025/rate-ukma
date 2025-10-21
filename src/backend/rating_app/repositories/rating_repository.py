@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.core.paginator import EmptyPage, Paginator
+from django.core.paginator import Paginator
 
 from rating_app.models import Rating
 
@@ -65,11 +65,7 @@ class RatingRepository:
         page_number = max(DEFAULT_PAGE_NUMBER, int(page_number or DEFAULT_PAGE_NUMBER))
 
         paginator = Paginator(ratings, page_size)
-
-        try:
-            page_obj = paginator.page(page_number)
-        except EmptyPage:
-            page_obj = paginator.page(paginator.num_pages)
+        page_obj = paginator.get_page(page_number)
 
         items = list(page_obj.object_list)
         return {
