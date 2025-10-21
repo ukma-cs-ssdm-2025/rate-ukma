@@ -30,9 +30,9 @@ jobs:
       archive_name: "rate-ukma-live.tar.gz"
       deployment_ref: ${{ inputs.deployment_ref }}
     secrets:
-      SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
-      SSH_USER: ${{ secrets.LIVE_SSH_USER }}
-      SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
 
   create_release:
     name: Create Tag and Release
