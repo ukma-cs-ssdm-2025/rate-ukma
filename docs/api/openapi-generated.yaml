@@ -238,6 +238,12 @@ paths:
           format: uuid
         description: Filter by faculty ID
       - in: query
+        name: instructor
+        schema:
+          type: string
+          format: uuid
+        description: Filter by instructor ID
+      - in: query
         name: name
         schema:
           type: string
