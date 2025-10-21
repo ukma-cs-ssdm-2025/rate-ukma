@@ -1,5 +1,5 @@
 import threading
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Collection
 from typing import Any, ParamSpec, TypeVar
 
 from .decorators import implements
@@ -173,15 +173,3 @@ class EventBus(IEventBus[_T]):
     def publish(self, event: _T, *args: Any, **kwargs: Any) -> None:
         for listener in self.listeners:
             listener.on_event(event, *args, **kwargs)
-
-
-class ProviderChain(IProvider[Any, Any]):
-    def __init__(self, providers: Sequence[IProvider[Any, Any]]):
-        self.providers = providers
-
-    @implements
-    def provide(self, *args: Any, **kwargs: Any) -> Any | None:
-        result = None
-        for provider in self.providers:
-            result = provider.provide(*args, **kwargs)
-        return result

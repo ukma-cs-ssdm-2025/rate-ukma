@@ -1,7 +1,7 @@
 import json
 from collections.abc import Generator
 from pathlib import Path
-from typing import TypeVar
+from typing import Generic, TypeVar
 
 import structlog
 from pydantic import BaseModel, ValidationError
@@ -13,13 +13,14 @@ from ...models import DeduplicatedCourse
 
 logger = structlog.get_logger(__name__)
 
-
 _T = TypeVar("_T", bound=BaseModel)
 
 
-class IFileReader(IProvider[[Path | str, int], Generator[list[_T], None, None]]):
+class IFileReader(IProvider[[Path, int], Generator[list[_T], None, None]], Generic[_T]):
+    _is_protocol = True
+
     def provide(
-        self, file_path: Path | str, batch_size: int = 100
+        self, file_path: Path, batch_size: int = 100
     ) -> Generator[list[_T], None, None]: ...
 
 
@@ -28,7 +29,7 @@ class CourseFileReader(IFileReader[DeduplicatedCourse]):
 
     @implements
     def provide(
-        self, file_path: Path | str, batch_size: int = 100
+        self, file_path: Path, batch_size: int = 100
     ) -> Generator[list[DeduplicatedCourse], None, None]:
         file_path = Path(file_path) if isinstance(file_path, str) else file_path
         self._validate_file(file_path)
@@ -39,12 +40,17 @@ class CourseFileReader(IFileReader[DeduplicatedCourse]):
         batch: list[DeduplicatedCourse] = []
 
         with file_path.open("r", encoding="utf-8") as file:
-            for line in file:
-                line = self._read_line(line, line_num)
-                course = self._read_course(line)
+            for raw_line in file:
+                line_num += 1
+                course_raw_data = self._read_line(raw_line)
+                if not course_raw_data:
+                    continue
+
+                course = self._read_course(course_raw_data)
                 if not course:
-                    # currently skipping invalid by default
-                    logger.warning("invalid_course", line=line, line_num=line_num)
+                    logger.warning(
+                        "invalid_course", data=course_raw_data, line_num=line_num, skipped=True
+                    )
                     invalid_count += 1
                     continue
 
@@ -67,46 +73,35 @@ class CourseFileReader(IFileReader[DeduplicatedCourse]):
             invalid_records=invalid_count,
         )
 
-    def _read_line(self, line: str, line_num: int) -> str | None:
-        line_num += 1
+    def _read_line(self, line: str) -> dict | None:
         stripped_line = line.strip()
-        return stripped_line
-
-    def _read_course(self, line: str | None) -> DeduplicatedCourse | None:
-        if not line:
+        if not stripped_line:
             return None
 
         try:
-            data = json.loads(line)
-            return DeduplicatedCourse.model_validate(data)
+            return json.loads(stripped_line)
         except json.JSONDecodeError as e:
-            logger.error(
-                "json_decode_error",
-                line=line,
-                error=str(e),
-            )
+            logger.error("json_decode_error", line=line, error=str(e))
             return None
+
+    def _read_course(self, data: dict) -> DeduplicatedCourse | None:
+        try:
+            return DeduplicatedCourse.model_validate(data)
         except ValidationError as e:
-            logger.error(
-                "validation_error",
-                line=line,
-                error=str(e),
-            )
+            logger.error("validation_error", data=data, error=str(e))
             return None
 
-    def _validate_file(self, file_path: Path | str) -> None:
-        # TODO: format logging
+    def _validate_file(self, file_path: Path) -> None:
         logger.info("validating_file", file_path=str(file_path))
-
-        file_path = Path(file_path) if isinstance(file_path, str) else file_path
-
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
+
         if not file_path.is_file():
             raise ValueError(f"Path is not a file: {file_path}")
+
         if file_path.suffix.lower() not in [".jsonl", ".json"]:
-            logger.warning(
-                "file_format_warning",
+            logger.error(
+                "file_format_mismatch",
                 path=str(file_path),
-                message="Expected .jsonl or .json extension",
+                expected_extension=".jsonl or .json",
             )

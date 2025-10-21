@@ -13,8 +13,6 @@ def course_db_injector() -> CourseDbInjector:
 
 def courses_delta_ingestion() -> CoursesDeltaIngestion:
     return CoursesDeltaIngestion(
-        [
-            course_file_reader(),
-            course_db_injector(),
-        ]
+        course_file_reader(),
+        course_db_injector(),
     )

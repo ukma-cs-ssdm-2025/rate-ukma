@@ -1,16 +1,18 @@
-from collections.abc import Collection
 from pathlib import Path
-from typing import Any
 
-from rateukma.protocols.artifacts import ProviderChain
-from rateukma.protocols.decorators import implements
-from rateukma.protocols.generic import IProvider
+from rateukma.protocols.artifacts import IOperation, implements
+
+from ...models.deduplicated import DeduplicatedCourse
+from .file_reader import IFileReader
+from .injector import IDbInjector
 
 
-class CoursesDeltaIngestion(ProviderChain):
-    def __init__(self, providers: Collection[IProvider[Any, Any]]):
-        self.providers = providers
+class CoursesDeltaIngestion(IOperation[[Path, int]]):
+    def __init__(self, file_reader: IFileReader[DeduplicatedCourse], db_injector: IDbInjector):
+        self.file_reader = file_reader
+        self.db_injector = db_injector
 
     @implements
-    def provide(self, file_path: Path | str, batch_size: int = 100) -> None:
-        super().provide(file_path, batch_size)
+    def execute(self, file_path: Path, batch_size: int = 100) -> None:
+        for batch in self.file_reader.provide(file_path, batch_size):
+            self.db_injector.execute(batch)

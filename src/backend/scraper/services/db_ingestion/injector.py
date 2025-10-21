@@ -7,7 +7,7 @@ import structlog
 from pydantic import BaseModel
 
 from rateukma.protocols.decorators import implements
-from rateukma.protocols.generic import IProvider
+from rateukma.protocols.generic import IOperation
 from rating_app.models import Course, Department, Speciality
 
 from ...models.deduplicated import DeduplicatedCourse, EducationLevel
@@ -18,19 +18,17 @@ logger = structlog.get_logger(__name__)
 _T = TypeVar("_T", bound=BaseModel, contravariant=True)
 
 
-class IDbInjector(IProvider[[Sequence[_T]], None]):
-    def provide(self, models: Sequence[_T]) -> None: ...
+class IDbInjector(IOperation[[Sequence[_T]]]):
+    _is_protocol = True
+
+    def execute(self, models: Sequence[_T]) -> None: ...
 
 
-# is not a Provider, but an Operation by behavior
-# currently it is a part of a Provider Chain, therefore implementing IProvider protocol
-# can be adjusted in future
-
-
+# TODO: refactor to use models repositories when they are available for reuse
 class CourseDbInjector(IDbInjector):
     @transaction.atomic
     @implements
-    def provide(self, models: Sequence[DeduplicatedCourse]) -> None:
+    def execute(self, models: Sequence[DeduplicatedCourse]) -> None:
         for course_data in models:
             department = self._get_or_create_department(course_data.department, course_data.faculty)
 

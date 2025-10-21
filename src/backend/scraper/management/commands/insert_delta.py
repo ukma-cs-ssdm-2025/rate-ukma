@@ -11,6 +11,7 @@ logger = structlog.get_logger(__name__)
 
 class Command(BaseCommand):
     help = "Insert all updated courses data from file into the database"
+    ingestion_operation = courses_delta_ingestion()
 
     def add_arguments(self, parser):
         parser.add_argument("--file", type=Path, default=None, help="File to insert data from")
@@ -18,9 +19,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         logger.info("insert_delta_started")
-        processor = courses_delta_ingestion()
         file_path = options["file"]
         batch_size = options["batch_size"]
 
-        processor.provide(file_path=file_path, batch_size=batch_size)
+        self.ingestion_operation.execute(file_path=file_path, batch_size=batch_size)
         logger.info("insert_delta_completed")
