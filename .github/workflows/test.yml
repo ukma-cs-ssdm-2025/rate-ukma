@@ -76,7 +76,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate coverage badge
-        if: success()
+        if: success() && github.ref != 'refs/heads/main'
         uses: tj-actions/coverage-badge-py@v2
         with:
           working-directory: ${{ env.BACKEND_DIR }}
@@ -84,7 +84,7 @@ jobs:
           overwrite: true
 
       - name: Commit coverage badge to repo (current branch)
-        if: success()
+        if: success() && github.ref != 'refs/heads/main'
         uses: EndBug/add-and-commit@v9.1.4
         with:
           add: |
