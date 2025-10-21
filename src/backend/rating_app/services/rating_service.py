@@ -14,8 +14,17 @@ class RatingService:
         student_id = rating_data.get("student_id")
         offering_id = rating_data.get("course_offering_id")
 
-        if not isinstance(student_id, str) or not isinstance(offering_id, str):
-            raise ValueError("student_id and course_offering_id must be provided as strings")
+        # Presence checks
+        if student_id is None:
+            raise ValueError("Missing required parameter: student_id")
+        if offering_id is None:
+            raise ValueError("Missing required parameter: course_offering_id")
+
+        # Type checks
+        if not isinstance(student_id, str):
+            raise TypeError("student_id must be a string")
+        if not isinstance(offering_id, str):
+            raise TypeError("course_offering_id must be a string")
 
         # Check if rating already exists
         if self.rating_repository.exists(student_id=student_id, course_offering_id=offering_id):

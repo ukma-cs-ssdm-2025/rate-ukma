@@ -10,7 +10,7 @@ from ..constants import (
     DEFAULT_PAGE_NUMBER,
     DEFAULT_PAGE_SIZE,
 )
-from ..exception.rating_exceptions import DuplicateRatingException
+from ..exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
 from ..ioc_container.services import rating_service
 from ..models import Rating, Student
 from ..serializers import RatingCreateUpdateSerializer, RatingReadSerializer
@@ -79,13 +79,11 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_LIST,
     )
     def list(self, request, course_id=None):
-        student_id = request.query_params.get("student_id")
         page = self._to_int(request.query_params.get("page"), DEFAULT_PAGE_NUMBER)
         page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_PAGE_SIZE)
 
         result = self.rating_service.filter_ratings(
             course_id=course_id,
-            student_id=student_id,
             page_size=page_size,
             page_number=page,
         )
@@ -120,7 +118,9 @@ class RatingViewSet(viewsets.ViewSet):
         serializer = RatingCreateUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        course_offering_id = serializer.validated_data["course_offering"]  # type: ignore
+        # course_offering_id = serializer.validated_data["course_offering"]  # type: ignore
+        co = serializer.validated_data["course_offering"]  # type: ignore
+        course_offering_id = getattr(co, "id", co)
 
         # Create rating through service (handles duplicate and enrollment checks)
         try:
@@ -134,6 +134,11 @@ class RatingViewSet(viewsets.ViewSet):
                 {"detail": str(exc.detail)},
                 status=status.HTTP_409_CONFLICT,
             )
+        except NotEnrolledException as exc:
+            return Response(
+                {"detail": str(exc.detail)},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         response_serializer = RatingReadSerializer(rating)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
@@ -143,7 +148,7 @@ class RatingViewSet(viewsets.ViewSet):
         description="Retrieve a specific rating by ID.",
         responses=R_RATING,
     )
-    def retrieve(self, rating_id=None):
+    def retrieve(self, request, rating_id=None, *args, **kwargs):
         try:
             rating = self.rating_service.get_rating(rating_id)
             serializer = RatingReadSerializer(rating)

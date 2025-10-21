@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from ..constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
+from ..constants import DEFAULT_COURSE_PAGE_SIZE, DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
 from ..filters import CourseFilters
 from ..ioc_container.services import course_service
 from ..models import Course
@@ -111,7 +111,7 @@ class CourseViewSet(viewsets.ViewSet):
     )
     def list(self, request, *args, **kwargs):
         page = self._to_int(request.query_params.get("page"), DEFAULT_PAGE_NUMBER)
-        page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_PAGE_SIZE)
+        page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_COURSE_PAGE_SIZE)
 
         # Handle order parameters
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")

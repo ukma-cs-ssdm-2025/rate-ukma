@@ -13,4 +13,4 @@ def rating_service() -> RatingService:
     return RatingService()
 
 
-__all__ = ["rating_service", "rating_service"]
+__all__ = ["rating_service", "course_service"]
