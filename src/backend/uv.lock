@@ -571,6 +571,30 @@ wheels = [
 ]
 
 [[package]]
+name = "factory-boy"
+version = "3.3.3"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+dependencies = [
+    { name = "faker" },
+]
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/ba/98/75cacae9945f67cfe323829fc2ac451f64517a8a330b572a06a323997065/factory_boy-3.3.3.tar.gz", hash = "sha256:866862d226128dfac7f2b4160287e899daf54f2612778327dd03d0e2cb1e3d03", size = 164146, upload-time = "2025-02-03T09:49:04.433Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/27/8d/2bc5f5546ff2ccb3f7de06742853483ab75bf74f36a92254702f8baecc79/factory_boy-3.3.3-py2.py3-none-any.whl", hash = "sha256:1c39e3289f7e667c4285433f305f8d506efc2fe9c73aaea4151ebd5cdea394fc", size = 37036, upload-time = "2025-02-03T09:49:01.659Z" },
+]
+
+[[package]]
+name = "faker"
+version = "37.11.0"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+dependencies = [
+    { name = "tzdata" },
+]
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/c9/4b/ca43f6bbcef63deb8ac01201af306388670a172587169aab3b192f7490f0/faker-37.11.0.tar.gz", hash = "sha256:22969803849ba0618be8eee2dd01d0d9e2cd3b75e6ff1a291fa9abcdb34da5e6", size = 1935301, upload-time = "2025-10-07T14:49:01.481Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/a3/46/8f4097b55e43af39e8e71e1f7aec59ff7398bca54d975c30889bc844719d/faker-37.11.0-py3-none-any.whl", hash = "sha256:1508d2da94dfd1e0087b36f386126d84f8583b3de19ac18e392a2831a6676c57", size = 1975525, upload-time = "2025-10-07T14:48:58.29Z" },
+]
+
+[[package]]
 name = "filelock"
 version = "3.20.0"
 source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
@@ -1582,6 +1606,7 @@ dev = [
     { name = "bandit" },
     { name = "bandit-sarif-formatter" },
     { name = "coverage" },
+    { name = "factory-boy" },
     { name = "flake8" },
     { name = "ipython" },
     { name = "isort" },
@@ -1604,6 +1629,7 @@ security = [
 ]
 test = [
     { name = "coverage" },
+    { name = "factory-boy" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
@@ -1623,6 +1649,7 @@ requires-dist = [
     { name = "django-vite", specifier = "==3.1.0" },
     { name = "djangorestframework", specifier = ">=3.14.0" },
     { name = "drf-spectacular", specifier = ">=0.28.0" },
+    { name = "factory-boy", marker = "extra == 'test'", specifier = "==3.3.3" },
     { name = "filelock", specifier = ">=3.20" },
     { name = "flake8", marker = "extra == 'linting'", specifier = "==6.1.0" },
     { name = "gunicorn", specifier = ">=23.0.0" },
