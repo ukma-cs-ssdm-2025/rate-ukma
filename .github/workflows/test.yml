@@ -12,6 +12,8 @@ env:
   PYTHON_VERSION: "3.12"
   BACKEND_DIR: src/backend
   SRC_DIR: src
+  BRANCH: ${{ github.head_ref || github.ref_name }}
+  COVERAGE_BADGE_FILE: coverage.svg
 
 jobs:
   test:
@@ -24,7 +26,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ env.BRANCH }}
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v7
@@ -42,7 +44,6 @@ jobs:
       - name: Run tests with pytest and coverage
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          export PYTHONPATH=${{ env.BACKEND_DIR }}
           uv run pytest --cov=. --cov-report=html --cov-report=xml
           EXIT_CODE=$?
           
@@ -68,23 +69,15 @@ jobs:
         uses: tj-actions/coverage-badge-py@v2
         with:
           working-directory: ${{ env.BACKEND_DIR }}
-          output: ../../coverage.svg
+          output: ${{ github.workspace }}/${{ env.COVERAGE_BADGE_FILE }}
           overwrite: true
-
-      - name: Upload coverage badge artifact
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-badge
-          path: coverage.svg
-          retention-days: 7
 
       - name: Commit coverage badge to repo (current branch)
         if: success()
         uses: EndBug/add-and-commit@v9.1.4
         with:
           add: |
-            coverage.svg
+            ${{ env.COVERAGE_BADGE_FILE }}
           message: "chore(ci): update coverage badge"
           default_author: github_actions
-          branch: ${{ github.head_ref || github.ref_name }}
+          branch: ${{ env.BRANCH }}
