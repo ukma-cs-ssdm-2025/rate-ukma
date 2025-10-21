@@ -14,13 +14,13 @@ on:
           required: false
           type: string
           default: ""
-        secrets:
-          SSH_HOST:
-            required: true
-          SSH_USER:
-            required: true
-          SSH_KEY:
-            required: true
+    secrets:
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_KEY:
+        required: true
   workflow_dispatch:
   push:
     branches:
