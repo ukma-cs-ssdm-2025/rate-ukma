@@ -25,16 +25,12 @@ class CourseFileReader(IProvider[[Path], Generator[list[DeduplicatedCourse], Any
         batch = []
         with file_path.open("r", encoding="utf-8") as f:
             for line in f:
-                try:
-                    data = json.loads(line)
-                except json.JSONDecodeError as e:
-                    logger.error("json_decode_error", error=str(e))
+                data = self._read_line(line)
+                if not data:
                     continue
 
-                try:
-                    course = DeduplicatedCourse.model_validate(data)
-                except ValidationError as e:
-                    logger.error("validation_error", error=str(e))
+                course = self._read_course(data)
+                if not course:
                     continue
 
                 batch.append(course)
@@ -44,3 +40,17 @@ class CourseFileReader(IProvider[[Path], Generator[list[DeduplicatedCourse], Any
 
         if batch:
             yield batch
+
+    def _read_line(self, line: str) -> dict | None:
+        try:
+            return json.loads(line)
+        except json.JSONDecodeError as e:
+            logger.error("json_decode_error", error=str(e))
+            return None
+
+    def _read_course(self, data: dict) -> DeduplicatedCourse | None:
+        try:
+            return DeduplicatedCourse.model_validate(data)
+        except ValidationError as e:
+            logger.error("validation_error", error=str(e))
+            return None
