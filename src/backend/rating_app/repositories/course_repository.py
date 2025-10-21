@@ -63,13 +63,13 @@ class CourseRepository:
             filters["department__faculty_id"] = faculty
         if department:
             filters["department_id"] = department
+        if instructor:
+            filters["offerings__instructors__id"] = instructor
 
         courses = courses.filter(**filters)
 
         if type_kind:
             courses = courses.filter(course_specialities__type_kind=type_kind)
-        if instructor:
-            courses = courses.filter(offerings__instructors__id=instructor)
         if speciality:
             courses = courses.filter(course_specialities__speciality_id=speciality)
 
