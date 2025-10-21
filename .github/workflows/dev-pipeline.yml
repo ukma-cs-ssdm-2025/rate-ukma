@@ -11,8 +11,6 @@ jobs:
 
   audit:
     uses: ./.github/workflows/audit.yml
-    with:
-      SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
     secrets: inherit
 
   build:
