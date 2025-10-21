@@ -1,6 +1,7 @@
 name: Tests
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 env:
@@ -44,6 +45,10 @@ jobs:
               exit $EXIT_CODE
           fi
 
+      - name: Move coverage.xml to repo root for coverage comment
+        if: success()
+        run: mv ${{ env.BACKEND_DIR }}/coverage.xml coverage.xml
+
       - name: Store coverage report
         if: success()
         uses: actions/upload-artifact@v4
@@ -55,6 +60,7 @@ jobs:
           retention-days: 7
 
       - name: Coverage comment
+        if: success() && github.event_name == 'pull_request'
         uses: py-cov-action/python-coverage-comment-action@v3
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
