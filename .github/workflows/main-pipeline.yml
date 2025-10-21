@@ -15,6 +15,7 @@ jobs:
 
   audit:
     uses: ./.github/workflows/audit.yml
+    secrets: inherit
 
   build:
     needs: [test, openapi-validation, audit]
