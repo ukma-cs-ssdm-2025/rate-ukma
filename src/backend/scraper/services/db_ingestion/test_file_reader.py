@@ -63,3 +63,18 @@ def test_skips_invalid_json(
     # Assert
     assert len(courses) == 1
     assert "json_decode_error" in caplog.text
+
+
+def test_batches_by_size(
+    file_reader: CourseFileReader, tmp_path: Path, valid_course_data: DeduplicatedCourse
+):
+    # Arrange
+    file = tmp_path / "courses.jsonl"
+    file.write_text("\n".join(valid_course_data.model_dump_json() for _ in range(5)))
+
+    # Act
+    batches = file_reader.provide(file, batch_size=2)
+
+    # Assert
+    assert len(batches) == 3
+    assert len(batches[0]) == 2
