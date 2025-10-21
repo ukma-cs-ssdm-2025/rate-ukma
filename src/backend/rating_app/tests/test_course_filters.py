@@ -58,9 +58,7 @@ def test_filter_prefetches_instructors(django_assert_num_queries):
     repo = CourseRepository()
 
     for _ in range(3):
-        course = CourseFactory()
-        offering = CourseOfferingFactory(course=course)
-        CourseInstructorFactory(course_offering=offering)
+        CourseOfferingFactory(instructors=[InstructorFactory()])
 
     result = repo.filter()
 
