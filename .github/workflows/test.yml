@@ -14,7 +14,6 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
-      
     steps:
       - uses: actions/checkout@v5
 
@@ -34,7 +33,7 @@ jobs:
       - name: Run tests with pytest and coverage
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run pytest --cov --cov-report=html
+          uv run pytest --cov=. --cov-report=html
           EXIT_CODE=$?
           
           if [ $EXIT_CODE -eq 5 ]; then
@@ -58,3 +57,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MINIMUM_GREEN: 90
           MINIMUM_ORANGE: 70
+          COVERAGE_DATA_PATH: ${{ env.BACKEND_DIR }}/.coverage
