@@ -53,10 +53,10 @@ class RatingService:
         )
 
     def update_rating(self, rating_id, **update_data):
-        if "student" in update_data:
-            raise ValueError("Updating the 'student' field is not allowed.")
-        if "course_offering" in update_data:
-            raise ValueError("Updating the 'course_offering' field is not allowed.")
+        immutable_fields = {"student", "student_id", "course_offering", "course_offering_id"}
+        attempted = immutable_fields.intersection(update_data.keys())
+        if attempted:
+            raise ValueError(f"Updating identity fields is not allowed: {', '.join(attempted)}")
         rating = self.rating_repository.get_by_id(rating_id)
         return self.rating_repository.update(rating, **update_data)
 
