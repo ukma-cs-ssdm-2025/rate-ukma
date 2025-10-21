@@ -51,9 +51,11 @@ jobs:
               exit $EXIT_CODE
           fi
 
-      - name: Move coverage.xml to repo root for coverage comment
+      - name: Move coverage artifacts to repo root for coverage comment
         if: success()
-        run: mv ${{ env.BACKEND_DIR }}/coverage.xml coverage.xml
+        run: |
+          mv ${{ env.BACKEND_DIR }}/coverage.xml coverage.xml
+          mv ${{ env.BACKEND_DIR }}/.coverage .coverage
 
       - name: Store coverage report
         if: success()
