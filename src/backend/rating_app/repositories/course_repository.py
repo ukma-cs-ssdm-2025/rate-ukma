@@ -56,7 +56,11 @@ class CourseRepository:
         """
         courses = (
             Course.objects.select_related("department__faculty")
-            .prefetch_related("course_specialities__speciality")
+            .prefetch_related(
+                "course_specialities__speciality",
+                "offerings__semester",
+                "offerings__instructors",
+            )
             .all()
         )
 
