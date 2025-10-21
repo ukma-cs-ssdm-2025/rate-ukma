@@ -33,7 +33,7 @@ jobs:
       - name: Run tests with pytest and coverage
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run pytest --cov=${{ env.BACKEND_DIR }} --cov-report=html
+          uv run pytest --cov=. --cov-report=html --cov-report=xml
           EXIT_CODE=$?
           
           if [ $EXIT_CODE -eq 5 ]; then
@@ -49,6 +49,7 @@ jobs:
         with:
           name: coverage-report
           path: ${{ env.BACKEND_DIR }}/htmlcov
+          path: ${{ env.BACKEND_DIR }}/coverage.xml
           retention-days: 7
 
       - name: Ensure coverage file exists
@@ -64,4 +65,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MINIMUM_GREEN: 90
           MINIMUM_ORANGE: 70
-          COVERAGE_DATA_PATH: ${{ env.BACKEND_DIR }}/.coverage
