@@ -70,7 +70,7 @@ jobs:
         if: success() && (github.event_name == 'pull_request' || github.event_name == 'workflow_run' || inputs.is_pr_run == true)
         uses: MishaKav/pytest-coverage-comment@main
         with:
-          pytest-coverage-path: ${{ env.BACKEND_DIR }}/coverage.xml
+          pytest-xml-coverage-path: ${{ env.BACKEND_DIR }}/coverage.xml
           junitxml-path: ${{ env.BACKEND_DIR }}/junit.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
