@@ -1,7 +1,7 @@
 name: Check OpenAPI schema
 
 on:
-  push:
+  workflow_call:
 
 env:
   DJANGO_DIR: src/backend

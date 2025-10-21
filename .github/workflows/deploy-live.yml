@@ -1,12 +1,26 @@
 name: Deploy Live
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      commit_ref:
-        description: "Commit SHA, Tag, or Branch to deploy (e.g., main, v1.2.3, 0ff828a)"
+      environment:
+        required: true
+        type: string
+      archive_name:
+        required: true
+        type: string
+      deployment_ref:
+        description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
         required: false
-        default: "main"
+        type: string
+        default: ""
+    secrets:
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_KEY:
+        required: true
 
 jobs:
   deploy:
@@ -14,11 +28,11 @@ jobs:
     with:
       environment: "live"
       archive_name: "rate-ukma-live.tar.gz"
-      deployment_ref: ${{ github.event.inputs.commit_ref }}
+      deployment_ref: ${{ inputs.deployment_ref }}
     secrets:
-      SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
-      SSH_USER: ${{ secrets.LIVE_SSH_USER }}
-      SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
 
   create_release:
     name: Create Tag and Release
@@ -29,7 +43,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.commit_ref }}
+          ref: ${{ inputs.deployment_ref }}
 
       - name: Set Release Tag and Title
         id: set_tag

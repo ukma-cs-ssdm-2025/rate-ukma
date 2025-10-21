@@ -1,0 +1,34 @@
+name: Main Pipeline
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  openapi-validation:
+    uses: ./.github/workflows/openapi-validation.yml
+
+  audit:
+    uses: ./.github/workflows/audit.yml
+    secrets: inherit
+
+  build:
+    needs: [test, openapi-validation, audit]
+    uses: ./.github/workflows/build.yml
+
+  deploy-staging:
+    needs: [test, openapi-validation, audit, build]
+    uses: ./.github/workflows/deploy-staging.yml
+    with:
+      environment: "staging"
+      archive_name: "rate-ukma-staging.tar.gz"
+      deployment_ref: ${{ github.sha }}
+    secrets:
+      SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+      SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+      SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
