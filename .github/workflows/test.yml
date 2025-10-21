@@ -11,6 +11,10 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+      
     steps:
       - uses: actions/checkout@v5
 
@@ -27,10 +31,10 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: uv sync --extra test
 
-      - name: Run tests with pytest
+      - name: Run tests with pytest and coverage
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run pytest
+          uv run pytest --cov --cov-report=html
           EXIT_CODE=$?
           
           if [ $EXIT_CODE -eq 5 ]; then
@@ -39,3 +43,18 @@ jobs:
           else
               exit $EXIT_CODE
           fi
+
+      - name: Store coverage report
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ${{ env.BACKEND_DIR }}/htmlcov
+          retention-days: 7
+
+      - name: Coverage comment
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MINIMUM_GREEN: 90
+          MINIMUM_ORANGE: 70

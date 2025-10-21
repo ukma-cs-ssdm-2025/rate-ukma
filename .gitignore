@@ -39,3 +39,8 @@ src/backend/scraper/state
 build/
 dist/
 *.egg-info/
+
+# test
+htmlcov/
+coverage.xml
+.coverage
