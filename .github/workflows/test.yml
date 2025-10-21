@@ -45,7 +45,7 @@ jobs:
       - name: Run tests with pytest and coverage
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          uv run pytest --cov=. --cov-report=html --cov-report=xml --junitxml=junit.xml
+          uv run pytest --cov=. --cov-report=html --cov-report=xml --junitxml=junit.xml --cov-report=term-missing:skip-covered
           EXIT_CODE=$?
           
           if [ $EXIT_CODE -eq 5 ]; then
