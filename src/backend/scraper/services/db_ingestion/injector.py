@@ -119,6 +119,7 @@ class CourseDbInjector(IDbInjector):
                 )
             course.specialities.add(speciality)  # type: ignore
 
+    # TODO: refactor this method for better readability
     def _process_offerings(
         self,
         course: Course,
@@ -172,9 +173,13 @@ class CourseDbInjector(IDbInjector):
                 student_faculty = self.faculty_repository.get_by_speciality_name(
                     student_data.speciality
                 )
+                if not student_faculty:
+                    continue
+
                 student_speciality = self.speciality_repository.get_by_name(
                     name=student_data.speciality
                 )
+
                 if not student_speciality:
                     student_faculty = self.faculty_repository.get_by_speciality_name(
                         student_data.speciality
