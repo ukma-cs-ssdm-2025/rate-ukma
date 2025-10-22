@@ -238,6 +238,12 @@ paths:
           format: uuid
         description: Filter by faculty ID
       - in: query
+        name: instructor
+        schema:
+          type: string
+          format: uuid
+        description: Filter by instructor ID
+      - in: query
         name: name
         schema:
           type: string
@@ -252,6 +258,16 @@ paths:
         schema:
           type: integer
         description: 'Items per page (default: 20)'
+      - in: query
+        name: semesterTerm
+        schema:
+          type: string
+        description: Filter by semester term (FALL, SPRING, SUMMER)
+      - in: query
+        name: semesterYear
+        schema:
+          type: integer
+        description: Filter by semester year
       - in: query
         name: speciality
         schema:

@@ -41,7 +41,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest==8.3.4", "pytest-django>=4.5.2", "coverage==7.3.2"]
+test = [
+    "pytest==8.3.4",
+    "pytest-django>=4.5.2",
+    "coverage>=7.10.6",
+    "pytest-cov==7.0.0",
+    "factory-boy==3.3.3",
+]
 linting = ["ruff==0.9.6", "isort==5.12.0", "flake8==6.1.0"]
 security = [
     "safety>=3.6.2",
@@ -114,6 +120,30 @@ skips = ["B108"]
 
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*" = ["ALL"]
+
+[tool.coverage.run]
+source = ["rateukma", "rating_app", "scraper"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/test_*.py",
+    "*_test.py",
+    "*/settings/*",
+    "manage.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if settings.DEBUG",
+    "raise NotImplementedError",
+    "if __name__ == ['\"]__main__['\"]:",
+    "class .*\\bProtocol\\):",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report=term-missing:skip-covered --cov-report=html --cov-report=xml"
 
 [[tool.uv.index]]
 name = "safety"

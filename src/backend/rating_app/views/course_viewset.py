@@ -9,6 +9,7 @@ from ..constants import DEFAULT_COURSE_PAGE_SIZE, DEFAULT_PAGE_NUMBER
 from ..filters import CourseFilters
 from ..ioc_container.services import course_service
 from ..models import Course
+from ..models.choices import SemesterTerm
 from ..serializers.course.course_detail import CourseDetailSerializer
 from ..serializers.course.course_list import CourseListSerializer
 from .responses import R_COURSE, R_COURSE_LIST
@@ -56,6 +57,13 @@ class CourseViewSet(viewsets.ViewSet):
                 required=False,
             ),
             OpenApiParameter(
+                name="instructor",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description="Filter by instructor ID",
+                required=False,
+            ),
+            OpenApiParameter(
                 name="faculty",
                 type=OpenApiTypes.UUID,
                 location=OpenApiParameter.QUERY,
@@ -74,6 +82,20 @@ class CourseViewSet(viewsets.ViewSet):
                 type=OpenApiTypes.UUID,
                 location=OpenApiParameter.QUERY,
                 description="Filter by speciality ID",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="semesterYear",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Filter by semester year",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="semesterTerm",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter by semester term (FALL, SPRING, SUMMER)",
                 required=False,
             ),
             OpenApiParameter(
@@ -112,6 +134,24 @@ class CourseViewSet(viewsets.ViewSet):
     def list(self, request, *args, **kwargs):
         page = self._to_int(request.query_params.get("page"), DEFAULT_PAGE_NUMBER)
         page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_COURSE_PAGE_SIZE)
+        
+        semester_year_raw = request.query_params.get("semesterYear")
+        if semester_year_raw is not None:
+            try:
+                semester_year = int(request.query_params.get("semesterYear"))
+            except (ValueError, TypeError):
+                semester_year = None
+        else:
+            semester_year = None
+
+        semester_term = request.query_params.get("semesterTerm")
+        if semester_term:
+            normalized_term = semester_term.upper()
+            if normalized_term in SemesterTerm.values:
+                semester_term = normalized_term
+            else:
+                semester_term = None
+
 
         # Handle order parameters
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")
@@ -120,9 +160,12 @@ class CourseViewSet(viewsets.ViewSet):
         filters = CourseFilters(
             name=request.query_params.get("name"),
             type_kind=request.query_params.get("typeKind"),
+            instructor=request.query_params.get("instructor"),
             faculty=request.query_params.get("faculty"),
             department=request.query_params.get("department"),
             speciality=request.query_params.get("speciality"),
+            semester_year=semester_year,
+            semester_term=semester_term,
             avg_difficulty_order=avg_difficulty_order,
             avg_usefulness_order=avg_usefulness_order,
             page_size=page_size,

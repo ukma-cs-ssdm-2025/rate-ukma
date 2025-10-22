@@ -48,7 +48,10 @@ class CourseRepository:
         """
         courses = (
             Course.objects.select_related("department__faculty")
-            .prefetch_related("course_specialities__speciality")
+            .prefetch_related( 
+                "course_specialities__speciality",
+                "offerings__semester",
+                "offerings__instructors",)
             .all()
         )
 
@@ -60,6 +63,12 @@ class CourseRepository:
             q_filters["department__faculty_id"] = filters.faculty
         if filters.department:
             q_filters["department_id"] = filters.department
+        if filters.semester_year:
+            q_filters["offerings__semester__year"] = filters.semester_year
+        if filters.semester_term:
+            q_filters["offerings__semester__term"] = filters.semester_term
+        if filters.instructor:
+            q_filters["offerings__instructors__id"] = filters.instructor
 
         courses = courses.filter(**q_filters)
 
