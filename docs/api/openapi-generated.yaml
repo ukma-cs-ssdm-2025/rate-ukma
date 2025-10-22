@@ -955,14 +955,7 @@ components:
             $ref: '#/components/schemas/SpecialityWithKindPayload'
           writeOnly: true
       required:
-      - avg_difficulty
-      - avg_usefulness
-      - course_specialities
       - department
-      - department_name
-      - faculty_name
-      - id
-      - ratings_count
       - status
       - title
     CourseList:
@@ -1009,14 +1002,7 @@ components:
             $ref: '#/components/schemas/CourseSpecialityInline'
           readOnly: true
       required:
-      - avg_difficulty
-      - avg_usefulness
-      - course_specialities
       - department
-      - department_name
-      - faculty_name
-      - id
-      - ratings_count
       - status
       - title
     CourseListResponse:
@@ -1057,8 +1043,6 @@ components:
         type_kind:
           $ref: '#/components/schemas/TypeKindEnum'
       required:
-      - speciality_id
-      - speciality_title
       - type_kind
     ErrorEnvelope:
       type: object
@@ -1183,17 +1167,6 @@ components:
           type: string
           format: date-time
           readOnly: true
-      required:
-      - comment
-      - course
-      - course_offering
-      - created_at
-      - difficulty
-      - id
-      - is_anonymous
-      - student_id
-      - student_name
-      - usefulness
     Session:
       type: object
       properties:
