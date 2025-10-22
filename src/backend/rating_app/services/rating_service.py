@@ -1,5 +1,7 @@
 from typing import Any
 
+from django.db import IntegrityError
+
 from ..constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
 from ..exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
 from ..ioc_container.repositories import enrollment_repository, rating_repository
@@ -26,17 +28,18 @@ class RatingService:
         if not isinstance(offering_id, str):
             raise TypeError("course_offering_id must be a string")
 
-        # Check if rating already exists
-        if self.rating_repository.exists(student_id=student_id, course_offering_id=offering_id):
-            raise DuplicateRatingException()
-
-        # Check if student is enrolled in the course offering
         if not self.enrollment_repository.is_student_enrolled(
             student_id=student_id, offering_id=offering_id
         ):
             raise NotEnrolledException()
 
-        return self.rating_repository.create(**rating_data)
+        if self.rating_repository.exists(student_id=student_id, course_offering_id=offering_id):
+            raise DuplicateRatingException()
+
+        try:
+            return self.rating_repository.create(**rating_data)
+        except IntegrityError as err:
+            raise DuplicateRatingException() from err
 
     def get_rating(self, rating_id):
         return self.rating_repository.get_by_id(rating_id)
