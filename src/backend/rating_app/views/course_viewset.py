@@ -1,3 +1,5 @@
+from dataclasses import asdict, is_dataclass
+
 from rest_framework import status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -171,9 +173,18 @@ class CourseViewSet(viewsets.ViewSet):
         )
 
         page = result.page or 1
-        total_pages = result.total or 1
+        total_pages = getattr(result, "total_pages", None)
+        if total_pages is None:
+            total_pages = getattr(result, "total", None)
+        if not total_pages:
+            total_pages = 1
 
-        filters_dict = result.filters.__dict__ if result.filters else {}
+        filters_dict = {}
+        if result.filters is not None:
+            if is_dataclass(result.filters):
+                filters_dict = asdict(result.filters)
+            elif hasattr(result.filters, "__dict__"):
+                filters_dict = result.filters.__dict__
 
         response_data = {
             "items": self.serializer_class(result.items, many=True).data,
@@ -181,6 +192,7 @@ class CourseViewSet(viewsets.ViewSet):
             "page": page,
             "page_size": result.page_size,
             "total": result.total,
+            "total_pages": total_pages,
             "next": page + 1 if page < total_pages else None,
             "previous": page - 1 if page > 1 else None,
         }
