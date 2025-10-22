@@ -29,7 +29,6 @@ class RatingRepository:
     def filter(
         self,
         course_id: str | None = None,
-        student_id: str | None = None,
         page_size: int = DEFAULT_PAGE_SIZE,
         page_number: int = DEFAULT_PAGE_NUMBER,
     ) -> dict[str, Any]:
@@ -46,8 +45,6 @@ class RatingRepository:
         filters: dict[str, Any] = {}
         if course_id:
             filters["course_offering__course_id"] = course_id
-        if student_id:
-            filters["student_id"] = student_id
 
         ratings = (
             Rating.objects.select_related(
