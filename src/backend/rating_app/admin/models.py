@@ -228,12 +228,12 @@ class RatingAdmin(VersionAdmin):
 
 @admin.register(Semester)
 class SemesterAdmin(VersionAdmin):
-    list_display = ("year", "term", "course_offerings_count")
+    list_display = ("year", "term")
     list_filter = ("year", "term")
     ordering = ("-year", "-term")
 
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related("course_offerings")
+        return super().get_queryset(request)
 
     @admin.display(description="Course Offerings")
     def course_offerings_count(self, obj):

@@ -22,6 +22,9 @@ class CourseRepository:
             .get(id=course_id)
         )
 
+    def get_or_create(self, **course_data) -> tuple[Course, bool]:
+        return Course.objects.get_or_create(**course_data)
+
     def filter(
         self,
         name: str | None = None,
