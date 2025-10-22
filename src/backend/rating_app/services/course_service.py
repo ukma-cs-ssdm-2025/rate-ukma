@@ -13,7 +13,8 @@ class CourseService:
     def get_course(self, course_id) -> Course:
         return self.course_repository.get_by_id(course_id)
 
-    def filter_courses(self, filters: CourseFilters) -> CourseFilterPayload:
+    def filter_courses(self, **kwargs) -> CourseFilterPayload:
+        filters = CourseFilters.of(**kwargs)
         return self.course_repository.filter(filters)
 
     # -- admin functions --

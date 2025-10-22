@@ -6,7 +6,6 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE, DEFAULT_PAGE_NUMBER
-from rating_app.filters import CourseFilters
 from rating_app.ioc_container.services import course_service
 from rating_app.models import Course
 from rating_app.models.choices import SemesterTerm
@@ -156,7 +155,7 @@ class CourseViewSet(viewsets.ViewSet):
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")
         avg_usefulness_order = request.query_params.get("avg_usefulness_order")
 
-        filters = CourseFilters(
+        result = self.course_service.filter_courses(
             name=request.query_params.get("name"),
             type_kind=request.query_params.get("typeKind"),
             instructor=request.query_params.get("instructor"),
@@ -170,7 +169,6 @@ class CourseViewSet(viewsets.ViewSet):
             page_size=page_size,
             page=page,
         )
-        result = self.course_service.filter_courses(filters)
 
         page = result.page or 1
         total_pages = result.total or 1

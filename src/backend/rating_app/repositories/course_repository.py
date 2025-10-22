@@ -3,15 +3,8 @@ from typing import Any
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, F
 
-from rating_app.constants import (
-    DEFAULT_PAGE_NUMBER,
-    MAX_PAGE_SIZE,
-    MIN_PAGE_SIZE,
-)
-from rating_app.filters import (
-    CourseFilterPayload,
-    CourseFilters,
-)
+from rating_app.constants import DEFAULT_PAGE_NUMBER, MAX_PAGE_SIZE, MIN_PAGE_SIZE
+from rating_app.filters import CourseFilterPayload, CourseFilters
 from rating_app.models import Course
 
 
@@ -31,7 +24,7 @@ class CourseRepository:
             .get(id=course_id)
         )
 
-    def filter(self, filters: CourseFilters) -> CourseFilterPayload:
+    def filter(self, filters: CourseFilters | None = None, **kwargs) -> CourseFilterPayload:
         """
         Returns a paginated result:
             {
@@ -56,6 +49,8 @@ class CourseRepository:
             )
             .all()
         )
+        if filters is None:
+            filters = CourseFilters(**kwargs)
 
         # Filters
         q_filters: dict[str, Any] = {}
