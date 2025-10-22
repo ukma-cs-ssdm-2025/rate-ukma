@@ -2,9 +2,9 @@ from typing import Any
 
 from django.db import IntegrityError
 
-from ..constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
-from ..exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
-from ..ioc_container.repositories import enrollment_repository, rating_repository
+from rating_app.constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
+from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
+from rating_app.ioc_container.repositories import enrollment_repository, rating_repository
 
 
 class RatingService:

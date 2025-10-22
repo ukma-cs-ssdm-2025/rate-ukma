@@ -1,6 +1,6 @@
-from ..filters import CourseFilterPayload, CourseFilters
-from ..ioc_container.repositories import course_repository
-from ..models import Course
+from rating_app.filters import CourseFilterPayload, CourseFilters
+from rating_app.ioc_container.repositories import course_repository
+from rating_app.models import Course
 
 
 class CourseService:

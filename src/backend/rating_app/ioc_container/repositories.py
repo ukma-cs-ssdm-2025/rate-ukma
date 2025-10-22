@@ -1,6 +1,5 @@
 from rateukma.ioc.decorators import once
-
-from ..repositories import CourseRepository, EnrollmentRepository, RatingRepository
+from rating_app.repositories import CourseRepository, EnrollmentRepository, RatingRepository
 
 
 @once

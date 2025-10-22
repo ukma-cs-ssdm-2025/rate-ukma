@@ -1,13 +1,13 @@
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 
-from ..constants import MAX_RATING_VALUE, MIN_RATING_VALUE
-from ..serializers import (
+from rating_app.constants import MAX_RATING_VALUE, MIN_RATING_VALUE
+from rating_app.serializers import (
     CourseDetailSerializer,
     CourseListResponseSerializer,
     RatingReadSerializer,
 )
-from ..serializers import ErrorEnvelopeSerializer as Err
-from ..serializers.auth import CSRFTokenSerializer, SessionSerializer
+from rating_app.serializers import ErrorEnvelopeSerializer as Err
+from rating_app.serializers.auth import CSRFTokenSerializer, SessionSerializer
 
 EX_400 = OpenApiExample(
     "Validation error",

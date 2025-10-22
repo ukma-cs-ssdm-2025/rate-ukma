@@ -5,14 +5,14 @@ from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from ..constants import DEFAULT_COURSE_PAGE_SIZE, DEFAULT_PAGE_NUMBER
-from ..filters import CourseFilters
-from ..ioc_container.services import course_service
-from ..models import Course
-from ..models.choices import SemesterTerm
-from ..serializers.course.course_detail import CourseDetailSerializer
-from ..serializers.course.course_list import CourseListSerializer
-from .responses import R_COURSE, R_COURSE_LIST
+from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE, DEFAULT_PAGE_NUMBER
+from rating_app.filters import CourseFilters
+from rating_app.ioc_container.services import course_service
+from rating_app.models import Course
+from rating_app.models.choices import SemesterTerm
+from rating_app.serializers.course.course_detail import CourseDetailSerializer
+from rating_app.serializers.course.course_list import CourseListSerializer
+from rating_app.views.responses import R_COURSE, R_COURSE_LIST
 
 
 @extend_schema(tags=["courses"])
@@ -134,7 +134,7 @@ class CourseViewSet(viewsets.ViewSet):
     def list(self, request, *args, **kwargs):
         page = self._to_int(request.query_params.get("page"), DEFAULT_PAGE_NUMBER)
         page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_COURSE_PAGE_SIZE)
-        
+
         semester_year_raw = request.query_params.get("semesterYear")
         if semester_year_raw is not None:
             try:
@@ -151,7 +151,6 @@ class CourseViewSet(viewsets.ViewSet):
                 semester_term = normalized_term
             else:
                 semester_term = None
-
 
         # Handle order parameters
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")

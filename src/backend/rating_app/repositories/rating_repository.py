@@ -2,14 +2,13 @@ from typing import Any
 
 from django.core.paginator import Paginator
 
-from rating_app.models import Rating
-
-from ..constants import (
+from rating_app.constants import (
     DEFAULT_PAGE_NUMBER,
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
     MIN_PAGE_SIZE,
 )
+from rating_app.models import Rating
 
 
 class RatingRepository:

@@ -8,10 +8,11 @@ from rating_app.constants import (
     MAX_PAGE_SIZE,
     MIN_PAGE_SIZE,
 )
+from rating_app.filters import (
+    CourseFilterPayload,
+    CourseFilters,
+)
 from rating_app.models import Course
-
-from ..filters import CourseFilterPayload
-from ..filters.course_filters import CourseFilters
 
 
 class CourseRepository:
@@ -48,10 +49,11 @@ class CourseRepository:
         """
         courses = (
             Course.objects.select_related("department__faculty")
-            .prefetch_related( 
+            .prefetch_related(
                 "course_specialities__speciality",
                 "offerings__semester",
-                "offerings__instructors",)
+                "offerings__instructors",
+            )
             .all()
         )
 

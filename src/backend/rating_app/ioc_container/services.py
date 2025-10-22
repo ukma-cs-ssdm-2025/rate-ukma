@@ -1,6 +1,5 @@
 from rateukma.ioc.decorators import once
-
-from ..services import CourseService, RatingService
+from rating_app.services import CourseService, RatingService
 
 
 @once

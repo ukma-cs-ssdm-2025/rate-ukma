@@ -1,5 +1,5 @@
-from ..models import Enrollment
-from ..models.choices import EnrollmentStatus
+from rating_app.models import Enrollment
+from rating_app.models.choices import EnrollmentStatus
 
 
 class EnrollmentRepository:

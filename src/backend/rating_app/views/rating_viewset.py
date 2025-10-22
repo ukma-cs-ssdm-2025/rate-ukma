@@ -6,15 +6,15 @@ import structlog
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from ..constants import (
+from rating_app.constants import (
     DEFAULT_PAGE_NUMBER,
     DEFAULT_PAGE_SIZE,
 )
-from ..exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
-from ..ioc_container.services import rating_service
-from ..models import Rating, Student
-from ..serializers import RatingCreateUpdateSerializer, RatingReadSerializer
-from .responses import R_NO_CONTENT, R_RATING, R_RATING_CREATE, R_RATING_LIST
+from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
+from rating_app.ioc_container.services import rating_service
+from rating_app.models import Rating, Student
+from rating_app.serializers import RatingCreateUpdateSerializer, RatingReadSerializer
+from rating_app.views.responses import R_NO_CONTENT, R_RATING, R_RATING_CREATE, R_RATING_LIST
 
 logger = structlog.get_logger(__name__)
 

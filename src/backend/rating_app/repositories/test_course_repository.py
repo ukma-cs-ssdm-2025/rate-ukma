@@ -1,8 +1,8 @@
 import pytest
 
-from rating_app.models.choices import SemesterTerm
-from rating_app.repositories.course_repository import CourseRepository
-from rating_app.tests.factories import (
+from ..models.choices import SemesterTerm
+from ..repositories.course_repository import CourseRepository
+from ..tests.factories import (
     CourseFactory,
     CourseInstructorFactory,
     CourseOfferingFactory,
