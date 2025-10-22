@@ -1009,7 +1009,7 @@ components:
       type: object
       description: Schema for GET /api/v1/courses response envelope.
       properties:
-        results:
+        items:
           type: array
           items:
             $ref: '#/components/schemas/CourseList'
@@ -1024,9 +1024,9 @@ components:
           type: integer
       required:
       - filters
+      - items
       - page
       - page_size
-      - results
       - total
     CourseSpecialityInline:
       type: object

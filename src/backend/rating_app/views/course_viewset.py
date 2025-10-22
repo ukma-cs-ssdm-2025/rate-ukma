@@ -176,7 +176,7 @@ class CourseViewSet(viewsets.ViewSet):
         filters_dict = result.filters.__dict__ if result.filters else {}
 
         response_data = {
-            "results": self.serializer_class(result.items, many=True).data,
+            "items": self.serializer_class(result.items, many=True).data,
             "filters": filters_dict,
             "page": page,
             "page_size": result.page_size,
