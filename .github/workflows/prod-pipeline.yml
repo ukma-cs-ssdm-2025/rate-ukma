@@ -1,0 +1,35 @@
+name: Live Build
+on:
+  workflow_dispatch:
+    inputs:
+      commit_ref:
+        description: "Commit SHA, Tag, or Branch to deploy (e.g., main, v1.2.3, 0ff828a)"
+        required: false
+        default: "main"
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  openapi-validation:
+    uses: ./.github/workflows/openapi-validation.yml
+
+  audit:
+    uses: ./.github/workflows/audit.yml
+    secrets: inherit
+
+  build:
+    needs: [test, openapi-validation, audit]
+    uses: ./.github/workflows/build.yml
+
+  deploy-live:
+    needs: [test, openapi-validation, audit, build]
+    uses: ./.github/workflows/deploy-live.yml
+    with:
+      environment: "live"
+      archive_name: "rate-ukma-live.tar.gz"
+      deployment_ref: ${{ github.event.inputs.commit_ref }}
+    secrets:
+      SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
+      SSH_USER: ${{ secrets.LIVE_SSH_USER }}
+      SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
