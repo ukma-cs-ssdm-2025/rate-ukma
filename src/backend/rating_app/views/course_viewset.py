@@ -174,10 +174,13 @@ class CourseViewSet(viewsets.ViewSet):
 
         page = result.page or 1
         total_pages = getattr(result, "total_pages", None)
-        if total_pages is None:
-            total_pages = getattr(result, "total", None)
         if not total_pages:
-            total_pages = 1
+            total = getattr(result, "total", None)
+            size = getattr(result, "page_size", None) or page_size
+            if total is not None and size:
+                total_pages = max((total + size - 1) // size, 1)
+            else:
+                total_pages = 1
 
         filters_dict = {}
         if result.filters is not None:
