@@ -67,6 +67,7 @@ class CourseFactory(DjangoModelFactory):
 class SemesterFactory(DjangoModelFactory):
     class Meta:
         model = Semester
+        django_get_or_create = ("year", "term")
 
     year = fuzzy.FuzzyInteger(2018, 2026)
     term = fuzzy.FuzzyChoice(SemesterTerm.values)

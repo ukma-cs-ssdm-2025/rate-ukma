@@ -60,8 +60,9 @@ def test_filter_by_semester_limits_to_matching_courses(repo):
 @pytest.mark.django_db
 def test_filter_prefetches_instructors(django_assert_num_queries, repo):
     # Arrange
+    semester = SemesterFactory()
     for _ in range(3):
-        CourseOfferingFactory(instructors=[InstructorFactory()])
+        CourseOfferingFactory(semester=semester, instructors=[InstructorFactory()])
 
     # Act
     result = repo.filter()
