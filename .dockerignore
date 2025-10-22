@@ -1,0 +1,15 @@
+# Python build artefacts
+src/backend/.venv
+src/backend/**/__pycache__/
+src/backend/**/*.pyc
+# Tool caches
+.ruff_cache
+.pytest_cache
+.uv_cache
+
+# Frontend artefacts regenerated during build
+src/webapp/node_modules
+src/webapp/dist
+src/webapp/dist-ssr
+src/webapp/tmp
+src/webapp/src/lib/api/generated
