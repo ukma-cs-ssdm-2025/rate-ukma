@@ -12,13 +12,13 @@ from rating_app.ioc_container.repos import (
 )
 from scraper.services.db_ingestion.progress_tracker import InjectionProgressTracker
 
-from ..services.db_ingestion.composite import CoursesDeltaIngestion
-from ..services.db_ingestion.file_reader import CourseFileReader
+from ..services.db_ingestion.composite import CoursesIngestion
+from ..services.db_ingestion.file_reader import CoursesJSONLFileReader
 from ..services.db_ingestion.injector import CourseDbInjector
 
 
-def course_file_reader() -> CourseFileReader:
-    return CourseFileReader()
+def course_file_reader() -> CoursesJSONLFileReader:
+    return CoursesJSONLFileReader()
 
 
 def course_db_injector() -> CourseDbInjector:
@@ -37,8 +37,8 @@ def course_db_injector() -> CourseDbInjector:
     )
 
 
-def courses_delta_ingestion() -> CoursesDeltaIngestion:
-    return CoursesDeltaIngestion(
+def courses_ingestion() -> CoursesIngestion:
+    return CoursesIngestion(
         course_file_reader(),
         course_db_injector(),
     )

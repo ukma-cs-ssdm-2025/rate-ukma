@@ -16,12 +16,17 @@ class InjectionProgressTracker:
 
     def increment(self) -> None:
         self.processed_courses += 1
+        if self.total_courses == 0:
+            logger.error("total_courses_not_set", total_courses=self.total_courses)
+            return
+
         if self.processed_courses % self.LOG_INTERVAL == 0:
+            percentage = f"{(self.processed_courses / self.total_courses) * 100:.1f}%"
             logger.info(
                 "injection_progress",
                 processed=self.processed_courses,
                 total=self.total_courses,
-                percentage=f"{(self.processed_courses / self.total_courses) * 100:.1f}%",
+                percentage=percentage,
             )
 
     def complete(self, message: str) -> None:
