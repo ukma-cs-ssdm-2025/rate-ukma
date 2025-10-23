@@ -1,0 +1,2 @@
+class InstructorNotFoundError(Exception):
+    pass
