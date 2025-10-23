@@ -140,7 +140,7 @@ class CourseDbInjector(IDbInjector):
     ) -> None:
         for offering_data in course_data.offerings:
             course_offering = self._create_course_offering(course, offering_data)
-            self._process_instructors(course_offering, offering_data.instructors)
+            self._process_instructors_m2m(course_offering, offering_data.instructors)
             self._process_enrollments(course_offering, offering_data.enrollments)
 
     def _create_course_offering(
@@ -172,7 +172,7 @@ class CourseDbInjector(IDbInjector):
         )
         return course_offering
 
-    def _process_instructors(
+    def _process_instructors_m2m(
         self,
         course_offering: CourseOffering,
         instructors_data: Sequence[DeduplicatedCourseInstructor],

@@ -4,7 +4,7 @@ logger = structlog.get_logger(__name__)
 
 
 class InjectionProgressTracker:
-    LOG_INTERVAL = 5
+    LOG_INTERVAL = 1  # currently set to small value for development purposes
 
     def __init__(self):
         self.total_courses = 0
@@ -20,7 +20,10 @@ class InjectionProgressTracker:
             logger.error("total_courses_not_set", total_courses=self.total_courses)
             return
 
-        if self.processed_courses % self.LOG_INTERVAL == 0:
+        if (
+            self.processed_courses % self.LOG_INTERVAL == 0
+            or self.processed_courses == self.total_courses
+        ):
             percentage = f"{(self.processed_courses / self.total_courses) * 100:.1f}%"
             logger.info(
                 "injection_progress",
