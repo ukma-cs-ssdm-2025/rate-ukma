@@ -7,11 +7,7 @@ from .base import BaseParser
 
 
 class CourseLinkParser(BaseParser):
-    def parse(self, html: str, **kwargs) -> list[str]:
-        base_url = kwargs.get("base_url", "")
-        if not base_url:
-            raise ValueError("base_url is required for CourseLinkParser")
-
+    def parse(self, html: str, base_url: str) -> list[str]:
         soup = BeautifulSoup(html, "lxml")
         links = []
 
@@ -58,12 +54,8 @@ class CatalogParser(BaseParser):
     def __init__(self):
         self.course_link_parser = CourseLinkParser()
 
-    def parse(self, html: str, **kwargs) -> tuple[list[str], int | None]:
-        base_url = kwargs.get("base_url", "")
-        if not base_url:
-            raise ValueError("base_url is required for CatalogParser")
-
-        links = self.course_link_parser.parse(html, base_url=base_url)
+    def parse(self, html: str, base_url: str) -> tuple[list[str], int | None]:
+        links = self.course_link_parser.parse(html, base_url)
         last_page = self._extract_last_page(html)
         return links, last_page
 
