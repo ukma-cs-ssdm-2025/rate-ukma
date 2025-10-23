@@ -140,7 +140,7 @@ class CourseViewSet(viewsets.ViewSet):
         semester_year = None
         if semester_year_raw:
             try:
-                semester_year = int(request.query_params.get("semesterYear"))
+                semester_year = int(semester_year_raw)
             except (ValueError, TypeError):
                 raise ValidationError({"semesterYear": ["Invalid value"]}) from None
             if semester_year < 1991:
