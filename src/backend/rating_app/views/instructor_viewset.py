@@ -34,6 +34,12 @@ class InstructorViewSet(viewsets.ModelViewSet):
         responses=R_INSTRUCTOR,
     )
     def retrieve(self, request, instructor_id=None):
+        import uuid
+
+        try:
+            uuid.UUID(str(instructor_id))
+        except (ValueError, TypeError):
+            return Response({"detail": "Invalid UUID."}, status=400)
         try:
             instructor = self.instructor_service.get_instructor_by_id(instructor_id)
         except InstructorNotFoundError:
