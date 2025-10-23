@@ -25,11 +25,14 @@ from .extractors import (
 logger = structlog.get_logger(__name__)
 
 
-def get_course_key(course: ParsedCourseDetails) -> tuple[str, str, str]:
+def get_course_key(course: ParsedCourseDetails) -> tuple[str, str, str, tuple[str, ...]]:
     title = course.title or ""
     faculty = course.faculty or ""
     department = course.department or ""
-    return (title.strip().lower(), faculty.strip().lower(), department.strip().lower())
+    specialty_types = tuple(sorted(
+        (spec.type.strip().lower() for spec in course.specialties or [])
+    ))
+    return (title.strip().lower(), faculty.strip().lower(), department.strip().lower(), specialty_types)
 
 
 class CourseMerger(DeduplicationComponent[list[ParsedCourseDetails], list[DeduplicatedCourse]]):
