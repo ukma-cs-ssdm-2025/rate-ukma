@@ -50,3 +50,12 @@ def test_nonexistent_instructor_id_returns_404(token_client):
     response = token_client.get(url)
 
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_bad_uuid(token_client):
+    url = reverse("instructor-detail", kwargs={"instructor_id": "not-a-uuid"})
+
+    response = token_client.get(url)
+
+    assert response.status_code == 400
