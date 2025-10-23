@@ -1,7 +1,7 @@
 from dataclasses import asdict, is_dataclass
 
 from rest_framework import status, viewsets
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
 from drf_spectacular.types import OpenApiTypes
@@ -137,21 +137,23 @@ class CourseViewSet(viewsets.ViewSet):
         page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_COURSE_PAGE_SIZE)
 
         semester_year_raw = request.query_params.get("semesterYear")
-        if semester_year_raw is not None:
+        semester_year = None
+        if semester_year_raw:
             try:
                 semester_year = int(request.query_params.get("semesterYear"))
             except (ValueError, TypeError):
-                semester_year = None
-        else:
-            semester_year = None
+                raise ValidationError({"semesterYear": ["Invalid value"]}) from None
+            if semester_year < 1991:
+                raise ValidationError({"semesterYear": ["Value out of range"]})
 
-        semester_term = request.query_params.get("semesterTerm")
-        if semester_term:
-            normalized_term = semester_term.upper()
+        semester_term_raw = request.query_params.get("semesterTerm")
+        semester_term = None
+        if semester_term_raw:
+            normalized_term = semester_term_raw.upper()
             if normalized_term in SemesterTerm.values:
                 semester_term = normalized_term
             else:
-                semester_term = None
+                raise ValidationError({"semesterTerm": ["Invalid value"]})
 
         # Handle order parameters
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")
