@@ -8,7 +8,7 @@ class CourseOfferingRepository:
     def get_by_id(self, offering_id: str) -> CourseOffering:
         return CourseOffering.objects.select_related("course", "semester").get(id=offering_id)
 
-    def get_or_create(
+    def get_or_upsert(
         self,
         *,
         course: Course,
@@ -25,21 +25,22 @@ class CourseOfferingRepository:
         group_size_min: int | None,
         group_size_max: int | None,
     ) -> tuple[CourseOffering, bool]:
-        return CourseOffering.objects.get_or_create(
-            course=course,
-            semester=semester,
-            code=code,
-            exam_type=exam_type,
-            practice_type=practice_type,
-            credits=credits,
-            weekly_hours=weekly_hours,
-            lecture_count=lecture_count,
-            practice_count=practice_count,
-            max_students=max_students,
-            max_groups=max_groups,
-            group_size_min=group_size_min,
-            group_size_max=group_size_max,
-        )
+        lookup = {"code": code}
+        defaults = {
+            "course": course,
+            "semester": semester,
+            "exam_type": exam_type,
+            "practice_type": practice_type,
+            "credits": credits,
+            "weekly_hours": weekly_hours,
+            "lecture_count": lecture_count,
+            "practice_count": practice_count,
+            "max_students": max_students,
+            "max_groups": max_groups,
+            "group_size_min": group_size_min,
+            "group_size_max": group_size_max,
+        }
+        return CourseOffering.objects.update_or_create(**lookup, defaults=defaults)
 
     def create(self, **offering_data) -> CourseOffering:
         return CourseOffering.objects.create(**offering_data)

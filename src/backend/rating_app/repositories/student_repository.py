@@ -1,17 +1,25 @@
 from django.conf import settings
 
+import structlog
+
 from rating_app.models import Speciality, Student
 from rating_app.models.choices import EducationLevel
 
 User = settings.AUTH_USER_MODEL
+
+logger = structlog.get_logger()
 
 
 class StudentRepository:
     def get_all(self) -> list[Student]:
         return list(Student.objects.select_related("speciality").all())
 
-    def get_by_id(self, student_id: str) -> Student:
-        return Student.objects.select_related("speciality").get(id=student_id)
+    def get_by_id(self, student_id: str) -> Student | None:
+        try:
+            return Student.objects.select_related("speciality").get(id=student_id)
+        except Student.DoesNotExist:
+            logger.error("student_not_found", student_id=student_id)
+            return None
 
     def get_or_create(
         self,

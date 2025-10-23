@@ -8,7 +8,7 @@ class FacultyRepository:
     def get_by_id(self, faculty_id: str) -> Faculty:
         return Faculty.objects.get(id=faculty_id)
 
-    def get_by_speciality_name(self, speciality_name: str) -> Faculty:
+    def get_by_speciality_name(self, speciality_name: str) -> Faculty | None:
         return Faculty.objects.filter(specialities__name=speciality_name).first()
 
     def get_or_create(self, *, name: str) -> tuple[Faculty, bool]:

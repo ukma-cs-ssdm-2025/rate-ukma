@@ -3,7 +3,8 @@ from typing import Any
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Avg, Count, F
 
-from rating_app.models import Course
+from rating_app.models import Course, Department
+from rating_app.models.choices import CourseStatus
 
 
 class CourseRepository:
@@ -22,8 +23,20 @@ class CourseRepository:
             .get(id=course_id)
         )
 
-    def get_or_create(self, **course_data) -> tuple[Course, bool]:
-        return Course.objects.get_or_create(**course_data)
+    def get_or_create(
+        self,
+        *,
+        title: str,
+        department: Department,
+        status: str = CourseStatus.PLANNED,
+        description: str | None = None,
+    ) -> tuple[Course, bool]:
+        return Course.objects.get_or_create(
+            title=title,
+            department=department,
+            status=status,
+            description=description,
+        )
 
     def filter(
         self,

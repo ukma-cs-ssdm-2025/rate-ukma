@@ -8,14 +8,16 @@ class EnrollmentRepository:
     def get_by_id(self, enrollment_id: str) -> Enrollment:
         return Enrollment.objects.select_related("student", "offering").get(id=enrollment_id)
 
-    def get_or_create(
+    def get_or_upsert(
         self,
         *,
         student: Student,
         offering: CourseOffering,
         status: str,
     ) -> tuple[Enrollment, bool]:
-        return Enrollment.objects.get_or_create(student=student, offering=offering, status=status)
+        defaults = {"status": status}
+        lookup = {"student": student, "offering": offering}
+        return Enrollment.objects.update_or_create(**lookup, defaults=defaults)
 
     def create(self, **enrollment_data) -> Enrollment:
         return Enrollment.objects.create(**enrollment_data)
