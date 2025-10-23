@@ -31,12 +31,13 @@ def _get_specialty_types_key(course: ParsedCourseDetails) -> tuple[str, ...]:
     ))
 
 
-def get_course_key(course: ParsedCourseDetails) -> tuple[str, str, str, tuple[str, ...]]:
+def get_course_key(course: ParsedCourseDetails) -> tuple[str, str, str, tuple[str, ...], float]:
     title = course.title or ""
     faculty = course.faculty or ""
     department = course.department or ""
     specialty_types = _get_specialty_types_key(course)
-    return (title.strip().lower(), faculty.strip().lower(), department.strip().lower(), specialty_types)
+    credits = course.credits or 0.0
+    return (title.strip().lower(), faculty.strip().lower(), department.strip().lower(), specialty_types, credits)
 
 
 class CourseMerger(DeduplicationComponent[list[ParsedCourseDetails], list[DeduplicatedCourse]]):
