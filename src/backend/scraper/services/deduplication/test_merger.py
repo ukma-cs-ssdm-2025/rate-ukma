@@ -30,6 +30,7 @@ def test_get_course_key_basic():
         "факультет інформатики",
         "кафедра програмної інженерії",
         (),
+        4.0,
     )
     assert result == expected
 
@@ -56,7 +57,7 @@ def test_get_course_key_empty_fields():
     result = get_course_key(course)
 
     # Assert
-    expected = ("", "", "", ())
+    expected = ("", "", "", (), 0.0)
     assert result == expected
 
 
