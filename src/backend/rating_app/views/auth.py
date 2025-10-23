@@ -16,7 +16,6 @@ from drf_spectacular.utils import extend_schema
 
 from ..serializers.auth import CSRFTokenSerializer, LoginDto, LoginSerializer, SessionSerializer
 from .responses import R_CSRF_TOKEN, R_LOGIN, R_LOGOUT, R_OAUTH, R_SESSION
-from .views import _with_request_id
 
 logger = structlog.get_logger(__name__)
 
@@ -85,11 +84,10 @@ def login(request):
 
     serializer = LoginSerializer(data=request.data)
     if not serializer.is_valid():
-        response = Response(
+        return Response(
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST,
         )
-        return _with_request_id(response)
 
     validated_data = cast(LoginDto, serializer.validated_data)
     username = validated_data["username"]
@@ -97,17 +95,15 @@ def login(request):
     user = authenticate(username=username, password=password)
 
     if user is None:
-        response = Response(
+        return Response(
             {"detail": "Invalid credentials"},
             status=status.HTTP_401_UNAUTHORIZED,
         )
-        return _with_request_id(response)
 
     django_login(request, user)
     logger.info("user_login_successful")
 
-    response = Response({"detail": "Login Successful"})
-    return _with_request_id(response)
+    return Response({"detail": "Login Successful"})
 
 
 @extend_schema(

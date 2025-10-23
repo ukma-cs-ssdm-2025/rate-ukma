@@ -4,14 +4,16 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from rating_app.models import Course, CourseSpeciality, Department, Rating
-from rating_app.models.choices import CourseTypeKind
+
+from .course_speciality import CourseSpecialityInlineSerializer, SpecialityWithKindPayload
 
 
 class RatingInlineSerializer(serializers.ModelSerializer):
     """Inline serializer for displaying ratings within course detail."""
 
-    student_id = serializers.SerializerMethodField()
-    student_name = serializers.SerializerMethodField()
+    student_id = serializers.SerializerMethodField(read_only=True, required=False)
+    student_name = serializers.SerializerMethodField(read_only=True, required=False)
+    comment = serializers.CharField(required=False, allow_null=True, read_only=True)
     course_offering_code = serializers.CharField(source="course_offering.code", read_only=True)
     semester = serializers.SerializerMethodField()
 
@@ -43,8 +45,7 @@ class RatingInlineSerializer(serializers.ModelSerializer):
         """Return student name if not anonymous, otherwise return None."""
         if obj.is_anonymous:
             return None
-        # Student inherits from Person, so we access fields directly
-        return obj.student.full_name if hasattr(obj.student, "full_name") else str(obj.student)
+        return str(obj.student)
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_semester(self, obj):
@@ -52,20 +53,6 @@ class RatingInlineSerializer(serializers.ModelSerializer):
         if hasattr(obj, "course_offering") and obj.course_offering and obj.course_offering.semester:
             return str(obj.course_offering.semester)
         return None
-
-
-class CourseSpecialityInlineSerializer(serializers.ModelSerializer):
-    speciality_id = serializers.UUIDField(source="speciality.id", read_only=True)
-    speciality_title = serializers.CharField(source="speciality.name", read_only=True)
-
-    class Meta:
-        model = CourseSpeciality
-        fields = ["speciality_id", "speciality_title", "type_kind"]
-
-
-class SpecialityWithKindPayload(serializers.Serializer):
-    speciality = serializers.UUIDField()
-    type_kind = serializers.ChoiceField(choices=CourseTypeKind.choices)
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):

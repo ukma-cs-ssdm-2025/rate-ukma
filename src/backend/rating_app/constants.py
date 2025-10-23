@@ -1,0 +1,20 @@
+"""
+Application-wide constants.
+"""
+
+# PAGINATION
+DEFAULT_PAGE_SIZE = 10
+
+MAX_PAGE_SIZE = 100
+
+MIN_PAGE_SIZE = 1
+
+DEFAULT_PAGE_NUMBER = 1  # First page in pagination
+
+# COURSE
+DEFAULT_COURSE_PAGE_SIZE = 20
+
+# RATING VALUES
+MIN_RATING_VALUE = 1
+
+MAX_RATING_VALUE = 5

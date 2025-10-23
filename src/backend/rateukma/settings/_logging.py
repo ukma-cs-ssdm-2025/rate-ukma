@@ -63,6 +63,7 @@ def format_event_name(logger, method_name, event_dict):
         event_dict["event"] = f"{module_name}.{event}"
     return event_dict
 
+
 processors = [
     merge_contextvars,
     add_logger_name,
