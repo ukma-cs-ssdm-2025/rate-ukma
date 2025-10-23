@@ -278,3 +278,58 @@ def test_course_merger_different_specialty_types_should_not_merge(course_merger)
 
         specialty_types = [spec.type for spec in course.specialities if spec.type]
         assert len(specialty_types) <= 2
+
+
+def test_course_merger_different_credits_should_not_merge(course_merger):
+    # Arrange
+    base_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Основи алгоритмів та структур даних",
+        "id": "550001",
+        "hours": 120,
+        "year": 2,
+        "format": "2015",
+        "status": "Курс відбувся",
+        "faculty": "Факультет інформатики",
+        "department": "Кафедра програмної інженерії",
+        "education_level": "Бакалавр",
+        "academic_year": "2025–2026",
+        "semesters": ["осінній"],
+        "teachers": "Петренко І.П., д.т.н.",
+        "annotation": "Вивчення основних алгоритмів та структур даних.",
+        "specialties": [{"specialty": "Програмна інженерія", "type": "Обов'язкова"}],
+        "limits": {
+            "max_students": 30,
+            "max_groups": 3,
+            "group_size_min": 8,
+            "group_size_max": 15,
+        },
+        "students": [{"index": "1", "name": "Петренко Олександр Петрович"}],
+    }
+
+    course1_data = base_data.copy()
+    course1_data["id"] = "700001"
+    course1_data["credits"] = 4.0
+    course1_data["students"] = [{"index": "1", "name": "Петренко Олександр Петрович"}]
+
+    course2_data = base_data.copy()
+    course2_data["id"] = "700002"
+    course2_data["credits"] = 5.0
+    course2_data["students"] = [{"index": "2", "name": "Коваленко Марія Сергіївна"}]
+
+    course1 = ParsedCourseDetails(**course1_data)
+    course2 = ParsedCourseDetails(**course2_data)
+
+    # Act
+    result = course_merger.merge_duplicate_courses([course1, course2])
+
+    # Assert
+    assert len(result) == 2, f"Expected 2 separate courses, but got {len(result)} merged courses"
+
+    titles = [course.title for course in result]
+    assert "Основи алгоритмів та структур даних" in titles
+
+    for course in result:
+        assert len(course.offerings) == 1
+        offering = course.offerings[0]
+        assert offering.credits in [4.0, 5.0]
