@@ -24,7 +24,7 @@ class IFileReader(IProvider[[Path, int], Generator[list[_T], None, None]], Gener
     ) -> Generator[list[_T], None, None]: ...
 
 
-class CourseFileReader(IFileReader[DeduplicatedCourse]):
+class CoursesJSONLFileReader(IFileReader[DeduplicatedCourse]):
     BATCH_SIZE = 100
 
     @implements
@@ -49,7 +49,10 @@ class CourseFileReader(IFileReader[DeduplicatedCourse]):
                 course = self._read_course(course_raw_data)
                 if not course:
                     logger.warning(
-                        "invalid_course", data=course_raw_data, line_num=line_num, skipped=True
+                        "invalid_course",
+                        data_keys=list(course_raw_data.keys()),
+                        line_num=line_num,
+                        skipped=True,
                     )
                     invalid_count += 1
                     continue
@@ -81,14 +84,14 @@ class CourseFileReader(IFileReader[DeduplicatedCourse]):
         try:
             return json.loads(stripped_line)
         except json.JSONDecodeError as e:
-            logger.error("json_decode_error", line=line, error=str(e))
+            logger.error("json_decode_error", error=str(e), line_len=len(line))
             return None
 
     def _read_course(self, data: dict) -> DeduplicatedCourse | None:
         try:
             return DeduplicatedCourse.model_validate(data)
         except ValidationError as e:
-            logger.error("validation_error", data=data, error=str(e))
+            logger.error("validation_error", error=str(e), fields=list(data.keys()))
             return None
 
     def _validate_file(self, file_path: Path) -> None:
@@ -99,9 +102,10 @@ class CourseFileReader(IFileReader[DeduplicatedCourse]):
         if not file_path.is_file():
             raise ValueError(f"Path is not a file: {file_path}")
 
-        if file_path.suffix.lower() not in [".jsonl", ".json"]:
+        if file_path.suffix.lower() != ".jsonl":
             logger.error(
                 "file_format_mismatch",
                 path=str(file_path),
-                expected_extension=".jsonl or .json",
+                expected_extension=".jsonl",
             )
+            raise ValueError(f"Unsupported file extension: {file_path.suffix}")

@@ -8,9 +8,15 @@ from pydantic import BaseModel
 
 from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IOperation
+from rating_app.models import (
+    Course,
+    CourseOffering,
+    Faculty,
+    Instructor,
+    Speciality,
+    Student,
+)
 from rating_app.models.choices import EducationLevel
-from rating_app.models.course import Course
-from rating_app.models.faculty import Faculty
 from rating_app.repositories import (
     CourseInstructorRepository,
     CourseOfferingRepository,
@@ -27,6 +33,11 @@ from scraper.services.db_ingestion.progress_tracker import InjectionProgressTrac
 
 from ...models.deduplicated import (
     DeduplicatedCourse,
+    DeduplicatedCourseInstructor,
+    DeduplicatedCourseOffering,
+    DeduplicatedEnrollment,
+    DeduplicatedInstructor,
+    DeduplicatedStudent,
 )
 
 logger = structlog.get_logger(__name__)
@@ -77,7 +88,7 @@ class CourseDbInjector(IDbInjector):
             self._inject_to_db(models)
         except Exception as e:
             self.tracker.fail(str(e))
-            return
+            raise e
 
         self.tracker.complete(f"{len(models)} courses")
 
@@ -98,7 +109,10 @@ class CourseDbInjector(IDbInjector):
             name=course_data.department, faculty=faculty
         )
         course, _ = self.course_repository.get_or_create(
-            title=course_data.title, department=department, status=course_data.status.value
+            title=course_data.title,
+            department=department,
+            status=course_data.status.value,
+            description=course_data.description,
         )
         return course
 
@@ -119,85 +133,116 @@ class CourseDbInjector(IDbInjector):
                 )
             course.specialities.add(speciality)  # type: ignore
 
-    # TODO: refactor this method for better readability
     def _process_offerings(
         self,
         course: Course,
         course_data: DeduplicatedCourse,
     ) -> None:
         for offering_data in course_data.offerings:
-            semester, _ = self.semester_repository.get_or_create(
-                year=offering_data.semester.year, term=offering_data.semester.term.value
+            course_offering = self._create_course_offering(course, offering_data)
+            self._process_instructors(course_offering, offering_data.instructors)
+            self._process_enrollments(course_offering, offering_data.enrollments)
+
+    def _create_course_offering(
+        self,
+        course: Course,
+        offering_data: DeduplicatedCourseOffering,
+    ) -> CourseOffering:
+        semester, _ = self.semester_repository.get_or_create(
+            year=offering_data.semester.year,
+            term=offering_data.semester.term.value,
+        )
+
+        course_offering, _ = self.course_offering_repository.get_or_upsert(
+            course=course,
+            semester=semester,
+            code=offering_data.code,
+            exam_type=offering_data.exam_type.value,
+            practice_type=offering_data.practice_type.value
+            if offering_data.practice_type
+            else None,
+            credits=offering_data.credits,
+            weekly_hours=offering_data.weekly_hours,
+            lecture_count=offering_data.lecture_count,
+            practice_count=offering_data.practice_count,
+            max_students=offering_data.max_students,
+            max_groups=offering_data.max_groups,
+            group_size_min=offering_data.group_size_min,
+            group_size_max=offering_data.group_size_max,
+        )
+        return course_offering
+
+    def _process_instructors(
+        self,
+        course_offering: CourseOffering,
+        instructors_data: Sequence[DeduplicatedCourseInstructor],
+    ) -> None:
+        for instructor_data in instructors_data:
+            instructor = self._create_instructor(instructor_data.instructor)
+            self.course_instructor_repository.get_or_create(
+                instructor=instructor,
+                course_offering=course_offering,
+                role=instructor_data.role.value,
             )
 
-            course_offering, _ = self.course_offering_repository.get_or_create(
-                course=course,
-                semester=semester,
-                code=offering_data.code,
-                exam_type=offering_data.exam_type.value,
-                practice_type=offering_data.practice_type.value
-                if offering_data.practice_type
-                else None,
-                credits=offering_data.credits,
-                weekly_hours=offering_data.weekly_hours,
-                lecture_count=offering_data.lecture_count,
-                practice_count=offering_data.practice_count,
-                max_students=offering_data.max_students,
-                max_groups=offering_data.max_groups,
-                group_size_min=offering_data.group_size_min,
-                group_size_max=offering_data.group_size_max,
+    def _create_instructor(self, instructor_data: DeduplicatedInstructor) -> Instructor:
+        instructor, _ = self.instructor_repository.get_or_create(
+            first_name=instructor_data.first_name,
+            last_name=instructor_data.last_name,
+            patronymic=instructor_data.patronymic,
+            academic_degree=instructor_data.academic_degree.value
+            if instructor_data.academic_degree
+            else None,
+            academic_title=instructor_data.academic_title.value
+            if instructor_data.academic_title
+            else None,
+        )
+        return instructor
+
+    def _process_enrollments(
+        self,
+        course_offering: CourseOffering,
+        enrollments_data: Sequence[DeduplicatedEnrollment],
+    ) -> None:
+        for enrollment_data in enrollments_data:
+            student = self._create_student(enrollment_data.student)
+            if not student:
+                continue
+
+            self.enrollment_repository.get_or_upsert(
+                student=student,
+                offering=course_offering,
+                status=enrollment_data.status.value,
             )
-            for instructor_data in offering_data.instructors:
-                instructor, _ = self.instructor_repository.get_or_create(
-                    first_name=instructor_data.instructor.first_name,
-                    last_name=instructor_data.instructor.last_name,
-                    patronymic=instructor_data.instructor.patronymic,
-                    academic_degree=instructor_data.instructor.academic_degree.value
-                    if instructor_data.instructor.academic_degree
-                    else None,
-                    academic_title=instructor_data.instructor.academic_title.value
-                    if instructor_data.instructor.academic_title
-                    else None,
-                )
-                self.course_instructor_repository.get_or_create(
-                    instructor=instructor,
-                    course_offering=course_offering,
-                    role=instructor_data.role.value,
-                )
-            for enrollment_data in offering_data.enrollments:
-                student_data = enrollment_data.student
-                education_level = student_data.education_level
-                if not student_data.speciality:
-                    continue
 
-                student_faculty = self.faculty_repository.get_by_speciality_name(
-                    student_data.speciality
-                )
-                if not student_faculty:
-                    continue
+    def _create_student(self, student_data: DeduplicatedStudent) -> Student | None:
+        if not student_data.speciality:
+            return None
 
-                student_speciality = self.speciality_repository.get_by_name(
-                    name=student_data.speciality
-                )
+        student_speciality = self._get_or_create_speciality(student_data.speciality)
+        if not student_speciality:
+            return None
 
-                if not student_speciality:
-                    student_faculty = self.faculty_repository.get_by_speciality_name(
-                        student_data.speciality
-                    )
-                    student_speciality, _ = self.speciality_repository.get_or_create(
-                        name=student_data.speciality,
-                        faculty=student_faculty,
-                    )
+        student, _ = self.student_repository.get_or_create(
+            first_name=student_data.first_name,
+            last_name=student_data.last_name,
+            patronymic=student_data.patronymic,
+            education_level=EducationLevel(student_data.education_level),
+            speciality=student_speciality,
+        )
+        return student
 
-                student, _ = self.student_repository.get_or_create(
-                    first_name=enrollment_data.student.first_name,
-                    last_name=enrollment_data.student.last_name,
-                    patronymic=enrollment_data.student.patronymic,
-                    education_level=EducationLevel(education_level),
-                    speciality=student_speciality,
-                )
-                self.enrollment_repository.get_or_create(
-                    student=student,
-                    offering=course_offering,
-                    status=enrollment_data.status.value,
-                )
+    def _get_or_create_speciality(self, speciality_name: str) -> Speciality | None:
+        speciality = self.speciality_repository.get_by_name(name=speciality_name)
+        if speciality:
+            return speciality
+
+        faculty = self.faculty_repository.get_by_speciality_name(speciality_name)
+        if not faculty:
+            return None
+
+        speciality, _ = self.speciality_repository.get_or_create(
+            name=speciality_name,
+            faculty=faculty,
+        )
+        return speciality

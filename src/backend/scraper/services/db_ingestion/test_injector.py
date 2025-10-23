@@ -60,7 +60,7 @@ def repo_mocks():
     dept_repo.get_or_create.return_value = (department, True)
     course_repo.get_or_create.return_value = (course, True)
     semester_repo.get_or_create.return_value = (semester, True)
-    offering_repo.get_or_create.return_value = (course_offering, True)
+    offering_repo.get_or_upsert.return_value = (course_offering, True)
     speciality_repo.get_by_name.return_value = speciality
     instructor_repo.get_or_create.return_value = (instructor, True)
     student_repo.get_or_create.return_value = (student, True)
@@ -289,11 +289,11 @@ def test_injector_processes_offerings_instructors_and_enrollments(injector, repo
 
     # Assert
     repo_mocks.semester_repo.get_or_create.assert_called_once_with(year=2024, term="FALL")
-    repo_mocks.offering_repo.get_or_create.assert_called_once()
+    repo_mocks.offering_repo.get_or_upsert.assert_called_once()
     repo_mocks.instructor_repo.get_or_create.assert_called_once()
     repo_mocks.course_instructor_repo.get_or_create.assert_called_once()
     repo_mocks.student_repo.get_or_create.assert_called_once()
-    repo_mocks.enrollment_repo.get_or_create.assert_called_once()
+    repo_mocks.enrollment_repo.get_or_upsert.assert_called_once()
 
 
 @pytest.mark.django_db
@@ -303,7 +303,8 @@ def test_injector_handles_exception_and_calls_fail(injector, repo_mocks):
     models = [create_mock_course(title="Broken Course")]
 
     # Act
-    injector.execute(models)
+    with pytest.raises(RuntimeError):
+        injector.execute(models)
 
     # Assert
     repo_mocks.tracker.fail.assert_called_once()
