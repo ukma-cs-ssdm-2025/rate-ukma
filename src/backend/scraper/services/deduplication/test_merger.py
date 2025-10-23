@@ -217,6 +217,63 @@ def test_course_merger_handles_different_academic_years(course_merger):
     deduplicated_course = result[0]
     assert len(deduplicated_course.offerings) == 2
 
-    # Check that different academic years are preserved
     years = {offering.semester.year for offering in deduplicated_course.offerings}
     assert years == {2025, 2024}
+
+
+def test_course_merger_different_specialty_types_should_not_merge(course_merger):
+    # Arrange
+    base_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Big Data та штучний інтелект в бізнесі (маркетинг)",
+        "id": "550001",
+        "credits": 4.0,
+        "hours": 120,
+        "year": 2,
+        "format": "2015",
+        "status": "Курс відбувся",
+        "faculty": "Факультет інформатики",
+        "department": "Кафедра програмної інженерії",
+        "education_level": "Бакалавр",
+        "academic_year": "2025–2026",
+        "semesters": ["осінній"],
+        "teachers": "Петренко І.П., д.т.н.",
+        "annotation": "Основні концепції Big Data та штучного інтелекту в бізнесі.",
+        "limits": {
+            "max_students": 30,
+            "max_groups": 3,
+            "group_size_min": 8,
+            "group_size_max": 15,
+        },
+        "students": [{"index": "1", "name": "Петренко Олександр Петрович"}],
+    }
+
+    course1_data = base_data.copy()
+    course1_data["id"] = "345745"
+    course1_data["specialties"] = [{"specialty": "Маркетинг", "type": "Професійно-орієнтована"}]
+    course1_data["students"] = [{"index": "1", "name": "Петренко Олександр Петрович"}]
+
+    course2_data = base_data.copy()
+    course2_data["id"] = "351381"
+    course2_data["specialties"] = [{"specialty": "Маркетинг", "type": "Обов'язкова"}]
+    course2_data["year"] = 1
+    course2_data["students"] = [{"index": "2", "name": "Коваленко Марія Сергіївна"}]
+
+    course1 = ParsedCourseDetails(**course1_data)
+    course2 = ParsedCourseDetails(**course2_data)
+
+    # Act
+    result = course_merger.merge_duplicate_courses([course1, course2])
+
+    # Assert
+    assert len(result) == 2, f"Expected 2 separate courses, but got {len(result)} merged courses"
+
+    titles = [course.title for course in result]
+    assert "Big Data та штучний інтелект в бізнесі (маркетинг)" in titles
+
+    for course in result:
+        assert len(course.offerings) == 1
+        offering = course.offerings[0]
+
+        specialty_types = [spec.type for spec in course.specialities if spec.type]
+        assert len(specialty_types) <= 2
