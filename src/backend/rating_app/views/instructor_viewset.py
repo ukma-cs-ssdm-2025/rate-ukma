@@ -7,6 +7,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from rating_app.ioc_container.services import instructor_service
+from rating_app.models import Instructor
 from rating_app.serializers import InstructorSerializer
 
 from .responses import R_INSTRUCTOR
@@ -33,6 +34,9 @@ class InstructorViewSet(viewsets.ModelViewSet):
         responses=R_INSTRUCTOR,
     )
     def retrieve(self, request, instructor_id=None):
-        instructor = self.instructor_service.get_instructor_by_id(instructor_id)
+        try:
+            instructor = self.instructor_service.get_instructor_by_id(instructor_id)
+        except Instructor.DoesNotExist:
+            return Response(status=404)
         serializer = self.get_serializer(instructor)
         return Response(serializer.data)
