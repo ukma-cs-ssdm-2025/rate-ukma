@@ -129,6 +129,11 @@ omit = [
     "*/test_*.py",
     "*_test.py",
     "*/settings/*",
+    "*/__init__.py",
+    "*/wsgi.py",
+    "*/asgi.py",
+    "*/urls.py",
+    "*/ioc_container/*",
     "manage.py",
 ]
 

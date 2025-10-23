@@ -257,7 +257,7 @@ paths:
         name: page_size
         schema:
           type: integer
-        description: 'Items per page (default: 10)'
+        description: 'Items per page (default: 20)'
       - in: query
         name: semesterTerm
         schema:
@@ -404,6 +404,499 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/courses/{course_id}/ratings/:
+    get:
+      operationId: courses_ratings_list
+      description: List all ratings for a specific course with filters and pagination.
+      summary: List ratings for a course
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+          format: uuid
+        description: Course ID from URL path
+        required: true
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: 'Page number (default: 1)'
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: 'Items per page (default: 10)'
+      tags:
+      - ratings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RatingRead'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+    post:
+      operationId: courses_ratings_create
+      description: Create a new rating for a course offering. Each student can only
+        rate a course offering once and must be enrolled in the course. The student
+        is automatically determined from the authenticated user.
+      summary: Create a new rating
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ratings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingCreateUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RatingCreateUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RatingCreateUpdate'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingRead'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Conflict-RatingAlreadyExists:
+                  value:
+                    detail: You have already rated this course offering
+                    status: 409
+                  summary: Conflict - Rating already exists
+          description: Conflict - Rating already exists
+  /api/v1/courses/{course_id}/ratings/{rating_id}/:
+    get:
+      operationId: courses_ratings_retrieve
+      description: Retrieve a specific rating by ID.
+      summary: Get rating details
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: rating_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ratings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingRead'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+    put:
+      operationId: courses_ratings_update
+      description: Update an existing rating. Only the owner can update their rating.
+      summary: Update a rating
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: rating_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ratings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingCreateUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RatingCreateUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RatingCreateUpdate'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingRead'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+    patch:
+      operationId: courses_ratings_partial_update
+      description: Partially update an existing rating. Only the owner can update
+        their rating.
+      summary: Partially update a rating
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: rating_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ratings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRatingCreateUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRatingCreateUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRatingCreateUpdate'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingRead'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+    delete:
+      operationId: courses_ratings_destroy
+      description: Delete a rating. Only the owner can delete their rating.
+      summary: Delete a rating
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: rating_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ratings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
 components:
   schemas:
     CSRFToken:
@@ -462,14 +955,7 @@ components:
             $ref: '#/components/schemas/SpecialityWithKindPayload'
           writeOnly: true
       required:
-      - avg_difficulty
-      - avg_usefulness
-      - course_specialities
       - department
-      - department_name
-      - faculty_name
-      - id
-      - ratings_count
       - status
       - title
     CourseList:
@@ -516,21 +1002,14 @@ components:
             $ref: '#/components/schemas/CourseSpecialityInline'
           readOnly: true
       required:
-      - avg_difficulty
-      - avg_usefulness
-      - course_specialities
       - department
-      - department_name
-      - faculty_name
-      - id
-      - ratings_count
       - status
       - title
     CourseListResponse:
       type: object
       description: Schema for GET /api/v1/courses response envelope.
       properties:
-        results:
+        items:
           type: array
           items:
             $ref: '#/components/schemas/CourseList'
@@ -545,12 +1024,14 @@ components:
           type: integer
       required:
       - filters
+      - items
       - page
       - page_size
-      - results
       - total
     CourseSpecialityInline:
       type: object
+      description: Inline serializer for displaying course specialities with type
+        kind.
       properties:
         speciality_id:
           type: string
@@ -562,8 +1043,6 @@ components:
         type_kind:
           $ref: '#/components/schemas/TypeKindEnum'
       required:
-      - speciality_id
-      - speciality_title
       - type_kind
     ErrorEnvelope:
       type: object
@@ -594,6 +1073,100 @@ components:
       required:
       - password
       - username
+    PatchedRatingCreateUpdate:
+      type: object
+      description: |-
+        Serializer for creating and updating Ratings.
+        Student is automatically set from authenticated user.
+      properties:
+        course_offering:
+          type: string
+          format: uuid
+          description: UUID of the course offering being rated
+        difficulty:
+          type: integer
+          maximum: 5
+          minimum: 1
+        usefulness:
+          type: integer
+          maximum: 5
+          minimum: 1
+        comment:
+          type: string
+          nullable: true
+        is_anonymous:
+          type: boolean
+    RatingCreateUpdate:
+      type: object
+      description: |-
+        Serializer for creating and updating Ratings.
+        Student is automatically set from authenticated user.
+      properties:
+        course_offering:
+          type: string
+          format: uuid
+          description: UUID of the course offering being rated
+        difficulty:
+          type: integer
+          maximum: 5
+          minimum: 1
+        usefulness:
+          type: integer
+          maximum: 5
+          minimum: 1
+        comment:
+          type: string
+          nullable: true
+        is_anonymous:
+          type: boolean
+      required:
+      - course_offering
+      - difficulty
+      - usefulness
+    RatingRead:
+      type: object
+      description: |-
+        Serializer for reading Rating with privacy protection.
+        Returns null for student_id and student_name when is_anonymous is True.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        student_id:
+          type: string
+          format: uuid
+          nullable: true
+          readOnly: true
+        student_name:
+          type: string
+          nullable: true
+          readOnly: true
+        course_offering:
+          type: string
+          format: uuid
+          readOnly: true
+        course:
+          type: string
+          format: uuid
+          readOnly: true
+        difficulty:
+          type: integer
+          readOnly: true
+        usefulness:
+          type: integer
+          readOnly: true
+        comment:
+          type: string
+          readOnly: true
+          nullable: true
+        is_anonymous:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
     Session:
       type: object
       properties:
@@ -626,6 +1199,8 @@ components:
       - id
     SpecialityWithKindPayload:
       type: object
+      description: Payload serializer for creating/updating course speciality associations
+        (write-only).
       properties:
         speciality:
           type: string
