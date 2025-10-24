@@ -3,7 +3,12 @@ from rest_framework.test import APIClient
 
 import pytest
 
-from rating_app.tests.factories import CourseFactory
+from rating_app.tests.factories import (
+    CourseFactory,
+    CourseInstructorFactory,
+    CourseOfferingFactory,
+    InstructorFactory,
+)
 
 
 @pytest.fixture
@@ -81,8 +86,13 @@ def test_filter_by_department_and_faculty(token_client, course_factory):
 @pytest.mark.django_db
 def test_filter_by_instructor(token_client, course_factory):
     # Arrange
+
     course = course_factory.create()
-    instructor_id = course.department.faculty.id  # Use faculty as a stand-in for instructor
+    offering = CourseOfferingFactory(course=course)
+    instructor = InstructorFactory()
+    CourseInstructorFactory(course_offering=offering, instructor=instructor)
+    instructor_id = instructor.id
+
     url = f"/api/v1/courses/?instructor={instructor_id}"
 
     # Act
