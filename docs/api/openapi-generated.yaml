@@ -897,8 +897,107 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/instructors/{instructor_id}:
+    get:
+      operationId: instructors_retrieve
+      description: Retrieve a single instructor by their ID with detailed information.
+      summary: Retrieve an instructor
+      parameters:
+      - in: path
+        name: instructor_id
+        schema:
+          type: string
+          format: uuid
+        description: Instructor ID
+        required: true
+      tags:
+      - instructors
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instructor'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
 components:
   schemas:
+    AcademicDegreeEnum:
+      enum:
+      - PHD
+      - DRSCI
+      type: string
+      description: |-
+        * `PHD` - PhD
+        * `DRSCI` - DoctorOfSciences
+    AcademicTitleEnum:
+      enum:
+      - ASSISTANT
+      - LECTURER
+      - SENIOR_LECTURER
+      - ASSOCIATE_PROF
+      - PROFESSOR
+      type: string
+      description: |-
+        * `ASSISTANT` - Assistant
+        * `LECTURER` - Lecturer
+        * `SENIOR_LECTURER` - SeniorLecturer
+        * `ASSOCIATE_PROF` - AssociateProfessor
+        * `PROFESSOR` - Professor
+    BlankEnum:
+      enum:
+      - ''
     CSRFToken:
       type: object
       properties:
@@ -1060,6 +1159,38 @@ components:
       required:
       - detail
       - status
+    Instructor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 120
+        patronymic:
+          type: string
+          nullable: true
+          maxLength: 120
+        last_name:
+          type: string
+          maxLength: 120
+        academic_degree:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/AcademicDegreeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        academic_title:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/AcademicTitleEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - first_name
+      - last_name
     Login:
       type: object
       properties:
@@ -1073,6 +1204,9 @@ components:
       required:
       - password
       - username
+    NullEnum:
+      enum:
+      - null
     PatchedRatingCreateUpdate:
       type: object
       description: |-

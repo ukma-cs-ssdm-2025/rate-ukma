@@ -4,12 +4,12 @@ import pytest
 
 from scraper.models.deduplicated import CourseStatus, DeduplicatedCourse
 
-from .file_reader import CourseFileReader
+from .file_reader import CoursesJSONLFileReader
 
 
 @pytest.fixture
-def file_reader() -> CourseFileReader:
-    return CourseFileReader()
+def file_reader() -> CoursesJSONLFileReader:
+    return CoursesJSONLFileReader()
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def valid_course_data() -> DeduplicatedCourse:
     )
 
 
-def test_provide_raises_if_file_not_exists(file_reader: CourseFileReader, tmp_path: Path):
+def test_provide_raises_if_file_not_exists(file_reader: CoursesJSONLFileReader, tmp_path: Path):
     # Arrange
     fake_file = tmp_path / "inexistent.jsonl"
 
@@ -32,7 +32,7 @@ def test_provide_raises_if_file_not_exists(file_reader: CourseFileReader, tmp_pa
 
 
 def test_reads_valid_json_line(
-    file_reader: CourseFileReader, tmp_path: Path, valid_course_data: DeduplicatedCourse
+    file_reader: CoursesJSONLFileReader, tmp_path: Path, valid_course_data: DeduplicatedCourse
 ):
     # Arrange
     file = tmp_path / "courses.jsonl"
@@ -48,7 +48,7 @@ def test_reads_valid_json_line(
 
 
 def test_skips_invalid_json(
-    file_reader: CourseFileReader,
+    file_reader: CoursesJSONLFileReader,
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
     valid_course_data: DeduplicatedCourse,
@@ -68,7 +68,7 @@ def test_skips_invalid_json(
 
 
 def test_batches_by_size(
-    file_reader: CourseFileReader, tmp_path: Path, valid_course_data: DeduplicatedCourse
+    file_reader: CoursesJSONLFileReader, tmp_path: Path, valid_course_data: DeduplicatedCourse
 ):
     # Arrange
     file = tmp_path / "courses.jsonl"

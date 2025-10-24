@@ -5,7 +5,8 @@ from django.db.models import Avg, Count, F
 
 from rating_app.constants import DEFAULT_PAGE_NUMBER, MAX_PAGE_SIZE, MIN_PAGE_SIZE
 from rating_app.filters import CourseFilterPayload, CourseFilters
-from rating_app.models import Course
+from rating_app.models import Course, Department
+from rating_app.models.choices import CourseStatus
 
 
 class CourseRepository:
@@ -124,8 +125,20 @@ class CourseRepository:
             filters=filters,
         )
 
-    def create(self, **course_data) -> Course:
-        return Course.objects.create(**course_data)
+    def get_or_create(
+        self,
+        *,
+        title: str,
+        department: Department,
+        status: str = CourseStatus.PLANNED,
+        description: str | None = None,
+    ) -> tuple[Course, bool]:
+        return Course.objects.get_or_create(
+            title=title,
+            department=department,
+            status=status,
+            description=description,
+        )
 
     def update(self, course: Course, **course_data) -> Course:
         for field, value in course_data.items():

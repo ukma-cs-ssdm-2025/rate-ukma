@@ -61,7 +61,8 @@ class DeduplicatedStudent(BaseModel):
     last_name: str
     index: str | None = None
     email: str | None = None
-    specialty: str | None = None
+    speciality: str | None = None
+    education_level: EducationLevel | None = None
     group: str | None = None
 
 
@@ -96,7 +97,7 @@ class DeduplicatedCourseInstructor(BaseModel):
 
 
 class DeduplicatedCourseOffering(BaseModel):
-    code: str | None = None
+    code: str
     semester: DeduplicatedSemester
     credits: float
     weekly_hours: int
