@@ -2,10 +2,10 @@ name: Live Build
 on:
   workflow_dispatch:
     inputs:
-      commit_ref:
-        description: "Commit SHA, Tag, or Branch to deploy (e.g., main, v1.2.3, 0ff828a)"
-        required: false
-        default: "main"
+      version_tag:
+        description: "Version tag to deploy (e.g., v1.2.3)"
+        required: true
+        type: string
 
 jobs:
   test:
@@ -28,8 +28,51 @@ jobs:
     with:
       environment: "live"
       archive_name: "rate-ukma-live.tar.gz"
-      deployment_ref: ${{ github.event.inputs.commit_ref }}
+      deployment_ref: ${{ inputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
       SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
+
+  create_release:
+    needs: deploy-live
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version_tag }}
+          fetch-depth: 0
+
+      - name: Get Previous Live Release
+        id: prev_release
+        run: |
+          PREV_TAG=$(git tag -l "v*" --sort=-v:refname | head -n 1)
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+
+          if [ ! -z "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%an)" $PREV_TAG..${{ inputs.version_tag }})
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%an)" ${{ inputs.version_tag }})
+          fi
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          echo "changelog=$CHANGELOG" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version_tag }}
+          name: "Live Release ${{ inputs.version_tag }}"
+          body: |
+            Latest stable version: `${{ inputs.version_tag }}`
+            Previous version: `${{ steps.prev_release.outputs.prev_tag }}`
+
+            ## Changelog since last release:
+            ${{ steps.prev_release.outputs.changelog }}
+
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
