@@ -1,3 +1,1 @@
-from .base import CourseAdmin
-
-__all__ = ["CourseAdmin"]
+from .models import *  # noqa: F401, F403

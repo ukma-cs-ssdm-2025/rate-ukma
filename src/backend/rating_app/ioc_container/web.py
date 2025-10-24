@@ -5,7 +5,7 @@ from django.urls import path
 
 from rateukma.ioc.decorators import once
 
-from ..views import CourseViewSet, RatingViewSet
+from ..views import CourseViewSet, InstructorViewSet, RatingViewSet
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
 
 
@@ -29,6 +29,11 @@ def course_rating_detail_view():
     return RatingViewSet.as_view(
         {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
     )
+
+
+@once
+def instructor_detail_view():
+    return InstructorViewSet.as_view({"get": "retrieve"})
 
 
 @once
@@ -103,6 +108,11 @@ def rest_urlpatterns() -> list:
             "courses/<str:course_id>/ratings/<str:rating_id>/",
             course_rating_detail_view(),
             name="course-rating-detail",
+        ),
+        path(
+            "instructors/<str:instructor_id>",
+            instructor_detail_view(),
+            name="instructor-detail",
         ),
     ]
 

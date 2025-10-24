@@ -4,6 +4,7 @@ from rating_app.constants import MAX_RATING_VALUE, MIN_RATING_VALUE
 from rating_app.serializers import (
     CourseDetailSerializer,
     CourseListResponseSerializer,
+    InstructorSerializer,
     RatingReadSerializer,
 )
 from rating_app.serializers import ErrorEnvelopeSerializer as Err
@@ -120,4 +121,12 @@ R_SESSION = {
 
 R_CSRF_TOKEN = {
     200: OpenApiResponse(CSRFTokenSerializer, "CSRF token"),
+}
+
+R_INSTRUCTOR = {
+    200: OpenApiResponse(InstructorSerializer, "OK"),
+    400: OpenApiResponse(Err, "Bad request", [EX_400]),
+    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+    403: OpenApiResponse(Err, "Forbidden", [EX_403]),
+    404: OpenApiResponse(Err, "Not found", [EX_404]),
 }

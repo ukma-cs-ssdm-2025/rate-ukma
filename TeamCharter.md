@@ -13,12 +13,12 @@
 
 ## 2. Roles & Responsibilities
 
-| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation | Construction I |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead | Code Reviewer |
-| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead | Quality Lead |
-| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead | Quality Lead | Security Analyst |
-| **Milana** | Documentation Lead | Quality Lead | Documentation Lead | Documentation Lead | Documentation Lead |
+| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation | Construction I | Testing & Debugging |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead | Code Reviewer | Integration Lead |
+| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead | Quality Lead | Debugger |
+| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead | Quality Lead | Security Analyst | Test Lead |
+| **Milana** | Documentation Lead | Quality Lead | Documentation Lead | Documentation Lead | Documentation Lead | QA Planner |
 
 ---
 
