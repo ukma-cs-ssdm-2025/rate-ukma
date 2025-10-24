@@ -7,6 +7,7 @@ from rating_app.tests.factories import (
     CourseFactory,
     CourseInstructorFactory,
     CourseOfferingFactory,
+    CourseSpecialityFactory,
     InstructorFactory,
 )
 
@@ -136,9 +137,10 @@ def test_filter_by_semester(token_client, course_factory):
 @pytest.mark.django_db
 def test_filter_by_speciality_and_typekind(token_client, course_factory):
     # Arrange
-    speciality_id = "00000000-0000-0000-0000-000000000000"
+    course = course_factory.create()
+    course_speciality = CourseSpecialityFactory(course=course, type_kind="COMPULSORY")
+    speciality_id = course_speciality.speciality.id
     type_kind = "COMPULSORY"
-    course_factory.create()
     url = f"/api/v1/courses/?speciality={speciality_id}&typeKind={type_kind}"
 
     # Act
