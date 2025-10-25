@@ -89,6 +89,8 @@ jobs:
             ## Changelog since last release:
             ${{ steps.prev_release.outputs.changelog }}
 
+            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.prev_release.outputs.prev_tag }}...${{ steps.live_version.outputs.version_tag }})
+
           draft: false
           prerelease: false
         env:
