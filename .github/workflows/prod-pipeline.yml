@@ -26,8 +26,6 @@ jobs:
     needs: [test, openapi-validation, audit, build]
     uses: ./.github/workflows/deploy-live.yml
     with:
-      environment: "live"
-      archive_name: "rate-ukma-live.tar.gz"
       deployment_ref: ${{ inputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
