@@ -1,6 +1,6 @@
 #!/bin/sh
 commit_msg_file="$1"
-pattern='^(feat|fix|docs|style|refactor|test|chore)(\([a-z0-9_#-]+\))?: .+$'
+pattern='^(feat|fix|docs|style|refactor|test|chore|ci|security|feat!)(\([a-z0-9_#-]+\))?: .+$'
 
 commit_msg=$(cat "$commit_msg_file")
 
@@ -19,13 +19,16 @@ else
     echo ""
     echo "--- Available Commit Types ---"
     echo ""
+    echo "feat!:    A breaking change in functionality."
     echo "feat:     A new feature for the user."
     echo "fix:      A bug fix for the user."
+    echo "security: Security-related changes or fixes."
     echo "docs:     Changes to the documentation."
     echo "style:    Formatting, missing semi colons, etc; no production code change."
     echo "refactor: Refactoring production code, e.g., renaming a variable."
     echo "test:     Adding missing tests, refactoring tests; no production code change."
     echo "chore:    Updating build tasks, dependencies, etc; no production code change."
+    echo "ci:       Changes to CI configuration files and scripts."
     echo ""
     echo "More details: https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716"
     echo "======================================================================="
