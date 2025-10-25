@@ -2,6 +2,11 @@ name: Semantic Version
 
 on:
   workflow_call:
+    inputs:
+      tag_prefix:
+        description: "Prefix for version tag (e.g., v or live-v)"
+        type: string
+        default: "v"
     outputs:
       version_tag:
         description: "Generated semantic version tag"
@@ -17,7 +22,6 @@ on:
         value: ${{ jobs.version.outputs.authors }}
 
 env:
-  SEMANTIC_VERSION_TAG_PREFIX: "v"
   SEMANTIC_VERSION_MAJOR_PATTERN: "/(feat!)\\(#?\\d+\\)!:/"
   SEMANTIC_VERSION_MINOR_PATTERN: "/(feat|security|ci)\\(#?\\d+\\):/"
   SEMANTIC_VERSION_PATCH_PATTERN: "/(fix|docs|style|refactor|test|chore)\\(#?\\d+\\):/"
@@ -44,16 +48,15 @@ jobs:
         id: semantic
         uses: paulhatch/semantic-version@v5.4.0
         with:
-          tag_prefix: ${{ env.SEMANTIC_VERSION_TAG_PREFIX }}
-          major_pattern: "${env.SEMANTIC_VERSION_MAJOR_PATTERN}"
-          minor_pattern: "${env.SEMANTIC_VERSION_MINOR_PATTERN}"
-          patch_pattern: "${env.SEMANTIC_VERSION_PATCH_PATTERN}"
+          tag_prefix: ${{ inputs.tag_prefix }}
+          major_pattern: ${{ env.SEMANTIC_VERSION_MAJOR_PATTERN }}
+          minor_pattern: ${{ env.SEMANTIC_VERSION_MINOR_PATTERN }}
+          patch_pattern: ${{ env.SEMANTIC_VERSION_PATCH_PATTERN }}
           major_regexp_flags: "i"
           minor_regexp_flags: "i"
           patch_regexp_flags: "i"
-          version_format: "${env.SEMANTIC_VERSION_VERSION_FORMAT}"
+          version_format: ${{ env.SEMANTIC_VERSION_VERSION_FORMAT }}
           bump_each_commit: true
-          search_commit_body: true
           default_version: "1.0.0"
 
       - name: Create Version Tag
