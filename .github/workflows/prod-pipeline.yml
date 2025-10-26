@@ -50,10 +50,10 @@ jobs:
           PREV_TAG=$(git tag -l "${{ env.LIVE_TAG_PREFIX }}*" --sort=-v:refname | head -n 1)
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
 
-          if [ ! -z "$PREV_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s (%an)" $PREV_TAG..${{ inputs.version_tag }})
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."${{ inputs.version_tag }}")
 
-            if [ ! -z "$COMMITS" ]; then
+            if [ -n "$COMMITS" ]; then
               CHANGELOG="$COMMITS"
             else
               CHANGELOG="No changes since last live release"
