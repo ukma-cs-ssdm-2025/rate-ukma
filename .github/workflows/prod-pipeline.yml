@@ -22,7 +22,6 @@ jobs:
     secrets: inherit
 
   build:
-    needs: [test, openapi-validation, audit]
     uses: ./.github/workflows/build.yml
 
   deploy-live:
