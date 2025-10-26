@@ -38,7 +38,7 @@ jobs:
     needs: deploy-live
     uses: ./.github/workflows/version.yml
     with:
-      tag_prefix: ${{ env.LIVE_TAG_PREFIX }}
+      tag_prefix: "live-v"
 
   create_release:
     needs: [deploy-live, generate_version]
