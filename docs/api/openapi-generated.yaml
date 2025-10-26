@@ -1183,19 +1183,21 @@ components:
           type: integer
         total_pages:
           type: integer
-        next:
+        next_page:
           type: integer
+          minimum: 1
           nullable: true
-        previous:
+        previous_page:
           type: integer
+          minimum: 1
           nullable: true
       required:
       - filters
       - items
-      - next
+      - next_page
       - page
       - page_size
-      - previous
+      - previous_page
       - total
       - total_pages
     CourseSpecialityInline:
@@ -1284,20 +1286,30 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DepartmentOption'
-        semesters:
+        semester_terms:
           type: array
           items:
-            $ref: '#/components/schemas/SemesterOption'
+            $ref: '#/components/schemas/SemesterTermOption'
+        semester_years:
+          type: array
+          items:
+            $ref: '#/components/schemas/SemesterYearOption'
         course_types:
           type: array
           items:
             $ref: '#/components/schemas/CourseTypeOption'
+        specialities:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpecialityOption'
       required:
       - course_types
       - departments
       - faculties
       - instructors
-      - semesters
+      - semester_terms
+      - semester_years
+      - specialities
     Instructor:
       type: object
       properties:
@@ -1447,22 +1459,26 @@ components:
           type: string
           format: date-time
           readOnly: true
-    SemesterOption:
+    SemesterTermOption:
       type: object
       properties:
-        id:
-          type: string
-        year:
-          type: integer
-        term:
+        value:
           type: string
         label:
           type: string
       required:
-      - id
       - label
-      - term
-      - year
+      - value
+    SemesterYearOption:
+      type: object
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+      required:
+      - label
+      - value
     Session:
       type: object
       properties:
@@ -1493,6 +1509,24 @@ components:
           type: string
       required:
       - id
+    SpecialityOption:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        faculty_id:
+          type: string
+          format: uuid
+        faculty_name:
+          type: string
+          nullable: true
+      required:
+      - faculty_id
+      - id
+      - name
     SpecialityWithKindPayload:
       type: object
       description: Payload serializer for creating/updating course speciality associations

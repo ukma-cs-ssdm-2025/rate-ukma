@@ -14,5 +14,5 @@ class CourseListResponseSerializer(serializers.Serializer):
     page_size = serializers.IntegerField()
     total = serializers.IntegerField()
     total_pages = serializers.IntegerField()
-    next = serializers.IntegerField(allow_null=True)
-    previous = serializers.IntegerField(allow_null=True)
+    next_page = serializers.IntegerField(allow_null=True, min_value=1)
+    previous_page = serializers.IntegerField(allow_null=True, min_value=1)

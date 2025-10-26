@@ -286,8 +286,8 @@ class CourseViewSet(viewsets.ViewSet):
             "page_size": result.page_size,
             "total": result.total,
             "total_pages": total_pages,
-            "next": page + 1 if page < total_pages else None,
-            "previous": page - 1 if page > 1 else None,
+            "next_page": page + 1 if page < total_pages else None,
+            "previous_page": page - 1 if page > 1 else None,
         }
         return Response(response_data, status=status.HTTP_200_OK)
 

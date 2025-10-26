@@ -30,7 +30,7 @@ def test_filter_by_instructor_returns_only_assigned_courses(repo):
     result = repo.filter(instructor=str(instructor.id))
 
     # Assert
-    returned_ids = {course.id for course in result["items"]}
+    returned_ids = {course.id for course in result.items}
     assert returned_ids == {course_with_instructor.id}
 
 
@@ -53,7 +53,7 @@ def test_filter_by_semester_limits_to_matching_courses(repo):
     )
 
     # Assert
-    returned_ids = {course.id for course in result["items"]}
+    returned_ids = {course.id for course in result.items}
     assert returned_ids == {fall_course.id}
 
 
@@ -69,6 +69,6 @@ def test_filter_prefetches_instructors(django_assert_num_queries, repo):
 
     # Assert
     with django_assert_num_queries(0):
-        for course in result["items"]:
+        for course in result.items:
             for offering in course.offerings.all():
                 list(offering.instructors.all())
