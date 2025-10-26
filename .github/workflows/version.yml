@@ -63,6 +63,7 @@ jobs:
           version_format: ${{ env.SEMANTIC_VERSION_VERSION_FORMAT }}
 
       - name: Create Version Tag
+        if: steps.semantic.outputs.version_type != 'none'
         run: |
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           git tag ${{ steps.semantic.outputs.version_tag }}
