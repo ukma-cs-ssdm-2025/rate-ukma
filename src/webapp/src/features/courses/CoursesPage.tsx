@@ -1,13 +1,16 @@
 import * as React from "react";
 
+import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { CoursesErrorState } from "./components/CoursesErrorState";
 import { CoursesHeader } from "./components/CoursesHeader";
 import { CoursesTable } from "./components/CoursesTable";
-import type { CourseQueryFilters } from "./hooks/useCourses";
 
 export function CoursesPage() {
-	const [filters, setFilters] = React.useState<CourseQueryFilters>({});
+	const [filters, setFilters] = React.useState<CoursesListParams>({
+		page: 1,
+		page_size: 20,
+	});
 
 	const { data, isLoading, isError, refetch } = useCoursesList(filters);
 
@@ -16,7 +19,7 @@ export function CoursesPage() {
 	const handleFiltersChange = React.useCallback(
 		(nextFilters: Record<string, unknown>) => {
 			setFilters((previous) => {
-				const next = nextFilters as CourseQueryFilters;
+				const next = nextFilters;
 				if (JSON.stringify(previous) === JSON.stringify(next)) {
 					return previous;
 				}
@@ -41,6 +44,12 @@ export function CoursesPage() {
 					isLoading={isLoading}
 					filtersKey={filtersKey}
 					onFiltersChange={handleFiltersChange}
+					pagination={data?.data ? {
+						page: data.data.page,
+						pageSize: data.data.page_size,
+						total: data.data.total,
+						totalPages: data.data.total_pages,
+					} : undefined}
 				/>
 			)}
 		</div>

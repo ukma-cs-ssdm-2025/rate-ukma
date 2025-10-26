@@ -52,6 +52,8 @@ interface DataTableProps<TData> extends React.ComponentProps<"div"> {
 	table: TanstackTable<TData>;
 	actionBar?: React.ReactNode;
 	onRowClick?: (row: TData) => void;
+	totalRows?: number;
+	serverPageCount?: number;
 }
 
 export function DataTable<TData>({
@@ -60,6 +62,8 @@ export function DataTable<TData>({
 	children,
 	className,
 	onRowClick,
+	totalRows,
+	serverPageCount,
 	...props
 }: DataTableProps<TData>) {
 	return (
@@ -148,7 +152,11 @@ export function DataTable<TData>({
 				</Table>
 			</div>
 			<div className="flex flex-col gap-2.5">
-				<DataTablePagination table={table} />
+				<DataTablePagination 
+					table={table} 
+					totalRows={totalRows}
+					serverPageCount={serverPageCount}
+				/>
 				{actionBar &&
 					table.getFilteredSelectedRowModel().rows.length > 0 &&
 					actionBar}

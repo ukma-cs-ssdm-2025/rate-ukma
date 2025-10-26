@@ -12,7 +12,7 @@ import { BookOpen } from "lucide-react";
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { Input } from "@/components/ui/Input";
-import type { CourseList, FilterOptions } from "@/lib/api/generated";
+import type { CourseList } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import { CourseColumnHeader } from "./CourseColumnHeader";
@@ -22,12 +22,20 @@ import { CourseScoreCell } from "./CourseScoreCell";
 import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesTableSkeleton } from "./CoursesTableSkeleton";
 
+interface PaginationInfo {
+	page: number;
+	pageSize: number;
+	total: number;
+	totalPages: number;
+}
+
 interface CoursesTableProps {
 	data: CourseList[];
 	isLoading: boolean;
 	onRowClick?: (course: CourseList) => void;
 	onFiltersChange?: (filters: Record<string, unknown>) => void;
 	filtersKey: string;
+	pagination?: PaginationInfo;
 }
 
 const columns: ColumnDef<CourseList>[] = [
@@ -127,13 +135,14 @@ export function CoursesTable({
 	onRowClick,
 	onFiltersChange,
 	filtersKey,
+	pagination: serverPagination,
 }: CoursesTableProps) {
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "avg_difficulty", desc: false },
 	]);
 	const [pagination, setPagination] = useState<PaginationState>({
-		pageIndex: 0,
-		pageSize: 20,
+		pageIndex: serverPagination ? serverPagination.page - 1 : 0,
+		pageSize: serverPagination ? serverPagination.pageSize : 20,
 	});
 
 	const [searchQuery, setSearchQuery] = useState("");
@@ -149,24 +158,47 @@ export function CoursesTable({
 	const [selectedCourseType, setSelectedCourseType] = useState<string>("");
 	const [selectedSpeciality, setSelectedSpeciality] = useState<string>("");
 
-	const filterOptionsQuery = useCoursesFilterOptionsRetrieve<
-		FilterOptions | undefined
-	>();
+	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
-	const isFilterOptionsLoading = filterOptionsQuery.isLoading && !filterOptions;
+	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
+
+	// Update local pagination state when server pagination changes
+	useEffect(() => {
+		if (serverPagination) {
+			setPagination({
+				pageIndex: serverPagination.page - 1,
+				pageSize: serverPagination.pageSize,
+			});
+		}
+	}, [serverPagination]);
 
 	const table = useReactTable({
 		data,
 		columns,
 		manualSorting: true,
+		manualPagination: true, // We'll handle pagination ourselves
 		onSortingChange: setSorting,
-		onPaginationChange: setPagination,
+		onPaginationChange: (updater) => {
+			const newPagination =
+				typeof updater === "function" ? updater(pagination) : updater;
+
+			setPagination(newPagination);
+
+			// Trigger filter change to fetch new page from server
+			if (onFiltersChange) {
+				onFiltersChange({
+					page: newPagination.pageIndex + 1,
+					page_size: newPagination.pageSize,
+				});
+			}
+		},
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 		state: {
 			sorting,
 			pagination,
 		},
+		pageCount: serverPagination ? serverPagination.totalPages : -1,
 	});
 
 	useEffect(() => {
@@ -285,11 +317,29 @@ export function CoursesTable({
 
 		const timeout = setTimeout(() => {
 			previousFiltersRef.current = combinedFilters;
-			onFiltersChange?.(combinedFilters);
+
+			// Reset to page 1 when filters change (excluding pagination parameters)
+			const isPaginationOnlyChange =
+				previousFiltersRef.current &&
+				combinedFilters &&
+				Object.keys(combinedFilters).length === 2;
+
+			if (!isPaginationOnlyChange && pagination.pageIndex !== 0) {
+				setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+			}
+
+			// Include current pagination in filters to maintain it
+			const filtersWithPagination = {
+				...combinedFilters,
+				page: pagination.pageIndex + 1,
+				page_size: pagination.pageSize,
+			};
+
+			onFiltersChange?.(filtersWithPagination);
 		}, 500);
 
 		return () => clearTimeout(timeout);
-	}, [combinedFilters, onFiltersChange]);
+	}, [combinedFilters, onFiltersChange, pagination]);
 
 	const handleResetFilters = useCallback(() => {
 		setSearchQuery("");
@@ -316,26 +366,6 @@ export function CoursesTable({
 	const isPanelLoading = isInitialLoading || isFilterOptionsLoading;
 	const isEmptyState = !isLoading && data.length === 0;
 
-	useEffect(() => {
-		if (!selectedFaculty) {
-			return;
-		}
-
-		if (!filterOptions?.departments?.length) {
-			return;
-		}
-
-		const isValidDepartment = filterOptions.departments.some(
-			(department) =>
-				department.id === selectedDepartment &&
-				department.faculty_id === selectedFaculty,
-		);
-
-		if (!isValidDepartment) {
-			setSelectedDepartment("");
-		}
-	}, [filterOptions, selectedDepartment, selectedFaculty]);
-
 	return (
 		<div className="flex gap-6">
 			<div className="flex-1 min-w-0 space-y-4">
@@ -357,7 +387,12 @@ export function CoursesTable({
 				) : isEmptyState ? (
 					<CoursesEmptyState />
 				) : (
-					<DataTable table={table} onRowClick={onRowClick} />
+					<DataTable
+						table={table}
+						onRowClick={onRowClick}
+						totalRows={serverPagination?.total}
+						serverPageCount={serverPagination?.totalPages}
+					/>
 				)}
 			</div>
 
@@ -368,7 +403,7 @@ export function CoursesTable({
 					onDifficultyChange={setDifficultyRange}
 					usefulnessRange={usefulnessRange}
 					onUsefulnessChange={setUsefulnessRange}
-					filterOptions={filterOptions}
+					filterOptions={filterOptions?.data}
 					selectedFaculty={selectedFaculty}
 					onFacultyChange={setSelectedFaculty}
 					selectedDepartment={selectedDepartment}
