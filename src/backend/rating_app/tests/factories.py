@@ -5,6 +5,7 @@ import random
 import factory
 from factory import fuzzy
 from factory.django import DjangoModelFactory
+from faker import Faker
 
 from rating_app.models import (
     Course,
@@ -12,6 +13,7 @@ from rating_app.models import (
     CourseOffering,
     CourseSpeciality,
     Department,
+    Enrollment,
     Faculty,
     Instructor,
     Rating,
@@ -25,10 +27,11 @@ from rating_app.models.choices import (
     CourseStatus,
     CourseTypeKind,
     EducationLevel,
-    ExamType,
     InstructorRole,
     SemesterTerm,
 )
+
+faker = Faker()
 
 
 class FacultyFactory(DjangoModelFactory):
@@ -88,7 +91,7 @@ class CourseOfferingFactory(DjangoModelFactory):
     class Meta:
         model = CourseOffering
 
-    code = factory.LazyFunction(lambda: f"{random.randint(100000, 999999)}")
+    code = factory.LazyFunction(lambda: f"{random.randint(100000, 999999)}")  # 6 символів
     course = factory.SubFactory(CourseFactory)
     semester = factory.SubFactory(SemesterFactory)
     credits = fuzzy.FuzzyDecimal(1, 6, precision=1)
@@ -96,7 +99,7 @@ class CourseOfferingFactory(DjangoModelFactory):
     lecture_count = fuzzy.FuzzyInteger(4, 32)
     practice_count = fuzzy.FuzzyInteger(0, 20)
     practice_type = None
-    exam_type = ExamType.EXAM
+    exam_type = "EXAM"
     max_students = fuzzy.FuzzyInteger(10, 200)
     max_groups = fuzzy.FuzzyInteger(1, 6)
     group_size_min = fuzzy.FuzzyInteger(5, 30)
@@ -104,11 +107,14 @@ class CourseOfferingFactory(DjangoModelFactory):
 
     @factory.post_generation
     def instructors(self, create, extracted, **kwargs):
-        if not create:
+        if not create or not extracted:
             return
-        if extracted:
-            for instructor in extracted:
-                self.instructors.add(instructor)
+        for instr in extracted:
+            CourseInstructorFactory(
+                course_offering=self,
+                instructor=instr,
+                role="LECTURE_INSTRUCTOR",
+            )
 
 
 class CourseInstructorFactory(DjangoModelFactory):
@@ -141,6 +147,15 @@ class StudentFactory(DjangoModelFactory):
     speciality = factory.SubFactory(SpecialityFactory)
 
 
+class EnrollmentFactory(DjangoModelFactory):
+    class Meta:
+        model = Enrollment
+
+    student = factory.SubFactory(StudentFactory)
+    offering = factory.SubFactory(CourseOfferingFactory)
+    status = "ENROLLED"
+
+
 class RatingFactory(DjangoModelFactory):
     class Meta:
         model = Rating
@@ -153,6 +168,4 @@ class RatingFactory(DjangoModelFactory):
 
     @factory.lazy_attribute
     def comment(self):
-        if random.random() < 0.5:
-            return factory.Faker("sentence").generate({})
-        return None
+        return faker.sentence() if random.random() < 0.5 else None
