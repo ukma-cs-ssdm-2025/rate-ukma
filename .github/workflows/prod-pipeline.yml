@@ -34,8 +34,14 @@ jobs:
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
       SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
 
-  create_release:
+  generate_version:
     needs: deploy-live
+    uses: ./.github/workflows/version.yml
+    with:
+      tag_prefix: ${{ env.LIVE_TAG_PREFIX }}
+
+  create_release:
+    needs: [deploy-live, generate_version]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -69,26 +75,20 @@ jobs:
           CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
           echo "changelog=$CHANGELOG" >> "$GITHUB_OUTPUT"
 
-      - name: Generate Live Version
-        id: live_version
-        uses: ./.github/workflows/version.yml
-        with:
-          tag_prefix: ${{ env.LIVE_TAG_PREFIX }}
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.live_version.outputs.version_tag }}
+          tag_name: ${{ needs.generate_version.outputs.version_tag }}
           name: "Live Release ${{ inputs.version_tag }}"
           body: |
             Latest stable version: `${{ inputs.version_tag }}`
-            Live tag: `${{ steps.live_version.outputs.version_tag }}`
+            Live tag: `${{ needs.generate_version.outputs.version_tag }}`
             Previous live version: `${{ steps.prev_release.outputs.prev_tag }}`
 
             ## Changelog since last release:
             ${{ steps.prev_release.outputs.changelog }}
 
-            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.prev_release.outputs.prev_tag }}...${{ steps.live_version.outputs.version_tag }})
+            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.prev_release.outputs.prev_tag }}...${{ needs.generate_version.outputs.version_tag }})
 
           draft: false
           prerelease: false
