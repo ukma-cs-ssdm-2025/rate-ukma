@@ -1,12 +1,11 @@
-from typing import Any
-
-from rating_app.filters import CourseFilterPayload, CourseFilters
+from rating_app.filters import CourseFilterOptions, CourseFilterPayload, CourseFilters
 from rating_app.ioc_container.repos import (
     course_repository,
     department_repository,
     faculty_repository,
     instructor_repository,
     semester_repository,
+    speciality_repository,
 )
 from rating_app.models import Course
 from rating_app.models.choices import CourseTypeKind, SemesterTerm
@@ -19,6 +18,7 @@ class CourseService:
         self.faculty_repository = faculty_repository()
         self.department_repository = department_repository()
         self.semester_repository = semester_repository()
+        self.speciality_repository = speciality_repository()
 
     def list_courses(self) -> list[Course]:
         return self.course_repository.get_all()
@@ -42,7 +42,7 @@ class CourseService:
         course = self.course_repository.get_by_id(course_id)
         self.course_repository.delete(course)
 
-    def get_filter_options(self) -> dict[str, list[dict[str, Any]]]:
+    def get_filter_options(self) -> CourseFilterOptions:
         instructors = sorted(
             self.instructor_repository.get_all(),
             key=lambda instructor: (
@@ -70,45 +70,79 @@ class CourseService:
             reverse=True,
         )
 
-        semester_options = []
+        term_labels: dict[str, str] = {}
+        years: set[int] = set()
         for semester in sorted_semesters:
             year = getattr(semester, "year", None)
             term = getattr(semester, "term", None)
             if year is None or term is None:
                 continue
 
-            label = SemesterTerm(term).label if term in SemesterTerm.values else term
+            years.add(year)
+            if term not in term_labels:
+                label = (
+                    SemesterTerm(term).label if term in SemesterTerm.values else str(term).title()
+                )
+                term_labels[term] = label
 
-            semester_options.append(
-                {
-                    "id": f"{year}-{term}",
-                    "year": year,
-                    "term": term,
-                    "label": f"{year} {label}",
-                }
+        term_priority = {
+            SemesterTerm.SPRING: 0,
+            SemesterTerm.SUMMER: 1,
+            SemesterTerm.FALL: 2,
+        }
+        semester_terms = [
+            {"value": term, "label": term_labels[term]}
+            for term in sorted(
+                term_labels.keys(),
+                key=lambda value: term_priority.get(value, len(term_priority)),
             )
+        ]
+
+        semester_years = [
+            {"value": str(year), "label": str(year)} for year in sorted(years, reverse=True)
+        ]
 
         course_types = [{"value": value, "label": label} for value, label in CourseTypeKind.choices]
 
-        return {
-            "instructors": [
-                {
-                    "id": instructor.id,
-                    "name": f"{instructor.first_name} {instructor.last_name}",
-                    "department": None,
-                }
-                for instructor in instructors
-            ],
-            "faculties": [{"id": faculty.id, "name": faculty.name} for faculty in faculties],
-            "departments": [
-                {
-                    "id": department.id,
-                    "name": department.name,
-                    "faculty_id": department.faculty_id,
-                    "faculty_name": department.faculty.name if department.faculty else None,
-                }
-                for department in departments
-            ],
-            "semesters": semester_options,
-            "course_types": course_types,
-        }
+        specialities = sorted(
+            self.speciality_repository.get_all(),
+            key=lambda speciality: (speciality.name or "").lower(),
+        )
+
+        instructors_data = [
+            {
+                "id": instructor.id,
+                "name": f"{instructor.first_name} {instructor.last_name}",
+                "department": None,
+            }
+            for instructor in instructors
+        ]
+        faculties_data = [{"id": faculty.id, "name": faculty.name} for faculty in faculties]
+        departments_data = [
+            {
+                "id": department.id,
+                "name": department.name,
+                "faculty_id": department.faculty_id,
+                "faculty_name": department.faculty.name if department.faculty else None,
+            }
+            for department in departments
+        ]
+        specialities_data = [
+            {
+                "id": speciality.id,
+                "name": speciality.name,
+                "faculty_id": speciality.faculty_id,
+                "faculty_name": speciality.faculty.name if speciality.faculty else None,
+            }
+            for speciality in specialities
+        ]
+
+        return CourseFilterOptions(
+            instructors=instructors_data,
+            faculties=faculties_data,
+            departments=departments_data,
+            semester_terms=semester_terms,
+            semester_years=semester_years,
+            course_types=course_types,
+            specialities=specialities_data,
+        )
