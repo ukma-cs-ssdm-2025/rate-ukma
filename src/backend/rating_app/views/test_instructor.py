@@ -1,28 +1,8 @@
 import uuid
 
-from django.contrib.auth import get_user_model
 from django.urls import reverse
-from rest_framework.test import APIClient
 
 import pytest
-
-from rating_app.tests.factories import InstructorFactory
-
-
-@pytest.fixture
-def token_client(db):
-    user_model = get_user_model()
-    user = user_model.objects.create_user(
-        username="student", email="student@ukma.edu.ua", password="pass123"
-    )
-    client = APIClient()
-    client.force_authenticate(user=user)
-    return client
-
-
-@pytest.fixture
-def instructor_factory():
-    return InstructorFactory
 
 
 @pytest.mark.django_db

@@ -3,14 +3,8 @@ from unittest.mock import MagicMock, patch
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
 
 import pytest
-
-
-@pytest.fixture
-def api_client():
-    return APIClient()
 
 
 @pytest.mark.django_db

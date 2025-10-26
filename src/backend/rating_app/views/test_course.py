@@ -1,31 +1,6 @@
-from django.contrib.auth import get_user_model
-from rest_framework.test import APIClient
+import uuid
 
 import pytest
-
-from rating_app.tests.factories import (
-    CourseFactory,
-    CourseInstructorFactory,
-    CourseOfferingFactory,
-    CourseSpecialityFactory,
-    InstructorFactory,
-)
-
-
-@pytest.fixture
-def token_client(db):
-    user_model = get_user_model()
-    user = user_model.objects.create_user(
-        username="student", email="student@ukma.edu.ua", password="pass123"
-    )
-    client = APIClient()
-    client.force_authenticate(user=user)
-    return client
-
-
-@pytest.fixture
-def course_factory():
-    return CourseFactory
 
 
 @pytest.mark.django_db
@@ -85,16 +60,20 @@ def test_filter_by_department_and_faculty(token_client, course_factory):
 
 
 @pytest.mark.django_db
-def test_filter_by_instructor(token_client, course_factory):
+def test_filter_by_instructor(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    instructor_factory,
+    course_instructor_factory,
+):
     # Arrange
-
     course = course_factory.create()
-    offering = CourseOfferingFactory(course=course)
-    instructor = InstructorFactory()
-    CourseInstructorFactory(course_offering=offering, instructor=instructor)
-    instructor_id = instructor.id
+    offering = course_offering_factory.create(course=course)
+    instructor = instructor_factory.create()
+    course_instructor_factory.create(course_offering=offering, instructor=instructor)
 
-    url = f"/api/v1/courses/?instructor={instructor_id}"
+    url = f"/api/v1/courses/?instructor={instructor.id}"
 
     # Act
     response = token_client.get(url)
@@ -135,13 +114,12 @@ def test_filter_by_semester(token_client, course_factory):
 
 
 @pytest.mark.django_db
-def test_filter_by_speciality_and_typekind(token_client, course_factory):
+def test_filter_by_speciality_and_typekind(token_client, course_factory, course_speciality_factory):
     # Arrange
     course = course_factory.create()
-    course_speciality = CourseSpecialityFactory(course=course, type_kind="COMPULSORY")
-    speciality_id = course_speciality.speciality.id
-    type_kind = "COMPULSORY"
-    url = f"/api/v1/courses/?speciality={speciality_id}&typeKind={type_kind}"
+    cs = course_speciality_factory.create(course=course, type_kind="COMPULSORY")
+    speciality_id = cs.speciality.id
+    url = f"/api/v1/courses/?speciality={speciality_id}&typeKind=COMPULSORY"
 
     # Act
     response = token_client.get(url)
@@ -167,8 +145,7 @@ def test_sorting_params(token_client, course_factory):
 def test_invalid_semester_term(course_factory, token_client):
     # Arrange
     course_factory.create_batch(3)
-    invalid_semester_term = "INVALID_TERM"
-    url = f"/api/v1/courses/?semesterTerm={invalid_semester_term}"
+    url = "/api/v1/courses/?semesterTerm=INVALID_TERM"
 
     # Act
     response = token_client.get(url)
@@ -179,8 +156,6 @@ def test_invalid_semester_term(course_factory, token_client):
 
 @pytest.mark.django_db
 def test_non_existent_department(course_factory, token_client):
-    import uuid
-
     # Arrange
     course_factory.create_batch(10)
     invalid_department_uuid = uuid.uuid4()
@@ -198,8 +173,7 @@ def test_non_existent_department(course_factory, token_client):
 def test_course_retrieve(course_factory, token_client):
     # Arrange
     existing = course_factory()
-    existing_id = existing.id
-    url = f"/api/v1/courses/{existing_id}/"
+    url = f"/api/v1/courses/{existing.id}/"
 
     # Act
     response = token_client.get(url)
@@ -210,12 +184,11 @@ def test_course_retrieve(course_factory, token_client):
 
 @pytest.mark.django_db
 def test_non_existent_course_retrieve(course_factory, token_client):
-    import uuid
-
     # Arrange
     course_factory.create_batch(10)
     rand_id = uuid.uuid4()
     url = f"/api/v1/courses/{rand_id}/"
+
     # Act
     response = token_client.get(url)
 
@@ -240,7 +213,6 @@ def test__to_int_and__to_bool(monkeypatch):
     assert vs._to_int("12", default=0) == 12
     assert vs._to_int("abc", default=5) == 5
 
-    # _to_bool branches
     assert vs._to_bool(None) is None
     assert vs._to_bool("true") is True
     assert vs._to_bool("1") is True
