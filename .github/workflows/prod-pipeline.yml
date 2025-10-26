@@ -7,9 +7,6 @@ on:
         required: true
         type: string
 
-env:
-  LIVE_TAG_PREFIX: "live-v"
-
 jobs:
   test:
     uses: ./.github/workflows/test.yml
@@ -34,21 +31,23 @@ jobs:
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
       SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
 
-  generate_version:
-    needs: deploy-live
-    uses: ./.github/workflows/version.yml
-    with:
-      tag_prefix: "live-v"
-
   create_release:
-    needs: [deploy-live, generate_version]
+    needs: deploy-live
     runs-on: ubuntu-latest
+    env:
+      LIVE_TAG_PREFIX: "live-"
+      LIVE_VERSION_TAG: "live-${{inputs.version_tag}}"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.version_tag }}
           fetch-depth: 0
+
+      - name: Set Live Version Tag
+        id: set_live_version_tag
+        run: |
+          echo "LIVE_VERSION_TAG=${{ env.LIVE_TAG_PREFIX }}${{ inputs.version_tag }}" >> "$GITHUB_OUTPUT"
 
       - name: Get Previous Live Release
         id: prev_release
@@ -75,14 +74,21 @@ jobs:
           CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
           echo "changelog=$CHANGELOG" >> "$GITHUB_OUTPUT"
 
+      - name: Create Version Tag
+        id: create_version_tag
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          git tag ${{ env.LIVE_VERSION_TAG }}
+          git push origin ${{ env.LIVE_VERSION_TAG }}
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.generate_version.outputs.version_tag }}
+          tag_name: ${{ env.LIVE_VERSION_TAG }}
           name: "Live Release ${{ inputs.version_tag }}"
           body: |
             Latest stable version: `${{ inputs.version_tag }}`
-            Live tag: `${{ needs.generate_version.outputs.version_tag }}`
+            Live tag: `${{ env.LIVE_VERSION_TAG }}`
             Previous live version: `${{ steps.prev_release.outputs.prev_tag }}`
 
             ## Changelog since last release:
