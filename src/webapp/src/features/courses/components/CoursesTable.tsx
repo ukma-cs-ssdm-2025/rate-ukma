@@ -137,9 +137,7 @@ export function CoursesTable({
 	filtersKey,
 	pagination: serverPagination,
 }: CoursesTableProps) {
-	const [sorting, setSorting] = useState<SortingState>([
-		{ id: "avg_difficulty", desc: false },
-	]);
+	const [sorting, setSorting] = useState<SortingState>([]);
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: serverPagination ? serverPagination.page - 1 : 0,
 		pageSize: serverPagination ? serverPagination.pageSize : 20,
