@@ -995,9 +995,6 @@ components:
         * `SENIOR_LECTURER` - SeniorLecturer
         * `ASSOCIATE_PROF` - AssociateProfessor
         * `PROFESSOR` - Professor
-    BlankEnum:
-      enum:
-      - ''
     CSRFToken:
       type: object
       properties:
@@ -1177,17 +1174,13 @@ components:
           type: string
           maxLength: 120
         academic_degree:
-          nullable: true
-          oneOf:
+          allOf:
           - $ref: '#/components/schemas/AcademicDegreeEnum'
-          - $ref: '#/components/schemas/BlankEnum'
-          - $ref: '#/components/schemas/NullEnum'
-        academic_title:
           nullable: true
-          oneOf:
+        academic_title:
+          allOf:
           - $ref: '#/components/schemas/AcademicTitleEnum'
-          - $ref: '#/components/schemas/BlankEnum'
-          - $ref: '#/components/schemas/NullEnum'
+          nullable: true
       required:
       - first_name
       - last_name
@@ -1204,9 +1197,6 @@ components:
       required:
       - password
       - username
-    NullEnum:
-      enum:
-      - null
     PatchedRatingCreateUpdate:
       type: object
       description: |-
