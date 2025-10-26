@@ -1181,12 +1181,23 @@ components:
           type: integer
         total:
           type: integer
+        total_pages:
+          type: integer
+        next:
+          type: integer
+          nullable: true
+        previous:
+          type: integer
+          nullable: true
       required:
       - filters
       - items
+      - next
       - page
       - page_size
+      - previous
       - total
+      - total_pages
     CourseSpecialityInline:
       type: object
       description: Inline serializer for displaying course specialities with type
