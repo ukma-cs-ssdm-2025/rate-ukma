@@ -61,5 +61,6 @@ jobs:
 
       - name: Create Version Tag
         run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           git tag ${{ steps.semantic.outputs.version_tag }}
           git push origin ${{ steps.semantic.outputs.version_tag }}
