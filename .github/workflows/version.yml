@@ -30,8 +30,6 @@ env:
 jobs:
   version:
     runs-on: ubuntu-latest
-    container:
-      image: node:16-buster
     outputs:
       version_tag: ${{ steps.semantic.outputs.version_tag }}
       version_type: ${{ steps.semantic.outputs.version_type }}
