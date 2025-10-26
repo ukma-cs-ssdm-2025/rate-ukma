@@ -4,6 +4,7 @@ from rating_app.constants import MAX_RATING_VALUE, MIN_RATING_VALUE
 from rating_app.serializers import (
     CourseDetailSerializer,
     CourseListResponseSerializer,
+    FilterOptionsSerializer,
     InstructorSerializer,
     RatingReadSerializer,
 )
@@ -59,6 +60,12 @@ R_COURSE = {
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
     403: OpenApiResponse(Err, "Forbidden", [EX_403]),
     404: OpenApiResponse(Err, "Not found", [EX_404]),
+}
+
+R_FILTER_OPTIONS = {
+    200: OpenApiResponse(FilterOptionsSerializer, "OK"),
+    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+    403: OpenApiResponse(Err, "Forbidden", [EX_403]),
 }
 
 R_RATING_LIST = {

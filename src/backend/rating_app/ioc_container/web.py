@@ -95,6 +95,11 @@ def rest_urlpatterns() -> list:
             name="course-list",
         ),
         path(
+            "courses/filter-options/",
+            CourseViewSet.as_view({"get": "filter_options"}),
+            name="course-filter-options",
+        ),
+        path(
             "courses/<str:course_id>/",
             course_detail_view(),
             name="course-detail",

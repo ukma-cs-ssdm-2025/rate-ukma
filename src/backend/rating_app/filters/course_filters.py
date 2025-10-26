@@ -14,6 +14,10 @@ class CourseFilters:
     speciality: str | None = None
     semester_year: int | None = None
     semester_term: str | None = None
+    avg_difficulty_min: float | None = None
+    avg_difficulty_max: float | None = None
+    avg_usefulness_min: float | None = None
+    avg_usefulness_max: float | None = None
     avg_difficulty_order: Literal["asc", "desc"] | None = None
     avg_usefulness_order: Literal["asc", "desc"] | None = None
     page_size: int = DEFAULT_COURSE_PAGE_SIZE
