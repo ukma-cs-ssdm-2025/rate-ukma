@@ -120,6 +120,7 @@ skips = ["B108"]
 
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*" = ["ALL"]
+"*/management/commands/generate_mock_data.py" = ["ALL"]
 
 [tool.coverage.run]
 source = ["rateukma", "rating_app", "scraper"]
