@@ -1,3 +1,4 @@
+from drf_spectacular.helpers import forced_singular_serializer
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 
 from rating_app.constants import MAX_RATING_VALUE, MIN_RATING_VALUE
@@ -48,7 +49,7 @@ EX_409 = OpenApiExample(
 )
 
 R_COURSE_LIST = {
-    200: OpenApiResponse(CourseListResponseSerializer, "OK"),
+    200: OpenApiResponse(forced_singular_serializer(CourseListResponseSerializer), "OK"),
     400: OpenApiResponse(Err, "Bad request", [EX_400]),
     401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
     403: OpenApiResponse(Err, "Forbidden", [EX_403]),

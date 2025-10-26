@@ -313,9 +313,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CourseListResponse'
+                $ref: '#/components/schemas/CourseListResponse'
           description: OK
         '400':
           content:
