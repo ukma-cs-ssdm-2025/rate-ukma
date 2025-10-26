@@ -75,12 +75,22 @@ class CourseRepository:
         if filters.speciality:
             courses = courses.filter(course_specialities__speciality_id=filters.speciality)
 
-        # Always annotate avg ratings (needed by serializer)
+        # Always annotate avg ratings (needed by serializer and range filters)
         courses = courses.annotate(
             avg_difficulty_annot=Avg("offerings__ratings__difficulty"),
             avg_usefulness_annot=Avg("offerings__ratings__usefulness"),
             ratings_count_annot=Count("offerings__ratings__id", distinct=True),
         )
+
+        # Range filters on aggregated ratings
+        if filters.avg_difficulty_min is not None:
+            courses = courses.filter(avg_difficulty_annot__gte=filters.avg_difficulty_min)
+        if filters.avg_difficulty_max is not None:
+            courses = courses.filter(avg_difficulty_annot__lte=filters.avg_difficulty_max)
+        if filters.avg_usefulness_min is not None:
+            courses = courses.filter(avg_usefulness_annot__gte=filters.avg_usefulness_min)
+        if filters.avg_usefulness_max is not None:
+            courses = courses.filter(avg_usefulness_annot__lte=filters.avg_usefulness_max)
 
         # Sorting logic with nulls last
         order_by_fields = []

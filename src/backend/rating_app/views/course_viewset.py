@@ -1,19 +1,26 @@
 from dataclasses import asdict, is_dataclass
 
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE, DEFAULT_PAGE_NUMBER
+from rating_app.constants import (
+    DEFAULT_COURSE_PAGE_SIZE,
+    DEFAULT_PAGE_NUMBER,
+    MAX_RATING_VALUE,
+    MIN_RATING_VALUE,
+)
 from rating_app.ioc_container.services import course_service
 from rating_app.models import Course
 from rating_app.models.choices import SemesterTerm
+from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list import CourseListSerializer
-from rating_app.views.responses import R_COURSE, R_COURSE_LIST
+from rating_app.views.responses import R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
 
 
 @extend_schema(tags=["courses"])
@@ -37,6 +44,18 @@ class CourseViewSet(viewsets.ViewSet):
         if value is None:
             return None
         return value.lower() in ["true", "1", "yes"]
+
+    def _parse_rating_value(self, param: str, raw_value: str | None) -> float | None:
+        if raw_value is None:
+            return None
+        try:
+            value = float(raw_value)
+        except (TypeError, ValueError):
+            raise ValidationError({param: ["Invalid value"]}) from None
+
+        if not (MIN_RATING_VALUE <= value <= MAX_RATING_VALUE):
+            raise ValidationError({param: ["Value out of range"]})
+        return value
 
     @extend_schema(
         summary="List courses",
@@ -116,6 +135,34 @@ class CourseViewSet(viewsets.ViewSet):
                 required=False,
             ),
             OpenApiParameter(
+                name="avg_difficulty_min",
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description=f"Minimum average difficulty ({MIN_RATING_VALUE}-{MAX_RATING_VALUE})",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="avg_difficulty_max",
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description=f"Maximum average difficulty ({MIN_RATING_VALUE}-{MAX_RATING_VALUE})",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="avg_usefulness_min",
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description=f"Minimum average usefulness ({MIN_RATING_VALUE}-{MAX_RATING_VALUE})",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="avg_usefulness_max",
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description=f"Maximum average usefulness ({MIN_RATING_VALUE}-{MAX_RATING_VALUE})",
+                required=False,
+            ),
+            OpenApiParameter(
                 name="page",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
@@ -159,6 +206,43 @@ class CourseViewSet(viewsets.ViewSet):
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")
         avg_usefulness_order = request.query_params.get("avg_usefulness_order")
 
+        # Range filters for ratings
+        avg_difficulty_min = self._parse_rating_value(
+            "avg_difficulty_min", request.query_params.get("avg_difficulty_min")
+        )
+        avg_difficulty_max = self._parse_rating_value(
+            "avg_difficulty_max", request.query_params.get("avg_difficulty_max")
+        )
+        if (
+            avg_difficulty_min is not None
+            and avg_difficulty_max is not None
+            and avg_difficulty_min > avg_difficulty_max
+        ):
+            raise ValidationError(
+                {
+                    "avg_difficulty_min": ["Must be less than or equal to avg_difficulty_max"],
+                    "avg_difficulty_max": ["Must be greater than or equal to avg_difficulty_min"],
+                }
+            )
+
+        avg_usefulness_min = self._parse_rating_value(
+            "avg_usefulness_min", request.query_params.get("avg_usefulness_min")
+        )
+        avg_usefulness_max = self._parse_rating_value(
+            "avg_usefulness_max", request.query_params.get("avg_usefulness_max")
+        )
+        if (
+            avg_usefulness_min is not None
+            and avg_usefulness_max is not None
+            and avg_usefulness_min > avg_usefulness_max
+        ):
+            raise ValidationError(
+                {
+                    "avg_usefulness_min": ["Must be less than or equal to avg_usefulness_max"],
+                    "avg_usefulness_max": ["Must be greater than or equal to avg_usefulness_min"],
+                }
+            )
+
         result = self.course_service.filter_courses(
             name=request.query_params.get("name"),
             type_kind=request.query_params.get("typeKind"),
@@ -168,6 +252,10 @@ class CourseViewSet(viewsets.ViewSet):
             speciality=request.query_params.get("speciality"),
             semester_year=semester_year,
             semester_term=semester_term,
+            avg_difficulty_min=avg_difficulty_min,
+            avg_difficulty_max=avg_difficulty_max,
+            avg_usefulness_min=avg_usefulness_min,
+            avg_usefulness_max=avg_usefulness_max,
             avg_difficulty_order=avg_difficulty_order,
             avg_usefulness_order=avg_usefulness_order,
             page_size=page_size,
@@ -202,6 +290,18 @@ class CourseViewSet(viewsets.ViewSet):
             "previous": page - 1 if page > 1 else None,
         }
         return Response(response_data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Get filter options for course listing",
+        description="Retrieve available filter values.",
+        responses=R_FILTER_OPTIONS,
+    )
+    @action(detail=False, methods=["get"], url_path="filter-options")
+    def filter_options(self, request):
+        filter_options = self.course_service.get_filter_options()
+
+        serializer = FilterOptionsSerializer(filter_options)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="Retrieve a course",

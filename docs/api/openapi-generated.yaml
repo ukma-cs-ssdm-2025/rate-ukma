@@ -210,6 +210,18 @@ paths:
       summary: List courses
       parameters:
       - in: query
+        name: avg_difficulty_max
+        schema:
+          type: number
+          format: float
+        description: Maximum average difficulty (1-5)
+      - in: query
+        name: avg_difficulty_min
+        schema:
+          type: number
+          format: float
+        description: Minimum average difficulty (1-5)
+      - in: query
         name: avg_difficulty_order
         schema:
           type: string
@@ -217,6 +229,18 @@ paths:
           - asc
           - desc
         description: 'Sort by average difficulty (values: ''asc'' or ''desc'')'
+      - in: query
+        name: avg_usefulness_max
+        schema:
+          type: number
+          format: float
+        description: Maximum average usefulness (1-5)
+      - in: query
+        name: avg_usefulness_min
+        schema:
+          type: number
+          format: float
+        description: Minimum average usefulness (1-5)
       - in: query
         name: avg_usefulness_order
         schema:
@@ -897,6 +921,45 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/courses/filter-options/:
+    get:
+      operationId: courses_filter_options_retrieve
+      description: Retrieve available filter values.
+      summary: Get filter options for course listing
+      tags:
+      - courses
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterOptions'
+          description: OK
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/instructors/{instructor_id}:
     get:
       operationId: instructors_retrieve
@@ -1140,6 +1203,34 @@ components:
           $ref: '#/components/schemas/TypeKindEnum'
       required:
       - type_kind
+    CourseTypeOption:
+      type: object
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+      required:
+      - label
+      - value
+    DepartmentOption:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        faculty_id:
+          type: string
+          format: uuid
+        faculty_name:
+          type: string
+          nullable: true
+      required:
+      - faculty_id
+      - id
+      - name
     ErrorEnvelope:
       type: object
       properties:
@@ -1156,6 +1247,46 @@ components:
       required:
       - detail
       - status
+    FacultyOption:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+      - id
+      - name
+    FilterOptions:
+      type: object
+      properties:
+        instructors:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstructorOption'
+        faculties:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacultyOption'
+        departments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartmentOption'
+        semesters:
+          type: array
+          items:
+            $ref: '#/components/schemas/SemesterOption'
+        course_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseTypeOption'
+      required:
+      - course_types
+      - departments
+      - faculties
+      - instructors
+      - semesters
     Instructor:
       type: object
       properties:
@@ -1184,6 +1315,20 @@ components:
       required:
       - first_name
       - last_name
+    InstructorOption:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        department:
+          type: string
+          nullable: true
+      required:
+      - id
+      - name
     Login:
       type: object
       properties:
@@ -1291,6 +1436,22 @@ components:
           type: string
           format: date-time
           readOnly: true
+    SemesterOption:
+      type: object
+      properties:
+        id:
+          type: string
+        year:
+          type: integer
+        term:
+          type: string
+        label:
+          type: string
+      required:
+      - id
+      - label
+      - term
+      - year
     Session:
       type: object
       properties:
