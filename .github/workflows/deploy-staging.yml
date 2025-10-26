@@ -3,17 +3,11 @@ name: Deploy Staging
 on:
   workflow_call:
     inputs:
-        environment:
-          required: true
-          type: string
-        archive_name:
-          required: true
-          type: string
-        deployment_ref:
-          description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
-          required: false
-          type: string
-          default: ""
+      deployment_ref:
+        description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
+        required: false
+        type: string
+        default: ""
     secrets:
       SSH_HOST:
         required: true
@@ -28,6 +22,7 @@ jobs:
     with:
       environment: "staging"
       archive_name: "rate-ukma-staging.tar.gz"
+      deployment_ref: ${{ inputs.deployment_ref }}
     secrets:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_USER: ${{ secrets.SSH_USER }}

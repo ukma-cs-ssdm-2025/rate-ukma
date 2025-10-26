@@ -1,0 +1,65 @@
+name: Semantic Version
+
+on:
+  workflow_call:
+    inputs:
+      tag_prefix:
+        description: "Prefix for version tag (e.g., v or live-v)"
+        type: string
+        default: "v"
+    outputs:
+      version_tag:
+        description: "Generated semantic version tag"
+        value: ${{ jobs.version.outputs.version_tag }}
+      version_type:
+        description: "Type of version change (major, minor, patch)"
+        value: ${{ jobs.version.outputs.version_type }}
+      previous_version:
+        description: "Previous version tag"
+        value: ${{ jobs.version.outputs.previous_version }}
+      authors:
+        description: "List of commit authors"
+        value: ${{ jobs.version.outputs.authors }}
+
+env:
+  SEMANTIC_VERSION_MAJOR_PATTERN: "/(feat!)\\(#?\\d+\\)!:/"
+  SEMANTIC_VERSION_MINOR_PATTERN: "/(feat|security|ci)\\(#?\\d+\\):/"
+  SEMANTIC_VERSION_PATCH_PATTERN: "/(fix|docs|style|refactor|test|chore)\\(#?\\d+\\):/"
+  SEMANTIC_VERSION_VERSION_FORMAT: "${major}.${minor}.${patch}"
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    container:
+      image: node:16-buster
+    outputs:
+      version_tag: ${{ steps.semantic.outputs.version_tag }}
+      version_type: ${{ steps.semantic.outputs.version_type }}
+      previous_version: ${{ steps.semantic.outputs.previous_version }}
+      authors: ${{ steps.semantic.outputs.authors }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Semantic Version
+        id: semantic
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: ${{ inputs.tag_prefix }}
+          major_pattern: ${{ env.SEMANTIC_VERSION_MAJOR_PATTERN }}
+          minor_pattern: ${{ env.SEMANTIC_VERSION_MINOR_PATTERN }}
+          patch_pattern: ${{ env.SEMANTIC_VERSION_PATCH_PATTERN }}
+          major_regexp_flags: "i"
+          minor_regexp_flags: "i"
+          patch_regexp_flags: "i"
+          version_format: ${{ env.SEMANTIC_VERSION_VERSION_FORMAT }}
+          bump_each_commit: true
+          default_version: "1.0.0"
+
+      - name: Create Version Tag
+        run: |
+          git tag ${{ steps.semantic.outputs.version_tag }}
+          git push origin ${{ steps.semantic.outputs.version_tag }}

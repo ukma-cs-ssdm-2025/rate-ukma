@@ -3,12 +3,6 @@ name: Deploy Live
 on:
   workflow_call:
     inputs:
-      environment:
-        required: true
-        type: string
-      archive_name:
-        required: true
-        type: string
       deployment_ref:
         description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
         required: false
@@ -33,41 +27,3 @@ jobs:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_USER: ${{ secrets.SSH_USER }}
       SSH_KEY: ${{ secrets.SSH_KEY }}
-
-  create_release:
-    name: Create Tag and Release
-    needs: deploy
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.deployment_ref }}
-
-      - name: Set Release Tag and Title
-        id: set_tag
-        run: |
-          COMMIT_SHA=$(git rev-parse HEAD)
-          TAG_NAME="live-$(date +'%Y%m%d%H%M')-${COMMIT_SHA:0:7}"
-          TITLE="Live Release: ${COMMIT_SHA:0:7}"
-
-          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
-          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
-          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.set_tag.outputs.tag_name }}
-          name: ${{ steps.set_tag.outputs.title }}
-          target_commitish: ${{ steps.set_tag.outputs.commit_sha }}
-          body: |
-            `Automatic latest stable Live release`
-
-            *Tag:* `${{ steps.set_tag.outputs.tag_name }}`
-            *Commit SHA:* `${{ steps.set_tag.outputs.commit_sha }}`
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

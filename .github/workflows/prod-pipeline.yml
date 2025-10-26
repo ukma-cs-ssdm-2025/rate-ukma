@@ -2,10 +2,13 @@ name: Live Build
 on:
   workflow_dispatch:
     inputs:
-      commit_ref:
-        description: "Commit SHA, Tag, or Branch to deploy (e.g., main, v1.2.3, 0ff828a)"
-        required: false
-        default: "main"
+      version_tag:
+        description: "Version tag to deploy (e.g., v1.2.3)"
+        required: true
+        type: string
+
+env:
+  LIVE_TAG_PREFIX: "live-v"
 
 jobs:
   test:
@@ -25,10 +28,69 @@ jobs:
     needs: [test, openapi-validation, audit, build]
     uses: ./.github/workflows/deploy-live.yml
     with:
-      environment: "live"
-      archive_name: "rate-ukma-live.tar.gz"
-      deployment_ref: ${{ github.event.inputs.commit_ref }}
+      deployment_ref: ${{ inputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
       SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
+
+  create_release:
+    needs: deploy-live
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version_tag }}
+          fetch-depth: 0
+
+      - name: Get Previous Live Release
+        id: prev_release
+        run: |
+          PREV_TAG=$(git tag -l "${{ env.LIVE_TAG_PREFIX }}*" --sort=-v:refname | head -n 1)
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."${{ inputs.version_tag }}")
+
+            if [ -n "$COMMITS" ]; then
+              CHANGELOG="$COMMITS"
+            else
+              CHANGELOG="No changes since last live release"
+            fi
+            
+          else
+            CHANGELOG="No previous live release"
+          fi
+
+
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          echo "changelog=$CHANGELOG" >> "$GITHUB_OUTPUT"
+
+      - name: Generate Live Version
+        id: live_version
+        uses: ./.github/workflows/version.yml
+        with:
+          tag_prefix: ${{ env.LIVE_TAG_PREFIX }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.live_version.outputs.version_tag }}
+          name: "Live Release ${{ inputs.version_tag }}"
+          body: |
+            Latest stable version: `${{ inputs.version_tag }}`
+            Live tag: `${{ steps.live_version.outputs.version_tag }}`
+            Previous live version: `${{ steps.prev_release.outputs.prev_tag }}`
+
+            ## Changelog since last release:
+            ${{ steps.prev_release.outputs.changelog }}
+
+            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.prev_release.outputs.prev_tag }}...${{ steps.live_version.outputs.version_tag }})
+
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
