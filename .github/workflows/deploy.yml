@@ -32,7 +32,7 @@ env:
   SERVICES_HEALTHCHECK_TIMEOUT: 10
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: deploy-${{ inputs.environment }}
   cancel-in-progress: true
 
 jobs:
