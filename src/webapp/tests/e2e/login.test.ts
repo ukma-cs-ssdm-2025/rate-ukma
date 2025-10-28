@@ -40,10 +40,8 @@ test.describe("Microsoft Login Page", () => {
 	});
 
 	test("Microsoft button triggers OAuth redirect request", async ({ page }) => {
-		let interceptedUrl = null;
-
 		await page.route(`**${MICROSOFT_LOGIN_REDIRECT_URL}**`, (route) => {
-			interceptedUrl = route.request().url();
+			route.request().url();
 			route.fulfill({ status: 200 });
 		});
 
@@ -51,11 +49,12 @@ test.describe("Microsoft Login Page", () => {
 		const microsoftButton = page.locator("button", {
 			hasText: MICROSOFT_LOGIN_BUTTON_TEXT,
 		});
+		const requestPromise = page.waitForRequest((request) =>
+			request.url().includes(MICROSOFT_LOGIN_REDIRECT_URL),
+		);
 		await microsoftButton.click();
 
-		await page.waitForTimeout(500);
-
-		expect(interceptedUrl).not.toBeNull();
-		expect(interceptedUrl).toContain(MICROSOFT_LOGIN_REDIRECT_URL);
+		const request = await requestPromise;
+		expect(request.url()).toContain(MICROSOFT_LOGIN_REDIRECT_URL);
 	});
 });
