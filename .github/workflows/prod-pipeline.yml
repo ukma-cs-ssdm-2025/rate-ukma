@@ -68,10 +68,6 @@ jobs:
             CHANGELOG="No previous live release"
           fi
 
-
-          CHANGELOG="${CHANGELOG//'%'/'%25'}"
-          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
-          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
           echo "changelog=$CHANGELOG" >> "$GITHUB_OUTPUT"
 
       - name: Create Version Tag
