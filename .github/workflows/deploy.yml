@@ -31,6 +31,10 @@ env:
   MAX_ATTEMPTS: 6
   SERVICES_HEALTHCHECK_TIMEOUT: 10
 
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
