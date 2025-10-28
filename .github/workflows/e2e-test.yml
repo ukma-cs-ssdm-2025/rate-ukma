@@ -1,0 +1,76 @@
+name: E2E Tests
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      test_url:
+        required: true
+        type: string
+      deployment_ref:
+        description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
+        required: false
+        type: string
+        default: ""
+
+env:
+  WEBAPP_DIR: src/webapp
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.deployment_ref || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: ${{ env.WEBAPP_DIR }}/pnpm-lock.yaml
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        working-directory: ${{ env.WEBAPP_DIR }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        working-directory: ${{ env.WEBAPP_DIR }}
+        run: pnpm exec playwright install --with-deps
+
+      - name: Generate API client
+        working-directory: ${{ env.WEBAPP_DIR }}
+        run: pnpm run generate-api
+
+      - name: Run E2E tests
+        working-directory: ${{ env.WEBAPP_DIR }}
+        env:
+          BASE_URL: ${{ inputs.test_url }}
+          CI: true
+        run: pnpm run test:e2e
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ inputs.environment }}
+          path: |
+            ${{ env.WEBAPP_DIR }}/playwright-report/
+            ${{ env.WEBAPP_DIR }}/test-results/
+          retention-days: 30
+
+      - name: Upload test videos and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures-${{ inputs.environment }}
+          path: |
+            ${{ env.WEBAPP_DIR }}/test-results/**/*.png
+            ${{ env.WEBAPP_DIR }}/test-results/**/*.webm
+          retention-days: 7
