@@ -58,7 +58,7 @@ jobs:
 
       - name: Install Playwright browsers
         working-directory: ${{ env.WEBAPP_DIR }}
-        run: pnpm exec playwright install chromium firefox --with-deps
+        run: pnpm exec playwright install chromium firefox webkit --with-deps
 
       - name: Generate API client
         working-directory: ${{ env.WEBAPP_DIR }}
