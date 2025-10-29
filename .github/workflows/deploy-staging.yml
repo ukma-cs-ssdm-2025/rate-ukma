@@ -23,6 +23,8 @@ jobs:
       environment: "staging"
       archive_name: "rate-ukma-staging.tar.gz"
       deployment_ref: ${{ inputs.deployment_ref }}
+      test_url: ${{ vars.STAGING_URL }}
+      run_e2e_tests: true
     secrets:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_USER: ${{ secrets.SSH_USER }}

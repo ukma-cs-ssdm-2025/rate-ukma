@@ -14,6 +14,15 @@ on:
         required: false
         type: string
         default: ""
+      test_url:
+        description: "URL to run e2e tests against after deployment"
+        required: false
+        type: string
+      run_e2e_tests:
+        description: "Whether to run e2e tests after deployment"
+        required: false
+        type: boolean
+        default: false
     secrets:
       SSH_HOST:
         required: true
@@ -149,3 +158,12 @@ jobs:
               echo "Rollback completed. Deployment to ${{ env.ENVIRONMENT }} failed."
               exit 1
             fi
+
+  e2e-test:
+    if: inputs.run_e2e_tests && inputs.test_url != ''
+    needs: deploy
+    uses: ./.github/workflows/e2e-test.yml
+    with:
+      environment: ${{ inputs.environment }}
+      test_url: ${{ inputs.test_url }}
+      deployment_ref: ${{ inputs.deployment_ref }}

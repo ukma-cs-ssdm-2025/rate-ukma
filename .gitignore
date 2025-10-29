@@ -48,3 +48,5 @@ dist/
 htmlcov/
 coverage.xml
 .coverage
+playwright-report/
+test-results/
