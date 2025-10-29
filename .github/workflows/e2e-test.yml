@@ -50,9 +50,16 @@ jobs:
         working-directory: ${{ env.WEBAPP_DIR }}
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('src/webapp/pnpm-lock.yaml') }}
+
       - name: Install Playwright browsers
-        working-directory: ${{ env.WEBAPP_DIR }}
-        run: pnpm exec playwright install --with-deps
+        uses: microsoft/playwright-github-action@v1
+        with:
+          browsers: chromium,firefox,webkit
 
       - name: Generate API client
         working-directory: ${{ env.WEBAPP_DIR }}

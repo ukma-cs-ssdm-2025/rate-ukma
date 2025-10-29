@@ -7,6 +7,10 @@ export default defineConfig({
 		headless: process.env.CI === "true",
 		screenshot: "only-on-failure",
 	},
-	projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+	projects: [
+		{ name: "chromium", use: { ...devices["Desktop Chrome"] } },
+		{ name: "firefox", use: { ...devices["Desktop Firefox"] } },
+		{ name: "webkit", use: { ...devices["Desktop Safari"] } },
+	],
 	reporter: process.env.CI === "true" ? "html" : "line",
 });
