@@ -111,34 +111,62 @@ class StudentsParser(BaseParser):
 
     def _parse_students_table(self, root) -> list[StudentRow]:
         res: list[StudentRow] = []
+
         table_tag = None
         for cap in root.find_all("caption"):
             if "Перелік студентів" in ParserUtils.clean_text(cap.get_text()):
                 table_tag = cap.find_parent("table")
                 break
 
+        def append_row(tds):
+            n = len(tds)
+            if n == 0:
+                return  # malformed/empty row -> skip
+            if n >= 9:
+                res.append(
+                    StudentRow(
+                        index=ParserUtils.clean_text(tds[0].get_text(" ")),
+                        name=ParserUtils.clean_text(tds[1].get_text(" ")),
+                        course=ParserUtils.clean_text(tds[2].get_text(" ")),
+                        specialty=ParserUtils.clean_text(tds[3].get_text(" ")),
+                        type=ParserUtils.clean_text(tds[4].get_text(" ")),
+                        time=ParserUtils.clean_text(tds[5].get_text(" ")),
+                        status=ParserUtils.clean_text(tds[6].get_text(" ")),
+                        group=ParserUtils.clean_text(tds[7].get_text(" ")),
+                        email=ParserUtils.clean_text(tds[8].get_text(" ")),
+                    )
+                )
+            elif n >= 2:
+                # minimal: index + name
+                res.append(
+                    StudentRow(
+                        index=ParserUtils.clean_text(tds[0].get_text(" ")),
+                        name=ParserUtils.clean_text(tds[1].get_text(" ")),
+                    )
+                )
+            elif n == 1:
+                # index only; name should be empty string
+                res.append(
+                    StudentRow(
+                        index=ParserUtils.clean_text(tds[0].get_text(" ")),
+                        name="",
+                    )
+                )
+
         if table_tag:
             tbody = table_tag.find("tbody")
             if tbody:
                 for tr in tbody.find_all("tr"):
                     tds = tr.find_all("td")
-                    if not tds:
-                        continue
-                    if len(tds) >= 9:
-                        res.append(
-                            StudentRow(
-                                index=ParserUtils.clean_text(tds[0].get_text(" ")),
-                                name=ParserUtils.clean_text(tds[1].get_text(" ")),
-                                course=ParserUtils.clean_text(tds[2].get_text(" ")),
-                                specialty=ParserUtils.clean_text(tds[3].get_text(" ")),
-                                type=ParserUtils.clean_text(tds[4].get_text(" ")),
-                                time=ParserUtils.clean_text(tds[5].get_text(" ")),
-                                status=ParserUtils.clean_text(tds[6].get_text(" ")),
-                                group=ParserUtils.clean_text(tds[7].get_text(" ")),
-                                email=ParserUtils.clean_text(tds[8].get_text(" ")),
-                            )
-                        )
+                    append_row(tds)
             return res
+
+        # Fallback: rows with class selector (if no caption path)
+        for tr in root.select("tr.course-student-list-row"):
+            tds = tr.find_all("td")
+            append_row(tds)
+
+        return res
 
 
 class CourseDetailParser(BaseParser):
@@ -262,8 +290,8 @@ class CourseDetailParser(BaseParser):
                     data["enrollment"] = self.enrollment_parser._parse_enrollment(tbody)
                     continue
 
-            data["students"] = self.students_parser._parse_students_table(soup)
-            return ParsedCourseDetails(**data)
+        data["students"] = self.students_parser._parse_students_table(soup)
+        return ParsedCourseDetails(**data)
 
     def _parse_info_labels(self, td) -> dict[str, Any]:
         out: dict[str, Any] = {}
