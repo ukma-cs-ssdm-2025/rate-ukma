@@ -74,7 +74,9 @@ async def fetch_details_by_ids(
                 data = await _parse_one(context, url)
                 rid = str(data.id) if data.id else cid
                 data.id = rid
-                writer.write(data.model_dump_json_compat())
+
+                payload = data.model_dump(exclude_none=True, exclude_defaults=True)
+                writer.write(payload)
                 done_ids.add(rid)
         except Exception as e:
             logger.exception("failed_to_parse", course_id=cid, url=url, error=str(e))
