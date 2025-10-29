@@ -54,6 +54,7 @@ class Command(BaseCommand):
         end_page = options["end_page"]
         out_path = Path(options["out"])
         interactive = options["interactive"]
+        devtools = options["devtools"]
         slowmo = options["slowmo"] or settings.SCRAPER_SLOWMO
         custom_url = options.get("url")
 
@@ -78,6 +79,7 @@ class Command(BaseCommand):
             state_path=settings.SCRAPER_STATE_DIR / "storage_state.json",
             headless=not interactive,
             slowmo=slowmo,
+            devtools=devtools,
         )(self._collect_with_context)
 
         logger.info(
