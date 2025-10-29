@@ -113,42 +113,32 @@ class StudentsParser(BaseParser):
         res: list[StudentRow] = []
         table_tag = None
         for cap in root.find_all("caption"):
-            if "Перелік студентів" in cap.get_text():
+            if "Перелік студентів" in ParserUtils.clean_text(cap.get_text()):
                 table_tag = cap.find_parent("table")
                 break
+
         if table_tag:
             tbody = table_tag.find("tbody")
             if tbody:
                 for tr in tbody.find_all("tr"):
                     tds = tr.find_all("td")
-                    if len(tds) >= 1:
-                        vals = [ParserUtils.clean_text(td.get_text(" ")) for td in tds]
+                    if not tds:
+                        continue
+                    if len(tds) >= 9:
                         res.append(
                             StudentRow(
-                                index=vals[0] if vals else "",
-                                name=vals[1] if len(vals) > 1 else "",
+                                index=ParserUtils.clean_text(tds[0].get_text(" ")),
+                                name=ParserUtils.clean_text(tds[1].get_text(" ")),
+                                course=ParserUtils.clean_text(tds[2].get_text(" ")),
+                                specialty=ParserUtils.clean_text(tds[3].get_text(" ")),
+                                type=ParserUtils.clean_text(tds[4].get_text(" ")),
+                                time=ParserUtils.clean_text(tds[5].get_text(" ")),
+                                status=ParserUtils.clean_text(tds[6].get_text(" ")),
+                                group=ParserUtils.clean_text(tds[7].get_text(" ")),
+                                email=ParserUtils.clean_text(tds[8].get_text(" ")),
                             )
                         )
             return res
-
-        rows = root.select("tr.course-student-list-row")
-        for tr in rows:
-            tds = tr.find_all("td")
-            if len(tds) >= 9:
-                res.append(
-                    StudentRow(
-                        index=ParserUtils.clean_text(tds[0].get_text(" ")),
-                        name=ParserUtils.clean_text(tds[1].get_text(" ")),
-                        course=ParserUtils.clean_text(tds[2].get_text(" ")),
-                        specialty=ParserUtils.clean_text(tds[3].get_text(" ")),
-                        type=ParserUtils.clean_text(tds[4].get_text(" ")),
-                        time=ParserUtils.clean_text(tds[5].get_text(" ")),
-                        status=ParserUtils.clean_text(tds[6].get_text(" ")),
-                        group=ParserUtils.clean_text(tds[7].get_text(" ")),
-                        email=ParserUtils.clean_text(tds[8].get_text(" ")),
-                    )
-                )
-        return res
 
 
 class CourseDetailParser(BaseParser):
