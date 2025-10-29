@@ -57,9 +57,8 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('src/webapp/pnpm-lock.yaml') }}
 
       - name: Install Playwright browsers
-        uses: microsoft/playwright-github-action@v1
-        with:
-          browsers: chromium,firefox,webkit
+        working-directory: ${{ env.WEBAPP_DIR }}
+        run: pnpm exec playwright install chromium firefox --with-deps
 
       - name: Generate API client
         working-directory: ${{ env.WEBAPP_DIR }}
