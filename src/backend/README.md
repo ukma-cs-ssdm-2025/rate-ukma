@@ -117,6 +117,9 @@ playwright install
 ### Main Commands
 
 ```bash
+# Prepare filtered catalog URL with all academic years and filters
+python manage.py prepare_filtered_url
+
 # Collect course IDs from catalog pages
 python manage.py collect_catalog
 
@@ -124,7 +127,20 @@ python manage.py collect_catalog
 python manage.py fetch_courses
 ```
 
-Add `--help` to see all available arguments
+Add `--help` to any command to see all available arguments
+
+### Advanced Usage
+
+```bash
+# Run with interactive browser to generate filtered URL
+python manage.py prepare_filtered_url --interactive
+
+# Collect courses using the prepared filtered URL
+python manage.py collect_catalog
+
+# Or use a custom URL with specific filters
+python manage.py collect_catalog --url "https://example.com/course/catalog?academic_year=2023-2024,2024-2025"
+```
 
 ### Security Audit
 
