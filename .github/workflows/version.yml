@@ -22,9 +22,9 @@ on:
         value: ${{ jobs.version.outputs.authors }}
 
 env:
-  SEMANTIC_VERSION_MAJOR_PATTERN: "^(feat!)(\([a-z0-9_#-]+\))?!:\s?.+$"
-  SEMANTIC_VERSION_MINOR_PATTERN: "^(feat|security|ci)(\([a-z0-9_#-]+\))?:\s?.+$"
-  SEMANTIC_VERSION_PATCH_PATTERN: "^(fix|docs|style|refactor|test)(\([a-z0-9_#-]+\))?:\s?.+$"
+  SEMANTIC_VERSION_MAJOR_PATTERN: "^(feat!)(\\[a-z0-9_#-]+\\])?!:\\s?.+$"
+  SEMANTIC_VERSION_MINOR_PATTERN: "^(feat|security|ci)(\\[a-z0-9_#-]+\\])?:\\s?.+$"
+  SEMANTIC_VERSION_PATCH_PATTERN: "^(fix|docs|style|refactor|test)(\\[a-z0-9_#-]+\\])?:\\s?.+$"
   SEMANTIC_VERSION_VERSION_FORMAT: "${major}.${minor}.${patch}"
 
 jobs:
