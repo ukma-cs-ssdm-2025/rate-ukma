@@ -46,7 +46,7 @@ jobs:
         env:
           LIVE_VERSION_TAG: "live-${{inputs.version_tag}}"
         run: |
-          echo "LIVE_VERSION_TAG=${{ env.LIVE_VERSION_TAG }}" >> "$GITHUB_OUTPUT"
+          echo "LIVE_VERSION_TAG=$LIVE_VERSION_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Get Previous Live Release
         id: prev_release
@@ -54,11 +54,11 @@ jobs:
           LIVE_TAG_PREFIX: "live-"
           MAIN_VERSION_TAG: ${{inputs.version_tag}}
         run: |
-          PREV_TAG=$(git tag -l "${{ env.LIVE_TAG_PREFIX }}*" --sort=-v:refname | head -n 1)
+          PREV_TAG=$(git tag -l "$LIVE_TAG_PREFIX*" --sort=-v:refname | head -n 1)
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
 
           if [ -n "$PREV_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."${{ env.MAIN_VERSION_TAG }}")
+            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."$MAIN_VERSION_TAG")
 
             if [ -n "$COMMITS" ]; then
               CHANGELOG="$COMMITS"
@@ -77,29 +77,30 @@ jobs:
       - name: Create Version Tag
         id: create_version_tag
         env:
-          LIVE_VERSION_TAG: ${{ env.LIVE_VERSION_TAG }}
+          LIVE_VERSION_TAG: "live-${{inputs.version_tag}}"
         run: |
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
-          git tag ${{ env.LIVE_VERSION_TAG }}
-          git push origin ${{ env.LIVE_VERSION_TAG }}
+          git tag $LIVE_VERSION_TAG
+          git push origin $LIVE_VERSION_TAG
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         env:
-          LIVE_VERSION_TAG: ${{ env.LIVE_VERSION_TAG }}
+          MAIN_VERSION_TAG: ${{inputs.version_tag}}
+          LIVE_VERSION_TAG: "live-${{inputs.version_tag}}"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.LIVE_VERSION_TAG }}
+          tag_name: "live-${{inputs.version_tag}}"
           name: "Live Release ${{ inputs.version_tag }}"
           body: |
-            Latest stable version: `${{ inputs.version_tag }}`
-            Live tag: `${{ env.LIVE_VERSION_TAG }}`
+            Latest stable version: `$MAIN_VERSION_TAG`
+            Live tag: $LIVE_VERSION_TAG
             Previous live version: `${{ steps.prev_release.outputs.prev_tag }}`
 
             ## Changelog since last release:
             ${{ steps.prev_release.outputs.changelog }}
 
-            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.prev_release.outputs.prev_tag }}...${{ env.LIVE_VERSION_TAG }})
+            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.prev_release.outputs.prev_tag }}...$LIVE_VERSION_TAG)
 
           draft: false
           prerelease: false
