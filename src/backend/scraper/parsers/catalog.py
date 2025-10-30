@@ -5,19 +5,22 @@ from bs4 import BeautifulSoup
 
 from .base import BaseParser
 
+COURSE_LINK_SELECTOR = "a[href^='/course/']"
+COURSE_PATH_PATTERN = re.compile(r"^/course/(\d+)$")
+
 
 class CourseLinkParser(BaseParser):
     def parse(self, html: str, base_url: str) -> list[str]:
         soup = BeautifulSoup(html, "lxml")
         links = []
 
-        for a in soup.select("a[href^='/course/']"):
+        for a in soup.select(COURSE_LINK_SELECTOR):
             href = a.get("href")
             if not href:
                 continue
             try:
                 path = urlparse(str(href)).path.rstrip("/")
-                m = re.match(r"^/course/(\d+)$", path)
+                m = COURSE_PATH_PATTERN.match(path)
                 if m:
                     links.append(urljoin(base_url, path))
             except Exception:
@@ -29,13 +32,13 @@ class CourseLinkParser(BaseParser):
         soup = BeautifulSoup(html, "lxml")
         ids: list[str] = []
 
-        for a in soup.select("a[href^='/course/']"):
+        for a in soup.select(COURSE_LINK_SELECTOR):
             href = a.get("href")
             if not href:
                 continue
             try:
                 path = urlparse(str(href)).path.rstrip("/")
-                m = re.match(r"^/course/(\d+)$", path)
+                m = COURSE_PATH_PATTERN.match(path)
                 if m:
                     ids.append(m.group(1))
             except Exception:
@@ -101,13 +104,13 @@ def parse_catalog_page(base_url: str, html: str) -> tuple[list[str], int | None]
     soup = BeautifulSoup(html, "lxml")
 
     links = []
-    for a in soup.select("a[href^='/course/']"):
+    for a in soup.select(COURSE_LINK_SELECTOR):
         href = a.get("href")
         if not href:
             continue
         try:
             path = urlparse(str(href)).path.rstrip("/")
-            m = re.match(r"^/course/(\d+)$", path)
+            m = COURSE_PATH_PATTERN.match(path)
             if m:
                 links.append(urljoin(base_url, path))
         except Exception:
@@ -151,13 +154,13 @@ def parse_catalog_page(base_url: str, html: str) -> tuple[list[str], int | None]
 def extract_course_ids(html: str) -> list[str]:
     soup = BeautifulSoup(html, "lxml")
     ids: list[str] = []
-    for a in soup.select("a[href^='/course/']"):
+    for a in soup.select(COURSE_LINK_SELECTOR):
         href = a.get("href")
         if not href:
             continue
         try:
             path = urlparse(str(href)).path.rstrip("/")
-            m = re.match(r"^/course/(\d+)$", path)
+            m = COURSE_PATH_PATTERN.match(path)
             if m:
                 ids.append(m.group(1))
         except Exception:
