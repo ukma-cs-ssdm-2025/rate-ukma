@@ -43,23 +43,53 @@ class CourseService:
         self.course_repository.delete(course)
 
     def get_filter_options(self) -> CourseFilterOptions:
-        instructors = sorted(
+        instructors = self._get_sorted_instructors()
+        faculties = self._get_sorted_faculties()
+        departments = self._get_sorted_departments()
+        specialities = self._get_sorted_specialities()
+
+        semester_terms, semester_years = self._process_semesters()
+        course_types = [{"value": value, "label": label} for value, label in CourseTypeKind.choices]
+
+        return CourseFilterOptions(
+            instructors=self._build_instructors_data(instructors),
+            faculties=self._build_faculties_data(faculties),
+            departments=self._build_departments_data(departments),
+            semester_terms=semester_terms,
+            semester_years=semester_years,
+            course_types=course_types,
+            specialities=self._build_specialities_data(specialities),
+        )
+
+    def _get_sorted_instructors(self):
+        return sorted(
             self.instructor_repository.get_all(),
             key=lambda instructor: (
                 (instructor.last_name or "").lower(),
                 (instructor.first_name or "").lower(),
             ),
         )
-        faculties = sorted(
+
+    def _get_sorted_faculties(self):
+        return sorted(
             self.faculty_repository.get_all(),
             key=lambda faculty: (faculty.name or "").lower(),
         )
-        departments = sorted(
+
+    def _get_sorted_departments(self):
+        return sorted(
             self.department_repository.get_all(),
             key=lambda department: (department.name or "").lower(),
         )
-        semesters = self.semester_repository.get_all()
 
+    def _get_sorted_specialities(self):
+        return sorted(
+            self.speciality_repository.get_all(),
+            key=lambda speciality: (speciality.name or "").lower(),
+        )
+
+    def _process_semesters(self):
+        semesters = self.semester_repository.get_all()
         semester_term_order = {value: index for index, value in enumerate(SemesterTerm.values)}
         sorted_semesters = sorted(
             semesters,
@@ -102,14 +132,10 @@ class CourseService:
             {"value": str(year), "label": str(year)} for year in sorted(years, reverse=True)
         ]
 
-        course_types = [{"value": value, "label": label} for value, label in CourseTypeKind.choices]
+        return semester_terms, semester_years
 
-        specialities = sorted(
-            self.speciality_repository.get_all(),
-            key=lambda speciality: (speciality.name or "").lower(),
-        )
-
-        instructors_data = [
+    def _build_instructors_data(self, instructors):
+        return [
             {
                 "id": instructor.id,
                 "name": f"{instructor.first_name} {instructor.last_name}",
@@ -117,8 +143,12 @@ class CourseService:
             }
             for instructor in instructors
         ]
-        faculties_data = [{"id": faculty.id, "name": faculty.name} for faculty in faculties]
-        departments_data = [
+
+    def _build_faculties_data(self, faculties):
+        return [{"id": faculty.id, "name": faculty.name} for faculty in faculties]
+
+    def _build_departments_data(self, departments):
+        return [
             {
                 "id": department.id,
                 "name": department.name,
@@ -127,7 +157,9 @@ class CourseService:
             }
             for department in departments
         ]
-        specialities_data = [
+
+    def _build_specialities_data(self, specialities):
+        return [
             {
                 "id": speciality.id,
                 "name": speciality.name,
@@ -136,13 +168,3 @@ class CourseService:
             }
             for speciality in specialities
         ]
-
-        return CourseFilterOptions(
-            instructors=instructors_data,
-            faculties=faculties_data,
-            departments=departments_data,
-            semester_terms=semester_terms,
-            semester_years=semester_years,
-            course_types=course_types,
-            specialities=specialities_data,
-        )
