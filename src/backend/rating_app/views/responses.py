@@ -12,11 +12,7 @@ from rating_app.serializers import (
 from rating_app.serializers import ErrorEnvelopeSerializer as Err
 from rating_app.serializers.auth import CSRFTokenSerializer, SessionSerializer
 
-BAD_REQUEST = "Bad request"
-UNAUTHORIZED = "Unauthorized"
-FORBIDDEN = "Forbidden"
 NOT_FOUND = "Not found"
-OK = "OK"
 CONFLICT_RATING_EXISTS = "Conflict - Rating already exists"
 
 EX_400 = OpenApiExample(
@@ -42,8 +38,8 @@ EX_403 = OpenApiExample(
     status_codes=["403"],
 )
 EX_404 = OpenApiExample(
-    "Not found",
-    value={"detail": "Not found", "status": 404},
+    NOT_FOUND,
+    value={"detail": NOT_FOUND, "status": 404},
     status_codes=["404"],
 )
 EX_409 = OpenApiExample(
@@ -59,33 +55,33 @@ EX_409 = OpenApiExample(
 def common_errors(include_400=True, include_401=True, include_403=True, include_404=False):
     errors = {}
     if include_400:
-        errors[400] = OpenApiResponse(Err, BAD_REQUEST, [EX_400])
+        errors[400] = OpenApiResponse(Err, "Bad request", [EX_400])
     if include_401:
-        errors[401] = OpenApiResponse(Err, UNAUTHORIZED, [EX_401])
+        errors[401] = OpenApiResponse(Err, "Unauthorized", [EX_401])
     if include_403:
-        errors[403] = OpenApiResponse(Err, FORBIDDEN, [EX_403])
+        errors[403] = OpenApiResponse(Err, "Forbidden", [EX_403])
     if include_404:
         errors[404] = OpenApiResponse(Err, NOT_FOUND, [EX_404])
     return errors
 
 
 R_COURSE_LIST = {
-    200: OpenApiResponse(forced_singular_serializer(CourseListResponseSerializer), OK),
+    200: OpenApiResponse(forced_singular_serializer(CourseListResponseSerializer), "OK"),
     **common_errors(include_404=False),
 }
 
 R_COURSE = {
-    200: OpenApiResponse(CourseDetailSerializer, OK),
+    200: OpenApiResponse(CourseDetailSerializer, "OK"),
     **common_errors(include_404=True),
 }
 
 R_FILTER_OPTIONS = {
-    200: OpenApiResponse(FilterOptionsSerializer, OK),
+    200: OpenApiResponse(FilterOptionsSerializer, "OK"),
     **common_errors(include_400=False, include_404=False),
 }
 
 R_RATING_LIST = {
-    200: OpenApiResponse(RatingReadSerializer(many=True), OK),
+    200: OpenApiResponse(RatingReadSerializer(many=True), "OK"),
     **common_errors(include_404=True),
 }
 
@@ -111,7 +107,7 @@ R_REDIRECT = {
 
 R_OAUTH = {
     **R_REDIRECT,
-    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
+    400: OpenApiResponse(Err, "Bad request", [EX_400]),
     404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
 }
 
@@ -122,12 +118,12 @@ R_LOGIN = {
 
 R_LOGOUT = {
     **R_OAUTH,
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
 }
 
 R_SESSION = {
     200: OpenApiResponse(SessionSerializer, "Session state"),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
 }
 
 R_CSRF_TOKEN = {
@@ -135,6 +131,6 @@ R_CSRF_TOKEN = {
 }
 
 R_INSTRUCTOR = {
-    200: OpenApiResponse(InstructorSerializer, OK),
+    200: OpenApiResponse(InstructorSerializer, "OK"),
     **common_errors(include_404=True),
 }
