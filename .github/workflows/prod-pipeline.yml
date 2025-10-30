@@ -37,6 +37,7 @@ jobs:
     env:
       LIVE_TAG_PREFIX: "live-"
       LIVE_VERSION_TAG: "live-${{inputs.version_tag}}"
+      MAIN_VERSION_TAG: ${{inputs.version_tag}}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -47,7 +48,7 @@ jobs:
       - name: Set Live Version Tag
         id: set_live_version_tag
         run: |
-          echo "LIVE_VERSION_TAG=${{ env.LIVE_TAG_PREFIX }}${{ inputs.version_tag }}" >> "$GITHUB_OUTPUT"
+          echo "LIVE_VERSION_TAG=${{ env.LIVE_VERSION_TAG }}" >> "$GITHUB_OUTPUT"
 
       - name: Get Previous Live Release
         id: prev_release
@@ -56,7 +57,7 @@ jobs:
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
 
           if [ -n "$PREV_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."${{ inputs.version_tag }}")
+            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."${{ env.MAIN_VERSION_TAG }}")
 
             if [ -n "$COMMITS" ]; then
               CHANGELOG="$COMMITS"
