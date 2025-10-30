@@ -98,7 +98,8 @@ class CourseDetailSerializer(serializers.ModelSerializer):
         Ensure no duplicate specialities are provided in the payload.
         """
         if items is None:
-            return items
+            return None
+
         seen: set[str] = set()
         dups: set[str] = set()
         for raw in items:
@@ -106,10 +107,12 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             if sid in seen:
                 dups.add(sid)
             seen.add(sid)
+
         if dups:
             raise serializers.ValidationError(
                 {"specialities_with_kind": [f"duplicate speciality ids: {', '.join(sorted(dups))}"]}
             )
+
         return items
 
     def _upsert_course_specialities(self, course: Course, items: list[dict]):
