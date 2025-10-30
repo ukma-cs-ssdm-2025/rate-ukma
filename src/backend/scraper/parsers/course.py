@@ -112,61 +112,64 @@ class StudentsParser(BaseParser):
     def _parse_students_table(self, root) -> list[StudentRow]:
         res: list[StudentRow] = []
 
-        table_tag = None
-        for cap in root.find_all("caption"):
-            if "Перелік студентів" in ParserUtils.clean_text(cap.get_text()):
-                table_tag = cap.find_parent("table")
-                break
-
-        def append_row(tds):
-            n = len(tds)
-            if n == 0:
-                return  # malformed/empty row -> skip
-            if n >= 9:
-                res.append(
-                    StudentRow(
-                        index=ParserUtils.clean_text(tds[0].get_text(" ")),
-                        name=ParserUtils.clean_text(tds[1].get_text(" ")),
-                        course=ParserUtils.clean_text(tds[2].get_text(" ")),
-                        specialty=ParserUtils.clean_text(tds[3].get_text(" ")),
-                        type=ParserUtils.clean_text(tds[4].get_text(" ")),
-                        time=ParserUtils.clean_text(tds[5].get_text(" ")),
-                        status=ParserUtils.clean_text(tds[6].get_text(" ")),
-                        group=ParserUtils.clean_text(tds[7].get_text(" ")),
-                        email=ParserUtils.clean_text(tds[8].get_text(" ")),
-                    )
-                )
-            elif n >= 2:
-                # minimal: index + name
-                res.append(
-                    StudentRow(
-                        index=ParserUtils.clean_text(tds[0].get_text(" ")),
-                        name=ParserUtils.clean_text(tds[1].get_text(" ")),
-                    )
-                )
-            elif n == 1:
-                # index only; name should be empty string
-                res.append(
-                    StudentRow(
-                        index=ParserUtils.clean_text(tds[0].get_text(" ")),
-                        name="",
-                    )
-                )
-
+        table_tag = self._find_students_table(root)
         if table_tag:
-            tbody = table_tag.find("tbody")
-            if tbody:
-                for tr in tbody.find_all("tr"):
-                    tds = tr.find_all("td")
-                    append_row(tds)
-            return res
-
-        # Fallback: rows with class selector (if no caption path)
-        for tr in root.select("tr.course-student-list-row"):
-            tds = tr.find_all("td")
-            append_row(tds)
+            self._parse_table_rows(table_tag, res)
+        else:
+            self._parse_fallback_rows(root, res)
 
         return res
+
+    def _find_students_table(self, root):
+        for cap in root.find_all("caption"):
+            if "Перелік студентів" in ParserUtils.clean_text(cap.get_text()):
+                return cap.find_parent("table")
+        return None
+
+    def _parse_table_rows(self, table_tag, res: list[StudentRow]):
+        tbody = table_tag.find("tbody")
+        if tbody:
+            for tr in tbody.find_all("tr"):
+                tds = tr.find_all("td")
+                self._append_row(tds, res)
+
+    def _parse_fallback_rows(self, root, res: list[StudentRow]):
+        for tr in root.select("tr.course-student-list-row"):
+            tds = tr.find_all("td")
+            self._append_row(tds, res)
+
+    def _append_row(self, tds, res: list[StudentRow]):
+        n = len(tds)
+        if n == 0:
+            return
+        if n >= 9:
+            res.append(
+                StudentRow(
+                    index=ParserUtils.clean_text(tds[0].get_text(" ")),
+                    name=ParserUtils.clean_text(tds[1].get_text(" ")),
+                    course=ParserUtils.clean_text(tds[2].get_text(" ")),
+                    specialty=ParserUtils.clean_text(tds[3].get_text(" ")),
+                    type=ParserUtils.clean_text(tds[4].get_text(" ")),
+                    time=ParserUtils.clean_text(tds[5].get_text(" ")),
+                    status=ParserUtils.clean_text(tds[6].get_text(" ")),
+                    group=ParserUtils.clean_text(tds[7].get_text(" ")),
+                    email=ParserUtils.clean_text(tds[8].get_text(" ")),
+                )
+            )
+        elif n >= 2:
+            res.append(
+                StudentRow(
+                    index=ParserUtils.clean_text(tds[0].get_text(" ")),
+                    name=ParserUtils.clean_text(tds[1].get_text(" ")),
+                )
+            )
+        elif n == 1:
+            res.append(
+                StudentRow(
+                    index=ParserUtils.clean_text(tds[0].get_text(" ")),
+                    name="",
+                )
+            )
 
 
 class CourseDetailParser(BaseParser):
