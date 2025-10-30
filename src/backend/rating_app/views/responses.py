@@ -47,7 +47,7 @@ EX_404 = OpenApiExample(
     status_codes=["404"],
 )
 EX_409 = OpenApiExample(
-    "Conflict - Rating already exists",
+    CONFLICT_RATING_EXISTS,
     value={
         "detail": "You have already rated this course offering",
         "status": 409,
@@ -55,57 +55,54 @@ EX_409 = OpenApiExample(
     status_codes=["409"],
 )
 
+
+def common_errors(include_400=True, include_401=True, include_403=True, include_404=False):
+    errors = {}
+    if include_400:
+        errors[400] = OpenApiResponse(Err, BAD_REQUEST, [EX_400])
+    if include_401:
+        errors[401] = OpenApiResponse(Err, UNAUTHORIZED, [EX_401])
+    if include_403:
+        errors[403] = OpenApiResponse(Err, FORBIDDEN, [EX_403])
+    if include_404:
+        errors[404] = OpenApiResponse(Err, NOT_FOUND, [EX_404])
+    return errors
+
+
 R_COURSE_LIST = {
     200: OpenApiResponse(forced_singular_serializer(CourseListResponseSerializer), OK),
-    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
-    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
+    **common_errors(include_404=False),
 }
 
 R_COURSE = {
     200: OpenApiResponse(CourseDetailSerializer, OK),
-    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
-    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
-    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
+    **common_errors(include_404=True),
 }
 
 R_FILTER_OPTIONS = {
     200: OpenApiResponse(FilterOptionsSerializer, OK),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
-    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
+    **common_errors(include_400=False, include_404=False),
 }
 
 R_RATING_LIST = {
     200: OpenApiResponse(RatingReadSerializer(many=True), OK),
-    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
-    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
-    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
+    **common_errors(include_404=True),
 }
 
 R_RATING_CREATE = {
     201: RatingReadSerializer,
-    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
-    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
-    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
+    **common_errors(include_404=True),
     409: OpenApiResponse(Err, CONFLICT_RATING_EXISTS, [EX_409]),
 }
 
 R_RATING = {
     200: RatingReadSerializer,
-    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
-    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
-    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
+    **common_errors(include_404=True),
 }
 
 R_NO_CONTENT = {
     204: OpenApiResponse(description="Deleted"),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
-    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
-    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
+    **common_errors(include_400=False, include_404=True),
 }
 
 R_REDIRECT = {
@@ -120,8 +117,7 @@ R_OAUTH = {
 
 R_LOGIN = {
     200: OpenApiResponse(description="Logged in"),
-    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+    **common_errors(include_403=False, include_404=False),
 }
 
 R_LOGOUT = {
@@ -140,8 +136,5 @@ R_CSRF_TOKEN = {
 
 R_INSTRUCTOR = {
     200: OpenApiResponse(InstructorSerializer, OK),
-    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
-    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
-    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
-    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
+    **common_errors(include_404=True),
 }
