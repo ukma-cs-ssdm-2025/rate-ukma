@@ -3,9 +3,6 @@ name: E2E Tests
 on:
   workflow_call:
     inputs:
-      environment:
-        required: true
-        type: string
       test_url:
         required: true
         type: string
@@ -75,7 +72,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ inputs.environment }}
+          name: playwright-report-${{ inputs.deployment_ref || github.sha }}
           path: |
             ${{ env.WEBAPP_DIR }}/playwright-report/
             ${{ env.WEBAPP_DIR }}/test-results/
@@ -85,7 +82,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-failures-${{ inputs.environment }}
+          name: playwright-failures-${{ inputs.deployment_ref || github.sha }}
           path: |
             ${{ env.WEBAPP_DIR }}/test-results/**/*.png
             ${{ env.WEBAPP_DIR }}/test-results/**/*.webm

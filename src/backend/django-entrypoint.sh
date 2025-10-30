@@ -18,7 +18,7 @@ shutdown() {
     fi
 
     echo "Gunicorn shutdown complete"
-    exit 0
+    return 0
 }
 
 # trap SIGTERM and SIGINT
@@ -53,7 +53,7 @@ GUNICORN_ARGS=(
 )
 
 # environment-specific settings
-if [ "${DJANGO_SETTINGS_MODULE:-}" = "rateukma.settings.dev" ]; then
+if [[ "${DJANGO_SETTINGS_MODULE:-}" = "rateukma.settings.dev" ]]; then
     echo "Development environment detected, hot reload enabled"
     GUNICORN_ARGS+=( --reload )
 fi
