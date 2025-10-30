@@ -34,10 +34,6 @@ jobs:
   create_release:
     needs: deploy-live
     runs-on: ubuntu-latest
-    env:
-      LIVE_TAG_PREFIX: "live-"
-      LIVE_VERSION_TAG: "live-${{inputs.version_tag}}"
-      MAIN_VERSION_TAG: ${{inputs.version_tag}}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -47,11 +43,16 @@ jobs:
 
       - name: Set Live Version Tag
         id: set_live_version_tag
+        env:
+          LIVE_VERSION_TAG: "live-${{inputs.version_tag}}"
         run: |
           echo "LIVE_VERSION_TAG=${{ env.LIVE_VERSION_TAG }}" >> "$GITHUB_OUTPUT"
 
       - name: Get Previous Live Release
         id: prev_release
+        env:
+          LIVE_TAG_PREFIX: "live-"
+          MAIN_VERSION_TAG: ${{inputs.version_tag}}
         run: |
           PREV_TAG=$(git tag -l "${{ env.LIVE_TAG_PREFIX }}*" --sort=-v:refname | head -n 1)
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
@@ -75,6 +76,8 @@ jobs:
 
       - name: Create Version Tag
         id: create_version_tag
+        env:
+          LIVE_VERSION_TAG: ${{ env.LIVE_VERSION_TAG }}
         run: |
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           git tag ${{ env.LIVE_VERSION_TAG }}
@@ -82,6 +85,9 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
+        env:
+          LIVE_VERSION_TAG: ${{ env.LIVE_VERSION_TAG }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.LIVE_VERSION_TAG }}
           name: "Live Release ${{ inputs.version_tag }}"
@@ -97,5 +103,3 @@ jobs:
 
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
