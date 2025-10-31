@@ -3,9 +3,6 @@ name: Deploy
 on:
   workflow_call:
     inputs:
-      environment:
-        required: true
-        type: string
       archive_name:
         required: true
         type: string
@@ -41,7 +38,7 @@ env:
   SERVICES_HEALTHCHECK_TIMEOUT: 10
 
 concurrency:
-  group: deploy-${{ inputs.environment }}
+  group: deploy-${{ github.workflow }} # main-pipeline or prod-pipeline
   cancel-in-progress: true
 
 jobs:
@@ -55,7 +52,6 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo "ENVIRONMENT=${{ inputs.environment }}" >> $GITHUB_ENV
           echo "ARCHIVE_NAME=${{ inputs.archive_name }}" >> $GITHUB_ENV
 
       - name: Create deployment archive
@@ -79,7 +75,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           command_timeout: "30m"
           script: |
-            echo "Deploying to ${{ env.ENVIRONMENT }} environment..."
+            echo "Deploying..."
 
             echo "Setting up project directory ownership..."
             sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.PROJECT_DIR }} || true
@@ -142,7 +138,7 @@ jobs:
               echo "Services are up and healthy"
               echo "Cleaning up backup directory..."
               rm -rf "${{ env.REMOTE_BACKUP_CODE_DIR }}"
-              echo "Deployment to ${{ env.ENVIRONMENT }} finished successfully"
+              echo "Deployment finished successfully"
             else
               echo "Services failed to start properly. Rolling back..."
               sudo docker compose down || true
@@ -155,7 +151,7 @@ jobs:
               cd ${{ env.PROJECT_SOURCE_CODE }}
               sudo docker compose --profile prod up -d --build
               
-              echo "Rollback completed. Deployment to ${{ env.ENVIRONMENT }} failed."
+              echo "Rollback completed. Deployment failed."
               exit 1
             fi
 
@@ -164,6 +160,5 @@ jobs:
     needs: deploy
     uses: ./.github/workflows/e2e-test.yml
     with:
-      environment: ${{ inputs.environment }}
       test_url: ${{ inputs.test_url }}
       deployment_ref: ${{ inputs.deployment_ref }}

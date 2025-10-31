@@ -19,7 +19,6 @@ async def _handle_ms_login(page: Page, email: str, password: str) -> None:
         logger.debug("login_page_detected")
     except PlaywrightTimeoutError:
         logger.debug("login_page_not_detected")
-        pass
 
     tiles = page.locator("div.table[role='listbox'] div[role='button'], div.accountTile")
     tile_count = await tiles.count()
@@ -47,7 +46,6 @@ async def _handle_ms_login(page: Page, email: str, password: str) -> None:
         logger.debug("email_form_submitted")
     except PlaywrightTimeoutError:
         logger.debug("email_input_not_found")
-        pass
 
     try:
         await page.wait_for_selector(
@@ -61,7 +59,6 @@ async def _handle_ms_login(page: Page, email: str, password: str) -> None:
         logger.debug("password_form_submitted")
     except PlaywrightTimeoutError:
         logger.debug("password_input_not_found")
-        pass
 
     try:
         await page.wait_for_selector("#idSIButton9", timeout=8000)
@@ -70,7 +67,6 @@ async def _handle_ms_login(page: Page, email: str, password: str) -> None:
         logger.info("clicked_stay_signed_in")
     except PlaywrightTimeoutError:
         logger.debug("stay_signed_in_prompt_not_found")
-        pass
 
 
 async def login_o365(
@@ -98,7 +94,6 @@ async def login_o365(
             logger.info("successfully_redirected_to_saz")
         except PlaywrightTimeoutError:
             logger.warning("redirect_timeout", message="Timeout waiting for SAZ redirect")
-            pass
 
         await context.storage_state(path=str(state_path))
         logger.info("storage_state_saved", path=str(state_path))
