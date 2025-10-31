@@ -30,3 +30,11 @@ jobs:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
       SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+
+  release:
+    needs: deploy-staging
+    if: needs.version.outputs.version_type != 'none'
+    uses: ./.github/workflows/release.yml
+    with:
+      version_tag: ${{ needs.version.outputs.version_tag }}
+      pre-release: true
