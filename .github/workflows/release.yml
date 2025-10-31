@@ -27,7 +27,7 @@ jobs:
         env:
           VERSION_TAG: ${{ inputs.version_tag }}
         run: |
-          PREV_TAG=$(git tag -l "v*" --sort=-v:refname | head -n 1)
+          PREV_TAG=$(git tag -l "v*" --sort=-v:refname | grep -v "^$VERSION_TAG$" | head -n 1)
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
 
           if [ -n "$PREV_TAG" ]; then
@@ -53,10 +53,17 @@ jobs:
           VERSION_TAG: ${{ inputs.version_tag }}
         run: |
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
-          git tag $VERSION_TAG
-          git push origin $VERSION_TAG
+
+          if ! git rev-parse $VERSION_TAG >/dev/null 2>&1; then
+            git tag $VERSION_TAG
+            git push origin $VERSION_TAG
+            echo "tag_created=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag $VERSION_TAG already exists, skipping creation"
+          fi
 
       - name: Create GitHub Release
+        if: steps.create_version_tag.outputs.tag_created == 'true'
         uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
         env:
           VERSION_TAG: ${{ inputs.version_tag }}

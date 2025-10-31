@@ -32,7 +32,7 @@ jobs:
       SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
 
   release:
-    needs: deploy-staging
+    needs: [deploy-staging, version]
     if: needs.version.outputs.version_type != 'none'
     uses: ./.github/workflows/release.yml
     with:
