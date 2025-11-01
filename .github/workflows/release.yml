@@ -55,7 +55,7 @@ jobs:
           tag_name: ${{ inputs.version_tag }}
           name: "Release ${{ inputs.version_tag }}"
           body: |
-            Latest version: ${{ inputs.version_tag }}
+            Latest version: `${{ inputs.version_tag }}`
             Previous version: `${{ steps.changelog.outputs.prev_tag }}`
 
             ## Changelog since last release:
