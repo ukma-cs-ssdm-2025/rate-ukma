@@ -89,11 +89,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			return { status: "unauthenticated", user: null };
 		}
 
-		if (!sessionQuery.data?.data?.is_authenticated) {
+		if (!sessionQuery.data?.is_authenticated) {
 			return { status: "unauthenticated", user: null };
 		}
 
-		const userData = sessionQuery.data?.data?.user;
+		const userData = sessionQuery.data?.user;
 		return {
 			status: "authenticated",
 			user: userData

@@ -401,7 +401,7 @@ export function CoursesTable({
 					onDifficultyChange={setDifficultyRange}
 					usefulnessRange={usefulnessRange}
 					onUsefulnessChange={setUsefulnessRange}
-					filterOptions={filterOptions?.data}
+					filterOptions={filterOptions}
 					selectedFaculty={selectedFaculty}
 					onFacultyChange={setSelectedFaculty}
 					selectedDepartment={selectedDepartment}

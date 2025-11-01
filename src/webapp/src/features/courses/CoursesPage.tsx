@@ -40,15 +40,15 @@ export function CoursesPage() {
 				<CoursesErrorState onRetry={handleRetry} />
 			) : (
 				<CoursesTable
-					data={data?.data?.items ?? []} // TODO: fix data.data madness
+					data={data?.items ?? []}
 					isLoading={isLoading}
 					filtersKey={filtersKey}
 					onFiltersChange={handleFiltersChange}
-					pagination={data?.data ? {
-						page: data.data.page,
-						pageSize: data.data.page_size,
-						total: data.data.total,
-						totalPages: data.data.total_pages,
+					pagination={data ? {
+						page: data.page,
+						pageSize: data.page_size,
+						total: data.total,
+						totalPages: data.total_pages,
 					} : undefined}
 				/>
 			)}
