@@ -6,6 +6,7 @@ env:
   SOURCE_CODE_DIR: src
   BACKEND_DIR: src/backend
   WEBAPP_DIR: src/webapp
+  OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
 
 jobs:
   filter:
@@ -23,6 +24,7 @@ jobs:
               - '${{ env.BACKEND_DIR }}/**'
             webapp:
               - '${{ env.WEBAPP_DIR }}/**'
+              - '${{ env.OPENAPI_SCHEMA_FILE }}'
 
   build-backend:
     needs: filter
