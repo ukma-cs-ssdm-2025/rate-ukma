@@ -25,7 +25,7 @@ jobs:
     needs: [version, test, openapi-validation, audit, build]
     uses: ./.github/workflows/deploy-staging.yml
     with:
-      deployment_ref: ${{ needs.version.outputs.version_tag }}
+      deployment_ref: ${{ github.sha }}
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
