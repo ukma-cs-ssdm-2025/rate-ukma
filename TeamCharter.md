@@ -13,7 +13,7 @@
 
 ## 2. Roles & Responsibilities
 
-| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation | Construction I | Testing & Debugging | Verification & Validation | Refactoring and Evolution |
+| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation | Construction I | Testing & Debugging | Verification & Validation | Refactoring & Evolution |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead | Code Reviewer | Integration Lead | Review Manager | Release Manager |
 | **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead | Quality Lead | Debugger | Test Planner | Code Analyst |
