@@ -1,6 +1,9 @@
 name: Dev Pipeline
 on:
   pull_request:
+    paths:
+      - src/**
+      - .github/**
 
 jobs:
   test:

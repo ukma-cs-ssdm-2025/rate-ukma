@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.deployment_ref || github.sha }}
 
@@ -111,9 +111,15 @@ jobs:
             echo "Copying environment file..."
             cp ${{ env.PROJECT_DIR }}/.env ${{ env.PROJECT_SOURCE_CODE }}/.env
 
-            echo "Starting services..."
+            echo "Logging in to GitHub Container Registry..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            echo "Pulling latest docker images..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo docker compose --profile prod up -d --build
+            sudo docker compose --profile prod pull
+
+            echo "Starting services with pulled images..."
+            sudo docker compose --profile prod up -d
 
             echo "Waiting for services to be up and running..."
             max_attempts=${{ env.MAX_ATTEMPTS }}

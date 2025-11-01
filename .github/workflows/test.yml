@@ -47,7 +47,7 @@ jobs:
         run: |
           uv run pytest --cov=. --cov-report=html --cov-report=xml --junitxml=junit.xml --cov-report=term-missing:skip-covered
           EXIT_CODE=$?
-          
+
           if [ $EXIT_CODE -eq 5 ]; then
               echo "No tests found. Exiting with 0."
               exit 0
