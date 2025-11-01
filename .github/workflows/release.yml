@@ -1,0 +1,84 @@
+name: Create Release
+on:
+  workflow_call:
+    inputs:
+      version_tag:
+        description: "The version tag to create"
+        required: true
+        type: string
+      pre-release:
+        description: "Whether to create a pre-release or not"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version_tag }}
+          fetch-depth: 0
+
+      - name: Get Changelog
+        id: changelog
+        env:
+          VERSION_TAG: ${{ inputs.version_tag }}
+        run: |
+          PREV_TAG=$(git tag -l "v*" --sort=-v:refname | grep -v "^$VERSION_TAG$" | head -n 1)
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."$VERSION_TAG")
+
+            if [ -n "$COMMITS" ]; then
+              CHANGELOG="$COMMITS"
+            else
+              CHANGELOG="No changes since last release"
+            fi
+            
+          else
+            CHANGELOG="No previous release"
+          fi
+
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create Version Tag
+        id: create_version_tag
+        env:
+          VERSION_TAG: ${{ inputs.version_tag }}
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+          if ! git rev-parse $VERSION_TAG >/dev/null 2>&1; then
+            git tag $VERSION_TAG
+            git push origin $VERSION_TAG
+            echo "tag_created=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag $VERSION_TAG already exists, skipping creation"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.create_version_tag.outputs.tag_created == 'true'
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
+        env:
+          VERSION_TAG: ${{ inputs.version_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ inputs.version_tag }}
+          name: "Release ${{ inputs.version_tag }}"
+          body: |
+            Latest version: `$VERSION_TAG`
+            Previous version: `${{ steps.changelog.outputs.prev_tag }}`
+
+            ## Changelog since last release:
+            ${{ steps.changelog.outputs.changelog }}
+
+            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.changelog.outputs.prev_tag }}...$VERSION_TAG)
+
+          draft: false
+          prerelease: ${{ inputs.pre-release }}
