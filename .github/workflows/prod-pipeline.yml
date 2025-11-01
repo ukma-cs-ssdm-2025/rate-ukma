@@ -69,7 +69,12 @@ jobs:
             grep -oE 'tag: [^,)]+' | sed 's/tag: //' | sort -u | grep '^v')
 
           echo "Releases to update: $RELEASES_TO_UPDATE"
-          echo "tags=$RELEASES_TO_UPDATE" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "tags<<EOF"
+            echo "$RELEASES_TO_UPDATE"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Update Pre Releases
         id: update_pre_releases
