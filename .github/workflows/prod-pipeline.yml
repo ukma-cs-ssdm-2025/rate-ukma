@@ -85,12 +85,19 @@ jobs:
           readarray -t tags <<< "${{ steps.get_releases.outputs.tags }}"
           echo "Processing releases: ${tags[@]}"
 
-          for tag in "${tags[@]}"; do
+          for i in "${!tags[@]}"; do
+            tag="${tags[$i]}"
             echo "Updating release: $tag"
-            
+
+            if [[ "$i" -eq "$(( ${#tags[@]} - 1 ))" ]]; then
+              IS_LATEST=true
+            else
+              IS_LATEST=false
+            fi
+
             RELEASE_API="https://api.github.com/repos/${{ github.repository }}/releases/tags/$tag"
             RELEASE_ID=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "$RELEASE_API" | jq -r '.id')
-            
+
             if [[ "$RELEASE_ID" == "null" || -z "$RELEASE_ID" ]]; then
               echo "Error: No release found for tag $tag" >&2
               continue
@@ -103,7 +110,7 @@ jobs:
               -H "Authorization: Bearer $GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
               "$PATCH_API" \
-              -d '{"prerelease": false}')
+              -d '{"prerelease": false, "make_latest": '"$IS_LATEST"'}')
 
             if [[ "$RESPONSE" != "200" ]]; then
               echo "Error updating release $tag (HTTP $RESPONSE)" >&2
