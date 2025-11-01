@@ -3,7 +3,7 @@ on:
   workflow_call:
     inputs:
       version_tag:
-        description: "The version tag to create"
+        description: "The version tag"
         required: true
         type: string
       pre-release:
@@ -47,23 +47,7 @@ jobs:
           echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-      - name: Create Version Tag
-        id: create_version_tag
-        env:
-          VERSION_TAG: ${{ inputs.version_tag }}
-        run: |
-          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
-
-          if ! git rev-parse $VERSION_TAG >/dev/null 2>&1; then
-            git tag $VERSION_TAG
-            git push origin $VERSION_TAG
-            echo "tag_created=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Tag $VERSION_TAG already exists, skipping creation"
-          fi
-
       - name: Create GitHub Release
-        if: steps.create_version_tag.outputs.tag_created == 'true'
         uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
         env:
           VERSION_TAG: ${{ inputs.version_tag }}

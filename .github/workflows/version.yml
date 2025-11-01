@@ -62,3 +62,16 @@ jobs:
           major_regexp_flags: "i"
           minor_regexp_flags: "i"
           version_format: ${{ env.SEMANTIC_VERSION_VERSION_FORMAT }}
+
+      - name: Create Version Tag
+        id: create_version_tag
+        if: steps.semantic.outputs.version_type != 'none'
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+          if ! git rev-parse ${{ steps.semantic.outputs.version_tag }} >/dev/null 2>&1; then
+            git tag ${{ steps.semantic.outputs.version_tag }}
+            git push origin ${{ steps.semantic.outputs.version_tag }}
+          else
+            echo "Tag ${{ steps.semantic.outputs.version_tag }} already exists, skipping creation"
+          fi
