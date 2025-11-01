@@ -31,27 +31,8 @@ jobs:
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
       SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
 
-  push_live_tag:
-    needs: deploy-live
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.version_tag }}
-          fetch-depth: 0
-
-      - name: Push Live Version Tag
-        id: push_live_tag
-        env:
-          LIVE_VERSION_TAG: "live-${{ inputs.version_tag }}"
-        run: |
-          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
-          git tag $LIVE_VERSION_TAG
-          git push origin $LIVE_VERSION_TAG
-
   update_pre_releases:
-    needs: push_live_tag
+    needs: deploy-live
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -123,3 +104,22 @@ jobs:
               echo "Error updating release $tag (HTTP $RESPONSE)" >&2
             fi
           done
+
+  push_live_tag:
+    needs: update_pre_releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version_tag }}
+          fetch-depth: 0
+
+      - name: Push Live Version Tag
+        id: push_live_tag
+        env:
+          LIVE_VERSION_TAG: "live-${{ inputs.version_tag }}"
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          git tag $LIVE_VERSION_TAG
+          git push origin $LIVE_VERSION_TAG
