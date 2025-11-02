@@ -88,29 +88,25 @@ jobs:
       - name: Build and publish staging webapp
         env:
           VITE_API_BASE_URL: ${{ vars.STAGING_URL }}
+          WEBAPP_IMAGE_TAG: staging-latest
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          WEBAPP_IMAGE_TAG=staging-latest
-          export WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG}
+          docker build -t ${{ steps.extract_name.outputs.webapp_image }}:$WEBAPP_IMAGE_TAG \
+              --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+              --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
+              -f ./src/webapp/Dockerfile .
 
-          docker compose --profile prod build \
-            --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
-            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
-            webapp-build
-          docker tag ${{ steps.extract_name.outputs.webapp_image }} ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
           docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
 
       - name: Build and publish live webapp
         env:
           VITE_API_BASE_URL: ${{ vars.LIVE_URL }}
+          WEBAPP_IMAGE_TAG: live-latest
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          WEBAPP_IMAGE_TAG=live-latest
-          export WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG}
+          docker build -t ${{ steps.extract_name.outputs.webapp_image }}:$WEBAPP_IMAGE_TAG \
+              --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+              --build-arg WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG \
+              -f ./src/webapp/Dockerfile .
 
-          docker compose --profile prod build \
-            --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
-            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
-            webapp-build
-          docker tag ${{ steps.extract_name.outputs.webapp_image }} ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
-          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:$WEBAPP_IMAGE_TAG
