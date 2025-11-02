@@ -91,10 +91,10 @@ jobs:
           WEBAPP_IMAGE_TAG: staging-latest
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          docker build -t ${{ steps.extract_name.outputs.webapp_image }}:$WEBAPP_IMAGE_TAG \
-              --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
-              --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
-              -f ./webapp/Dockerfile .
+          docker compose --profile prod build \
+            --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
+            webapp-build
 
           docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
 
@@ -104,9 +104,9 @@ jobs:
           WEBAPP_IMAGE_TAG: live-latest
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          docker build -t ${{ steps.extract_name.outputs.webapp_image }}:$WEBAPP_IMAGE_TAG \
-              --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
-              --build-arg WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG \
-              -f ./webapp/Dockerfile .
-
-          docker push ${{ steps.extract_name.outputs.webapp_image }}:$WEBAPP_IMAGE_TAG
+          docker compose --profile prod build \
+            --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
+            webapp-build
+            
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
