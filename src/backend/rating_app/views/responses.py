@@ -7,6 +7,7 @@ from rating_app.serializers import (
     CourseListResponseSerializer,
     FilterOptionsSerializer,
     InstructorSerializer,
+    RatingListResponseSerializer,
     RatingReadSerializer,
 )
 from rating_app.serializers import ErrorEnvelopeSerializer as Err
@@ -81,7 +82,7 @@ R_FILTER_OPTIONS = {
 }
 
 R_RATING_LIST = {
-    200: OpenApiResponse(RatingReadSerializer(many=True), "OK"),
+    200: OpenApiResponse(forced_singular_serializer(RatingListResponseSerializer), "OK"),
     **common_errors(include_404=True),
 }
 

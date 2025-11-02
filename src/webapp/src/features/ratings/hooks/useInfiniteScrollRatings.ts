@@ -4,14 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { RatingRead } from "@/lib/api/generated";
 import { useCoursesRatingsList } from "@/lib/api/generated";
 
-interface PaginatedRatingsResponse {
-	items: RatingRead[];
-	page: number;
-	page_size: number;
-	total: number;
-	total_pages: number;
-}
-
 interface UseInfiniteScrollRatingsReturn {
 	allRatings: RatingRead[];
 	hasMoreRatings: boolean;
@@ -29,16 +21,13 @@ export function useInfiniteScrollRatings(
 	const [ratingsPage, setRatingsPage] = useState(1);
 	const [allRatings, setAllRatings] = useState<RatingRead[]>([]);
 
-	const { data: ratingsData, isLoading: isRatingsLoading } =
-		useCoursesRatingsList(courseId, {
+	const { data: ratings, isLoading: isRatingsLoading } = useCoursesRatingsList(
+		courseId,
+		{
 			page: ratingsPage,
 			page_size: pageSize,
-		});
-
-	// Cast to paginated response type (API returns paginated data, but generated type is wrong)
-	const ratings = ratingsData as unknown as
-		| PaginatedRatingsResponse
-		| undefined;
+		},
+	);
 
 	const loaderRef = useRef<HTMLDivElement | null>(null);
 
