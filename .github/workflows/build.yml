@@ -94,7 +94,7 @@ jobs:
           docker build -t ${{ steps.extract_name.outputs.webapp_image }}:$WEBAPP_IMAGE_TAG \
               --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
               --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
-              -f ./src/webapp/Dockerfile .
+              -f ./webapp/Dockerfile .
 
           docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
 
@@ -107,6 +107,6 @@ jobs:
           docker build -t ${{ steps.extract_name.outputs.webapp_image }}:$WEBAPP_IMAGE_TAG \
               --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
               --build-arg WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG \
-              -f ./src/webapp/Dockerfile .
+              -f ./webapp/Dockerfile .
 
           docker push ${{ steps.extract_name.outputs.webapp_image }}:$WEBAPP_IMAGE_TAG
