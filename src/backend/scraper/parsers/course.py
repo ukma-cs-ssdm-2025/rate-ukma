@@ -173,132 +173,164 @@ class StudentsParser(BaseParser):
 
 
 class CourseDetailParser(BaseParser):
+    LABEL_SELECTOR = "span.label"
+
     def __init__(self):
         self.specialty_parser = SpecialtyParser()
         self.enrollment_parser = EnrollmentParser()
         self.students_parser = StudentsParser()
 
-    def parse(self, html: str, url: str) -> ParsedCourseDetails:
+    def parse(self, html: str, **kwargs) -> ParsedCourseDetails:
+        url = kwargs.get('url', '')
         return self._parse_course_details(html, url)
+
+    def _parse_course_header(self, soup) -> str:
+        h1 = soup.select_one(".page-header h1")
+        if h1:
+            direct_text = "".join(h1.find_all(string=True, recursive=False))
+            return ParserUtils.clean_text(direct_text)
+        return ""
+
+    def _parse_basic_course_info(self, tbody) -> tuple[dict[str, Any], str | None]:
+        data: dict[str, Any] = {}
+        course_id: str | None = None
+
+        for tr in tbody.find_all("tr", recursive=False):
+            th = tr.find("th")
+            td = tr.find("td")
+            if not (th and td):
+                continue
+            key = ParserUtils.clean_text(th.get("title") or th.get_text(" "))
+            if key == "Код курсу" or key == "Код":
+                course_id = ParserUtils.clean_text(td.get_text(" "))
+                data["id"] = course_id
+            elif key == "Інформація":
+                info_data = self._parse_info_labels(td)
+                for k, v in info_data.items():
+                    data[k] = v
+            elif "Факультет" in key:
+                data["faculty"] = ParserUtils.clean_text(td.get_text(" "))
+            elif "Кафедра" in key:
+                data["department"] = ParserUtils.clean_text(td.get_text(" "))
+            elif "Освітній рівень" in key:
+                data["education_level"] = ParserUtils.clean_text(td.get_text(" "))
+            elif "Навчальний рік" in key:
+                data["academic_year"] = ParserUtils.clean_text(td.get_text(" "))
+            elif "Викладач" in key:
+                data["teachers"] = ParserUtils.clean_text(td.get_text(" "))
+
+
+        data["annotation"] = self._parse_annotation(tbody)
+        data["specialties"] = self.specialty_parser._parse_specialties(tbody)
+        return data, course_id
+
+    def _is_semester_block(self, rows) -> bool:
+        seasons = {"Весна", "Осінь", "Літо"}
+        return any(
+            ParserUtils.clean_text(tr.find("th").get_text(" ")) in {"Семестри", *seasons}
+            for tr in rows
+            if tr.find("th")
+        )
+
+    def _parse_season_details(self, td) -> dict[str, Any]:
+        season_parsers = {
+            "кред": lambda text: ("credits", ParserUtils.parse_float(text)),
+            "год./тиж": lambda text: ("hours_per_week", ParserUtils.parse_int(text)),
+            "лекц": lambda text: ("lecture_hours", ParserUtils.parse_int(text)),
+            "практ": lambda text: ("practice_type", "PRACTICE"),
+            "сем.": lambda text: ("practice_type", "SEMINAR"),
+        }
+
+        details = {}
+        for span in td.select(self.LABEL_SELECTOR):
+            text = ParserUtils.clean_text(span.get_text(" "))
+
+            if "практ" in text:
+                details["practice_type"] = "PRACTICE"
+                details["practice_hours"] = ParserUtils.parse_int(text)
+            elif "сем." in text:
+                details["practice_type"] = "SEMINAR"
+                details["practice_hours"] = ParserUtils.parse_int(text)
+            elif "екзам" in text or "залік" in text:
+                details["exam_type"] = text
+            else:
+                for keyword, parser in season_parsers.items():
+                    if keyword in text:
+                        key, value = parser(text)
+                        details[key] = value
+                        break
+                else:
+                    details.setdefault("other", []).append(text)
+
+        return details
+
+    def _parse_semester_block(self, tbody, rows, data: dict[str, Any]) -> bool:
+        seasons = {"Весна", "Осінь", "Літо"}
+
+        for tr in rows:
+            th = tr.find("th")
+            td = tr.find("td")
+            if not (th and td):
+                continue
+
+            key = ParserUtils.clean_text(th.get_text(" "))
+
+            if key == "Семестри":
+                data["semesters"] = [
+                    ParserUtils.clean_text(s.get_text(" "))
+                    for s in td.select(self.LABEL_SELECTOR)
+                ]
+                continue
+
+            if key in seasons:
+                details = self._parse_season_details(td)
+                if details:
+                    data.setdefault("season_details", {})[key] = details
+
+        return True
+
+    def _parse_tbody_content(self, tbody, data: dict[str, Any]) -> None:
+        rows = tbody.select("tr")
+
+        if self._is_semester_block(rows):
+            self._parse_semester_block(tbody, rows, data)
+            return
+
+        if self._tbody_has(tbody, "Встановлені ліміти"):
+            data["limits"] = self.enrollment_parser._parse_limits(tbody)
+            return
+
+        if self._tbody_has(tbody, "Інформація про запис"):
+            data["enrollment"] = self.enrollment_parser._parse_enrollment(tbody)
+            return
+
+    def _tbody_has(self, tbody, text: str) -> bool:
+        return tbody.find(string=lambda s: isinstance(s, str) and text in s) is not None
 
     def _parse_course_details(self, html: str, url: str) -> ParsedCourseDetails:
         soup = BeautifulSoup(html, "lxml")
 
-        h1 = soup.select_one(".page-header h1")
-        if h1:
-            direct_text = "".join(h1.find_all(string=True, recursive=False))
-            title = ParserUtils.clean_text(direct_text)
-        else:
-            title = ""
-
-        table = soup.select_one("table.table.table-condensed.table-bordered")
         data: dict[str, Any] = {
             "url": url,
-            "title": title,
+            "title": self._parse_course_header(soup),
         }
-        course_id: str | None = None
 
+        table = soup.select_one("table.table.table-condensed.table-bordered")
         if table:
             tbodies = table.find_all("tbody")
             if tbodies:
-                for tr in tbodies[0].find_all("tr", recursive=False):
-                    th = tr.find("th")
-                    td = tr.find("td")
-                    if not (th and td):
-                        continue
-                    key = ParserUtils.clean_text(th.get("title") or th.get_text(" "))
-                    if key == "Код курсу" or key == "Код":
-                        course_id = ParserUtils.clean_text(td.get_text(" "))
-                        data["id"] = course_id
-                    elif key == "Інформація":
-                        info_data = self._parse_info_labels(td)
-                        for k, v in info_data.items():
-                            data[k] = v
-                    elif "Факультет" in key:
-                        data["faculty"] = ParserUtils.clean_text(td.get_text(" "))
-                    elif "Кафедра" in key:
-                        data["department"] = ParserUtils.clean_text(td.get_text(" "))
-                    elif "Освітній рівень" in key:
-                        data["education_level"] = ParserUtils.clean_text(td.get_text(" "))
-                    elif "Навчальний рік" in key:
-                        data["academic_year"] = ParserUtils.clean_text(td.get_text(" "))
-                    elif "Викладач" in key:
-                        data["teachers"] = ParserUtils.clean_text(td.get_text(" "))
-                    else:
-                        pass
+                basic_info, _ = self._parse_basic_course_info(tbodies[0])
+                data.update(basic_info)
 
-                data["annotation"] = self._parse_annotation(tbodies[0])
-                data["specialties"] = self.specialty_parser._parse_specialties(tbodies[0])
-
-            seasons = {"Весна", "Осінь", "Літо"}
-
-            def _tbody_has(tbody, text: str) -> bool:
-                return tbody.find(string=lambda s: isinstance(s, str) and text in s) is not None
-
-            for tbody in tbodies[1:]:
-                rows = tbody.select("tr")
-                has_semester_block = any(
-                    (lambda t: t in {"Семестри", *seasons})(
-                        ParserUtils.clean_text((tr.find("th") or "").get_text(" "))
-                    )
-                    for tr in rows
-                    if tr.find("th")
-                )
-
-                if has_semester_block:
-                    for tr in rows:
-                        th = tr.find("th")
-                        td = tr.find("td")
-                        if not (th and td):
-                            continue
-
-                        key = ParserUtils.clean_text(th.get_text(" "))
-
-                        if key == "Семестри":
-                            data["semesters"] = [
-                                ParserUtils.clean_text(s.get_text(" "))
-                                for s in td.select("span.label")
-                            ]
-                            continue
-
-                        if key in seasons:
-                            details = {}
-                            for span in td.select("span.label"):
-                                text = ParserUtils.clean_text(span.get_text(" "))
-                                if "кред" in text:
-                                    details["credits"] = ParserUtils.parse_float(text)
-                                elif "год./тиж" in text:
-                                    details["hours_per_week"] = ParserUtils.parse_int(text)
-                                elif "лекц" in text:
-                                    details["lecture_hours"] = ParserUtils.parse_int(text)
-                                elif "практ" in text:
-                                    details["practice_type"] = "PRACTICE"
-                                    details["practice_hours"] = ParserUtils.parse_int(text)
-                                elif "сем." in text:
-                                    details["practice_type"] = "SEMINAR"
-                                    details["practice_hours"] = ParserUtils.parse_int(text)
-                                elif "екзам" in text or "залік" in text:
-                                    details["exam_type"] = text
-                                else:
-                                    details.setdefault("other", []).append(text)
-                            if details:
-                                data.setdefault("season_details", {})[key] = details
-                    continue
-
-                if _tbody_has(tbody, "Встановлені ліміти"):
-                    data["limits"] = self.enrollment_parser._parse_limits(tbody)
-                    continue
-
-                if _tbody_has(tbody, "Інформація про запис"):
-                    data["enrollment"] = self.enrollment_parser._parse_enrollment(tbody)
-                    continue
+                for tbody in tbodies[1:]:
+                    self._parse_tbody_content(tbody, data)
 
         data["students"] = self.students_parser._parse_students_table(soup)
         return ParsedCourseDetails(**data)
 
     def _parse_info_labels(self, td) -> dict[str, Any]:
         out: dict[str, Any] = {}
-        for span in td.select("span.label"):
+        for span in td.select(self.LABEL_SELECTOR):
             text = ParserUtils.clean_text(span.get_text(" "))
             if "кред" in text:
                 out["credits"] = ParserUtils.parse_float(text)
