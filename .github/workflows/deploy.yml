@@ -85,8 +85,6 @@ jobs:
           script: |
             echo "Deploying..."
 
-
-
             echo "Setting up project directory ownership..."
             sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.PROJECT_DIR }} || true
             sudo chmod -R 755 ${{ env.PROJECT_DIR }} || true
@@ -107,9 +105,11 @@ jobs:
             fi
 
             export WEBAPP_IMAGE_TAG=${{ inputs.webapp_image_tag }}
+            echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
+
             echo "Stopping existing services..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo -E docker compose --profile prod down || true
+            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod down || true
 
             echo "Cleaning project directory..."
             rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
@@ -128,10 +128,10 @@ jobs:
             echo "Pulling latest docker images..."
             echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo -E docker compose --profile prod pull
+            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod pull
 
             echo "Starting services with pulled images..."
-            sudo -E docker compose --profile prod up -d
+            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod up -d
 
             echo "Waiting for services to be up and running..."
             max_attempts=${{ env.MAX_ATTEMPTS }}
@@ -141,7 +141,7 @@ jobs:
             while [ $attempt -le $max_attempts ]; do
               echo "Up and running check attempt $attempt/$max_attempts..."
               
-              if sudo -E docker compose ps --status=running | grep "Up" && \
+              if sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose ps --status=running | grep "Up" && \
                  [ -f ${{ env.STATIC_ROOT }}/index.html ]; then
                 services_healthy=true
                 break
@@ -159,7 +159,7 @@ jobs:
               echo "Deployment finished successfully"
             else
               echo "Services failed to start properly. Rolling back..."
-              sudo -E docker compose down || true
+              sudo docker compose --profile prod down || true
               
 
               echo "Restoring previous version from ${{ env.REMOTE_BACKUP_CODE_DIR }}"
@@ -167,7 +167,7 @@ jobs:
               cp -r "${{ env.REMOTE_BACKUP_CODE_DIR }}/src/"* ${{ env.PROJECT_SOURCE_CODE }}/
               
               cd ${{ env.PROJECT_SOURCE_CODE }}
-              sudo -E docker compose --profile prod up -d --build
+              sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod up -d --build
               
               echo "Rollback completed. Deployment failed."
               exit 1
