@@ -8,6 +8,10 @@ env:
   WEBAPP_DIR: src/webapp
   OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
 
+permissions:
+  packages: write
+  contents: read
+
 jobs:
   filter:
     runs-on: ubuntu-latest
