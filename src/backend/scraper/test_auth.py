@@ -49,7 +49,7 @@ def _build_login_page_success(email: str, password: str):
     page.wait_for_url = AsyncMock()
     page.close = AsyncMock()
 
-    async def wait_for_selector(selector, *args, **kwargs):
+    def wait_for_selector(selector, *args, **kwargs):
         if selector == "div#loginHeader, div#kc-page-title":
             return None
         if selector == "input[type='email']#i0116, input[name='loginfmt']":
@@ -133,7 +133,7 @@ def _build_login_page_timeouts():
     page.wait_for_url = AsyncMock(side_effect=PlaywrightTimeoutError("timeout"))
     page.close = AsyncMock()
 
-    async def wait_for_selector(selector, *args, **kwargs):
+    def wait_for_selector(selector, *args, **kwargs):
         if selector == O365_LINK_SELECTOR:
             return None
         raise PlaywrightTimeoutError(f"not found: {selector}")
@@ -309,7 +309,7 @@ def test_with_authenticated_context_refreshes_when_check_fails(tmp_path: Path):
         refreshed_context.close = AsyncMock()
         browser.new_context.side_effect = [initial_context, refreshed_context]
 
-        async def fake_login(*_args, **_kwargs):
+        def fake_login(*_args, **_kwargs):
             state_path.write_text("{}")
             return state_path
 
@@ -352,7 +352,7 @@ def test_with_authenticated_context_raises_after_double_failure(tmp_path: Path):
         refreshed_context.close = AsyncMock()
         browser.new_context.side_effect = [initial_context, refreshed_context]
 
-        async def fake_login(*_args, **_kwargs):
+        def fake_login(*_args, **_kwargs):
             state_path.write_text("{}")
             return state_path
 
