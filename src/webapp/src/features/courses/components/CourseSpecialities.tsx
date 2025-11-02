@@ -8,7 +8,9 @@ interface CourseSpecialitiesProps {
 	specialities: SpecialityWithKindPayload[];
 }
 
-export function CourseSpecialities({ specialities }: CourseSpecialitiesProps) {
+export function CourseSpecialities({
+	specialities,
+}: Readonly<CourseSpecialitiesProps>) {
 	if (!specialities || specialities.length === 0) {
 		return null;
 	}

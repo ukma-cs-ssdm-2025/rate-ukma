@@ -21,7 +21,7 @@ export function CourseStatsCards({
 	difficulty,
 	usefulness,
 	ratingsCount,
-}: CourseStatsCardsProps) {
+}: Readonly<CourseStatsCardsProps>) {
 	const getDescription = (
 		value: number | null,
 		type: "difficulty" | "usefulness" | "count",
@@ -69,14 +69,12 @@ export function CourseStatsCards({
 			description: getDescription(ratingsCount, "count"),
 			value: ratingsCount,
 			formatted: ratingsCount?.toString() ?? "—",
-			hint:
-				ratingsCount == null
-					? "Недостатньо даних"
-					: ratingsCount === 1
-						? "відгук"
-						: ratingsCount < 5
-							? "відгуки"
-							: "відгуків",
+			hint: (() => {
+				if (ratingsCount == null) return "Недостатньо даних";
+				if (ratingsCount === 1) return "відгук";
+				if (ratingsCount < 5) return "відгуки";
+				return "відгуків";
+			})(),
 			icon: BookOpen,
 			accent:
 				ratingsCount && ratingsCount > 0

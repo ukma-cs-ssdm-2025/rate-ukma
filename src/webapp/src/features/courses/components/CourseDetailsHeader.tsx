@@ -17,7 +17,7 @@ export function CourseDetailsHeader({
 	status,
 	facultyName,
 	departmentName,
-}: CourseDetailsHeaderProps) {
+}: Readonly<CourseDetailsHeaderProps>) {
 	return (
 		<header className="space-y-3">
 			<div className="flex flex-wrap items-center gap-3">

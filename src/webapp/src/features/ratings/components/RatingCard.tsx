@@ -10,7 +10,7 @@ interface RatingCardProps {
 	rating: RatingRead;
 }
 
-export function RatingCard({ rating }: RatingCardProps) {
+export function RatingCard({ rating }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
 		? "Анонімний відгук"
 		: rating.student_name || "Студент";

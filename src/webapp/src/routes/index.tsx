@@ -37,7 +37,7 @@ function CoursesRoute() {
 	);
 
 	const handleRetry = useCallback(() => {
-		void refetch();
+		refetch();
 	}, [refetch]);
 
 	const handleRowClick = useCallback(
