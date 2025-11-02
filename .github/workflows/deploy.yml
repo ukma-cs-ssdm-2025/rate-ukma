@@ -85,8 +85,7 @@ jobs:
           script: |
             echo "Deploying..."
 
-            export WEBAPP_IMAGE_TAG=${{ inputs.webapp_image_tag }}
-            echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
+
 
             echo "Setting up project directory ownership..."
             sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.PROJECT_DIR }} || true
@@ -107,6 +106,7 @@ jobs:
               echo "Backup created at ${{ env.REMOTE_BACKUP_CODE_DIR }}"
             fi
 
+            export WEBAPP_IMAGE_TAG=${{ inputs.webapp_image_tag }}
             echo "Stopping existing services..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
             sudo -E docker compose --profile prod down || true
@@ -128,10 +128,10 @@ jobs:
             echo "Pulling latest docker images..."
             echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod pull
+            sudo -E docker compose --profile prod pull
 
             echo "Starting services with pulled images..."
-            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod up -d
+            sudo -E docker compose --profile prod up -d
 
             echo "Waiting for services to be up and running..."
             max_attempts=${{ env.MAX_ATTEMPTS }}
@@ -141,7 +141,7 @@ jobs:
             while [ $attempt -le $max_attempts ]; do
               echo "Up and running check attempt $attempt/$max_attempts..."
               
-              if sudo docker compose ps --status=running | grep "Up" && \
+              if sudo -E docker compose ps --status=running | grep "Up" && \
                  [ -f ${{ env.STATIC_ROOT }}/index.html ]; then
                 services_healthy=true
                 break
