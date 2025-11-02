@@ -74,8 +74,6 @@ jobs:
 
       - name: Deploy to server
         uses: appleboy/ssh-action@master
-        env:
-          WEBAPP_IMAGE_TAG: ${{ inputs.webapp_image_tag }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -84,7 +82,7 @@ jobs:
           script: |
             echo "Deploying..."
 
-            export WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG
+            export WEBAPP_IMAGE_TAG=${{ inputs.webapp_image_tag }}
             echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
 
             echo "Setting up project directory ownership..."
