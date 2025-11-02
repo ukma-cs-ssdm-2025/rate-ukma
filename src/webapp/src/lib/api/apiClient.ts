@@ -51,5 +51,5 @@ authorizedHttpClient.interceptors.request.use((config) => {
 export const authorizedFetcher = <TData>(
 	config: Parameters<typeof authorizedHttpClient.request<TData>>[0],
 ) => {
-	return authorizedHttpClient.request<TData>(config).then(res => res.data);
+	return authorizedHttpClient.request<TData>(config).then((res) => res.data);
 };

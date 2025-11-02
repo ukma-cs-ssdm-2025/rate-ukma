@@ -1,4 +1,4 @@
-import type * as React from "react";
+import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
 import {
 	type Column,
@@ -23,7 +23,7 @@ export function getCommonPinningStyles<TData>({
 }: {
 	column: Column<TData>;
 	withBorder?: boolean;
-}): React.CSSProperties {
+}): CSSProperties {
 	const isPinned = column.getIsPinned();
 	const isLastLeftPinnedColumn =
 		isPinned === "left" && column.getIsLastColumn("left");
@@ -48,9 +48,9 @@ export function getCommonPinningStyles<TData>({
 	};
 }
 
-interface DataTableProps<TData> extends React.ComponentProps<"div"> {
+interface DataTableProps<TData> extends ComponentProps<"div"> {
 	table: TanstackTable<TData>;
-	actionBar?: React.ReactNode;
+	actionBar?: ReactNode;
 	onRowClick?: (row: TData) => void;
 	totalRows?: number;
 	serverPageCount?: number;
@@ -152,8 +152,8 @@ export function DataTable<TData>({
 				</Table>
 			</div>
 			<div className="flex flex-col gap-2.5">
-				<DataTablePagination 
-					table={table} 
+				<DataTablePagination
+					table={table}
 					totalRows={totalRows}
 					serverPageCount={serverPageCount}
 				/>
