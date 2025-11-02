@@ -23,18 +23,17 @@ function CoursesRoute() {
 
 	const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
 
-	const handleFiltersChange = useCallback(
-		(nextFilters: Record<string, unknown>) => {
-			setFilters((previous) => {
-				const next = nextFilters;
-				if (JSON.stringify(previous) === JSON.stringify(next)) {
-					return previous;
-				}
-				return next;
-			});
-		},
-		[],
-	);
+	const handleFiltersChange = useCallback((nextFilters: CoursesListParams) => {
+		setFilters((previous) => {
+			if (
+				previous.page === nextFilters.page &&
+				previous.page_size === nextFilters.page_size
+			) {
+				return previous;
+			}
+			return nextFilters;
+		});
+	}, []);
 
 	const handleRetry = useCallback(() => {
 		refetch();
