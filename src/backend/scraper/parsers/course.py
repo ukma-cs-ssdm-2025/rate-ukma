@@ -175,13 +175,24 @@ class StudentsParser(BaseParser):
 class CourseDetailParser(BaseParser):
     LABEL_SELECTOR = "span.label"
 
+    FIELD_MAPPINGS = {
+        "Код курсу": "id",
+        "Код": "id",
+        "Факультет": "faculty",
+        "Кафедра": "department",
+        "Освітній рівень": "education_level",
+        "Навчальний рік": "academic_year",
+        "Викладач": "teachers",
+    }
+
     def __init__(self):
         self.specialty_parser = SpecialtyParser()
         self.enrollment_parser = EnrollmentParser()
         self.students_parser = StudentsParser()
 
-    def parse(self, html: str, **kwargs) -> ParsedCourseDetails:
-        url = kwargs.get('url', '')
+    def parse(self, html: str, url: str | None = None, **kwargs) -> ParsedCourseDetails:
+        if url is None:
+            url = kwargs.get("url", "") or ""
         return self._parse_course_details(html, url)
 
     def _parse_course_header(self, soup) -> str:
@@ -191,38 +202,29 @@ class CourseDetailParser(BaseParser):
             return ParserUtils.clean_text(direct_text)
         return ""
 
-    def _parse_basic_course_info(self, tbody) -> tuple[dict[str, Any], str | None]:
+    def _parse_basic_course_info(self, tbody) -> dict[str, Any]:
         data: dict[str, Any] = {}
-        course_id: str | None = None
 
         for tr in tbody.find_all("tr", recursive=False):
             th = tr.find("th")
             td = tr.find("td")
             if not (th and td):
                 continue
-            key = ParserUtils.clean_text(th.get("title") or th.get_text(" "))
-            if key == "Код курсу" or key == "Код":
-                course_id = ParserUtils.clean_text(td.get_text(" "))
-                data["id"] = course_id
-            elif key == "Інформація":
-                info_data = self._parse_info_labels(td)
-                for k, v in info_data.items():
-                    data[k] = v
-            elif "Факультет" in key:
-                data["faculty"] = ParserUtils.clean_text(td.get_text(" "))
-            elif "Кафедра" in key:
-                data["department"] = ParserUtils.clean_text(td.get_text(" "))
-            elif "Освітній рівень" in key:
-                data["education_level"] = ParserUtils.clean_text(td.get_text(" "))
-            elif "Навчальний рік" in key:
-                data["academic_year"] = ParserUtils.clean_text(td.get_text(" "))
-            elif "Викладач" in key:
-                data["teachers"] = ParserUtils.clean_text(td.get_text(" "))
 
+            key = ParserUtils.clean_text(th.get("title") or th.get_text(" "))
+
+            if key == "Інформація":
+                data.update(self._parse_info_labels(td))
+                continue
+
+            for field_pattern, data_key in self.FIELD_MAPPINGS.items():
+                if field_pattern in key:
+                    data[data_key] = ParserUtils.clean_text(td.get_text(" "))
+                    break
 
         data["annotation"] = self._parse_annotation(tbody)
         data["specialties"] = self.specialty_parser._parse_specialties(tbody)
-        return data, course_id
+        return data
 
     def _is_semester_block(self, rows) -> bool:
         seasons = {"Весна", "Осінь", "Літо"}
@@ -264,7 +266,7 @@ class CourseDetailParser(BaseParser):
 
         return details
 
-    def _parse_semester_block(self, tbody, rows, data: dict[str, Any]) -> bool:
+    def _parse_semester_block(self, rows, data: dict[str, Any]) -> bool:
         seasons = {"Весна", "Осінь", "Літо"}
 
         for tr in rows:
@@ -277,8 +279,7 @@ class CourseDetailParser(BaseParser):
 
             if key == "Семестри":
                 data["semesters"] = [
-                    ParserUtils.clean_text(s.get_text(" "))
-                    for s in td.select(self.LABEL_SELECTOR)
+                    ParserUtils.clean_text(s.get_text(" ")) for s in td.select(self.LABEL_SELECTOR)
                 ]
                 continue
 
@@ -293,7 +294,7 @@ class CourseDetailParser(BaseParser):
         rows = tbody.select("tr")
 
         if self._is_semester_block(rows):
-            self._parse_semester_block(tbody, rows, data)
+            self._parse_semester_block(rows, data)
             return
 
         if self._tbody_has(tbody, "Встановлені ліміти"):
@@ -302,7 +303,6 @@ class CourseDetailParser(BaseParser):
 
         if self._tbody_has(tbody, "Інформація про запис"):
             data["enrollment"] = self.enrollment_parser._parse_enrollment(tbody)
-            return
 
     def _tbody_has(self, tbody, text: str) -> bool:
         return tbody.find(string=lambda s: isinstance(s, str) and text in s) is not None
@@ -319,7 +319,7 @@ class CourseDetailParser(BaseParser):
         if table:
             tbodies = table.find_all("tbody")
             if tbodies:
-                basic_info, _ = self._parse_basic_course_info(tbodies[0])
+                basic_info = self._parse_basic_course_info(tbodies[0])
                 data.update(basic_info)
 
                 for tbody in tbodies[1:]:
