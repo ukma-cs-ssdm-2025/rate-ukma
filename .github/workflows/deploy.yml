@@ -84,6 +84,9 @@ jobs:
           script: |
             echo "Deploying..."
 
+            export WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG
+            echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
+
             echo "Setting up project directory ownership..."
             sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.PROJECT_DIR }} || true
             sudo chmod -R 755 ${{ env.PROJECT_DIR }} || true
@@ -105,7 +108,7 @@ jobs:
 
             echo "Stopping existing services..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo docker compose --profile prod down || true
+            sudo -E docker compose --profile prod down || true
 
             echo "Cleaning project directory..."
             rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
@@ -123,10 +126,10 @@ jobs:
 
             echo "Pulling latest docker images..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod pull
+            sudo -E docker compose --profile prod pull
 
             echo "Starting services with pulled images..."
-            sudo docker compose --profile prod up -d
+            sudo -E docker compose --profile prod up -d
 
             echo "Waiting for services to be up and running..."
             max_attempts=${{ env.MAX_ATTEMPTS }}
@@ -154,7 +157,7 @@ jobs:
               echo "Deployment finished successfully"
             else
               echo "Services failed to start properly. Rolling back..."
-              sudo docker compose down || true
+              sudo -E docker compose down || true
               
 
               echo "Restoring previous version from ${{ env.REMOTE_BACKUP_CODE_DIR }}"
@@ -162,7 +165,7 @@ jobs:
               cp -r "${{ env.REMOTE_BACKUP_CODE_DIR }}/src/"* ${{ env.PROJECT_SOURCE_CODE }}/
               
               cd ${{ env.PROJECT_SOURCE_CODE }}
-              sudo docker compose --profile prod up -d --build
+              sudo -E docker compose --profile prod up -d --build
               
               echo "Rollback completed. Deployment failed."
               exit 1
