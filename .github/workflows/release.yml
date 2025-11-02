@@ -1,5 +1,22 @@
 name: Create Release
 on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: "The version tag to create a release for"
+        required: true
+        type: string
+      previous_version:
+        description: "The previous version tag"
+        required: false
+        type: string
+        default: ""
+      pre-release:
+        description: "Whether to create a pre-release or not"
+        required: false
+        type: boolean
+        default: false
+
   workflow_call:
     inputs:
       version_tag:
@@ -26,8 +43,13 @@ jobs:
         id: changelog
         env:
           VERSION_TAG: ${{ inputs.version_tag }}
+          PREV_USER_TAG: ${{ inputs.previous_version }}
         run: |
-          PREV_TAG=$(git tag -l "v*" --sort=-v:refname | grep -v "^$VERSION_TAG$" | head -n 1)
+          if [ -n "$PREV_USER_TAG" ]; then
+            PREV_TAG="$PREV_USER_TAG"
+          else
+            PREV_TAG=$(git tag -l "v*" --sort=-v:refname | grep -v "^$VERSION_TAG$" | head -n 1)
+          fi
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
 
           if [ -n "$PREV_TAG" ]; then
