@@ -3,6 +3,11 @@ name: Deploy
 on:
   workflow_call:
     inputs:
+      webapp_image_tag:
+        required: true
+        type: string
+        description: "The tag of the webapp image to deploy"
+        default: "staging-latest"
       archive_name:
         required: true
         type: string
@@ -69,6 +74,8 @@ jobs:
 
       - name: Deploy to server
         uses: appleboy/ssh-action@master
+        env:
+          WEBAPP_IMAGE_TAG: ${{ inputs.webapp_image_tag }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -116,7 +123,7 @@ jobs:
 
             echo "Pulling latest docker images..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo docker compose --profile prod pull
+            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod pull
 
             echo "Starting services with pulled images..."
             sudo docker compose --profile prod up -d

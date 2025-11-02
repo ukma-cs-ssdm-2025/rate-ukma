@@ -54,7 +54,7 @@ services:
       - dev
 
   webapp-build:
-    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/webapp
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/webapp:${WEBAPP_IMAGE_TAG}
     build:
       context: ..
       dockerfile: ./src/webapp/Dockerfile

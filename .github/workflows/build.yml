@@ -48,17 +48,14 @@ jobs:
         id: extract_name
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          BACKEND_IMAGE=$(yq e '.services.backend.image' docker-compose.yml)
+          BACKEND_IMAGE=$(awk '/backend:/, /profiles:/' docker-compose.yml | grep 'image:' | head -1 | awk '{print $2}')
           echo "backend_image=${BACKEND_IMAGE}" >> $GITHUB_OUTPUT
           echo "Backend image: $BACKEND_IMAGE"
 
-      - name: Build backend
-        working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker compose --profile prod build backend
-
-      - name: Publish image
+      - name: Build and publish backend
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
+          docker compose --profile prod build backend
           docker push ${{ steps.extract_name.outputs.backend_image }}:latest
 
   build-webapp:
@@ -83,14 +80,37 @@ jobs:
         id: extract_name
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          WEBAPP_IMAGE=$(yq e '.services.webapp-build.image' docker-compose.yml)
+          WEBAPP_IMAGE_TAGGED=$(awk '/webapp-build:/, /profiles:/' docker-compose.yml | grep 'image:' | head -1 | awk '{print $2}')
+          WEBAPP_IMAGE=$(echo $WEBAPP_IMAGE_TAGGED | awk -F: '{print $1}')
           echo "webapp_image=${WEBAPP_IMAGE}" >> $GITHUB_OUTPUT
           echo "Webapp image: $WEBAPP_IMAGE"
 
-      - name: Build webapp
+      - name: Build and publish staging webapp
+        env:
+          VITE_API_BASE_URL: ${{ vars.STAGING_URL }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker compose --profile prod build webapp-build
+        run: |
+          WEBAPP_IMAGE_TAG=staging-latest
+          export WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG}
 
-      - name: Publish image
+          docker compose --profile prod build \
+            --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
+            webapp-build
+          docker tag ${{ steps.extract_name.outputs.webapp_image }} ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
+
+      - name: Build and publish live webapp
+        env:
+          VITE_API_BASE_URL: ${{ vars.LIVE_URL }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker push ${{ steps.extract_name.outputs.webapp_image }}:latest
+        run: |
+          WEBAPP_IMAGE_TAG=live-latest
+          export WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG}
+
+          docker compose --profile prod build \
+            --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
+            webapp-build
+          docker tag ${{ steps.extract_name.outputs.webapp_image }} ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
