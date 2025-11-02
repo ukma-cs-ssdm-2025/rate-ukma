@@ -16,17 +16,19 @@ interface CourseRatingsListProps {
 	courseId: string;
 }
 
+interface RatingsContentProps {
+	allRatings: RatingRead[];
+	hasMoreRatings: boolean;
+	isLoading: boolean;
+	loaderRef: React.RefObject<HTMLDivElement | null>;
+}
+
 function RatingsContent({
 	allRatings,
 	hasMoreRatings,
 	isLoading,
 	loaderRef,
-}: {
-	allRatings: RatingRead[];
-	hasMoreRatings: boolean;
-	isLoading: boolean;
-	loaderRef: React.RefObject<HTMLDivElement | null>;
-}) {
+}: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0) {
 		return (
 			<p className="text-center text-sm text-muted-foreground py-8">
