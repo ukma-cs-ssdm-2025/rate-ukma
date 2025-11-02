@@ -14,17 +14,17 @@ export function CourseSpecialities({ specialities }: CourseSpecialitiesProps) {
 	}
 
 	return (
-		<div className="space-y-4">
-			<h2 className="text-2xl font-semibold">Спеціальності</h2>
-			<div className="grid gap-3 sm:grid-cols-2">
+		<div className="space-y-3">
+			<h2 className="text-xl font-semibold">Спеціальності</h2>
+			<div className="grid gap-2 sm:grid-cols-2">
 				{specialities.map((item, index) => (
 					<div
 						key={`${item.speciality}-${item.type_kind}-${index}`}
-						className="flex items-center justify-between p-4 rounded-lg border bg-card"
+						className="flex items-center justify-between py-3 px-4 rounded-lg border border-border/50 bg-card/50"
 					>
 						<div className="flex items-center gap-2">
-							<GraduationCap className="h-4 w-4 text-muted-foreground" />
-							<p className="font-medium">{item.speciality}</p>
+							<GraduationCap className="h-4 w-4 text-muted-foreground/60" />
+							<p className="text-sm font-medium">{item.speciality}</p>
 						</div>
 						<Badge variant={getTypeKindVariant(item.type_kind)}>
 							{getTypeKindLabel(item.type_kind)}

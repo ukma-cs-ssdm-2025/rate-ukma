@@ -5,6 +5,12 @@ import { Spinner } from "@/components/ui/Spinner";
 import { RatingCard } from "./RatingCard";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
 
+const SKELETON_RATINGS_COUNT = 3;
+const SKELETON_KEYS = Array.from(
+	{ length: SKELETON_RATINGS_COUNT },
+	(_, i) => `rating-skeleton-${i}`,
+);
+
 interface CourseRatingsListProps {
 	courseId: string;
 }
@@ -16,29 +22,19 @@ export function CourseRatingsList({ courseId }: CourseRatingsListProps) {
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center gap-2">
-				<MessageSquare className="h-6 w-6" />
-				<h2 className="text-2xl font-semibold">Відгуки студентів</h2>
-				{totalRatings && (
-					<span className="text-lg text-muted-foreground">
+				<MessageSquare className="h-5 w-5" />
+				<h2 className="text-xl font-semibold">Відгуки студентів</h2>
+				{totalRatings !== undefined && totalRatings > 0 && (
+					<span className="text-sm text-muted-foreground">
 						({totalRatings})
 					</span>
 				)}
 			</div>
 
 			{isLoading && allRatings.length === 0 ? (
-				<div className="space-y-4">
-					{[...Array(3)].map((_, i) => (
-						<div
-							key={`skeleton-rating-${i.toString()}`}
-							className="space-y-2 p-4 border rounded-lg"
-						>
-							<Skeleton className="h-4 w-24" />
-							<Skeleton className="h-16 w-full" />
-						</div>
-					))}
-				</div>
+				<CourseRatingsListSkeleton />
 			) : allRatings.length > 0 ? (
-				<div className="space-y-3">
+				<div className="divide-y divide-border/30">
 					{allRatings.map((rating) => (
 						<RatingCard key={rating.id} rating={rating} />
 					))}
@@ -52,7 +48,7 @@ export function CourseRatingsList({ courseId }: CourseRatingsListProps) {
 							{isLoading ? (
 								<div className="flex items-center gap-2 text-muted-foreground">
 									<Spinner className="h-4 w-4" />
-									<span className="text-sm">Завантаження...</span>
+									<span className="text-xs">Завантаження...</span>
 								</div>
 							) : (
 								<div className="h-1 w-full" aria-hidden="true" />
@@ -61,10 +57,29 @@ export function CourseRatingsList({ courseId }: CourseRatingsListProps) {
 					)}
 				</div>
 			) : (
-				<p className="text-center text-muted-foreground py-8 border rounded-lg">
+				<p className="text-center text-sm text-muted-foreground py-8">
 					Поки що немає відгуків для цього курсу
 				</p>
 			)}
+		</div>
+	);
+}
+
+export function CourseRatingsListSkeleton() {
+	return (
+		<div className="divide-y divide-border/30">
+			{SKELETON_KEYS.map((key) => (
+				<div key={key} className="py-4 space-y-2">
+					<div className="flex items-center justify-between gap-3">
+						<div className="flex items-center gap-2">
+							<Skeleton className="h-3 w-24" />
+							<Skeleton className="h-3 w-20" />
+						</div>
+						<Skeleton className="h-3 w-40" />
+					</div>
+					<Skeleton className="h-14 w-full" />
+				</div>
+			))}
 		</div>
 	);
 }

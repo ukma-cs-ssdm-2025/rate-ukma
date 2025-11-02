@@ -1,59 +1,66 @@
-import { User } from "lucide-react";
-
 import {
 	formatDate,
 	getDifficultyTone,
 	getUsefulnessTone,
 } from "@/features/courses/courseFormatting";
 import type { RatingRead } from "@/lib/api/generated";
+import { cn } from "@/lib/utils";
 
 interface RatingCardProps {
 	rating: RatingRead;
 }
 
 export function RatingCard({ rating }: RatingCardProps) {
+	const displayName = rating.is_anonymous
+		? "Анонімний відгук"
+		: rating.student_name || "Студент";
+	const difficultyValue = rating.difficulty?.toFixed(1) ?? "—";
+	const usefulnessValue = rating.usefulness?.toFixed(1) ?? "—";
+
 	return (
-		<div className="p-4 rounded-lg border bg-card space-y-3">
-			<div className="flex items-start justify-between">
-				<div className="flex items-center gap-2">
-					<User className="h-4 w-4 text-muted-foreground" />
-					<span className="font-medium">
-						{rating.is_anonymous
-							? "Анонімний студент"
-							: rating.student_name || "Студент"}
+		<article className="py-4">
+			<div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+				<div className="flex items-center gap-2 text-xs text-muted-foreground">
+					<span className="font-medium">{displayName}</span>
+					{rating.created_at && (
+						<>
+							<span className="text-muted-foreground/40">•</span>
+							<time>{formatDate(rating.created_at)}</time>
+						</>
+					)}
+				</div>
+				<div className="flex items-center gap-2 text-xs">
+					<span className="text-muted-foreground">Складність:</span>
+					<span
+						className={cn(
+							"font-semibold tabular-nums",
+							getDifficultyTone(rating.difficulty),
+						)}
+					>
+						{difficultyValue}
+					</span>
+					<span className="text-muted-foreground/40">•</span>
+					<span className="text-muted-foreground">Корисність:</span>
+					<span
+						className={cn(
+							"font-semibold tabular-nums",
+							getUsefulnessTone(rating.usefulness),
+						)}
+					>
+						{usefulnessValue}
 					</span>
 				</div>
-				{rating.created_at && (
-					<span className="text-xs text-muted-foreground">
-						{formatDate(rating.created_at)}
-					</span>
-				)}
 			</div>
 
-			<div className="flex gap-4">
-				<div className="flex items-center gap-1">
-					<span className="text-xs text-muted-foreground">Складність:</span>
-					<span
-						className={`font-semibold ${getDifficultyTone(rating.difficulty)}`}
-					>
-						{rating.difficulty?.toFixed(1)}
-					</span>
-				</div>
-				<div className="flex items-center gap-1">
-					<span className="text-xs text-muted-foreground">Корисність:</span>
-					<span
-						className={`font-semibold ${getUsefulnessTone(rating.usefulness)}`}
-					>
-						{rating.usefulness?.toFixed(1)}
-					</span>
-				</div>
-			</div>
-
-			{rating.comment && (
-				<p className="text-sm text-muted-foreground leading-relaxed">
+			{rating.comment ? (
+				<p className="text-sm leading-relaxed text-foreground/90">
 					{rating.comment}
 				</p>
+			) : (
+				<p className="text-xs italic text-muted-foreground/60">
+					Студент не залишив коментар.
+				</p>
 			)}
-		</div>
+		</article>
 	);
 }

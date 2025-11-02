@@ -49,9 +49,9 @@ const columns: ColumnDef<CourseList>[] = [
 			const course = row.original;
 			return (
 				<div className="flex items-center gap-2">
-				<span className="font-semibold text-base transition-colors group-hover:text-primary group-hover:underline">
-					{course.title}
-				</span>
+					<span className="font-semibold text-base transition-colors group-hover:text-primary group-hover:underline">
+						{course.title}
+					</span>
 					<CourseFacultyBadge facultyName={course.faculty_name} />
 				</div>
 			);

@@ -1,7 +1,7 @@
-import { ArrowLeft, GraduationCap } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { CourseFacultyBadge } from "./CourseFacultyBadge";
 import { getStatusLabel, getStatusVariant } from "../courseFormatting";
 
@@ -10,7 +10,6 @@ interface CourseDetailsHeaderProps {
 	status: string;
 	facultyName?: string | null;
 	departmentName?: string | null;
-	onBack: () => void;
 }
 
 export function CourseDetailsHeader({
@@ -18,34 +17,39 @@ export function CourseDetailsHeader({
 	status,
 	facultyName,
 	departmentName,
-	onBack,
 }: CourseDetailsHeaderProps) {
 	return (
-		<>
-			<div className="flex items-center gap-4">
-				<Button variant="outline" onClick={onBack} size="sm">
-					<ArrowLeft className="mr-2 h-4 w-4" />
-					Назад до курсів
-				</Button>
+		<header className="space-y-3">
+			<div className="flex flex-wrap items-center gap-3">
+				<h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+				<Badge variant={getStatusVariant(status)}>
+					{getStatusLabel(status)}
+				</Badge>
 			</div>
-
-			<div className="space-y-3">
-				<div className="flex items-start justify-between gap-4">
-					<h1 className="text-4xl font-bold tracking-tight">{title}</h1>
-					<Badge variant={getStatusVariant(status)}>
-						{getStatusLabel(status)}
+			<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+				{facultyName && <CourseFacultyBadge facultyName={facultyName} />}
+				{departmentName && (
+					<Badge variant="outline" className="text-xs">
+						<GraduationCap className="mr-1.5 h-3.5 w-3.5" />
+						{departmentName}
 					</Badge>
-				</div>
-				<div className="flex items-center gap-3">
-					{facultyName && <CourseFacultyBadge facultyName={facultyName} />}
-					{departmentName && (
-						<Badge variant="outline" className="text-sm">
-							<GraduationCap className="mr-1.5 h-3.5 w-3.5" />
-							{departmentName}
-						</Badge>
-					)}
-				</div>
+				)}
 			</div>
-		</>
+		</header>
+	);
+}
+
+export function CourseDetailsHeaderSkeleton() {
+	return (
+		<header className="space-y-3">
+			<div className="flex flex-wrap items-center gap-3">
+				<Skeleton className="h-8 w-2/3" />
+				<Skeleton className="h-5 w-20" />
+			</div>
+			<div className="flex flex-wrap items-center gap-2">
+				<Skeleton className="h-5 w-24" />
+				<Skeleton className="h-5 w-32" />
+			</div>
+		</header>
 	);
 }
