@@ -60,7 +60,7 @@ class Course(models.Model):
         ]
 
     @property
-    def ratings_count(self):
+    def ratings_count(self) -> int | None:
         """
         Return total count of ratings, or None if no ratings exist.
         Uses pre-annotated value if available (from repository), otherwise queries DB.
