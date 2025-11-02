@@ -287,8 +287,8 @@ def test_with_authenticated_context_reuses_existing_state(tmp_path: Path):
             observed = {}
 
             @decorated
-            async def sample(*, context):
-                observed["context"] = context
+            async def sample(**kwargs):
+                observed["context"] = kwargs["context"]
 
             await sample()
 
@@ -327,8 +327,8 @@ def test_with_authenticated_context_refreshes_when_check_fails(tmp_path: Path):
             observed = {}
 
             @decorated
-            async def sample(*, context):
-                observed["context"] = context
+            async def sample(**kwargs):
+                observed["context"] = kwargs["context"]
 
             await sample()
 
@@ -369,8 +369,8 @@ def test_with_authenticated_context_raises_after_double_failure(tmp_path: Path):
             )
 
             @decorated
-            async def failing_sample(*, context):
-                assert context is refreshed_context
+            async def failing_sample(**kwargs):
+                assert kwargs["context"] is refreshed_context
 
             with pytest.raises(RuntimeError, match="Authentication failed"):
                 await failing_sample()
