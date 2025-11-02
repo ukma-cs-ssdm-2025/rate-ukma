@@ -126,11 +126,12 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             echo "Pulling latest docker images..."
+            echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo -E docker compose --profile prod pull
+            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod pull
 
             echo "Starting services with pulled images..."
-            sudo -E docker compose --profile prod up -d
+            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod up -d
 
             echo "Waiting for services to be up and running..."
             max_attempts=${{ env.MAX_ATTEMPTS }}
