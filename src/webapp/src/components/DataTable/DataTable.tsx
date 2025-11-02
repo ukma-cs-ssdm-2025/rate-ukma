@@ -111,7 +111,7 @@ export function DataTable<TData>({
 								<TableRow
 									key={row.id}
 									data-state={row.getIsSelected() && "selected"}
-									className={onRowClick ? "cursor-pointer" : ""}
+									className={cn(onRowClick && "group cursor-pointer")}
 									onClick={() => onRowClick?.(row.original)}
 								>
 									{row.getVisibleCells().map((cell) => (
