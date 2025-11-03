@@ -43,4 +43,5 @@ class InjectionProgressTracker:
         self.reset()
 
     def reset(self) -> None:
-        self.__init__()
+        self.total_courses = 0
+        self.processed_courses = 0
