@@ -6,8 +6,12 @@ from .person import Person
 
 
 class Instructor(Person):
-    academic_degree = models.CharField(max_length=8, choices=AcademicDegree.choices, blank=True)
-    academic_title = models.CharField(max_length=32, choices=AcademicTitle.choices, blank=True)
+    academic_degree = models.CharField(
+        max_length=8, choices=AcademicDegree.choices, blank=True, default=""
+    )
+    academic_title = models.CharField(
+        max_length=32, choices=AcademicTitle.choices, blank=True, default=""
+    )
 
     class Meta(Person.Meta):
         abstract = False
