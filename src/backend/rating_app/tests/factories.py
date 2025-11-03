@@ -98,7 +98,7 @@ class CourseOfferingFactory(DjangoModelFactory):
     weekly_hours = fuzzy.FuzzyInteger(1, 12)
     lecture_count = fuzzy.FuzzyInteger(4, 32)
     practice_count = fuzzy.FuzzyInteger(0, 20)
-    practice_type = None
+    practice_type = ""
     exam_type = "EXAM"
     max_students = fuzzy.FuzzyInteger(10, 200)
     max_groups = fuzzy.FuzzyInteger(1, 6)
@@ -168,4 +168,4 @@ class RatingFactory(DjangoModelFactory):
 
     @factory.lazy_attribute
     def comment(self):
-        return faker.sentence() if random.random() < 0.5 else None
+        return faker.sentence() if random.random() < 0.5 else ""

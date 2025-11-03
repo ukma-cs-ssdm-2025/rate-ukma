@@ -59,8 +59,10 @@ jobs:
           ref: ${{ inputs.deployment_ref || github.sha }}
 
       - name: Set environment variables
+        env:
+          ARCHIVE_NAME: ${{ inputs.archive_name }}
         run: |
-          echo "ARCHIVE_NAME=${{ inputs.archive_name }}" >> $GITHUB_ENV
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
       - name: Create deployment archive
         run: |

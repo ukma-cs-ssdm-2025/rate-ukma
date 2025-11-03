@@ -19,33 +19,27 @@ def _get_base_class_names(frame: FrameType) -> list[list[str]]:
     """Get baseclass names from the code object"""
     current_item: list[str] = []
     items: list[list[str]] = []
-    add_last_step = True
-
+    reset_required = False
     for instruction in dis.get_instructions(frame.f_code):
         if instruction.offset > frame.f_lasti:
             break
         if instruction.opcode not in dis.hasname:
             continue
-        if not add_last_step:
+        if reset_required:
             items = []
-            add_last_step = True
-
-        # Combine LOAD_NAME and LOAD_GLOBAL as they have similar functionality
-        if instruction.opname in ["LOAD_NAME", "LOAD_GLOBAL"]:
-            if current_item:
-                items.append(current_item)
-            current_item = [instruction.argval]
-
-        elif instruction.opname == "LOAD_ATTR" and current_item:
-            current_item.append(instruction.argval)
-
-        # Reset on other instructions
-        else:
-            if current_item:
-                items.append(current_item)
-            current_item = []
-            add_last_step = False
-
+            reset_required = False
+        match instruction.opname:
+            case "LOAD_NAME" | "LOAD_GLOBAL":
+                if current_item:
+                    items.append(current_item)
+                current_item = [instruction.argval]
+            case "LOAD_ATTR" if current_item:
+                current_item.append(instruction.argval)
+            case _:
+                if current_item:
+                    items.append(current_item)
+                current_item = []
+                reset_required = True
     if current_item:
         items.append(current_item)
     return items

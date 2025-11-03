@@ -42,28 +42,7 @@ def _setup_async_playwright_mocks(page: MagicMock | None = None):
     return manager, playwright_instance, browser, context, page
 
 
-def _build_login_page_success(email: str, password: str):
-    page = MagicMock()
-    page.goto = AsyncMock()
-    page.click = AsyncMock()
-    page.wait_for_url = AsyncMock()
-    page.close = AsyncMock()
-
-    async def wait_for_selector(selector, *args, **kwargs):
-        if selector == "div#loginHeader, div#kc-page-title":
-            return None
-        if selector == "input[type='email']#i0116, input[name='loginfmt']":
-            return None
-        if selector == "input[type='password']#i0118, input[name='passwd']":
-            return None
-        if selector == "#idSIButton9":
-            return None
-        if selector == O365_LINK_SELECTOR:
-            return None
-        return None
-
-    page.wait_for_selector = AsyncMock(side_effect=wait_for_selector)
-
+def _create_mock_locators():
     tile_locator = MagicMock()
     tile_locator.count = AsyncMock(return_value=1)
 
@@ -94,24 +73,15 @@ def _build_login_page_success(email: str, password: str):
     stay_locator = MagicMock()
     stay_locator.click = AsyncMock()
 
-    def locator_side_effect(selector):
-        if selector.startswith("div.table"):
-            return tile_locator
-        if selector == f"text={email}":
-            return matching_locator
-        if selector == "#otherTile, text=Use another account":
-            return other_locator
-        if selector == "input[type='email']#i0116, input[name='loginfmt']":
-            return email_locator
-        if selector == "#idSIButton9, input[type='submit']":
-            return submit_locator
-        if selector == "input[type='password']#i0118, input[name='passwd']":
-            return password_locator
-        if selector == "#idSIButton9":
-            return stay_locator
-        return MagicMock()
-
-    page.locator = MagicMock(side_effect=locator_side_effect)
+    locators = {
+        "tile": tile_locator,
+        "matching": matching_locator,
+        "other": other_locator,
+        "email": email_locator,
+        "submit": submit_locator,
+        "password": password_locator,
+        "stay": stay_locator,
+    }
 
     watchers = {
         "tiles_count": tile_locator.count,
@@ -123,6 +93,48 @@ def _build_login_page_success(email: str, password: str):
         "stay_click": stay_locator.click,
     }
 
+    return locators, watchers
+
+
+def _build_login_page_success(email: str):
+    page = MagicMock()
+    page.goto = AsyncMock()
+    page.click = AsyncMock()
+    page.wait_for_url = AsyncMock()
+    page.close = AsyncMock()
+
+    selector_mappings = {
+        "div#loginHeader, div#kc-page-title": None,
+        "input[type='email']#i0116, input[name='loginfmt']": None,
+        "input[type='password']#i0118, input[name='passwd']": None,
+        "#idSIButton9": None,
+        O365_LINK_SELECTOR: None,
+    }
+
+    def wait_for_selector(selector, *args, **kwargs):
+        return selector_mappings.get(selector, None)
+
+    page.wait_for_selector = AsyncMock(side_effect=wait_for_selector)
+
+    locators, watchers = _create_mock_locators()
+
+    locator_mappings = {
+        "div.table": locators["tile"],
+        f"text={email}": locators["matching"],
+        "#otherTile, text=Use another account": locators["other"],
+        "input[type='email']#i0116, input[name='loginfmt']": locators["email"],
+        "#idSIButton9, input[type='submit']": locators["submit"],
+        "input[type='password']#i0118, input[name='passwd']": locators["password"],
+        "#idSIButton9": locators["stay"],
+    }
+
+    def locator_side_effect(selector):
+        if selector.startswith("div.table"):
+            return locators["tile"]
+        return locator_mappings.get(selector, MagicMock())
+
+    page.locator = MagicMock(side_effect=locator_side_effect)
+
     return page, watchers
 
 
@@ -133,7 +145,7 @@ def _build_login_page_timeouts():
     page.wait_for_url = AsyncMock(side_effect=PlaywrightTimeoutError("timeout"))
     page.close = AsyncMock()
 
-    async def wait_for_selector(selector, *args, **kwargs):
+    def wait_for_selector(selector, *args, **kwargs):
         if selector == O365_LINK_SELECTOR:
             return None
         raise PlaywrightTimeoutError(f"not found: {selector}")
@@ -160,7 +172,7 @@ def test_login_o365_saves_storage_state(tmp_path: Path):
         password = "secret"
         state_path = tmp_path / "state.json"
 
-        page, watchers = _build_login_page_success(email, password)
+        page, watchers = _build_login_page_success(email)
         manager, _, browser, context, _ = _setup_async_playwright_mocks(page)
 
         with patch("scraper.auth.async_playwright", return_value=manager):
@@ -287,8 +299,8 @@ def test_with_authenticated_context_reuses_existing_state(tmp_path: Path):
             observed = {}
 
             @decorated
-            async def sample(*, context):
-                observed["context"] = context
+            async def sample(**kwargs):
+                observed["context"] = kwargs["context"]
 
             await sample()
 
@@ -309,7 +321,7 @@ def test_with_authenticated_context_refreshes_when_check_fails(tmp_path: Path):
         refreshed_context.close = AsyncMock()
         browser.new_context.side_effect = [initial_context, refreshed_context]
 
-        async def fake_login(*_args, **_kwargs):
+        def fake_login(*_args, **_kwargs):
             state_path.write_text("{}")
             return state_path
 
@@ -327,8 +339,8 @@ def test_with_authenticated_context_refreshes_when_check_fails(tmp_path: Path):
             observed = {}
 
             @decorated
-            async def sample(*, context):
-                observed["context"] = context
+            async def sample(**kwargs):
+                observed["context"] = kwargs["context"]
 
             await sample()
 
@@ -352,7 +364,7 @@ def test_with_authenticated_context_raises_after_double_failure(tmp_path: Path):
         refreshed_context.close = AsyncMock()
         browser.new_context.side_effect = [initial_context, refreshed_context]
 
-        async def fake_login(*_args, **_kwargs):
+        def fake_login(*_args, **_kwargs):
             state_path.write_text("{}")
             return state_path
 
@@ -369,8 +381,8 @@ def test_with_authenticated_context_raises_after_double_failure(tmp_path: Path):
             )
 
             @decorated
-            async def failing_sample(*, context):
-                assert context is refreshed_context
+            async def failing_sample(**kwargs):
+                assert kwargs["context"] is refreshed_context
 
             with pytest.raises(RuntimeError, match="Authentication failed"):
                 await failing_sample()

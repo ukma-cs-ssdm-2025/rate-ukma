@@ -7,10 +7,10 @@ from .person import Person
 
 class Instructor(Person):
     academic_degree = models.CharField(
-        max_length=8, choices=AcademicDegree.choices, null=True, blank=True
+        max_length=8, choices=AcademicDegree.choices, blank=True, default=""
     )
     academic_title = models.CharField(
-        max_length=32, choices=AcademicTitle.choices, null=True, blank=True
+        max_length=32, choices=AcademicTitle.choices, blank=True, default=""
     )
 
     class Meta(Person.Meta):

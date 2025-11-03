@@ -56,11 +56,14 @@ jobs:
           echo "backend_image=${BACKEND_IMAGE}" >> $GITHUB_OUTPUT
           echo "Backend image: $BACKEND_IMAGE"
 
-      - name: Build and publish backend
+      - name: Build backend
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: |
-          docker compose --profile prod build backend
-          docker push ${{ steps.extract_name.outputs.backend_image }}:latest
+        run: docker compose --profile prod build backend
+
+      - name: Push backend image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: docker push ${{ steps.extract_name.outputs.backend_image }}:latest
 
   build-webapp:
     needs: filter
@@ -89,7 +92,7 @@ jobs:
           echo "webapp_image=${WEBAPP_IMAGE}" >> $GITHUB_OUTPUT
           echo "Webapp image: $WEBAPP_IMAGE"
 
-      - name: Build and publish staging webapp
+      - name: Build staging webapp
         env:
           VITE_API_BASE_URL: ${{ vars.STAGING_URL }}
           WEBAPP_IMAGE_TAG: staging-latest
@@ -100,9 +103,15 @@ jobs:
             --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
             webapp-build
 
+      - name: Push staging webapp
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
+          docker tag ${WEBAPP_IMAGE_TAG} ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
           docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
 
-      - name: Build and publish live webapp
+      - name: Build live webapp
         env:
           VITE_API_BASE_URL: ${{ vars.LIVE_URL }}
           WEBAPP_IMAGE_TAG: live-latest
@@ -112,5 +121,11 @@ jobs:
             --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
             --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
             webapp-build
-            
+
+      - name: Push live webapp
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
+          docker tag ${WEBAPP_IMAGE_TAG} ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
           docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
