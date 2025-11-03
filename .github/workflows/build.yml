@@ -106,7 +106,10 @@ jobs:
       - name: Push staging webapp
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
+        run: |
+          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
+          docker tag ${WEBAPP_IMAGE_TAG} ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
 
       - name: Build live webapp
         env:
@@ -122,4 +125,7 @@ jobs:
       - name: Push live webapp
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
+        run: |
+          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
+          docker tag ${WEBAPP_IMAGE_TAG} ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
