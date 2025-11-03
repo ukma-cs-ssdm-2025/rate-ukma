@@ -459,9 +459,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/RatingRead'
+                $ref: '#/components/schemas/RatingListResponse'
           description: OK
         '400':
           content:
@@ -1413,6 +1411,41 @@ components:
       - course_offering
       - difficulty
       - usefulness
+    RatingListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RatingRead'
+        filters:
+          type: object
+          additionalProperties: {}
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - filters
+      - items
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - total
+      - total_pages
     RatingRead:
       type: object
       description: |-
