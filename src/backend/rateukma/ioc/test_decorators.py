@@ -80,23 +80,23 @@ def test_concurrent_first_call():
 
 
 def test_circular_dependency_detection():
-    # Arrange
+    # This test intentionally triggers re-entrancy to verify @once behavior.
+    # The recursion is expected and must NOT be guarded. NOSONAR is added below.
     call_count = 0
 
     @once
     def func_a():
         nonlocal call_count
         call_count += 1
-        if call_count > 1:
-            return 0
-        return 100 + func_a()
+        return 100 + func_a()  # NOSONAR: recursion is intentional for this test
 
-    # Act
+    import pytest
+
     with pytest.raises(RuntimeError) as excinfo:
         func_a()
 
-    # Assert
     assert "Circular dependency detected" in str(excinfo.value)
+    assert call_count == 1
 
 
 def test_exception_propagation_and_retry():
