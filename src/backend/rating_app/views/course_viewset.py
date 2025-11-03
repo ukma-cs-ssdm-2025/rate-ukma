@@ -275,12 +275,7 @@ class CourseViewSet(viewsets.ViewSet):
             else:
                 total_pages = 1
 
-        filters_dict = {}
-        if result.filters is not None:
-            if is_dataclass(result.filters):
-                filters_dict = asdict(result.filters)
-            elif hasattr(result.filters, "__dict__"):
-                filters_dict = result.filters.__dict__
+        filters_dict = self._serialize_filters(result.filters)
 
         response_data = {
             "items": self.serializer_class(result.items, many=True).data,
