@@ -15,6 +15,36 @@ def _get_base_classes(frame: FrameType, namespace: dict) -> list[type]:
     ]
 
 
+def _is_load_name_or_global(opname: str) -> bool:
+    """Check if instruction is LOAD_NAME or LOAD_GLOBAL"""
+    return opname in ["LOAD_NAME", "LOAD_GLOBAL"]
+
+
+def _process_load_instruction(
+    instruction, current_item: list[str], items: list[list[str]]
+) -> list[str]:
+    """Process LOAD_NAME/LOAD_GLOBAL instruction and return new current_item"""
+    if current_item:
+        items.append(current_item)
+    return [instruction.argval]
+
+
+def _process_load_attr(instruction, current_item: list[str]) -> list[str]:
+    """Process LOAD_ATTR instruction and return updated current_item"""
+    if current_item:
+        current_item.append(instruction.argval)
+    return current_item
+
+
+def _process_other_instruction(
+    current_item: list[str], items: list[list[str]]
+) -> tuple[list[str], bool]:
+    """Process other instructions and return (new_current_item, add_last_step)"""
+    if current_item:
+        items.append(current_item)
+    return [], False
+
+
 def _get_base_class_names(frame: FrameType) -> list[list[str]]:
     """Get baseclass names from the code object"""
     current_item: list[str] = []
@@ -30,21 +60,12 @@ def _get_base_class_names(frame: FrameType) -> list[list[str]]:
             items = []
             add_last_step = True
 
-        # Combine LOAD_NAME and LOAD_GLOBAL as they have similar functionality
-        if instruction.opname in ["LOAD_NAME", "LOAD_GLOBAL"]:
-            if current_item:
-                items.append(current_item)
-            current_item = [instruction.argval]
-
-        elif instruction.opname == "LOAD_ATTR" and current_item:
-            current_item.append(instruction.argval)
-
-        # Reset on other instructions
+        if _is_load_name_or_global(instruction.opname):
+            current_item = _process_load_instruction(instruction, current_item, items)
+        elif instruction.opname == "LOAD_ATTR":
+            current_item = _process_load_attr(instruction, current_item)
         else:
-            if current_item:
-                items.append(current_item)
-            current_item = []
-            add_last_step = False
+            current_item, add_last_step = _process_other_instruction(current_item, items)
 
     if current_item:
         items.append(current_item)
