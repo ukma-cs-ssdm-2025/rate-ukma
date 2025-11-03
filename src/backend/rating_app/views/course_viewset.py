@@ -20,7 +20,7 @@ from rating_app.models.choices import SemesterTerm
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list import CourseListSerializer
-from rating_app.views.responses import R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
+from rating_app.views.responses import INVALID_VALUE, R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
 
 
 @extend_schema(tags=["courses"])
@@ -51,7 +51,7 @@ class CourseViewSet(viewsets.ViewSet):
         try:
             value = float(raw_value)
         except (TypeError, ValueError):
-            raise ValidationError({param: ["Invalid value"]}) from None
+            raise ValidationError({param: [INVALID_VALUE]}) from None
 
         if not (MIN_RATING_VALUE <= value <= MAX_RATING_VALUE):
             raise ValidationError({param: ["Value out of range"]})
@@ -189,7 +189,7 @@ class CourseViewSet(viewsets.ViewSet):
             try:
                 semester_year = int(semester_year_raw)
             except (ValueError, TypeError):
-                raise ValidationError({"semesterYear": ["Invalid value"]}) from None
+                raise ValidationError({"semesterYear": [INVALID_VALUE]}) from None
             if semester_year < 1991:
                 raise ValidationError({"semesterYear": ["Value out of range"]})
 
@@ -200,7 +200,7 @@ class CourseViewSet(viewsets.ViewSet):
             if normalized_term in SemesterTerm.values:
                 semester_term = normalized_term
             else:
-                raise ValidationError({"semesterTerm": ["Invalid value"]})
+                raise ValidationError({"semesterTerm": [INVALID_VALUE]})
 
         # Handle order parameters
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")

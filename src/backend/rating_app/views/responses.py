@@ -13,6 +13,7 @@ from rating_app.serializers import ErrorEnvelopeSerializer as Err
 from rating_app.serializers.auth import CSRFTokenSerializer, SessionSerializer
 
 NOT_FOUND = "Not found"
+INVALID_VALUE = "Invalid value"
 
 RATING_NOT_FOUND_MSG = "Rating not found"
 CONFLICT_RATING_EXISTS = "Conflict - Rating already exists"
