@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 
@@ -8,8 +10,10 @@ from ..constants import (
     MAX_RATING_VALUE,
     MIN_RATING_VALUE,
 )
-from ..ioc_container.services import course_service
+from ..filters.course_payload import CourseFilterPayload
 from ..serializers.analytics import CourseAnalyticsSerializer
+from ..services.course_service import CourseService
+from ..views.filters_parsers.course import CourseFilterParser, CourseQueryParams
 from ..views.responses import R_ANALYTICS
 
 
@@ -17,9 +21,9 @@ from ..views.responses import R_ANALYTICS
 class AnalyticsViewSet(viewsets.ViewSet):
     serializer_class = CourseAnalyticsSerializer
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.course_service = course_service()  # TODO: inject in IoC args
+    # IoC args
+    course_service: CourseService | None = None
+    course_filter_parser: CourseFilterParser | None = None
 
     @extend_schema(
         summary="Get course analytics",
@@ -130,8 +134,12 @@ class AnalyticsViewSet(viewsets.ViewSet):
         responses=R_ANALYTICS,
     )
     def list(self, request, *args, **kwargs):
-        filtered_courses = self.course_service.list_courses()
-        serialized = self.serializer_class(filtered_courses, many=True).data
+        assert self.course_service is not None
+        assert self.course_filter_parser is not None
+
+        query_filters: CourseQueryParams = self.course_filter_parser.parse(request.query_params)
+        payload: CourseFilterPayload = self.course_service.filter_courses(**asdict(query_filters))
+        serialized = self.serializer_class(payload.items, many=True).data
 
         return Response(serialized, status=status.HTTP_200_OK)
 
@@ -151,6 +159,8 @@ class AnalyticsViewSet(viewsets.ViewSet):
         responses=R_ANALYTICS,
     )
     def retrieve(self, request, *args, **kwargs):
+        assert self.course_service is not None
+
         course_id = kwargs.get("course_id")
         course = self.course_service.get_course(course_id)
         serialized = self.serializer_class(course).data

@@ -7,16 +7,26 @@ from rateukma.ioc.decorators import once
 
 from ..views import AnalyticsViewSet, CourseViewSet, InstructorViewSet, RatingViewSet
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
+from .common import course_filter_parser
+from .services import course_service
 
 
 @once
 def course_list_view():
-    return CourseViewSet.as_view({"get": "list"})
+    return CourseViewSet.as_view(
+        {"get": "list"},
+        course_service=course_service(),
+        course_filter_parser=course_filter_parser(),
+    )
 
 
 @once
 def course_detail_view():
-    return CourseViewSet.as_view({"get": "retrieve"})
+    return CourseViewSet.as_view(
+        {"get": "retrieve"},
+        course_service=course_service(),
+        course_filter_parser=course_filter_parser(),
+    )
 
 
 @once
@@ -63,12 +73,20 @@ def csrf_token_view() -> Callable[[HttpRequest], HttpResponse]:
 
 @once
 def analytics_list_view():
-    return AnalyticsViewSet.as_view({"get": "list"})
+    return AnalyticsViewSet.as_view(
+        {"get": "list"},
+        course_service=course_service(),
+        course_filter_parser=course_filter_parser(),
+    )
 
 
 @once
 def analytics_detail_view():
-    return AnalyticsViewSet.as_view({"get": "retrieve"})
+    return AnalyticsViewSet.as_view(
+        {"get": "retrieve"},
+        course_service=course_service(),
+        course_filter_parser=course_filter_parser(),
+    )
 
 
 @once
