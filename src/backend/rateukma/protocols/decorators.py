@@ -15,58 +15,31 @@ def _get_base_classes(frame: FrameType, namespace: dict) -> list[type]:
     ]
 
 
-def _is_load_name_or_global(opname: str) -> bool:
-    """Check if instruction is LOAD_NAME or LOAD_GLOBAL"""
-    return opname in ["LOAD_NAME", "LOAD_GLOBAL"]
-
-
-def _process_load_instruction(
-    instruction, current_item: list[str], items: list[list[str]]
-) -> list[str]:
-    """Process LOAD_NAME/LOAD_GLOBAL instruction and return new current_item"""
-    if current_item:
-        items.append(current_item)
-    return [instruction.argval]
-
-
-def _process_load_attr(instruction, current_item: list[str]) -> list[str]:
-    """Process LOAD_ATTR instruction and return updated current_item"""
-    if current_item:
-        current_item.append(instruction.argval)
-    return current_item
-
-
-def _process_other_instruction(
-    current_item: list[str], items: list[list[str]]
-) -> tuple[list[str], bool]:
-    """Process other instructions and return (new_current_item, add_last_step)"""
-    if current_item:
-        items.append(current_item)
-    return [], False
-
-
 def _get_base_class_names(frame: FrameType) -> list[list[str]]:
     """Get baseclass names from the code object"""
     current_item: list[str] = []
     items: list[list[str]] = []
-    add_last_step = True
-
+    reset_required = False
     for instruction in dis.get_instructions(frame.f_code):
         if instruction.offset > frame.f_lasti:
             break
         if instruction.opcode not in dis.hasname:
             continue
-        if not add_last_step:
+        if reset_required:
             items = []
-            add_last_step = True
-
-        if _is_load_name_or_global(instruction.opname):
-            current_item = _process_load_instruction(instruction, current_item, items)
-        elif instruction.opname == "LOAD_ATTR":
-            current_item = _process_load_attr(instruction, current_item)
-        else:
-            current_item, add_last_step = _process_other_instruction(current_item, items)
-
+            reset_required = False
+        match instruction.opname:
+            case "LOAD_NAME" | "LOAD_GLOBAL":
+                if current_item:
+                    items.append(current_item)
+                current_item = [instruction.argval]
+            case "LOAD_ATTR" if current_item:
+                current_item.append(instruction.argval)
+            case _:
+                if current_item:
+                    items.append(current_item)
+                current_item = []
+                reset_required = True
     if current_item:
         items.append(current_item)
     return items
