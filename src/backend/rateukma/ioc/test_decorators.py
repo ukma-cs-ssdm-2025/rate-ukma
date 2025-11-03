@@ -81,8 +81,14 @@ def test_concurrent_first_call():
 
 def test_circular_dependency_detection():
     # Arrange
+    call_count = 0
+
     @once
     def func_a():
+        nonlocal call_count
+        call_count += 1
+        if call_count > 1:
+            return 0
         return 100 + func_a()
 
     # Act
