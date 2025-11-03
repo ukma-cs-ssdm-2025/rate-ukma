@@ -16,7 +16,7 @@ class Rating(models.Model):
     )
     difficulty = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     usefulness = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
-    comment = models.TextField(null=True)
+    comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_anonymous = models.BooleanField(default=False)
 

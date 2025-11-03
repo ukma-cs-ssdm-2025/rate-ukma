@@ -1318,19 +1318,14 @@ components:
           maxLength: 120
         patronymic:
           type: string
-          nullable: true
           maxLength: 120
         last_name:
           type: string
           maxLength: 120
         academic_degree:
-          allOf:
-          - $ref: '#/components/schemas/AcademicDegreeEnum'
-          nullable: true
+          $ref: '#/components/schemas/AcademicDegreeEnum'
         academic_title:
-          allOf:
-          - $ref: '#/components/schemas/AcademicTitleEnum'
-          nullable: true
+          $ref: '#/components/schemas/AcademicTitleEnum'
       required:
       - first_name
       - last_name
@@ -1381,7 +1376,6 @@ components:
           minimum: 1
         comment:
           type: string
-          nullable: true
         is_anonymous:
           type: boolean
     RatingCreateUpdate:
@@ -1404,7 +1398,6 @@ components:
           minimum: 1
         comment:
           type: string
-          nullable: true
         is_anonymous:
           type: boolean
       required:
