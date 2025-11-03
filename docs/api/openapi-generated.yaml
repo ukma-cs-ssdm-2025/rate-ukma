@@ -1076,7 +1076,6 @@ components:
           maxLength: 255
         description:
           type: string
-          nullable: true
         status:
           $ref: '#/components/schemas/StatusEnum'
         department:
@@ -1128,7 +1127,6 @@ components:
           maxLength: 255
         description:
           type: string
-          nullable: true
         status:
           $ref: '#/components/schemas/StatusEnum'
         department:
