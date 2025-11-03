@@ -90,8 +90,6 @@ def test_circular_dependency_detection():
         call_count += 1
         return 100 + func_a()  # NOSONAR: recursion is intentional for this test
 
-    import pytest
-
     with pytest.raises(RuntimeError) as excinfo:
         func_a()
 
