@@ -20,7 +20,7 @@ from rating_app.models.choices import SemesterTerm
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list import CourseListSerializer
-from rating_app.views.responses import R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
+from rating_app.views.responses import INVALID_VALUE, R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
 
 
 @extend_schema(tags=["courses"])
@@ -51,11 +51,48 @@ class CourseViewSet(viewsets.ViewSet):
         try:
             value = float(raw_value)
         except (TypeError, ValueError):
-            raise ValidationError({param: ["Invalid value"]}) from None
+            raise ValidationError({param: [INVALID_VALUE]}) from None
 
         if not (MIN_RATING_VALUE <= value <= MAX_RATING_VALUE):
             raise ValidationError({param: ["Value out of range"]})
         return value
+
+    def _parse_semester_year_param(self, raw: str | None) -> int | None:
+        if raw is None:
+            return None
+        try:
+            year = int(raw)
+        except (ValueError, TypeError):
+            raise ValidationError({"semesterYear": [INVALID_VALUE]}) from None
+        if year < 1991:
+            raise ValidationError({"semesterYear": ["Value out of range"]})
+        return year
+
+    def _parse_semester_term_param(self, raw: str | None) -> str | None:
+        if raw is None:
+            return None
+        normalized_term = raw.upper()
+        if normalized_term in SemesterTerm.values:
+            return normalized_term
+        raise ValidationError({"semesterTerm": [INVALID_VALUE]})
+
+    def _validate_rating_range(self, min_val, max_val, min_name: str, max_name: str) -> None:
+        if min_val is not None and max_val is not None and min_val > max_val:
+            raise ValidationError(
+                {
+                    min_name: [f"Must be less than or equal to {max_name}"],
+                    max_name: [f"Must be greater than or equal to {min_name}"],
+                }
+            )
+
+    def _serialize_filters(self, filters_obj) -> dict:
+        if filters_obj is None:
+            return {}
+        if is_dataclass(filters_obj):
+            return asdict(filters_obj)
+        if hasattr(filters_obj, "__dict__"):
+            return filters_obj.__dict__
+        return {}
 
     @extend_schema(
         summary="List courses",
@@ -183,47 +220,21 @@ class CourseViewSet(viewsets.ViewSet):
         page = self._to_int(request.query_params.get("page"), DEFAULT_PAGE_NUMBER)
         page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_COURSE_PAGE_SIZE)
 
-        semester_year_raw = request.query_params.get("semesterYear")
-        semester_year = None
-        if semester_year_raw:
-            try:
-                semester_year = int(semester_year_raw)
-            except (ValueError, TypeError):
-                raise ValidationError({"semesterYear": ["Invalid value"]}) from None
-            if semester_year < 1991:
-                raise ValidationError({"semesterYear": ["Value out of range"]})
+        semester_year = self._parse_semester_year_param(request.query_params.get("semesterYear"))
+        semester_term = self._parse_semester_term_param(request.query_params.get("semesterTerm"))
 
-        semester_term_raw = request.query_params.get("semesterTerm")
-        semester_term = None
-        if semester_term_raw:
-            normalized_term = semester_term_raw.upper()
-            if normalized_term in SemesterTerm.values:
-                semester_term = normalized_term
-            else:
-                raise ValidationError({"semesterTerm": ["Invalid value"]})
-
-        # Handle order parameters
         avg_difficulty_order = request.query_params.get("avg_difficulty_order")
         avg_usefulness_order = request.query_params.get("avg_usefulness_order")
 
-        # Range filters for ratings
         avg_difficulty_min = self._parse_rating_value(
             "avg_difficulty_min", request.query_params.get("avg_difficulty_min")
         )
         avg_difficulty_max = self._parse_rating_value(
             "avg_difficulty_max", request.query_params.get("avg_difficulty_max")
         )
-        if (
-            avg_difficulty_min is not None
-            and avg_difficulty_max is not None
-            and avg_difficulty_min > avg_difficulty_max
-        ):
-            raise ValidationError(
-                {
-                    "avg_difficulty_min": ["Must be less than or equal to avg_difficulty_max"],
-                    "avg_difficulty_max": ["Must be greater than or equal to avg_difficulty_min"],
-                }
-            )
+        self._validate_rating_range(
+            avg_difficulty_min, avg_difficulty_max, "avg_difficulty_min", "avg_difficulty_max"
+        )
 
         avg_usefulness_min = self._parse_rating_value(
             "avg_usefulness_min", request.query_params.get("avg_usefulness_min")
@@ -231,17 +242,9 @@ class CourseViewSet(viewsets.ViewSet):
         avg_usefulness_max = self._parse_rating_value(
             "avg_usefulness_max", request.query_params.get("avg_usefulness_max")
         )
-        if (
-            avg_usefulness_min is not None
-            and avg_usefulness_max is not None
-            and avg_usefulness_min > avg_usefulness_max
-        ):
-            raise ValidationError(
-                {
-                    "avg_usefulness_min": ["Must be less than or equal to avg_usefulness_max"],
-                    "avg_usefulness_max": ["Must be greater than or equal to avg_usefulness_min"],
-                }
-            )
+        self._validate_rating_range(
+            avg_usefulness_min, avg_usefulness_max, "avg_usefulness_min", "avg_usefulness_max"
+        )
 
         result = self.course_service.filter_courses(
             name=request.query_params.get("name"),
@@ -272,12 +275,7 @@ class CourseViewSet(viewsets.ViewSet):
             else:
                 total_pages = 1
 
-        filters_dict = {}
-        if result.filters is not None:
-            if is_dataclass(result.filters):
-                filters_dict = asdict(result.filters)
-            elif hasattr(result.filters, "__dict__"):
-                filters_dict = result.filters.__dict__
+        filters_dict = self._serialize_filters(result.filters)
 
         response_data = {
             "items": self.serializer_class(result.items, many=True).data,

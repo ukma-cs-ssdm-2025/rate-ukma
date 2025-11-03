@@ -11,7 +11,7 @@ from .speciality import Speciality
 class Course(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
-    description = models.TextField(null=True, blank=True)
+    description = models.TextField(blank=True, default="")
     status = models.CharField(max_length=16, choices=CourseStatus.choices)
 
     department = models.ForeignKey(Department, on_delete=models.PROTECT, related_name="courses")

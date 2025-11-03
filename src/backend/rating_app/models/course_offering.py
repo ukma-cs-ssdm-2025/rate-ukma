@@ -25,7 +25,7 @@ class CourseOffering(models.Model):
     lecture_count = models.PositiveIntegerField(null=True, blank=True)
     practice_count = models.PositiveIntegerField(null=True, blank=True)
     practice_type = models.CharField(
-        max_length=16, choices=PracticeType.choices, null=True, blank=True
+        max_length=16, choices=PracticeType.choices, blank=True, default=""
     )
     exam_type = models.CharField(max_length=8, choices=ExamType.choices)
     max_students = models.PositiveIntegerField(null=True, blank=True)

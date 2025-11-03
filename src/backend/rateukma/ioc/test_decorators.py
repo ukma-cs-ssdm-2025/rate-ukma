@@ -80,17 +80,19 @@ def test_concurrent_first_call():
 
 
 def test_circular_dependency_detection():
-    # Arrange
+    call_count = 0
+
     @once
     def func_a():
+        nonlocal call_count
+        call_count += 1
         return 100 + func_a()
 
-    # Act
     with pytest.raises(RuntimeError) as excinfo:
         func_a()
 
-    # Assert
     assert "Circular dependency detected" in str(excinfo.value)
+    assert call_count == 1
 
 
 def test_exception_propagation_and_retry():
