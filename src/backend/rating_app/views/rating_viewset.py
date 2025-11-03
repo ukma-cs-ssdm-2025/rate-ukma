@@ -6,10 +6,7 @@ import structlog
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from rating_app.constants import (
-    DEFAULT_PAGE_NUMBER,
-    DEFAULT_PAGE_SIZE,
-)
+from rating_app.constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
 from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
 from rating_app.ioc_container.services import rating_service
 from rating_app.models import Rating, Student
@@ -118,7 +115,6 @@ class RatingViewSet(viewsets.ViewSet):
         serializer = RatingCreateUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # course_offering_id = serializer.validated_data["course_offering"]  # type: ignore
         co = serializer.validated_data["course_offering"]  # type: ignore
         course_offering_id = getattr(co, "id", co)
 
