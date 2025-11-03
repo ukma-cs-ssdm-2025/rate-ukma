@@ -1,5 +1,6 @@
 name: Docker Build
 on:
+  workflow_dispatch:
   workflow_call:
 
 env:
@@ -61,7 +62,7 @@ jobs:
         run: docker compose --profile prod build backend
 
       - name: Push backend image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: docker push ${{ steps.extract_name.outputs.backend_image }}:latest
 
@@ -104,7 +105,7 @@ jobs:
             webapp-build
 
       - name: Push staging webapp
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
@@ -123,7 +124,7 @@ jobs:
             webapp-build
 
       - name: Push live webapp
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
