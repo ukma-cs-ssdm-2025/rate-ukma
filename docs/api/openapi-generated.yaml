@@ -4,6 +4,235 @@ info:
   version: 1.0.0
   description: An API for rating UKMA courses and professors
 paths:
+  /api/v1/analytics/:
+    get:
+      operationId: analytics_list
+      description: Get course analytics with optional filtersReturns courses analytics
+        with aggregated ratings.
+      summary: Get course analytics
+      parameters:
+      - in: query
+        name: avg_difficulty_max
+        schema:
+          type: number
+          format: float
+        description: Maximum average difficulty (1-5)
+      - in: query
+        name: avg_difficulty_min
+        schema:
+          type: number
+          format: float
+        description: Minimum average difficulty (1-5)
+      - in: query
+        name: avg_difficulty_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: 'Sort by average difficulty (values: ''asc'' or ''desc'')'
+      - in: query
+        name: avg_usefulness_max
+        schema:
+          type: number
+          format: float
+        description: Maximum average usefulness (1-5)
+      - in: query
+        name: avg_usefulness_min
+        schema:
+          type: number
+          format: float
+        description: Minimum average usefulness (1-5)
+      - in: query
+        name: avg_usefulness_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: 'Sort by average usefulness (values: ''asc'' or ''desc'')'
+      - in: query
+        name: department
+        schema:
+          type: string
+          format: uuid
+        description: Filter by department ID
+      - in: query
+        name: faculty
+        schema:
+          type: string
+          format: uuid
+        description: Filter by faculty ID
+      - in: query
+        name: instructor
+        schema:
+          type: string
+          format: uuid
+        description: Filter by instructor ID
+      - in: query
+        name: name
+        schema:
+          type: string
+        description: Filter courses by name (case-insensitive partial match)
+      - in: query
+        name: semesterTerm
+        schema:
+          type: string
+        description: Filter by semester term (FALL, SPRING, SUMMER)
+      - in: query
+        name: semesterYear
+        schema:
+          type: integer
+        description: Filter by semester year
+      - in: query
+        name: speciality
+        schema:
+          type: string
+          format: uuid
+        description: Filter by speciality ID
+      - in: query
+        name: typeKind
+        schema:
+          type: string
+        description: Filter by course type (COMPULSORY, ELECTIVE, PROF_ORIENTED)
+      tags:
+      - analytics
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CourseAnalytics'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+  /api/v1/analytics/{course_id}/:
+    get:
+      operationId: analytics_retrieve
+      description: Get course analytics with optional filtersReturns courses analytics
+        with aggregated ratings.
+      summary: Get course analytics
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+          format: uuid
+        description: Course ID
+        required: true
+      tags:
+      - analytics
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseAnalytics'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/auth/csrf/:
     get:
       operationId: auth_csrf_retrieve
@@ -1062,6 +1291,30 @@ components:
           maxLength: 64
       required:
       - csrf_token
+    CourseAnalytics:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        avg_usefulness:
+          type: number
+          format: double
+          readOnly: true
+        avg_difficulty:
+          type: number
+          format: double
+          readOnly: true
+        ratings_count:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        faculty_name:
+          type: string
+          nullable: true
+          readOnly: true
     CourseDetail:
       type: object
       properties:
