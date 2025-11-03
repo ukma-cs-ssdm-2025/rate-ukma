@@ -8,6 +8,8 @@ env:
   BACKEND_DIR: src/backend
   WEBAPP_DIR: src/webapp
   OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
+  WEBAPP_STAGING_IMAGE_TAG: staging-latest
+  WEBAPP_LIVE_IMAGE_TAG: live-latest
 
 permissions:
   packages: write
@@ -67,9 +69,6 @@ jobs:
         run: docker push ${{ steps.extract_name.outputs.backend_image }}:latest
 
   build-webapp:
-    env:
-      WEBAPP_STAGING_IMAGE_TAG: staging-latest
-      WEBAPP_LIVE_IMAGE_TAG: live-latest
     needs: filter
     if: needs.filter.outputs.webapp_changed == 'true'
     runs-on: ubuntu-latest
@@ -103,15 +102,15 @@ jobs:
         run: |
           docker compose --profile prod build \
             --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
-            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_STAGING_IMAGE_TAG} \
+            --build-arg WEBAPP_IMAGE_TAG=${{ env.WEBAPP_STAGING_IMAGE_TAG }} \
             webapp-build
 
       - name: Push staging webapp
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_STAGING_IMAGE_TAG}"
-          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_STAGING_IMAGE_TAG}
+          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${{ env.WEBAPP_STAGING_IMAGE_TAG }}"
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:${{ env.WEBAPP_STAGING_IMAGE_TAG }}
 
       - name: Build live webapp
         env:
@@ -120,12 +119,12 @@ jobs:
         run: |
           docker compose --profile prod build \
             --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
-            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_LIVE_IMAGE_TAG} \
+            --build-arg WEBAPP_IMAGE_TAG=${{ env.WEBAPP_LIVE_IMAGE_TAG }} \
             webapp-build
 
       - name: Push live webapp
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_LIVE_IMAGE_TAG}"
-          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_LIVE_IMAGE_TAG}
+          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${{ env.WEBAPP_LIVE_IMAGE_TAG }}"
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:${{ env.WEBAPP_LIVE_IMAGE_TAG }}
