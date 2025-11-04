@@ -83,10 +83,14 @@ def test_get_courses_stats_returns_rated_courses(token_client):
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["offerings"][0]["rated"]["difficulty"] == 4
-    assert data[0]["offerings"][0]["rated"]["usefulness"] == 5
-    assert data[0]["offerings"][0]["rated"]["comment"] == "Great course!"
-    assert "created_at" in data[0]["offerings"][0]["rated"]
+    assert len(data[0]["offerings"]) == 1
+    # Since offerings are unordered, find the one with rating
+    offering_data = data[0]["offerings"][0]
+    assert offering_data["rated"] is not None
+    assert offering_data["rated"]["difficulty"] == 4
+    assert offering_data["rated"]["usefulness"] == 5
+    assert offering_data["rated"]["comment"] == "Great course!"
+    assert "created_at" in offering_data["rated"]
 
 
 @pytest.mark.django_db
