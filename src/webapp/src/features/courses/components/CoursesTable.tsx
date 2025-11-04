@@ -138,7 +138,7 @@ export function CoursesTable({
 	onFiltersChange,
 	filtersKey,
 	pagination: serverPagination,
-}: CoursesTableProps) {
+}: Readonly<CoursesTableProps>) {
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: serverPagination ? serverPagination.page - 1 : 0,
@@ -202,7 +202,7 @@ export function CoursesTable({
 	});
 
 	useEffect(() => {
-		if (typeof filtersKey === "undefined") {
+		if (filtersKey === undefined) {
 			return;
 		}
 
@@ -366,6 +366,23 @@ export function CoursesTable({
 	const isPanelLoading = isInitialLoading || isFilterOptionsLoading;
 	const isEmptyState = !isLoading && data.length === 0;
 
+	const renderTableContent = () => {
+		if (isInitialLoading) {
+			return <CoursesTableSkeleton />;
+		}
+		if (isEmptyState) {
+			return <CoursesEmptyState />;
+		}
+		return (
+			<DataTable
+				table={table}
+				onRowClick={onRowClick}
+				totalRows={serverPagination?.total}
+				serverPageCount={serverPagination?.totalPages}
+			/>
+		);
+	};
+
 	return (
 		<div className="flex gap-6">
 			<div className="flex-1 min-w-0 space-y-4">
@@ -382,18 +399,7 @@ export function CoursesTable({
 					</div>
 				</div>
 
-				{isInitialLoading ? (
-					<CoursesTableSkeleton />
-				) : isEmptyState ? (
-					<CoursesEmptyState />
-				) : (
-					<DataTable
-						table={table}
-						onRowClick={onRowClick}
-						totalRows={serverPagination?.total}
-						serverPageCount={serverPagination?.totalPages}
-					/>
-				)}
+				{renderTableContent()}
 			</div>
 
 			<div className="w-80 shrink-0">

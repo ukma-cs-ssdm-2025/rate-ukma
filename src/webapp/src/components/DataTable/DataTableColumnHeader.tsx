@@ -29,10 +29,21 @@ export function DataTableColumnHeader<TData, TValue>({
 	title,
 	className,
 	...props
-}: DataTableColumnHeaderProps<TData, TValue>) {
+}: Readonly<DataTableColumnHeaderProps<TData, TValue>>) {
 	if (!column.getCanSort() && !column.getCanHide()) {
 		return <div className={cn(className)}>{title}</div>;
 	}
+
+	const getSortIcon = () => {
+		const sortDirection = column.getIsSorted();
+		if (sortDirection === "desc") {
+			return <ChevronDown />;
+		}
+		if (sortDirection === "asc") {
+			return <ChevronUp />;
+		}
+		return <ChevronsUpDown />;
+	};
 
 	return (
 		<DropdownMenu>
@@ -44,14 +55,7 @@ export function DataTableColumnHeader<TData, TValue>({
 				{...props}
 			>
 				{title}
-				{column.getCanSort() &&
-					(column.getIsSorted() === "desc" ? (
-						<ChevronDown />
-					) : column.getIsSorted() === "asc" ? (
-						<ChevronUp />
-					) : (
-						<ChevronsUpDown />
-					))}
+				{column.getCanSort() && getSortIcon()}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-28">
 				{column.getCanSort() && (

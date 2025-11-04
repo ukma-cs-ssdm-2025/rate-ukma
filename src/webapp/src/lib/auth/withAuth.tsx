@@ -31,7 +31,7 @@ export function withAuth<P extends object>(
 				navigate({
 					to: redirectTo,
 					search: {
-						redirect: window.location.pathname + window.location.search,
+						redirect: globalThis.location.pathname + globalThis.location.search,
 					},
 					replace: true,
 				});

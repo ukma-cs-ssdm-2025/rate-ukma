@@ -1,6 +1,5 @@
 import { useContext } from "react";
 
-import type { AuthStatus, AuthUser } from "./AuthContext";
 import { AuthContext } from "./AuthContext";
 
 export function useAuth() {
@@ -11,4 +10,4 @@ export function useAuth() {
 	return context;
 }
 
-export type { AuthUser, AuthStatus };
+export type { AuthStatus, AuthUser } from "./AuthContext";

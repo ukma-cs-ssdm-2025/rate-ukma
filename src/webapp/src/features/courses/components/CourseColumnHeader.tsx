@@ -13,7 +13,7 @@ interface CourseColumnHeaderProps<TData, TValue> {
 export function CourseColumnHeader<TData, TValue>({
 	column,
 	title,
-}: CourseColumnHeaderProps<TData, TValue>) {
+}: Readonly<CourseColumnHeaderProps<TData, TValue>>) {
 	const sortState = column.getIsSorted() as false | "asc" | "desc";
 
 	const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -32,19 +32,20 @@ export function CourseColumnHeader<TData, TValue>({
 		}
 	};
 
-	const Icon =
-		sortState === "asc"
-			? ArrowUp
-			: sortState === "desc"
-				? ArrowDown
-				: ArrowUpDown;
+	const getSortIcon = () => {
+		if (sortState === "asc") return ArrowUp;
+		if (sortState === "desc") return ArrowDown;
+		return ArrowUpDown;
+	};
 
-	const sortHintText =
-		sortState === "asc"
-			? "Сортувати за спаданням"
-			: sortState === "desc"
-				? "Скинути сортування"
-				: "Сортувати за зростанням";
+	const getSortHintText = () => {
+		if (sortState === "asc") return "Сортувати за спаданням";
+		if (sortState === "desc") return "Скинути сортування";
+		return "Сортувати за зростанням";
+	};
+
+	const Icon = getSortIcon();
+	const sortHintText = getSortHintText();
 
 	return (
 		<Button

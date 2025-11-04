@@ -33,7 +33,7 @@ export function Logo({
 	textClassName = "",
 	className = "",
 	asLink = true,
-}: RateUKMALogoProps) {
+}: Readonly<RateUKMALogoProps>) {
 	const config = sizeConfig[size];
 	const logoContent = (
 		<div
