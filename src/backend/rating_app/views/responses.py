@@ -8,6 +8,8 @@ from rating_app.serializers import (
     FilterOptionsSerializer,
     InstructorSerializer,
     RatingReadSerializer,
+    StudentRatingsDetailedSerializer,
+    StudentRatingsLightSerializer,
 )
 from rating_app.serializers import ErrorEnvelopeSerializer as Err
 from rating_app.serializers.auth import CSRFTokenSerializer, SessionSerializer
@@ -138,6 +140,12 @@ R_INSTRUCTOR = {
     **common_errors(include_404=True),
 }
 
-R_STUDENT = {
+R_STUDENT_RATINGS = {
+    200: OpenApiResponse(StudentRatingsDetailedSerializer, "Ok"),
+    **common_errors(include_404=True),
+}
+
+R_STUDENT_RATINGS_DETAILED = {
+    200: OpenApiResponse(StudentRatingsLightSerializer, "Ok"),
     **common_errors(include_404=True),
 }

@@ -7,7 +7,7 @@ from rating_app.ioc_container.services import student_service
 from rating_app.models import Student
 from rating_app.serializers import StudentRatingsDetailedSerializer, StudentRatingsLightSerializer
 
-from .responses import R_STUDENT
+from .responses import R_STUDENT_RATINGS, R_STUDENT_RATINGS_DETAILED
 
 
 @extend_schema(tags=["student", "courses"])
@@ -33,7 +33,7 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         summary="Student's statistics on course rating.",
         description="List all courses that "
         "student is/was rolled in with information about the rating.",
-        responses=R_STUDENT,
+        responses=R_STUDENT_RATINGS,
     )
     def get_ratings(self, request):
         student, error_response = self._get_student_or_403(request)
@@ -50,7 +50,7 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         summary='Student\'s detailed statistics on course rating (for "My Grades" page).',
         description="List all courses that "
         "student is/was rolled in with information about the rating.",
-        responses=R_STUDENT,
+        responses=R_STUDENT_RATINGS_DETAILED,
     )
     def get_detailed_ratings(self, request):
         student, error_response = self._get_student_or_403(request)

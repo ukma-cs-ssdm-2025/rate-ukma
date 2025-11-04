@@ -1045,6 +1045,12 @@ paths:
       - cookieAuth: []
       - tokenAuth: []
       responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRatingsDetailed'
+          description: Ok
         '400':
           content:
             application/json:
@@ -1107,6 +1113,12 @@ paths:
       - cookieAuth: []
       - tokenAuth: []
       responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRatingsLight'
+          description: Ok
         '400':
           content:
             application/json:
@@ -1430,6 +1442,65 @@ components:
       - semester_terms
       - semester_years
       - specialities
+    InlineCourseOffering:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        year:
+          type: integer
+          readOnly: true
+        season:
+          type: string
+          readOnly: true
+        rated:
+          allOf:
+          - $ref: '#/components/schemas/InlineRating'
+          readOnly: true
+          nullable: true
+    InlineRating:
+      type: object
+      properties:
+        difficulty:
+          type: integer
+        usefulness:
+          type: integer
+        comment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - comment
+      - difficulty
+      - usefulness
+    InlineRatingDetailed:
+      type: object
+      properties:
+        difficulty:
+          type: integer
+          readOnly: true
+        usefulness:
+          type: integer
+          readOnly: true
+        comment:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    InlineSemester:
+      type: object
+      properties:
+        year:
+          type: integer
+          readOnly: true
+        season:
+          type: string
+          readOnly: true
     Instructor:
       type: object
       properties:
@@ -1663,6 +1734,42 @@ components:
         * `PLANNED` - Planned
         * `ACTIVE` - Active
         * `FINISHED` - Finished
+    StudentRatingsDetailed:
+      type: object
+      properties:
+        course_id:
+          type: string
+          readOnly: true
+        course_title:
+          type: string
+          readOnly: true
+        course_code:
+          type: string
+          readOnly: true
+          nullable: true
+        course_offering_id:
+          type: string
+          readOnly: true
+        semester:
+          allOf:
+          - $ref: '#/components/schemas/InlineSemester'
+          readOnly: true
+        rated:
+          allOf:
+          - $ref: '#/components/schemas/InlineRatingDetailed'
+          readOnly: true
+          nullable: true
+    StudentRatingsLight:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        offerings:
+          type: array
+          items:
+            $ref: '#/components/schemas/InlineCourseOffering'
+          readOnly: true
     TypeKindEnum:
       enum:
       - COMPULSORY
