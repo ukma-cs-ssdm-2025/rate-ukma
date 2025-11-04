@@ -1049,7 +1049,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StudentRatingsDetailed'
+                $ref: '#/components/schemas/StudentRatingsLight'
           description: Ok
         '400':
           content:
@@ -1117,7 +1117,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StudentRatingsLight'
+                $ref: '#/components/schemas/StudentRatingsDetailed'
           description: Ok
         '400':
           content:
