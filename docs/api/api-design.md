@@ -60,10 +60,12 @@ The API covers course discovery, evaluation, recommendation, and analytics capab
 
 ### Analytics Resource
 
-- **Endpoint Roots**: `/analytics/course-scatter`
+- **Endpoint Root**: `/analytics`
 - **Description**: Data projections for scatter plot visualization.
-- **Key Attributes**: scatter coordinates, rating totals, time-series points.
-- **Typical Operations**: `GET /analytics/course-scatter` for student scatter view.
+- **Key Attributes**: `course_id`, `avg_usefulness`, `avg_difficulty`, `ratings_count`, `name`, `faculty_name` - per course.
+- **Typical Operations**: `GET /analytics/` for student scatter view.
+- **Filtering**: Is supported by the same filters as the courses list endpoint.
+- **Pagination**: Disabled.
 
 ## Design Decisions
 
