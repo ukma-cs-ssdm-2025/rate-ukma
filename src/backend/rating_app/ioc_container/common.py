@@ -2,8 +2,8 @@
 from rateukma.ioc.decorators import once
 
 from ..constants import MAX_RATING_VALUE, MIN_RATING_VALUE
+from ..filters.filters_parsers.course import CourseFilterParser
 from ..models.choices import SemesterTerm
-from ..views.filters_parsers.course import CourseFilterParser
 
 
 @once

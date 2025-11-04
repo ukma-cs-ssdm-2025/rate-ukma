@@ -19,6 +19,8 @@ class CourseQueryParams:
     avg_usefulness_max: float | None = None
     avg_difficulty_order: str | None = None
     avg_usefulness_order: str | None = None
+    page: int | None = None
+    page_size: int | None = None
 
 
 class CourseFilterParser:
@@ -29,9 +31,16 @@ class CourseFilterParser:
         self.max_rating = max_rating
         self.semester_term_enum = semester_term_enum
 
-    def parse(self, query_params: dict) -> CourseQueryParams:
+    def parse(self, query_params: dict, paginate: bool = True) -> CourseQueryParams:
         semester_year = self._parse_semester_year(query_params.get("semesterYear"))
         semester_term = self._parse_semester_term(query_params.get("semesterTerm"))
+
+        page = self._parse_optional_int(query_params.get("page"), "page") if paginate else None
+        page_size = (
+            self._parse_optional_int(query_params.get("page_size"), "page_size")
+            if paginate
+            else None
+        )
 
         avg_difficulty_min = self._parse_rating_value(
             "avg_difficulty_min", query_params.get("avg_difficulty_min")
@@ -68,6 +77,8 @@ class CourseFilterParser:
             avg_usefulness_max=avg_usefulness_max,
             avg_difficulty_order=query_params.get("avg_difficulty_order"),
             avg_usefulness_order=query_params.get("avg_usefulness_order"),
+            page=page,
+            page_size=page_size,
         )
 
     def _parse_rating_value(self, param: str, raw_value: str | None) -> float | None:
@@ -107,6 +118,27 @@ class CourseFilterParser:
             return normalized_term
 
         raise ValidationError({"semesterTerm": [self.INVALID_VALUE]})
+
+    def _parse_optional_int(self, raw: str | None, param_name: str) -> int | None:
+        if raw is None:
+            return None
+        try:
+            value = int(raw)
+        except (ValueError, TypeError):
+            raise ValidationError({param_name: [self.INVALID_VALUE]}) from None
+
+        if value < 1:
+            raise ValidationError({param_name: ["Must be greater than or equal to 1"]})
+
+        return value
+
+    def _to_int(self, value: str | None, default: int) -> int:
+        if value is None:
+            return default
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return default
 
     def _validate_rating_range(
         self, min_val: float | None, max_val: float | None, min_name: str, max_name: str

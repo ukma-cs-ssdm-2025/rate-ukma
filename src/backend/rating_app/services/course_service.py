@@ -7,7 +7,7 @@ from rating_app.ioc_container.repos import (
     semester_repository,
     speciality_repository,
 )
-from rating_app.models import Course, Faculty
+from rating_app.models import Course
 from rating_app.models.choices import CourseTypeKind, SemesterTerm
 
 
@@ -60,10 +60,6 @@ class CourseService:
             course_types=course_types,
             specialities=self._build_specialities_data(specialities),
         )
-
-    def get_faculty(self, course: Course) -> Faculty:
-        # TODO: introduce a cleaner method to get a nested faculty object
-        return course.department.faculty
 
     def _get_sorted_instructors(self):
         return sorted(
