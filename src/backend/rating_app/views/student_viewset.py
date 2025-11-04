@@ -32,7 +32,7 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Student's statistics on course rating.",
         description="List all courses that "
-        "student is/was rolled in with information about the rating.",
+        "student is/was enrolled in with information about the rating.",
         responses=R_STUDENT_RATINGS,
     )
     def get_ratings(self, request):
@@ -49,7 +49,7 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
     @extend_schema(
         summary='Student\'s detailed statistics on course rating (for "My Grades" page).',
         description="List all courses that "
-        "student is/was rolled in with information about the rating.",
+        "student is/was enrolled in with information about the rating.",
         responses=R_STUDENT_RATINGS_DETAILED,
     )
     def get_detailed_ratings(self, request):

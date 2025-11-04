@@ -1035,7 +1035,7 @@ paths:
   /api/v1/students/me/courses/:
     get:
       operationId: students_me_courses_retrieve
-      description: List all courses that student is/was rolled in with information
+      description: List all courses that student is/was enrolled in with information
         about the rating.
       summary: Student's statistics on course rating.
       tags:
@@ -1103,7 +1103,7 @@ paths:
   /api/v1/students/me/grades/:
     get:
       operationId: students_me_grades_retrieve
-      description: List all courses that student is/was rolled in with information
+      description: List all courses that student is/was enrolled in with information
         about the rating.
       summary: Student's detailed statistics on course rating (for "My Grades" page).
       tags:
