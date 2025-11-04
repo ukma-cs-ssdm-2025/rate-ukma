@@ -79,15 +79,6 @@ test.describe("Microsoft Login Page", () => {
 		await page.fill('input[type="password"]', MICROSOFT_PASSWORD);
 		await page.getByRole("button", { name: "Sign in" }).click();
 
-		try {
-			await page
-				.getByRole("button", { name: /Yes|No/i })
-				.first()
-				.click({ timeout: 5000 });
-		} catch (e) {
-			console.log("No stay-signed-in prompt detected");
-		}
-
 		await page.waitForURL(BASE_URL, { timeout: 20000 });
 
 		// on the courses page
