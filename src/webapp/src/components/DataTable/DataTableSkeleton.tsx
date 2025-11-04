@@ -29,7 +29,7 @@ export function DataTableSkeleton({
 	shrinkZero = false,
 	className,
 	...props
-}: DataTableSkeletonProps) {
+}: Readonly<DataTableSkeletonProps>) {
 	const cozyCellWidths = Array.from(
 		{ length: columnCount },
 		(_, index) => cellWidths[index % cellWidths.length] ?? "auto",

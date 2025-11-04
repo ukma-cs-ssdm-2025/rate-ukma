@@ -30,7 +30,7 @@ export function DataTablePagination<TData>({
 	serverPageCount,
 	className,
 	...props
-}: DataTablePaginationProps<TData>) {
+}: Readonly<DataTablePaginationProps<TData>>) {
 	return (
 		<div
 			className={cn(
@@ -64,9 +64,7 @@ export function DataTablePagination<TData>({
 				</div>
 				<div className="flex items-center justify-center font-medium text-sm">
 					Сторінка {table.getState().pagination.pageIndex + 1} з{" "}
-					{serverPageCount !== undefined
-						? serverPageCount
-						: table.getPageCount()}
+					{serverPageCount ?? table.getPageCount()}
 				</div>
 				<div className="flex items-center space-x-2">
 					<Button

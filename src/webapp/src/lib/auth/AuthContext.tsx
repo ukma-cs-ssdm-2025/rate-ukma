@@ -120,7 +120,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		if (redirect) {
 			loginUrl.searchParams.set("redirect", redirect);
 		}
-		window.location.replace(loginUrl.toString());
+		globalThis.location.replace(loginUrl.toString());
 	}, []);
 
 	const loginWithDjango = useCallback(

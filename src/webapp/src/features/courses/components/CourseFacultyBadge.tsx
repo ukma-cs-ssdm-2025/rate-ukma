@@ -5,7 +5,9 @@ interface CourseFacultyBadgeProps {
 	facultyName?: string | null;
 }
 
-export function CourseFacultyBadge({ facultyName }: CourseFacultyBadgeProps) {
+export function CourseFacultyBadge({
+	facultyName,
+}: Readonly<CourseFacultyBadgeProps>) {
 	if (!facultyName) {
 		return null;
 	}
