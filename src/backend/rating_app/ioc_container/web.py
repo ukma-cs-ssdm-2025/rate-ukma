@@ -5,18 +5,36 @@ from django.urls import path
 
 from rateukma.ioc.decorators import once
 
-from ..views import CourseViewSet, InstructorViewSet, RatingViewSet
+from ..views import AnalyticsViewSet, CourseViewSet, InstructorViewSet, RatingViewSet
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
+from .common import course_filter_parser
+from .services import course_service
 
 
 @once
 def course_list_view():
-    return CourseViewSet.as_view({"get": "list"})
+    return CourseViewSet.as_view(
+        {"get": "list"},
+        course_service=course_service(),
+        course_filter_parser=course_filter_parser(),
+    )
 
 
 @once
 def course_detail_view():
-    return CourseViewSet.as_view({"get": "retrieve"})
+    return CourseViewSet.as_view(
+        {"get": "retrieve"},
+        course_service=course_service(),
+        course_filter_parser=course_filter_parser(),
+    )
+
+
+@once
+def course_filter_options_view():
+    return CourseViewSet.as_view(
+        {"get": "filter_options"},
+        course_service=course_service(),
+    )
 
 
 @once
@@ -62,6 +80,24 @@ def csrf_token_view() -> Callable[[HttpRequest], HttpResponse]:
 
 
 @once
+def analytics_list_view():
+    return AnalyticsViewSet.as_view(
+        {"get": "list"},
+        course_service=course_service(),
+        course_filter_parser=course_filter_parser(),
+    )
+
+
+@once
+def analytics_detail_view():
+    return AnalyticsViewSet.as_view(
+        {"get": "retrieve"},
+        course_service=course_service(),
+        course_filter_parser=course_filter_parser(),
+    )
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -96,7 +132,7 @@ def rest_urlpatterns() -> list:
         ),
         path(
             "courses/filter-options/",
-            CourseViewSet.as_view({"get": "filter_options"}),
+            course_filter_options_view(),
             name="course-filter-options",
         ),
         path(
@@ -118,6 +154,16 @@ def rest_urlpatterns() -> list:
             "instructors/<str:instructor_id>",
             instructor_detail_view(),
             name="instructor-detail",
+        ),
+        path(
+            "analytics/",
+            analytics_list_view(),
+            name="analytics-list",
+        ),
+        path(
+            "analytics/<str:course_id>/",
+            analytics_detail_view(),
+            name="analytics-detail",
         ),
     ]
 

@@ -11,6 +11,7 @@ from rating_app.serializers import (
     RatingReadSerializer,
 )
 from rating_app.serializers import ErrorEnvelopeSerializer as Err
+from rating_app.serializers.analytics import CourseAnalyticsSerializer
 from rating_app.serializers.auth import CSRFTokenSerializer, SessionSerializer
 
 NOT_FOUND = "Not found"
@@ -136,5 +137,10 @@ R_CSRF_TOKEN = {
 
 R_INSTRUCTOR = {
     200: OpenApiResponse(InstructorSerializer, "OK"),
+    **common_errors(include_404=True),
+}
+
+R_ANALYTICS = {
+    200: OpenApiResponse(CourseAnalyticsSerializer, "OK"),
     **common_errors(include_404=True),
 }
