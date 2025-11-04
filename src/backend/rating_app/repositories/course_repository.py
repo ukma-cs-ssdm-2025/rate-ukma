@@ -5,6 +5,7 @@ from django.db.models import Avg, Count, F, QuerySet
 
 from rating_app.constants import (
     DEFAULT_PAGE_NUMBER,
+    DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
     MIN_PAGE_SIZE,
 )
@@ -141,11 +142,24 @@ class CourseRepository:
         return order_by_fields
 
     def _paginate(self, courses: QuerySet[Course], filters: CourseFilters) -> CourseFilterPayload:
-        page_size = courses.count() if filters.page_size is None else filters.page_size
-        page = DEFAULT_PAGE_NUMBER if filters.page is None else filters.page
+        # if no pagination is requested, return all courses
+        no_pagination = filters.page_size is None and filters.page is None
+        if no_pagination:
+            return CourseFilterPayload(
+                items=list(courses),
+                page=DEFAULT_PAGE_NUMBER,
+                page_size=courses.count(),
+                total=courses.count(),
+                total_pages=1,
+                filters=filters,
+            )
 
-        page_size = max(MIN_PAGE_SIZE, min(int(page_size), MAX_PAGE_SIZE))
-        page_number = max(DEFAULT_PAGE_NUMBER, int(page))
+        # any of the values is None -> set to default
+        filters.page_size = DEFAULT_PAGE_SIZE if filters.page_size is None else filters.page_size
+        filters.page = DEFAULT_PAGE_NUMBER if filters.page is None else filters.page
+
+        page_size = max(MIN_PAGE_SIZE, min(int(filters.page_size), MAX_PAGE_SIZE))
+        page_number = max(DEFAULT_PAGE_NUMBER, int(filters.page))
 
         paginator = Paginator(courses, page_size)
         page_obj = paginator.get_page(page_number)
