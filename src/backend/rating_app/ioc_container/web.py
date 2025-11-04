@@ -132,7 +132,7 @@ def rest_urlpatterns() -> list:
         path(
             "students/me/grades/",
             course_detailed_rating_stats(),
-            name="student-courses-stats",
+            name="student-courses-grades",
         ),
         path(
             "instructors/<str:instructor_id>",
