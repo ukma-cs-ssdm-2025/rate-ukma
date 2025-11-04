@@ -5,22 +5,24 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+import structlog
+from drf_spectacular.utils import extend_schema
 
-from rating_app.constants import (
-    DEFAULT_COURSE_PAGE_SIZE,
-    MAX_RATING_VALUE,
-    MIN_RATING_VALUE,
+from rating_app.filters.course_filters import (
+    COURSES_LIST_PAGINATED_QUERY_PARAMS,
+    SINGLE_COURSE_QUERY_PARAMS,
+    CourseFilters,
 )
 from rating_app.filters.course_payload import CourseFilterPayload
+from rating_app.filters.filters_parsers.course import CourseFilterParser, CourseQueryParams
 from rating_app.models import Course
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list import CourseListSerializer
 from rating_app.services.course_service import CourseService
-from rating_app.views.filters_parsers.course import CourseFilterParser, CourseQueryParams
 from rating_app.views.responses import R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
+
+logger = structlog.get_logger(__name__)
 
 
 @extend_schema(tags=["courses"])
@@ -36,122 +38,7 @@ class CourseViewSet(viewsets.ViewSet):
         summary="List courses",
         description="List courses with optional filters and pagination. "
         "Returns courses with aggregated ratings.",
-        parameters=[
-            OpenApiParameter(
-                name="name",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Filter courses by name (case-insensitive partial match)",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="typeKind",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Filter by course type (COMPULSORY, ELECTIVE, PROF_ORIENTED)",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="instructor",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.QUERY,
-                description="Filter by instructor ID",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="faculty",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.QUERY,
-                description="Filter by faculty ID",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="department",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.QUERY,
-                description="Filter by department ID",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="speciality",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.QUERY,
-                description="Filter by speciality ID",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="semesterYear",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Filter by semester year",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="semesterTerm",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Filter by semester term (FALL, SPRING, SUMMER)",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="avg_difficulty_order",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Sort by average difficulty (values: 'asc' or 'desc')",
-                enum=["asc", "desc"],
-                required=False,
-            ),
-            OpenApiParameter(
-                name="avg_usefulness_order",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Sort by average usefulness (values: 'asc' or 'desc')",
-                enum=["asc", "desc"],
-                required=False,
-            ),
-            OpenApiParameter(
-                name="avg_difficulty_min",
-                type=OpenApiTypes.FLOAT,
-                location=OpenApiParameter.QUERY,
-                description=f"Minimum average difficulty ({MIN_RATING_VALUE}-{MAX_RATING_VALUE})",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="avg_difficulty_max",
-                type=OpenApiTypes.FLOAT,
-                location=OpenApiParameter.QUERY,
-                description=f"Maximum average difficulty ({MIN_RATING_VALUE}-{MAX_RATING_VALUE})",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="avg_usefulness_min",
-                type=OpenApiTypes.FLOAT,
-                location=OpenApiParameter.QUERY,
-                description=f"Minimum average usefulness ({MIN_RATING_VALUE}-{MAX_RATING_VALUE})",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="avg_usefulness_max",
-                type=OpenApiTypes.FLOAT,
-                location=OpenApiParameter.QUERY,
-                description=f"Maximum average usefulness ({MIN_RATING_VALUE}-{MAX_RATING_VALUE})",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="page",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Page number (default: 1)",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="page_size",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description=f"Items per page (default: {DEFAULT_COURSE_PAGE_SIZE})",
-                required=False,
-            ),
-        ],
+        parameters=COURSES_LIST_PAGINATED_QUERY_PARAMS,
         responses=R_COURSE_LIST,
     )
     def list(self, request, *args, **kwargs):
@@ -173,10 +60,11 @@ class CourseViewSet(viewsets.ViewSet):
             else:
                 total_pages = 1
 
-        filters_dict = self._serialize_filters(payload)
+        filters_dict = self._serialize_filters(payload.filters)
+        serializer = self.serializer_class(payload.items, many=True)
 
         response_data = {
-            "items": self.serializer_class(payload.items, many=True).data,
+            "items": serializer.data,
             "filters": filters_dict,
             "page": page,
             "page_size": payload.page_size,
@@ -204,14 +92,7 @@ class CourseViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Retrieve a course",
         description="Retrieve a single course by its ID with detailed information.",
-        parameters=[
-            OpenApiParameter(
-                name="course_id",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.PATH,
-                description="A unique identifier for the course.",
-            )
-        ],
+        parameters=SINGLE_COURSE_QUERY_PARAMS,
         responses=R_COURSE,
     )
     def retrieve(self, request, course_id=None, *args, **kwargs):
@@ -221,10 +102,11 @@ class CourseViewSet(viewsets.ViewSet):
             course = self.course_service.get_course(course_id)
             serializer = CourseDetailSerializer(course)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except (Course.DoesNotExist, ValueError):
+        except (Course.DoesNotExist, ValueError) as e:  # type: ignore - temporary fix for type error
+            logger.error(f"Error retrieving course: {e}")
             raise NotFound(detail="Course not found") from None
 
-    def _serialize_filters(self, filters_obj: CourseFilterPayload) -> dict:
+    def _serialize_filters(self, filters_obj: CourseFilters) -> dict:
         if filters_obj is None:
             return {}
         if is_dataclass(filters_obj):

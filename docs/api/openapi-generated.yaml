@@ -30,7 +30,7 @@ paths:
           enum:
           - asc
           - desc
-        description: 'Sort by average difficulty (values: ''asc'' or ''desc'')'
+        description: Sort by average difficulty (asc or desc)
       - in: query
         name: avg_usefulness_max
         schema:
@@ -50,7 +50,7 @@ paths:
           enum:
           - asc
           - desc
-        description: 'Sort by average usefulness (values: ''asc'' or ''desc'')'
+        description: Sort by average usefulness (asc or desc)
       - in: query
         name: department
         schema:
@@ -170,7 +170,7 @@ paths:
         schema:
           type: string
           format: uuid
-        description: Course ID
+        description: A unique identifier for the course.
         required: true
       tags:
       - analytics
@@ -457,7 +457,7 @@ paths:
           enum:
           - asc
           - desc
-        description: 'Sort by average difficulty (values: ''asc'' or ''desc'')'
+        description: Sort by average difficulty (asc or desc)
       - in: query
         name: avg_usefulness_max
         schema:
@@ -477,7 +477,7 @@ paths:
           enum:
           - asc
           - desc
-        description: 'Sort by average usefulness (values: ''asc'' or ''desc'')'
+        description: Sort by average usefulness (asc or desc)
       - in: query
         name: department
         schema:
@@ -510,7 +510,7 @@ paths:
         name: page_size
         schema:
           type: integer
-        description: 'Items per page (default: 20)'
+        description: 'Page size (default: 20)'
       - in: query
         name: semesterTerm
         schema:
