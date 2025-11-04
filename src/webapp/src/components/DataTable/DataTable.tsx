@@ -17,6 +17,18 @@ import {
 } from "@/components/ui/Table";
 import { cn } from "@/lib/utils";
 
+declare module "@tanstack/react-table" {
+	// biome-ignore lint: Required by TanStack Table interface signature
+	interface ColumnMeta<TData, TValue> {
+		align?: "left" | "center" | "right";
+		label?: string;
+		placeholder?: string;
+		variant?: "text" | "number";
+		icon?: React.ComponentType<{ className?: string }>;
+		range?: [number, number];
+	}
+}
+
 export function getCommonPinningStyles<TData>({
 	column,
 	withBorder = false,
@@ -30,22 +42,36 @@ export function getCommonPinningStyles<TData>({
 	const isFirstRightPinnedColumn =
 		isPinned === "right" && column.getIsFirstColumn("right");
 
+	let boxShadow: string | undefined;
+	if (withBorder && isLastLeftPinnedColumn) {
+		boxShadow = "-4px 0 4px -4px var(--border) inset";
+	} else if (withBorder && isFirstRightPinnedColumn) {
+		boxShadow = "4px 0 4px -4px var(--border) inset";
+	}
+
 	return {
-		boxShadow: withBorder
-			? isLastLeftPinnedColumn
-				? "-4px 0 4px -4px var(--border) inset"
-				: isFirstRightPinnedColumn
-					? "4px 0 4px -4px var(--border) inset"
-					: undefined
-			: undefined,
+		boxShadow,
 		left: isPinned === "left" ? `${column.getStart("left")}px` : undefined,
 		right: isPinned === "right" ? `${column.getAfter("right")}px` : undefined,
 		opacity: isPinned ? 0.97 : 1,
 		position: isPinned ? "sticky" : "relative",
-		background: isPinned ? "var(--background)" : "var(--background)",
+		background: "var(--background)",
 		width: column.getSize(),
 		zIndex: isPinned ? 1 : 0,
 	};
+}
+
+function getAlignmentClass<TData, TValue>(
+	meta?: import("@tanstack/react-table").ColumnMeta<TData, TValue>,
+): string {
+	const align = meta?.align;
+	if (align === "center") {
+		return "text-center";
+	}
+	if (align === "right") {
+		return "text-right";
+	}
+	return "text-left";
 }
 
 interface DataTableProps<TData> extends ComponentProps<"div"> {
@@ -65,7 +91,7 @@ export function DataTable<TData>({
 	totalRows,
 	serverPageCount,
 	...props
-}: DataTableProps<TData>) {
+}: Readonly<DataTableProps<TData>>) {
 	return (
 		<div
 			className={cn("flex w-full flex-col gap-2.5 overflow-auto", className)}
@@ -84,15 +110,7 @@ export function DataTable<TData>({
 										style={{
 											...getCommonPinningStyles({ column: header.column }),
 										}}
-										className={
-											(header.column.columnDef.meta as { align?: string })
-												?.align === "center"
-												? "text-center"
-												: (header.column.columnDef.meta as { align?: string })
-															?.align === "right"
-													? "text-right"
-													: "text-left"
-										}
+										className={getAlignmentClass(header.column.columnDef.meta)}
 									>
 										{header.isPlaceholder
 											? null
@@ -120,15 +138,7 @@ export function DataTable<TData>({
 											style={{
 												...getCommonPinningStyles({ column: cell.column }),
 											}}
-											className={
-												(cell.column.columnDef.meta as { align?: string })
-													?.align === "center"
-													? "text-center"
-													: (cell.column.columnDef.meta as { align?: string })
-																?.align === "right"
-														? "text-right"
-														: "text-left"
-											}
+											className={getAlignmentClass(cell.column.columnDef.meta)}
 										>
 											{flexRender(
 												cell.column.columnDef.cell,

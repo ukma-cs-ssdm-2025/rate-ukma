@@ -10,10 +10,10 @@ export function getContext() {
 export function RootProvider({
 	children,
 	queryClient,
-}: {
+}: Readonly<{
 	children: React.ReactNode;
 	queryClient: QueryClient;
-}) {
+}>) {
 	return (
 		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 	);

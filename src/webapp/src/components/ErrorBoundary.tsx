@@ -4,10 +4,9 @@ import { Button } from "./ui/Button";
 
 function ErrorFallback({
 	resetErrorBoundary,
-}: {
-	error: Error;
+}: Readonly<{
 	resetErrorBoundary: () => void;
-}) {
+}>) {
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center px-4">
 			<div className="text-center max-w-md">
@@ -42,7 +41,7 @@ export function ErrorBoundary({
 	children,
 	fallback = ErrorFallback,
 	onError,
-}: ErrorBoundaryProps) {
+}: Readonly<ErrorBoundaryProps>) {
 	return (
 		<ReactErrorBoundary
 			FallbackComponent={fallback}

@@ -16,7 +16,7 @@ type MicrosoftLoginButtonProps = {
 export function MicrosoftLoginButton({
 	className,
 	redirectTo,
-}: MicrosoftLoginButtonProps) {
+}: Readonly<MicrosoftLoginButtonProps>) {
 	const { loginWithMicrosoft, status } = useAuth();
 	const [isRedirecting, setIsRedirecting] = useState(false);
 
