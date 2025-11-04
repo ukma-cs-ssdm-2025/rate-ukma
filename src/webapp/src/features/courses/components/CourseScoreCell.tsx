@@ -6,7 +6,10 @@ interface CourseScoreCellProps {
 	variant: "difficulty" | "usefulness";
 }
 
-export function CourseScoreCell({ value, variant }: CourseScoreCellProps) {
+export function CourseScoreCell({
+	value,
+	variant,
+}: Readonly<CourseScoreCellProps>) {
 	if (!value) {
 		return (
 			<div className="flex items-center justify-center">

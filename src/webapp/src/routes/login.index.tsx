@@ -90,8 +90,8 @@ function LoginPage() {
 			}
 		};
 
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
+		globalThis.addEventListener("keydown", handleKeyDown);
+		return () => globalThis.removeEventListener("keydown", handleKeyDown);
 	}, []);
 
 	return (
@@ -100,7 +100,12 @@ function LoginPage() {
 				{showAdminLogin ? "Admin Panel" : "Вхід"}
 			</h1>
 
-			{!showAdminLogin ? (
+			{showAdminLogin ? (
+				<LoginForm
+					loginWithDjango={loginWithDjango}
+					onCancel={() => setShowAdminLogin(false)}
+				/>
+			) : (
 				<>
 					<div className="space-y-3 mb-6">
 						<h2 className="text-xl font-semibold">{message.title}</h2>
@@ -110,11 +115,6 @@ function LoginPage() {
 					</div>
 					<MicrosoftLoginButton className="w-full gap-2 h-12 text-base font-medium bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200" />
 				</>
-			) : (
-				<LoginForm
-					loginWithDjango={loginWithDjango}
-					onCancel={() => setShowAdminLogin(false)}
-				/>
 			)}
 		</>
 	);
