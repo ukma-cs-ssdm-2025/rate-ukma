@@ -1,3 +1,5 @@
+import math
+
 from rest_framework.fields import ValidationError
 
 import pytest
@@ -41,10 +43,10 @@ def test_course_filter_parser_valid_inputs(parser: CourseFilterParser, query_par
     assert result.type_kind == "COMPULSORY"
     assert result.semester_year == 2024
     assert result.semester_term == "FALL"
-    assert result.avg_difficulty_min == 2.5
-    assert result.avg_difficulty_max == 4.0
-    assert result.avg_usefulness_min == 3.0
-    assert result.avg_usefulness_max == 5.0
+    assert math.isclose(result.avg_difficulty_min or 0, 2.5)
+    assert math.isclose(result.avg_difficulty_max or 0, 4.0)
+    assert math.isclose(result.avg_usefulness_min or 0, 3.0)
+    assert math.isclose(result.avg_usefulness_max or 0, 5.0)
     assert result.page == 2
     assert result.page_size == 10
 
@@ -141,8 +143,8 @@ def test_course_filter_parser_rating_range_valid(parser):
     result = parser.parse({"avg_difficulty_min": "2.0", "avg_difficulty_max": "4.0"})
 
     # Assert
-    assert result.avg_difficulty_min == 2.0
-    assert result.avg_difficulty_max == 4.0
+    assert math.isclose(result.avg_difficulty_min or 0, 2.0)
+    assert math.isclose(result.avg_difficulty_max or 0, 4.0)
 
 
 @pytest.mark.parametrize(
