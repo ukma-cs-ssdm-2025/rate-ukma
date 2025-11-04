@@ -204,4 +204,3 @@ def test_get_courses_stats_serializes_response_correctly(token_client):
     assert "usefulness" in rating_data
     assert "comment" in rating_data
     assert "created_at" in rating_data
-    assert "created_at" in rating_data
