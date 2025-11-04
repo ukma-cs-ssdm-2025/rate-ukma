@@ -141,11 +141,11 @@ class CourseRepository:
         return order_by_fields
 
     def _paginate(self, courses: QuerySet[Course], filters: CourseFilters) -> CourseFilterPayload:
-        filters.page_size = len(courses) if filters.page_size is None else filters.page_size
-        filters.page = DEFAULT_PAGE_NUMBER if filters.page is None else filters.page
+        page_size = courses.count() if filters.page_size is None else filters.page_size
+        page = DEFAULT_PAGE_NUMBER if filters.page is None else filters.page
 
-        page_size = max(MIN_PAGE_SIZE, min(int(filters.page_size), MAX_PAGE_SIZE))
-        page_number = max(DEFAULT_PAGE_NUMBER, int(filters.page))
+        page_size = max(MIN_PAGE_SIZE, min(int(page_size), MAX_PAGE_SIZE))
+        page_number = max(DEFAULT_PAGE_NUMBER, int(page))
 
         paginator = Paginator(courses, page_size)
         page_obj = paginator.get_page(page_number)

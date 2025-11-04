@@ -19,6 +19,7 @@ from rating_app.views.responses import R_ANALYTICS
 @extend_schema(tags=["analytics"])
 class AnalyticsViewSet(viewsets.ViewSet):
     serializer_class = CourseAnalyticsSerializer
+    lookup_url_kwarg = "course_id"
 
     # IoC args
     course_service: CourseService | None = None
@@ -53,7 +54,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
     def retrieve(self, request, *args, **kwargs):
         assert self.course_service is not None
 
-        course_id = kwargs.get("course_id")
+        course_id = kwargs.get(self.lookup_url_kwarg)
         course = self.course_service.get_course(course_id)
         serialized = self.serializer_class(course).data
         return Response(serialized, status=status.HTTP_200_OK)

@@ -44,7 +44,7 @@ def test_analytics_filter_applied(
 ):
     # Arrange
     math_course = course_factory.create(title="Math")
-    physics_course = course_factory.create(title="Math")
+    physics_course = course_factory.create(title="Physics")
     offering_math = course_offering_factory(course=math_course)
     offering_physics = course_offering_factory(course=physics_course)
     rating_factory.create_batch(5, course_offering=offering_math)
