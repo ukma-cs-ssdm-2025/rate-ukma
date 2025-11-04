@@ -10,7 +10,7 @@ const COURSES_PAGE_TITLE_TEXT = "Курси";
 const RATE_UKMA_TITLE_PATTERN = /Rate UKMA/;
 
 const MICROSOFT_EMAIL = process.env.CORPORATE_EMAIL ?? "";
-const MICROSOFT_PASSWORD = process.env.PASSWORD ?? "";
+const MICROSOFT_PASSWORD = process.env.CORPORATE_PASSWORD ?? "";
 
 test.describe("Microsoft Login Page", () => {
 	test.beforeEach(async ({ page }) => {
@@ -59,7 +59,7 @@ test.describe("Microsoft Login Page", () => {
 		expect(request.url()).toContain(MICROSOFT_LOGIN_REDIRECT_URL);
 	});
 
-	test("login with Microsoft account", async ({ page }) => {
+	test("login with Microsoft account", async ({ page, context }) => {
 		if (!MICROSOFT_EMAIL || !MICROSOFT_PASSWORD) {
 			throw new Error("MICROSOFT_EMAIL and MICROSOFT_PASSWORD must be set");
 		}
@@ -94,5 +94,7 @@ test.describe("Microsoft Login Page", () => {
 		await expect(
 			page.locator("h1").filter({ hasText: COURSES_PAGE_TITLE_TEXT }),
 		).toBeVisible();
+
+		await context.storageState({ path: "playwright/.auth/microsoft.json" });
 	});
 });

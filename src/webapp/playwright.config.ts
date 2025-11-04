@@ -1,5 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const authenticatedProjectBase = {
+	dependencies: ["login"],
+	testIgnore: /.*login\.test\.ts/,
+	use: {
+		storageState: "playwright/.auth/microsoft.json",
+	},
+};
+
 export default defineConfig({
 	testDir: "./tests/e2e",
 	use: {
@@ -8,9 +16,26 @@ export default defineConfig({
 		screenshot: "only-on-failure",
 	},
 	projects: [
-		{ name: "chromium", use: { ...devices["Desktop Chrome"] } },
-		{ name: "firefox", use: { ...devices["Desktop Firefox"] } },
-		{ name: "webkit", use: { ...devices["Desktop Safari"] } },
+		{
+			name: "login",
+			testMatch: /.*login\.test\.ts/,
+			use: { ...devices["Desktop Chrome"] },
+		},
+		{
+			name: "chromium-auth",
+			...authenticatedProjectBase,
+			use: { ...authenticatedProjectBase.use, ...devices["Desktop Chrome"] },
+		},
+		{
+			name: "firefox-auth",
+			...authenticatedProjectBase,
+			use: { ...authenticatedProjectBase.use, ...devices["Desktop Firefox"] },
+		},
+		{
+			name: "webkit-auth",
+			...authenticatedProjectBase,
+			use: { ...authenticatedProjectBase.use, ...devices["Desktop Safari"] },
+		},
 	],
 	reporter: process.env.CI === "true" ? "html" : "line",
 });
