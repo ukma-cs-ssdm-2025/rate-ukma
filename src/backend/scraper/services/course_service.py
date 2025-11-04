@@ -13,6 +13,11 @@ logger = structlog.get_logger(__name__)
 course_detail_parser = CourseDetailParser()
 
 
+def _log_progress(done: int, total: int, message_type: str) -> None:
+    if done % 10 == 0 or done == total:
+        logger.info(message_type, completed=done, total=total)
+
+
 async def _parse_one(context: BrowserContext, url: str) -> ParsedCourseDetails:
     page = await context.new_page()
     try:
@@ -65,8 +70,7 @@ async def fetch_details_by_ids(
         nonlocal done
         if resume and cid in done_ids:
             done += 1
-            if done % 10 == 0 or done == total:
-                logger.info("progress_skipped", completed=done, total=total)
+            _log_progress(done, total, "progress_skipped")
             return
         url = f"{base_url}/course/{cid}"
         try:
@@ -74,14 +78,15 @@ async def fetch_details_by_ids(
                 data = await _parse_one(context, url)
                 rid = str(data.id) if data.id else cid
                 data.id = rid
-                writer.write(data.model_dump_json_compat())
+
+                payload = data.model_dump(exclude_none=True, exclude_defaults=True)
+                writer.write(payload)
                 done_ids.add(rid)
         except Exception as e:
             logger.exception("failed_to_parse", course_id=cid, url=url, error=str(e))
         finally:
             done += 1
-            if done % 10 == 0 or done == total:
-                logger.info("progress_updated", completed=done, total=total)
+            _log_progress(done, total, "progress_updated")
 
     await asyncio.gather(*(worker(cid) for cid in wanted))
     logger.info(

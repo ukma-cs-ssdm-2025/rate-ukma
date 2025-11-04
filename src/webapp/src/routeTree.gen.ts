@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
 import { Route as LoginFailedRouteImport } from './routes/login.failed'
+import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 
 const MyRatingsRoute = MyRatingsRouteImport.update({
   id: '/my-ratings',
@@ -40,17 +41,24 @@ const LoginFailedRoute = LoginFailedRouteImport.update({
   path: '/failed',
   getParentRoute: () => LoginRoute,
 } as any)
+const CoursesCourseIdRoute = CoursesCourseIdRouteImport.update({
+  id: '/courses/$courseId',
+  path: '/courses/$courseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
+  '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
   '/login/': typeof LoginIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/my-ratings': typeof MyRatingsRoute
+  '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
   '/login': typeof LoginIndexRoute
 }
@@ -59,21 +67,36 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
+  '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
   '/login/': typeof LoginIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/my-ratings' | '/login/failed' | '/login/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/my-ratings'
+    | '/courses/$courseId'
+    | '/login/failed'
+    | '/login/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/my-ratings' | '/login/failed' | '/login'
-  id: '__root__' | '/' | '/login' | '/my-ratings' | '/login/failed' | '/login/'
+  to: '/' | '/my-ratings' | '/courses/$courseId' | '/login/failed' | '/login'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/my-ratings'
+    | '/courses/$courseId'
+    | '/login/failed'
+    | '/login/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRouteWithChildren
   MyRatingsRoute: typeof MyRatingsRoute
+  CoursesCourseIdRoute: typeof CoursesCourseIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -113,6 +136,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginFailedRouteImport
       parentRoute: typeof LoginRoute
     }
+    '/courses/$courseId': {
+      id: '/courses/$courseId'
+      path: '/courses/$courseId'
+      fullPath: '/courses/$courseId'
+      preLoaderRoute: typeof CoursesCourseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -132,6 +162,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRouteWithChildren,
   MyRatingsRoute: MyRatingsRoute,
+  CoursesCourseIdRoute: CoursesCourseIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -31,12 +31,95 @@ jobs:
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
       SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
 
-  create_release:
+  update_pre_releases:
     needs: deploy-live
     runs-on: ubuntu-latest
-    env:
-      LIVE_TAG_PREFIX: "live-"
-      LIVE_VERSION_TAG: "live-${{inputs.version_tag}}"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.version_tag }}
+          fetch-depth: 0
+
+      - name: Fetch Tags
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          git fetch --tags
+
+      - name: Get Previous Live Release
+        id: prev_live_release
+        env:
+          LIVE_TAG_PREFIX: "live-"
+        run: |
+          PREV_TAG=$(git tag -l "$LIVE_TAG_PREFIX*" --sort=-v:refname | head -n 1)
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Get all releases between last live and current
+        id: get_releases
+        env:
+          PREV_LIVE_TAG: ${{ steps.prev_live_release.outputs.prev_tag }}
+          VERSION_TAG: "${{ inputs.version_tag }}"
+          LIVE_TAG_PREFIX: "live-"
+        run: |
+          TAGS=$(git tag --sort=-v:refname)
+          LAST_TAG=${PREV_LIVE_TAG#$LIVE_TAG_PREFIX}
+          CURRENT_TAG=$VERSION_TAG
+
+          RELEASES_TO_UPDATE=$(git log --pretty=format:"%D" $LAST_TAG..$CURRENT_TAG | \
+            grep -oE 'tag: [^,)]+' | sed 's/tag: //' | sort -u | grep '^v')
+
+          echo "Releases to update: $RELEASES_TO_UPDATE"
+
+          {
+            echo "tags<<EOF"
+            echo "$RELEASES_TO_UPDATE"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update Pre Releases
+        id: update_pre_releases
+        if: steps.get_releases.outputs.tags != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          readarray -t tags <<< "${{ steps.get_releases.outputs.tags }}"
+          echo "Processing releases: ${tags[@]}"
+
+          for i in "${!tags[@]}"; do
+            tag="${tags[$i]}"
+            echo "Updating release: $tag"
+
+            if [[ "$i" -eq "$(( ${#tags[@]} - 1 ))" ]]; then
+              IS_LATEST=true
+            else
+              IS_LATEST=false
+            fi
+
+            RELEASE_API="https://api.github.com/repos/${{ github.repository }}/releases/tags/$tag"
+            RELEASE_ID=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "$RELEASE_API" | jq -r '.id')
+
+            if [[ "$RELEASE_ID" == "null" || -z "$RELEASE_ID" ]]; then
+              echo "Error: No release found for tag $tag" >&2
+              continue
+            fi
+
+            echo "Release ID: $RELEASE_ID"
+
+            PATCH_API="https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID"
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "$PATCH_API" \
+              -d '{"prerelease": false, "make_latest": '"$IS_LATEST"'}')
+
+            if [[ "$RESPONSE" != "200" ]]; then
+              echo "Error updating release $tag (HTTP $RESPONSE)" >&2
+            fi
+          done
+
+  push_live_tag:
+    needs: update_pre_releases
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -44,55 +127,11 @@ jobs:
           ref: ${{ inputs.version_tag }}
           fetch-depth: 0
 
-      - name: Set Live Version Tag
-        id: set_live_version_tag
-        run: |
-          echo "LIVE_VERSION_TAG=${{ env.LIVE_TAG_PREFIX }}${{ inputs.version_tag }}" >> "$GITHUB_OUTPUT"
-
-      - name: Get Previous Live Release
-        id: prev_release
-        run: |
-          PREV_TAG=$(git tag -l "${{ env.LIVE_TAG_PREFIX }}*" --sort=-v:refname | head -n 1)
-          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
-
-          if [ -n "$PREV_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."${{ inputs.version_tag }}")
-
-            if [ -n "$COMMITS" ]; then
-              CHANGELOG="$COMMITS"
-            else
-              CHANGELOG="No changes since last live release"
-            fi
-            
-          else
-            CHANGELOG="No previous live release"
-          fi
-
-          echo "changelog=$CHANGELOG" >> "$GITHUB_OUTPUT"
-
-      - name: Create Version Tag
-        id: create_version_tag
+      - name: Push Live Version Tag
+        id: push_live_tag
+        env:
+          LIVE_VERSION_TAG: "live-${{ inputs.version_tag }}"
         run: |
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
-          git tag ${{ env.LIVE_VERSION_TAG }}
-          git push origin ${{ env.LIVE_VERSION_TAG }}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.LIVE_VERSION_TAG }}
-          name: "Live Release ${{ inputs.version_tag }}"
-          body: |
-            Latest stable version: `${{ inputs.version_tag }}`
-            Live tag: `${{ env.LIVE_VERSION_TAG }}`
-            Previous live version: `${{ steps.prev_release.outputs.prev_tag }}`
-
-            ## Changelog since last release:
-            ${{ steps.prev_release.outputs.changelog }}
-
-            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.prev_release.outputs.prev_tag }}...${{ env.LIVE_VERSION_TAG }})
-
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git tag $LIVE_VERSION_TAG
+          git push origin $LIVE_VERSION_TAG

@@ -1,8 +1,12 @@
 name: Staging Build
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
+    paths:
+      - src/**
+      - .github/**
 
 jobs:
   version:
@@ -25,8 +29,16 @@ jobs:
     needs: [version, test, openapi-validation, audit, build]
     uses: ./.github/workflows/deploy-staging.yml
     with:
-      deployment_ref: ${{ needs.version.outputs.version_tag }}
+      deployment_ref: ${{ github.sha }}
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
       SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+
+  release:
+    needs: [deploy-staging, version]
+    if: needs.version.outputs.version_type != 'none'
+    uses: ./.github/workflows/release.yml
+    with:
+      version_tag: ${{ needs.version.outputs.version_tag }}
+      pre-release: true

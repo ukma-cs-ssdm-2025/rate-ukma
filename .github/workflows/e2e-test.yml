@@ -3,9 +3,6 @@ name: E2E Tests
 on:
   workflow_call:
     inputs:
-      environment:
-        required: true
-        type: string
       test_url:
         required: true
         type: string
@@ -22,7 +19,7 @@ jobs:
   e2e-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.deployment_ref || github.sha }}
 
@@ -50,9 +47,15 @@ jobs:
         working-directory: ${{ env.WEBAPP_DIR }}
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('src/webapp/pnpm-lock.yaml') }}
+
       - name: Install Playwright browsers
         working-directory: ${{ env.WEBAPP_DIR }}
-        run: pnpm exec playwright install --with-deps
+        run: pnpm exec playwright install chromium firefox webkit --with-deps
 
       - name: Generate API client
         working-directory: ${{ env.WEBAPP_DIR }}
@@ -69,7 +72,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ inputs.environment }}
+          name: playwright-report-${{ inputs.deployment_ref || github.sha }}
           path: |
             ${{ env.WEBAPP_DIR }}/playwright-report/
             ${{ env.WEBAPP_DIR }}/test-results/
@@ -79,7 +82,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-failures-${{ inputs.environment }}
+          name: playwright-failures-${{ inputs.deployment_ref || github.sha }}
           path: |
             ${{ env.WEBAPP_DIR }}/test-results/**/*.png
             ${{ env.WEBAPP_DIR }}/test-results/**/*.webm

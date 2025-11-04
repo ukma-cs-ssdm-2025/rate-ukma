@@ -1,0 +1,89 @@
+name: Create Release
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: "The version tag to create a release for"
+        required: true
+        type: string
+      previous_version:
+        description: "The previous version tag"
+        required: false
+        type: string
+        default: ""
+      pre-release:
+        description: "Whether to create a pre-release or not"
+        required: false
+        type: boolean
+        default: false
+
+  workflow_call:
+    inputs:
+      version_tag:
+        description: "The version tag"
+        required: true
+        type: string
+      pre-release:
+        description: "Whether to create a pre-release or not"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version_tag }}
+          fetch-depth: 0
+
+      - name: Get Changelog
+        id: changelog
+        env:
+          VERSION_TAG: ${{ inputs.version_tag }}
+          PREV_USER_TAG: ${{ inputs.previous_version }}
+        run: |
+          if [ -n "$PREV_USER_TAG" ]; then
+            PREV_TAG="$PREV_USER_TAG"
+          else
+            PREV_TAG=$(git tag -l "v*" --sort=-v:refname | grep -v "^$VERSION_TAG$" | head -n 1)
+          fi
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."$VERSION_TAG")
+
+            if [ -n "$COMMITS" ]; then
+              CHANGELOG="$COMMITS"
+            else
+              CHANGELOG="No changes since last release"
+            fi
+            
+          else
+            CHANGELOG="No previous release"
+          fi
+
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ inputs.version_tag }}
+          name: "Release ${{ inputs.version_tag }}"
+          body: |
+            Latest version: `${{ inputs.version_tag }}`
+            Previous version: `${{ steps.changelog.outputs.prev_tag }}`
+
+            ## Changelog since last release:
+            ${{ steps.changelog.outputs.changelog }}
+
+            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.changelog.outputs.prev_tag }}...${{ inputs.version_tag }})
+
+          draft: false
+          prerelease: ${{ inputs.pre-release }}

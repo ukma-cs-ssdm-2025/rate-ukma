@@ -13,12 +13,21 @@
 
 ## 2. Roles & Responsibilities
 
-| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation | Construction I | Testing & Debugging |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead | Code Reviewer | Integration Lead |
-| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead | Quality Lead | Debugger |
-| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead | Quality Lead | Security Analyst | Test Lead |
-| **Milana** | Documentation Lead | Quality Lead | Documentation Lead | Documentation Lead | Documentation Lead | QA Planner |
+| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation | Construction I | Testing & Debugging | Verification & Validation | Refactoring & Evolution |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead | Code Reviewer | Integration Lead | Review Manager | Release Manager |
+| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead | Quality Lead | Debugger | Test Planner | Code Analyst |
+| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead | Quality Lead | Security Analyst | Test Lead | Documentation Lead | QA Engineer |
+| **Milana** | Documentation Lead | Quality Lead | Documentation Lead | Documentation Lead | Documentation Lead | QA Planner | QA Analyst | Refactoring Lead |
+
+### Verification & Validation Roles
+
+| Role | Responsibility | Description |
+|------|----------------|-------------|
+| Test Planner | Kateryna | Coordinates the test plan creation and table structure. |
+| Review Manager | Anastasiia | Collects and transfers plans between teams, records feedback. |
+| QA Analyst | Milana | Summarizes the results of other teams' reviews. |
+| Documentation Lead | Andrii | Updates test-plan.md and creates review-log.md. |
 
 ---
 

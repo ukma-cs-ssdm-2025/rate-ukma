@@ -6,15 +6,18 @@ import structlog
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from rating_app.constants import (
-    DEFAULT_PAGE_NUMBER,
-    DEFAULT_PAGE_SIZE,
-)
+from rating_app.constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
 from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
 from rating_app.ioc_container.services import rating_service
 from rating_app.models import Rating, Student
 from rating_app.serializers import RatingCreateUpdateSerializer, RatingReadSerializer
-from rating_app.views.responses import R_NO_CONTENT, R_RATING, R_RATING_CREATE, R_RATING_LIST
+from rating_app.views.responses import (
+    R_NO_CONTENT,
+    R_RATING,
+    R_RATING_CREATE,
+    R_RATING_LIST,
+    RATING_NOT_FOUND_MSG,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -118,7 +121,6 @@ class RatingViewSet(viewsets.ViewSet):
         serializer = RatingCreateUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # course_offering_id = serializer.validated_data["course_offering"]  # type: ignore
         co = serializer.validated_data["course_offering"]  # type: ignore
         course_offering_id = getattr(co, "id", co)
 
@@ -154,7 +156,7 @@ class RatingViewSet(viewsets.ViewSet):
             serializer = RatingReadSerializer(rating)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Rating.DoesNotExist as exc:
-            raise NotFound("Rating not found") from exc
+            raise NotFound(RATING_NOT_FOUND_MSG) from exc
 
     @extend_schema(
         summary="Update a rating",
@@ -188,7 +190,7 @@ class RatingViewSet(viewsets.ViewSet):
             response_serializer = RatingReadSerializer(rating)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         except Rating.DoesNotExist as exc:
-            raise NotFound("Rating not found") from exc
+            raise NotFound(RATING_NOT_FOUND_MSG) from exc
         except (ValueError, TypeError) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -233,7 +235,7 @@ class RatingViewSet(viewsets.ViewSet):
             response_serializer = RatingReadSerializer(rating)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         except Rating.DoesNotExist as exc:
-            raise NotFound("Rating not found") from exc
+            raise NotFound(RATING_NOT_FOUND_MSG) from exc
 
     @extend_schema(
         summary="Delete a rating",
@@ -257,4 +259,4 @@ class RatingViewSet(viewsets.ViewSet):
             self.rating_service.delete_rating(rating_id)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Rating.DoesNotExist as exc:
-            raise NotFound("Rating not found") from exc
+            raise NotFound(RATING_NOT_FOUND_MSG) from exc

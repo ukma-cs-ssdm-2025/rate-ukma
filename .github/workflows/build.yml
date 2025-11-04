@@ -1,35 +1,138 @@
 name: Docker Build
 on:
-  workflow_call:
-    inputs:
-      profile:
-        description: "docker compose profile to use (dev or prod)"
-        required: false
-        type: string
-        default: prod
   workflow_dispatch:
-    inputs:
-      profile:
-        description: "docker compose profile to use (dev or prod)"
-        required: false
-        type: string
-        default: prod
+  workflow_call:
 
 env:
   SOURCE_CODE_DIR: src
+  BACKEND_DIR: src/backend
+  WEBAPP_DIR: src/webapp
+  OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
+  WEBAPP_STAGING_IMAGE_TAG: staging-latest
+  WEBAPP_LIVE_IMAGE_TAG: live-latest
+
+permissions:
+  packages: write
+  contents: read
 
 jobs:
-  docker-build:
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      backend_changed: ${{ steps.filter.outputs.backend }}
+      webapp_changed: ${{ steps.filter.outputs.webapp }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        id: filter
+        with:
+          filters: |
+            backend:
+              - '${{ env.BACKEND_DIR }}/**'
+            webapp:
+              - '${{ env.WEBAPP_DIR }}/**'
+              - '${{ env.OPENAPI_SCHEMA_FILE }}'
+
+  build-backend:
+    needs: filter
+    if: needs.filter.outputs.backend_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Login to GitHub Container Registry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: docker login ghcr.io -u ${{ github.actor }} -p $GITHUB_TOKEN
 
       - name: Copy default .env file
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           cp .env.sample .env
 
-      - name: Build backend and frontend images
+      - name: Extract name from docker-compose.yml
+        id: extract_name
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker compose --profile "${{ inputs.profile || 'prod' }}" build backend webapp-build
+        run: |
+          BACKEND_IMAGE=$(awk '/backend:/, /profiles:/' docker-compose.yml | grep 'image:' | head -1 | awk '{print $2}')
+          echo "backend_image=${BACKEND_IMAGE}" >> $GITHUB_OUTPUT
+          echo "Backend image: $BACKEND_IMAGE"
+
+      - name: Build backend
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: docker compose --profile prod build backend
+
+      - name: Push backend image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: docker push ${{ steps.extract_name.outputs.backend_image }}:latest
+
+  build-webapp:
+    needs: filter
+    if: needs.filter.outputs.webapp_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Login to GitHub Container Registry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: docker login ghcr.io -u ${{ github.actor }} -p $GITHUB_TOKEN
+
+      - name: Copy default .env file
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          cp .env.sample .env
+
+      - name: Extract name from docker-compose.yml
+        id: extract_name
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          WEBAPP_IMAGE_TAGGED=$(awk '/webapp-build:/, /profiles:/' docker-compose.yml | grep 'image:' | head -1 | awk '{print $2}')
+          WEBAPP_IMAGE=$(echo $WEBAPP_IMAGE_TAGGED | awk -F: '{print $1}')
+          echo "webapp_image=${WEBAPP_IMAGE}" >> $GITHUB_OUTPUT
+          echo "Webapp image: $WEBAPP_IMAGE"
+
+      - name: Build staging webapp
+        env:
+          VITE_API_BASE_URL: ${{ vars.STAGING_URL }}
+          WEBAPP_IMAGE_TAG: ${{ env.WEBAPP_STAGING_IMAGE_TAG }}
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          echo "Building webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
+          docker compose --profile prod build \
+            --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
+            webapp-build
+
+      - name: Push staging webapp
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        env:
+          WEBAPP_IMAGE_TAG: ${{ env.WEBAPP_STAGING_IMAGE_TAG }}
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
+
+      - name: Build live webapp
+        env:
+          VITE_API_BASE_URL: ${{ vars.LIVE_URL }}
+          WEBAPP_IMAGE_TAG: ${{ env.WEBAPP_LIVE_IMAGE_TAG }}
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          echo "Building webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
+          docker compose --profile prod build \
+            --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+            --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
+            webapp-build
+
+      - name: Push live webapp
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        env:
+          WEBAPP_IMAGE_TAG: ${{ env.WEBAPP_LIVE_IMAGE_TAG }}
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
+          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}

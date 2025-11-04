@@ -16,6 +16,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/backend
     container_name: "${COMPOSE_PROJECT_NAME}_django_backend"
     env_file:
       - .env
@@ -53,6 +54,7 @@ services:
       - dev
 
   webapp-build:
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/webapp:${WEBAPP_IMAGE_TAG}
     build:
       context: ..
       dockerfile: ./src/webapp/Dockerfile

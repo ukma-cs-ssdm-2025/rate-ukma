@@ -9,7 +9,7 @@ if echo "$commit_msg" | grep -Eq "$pattern"; then
 else
     # Message does not match the format
     echo "======================================================================="
-    echo "ERROR: Commit message '$commit_msg' does not match semantic format."
+    echo "ERROR: Commit message '$commit_msg' does not match semantic format." >&2
     echo ""
     echo "The required format is: <type>[optional scope]: <subject>"
     echo ""

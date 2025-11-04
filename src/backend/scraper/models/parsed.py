@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SpecialtyEntry(BaseModel):
@@ -36,6 +36,16 @@ class StudentRow(BaseModel):
     email: str = ""
 
 
+class SeasonInfo(BaseModel):
+    credits: float | None = None
+    hours_per_week: int | None = None
+    lecture_hours: int | None = None
+    practice_type: str | None = None
+    practice_hours: int | None = None
+    exam_type: str | None = None
+    other: list[str] | None = None
+
+
 class ParsedCourseDetails(BaseModel):
     id: str | None = None
     url: str | None = None
@@ -53,7 +63,7 @@ class ParsedCourseDetails(BaseModel):
     annotation: str | None = None
     specialties: list[SpecialtyEntry] | None = None
     semesters: list[str] | None = None
-    season_details: dict[str, list[str]] | None = None
+    season_details: dict[str, SeasonInfo] = Field(default_factory=dict)
     limits: Limits | None = None
     enrollment: Enrollment | None = None
     students: list[StudentRow] | None = None
