@@ -30,6 +30,14 @@ def course_detail_view():
 
 
 @once
+def course_filter_options_view():
+    return CourseViewSet.as_view(
+        {"get": "filter_options"},
+        course_service=course_service(),
+    )
+
+
+@once
 def course_ratings_list_create_view():
     return RatingViewSet.as_view({"get": "list", "post": "create"})
 
@@ -124,7 +132,7 @@ def rest_urlpatterns() -> list:
         ),
         path(
             "courses/filter-options/",
-            CourseViewSet.as_view({"get": "filter_options"}),
+            course_filter_options_view(),
             name="course-filter-options",
         ),
         path(
