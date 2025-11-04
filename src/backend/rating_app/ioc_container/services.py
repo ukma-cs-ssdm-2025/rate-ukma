@@ -1,5 +1,5 @@
 from rateukma.ioc.decorators import once
-from rating_app.services import CourseService, InstructorService, RatingService
+from rating_app.services import CourseService, InstructorService, RatingService, StudentService
 
 
 @once
@@ -17,4 +17,9 @@ def instructor_service() -> InstructorService:
     return InstructorService()
 
 
-__all__ = ["rating_service", "course_service", "instructor_service"]
+@once
+def student_service() -> StudentService:
+    return StudentService()
+
+
+__all__ = ["rating_service", "course_service", "instructor_service", "student_service"]
