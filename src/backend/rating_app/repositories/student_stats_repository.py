@@ -60,7 +60,6 @@ class StudentStatisticsRepository:
         Returns detailed rating history for a student.
         Each record is an attended course offering.
         """
-        from rating_app.models import CourseOffering
 
         offerings_qs = (
             CourseOffering.objects.filter(
