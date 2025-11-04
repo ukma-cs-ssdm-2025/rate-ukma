@@ -137,3 +137,7 @@ R_INSTRUCTOR = {
     200: OpenApiResponse(InstructorSerializer, "OK"),
     **common_errors(include_404=True),
 }
+
+R_STUDENT = {
+    **common_errors(include_404=True),
+}
