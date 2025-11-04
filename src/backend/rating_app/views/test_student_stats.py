@@ -68,6 +68,13 @@ def test_get_courses_stats_returns_rated_courses(token_client):
     semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
     offering = CourseOfferingFactory(course=course, semester=semester)
     EnrollmentFactory(student=student, offering=offering)
+    _rating = RatingFactory(
+        student=student,
+        course_offering=offering,
+        difficulty=4,
+        usefulness=5,
+        comment="Great course!",
+    )
 
     # Act
     response = token_client.get("/api/v1/students/me/courses/")
