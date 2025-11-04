@@ -2,10 +2,9 @@ from rest_framework import serializers
 
 
 class InlineRatingSerializer(serializers.Serializer):
-    rated = serializers.IntegerField(allow_null=True, read_only=True)
-    difficulty = serializers.IntegerField()
-    usefulness = serializers.IntegerField()
-    comment = serializers.CharField(allow_blank=True)
+    difficulty = serializers.IntegerField(read_only=True)
+    usefulness = serializers.IntegerField(read_only=True)
+    comment = serializers.CharField(allow_blank=True, read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
 
 
