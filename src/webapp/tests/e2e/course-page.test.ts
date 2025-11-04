@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const COURSES_PAGE_TITLE_TEXT = "Курси";
-const COURSE_PAGE_PATTERN = /.*\/courses\/[0-9a-fA-F-]+$/;
+const COURSE_PAGE_PATTERN = /\/courses\/[0-9a-fA-F-]{36}$/;
 
 test.describe("Course Page", () => {
 	test.beforeEach(async ({ page }) => {
