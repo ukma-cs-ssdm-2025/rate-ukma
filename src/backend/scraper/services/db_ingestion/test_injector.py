@@ -142,7 +142,7 @@ def create_mock_no_speciality_payload() -> list[DeduplicatedCourse]:
                         create_mock_enrollment(
                             first_name="Jane",
                             last_name="Smith",
-                            speciality=None,
+                            speciality="",
                             level=EducationLevel.MASTER,
                         )
                     ],
@@ -185,7 +185,7 @@ def create_mock_enrollment(
     *,
     first_name: str = "John",
     last_name: str = "Doe",
-    speciality: str | None = "SpecX",
+    speciality: str = "SpecX",
     level: EducationLevel = EducationLevel.BACHELOR,
     status: EnrollmentStatus = EnrollmentStatus.ENROLLED,
 ) -> DeduplicatedEnrollment:

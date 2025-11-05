@@ -1,6 +1,7 @@
 import pytest
 
 from scraper.models import ParsedCourseDetails
+from scraper.models.deduplicated import PracticeType
 from scraper.services.deduplication.base import DataValidationError
 from scraper.services.deduplication.extractors import (
     CourseLimitsExtractor,
@@ -220,7 +221,7 @@ def test_instructor_extractor_with_single_initial():
     instructor = result[0].instructor
     assert instructor.last_name == "Іванов"
     assert instructor.first_name == "І"
-    assert instructor.patronymic is None
+    assert instructor.patronymic == ""
 
 
 def test_student_extractor_success(sample_course):
@@ -406,7 +407,8 @@ def test_practice_type_extractor_no_season_details():
     result = extractor.extract(course)
 
     # Assert
-    assert result is None
+    assert result is not None
+    assert result == PracticeType.PRACTICE
 
 
 def test_practice_type_extractor_success_english():
@@ -439,36 +441,6 @@ def test_practice_type_extractor_success_english():
     assert result.value == "PRACTICE"
 
 
-# def test_practice_type_extractor_success_ukrainian():
-#     # Arrange
-#     extractor = PracticeTypeExtractor()
-#     course_data = {
-#         "url": "https://my.ukma.edu.ua/course/550001",
-#         "title": "Test Course",
-#         "id": "550001",
-#         "academic_year": "2025–2026",
-#         "semesters": ["Семестр 1"],
-#         "season_details": {
-#             "Весна": {
-#                 "credits": 4.0,
-#                 "hours_per_week": 3,
-#                 "lecture_hours": 22,
-#                 "practice_type": "Практика",
-#                 "practice_hours": 20,
-#                 "exam_type": "залік",
-#             }
-#         },
-#     }
-#     course = ParsedCourseDetails(**course_data)
-
-#     # Act
-#     result = extractor.extract(course)
-
-#     # Assert
-#     assert result is not None
-#     assert result.value == "PRACTICE"
-
-
 def test_practice_type_extractor_seminar_english():
     # Arrange
     extractor = PracticeTypeExtractor()
@@ -498,35 +470,6 @@ def test_practice_type_extractor_seminar_english():
     assert result is not None
     assert result.value == "SEMINAR"
 
-
-# def test_practice_type_extractor_seminar_ukrainian():
-#     # Arrange
-#     extractor = PracticeTypeExtractor()
-#     course_data = {
-#         "url": "https://my.ukma.edu.ua/course/550001",
-#         "title": "Test Course",
-#         "id": "550001",
-#         "academic_year": "2025–2026",
-#         "semesters": ["Семестр 1"],
-#         "season_details": {
-#             "Весна": {
-#                 "credits": 4.0,
-#                 "hours_per_week": 3,
-#                 "lecture_hours": 22,
-#                 "practice_type": "Семінар",
-#                 "practice_hours": 20,
-#                 "exam_type": "залік",
-#             }
-#         },
-#     }
-#     course = ParsedCourseDetails(**course_data)
-
-#     # Act
-#     result = extractor.extract(course)
-
-#     # Assert
-#     assert result is not None
-#     assert result.value == "SEMINAR"
 
 def test_practice_type_extractor_unknown_type_defaults_to_practice():
     # Arrange
@@ -644,7 +587,8 @@ def test_practice_type_extractor_no_practice_type_in_season_details():
     result = extractor.extract(course)
 
     # Assert
-    assert result is None
+    assert result is not None
+    assert result == PracticeType.PRACTICE
 
 
 def test_practice_type_extractor_multiple_seasons():
