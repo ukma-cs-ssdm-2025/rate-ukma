@@ -50,3 +50,5 @@ coverage.xml
 .coverage
 playwright-report/
 test-results/
+microsoft.json
+playwright/.auth
