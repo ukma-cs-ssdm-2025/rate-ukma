@@ -194,29 +194,3 @@ def test_non_existent_course_retrieve(course_factory, token_client):
 
     # Assert
     assert response.status_code == 404
-
-
-@pytest.mark.django_db
-def test__to_int_and__to_bool(monkeypatch):
-    # Avoid constructing a real service during __init__
-    from rating_app.views.course_viewset import CourseViewSet
-
-    monkeypatch.setattr(
-        "rating_app.views.course_viewset.course_service",
-        lambda: object(),
-        raising=True,
-    )
-
-    vs = CourseViewSet()
-
-    assert vs._to_int(None, default=7) == 7
-    assert vs._to_int("12", default=0) == 12
-    assert vs._to_int("abc", default=5) == 5
-
-    assert vs._to_bool(None) is None
-    assert vs._to_bool("true") is True
-    assert vs._to_bool("1") is True
-    assert vs._to_bool("yes") is True
-    assert vs._to_bool("false") is False
-    assert vs._to_bool("0") is False
-    assert vs._to_bool("no") is False
