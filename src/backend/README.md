@@ -102,7 +102,7 @@ ruff check .
 docker exec -it <backend_container_name> ruff check .
 ```
 
-## Scraper Commands
+## Scraper
 
 The backend includes web scraping functionality to collect course data from UKMA.
 
@@ -117,32 +117,67 @@ playwright install
 ### Main Commands
 
 ```bash
-# Prepare filtered catalog URL with all academic years and filters
 python manage.py prepare_filtered_url
-
-# Collect course IDs from catalog pages
 python manage.py collect_catalog
-
-# Fetch detailed information for collected course IDs
 python manage.py fetch_courses
+python manage.py group_courses
+python manage.py insert_scraped --file scraper/state/grouped_courses.jsonl
 ```
 
 Add `--help` to any command to see all available arguments
 
-### Advanced Usage
+### State Files and Outputs
+
+The scraper creates intermediate state files in `scraper/state/`:
+
+- `filtered_urls.txt` - Generated catalog URL
+- `courses.jsonl` - Fetched course data
+- `grouped_courses.jsonl` - Processed and grouped courses
+
+### Full Flow of Scraper: Parsing to Ingestion
+
+The scraper follows a complete pipeline from data collection to database ingestion. Use this workflow to test the complete flow from parsing my.ukma.edu.ua data to ingestion into the staging/live database.
+
+#### 1. Prepare filtered catalog URL with all academic years and filters
 
 ```bash
+python manage.py prepare_filtered_url
+
 # Run with interactive browser to generate filtered URL
 python manage.py prepare_filtered_url --interactive
+```
 
-# Collect courses using the prepared filtered URL
+#### 2. Collect course IDs from catalog pages
+
+```bash
 python manage.py collect_catalog
 
 # Or use a custom URL with specific filters
-python manage.py collect_catalog --url "https://example.com/course/catalog?academic_year=2023-2024,2024-2025"
+python manage.py collect_catalog --url "https://example.com/course/catalog?academic_year=2025-2026"
 ```
 
-### Security Audit
+#### 3. Fetch Detailed Course Information
+
+```bash
+python manage.py fetch_courses
+```
+
+#### 4. Group courses that are essentially the same (different years etc.)
+
+```bash
+python manage.py group_courses
+```
+
+#### 5. Insert grouped course data into the database
+
+```bash
+python manage.py insert_scraped --file scraper/state/grouped_courses.jsonl
+
+# Alternative: use staging database
+python manage.py insert_scraped --file scraper/state/grouped_courses.jsonl --staging
+```
+
+## Security Audit
 
 ```bash
 # Local
