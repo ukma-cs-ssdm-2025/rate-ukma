@@ -93,7 +93,8 @@ jobs:
         uses: pyupio/safety-action@v1
         with:
           api-key: ${{ secrets.SAFETY_API_KEY }}
-          debug: true
+        env:
+          ACTIONS_STEP_DEBUG: true
         continue-on-error: true
 
       - name: Bandit security scan
