@@ -9,6 +9,8 @@ from rating_app.serializers import (
     InstructorSerializer,
     RatingListResponseSerializer,
     RatingReadSerializer,
+    StudentRatingsDetailedSerializer,
+    StudentRatingsLightSerializer,
 )
 from rating_app.serializers import ErrorEnvelopeSerializer as Err
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
@@ -140,6 +142,15 @@ R_INSTRUCTOR = {
     **common_errors(include_404=True),
 }
 
+R_STUDENT_RATINGS = {
+    200: OpenApiResponse(StudentRatingsLightSerializer, "OK"),
+    **common_errors(),
+}
+
+R_STUDENT_RATINGS_DETAILED = {
+    200: OpenApiResponse(StudentRatingsDetailedSerializer, "OK"),
+    **common_errors(),
+}
 R_ANALYTICS = {
     200: OpenApiResponse(CourseAnalyticsSerializer, "OK"),
     **common_errors(include_404=True),

@@ -2,7 +2,7 @@ from dataclasses import asdict, is_dataclass
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
 import structlog
@@ -16,11 +16,12 @@ from rating_app.filters.course_filters import (
 from rating_app.filters.course_payload import CourseFilterPayload
 from rating_app.filters.filters_parsers.course import CourseFilterParser, CourseQueryParams
 from rating_app.models import Course
+from rating_app.models.semester import SemesterTerm
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list import CourseListSerializer
 from rating_app.services.course_service import CourseService
-from rating_app.views.responses import R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
+from rating_app.views.responses import INVALID_VALUE, R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
 
 logger = structlog.get_logger(__name__)
 
@@ -33,6 +34,34 @@ class CourseViewSet(viewsets.ViewSet):
     # IoC args
     course_service: CourseService | None = None
     course_filter_parser: CourseFilterParser | None = None
+
+    def _parse_semester_year_param(self, raw: str | None) -> int | None:
+        if raw is None:
+            return None
+        try:
+            year = int(raw)
+        except (ValueError, TypeError):
+            raise ValidationError({"semesterYear": [INVALID_VALUE]}) from None
+        if year < 1991:
+            raise ValidationError({"semesterYear": ["Value out of range"]})
+        return year
+
+    def _parse_semester_term_param(self, raw: str | None) -> str | None:
+        if raw is None:
+            return None
+        normalized_term = raw.upper()
+        if normalized_term in SemesterTerm.values:
+            return normalized_term
+        raise ValidationError({"semesterTerm": [INVALID_VALUE]})
+
+    def _validate_rating_range(self, min_val, max_val, min_name: str, max_name: str) -> None:
+        if min_val is not None and max_val is not None and min_val > max_val:
+            raise ValidationError(
+                {
+                    min_name: [f"Must be less than or equal to {max_name}"],
+                    max_name: [f"Must be greater than or equal to {min_name}"],
+                }
+            )
 
     @extend_schema(
         summary="List courses",

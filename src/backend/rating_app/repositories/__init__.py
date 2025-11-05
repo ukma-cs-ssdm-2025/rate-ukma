@@ -9,6 +9,7 @@ from .rating_repository import RatingRepository
 from .semester_repository import SemesterRepository
 from .speciality_repository import SpecialityRepository
 from .student_repository import StudentRepository
+from .student_stats_repository import StudentStatisticsRepository
 
 __all__ = [
     "CourseRepository",
@@ -23,4 +24,5 @@ __all__ = [
     "CourseRepository",
     "RatingRepository",
     "EnrollmentRepository",
+    "StudentStatisticsRepository",
 ]

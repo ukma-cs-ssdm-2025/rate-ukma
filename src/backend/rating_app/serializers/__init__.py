@@ -8,6 +8,8 @@ from .instructor import InstructorSerializer
 from .rating_create import RatingCreateUpdateSerializer
 from .rating_list_resp import RatingListResponseSerializer
 from .rating_read import RatingReadSerializer
+from .student_ratings import StudentRatingsLightSerializer
+from .student_ratings_detailed import StudentRatingsDetailedSerializer
 
 __all__ = [
     "CourseAnalyticsSerializer",
@@ -16,6 +18,8 @@ __all__ = [
     "RatingCreateUpdateSerializer",
     "RatingReadSerializer",
     "CourseListResponseSerializer",
+    "StudentRatingsLightSerializer",
+    "StudentRatingsDetailedSerializer",
     "InstructorSerializer",
     "ErrorEnvelopeSerializer",
     "FilterOptionsSerializer",

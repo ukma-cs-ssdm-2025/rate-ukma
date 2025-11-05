@@ -1259,6 +1259,118 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/students/me/courses/:
+    get:
+      operationId: students_me_courses_retrieve
+      description: List all courses that student is/was enrolled in with information
+        about the rating.
+      summary: Student's statistics on course rating.
+      tags:
+      - student
+      - courses
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRatingsLight'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+  /api/v1/students/me/grades/:
+    get:
+      operationId: students_me_grades_retrieve
+      description: List all courses that student is/was enrolled in with information
+        about the rating.
+      summary: Student's detailed statistics on course rating (for "My Grades" page).
+      tags:
+      - student
+      - courses
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRatingsDetailed'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
 components:
   schemas:
     AcademicDegreeEnum:
@@ -1557,6 +1669,65 @@ components:
       - semester_terms
       - semester_years
       - specialities
+    InlineCourseOffering:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        year:
+          type: integer
+          readOnly: true
+        season:
+          type: string
+          readOnly: true
+        rated:
+          allOf:
+          - $ref: '#/components/schemas/InlineRating'
+          readOnly: true
+          nullable: true
+    InlineRating:
+      type: object
+      properties:
+        difficulty:
+          type: integer
+        usefulness:
+          type: integer
+        comment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - comment
+      - difficulty
+      - usefulness
+    InlineRatingDetailed:
+      type: object
+      properties:
+        difficulty:
+          type: integer
+          readOnly: true
+        usefulness:
+          type: integer
+          readOnly: true
+        comment:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    InlineSemester:
+      type: object
+      properties:
+        year:
+          type: integer
+          readOnly: true
+        season:
+          type: string
+          readOnly: true
     Instructor:
       type: object
       properties:
@@ -1825,6 +1996,42 @@ components:
         * `PLANNED` - Planned
         * `ACTIVE` - Active
         * `FINISHED` - Finished
+    StudentRatingsDetailed:
+      type: object
+      properties:
+        course_id:
+          type: string
+          readOnly: true
+        course_title:
+          type: string
+          readOnly: true
+        course_code:
+          type: string
+          readOnly: true
+          nullable: true
+        course_offering_id:
+          type: string
+          readOnly: true
+        semester:
+          allOf:
+          - $ref: '#/components/schemas/InlineSemester'
+          readOnly: true
+        rated:
+          allOf:
+          - $ref: '#/components/schemas/InlineRatingDetailed'
+          readOnly: true
+          nullable: true
+    StudentRatingsLight:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        offerings:
+          type: array
+          items:
+            $ref: '#/components/schemas/InlineCourseOffering'
+          readOnly: true
     TypeKindEnum:
       enum:
       - COMPULSORY
