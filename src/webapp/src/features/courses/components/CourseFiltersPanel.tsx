@@ -95,7 +95,7 @@ export function CourseFiltersPanel({
 	onReset,
 	searchQuery,
 	isLoading,
-}: CourseFiltersPanelProps) {
+}: Readonly<CourseFiltersPanelProps>) {
 	const {
 		faculties = [],
 		departments: allDepartments = [],

@@ -6,7 +6,7 @@ interface LayoutProps {
 	children: ReactNode;
 }
 
-function Layout({ children }: LayoutProps) {
+function Layout({ children }: Readonly<LayoutProps>) {
 	return (
 		<div className="min-h-screen bg-background">
 			<Header />

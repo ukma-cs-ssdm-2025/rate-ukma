@@ -31,43 +31,48 @@ type LoginFormProps = {
 	onCancel: () => void;
 };
 
-export function LoginForm({ loginWithDjango, onCancel }: LoginFormProps) {
+function mapErrorToMessage(error: unknown): string {
+	if (!isAxiosError(error)) {
+		return "Something went wrong. Please try again.";
+	}
+
+	if (error.code === "ERR_NETWORK") {
+		return "Cannot reach the server. Check your connection and try again.";
+	}
+
+	const { status, data } = error.response ?? {};
+	const detail = data?.detail;
+
+	if (typeof detail === "string" && detail.trim().length > 0) {
+		return detail;
+	}
+
+	if (Array.isArray(detail)) {
+		const firstDetail = detail.find(
+			(item): item is string => typeof item === "string",
+		);
+		if (firstDetail) {
+			return firstDetail;
+		}
+	}
+
+	if (status === 401) {
+		return "Invalid credentials. Please double-check your username and password.";
+	}
+
+	if (status && status >= 500) {
+		return "Server error. Please try again later.";
+	}
+
+	return "Something went wrong. Please try again.";
+}
+
+export function LoginForm({
+	loginWithDjango,
+	onCancel,
+}: Readonly<LoginFormProps>) {
 	const [showPassword, setShowPassword] = useState(false);
 	const [formError, setFormError] = useState<string | null>(null);
-
-	const mapErrorToMessage = (error: unknown) => {
-		if (isAxiosError(error)) {
-			if (error.code === "ERR_NETWORK") {
-				return "Cannot reach the server. Check your connection and try again.";
-			}
-
-			const { status, data } = error.response ?? {};
-			const detail = data?.detail;
-
-			if (typeof detail === "string" && detail.trim().length > 0) {
-				return detail;
-			}
-
-			if (Array.isArray(detail)) {
-				const firstDetail = detail.find(
-					(item): item is string => typeof item === "string",
-				);
-				if (firstDetail) {
-					return firstDetail;
-				}
-			}
-
-			if (status === 401) {
-				return "Invalid credentials. Please double-check your username and password.";
-			}
-
-			if (status && status >= 500) {
-				return "Server error. Please try again later.";
-			}
-		}
-
-		return "Something went wrong. Please try again.";
-	};
 
 	const form = useForm<LoginFormValues>({
 		resolver: zodResolver(loginSchema),

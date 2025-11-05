@@ -7,11 +7,13 @@ from rating_app.serializers import (
     CourseListResponseSerializer,
     FilterOptionsSerializer,
     InstructorSerializer,
+    RatingListResponseSerializer,
     RatingReadSerializer,
     StudentRatingsDetailedSerializer,
     StudentRatingsLightSerializer,
 )
 from rating_app.serializers import ErrorEnvelopeSerializer as Err
+from rating_app.serializers.analytics import CourseAnalyticsSerializer
 from rating_app.serializers.auth import CSRFTokenSerializer, SessionSerializer
 
 NOT_FOUND = "Not found"
@@ -86,7 +88,7 @@ R_FILTER_OPTIONS = {
 }
 
 R_RATING_LIST = {
-    200: OpenApiResponse(RatingReadSerializer(many=True), "OK"),
+    200: OpenApiResponse(forced_singular_serializer(RatingListResponseSerializer), "OK"),
     **common_errors(include_404=True),
 }
 
@@ -147,5 +149,7 @@ R_STUDENT_RATINGS = {
 
 R_STUDENT_RATINGS_DETAILED = {
     200: OpenApiResponse(StudentRatingsDetailedSerializer, "Ok"),
+R_ANALYTICS = {
+    200: OpenApiResponse(CourseAnalyticsSerializer, "OK"),
     **common_errors(include_404=True),
 }

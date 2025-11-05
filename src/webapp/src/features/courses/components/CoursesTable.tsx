@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+	type ColumnDef,
 	getCoreRowModel,
 	getPaginationRowModel,
-	useReactTable,
-	type ColumnDef,
 	type PaginationState,
 	type SortingState,
+	useReactTable,
 } from "@tanstack/react-table";
 import { BookOpen } from "lucide-react";
 
@@ -14,13 +14,13 @@ import { DataTable } from "@/components/DataTable/DataTable";
 import { Input } from "@/components/ui/Input";
 import type { CourseList } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFacultyBadge } from "./CourseFacultyBadge";
 import { CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesTableSkeleton } from "./CoursesTableSkeleton";
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 
 interface PaginationInfo {
 	page: number;
@@ -49,7 +49,9 @@ const columns: ColumnDef<CourseList>[] = [
 			const course = row.original;
 			return (
 				<div className="flex items-center gap-2">
-					<span className="font-semibold text-base">{course.title}</span>
+					<span className="font-semibold text-base transition-colors group-hover:text-primary group-hover:underline">
+						{course.title}
+					</span>
 					<CourseFacultyBadge facultyName={course.faculty_name} />
 				</div>
 			);
@@ -136,7 +138,7 @@ export function CoursesTable({
 	onFiltersChange,
 	filtersKey,
 	pagination: serverPagination,
-}: CoursesTableProps) {
+}: Readonly<CoursesTableProps>) {
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: serverPagination ? serverPagination.page - 1 : 0,
@@ -200,7 +202,7 @@ export function CoursesTable({
 	});
 
 	useEffect(() => {
-		if (typeof filtersKey === "undefined") {
+		if (filtersKey === undefined) {
 			return;
 		}
 
@@ -364,6 +366,23 @@ export function CoursesTable({
 	const isPanelLoading = isInitialLoading || isFilterOptionsLoading;
 	const isEmptyState = !isLoading && data.length === 0;
 
+	const renderTableContent = () => {
+		if (isInitialLoading) {
+			return <CoursesTableSkeleton />;
+		}
+		if (isEmptyState) {
+			return <CoursesEmptyState />;
+		}
+		return (
+			<DataTable
+				table={table}
+				onRowClick={onRowClick}
+				totalRows={serverPagination?.total}
+				serverPageCount={serverPagination?.totalPages}
+			/>
+		);
+	};
+
 	return (
 		<div className="flex gap-6">
 			<div className="flex-1 min-w-0 space-y-4">
@@ -380,18 +399,7 @@ export function CoursesTable({
 					</div>
 				</div>
 
-				{isInitialLoading ? (
-					<CoursesTableSkeleton />
-				) : isEmptyState ? (
-					<CoursesEmptyState />
-				) : (
-					<DataTable
-						table={table}
-						onRowClick={onRowClick}
-						totalRows={serverPagination?.total}
-						serverPageCount={serverPagination?.totalPages}
-					/>
-				)}
+				{renderTableContent()}
 			</div>
 
 			<div className="w-80 shrink-0">
@@ -401,7 +409,7 @@ export function CoursesTable({
 					onDifficultyChange={setDifficultyRange}
 					usefulnessRange={usefulnessRange}
 					onUsefulnessChange={setUsefulnessRange}
-					filterOptions={filterOptions?.data}
+					filterOptions={filterOptions}
 					selectedFaculty={selectedFaculty}
 					onFacultyChange={setSelectedFaculty}
 					selectedDepartment={selectedDepartment}

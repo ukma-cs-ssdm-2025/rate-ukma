@@ -89,11 +89,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			return { status: "unauthenticated", user: null };
 		}
 
-		if (!sessionQuery.data?.data?.is_authenticated) {
+		if (!sessionQuery.data?.is_authenticated) {
 			return { status: "unauthenticated", user: null };
 		}
 
-		const userData = sessionQuery.data?.data?.user;
+		const userData = sessionQuery.data?.user;
 		return {
 			status: "authenticated",
 			user: userData
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		if (redirect) {
 			loginUrl.searchParams.set("redirect", redirect);
 		}
-		window.location.replace(loginUrl.toString());
+		globalThis.location.replace(loginUrl.toString());
 	}, []);
 
 	const loginWithDjango = useCallback(

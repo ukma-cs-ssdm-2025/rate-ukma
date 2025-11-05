@@ -4,7 +4,9 @@ interface CoursesErrorStateProps {
 	onRetry?: () => void;
 }
 
-export function CoursesErrorState({ onRetry }: CoursesErrorStateProps) {
+export function CoursesErrorState({
+	onRetry,
+}: Readonly<CoursesErrorStateProps>) {
 	return (
 		<div className="text-center py-16">
 			<div className="mx-auto max-w-sm">

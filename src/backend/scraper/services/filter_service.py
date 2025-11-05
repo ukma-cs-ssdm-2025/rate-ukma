@@ -26,7 +26,7 @@ class FilterService:
             await self._navigate_to_catalog(page, base_url)
             result = await self._select_all_filters(page)
             filtered_url = await self._submit_and_get_filtered_url(page)
-            await self._save_url(filtered_url, save_path)
+            self._save_url(filtered_url, save_path)
 
             logger.info(
                 "filter_selection_completed",
@@ -38,7 +38,7 @@ class FilterService:
         finally:
             await page.close()
 
-    async def load_filtered_url(self, path: Path | None = None) -> str:
+    def load_filtered_url(self, path: Path | None = None) -> str:
         path = path or self.default_save_path
         return path.read_text(encoding="utf-8").strip() if path.exists() else ""
 
@@ -81,6 +81,6 @@ class FilterService:
         await page.wait_for_url(lambda url: url != url_before)
         return page.url
 
-    async def _save_url(self, url: str, path: Path) -> None:
+    def _save_url(self, url: str, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(url, encoding="utf-8")
