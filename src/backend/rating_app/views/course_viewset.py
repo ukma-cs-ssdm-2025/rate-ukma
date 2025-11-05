@@ -2,7 +2,7 @@ from dataclasses import asdict, is_dataclass
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
 import structlog
@@ -16,11 +16,12 @@ from rating_app.filters.course_filters import (
 from rating_app.filters.course_payload import CourseFilterPayload
 from rating_app.filters.filters_parsers.course import CourseFilterParser, CourseQueryParams
 from rating_app.models import Course
+from rating_app.models.semester import SemesterTerm
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list import CourseListSerializer
 from rating_app.services.course_service import CourseService
-from rating_app.views.responses import R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
+from rating_app.views.responses import INVALID_VALUE, R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
 
 logger = structlog.get_logger(__name__)
 
@@ -61,15 +62,6 @@ class CourseViewSet(viewsets.ViewSet):
                     max_name: [f"Must be greater than or equal to {min_name}"],
                 }
             )
-
-    def _serialize_filters(self, filters_obj) -> dict:
-        if filters_obj is None:
-            return {}
-        if is_dataclass(filters_obj):
-            return asdict(filters_obj)
-        if hasattr(filters_obj, "__dict__"):
-            return filters_obj.__dict__
-        return {}
 
     @extend_schema(
         summary="List courses",
