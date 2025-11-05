@@ -3,8 +3,9 @@ from .base import (
     Extractor,
 )
 from .extractors import InstructorExtractor, SemesterExtractor, SpecialtyExtractor, StudentExtractor
+from .grouper import CourseGrouper
+from .grouping_service import CourseGroupingService
 from .loader import CourseLoader
-from .merger import CourseMerger
 
 __all__ = [
     "DataValidationError",
@@ -14,5 +15,6 @@ __all__ = [
     "StudentExtractor",
     "SpecialtyExtractor",
     "CourseLoader",
-    "CourseMerger",
+    "CourseGrouper",
+    "CourseGroupingService",
 ]

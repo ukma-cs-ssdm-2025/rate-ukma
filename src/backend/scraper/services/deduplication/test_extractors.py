@@ -22,7 +22,7 @@ def test_semester_extractor_missing_academic_year():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 5"],
         "credits": None,
         "hours": None,
         "year": None,
@@ -32,7 +32,7 @@ def test_semester_extractor_missing_academic_year():
 
     course = ParsedCourseDetails(**course_data)
 
-    # Act & Assert - Should raise DataValidationError
+    # Act & Assert
     with pytest.raises(DataValidationError, match="Course 550001 missing required academic_year"):
         extractor.extract(course)
 
@@ -58,7 +58,7 @@ def test_semester_extractor_missing_semesters():
     # Act
     result = extractor.extract(course)
 
-    # Assert - Should return empty list instead of raising exception
+    # Assert
     assert result == []
 
 
@@ -70,31 +70,13 @@ def test_semester_extractor_invalid_year():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "invalid-year",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 3"],
     }
 
     course = ParsedCourseDetails(**course_data)
 
     # Act & Assert
-    with pytest.raises(DataValidationError, match="Cannot extract year from academic year"):
-        extractor.extract(course)
-
-
-def test_semester_extractor_year_out_of_range():
-    # Arrange
-    extractor = SemesterExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "1999–2000",
-        "semesters": ["осінній"],
-    }
-
-    course = ParsedCourseDetails(**course_data)
-
-    # Act & Assert
-    with pytest.raises(DataValidationError, match="Year 1999 is outside valid range"):
+    with pytest.raises(DataValidationError, match="Academic year must contain exactly 2 years"):
         extractor.extract(course)
 
 
@@ -104,7 +86,7 @@ def test_semester_extractor_raises_error_when_academic_year_is_empty():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "credits": None,
         "hours": None,
         "year": None,
@@ -116,7 +98,7 @@ def test_semester_extractor_raises_error_when_academic_year_is_empty():
 
     extractor = SemesterExtractor()
 
-    # Act & Assert - Should raise DataValidationError
+    # Act & Assert
     with pytest.raises(DataValidationError, match="Course 550001 missing required academic_year"):
         extractor.extract(course)
 
@@ -157,7 +139,7 @@ def test_instructor_extractor_empty_teachers():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "teachers": "",
     }
     course = ParsedCourseDetails(**course_data)
@@ -167,6 +149,78 @@ def test_instructor_extractor_empty_teachers():
 
     # Assert
     assert result == []
+
+
+def test_instructor_extractor_with_initials():
+    # Arrange
+    extractor = InstructorExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+        "teachers": "Ростовська Т.В.",
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert len(result) == 1
+    instructor = result[0].instructor
+    assert instructor.last_name == "Ростовська"
+    assert instructor.first_name == "Т"
+    assert instructor.patronymic == "В"
+
+
+def test_instructor_extractor_with_initials_no_dots():
+    # Arrange
+    extractor = InstructorExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+        "teachers": "Петров А Б",
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert len(result) == 1
+    instructor = result[0].instructor
+    assert instructor.last_name == "Петров"
+    assert instructor.first_name == "А"
+    assert instructor.patronymic == "Б"
+
+
+def test_instructor_extractor_with_single_initial():
+    # Arrange
+    extractor = InstructorExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+        "teachers": "Іванов І.",
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert len(result) == 1
+    instructor = result[0].instructor
+    assert instructor.last_name == "Іванов"
+    assert instructor.first_name == "І"
+    assert instructor.patronymic is None
 
 
 def test_student_extractor_success(sample_course):
@@ -189,7 +243,7 @@ def test_student_extractor_empty_students():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "students": [],
     }
     course = ParsedCourseDetails(**course_data)
@@ -234,7 +288,7 @@ def test_specialty_extractor_empty_specialties():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "specialties": [],
     }
     course = ParsedCourseDetails(**course_data)
@@ -254,7 +308,7 @@ def test_specialty_extractor_unknown_education_level():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "specialties": [{"specialty": "Програмна інженерія", "type": "Невідомий рівень"}],
     }
     course = ParsedCourseDetails(**course_data)
@@ -274,7 +328,7 @@ def test_description_extractor_missing_annotation():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "annotation": None,
         "credits": None,
         "hours": None,
@@ -299,7 +353,7 @@ def test_education_level_extractor_missing_level():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "education_level": None,
     }
     course = ParsedCourseDetails(**course_data)
@@ -317,7 +371,7 @@ def test_education_level_extractor_unrecognized_level():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "education_level": "Невідомий рівень",
     }
     course = ParsedCourseDetails(**course_data)
@@ -330,7 +384,7 @@ def test_education_level_extractor_unrecognized_level():
         extractor.extract(course)
 
 
-def test_practice_type_extractor_returns_none():
+def test_practice_type_extractor_no_season_details():
     # Arrange
     extractor = PracticeTypeExtractor()
     course_data = {
@@ -338,7 +392,7 @@ def test_practice_type_extractor_returns_none():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "format": "2015",
         "credits": None,
         "hours": None,
@@ -355,6 +409,274 @@ def test_practice_type_extractor_returns_none():
     assert result is None
 
 
+def test_practice_type_extractor_success_english():
+    # Arrange
+    extractor = PracticeTypeExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+        "season_details": {
+            "Весна": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 22,
+                "practice_type": "PRACTICE",
+                "practice_hours": 20,
+                "exam_type": "залік",
+            }
+        },
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert result is not None
+    assert result.value == "PRACTICE"
+
+
+# def test_practice_type_extractor_success_ukrainian():
+#     # Arrange
+#     extractor = PracticeTypeExtractor()
+#     course_data = {
+#         "url": "https://my.ukma.edu.ua/course/550001",
+#         "title": "Test Course",
+#         "id": "550001",
+#         "academic_year": "2025–2026",
+#         "semesters": ["Семестр 1"],
+#         "season_details": {
+#             "Весна": {
+#                 "credits": 4.0,
+#                 "hours_per_week": 3,
+#                 "lecture_hours": 22,
+#                 "practice_type": "Практика",
+#                 "practice_hours": 20,
+#                 "exam_type": "залік",
+#             }
+#         },
+#     }
+#     course = ParsedCourseDetails(**course_data)
+
+#     # Act
+#     result = extractor.extract(course)
+
+#     # Assert
+#     assert result is not None
+#     assert result.value == "PRACTICE"
+
+
+def test_practice_type_extractor_seminar_english():
+    # Arrange
+    extractor = PracticeTypeExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+        "season_details": {
+            "Весна": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 22,
+                "practice_type": "SEMINAR",
+                "practice_hours": 20,
+                "exam_type": "залік",
+            }
+        },
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert result is not None
+    assert result.value == "SEMINAR"
+
+
+# def test_practice_type_extractor_seminar_ukrainian():
+#     # Arrange
+#     extractor = PracticeTypeExtractor()
+#     course_data = {
+#         "url": "https://my.ukma.edu.ua/course/550001",
+#         "title": "Test Course",
+#         "id": "550001",
+#         "academic_year": "2025–2026",
+#         "semesters": ["Семестр 1"],
+#         "season_details": {
+#             "Весна": {
+#                 "credits": 4.0,
+#                 "hours_per_week": 3,
+#                 "lecture_hours": 22,
+#                 "practice_type": "Семінар",
+#                 "practice_hours": 20,
+#                 "exam_type": "залік",
+#             }
+#         },
+#     }
+#     course = ParsedCourseDetails(**course_data)
+
+#     # Act
+#     result = extractor.extract(course)
+
+#     # Assert
+#     assert result is not None
+#     assert result.value == "SEMINAR"
+
+def test_practice_type_extractor_unknown_type_defaults_to_practice():
+    # Arrange
+    extractor = PracticeTypeExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+        "season_details": {
+            "Весна": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 22,
+                "practice_type": "UNKNOWN_TYPE",
+                "practice_hours": 20,
+                "exam_type": "залік",
+            }
+        },
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert result is not None
+    assert result.value == "PRACTICE"
+
+
+def test_practice_type_extractor_case_insensitive():
+    # Arrange
+    extractor = PracticeTypeExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+        "season_details": {
+            "Весна": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 22,
+                "practice_type": "practice",
+                "practice_hours": 20,
+                "exam_type": "залік",
+            }
+        },
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert result is not None
+    assert result.value == "PRACTICE"
+
+
+def test_practice_type_extractor_with_whitespace():
+    # Arrange
+    extractor = PracticeTypeExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+        "season_details": {
+            "Весна": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 22,
+                "practice_type": "  PRACTICE  ",
+                "practice_hours": 20,
+                "exam_type": "залік",
+            }
+        },
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert result is not None
+    assert result.value == "PRACTICE"
+
+
+def test_practice_type_extractor_no_practice_type_in_season_details():
+    # Arrange
+    extractor = PracticeTypeExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+        "season_details": {
+            "Весна": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 22,
+                "practice_hours": 20,
+                "exam_type": "залік",
+                # practice_type is missing
+            }
+        },
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert result is None
+
+
+def test_practice_type_extractor_multiple_seasons():
+    # Arrange
+    extractor = PracticeTypeExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1", "Семестр 2"],
+        "season_details": {
+            "Осінь": {
+                "credits": 4.0,
+                "practice_type": "SEMINAR",
+            },
+            "Весна": {
+                "credits": 4.0,
+                "practice_type": "PRACTICE",
+            },
+        },
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert result is not None
+    assert result.value == "SEMINAR"
+
+
 def test_course_limits_extractor_missing_limits():
     # Arrange
     extractor = CourseLimitsExtractor()
@@ -363,7 +685,7 @@ def test_course_limits_extractor_missing_limits():
         "title": "Test Course",
         "id": "550001",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["Семестр 1"],
         "limits": None,
     }
     course = ParsedCourseDetails(**course_data)
@@ -371,3 +693,231 @@ def test_course_limits_extractor_missing_limits():
     # Act & Assert
     with pytest.raises(DataValidationError, match="Course 550001 missing required limits data"):
         extractor.extract(course)
+
+
+def test_semester_extractor_new_format_fall():
+    # Arrange
+    extractor = SemesterExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1"],
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert len(result) == 1
+    assert result[0].year == 2025
+    assert result[0].term.value == "FALL"
+
+
+def test_semester_extractor_new_format_spring():
+    # Arrange
+    extractor = SemesterExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 2"],
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert len(result) == 1
+    assert result[0].year == 2026
+    assert result[0].term.value == "SPRING"
+
+
+def test_semester_extractor_new_format_summer():
+    # Arrange
+    extractor = SemesterExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 2д"],
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert len(result) == 1
+    assert result[0].year == 2026
+    assert result[0].term.value == "SUMMER"
+
+
+def test_semester_extractor_new_format_multiple_semesters():
+    # Arrange
+    extractor = SemesterExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1", "Семестр 2", "Семестр 2д"],
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert len(result) == 3
+    terms = [semester.term.value for semester in result]
+    # years = [semester.year for semester in result]
+
+    assert "FALL" in terms
+    assert "SPRING" in terms
+    assert "SUMMER" in terms
+
+    fall_semesters = [s for s in result if s.term.value == "FALL"]
+    spring_summer_semesters = [s for s in result if s.term.value in ["SPRING", "SUMMER"]]
+
+    assert all(s.year == 2025 for s in fall_semesters)
+    assert all(s.year == 2026 for s in spring_summer_semesters)
+
+
+def test_semester_extractor_new_format_higher_numbers():
+    # Arrange
+    extractor = SemesterExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 3", "Семестр 4", "Семестр 4д"],
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert len(result) == 3
+    terms = [semester.term.value for semester in result]
+    # years = [semester.year for semester in result]
+
+    assert "FALL" in terms
+    assert "SPRING" in terms
+    assert "SUMMER" in terms
+
+    for semester in result:
+        if semester.term.value == "FALL":
+            assert semester.year == 2025
+        else:
+            assert semester.year == 2026
+
+
+def test_semester_extractor_invalid_semester_label():
+    # Arrange
+    extractor = SemesterExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["недійсний Семестр"],
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert result == []
+
+
+def test_semester_extractor_mixed_valid_invalid():
+    # Arrange
+    extractor = SemesterExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025–2026",
+        "semesters": ["Семестр 1", "недійсний", "Семестр 2д"],
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act
+    result = extractor.extract(course)
+
+    # Assert
+    assert len(result) == 2
+    terms = [semester.term.value for semester in result]
+    assert "FALL" in terms
+    assert "SUMMER" in terms
+
+
+def test_semester_extractor_single_year_format_raises_error():
+    # Arrange
+    extractor = SemesterExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2025",
+        "semesters": ["Семестр 1"],
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act & Assert
+    with pytest.raises(DataValidationError, match="Academic year must contain exactly 2 years"):
+        extractor.extract(course)
+
+
+def test_semester_extractor_three_years_format_raises_error():
+    # Arrange
+    extractor = SemesterExtractor()
+    course_data = {
+        "url": "https://my.ukma.edu.ua/course/550001",
+        "title": "Test Course",
+        "id": "550001",
+        "academic_year": "2024-2025-2026",
+        "semesters": ["Семестр 1"],
+    }
+    course = ParsedCourseDetails(**course_data)
+
+    # Act & Assert
+    with pytest.raises(DataValidationError, match="Academic year must contain exactly 2 years"):
+        extractor.extract(course)
+
+
+def test_semester_extractor_different_academic_year_formats():
+    test_cases = [
+        ("2024–2025", "Семестр 1", 2024, "FALL"),
+        ("2024-2025", "Семестр 2", 2025, "SPRING"),
+        ("2024/2025", "Семестр 3", 2024, "FALL"),
+        ("2024-2025", "Семестр 4", 2025, "SPRING"),
+        ("2024-2025", "Семестр 5", 2024, "FALL"),
+        ("2024-2025", "Семестр 6", 2025, "SPRING"),
+    ]
+
+    extractor = SemesterExtractor()
+
+    for academic_year, semester, expected_year, expected_term in test_cases:
+        course_data = {
+            "url": "https://my.ukma.edu.ua/course/550001",
+            "title": "Test Course",
+            "id": "550001",
+            "academic_year": academic_year,
+            "semesters": [semester],
+        }
+        course = ParsedCourseDetails(**course_data)
+
+        result = extractor.extract(course)
+        assert len(result) == 1
+        assert result[0].year == expected_year
+        assert result[0].term.value == expected_term

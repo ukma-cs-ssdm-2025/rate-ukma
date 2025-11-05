@@ -30,8 +30,6 @@ class SemesterExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSemester
         if not data.academic_year:
             raise DataValidationError(f"Course {data.id} missing required academic_year")
 
-        year = self._extract_year(data.academic_year)
-
         if not data.semesters:
             logger.warning(
                 "semester_extraction_skipped",
@@ -51,29 +49,52 @@ class SemesterExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSemester
                     semester_label=sem_label,
                 )
                 continue
+
+            year = self._extract_year(data.academic_year, sem_label)
             semesters.append(DeduplicatedSemester(year=year, term=term))
 
         return semesters
 
-    def _extract_year(self, academic_year: str) -> int:
-        year_match = re.search(r"(\d{4})", academic_year)
-        if not year_match:
-            raise DataValidationError(f"Cannot extract year from academic year: {academic_year}")
+    def _extract_year(self, academic_year: str, semester_label: str) -> int:
+        year_matches = re.findall(r"(\d{4})", academic_year)
+        if len(year_matches) != 2:
+            raise DataValidationError(
+                f"Academic year must contain exactly 2 years \
+                    in format 'YYYY-YYYY', got: {academic_year}"
+            )
 
-        year = int(year_match.group(1))
-        if year < 2000 or year > 2100:
-            raise DataValidationError(f"Year {year} is outside valid range (2000-2100)")
+        first_year = int(year_matches[0])
+        second_year = int(year_matches[1])
 
-        return year
+        fall_semester = self._is_fall_semester(semester_label)
+
+        return first_year if fall_semester else second_year
+
+    def _is_fall_semester(self, semester_label: str) -> bool:
+        """Determine if semester is fall semester based on semester number"""
+        label_lower = semester_label.lower()
+        if "семестр" in label_lower:
+            match = re.search(r"семестр\s*(\d+)", label_lower)
+            if match:
+                semester_num = int(match.group(1))
+                return semester_num % 2 == 1
+        return False
 
     def _map_semester_term(self, label: str) -> SemesterTerm | None:
         label_lower = label.lower()
-        if "осінній" in label_lower:
-            return SemesterTerm.FALL
-        elif "весняний" in label_lower:
-            return SemesterTerm.SPRING
-        elif "літній" in label_lower:
-            return SemesterTerm.SUMMER
+        if "семестр" in label_lower:
+            match = re.search(r"семестр\s*(\d+)(д?)", label_lower)
+            if match:
+                semester_num = int(match.group(1))
+                has_d = bool(match.group(2))
+
+                if semester_num % 2 == 1:
+                    return SemesterTerm.FALL
+                elif has_d:
+                    return SemesterTerm.SUMMER
+                else:
+                    return SemesterTerm.SPRING
+
         return None
 
 
@@ -119,14 +140,32 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
             return None
 
         name_parts = clean_name.split()
+
         if len(name_parts) >= 2:
-            first_name = name_parts[0]
-            last_name = name_parts[1]
-            patronymic = name_parts[2] if len(name_parts) > 2 else None
+            last_name = name_parts[0]
+            remaining_parts = " ".join(name_parts[1:]).strip()
+
+            if len(remaining_parts) <= 6 and (
+                re.match(r"^[\w\.\s]+$", remaining_parts, re.UNICODE)
+            ):
+                initials = re.sub(r"[\.\s]", "", remaining_parts)
+
+                if len(initials) >= 2:
+                    first_name = initials[0]
+                    patronymic = initials[1]
+                elif len(initials) == 1:
+                    first_name = initials[0]
+                    patronymic = ""
+                else:
+                    first_name = re.sub(r"\.$", "", remaining_parts)
+                    patronymic = ""
+            else:
+                first_name = name_parts[1]
+                patronymic = name_parts[2] if len(name_parts) > 2 else ""
         else:
             first_name = clean_name
             last_name = clean_name
-            patronymic = None
+            patronymic = ""
 
         instructor = DeduplicatedInstructor(
             first_name=first_name,
@@ -198,20 +237,20 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
         if len(name_parts) >= 2:
             first_name = name_parts[0]
             last_name = name_parts[1]
-            patronymic = name_parts[2] if len(name_parts) > 2 else None
+            patronymic = name_parts[2] if len(name_parts) > 2 else ""
         else:
             first_name = name
             last_name = name
-            patronymic = None
+            patronymic = ""
 
         student = DeduplicatedStudent(
             first_name=first_name,
             last_name=last_name,
             patronymic=patronymic,
-            index=index,
-            email=email,
-            specialty=specialty,
-            group=group,
+            index=index or "",
+            email=email or "",
+            speciality=specialty or "",
+            group=group or "",
         )
 
         return student
@@ -268,11 +307,17 @@ class SpecialtyExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSpecial
             raise DataValidationError("Specialty type is required")
 
         type_lower = spec_type.lower()
+        type_normalized = type_lower.replace("`", "'")
+
         if "бакалавр" in type_lower:
             return EducationLevel.BACHELOR
         elif "магістр" in type_lower:
             return EducationLevel.MASTER
-        elif "професійно-орієнтована" in type_lower or "обов'язкова" in type_lower:
+        elif (
+            "професійно-орієнтована" in type_lower
+            or "обов'язкова" in type_normalized
+            or "вільного вибору" in type_lower
+        ):
             return EducationLevel.BACHELOR
         else:
             raise DataValidationError(f"Unrecognized specialty education level: {spec_type}")
@@ -340,7 +385,39 @@ class ExamTypeExtractor(Extractor[ParsedCourseDetails, ExamType]):
 
 class PracticeTypeExtractor(Extractor[ParsedCourseDetails, PracticeType | None]):
     def extract(self, data: ParsedCourseDetails) -> PracticeType | None:
-        return None
+        if not data.season_details:
+            logger.debug(
+                "practice_type_extraction_empty",
+                reason="no_season_details_data",
+                course_id=data.id,
+                title=data.title,
+            )
+            return PracticeType.PRACTICE
+
+        for _, season_info in data.season_details.items():
+            if season_info.practice_type:
+                return self._map_practice_type(season_info.practice_type)
+
+        logger.debug(
+            "practice_type_extraction_empty",
+            reason="no_practice_type_in_season_details",
+            course_id=data.id,
+            title=data.title,
+        )
+        return PracticeType.PRACTICE
+
+    def _map_practice_type(self, practice_type: str) -> PracticeType:
+        practice_type_upper = practice_type.upper().strip()
+
+        if practice_type_upper == "PRACTICE":
+            return PracticeType.PRACTICE
+        elif practice_type_upper == "SEMINAR":
+            return PracticeType.SEMINAR
+        else:
+            logger.warning(
+                "unknown_practice_type", practice_type=practice_type, defaulting_to="PRACTICE"
+            )
+            return PracticeType.PRACTICE
 
 
 class CourseLimitsExtractor(Extractor[ParsedCourseDetails, dict[str, int | None]]):

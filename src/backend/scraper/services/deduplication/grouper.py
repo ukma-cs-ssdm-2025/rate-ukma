@@ -25,23 +25,41 @@ from .extractors import (
 logger = structlog.get_logger(__name__)
 
 
-def _get_specialty_types_key(course: ParsedCourseDetails) -> tuple[str, ...]:
-    return tuple(sorted(
-        (spec.type.strip().lower() for spec in course.specialties or [])
-    ))
+def _normalize_specialty_for_grouping(specialties) -> str:
+    if not specialties:
+        return ""
+
+    specialty_parts = []
+    for spec in specialties:
+        if hasattr(spec, "specialty") and hasattr(spec, "type"):
+            specialty_name = spec.specialty
+            specialty_type = spec.type
+        elif isinstance(spec, dict):
+            specialty_name = spec.get("specialty", "")
+            specialty_type = spec.get("type", "")
+        else:
+            continue
+
+        if specialty_name:
+            normalized_name = str(specialty_name).strip().lower()
+            if specialty_type:
+                normalized_type = str(specialty_type).strip().lower()
+                specialty_parts.append(f"{normalized_name} ({normalized_type})")
+            else:
+                specialty_parts.append(normalized_name)
+
+    return " | ".join(specialty_parts)
 
 
-def get_course_key(course: ParsedCourseDetails) -> tuple[str, str, str, tuple[str, ...], float]:
+def get_course_grouping_key(course: ParsedCourseDetails) -> tuple[str, str, str]:
     title = (course.title or "").strip().lower()
     faculty = (course.faculty or "").strip().lower()
-    department = (course.department or "").strip().lower()
-    specialty_types = _get_specialty_types_key(course)
-    credits = course.credits or 0.0
+    specialty_info = _normalize_specialty_for_grouping(course.specialties or [])
 
-    return (title, faculty, department, specialty_types, credits)
+    return (title, faculty, specialty_info)
 
 
-class CourseMerger(DeduplicationComponent[list[ParsedCourseDetails], list[DeduplicatedCourse]]):
+class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[DeduplicatedCourse]]):
     def __init__(self):
         self.extractors = {
             "title": RequiredFieldExtractor("title"),
@@ -63,42 +81,81 @@ class CourseMerger(DeduplicationComponent[list[ParsedCourseDetails], list[Dedupl
         }
 
     def process(self, data: list[ParsedCourseDetails]) -> list[DeduplicatedCourse]:
-        return self.merge_duplicate_courses(data)
+        return self.group_course_offerings(data)
 
-    def merge_duplicate_courses(
+    def group_course_offerings(
         self, all_courses: list[ParsedCourseDetails]
     ) -> list[DeduplicatedCourse]:
         from collections import defaultdict
 
-        courses_by_key = defaultdict(list)
+        valid_courses = []
+        filtered_out_count = 0
+
         for course in all_courses:
-            key = get_course_key(course)
+            credits = course.credits
+            hours = course.hours
+
+            if credits is not None and credits <= 0:
+                logger.debug(
+                    "filtering_course_zero_credits",
+                    course_id=course.id,
+                    course_title=course.title,
+                    credits=credits,
+                )
+                filtered_out_count += 1
+                continue
+
+            if hours is not None and hours <= 0:
+                logger.debug(
+                    "filtering_course_zero_hours",
+                    course_id=course.id,
+                    course_title=course.title,
+                    hours=hours,
+                )
+                filtered_out_count += 1
+                continue
+
+            valid_courses.append(course)
+
+        if filtered_out_count > 0:
+            logger.info(
+                "courses_filtered_out",
+                filtered_count=filtered_out_count,
+                original_count=len(all_courses),
+                remaining_count=len(valid_courses),
+                reason="zero_credits_or_hours"
+            )
+
+        courses_by_key = defaultdict(list)
+        for course in valid_courses:
+            key = get_course_grouping_key(course)
             courses_by_key[key].append(course)
 
-        deduplicated_courses = []
+        grouped_courses = []
         for key, courses in courses_by_key.items():
             try:
                 if len(courses) == 1:
-                    deduplicated = self._transform_single_course(courses[0])
+                    grouped = self._transform_single_course(courses[0])
                 else:
-                    deduplicated = self._merge_duplicate_courses(courses)
-                deduplicated_courses.append(deduplicated)
+                    grouped = self._group_course_offerings(courses)
+                grouped_courses.append(grouped)
             except Exception as e:
                 logger.error(
-                    "course_merge_failed",
+                    "course_grouping_failed",
                     key=key,
                     course_count=len(courses),
                     error=str(e),
                 )
-                raise DataValidationError(f"Failed to merge courses with key {key}: {e}") from e
+                raise DataValidationError(f"Failed to group courses with key {key}: {e}") from e
 
         logger.info(
-            "merger_completed",
-            input_courses=len(all_courses),
-            output_courses=len(deduplicated_courses),
-            duplicates_found=sum(1 for courses in courses_by_key.values() if len(courses) > 1),
+            "grouping_completed",
+            input_courses=len(valid_courses),
+            original_input_count=len(all_courses),
+            output_courses=len(grouped_courses),
+            groups_found=sum(1 for courses in courses_by_key.values() if len(courses) > 1),
         )
-        return deduplicated_courses
+        return grouped_courses
 
     def _transform_single_course(self, course: ParsedCourseDetails) -> DeduplicatedCourse:
         self._validate_course_for_transformation(course)
@@ -124,9 +181,9 @@ class CourseMerger(DeduplicationComponent[list[ParsedCourseDetails], list[Dedupl
         )
         return deduplicated
 
-    def _merge_duplicate_courses(self, courses: list[ParsedCourseDetails]) -> DeduplicatedCourse:
+    def _group_course_offerings(self, courses: list[ParsedCourseDetails]) -> DeduplicatedCourse:
         if not courses:
-            raise ValueError("Cannot merge empty course list")
+            raise ValueError("Cannot group empty course list")
 
         for course in courses:
             self._validate_course_for_transformation(course)
@@ -136,7 +193,7 @@ class CourseMerger(DeduplicationComponent[list[ParsedCourseDetails], list[Dedupl
 
         if not all_offerings:
             logger.warning(
-                "no_merged_offerings_created",
+                "no_grouped_offerings_created",
                 course_ids=[c.id for c in courses],
                 course_title=base.title,
             )
@@ -191,7 +248,5 @@ class CourseMerger(DeduplicationComponent[list[ParsedCourseDetails], list[Dedupl
         return offerings
 
     def _validate_course_for_transformation(self, course: ParsedCourseDetails) -> None:
-        # The TitleExtractor now handles title validation
-        # We still need to validate academic_year for semester extraction
         if not course.academic_year:
             raise DataValidationError(f"Course {course.id} missing required academic_year")

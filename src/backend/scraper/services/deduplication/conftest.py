@@ -1,5 +1,3 @@
-"""Shared fixtures for deduplication tests."""
-
 import json
 import tempfile
 from pathlib import Path
@@ -8,9 +6,9 @@ from unittest.mock import patch
 import pytest
 
 from scraper.models import ParsedCourseDetails
-from scraper.services.deduplication.deduplication_service import CourseDeduplicatorService
+from scraper.services.deduplication.grouper import CourseGrouper
+from scraper.services.deduplication.grouping_service import CourseGroupingService
 from scraper.services.deduplication.loader import CourseLoader
-from scraper.services.deduplication.merger import CourseMerger
 
 
 @pytest.fixture
@@ -28,9 +26,10 @@ def sample_course_data_dict():
         "department": "Кафедра програмної інженерії",
         "education_level": "Бакалавр",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["семестр 3"],
         "teachers": "Петренко І.П., д.т.н., Ковальчук С.М., к.ф.-м.н.",
-        "annotation": "Основні концепції веб-розробки, HTML, CSS, JavaScript та сучасні фреймворки.",
+        "annotation": "Основні концепції веб-розробки, HTML, CSS,\
+              JavaScript та сучасні фреймворки.",
         "specialties": [
             {"specialty": "Програмна інженерія", "type": "Бакалавр"},
             {"specialty": "Інформатика", "type": "Магістр"},
@@ -64,9 +63,10 @@ def sample_course():
         "department": "Кафедра програмної інженерії",
         "education_level": "Бакалавр",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["семестр 3"],
         "teachers": "Петренко І.П., д.т.н.",
-        "annotation": "Основні концепції веб-розробки, HTML, CSS, JavaScript та сучасні фреймворки.",
+        "annotation": "Основні концепції веб-розробки, HTML, CSS,\
+              JavaScript та сучасні фреймворки.",
         "specialties": [{"specialty": "Програмна інженерія", "type": "Бакалавр"}],
         "limits": {
             "max_students": 30,
@@ -97,9 +97,10 @@ def duplicate_course_variants():
         "department": "Кафедра програмної інженерії",
         "education_level": "Бакалавр",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["семестр 3"],
         "teachers": "Петренко І.П., д.т.н.",
-        "annotation": "Основні концепції веб-розробки, HTML, CSS, JavaScript та сучасні фреймворки.",
+        "annotation": "Основні концепції веб-розробки, HTML, CSS,\
+              JavaScript та сучасні фреймворки.",
         "specialties": [{"specialty": "Програмна інженерія", "type": "Професійно-орієнтована"}],
         "limits": {
             "max_students": 30,
@@ -151,9 +152,10 @@ def temp_input_file():
             "department": "Кафедра програмної інженерії",
             "education_level": "Бакалавр",
             "academic_year": "2025–2026",
-            "semesters": ["осінній"],
+            "semesters": ["семестр 3"],
             "teachers": "Петренко І.П., д.т.н.",
-            "annotation": "Основні концепції веб-розробки, HTML, CSS, JavaScript та сучасні фреймворки.",
+            "annotation": "Основні концепції веб-розробки, HTML, CSS,\
+                  JavaScript та сучасні фреймворки.",
             "specialties": [{"specialty": "Програмна інженерія", "type": "Професійно-орієнтована"}],
             "limits": {
                 "max_students": 30,
@@ -180,7 +182,7 @@ def temp_input_file():
             "department": "Кафедра теоретичної інформатики",
             "education_level": "Бакалавр",
             "academic_year": "2025–2026",
-            "semesters": ["осінній"],
+            "semesters": ["семестр 3"],
             "teachers": "Ковальчук С.М., к.ф.-м.н.",
             "annotation": "Вивчення основних структур даних та алгоритмів, аналіз їх ефективності.",
             "specialties": [{"specialty": "Інформатика", "type": "Професійно-орієнтована"}],
@@ -222,9 +224,10 @@ def temp_input_file_with_duplicates():
             "department": "Кафедра програмної інженерії",
             "education_level": "Бакалавр",
             "academic_year": "2025–2026",
-            "semesters": ["осінній"],
+            "semesters": ["семестр 3"],
             "teachers": "Петренко І.П., д.т.н.",
-            "annotation": "Основні концепції веб-розробки, HTML, CSS, JavaScript та сучасні фреймворки.",
+            "annotation": "Основні концепції веб-розробки, HTML, CSS,\
+                  JavaScript та сучасні фреймворки.",
             "specialties": [{"specialty": "Програмна інженерія", "type": "Професійно-орієнтована"}],
             "limits": {
                 "max_students": 30,
@@ -250,9 +253,10 @@ def temp_input_file_with_duplicates():
             "department": "Кафедра програмної інженерії",
             "education_level": "Бакалавр",
             "academic_year": "2025–2026",
-            "semesters": ["осінній"],
+            "semesters": ["семестр 3"],
             "teachers": "Петренко І.П., д.т.н.",
-            "annotation": "Основні концепції веб-розробки, HTML, CSS, JavaScript та сучасні фреймворки.",
+            "annotation": "Основні концепції веб-розробки, HTML, CSS,\
+                  JavaScript та сучасні фреймворки.",
             "specialties": [{"specialty": "Програмна інженерія", "type": "Професійно-орієнтована"}],
             "limits": {
                 "max_students": 30,
@@ -290,7 +294,7 @@ def temp_missing_id_file():
         "url": "https://my.ukma.edu.ua/course/550001",
         "title": "Test Course",
         "academic_year": "2025–2026",
-        "semesters": ["осінній"],
+        "semesters": ["семестр 3"],
     }
 
     with tempfile.NamedTemporaryFile(
@@ -306,16 +310,16 @@ def course_loader():
 
 
 @pytest.fixture
-def course_merger():
-    return CourseMerger()
+def course_grouper():
+    return CourseGrouper()
 
 
 @pytest.fixture
-def course_deduplicator():
-    return CourseDeduplicatorService()
+def course_grouper_service():
+    return CourseGroupingService()
 
 
 @pytest.fixture
 def mock_jsonl_writer():
-    with patch("scraper.services.deduplication.deduplication_service.JSONLWriter") as mock:
+    with patch("scraper.services.deduplication.grouping_service.JSONLWriter") as mock:
         yield mock
