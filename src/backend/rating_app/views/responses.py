@@ -149,6 +149,8 @@ R_STUDENT_RATINGS = {
 
 R_STUDENT_RATINGS_DETAILED = {
     200: OpenApiResponse(StudentRatingsDetailedSerializer, "Ok"),
+    **common_errors(include_404=True),
+}
 R_ANALYTICS = {
     200: OpenApiResponse(CourseAnalyticsSerializer, "OK"),
     **common_errors(include_404=True),
