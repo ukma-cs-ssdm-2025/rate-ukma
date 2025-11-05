@@ -15,7 +15,7 @@ All updates were verified through SonarCloud analysis and confirmed by automated
 | **Reliability**      | E              | A             |
 | **Duplicated Lines** | 0.04 %         | 0.01 %        |
 
-![evolution pic](evolution.png)
+![evolution pic](./evolution.png)
 
 <small>Note: the only issue left is a harmless to-do comment (severity: info)</small>
 
@@ -52,7 +52,7 @@ See [#211](https://github.com/ukma-cs-ssdm-2025/rate-ukma/issues/211) for the fu
 ## Regression Testing Results
 
 All regression tests passed successfully. No functional regressions were introduced.
-![tests pic](tests.png)
+![tests pic](./tests.png)
 
 ---
 
