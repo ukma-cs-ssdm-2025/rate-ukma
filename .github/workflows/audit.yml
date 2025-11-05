@@ -56,6 +56,21 @@ jobs:
         working-directory: ${{ env.FRONTEND_DIR }}
         run: pnpm run security:audit
 
+      - name: Snyk test (SARIF upload)
+        uses: snyk/actions/node@master
+        with:
+          command: test
+          args: ${{ env.FRONTEND_DIR }} --sarif-file-output=${{ env.FRONTEND_DIR }}/snyk.sarif --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload Snyk SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.FRONTEND_DIR }}/snyk.sarif
+          category: snyk
+
   backend-security-audit:
     name: Backend Security Audit
     runs-on: ubuntu-latest
@@ -74,9 +89,13 @@ jobs:
         run: uv sync --extra security
 
       - name: Safety check
+        id: safety_check
         uses: pyupio/safety-action@v1
         with:
           api-key: ${{ secrets.SAFETY_API_KEY }}
+        env:
+          ACTIONS_STEP_DEBUG: true
+        continue-on-error: true
 
       - name: Bandit security scan
         working-directory: ${{ env.BACKEND_DIR }}
@@ -84,8 +103,8 @@ jobs:
         continue-on-error: true
 
       - name: Upload Bandit SARIF to GitHub Security
-        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ env.BACKEND_DIR }}/bandit-results.sarif
           category: bandit
+
