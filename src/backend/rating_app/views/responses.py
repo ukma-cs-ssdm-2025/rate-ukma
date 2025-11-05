@@ -143,12 +143,12 @@ R_INSTRUCTOR = {
 }
 
 R_STUDENT_RATINGS = {
-    200: OpenApiResponse(StudentRatingsLightSerializer, "Ok"),
+    200: OpenApiResponse(StudentRatingsLightSerializer, "OK"),
     **common_errors(),
 }
 
 R_STUDENT_RATINGS_DETAILED = {
-    200: OpenApiResponse(StudentRatingsDetailedSerializer, "Ok"),
+    200: OpenApiResponse(StudentRatingsDetailedSerializer, "OK"),
     **common_errors(),
 }
 R_ANALYTICS = {

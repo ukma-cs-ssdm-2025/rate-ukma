@@ -1277,7 +1277,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StudentRatingsLight'
-          description: Ok
+          description: OK
         '400':
           content:
             application/json:
@@ -1333,7 +1333,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StudentRatingsDetailed'
-          description: Ok
+          description: OK
         '400':
           content:
             application/json:
