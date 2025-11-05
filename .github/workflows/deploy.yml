@@ -32,6 +32,10 @@ on:
         required: true
       SSH_KEY:
         required: true
+      CORPORATE_EMAIL:
+        required: true
+      CORPORATE_PASSWORD:
+        required: true
 
 env:
   PROJECT_DIR: /opt/rateukma

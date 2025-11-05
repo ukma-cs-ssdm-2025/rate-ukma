@@ -11,6 +11,11 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      CORPORATE_EMAIL:
+        required: true
+      CORPORATE_PASSWORD:
+        required: true
 
 env:
   WEBAPP_DIR: src/webapp
