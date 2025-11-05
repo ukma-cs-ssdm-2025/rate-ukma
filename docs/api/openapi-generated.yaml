@@ -1315,18 +1315,6 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                NotFound:
-                  value:
-                    detail: Not found
-                    status: 404
-                  summary: Not found
-          description: Not found
   /api/v1/students/me/grades/:
     get:
       operationId: students_me_grades_retrieve
@@ -1383,18 +1371,6 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                NotFound:
-                  value:
-                    detail: Not found
-                    status: 404
-                  summary: Not found
-          description: Not found
 components:
   schemas:
     AcademicDegreeEnum:
