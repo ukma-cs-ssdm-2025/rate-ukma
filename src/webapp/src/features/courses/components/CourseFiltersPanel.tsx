@@ -283,20 +283,16 @@ export function CourseFiltersPanel({
 				key: "semester",
 				label: `Семестр: ${selectedSemesterYearOption.label} ${semesterTermLabel}`,
 			});
-		} else {
-			if (semesterTermLabel) {
-				badges.push({
-					key: "semesterTerm",
-					label: `Період: ${semesterTermLabel}`,
-				});
-			}
-
-			if (selectedSemesterYearOption) {
-				badges.push({
-					key: "semesterYear",
-					label: `Рік: ${selectedSemesterYearOption.label}`,
-				});
-			}
+		} else if (semesterTermLabel) {
+			badges.push({
+				key: "semesterTerm",
+				label: `Період: ${semesterTermLabel}`,
+			});
+		} else if (selectedSemesterYearOption) {
+			badges.push({
+				key: "semesterYear",
+				label: `Рік: ${selectedSemesterYearOption.label}`,
+			});
 		}
 
 		if (selectedFacultyOption) {
