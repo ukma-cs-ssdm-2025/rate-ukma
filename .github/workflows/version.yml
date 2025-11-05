@@ -46,7 +46,7 @@ jobs:
       - name: Show current repo version state
         run: |
           git log --oneline --decorate -n 5
-          git tag --list
+          git tag --sort=v:refname --list | tail -n 5
 
       - name: Generate Semantic Version
         id: semantic

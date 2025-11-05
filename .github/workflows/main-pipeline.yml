@@ -25,6 +25,25 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
 
+  release-needed:
+    needs: [version]
+    runs-on: ubuntu-latest
+    outputs:
+      release_needed: ${{ steps.release_needed.outputs.release_needed }}
+    env:
+      VERSION_TAG: ${{ needs.version.outputs.version_tag }}
+    steps:
+      - name: Check if release is needed
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view $VERSION_TAG; then
+            echo "release_needed=false" >> $GITHUB_OUTPUT
+          else
+            echo "release_needed=true" >> $GITHUB_OUTPUT
+          fi
+
   deploy-staging:
     needs: [version, test, openapi-validation, audit, build]
     uses: ./.github/workflows/deploy-staging.yml
@@ -38,8 +57,8 @@ jobs:
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   release:
-    needs: [deploy-staging, version]
-    if: needs.version.outputs.version_type != 'none'
+    needs: [deploy-staging, version, release-needed]
+    if: needs.release_needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}
