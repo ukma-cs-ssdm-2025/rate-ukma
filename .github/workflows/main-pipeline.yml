@@ -34,6 +34,8 @@ jobs:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
       SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+      CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
+      CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   release:
     needs: [deploy-staging, version]

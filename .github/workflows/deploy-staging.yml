@@ -29,3 +29,5 @@ jobs:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_USER: ${{ secrets.SSH_USER }}
       SSH_KEY: ${{ secrets.SSH_KEY }}
+      CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
+      CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}

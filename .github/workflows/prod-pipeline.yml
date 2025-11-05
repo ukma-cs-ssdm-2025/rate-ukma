@@ -30,6 +30,8 @@ jobs:
       SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
       SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
+      CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
+      CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   update_pre_releases:
     needs: deploy-live

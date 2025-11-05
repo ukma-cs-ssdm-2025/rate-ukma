@@ -182,3 +182,6 @@ jobs:
     with:
       test_url: ${{ inputs.test_url }}
       deployment_ref: ${{ inputs.deployment_ref }}
+    secrets:
+      CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
+      CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
