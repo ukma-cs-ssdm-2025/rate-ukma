@@ -25,10 +25,7 @@ function CoursesRoute() {
 
 	const handleFiltersChange = useCallback((nextFilters: CoursesListParams) => {
 		setFilters((previous) => {
-			if (
-				previous.page === nextFilters.page &&
-				previous.page_size === nextFilters.page_size
-			) {
+			if (JSON.stringify(previous) === JSON.stringify(nextFilters)) {
 				return previous;
 			}
 			return nextFilters;

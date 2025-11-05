@@ -131,6 +131,32 @@ const columns: ColumnDef<CourseList>[] = [
 	},
 ];
 
+export type FilterState = {
+	searchQuery: string;
+	difficultyRange: [number, number];
+	usefulnessRange: [number, number];
+	faculty: string;
+	department: string;
+	instructor: string;
+	semesterTerm: string;
+	semesterYear: string;
+	courseType: string;
+	speciality: string;
+};
+
+export const DEFAULT_FILTERS: FilterState = {
+	searchQuery: "",
+	difficultyRange: DIFFICULTY_RANGE,
+	usefulnessRange: USEFULNESS_RANGE,
+	faculty: "",
+	department: "",
+	instructor: "",
+	semesterTerm: "",
+	semesterYear: "",
+	courseType: "",
+	speciality: "",
+};
+
 export function CoursesTable({
 	data,
 	isLoading,
@@ -145,22 +171,79 @@ export function CoursesTable({
 		pageSize: serverPagination ? serverPagination.pageSize : 20,
 	});
 
-	const [searchQuery, setSearchQuery] = useState("");
-	const [difficultyRange, setDifficultyRange] =
-		useState<[number, number]>(DIFFICULTY_RANGE);
-	const [usefulnessRange, setUsefulnessRange] =
-		useState<[number, number]>(USEFULNESS_RANGE);
-	const [selectedFaculty, setSelectedFaculty] = useState<string>("");
-	const [selectedDepartment, setSelectedDepartment] = useState<string>("");
-	const [selectedInstructor, setSelectedInstructor] = useState<string>("");
-	const [selectedSemesterTerm, setSelectedSemesterTerm] = useState<string>("");
-	const [selectedSemesterYear, setSelectedSemesterYear] = useState<string>("");
-	const [selectedCourseType, setSelectedCourseType] = useState<string>("");
-	const [selectedSpeciality, setSelectedSpeciality] = useState<string>("");
+	const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+
+	const updateFilter = useCallback(
+		<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
+			setFilters((prev) => ({ ...prev, [key]: value }));
+		},
+		[],
+	);
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
+
+	const apiSorting = useMemo(() => {
+		if (sorting.length === 0) return {};
+		const firstSort = sorting[0];
+
+		if (firstSort.id === "avg_difficulty") {
+			return {
+				avg_difficulty_order: firstSort.desc ? "desc" : "asc",
+			};
+		}
+
+		if (firstSort.id === "avg_usefulness") {
+			return {
+				avg_usefulness_order: firstSort.desc ? "desc" : "asc",
+			};
+		}
+
+		return {};
+	}, [sorting]);
+
+	const apiFilters = useMemo(() => {
+		const isDifficultyModified =
+			filters.difficultyRange[0] !== DIFFICULTY_RANGE[0] ||
+			filters.difficultyRange[1] !== DIFFICULTY_RANGE[1];
+
+		const isUsefulnessModified =
+			filters.usefulnessRange[0] !== USEFULNESS_RANGE[0] ||
+			filters.usefulnessRange[1] !== USEFULNESS_RANGE[1];
+
+		const params = {
+			name: filters.searchQuery,
+			faculty: filters.faculty,
+			department: filters.department,
+			instructor: filters.instructor,
+			typeKind: filters.courseType,
+			speciality: filters.speciality,
+			semesterTerm: filters.semesterTerm,
+			semesterYear: filters.semesterYear
+				? Number(filters.semesterYear)
+				: undefined,
+			...(isDifficultyModified && {
+				avg_difficulty_min: filters.difficultyRange[0],
+				avg_difficulty_max: filters.difficultyRange[1],
+			}),
+			...(isUsefulnessModified && {
+				avg_usefulness_min: filters.usefulnessRange[0],
+				avg_usefulness_max: filters.usefulnessRange[1],
+			}),
+		};
+
+		return Object.fromEntries(
+			Object.entries(params).filter(
+				([_, v]) => v !== "" && v !== undefined && !Number.isNaN(v),
+			),
+		);
+	}, [filters]);
+
+	const combinedFilters = useMemo(
+		() => ({ ...apiSorting, ...apiFilters }),
+		[apiSorting, apiFilters],
+	);
 
 	// Update local pagination state when server pagination changes
 	useEffect(() => {
@@ -176,7 +259,7 @@ export function CoursesTable({
 		data,
 		columns,
 		manualSorting: true,
-		manualPagination: true, // We'll handle pagination ourselves
+		manualPagination: true,
 		onSortingChange: setSorting,
 		onPaginationChange: (updater) => {
 			const newPagination =
@@ -184,9 +267,10 @@ export function CoursesTable({
 
 			setPagination(newPagination);
 
-			// Trigger filter change to fetch new page from server
+			// Trigger filter change to fetch new page from server, including all current filters
 			if (onFiltersChange) {
 				onFiltersChange({
+					...combinedFilters,
 					page: newPagination.pageIndex + 1,
 					page_size: newPagination.pageSize,
 				});
@@ -211,101 +295,9 @@ export function CoursesTable({
 		);
 	}, [filtersKey]);
 
-	const apiSorting = useMemo(() => {
-		if (sorting.length === 0) return {};
-		const firstSort = sorting[0];
-
-		// Map frontend sorting IDs to backend API parameters
-		if (firstSort.id === "avg_difficulty") {
-			return {
-				avg_difficulty_order: firstSort.desc ? "desc" : "asc",
-			};
-		}
-
-		if (firstSort.id === "avg_usefulness") {
-			return {
-				avg_usefulness_order: firstSort.desc ? "desc" : "asc",
-			};
-		}
-
-		return {};
-	}, [sorting]);
-
-	const apiFilters = useMemo(() => {
-		const filters: Record<string, unknown> = {};
-
-		if (searchQuery) {
-			filters.name = searchQuery;
-		}
-
-		if (
-			difficultyRange[0] !== DIFFICULTY_RANGE[0] ||
-			difficultyRange[1] !== DIFFICULTY_RANGE[1]
-		) {
-			filters.avg_difficulty_min = difficultyRange[0];
-			filters.avg_difficulty_max = difficultyRange[1];
-		}
-
-		if (
-			usefulnessRange[0] !== USEFULNESS_RANGE[0] ||
-			usefulnessRange[1] !== USEFULNESS_RANGE[1]
-		) {
-			filters.avg_usefulness_min = usefulnessRange[0];
-			filters.avg_usefulness_max = usefulnessRange[1];
-		}
-
-		if (selectedFaculty) {
-			filters.faculty = selectedFaculty;
-		}
-
-		if (selectedDepartment) {
-			filters.department = selectedDepartment;
-		}
-
-		if (selectedInstructor) {
-			filters.instructor = selectedInstructor;
-		}
-
-		if (selectedCourseType) {
-			filters.typeKind = selectedCourseType;
-		}
-
-		if (selectedSpeciality) {
-			filters.speciality = selectedSpeciality;
-		}
-
-		if (selectedSemesterTerm) {
-			filters.semesterTerm = selectedSemesterTerm;
-		}
-
-		if (selectedSemesterYear) {
-			const parsedYear = Number(selectedSemesterYear);
-			if (!Number.isNaN(parsedYear)) {
-				filters.semesterYear = parsedYear;
-			}
-		}
-
-		return filters;
-	}, [
-		searchQuery,
-		difficultyRange,
-		usefulnessRange,
-		selectedFaculty,
-		selectedDepartment,
-		selectedInstructor,
-		selectedCourseType,
-		selectedSpeciality,
-		selectedSemesterTerm,
-		selectedSemesterYear,
-	]);
-
-	const combinedFilters = useMemo(
-		() => ({ ...apiSorting, ...apiFilters }),
-		[apiSorting, apiFilters],
-	);
-
 	const previousFiltersRef = useRef<Record<string, unknown>>({});
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pagination is intentionally excluded to prevent circular updates
 	useEffect(() => {
 		const hasFiltersChanged =
 			JSON.stringify(combinedFilters) !==
@@ -315,23 +307,18 @@ export function CoursesTable({
 			return;
 		}
 
+		// Reset to page 1 when filters change (do this immediately, not in timeout)
+		if (pagination.pageIndex !== 0) {
+			setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+		}
+
 		const timeout = setTimeout(() => {
 			previousFiltersRef.current = combinedFilters;
 
-			// Reset to page 1 when filters change (excluding pagination parameters)
-			const isPaginationOnlyChange =
-				previousFiltersRef.current &&
-				combinedFilters &&
-				Object.keys(combinedFilters).length === 2;
-
-			if (!isPaginationOnlyChange && pagination.pageIndex !== 0) {
-				setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-			}
-
-			// Include current pagination in filters to maintain it
+			// Include current pagination in filters (will be page 1 due to reset above)
 			const filtersWithPagination = {
 				...combinedFilters,
-				page: pagination.pageIndex + 1,
+				page: 1,
 				page_size: pagination.pageSize,
 			};
 
@@ -339,19 +326,10 @@ export function CoursesTable({
 		}, 500);
 
 		return () => clearTimeout(timeout);
-	}, [combinedFilters, onFiltersChange, pagination]);
+	}, [combinedFilters, onFiltersChange]);
 
 	const handleResetFilters = useCallback(() => {
-		setSearchQuery("");
-		setDifficultyRange(DIFFICULTY_RANGE);
-		setUsefulnessRange(USEFULNESS_RANGE);
-		setSelectedFaculty("");
-		setSelectedDepartment("");
-		setSelectedInstructor("");
-		setSelectedSemesterTerm("");
-		setSelectedSemesterYear("");
-		setSelectedCourseType("");
-		setSelectedSpeciality("");
+		setFilters(DEFAULT_FILTERS);
 	}, []);
 
 	const [hasResolvedFirstFetch, setHasResolvedFirstFetch] = useState(false);
@@ -391,8 +369,10 @@ export function CoursesTable({
 						<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
 						<Input
 							placeholder="Пошук курсів за назвою..."
-							value={searchQuery}
-							onChange={(event) => setSearchQuery(event.target.value)}
+							value={filters.searchQuery}
+							onChange={(event) =>
+								updateFilter("searchQuery", event.target.value)
+							}
 							className="pl-10 h-12 text-base"
 							disabled={isInitialLoading}
 						/>
@@ -404,28 +384,11 @@ export function CoursesTable({
 
 			<div className="w-80 shrink-0">
 				<CourseFiltersPanel
-					isLoading={isPanelLoading}
-					difficultyRange={difficultyRange}
-					onDifficultyChange={setDifficultyRange}
-					usefulnessRange={usefulnessRange}
-					onUsefulnessChange={setUsefulnessRange}
+					filters={filters}
+					onFilterChange={updateFilter}
 					filterOptions={filterOptions}
-					selectedFaculty={selectedFaculty}
-					onFacultyChange={setSelectedFaculty}
-					selectedDepartment={selectedDepartment}
-					onDepartmentChange={setSelectedDepartment}
-					selectedInstructor={selectedInstructor}
-					onInstructorChange={setSelectedInstructor}
-					selectedSemesterTerm={selectedSemesterTerm}
-					onSemesterTermChange={setSelectedSemesterTerm}
-					selectedSemesterYear={selectedSemesterYear}
-					onSemesterYearChange={setSelectedSemesterYear}
-					selectedCourseType={selectedCourseType}
-					onCourseTypeChange={setSelectedCourseType}
-					selectedSpeciality={selectedSpeciality}
-					onSpecialityChange={setSelectedSpeciality}
 					onReset={handleResetFilters}
-					searchQuery={searchQuery}
+					isLoading={isPanelLoading}
 				/>
 			</div>
 		</div>
