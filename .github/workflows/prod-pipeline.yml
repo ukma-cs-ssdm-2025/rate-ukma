@@ -82,41 +82,30 @@ jobs:
         id: update_pre_releases
         if: steps.get_releases.outputs.tags != ''
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           readarray -t tags <<< "${{ steps.get_releases.outputs.tags }}"
           echo "Processing releases: ${tags[@]}"
+          LAST_INDEX=$(( ${#tags[@]} - 1 ))
 
           for i in "${!tags[@]}"; do
             tag="${tags[$i]}"
             echo "Updating release: $tag"
 
-            if [[ "$i" -eq "$(( ${#tags[@]} - 1 ))" ]]; then
-              IS_LATEST=true
+            if [[ "$i" -eq "$LAST_INDEX" ]]; then
+              LATEST_FLAG="--latest"
             else
-              IS_LATEST=false
+              LATEST_FLAG="--latest=false"
             fi
 
-            RELEASE_API="https://api.github.com/repos/${{ github.repository }}/releases/tags/$tag"
-            RELEASE_ID=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "$RELEASE_API" | jq -r '.id')
+            gh release edit "$tag" --prerelease=false "$LATEST_FLAG" > /dev/null 2>&1
 
-            if [[ "$RELEASE_ID" == "null" || -z "$RELEASE_ID" ]]; then
-              echo "Error: No release found for tag $tag" >&2
+            if [[ "$?" -ne 0 ]]; then
+              echo "No GitHub Release found for tag '$tag'. Skipping..." >&2
               continue
             fi
 
-            echo "Release ID: $RELEASE_ID"
-
-            PATCH_API="https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID"
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "$PATCH_API" \
-              -d '{"prerelease": false, "make_latest": '"$IS_LATEST"'}')
-
-            if [[ "$RESPONSE" != "200" ]]; then
-              echo "Error updating release $tag (HTTP $RESPONSE)" >&2
-            fi
+            echo "Successfully updated release: $tag"
           done
 
   push_live_tag:
