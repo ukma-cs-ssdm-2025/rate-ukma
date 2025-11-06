@@ -1,6 +1,7 @@
 from dataclasses import asdict
 
 from rest_framework import status, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -57,5 +58,8 @@ class AnalyticsViewSet(viewsets.ViewSet):
 
         course_id = kwargs.get(self.lookup_url_kwarg)
         course = self.course_service.get_course(course_id)
+        if not course:
+            raise NotFound(detail="Course not found")
+
         serialized = self.serializer_class(course).data
         return Response(serialized, status=status.HTTP_200_OK)

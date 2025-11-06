@@ -27,7 +27,7 @@ class CourseService:
     def list_courses(self) -> list[Course]:
         return self.course_repository.get_all()
 
-    def get_course(self, course_id) -> Course:
+    def get_course(self, course_id) -> Course | None:
         return self.course_repository.get_by_id(course_id)
 
     def filter_courses(self, **kwargs) -> CourseFilterPayload:
@@ -38,13 +38,18 @@ class CourseService:
     def create_course(self, **course_data: dict[str, Any]) -> Course:
         return self.course_repository.create(**course_data)
 
-    def update_course(self, course_id: str, **update_data: dict[str, Any]) -> Course:
+    def update_course(self, course_id: str, **update_data: dict[str, Any]) -> Course | None:
         course = self.course_repository.get_by_id(course_id)
+        if not course:
+            return None
         return self.course_repository.update(course, **update_data)
 
-    def delete_course(self, course_id: str) -> None:
+    def delete_course(self, course_id: str) -> bool:
         course = self.course_repository.get_by_id(course_id)
+        if not course:
+            return False
         self.course_repository.delete(course)
+        return True
 
     def get_filter_options(self) -> CourseFilterOptions:
         instructors: list[Instructor] = self._get_sorted_instructors()

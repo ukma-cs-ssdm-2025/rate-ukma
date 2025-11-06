@@ -3,6 +3,8 @@ from typing import Any, cast
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, F, QuerySet
 
+import structlog
+
 from rating_app.constants import (
     DEFAULT_PAGE_NUMBER,
     DEFAULT_PAGE_SIZE,
@@ -13,22 +15,28 @@ from rating_app.filters import CourseFilterPayload, CourseFilters
 from rating_app.models import Course, Department
 from rating_app.models.choices import CourseStatus
 
+logger = structlog.get_logger()
+
 
 class CourseRepository:
     def get_all(self) -> list[Course]:
         return list(Course.objects.all())
 
-    def get_by_id(self, course_id: str) -> Course:
-        return (
-            Course.objects.select_related("department__faculty")
-            .prefetch_related("offerings__semester", "course_specialities__speciality")
-            .annotate(
-                avg_difficulty_annot=Avg("offerings__ratings__difficulty"),
-                avg_usefulness_annot=Avg("offerings__ratings__usefulness"),
-                ratings_count_annot=Count("offerings__ratings__id", distinct=True),
+    def get_by_id(self, course_id: str) -> Course | None:
+        try:
+            return (
+                Course.objects.select_related("department__faculty")
+                .prefetch_related("offerings__semester", "course_specialities__speciality")
+                .annotate(
+                    avg_difficulty_annot=Avg("offerings__ratings__difficulty"),
+                    avg_usefulness_annot=Avg("offerings__ratings__usefulness"),
+                    ratings_count_annot=Count("offerings__ratings__id", distinct=True),
+                )
+                .get(id=course_id)
             )
-            .get(id=course_id)
-        )
+        except Course.DoesNotExist:
+            logger.error("course_not_found", course_id=course_id)
+            return None
 
     def filter(self, filters: CourseFilters | None = None, **kwargs) -> CourseFilterPayload:
         """

@@ -15,7 +15,6 @@ from rating_app.filters.course_filters import (
 )
 from rating_app.filters.course_payload import CourseFilterPayload
 from rating_app.filters.filters_parsers.course import CourseFilterParser, CourseQueryParams
-from rating_app.models import Course
 from rating_app.models.semester import SemesterTerm
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
@@ -127,13 +126,12 @@ class CourseViewSet(viewsets.ViewSet):
     def retrieve(self, request, course_id=None, *args, **kwargs):
         assert self.course_service is not None
 
-        try:
-            course = self.course_service.get_course(course_id)
-            serializer = CourseDetailSerializer(course)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except (Course.DoesNotExist, ValueError) as e:  # type: ignore - temporary fix for type error
-            logger.error(f"Error retrieving course: {e}")
-            raise NotFound(detail="Course not found") from None
+        course = self.course_service.get_course(course_id)
+        if not course:
+            raise NotFound(detail="Course not found")
+
+        serializer = CourseDetailSerializer(course)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def _serialize_filters(self, filters_obj: CourseFilters) -> dict:
         if filters_obj is None:
