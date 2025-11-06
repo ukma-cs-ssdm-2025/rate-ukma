@@ -124,6 +124,10 @@ If the same service or repo is reused elsewhere, those layers also need to handl
 - Code duplication of exception handling  
 - Leaky abstraction between repository and API layers
 
+| Fault                                                                                                                                  | Error                                                                                                                                | Failure                                                                                                                 | Severity                                                               |
+|----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| API layer catches ORM exceptions (DoesNotExist, etc.) instead of handling them inside the repository/service. This **breaks abstraction**. | **Internal state mismatch**: controllers depend on repository implementation details, so changing the backend may break error handling. | **Wrong external behavior**: inconsistent HTTP responses (e.g., 500 instead of 404) or leaking ORM/DB messages to clients. | **Medium**: though may escalate to High if it causes 500 errors or data leakage. |
+
 ---
 
 ## 5. Missing Type Annotations
