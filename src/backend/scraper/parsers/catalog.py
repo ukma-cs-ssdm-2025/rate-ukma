@@ -1,5 +1,6 @@
 import logging
 import re
+from collections.abc import Iterator
 from urllib.parse import parse_qs, urljoin, urlparse
 
 from bs4 import BeautifulSoup, Tag
@@ -13,89 +14,59 @@ logger = logging.getLogger(__name__)
 
 class CourseLinkParser(BaseParser):
     def parse(self, html: str, base_url: str) -> list[str]:
-        if not html or not isinstance(html, str):
-            logger.warning("Invalid HTML input provided to parse method")
-            return []
         if not base_url or not isinstance(base_url, str):
             logger.warning("Invalid base_url provided to parse method")
             return []
 
-        soup = BeautifulSoup(html, "lxml")
         links = []
-
-        for a in soup.select(COURSE_LINK_SELECTOR):
-            href = a.get("href")
-            if not href or not isinstance(href, str):
-                continue
-
-            try:
-                href_str = str(href).strip()
-                if not href_str:
-                    continue
-
-                parsed_url = urlparse(href_str)
-                if not parsed_url.path:
-                    continue
-
-                path = parsed_url.path.rstrip("/")
-                if not path:
-                    continue
-
-                match = COURSE_PATH_PATTERN.match(path)
-                if match:
-                    full_url = urljoin(base_url, path)
-                    links.append(full_url)
-
-            except (ValueError, TypeError) as e:
-                logger.debug(f"Failed to parse href '{href}': {e}")
-                continue
-            except Exception as e:
-                logger.warning(f"Unexpected error processing href '{href}': {e}")
-                continue
-
+        for match in self._iter_course_matches(html):
+            links.append(urljoin(base_url, match.group(0)))
         return links
 
     def extract_course_ids(self, html: str) -> list[str]:
+        ids = set()
+        for match in self._iter_course_matches(html):
+            if match.group(1):
+                ids.add(match.group(1))
+
+        return list(ids)
+
+    def _iter_course_matches(self, html: str) -> Iterator[re.Match]:
+        if not html or not isinstance(html, str):
+            logger.warning("Invalid HTML input provided to _iter_course_matches")
+            return
+
         soup = BeautifulSoup(html, "lxml")
-        ids: list[str] = []
 
-        for a in soup.select(COURSE_LINK_SELECTOR):
-            href = a.get("href")
-            if not href or not isinstance(href, str):
-                continue
+        for a_tag in soup.select(COURSE_LINK_SELECTOR):
+            href = a_tag.get("href")
+            if isinstance(href, str):
+                match = self._get_match_from_href(href)
+                if match:
+                    yield match
 
-            try:
-                href_str = str(href).strip()
-                if not href_str:
-                    continue
+    def _get_match_from_href(self, href: str) -> re.Match | None:
+        try:
+            href_str = str(href).strip()
+            if not href_str:
+                return None
 
-                parsed_url = urlparse(href_str)
-                if not parsed_url.path:
-                    continue
+            parsed_url = urlparse(href_str)
+            if not parsed_url.path:
+                return None
 
-                path = parsed_url.path.rstrip("/")
-                if not path:
-                    continue
+            path = parsed_url.path.rstrip("/")
+            if not path:
+                return None
 
-                match = COURSE_PATH_PATTERN.match(path)
-                if match and match.group(1):
-                    course_id = match.group(1)
-                    ids.append(course_id)
+            return COURSE_PATH_PATTERN.match(path)
 
-            except (ValueError, TypeError) as e:
-                logger.debug(f"Failed to parse href '{href}' for ID extraction: {e}")
-                continue
-            except Exception as e:
-                logger.warning(f"Unexpected error extracting course ID from href '{href}': {e}")
-                continue
-
-        seen = set()
-        out: list[str] = []
-        for cid in ids:
-            if cid not in seen:
-                seen.add(cid)
-                out.append(cid)
-        return out
+        except (ValueError, TypeError) as e:
+            logger.debug(f"Failed to parse href '{href}': {e}")
+            return None
+        except Exception as e:
+            logger.warning(f"Unexpected error processing href '{href}': {e}")
+            return None
 
 
 class CatalogParser(BaseParser):

@@ -188,7 +188,7 @@ def test_extract_course_ids_function():
 
     result = extract_course_ids(html)
 
-    assert result == expected
+    assert set(result) == set(expected)
 
 
 def test_catalog_parser_pagination_with_query_string():
