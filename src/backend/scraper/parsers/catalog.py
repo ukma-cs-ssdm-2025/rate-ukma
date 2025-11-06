@@ -1,3 +1,4 @@
+import logging
 import re
 from urllib.parse import parse_qs, urljoin, urlparse
 
@@ -7,23 +8,49 @@ from .base import BaseParser
 
 COURSE_LINK_SELECTOR = "a[href^='/course/']"
 COURSE_PATH_PATTERN = re.compile(r"^/course/(\d+)$")
+logger = logging.getLogger(__name__)
 
 
 class CourseLinkParser(BaseParser):
     def parse(self, html: str, base_url: str) -> list[str]:
+        if not html or not isinstance(html, str):
+            logger.warning("Invalid HTML input provided to parse method")
+            return []
+        if not base_url or not isinstance(base_url, str):
+            logger.warning("Invalid base_url provided to parse method")
+            return []
+
         soup = BeautifulSoup(html, "lxml")
         links = []
 
         for a in soup.select(COURSE_LINK_SELECTOR):
             href = a.get("href")
-            if not href:
+            if not href or not isinstance(href, str):
                 continue
+
             try:
-                path = urlparse(str(href)).path.rstrip("/")
-                m = COURSE_PATH_PATTERN.match(path)
-                if m:
-                    links.append(urljoin(base_url, path))
-            except Exception:
+                href_str = str(href).strip()
+                if not href_str:
+                    continue
+
+                parsed_url = urlparse(href_str)
+                if not parsed_url.path:
+                    continue
+
+                path = parsed_url.path.rstrip("/")
+                if not path:
+                    continue
+
+                match = COURSE_PATH_PATTERN.match(path)
+                if match:
+                    full_url = urljoin(base_url, path)
+                    links.append(full_url)
+
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Failed to parse href '{href}': {e}")
+                continue
+            except Exception as e:
+                logger.warning(f"Unexpected error processing href '{href}': {e}")
                 continue
 
         return links
@@ -34,14 +61,32 @@ class CourseLinkParser(BaseParser):
 
         for a in soup.select(COURSE_LINK_SELECTOR):
             href = a.get("href")
-            if not href:
+            if not href or not isinstance(href, str):
                 continue
+
             try:
-                path = urlparse(str(href)).path.rstrip("/")
-                m = COURSE_PATH_PATTERN.match(path)
-                if m:
-                    ids.append(m.group(1))
-            except Exception:
+                href_str = str(href).strip()
+                if not href_str:
+                    continue
+
+                parsed_url = urlparse(href_str)
+                if not parsed_url.path:
+                    continue
+
+                path = parsed_url.path.rstrip("/")
+                if not path:
+                    continue
+
+                match = COURSE_PATH_PATTERN.match(path)
+                if match and match.group(1):
+                    course_id = match.group(1)
+                    ids.append(course_id)
+
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Failed to parse href '{href}' for ID extraction: {e}")
+                continue
+            except Exception as e:
+                logger.warning(f"Unexpected error extracting course ID from href '{href}': {e}")
                 continue
 
         seen = set()
