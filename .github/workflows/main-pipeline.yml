@@ -29,7 +29,7 @@ jobs:
     needs: [version]
     runs-on: ubuntu-latest
     outputs:
-      release_needed: ${{ steps.release_needed.outputs.release_needed }}
+      release_needed: ${{ steps.check.outputs.release_needed }}
     env:
       VERSION_TAG: ${{ needs.version.outputs.version_tag }}
     steps:
