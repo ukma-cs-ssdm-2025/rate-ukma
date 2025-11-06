@@ -1,6 +1,7 @@
 from dataclasses import asdict
 
 from rest_framework import status, viewsets
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
@@ -32,7 +33,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         parameters=COURSES_LIST_QUERY_PARAMS,
         responses=R_ANALYTICS,
     )
-    def list(self, request, *args, **kwargs):
+    def list(self, request: Request, *args, **kwargs):
         assert self.course_service is not None
         assert self.course_filter_parser is not None
 
@@ -51,7 +52,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         parameters=SINGLE_COURSE_QUERY_PARAMS,
         responses=R_ANALYTICS,
     )
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, request: Request, *args, **kwargs):
         assert self.course_service is not None
 
         course_id = kwargs.get(self.lookup_url_kwarg)

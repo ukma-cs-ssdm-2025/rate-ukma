@@ -1,7 +1,7 @@
 import re
 from urllib.parse import parse_qs, urljoin, urlparse
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from .base import BaseParser
 
@@ -74,7 +74,7 @@ class CatalogParser(BaseParser):
 
         return self._extract_from_pagination_links(pag)
 
-    def _try_extract_from_last_link(self, pag) -> int | None:
+    def _try_extract_from_last_link(self, pag: Tag) -> int | None:
         last_a = pag.select_one("li.last a")
         if not last_a:
             return None
@@ -85,7 +85,7 @@ class CatalogParser(BaseParser):
 
         return self._extract_from_data_attribute(last_a)
 
-    def _extract_from_href(self, element) -> int | None:
+    def _extract_from_href(self, element: Tag) -> int | None:
         try:
             href = element.get("href", "")
             if not href:
@@ -97,7 +97,7 @@ class CatalogParser(BaseParser):
             pass
         return None
 
-    def _extract_from_data_attribute(self, element) -> int | None:
+    def _extract_from_data_attribute(self, element: Tag) -> int | None:
         try:
             dp = element.get("data-page")
             if dp and str(dp).isdigit():
@@ -106,7 +106,7 @@ class CatalogParser(BaseParser):
             pass
         return None
 
-    def _extract_from_pagination_links(self, pag) -> int | None:
+    def _extract_from_pagination_links(self, pag: Tag) -> int | None:
         nums = []
         for a in pag.select("li a"):
             page_num = self._get_page_number_from_link(a)
@@ -114,7 +114,7 @@ class CatalogParser(BaseParser):
                 nums.append(page_num)
         return max(nums) if nums else None
 
-    def _get_page_number_from_link(self, link) -> int | None:
+    def _get_page_number_from_link(self, link: Tag) -> int | None:
         t = link.text.strip()
         if t.isdigit():
             return int(t)

@@ -1,3 +1,5 @@
+from typing import Any
+
 from rating_app.filters import CourseFilterOptions, CourseFilterPayload, CourseFilters
 from rating_app.ioc_container.repos import (
     course_repository,
@@ -7,8 +9,10 @@ from rating_app.ioc_container.repos import (
     semester_repository,
     speciality_repository,
 )
-from rating_app.models import Course
+from rating_app.models import Course, Faculty, Instructor
 from rating_app.models.choices import CourseTypeKind, SemesterTerm
+from rating_app.models.department import Department
+from rating_app.models.speciality import Speciality
 
 
 class CourseService:
@@ -31,22 +35,22 @@ class CourseService:
         return self.course_repository.filter(filters)
 
     # -- admin functions --
-    def create_course(self, **course_data) -> Course:
+    def create_course(self, **course_data: dict[str, Any]) -> Course:
         return self.course_repository.create(**course_data)
 
-    def update_course(self, course_id, **update_data) -> Course:
+    def update_course(self, course_id: str, **update_data: dict[str, Any]) -> Course:
         course = self.course_repository.get_by_id(course_id)
         return self.course_repository.update(course, **update_data)
 
-    def delete_course(self, course_id) -> None:
+    def delete_course(self, course_id: str) -> None:
         course = self.course_repository.get_by_id(course_id)
         self.course_repository.delete(course)
 
     def get_filter_options(self) -> CourseFilterOptions:
-        instructors = self._get_sorted_instructors()
-        faculties = self._get_sorted_faculties()
-        departments = self._get_sorted_departments()
-        specialities = self._get_sorted_specialities()
+        instructors: list[Instructor] = self._get_sorted_instructors()
+        faculties: list[Faculty] = self._get_sorted_faculties()
+        departments: list[Department] = self._get_sorted_departments()
+        specialities: list[Speciality] = self._get_sorted_specialities()
 
         semester_terms, semester_years = self._process_semesters()
         course_types = [{"value": value, "label": label} for value, label in CourseTypeKind.choices]
@@ -61,7 +65,7 @@ class CourseService:
             specialities=self._build_specialities_data(specialities),
         )
 
-    def _get_sorted_instructors(self):
+    def _get_sorted_instructors(self) -> list[Instructor]:
         return sorted(
             self.instructor_repository.get_all(),
             key=lambda instructor: (
@@ -70,25 +74,25 @@ class CourseService:
             ),
         )
 
-    def _get_sorted_faculties(self):
+    def _get_sorted_faculties(self) -> list[Faculty]:
         return sorted(
             self.faculty_repository.get_all(),
             key=lambda faculty: (faculty.name or "").lower(),
         )
 
-    def _get_sorted_departments(self):
+    def _get_sorted_departments(self) -> list[Department]:
         return sorted(
             self.department_repository.get_all(),
             key=lambda department: (department.name or "").lower(),
         )
 
-    def _get_sorted_specialities(self):
+    def _get_sorted_specialities(self) -> list[Speciality]:
         return sorted(
             self.speciality_repository.get_all(),
             key=lambda speciality: (speciality.name or "").lower(),
         )
 
-    def _process_semesters(self):
+    def _process_semesters(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         semesters = self.semester_repository.get_all()
         semester_term_order = {value: index for index, value in enumerate(SemesterTerm.values)}
         sorted_semesters = sorted(
@@ -100,7 +104,7 @@ class CourseService:
             reverse=True,
         )
 
-        term_labels: dict[str, str] = {}
+        term_labels: dict[SemesterTerm, str] = {}
         years: set[int] = set()
         for semester in sorted_semesters:
             year = getattr(semester, "year", None)
@@ -113,7 +117,7 @@ class CourseService:
                 label = (
                     SemesterTerm(term).label if term in SemesterTerm.values else str(term).title()
                 )
-                term_labels[term] = label
+                term_labels[SemesterTerm(term)] = label
 
         term_priority = {
             SemesterTerm.SPRING: 0,
@@ -134,7 +138,7 @@ class CourseService:
 
         return semester_terms, semester_years
 
-    def _build_instructors_data(self, instructors):
+    def _build_instructors_data(self, instructors: list[Instructor]) -> list[dict[str, Any]]:
         return [
             {
                 "id": instructor.id,
@@ -144,10 +148,10 @@ class CourseService:
             for instructor in instructors
         ]
 
-    def _build_faculties_data(self, faculties):
+    def _build_faculties_data(self, faculties: list[Faculty]) -> list[dict[str, Any]]:
         return [{"id": faculty.id, "name": faculty.name} for faculty in faculties]
 
-    def _build_departments_data(self, departments):
+    def _build_departments_data(self, departments: list[Department]) -> list[dict[str, Any]]:
         return [
             {
                 "id": department.id,
@@ -158,7 +162,7 @@ class CourseService:
             for department in departments
         ]
 
-    def _build_specialities_data(self, specialities):
+    def _build_specialities_data(self, specialities: list[Speciality]) -> list[dict[str, Any]]:
         return [
             {
                 "id": speciality.id,

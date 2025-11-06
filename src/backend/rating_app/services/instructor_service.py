@@ -7,7 +7,7 @@ class InstructorService:
     def __init__(self):
         self.instructor_repository = instructor_repository()
 
-    def get_instructor_by_id(self, instructor_id):
+    def get_instructor_by_id(self, instructor_id: str) -> Instructor:
         try:
             return self.instructor_repository.get_by_id(instructor_id)
         except Instructor.DoesNotExist:
