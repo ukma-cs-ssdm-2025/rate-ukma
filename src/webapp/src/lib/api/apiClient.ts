@@ -5,6 +5,7 @@ import { env } from "@/env";
 export const authorizedHttpClient = axios.create({
 	withCredentials: true,
 	baseURL: env.VITE_API_BASE_URL,
+	timeout: 10000, // 10 seconds
 });
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
