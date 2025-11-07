@@ -63,7 +63,7 @@ jobs:
 
   release:
     needs: [deploy-staging, version, release-needed]
-    if: needs.release_needed.outputs.release_needed == 'true'
+    if: needs.release-needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}
