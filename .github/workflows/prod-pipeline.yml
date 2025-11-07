@@ -98,9 +98,7 @@ jobs:
               LATEST_FLAG="--latest=false"
             fi
 
-            gh release edit "$tag" --prerelease=false "$LATEST_FLAG" > /dev/null 2>&1
-
-            if [[ "$?" -ne 0 ]]; then
+            if ! gh release edit "$tag" --prerelease=false "$LATEST_FLAG" > /dev/null 2>&1; then
               echo "No GitHub Release found for tag '$tag'. Skipping..." >&2
               continue
             fi
