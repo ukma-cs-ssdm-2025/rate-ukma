@@ -41,10 +41,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view $VERSION_TAG; then
-            echo "release_needed=false" >> $GITHUB_OUTPUT
+            RELEASE_NEEDED=false
           else
-            echo "release_needed=true" >> $GITHUB_OUTPUT
+            RELEASE_NEEDED=true
           fi
+
+          echo "release_needed=$RELEASE_NEEDED" >> $GITHUB_OUTPUT
+          echo "Release needed: $RELEASE_NEEDED -> $VERSION_TAG"
 
   deploy-staging:
     needs: [version, test, openapi-validation, audit, build]
