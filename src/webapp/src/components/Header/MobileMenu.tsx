@@ -6,7 +6,6 @@ import type { AuthUser } from "@/lib/auth";
 import type { NavigationItem, ThemeOption } from "./navigationData";
 import { themeOptions } from "./navigationData";
 import { Logo } from "../Logo";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { ToggleGroup, ToggleGroupItem } from "../ui/ToggleGroup";
 
@@ -91,17 +90,6 @@ function AccountSummary({
 	return (
 		<div className="w-full border-t border-border/50 pt-4">
 			<div className="flex items-center gap-3">
-				<div className="hidden sm:flex">
-					<Avatar className="h-12 w-12">
-						<AvatarImage
-							src="/avatars/01.png"
-							alt={user.email ?? "user avatar"}
-						/>
-						<AvatarFallback>
-							{user.firstName?.[0] ?? user.email?.[0] ?? "К"}
-						</AvatarFallback>
-					</Avatar>
-				</div>
 				<div className="flex flex-col text-sm">
 					<p className="font-semibold leading-none">
 						{user.firstName || user.lastName
@@ -149,7 +137,6 @@ export function MobileMenu({
 					onClose();
 				}
 			}}
-			panelClassName="max-w-sm"
 		>
 			<div className="flex items-center justify-between">
 				<Logo />

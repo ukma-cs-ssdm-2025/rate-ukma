@@ -48,36 +48,34 @@ export default function Header() {
 	return (
 		<>
 			<header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-				<div className="container mx-auto px-6 flex h-16 items-center">
-					<div className="flex items-center justify-between w-full max-w-7xl mx-auto">
-						<Logo />
+				<div className="px-6 flex h-16 items-center justify-between ">
+					<Logo />
 
-						<div className="flex items-center justify-center flex-1">
-							<HeaderNav items={navigationItems} className="hidden md:flex" />
+					<div className="flex items-center justify-center flex-1">
+						<HeaderNav items={navigationItems} className="hidden md:flex" />
+					</div>
+
+					<div className="flex items-center md:space-x-3">
+						<div className="hidden md:block">
+							<ModeToggle />
 						</div>
 
-						<div className="flex items-center md:space-x-3">
+						<div className="md:hidden">
+							<Button
+								variant="ghost"
+								className="h-9 w-9 rounded-full p-0"
+								aria-label="Відкрити меню"
+								onClick={openMobileMenu}
+							>
+								<Menu className="h-5 w-5" />
+							</Button>
+						</div>
+
+						{isAuthenticated && (
 							<div className="hidden md:block">
-								<ModeToggle />
+								<UserMenu user={user} logout={logout} />
 							</div>
-
-							<div className="md:hidden">
-								<Button
-									variant="ghost"
-									className="h-9 w-9 rounded-full p-0"
-									aria-label="Відкрити меню"
-									onClick={openMobileMenu}
-								>
-									<Menu className="h-5 w-5" />
-								</Button>
-							</div>
-
-							{isAuthenticated && (
-								<div className="hidden md:block">
-									<UserMenu user={user} logout={logout} />
-								</div>
-							)}
-						</div>
+						)}
 					</div>
 				</div>
 			</header>

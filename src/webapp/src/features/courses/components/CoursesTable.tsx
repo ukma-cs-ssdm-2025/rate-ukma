@@ -389,7 +389,7 @@ export function CoursesTable({
 					{renderTableContent()}
 				</div>
 
-				<div className="hidden md:block w-80 shrink-0">
+				<div className="hidden lg:block w-80 shrink-0">
 					<CourseFiltersPanel
 						filters={filters}
 						onFilterChange={updateFilter}
@@ -402,7 +402,7 @@ export function CoursesTable({
 
 			<button
 				type="button"
-				className="fixed right-0 z-40 grid h-10 w-10 items-center justify-center rounded-l-2xl border border-border bg-background shadow-lg shadow-black/20 transition hover:bg-accent hover:text-accent-foreground md:hidden"
+				className="fixed right-0 z-40 grid h-10 w-10 items-center justify-center rounded-l-2xl border border-border bg-background shadow-lg shadow-black/20 transition hover:bg-accent hover:text-accent-foreground lg:hidden"
 				style={{ top: "35%" }}
 				onClick={toggleFiltersDrawer}
 				aria-label="Фільтри"
@@ -413,7 +413,6 @@ export function CoursesTable({
 			<Drawer
 				open={isFiltersDrawerOpen}
 				onOpenChange={(open) => setFiltersDrawerOpen(open)}
-				panelClassName="max-w-sm"
 			>
 				<CourseFiltersDrawer
 					filters={filters}
