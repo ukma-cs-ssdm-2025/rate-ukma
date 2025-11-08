@@ -91,7 +91,7 @@ export function Drawer({
 			/>
 			<aside
 				className={cn(
-					"relative z-10 ml-auto flex h-full w-full max-w-xs flex-col gap-6 overflow-y-auto rounded-l-[32px] bg-popover/95 p-6 pb-6 shadow-[0_20px_45px_rgba(15,23,42,0.35)] backdrop-blur-sm",
+					"relative z-10 ml-auto flex h-full w-full max-w-xs flex-col gap-6 overflow-y-auto rounded-tl-[32px] rounded-bl-0 bg-popover/95 p-6 pb-6 shadow-[0_20px_45px_rgba(15,23,42,0.35)] backdrop-blur-sm",
 					panelClassName,
 				)}
 				style={{

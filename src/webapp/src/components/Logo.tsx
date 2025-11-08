@@ -11,9 +11,9 @@ interface RateUKMALogoProps {
 
 const sizeConfig = {
 	sm: {
-		container: "h-6 w-6",
-		icon: "h-3 w-3",
-		text: "text-sm font-semibold",
+		container: "h-8 w-8",
+		icon: "h-4 w-4",
+		text: "text-base font-semibold",
 	},
 	md: {
 		container: "h-9 w-9",

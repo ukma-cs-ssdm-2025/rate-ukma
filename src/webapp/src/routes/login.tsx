@@ -16,11 +16,20 @@ function LoginLayoutWrapper() {
 			</div>
 
 			<div className="absolute top-8 left-0 right-0 flex justify-center">
-				<Logo
-					size="md"
-					asLink={false}
-					textClassName="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
-				/>
+				<div className="md:hidden">
+					<Logo
+						size="sm"
+						asLink={false}
+						textClassName="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
+					/>
+				</div>
+				<div className="hidden md:block">
+					<Logo
+						size="md"
+						asLink={false}
+						textClassName="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
+					/>
+				</div>
 			</div>
 
 			<div className="absolute top-[40%] left-0 right-0 flex justify-center px-6 -translate-y-1/2">

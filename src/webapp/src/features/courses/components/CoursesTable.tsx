@@ -50,7 +50,7 @@ const columns: ColumnDef<CourseList>[] = [
 			const course = row.original;
 			return (
 				<div className="flex items-center gap-2">
-					<span className="font-semibold text-base transition-colors group-hover:text-primary group-hover:underline">
+					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline md:text-base">
 						{course.title}
 					</span>
 					<CourseFacultyBadge facultyName={course.faculty_name} />
@@ -76,7 +76,7 @@ const columns: ColumnDef<CourseList>[] = [
 			const count = row.getValue("ratings_count") as number;
 			return (
 				<div className="flex items-center justify-center">
-					<span className="text-lg font-medium text-muted-foreground">
+					<span className="text-sm font-medium text-muted-foreground md:text-base">
 						{count}
 					</span>
 				</div>
@@ -370,24 +370,24 @@ export function CoursesTable({
 	return (
 		<>
 			<div className="flex flex-col gap-6 md:flex-row">
-				<div className="flex-1 min-w-0 space-y-4">
-					<div className="flex items-center gap-4">
-						<div className="relative flex-1">
-							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-							<Input
-								placeholder="Пошук курсів за назвою..."
-								value={filters.searchQuery}
-								onChange={(event) =>
-									updateFilter("searchQuery", event.target.value)
-								}
-								className="pl-10 h-12 text-base"
-								disabled={isInitialLoading}
-							/>
+					<div className="flex-1 min-w-0 space-y-4">
+						<div className="flex items-center gap-4">
+							<div className="relative flex-1">
+								<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+								<Input
+									placeholder="Пошук курсів за назвою..."
+									value={filters.searchQuery}
+									onChange={(event) =>
+										updateFilter("searchQuery", event.target.value)
+									}
+									className="pl-10 h-12 text-base"
+									disabled={isInitialLoading}
+								/>
+							</div>
 						</div>
-					</div>
 
-					{renderTableContent()}
-				</div>
+						{renderTableContent()}
+					</div>
 
 				<div className="hidden md:block w-80 shrink-0">
 					<CourseFiltersPanel
