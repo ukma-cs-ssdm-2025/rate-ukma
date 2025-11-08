@@ -48,7 +48,7 @@ export default function Header() {
 	return (
 		<>
 			<header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-				<div className="px-6 flex h-16 items-center justify-between ">
+				<div className="container mx-auto px-6 max-w-7xl flex h-16 items-center justify-between">
 					<Logo />
 
 					<div className="flex items-center justify-center flex-1">
