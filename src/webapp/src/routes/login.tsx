@@ -24,10 +24,10 @@ function LoginLayoutWrapper() {
 			</div>
 
 			<div className="absolute top-[40%] left-0 right-0 flex justify-center px-6 -translate-y-1/2">
-				<div className="w-full max-w-lg bg-background/60 backdrop-blur-xl rounded-2xl p-8 border border-border/30 shadow-xl text-center space-y-8">
+				<div className="w-full max-w-full md:max-w-lg bg-background/60 backdrop-blur-xl rounded-none md:rounded-2xl p-6 md:p-8 md:border md:border-border/30 md:shadow-xl shadow-none text-center space-y-8">
 					<Outlet />
 
-					<div className="pt-2 border-t border-border/20">
+					<div className="pt-2 md:border-t md:border-border/20">
 						<p className="text-sm text-muted-foreground">
 							Доступ дозволено тільки для користувачів з коорпоративною поштою{" "}
 							<span className="font-medium text-foreground">ukma.edu.ua</span>
