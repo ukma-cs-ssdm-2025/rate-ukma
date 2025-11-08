@@ -1,11 +1,9 @@
-from dataclasses import asdict
-
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
 
-from rating_app.domain_models.course import CourseFilteredPayload, CourseQueryParams
+from rating_app.domain_models.course import CourseFilterCriteria, CourseSearchResult
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
 from rating_app.services.course_service import CourseService
 from rating_app.views.api_spec.course import (
@@ -33,8 +31,8 @@ class AnalyticsViewSet(viewsets.ViewSet):
     def list(self, request, *args, **kwargs):
         assert self.course_service is not None
 
-        filters: CourseQueryParams = CourseQueryParams(**request.query_params)
-        payload: CourseFilteredPayload = self.course_service.filter_courses(**asdict(filters))
+        filters: CourseFilterCriteria = CourseFilterCriteria(**request.query_params)
+        payload: CourseSearchResult = self.course_service.filter_courses(filters, paginate=False)
         serialized = self.serializer_class(payload.items, many=True).data
 
         return Response(serialized, status=status.HTTP_200_OK)

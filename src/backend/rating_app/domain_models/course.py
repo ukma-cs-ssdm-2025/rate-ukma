@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core import ErrorDetails
 
+from rating_app.models import Course
+
 from ..constants import (
     MAX_RATING_VALUE,
     MIN_PAGE_NUMBER,
@@ -13,6 +15,7 @@ from ..constants import (
     MIN_SEMESTER_YEAR,
 )
 from ..models.choices import CourseTypeKind, InstructorRole, SemesterTerm
+from .pagination import PaginationMetadata
 
 AvgOrder: TypeAlias = Literal["asc", "desc"]
 
@@ -22,7 +25,7 @@ class CourseQueryParamsValidationError(ValidationError):
         super().__init__("Course query parameters are invalid", errors)
 
 
-class CourseQueryParams(BaseModel):
+class CourseFilterCriteria(BaseModel):
     model_config = {
         "alias_generator": to_camel,
         "populate_by_name": True,
@@ -64,13 +67,10 @@ class CourseQueryParams(BaseModel):
 
 
 @dataclass(frozen=True)
-class CourseFilteredPayload:
-    items: list
-    page: int
-    page_size: int
-    total: int
-    total_pages: int
-    filters: dict[str, Any]  # TODO: specify that here should be CourseQueryParams.model_dump()
+class CourseSearchResult:
+    items: list[Course]
+    pagination: PaginationMetadata
+    applied_filters: dict[str, Any]
 
 
 @dataclass(frozen=True)

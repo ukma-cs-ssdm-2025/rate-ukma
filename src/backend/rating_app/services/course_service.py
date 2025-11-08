@@ -1,4 +1,4 @@
-from typing import cast
+import math
 
 from django.core.paginator import Paginator
 from django.db.models import QuerySet
@@ -7,10 +7,11 @@ import structlog
 
 from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
 from rating_app.domain_models.course import (
-    CourseFilteredPayload,
+    CourseFilterCriteria,
     CourseFilterOptions,
-    CourseQueryParams,
+    CourseSearchResult,
 )
+from rating_app.domain_models.pagination import PaginationMetadata
 from rating_app.ioc_container.repos import (
     course_repository,
     department_repository,
@@ -40,9 +41,19 @@ class CourseService:
     def get_course(self, course_id) -> Course:
         return self.course_repository.get_by_id(course_id)
 
-    def filter_courses(self, filters: CourseQueryParams) -> CourseFilteredPayload:
+    def filter_courses(
+        self, filters: CourseFilterCriteria, paginate: bool = True
+    ) -> CourseSearchResult:
         courses = self.course_repository.filter(filters)
-        return self._paginate_courses(courses, filters)
+
+        if paginate:
+            return self._paginated_result(courses, filters)
+
+        return CourseSearchResult(
+            items=list(courses),
+            pagination=self._empty_pagination_metadata(courses.count()),
+            applied_filters=filters.model_dump(),
+        )
 
     # -- admin functions --
     def create_course(self, **course_data) -> Course:
@@ -184,26 +195,28 @@ class CourseService:
             for speciality in specialities
         ]
 
-    def _paginate_courses(
-        self, courses: QuerySet[Course], filters: CourseQueryParams
-    ) -> CourseFilteredPayload:
-        # TODO: handle situations where no pagination is required
-        if not filters.page_size:
-            all_courses_count = courses.count()
-            filters.page_size = all_courses_count or DEFAULT_COURSE_PAGE_SIZE
+    def _paginated_result(
+        self, courses: QuerySet[Course], criteria: CourseFilterCriteria
+    ) -> CourseSearchResult:
+        page_size = criteria.page_size or courses.count() or DEFAULT_COURSE_PAGE_SIZE
+        paginator = Paginator(courses, page_size)
+        page = paginator.get_page(criteria.page)
 
-        paginator = Paginator(courses, filters.page_size)
-        page_obj = paginator.get_page(filters.page)
+        return CourseSearchResult(
+            items=page.object_list,
+            pagination=PaginationMetadata(
+                page=page.number,
+                page_size=page.paginator.per_page,
+                total=paginator.count,  # type: ignore
+                total_pages=paginator.num_pages,  # type: ignore
+            ),
+            applied_filters=criteria.model_dump(),
+        )
 
-        total_pages = cast(int, paginator.num_pages)  # TODO: remove casting
-        if not total_pages:
-            total_pages = (cast(int, paginator.count) + filters.page_size - 1) // filters.page_size
-
-        return CourseFilteredPayload(
-            items=list(page_obj.object_list),
-            page=page_obj.number,
-            page_size=page_obj.paginator.per_page,
-            total=cast(int, paginator.count),
-            total_pages=total_pages,
-            filters=filters.model_dump(),
+    def _empty_pagination_metadata(self, courses_count: int) -> PaginationMetadata:
+        return PaginationMetadata(
+            page=1,
+            page_size=courses_count,
+            total=courses_count,
+            total_pages=math.ceil(courses_count / courses_count),
         )

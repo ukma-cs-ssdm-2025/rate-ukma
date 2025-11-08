@@ -4,7 +4,7 @@ from django.db.models import Avg, Count, F, QuerySet
 
 import structlog
 
-from rating_app.domain_models.course import CourseQueryParams
+from rating_app.domain_models.course import CourseFilterCriteria
 from rating_app.models import Course, Department
 from rating_app.models.choices import CourseStatus
 
@@ -27,7 +27,7 @@ class CourseRepository:
             .get(id=course_id)
         )
 
-    def filter(self, filters: CourseQueryParams) -> QuerySet[Course]:
+    def filter(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
         courses = self._build_base_queryset()
         courses = self._apply_basic_filters(courses, filters)
         courses = self._apply_speciality_filters(courses, filters)
@@ -73,7 +73,7 @@ class CourseRepository:
         )
 
     def _apply_basic_filters(
-        self, courses: QuerySet[Course], filters: CourseQueryParams
+        self, courses: QuerySet[Course], filters: CourseFilterCriteria
     ) -> QuerySet[Course]:
         # TODO: research if reflection can be applied here
 
@@ -100,7 +100,7 @@ class CourseRepository:
         return courses.filter(**q_filters) if q_filters else courses
 
     def _apply_speciality_filters(
-        self, courses: QuerySet[Course], filters: CourseQueryParams
+        self, courses: QuerySet[Course], filters: CourseFilterCriteria
     ) -> QuerySet[Course]:
         if filters.type_kind:
             courses = courses.filter(course_specialities__type_kind=filters.type_kind)
@@ -116,7 +116,7 @@ class CourseRepository:
         )
 
     def _apply_range_filters(
-        self, courses: QuerySet[Course], filters: CourseQueryParams
+        self, courses: QuerySet[Course], filters: CourseFilterCriteria
     ) -> QuerySet[Course]:
         if filters.avg_difficulty_min is not None:
             courses = courses.filter(avg_difficulty_annot__gte=filters.avg_difficulty_min)
@@ -129,7 +129,7 @@ class CourseRepository:
         return courses
 
     def _apply_sorting(
-        self, courses: QuerySet[Course], filters: CourseQueryParams
+        self, courses: QuerySet[Course], filters: CourseFilterCriteria
     ) -> QuerySet[Course]:
         order_by_fields = self._build_order_by_fields(filters)
 
@@ -137,7 +137,7 @@ class CourseRepository:
             return courses.order_by(*order_by_fields, "title")
         return courses.order_by("title")
 
-    def _build_order_by_fields(self, filters: CourseQueryParams) -> list[Any]:
+    def _build_order_by_fields(self, filters: CourseFilterCriteria) -> list[Any]:
         order_by_fields = []
         if filters.avg_difficulty_order:
             field = F("avg_difficulty_annot")

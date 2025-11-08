@@ -5,12 +5,14 @@ from rest_framework.response import Response
 
 import structlog
 from drf_spectacular.utils import extend_schema
+from pydantic import ValidationError as ModelValidationError
 
-from rating_app.domain_models.course import CourseFilteredPayload, CourseQueryParams
+from rating_app.domain_models.course import CourseFilterCriteria, CourseSearchResult
 from rating_app.models import Course
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list import CourseListSerializer
+from rating_app.serializers.course.course_list_resp import CourseListResponseSerializer
 from rating_app.services.course_service import CourseService
 from rating_app.views.api_spec.course import (
     COURSES_LIST_PAGINATED_QUERY_PARAMS,
@@ -24,7 +26,8 @@ logger = structlog.get_logger(__name__)
 @extend_schema(tags=["courses"])
 class CourseViewSet(viewsets.ViewSet):
     lookup_url_kwarg = "course_id"
-    serializer_class = CourseListSerializer
+    course_list_serializer_class = CourseListSerializer
+    course_list_payload_serializer_class = CourseListResponseSerializer
 
     # IoC args
     course_service: CourseService | None = None
@@ -40,27 +43,22 @@ class CourseViewSet(viewsets.ViewSet):
         assert self.course_service is not None
 
         try:
-            filters = CourseQueryParams(**request.query_params.dict())
-        except ValidationError as e:
-            logger.error("validation_error", errors=e.detail)
-            return Response({"detail": "Validation error"}, status=status.HTTP_400_BAD_REQUEST)
+            filters = CourseFilterCriteria.model_validate(request.query_params.dict())
+        except ModelValidationError as e:
+            logger.error("validation_error", errors=e.errors())
+            raise ValidationError(detail=e.errors()) from e
 
-        payload: CourseFilteredPayload = self.course_service.filter_courses(filters)
-        next_page = payload.page + 1 if payload.page < payload.total_pages else None
-        previous_page = payload.page - 1 if payload.page > 1 else None
-        serializer = self.serializer_class(payload.items, many=True)
+        courses: CourseSearchResult = self.course_service.filter_courses(filters)
+        serialized_courses = self.course_list_serializer_class(courses.items, many=True).data
+        payload = self.course_list_payload_serializer_class(
+            {
+                "items": serialized_courses,
+                "filters": courses.applied_filters,
+                **courses.pagination.model_dump(),
+            },
+        )
 
-        response_data = {
-            "items": serializer.data,
-            "filters": payload.filters,
-            "page": payload.page,
-            "page_size": payload.page_size,
-            "total": payload.total,
-            "total_pages": payload.total_pages,
-            "next_page": next_page,
-            "previous_page": previous_page,
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
+        return Response(payload.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="Get filter options for course listing",

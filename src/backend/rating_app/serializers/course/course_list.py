@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from rating_app.models import Course, Department
+from rating_app.models import Course
 
 from .course_speciality import CourseSpecialityInlineSerializer
 
@@ -10,7 +10,7 @@ class CourseListSerializer(serializers.ModelSerializer):
     Lighter serializer for listing courses.
     """
 
-    department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
+    department = serializers.UUIDField(source="department.id", read_only=True)
     department_name = serializers.CharField(source="department.name", read_only=True)
     faculty_name = serializers.CharField(source="department.faculty.name", read_only=True)
     avg_difficulty = serializers.FloatField(

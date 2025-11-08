@@ -1495,6 +1495,7 @@ components:
         department:
           type: string
           format: uuid
+          readOnly: true
         department_name:
           type: string
           readOnly: true
@@ -1520,7 +1521,6 @@ components:
             $ref: '#/components/schemas/CourseSpecialityInline'
           readOnly: true
       required:
-      - department
       - status
       - title
     CourseListResponse:
