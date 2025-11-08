@@ -16,7 +16,7 @@ export function Drawer({
 	onOpenChange,
 	children,
 	overlayClassName,
-}: DrawerProps) {
+}: Readonly<DrawerProps>) {
 	const [isMounted, setIsMounted] = useState(open);
 	const [shouldSlideIn, setShouldSlideIn] = useState(open);
 
@@ -26,16 +26,16 @@ export function Drawer({
 			return;
 		}
 
-		if (typeof window === "undefined") {
+		if (typeof globalThis.window === "undefined") {
 			setIsMounted(false);
 			return;
 		}
 
-		const timer = window.setTimeout(
+		const timer = globalThis.window.setTimeout(
 			() => setIsMounted(false),
 			TRANSITION_DURATION_MS,
 		);
-		return () => window.clearTimeout(timer);
+		return () => globalThis.window.clearTimeout(timer);
 	}, [open]);
 
 	const close = useCallback(() => onOpenChange(false), [onOpenChange]);
@@ -70,7 +70,15 @@ export function Drawer({
 	}
 
 	return (
-		<div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true">
+		<dialog
+			open
+			className="fixed inset-0 z-50 m-0 flex"
+			onClose={(event) => {
+				event.preventDefault();
+				close();
+			}}
+			aria-modal="true"
+		>
 			<button
 				type="button"
 				className={cn(
@@ -93,6 +101,6 @@ export function Drawer({
 			>
 				{children}
 			</aside>
-		</div>
+		</dialog>
 	);
 }

@@ -375,7 +375,7 @@ interface CourseFiltersContentProps {
 	data: CourseFiltersData;
 }
 
-function CourseFiltersContent({ data }: CourseFiltersContentProps) {
+function CourseFiltersContent({ data }: Readonly<CourseFiltersContentProps>) {
 	return (
 		<div className="space-y-6">
 			{data.rangeFilters.map(
@@ -453,7 +453,7 @@ function CourseFiltersContent({ data }: CourseFiltersContentProps) {
 	);
 }
 
-function ResetButton({ onReset }: { onReset: () => void }) {
+function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
 	return (
 		<button
 			type="button"
@@ -470,7 +470,7 @@ export function CourseFiltersPanel({
 	isLoading,
 	className,
 	...baseProps
-}: CourseFiltersPanelProps) {
+}: Readonly<CourseFiltersPanelProps>) {
 	const data = useCourseFiltersData(baseProps);
 
 	if (isLoading) {
@@ -501,7 +501,7 @@ export function CourseFiltersDrawer({
 	onClose,
 	className,
 	...baseProps
-}: CourseFiltersDrawerProps) {
+}: Readonly<CourseFiltersDrawerProps>) {
 	const data = useCourseFiltersData(baseProps);
 
 	if (isLoading) {
