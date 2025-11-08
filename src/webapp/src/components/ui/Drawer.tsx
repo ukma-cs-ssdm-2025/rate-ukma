@@ -6,7 +6,8 @@ interface DrawerProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	children: React.ReactNode;
-	overlayClassName?: string;
+	ariaLabel: string;
+	closeButtonLabel: string;
 }
 
 const TRANSITION_DURATION_MS = 300;
@@ -15,7 +16,8 @@ export function Drawer({
 	open,
 	onOpenChange,
 	children,
-	overlayClassName,
+	ariaLabel,
+	closeButtonLabel,
 }: Readonly<DrawerProps>) {
 	const [isMounted, setIsMounted] = useState(open);
 	const [shouldSlideIn, setShouldSlideIn] = useState(open);
@@ -78,16 +80,17 @@ export function Drawer({
 				close();
 			}}
 			aria-modal="true"
+			aria-label={ariaLabel}
 		>
 			<button
 				type="button"
 				className={cn(
 					"absolute inset-0 bg-background/80 backdrop-blur transition-opacity",
-					overlayClassName,
 					open ? "opacity-100" : "opacity-0 pointer-events-none",
 				)}
 				style={{ transitionDuration: `${TRANSITION_DURATION_MS}ms` }}
 				onClick={close}
+				aria-label={closeButtonLabel}
 			/>
 			<aside
 				className={cn(

@@ -509,7 +509,7 @@ export function CourseFiltersDrawer({
 	}
 
 	return (
-		<div className={cn(className, "space-y-6")}>
+		<div className={cn("space-y-6", className)}>
 			<div className="flex items-center justify-between">
 				<span className="text-lg font-semibold">Фільтри</span>
 				<div className="flex items-center gap-2">

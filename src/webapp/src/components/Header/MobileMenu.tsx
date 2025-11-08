@@ -137,6 +137,8 @@ export function MobileMenu({
 					onClose();
 				}
 			}}
+			ariaLabel="Мобільне меню"
+			closeButtonLabel="Закрити меню"
 		>
 			<div className="flex items-center justify-between">
 				<Logo />

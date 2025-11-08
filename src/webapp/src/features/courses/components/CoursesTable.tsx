@@ -429,6 +429,8 @@ export function CoursesTable({
 			<Drawer
 				open={isFiltersDrawerOpen}
 				onOpenChange={(open) => setIsFiltersDrawerOpen(open)}
+				ariaLabel="Фільтри курсів"
+				closeButtonLabel="Закрити фільтри"
 			>
 				<CourseFiltersDrawer
 					filters={filters}
