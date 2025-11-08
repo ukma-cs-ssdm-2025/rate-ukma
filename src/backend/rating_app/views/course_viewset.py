@@ -6,17 +6,16 @@ from rest_framework.response import Response
 import structlog
 from drf_spectacular.utils import extend_schema
 
-from rating_app.dto.course import CourseQueryParams
-from rating_app.filters.course_filters import (
-    COURSES_LIST_PAGINATED_QUERY_PARAMS,
-    SINGLE_COURSE_QUERY_PARAMS,
-)
-from rating_app.filters.course_payload import CourseFilteredPayload
+from rating_app.domain_models.course import CourseFilteredPayload, CourseQueryParams
 from rating_app.models import Course
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list import CourseListSerializer
 from rating_app.services.course_service import CourseService
+from rating_app.views.api_spec.course import (
+    COURSES_LIST_PAGINATED_QUERY_PARAMS,
+    SINGLE_COURSE_QUERY_PARAMS,
+)
 from rating_app.views.responses import R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
 
 logger = structlog.get_logger(__name__)

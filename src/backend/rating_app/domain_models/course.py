@@ -1,4 +1,5 @@
-from typing import Literal, TypeAlias
+from dataclasses import dataclass
+from typing import Any, Literal, TypeAlias
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from pydantic.alias_generators import to_camel
@@ -60,3 +61,24 @@ class CourseQueryParams(BaseModel):
         if isinstance(value, str):
             return value.lower()
         return value
+
+
+@dataclass(frozen=True)
+class CourseFilteredPayload:
+    items: list
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+    filters: dict[str, Any]  # TODO: specify that here should be CourseQueryParams.model_dump()
+
+
+@dataclass(frozen=True)
+class CourseFilterOptions:
+    instructors: list[dict[str, Any]]
+    faculties: list[dict[str, Any]]
+    departments: list[dict[str, Any]]
+    semester_terms: list[dict[str, Any]]
+    semester_years: list[dict[str, Any]]
+    course_types: list[dict[str, Any]]
+    specialities: list[dict[str, Any]]

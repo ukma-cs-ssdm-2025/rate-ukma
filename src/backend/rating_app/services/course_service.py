@@ -6,8 +6,11 @@ from django.db.models import QuerySet
 import structlog
 
 from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
-from rating_app.dto.course import CourseQueryParams
-from rating_app.filters import CourseFilteredPayload, CourseFilterOptions
+from rating_app.domain_models.course import (
+    CourseFilteredPayload,
+    CourseFilterOptions,
+    CourseQueryParams,
+)
 from rating_app.ioc_container.repos import (
     course_repository,
     department_repository,
@@ -39,7 +42,7 @@ class CourseService:
 
     def filter_courses(self, filters: CourseQueryParams) -> CourseFilteredPayload:
         courses = self.course_repository.filter(filters)
-        return self._paginate(courses, filters)
+        return self._paginate_courses(courses, filters)
 
     # -- admin functions --
     def create_course(self, **course_data) -> Course:
@@ -181,7 +184,7 @@ class CourseService:
             for speciality in specialities
         ]
 
-    def _paginate(
+    def _paginate_courses(
         self, courses: QuerySet[Course], filters: CourseQueryParams
     ) -> CourseFilteredPayload:
         # TODO: handle situations where no pagination is required

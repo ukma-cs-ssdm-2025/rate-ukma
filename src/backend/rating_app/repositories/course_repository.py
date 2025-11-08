@@ -4,7 +4,7 @@ from django.db.models import Avg, Count, F, QuerySet
 
 import structlog
 
-from rating_app.dto.course import CourseQueryParams
+from rating_app.domain_models.course import CourseQueryParams
 from rating_app.models import Course, Department
 from rating_app.models.choices import CourseStatus
 

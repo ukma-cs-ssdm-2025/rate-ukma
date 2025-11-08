@@ -5,14 +5,13 @@ from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
 
-from rating_app.dto.course import CourseQueryParams
-from rating_app.filters.course_filters import (
+from rating_app.domain_models.course import CourseFilteredPayload, CourseQueryParams
+from rating_app.serializers.analytics import CourseAnalyticsSerializer
+from rating_app.services.course_service import CourseService
+from rating_app.views.api_spec.course import (
     COURSES_LIST_QUERY_PARAMS,
     SINGLE_COURSE_QUERY_PARAMS,
 )
-from rating_app.filters.course_payload import CourseFilteredPayload
-from rating_app.serializers.analytics import CourseAnalyticsSerializer
-from rating_app.services.course_service import CourseService
 from rating_app.views.responses import R_ANALYTICS
 
 
