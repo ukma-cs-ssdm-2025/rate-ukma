@@ -23,7 +23,7 @@ interface MobileMenuProps {
 function NavigationLinks({
 	navigationItems,
 	onClose,
-}: Pick<MobileMenuProps, "navigationItems" | "onClose">) {
+}: Readonly<Pick<MobileMenuProps, "navigationItems" | "onClose">>) {
 	return (
 		<nav className="mt-3 flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
 			{navigationItems.map((item) => (
@@ -46,7 +46,7 @@ function NavigationLinks({
 function ThemeSwitcher({
 	theme,
 	setTheme,
-}: Pick<MobileMenuProps, "theme" | "setTheme">) {
+}: Readonly<Pick<MobileMenuProps, "theme" | "setTheme">>) {
 	return (
 		<div className="mb-3 flex items-center justify-between">
 			<span className="text-sm text-muted-foreground">Тема</span>
@@ -79,10 +79,10 @@ function ThemeSwitcher({
 function AccountSummary({
 	user,
 	onLogout,
-}: {
+}: Readonly<{
 	user: AuthUser | null;
 	onLogout: () => void;
-}) {
+}>) {
 	if (!user) {
 		return null;
 	}
@@ -123,7 +123,7 @@ export function MobileMenu({
 	logout,
 	theme,
 	setTheme,
-}: MobileMenuProps) {
+}: Readonly<MobileMenuProps>) {
 	const handleLogout = () => {
 		logout();
 		onClose();

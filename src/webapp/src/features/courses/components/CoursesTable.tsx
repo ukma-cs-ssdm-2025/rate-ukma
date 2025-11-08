@@ -189,7 +189,7 @@ export function CoursesTable({
 	});
 
 	const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-	const [isFiltersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
 
 	const updateFilter = useCallback(
 		<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
@@ -351,7 +351,7 @@ export function CoursesTable({
 	}, []);
 
 	const toggleFiltersDrawer = useCallback(() => {
-		setFiltersDrawerOpen((prev) => !prev);
+		setIsFiltersDrawerOpen((prev) => !prev);
 	}, []);
 
 	const [hasResolvedFirstFetch, setHasResolvedFirstFetch] = useState(false);
@@ -428,7 +428,7 @@ export function CoursesTable({
 
 			<Drawer
 				open={isFiltersDrawerOpen}
-				onOpenChange={(open) => setFiltersDrawerOpen(open)}
+				onOpenChange={(open) => setIsFiltersDrawerOpen(open)}
 			>
 				<CourseFiltersDrawer
 					filters={filters}
@@ -436,7 +436,7 @@ export function CoursesTable({
 					filterOptions={filterOptions}
 					onReset={handleResetFilters}
 					isLoading={isPanelLoading}
-					onClose={() => setFiltersDrawerOpen(false)}
+					onClose={() => setIsFiltersDrawerOpen(false)}
 				/>
 			</Drawer>
 		</>
