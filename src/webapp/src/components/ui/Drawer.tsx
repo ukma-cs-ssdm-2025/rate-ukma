@@ -28,11 +28,6 @@ export function Drawer({
 			return;
 		}
 
-		if (typeof globalThis.window === "undefined") {
-			setIsMounted(false);
-			return;
-		}
-
 		const timer = globalThis.window.setTimeout(
 			() => setIsMounted(false),
 			TRANSITION_DURATION_MS,
