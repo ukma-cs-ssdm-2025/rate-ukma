@@ -1,0 +1,122 @@
+import { useEffect, useState } from "react";
+
+import { Menu } from "lucide-react";
+
+import { useTheme } from "@/components/ThemeProvider";
+import { useAuth } from "@/lib/auth";
+import { HeaderNav } from "./HeaderNav";
+import { MobileMenu } from "./MobileMenu";
+import type { ThemeOption } from "./navigationData";
+import { navigationItems } from "./navigationData";
+import { UserMenu } from "./UserMenu";
+import { Logo } from "../Logo";
+import { ModeToggle } from "../ModeToggle";
+import { Button } from "../ui/Button";
+
+export default function Header() {
+	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+	const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false);
+	const { status, user, logout } = useAuth();
+	const { theme, setTheme } = useTheme();
+	const isAuthenticated = status === "authenticated";
+
+	useEffect(() => {
+		if (typeof document === "undefined") {
+			return;
+		}
+
+		const handleEscape = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				setIsMobileMenuOpen(false);
+			}
+		};
+
+		if (isMobileMenuOpen) {
+			document.body.style.overflow = "hidden";
+			document.addEventListener("keydown", handleEscape);
+		} else {
+			document.body.style.overflow = "";
+		}
+
+		return () => {
+			document.body.style.overflow = "";
+			document.removeEventListener("keydown", handleEscape);
+		};
+	}, [isMobileMenuOpen]);
+
+	useEffect(() => {
+		if (!isMobileMenuOpen && isMobileMenuVisible) {
+			if (typeof window === "undefined") {
+				setIsMobileMenuVisible(false);
+				return;
+			}
+
+			const timer = window.setTimeout(() => setIsMobileMenuVisible(false), 300);
+			return () => window.clearTimeout(timer);
+		}
+	}, [isMobileMenuOpen, isMobileMenuVisible]);
+
+	const closeMobileMenu = () => setIsMobileMenuOpen(false);
+	const openMobileMenu = () => {
+		setIsMobileMenuVisible(true);
+		requestAnimationFrame(() => setIsMobileMenuOpen(true));
+	};
+
+	return (
+		<>
+			<header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+				<div className="container mx-auto px-6 flex h-16 items-center">
+					<div className="flex items-center justify-between w-full max-w-7xl mx-auto">
+						<div className="flex items-center gap-3">
+							<div className="md:hidden">
+								<Logo size="sm" />
+							</div>
+							<div className="hidden md:block">
+								<Logo size="md" />
+							</div>
+						</div>
+
+						<div className="flex items-center justify-center flex-1">
+							<HeaderNav items={navigationItems} className="hidden md:flex" />
+						</div>
+
+						<div className="flex items-center md:space-x-3">
+							<div className="hidden md:block">
+								<ModeToggle />
+							</div>
+
+							<div className="md:hidden">
+								<Button
+									variant="ghost"
+									className="h-9 w-9 rounded-full p-0"
+									aria-label="Відкрити меню"
+									onClick={openMobileMenu}
+								>
+									<Menu className="h-5 w-5" />
+								</Button>
+							</div>
+
+							{isAuthenticated && (
+								<div className="hidden md:block">
+									<UserMenu user={user} logout={logout} />
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			</header>
+
+			<MobileMenu
+				isOpen={isMobileMenuOpen}
+				isVisible={isMobileMenuVisible}
+				onClose={closeMobileMenu}
+				navigationItems={navigationItems}
+				isAuthenticated={isAuthenticated}
+				user={user}
+				logout={logout}
+				theme={theme as ThemeOption}
+				setTheme={setTheme}
+			/>
+		</>
+	);
+}
