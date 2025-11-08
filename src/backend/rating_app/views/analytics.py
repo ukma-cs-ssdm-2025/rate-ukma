@@ -10,7 +10,7 @@ from rating_app.filters.course_filters import (
     COURSES_LIST_QUERY_PARAMS,
     SINGLE_COURSE_QUERY_PARAMS,
 )
-from rating_app.filters.course_payload import CourseFilterPayload
+from rating_app.filters.course_payload import CourseFilteredPayload
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
 from rating_app.services.course_service import CourseService
 from rating_app.views.responses import R_ANALYTICS
@@ -35,7 +35,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         assert self.course_service is not None
 
         filters: CourseQueryParams = CourseQueryParams(**request.query_params)
-        payload: CourseFilterPayload = self.course_service.filter_courses(**asdict(filters))
+        payload: CourseFilteredPayload = self.course_service.filter_courses(**asdict(filters))
         serialized = self.serializer_class(payload.items, many=True).data
 
         return Response(serialized, status=status.HTTP_200_OK)

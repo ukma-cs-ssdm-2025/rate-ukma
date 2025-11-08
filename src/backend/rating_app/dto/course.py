@@ -5,8 +5,6 @@ from pydantic.alias_generators import to_camel
 from pydantic_core import ErrorDetails
 
 from ..constants import (
-    DEFAULT_PAGE_NUMBER,
-    MAX_PAGE_SIZE,
     MAX_RATING_VALUE,
     MIN_PAGE_NUMBER,
     MIN_PAGE_SIZE,
@@ -41,10 +39,12 @@ class CourseQueryParams(BaseModel):
     avg_difficulty_max: float | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
     avg_usefulness_min: float | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
     avg_usefulness_max: float | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    avg_difficulty_order: AvgOrder | None = Field(default=None)
-    avg_usefulness_order: AvgOrder | None = Field(default=None)
-    page: int | None = Field(default=DEFAULT_PAGE_NUMBER, ge=MIN_PAGE_NUMBER)
-    page_size: int | None = Field(default=None, ge=MIN_PAGE_SIZE, le=MAX_PAGE_SIZE)
+    avg_difficulty_order: AvgOrder = Field(default="asc")
+    avg_usefulness_order: AvgOrder = Field(default="asc")
+    page: int | None = Field(default=MIN_PAGE_NUMBER, ge=MIN_PAGE_NUMBER)
+    page_size: int | None = Field(
+        default=None, ge=MIN_PAGE_SIZE
+    )  # TODO: handle situations where no pagination is required
 
     # TODO: check if case insensitivity can be achieved with Pydantic's built-in validation
     @field_validator("semester_term", mode="before")

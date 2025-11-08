@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-
-from .course_filters import CourseFilters
+from typing import Any
 
 
 @dataclass(frozen=True)
-class CourseFilterPayload:
+class CourseFilteredPayload:
     items: list
     page: int
     page_size: int
     total: int
     total_pages: int
-    filters: CourseFilters
+    filters: dict[str, Any]  # TODO: specify that here should be CourseQueryParams.model_dump()

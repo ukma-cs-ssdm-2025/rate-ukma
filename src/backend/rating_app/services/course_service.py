@@ -1,4 +1,13 @@
-from rating_app.filters import CourseFilterOptions, CourseFilterPayload, CourseFilters
+from typing import cast
+
+from django.core.paginator import Paginator
+from django.db.models import QuerySet
+
+import structlog
+
+from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
+from rating_app.dto.course import CourseQueryParams
+from rating_app.filters import CourseFilteredPayload, CourseFilterOptions
 from rating_app.ioc_container.repos import (
     course_repository,
     department_repository,
@@ -9,6 +18,8 @@ from rating_app.ioc_container.repos import (
 )
 from rating_app.models import Course
 from rating_app.models.choices import CourseTypeKind, SemesterTerm
+
+logger = structlog.get_logger(__name__)
 
 
 class CourseService:
@@ -26,13 +37,14 @@ class CourseService:
     def get_course(self, course_id) -> Course:
         return self.course_repository.get_by_id(course_id)
 
-    def filter_courses(self, **kwargs) -> CourseFilterPayload:
-        filters = CourseFilters.of(**kwargs)
-        return self.course_repository.filter(filters)
+    def filter_courses(self, filters: CourseQueryParams) -> CourseFilteredPayload:
+        courses = self.course_repository.filter(filters)
+        return self._paginate(courses, filters)
 
     # -- admin functions --
     def create_course(self, **course_data) -> Course:
-        return self.course_repository.create(**course_data)
+        course, _ = self.course_repository.get_or_create(**course_data)
+        return course
 
     def update_course(self, course_id, **update_data) -> Course:
         course = self.course_repository.get_by_id(course_id)
@@ -168,3 +180,27 @@ class CourseService:
             }
             for speciality in specialities
         ]
+
+    def _paginate(
+        self, courses: QuerySet[Course], filters: CourseQueryParams
+    ) -> CourseFilteredPayload:
+        # TODO: handle situations where no pagination is required
+        if not filters.page_size:
+            all_courses_count = courses.count()
+            filters.page_size = all_courses_count or DEFAULT_COURSE_PAGE_SIZE
+
+        paginator = Paginator(courses, filters.page_size)
+        page_obj = paginator.get_page(filters.page)
+
+        total_pages = cast(int, paginator.num_pages)  # TODO: remove casting
+        if not total_pages:
+            total_pages = (cast(int, paginator.count) + filters.page_size - 1) // filters.page_size
+
+        return CourseFilteredPayload(
+            items=list(page_obj.object_list),
+            page=page_obj.number,
+            page_size=page_obj.paginator.per_page,
+            total=cast(int, paginator.count),
+            total_pages=total_pages,
+            filters=filters.model_dump(),
+        )
