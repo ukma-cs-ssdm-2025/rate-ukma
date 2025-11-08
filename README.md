@@ -2,7 +2,7 @@
 
 [![Deploy Staging](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/main-pipeline.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/main-pipeline.yml)
 [![Deploy Live](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/prod-pipeline.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/prod-pipeline.yml)
-[![Tests Coverage](coverage.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/test.yml)
+![Tests Coverage](coverage.svg)
 [![Release](https://img.shields.io/github/v/release/ukma-cs-ssdm-2025/rate-ukma?sort=semver)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/releases)
 
 **Rate. Review. Discover your best courses at NaUKMA.**
