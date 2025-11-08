@@ -152,7 +152,7 @@ export function MobileMenu({
 			panelClassName="max-w-sm"
 		>
 			<div className="flex items-center justify-between">
-				<Logo size="sm" />
+				<Logo />
 				<Button
 					variant="ghost"
 					size="icon"

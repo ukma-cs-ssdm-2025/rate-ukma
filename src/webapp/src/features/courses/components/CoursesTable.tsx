@@ -370,24 +370,24 @@ export function CoursesTable({
 	return (
 		<>
 			<div className="flex flex-col gap-6 md:flex-row">
-					<div className="flex-1 min-w-0 space-y-4">
-						<div className="flex items-center gap-4">
-							<div className="relative flex-1">
-								<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-								<Input
-									placeholder="Пошук курсів за назвою..."
-									value={filters.searchQuery}
-									onChange={(event) =>
-										updateFilter("searchQuery", event.target.value)
-									}
-									className="pl-10 h-12 text-base"
-									disabled={isInitialLoading}
-								/>
-							</div>
+				<div className="flex-1 min-w-0 space-y-4">
+					<div className="flex items-center gap-4">
+						<div className="relative flex-1">
+							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+							<Input
+								placeholder="Пошук курсів за назвою..."
+								value={filters.searchQuery}
+								onChange={(event) =>
+									updateFilter("searchQuery", event.target.value)
+								}
+								className="pl-10 h-12 text-base"
+								disabled={isInitialLoading}
+							/>
 						</div>
-
-						{renderTableContent()}
 					</div>
+
+					{renderTableContent()}
+				</div>
 
 				<div className="hidden md:block w-80 shrink-0">
 					<CourseFiltersPanel

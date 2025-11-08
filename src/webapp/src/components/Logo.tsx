@@ -1,64 +1,27 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 
-interface RateUKMALogoProps {
-	size?: "sm" | "md" | "lg";
-	showText?: boolean;
-	textClassName?: string;
-	className?: string;
-	asLink?: boolean;
-}
-
-const sizeConfig = {
-	sm: {
-		container: "h-8 w-8",
-		icon: "h-4 w-4",
-		text: "text-base font-semibold",
-	},
-	md: {
-		container: "h-9 w-9",
-		icon: "h-5 w-5",
-		text: "text-lg font-bold",
-	},
-	lg: {
-		container: "h-16 w-16",
-		icon: "h-8 w-8",
-		text: "text-5xl font-bold",
-	},
+const logoConfig = {
+	container: "h-7 w-7 md:h-9 md:w-9",
+	icon: "h-4 w-4 md:h-5 md:w-5",
+	text: "text-base font-bold md:text-lg",
 };
 
-export function Logo({
-	size = "md",
-	showText = true,
-	textClassName = "",
-	className = "",
-	asLink = true,
-}: Readonly<RateUKMALogoProps>) {
-	const config = sizeConfig[size];
-	const logoContent = (
-		<div
-			className={`flex items-center ${showText ? "space-x-3" : ""} ${className}`}
-		>
+export function Logo() {
+	return (
+		<Link to="/" className="flex items-center space-x-3">
 			<div
-				className={`${config.container} rounded-lg bg-primary flex items-center justify-center shadow-sm`}
+				className={`${logoConfig.container} rounded-lg bg-primary flex items-center justify-center shadow-sm`}
 			>
 				<Star
-					className={`${config.icon} text-primary-foreground`}
+					className={`${logoConfig.icon} text-primary-foreground`}
 					fill="currentColor"
 					aria-label="Зірочка рейтингу"
 				/>
 			</div>
-			{showText && (
-				<span className={`${config.text} tracking-tight ${textClassName}`}>
-					Rate <span className="text-primary">UKMA</span>
-				</span>
-			)}
-		</div>
+			<span className={logoConfig.text}>
+				Rate <span className="text-primary">UKMA</span>
+			</span>
+		</Link>
 	);
-
-	if (asLink) {
-		return <Link to="/">{logoContent}</Link>;
-	}
-
-	return logoContent;
 }

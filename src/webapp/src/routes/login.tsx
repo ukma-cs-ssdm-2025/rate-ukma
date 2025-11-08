@@ -11,24 +11,12 @@ function LoginLayoutWrapper() {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative">
 			<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background"></div>
-			<div className="absolute top-4 right-4 z-10">
-				<ModeToggle />
-			</div>
-
-			<div className="absolute top-8 left-0 right-0 flex justify-center">
-				<div className="md:hidden">
-					<Logo
-						size="sm"
-						asLink={false}
-						textClassName="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
-					/>
-				</div>
-				<div className="hidden md:block">
-					<Logo
-						size="md"
-						asLink={false}
-						textClassName="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
-					/>
+			<div className="absolute top-4 left-0 right-0 z-10">
+				<div className="relative flex justify-center px-6">
+					<Logo asLink={false} />
+					<div className="absolute right-6 top-1/2 -translate-y-1/2">
+						<ModeToggle />
+					</div>
 				</div>
 			</div>
 

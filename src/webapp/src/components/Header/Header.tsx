@@ -50,14 +50,7 @@ export default function Header() {
 			<header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 				<div className="container mx-auto px-6 flex h-16 items-center">
 					<div className="flex items-center justify-between w-full max-w-7xl mx-auto">
-						<div className="flex items-center gap-3">
-							<div className="md:hidden">
-								<Logo size="sm" />
-							</div>
-							<div className="hidden md:block">
-								<Logo size="md" />
-							</div>
-						</div>
+						<Logo />
 
 						<div className="flex items-center justify-center flex-1">
 							<HeaderNav items={navigationItems} className="hidden md:flex" />
