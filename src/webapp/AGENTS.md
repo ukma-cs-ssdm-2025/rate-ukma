@@ -1,9 +1,21 @@
-# shadcn instructions
+# Frontend helpful instructions
+
+## shadcn instructions
 
 Use the latest version of Shadcn to install new components, like this command to add a button component:
 
 ```bash
 pnpx shadcn@latest add button
+```
+
+## Linting and formatting
+
+Use the following commands to lint and format the code:
+
+```bash
+pnpm lint
+pnpm format --write
+pnpm check
 ```
 
 ## Agent workflow
