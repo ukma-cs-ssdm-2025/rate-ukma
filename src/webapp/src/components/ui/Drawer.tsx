@@ -81,10 +81,10 @@ export function Drawer({
 				style={{ transitionDuration: `${TRANSITION_DURATION_MS}ms` }}
 				onClick={close}
 			/>
-				<aside
-					className={cn(
-						"relative z-10 ml-auto flex h-full w-full max-w-sm flex-col gap-6 overflow-y-auto rounded-tl-[32px] rounded-bl-0 bg-popover/95 p-6 pb-6 shadow-[0_20px_45px_rgba(15,23,42,0.35)] backdrop-blur-sm",
-					)}
+			<aside
+				className={cn(
+					"relative z-10 ml-auto flex h-full w-full max-w-sm flex-col gap-6 overflow-y-auto rounded-tl-[32px] rounded-bl-0 bg-popover/95 p-6 pb-6 shadow-[0_20px_45px_rgba(15,23,42,0.35)] backdrop-blur-sm",
+				)}
 				style={{
 					transition: `transform ${TRANSITION_DURATION_MS}ms ease, opacity ${TRANSITION_DURATION_MS}ms ease`,
 					transform: shouldSlideIn ? "translateX(0)" : "translateX(100%)",

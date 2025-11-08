@@ -49,7 +49,7 @@ const columns: ColumnDef<CourseList>[] = [
 		cell: ({ row }) => {
 			const course = row.original;
 			return (
-				<div className="flex items-center gap-2">
+				<div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
 					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline md:text-base">
 						{course.title}
 					</span>
@@ -70,12 +70,14 @@ const columns: ColumnDef<CourseList>[] = [
 		id: "ratings_count",
 		accessorKey: "ratings_count",
 		header: ({ column }) => (
-			<CourseColumnHeader column={column} title="Відгуки" />
+			<div className="hidden sm:block">
+				<CourseColumnHeader column={column} title="Відгуки" />
+			</div>
 		),
 		cell: ({ row }) => {
 			const count = row.getValue("ratings_count") as number;
 			return (
-				<div className="flex items-center justify-center">
+				<div className="hidden sm:flex items-center justify-center">
 					<span className="text-sm font-medium text-muted-foreground md:text-base">
 						{count}
 					</span>
@@ -92,7 +94,14 @@ const columns: ColumnDef<CourseList>[] = [
 		id: "avg_difficulty",
 		accessorKey: "avg_difficulty",
 		header: ({ column }) => (
-			<CourseColumnHeader column={column} title="Складність" />
+			<>
+				<div className="md:hidden">
+					<CourseColumnHeader column={column} title="Склад." />
+				</div>
+				<div className="hidden md:block">
+					<CourseColumnHeader column={column} title="Складність" />
+				</div>
+			</>
 		),
 		cell: ({ row }) => (
 			<CourseScoreCell
@@ -113,7 +122,14 @@ const columns: ColumnDef<CourseList>[] = [
 		id: "avg_usefulness",
 		accessorKey: "avg_usefulness",
 		header: ({ column }) => (
-			<CourseColumnHeader column={column} title="Корисність" />
+			<>
+				<div className="md:hidden">
+					<CourseColumnHeader column={column} title="Корисн." />
+				</div>
+				<div className="hidden md:block">
+					<CourseColumnHeader column={column} title="Корисність" />
+				</div>
+			</>
 		),
 		cell: ({ row }) => (
 			<CourseScoreCell
