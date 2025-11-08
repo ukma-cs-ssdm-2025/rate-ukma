@@ -6,7 +6,6 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/lib/auth";
 import { HeaderNav } from "./HeaderNav";
 import { MobileMenu } from "./MobileMenu";
-import type { ThemeOption } from "./navigationData";
 import { navigationItems } from "./navigationData";
 import { UserMenu } from "./UserMenu";
 import { Logo } from "../Logo";
@@ -15,7 +14,6 @@ import { Button } from "../ui/Button";
 
 export default function Header() {
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-	const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false);
 	const { status, user, logout } = useAuth();
 	const { theme, setTheme } = useTheme();
 	const isAuthenticated = status === "authenticated";
@@ -44,23 +42,8 @@ export default function Header() {
 		};
 	}, [isMobileMenuOpen]);
 
-	useEffect(() => {
-		if (!isMobileMenuOpen && isMobileMenuVisible) {
-			if (typeof window === "undefined") {
-				setIsMobileMenuVisible(false);
-				return;
-			}
-
-			const timer = window.setTimeout(() => setIsMobileMenuVisible(false), 300);
-			return () => window.clearTimeout(timer);
-		}
-	}, [isMobileMenuOpen, isMobileMenuVisible]);
-
 	const closeMobileMenu = () => setIsMobileMenuOpen(false);
-	const openMobileMenu = () => {
-		setIsMobileMenuVisible(true);
-		requestAnimationFrame(() => setIsMobileMenuOpen(true));
-	};
+	const openMobileMenu = () => setIsMobileMenuOpen(true);
 
 	return (
 		<>
@@ -108,13 +91,12 @@ export default function Header() {
 
 			<MobileMenu
 				isOpen={isMobileMenuOpen}
-				isVisible={isMobileMenuVisible}
 				onClose={closeMobileMenu}
 				navigationItems={navigationItems}
 				isAuthenticated={isAuthenticated}
 				user={user}
 				logout={logout}
-				theme={theme as ThemeOption}
+				theme={theme}
 				setTheme={setTheme}
 			/>
 		</>

@@ -8,15 +8,16 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Filter } from "lucide-react";
 
 import { DataTable } from "@/components/DataTable/DataTable";
+import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import type { CourseList } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFacultyBadge } from "./CourseFacultyBadge";
-import { CourseFiltersPanel } from "./CourseFiltersPanel";
+import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesTableSkeleton } from "./CoursesTableSkeleton";
@@ -172,6 +173,7 @@ export function CoursesTable({
 	});
 
 	const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+	const [isFiltersDrawerOpen, setFiltersDrawerOpen] = useState(false);
 
 	const updateFilter = useCallback(
 		<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
@@ -332,6 +334,10 @@ export function CoursesTable({
 		setFilters(DEFAULT_FILTERS);
 	}, []);
 
+	const toggleFiltersDrawer = useCallback(() => {
+		setFiltersDrawerOpen((prev) => !prev);
+	}, []);
+
 	const [hasResolvedFirstFetch, setHasResolvedFirstFetch] = useState(false);
 
 	useEffect(() => {
@@ -362,35 +368,62 @@ export function CoursesTable({
 	};
 
 	return (
-		<div className="flex gap-6">
-			<div className="flex-1 min-w-0 space-y-4">
-				<div className="flex items-center gap-4">
-					<div className="relative flex-1">
-						<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-						<Input
-							placeholder="Пошук курсів за назвою..."
-							value={filters.searchQuery}
-							onChange={(event) =>
-								updateFilter("searchQuery", event.target.value)
-							}
-							className="pl-10 h-12 text-base"
-							disabled={isInitialLoading}
-						/>
+		<>
+			<div className="flex flex-col gap-6 md:flex-row">
+				<div className="flex-1 min-w-0 space-y-4">
+					<div className="flex items-center gap-4">
+						<div className="relative flex-1">
+							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+							<Input
+								placeholder="Пошук курсів за назвою..."
+								value={filters.searchQuery}
+								onChange={(event) =>
+									updateFilter("searchQuery", event.target.value)
+								}
+								className="pl-10 h-12 text-base"
+								disabled={isInitialLoading}
+							/>
+						</div>
 					</div>
+
+					{renderTableContent()}
 				</div>
 
-				{renderTableContent()}
+				<div className="hidden md:block w-80 shrink-0">
+					<CourseFiltersPanel
+						filters={filters}
+						onFilterChange={updateFilter}
+						filterOptions={filterOptions}
+						onReset={handleResetFilters}
+						isLoading={isPanelLoading}
+					/>
+				</div>
 			</div>
 
-			<div className="w-80 shrink-0">
-				<CourseFiltersPanel
+			<button
+				type="button"
+				className="fixed right-0 z-40 grid h-10 w-10 items-center justify-center rounded-l-2xl border border-border bg-background shadow-lg shadow-black/20 transition hover:bg-accent hover:text-accent-foreground md:hidden"
+				style={{ top: "35%" }}
+				onClick={toggleFiltersDrawer}
+				aria-label="Фільтри"
+			>
+				<Filter className="h-6 w-6" />
+			</button>
+
+			<Drawer
+				open={isFiltersDrawerOpen}
+				onOpenChange={(open) => setFiltersDrawerOpen(open)}
+				panelClassName="max-w-sm"
+			>
+				<CourseFiltersDrawer
 					filters={filters}
 					onFilterChange={updateFilter}
 					filterOptions={filterOptions}
 					onReset={handleResetFilters}
 					isLoading={isPanelLoading}
+					onClose={() => setFiltersDrawerOpen(false)}
 				/>
-			</div>
-		</div>
+			</Drawer>
+		</>
 	);
 }

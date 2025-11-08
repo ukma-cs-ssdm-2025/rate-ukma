@@ -1,10 +1,8 @@
-import type { ReactNode } from "react";
-
 import { Link } from "@tanstack/react-router";
 import { LogOut, X } from "lucide-react";
 
+import { Drawer } from "@/components/ui/Drawer";
 import type { AuthUser } from "@/lib/auth";
-import { cn } from "@/lib/utils";
 import type { NavigationItem, ThemeOption } from "./navigationData";
 import { themeOptions } from "./navigationData";
 import { Logo } from "../Logo";
@@ -12,11 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { ToggleGroup, ToggleGroupItem } from "../ui/ToggleGroup";
 
-const TRANSITION_DURATION_MS = 300;
-
 interface MobileMenuProps {
 	isOpen: boolean;
-	isVisible: boolean;
 	onClose: () => void;
 	navigationItems: NavigationItem[];
 	isAuthenticated: boolean;
@@ -26,47 +21,10 @@ interface MobileMenuProps {
 	setTheme: (value: ThemeOption) => void;
 }
 
-function Backdrop({
-	isOpen,
-	onClose,
-}: Readonly<Pick<MobileMenuProps, "isOpen" | "onClose">>) {
-	return (
-		<button
-			type="button"
-			className={cn(
-				"absolute inset-0 bg-background/80 backdrop-blur transition-opacity",
-				isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
-			)}
-			style={{ transitionDuration: `${TRANSITION_DURATION_MS}ms` }}
-			onClick={onClose}
-		/>
-	);
-}
-
-function DrawerFrame({
-	isOpen,
-	children,
-}: Readonly<Pick<MobileMenuProps, "isOpen"> & { children: ReactNode }>) {
-	return (
-		<aside
-			className={cn(
-				"relative z-10 ml-auto flex h-full w-full max-w-xs flex-col gap-6 overflow-hidden rounded-l-[32px] bg-popover/95 p-6 shadow-[0_20px_45px_rgba(15,23,42,0.35)] backdrop-blur-sm transition-transform",
-				isOpen
-					? "translate-x-0 opacity-100 pointer-events-auto"
-					: "translate-x-full opacity-0 pointer-events-none",
-			)}
-			style={{ transitionDuration: `${TRANSITION_DURATION_MS}ms` }}
-			aria-label="Мобільна навігація"
-		>
-			{children}
-		</aside>
-	);
-}
-
 function NavigationLinks({
 	navigationItems,
 	onClose,
-}: Readonly<Pick<MobileMenuProps, "navigationItems" | "onClose">>) {
+}: Pick<MobileMenuProps, "navigationItems" | "onClose">) {
 	return (
 		<nav className="mt-3 flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
 			{navigationItems.map((item) => (
@@ -89,7 +47,7 @@ function NavigationLinks({
 function ThemeSwitcher({
 	theme,
 	setTheme,
-}: Readonly<Pick<MobileMenuProps, "theme" | "setTheme">>) {
+}: Pick<MobileMenuProps, "theme" | "setTheme">) {
 	return (
 		<div className="mb-3 flex items-center justify-between">
 			<span className="text-sm text-muted-foreground">Тема</span>
@@ -122,10 +80,10 @@ function ThemeSwitcher({
 function AccountSummary({
 	user,
 	onLogout,
-}: Readonly<{
+}: {
 	user: AuthUser | null;
 	onLogout: () => void;
-}>) {
+}) {
 	if (!user) {
 		return null;
 	}
@@ -170,7 +128,6 @@ function AccountSummary({
 
 export function MobileMenu({
 	isOpen,
-	isVisible,
 	onClose,
 	navigationItems,
 	isAuthenticated,
@@ -178,54 +135,43 @@ export function MobileMenu({
 	logout,
 	theme,
 	setTheme,
-}: Readonly<MobileMenuProps>) {
+}: MobileMenuProps) {
 	const handleLogout = () => {
 		logout();
 		onClose();
 	};
 
 	return (
-		<>
-			{isVisible && (
-				<div
-					className="fixed inset-0 z-50 flex md:hidden"
-					role="dialog"
-					aria-modal="true"
-					onKeyDown={(event) => {
-						if (event.key === "Escape") {
-							onClose();
-						}
-					}}
+		<Drawer
+			open={isOpen}
+			onOpenChange={(value) => {
+				if (!value) {
+					onClose();
+				}
+			}}
+			panelClassName="max-w-sm"
+		>
+			<div className="flex items-center justify-between">
+				<Logo size="sm" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-9 w-9 rounded-full p-0"
+					onClick={() => onClose()}
+					aria-label="Закрити меню"
 				>
-					<Backdrop isOpen={isOpen} onClose={onClose} />
-					<DrawerFrame isOpen={isOpen}>
-						<div className="flex items-center justify-between">
-							<Logo size="sm" />
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-9 w-9 rounded-full p-0"
-								onClick={onClose}
-								aria-label="Закрити меню"
-							>
-								<X className="h-5 w-5" />
-							</Button>
-						</div>
+					<X className="h-5 w-5" />
+				</Button>
+			</div>
 
-						<NavigationLinks
-							navigationItems={navigationItems}
-							onClose={onClose}
-						/>
+			<NavigationLinks navigationItems={navigationItems} onClose={onClose} />
 
-						<div className="mt-auto">
-							<ThemeSwitcher theme={theme} setTheme={setTheme} />
-							{isAuthenticated && (
-								<AccountSummary user={user} onLogout={handleLogout} />
-							)}
-						</div>
-					</DrawerFrame>
-				</div>
-			)}
-		</>
+			<div className="mt-auto">
+				<ThemeSwitcher theme={theme} setTheme={setTheme} />
+				{isAuthenticated && (
+					<AccountSummary user={user} onLogout={handleLogout} />
+				)}
+			</div>
+		</Drawer>
 	);
 }
