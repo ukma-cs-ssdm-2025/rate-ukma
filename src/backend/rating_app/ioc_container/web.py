@@ -5,9 +5,14 @@ from django.urls import path
 
 from rateukma.ioc.decorators import once
 
-from ..views import AnalyticsViewSet, CourseViewSet, InstructorViewSet, RatingViewSet, StudentStatisticsViewSet
+from ..views import (
+    AnalyticsViewSet,
+    CourseViewSet,
+    InstructorViewSet,
+    RatingViewSet,
+    StudentStatisticsViewSet,
+)
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
-from .common import course_filter_parser
 from .services import course_service
 
 
@@ -16,7 +21,6 @@ def course_list_view():
     return CourseViewSet.as_view(
         {"get": "list"},
         course_service=course_service(),
-        course_filter_parser=course_filter_parser(),
     )
 
 
@@ -25,7 +29,6 @@ def course_detail_view():
     return CourseViewSet.as_view(
         {"get": "retrieve"},
         course_service=course_service(),
-        course_filter_parser=course_filter_parser(),
     )
 
 
@@ -94,7 +97,6 @@ def analytics_list_view():
     return AnalyticsViewSet.as_view(
         {"get": "list"},
         course_service=course_service(),
-        course_filter_parser=course_filter_parser(),
     )
 
 
@@ -103,7 +105,6 @@ def analytics_detail_view():
     return AnalyticsViewSet.as_view(
         {"get": "retrieve"},
         course_service=course_service(),
-        course_filter_parser=course_filter_parser(),
     )
 
 

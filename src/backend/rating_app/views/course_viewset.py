@@ -8,13 +8,13 @@ from rest_framework.response import Response
 import structlog
 from drf_spectacular.utils import extend_schema
 
+from rating_app.dto.course import CourseQueryParams
 from rating_app.filters.course_filters import (
     COURSES_LIST_PAGINATED_QUERY_PARAMS,
     SINGLE_COURSE_QUERY_PARAMS,
     CourseFilters,
 )
 from rating_app.filters.course_payload import CourseFilterPayload
-from rating_app.filters.filters_parsers.course import CourseFilterParser, CourseQueryParams
 from rating_app.models import Course
 from rating_app.models.semester import SemesterTerm
 from rating_app.serializers import FilterOptionsSerializer
@@ -33,7 +33,7 @@ class CourseViewSet(viewsets.ViewSet):
 
     # IoC args
     course_service: CourseService | None = None
-    course_filter_parser: CourseFilterParser | None = None
+    # course_filter_parser: CourseFilterParser | None = None
 
     def _parse_semester_year_param(self, raw: str | None) -> int | None:
         if raw is None:
@@ -72,10 +72,19 @@ class CourseViewSet(viewsets.ViewSet):
     )
     def list(self, request, *args, **kwargs):
         assert self.course_service is not None
-        assert self.course_filter_parser is not None
+        # assert self.course_filter_parser is not None
 
-        query_filters: CourseQueryParams = self.course_filter_parser.parse(request.query_params)
-        payload: CourseFilterPayload = self.course_service.filter_courses(**asdict(query_filters))
+        # TODO: add try-except block to handle validation errors
+
+        logger.info(f"Request query params: {dict(request.query_params)}")
+
+        try:
+            filters = CourseQueryParams(**request.query_params.dict())
+        except ValidationError as e:
+            logger.error(f"Validation error: {e}")
+            raise e
+
+        payload: CourseFilterPayload = self.course_service.filter_courses(**asdict(filters))
 
         page = payload.page or 1
         total_pages = payload.total_pages
