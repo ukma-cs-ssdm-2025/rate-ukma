@@ -3,7 +3,7 @@ name = "RateUKMA"
 version = "0.1.0"
 description = "Rate NaUKMA Courses"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 
 dependencies = [
     # Core
