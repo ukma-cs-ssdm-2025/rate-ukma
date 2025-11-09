@@ -121,7 +121,7 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
                 instructors.append(
                     DeduplicatedCourseInstructor(
                         instructor=instructor,
-                        role=self._determine_role(teacher_part),
+                        role=self._determine_role(),
                     )
                 )
 
@@ -197,7 +197,8 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
             return AcademicDegree.PHD
         return None
 
-    def _determine_role(self, teacher_str: str) -> InstructorRole:
+    def _determine_role(self) -> InstructorRole:
+        # my.ukma.edu.ua does not provider such details, defaulting to LECTURE_INSTRUCTOR
         return InstructorRole.LECTURE_INSTRUCTOR
 
 
