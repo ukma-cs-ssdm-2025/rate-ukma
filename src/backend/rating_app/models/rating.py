@@ -13,13 +13,13 @@ from .student import Student
 @runtime_checkable
 class IRating(Protocol):
     id: uuid.UUID
-    student: Student
-    course_offering: CourseOffering
+    course_offering_id: uuid.UUID
     difficulty: int
     usefulness: int
     comment: str
     created_at: datetime.datetime
     is_anonymous: bool
+    student_id: uuid.UUID
 
 
 class Rating(models.Model):
