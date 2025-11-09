@@ -13,7 +13,7 @@ from ..views import (
     StudentStatisticsViewSet,
 )
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
-from .services import course_service
+from .services import course_service, instructor_service, rating_service, student_service
 
 
 @once
@@ -42,29 +42,37 @@ def course_filter_options_view():
 
 @once
 def course_ratings_list_create_view():
-    return RatingViewSet.as_view({"get": "list", "post": "create"})
+    return RatingViewSet.as_view(
+        {"get": "list", "post": "create"},
+        rating_service=rating_service(),
+    )
 
 
 @once
 def course_rating_detail_view():
     return RatingViewSet.as_view(
-        {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
+        {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"},
+        rating_service=rating_service(),
     )
 
 
 @once
 def course_rating_stats():
-    return StudentStatisticsViewSet.as_view({"get": "get_ratings"})
+    return StudentStatisticsViewSet.as_view(
+        {"get": "get_ratings"}, student_service=student_service()
+    )
 
 
 @once
 def course_detailed_rating_stats():
-    return StudentStatisticsViewSet.as_view({"get": "get_detailed_ratings"})
+    return StudentStatisticsViewSet.as_view(
+        {"get": "get_detailed_ratings"}, student_service=student_service()
+    )
 
 
 @once
 def instructor_detail_view():
-    return InstructorViewSet.as_view({"get": "retrieve"})
+    return InstructorViewSet.as_view({"get": "retrieve"}, instructor_service=instructor_service())
 
 
 @once

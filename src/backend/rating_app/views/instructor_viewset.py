@@ -1,5 +1,4 @@
 import uuid
-from typing import Any
 
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -8,8 +7,8 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
-from rating_app.ioc_container.services import instructor_service
 from rating_app.serializers import InstructorSerializer
+from rating_app.services import InstructorService
 
 from .responses import R_INSTRUCTOR
 
@@ -17,9 +16,7 @@ from .responses import R_INSTRUCTOR
 class InstructorViewSet(viewsets.ModelViewSet):
     serializer_class = InstructorSerializer
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.instructor_service = instructor_service()
+    instructor_service: InstructorService | None = None
 
     @extend_schema(
         summary="Retrieve an instructor",
@@ -35,6 +32,8 @@ class InstructorViewSet(viewsets.ModelViewSet):
         responses=R_INSTRUCTOR,
     )
     def retrieve(self, request, instructor_id):
+        assert self.instructor_service is not None
+
         if instructor_id is None:
             return Response({"detail": "Instructor ID is required."}, status=400)
 

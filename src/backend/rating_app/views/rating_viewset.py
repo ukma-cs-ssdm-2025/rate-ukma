@@ -8,9 +8,9 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from rating_app.constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
 from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
-from rating_app.ioc_container.services import rating_service
 from rating_app.models import Rating, Student
 from rating_app.serializers import RatingCreateUpdateSerializer, RatingReadSerializer
+from rating_app.services import RatingService
 from rating_app.views.responses import (
     R_NO_CONTENT,
     R_RATING,
@@ -27,9 +27,7 @@ class RatingViewSet(viewsets.ViewSet):
     lookup_url_kwarg = "rating_id"
     serializer_class = RatingReadSerializer
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.rating_service = rating_service()
+    rating_service: RatingService | None = None
 
     def _to_int(self, value: str | None, default: int) -> int:
         if value is None:
@@ -82,6 +80,8 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_LIST,
     )
     def list(self, request, course_id=None):
+        assert self.rating_service is not None
+
         page = self._to_int(request.query_params.get("page"), DEFAULT_PAGE_NUMBER)
         page_size = self._to_int(request.query_params.get("page_size"), DEFAULT_PAGE_SIZE)
 
@@ -114,6 +114,8 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_CREATE,
     )
     def create(self, request, course_id=None):
+        assert self.rating_service is not None
+
         student, error_response = self._get_student_or_403(request)
         if error_response is not None:
             return error_response
@@ -151,6 +153,8 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING,
     )
     def retrieve(self, request, rating_id=None, *args, **kwargs):
+        assert self.rating_service is not None
+
         try:
             rating = self.rating_service.get_rating(rating_id)
             serializer = RatingReadSerializer(rating)
@@ -165,6 +169,8 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING,
     )
     def update(self, request, course_id=None, rating_id=None):
+        assert self.rating_service is not None
+
         student, error_response = self._get_student_or_403(request)
         if error_response is not None:
             return error_response
@@ -201,6 +207,8 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING,
     )
     def partial_update(self, request, course_id=None, rating_id=None):
+        assert self.rating_service is not None
+
         student, error_response = self._get_student_or_403(request)
         if error_response is not None:
             return error_response
@@ -243,6 +251,8 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_NO_CONTENT,
     )
     def destroy(self, request, course_id=None, rating_id=None):
+        assert self.rating_service is not None
+
         student, error_response = self._get_student_or_403(request)
         if error_response is not None:
             return error_response

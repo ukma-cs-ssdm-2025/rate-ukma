@@ -3,22 +3,18 @@ from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
 
-from rating_app.ioc_container.services import student_service
 from rating_app.models import Student
 from rating_app.serializers import StudentRatingsDetailedSerializer, StudentRatingsLightSerializer
+from rating_app.services import StudentService
 
 from .responses import R_STUDENT_RATINGS, R_STUDENT_RATINGS_DETAILED
 
 
 @extend_schema(tags=["student", "courses"])
 class StudentStatisticsViewSet(viewsets.ViewSet):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.student_service = student_service()
+    student_service: StudentService | None = None
 
     def _get_student_or_403(self, request):
-        """Get student for current user or return 403 response."""
-
         student = Student.objects.filter(user_id=request.user.id).first()
 
         if not student:
@@ -36,6 +32,8 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         responses=R_STUDENT_RATINGS,
     )
     def get_ratings(self, request):
+        assert self.student_service is not None
+
         student, error_response = self._get_student_or_403(request)
         if error_response is not None:
             return error_response
@@ -53,6 +51,8 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         responses=R_STUDENT_RATINGS_DETAILED,
     )
     def get_detailed_ratings(self, request):
+        assert self.student_service is not None
+
         student, error_response = self._get_student_or_403(request)
         if error_response is not None:
             return error_response
