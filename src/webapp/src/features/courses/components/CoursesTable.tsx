@@ -8,15 +8,16 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Filter } from "lucide-react";
 
 import { DataTable } from "@/components/DataTable/DataTable";
+import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import type { CourseList } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFacultyBadge } from "./CourseFacultyBadge";
-import { CourseFiltersPanel } from "./CourseFiltersPanel";
+import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesTableSkeleton } from "./CoursesTableSkeleton";
@@ -48,8 +49,8 @@ const columns: ColumnDef<CourseList>[] = [
 		cell: ({ row }) => {
 			const course = row.original;
 			return (
-				<div className="flex items-center gap-2">
-					<span className="font-semibold text-base transition-colors group-hover:text-primary group-hover:underline">
+				<div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
+					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline md:text-base">
 						{course.title}
 					</span>
 					<CourseFacultyBadge facultyName={course.faculty_name} />
@@ -69,13 +70,15 @@ const columns: ColumnDef<CourseList>[] = [
 		id: "ratings_count",
 		accessorKey: "ratings_count",
 		header: ({ column }) => (
-			<CourseColumnHeader column={column} title="Відгуки" />
+			<div className="hidden sm:block">
+				<CourseColumnHeader column={column} title="Відгуки" />
+			</div>
 		),
 		cell: ({ row }) => {
 			const count = row.getValue("ratings_count") as number;
 			return (
-				<div className="flex items-center justify-center">
-					<span className="text-lg font-medium text-muted-foreground">
+				<div className="hidden sm:flex items-center justify-center">
+					<span className="text-sm font-medium text-muted-foreground md:text-base">
 						{count}
 					</span>
 				</div>
@@ -91,7 +94,14 @@ const columns: ColumnDef<CourseList>[] = [
 		id: "avg_difficulty",
 		accessorKey: "avg_difficulty",
 		header: ({ column }) => (
-			<CourseColumnHeader column={column} title="Складність" />
+			<>
+				<div className="md:hidden">
+					<CourseColumnHeader column={column} title="Склад." />
+				</div>
+				<div className="hidden md:block">
+					<CourseColumnHeader column={column} title="Складність" />
+				</div>
+			</>
 		),
 		cell: ({ row }) => (
 			<CourseScoreCell
@@ -112,7 +122,14 @@ const columns: ColumnDef<CourseList>[] = [
 		id: "avg_usefulness",
 		accessorKey: "avg_usefulness",
 		header: ({ column }) => (
-			<CourseColumnHeader column={column} title="Корисність" />
+			<>
+				<div className="md:hidden">
+					<CourseColumnHeader column={column} title="Корисн." />
+				</div>
+				<div className="hidden md:block">
+					<CourseColumnHeader column={column} title="Корисність" />
+				</div>
+			</>
 		),
 		cell: ({ row }) => (
 			<CourseScoreCell
@@ -172,6 +189,7 @@ export function CoursesTable({
 	});
 
 	const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
 
 	const updateFilter = useCallback(
 		<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
@@ -332,6 +350,10 @@ export function CoursesTable({
 		setFilters(DEFAULT_FILTERS);
 	}, []);
 
+	const toggleFiltersDrawer = useCallback(() => {
+		setIsFiltersDrawerOpen((prev) => !prev);
+	}, []);
+
 	const [hasResolvedFirstFetch, setHasResolvedFirstFetch] = useState(false);
 
 	useEffect(() => {
@@ -362,35 +384,63 @@ export function CoursesTable({
 	};
 
 	return (
-		<div className="flex gap-6">
-			<div className="flex-1 min-w-0 space-y-4">
-				<div className="flex items-center gap-4">
-					<div className="relative flex-1">
-						<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-						<Input
-							placeholder="Пошук курсів за назвою..."
-							value={filters.searchQuery}
-							onChange={(event) =>
-								updateFilter("searchQuery", event.target.value)
-							}
-							className="pl-10 h-12 text-base"
-							disabled={isInitialLoading}
-						/>
+		<>
+			<div className="flex flex-col gap-6 md:flex-row">
+				<div className="flex-1 min-w-0 space-y-4">
+					<div className="flex items-center gap-4">
+						<div className="relative flex-1">
+							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+							<Input
+								placeholder="Пошук курсів за назвою..."
+								value={filters.searchQuery}
+								onChange={(event) =>
+									updateFilter("searchQuery", event.target.value)
+								}
+								className="pl-10 h-12 text-base"
+								disabled={isInitialLoading}
+							/>
+						</div>
 					</div>
+
+					{renderTableContent()}
 				</div>
 
-				{renderTableContent()}
+				<div className="hidden lg:block w-80 shrink-0">
+					<CourseFiltersPanel
+						filters={filters}
+						onFilterChange={updateFilter}
+						filterOptions={filterOptions}
+						onReset={handleResetFilters}
+						isLoading={isPanelLoading}
+					/>
+				</div>
 			</div>
 
-			<div className="w-80 shrink-0">
-				<CourseFiltersPanel
+			<button
+				type="button"
+				className="fixed right-0 z-40 grid h-10 w-10 items-center justify-center rounded-l-2xl border border-border bg-background shadow-lg shadow-black/20 transition hover:bg-accent hover:text-accent-foreground lg:hidden"
+				style={{ top: "35%" }}
+				onClick={toggleFiltersDrawer}
+				aria-label="Фільтри"
+			>
+				<Filter className="h-6 w-6" />
+			</button>
+
+			<Drawer
+				open={isFiltersDrawerOpen}
+				onOpenChange={(open) => setIsFiltersDrawerOpen(open)}
+				ariaLabel="Фільтри курсів"
+				closeButtonLabel="Закрити фільтри"
+			>
+				<CourseFiltersDrawer
 					filters={filters}
 					onFilterChange={updateFilter}
 					filterOptions={filterOptions}
 					onReset={handleResetFilters}
 					isLoading={isPanelLoading}
+					onClose={() => setIsFiltersDrawerOpen(false)}
 				/>
-			</div>
-		</div>
+			</Drawer>
+		</>
 	);
 }
