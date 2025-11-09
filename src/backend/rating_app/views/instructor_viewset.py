@@ -3,12 +3,12 @@ import uuid
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.serializers import InstructorSerializer
 from rating_app.services import InstructorService
+from rating_app.views.api_spec.instructor import INSTRUCTOR_DETAIL_PATH_PARAMS
 
 from .responses import R_INSTRUCTOR
 
@@ -21,14 +21,7 @@ class InstructorViewSet(viewsets.ModelViewSet):
     @extend_schema(
         summary="Retrieve an instructor",
         description="Retrieve a single instructor by their ID with detailed information.",
-        parameters=[
-            OpenApiParameter(
-                name="instructor_id",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.PATH,
-                description="Instructor ID",
-            )
-        ],
+        parameters=INSTRUCTOR_DETAIL_PATH_PARAMS,
         responses=R_INSTRUCTOR,
     )
     def retrieve(self, request, instructor_id):

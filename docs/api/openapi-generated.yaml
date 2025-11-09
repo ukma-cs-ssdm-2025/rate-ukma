@@ -1196,7 +1196,7 @@ paths:
         schema:
           type: string
           format: uuid
-        description: Instructor ID
+        description: A unique identifier for the instructor.
         required: true
       tags:
       - instructors

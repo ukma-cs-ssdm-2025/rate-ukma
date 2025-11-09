@@ -3,14 +3,14 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 import structlog
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 
 from rating_app.constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
 from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
 from rating_app.models import Rating, Student
 from rating_app.serializers import RatingCreateUpdateSerializer, RatingReadSerializer
 from rating_app.services import RatingService
+from rating_app.views.api_spec.rating import RATING_LIST_QUERY_PARAMS
 from rating_app.views.responses import (
     R_NO_CONTENT,
     R_RATING,
@@ -38,7 +38,6 @@ class RatingViewSet(viewsets.ViewSet):
             return default
 
     def _get_student_or_403(self, request):
-        """Get student for current user or return 403 response."""
         student = Student.objects.filter(user_id=request.user.id).first()
         if not student:
             error = Response(
@@ -54,29 +53,7 @@ class RatingViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="List ratings for a course",
         description="List all ratings for a specific course with filters and pagination.",
-        parameters=[
-            OpenApiParameter(
-                name="course_id",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.PATH,
-                description="Course ID from URL path",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="page",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Page number (default: 1)",
-                required=False,
-            ),
-            OpenApiParameter(
-                name="page_size",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description=f"Items per page (default: {DEFAULT_PAGE_SIZE})",
-                required=False,
-            ),
-        ],
+        parameters=RATING_LIST_QUERY_PARAMS,
         responses=R_RATING_LIST,
     )
     def list(self, request, course_id=None):
