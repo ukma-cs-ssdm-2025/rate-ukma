@@ -1,5 +1,6 @@
 from rest_framework import status, viewsets
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.fields import uuid
 from rest_framework.response import Response
 
 import structlog
@@ -61,7 +62,8 @@ class RatingViewSet(viewsets.ViewSet):
             raise InvalidCourseIdentifierError("Course id is required")
 
         try:
-            filters = RatingFilterCriteria.model_validate(request.query_params.dict())
+            filter_data = {**request.query_params.dict(), "course_id": course_id}
+            filters = RatingFilterCriteria.model_validate(filter_data)
         except ModelValidationError as e:
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
@@ -148,9 +150,12 @@ class RatingViewSet(viewsets.ViewSet):
             raise InvalidRatingIdentifierError("Rating id is required")
 
         try:
+            uuid.UUID(rating_id)
+        except ValueError as e:
+            raise InvalidRatingIdentifierError("Invalid rating identifier") from e
+
+        try:
             rating = self.rating_service.get_rating(rating_id)
-        except InvalidRatingIdentifierError as exc:
-            raise ValidationError({"rating_id": "Invalid rating identifier"}) from exc
         except RatingNotFoundError as exc:
             raise NotFound(detail=str(exc)) from exc
 

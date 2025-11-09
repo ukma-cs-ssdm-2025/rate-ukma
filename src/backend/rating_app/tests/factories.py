@@ -169,3 +169,11 @@ class RatingFactory(DjangoModelFactory):
     @factory.lazy_attribute
     def comment(self):
         return faker.sentence() if random.random() < 0.5 else ""
+
+
+class SemesterFactory(DjangoModelFactory):
+    class Meta:
+        model = Semester
+
+    year = fuzzy.FuzzyInteger(2018, 2026)
+    term = fuzzy.FuzzyChoice(SemesterTerm.values)
