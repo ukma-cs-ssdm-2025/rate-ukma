@@ -198,13 +198,16 @@ def test_non_existent_course_retrieve(course_factory, token_client):
 
 @pytest.mark.django_db
 def test_course_list_pagination_last_page(token_client, course_factory):
+    # Arrange
     total_courses = 12
     page_size = 5
     course_factory.create_batch(total_courses)
     url = f"/api/v1/courses/?page=3&page_size={page_size}"
 
+    # Act
     response = token_client.get(url)
 
+    # Assert
     data = response.json()
     assert response.status_code == 200
     assert data["page"] == 3
@@ -237,22 +240,27 @@ def test_filter_by_multiple_parameters(
 
 @pytest.mark.django_db
 def test_course_list_with_avg_filters(token_client, course_factory):
+    # Arrange
     course_factory.create_batch(5)
     url = "/api/v1/courses/?avg_difficulty_min=2&avg_difficulty_max=4"
 
+    # Act
     response = token_client.get(url)
 
+    # Assert
     assert response.status_code == 200
 
 
 @pytest.mark.django_db
 def test_course_list_with_invalid_page_default_value(token_client, course_factory):
+    # Arrange
     course_factory.create_batch(3)
     url = "/api/v1/courses/?page=999"
 
+    # Act
     response = token_client.get(url)
 
-    # Returns first page with default max page size
+    # Assert
     assert response.status_code == 200
     data = response.json()
     assert data["page"] == 1
@@ -264,14 +272,17 @@ def test_course_list_with_invalid_page_default_value(token_client, course_factor
 def test_course_retrieve_with_ratings(
     token_client, course_factory, course_offering_factory, rating_factory
 ):
+    # Arrange
     course = course_factory()
     offering = course_offering_factory(course=course)
     rating_factory.create_batch(3, course_offering=offering, difficulty=4, usefulness=5)
 
     url = f"/api/v1/courses/{course.id}/"
 
+    # Act
     response = token_client.get(url)
 
+    # Assert
     assert response.status_code == 200
     data = response.json()
     assert "avg_difficulty" in data or "avgDifficulty" in data
@@ -279,13 +290,16 @@ def test_course_retrieve_with_ratings(
 
 @pytest.mark.django_db
 def test_filter_by_type_kind(token_client, course_factory, course_speciality_factory):
+    # Arrange
     course = course_factory()
     course_speciality_factory(course=course, type_kind="COMPULSORY")
 
     url = "/api/v1/courses/?typeKind=COMPULSORY"
 
+    # Act
     response = token_client.get(url)
 
+    # Assert
     assert response.status_code == 200
 
 
@@ -294,8 +308,10 @@ def test_course_list_response_structure(token_client, course_factory):
     course_factory.create_batch(2)
     url = "/api/v1/courses/"
 
+    # Act
     response = token_client.get(url)
 
+    # Assert
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -307,8 +323,11 @@ def test_course_list_response_structure(token_client, course_factory):
 
 @pytest.mark.django_db
 def test_course_retrieve_invalid_uuid_format(token_client):
+    # Arrange
     url = "/api/v1/courses/not-a-valid-uuid/"
 
+    # Act
     response = token_client.get(url)
 
+    # Assert
     assert response.status_code == 400

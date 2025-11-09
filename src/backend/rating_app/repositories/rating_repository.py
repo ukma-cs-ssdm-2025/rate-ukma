@@ -75,7 +75,7 @@ class RatingRepository:
         try:
             rating.save()
         except IntegrityError as err:
-            raise RuntimeError("Failed to update rating") from err  # TODO: use more specific error
+            raise DuplicateRatingException() from err
 
         logger.info(
             "rating_partially_updated",

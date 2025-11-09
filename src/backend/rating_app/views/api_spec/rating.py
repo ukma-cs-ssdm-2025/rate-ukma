@@ -9,7 +9,7 @@ RATING_LIST_QUERY_PARAMS = [
         type=OpenApiTypes.UUID,
         location=OpenApiParameter.PATH,
         description="Course ID from URL path",
-        required=False,
+        required=True,
     ),
     OpenApiParameter(
         name="page",
@@ -43,6 +43,6 @@ RATING_COURSE_ID_PATH_PARAM = [
         type=OpenApiTypes.UUID,
         location=OpenApiParameter.PATH,
         description="Course ID from URL path",
-        required=False,
+        required=True,
     ),
 ]

@@ -16,7 +16,7 @@ class QuerysetPaginator(
         page = paginator.get_page(page_num)
 
         return (
-            page.object_list,
+            list(page.object_list),
             PaginationMetadata(
                 page=page.number,
                 page_size=page.paginator.per_page,

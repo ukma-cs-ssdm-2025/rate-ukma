@@ -76,7 +76,7 @@ class RatingService:
     def _paginated_result(
         self, ratings: QuerySet[Rating], criteria: RatingFilterCriteria
     ) -> RatingSearchResult:
-        page_size = criteria.page_size or ratings.count() or DEFAULT_PAGE_SIZE
+        page_size = criteria.page_size or DEFAULT_PAGE_SIZE
         obj_list, metadata = self.paginator.process(ratings, criteria.page, page_size)
 
         return RatingSearchResult(
