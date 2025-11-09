@@ -4,6 +4,8 @@ from django.db.models import Model
 
 T = TypeVar("T", bound=Model)
 
+# TODO: implement - currently a facade draft
+
 
 class IRepository(Protocol, Generic[T]):
     def get_all(self) -> list[T]: ...
