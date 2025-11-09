@@ -1,9 +1,15 @@
 from rest_framework import status, viewsets
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
+import structlog
 from drf_spectacular.utils import extend_schema
 
-from rating_app.domain_models.course import CourseFilterCriteria, CourseSearchResult
+from rating_app.application_schemas.course import CourseFilterCriteria, CourseSearchResult
+from rating_app.exception.course_exceptions import (
+    CourseNotFoundError,
+    InvalidCourseIdentifierError,
+)
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
 from rating_app.services.course_service import CourseService
 from rating_app.views.api_spec.course import (
@@ -11,6 +17,8 @@ from rating_app.views.api_spec.course import (
     SINGLE_COURSE_QUERY_PARAMS,
 )
 from rating_app.views.responses import R_ANALYTICS
+
+logger = structlog.get_logger(__name__)
 
 
 @extend_schema(tags=["analytics"])
@@ -44,10 +52,22 @@ class AnalyticsViewSet(viewsets.ViewSet):
         parameters=SINGLE_COURSE_QUERY_PARAMS,
         responses=R_ANALYTICS,
     )
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, request, course_id=None, *args, **kwargs):
         assert self.course_service is not None
 
-        course_id = kwargs.get(self.lookup_url_kwarg)
-        course = self.course_service.get_course(course_id)
+        if course_id is None:
+            raise ValidationError({"course_id": "Course id is required"})
+
+        try:
+            course = self.course_service.get_course(course_id)
+
+        except InvalidCourseIdentifierError as exc:
+            logger.error("invalid_course_identifier", course_id=course_id, error=str(exc))
+            raise ValidationError({"course_id": "Invalid course identifier"}) from exc
+
+        except CourseNotFoundError as exc:
+            logger.error("course_not_found", course_id=course_id)
+            raise NotFound(detail=str(exc)) from exc
+
         serialized = self.serializer_class(course).data
         return Response(serialized, status=status.HTTP_200_OK)

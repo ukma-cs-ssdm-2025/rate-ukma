@@ -5,13 +5,13 @@ from django.db.models import QuerySet
 
 import structlog
 
-from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
-from rating_app.domain_models.course import (
+from rating_app.application_schemas.course import (
     CourseFilterCriteria,
     CourseFilterOptions,
     CourseSearchResult,
 )
-from rating_app.domain_models.pagination import PaginationMetadata
+from rating_app.application_schemas.pagination import PaginationMetadata
+from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
 from rating_app.ioc_container.repos import (
     course_repository,
     department_repository,
@@ -38,7 +38,7 @@ class CourseService:
     def list_courses(self) -> list[Course]:
         return self.course_repository.get_all()
 
-    def get_course(self, course_id) -> Course:
+    def get_course(self, course_id: str) -> Course:
         return self.course_repository.get_by_id(course_id)
 
     def filter_courses(
@@ -60,11 +60,11 @@ class CourseService:
         course, _ = self.course_repository.get_or_create(**course_data)
         return course
 
-    def update_course(self, course_id, **update_data) -> Course:
+    def update_course(self, course_id: str, **update_data) -> Course:
         course = self.course_repository.get_by_id(course_id)
         return self.course_repository.update(course, **update_data)
 
-    def delete_course(self, course_id) -> None:
+    def delete_course(self, course_id: str) -> None:
         course = self.course_repository.get_by_id(course_id)
         self.course_repository.delete(course)
 
@@ -115,6 +115,7 @@ class CourseService:
         )
 
     def _process_semesters(self):
+        # TODO: why here we return dict, but in the rest of the code we return list of models?
         semesters = self.semester_repository.get_all()
         semester_term_order = {value: index for index, value in enumerate(SemesterTerm.values)}
         sorted_semesters = sorted(

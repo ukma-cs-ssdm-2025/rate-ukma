@@ -1,10 +1,16 @@
 from typing import Any
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import DataError
 from django.db.models import Avg, Count, F, QuerySet
 
 import structlog
 
-from rating_app.domain_models.course import CourseFilterCriteria
+from rating_app.application_schemas.course import CourseFilterCriteria
+from rating_app.exception.course_exceptions import (
+    CourseNotFoundError,
+    InvalidCourseIdentifierError,
+)
 from rating_app.models import Course, Department
 from rating_app.models.choices import CourseStatus
 
@@ -16,16 +22,23 @@ class CourseRepository:
         return list(Course.objects.all())
 
     def get_by_id(self, course_id: str) -> Course:
-        return (
-            Course.objects.select_related("department__faculty")
-            .prefetch_related("offerings__semester", "course_specialities__speciality")
-            .annotate(
-                avg_difficulty_annot=Avg("offerings__ratings__difficulty"),
-                avg_usefulness_annot=Avg("offerings__ratings__usefulness"),
-                ratings_count_annot=Count("offerings__ratings__id", distinct=True),
+        try:
+            return (
+                Course.objects.select_related("department__faculty")
+                .prefetch_related("offerings__semester", "course_specialities__speciality")
+                .annotate(
+                    avg_difficulty_annot=Avg("offerings__ratings__difficulty"),
+                    avg_usefulness_annot=Avg("offerings__ratings__usefulness"),
+                    ratings_count_annot=Count("offerings__ratings__id", distinct=True),
+                )
+                .get(id=course_id)
             )
-            .get(id=course_id)
-        )
+        except Course.DoesNotExist as exc:
+            logger.info("course_not_found", course_id=course_id)
+            raise CourseNotFoundError(course_id) from exc
+        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
+            logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
+            raise InvalidCourseIdentifierError(course_id) from exc
 
     def filter(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
         courses = self._build_base_queryset()
