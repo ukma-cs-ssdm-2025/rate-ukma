@@ -1,12 +1,16 @@
-class CourseNotFoundError(Exception):
-    def __init__(self, course_id: str):
-        self.course_id = course_id
-        message = f"Course with id '{course_id}' was not found."
-        super().__init__(message)
+from rest_framework.exceptions import NotFound, ValidationError
 
 
-class InvalidCourseIdentifierError(Exception):
-    def __init__(self, course_id: str):
-        self.course_id = course_id
-        message = f"Course id '{course_id}' is not a valid identifier."
-        super().__init__(message)
+class CourseNotFoundError(NotFound):
+    default_detail = "Course not found"
+    default_code = "course_not_found"
+
+
+class InvalidCourseIdentifierError(ValidationError):
+    default_detail = "Course id is not a valid identifier."
+    default_code = "invalid_course_identifier"
+
+
+class InvalidCourseOfferingIdentifierError(ValidationError):
+    default_detail = "Course offering id is not a valid identifier."
+    default_code = "invalid_course_offering_identifier"

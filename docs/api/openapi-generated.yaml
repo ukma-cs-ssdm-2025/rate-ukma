@@ -1781,8 +1781,9 @@ components:
     PatchedRatingCreateUpdate:
       type: object
       description: |-
-        Serializer for creating and updating Ratings.
-        Student is automatically set from authenticated user.
+        Serializer for documenting rating creation/update API endpoints in OpenAPI spec.
+        This serializer is currently used only for API documentation (drf-spectacular).
+        Actual validation is done via Pydantic models.
       properties:
         course_offering:
           type: string
@@ -1803,8 +1804,9 @@ components:
     RatingCreateUpdate:
       type: object
       description: |-
-        Serializer for creating and updating Ratings.
-        Student is automatically set from authenticated user.
+        Serializer for documenting rating creation/update API endpoints in OpenAPI spec.
+        This serializer is currently used only for API documentation (drf-spectacular).
+        Actual validation is done via Pydantic models.
       properties:
         course_offering:
           type: string

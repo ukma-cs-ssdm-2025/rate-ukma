@@ -28,7 +28,6 @@ logger = structlog.get_logger(__name__)
 @extend_schema(tags=["courses"])
 class CourseViewSet(viewsets.ViewSet):
     lookup_url_kwarg = "course_id"
-    serializer_class = CourseListResponseSerializer
 
     # IoC args
     course_service: CourseService | None = None
@@ -50,7 +49,7 @@ class CourseViewSet(viewsets.ViewSet):
             raise ValidationError(detail=e.errors()) from e
 
         courses: CourseSearchResult = self.course_service.filter_courses(filters)
-        payload = self.serializer_class(
+        payload = CourseListResponseSerializer(
             {
                 "items": courses.items,
                 "filters": courses.applied_filters,

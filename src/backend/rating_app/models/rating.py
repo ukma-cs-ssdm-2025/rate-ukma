@@ -1,4 +1,6 @@
+import datetime
 import uuid
+from typing import Protocol, runtime_checkable
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -6,6 +8,18 @@ from django.db.models import Q
 
 from .course_offering import CourseOffering
 from .student import Student
+
+
+@runtime_checkable
+class IRating(Protocol):
+    id: uuid.UUID
+    student: Student
+    course_offering: CourseOffering
+    difficulty: int
+    usefulness: int
+    comment: str
+    created_at: datetime.datetime
+    is_anonymous: bool
 
 
 class Rating(models.Model):

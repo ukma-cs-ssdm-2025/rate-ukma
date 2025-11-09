@@ -5,6 +5,9 @@ class StudentService:
     def __init__(self, student_stats_repository: StudentStatisticsRepository) -> None:
         self.student_stats_repository = student_stats_repository
 
+    def get_student_by_user_id(self, user_id: str):
+        return self.student_stats_repository.get_student_by_user_id(user_id=user_id)
+
     def get_ratings(self, student_id: str):
         return self.student_stats_repository.get_rating_stats(student_id=student_id)
 

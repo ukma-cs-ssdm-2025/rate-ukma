@@ -1,69 +1,94 @@
-from typing import Any
+from typing import cast
 
-from django.db import IntegrityError
+from django.db.models import QuerySet
 
-from rating_app.constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
+from rating_app.application_schemas.pagination import PaginationMetadata
+from rating_app.application_schemas.rating import (
+    RatingCreateParams,
+    RatingFilterCriteria,
+    RatingPatchParams,
+    RatingPutParams,
+    RatingSearchResult,
+)
+from rating_app.constants import DEFAULT_PAGE_SIZE
 from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
+from rating_app.models import Rating
+from rating_app.models.rating import IRating
 from rating_app.repositories import EnrollmentRepository, RatingRepository
+from rating_app.services.paginator import QuerysetPaginator
 
 
 class RatingService:
     def __init__(
-        self, rating_repository: RatingRepository, enrollment_repository: EnrollmentRepository
+        self,
+        rating_repository: RatingRepository,
+        enrollment_repository: EnrollmentRepository,
+        paginator: QuerysetPaginator,
     ):
         self.rating_repository = rating_repository
         self.enrollment_repository = enrollment_repository
+        self.paginator = paginator
 
-    def create_rating(self, **rating_data):
-        student_id = rating_data.get("student_id")
-        offering_id = rating_data.get("course_offering_id")
+    def create_rating(self, params: RatingCreateParams):
+        student_id = str(params.student_id)
+        offering_id = str(params.course_offering_id)
 
-        # Presence checks
-        if student_id is None:
-            raise ValueError("Missing required parameter: student_id")
-        if offering_id is None:
-            raise ValueError("Missing required parameter: course_offering_id")
-
-        # Type checks
-        if not isinstance(student_id, str):
-            raise TypeError("student_id must be a string")
-        if not isinstance(offering_id, str):
-            raise TypeError("course_offering_id must be a string")
-
-        if not self.enrollment_repository.is_student_enrolled(
+        is_enrolled = self.enrollment_repository.is_student_enrolled(
             student_id=student_id, offering_id=offering_id
-        ):
+        )
+        if not is_enrolled:
             raise NotEnrolledException()
 
-        if self.rating_repository.exists(student_id=student_id, course_offering_id=offering_id):
+        rating_exists = self.rating_repository.exists(
+            student_id=student_id, course_offering_id=offering_id
+        )
+        if rating_exists:
             raise DuplicateRatingException()
 
-        try:
-            return self.rating_repository.create(**rating_data)
-        except IntegrityError as err:
-            raise DuplicateRatingException() from err
+        return self.rating_repository.create(params)
 
     def get_rating(self, rating_id):
         return self.rating_repository.get_by_id(rating_id)
 
     def filter_ratings(
         self,
-        course_id: str | None = None,
-        page_size: int = DEFAULT_PAGE_SIZE,
-        page_number: int = DEFAULT_PAGE_NUMBER,
-    ) -> dict[str, Any]:
-        return self.rating_repository.filter(
-            course_id=course_id, page_size=page_size, page_number=page_number
+        filters: RatingFilterCriteria,
+        paginate: bool = True,
+    ) -> RatingSearchResult:
+        ratings = self.rating_repository.filter(filters)
+
+        if paginate:
+            return self._paginated_result(ratings, filters)
+
+        return RatingSearchResult(
+            items=list(ratings),
+            pagination=self._empty_pagination_metadata(ratings.count()),
+            applied_filters=filters.model_dump(),
         )
 
-    def update_rating(self, rating_id, **update_data):
-        immutable_fields = {"student", "student_id", "course_offering", "course_offering_id"}
-        attempted = immutable_fields.intersection(update_data.keys())
-        if attempted:
-            raise ValueError(f"Updating identity fields is not allowed: {', '.join(attempted)}")
-        rating = self.rating_repository.get_by_id(rating_id)
-        return self.rating_repository.update(rating, **update_data)
+    def update_rating(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams):
+        return self.rating_repository.update(rating, update_data)
 
     def delete_rating(self, rating_id):
         rating = self.rating_repository.get_by_id(rating_id)
         self.rating_repository.delete(rating)
+
+    def _paginated_result(
+        self, ratings: QuerySet[Rating], criteria: RatingFilterCriteria
+    ) -> RatingSearchResult:
+        page_size = criteria.page_size or ratings.count() or DEFAULT_PAGE_SIZE
+        obj_list, metadata = self.paginator.process(ratings, criteria.page, page_size)
+
+        return RatingSearchResult(
+            items=cast(list[IRating], obj_list),  # TODO: remove cast
+            pagination=metadata,
+            applied_filters=criteria.model_dump(),
+        )
+
+    def _empty_pagination_metadata(self, ratings_count: int) -> PaginationMetadata:
+        return PaginationMetadata(
+            total=ratings_count,
+            page=1,
+            page_size=ratings_count,
+            total_pages=1,
+        )
