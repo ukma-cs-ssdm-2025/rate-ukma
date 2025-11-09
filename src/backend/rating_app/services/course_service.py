@@ -1,5 +1,3 @@
-import math
-
 from django.core.paginator import Paginator
 from django.db.models import QuerySet
 
@@ -219,5 +217,5 @@ class CourseService:
             page=1,
             page_size=courses_count,
             total=courses_count,
-            total_pages=math.ceil(courses_count / courses_count),
+            total_pages=1,
         )
