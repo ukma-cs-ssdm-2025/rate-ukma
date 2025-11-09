@@ -14,6 +14,12 @@ class JSONLWriter:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.lock = FileLock(str(self.path) + ".lock")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, _exc_type, _exc_val, _exc_tb):
+        return None
+
     def write(self, record: dict) -> None:
         with self.lock:
             with self.path.open("a", encoding="utf-8") as f:
