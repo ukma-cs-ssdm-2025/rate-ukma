@@ -1,5 +1,4 @@
 import json
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -28,13 +27,11 @@ STUDENT_NAME_2 = "Коваленко Марія Сергіївна"
 STUDENT_NAME_3 = "Шевченко Андрій Володимирович"
 
 
-def create_temp_jsonl_file(course_list: list) -> Path:
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
-    ) as f:
+def create_temp_jsonl_file(course_list: list, file_path: Path) -> Path:
+    with open(file_path, mode="w", encoding="utf-8") as f:
         for course in course_list:
             f.write(json.dumps(course, ensure_ascii=False) + "\n")
-        return Path(f.name)
+        return file_path
 
 
 BASE_COURSE_DICT = {
@@ -211,7 +208,7 @@ def duplicate_course_variants():
 
 
 @pytest.fixture
-def temp_input_file():
+def temp_input_file(tmp_path: Path) -> Path:
     course1 = BASE_COURSE_DICT.copy()
     course1["students"] = [
         {"index": "1", "name": STUDENT_NAME_1},
@@ -226,11 +223,12 @@ def temp_input_file():
         {"index": "3", "name": "Ткаченко Наталія Олександрівна"},
     ]
 
-    return create_temp_jsonl_file([course1, course2])
+    file_path = tmp_path / "input.jsonl"
+    return create_temp_jsonl_file([course1, course2], file_path)
 
 
 @pytest.fixture
-def temp_input_file_with_duplicates():
+def temp_input_file_with_duplicates(tmp_path: Path) -> Path:
     course1 = BASE_COURSE_DICT.copy()
     course1["students"] = [
         {"index": "1", "name": STUDENT_NAME_1},
@@ -244,27 +242,28 @@ def temp_input_file_with_duplicates():
     ]
 
     duplicate_course_data = [course1, course2]
-    return create_temp_jsonl_file(duplicate_course_data)
+    file_path = tmp_path / "duplicates.jsonl"
+    return create_temp_jsonl_file(duplicate_course_data, file_path)
 
 
 @pytest.fixture
-def temp_invalid_json_file():
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
-    ) as f:
+def temp_invalid_json_file(tmp_path: Path) -> Path:
+    file_path = tmp_path / "invalid.jsonl"
+    with open(file_path, mode="w", encoding="utf-8") as f:
         f.write('{"invalid": json}\n')
-        return Path(f.name)
+    return file_path
 
 
 @pytest.fixture
-def temp_missing_id_file():
+def temp_missing_id_file(tmp_path: Path) -> Path:
     course_data_missing_id = {
         "url": COURSE_URL,
         "title": "Test Course",
         "academic_year": ACADEMIC_YEAR,
         "semesters": [SEMESTER],
     }
-    return create_temp_jsonl_file([course_data_missing_id])
+    file_path = tmp_path / "missing_id.jsonl"
+    return create_temp_jsonl_file([course_data_missing_id], file_path)
 
 
 @pytest.fixture

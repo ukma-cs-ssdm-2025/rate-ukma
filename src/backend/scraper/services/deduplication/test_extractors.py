@@ -184,6 +184,18 @@ def test_student_extractor_success(sample_course):
     assert result is not None
     assert len(result) == 2
 
+    student1 = result[0].student
+    assert student1.last_name == "Петренко"
+    assert student1.first_name == "Олександр"
+    assert student1.patronymic == "Петрович"
+    assert student1.index == "1"
+
+    student2 = result[1].student
+    assert student2.last_name == "Коваленко"
+    assert student2.first_name == "Марія"
+    assert student2.patronymic == "Сергіївна"
+    assert student2.index == "2"
+
 
 def test_student_extractor_empty_students():
     # Arrange

@@ -133,7 +133,7 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
             return None
 
         academic_degree = self._parse_academic_degree(teacher_str)
-        clean_name = re.sub(r"[,،]\s*[дк]\.[а-я]+\.", "", teacher_str).strip()
+        clean_name = re.sub(r"[,،]?\s*[дк]\.[а-я]+\.?", "", teacher_str).strip()
 
         if not clean_name:
             logger.debug("instructor_name_empty_after_cleaning", original=teacher_str)
@@ -141,7 +141,9 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
 
         return self._build_instructor_from_name(clean_name, academic_degree)
 
-    def _build_instructor_from_name(self, clean_name: str, academic_degree: AcademicDegree | None) -> DeduplicatedInstructor:
+    def _build_instructor_from_name(
+        self, clean_name: str, academic_degree: AcademicDegree | None
+    ) -> DeduplicatedInstructor:
         name_parts = clean_name.split()
 
         if len(name_parts) >= 2:
@@ -155,7 +157,9 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
             academic_title=None,
         )
 
-    def _build_instructor_from_parts(self, name_parts: list[str], academic_degree: AcademicDegree | None) -> DeduplicatedInstructor:
+    def _build_instructor_from_parts(
+        self, name_parts: list[str], academic_degree: AcademicDegree | None
+    ) -> DeduplicatedInstructor:
         last_name = name_parts[0]
         remaining_parts = " ".join(name_parts[1:]).strip()
 
@@ -174,8 +178,9 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
         )
 
     def _should_parse_as_initials(self, remaining_parts: str) -> bool:
-        return (len(remaining_parts) <= 6 and
-                re.match(r"^[\w\.\s]+$", remaining_parts, re.UNICODE))
+        return len(remaining_parts) <= 6 and bool(
+            re.match(r"^[\w\.\s]+$", remaining_parts, re.UNICODE)
+        )
 
     def _parse_initials(self, remaining_parts: str) -> tuple[str, str]:
         initials = re.sub(r"[\.\s]", "", remaining_parts)
@@ -245,8 +250,8 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
 
         name_parts = name.split()
         if len(name_parts) >= 2:
-            first_name = name_parts[0]
-            last_name = name_parts[1]
+            first_name = name_parts[1]
+            last_name = name_parts[0]
             patronymic = name_parts[2] if len(name_parts) > 2 else ""
         else:
             first_name = name
@@ -319,14 +324,14 @@ class SpecialtyExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSpecial
         type_lower = spec_type.lower()
         type_normalized = type_lower.replace("`", "'")
 
-        if "бакалавр" in type_lower:
+        if "бакалавр" in type_normalized:
             return EducationLevel.BACHELOR
-        elif "магістр" in type_lower:
+        elif "магістр" in type_normalized:
             return EducationLevel.MASTER
         elif (
-            "професійно-орієнтована" in type_lower
+            "професійно-орієнтована" in type_normalized
             or "обов'язкова" in type_normalized
-            or "вільного вибору" in type_lower
+            or "вільного вибору" in type_normalized
         ):
             return EducationLevel.BACHELOR
         else:

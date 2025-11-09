@@ -40,10 +40,17 @@ class Command(BaseCommand):
         if not input_path.exists():
             raise CommandError(f"Input file does not exist: {input_path}")
 
-        if output_path.exists() and not options["force"]:
-            raise CommandError(
-                f"Output file already exists: {output_path}. Use --force to overwrite."
-            )
+        if output_path.exists():
+            if not options["force"]:
+                raise CommandError(
+                    f"Output file already exists: {output_path}. Use --force to overwrite."
+                )
+            try:
+                output_path.unlink()
+            except OSError as exc:
+                raise CommandError(
+                    f"Failed to remove existing output file {output_path}: {exc}"
+                ) from exc
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
