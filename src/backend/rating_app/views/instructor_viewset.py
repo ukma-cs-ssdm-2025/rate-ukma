@@ -1,3 +1,4 @@
+import uuid
 from typing import Any
 
 from rest_framework import viewsets
@@ -33,16 +34,19 @@ class InstructorViewSet(viewsets.ModelViewSet):
         ],
         responses=R_INSTRUCTOR,
     )
-    def retrieve(self, request, instructor_id=None):
-        import uuid
+    def retrieve(self, request, instructor_id):
+        if instructor_id is None:
+            return Response({"detail": "Instructor ID is required."}, status=400)
 
+        # TODO:UUID validation is the same in all entities retrieval views
         try:
-            uuid.UUID(str(instructor_id))
-        except (ValueError, TypeError):
+            uuid.UUID(instructor_id)
+        except ValueError:
             return Response({"detail": "Invalid UUID."}, status=400)
+
         try:
             instructor = self.instructor_service.get_instructor_by_id(instructor_id)
         except InstructorNotFoundError:
             return Response(status=404)
-        serializer = self.get_serializer(instructor)
-        return Response(serializer.data)
+
+        return Response(self.get_serializer(instructor).data)

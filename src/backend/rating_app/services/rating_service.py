@@ -4,13 +4,15 @@ from django.db import IntegrityError
 
 from rating_app.constants import DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE
 from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
-from rating_app.ioc_container.repositories import enrollment_repository, rating_repository
+from rating_app.repositories import EnrollmentRepository, RatingRepository
 
 
 class RatingService:
-    def __init__(self):
-        self.rating_repository = rating_repository()
-        self.enrollment_repository = enrollment_repository()
+    def __init__(
+        self, rating_repository: RatingRepository, enrollment_repository: EnrollmentRepository
+    ):
+        self.rating_repository = rating_repository
+        self.enrollment_repository = enrollment_repository
 
     def create_rating(self, **rating_data):
         student_id = rating_data.get("student_id")

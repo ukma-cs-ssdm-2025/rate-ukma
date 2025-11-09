@@ -12,7 +12,7 @@ from rating_app.exception.course_exceptions import (
     InvalidCourseIdentifierError,
 )
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
-from rating_app.services.course_service import CourseService
+from rating_app.services import CourseService
 from rating_app.views.api_spec.course import (
     COURSES_LIST_QUERY_PARAMS,
     SINGLE_COURSE_QUERY_PARAMS,
@@ -67,13 +67,13 @@ class AnalyticsViewSet(viewsets.ViewSet):
         try:
             course = self.course_service.get_course(course_id)
 
-        except InvalidCourseIdentifierError as exc:
-            logger.error("invalid_course_identifier", course_id=course_id, error=str(exc))
-            raise ValidationError({"course_id": "Invalid course identifier"}) from exc
+        except InvalidCourseIdentifierError as e:
+            logger.error("invalid_course_identifier", course_id=course_id, error=str(e))
+            raise ValidationError({"course_id": "Invalid course identifier"}) from e
 
-        except CourseNotFoundError as exc:
+        except CourseNotFoundError as e:
             logger.error("course_not_found", course_id=course_id)
-            raise NotFound(detail=str(exc)) from exc
+            raise NotFound(detail=str(e)) from e
 
         serialized = self.serializer_class(course).data
         return Response(serialized, status=status.HTTP_200_OK)

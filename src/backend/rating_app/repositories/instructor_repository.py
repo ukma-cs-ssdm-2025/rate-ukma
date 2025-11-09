@@ -1,3 +1,4 @@
+from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.models import Instructor
 
 
@@ -6,7 +7,10 @@ class InstructorRepository:
         return list(Instructor.objects.all())
 
     def get_by_id(self, instructor_id: str) -> Instructor:
-        return Instructor.objects.get(id=instructor_id)
+        try:
+            return Instructor.objects.get(id=instructor_id)
+        except Instructor.DoesNotExist as e:
+            raise InstructorNotFoundError(instructor_id=instructor_id) from e
 
     def get_or_create(
         self,
