@@ -40,6 +40,9 @@ class Command(BaseCommand):
         if not input_path.exists():
             raise CommandError(f"Input file does not exist: {input_path}")
 
+        if input_path.resolve() == output_path.resolve():
+            raise CommandError("Input and output paths must differ.")
+
         if output_path.exists():
             if not options["force"]:
                 raise CommandError(
@@ -62,9 +65,7 @@ class Command(BaseCommand):
             grouper = CourseGroupingService()
             grouper.group_courses(input_path, output_path)
 
-            self.stdout.write(
-                self.style.SUCCESS(f"Successfully grouped courses to {output_path}")
-            )
+            self.stdout.write(self.style.SUCCESS(f"Successfully grouped courses to {output_path}"))
 
         except Exception as e:
             logger.exception("grouping_failed", input=str(input_path), error=str(e))
