@@ -25,7 +25,7 @@ export function CourseScoreCell({
 
 	return (
 		<div className="flex items-center justify-center">
-			<span className={cn("text-lg font-semibold", tone)}>
+			<span className={cn("text-base font-semibold md:text-lg", tone)}>
 				{value.toFixed(1)}
 			</span>
 		</div>

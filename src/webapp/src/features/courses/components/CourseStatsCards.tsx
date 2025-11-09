@@ -92,7 +92,12 @@ export function CourseStatsCards({
 				>
 					<div className="space-y-2">
 						<div className="flex items-baseline gap-1.5">
-							<span className={cn("text-4xl font-bold tabular-nums", accent)}>
+							<span
+								className={cn(
+									"text-3xl font-bold tabular-nums sm:text-4xl",
+									accent,
+								)}
+							>
 								{formatted}
 							</span>
 							<span className="text-xs text-muted-foreground">{hint}</span>
