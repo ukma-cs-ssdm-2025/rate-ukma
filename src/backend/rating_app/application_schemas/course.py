@@ -1,11 +1,9 @@
+import uuid
 from dataclasses import dataclass
 from typing import Any, Literal, TypeAlias
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic.alias_generators import to_camel
-from pydantic_core import ErrorDetails
-
-from rating_app.models import Course
 
 from ..constants import (
     MAX_RATING_VALUE,
@@ -14,17 +12,14 @@ from ..constants import (
     MIN_RATING_VALUE,
     MIN_SEMESTER_YEAR,
 )
-from ..models.choices import CourseTypeKind, InstructorRole, SemesterTerm
+from ..models.choices import CourseTypeKind, SemesterTerm
+from ..models.course import ICourse
 from .pagination import PaginationMetadata
 
 AvgOrder: TypeAlias = Literal["asc", "desc"]
 
 
-class CourseQueryParamsValidationError(ValidationError):
-    def __init__(self, errors: list[ErrorDetails]):
-        super().__init__("Course query parameters are invalid", errors)
-
-
+# needs external validation
 class CourseFilterCriteria(BaseModel):
     model_config = {
         "alias_generator": to_camel,
@@ -33,10 +28,10 @@ class CourseFilterCriteria(BaseModel):
 
     name: str | None = Field(default=None)
     type_kind: CourseTypeKind | None = Field(default=None)
-    instructor: InstructorRole | None = Field(default=None)
-    faculty: str | None = Field(default=None)
-    department: str | None = Field(default=None)
-    speciality: str | None = Field(default=None)
+    instructor: uuid.UUID | None = Field(default=None)
+    faculty: uuid.UUID | None = Field(default=None)
+    department: uuid.UUID | None = Field(default=None)
+    speciality: uuid.UUID | None = Field(default=None)
     semester_year: int | None = Field(default=None, ge=MIN_SEMESTER_YEAR)
     semester_term: SemesterTerm | None = Field(default=None)
     avg_difficulty_min: float | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
@@ -46,11 +41,8 @@ class CourseFilterCriteria(BaseModel):
     avg_difficulty_order: AvgOrder = Field(default="asc")
     avg_usefulness_order: AvgOrder = Field(default="asc")
     page: int | None = Field(default=MIN_PAGE_NUMBER, ge=MIN_PAGE_NUMBER)
-    page_size: int | None = Field(
-        default=None, ge=MIN_PAGE_SIZE
-    )  # TODO: handle situations where no pagination is required
+    page_size: int | None = Field(default=None, ge=MIN_PAGE_SIZE)
 
-    # TODO: check if case insensitivity can be achieved with Pydantic's built-in validation
     @field_validator("semester_term", mode="before")
     @classmethod
     def normalize_semester_term(cls, value):
@@ -66,13 +58,15 @@ class CourseFilterCriteria(BaseModel):
         return value
 
 
+# is constructed internally
 @dataclass(frozen=True)
 class CourseSearchResult:
-    items: list[Course]
+    items: list[ICourse]
     pagination: PaginationMetadata
     applied_filters: dict[str, Any]
 
 
+# is constructed internally
 @dataclass(frozen=True)
 class CourseFilterOptions:
     instructors: list[dict[str, Any]]
