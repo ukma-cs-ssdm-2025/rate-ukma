@@ -3,7 +3,7 @@ Application-wide constants.
 """
 
 # PAGINATION
-DEFAULT_PAGE_SIZE = 10  # TODO: questionable variable and value - what is the purpose
+DEFAULT_PAGE_SIZE = 10
 
 MAX_PAGE_SIZE = 100
 

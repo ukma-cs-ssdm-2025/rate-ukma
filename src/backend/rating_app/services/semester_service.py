@@ -90,15 +90,16 @@ class SemesterService(IFilterable):
     ) -> list[SemesterFilterOption]:
         return [
             SemesterFilterOption(value=str(term), label=term_labels[term])
-            for term in sorted(
-                term_labels.keys(),
-                key=lambda value: (
-                    self.TERM_PRIORITY.get(value, len(self.TERM_PRIORITY))
-                    if isinstance(value, SemesterTerm)
-                    else len(self.TERM_PRIORITY)
-                ),
-            )
+            for term in sorted(term_labels.keys(), key=self._get_term_priority)
         ]
+
+    def _get_term_priority(self, value: str | SemesterTerm) -> int:
+        if isinstance(value, SemesterTerm):
+            return self.TERM_PRIORITY.get(value, len(self.TERM_PRIORITY))
+        elif value in SemesterTerm.values:
+            return self.TERM_PRIORITY.get(SemesterTerm(value), len(self.TERM_PRIORITY))
+        else:
+            return len(self.TERM_PRIORITY)
 
     def _build_semester_years(self, years: set[int]) -> list[SemesterFilterOption]:
         return [

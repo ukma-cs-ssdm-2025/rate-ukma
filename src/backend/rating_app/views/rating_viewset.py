@@ -93,10 +93,7 @@ class RatingViewSet(viewsets.ViewSet):
     @require_student
     def create(self, request, student: Student, course_id=None):
         assert self.rating_service is not None
-
-        # TODO: use course_offering_id instead of course_id
-        if course_id is None:
-            raise InvalidCourseIdentifierError("Course id is required")
+        # course_id is not used, will be potentially removed after using a different endpoint
 
         try:
             rating_params = RatingCreateParams.model_validate(
@@ -178,17 +175,9 @@ class RatingViewSet(viewsets.ViewSet):
             logger.error("validation_error", errors=e.errors(), rating_id=rating.id)
             raise ValidationError(detail=e.errors()) from e
 
-        try:
-            rating = self.rating_service.update_rating(rating, update_params)
-        except RuntimeError as exc:
-            logger.error("update_rating_error", error=str(exc), rating_id=rating.id)
-            raise ValidationError({"detail": "Failed to update rating"}) from exc
+        rating = self.rating_service.update_rating(rating, update_params)
 
-        logger.info(
-            "rating_updated",
-            rating_id=rating.id,
-            student_id=str(student.id),
-        )
+        logger.info("rating_updated", rating_id=rating.id)
         response_serializer = RatingReadSerializer(rating)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -208,17 +197,9 @@ class RatingViewSet(viewsets.ViewSet):
             logger.error("validation_error", errors=e.errors(), rating_id=rating.id)
             raise ValidationError(detail=e.errors()) from e
 
-        try:
-            rating = self.rating_service.update_rating(rating, update_params)
-        except RuntimeError as exc:
-            logger.error("partial_update_rating_error", error=str(exc), rating_id=rating.id)
-            raise ValidationError({"detail": "Failed to update rating"}) from exc
+        rating = self.rating_service.update_rating(rating, update_params)
 
-        logger.info(
-            "rating_partially_updated",
-            rating_id=rating.id,
-            student_id=str(student.id),
-        )
+        logger.info("rating_partially_updated", rating_id=rating.id)
         response_serializer = RatingReadSerializer(rating)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 

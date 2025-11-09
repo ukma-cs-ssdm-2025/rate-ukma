@@ -1,5 +1,3 @@
-from typing import cast
-
 from django.db.models import QuerySet
 
 import structlog
@@ -13,7 +11,6 @@ from rating_app.application_schemas.pagination import PaginationMetadata
 from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
 from rating_app.models import Course
 from rating_app.models.choices import CourseTypeKind
-from rating_app.models.course import ICourse
 from rating_app.repositories import CourseRepository
 from rating_app.services.department_service import DepartmentService
 from rating_app.services.faculty_service import FacultyService
@@ -61,7 +58,7 @@ class CourseService:
         return CourseSearchResult(
             items=list(courses),
             pagination=self._empty_pagination_metadata(courses.count()),
-            applied_filters=filters.model_dump(),
+            applied_filters=filters.model_dump(by_alias=True),
         )
 
     # -- admin functions --
@@ -100,9 +97,9 @@ class CourseService:
         obj_list, metadata = self.paginator.process(courses, criteria.page, page_size)
 
         return CourseSearchResult(
-            items=cast(list[ICourse], obj_list),  # TODO: remove cast
+            items=obj_list,
             pagination=metadata,
-            applied_filters=criteria.model_dump(),
+            applied_filters=criteria.model_dump(by_alias=True),
         )
 
     def _empty_pagination_metadata(self, courses_count: int) -> PaginationMetadata:

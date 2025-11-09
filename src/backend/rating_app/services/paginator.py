@@ -1,17 +1,17 @@
+from typing import Generic, TypeVar
+
 from django.core.paginator import Paginator
 from django.db.models import Model, QuerySet
 
-from rateukma.protocols import IProcessor, implements
 from rating_app.application_schemas.pagination import PaginationMetadata
 
+T = TypeVar("T", bound=Model)
 
-class QuerysetPaginator(
-    IProcessor[[QuerySet[Model], int | None, int], tuple[list[Model], PaginationMetadata]]
-):
-    @implements
+
+class QuerysetPaginator(Generic[T]):
     def process(
-        self, queryset: QuerySet[Model], page_num: int | None, page_size: int
-    ) -> tuple[list[Model], PaginationMetadata]:
+        self, queryset: QuerySet[T], page_num: int | None, page_size: int
+    ) -> tuple[list[T], PaginationMetadata]:
         paginator = Paginator(queryset, page_size)
         page = paginator.get_page(page_num)
 

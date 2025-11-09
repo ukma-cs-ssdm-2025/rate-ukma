@@ -1,5 +1,3 @@
-from typing import cast
-
 from django.db.models import QuerySet
 
 from rating_app.application_schemas.pagination import PaginationMetadata
@@ -13,7 +11,6 @@ from rating_app.application_schemas.rating import (
 from rating_app.constants import DEFAULT_PAGE_SIZE
 from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
 from rating_app.models import Rating
-from rating_app.models.rating import IRating
 from rating_app.repositories import EnrollmentRepository, RatingRepository
 from rating_app.services.paginator import QuerysetPaginator
 
@@ -63,7 +60,7 @@ class RatingService:
         return RatingSearchResult(
             items=list(ratings),
             pagination=self._empty_pagination_metadata(ratings.count()),
-            applied_filters=filters.model_dump(),
+            applied_filters=filters.model_dump(by_alias=True),
         )
 
     def update_rating(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams):
@@ -80,9 +77,9 @@ class RatingService:
         obj_list, metadata = self.paginator.process(ratings, criteria.page, page_size)
 
         return RatingSearchResult(
-            items=cast(list[IRating], obj_list),  # TODO: remove cast
+            items=obj_list,
             pagination=metadata,
-            applied_filters=criteria.model_dump(),
+            applied_filters=criteria.model_dump(by_alias=True),
         )
 
     def _empty_pagination_metadata(self, ratings_count: int) -> PaginationMetadata:
