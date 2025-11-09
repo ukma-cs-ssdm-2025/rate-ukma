@@ -14,7 +14,6 @@ from rating_app.application_schemas.rating import (
 )
 from rating_app.exception.course_exceptions import (
     InvalidCourseIdentifierError,
-    InvalidCourseOfferingIdentifierError,
 )
 from rating_app.exception.rating_exceptions import (
     DuplicateRatingException,
@@ -90,14 +89,17 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_CREATE,
     )
     @require_student
-    def create(self, request, course_offering_id=None, student=None):
+    def create(self, request, student: Student, course_id=None):
         assert self.rating_service is not None
 
-        if course_offering_id is None:
-            raise InvalidCourseOfferingIdentifierError()
+        # TODO: use course_offering_id instead of course_id
+        if course_id is None:
+            raise InvalidCourseIdentifierError("Course id is required")
 
         try:
-            rating_params = RatingCreateParams.model_validate(request.data)
+            rating_params = RatingCreateParams.model_validate(
+                {**request.data, "student": student.id}
+            )
         except ModelValidationError as e:
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
@@ -107,8 +109,8 @@ class RatingViewSet(viewsets.ViewSet):
         except DuplicateRatingException as exc:
             logger.warning(
                 "duplicate_rating_attempt",
-                student_id=str(student.id),  # type: ignore
-                course_offering_id=str(rating_params.course_offering_id),
+                student_id=str(student.id),
+                course_offering_id=str(rating_params.course_offering),
             )
             return Response(
                 {"detail": str(exc.detail)},
@@ -117,8 +119,8 @@ class RatingViewSet(viewsets.ViewSet):
         except NotEnrolledException as exc:
             logger.warning(
                 "not_enrolled_rating_attempt",
-                student_id=str(student.id),  # type: ignore
-                course_offering_id=str(rating_params.course_offering_id),
+                student_id=str(student.id),
+                course_offering_id=str(rating_params.course_offering),
             )
             return Response(
                 {"detail": str(exc.detail)},
@@ -128,8 +130,8 @@ class RatingViewSet(viewsets.ViewSet):
         logger.info(
             "rating_created",
             rating_id=str(rating.id),
-            student_id=str(student.id),  # type: ignore
-            course_offering_id=str(rating_params.course_offering_id),
+            student_id=str(student.id),
+            course_offering_id=str(rating_params.course_offering),
         )
         response_serializer = RatingReadSerializer(rating)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)

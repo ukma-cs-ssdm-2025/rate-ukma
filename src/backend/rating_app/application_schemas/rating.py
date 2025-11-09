@@ -30,12 +30,10 @@ class RatingCreateParams(BaseModel):
         "populate_by_name": True,
     }
 
-    course_offering_id: uuid.UUID = Field(
-        ..., description="UUID of the course offering being rated"
-    )
-    student_id: uuid.UUID = Field(..., description="UUID of the student creating the rating")
-    difficulty: int = Field(..., ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    usefulness: int = Field(..., ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
+    course_offering: uuid.UUID = Field(description="UUID of the course offering being rated")
+    student: uuid.UUID = Field(description="UUID of the student creating the rating")
+    difficulty: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
+    usefulness: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
     comment: str | None = Field(default=None)
     is_anonymous: bool = Field(default=False)
 
@@ -46,8 +44,8 @@ class RatingPutParams(BaseModel):
         "populate_by_name": True,
     }
 
-    difficulty: int = Field(..., ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    usefulness: int = Field(..., ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
+    difficulty: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
+    usefulness: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
     comment: str | None = Field(default=None)
     is_anonymous: bool = Field(default=False)
 

@@ -10,7 +10,7 @@ class InstructorRepository:
         try:
             return Instructor.objects.get(id=instructor_id)
         except Instructor.DoesNotExist as e:
-            raise InstructorNotFoundError(instructor_id=instructor_id) from e
+            raise InstructorNotFoundError() from e
 
     def get_or_create(
         self,

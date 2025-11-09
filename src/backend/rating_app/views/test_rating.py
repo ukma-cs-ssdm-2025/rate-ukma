@@ -148,9 +148,11 @@ def test_create_rating_not_enrolled(
     token_client,
     course_factory,
     course_offering_factory,
+    student_factory,
 ):
     course = course_factory()
     offering = course_offering_factory(course=course)
+    student_factory(user=token_client.user)  # not-enrolled student
 
     url = f"/api/v1/courses/{course.id}/ratings/"
     payload = {
@@ -201,12 +203,16 @@ def test_patch_rating_not_enrolled(
     token_client,
     course_factory,
     course_offering_factory,
+    student_factory,
     enrollment_factory,
     rating_factory,
 ):
     course = course_factory()
     offering = course_offering_factory(course=course)
     enrollment_factory(offering=offering)
+
+    # student for the authenticated user, but rating belongs to someone else
+    student_factory(user=token_client.user)
 
     rating = rating_factory(course_offering=offering, difficulty=3, usefulness=4)
 
@@ -222,15 +228,18 @@ def test_delete_rating_not_enrolled(
     token_client,
     course_factory,
     course_offering_factory,
+    student_factory,
     rating_factory,
 ):
-    client, _user = token_client
     course = course_factory()
     offering = course_offering_factory(course=course)
+
+    # student for the authenticated user, but rating belongs to someone else
+    student_factory(user=token_client.user)
 
     rating = rating_factory(course_offering=offering, difficulty=3, usefulness=4)
 
     url = f"/api/v1/courses/{course.id}/ratings/{rating.id}/"
-    response = client.delete(url)
+    response = token_client.delete(url)
 
     assert response.status_code == 403

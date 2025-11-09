@@ -30,8 +30,8 @@ class RatingService:
         self.paginator = paginator
 
     def create_rating(self, params: RatingCreateParams):
-        student_id = str(params.student_id)
-        offering_id = str(params.course_offering_id)
+        student_id = str(params.student)
+        offering_id = str(params.course_offering)
 
         is_enrolled = self.enrollment_repository.is_student_enrolled(
             student_id=student_id, offering_id=offering_id

@@ -22,10 +22,9 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         responses=R_STUDENT_RATINGS,
     )
     @require_student
-    def get_ratings(self, request):
+    def get_ratings(self, request, student: Student):
         assert self.student_service is not None
 
-        student: Student = request.kwargs.get("student")
         items = self.student_service.get_ratings(student_id=str(student.id))
 
         serializer = StudentRatingsLightSerializer(items, many=True)
@@ -38,10 +37,9 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         responses=R_STUDENT_RATINGS_DETAILED,
     )
     @require_student
-    def get_detailed_ratings(self, request):
+    def get_detailed_ratings(self, request, student: Student):
         assert self.student_service is not None
 
-        student: Student = request.kwargs.get("student")
         items = self.student_service.get_ratings_detail(student_id=str(student.id))
 
         serializer = StudentRatingsDetailedSerializer(items, many=True)

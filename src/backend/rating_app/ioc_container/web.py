@@ -40,11 +40,13 @@ def course_filter_options_view():
     )
 
 
+# TODO: move post request under a different endpoint
 @once
 def course_ratings_list_create_view():
     return RatingViewSet.as_view(
         {"get": "list", "post": "create"},
         rating_service=rating_service(),
+        student_service=student_service(),
     )
 
 
@@ -53,6 +55,7 @@ def course_rating_detail_view():
     return RatingViewSet.as_view(
         {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"},
         rating_service=rating_service(),
+        student_service=student_service(),
     )
 
 

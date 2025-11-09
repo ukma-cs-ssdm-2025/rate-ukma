@@ -36,9 +36,11 @@ class RatingRepository:
         self,
         criteria: RatingFilterCriteria,
     ) -> QuerySet[Rating]:
-        filters = criteria.model_dump(exclude_none=True)
-        if criteria.course_id:
-            filters["course_offering__course_id"] = criteria.course_id
+        # find a cleaner way to do this
+        filters = criteria.model_dump(exclude_none=True, exclude={"page", "page_size"})
+
+        if "course_id" in filters:
+            filters["course_offering__course_id"] = filters.pop("course_id")
 
         ratings = (
             Rating.objects.select_related(
@@ -55,8 +57,8 @@ class RatingRepository:
     def create(self, create_params: RatingCreateParams) -> Rating:
         try:
             return Rating.objects.create(
-                student_id=str(create_params.student_id),
-                course_offering_id=str(create_params.course_offering_id),
+                student_id=str(create_params.student),
+                course_offering_id=str(create_params.course_offering),
                 difficulty=create_params.difficulty,
                 usefulness=create_params.usefulness,
                 comment=create_params.comment,

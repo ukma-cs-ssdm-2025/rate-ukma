@@ -2,9 +2,7 @@
 
 from functools import wraps
 
-from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
-from rest_framework.response import Response
 
 import structlog
 
@@ -12,7 +10,10 @@ from rating_app.exception.rating_exceptions import (
     InvalidRatingIdentifierError,
     RatingNotFoundError,
 )
-from rating_app.models import Student
+from rating_app.exception.student_exceptions import (
+    OnlyStudentActionAllowedError,
+    StudentNotFoundError,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -44,12 +45,10 @@ def require_rating_ownership(func):
         if rating_id is None:
             raise ValidationError({"rating_id": "Rating id is required"})
 
-        student = self.student_service.get_student_by_user_id(request.user.id)
-        if not student:
-            return Response(
-                {"detail": "Student not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        try:
+            student = self.student_service.get_student_by_user_id(request.user.id)
+        except StudentNotFoundError as exc:
+            raise OnlyStudentActionAllowedError() from exc
 
         try:
             rating = self.rating_service.get_rating(rating_id)
@@ -93,12 +92,10 @@ def require_student(func):
     def wrapper(self, request, *args, **kwargs):
         assert self.student_service is not None
 
-        student: Student = self.student_service.get_student_by_user_id(request.user.id)
-        if not student:
-            return Response(
-                {"detail": "Student not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        try:
+            student = self.student_service.get_student_by_user_id(request.user.id)
+        except StudentNotFoundError as exc:
+            raise OnlyStudentActionAllowedError() from exc
 
         kwargs["student"] = student
         return func(self, request, *args, **kwargs)
