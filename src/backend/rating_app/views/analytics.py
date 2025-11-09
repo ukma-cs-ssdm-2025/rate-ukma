@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 import structlog
 from drf_spectacular.utils import extend_schema
+from pydantic import ValidationError as ModelValidationError
 
 from rating_app.application_schemas.course import CourseFilterCriteria, CourseSearchResult
 from rating_app.exception.course_exceptions import (
@@ -39,7 +40,12 @@ class AnalyticsViewSet(viewsets.ViewSet):
     def list(self, request, *args, **kwargs):
         assert self.course_service is not None
 
-        filters: CourseFilterCriteria = CourseFilterCriteria(**request.query_params)
+        try:
+            filters = CourseFilterCriteria.model_validate(request.query_params.dict())
+        except ModelValidationError as e:
+            logger.error("validation_error", errors=e.errors())
+            raise ValidationError(detail=e.errors()) from e
+
         payload: CourseSearchResult = self.course_service.filter_courses(filters, paginate=False)
         serialized = self.serializer_class(payload.items, many=True).data
 
