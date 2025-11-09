@@ -121,7 +121,7 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
                 instructors.append(
                     DeduplicatedCourseInstructor(
                         instructor=instructor,
-                        role=self._determine_role(teacher_part, data),
+                        role=self._determine_role(teacher_part),
                     )
                 )
 
@@ -139,35 +139,33 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
             logger.debug("instructor_name_empty_after_cleaning", original=teacher_str)
             return None
 
+        return self._build_instructor_from_name(clean_name, academic_degree)
+
+    def _build_instructor_from_name(self, clean_name: str, academic_degree: AcademicDegree | None) -> DeduplicatedInstructor:
         name_parts = clean_name.split()
 
         if len(name_parts) >= 2:
-            last_name = name_parts[0]
-            remaining_parts = " ".join(name_parts[1:]).strip()
+            return self._build_instructor_from_parts(name_parts, academic_degree)
 
-            if len(remaining_parts) <= 6 and (
-                re.match(r"^[\w\.\s]+$", remaining_parts, re.UNICODE)
-            ):
-                initials = re.sub(r"[\.\s]", "", remaining_parts)
+        return DeduplicatedInstructor(
+            first_name=clean_name,
+            last_name=clean_name,
+            patronymic="",
+            academic_degree=academic_degree,
+            academic_title=None,
+        )
 
-                if len(initials) >= 2:
-                    first_name = initials[0]
-                    patronymic = initials[1]
-                elif len(initials) == 1:
-                    first_name = initials[0]
-                    patronymic = ""
-                else:
-                    first_name = re.sub(r"\.$", "", remaining_parts)
-                    patronymic = ""
-            else:
-                first_name = name_parts[1]
-                patronymic = name_parts[2] if len(name_parts) > 2 else ""
+    def _build_instructor_from_parts(self, name_parts: list[str], academic_degree: AcademicDegree | None) -> DeduplicatedInstructor:
+        last_name = name_parts[0]
+        remaining_parts = " ".join(name_parts[1:]).strip()
+
+        if self._should_parse_as_initials(remaining_parts):
+            first_name, patronymic = self._parse_initials(remaining_parts)
         else:
-            first_name = clean_name
-            last_name = clean_name
-            patronymic = ""
+            first_name = name_parts[1]
+            patronymic = name_parts[2] if len(name_parts) > 2 else ""
 
-        instructor = DeduplicatedInstructor(
+        return DeduplicatedInstructor(
             first_name=first_name,
             last_name=last_name,
             patronymic=patronymic,
@@ -175,14 +173,26 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
             academic_title=None,
         )
 
-        return instructor
+    def _should_parse_as_initials(self, remaining_parts: str) -> bool:
+        return (len(remaining_parts) <= 6 and
+                re.match(r"^[\w\.\s]+$", remaining_parts, re.UNICODE))
+
+    def _parse_initials(self, remaining_parts: str) -> tuple[str, str]:
+        initials = re.sub(r"[\.\s]", "", remaining_parts)
+
+        if len(initials) >= 2:
+            return initials[0], initials[1]
+        elif len(initials) == 1:
+            return initials[0], ""
+        else:
+            return re.sub(r"\.$", "", remaining_parts), ""
 
     def _parse_academic_degree(self, teacher_str: str) -> AcademicDegree | None:
         if "д.і.н." in teacher_str or "к.і.н." in teacher_str:
             return AcademicDegree.PHD
         return None
 
-    def _determine_role(self, teacher_str: str, data: ParsedCourseDetails) -> InstructorRole:
+    def _determine_role(self, teacher_str: str) -> InstructorRole:
         return InstructorRole.LECTURE_INSTRUCTOR
 
 
@@ -203,7 +213,7 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
             if student:
                 enrollment = DeduplicatedEnrollment(
                     student=student,
-                    status=self._determine_enrollment_status(student_row),
+                    status=self._determine_enrollment_status(),
                 )
                 enrollments.append(enrollment)
 
@@ -255,7 +265,7 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
 
         return student
 
-    def _determine_enrollment_status(self, student_row: Any) -> EnrollmentStatus:
+    def _determine_enrollment_status(self) -> EnrollmentStatus:
         return EnrollmentStatus.ENROLLED
 
 

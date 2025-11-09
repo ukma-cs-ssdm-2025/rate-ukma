@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import structlog
 
@@ -9,9 +8,6 @@ from ...browser import JSONLWriter
 from .base import ProcessingChain
 from .grouper import CourseGrouper
 from .loader import CourseLoader
-
-if TYPE_CHECKING:
-    pass
 
 logger = structlog.get_logger(__name__)
 

@@ -10,6 +10,23 @@ from scraper.services.deduplication.grouper import CourseGrouper
 from scraper.services.deduplication.grouping_service import CourseGroupingService
 from scraper.services.deduplication.loader import CourseLoader
 
+COURSE_URL = "https://my.ukma.edu.ua/course/550001"
+COURSE_URL_2 = "https://my.ukma.edu.ua/course/550002"
+COURSE_TITLE = "Веб-розробка: основи та практики"
+COURSE_STATUS = "Курс відбувся"
+FACULTY_NAME = "Факультет інформатики"
+DEPARTMENT_NAME = "Кафедра програмної інженерії"
+EDUCATION_LEVEL = "Бакалавр"
+ACADEMIC_YEAR = "2025–2026"
+SEMESTER = "семестр 3"
+TEACHER_NAME = "Петренко І.П., д.т.н."
+SPECIALTY_NAME = "Програмна інженерія"
+SPECIALTY_TYPE = "Професійно-орієнтована"
+COURSE_ANNOTATION = "Основні концепції веб-розробки, HTML, CSS, JavaScript та сучасні фреймворки."
+STUDENT_NAME_1 = "Петренко Олександр Петрович"
+STUDENT_NAME_2 = "Коваленко Марія Сергіївна"
+STUDENT_NAME_3 = "Шевченко Андрій Володимирович"
+
 
 def create_temp_jsonl_file(course_list: list) -> Path:
     with tempfile.NamedTemporaryFile(
@@ -21,22 +38,22 @@ def create_temp_jsonl_file(course_list: list) -> Path:
 
 
 BASE_COURSE_DICT = {
-    "url": "https://my.ukma.edu.ua/course/550001",
-    "title": "Веб-розробка: основи та практики",
+    "url": COURSE_URL,
+    "title": COURSE_TITLE,
     "id": "550001",
     "credits": 4.0,
     "hours": 120,
     "year": 3,
     "format": "2015",
-    "status": "Курс відбувся",
-    "faculty": "Факультет інформатики",
-    "department": "Кафедра програмної інженерії",
-    "education_level": "Бакалавр",
-    "academic_year": "2025–2026",
-    "semesters": ["семестр 3"],
-    "teachers": "Петренко І.П., д.т.н.",
-    "annotation": "Основні концепції веб-розробки, HTML, CSS,JavaScript та сучасні фреймворки.",
-    "specialties": [{"specialty": "Програмна інженерія", "type": "Професійно-орієнтована"}],
+    "status": COURSE_STATUS,
+    "faculty": FACULTY_NAME,
+    "department": DEPARTMENT_NAME,
+    "education_level": EDUCATION_LEVEL,
+    "academic_year": ACADEMIC_YEAR,
+    "semesters": [SEMESTER],
+    "teachers": TEACHER_NAME,
+    "annotation": COURSE_ANNOTATION,
+    "specialties": [{"specialty": SPECIALTY_NAME, "type": SPECIALTY_TYPE}],
     "limits": {
         "max_students": 30,
         "max_groups": 3,
@@ -46,22 +63,22 @@ BASE_COURSE_DICT = {
 }
 
 BASE_COURSE_2_DICT = {
-    "url": "https://my.ukma.edu.ua/course/550002",
+    "url": COURSE_URL_2,
     "title": "Структури даних та алгоритми",
     "id": "550002",
     "credits": 3.0,
     "hours": 90,
     "year": 3,
     "format": "2015",
-    "status": "Курс відбувся",
-    "faculty": "Факультет інформатики",
+    "status": COURSE_STATUS,
+    "faculty": FACULTY_NAME,
     "department": "Кафедра теоретичної інформатики",
-    "education_level": "Бакалавр",
-    "academic_year": "2025–2026",
-    "semesters": ["семестр 3"],
+    "education_level": EDUCATION_LEVEL,
+    "academic_year": ACADEMIC_YEAR,
+    "semesters": [SEMESTER],
     "teachers": "Ковальчук С.М., к.ф.-м.н.",
     "annotation": "Вивчення основних структур даних та алгоритмів, аналіз їх ефективності.",
-    "specialties": [{"specialty": "Інформатика", "type": "Професійно-орієнтована"}],
+    "specialties": [{"specialty": "Інформатика", "type": SPECIALTY_TYPE}],
     "limits": {
         "max_students": 25,
         "max_groups": 2,
@@ -74,24 +91,23 @@ BASE_COURSE_2_DICT = {
 @pytest.fixture
 def sample_course_data_dict():
     return {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Веб-розробка: основи та практики",
+        "url": COURSE_URL,
+        "title": COURSE_TITLE,
         "id": "550001",
         "credits": 4.0,
         "hours": 120,
         "year": 3,
         "format": "2015",
-        "status": "Курс відбувся",
-        "faculty": "Факультет інформатики",
-        "department": "Кафедра програмної інженерії",
-        "education_level": "Бакалавр",
-        "academic_year": "2025–2026",
-        "semesters": ["семестр 3"],
+        "status": COURSE_STATUS,
+        "faculty": FACULTY_NAME,
+        "department": DEPARTMENT_NAME,
+        "education_level": EDUCATION_LEVEL,
+        "academic_year": ACADEMIC_YEAR,
+        "semesters": [SEMESTER],
         "teachers": "Петренко І.П., д.т.н., Ковальчук С.М., к.ф.-м.н.",
-        "annotation": "Основні концепції веб-розробки, HTML, CSS,\
-              JavaScript та сучасні фреймворки.",
+        "annotation": COURSE_ANNOTATION,
         "specialties": [
-            {"specialty": "Програмна інженерія", "type": "Бакалавр"},
+            {"specialty": SPECIALTY_NAME, "type": EDUCATION_LEVEL},
             {"specialty": "Інформатика", "type": "Магістр"},
         ],
         "limits": {
@@ -101,9 +117,9 @@ def sample_course_data_dict():
             "group_size_max": 15,
         },
         "students": [
-            {"index": "1", "name": "Петренко Олександр Петрович"},
-            {"index": "2", "name": "Коваленко Марія Сергіївна"},
-            {"index": "3", "name": "Шевченко Андрій Володимирович"},
+            {"index": "1", "name": STUDENT_NAME_1},
+            {"index": "2", "name": STUDENT_NAME_2},
+            {"index": "3", "name": STUDENT_NAME_3},
         ],
     }
 
@@ -111,23 +127,22 @@ def sample_course_data_dict():
 @pytest.fixture
 def sample_course():
     data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
+        "url": COURSE_URL,
         "title": "Test Course",
         "id": "550001",
         "credits": 4.0,
         "hours": 120,
         "year": 3,
         "format": "2015",
-        "status": "Курс відбувся",
-        "faculty": "Факультет інформатики",
-        "department": "Кафедра програмної інженерії",
-        "education_level": "Бакалавр",
-        "academic_year": "2025–2026",
-        "semesters": ["семестр 3"],
-        "teachers": "Петренко І.П., д.т.н.",
-        "annotation": "Основні концепції веб-розробки, HTML, CSS,\
-              JavaScript та сучасні фреймворки.",
-        "specialties": [{"specialty": "Програмна інженерія", "type": "Бакалавр"}],
+        "status": COURSE_STATUS,
+        "faculty": FACULTY_NAME,
+        "department": DEPARTMENT_NAME,
+        "education_level": EDUCATION_LEVEL,
+        "academic_year": ACADEMIC_YEAR,
+        "semesters": [SEMESTER],
+        "teachers": TEACHER_NAME,
+        "annotation": COURSE_ANNOTATION,
+        "specialties": [{"specialty": SPECIALTY_NAME, "type": EDUCATION_LEVEL}],
         "limits": {
             "max_students": 30,
             "max_groups": 3,
@@ -135,8 +150,8 @@ def sample_course():
             "group_size_max": 15,
         },
         "students": [
-            {"index": "1", "name": "Петренко Олександр Петрович"},
-            {"index": "2", "name": "Коваленко Марія Сергіївна"},
+            {"index": "1", "name": STUDENT_NAME_1},
+            {"index": "2", "name": STUDENT_NAME_2},
         ],
     }
     return ParsedCourseDetails(**data)
@@ -145,23 +160,22 @@ def sample_course():
 @pytest.fixture
 def duplicate_course_variants():
     base_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Веб-розробка: основи та практики",
+        "url": COURSE_URL,
+        "title": COURSE_TITLE,
         "id": "550001",
         "credits": 4.0,
         "hours": 120,
         "year": 3,
         "format": "2015",
-        "status": "Курс відбувся",
-        "faculty": "Факультет інформатики",
-        "department": "Кафедра програмної інженерії",
-        "education_level": "Бакалавр",
-        "academic_year": "2025–2026",
-        "semesters": ["семестр 3"],
-        "teachers": "Петренко І.П., д.т.н.",
-        "annotation": "Основні концепції веб-розробки, HTML, CSS,\
-              JavaScript та сучасні фреймворки.",
-        "specialties": [{"specialty": "Програмна інженерія", "type": "Професійно-орієнтована"}],
+        "status": COURSE_STATUS,
+        "faculty": FACULTY_NAME,
+        "department": DEPARTMENT_NAME,
+        "education_level": EDUCATION_LEVEL,
+        "academic_year": ACADEMIC_YEAR,
+        "semesters": [SEMESTER],
+        "teachers": TEACHER_NAME,
+        "annotation": COURSE_ANNOTATION,
+        "specialties": [{"specialty": SPECIALTY_NAME, "type": SPECIALTY_TYPE}],
         "limits": {
             "max_students": 30,
             "max_groups": 3,
@@ -172,13 +186,13 @@ def duplicate_course_variants():
 
     course1 = base_data.copy()
     course1["students"] = [
-        {"index": "1", "name": "Петренко Олександр Петрович"},
-        {"index": "2", "name": "Коваленко Марія Сергіївна"},
+        {"index": "1", "name": STUDENT_NAME_1},
+        {"index": "2", "name": STUDENT_NAME_2},
     ]
 
     course2 = base_data.copy()
     course2["students"] = [
-        {"index": "3", "name": "Шевченко Андрій Володимирович"},
+        {"index": "3", "name": STUDENT_NAME_3},
         {"index": "4", "name": "Криворучка Максим Олександрович"},
     ]
 
@@ -200,9 +214,9 @@ def duplicate_course_variants():
 def temp_input_file():
     course1 = BASE_COURSE_DICT.copy()
     course1["students"] = [
-        {"index": "1", "name": "Петренко Олександр Петрович"},
-        {"index": "2", "name": "Коваленко Марія Сергіївна"},
-        {"index": "3", "name": "Шевченко Андрій Володимирович"},
+        {"index": "1", "name": STUDENT_NAME_1},
+        {"index": "2", "name": STUDENT_NAME_2},
+        {"index": "3", "name": STUDENT_NAME_3},
     ]
 
     course2 = BASE_COURSE_2_DICT.copy()
@@ -219,13 +233,13 @@ def temp_input_file():
 def temp_input_file_with_duplicates():
     course1 = BASE_COURSE_DICT.copy()
     course1["students"] = [
-        {"index": "1", "name": "Петренко Олександр Петрович"},
-        {"index": "2", "name": "Коваленко Марія Сергіївна"},
+        {"index": "1", "name": STUDENT_NAME_1},
+        {"index": "2", "name": STUDENT_NAME_2},
     ]
 
     course2 = BASE_COURSE_DICT.copy()
     course2["students"] = [
-        {"index": "3", "name": "Шевченко Андрій Володимирович"},
+        {"index": "3", "name": STUDENT_NAME_3},
         {"index": "4", "name": "Криворучка Максим Олександрович"},
     ]
 
@@ -245,10 +259,10 @@ def temp_invalid_json_file():
 @pytest.fixture
 def temp_missing_id_file():
     course_data_missing_id = {
-        "url": "https://my.ukma.edu.ua/course/550001",
+        "url": COURSE_URL,
         "title": "Test Course",
-        "academic_year": "2025–2026",
-        "semesters": ["семестр 3"],
+        "academic_year": ACADEMIC_YEAR,
+        "semesters": [SEMESTER],
     }
     return create_temp_jsonl_file([course_data_missing_id])
 

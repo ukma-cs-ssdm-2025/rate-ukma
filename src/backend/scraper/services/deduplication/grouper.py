@@ -92,25 +92,25 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         filtered_out_count = 0
 
         for course in all_courses:
-            credits = course.credits
-            hours = course.hours
+            course_credits = course.credits
+            course_hours = course.hours
 
-            if credits is not None and credits <= 0:
+            if course_credits is not None and course_credits <= 0:
                 logger.debug(
                     "filtering_course_zero_credits",
                     course_id=course.id,
                     course_title=course.title,
-                    credits=credits,
+                    credits=course_credits,
                 )
                 filtered_out_count += 1
                 continue
 
-            if hours is not None and hours <= 0:
+            if course_hours is not None and course_hours <= 0:
                 logger.debug(
                     "filtering_course_zero_hours",
                     course_id=course.id,
                     course_title=course.title,
-                    hours=hours,
+                    hours=course_hours,
                 )
                 filtered_out_count += 1
                 continue

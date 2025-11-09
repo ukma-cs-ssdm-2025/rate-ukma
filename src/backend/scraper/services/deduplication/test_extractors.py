@@ -657,7 +657,6 @@ def test_semester_extractor_new_format_multiple_semesters():
     # Assert
     assert len(result) == 3
     terms = [semester.term.value for semester in result]
-    # years = [semester.year for semester in result]
 
     assert "FALL" in terms
     assert "SPRING" in terms
@@ -688,7 +687,6 @@ def test_semester_extractor_new_format_higher_numbers():
     # Assert
     assert len(result) == 3
     terms = [semester.term.value for semester in result]
-    # years = [semester.year for semester in result]
 
     assert "FALL" in terms
     assert "SPRING" in terms
