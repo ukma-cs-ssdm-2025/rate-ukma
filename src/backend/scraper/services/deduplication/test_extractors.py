@@ -14,22 +14,26 @@ from scraper.services.deduplication.extractors import (
     StudentExtractor,
 )
 
+BASE_TEST_COURSE = {
+    "url": "https://my.ukma.edu.ua/course/550001",
+    "title": "Test Course",
+    "id": "550001",
+    "academic_year": "2025–2026",
+    "semesters": ["Семестр 1"],
+    "credits": None,
+    "hours": None,
+    "year": None,
+    "specialties": [],
+    "students": [],
+}
+
 
 def test_semester_extractor_missing_academic_year():
     # Arrange
     extractor = SemesterExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "",
-        "semesters": ["Семестр 5"],
-        "credits": None,
-        "hours": None,
-        "year": None,
-        "specialties": [],
-        "students": [],
-    }
+    course_data = BASE_TEST_COURSE.copy()
+    course_data["academic_year"] = ""
+    course_data["semesters"] = ["Семестр 5"]
 
     course = ParsedCourseDetails(**course_data)
 
@@ -41,18 +45,8 @@ def test_semester_extractor_missing_academic_year():
 def test_semester_extractor_missing_semesters():
     # Arrange
     extractor = SemesterExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "2025–2026",
-        "semesters": [],
-        "credits": None,
-        "hours": None,
-        "year": None,
-        "specialties": [],
-        "students": [],
-    }
+    course_data = BASE_TEST_COURSE.copy()
+    course_data["semesters"] = []
 
     course = ParsedCourseDetails(**course_data)
 
@@ -66,41 +60,14 @@ def test_semester_extractor_missing_semesters():
 def test_semester_extractor_invalid_year():
     # Arrange
     extractor = SemesterExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "invalid-year",
-        "semesters": ["Семестр 3"],
-    }
+    course_data = BASE_TEST_COURSE.copy()
+    course_data["academic_year"] = "invalid-year"
+    course_data["semesters"] = ["Семестр 3"]
 
     course = ParsedCourseDetails(**course_data)
 
     # Act & Assert
     with pytest.raises(DataValidationError, match="Academic year must contain exactly 2 years"):
-        extractor.extract(course)
-
-
-def test_semester_extractor_raises_error_when_academic_year_is_empty():
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "",
-        "semesters": ["Семестр 1"],
-        "credits": None,
-        "hours": None,
-        "year": None,
-        "specialties": [],
-        "students": [],
-    }
-
-    course = ParsedCourseDetails(**course_data)
-
-    extractor = SemesterExtractor()
-
-    # Act & Assert
-    with pytest.raises(DataValidationError, match="Course 550001 missing required academic_year"):
         extractor.extract(course)
 
 
@@ -135,14 +102,8 @@ def test_instructor_extractor_success(sample_course):
 def test_instructor_extractor_empty_teachers():
     # Arrange
     extractor = InstructorExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "2025–2026",
-        "semesters": ["Семестр 1"],
-        "teachers": "",
-    }
+    course_data = BASE_TEST_COURSE.copy()
+    course_data["teachers"] = ""
     course = ParsedCourseDetails(**course_data)
 
     # Act
@@ -155,14 +116,8 @@ def test_instructor_extractor_empty_teachers():
 def test_instructor_extractor_with_initials():
     # Arrange
     extractor = InstructorExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "2025–2026",
-        "semesters": ["Семестр 1"],
-        "teachers": "Ростовська Т.В.",
-    }
+    course_data = BASE_TEST_COURSE.copy()
+    course_data["teachers"] = "Ростовська Т.В."
     course = ParsedCourseDetails(**course_data)
 
     # Act
@@ -179,14 +134,8 @@ def test_instructor_extractor_with_initials():
 def test_instructor_extractor_with_initials_no_dots():
     # Arrange
     extractor = InstructorExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "2025–2026",
-        "semesters": ["Семестр 1"],
-        "teachers": "Петров А Б",
-    }
+    course_data = BASE_TEST_COURSE.copy()
+    course_data["teachers"] = "Петров А Б"
     course = ParsedCourseDetails(**course_data)
 
     # Act
@@ -349,14 +298,8 @@ def test_description_extractor_missing_annotation():
 def test_education_level_extractor_missing_level():
     # Arrange
     extractor = EducationLevelExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "2025–2026",
-        "semesters": ["Семестр 1"],
-        "education_level": None,
-    }
+    course_data = BASE_TEST_COURSE.copy()
+    course_data["education_level"] = None
     course = ParsedCourseDetails(**course_data)
 
     # Act & Assert
@@ -367,14 +310,8 @@ def test_education_level_extractor_missing_level():
 def test_education_level_extractor_unrecognized_level():
     # Arrange
     extractor = EducationLevelExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "2025–2026",
-        "semesters": ["Семестр 1"],
-        "education_level": "Невідомий рівень",
-    }
+    course_data = BASE_TEST_COURSE.copy()
+    course_data["education_level"] = "Невідомий рівень"
     course = ParsedCourseDetails(**course_data)
 
     # Act & Assert

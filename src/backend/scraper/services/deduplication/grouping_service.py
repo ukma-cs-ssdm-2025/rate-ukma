@@ -38,6 +38,6 @@ class CourseGroupingService:
             raise
 
     def _save_grouped(self, courses: list[DeduplicatedCourse], output_path: Path) -> None:
-        writer = JSONLWriter(output_path)
-        for course in courses:
-            writer.write(course.model_dump_json_compat())
+        with JSONLWriter(output_path) as writer:
+            for course in courses:
+                writer.write(course.model_dump_json_compat())

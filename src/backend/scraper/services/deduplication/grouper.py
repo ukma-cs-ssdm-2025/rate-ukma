@@ -48,7 +48,7 @@ def _normalize_specialty_for_grouping(specialties) -> str:
             else:
                 specialty_parts.append(normalized_name)
 
-    return " | ".join(specialty_parts)
+    return " | ".join(sorted(specialty_parts))
 
 
 def get_course_grouping_key(course: ParsedCourseDetails) -> tuple[str, str, str]:
