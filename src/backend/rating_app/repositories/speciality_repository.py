@@ -31,4 +31,5 @@ class SpecialityRepository(IRepository[Speciality]):
         speciality.delete()
 
     def filter(self, *args: Any, **kwargs: Any) -> list[Speciality]:
-        raise NotImplementedError("filter method is not implemented")
+        #! TODO: not implemented
+        return self.get_all()

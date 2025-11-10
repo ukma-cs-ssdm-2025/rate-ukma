@@ -58,4 +58,5 @@ class StudentRepository(IRepository[Student]):
         pass
 
     def filter(self, *args: Any, **kwargs: Any) -> list[Student]:
-        raise NotImplementedError("filter method is not implemented")
+        #! TODO: not implemented
+        return self.get_all()

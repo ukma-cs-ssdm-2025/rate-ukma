@@ -45,4 +45,5 @@ class InstructorRepository(IRepository[Instructor]):
         instructor.delete()
 
     def filter(self, *args: Any, **kwargs: Any) -> list[Instructor]:
-        raise NotImplementedError("filter method is not implemented")
+        #! TODO: not implemented
+        return self.get_all()

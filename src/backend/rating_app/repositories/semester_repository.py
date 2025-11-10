@@ -27,4 +27,5 @@ class SemesterRepository(IRepository[Semester]):
         semester.delete()
 
     def filter(self, *args: Any, **kwargs: Any) -> list[Semester]:
-        raise NotImplementedError("filter method is not implemented")
+        #! TODO: not implemented
+        return self.get_all()

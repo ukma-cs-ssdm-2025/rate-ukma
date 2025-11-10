@@ -12,7 +12,8 @@ class DepartmentRepository(IRepository[Department]):
         return Department.objects.select_related("faculty").get(id=department_id)
 
     def filter(self, *args: Any, **kwargs: Any) -> list[Department]:
-        raise NotImplementedError("filter method is not implemented")
+        #! TODO: not implemented
+        return self.get_all()
 
     def get_or_create(self, *, name: str, faculty: Faculty) -> tuple[Department, bool]:
         return Department.objects.get_or_create(name=name, faculty=faculty)

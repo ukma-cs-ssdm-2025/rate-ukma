@@ -58,7 +58,9 @@ class CourseOfferingRepository(IRepository[CourseOffering]):
         offering.delete()
 
     def get_or_create(self, *args: Any, **kwargs: Any) -> tuple[CourseOffering, bool]:
-        raise NotImplementedError("get_or_create method is not implemented")
+        #! TODO: not implemented
+        return self.get_or_upsert(*args, **kwargs)
 
     def filter(self, *args: Any, **kwargs: Any) -> list[CourseOffering]:
-        raise NotImplementedError("filter method is not implemented")
+        #! TODO: not implemented
+        return self.get_all()
