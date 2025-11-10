@@ -68,7 +68,8 @@ class RatingRepository:
             raise DuplicateRatingException() from err
 
     def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> Rating:
-        update_data_map = update_data.model_dump(exclude_none=True)
+        allow_unset = isinstance(update_data, RatingPatchParams)
+        update_data_map = update_data.model_dump(exclude_unset=allow_unset)
         for attr, value in update_data_map.items():
             setattr(rating, attr, value)
 
