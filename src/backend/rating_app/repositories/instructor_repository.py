@@ -1,8 +1,11 @@
+from typing import Any
+
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.models import Instructor
+from rating_app.repositories.protocol import IRepository
 
 
-class InstructorRepository:
+class InstructorRepository(IRepository[Instructor]):
     def get_all(self) -> list[Instructor]:
         return list(Instructor.objects.all())
 
@@ -40,3 +43,6 @@ class InstructorRepository:
 
     def delete(self, instructor: Instructor) -> None:
         instructor.delete()
+
+    def filter(self, *args: Any, **kwargs: Any) -> list[Instructor]:
+        raise NotImplementedError("filter method is not implemented")

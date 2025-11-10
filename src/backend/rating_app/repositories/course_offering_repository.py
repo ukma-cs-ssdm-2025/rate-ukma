@@ -1,7 +1,10 @@
+from typing import Any
+
 from rating_app.models import Course, CourseOffering, Semester
+from rating_app.repositories.protocol import IRepository
 
 
-class CourseOfferingRepository:
+class CourseOfferingRepository(IRepository[CourseOffering]):
     def get_all(self) -> list[CourseOffering]:
         return list(CourseOffering.objects.select_related("course", "semester").all())
 
@@ -53,3 +56,9 @@ class CourseOfferingRepository:
 
     def delete(self, offering: CourseOffering) -> None:
         offering.delete()
+
+    def get_or_create(self, *args: Any, **kwargs: Any) -> tuple[CourseOffering, bool]:
+        raise NotImplementedError("get_or_create method is not implemented")
+
+    def filter(self, *args: Any, **kwargs: Any) -> list[CourseOffering]:
+        raise NotImplementedError("filter method is not implemented")

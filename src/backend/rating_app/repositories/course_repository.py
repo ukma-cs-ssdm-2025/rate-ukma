@@ -13,11 +13,12 @@ from rating_app.exception.course_exceptions import (
 )
 from rating_app.models import Course, Department
 from rating_app.models.choices import CourseStatus
+from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
 
 
-class CourseRepository:
+class CourseRepository(IRepository[Course]):
     def get_all(self) -> list[Course]:
         return list(Course.objects.all())
 

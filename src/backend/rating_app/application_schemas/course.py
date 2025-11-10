@@ -17,7 +17,7 @@ from ..models.course import ICourse
 from .pagination import PaginationMetadata
 from .validators import validate_uuid_string
 
-type AvgOrder = Literal["asc", "desc"]
+AvgOrder = Literal["asc", "desc"]
 
 
 # needs external validation

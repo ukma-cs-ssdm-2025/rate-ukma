@@ -1,18 +1,14 @@
-from typing import Any, Generic, Protocol, TypeVar
+from typing import Any, Protocol, TypeVar
 
 from django.db.models import Model
 
 T = TypeVar("T", bound=Model)
 
-# TODO: implement - currently a facade draft
 
-
-class IRepository(Protocol, Generic[T]):
+class IRepository(Protocol[T]):
     def get_all(self) -> list[T]: ...
 
     def get_by_id(self, id: str) -> T: ...
-
-    def get_by_field(self, field_name: str, value: Any) -> T: ...
 
     def filter(self, *args: Any, **kwargs: Any) -> list[T]: ...
 

@@ -1,7 +1,10 @@
+from typing import Any
+
 from rating_app.models import Faculty
+from rating_app.repositories.protocol import IRepository
 
 
-class FacultyRepository:
+class FacultyRepository(IRepository[Faculty]):
     def get_all(self) -> list[Faculty]:
         return list(Faculty.objects.all())
 
@@ -25,3 +28,6 @@ class FacultyRepository:
 
     def delete(self, faculty: Faculty) -> None:
         faculty.delete()
+
+    def filter(self, *args: Any, **kwargs: Any) -> list[Faculty]:
+        raise NotImplementedError("filter method is not implemented")

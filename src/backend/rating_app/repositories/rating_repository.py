@@ -11,11 +11,21 @@ from rating_app.application_schemas.rating import (
 )
 from rating_app.exception.rating_exceptions import DuplicateRatingException, RatingNotFoundError
 from rating_app.models import Rating
+from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
 
 
-class RatingRepository:
+class RatingRepository(IRepository[Rating]):
+    def get_all(self) -> list[Rating]:
+        return list(
+            Rating.objects.select_related(
+                "course_offering__course",
+                "course_offering__semester",
+                "student",
+            ).all()
+        )
+
     def get_by_id(self, rating_id: str) -> Rating:
         try:
             return Rating.objects.select_related(
@@ -25,6 +35,18 @@ class RatingRepository:
             ).get(pk=rating_id)
         except Rating.DoesNotExist as err:
             raise RatingNotFoundError() from err
+
+    def get_or_create(self, create_params: RatingCreateParams) -> tuple[Rating, bool]:
+        return Rating.objects.get_or_create(
+            student_id=str(create_params.student),
+            course_offering_id=str(create_params.course_offering),
+            defaults={
+                "difficulty": create_params.difficulty,
+                "usefulness": create_params.usefulness,
+                "comment": create_params.comment,
+                "is_anonymous": create_params.is_anonymous,
+            },
+        )
 
     def exists(self, student_id: str, course_offering_id: str) -> bool:
         return Rating.objects.filter(
