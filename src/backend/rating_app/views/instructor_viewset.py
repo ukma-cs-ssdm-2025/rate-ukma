@@ -1,14 +1,14 @@
-import uuid
-
 from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
 
-from rating_app.exception.instructor_exceptions import InstructorNotFoundError
+from rating_app.application_schemas.instructor import InstructorReadParams
 from rating_app.serializers import InstructorSerializer
 from rating_app.services import InstructorService
 from rating_app.views.api_spec.instructor import INSTRUCTOR_DETAIL_PATH_PARAMS
+from rating_app.views.rating_viewset import ModelValidationError
 
 from .responses import R_INSTRUCTOR
 
@@ -27,18 +27,11 @@ class InstructorViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, instructor_id):
         assert self.instructor_service is not None
 
-        if instructor_id is None:
-            return Response({"detail": "Instructor ID is required."}, status=400)
-
-        # TODO:UUID validation is the same in all entities retrieval views
         try:
-            uuid.UUID(instructor_id)
-        except ValueError:
-            return Response({"detail": "Invalid UUID."}, status=400)
+            params = InstructorReadParams.model_validate({"instructor_id": instructor_id})
+        except ModelValidationError as e:
+            raise ValidationError(detail=e.errors()) from e
 
-        try:
-            instructor = self.instructor_service.get_instructor_by_id(instructor_id)
-        except InstructorNotFoundError:
-            return Response(status=404)
+        instructor = self.instructor_service.get_instructor_by_id(params.instructor_id)
 
         return Response(self.get_serializer(instructor).data)

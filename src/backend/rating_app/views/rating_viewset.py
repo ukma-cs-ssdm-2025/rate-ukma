@@ -1,6 +1,5 @@
 from rest_framework import status, viewsets
-from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.fields import uuid
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 import structlog
@@ -12,15 +11,7 @@ from rating_app.application_schemas.rating import (
     RatingFilterCriteria,
     RatingPatchParams,
     RatingPutParams,
-)
-from rating_app.exception.course_exceptions import (
-    InvalidCourseIdentifierError,
-)
-from rating_app.exception.rating_exceptions import (
-    DuplicateRatingException,
-    InvalidRatingIdentifierError,
-    NotEnrolledException,
-    RatingNotFoundError,
+    RatingReadParams,
 )
 from rating_app.models import Rating, Student
 from rating_app.serializers import (
@@ -58,9 +49,6 @@ class RatingViewSet(viewsets.ViewSet):
     def list(self, request, course_id=None):
         assert self.rating_service is not None
 
-        if course_id is None:
-            raise InvalidCourseIdentifierError("Course id is required")
-
         try:
             filter_data = {**request.query_params.dict(), "course_id": course_id}
             filters = RatingFilterCriteria.model_validate(filter_data)
@@ -68,13 +56,13 @@ class RatingViewSet(viewsets.ViewSet):
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
-        ratings = self.rating_service.filter_ratings(filters)  # type: ignore
+        ratings = self.rating_service.filter_ratings(filters)
 
         payload = RatingListResponseSerializer(
             {
-                "items": ratings.items,  # type: ignore
-                "filters": ratings.applied_filters,  # type: ignore
-                **ratings.pagination.model_dump(),  # type: ignore
+                "items": ratings.items,
+                "filters": ratings.applied_filters,
+                **ratings.pagination.model_dump(),
             },
         )
 
@@ -100,31 +88,9 @@ class RatingViewSet(viewsets.ViewSet):
                 {**request.data, "student": student.id}
             )
         except ModelValidationError as e:
-            logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
-        try:
-            rating = self.rating_service.create_rating(rating_params)
-        except DuplicateRatingException as exc:
-            logger.warning(
-                "duplicate_rating_attempt",
-                student_id=str(student.id),
-                course_offering_id=str(rating_params.course_offering),
-            )
-            return Response(
-                {"detail": str(exc.detail)},
-                status=status.HTTP_409_CONFLICT,
-            )
-        except NotEnrolledException as exc:
-            logger.warning(
-                "not_enrolled_rating_attempt",
-                student_id=str(student.id),
-                course_offering_id=str(rating_params.course_offering),
-            )
-            return Response(
-                {"detail": str(exc.detail)},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        rating = self.rating_service.create_rating(rating_params)
 
         logger.info(
             "rating_created",
@@ -143,18 +109,12 @@ class RatingViewSet(viewsets.ViewSet):
     def retrieve(self, request, rating_id: str | None = None, *args, **kwargs):
         assert self.rating_service is not None
 
-        if rating_id is None:
-            raise InvalidRatingIdentifierError("Rating id is required")
-
         try:
-            uuid.UUID(rating_id)
-        except ValueError as e:
-            raise InvalidRatingIdentifierError("Invalid rating identifier") from e
+            params = RatingReadParams.model_validate({"rating_id": rating_id})
+        except ModelValidationError as e:
+            raise ValidationError(detail=e.errors()) from e
 
-        try:
-            rating = self.rating_service.get_rating(rating_id)
-        except RatingNotFoundError as exc:
-            raise NotFound(detail=str(exc)) from exc
+        rating = self.rating_service.get_rating(params.rating_id)
 
         serializer = RatingReadSerializer(rating)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -172,7 +132,6 @@ class RatingViewSet(viewsets.ViewSet):
         try:
             update_params = RatingPutParams.model_validate(request.data)
         except ModelValidationError as e:
-            logger.error("validation_error", errors=e.errors(), rating_id=rating.id)
             raise ValidationError(detail=e.errors()) from e
 
         rating = self.rating_service.update_rating(rating, update_params)
@@ -194,12 +153,10 @@ class RatingViewSet(viewsets.ViewSet):
         try:
             update_params = RatingPatchParams.model_validate(request.data)
         except ModelValidationError as e:
-            logger.error("validation_error", errors=e.errors(), rating_id=rating.id)
             raise ValidationError(detail=e.errors()) from e
 
         rating = self.rating_service.update_rating(rating, update_params)
 
-        logger.info("rating_partially_updated", rating_id=rating.id)
         response_serializer = RatingReadSerializer(rating)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -213,9 +170,4 @@ class RatingViewSet(viewsets.ViewSet):
         assert self.rating_service is not None
 
         self.rating_service.delete_rating(rating.id)
-        logger.info(
-            "rating_deleted",
-            rating_id=rating.id,
-            student_id=str(student.id),
-        )
         return Response(status=status.HTTP_204_NO_CONTENT)

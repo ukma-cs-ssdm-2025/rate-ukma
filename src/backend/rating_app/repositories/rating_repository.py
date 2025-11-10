@@ -88,3 +88,8 @@ class RatingRepository:
 
     def delete(self, rating: Rating) -> None:
         rating.delete()
+        logger.info(
+            "rating_deleted",
+            rating_id=rating.id,
+            student_id=str(rating.student.id),  # type: ignore
+        )

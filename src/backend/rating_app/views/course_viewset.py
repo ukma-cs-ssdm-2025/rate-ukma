@@ -1,16 +1,16 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 import structlog
 from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError as ModelValidationError
 
-from rating_app.application_schemas.course import CourseFilterCriteria, CourseSearchResult
-from rating_app.exception.course_exceptions import (
-    CourseNotFoundError,
-    InvalidCourseIdentifierError,
+from rating_app.application_schemas.course import (
+    CourseFilterCriteria,
+    CourseReadParams,
+    CourseSearchResult,
 )
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
@@ -45,7 +45,6 @@ class CourseViewSet(viewsets.ViewSet):
         try:
             filters = CourseFilterCriteria.model_validate(request.query_params.dict())
         except ModelValidationError as e:
-            logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
         courses: CourseSearchResult = self.course_service.filter_courses(filters)
@@ -82,17 +81,13 @@ class CourseViewSet(viewsets.ViewSet):
     def retrieve(self, request, course_id=None, *args, **kwargs):
         assert self.course_service is not None
 
-        if course_id is None:
-            raise ValidationError({"course_id": "Course id is required"})
-
         try:
-            course = self.course_service.get_course(course_id)
-        except InvalidCourseIdentifierError as exc:
-            logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
-            raise ValidationError({"course_id": "Invalid course identifier"}) from exc
-        except CourseNotFoundError as exc:
-            logger.info("course_not_found", course_id=course_id)
-            raise NotFound(detail=str(exc)) from exc
+            params = CourseReadParams.model_validate({"course_id": course_id})
+        except ModelValidationError as e:
+            logger.error("validation_error", errors=e.errors())
+            raise ValidationError(detail=e.errors()) from e
+
+        course = self.course_service.get_course(params.course_id)
 
         serializer = CourseDetailSerializer(course)
         return Response(serializer.data, status=status.HTTP_200_OK)
