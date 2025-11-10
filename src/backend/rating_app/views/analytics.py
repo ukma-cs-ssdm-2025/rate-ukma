@@ -1,15 +1,15 @@
 from rest_framework import status, viewsets
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 import structlog
 from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError as ModelValidationError
 
-from rating_app.application_schemas.course import CourseFilterCriteria, CourseSearchResult
-from rating_app.exception.course_exceptions import (
-    CourseNotFoundError,
-    InvalidCourseIdentifierError,
+from rating_app.application_schemas.course import (
+    CourseFilterCriteria,
+    CourseReadParams,
+    CourseSearchResult,
 )
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
 from rating_app.services import CourseService
@@ -43,7 +43,6 @@ class AnalyticsViewSet(viewsets.ViewSet):
         try:
             filters = CourseFilterCriteria.model_validate(request.query_params.dict())
         except ModelValidationError as e:
-            logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
         payload: CourseSearchResult = self.course_service.filter_courses(filters, paginate=False)
@@ -61,19 +60,12 @@ class AnalyticsViewSet(viewsets.ViewSet):
     def retrieve(self, request, course_id=None, *args, **kwargs):
         assert self.course_service is not None
 
-        if course_id is None:
-            raise ValidationError({"course_id": "Course id is required"})
-
         try:
-            course = self.course_service.get_course(course_id)
+            params = CourseReadParams.model_validate({"course_id": course_id})
+        except ModelValidationError as e:
+            raise ValidationError(detail=e.errors()) from e
 
-        except InvalidCourseIdentifierError as e:
-            logger.error("invalid_course_identifier", course_id=course_id, error=str(e))
-            raise ValidationError({"course_id": "Invalid course identifier"}) from e
-
-        except CourseNotFoundError as e:
-            logger.error("course_not_found", course_id=course_id)
-            raise NotFound(detail=str(e)) from e
+        course = self.course_service.get_course(params.course_id)
 
         serialized = self.serializer_class(course).data
         return Response(serialized, status=status.HTTP_200_OK)

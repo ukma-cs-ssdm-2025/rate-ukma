@@ -1,8 +1,8 @@
 import uuid
 from dataclasses import dataclass
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic.alias_generators import to_camel
 
 from ..constants import (
@@ -15,10 +15,12 @@ from ..constants import (
 from ..models.choices import CourseTypeKind, SemesterTerm
 from ..models.course import ICourse
 from .pagination import PaginationMetadata
+from .validators import validate_uuid_string
 
-AvgOrder: TypeAlias = Literal["asc", "desc"]
+type AvgOrder = Literal["asc", "desc"]
 
 
+# needs external validation
 class CourseReadParams(BaseModel):
     model_config = {
         "alias_generator": to_camel,
@@ -27,15 +29,7 @@ class CourseReadParams(BaseModel):
 
     course_id: str = Field(description="ID of the course being read")
 
-    @field_validator("course_id", mode="before")
-    @classmethod
-    def normalize_course_id(cls, value):
-        try:
-            uuid.UUID(value)
-        except ValueError as e:
-            raise ValidationError("Invalid course id") from e
-
-        return value
+    validate_course_id = validate_uuid_string("course_id")
 
 
 # needs external validation

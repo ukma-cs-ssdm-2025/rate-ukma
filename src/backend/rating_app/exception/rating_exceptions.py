@@ -1,4 +1,5 @@
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework import status
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 
 class NotEnrolledException(PermissionDenied):
@@ -6,9 +7,10 @@ class NotEnrolledException(PermissionDenied):
     default_code = "not_enrolled"
 
 
-class DuplicateRatingException(PermissionDenied):
+class DuplicateRatingException(APIException):
     default_detail = "You have already rated this course offering"
     default_code = "duplicate_rating"
+    status_code = status.HTTP_409_CONFLICT
 
 
 class RatingNotFoundError(NotFound):

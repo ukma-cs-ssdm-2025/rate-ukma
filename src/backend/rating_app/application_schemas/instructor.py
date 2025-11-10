@@ -1,7 +1,7 @@
-import uuid
-
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field
 from pydantic.alias_generators import to_camel
+
+from .validators import validate_uuid_string
 
 
 class InstructorReadParams(BaseModel):
@@ -12,12 +12,4 @@ class InstructorReadParams(BaseModel):
 
     instructor_id: str = Field(description="ID of the instructor being read")
 
-    @field_validator("instructor_id", mode="before")
-    @classmethod
-    def normalize_instructor_id(cls, value):
-        try:
-            uuid.UUID(value)
-        except ValueError as e:
-            raise ValidationError("Invalid instructor id") from e
-
-        return value
+    validate_instructor_id = validate_uuid_string("instructor_id")

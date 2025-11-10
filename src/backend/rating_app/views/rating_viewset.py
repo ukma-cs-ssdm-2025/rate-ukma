@@ -81,6 +81,7 @@ class RatingViewSet(viewsets.ViewSet):
     @require_student
     def create(self, request, student: Student, course_id=None):
         assert self.rating_service is not None
+        # TODO: find a more consistent way to generate request body schema
         # course_id is not used, will be potentially removed after using a different endpoint
 
         try:

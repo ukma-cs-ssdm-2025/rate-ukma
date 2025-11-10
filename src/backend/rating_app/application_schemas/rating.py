@@ -2,13 +2,14 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field
 from pydantic.alias_generators import to_camel
 
 from rating_app.constants import MAX_RATING_VALUE, MIN_PAGE_NUMBER, MIN_PAGE_SIZE, MIN_RATING_VALUE
 from rating_app.models.rating import IRating
 
 from .pagination import PaginationMetadata
+from .validators import validate_uuid_string
 
 
 class RatingReadParams(BaseModel):
@@ -19,16 +20,7 @@ class RatingReadParams(BaseModel):
 
     rating_id: str = Field(description="ID of the rating being read")
 
-    # TODO: create a common UUID validator
-    @field_validator("rating_id", mode="before")
-    @classmethod
-    def normalize_rating_id(cls, value):
-        try:
-            uuid.UUID(value)
-        except ValueError as e:
-            raise ValidationError("Invalid rating id") from e
-
-        return value
+    validate_rating_id = validate_uuid_string("rating_id")
 
 
 # needs external validation
