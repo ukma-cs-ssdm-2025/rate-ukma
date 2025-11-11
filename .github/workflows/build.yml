@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   filter:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       backend_changed: ${{ steps.filter.outputs.backend }}
       webapp_changed: ${{ steps.filter.outputs.webapp }}
@@ -47,7 +47,7 @@ jobs:
   build-backend:
     needs: filter
     if: needs.filter.outputs.backend_changed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -86,7 +86,7 @@ jobs:
   build-webapp:
     needs: filter
     if: needs.filter.outputs.webapp_changed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v5

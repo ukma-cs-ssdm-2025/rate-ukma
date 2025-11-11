@@ -38,7 +38,7 @@ jobs:
 
   update_pre_releases:
     needs: deploy-live
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
@@ -111,7 +111,7 @@ jobs:
 
   push_live_tag:
     needs: update_pre_releases
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

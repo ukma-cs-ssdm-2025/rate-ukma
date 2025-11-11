@@ -20,7 +20,7 @@ env:
 jobs:
   frontend-security-audit:
     name: Frontend Security Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v5
@@ -73,7 +73,7 @@ jobs:
 
   backend-security-audit:
     name: Backend Security Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v5

@@ -30,7 +30,7 @@ jobs:
 
   release-needed:
     needs: [version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       release_needed: ${{ steps.check.outputs.release_needed }}
     env:
