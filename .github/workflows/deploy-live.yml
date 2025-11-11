@@ -29,8 +29,8 @@ jobs:
   deploy:
     uses: ./.github/workflows/deploy.yml
     with:
-      backend_image_tag: ${{ inputs.version_tag }}
-      webapp_image_tag: "live-${{ inputs.version_tag }}"
+      version_tag: ${{ inputs.version_tag }}
+      environment: live
       archive_name: "rate-ukma-live-${{ inputs.deployment_ref || github.sha }}.tar.gz"
       deployment_ref: ${{ inputs.deployment_ref }}
       test_url: ${{ vars.LIVE_URL }}
