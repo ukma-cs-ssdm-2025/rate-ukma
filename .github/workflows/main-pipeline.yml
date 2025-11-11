@@ -23,11 +23,14 @@ jobs:
     secrets: inherit
 
   build:
+    needs: [version]
     uses: ./.github/workflows/build.yml
+    with:
+      version_tag: ${{ needs.version.outputs.version_tag }}
 
   release-needed:
     needs: [version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       release_needed: ${{ steps.check.outputs.release_needed }}
     env:
@@ -54,6 +57,7 @@ jobs:
     uses: ./.github/workflows/deploy-staging.yml
     with:
       deployment_ref: ${{ github.sha }}
+      version_tag: ${{ needs.version.outputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}

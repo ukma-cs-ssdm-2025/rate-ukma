@@ -20,12 +20,15 @@ jobs:
 
   build:
     uses: ./.github/workflows/build.yml
+    with:
+      version_tag: ${{ inputs.version_tag }}
 
   deploy-live:
     needs: [test, openapi-validation, audit, build]
     uses: ./.github/workflows/deploy-live.yml
     with:
       deployment_ref: ${{ inputs.version_tag }}
+      version_tag: ${{ inputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
@@ -35,7 +38,7 @@ jobs:
 
   update_pre_releases:
     needs: deploy-live
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
@@ -108,7 +111,7 @@ jobs:
 
   push_live_tag:
     needs: update_pre_releases
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
