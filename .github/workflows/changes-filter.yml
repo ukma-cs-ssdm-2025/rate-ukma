@@ -2,6 +2,13 @@ name: Changes Filter
 
 on:
   workflow_call:
+    outputs:
+      backend_changed:
+        description: "Whether backend code changed in the caller ref"
+        value: ${{ jobs.filter.outputs.backend_changed }}
+      webapp_changed:
+        description: "Whether webapp code changed in the caller ref"
+        value: ${{ jobs.filter.outputs.webapp_changed }}
 
 env:
   BACKEND_DIR: src/backend
@@ -25,4 +32,3 @@ jobs:
             webapp:
               - '${{ env.WEBAPP_DIR }}/**'
               - '${{ env.OPENAPI_SCHEMA_FILE }}'
-
