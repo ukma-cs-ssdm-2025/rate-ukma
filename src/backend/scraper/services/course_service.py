@@ -3,6 +3,7 @@ from pathlib import Path
 
 import structlog
 from playwright.async_api import BrowserContext
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from ..browser import JSONLWriter, load_existing_ids, read_ids
 from ..models import ParsedCourseDetails
@@ -24,20 +25,20 @@ async def _parse_one(context: BrowserContext, url: str) -> ParsedCourseDetails:
         await page.goto(url)
         try:
             await page.wait_for_load_state("domcontentloaded")
-        except Exception:
-            pass
+        except PlaywrightTimeoutError as exc:
+            logger.debug("page_load_state_timeout", state="domcontentloaded", err=str(exc), url=url)
         try:
             await page.wait_for_load_state("networkidle")
-        except Exception:
-            pass
+        except PlaywrightTimeoutError as exc:
+            logger.debug("page_load_state_timeout", state="networkidle", err=str(exc), url=url)
         try:
             await page.wait_for_selector(
                 "table.table.table-condensed.table-bordered, .v-data-table, div.container",
                 state="attached",
                 timeout=15000,
             )
-        except Exception:
-            pass
+        except PlaywrightTimeoutError as exc:
+            logger.debug("page_selector_timeout", selector="course_detail", err=str(exc), url=url)
         html = await page.content()
         data = course_detail_parser.parse(html, url=url)
         return data

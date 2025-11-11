@@ -171,7 +171,7 @@ _Location: `src/backend/scraper/parsers/catalog.py`:133-142 (approx.)_
 
 ### Problem
 
-The pagination helpers swallow every exception (`except Exception: pass`) without logging, leaving no trace when DOM scraping fails.
+The pagination helpers (`_extract_from_href`, `_extract_from_data_attribute`, `_get_page_number_from_link`) share the same `except Exception: pass` pattern, so any DOM parsing hiccup in these helpers disappears without logging.
 
 ```python
         try:
@@ -182,21 +182,23 @@ The pagination helpers swallow every exception (`except Exception: pass`) withou
             pass
 ```
 
+This is just one example; catalog and course services also use the same blanket `except Exception: pass`, so the issue is widespread and worth cleaning up.
+
 ### Potential Impact
 
-- Failures disappear silently
+- Failures disappear silently across multiple helpers
 - No fallback logic triggers, so pagination defaults may misreport the last page
 
 ### Field Classification
 
 | Field    | Explanation                                                                                           |
 | -------- | ----------------------------------------------------------------------------------------------------- |
-| Fault    | The code swallows all exceptions again, this time while reading `data-page`.                          |
-| Error    | The parser returns `None`, so internal pagination state never sees that an extraction attempt failed. |
-| Failure  | Pagination devolves to defaults without signaling the broken link, leaving navigation unreliable.     |
+| Fault    | Multiple helpers swallow every exception, removing any signal that parsing failed.                   |
+| Error    | Each parser returns `None`, so pagination state cannot distinguish between absence and failure.        |
+| Failure  | Pagination reverts to defaults without signaling broken links, making navigation unreliable.          |
 | Severity | Medium                                                                                                |
 
-_Location: `src/backend/scraper/parsers/catalog.py`:116-123 (approx.)_
+_Location: `src/backend/scraper/parsers/catalog.py`:104-142 (approx.)_
 
 ---
 
