@@ -19,27 +19,23 @@ const redirectToConnectionError = (
 
 	isRedirecting = true;
 
-	const currentPath = window.location.pathname;
+	const currentPath = location.pathname;
 	if (currentPath === CONNECTION_ERROR_PATH) {
-		resetRedirectFlag(); // Use consistent state management
+		resetRedirectFlag();
 		return;
 	}
 
-	const search = window.location.search ?? "";
-	const hash = window.location.hash ?? "";
+	const search = globalThis.location.search ?? "";
+	const hash = globalThis.location.hash ?? "";
 	const from = `${currentPath}${search}${hash}`;
 
-	const url = new URL(CONNECTION_ERROR_PATH, window.location.origin);
+	const url = new URL(CONNECTION_ERROR_PATH, globalThis.location.origin);
 	url.searchParams.set("reason", reason);
 	url.searchParams.set("from", from);
 
-	window.location.replace(url.toString());
+	globalThis.location.replace(url.toString());
 };
 
-/**
- * Internal function to determine the connection issue reason from an error.
- * Not exported - should only be used through handleConnectionIssue.
- */
 const getConnectionIssueReason = (
 	error: unknown,
 ): ConnectionIssueReason | null => {

@@ -2,6 +2,7 @@ import MockAdapter from "axios-mock-adapter";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "./apiClient";
+import { stubBrowserLocation } from "./browserMocks.test-support";
 import { CONNECTION_ERROR_PATH, resetRedirectFlag } from "./networkError";
 
 const DEFAULT_WINDOW_LOCATION = {
@@ -23,14 +24,13 @@ describe("apiClient axios interceptor integration", () => {
 	};
 
 	beforeEach(() => {
-		mockWindowReplace = vi.fn();
-		vi.stubGlobal("window", {
-			location: {
-				...DEFAULT_WINDOW_LOCATION,
-				origin: "http://localhost:3000",
-				replace: mockWindowReplace,
-			},
+		const { replace } = stubBrowserLocation({
+			pathname: DEFAULT_WINDOW_LOCATION.pathname,
+			search: DEFAULT_WINDOW_LOCATION.search,
+			hash: DEFAULT_WINDOW_LOCATION.hash,
+			origin: "http://localhost:3000",
 		});
+		mockWindowReplace = replace;
 		vi.stubGlobal("navigator", { onLine: true } as Navigator);
 
 		mockAxios = new MockAdapter(authorizedHttpClient);
@@ -48,11 +48,10 @@ describe("apiClient axios interceptor integration", () => {
 		mockAxios.onGet("/api/test").reply(500);
 
 		// Act
-		try {
-			await authorizedHttpClient.get("/api/test");
-		} catch (_error) {}
+		const request = authorizedHttpClient.get("/api/test");
 
 		// Assert
+		await expect(request).rejects.toMatchObject({ response: { status: 500 } });
 		expectConnectionErrorRedirect("server");
 	});
 
@@ -61,11 +60,10 @@ describe("apiClient axios interceptor integration", () => {
 		mockAxios.onGet("/api/courses").reply(503);
 
 		// Act
-		try {
-			await authorizedHttpClient.get("/api/courses");
-		} catch (_error) {}
+		const request = authorizedHttpClient.get("/api/courses");
 
 		// Assert
+		await expect(request).rejects.toMatchObject({ response: { status: 503 } });
 		expectConnectionErrorRedirect("server");
 	});
 
@@ -75,11 +73,10 @@ describe("apiClient axios interceptor integration", () => {
 		mockAxios.onGet("/api/test").networkError();
 
 		// Act
-		try {
-			await authorizedHttpClient.get("/api/test");
-		} catch (_error) {}
+		const request = authorizedHttpClient.get("/api/test");
 
 		// Assert
+		await expect(request).rejects.toBeDefined();
 		expectConnectionErrorRedirect("offline");
 	});
 
@@ -88,12 +85,23 @@ describe("apiClient axios interceptor integration", () => {
 		mockAxios.onGet("/api/test").networkError();
 
 		// Act
-		try {
-			await authorizedHttpClient.get("/api/test");
-		} catch (_error) {}
+		const request = authorizedHttpClient.get("/api/test");
 
 		// Assert
+		await expect(request).rejects.toBeDefined();
 		expectConnectionErrorRedirect("server");
+	});
+
+	it("does not redirect on successful API call", async () => {
+		// Arrange
+		mockAxios.onGet("/api/success").reply(200, { ok: true });
+
+		// Act
+		const request = authorizedHttpClient.get("/api/success");
+
+		// Assert
+		await expect(request).resolves.toMatchObject({ data: { ok: true } });
+		expect(mockWindowReplace).not.toHaveBeenCalled();
 	});
 
 	it("does not redirect on 4xx client errors", async () => {
@@ -101,11 +109,12 @@ describe("apiClient axios interceptor integration", () => {
 		mockAxios.onGet("/api/nonexistent").reply(404);
 
 		// Act
-		try {
-			await authorizedHttpClient.get("/api/nonexistent");
-		} catch (_error) {}
+		const request = authorizedHttpClient.get("/api/nonexistent");
 
 		// Assert
+		await expect(request).rejects.toMatchObject({
+			response: { status: 404 },
+		});
 		expect(mockWindowReplace).not.toHaveBeenCalled();
 	});
 
@@ -114,11 +123,12 @@ describe("apiClient axios interceptor integration", () => {
 		mockAxios.onGet("/api/protected").reply(401);
 
 		// Act
-		try {
-			await authorizedHttpClient.get("/api/protected");
-		} catch (_error) {}
+		const request = authorizedHttpClient.get("/api/protected");
 
 		// Assert
+		await expect(request).rejects.toMatchObject({
+			response: { status: 401 },
+		});
 		expect(mockWindowReplace).not.toHaveBeenCalled();
 	});
 
@@ -128,12 +138,13 @@ describe("apiClient axios interceptor integration", () => {
 		mockAxios.onGet("/api/test2").reply(503);
 
 		// Act
-		await Promise.allSettled([
+		const results = await Promise.allSettled([
 			authorizedHttpClient.get("/api/test1"),
 			authorizedHttpClient.get("/api/test2"),
 		]);
 
 		// Assert
+		expect(results.every((result) => result.status === "rejected")).toBe(true);
 		expect(mockWindowReplace).toHaveBeenCalledOnce();
 	});
 
@@ -141,9 +152,10 @@ describe("apiClient axios interceptor integration", () => {
 		// Arrange
 		mockAxios.onGet("/api/test").reply(500);
 
-		// Act & Assert
-		await expect(authorizedHttpClient.get("/api/test")).rejects.toMatchObject({
-			response: { status: 500 },
-		});
+		// Act
+		const request = authorizedHttpClient.get("/api/test");
+
+		// Assert
+		await expect(request).rejects.toMatchObject({ response: { status: 500 } });
 	});
 });

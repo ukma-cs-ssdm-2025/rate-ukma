@@ -8,6 +8,7 @@ import MockAdapter from "axios-mock-adapter";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "./apiClient";
+import { stubBrowserLocation } from "./browserMocks.test-support";
 import { CONNECTION_ERROR_PATH, resetRedirectFlag } from "./networkError";
 
 const expectConnectionErrorRedirect = (
@@ -64,14 +65,13 @@ describe("Network Error Handling - Full Integration", () => {
 	let mockAxios: MockAdapter;
 
 	beforeEach(() => {
-		mockWindowReplace = vi.fn();
-		vi.stubGlobal("window", {
-			location: {
-				...DEFAULT_WINDOW_LOCATION,
-				origin: "http://localhost:3000",
-				replace: mockWindowReplace,
-			},
+		const { replace } = stubBrowserLocation({
+			pathname: DEFAULT_WINDOW_LOCATION.pathname,
+			search: DEFAULT_WINDOW_LOCATION.search,
+			hash: DEFAULT_WINDOW_LOCATION.hash,
+			origin: "http://localhost:3000",
 		});
+		mockWindowReplace = replace;
 		vi.stubGlobal("navigator", { onLine: true } as Navigator);
 
 		mockAxios = new MockAdapter(authorizedHttpClient);
@@ -161,15 +161,13 @@ describe("Network Error Handling - Full Integration", () => {
 	it("simulates user on authenticated page (courses) making request that fails", async () => {
 		// Arrange
 		const user = userEvent.setup();
-		vi.stubGlobal("window", {
-			location: {
-				pathname: "/courses",
-				search: "?sort=active",
-				hash: "#top",
-				origin: "http://localhost:3000",
-				replace: mockWindowReplace,
-			},
+		const { replace } = stubBrowserLocation({
+			pathname: "/courses",
+			search: "?sort=active",
+			hash: "#top",
+			origin: "http://localhost:3000",
 		});
+		mockWindowReplace = replace;
 
 		mockAxios.onGet("/api/user/dashboard").reply(503);
 

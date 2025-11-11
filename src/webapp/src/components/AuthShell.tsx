@@ -8,7 +8,7 @@ interface AuthShellProps {
 	footer?: ReactNode;
 }
 
-export function AuthShell({ children, footer }: AuthShellProps) {
+export function AuthShell({ children, footer }: Readonly<AuthShellProps>) {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative">
 			<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />

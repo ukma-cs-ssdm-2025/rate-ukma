@@ -33,6 +33,10 @@ export const Route = createFileRoute("/connection-error")({
 	},
 });
 
+type AttemptOptions = {
+	silent?: boolean;
+};
+
 function ConnectionErrorPage() {
 	const { reason = "unknown", from } = Route.useSearch();
 	const [isChecking, setIsChecking] = useState(false);
@@ -40,51 +44,33 @@ function ConnectionErrorPage() {
 	const skipOfflineCheck = env.VITE_SKIP_OFFLINE_CHECK;
 
 	const attemptReconnect = useCallback(
-		async (options?: { silent?: boolean }) => {
+		async (options?: AttemptOptions) => {
 			const silent = options?.silent === true;
 			if (!silent) {
 				setErrorMessage(null);
 			}
 			setIsChecking(true);
 
-			if (!skipOfflineCheck && isOffline()) {
-				if (!silent) {
-					setErrorMessage(
-						"Ви офлайн. Підключіться до мережі та спробуйте знову.",
-					);
-				}
+			if (
+				shouldBlockDueToOffline({
+					setError: setErrorMessage,
+					silent,
+					skipOfflineCheck,
+				})
+			) {
 				setIsChecking(false);
 				return false;
 			}
 
 			try {
 				await authSessionRetrieve();
-				window.location.replace(getSafeRedirectTarget(from));
+				globalThis.location.replace(getSafeRedirectTarget(from));
 				return true;
 			} catch (error) {
-				const status = axios.isAxiosError(error)
-					? error.response?.status
-					: undefined;
-				if (!skipOfflineCheck && isOffline()) {
-					if (!silent) {
-						setErrorMessage("Ви офлайн. Перевірте підключення до мережі.");
-					}
-				} else if (!silent) {
-					if (status && status >= 500) {
-						setErrorMessage("Сервер тимчасово недоступний. Спробуйте пізніше.");
-					} else if (status) {
-						setErrorMessage(
-							`Сервер відповів з кодом ${status}. Спробуйте ще раз.`,
-						);
-					} else if (
-						error instanceof DOMException &&
-						error.name === "AbortError"
-					) {
-						setErrorMessage("Час очікування перевищено. Спробуйте пізніше.");
-					} else {
-						setErrorMessage(
-							"Не вдалося встановити з'єднання. Спробуйте пізніше.",
-						);
+				if (!silent) {
+					const message = getReconnectErrorMessage(error, skipOfflineCheck);
+					if (message) {
+						setErrorMessage(message);
 					}
 				}
 			} finally {
@@ -98,11 +84,11 @@ function ConnectionErrorPage() {
 
 	useEffect(() => {
 		resetRedirectFlag();
-		void attemptReconnect({ silent: true });
+		attemptReconnect({ silent: true }).catch(() => undefined);
 	}, [attemptReconnect]);
 
 	const handleRetry = () => {
-		void attemptReconnect();
+		attemptReconnect().catch(() => undefined);
 	};
 
 	return (
@@ -179,19 +165,65 @@ function getFooterText(reason: ConnectionIssueReason) {
 }
 
 const DEFAULT_REDIRECT_TARGET = "/";
+const OFFLINE_INITIAL_MESSAGE =
+	"Ви офлайн. Підключіться до мережі та спробуйте знову.";
+const OFFLINE_RETRY_MESSAGE = "Ви офлайн. Перевірте підключення до мережі.";
 
-const getSafeRedirectTarget = (from?: string) => {
-	if (typeof window === "undefined") {
-		return DEFAULT_REDIRECT_TARGET;
+const shouldBlockDueToOffline = ({
+	setError,
+	silent,
+	skipOfflineCheck,
+}: {
+	setError: (message: string) => void;
+	silent: boolean;
+	skipOfflineCheck: boolean;
+}) => {
+	if (skipOfflineCheck || !isOffline()) {
+		return false;
 	}
 
+	if (!silent) {
+		setError(OFFLINE_INITIAL_MESSAGE);
+	}
+
+	return true;
+};
+
+const getReconnectErrorMessage = (
+	error: unknown,
+	skipOfflineCheck: boolean,
+): string | null => {
+	if (!skipOfflineCheck && isOffline()) {
+		return OFFLINE_RETRY_MESSAGE;
+	}
+
+	if (!axios.isAxiosError(error)) {
+		if (error instanceof DOMException && error.name === "AbortError") {
+			return "Час очікування перевищено. Спробуйте пізніше.";
+		}
+		return "Не вдалося встановити з'єднання. Спробуйте пізніше.";
+	}
+
+	const status = error.response?.status;
+	if (status && status >= 500) {
+		return "Сервер тимчасово недоступний. Спробуйте пізніше.";
+	}
+
+	if (status) {
+		return `Сервер відповів з кодом ${status}. Спробуйте ще раз.`;
+	}
+
+	return "Не вдалося встановити з'єднання. Спробуйте пізніше.";
+};
+
+const getSafeRedirectTarget = (from?: string) => {
 	if (!from) {
 		return DEFAULT_REDIRECT_TARGET;
 	}
 
 	try {
-		const url = new URL(from, window.location.origin);
-		if (url.origin !== window.location.origin) {
+		const url = new URL(from, globalThis.location.origin);
+		if (url.origin !== globalThis.location.origin) {
 			return DEFAULT_REDIRECT_TARGET;
 		}
 
