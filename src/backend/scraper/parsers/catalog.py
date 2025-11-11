@@ -102,25 +102,32 @@ class CatalogParser(BaseParser):
         return self._extract_from_data_attribute(last_a)
 
     def _extract_from_href(self, element: Tag) -> int | None:
+        href = element.get("href", "")
+        if not href:
+            return None
+
         try:
-            href = element.get("href", "")
-            if not href:
-                return None
             q = parse_qs(urlparse(str(href)).query)
             if "page" in q:
                 return int(q["page"][0])
-        except Exception:
-            pass
+        except (ValueError, TypeError) as exc:
+            logger.debug("Failed to extract page number from pagination href", err=exc)
         return None
 
     def _extract_from_data_attribute(self, element: Tag) -> int | None:
+        dp = element.get("data-page")
+        if not dp:
+            return None
+
+        dp_str = str(dp)
+        if not dp_str.isdigit():
+            return None
+
         try:
-            dp = element.get("data-page")
-            if dp and str(dp).isdigit():
-                return int(str(dp)) + 1
-        except Exception:
-            pass
-        return None
+            return int(dp_str) + 1
+        except ValueError as exc:
+            logger.debug("Invalid pagination data-page value", data_page=dp_str, err=exc)
+            return None
 
     def _extract_from_pagination_links(self, pag: Tag) -> int | None:
         nums = []
