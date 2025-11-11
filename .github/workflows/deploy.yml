@@ -94,6 +94,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           command_timeout: "30m"
+          envs: BACKEND_IMAGE_TAG,WEBAPP_IMAGE_TAG
           script: |
             echo "Deploying..."
 
