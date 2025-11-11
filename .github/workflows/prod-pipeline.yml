@@ -66,12 +66,11 @@ jobs:
           VERSION_TAG: "${{ inputs.version_tag }}"
           LIVE_TAG_PREFIX: "live-"
         run: |
-          TAGS=$(git tag --sort=-v:refname)
           LAST_TAG=${PREV_LIVE_TAG#$LIVE_TAG_PREFIX}
           CURRENT_TAG=$VERSION_TAG
 
           RELEASES_TO_UPDATE=$(git log --pretty=format:"%D" $LAST_TAG..$CURRENT_TAG | \
-            grep -oE 'tag: [^,)]+' | sed 's/tag: //' | sort -u | grep '^v')
+            grep -oE 'tag: [^,)]+' | sed 's/tag: //' | grep '^v' | sort -uV)
 
           echo "Releases to update: $RELEASES_TO_UPDATE"
 
