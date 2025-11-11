@@ -1,0 +1,5 @@
+--container-architecture linux/amd64
+-P ubuntu-24.04=catthehacker/ubuntu:act-latest
+--secret-file .act.secrets
+--artifact-server-path /tmp/artifacts
+--env GITHUB_ACTOR=your-gh-username

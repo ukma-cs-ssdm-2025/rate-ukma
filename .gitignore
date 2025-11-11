@@ -52,3 +52,6 @@ playwright-report/
 test-results/
 microsoft.json
 playwright/.auth
+.act.secrets
+.actrc
+.secrets
