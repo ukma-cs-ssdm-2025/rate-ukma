@@ -28,7 +28,7 @@ env:
   BADGE_COMMIT_MESSAGE: "chore(ci): update coverage badge"
 
 jobs:
-  test:
+  test-backend:
     if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     permissions:

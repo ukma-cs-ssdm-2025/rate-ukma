@@ -2,6 +2,17 @@ name: Security Audit
 
 on:
   workflow_call:
+    inputs:
+      run_frontend_audit:
+        description: "Run the frontend security audit job"
+        required: false
+        type: boolean
+        default: true
+      run_backend_audit:
+        description: "Run the backend security audit job"
+        required: false
+        type: boolean
+        default: true
   schedule:
     - cron: "0 6 * * *" # Daily at 06:00 UTC
 
@@ -20,6 +31,7 @@ env:
 jobs:
   frontend-security-audit:
     name: Frontend Security Audit
+    if: inputs.run_frontend_audit == true
     runs-on: ubuntu-24.04
 
     steps:
@@ -73,6 +85,7 @@ jobs:
 
   backend-security-audit:
     name: Backend Security Audit
+    if: inputs.run_backend_audit == true
     runs-on: ubuntu-24.04
 
     steps:
@@ -107,4 +120,3 @@ jobs:
         with:
           sarif_file: ${{ env.BACKEND_DIR }}/bandit-results.sarif
           category: bandit
-

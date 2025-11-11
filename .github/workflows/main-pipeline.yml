@@ -26,8 +26,12 @@ jobs:
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
+    needs: changes-filter
     uses: ./.github/workflows/audit.yml
     secrets: inherit
+    with:
+      run_backend_audit: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   build:
     needs: [version, changes-filter]
