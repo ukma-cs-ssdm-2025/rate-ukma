@@ -15,6 +15,67 @@ const DEFAULT_WINDOW_LOCATION = {
 } as const;
 const DEFAULT_REDIRECT_SOURCE = `${DEFAULT_WINDOW_LOCATION.pathname}${DEFAULT_WINDOW_LOCATION.search}${DEFAULT_WINDOW_LOCATION.hash}`;
 
+const createAxiosError = (overrides: Partial<AxiosError>): AxiosError => {
+	return {
+		isAxiosError: true,
+		toJSON: () => ({}),
+		name: "AxiosError",
+		message: "Axios error",
+		config: {},
+		...overrides,
+	} as AxiosError;
+};
+
+const stubNavigatorOnline = (onLine = true) =>
+	vi.stubGlobal("navigator", { onLine } as Navigator);
+
+const callHandleConnectionIssueWithAxios = (
+	overrides: Partial<AxiosError>,
+	onLine = true,
+) => {
+	stubNavigatorOnline(onLine);
+	const redirectSpy = vi.fn();
+	const handled = handleConnectionIssue(
+		createAxiosError(overrides),
+		redirectSpy,
+	);
+	return { handled, redirectSpy };
+};
+
+const expectRedirect = (
+	description: string,
+	overrides: Partial<AxiosError>,
+	reason: "offline" | "server",
+	onLine?: boolean,
+) => {
+	it(description, () => {
+		const { handled, redirectSpy } = callHandleConnectionIssueWithAxios(
+			overrides,
+			onLine,
+		);
+
+		expect(handled).toBe(true);
+		expect(redirectSpy).toHaveBeenCalledOnce();
+		expect(redirectSpy).toHaveBeenCalledWith(reason);
+	});
+};
+
+const expectNoRedirect = (
+	description: string,
+	overrides: Partial<AxiosError>,
+	onLine?: boolean,
+) => {
+	it(description, () => {
+		const { handled, redirectSpy } = callHandleConnectionIssueWithAxios(
+			overrides,
+			onLine,
+		);
+
+		expect(handled).toBe(false);
+		expect(redirectSpy).not.toHaveBeenCalled();
+	});
+};
+
 describe("networkError", () => {
 	let mockWindowReplace: ReturnType<typeof vi.fn>;
 	const expectConnectionErrorRedirect = (
@@ -45,187 +106,79 @@ describe("networkError", () => {
 	});
 
 	describe("handleConnectionIssue", () => {
-		it("redirects with offline reason when navigator reports offline", () => {
-			// Arrange
-			const redirectSpy = vi.fn();
-			const axiosError = createAxiosError({ response: undefined });
-			vi.stubGlobal("navigator", { onLine: false } as Navigator);
-
-			// Act
-			const handled = handleConnectionIssue(axiosError, redirectSpy);
-
-			// Assert
-			expect(handled).toBe(true);
-			expect(redirectSpy).toHaveBeenCalledOnce();
-			expect(redirectSpy).toHaveBeenCalledWith("offline");
-		});
-
-		it("redirects with server reason when response status is 5xx", () => {
-			// Arrange
-			const redirectSpy = vi.fn();
-			const axiosError = createAxiosError({
-				response: { status: 503 } as AxiosError["response"],
-			});
-			vi.stubGlobal("navigator", { onLine: true } as Navigator);
-
-			// Act
-			const handled = handleConnectionIssue(axiosError, redirectSpy);
-
-			// Assert
-			expect(handled).toBe(true);
-			expect(redirectSpy).toHaveBeenCalledOnce();
-			expect(redirectSpy).toHaveBeenCalledWith("server");
-		});
-
-		it("redirects with server reason when axios rejects with ERR_NETWORK and no response", () => {
-			// Arrange
-			const redirectSpy = vi.fn();
-			const axiosError = createAxiosError({
-				response: undefined,
-				code: "ERR_NETWORK",
-			});
-			vi.stubGlobal("navigator", { onLine: true } as Navigator);
-
-			// Act
-			const handled = handleConnectionIssue(axiosError, redirectSpy);
-
-			// Assert
-			expect(handled).toBe(true);
-			expect(redirectSpy).toHaveBeenCalledOnce();
-			expect(redirectSpy).toHaveBeenCalledWith("server");
-		});
+		expectRedirect(
+			"redirects with offline reason when navigator reports offline",
+			{ response: undefined },
+			"offline",
+			false,
+		);
+		expectRedirect(
+			"redirects with server reason when response status is 5xx",
+			{ response: { status: 503 } as AxiosError["response"] },
+			"server",
+		);
+		expectRedirect(
+			"redirects with server reason when axios rejects with ERR_NETWORK and no response",
+			{ response: undefined, code: "ERR_NETWORK" },
+			"server",
+		);
 
 		it("returns false when the error is not an axios error", () => {
-			// Arrange
+			stubNavigatorOnline();
 			const redirectSpy = vi.fn();
-			vi.stubGlobal("navigator", { onLine: true } as Navigator);
 
-			// Act
 			const handled = handleConnectionIssue(new Error("boom"), redirectSpy);
 
-			// Assert
 			expect(handled).toBe(false);
 			expect(redirectSpy).not.toHaveBeenCalled();
 		});
 
-		it("ignores canceled axios requests identified by code", () => {
-			// Arrange
-			const redirectSpy = vi.fn();
-			const axiosError = createAxiosError({
-				code: "ERR_CANCELED",
-				__CANCEL__: true,
-			});
-			vi.stubGlobal("navigator", { onLine: true } as Navigator);
-
-			// Act
-			const handled = handleConnectionIssue(axiosError, redirectSpy);
-
-			// Assert
-			expect(handled).toBe(false);
-			expect(redirectSpy).not.toHaveBeenCalled();
+		expectNoRedirect("ignores canceled axios requests identified by code", {
+			code: "ERR_CANCELED",
+			__CANCEL__: true,
 		});
-
-		it("ignores axios cancel instances even without a specific code", () => {
-			// Arrange
-			const redirectSpy = vi.fn();
-			const axiosError = createAxiosError({
-				__CANCEL__: true,
-			});
-			vi.stubGlobal("navigator", { onLine: true } as Navigator);
-
-			// Act
-			const handled = handleConnectionIssue(axiosError, redirectSpy);
-
-			// Assert
-			expect(handled).toBe(false);
-			expect(redirectSpy).not.toHaveBeenCalled();
+		expectNoRedirect(
+			"ignores axios cancel instances even without a specific code",
+			{ __CANCEL__: true },
+		);
+		expectNoRedirect("returns false when response status is 4xx", {
+			response: { status: 404 } as AxiosError["response"],
 		});
-
-		it("returns false when response status is 4xx", () => {
-			// Arrange
-			const redirectSpy = vi.fn();
-			const axiosError = createAxiosError({
-				response: { status: 404 } as AxiosError["response"],
-			});
-			vi.stubGlobal("navigator", { onLine: true } as Navigator);
-
-			// Act
-			const handled = handleConnectionIssue(axiosError, redirectSpy);
-
-			// Assert
-			expect(handled).toBe(false);
-			expect(redirectSpy).not.toHaveBeenCalled();
-		});
-
-		it("redirects with offline reason when no response and user is offline", () => {
-			// Arrange
-			const redirectSpy = vi.fn();
-			const axiosError = createAxiosError({ response: undefined });
-			vi.stubGlobal("navigator", { onLine: false } as Navigator);
-
-			// Act
-			const handled = handleConnectionIssue(axiosError, redirectSpy);
-
-			// Assert
-			expect(handled).toBe(true);
-			expect(redirectSpy).toHaveBeenCalledOnce();
-			expect(redirectSpy).toHaveBeenCalledWith("offline");
-		});
-
-		it("redirects with server reason when ERR_NETWORK but user is online", () => {
-			// Arrange
-			const redirectSpy = vi.fn();
-			const axiosError = createAxiosError({
-				code: "ERR_NETWORK",
-				response: undefined,
-			});
-			vi.stubGlobal("navigator", { onLine: true } as Navigator);
-
-			// Act
-			const handled = handleConnectionIssue(axiosError, redirectSpy);
-
-			// Assert
-			expect(handled).toBe(true);
-			expect(redirectSpy).toHaveBeenCalledOnce();
-			expect(redirectSpy).toHaveBeenCalledWith("server");
-		});
+		expectRedirect(
+			"redirects with server reason when ERR_NETWORK but user is online",
+			{ code: "ERR_NETWORK", response: undefined },
+			"server",
+		);
 
 		describe("redirect behavior", () => {
 			it("actually redirects using window.location.replace when using default redirect", () => {
-				// Arrange
 				const axiosError = createAxiosError({
 					response: { status: 503 } as AxiosError["response"],
 				});
-				vi.stubGlobal("navigator", { onLine: true } as Navigator);
+				stubNavigatorOnline();
 
-				// Act
 				handleConnectionIssue(axiosError);
 
-				// Assert
 				expect(mockWindowReplace).toHaveBeenCalledOnce();
 				expectConnectionErrorRedirect("server");
 			});
 
 			it("prevents multiple redirects from race conditions", () => {
-				// Arrange
 				const error1 = createAxiosError({
 					response: { status: 503 } as AxiosError["response"],
 				});
 				const error2 = createAxiosError({
 					response: { status: 500 } as AxiosError["response"],
 				});
-				vi.stubGlobal("navigator", { onLine: true } as Navigator);
+				stubNavigatorOnline();
 
-				// Act
 				handleConnectionIssue(error1);
 				handleConnectionIssue(error2);
 
-				// Assert
 				expect(mockWindowReplace).toHaveBeenCalledOnce();
 			});
 
 			it("does not redirect if already on connection error page", () => {
-				// Arrange
 				vi.stubGlobal("window", {
 					location: {
 						pathname: CONNECTION_ERROR_PATH,
@@ -238,26 +191,22 @@ describe("networkError", () => {
 				const axiosError = createAxiosError({
 					response: { status: 503 } as AxiosError["response"],
 				});
-				vi.stubGlobal("navigator", { onLine: true } as Navigator);
+				stubNavigatorOnline();
 
-				// Act
 				handleConnectionIssue(axiosError);
 
-				// Assert
 				expect(mockWindowReplace).not.toHaveBeenCalled();
 			});
 
 			it("allows redirect after resetRedirectFlag is called", () => {
-				// Arrange
 				const error1 = createAxiosError({
 					response: { status: 503 } as AxiosError["response"],
 				});
 				const error2 = createAxiosError({
 					response: { status: 500 } as AxiosError["response"],
 				});
-				vi.stubGlobal("navigator", { onLine: true } as Navigator);
+				stubNavigatorOnline();
 
-				// Act
 				handleConnectionIssue(error1);
 				expect(mockWindowReplace).toHaveBeenCalledOnce();
 
@@ -268,7 +217,6 @@ describe("networkError", () => {
 
 				handleConnectionIssue(error2);
 
-				// Assert
 				expect(mockWindowReplace).toHaveBeenCalledTimes(2);
 			});
 		});
@@ -276,36 +224,19 @@ describe("networkError", () => {
 
 	describe("isOffline", () => {
 		it("returns true when navigator.onLine is false", () => {
-			// Arrange
-			vi.stubGlobal("navigator", { onLine: false } as Navigator);
+			stubNavigatorOnline(false);
 
-			// Act
 			const result = isOffline();
 
-			// Assert
 			expect(result).toBe(true);
 		});
 
 		it("returns false when navigator.onLine is true", () => {
-			// Arrange
-			vi.stubGlobal("navigator", { onLine: true } as Navigator);
+			stubNavigatorOnline(true);
 
-			// Act
 			const result = isOffline();
 
-			// Assert
 			expect(result).toBe(false);
 		});
 	});
 });
-
-const createAxiosError = (overrides: Partial<AxiosError>): AxiosError => {
-	return {
-		isAxiosError: true,
-		toJSON: () => ({}),
-		name: "AxiosError",
-		message: "Axios error",
-		config: {},
-		...overrides,
-	} as AxiosError;
-};
