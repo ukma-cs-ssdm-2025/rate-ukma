@@ -54,15 +54,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  find-image-tags:
+  deploy:
     runs-on: ubuntu-24.04
     permissions:
-      packages: read
       contents: read
-    outputs:
-      backend_image_tag: ${{ steps.find-tags.outputs.backend_tag }}
-      webapp_image_tag: ${{ steps.find-tags.outputs.webapp_tag }}
+      packages: read
+
     steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.deployment_ref || github.sha }}
+
       - name: Find latest available image tags
         id: find-tags
         env:
@@ -125,29 +127,27 @@ jobs:
             fi
           }
 
-          # Find versions (use the full package name with slash)
+          # Determine webapp prefix based on environment
+          if [ "$ENVIRONMENT" = "staging" ]; then
+            WEBAPP_PREFIX="staging-"
+          elif [ "$ENVIRONMENT" = "live" ]; then
+            WEBAPP_PREFIX="live-"
+          else
+            echo "Unknown environment: $ENVIRONMENT" >&2
+            exit 1
+          fi
+
+          # Find versions
           BACKEND_TAG=$(find_latest_version "rate-ukma/backend" "$TARGET_VERSION" "")
-          WEBAPP_TAG=$(find_latest_version "rate-ukma/webapp" "$TARGET_VERSION" "live-")
+          WEBAPP_TAG=$(find_latest_version "rate-ukma/webapp" "$TARGET_VERSION" "$WEBAPP_PREFIX")
 
           echo "backend_tag=$BACKEND_TAG" >> "$GITHUB_OUTPUT"
           echo "webapp_tag=$WEBAPP_TAG" >> "$GITHUB_OUTPUT"
 
           # Summary
-          echo "Selected Image Tags" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Backend: \`$BACKEND_TAG\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Webapp: \`$WEBAPP_TAG\`" >> "$GITHUB_STEP_SUMMARY"
-
-  deploy:
-    needs: find-image-tags
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: read
-
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.deployment_ref || github.sha }}
+          echo "### Selected Image Tags" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Backend**: \`$BACKEND_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Webapp**: \`$WEBAPP_TAG\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set environment variables
         env:
@@ -171,8 +171,8 @@ jobs:
       - name: Deploy to server
         uses: appleboy/ssh-action@master
         env:
-          BACKEND_IMAGE_TAG: ${{ needs.find-image-tags.outputs.backend_image_tag }}
-          WEBAPP_IMAGE_TAG: ${{ needs.find-image-tags.outputs.webapp_image_tag }}
+          BACKEND_IMAGE_TAG: ${{ steps.find-tags.outputs.backend_tag }}
+          WEBAPP_IMAGE_TAG: ${{ steps.find-tags.outputs.webapp_tag }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
