@@ -12,8 +12,15 @@ jobs:
   version:
     uses: ./.github/workflows/version.yml
 
+  changes-filter:
+    uses: ./.github/workflows/changes-filter.yml
+
   test:
+    needs: changes-filter
     uses: ./.github/workflows/test.yml
+    with:
+      backend_changed: ${{ needs.changes-filter.outputs.backend_changed }}
+      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed }}
 
   openapi-validation:
     uses: ./.github/workflows/openapi-validation.yml
@@ -23,10 +30,12 @@ jobs:
     secrets: inherit
 
   build:
-    needs: [version]
+    needs: [version, changes-filter]
     uses: ./.github/workflows/build.yml
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}
+      backend_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
+      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
 
   release-needed:
     needs: [version]

@@ -6,8 +6,15 @@ on:
       - .github/**
 
 jobs:
+  changes-filter:
+    uses: ./.github/workflows/changes-filter.yml
+
   test:
+    needs: changes-filter
     uses: ./.github/workflows/test.yml
+    with:
+      backend_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
+      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
 
   openapi-validation:
     uses: ./.github/workflows/openapi-validation.yml
@@ -17,4 +24,8 @@ jobs:
     secrets: inherit
 
   build:
+    needs: changes-filter
     uses: ./.github/workflows/build.yml
+    with:
+      backend_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
+      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}

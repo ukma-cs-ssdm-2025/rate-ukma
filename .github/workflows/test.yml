@@ -7,6 +7,16 @@ on:
         required: false
         type: boolean
         default: false
+      backend_changed:
+        description: "Whether backend code has changed"
+        required: false
+        type: boolean
+        default: true
+      webapp_changed:
+        description: "Whether webapp code has changed"
+        required: false
+        type: boolean
+        default: true
 
 env:
   PYTHON_VERSION: "3.12"
@@ -18,7 +28,7 @@ env:
 
 jobs:
   test:
-    if: github.actor != 'github-actions[bot]'
+    if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
