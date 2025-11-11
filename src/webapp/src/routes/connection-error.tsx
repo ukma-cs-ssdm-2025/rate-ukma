@@ -99,13 +99,7 @@ function ConnectionErrorPage() {
 		>
 			<div className="space-y-6">
 				<div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
-					{reason === "offline" ? (
-						<WifiOff className="h-8 w-8 text-destructive" />
-					) : reason === "server" ? (
-						<ServerOff className="h-8 w-8 text-destructive" />
-					) : (
-						<AlertTriangle className="h-8 w-8 text-destructive" />
-					)}
+					{getReasonIcon(reason)}
 				</div>
 
 				<div className="space-y-2">
@@ -232,4 +226,22 @@ const getSafeRedirectTarget = (from?: string) => {
 	} catch {
 		return DEFAULT_REDIRECT_TARGET;
 	}
+};
+
+const getReasonIcon = (reason: ConnectionIssueReason) => {
+	let Icon = null;
+
+	switch (reason) {
+		case "offline":
+			Icon = WifiOff;
+			break;
+		case "server":
+			Icon = ServerOff;
+			break;
+		default:
+			Icon = AlertTriangle;
+			break;
+	}
+
+	return <Icon className="h-8 w-8 text-destructive" />;
 };

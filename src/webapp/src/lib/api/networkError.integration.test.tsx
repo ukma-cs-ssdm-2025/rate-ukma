@@ -30,7 +30,11 @@ const DEFAULT_WINDOW_LOCATION = {
 } as const;
 const DEFAULT_REDIRECT_SOURCE = `${DEFAULT_WINDOW_LOCATION.pathname}${DEFAULT_WINDOW_LOCATION.search}${DEFAULT_WINDOW_LOCATION.hash}`;
 
-function TestComponent({ endpoint }: { endpoint: string }) {
+interface TestComponentProps {
+	endpoint: string;
+}
+
+function TestComponent({ endpoint }: Readonly<TestComponentProps>) {
 	const [data, setData] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
