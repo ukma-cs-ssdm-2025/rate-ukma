@@ -55,7 +55,7 @@ jobs:
       - name: Login to GitHub Container Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: docker login ghcr.io -u ${{ github.actor }} -p $GITHUB_TOKEN
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Copy default .env file
         working-directory: ${{ env.SOURCE_CODE_DIR }}
@@ -71,15 +71,17 @@ jobs:
           echo "Backend image: $BACKEND_IMAGE"
 
       - name: Build backend
+        env:
+          BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker compose --profile prod build backend
+        run: docker compose --profile prod build --build-arg BACKEND_IMAGE_TAG=${BACKEND_IMAGE_TAG} backend
 
       - name: Push backend image
-        env:
-          VERSION_TAG: ${{ inputs.version_tag }}
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        env:
+          BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker push ${{ steps.extract_name.outputs.backend_image }}:${{ env.VERSION_TAG }}
+        run: docker push ${{ steps.extract_name.outputs.backend_image }}:${BACKEND_IMAGE_TAG}
 
   build-webapp:
     needs: filter
