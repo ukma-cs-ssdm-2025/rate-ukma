@@ -11,7 +11,7 @@ function LoginLayoutWrapper() {
 		<AuthShell
 			footer={
 				<p>
-					Доступ дозволено тільки для користувачів з коорпоративною поштою{" "}
+					Доступ дозволено тільки для користувачів з корпоративною поштою{" "}
 					<span className="font-medium text-foreground">ukma.edu.ua</span>
 				</p>
 			}

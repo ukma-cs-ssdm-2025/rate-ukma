@@ -15,6 +15,7 @@ function ErrorFallback({
 	};
 
 	const handleGoHome = () => {
+		resetErrorBoundary();
 		navigate({ to: "/" });
 	};
 
@@ -25,8 +26,8 @@ function ErrorFallback({
 					Щось пішло не так
 				</h2>
 				<p className="text-muted-foreground mb-6">
-					Виникла помилка під час завантаження сторінки. Спробуйте спробувати
-					знову або поверніться пізніше.
+					Виникла помилка під час завантаження сторінки. Спробуйте ще раз або
+					поверніться пізніше.
 				</p>
 				<div className="flex gap-3 justify-center">
 					<Button onClick={handleRetry} className="min-w-[120px]">
