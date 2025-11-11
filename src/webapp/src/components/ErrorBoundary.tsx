@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { ErrorBoundary as ReactErrorBoundary } from "react-error-boundary";
 
 import { Button } from "./ui/Button";
@@ -7,6 +8,16 @@ function ErrorFallback({
 }: Readonly<{
 	resetErrorBoundary: () => void;
 }>) {
+	const navigate = useNavigate();
+
+	const handleRetry = () => {
+		resetErrorBoundary();
+	};
+
+	const handleGoHome = () => {
+		navigate({ to: "/" });
+	};
+
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center px-4">
 			<div className="text-center max-w-md">
@@ -14,12 +25,21 @@ function ErrorFallback({
 					Щось пішло не так
 				</h2>
 				<p className="text-muted-foreground mb-6">
-					Виникла помилка під час завантаження сторінки. Спробуйте оновити
-					сторінку або повернутися пізніше.
+					Виникла помилка під час завантаження сторінки. Спробуйте спробувати
+					знову або поверніться пізніше.
 				</p>
-				<Button onClick={resetErrorBoundary} className="min-w-[120px]">
-					Спробувати знову
-				</Button>
+				<div className="flex gap-3 justify-center">
+					<Button onClick={handleRetry} className="min-w-[120px]">
+						Спробувати знову
+					</Button>
+					<Button
+						onClick={handleGoHome}
+						className="min-w-[120px]"
+						variant="outline"
+					>
+						На головну
+					</Button>
+				</div>
 			</div>
 		</div>
 	);

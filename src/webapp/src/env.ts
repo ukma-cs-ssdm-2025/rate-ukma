@@ -1,7 +1,7 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
-export const env = createEnv({
+const rawEnv = createEnv({
 	server: {},
 
 	/**
@@ -35,3 +35,14 @@ export const env = createEnv({
 	 */
 	emptyStringAsUndefined: true,
 });
+
+export const env = {
+	...rawEnv,
+	/**
+	 * Skip offline checks when API is pointing to localhost in non-production mode.
+	 * This is useful for local development without internet connection when everything is up locally.
+	 */
+	VITE_SKIP_OFFLINE_CHECK:
+		import.meta.env.MODE !== "production" &&
+		rawEnv.VITE_API_BASE_URL.includes("localhost"),
+};
