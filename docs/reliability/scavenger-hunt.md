@@ -1,21 +1,14 @@
+<!-- markdownlint-disable MD024 -->
+
 # Code Review Notes — Error Handling & Typing Issues
 
 ## 1. Broad Exception Handling
 
-**Problem**  
-Catching all exceptions (`except Exception`) is too broad; it hides real issues and makes debugging difficult.
+### Problem
 
-**Sample Code**  
+`CourseLinkParser._get_match_from_href` wraps the link parsing logic in a bare `except Exception`, hiding parsing failures and preventing visibility into unexpected HTML shapes.
 
 ```python
-def parse(self, html: str, base_url: str) -> list[str]:
-    soup = BeautifulSoup(html, "lxml")
-    links = []
-
-    for a in soup.select(COURSE_LINK_SELECTOR):
-        href = a.get("href")
-        if not href:
-            continue
         try:
             path = urlparse(str(href)).path.rstrip("/")
             m = COURSE_PATH_PATTERN.match(path)
@@ -23,161 +16,195 @@ def parse(self, html: str, base_url: str) -> list[str]:
                 links.append(urljoin(base_url, path))
         except Exception:
             continue
-
-    return links
 ```
 
-**Why It’s Dangerous**  
-Silently ignores possible parsing or network errors, causing data loss or skipped items without visibility.
+### Potential Impact
 
-**Potential Impact**  
+- Silent data loss for valid courses
+- Harder debugging when the parser skips malformed or malicious links
 
-- Silent corruption of parsing results  
-- Debugging difficulties due to missing logs  
-- Hidden edge-case crashes downstream
+### Field Classification
+
+| Field    | Explanation                                                                                                    |
+| -------- | -------------------------------------------------------------------------------------------------------------- |
+| Fault    | The parser catches every `Exception`, so any parsing hiccup is swallowed instead of being surfaced and traced. |
+| Error    | The internal link list quietly omits entries from poorly formatted `href`s without marking the failure.        |
+| Failure  | Consumers miss course URLs, making the catalog incomplete and unpredictable.                                   |
+| Severity | Medium                                                                                                         |
+
+_Location: `src/backend/scraper/parsers/catalog.py`:48-69 (approx.)_
 
 ---
 
 ## 2. Silent Error Handling without Logging
 
-**Problem**  
-Errors are caught and ignored with no logging or alerting.
+### Problem
 
-**Sample Code**  
+Pagination helpers swallow every error with `except Exception: pass`, leaving no telemetry or fallback when HTML attributes are missing or malformed.
 
 ```python
-def _extract_from_href(self, element) -> int | None:
-    try:
-        href = element.get("href", "")
-        if not href:
-            return None
-        q = parse_qs(urlparse(str(href)).query)
-        if "page" in q:
-            return int(q["page"][0])
-    except Exception:
-        pass
-    return None
+        try:
+            href = element.get("href", "")
+            if not href:
+                return None
+            q = parse_qs(urlparse(str(href)).query)
+            if "page" in q:
+                return int(q["page"][0])
+        except Exception:
+            pass
 ```
 
-**Why It’s Dangerous**  
-Swallows all exceptions, hides unexpected input or parsing issues.
+### Potential Impact
 
-**Potential Impact**  
+- No visibility into broken pagination parsing
+- User interfaces may report incorrect page counts silently
 
-- No visibility into runtime problems  
-- Difficult to trace production issues
+### Field Classification
+
+| Field    | Explanation                                                                                                                                  |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fault    | `_extract_from_href` and `_extract_from_data_attribute` swallow all exceptions without logging, so malformed links disappear without notice. |
+| Error    | The parser returns `None`, leaving the pagination state unaware of the failure.                                                              |
+| Failure  | UI pagination can stop prematurely or show incorrect totals, disrupting navigation.                                                          |
+| Severity | Medium                                                                                                                                       |
+
+_Location: `src/backend/scraper/parsers/catalog.py`:104-123 (approx.)_
 
 ---
 
-## 3. Missing Null‑Value or Existence Checks
+## 3. Missing Null-Value or Existence Checks
 
-**Problem**  
-No checks for `None` or missing data, leading to potential runtime errors.
+### Problem
 
-**Sample Code**  
+`StudentRepository.get_by_id` returns `None` for missing students but callers often assume a `Student` was resolved, so invalid inputs propagate.
 
 ```python
-def get_by_id(self, student_id: str) -> Student | None:
-    ...
+    def get_by_id(self, student_id: str) -> Student | None:
+        try:
+            return Student.objects.select_related("speciality").get(id=student_id)
+        except Student.DoesNotExist:
+            logger.error("student_not_found", student_id=student_id)
+            return None
 ```
 
-**Why It’s Dangerous**  
-If `student_id` is invalid or the student does not exist, code that assumes a valid `Student` object may fail later.
+### Potential Impact
 
-**Potential Impact**  
+- Upstream code dereferences `None`, throwing `AttributeError`s
+- Requests for missing students surface as 500s instead of controlled 404s
 
-- Unhandled `AttributeError`  
-- Unexpected service crashes
+### Field Classification
+
+| Field    | Explanation                                                                          |
+| -------- | ------------------------------------------------------------------------------------ |
+| Fault    | The repository returns `None` without guaranteeing consumers guard against it.       |
+| Error    | Services assume the returned value has attributes and end up in invalid state.       |
+| Failure  | Missing-student requests fail unpredictably in higher layers, degrading reliability. |
+| Severity | Medium                                                                               |
+
+_Location: `src/backend/rating_app/repositories/student_repository.py`:13-22 (approx.)_
 
 ---
 
 ## 4. Catching Repository Errors in the Wrong Layer
 
-**Problem**  
-Catching “model does not exist” errors in the API layer couples the API too tightly to repository implementation details.
+### Problem
 
-**Code Summary**  
-From repository:
+Multiple `RatingViewSet` endpoints catch `Rating.DoesNotExist` themselves, scattering repository knowledge across the API instead of handling it centrally.
 
 ```python
-def get_or_create(
-    self,
-    *,
-    title: str,
-    department: Department,
-    status: str = CourseStatus.PLANNED,
-    description: str | None = None,
-) -> tuple[Course, bool]:
-    return Course.objects.get_or_create(
-        title=title,
-        department=department,
-        status=status,
-        description=description,
-    )
+        try:
+            rating = self.rating_service.get_rating(rating_id)
+            ...
+        except Rating.DoesNotExist as exc:
+            raise NotFound(RATING_NOT_FOUND_MSG) from exc
 ```
 
-**Why It’s Dangerous**  
-If the same service or repo is reused elsewhere, those layers also need to handle the same repository exceptions.
+### Potential Impact
 
-**Potential Impact**  
+- Each endpoint must repeat the same catch logic
+- Risk of inconsistent responses if one view forgets translation
 
-- Code duplication of exception handling  
-- Leaky abstraction between repository and API layers
+### Field Classification
+
+| Field    | Explanation                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------ |
+| Fault    | The `ViewSet` embeds repository-specific exception handling instead of relying on services to normalize the fault. |
+| Error    | The contract between layers becomes unclear, and each controller reinterprets the missing record differently.      |
+| Failure  | Clients may receive inconsistent HTTP statuses or miss clear failure messages, complicating integrations.          |
+| Severity | Medium                                                                                                             |
+
+_Location: `src/backend/rating_app/views/rating_viewset.py`:186-262 (approx.)_
 
 ---
 
 ## 5. Missing Type Annotations
 
-**Problem**  
-No return type annotations reduce code clarity and hinder static checking.
+### Problem
 
-**Sample Code**  
+`CatalogParser._get_page_number_from_link` accepts an untyped `link`, so callers cannot rely on the expected structure during pagination extraction.
 
 ```python
-def _get_page_number_from_link(self, link) -> int | None:
-    ...
+    def _get_page_number_from_link(self, link) -> int | None:
+        t = link.text.strip()
+        ...
 ```
 
-**Why It’s Dangerous**  
-Developers and tools cannot easily infer what data type to expect, leading to subtle bugs.
+### Potential Impact
 
-**Potential Impact**  
+- Unexpected `AttributeError`s if `link` is not a `Tag`
+- Harder to reason about parser invariants or import typing tools
 
-- Harder to maintain or refactor  
-- Reduced IDE and typing support
+### Field Classification
+
+| Field    | Explanation                                                                                    |
+| -------- | ---------------------------------------------------------------------------------------------- |
+| Fault    | Lack of type annotations prevents static guarantees about the HTML node shape.                 |
+| Error    | Parsers may misinterpret the node or encounter missing attributes, corrupting pagination data. |
+| Failure  | Pagination may skip pages or crash under invalid links, reducing reliability.                  |
+| Severity | Low                                                                                            |
+
+_Location: `src/backend/scraper/parsers/catalog.py`:133-142 (approx.)_
 
 ---
 
 ## 6. Generic Exception Without Context
 
-**Problem**  
-Using `except Exception: pass` without logging context removes traceability.
+### Problem
 
-**Code Fragment**  
+The pagination helpers swallow every exception (`except Exception: pass`) without logging, leaving no trace when DOM scraping fails.
 
 ```python
-try:
-    risky_operation()
-except Exception:
-    pass
+        try:
+            dp = element.get("data-page")
+            if dp and str(dp).isdigit():
+                return int(str(dp)) + 1
+        except Exception:
+            pass
 ```
 
-**Why It’s Dangerous**  
-Completely swallows unexpected runtime errors.
+### Potential Impact
 
-**Potential Impact**  
+- Failures disappear silently
+- No fallback logic triggers, so pagination defaults may misreport the last page
 
-- Hidden crashes  
-- Damaged data integrity  
-- No alerts when system misbehaves
+### Field Classification
+
+| Field    | Explanation                                                                                           |
+| -------- | ----------------------------------------------------------------------------------------------------- |
+| Fault    | The code swallows all exceptions again, this time while reading `data-page`.                          |
+| Error    | The parser returns `None`, so internal pagination state never sees that an extraction attempt failed. |
+| Failure  | Pagination devolves to defaults without signaling the broken link, leaving navigation unreliable.     |
+| Severity | Medium                                                                                                |
+
+_Location: `src/backend/scraper/parsers/catalog.py`:116-123 (approx.)_
+
+---
 
 ## 7. Missing Request Timeout in Axios Client
 
-**Problem**  
+### Problem
 
-The Axios instance does not define a request timeout. Without it, requests may hang indefinitely if the server never responds.
-
-**Sample Code**  
+The Axios client was initially created without a `timeout`, so stalled backend responses could hang the frontend forever (the fix now adds `timeout`, but the risk was real).
 
 ```ts
 export const authorizedHttpClient = axios.create({
@@ -186,24 +213,18 @@ export const authorizedHttpClient = axios.create({
 });
 ```
 
-**Why It’s Dangerous**  
+### Potential Impact
 
-If a backend service stalls or a network issue occurs, pending promises never resolve or reject. This can freeze UI components, block requests, or consume system resources.
+- UI requests hang indefinitely under network issues
+- Resource leaks; components stay in loading state with unresolved promises
 
-**Potential Impact**  
+### Field Classification
 
-- Hanging HTTP requests  
-- Unresponsive frontend components  
-- Resource leaks / memory buildup  
-- Poor user experience under bad network conditions
+| Field    | Explanation                                                                |
+| -------- | -------------------------------------------------------------------------- |
+| Fault    | Missing `timeout` means no upper bound on HTTP waits.                      |
+| Error    | Pending promises remain unresolved, leaving component state limbo.         |
+| Failure  | UI interactions freeze when the backend stalls, degrading user experience. |
+| Severity | High                                                                       |
 
-**Recommended Fix**  
-Add a reasonable timeout (e.g., 10 seconds):
-
-```ts
-export const authorizedHttpClient = axios.create({
-  withCredentials: true,
-  baseURL: env.VITE_API_BASE_URL,
-  timeout: 10000, // 10 seconds
-});
-```
+_Location: `src/webapp/src/lib/api/apiClient.ts`:1-9 (approx.)_
