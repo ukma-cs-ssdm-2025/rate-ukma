@@ -21,14 +21,17 @@ jobs:
     outputs:
       backend_changed: ${{ steps.filter.outputs.backend }}
       webapp_changed: ${{ steps.filter.outputs.webapp }}
+      openapi_changed: ${{ steps.filter.outputs.openapi }}
     steps:
       - uses: actions/checkout@v5
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
         id: filter
         with:
-          filters: |
-            backend:
-              - '${{ env.BACKEND_DIR }}/**'
-            webapp:
-              - '${{ env.WEBAPP_DIR }}/**'
-              - '${{ env.OPENAPI_SCHEMA_FILE }}'
+        filters: |
+          backend:
+            - '${{ env.BACKEND_DIR }}/**'
+          webapp:
+            - '${{ env.WEBAPP_DIR }}/**'
+            - '${{ env.OPENAPI_SCHEMA_FILE }}'
+          openapi:
+            - '${{ env.OPENAPI_SCHEMA_FILE }}'
