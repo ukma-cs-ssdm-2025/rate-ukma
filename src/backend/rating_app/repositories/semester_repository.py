@@ -1,7 +1,10 @@
+from typing import Any
+
 from rating_app.models import Semester
+from rating_app.repositories.protocol import IRepository
 
 
-class SemesterRepository:
+class SemesterRepository(IRepository[Semester]):
     def get_all(self) -> list[Semester]:
         return list(Semester.objects.all())
 
@@ -22,3 +25,7 @@ class SemesterRepository:
 
     def delete(self, semester: Semester) -> None:
         semester.delete()
+
+    def filter(self, *args: Any, **kwargs: Any) -> list[Semester]:
+        #! TODO: not implemented
+        return self.get_all()

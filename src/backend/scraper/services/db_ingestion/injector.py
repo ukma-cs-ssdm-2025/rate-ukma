@@ -158,9 +158,7 @@ class CourseDbInjector(IDbInjector):
             semester=semester,
             code=offering_data.code,
             exam_type=offering_data.exam_type.value,
-            practice_type=offering_data.practice_type.value
-            if offering_data.practice_type
-            else "",
+            practice_type=offering_data.practice_type.value if offering_data.practice_type else "",
             credits=offering_data.credits,
             weekly_hours=offering_data.weekly_hours,
             lecture_count=offering_data.lecture_count,
@@ -228,7 +226,7 @@ class CourseDbInjector(IDbInjector):
             first_name=student_data.first_name,
             last_name=student_data.last_name,
             patronymic=student_data.patronymic or "",
-            education_level=education_level,
+            education_level=EducationLevel(education_level),
             speciality=student_speciality,
         )
         return student

@@ -1,19 +1,25 @@
-from dataclasses import asdict
-
 from rest_framework import status, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+import structlog
 from drf_spectacular.utils import extend_schema
+from pydantic import ValidationError as ModelValidationError
 
-from rating_app.filters.course_filters import (
+from rating_app.application_schemas.course import (
+    CourseFilterCriteria,
+    CourseReadParams,
+    CourseSearchResult,
+)
+from rating_app.serializers.analytics import CourseAnalyticsSerializer
+from rating_app.services import CourseService
+from rating_app.views.api_spec.course import (
     COURSES_LIST_QUERY_PARAMS,
     SINGLE_COURSE_QUERY_PARAMS,
 )
-from rating_app.filters.course_payload import CourseFilterPayload
-from rating_app.filters.filters_parsers.course import CourseFilterParser, CourseQueryParams
-from rating_app.serializers.analytics import CourseAnalyticsSerializer
-from rating_app.services.course_service import CourseService
 from rating_app.views.responses import R_ANALYTICS
+
+logger = structlog.get_logger(__name__)
 
 
 @extend_schema(tags=["analytics"])
@@ -23,7 +29,6 @@ class AnalyticsViewSet(viewsets.ViewSet):
 
     # IoC args
     course_service: CourseService | None = None
-    course_filter_parser: CourseFilterParser | None = None
 
     @extend_schema(
         summary="Get course analytics",
@@ -34,12 +39,13 @@ class AnalyticsViewSet(viewsets.ViewSet):
     )
     def list(self, request, *args, **kwargs):
         assert self.course_service is not None
-        assert self.course_filter_parser is not None
 
-        query_filters: CourseQueryParams = self.course_filter_parser.parse(
-            request.query_params, paginate=False
-        )
-        payload: CourseFilterPayload = self.course_service.filter_courses(**asdict(query_filters))
+        try:
+            filters = CourseFilterCriteria.model_validate(request.query_params.dict())
+        except ModelValidationError as e:
+            raise ValidationError(detail=e.errors()) from e
+
+        payload: CourseSearchResult = self.course_service.filter_courses(filters, paginate=False)
         serialized = self.serializer_class(payload.items, many=True).data
 
         return Response(serialized, status=status.HTTP_200_OK)
@@ -51,10 +57,15 @@ class AnalyticsViewSet(viewsets.ViewSet):
         parameters=SINGLE_COURSE_QUERY_PARAMS,
         responses=R_ANALYTICS,
     )
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, request, course_id=None, *args, **kwargs):
         assert self.course_service is not None
 
-        course_id = kwargs.get(self.lookup_url_kwarg)
-        course = self.course_service.get_course(course_id)
+        try:
+            params = CourseReadParams.model_validate({"course_id": course_id})
+        except ModelValidationError as e:
+            raise ValidationError(detail=e.errors()) from e
+
+        course = self.course_service.get_course(params.course_id)
+
         serialized = self.serializer_class(course).data
         return Response(serialized, status=status.HTTP_200_OK)
