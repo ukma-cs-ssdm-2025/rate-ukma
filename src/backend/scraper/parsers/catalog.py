@@ -111,7 +111,7 @@ class CatalogParser(BaseParser):
             if "page" in q:
                 return int(q["page"][0])
         except (ValueError, TypeError) as exc:
-            logger.debug("Failed to extract page number from pagination href", err=exc)
+            logger.debug("pagination_href_extract_failed", err=exc, href=str(href))
         return None
 
     def _extract_from_data_attribute(self, element: Tag) -> int | None:
@@ -126,7 +126,7 @@ class CatalogParser(BaseParser):
         try:
             return int(dp_str) + 1
         except ValueError as exc:
-            logger.debug("Invalid pagination data-page value", data_page=dp_str, err=exc)
+            logger.debug("pagination_data_page_invalid", data_page=dp_str, err=exc)
             return None
 
     def _extract_from_pagination_links(self, pag: Tag) -> int | None:
