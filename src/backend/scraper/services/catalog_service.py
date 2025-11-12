@@ -14,6 +14,8 @@ logger = structlog.get_logger(__name__)
 catalog_parser = CatalogParser()
 course_link_parser = CourseLinkParser()
 
+CATALOG_PAGE_SELECTOR = "#course-catalog-pjax"
+
 
 def _add_page_param(url: str, page_num: int) -> str:
     parsed_url = urlparse(url)
@@ -58,18 +60,18 @@ async def fetch_catalog_page(context: BrowserContext, catalog_url: str, page_num
                 url=url,
             )
         try:
-            await page.wait_for_selector("#course-catalog-pjax", state="attached", timeout=10000)
+            await page.wait_for_selector(CATALOG_PAGE_SELECTOR, state="attached", timeout=10000)
         except PlaywrightTimeoutError as exc:
             logger.debug(
                 "catalog_page_selector_timeout",
-                selector="#course-catalog-pjax",
+                selector=CATALOG_PAGE_SELECTOR,
                 err=str(exc),
                 url=url,
             )
         except PlaywrightError as exc:
             logger.debug(
                 "catalog_page_selector_error",
-                selector="#course-catalog-pjax",
+                selector=CATALOG_PAGE_SELECTOR,
                 err=str(exc),
                 url=url,
             )
