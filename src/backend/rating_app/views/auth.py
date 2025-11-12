@@ -83,12 +83,7 @@ def login(request):
     logger.info("django_login_init", user_agent=request.META.get("HTTP_USER_AGENT"))
 
     serializer = LoginSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
+    serializer.is_valid(raise_exception=True)
     validated_data = cast(LoginDto, serializer.validated_data)
     username = validated_data["username"]
     password = validated_data["password"]
@@ -125,10 +120,10 @@ def logout(request):
 
 def _get_session_expiry(request) -> datetime | None:
     try:
-        expiry = request.session.get_expiry_date()
-    except Exception:
+        return request.session.get_expiry_date()
+    except (AttributeError, ValueError) as exc:
+        logger.debug("session_expiry_lookup_failed", err=str(exc))
         return None
-    return expiry
 
 
 @extend_schema(

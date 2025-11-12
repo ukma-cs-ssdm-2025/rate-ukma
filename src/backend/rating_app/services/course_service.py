@@ -68,14 +68,14 @@ class CourseService:
 
     def update_course(self, course_id: str, **update_data) -> Course:
         course = self.course_repository.get_by_id(course_id)
+        if not course:
+            return None
         return self.course_repository.update(course, **update_data)
 
     def delete_course(self, course_id: str) -> None:
         course = self.course_repository.get_by_id(course_id)
-        self.course_repository.delete(course)
-
-    def get_filter_options(self) -> CourseFilterOptions:
-        semester_filter_options = self.semester_service.get_filter_options()
+        if not course:
+            semester_filter_options = self.semester_service.get_filter_options()
 
         return CourseFilterOptions(
             instructors=self.instructor_service.get_filter_options(),

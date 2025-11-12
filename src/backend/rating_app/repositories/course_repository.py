@@ -17,6 +17,8 @@ from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
 
+logger = structlog.get_logger()
+
 
 class CourseRepository(IRepository[Course]):
     def get_all(self) -> list[Course]:

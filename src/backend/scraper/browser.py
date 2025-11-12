@@ -39,7 +39,7 @@ def load_existing_ids(path: Path, id_key: str = "id") -> set[str]:
                 obj = json.loads(line)
                 if id_key in obj:
                     ids.add(str(obj[id_key]))
-            except Exception:
+            except (json.JSONDecodeError, TypeError):
                 continue
     return ids
 
@@ -64,7 +64,7 @@ def read_ids(path: Path, id_key: str = "id") -> list[str]:
                 obj = json.loads(line)
                 if id_key in obj:
                     out.append(str(obj[id_key]))
-            except Exception:
+            except (json.JSONDecodeError, TypeError):
                 continue
     return out
 

@@ -1,5 +1,6 @@
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 import structlog
@@ -37,7 +38,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         parameters=COURSES_LIST_QUERY_PARAMS,
         responses=R_ANALYTICS,
     )
-    def list(self, request, *args, **kwargs):
+    def list(self, request: Request, *args, **kwargs):
         assert self.course_service is not None
 
         try:
