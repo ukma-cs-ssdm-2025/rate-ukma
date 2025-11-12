@@ -43,7 +43,7 @@ describe("apiClient axios interceptor integration", () => {
 		vi.clearAllMocks();
 	});
 
-	it("redirects to connection-error page when API returns 500", async () => {
+	it("does not redirect on 500 server errors", async () => {
 		// Arrange
 		mockAxios.onGet("/api/test").reply(500);
 
@@ -52,10 +52,10 @@ describe("apiClient axios interceptor integration", () => {
 
 		// Assert
 		await expect(request).rejects.toMatchObject({ response: { status: 500 } });
-		expectConnectionErrorRedirect("server");
+		expect(mockWindowReplace).not.toHaveBeenCalled();
 	});
 
-	it("redirects to connection-error page when API returns 503", async () => {
+	it("does not redirect on 503 service unavailable errors", async () => {
 		// Arrange
 		mockAxios.onGet("/api/courses").reply(503);
 
@@ -64,7 +64,7 @@ describe("apiClient axios interceptor integration", () => {
 
 		// Assert
 		await expect(request).rejects.toMatchObject({ response: { status: 503 } });
-		expectConnectionErrorRedirect("server");
+		expect(mockWindowReplace).not.toHaveBeenCalled();
 	});
 
 	it("redirects with offline reason when network error occurs and user is offline", async () => {
@@ -134,8 +134,8 @@ describe("apiClient axios interceptor integration", () => {
 
 	it("prevents multiple redirects from race condition", async () => {
 		// Arrange
-		mockAxios.onGet("/api/test1").reply(500);
-		mockAxios.onGet("/api/test2").reply(503);
+		mockAxios.onGet("/api/test1").networkError();
+		mockAxios.onGet("/api/test2").networkError();
 
 		// Act
 		const results = await Promise.allSettled([

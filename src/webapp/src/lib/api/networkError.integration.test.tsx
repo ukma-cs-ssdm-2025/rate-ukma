@@ -89,10 +89,10 @@ describe("Network Error Handling - Full Integration", () => {
 		vi.clearAllMocks();
 	});
 
-	it("redirects to error page when API call fails with 500", async () => {
+	it("redirects to error page when API call fails due to network issues", async () => {
 		// Arrange
 		const user = userEvent.setup();
-		mockAxios.onGet("/api/courses").reply(500);
+		mockAxios.onGet("/api/courses").networkError();
 
 		render(<TestComponent endpoint="/api/courses" />);
 
@@ -162,7 +162,7 @@ describe("Network Error Handling - Full Integration", () => {
 		expect(mockWindowReplace).not.toHaveBeenCalled();
 	});
 
-	it("simulates user on authenticated page (courses) making request that fails", async () => {
+	it("simulates user on authenticated page (courses) making request that triggers connection error", async () => {
 		// Arrange
 		const user = userEvent.setup();
 		const { replace } = stubBrowserLocation({
@@ -173,7 +173,7 @@ describe("Network Error Handling - Full Integration", () => {
 		});
 		mockWindowReplace = replace;
 
-		mockAxios.onGet("/api/user/dashboard").reply(503);
+		mockAxios.onGet("/api/user/dashboard").networkError();
 
 		render(<TestComponent endpoint="/api/user/dashboard" />);
 
