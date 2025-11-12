@@ -41,6 +41,7 @@ jobs:
 
   deploy-live:
     needs: [test, openapi-validation, audit, build]
+    if: ${{ !contains(needs.*.result, 'failure') }}
     uses: ./.github/workflows/deploy-live.yml
     with:
       deployment_ref: ${{ inputs.version_tag }}

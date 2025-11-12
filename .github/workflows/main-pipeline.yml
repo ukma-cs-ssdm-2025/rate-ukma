@@ -24,7 +24,9 @@ jobs:
 
   openapi-validation:
     needs: changes-filter
-    if: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.openapi_changed) }}
+    if: |
+      fromJSON(needs.changes-filter.outputs.backend_changed) ||
+      fromJSON(needs.changes-filter.outputs.openapi_changed)
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
@@ -69,6 +71,9 @@ jobs:
 
   deploy-staging:
     needs: [version, test, openapi-validation, audit, build]
+    if: |
+      always() &&
+      (!contains(needs.*.result, 'failure') || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/deploy-staging.yml
     with:
       deployment_ref: ${{ github.sha }}
