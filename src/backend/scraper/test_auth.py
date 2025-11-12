@@ -7,6 +7,7 @@ import pytest
 
 from scraper.auth import (
     O365_LINK_SELECTOR,
+    PlaywrightError,
     PlaywrightTimeoutError,
     check_auth_status,
     login_o365,
@@ -268,7 +269,7 @@ def test_check_auth_status_handles_errors():
         context = MagicMock()
         page = MagicMock()
         context.new_page = AsyncMock(return_value=page)
-        page.goto = AsyncMock(side_effect=RuntimeError("boom"))
+        page.goto = AsyncMock(side_effect=PlaywrightError("boom"))
         page.close = AsyncMock()
 
         result = await check_auth_status(context, "https://example.com")

@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import structlog
 from playwright.async_api import BrowserContext
+from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from ..browser import JSONLWriter, load_existing_ids
@@ -36,17 +37,38 @@ async def fetch_catalog_page(context: BrowserContext, catalog_url: str, page_num
             logger.debug(
                 "catalog_page_load_state_timeout", state="domcontentloaded", err=str(exc), url=url
             )
+        except PlaywrightError as exc:
+            logger.debug(
+                "catalog_page_wait_state_error",
+                state="domcontentloaded",
+                err=str(exc),
+                url=url,
+            )
         try:
             await page.wait_for_load_state("networkidle")
         except PlaywrightTimeoutError as exc:
             logger.debug(
                 "catalog_page_load_state_timeout", state="networkidle", err=str(exc), url=url
             )
+        except PlaywrightError as exc:
+            logger.debug(
+                "catalog_page_wait_state_error",
+                state="networkidle",
+                err=str(exc),
+                url=url,
+            )
         try:
             await page.wait_for_selector("#course-catalog-pjax", state="attached", timeout=10000)
         except PlaywrightTimeoutError as exc:
             logger.debug(
                 "catalog_page_selector_timeout",
+                selector="#course-catalog-pjax",
+                err=str(exc),
+                url=url,
+            )
+        except PlaywrightError as exc:
+            logger.debug(
+                "catalog_page_selector_error",
                 selector="#course-catalog-pjax",
                 err=str(exc),
                 url=url,
@@ -61,6 +83,9 @@ async def fetch_catalog_page(context: BrowserContext, catalog_url: str, page_num
                 break
             except PlaywrightTimeoutError as exc:
                 logger.debug("catalog_selector_wait_timeout", selector=sel, err=str(exc), url=url)
+                continue
+            except PlaywrightError as exc:
+                logger.debug("catalog_selector_wait_error", selector=sel, err=str(exc), url=url)
                 continue
         html = await page.content()
         return html

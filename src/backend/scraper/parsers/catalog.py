@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 class CourseLinkParser(BaseParser):
     def parse(self, html: str, base_url: str) -> list[str]:
         if not base_url or not isinstance(base_url, str):
-            logger.warning("Invalid base_url provided to parse method")
-            return []
+            raise ValueError("base_url must be a non-empty string")
 
         links = []
         for match in self._iter_course_matches(html):
@@ -74,6 +73,9 @@ class CatalogParser(BaseParser):
         self.course_link_parser = CourseLinkParser()
 
     def parse(self, html: str, base_url: str) -> tuple[list[str], int | None]:
+        if not base_url or not isinstance(base_url, str):
+            raise ValueError("base_url must be a non-empty string")
+
         links = self.course_link_parser.parse(html, base_url)
         last_page = self._extract_last_page(html)
         return links, last_page
