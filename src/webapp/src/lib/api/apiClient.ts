@@ -1,11 +1,12 @@
 import axios, { AxiosHeaders } from "axios";
 
 import { env } from "@/env";
+import { handleConnectionIssue } from "./networkError";
 
 export const authorizedHttpClient = axios.create({
 	withCredentials: true,
 	baseURL: env.VITE_API_BASE_URL,
-	timeout: 10000, // 10 seconds
+	timeout: 10000,
 });
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -48,6 +49,14 @@ authorizedHttpClient.interceptors.request.use((config) => {
 	config.headers = headers;
 	return config;
 });
+
+authorizedHttpClient.interceptors.response.use(
+	(response) => response,
+	(error) => {
+		handleConnectionIssue(error);
+		return Promise.reject(error);
+	},
+);
 
 export const authorizedFetcher = <TData>(
 	config: Parameters<typeof authorizedHttpClient.request<TData>>[0],
