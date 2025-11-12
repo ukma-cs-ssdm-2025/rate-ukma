@@ -2,6 +2,8 @@ import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
 from scraper.services import catalog_service
 
 
@@ -74,8 +76,14 @@ def test_fetch_catalog_page_partial_wait_failures():
         page_mock = AsyncMock()
         page_mock.content.return_value = "<html>test content</html>"
 
-        page_mock.wait_for_load_state.side_effect = [Exception("timeout"), None]
-        page_mock.wait_for_selector.side_effect = [Exception("timeout"), None]
+        page_mock.wait_for_load_state.side_effect = [
+            PlaywrightTimeoutError("timeout"),
+            None,
+        ]
+        page_mock.wait_for_selector.side_effect = [
+            PlaywrightTimeoutError("timeout"),
+            None,
+        ]
 
         context_mock.new_page = AsyncMock(return_value=page_mock)
 
@@ -99,8 +107,8 @@ def test_fetch_catalog_page_all_wait_failures():
         page_mock = AsyncMock()
         page_mock.content.return_value = "<html>test content</html>"
 
-        page_mock.wait_for_load_state.side_effect = Exception("timeout")
-        page_mock.wait_for_selector.side_effect = Exception("timeout")
+        page_mock.wait_for_load_state.side_effect = PlaywrightTimeoutError("timeout")
+        page_mock.wait_for_selector.side_effect = PlaywrightTimeoutError("timeout")
 
         context_mock.new_page = AsyncMock(return_value=page_mock)
 

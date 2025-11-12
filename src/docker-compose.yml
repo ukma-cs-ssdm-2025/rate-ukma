@@ -16,7 +16,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/backend
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/backend:${BACKEND_IMAGE_TAG}
     container_name: "${COMPOSE_PROJECT_NAME}_django_backend"
     env_file:
       - .env

@@ -1,12 +1,19 @@
+from typing import Any
+
 from rating_app.models import Department, Faculty
+from rating_app.repositories.protocol import IRepository
 
 
-class DepartmentRepository:
+class DepartmentRepository(IRepository[Department]):
     def get_all(self) -> list[Department]:
         return list(Department.objects.select_related("faculty").all())
 
     def get_by_id(self, department_id: str) -> Department:
         return Department.objects.select_related("faculty").get(id=department_id)
+
+    def filter(self, *args: Any, **kwargs: Any) -> list[Department]:
+        #! TODO: not implemented
+        return self.get_all()
 
     def get_or_create(self, *, name: str, faculty: Faculty) -> tuple[Department, bool]:
         return Department.objects.get_or_create(name=name, faculty=faculty)

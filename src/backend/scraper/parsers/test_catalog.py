@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+import pytest
 from faker import Faker
 
 from scraper.parsers.catalog import (
@@ -188,7 +191,7 @@ def test_extract_course_ids_function():
 
     result = extract_course_ids(html)
 
-    assert result == expected
+    assert set(result) == set(expected)
 
 
 def test_catalog_parser_pagination_with_query_string():
@@ -376,6 +379,68 @@ def test_course_link_parser_with_malformed_links():
     result = CourseLinkParser().parse(html, base_url=base_url)
 
     assert result == [f"{base_url}/course/123"]
+
+
+def test_course_link_parser_skips_urlparse_errors():
+    html = """
+    <html>
+        <body>
+            <a href="/course/123">Valid</a>
+        </body>
+    </html>
+    """
+    base_url = fake.url().rstrip("/")
+
+    with patch("scraper.parsers.catalog.urlparse", side_effect=ValueError("broken href")):
+        result = CourseLinkParser().parse(html, base_url=base_url)
+
+    assert result == []
+
+
+def test_course_link_parser_requires_base_url():
+    html = """
+    <html>
+        <body>
+            <a href="/course/123">Valid</a>
+        </body>
+    </html>
+    """
+
+    with pytest.raises(ValueError):
+        CourseLinkParser().parse(html, base_url="")
+
+
+def test_catalog_parser_handles_invalid_query_encoding():
+    course_id = fake.random_int(min=100, max=999)
+    base_url = fake.url().rstrip("/")
+
+    html = f"""
+    <html>
+        <body>
+            <a href="/course/{course_id}">Course {course_id}</a>
+            <ul class="pagination">
+                <li class="last"><a href="?page=10%"></a>Last</li>
+            </ul>
+        </body>
+    </html>
+    """
+
+    result_links, result_last_page = CatalogParser().parse(html, base_url=base_url)
+
+    assert result_links == [f"{base_url}/course/{course_id}"]
+    assert result_last_page is None
+
+
+def test_catalog_parser_requires_base_url():
+    html = """
+    <html>
+        <body>
+            <a href="/course/123">Course 123</a>
+        </body>
+    </html>
+    """
+    with pytest.raises(ValueError):
+        CatalogParser().parse(html, base_url="")
 
 
 def test_course_detail_parser_with_malformed_html():

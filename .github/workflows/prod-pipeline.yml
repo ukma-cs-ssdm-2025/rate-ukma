@@ -8,24 +8,44 @@ on:
         type: string
 
 jobs:
+  changes-filter:
+    uses: ./.github/workflows/changes-filter.yml
+
   test:
+    needs: changes-filter
     uses: ./.github/workflows/test.yml
+    with:
+      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   openapi-validation:
+    needs: changes-filter
+    if: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.openapi_changed) }}
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
+    needs: changes-filter
     uses: ./.github/workflows/audit.yml
     secrets: inherit
+    with:
+      run_backend_audit: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   build:
+    needs: changes-filter
     uses: ./.github/workflows/build.yml
+    with:
+      version_tag: ${{ inputs.version_tag }}
+      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   deploy-live:
     needs: [test, openapi-validation, audit, build]
+    if: ${{ !contains(needs.*.result, 'failure') }}
     uses: ./.github/workflows/deploy-live.yml
     with:
       deployment_ref: ${{ inputs.version_tag }}
+      version_tag: ${{ inputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
@@ -35,7 +55,7 @@ jobs:
 
   update_pre_releases:
     needs: deploy-live
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
@@ -63,12 +83,11 @@ jobs:
           VERSION_TAG: "${{ inputs.version_tag }}"
           LIVE_TAG_PREFIX: "live-"
         run: |
-          TAGS=$(git tag --sort=-v:refname)
           LAST_TAG=${PREV_LIVE_TAG#$LIVE_TAG_PREFIX}
           CURRENT_TAG=$VERSION_TAG
 
           RELEASES_TO_UPDATE=$(git log --pretty=format:"%D" $LAST_TAG..$CURRENT_TAG | \
-            grep -oE 'tag: [^,)]+' | sed 's/tag: //' | sort -u | grep '^v')
+            grep -oE 'tag: [^,)]+' | sed 's/tag: //' | grep '^v' | sort -uV)
 
           echo "Releases to update: $RELEASES_TO_UPDATE"
 
@@ -82,46 +101,33 @@ jobs:
         id: update_pre_releases
         if: steps.get_releases.outputs.tags != ''
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           readarray -t tags <<< "${{ steps.get_releases.outputs.tags }}"
           echo "Processing releases: ${tags[@]}"
+          LAST_INDEX=$(( ${#tags[@]} - 1 ))
 
           for i in "${!tags[@]}"; do
             tag="${tags[$i]}"
             echo "Updating release: $tag"
 
-            if [[ "$i" -eq "$(( ${#tags[@]} - 1 ))" ]]; then
-              IS_LATEST=true
+            if [[ "$i" -eq "$LAST_INDEX" ]]; then
+              LATEST_FLAG="--latest"
             else
-              IS_LATEST=false
+              LATEST_FLAG="--latest=false"
             fi
 
-            RELEASE_API="https://api.github.com/repos/${{ github.repository }}/releases/tags/$tag"
-            RELEASE_ID=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "$RELEASE_API" | jq -r '.id')
-
-            if [[ "$RELEASE_ID" == "null" || -z "$RELEASE_ID" ]]; then
-              echo "Error: No release found for tag $tag" >&2
+            if ! gh release edit "$tag" --prerelease=false "$LATEST_FLAG" > /dev/null 2>&1; then
+              echo "No GitHub Release found for tag '$tag'. Skipping..." >&2
               continue
             fi
 
-            echo "Release ID: $RELEASE_ID"
-
-            PATCH_API="https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID"
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "$PATCH_API" \
-              -d '{"prerelease": false, "make_latest": '"$IS_LATEST"'}')
-
-            if [[ "$RESPONSE" != "200" ]]; then
-              echo "Error updating release $tag (HTTP $RESPONSE)" >&2
-            fi
+            echo "Successfully updated release: $tag"
           done
 
   push_live_tag:
     needs: update_pre_releases
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

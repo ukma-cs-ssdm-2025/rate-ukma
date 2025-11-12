@@ -34,39 +34,37 @@ export function DataTablePagination<TData>({
 	return (
 		<div
 			className={cn(
-				"flex w-full flex-col-reverse items-center justify-end gap-4 overflow-auto p-1 sm:flex-row sm:gap-8",
+				"flex w-full flex-col gap-3 px-1 py-2 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-0 sm:text-sm",
 				className,
 			)}
 			{...props}
 		>
-			<div className="flex items-center gap-4 sm:flex-row sm:gap-6 lg:gap-8">
-				<div className="flex items-center space-x-2">
-					<p className="whitespace-nowrap font-medium text-sm">
-						Рядків на сторінці
-					</p>
-					<Select
-						value={`${table.getState().pagination.pageSize}`}
-						onValueChange={(value) => {
-							table.setPageSize(Number(value));
-						}}
-					>
-						<SelectTrigger className="h-8 w-[4.5rem] [&[data-size]]:h-8">
-							<SelectValue placeholder={table.getState().pagination.pageSize} />
-						</SelectTrigger>
-						<SelectContent side="top">
-							{pageSizeOptions.map((pageSize) => (
-								<SelectItem key={pageSize} value={`${pageSize}`}>
-									{pageSize}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
-				<div className="flex items-center justify-center font-medium text-sm">
+			<div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto">
+				<p className="font-medium">Рядків на сторінці</p>
+				<Select
+					value={`${table.getState().pagination.pageSize}`}
+					onValueChange={(value) => {
+						table.setPageSize(Number(value));
+					}}
+				>
+					<SelectTrigger className="h-8 w-[4.5rem] [&[data-size]]:h-8">
+						<SelectValue placeholder={table.getState().pagination.pageSize} />
+					</SelectTrigger>
+					<SelectContent side="top">
+						{pageSizeOptions.map((pageSize) => (
+							<SelectItem key={pageSize} value={`${pageSize}`}>
+								{pageSize}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</div>
+			<div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto">
+				<div className="font-medium">
 					Сторінка {table.getState().pagination.pageIndex + 1} з{" "}
 					{serverPageCount ?? table.getPageCount()}
 				</div>
-				<div className="flex items-center space-x-2">
+				<div className="flex gap-2">
 					<Button
 						aria-label="Go to first page"
 						variant="outline"

@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: ""
+      version_tag:
+        description: "Version tag to use for the deployment"
+        required: false
+        type: string
+        default: "latest"
     secrets:
       SSH_HOST:
         required: true
@@ -24,7 +29,8 @@ jobs:
   deploy:
     uses: ./.github/workflows/deploy.yml
     with:
-      webapp_image_tag: "staging-latest"
+      version_tag: ${{ inputs.version_tag }}
+      environment: staging
       archive_name: "rate-ukma-staging-${{ inputs.deployment_ref || github.sha }}.tar.gz"
       deployment_ref: ${{ inputs.deployment_ref }}
       test_url: ${{ vars.STAGING_URL }}

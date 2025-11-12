@@ -1,8 +1,11 @@
+from typing import Any
+
 from rating_app.models import Speciality
 from rating_app.models.faculty import Faculty
+from rating_app.repositories.protocol import IRepository
 
 
-class SpecialityRepository:
+class SpecialityRepository(IRepository[Speciality]):
     def get_all(self) -> list[Speciality]:
         return list(Speciality.objects.select_related("faculty").all())
 
@@ -26,3 +29,7 @@ class SpecialityRepository:
 
     def delete(self, speciality: Speciality) -> None:
         speciality.delete()
+
+    def filter(self, *args: Any, **kwargs: Any) -> list[Speciality]:
+        #! TODO: not implemented
+        return self.get_all()

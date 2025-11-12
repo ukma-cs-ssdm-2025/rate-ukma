@@ -100,4 +100,4 @@ def test_invalid_filter_provided(course_factory, token_client, analytics_url):
     response = token_client.get(url)
 
     # Assert
-    assert response.status_code == 400, f"Expected 400, got {response.status_code}"
+    assert response.status_code == 400

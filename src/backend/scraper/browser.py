@@ -14,6 +14,12 @@ class JSONLWriter:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.lock = FileLock(str(self.path) + ".lock")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, _exc_type, _exc_val, _exc_tb):
+        return None
+
     def write(self, record: dict) -> None:
         with self.lock:
             with self.path.open("a", encoding="utf-8") as f:
@@ -33,7 +39,7 @@ def load_existing_ids(path: Path, id_key: str = "id") -> set[str]:
                 obj = json.loads(line)
                 if id_key in obj:
                     ids.add(str(obj[id_key]))
-            except Exception:
+            except (json.JSONDecodeError, TypeError):
                 continue
     return ids
 
@@ -58,7 +64,7 @@ def read_ids(path: Path, id_key: str = "id") -> list[str]:
                 obj = json.loads(line)
                 if id_key in obj:
                     out.append(str(obj[id_key]))
-            except Exception:
+            except (json.JSONDecodeError, TypeError):
                 continue
     return out
 

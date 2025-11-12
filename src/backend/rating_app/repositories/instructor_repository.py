@@ -1,12 +1,19 @@
+from typing import Any
+
+from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.models import Instructor
+from rating_app.repositories.protocol import IRepository
 
 
-class InstructorRepository:
+class InstructorRepository(IRepository[Instructor]):
     def get_all(self) -> list[Instructor]:
         return list(Instructor.objects.all())
 
     def get_by_id(self, instructor_id: str) -> Instructor:
-        return Instructor.objects.get(id=instructor_id)
+        try:
+            return Instructor.objects.get(id=instructor_id)
+        except Instructor.DoesNotExist as e:
+            raise InstructorNotFoundError() from e
 
     def get_or_create(
         self,
@@ -36,3 +43,7 @@ class InstructorRepository:
 
     def delete(self, instructor: Instructor) -> None:
         instructor.delete()
+
+    def filter(self, *args: Any, **kwargs: Any) -> list[Instructor]:
+        #! TODO: not implemented
+        return self.get_all()

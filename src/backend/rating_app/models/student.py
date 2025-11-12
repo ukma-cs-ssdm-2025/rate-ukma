@@ -11,6 +11,8 @@ class Student(Person):
     education_level = models.CharField(
         max_length=16,
         choices=EducationLevel.choices,
+        blank=True,
+        default="",
     )
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,

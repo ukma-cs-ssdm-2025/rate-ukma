@@ -3,6 +3,8 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import structlog
 from playwright.async_api import BrowserContext
+from playwright.async_api import Error as PlaywrightError
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from ..browser import JSONLWriter, load_existing_ids
 from ..parsers.catalog import CatalogParser, CourseLinkParser
@@ -11,6 +13,8 @@ logger = structlog.get_logger(__name__)
 
 catalog_parser = CatalogParser()
 course_link_parser = CourseLinkParser()
+
+CATALOG_PAGE_SELECTOR = "#course-catalog-pjax"
 
 
 def _add_page_param(url: str, page_num: int) -> str:
@@ -31,16 +35,46 @@ async def fetch_catalog_page(context: BrowserContext, catalog_url: str, page_num
         await page.goto(url)
         try:
             await page.wait_for_load_state("domcontentloaded")
-        except Exception:
-            pass
+        except PlaywrightTimeoutError as exc:
+            logger.debug(
+                "catalog_page_load_state_timeout", state="domcontentloaded", err=str(exc), url=url
+            )
+        except PlaywrightError as exc:
+            logger.debug(
+                "catalog_page_wait_state_error",
+                state="domcontentloaded",
+                err=str(exc),
+                url=url,
+            )
         try:
             await page.wait_for_load_state("networkidle")
-        except Exception:
-            pass
+        except PlaywrightTimeoutError as exc:
+            logger.debug(
+                "catalog_page_load_state_timeout", state="networkidle", err=str(exc), url=url
+            )
+        except PlaywrightError as exc:
+            logger.debug(
+                "catalog_page_wait_state_error",
+                state="networkidle",
+                err=str(exc),
+                url=url,
+            )
         try:
-            await page.wait_for_selector("#course-catalog-pjax", state="attached", timeout=10000)
-        except Exception:
-            pass
+            await page.wait_for_selector(CATALOG_PAGE_SELECTOR, state="attached", timeout=10000)
+        except PlaywrightTimeoutError as exc:
+            logger.debug(
+                "catalog_page_selector_timeout",
+                selector=CATALOG_PAGE_SELECTOR,
+                err=str(exc),
+                url=url,
+            )
+        except PlaywrightError as exc:
+            logger.debug(
+                "catalog_page_selector_error",
+                selector=CATALOG_PAGE_SELECTOR,
+                err=str(exc),
+                url=url,
+            )
         for sel in [
             "ul.pagination",
             "div.panel-heading",
@@ -49,7 +83,11 @@ async def fetch_catalog_page(context: BrowserContext, catalog_url: str, page_num
             try:
                 await page.wait_for_selector(sel, state="attached", timeout=5000)
                 break
-            except Exception:
+            except PlaywrightTimeoutError as exc:
+                logger.debug("catalog_selector_wait_timeout", selector=sel, err=str(exc), url=url)
+                continue
+            except PlaywrightError as exc:
+                logger.debug("catalog_selector_wait_error", selector=sel, err=str(exc), url=url)
                 continue
         html = await page.content()
         return html
