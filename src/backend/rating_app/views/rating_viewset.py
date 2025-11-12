@@ -223,11 +223,7 @@ class RatingViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             serializer = RatingCreateUpdateSerializer(rating, data=request.data, partial=True)
-            try:
-                serializer.is_valid(raise_exception=True)
-            except Exception as exc:
-                # If serializer error is about disallowed fields, return 400
-                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            serializer.is_valid(raise_exception=True)
             rating = self.rating_service.update_rating(
                 rating_id=rating_id,
                 **serializer.validated_data,  # type: ignore[arg-type]

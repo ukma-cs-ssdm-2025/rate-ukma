@@ -121,8 +121,7 @@ Multiple `RatingViewSet` endpoints catch `Rating.DoesNotExist` themselves, scatt
 
 ### Potential Impact
 
-- Each endpoint must repeat the same catch logic
-- Risk of inconsistent responses if one view forgets translation
+ - `partial_update` also locally captured serializer validation errors, so the view was swallowing fault details before the global handler could annotate them.
 
 ### Field Classification
 
@@ -230,3 +229,25 @@ export const authorizedHttpClient = axios.create({
 | Severity | High                                                                       |
 
 _Location: `src/webapp/src/lib/api/apiClient.ts`:1-9 (approx.)_
+
+## 8. Redundant Serializer Catch
+
+### Problem
+
+`partial_update` previously wrapped `serializer.is_valid` in a `try/except` to return a manual 400 response even though DRF’s global `exception_handler` already formats validation failures. That local catch (first catching `Exception`, then `ValidationError`) hid the fault before the global handler could document or log it.
+
+### Potential Impact
+
+- Validation errors were swallowed before our exception handler could annotate them with fields/status  
+- Behavior diverged from `create`/`update`, so clients saw inconsistent error payloads for the same fault
+
+### Field Classification
+
+| Field    | Explanation |
+| -------- | ----------- |
+| Fault    | The view duplicated DRF’s work and silenced serializer failures before they reached the global handler. |
+| Error    | The controller returned a manually-formatted 400 instead of the richer schema from `exception_handler`. |
+| Failure  | Clients got inconsistent error payloads for invalid input, and logging missed the fault path. |
+| Severity | Low |
+
+_Location: `src/backend/rating_app/views/rating_viewset.py`:214-228 (approx.)_
