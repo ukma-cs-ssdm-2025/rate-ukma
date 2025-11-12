@@ -199,7 +199,7 @@ def _get_page_number_from_link(self, link: Tag) -> int | None:
 
 ### 6. [Generic Exception Without Context](./scavenger-hunt.md#6-generic-exception-without-context)
 
-[Commit](-)
+[Commit](https://github.com/ukma-cs-ssdm-2025/rate-ukma/pull/246/commits/a9e714bee95d1ca1328df7fe94f494357d7f3041)
 
 **Before:**
 
