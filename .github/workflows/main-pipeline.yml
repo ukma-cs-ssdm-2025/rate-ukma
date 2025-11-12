@@ -12,24 +12,72 @@ jobs:
   version:
     uses: ./.github/workflows/version.yml
 
+  changes-filter:
+    uses: ./.github/workflows/changes-filter.yml
+
   test:
+    needs: changes-filter
     uses: ./.github/workflows/test.yml
+    with:
+      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   openapi-validation:
+    needs: changes-filter
+    if: |
+      fromJSON(needs.changes-filter.outputs.backend_changed) ||
+      fromJSON(needs.changes-filter.outputs.openapi_changed)
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
+    needs: changes-filter
     uses: ./.github/workflows/audit.yml
     secrets: inherit
+    with:
+      run_backend_audit: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   build:
+    needs: [version, changes-filter]
     uses: ./.github/workflows/build.yml
+    with:
+      version_tag: ${{ needs.version.outputs.version_tag }}
+      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
+
+  release-needed:
+    needs: [version]
+    runs-on: ubuntu-24.04
+    outputs:
+      release_needed: ${{ steps.check.outputs.release_needed }}
+    env:
+      VERSION_TAG: ${{ needs.version.outputs.version_tag }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check if release is needed
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view $VERSION_TAG; then
+            RELEASE_NEEDED=false
+          else
+            RELEASE_NEEDED=true
+          fi
+
+          echo "release_needed=$RELEASE_NEEDED" >> $GITHUB_OUTPUT
+          echo "Release needed: $RELEASE_NEEDED -> $VERSION_TAG"
 
   deploy-staging:
     needs: [version, test, openapi-validation, audit, build]
+    if: |
+      always() &&
+      (!contains(needs.*.result, 'failure') || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/deploy-staging.yml
     with:
       deployment_ref: ${{ github.sha }}
+      version_tag: ${{ needs.version.outputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
@@ -38,8 +86,8 @@ jobs:
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   release:
-    needs: [deploy-staging, version]
-    if: needs.version.outputs.version_type != 'none'
+    needs: [deploy-staging, version, release-needed]
+    if: needs.release-needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}

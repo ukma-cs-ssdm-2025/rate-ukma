@@ -3,11 +3,14 @@ name: Deploy
 on:
   workflow_call:
     inputs:
-      webapp_image_tag:
+      version_tag:
         required: true
         type: string
-        description: "The tag of the webapp image to deploy"
-        default: "staging-latest"
+        description: "The version tag to deploy (will find best matching image)"
+      environment:
+        required: true
+        type: string
+        description: "Environment to deploy to (staging or live)"
       archive_name:
         required: true
         type: string
@@ -52,7 +55,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: read
@@ -61,6 +64,90 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.deployment_ref || github.sha }}
+
+      - name: Find latest available image tags
+        id: find-tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_VERSION: ${{ inputs.version_tag }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          ORG: ${{ github.repository_owner }}
+        run: |
+          find_latest_version() {
+            local package_name=$1
+            local target_version=$2
+            local tag_prefix=$3
+            
+            echo "Searching for $package_name (target: $target_version, prefix: $tag_prefix)" >&2
+            
+            local encoded_package="${package_name//\//%2F}"
+            local tags=$(gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              --paginate \
+              "/orgs/$ORG/packages/container/$encoded_package/versions" \
+              --jq '[.[] | .metadata.container.tags[]? // empty] | unique | .[]')
+            
+            if [ -z "$tags" ]; then
+              echo "No tags found, using default: ${tag_prefix}${target_version}" >&2
+              echo "${tag_prefix}${target_version}"
+              return
+            fi
+            
+            # Filter tags matching the pattern
+            local pattern="^${tag_prefix}v[0-9]+\.[0-9]+\.[0-9]+"
+            local filtered=$(echo "$tags" | grep -E "$pattern" || true)
+            
+            if [ -z "$filtered" ]; then
+              echo "No matching tags found, using default: ${tag_prefix}${target_version}" >&2
+              echo "${tag_prefix}${target_version}"
+              return
+            fi
+            
+            # Remove prefix and 'v' for version comparison
+            local target_num="${target_version#v}"
+            
+            # Find highest version <= target
+            local latest=$(echo "$filtered" | while IFS= read -r tag; do
+              local ver="${tag#$tag_prefix}"
+              ver="${ver#v}"
+              
+              # Compare versions: if ver <= target_num, output it
+              if [ "$(printf '%s\n' "$ver" "$target_num" | sort -V | tail -n1)" = "$target_num" ]; then
+                echo "$tag"
+              fi
+            done | sort -V | tail -n1)
+            
+            if [ -n "$latest" ]; then
+              echo "Found: $latest" >&2
+              echo "$latest"
+            else
+              echo "No suitable version found, using default: ${tag_prefix}${target_version}" >&2
+              echo "${tag_prefix}${target_version}"
+            fi
+          }
+
+          # Determine webapp prefix based on environment
+          if [ "$ENVIRONMENT" = "staging" ]; then
+            WEBAPP_PREFIX="staging-"
+          elif [ "$ENVIRONMENT" = "live" ]; then
+            WEBAPP_PREFIX="live-"
+          else
+            echo "Unknown environment: $ENVIRONMENT" >&2
+            exit 1
+          fi
+
+          # Find versions
+          BACKEND_TAG=$(find_latest_version "rate-ukma/backend" "$TARGET_VERSION" "")
+          WEBAPP_TAG=$(find_latest_version "rate-ukma/webapp" "$TARGET_VERSION" "$WEBAPP_PREFIX")
+
+          echo "backend_tag=$BACKEND_TAG" >> "$GITHUB_OUTPUT"
+          echo "webapp_tag=$WEBAPP_TAG" >> "$GITHUB_OUTPUT"
+
+          # Summary
+          echo "### Selected Image Tags" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Backend**: \`$BACKEND_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Webapp**: \`$WEBAPP_TAG\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set environment variables
         env:
@@ -83,11 +170,15 @@ jobs:
 
       - name: Deploy to server
         uses: appleboy/ssh-action@master
+        env:
+          BACKEND_IMAGE_TAG: ${{ steps.find-tags.outputs.backend_tag }}
+          WEBAPP_IMAGE_TAG: ${{ steps.find-tags.outputs.webapp_tag }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           command_timeout: "30m"
+          envs: BACKEND_IMAGE_TAG,WEBAPP_IMAGE_TAG
           script: |
             echo "Deploying..."
 
@@ -108,14 +199,20 @@ jobs:
               echo "Backing up current source code..."
               cp -r ${{ env.PROJECT_SOURCE_CODE }} "${{ env.REMOTE_BACKUP_CODE_DIR }}/"
               echo "Backup created at ${{ env.REMOTE_BACKUP_CODE_DIR }}"
+              
+              echo "Saving current image tags for potential rollback..."
+              cd ${{ env.PROJECT_SOURCE_CODE }}
+              PREV_WEBAPP_TAG=$(grep "WEBAPP_IMAGE_TAG=" .env | cut -d'=' -f2 || echo "")
+              PREV_BACKEND_TAG=$(grep "BACKEND_IMAGE_TAG=" .env | cut -d'=' -f2 || echo "")
+              echo "Previous WEBAPP_IMAGE_TAG: $PREV_WEBAPP_TAG"
+              echo "Previous BACKEND_IMAGE_TAG: $PREV_BACKEND_TAG"
+              echo "PREV_WEBAPP_TAG=$PREV_WEBAPP_TAG" > "${{ env.REMOTE_TMP_DEPLOY_DIR }}/prev_tags.env"
+              echo "PREV_BACKEND_TAG=$PREV_BACKEND_TAG" >> "${{ env.REMOTE_TMP_DEPLOY_DIR }}/prev_tags.env"
             fi
-
-            export WEBAPP_IMAGE_TAG=${{ inputs.webapp_image_tag }}
-            echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
 
             echo "Stopping existing services..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod down || true
+            sudo docker compose --profile prod down || true
 
             echo "Cleaning project directory..."
             rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
@@ -131,13 +228,14 @@ jobs:
             echo "Logging in to GitHub Container Registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            echo "Pulling latest docker images..."
+            echo "Pulling docker images..."
             echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
+            echo "Using BACKEND_IMAGE_TAG: $BACKEND_IMAGE_TAG"
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod pull
+            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG BACKEND_IMAGE_TAG=$BACKEND_IMAGE_TAG docker compose --profile prod pull
 
             echo "Starting services with pulled images..."
-            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod up -d
+            sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG BACKEND_IMAGE_TAG=$BACKEND_IMAGE_TAG docker compose --profile prod up -d
 
             echo "Waiting for services to be up and running..."
             max_attempts=${{ env.MAX_ATTEMPTS }}
@@ -147,7 +245,7 @@ jobs:
             while [ $attempt -le $max_attempts ]; do
               echo "Up and running check attempt $attempt/$max_attempts..."
               
-              if sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose ps --status=running | grep "Up" && \
+              if sudo docker compose ps --status=running | grep "Up" && \
                  [ -f ${{ env.STATIC_ROOT }}/index.html ]; then
                 services_healthy=true
                 break
@@ -162,18 +260,34 @@ jobs:
               echo "Services are up and healthy"
               echo "Cleaning up backup directory..."
               rm -rf "${{ env.REMOTE_BACKUP_CODE_DIR }}"
+              rm -f "${{ env.REMOTE_TMP_DEPLOY_DIR }}/prev_tags.env"
               echo "Deployment finished successfully"
             else
               echo "Services failed to start properly. Rolling back..."
               sudo docker compose --profile prod down || true
               
-
               echo "Restoring previous version from ${{ env.REMOTE_BACKUP_CODE_DIR }}"
               rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
               cp -r "${{ env.REMOTE_BACKUP_CODE_DIR }}/src/"* ${{ env.PROJECT_SOURCE_CODE }}/
               
               cd ${{ env.PROJECT_SOURCE_CODE }}
-              sudo WEBAPP_IMAGE_TAG=$WEBAPP_IMAGE_TAG docker compose --profile prod up -d --build
+              
+              if [ -f "${{ env.REMOTE_TMP_DEPLOY_DIR }}/prev_tags.env" ]; then
+                echo "Loading previous image tags..."
+                source "${{ env.REMOTE_TMP_DEPLOY_DIR }}/prev_tags.env"
+                echo "Rolling back to WEBAPP_IMAGE_TAG: $PREV_WEBAPP_TAG"
+                echo "Rolling back to BACKEND_IMAGE_TAG: $PREV_BACKEND_TAG"
+                
+                echo "Pulling previous docker images..."
+                sudo WEBAPP_IMAGE_TAG=$PREV_WEBAPP_TAG BACKEND_IMAGE_TAG=$PREV_BACKEND_TAG docker compose --profile prod pull
+                
+                echo "Starting previous version..."
+                sudo WEBAPP_IMAGE_TAG=$PREV_WEBAPP_TAG BACKEND_IMAGE_TAG=$PREV_BACKEND_TAG docker compose --profile prod up -d
+              else
+                echo "Warning: Previous tags not found. Attempting basic rollback..."
+                sudo docker compose --profile prod pull
+                sudo docker compose --profile prod up -d
+              fi
               
               echo "Rollback completed. Deployment failed."
               exit 1

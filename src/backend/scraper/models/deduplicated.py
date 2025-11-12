@@ -57,18 +57,18 @@ class AcademicTitle(str, Enum):
 
 class DeduplicatedStudent(BaseModel):
     first_name: str
-    patronymic: str | None = None
+    patronymic: str = ""
     last_name: str
-    index: str | None = None
-    email: str | None = None
-    speciality: str | None = None
+    index: str = ""
+    email: str = ""
+    speciality: str = ""
     education_level: EducationLevel | None = None
-    group: str | None = None
+    group: str = ""
 
 
 class DeduplicatedInstructor(BaseModel):
     first_name: str
-    patronymic: str | None = None
+    patronymic: str = ""
     last_name: str
     academic_degree: AcademicDegree | None = None
     academic_title: AcademicTitle | None = None
@@ -81,14 +81,14 @@ class DeduplicatedSemester(BaseModel):
 
 class DeduplicatedSpeciality(BaseModel):
     name: str
-    faculty: str
+    faculty: str = ""
     type: EducationLevel | None = None
 
 
 class DeduplicatedEnrollment(BaseModel):
     student: DeduplicatedStudent
     status: EnrollmentStatus
-    enrolled_at: str | None = None
+    enrolled_at: str = ""
 
 
 class DeduplicatedCourseInstructor(BaseModel):

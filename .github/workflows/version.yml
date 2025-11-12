@@ -29,7 +29,7 @@ env:
 
 jobs:
   version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version_tag: ${{ steps.semantic.outputs.version_tag }}
       version_type: ${{ steps.semantic.outputs.version_type }}
@@ -46,7 +46,7 @@ jobs:
       - name: Show current repo version state
         run: |
           git log --oneline --decorate -n 5
-          git tag --list
+          git tag --sort=v:refname --list | tail -n 5
 
       - name: Generate Semantic Version
         id: semantic

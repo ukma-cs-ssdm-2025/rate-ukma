@@ -1,0 +1,19 @@
+from typing import Any, Protocol, TypeVar
+
+from django.db.models import Model, QuerySet
+
+T = TypeVar("T", bound=Model)
+
+
+class IRepository(Protocol[T]):
+    def get_all(self) -> QuerySet[T]: ...
+
+    def get_by_id(self, id: str) -> T: ...
+
+    def filter(self, *args: Any, **kwargs: Any) -> QuerySet[T]: ...
+
+    def get_or_create(self, **kwargs: Any) -> tuple[T, bool]: ...
+
+    def update(self, obj: T, **kwargs: Any) -> T: ...
+
+    def delete(self, obj: T) -> bool: ...

@@ -1,5 +1,6 @@
 import pytest
 
+from rating_app.application_schemas.course import CourseFilterCriteria
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.tests.factories import (
@@ -27,10 +28,11 @@ def test_filter_by_instructor_returns_only_assigned_courses(repo):
     # Act
     course_without_instructor = CourseFactory()
     CourseOfferingFactory(course=course_without_instructor)
-    result = repo.filter(instructor=str(instructor.id))
+    filters = CourseFilterCriteria(instructor=instructor.id)
+    result = repo.filter(filters)
 
     # Assert
-    returned_ids = {course.id for course in result.items}
+    returned_ids = {course.id for course in result}
     assert returned_ids == {course_with_instructor.id}
 
 
@@ -48,12 +50,14 @@ def test_filter_by_semester_limits_to_matching_courses(repo):
 
     # Act
     result = repo.filter(
-        semester_year=fall_semester.year,
-        semester_term=fall_semester.term,
+        CourseFilterCriteria(
+            semester_year=fall_semester.year,
+            semester_term=fall_semester.term,
+        )
     )
 
     # Assert
-    returned_ids = {course.id for course in result.items}
+    returned_ids = {course.id for course in result}
     assert returned_ids == {fall_course.id}
 
 
@@ -65,10 +69,11 @@ def test_filter_prefetches_instructors(django_assert_num_queries, repo):
         CourseOfferingFactory(semester=semester, instructors=[InstructorFactory()])
 
     # Act
-    result = repo.filter()
+    result = repo.filter(CourseFilterCriteria())
 
     # Assert
+    courses = list(result)
     with django_assert_num_queries(0):
-        for course in result.items:
+        for course in courses:
             for offering in course.offerings.all():
                 list(offering.instructors.all())

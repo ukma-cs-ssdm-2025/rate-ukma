@@ -1,42 +1,40 @@
 name: Docker Build
 on:
   workflow_dispatch:
+    inputs:
+      version_tag:
+        description: "Version tag to use for the build"
+        required: false
+        type: string
+        default: "latest"
+
   workflow_call:
+    inputs:
+      version_tag:
+        description: "Version tag to use for the build"
+        required: false
+        type: string
+        default: "latest"
+      backend_changed:
+        description: "Whether backend code has changed"
+        required: true
+        type: boolean
+      webapp_changed:
+        description: "Whether webapp code has changed"
+        required: true
+        type: boolean
 
 env:
   SOURCE_CODE_DIR: src
-  BACKEND_DIR: src/backend
-  WEBAPP_DIR: src/webapp
-  OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
-  WEBAPP_STAGING_IMAGE_TAG: staging-latest
-  WEBAPP_LIVE_IMAGE_TAG: live-latest
 
 permissions:
   packages: write
   contents: read
 
 jobs:
-  filter:
-    runs-on: ubuntu-latest
-    outputs:
-      backend_changed: ${{ steps.filter.outputs.backend }}
-      webapp_changed: ${{ steps.filter.outputs.webapp }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
-        id: filter
-        with:
-          filters: |
-            backend:
-              - '${{ env.BACKEND_DIR }}/**'
-            webapp:
-              - '${{ env.WEBAPP_DIR }}/**'
-              - '${{ env.OPENAPI_SCHEMA_FILE }}'
-
   build-backend:
-    needs: filter
-    if: needs.filter.outputs.backend_changed == 'true'
-    runs-on: ubuntu-latest
+    if: inputs.backend_changed == true
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -44,7 +42,7 @@ jobs:
       - name: Login to GitHub Container Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: docker login ghcr.io -u ${{ github.actor }} -p $GITHUB_TOKEN
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Copy default .env file
         working-directory: ${{ env.SOURCE_CODE_DIR }}
@@ -55,23 +53,27 @@ jobs:
         id: extract_name
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
-          BACKEND_IMAGE=$(awk '/backend:/, /profiles:/' docker-compose.yml | grep 'image:' | head -1 | awk '{print $2}')
+          BACKEND_IMAGE_TAGGED=$(awk '/backend:/, /profiles:/' docker-compose.yml | grep 'image:' | head -1 | awk '{print $2}')
+          BACKEND_IMAGE=$(echo $BACKEND_IMAGE_TAGGED | awk -F: '{print $1}')
           echo "backend_image=${BACKEND_IMAGE}" >> $GITHUB_OUTPUT
           echo "Backend image: $BACKEND_IMAGE"
 
       - name: Build backend
+        env:
+          BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker compose --profile prod build backend
+        run: docker compose --profile prod build --build-arg BACKEND_IMAGE_TAG=${BACKEND_IMAGE_TAG} backend
 
       - name: Push backend image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        env:
+          BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker push ${{ steps.extract_name.outputs.backend_image }}:latest
+        run: docker push ${{ steps.extract_name.outputs.backend_image }}:${BACKEND_IMAGE_TAG}
 
   build-webapp:
-    needs: filter
-    if: needs.filter.outputs.webapp_changed == 'true'
-    runs-on: ubuntu-latest
+    if: inputs.webapp_changed == true
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -98,7 +100,7 @@ jobs:
       - name: Build staging webapp
         env:
           VITE_API_BASE_URL: ${{ vars.STAGING_URL }}
-          WEBAPP_IMAGE_TAG: ${{ env.WEBAPP_STAGING_IMAGE_TAG }}
+          WEBAPP_IMAGE_TAG: staging-${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Building webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
@@ -110,7 +112,7 @@ jobs:
       - name: Push staging webapp
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         env:
-          WEBAPP_IMAGE_TAG: ${{ env.WEBAPP_STAGING_IMAGE_TAG }}
+          WEBAPP_IMAGE_TAG: staging-${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
@@ -119,7 +121,7 @@ jobs:
       - name: Build live webapp
         env:
           VITE_API_BASE_URL: ${{ vars.LIVE_URL }}
-          WEBAPP_IMAGE_TAG: ${{ env.WEBAPP_LIVE_IMAGE_TAG }}
+          WEBAPP_IMAGE_TAG: live-${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Building webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
@@ -131,7 +133,7 @@ jobs:
       - name: Push live webapp
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         env:
-          WEBAPP_IMAGE_TAG: ${{ env.WEBAPP_LIVE_IMAGE_TAG }}
+          WEBAPP_IMAGE_TAG: live-${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"

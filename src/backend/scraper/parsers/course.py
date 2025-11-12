@@ -22,7 +22,7 @@ class ParserUtils:
         try:
             digits = re.findall(r"\d+", s)
             return int(digits[0]) if digits else None
-        except Exception:
+        except (ValueError, IndexError):
             return None
 
     @staticmethod
@@ -36,7 +36,7 @@ class ParserUtils:
             val = m.group(0).replace(",", ".")
             n = float(val)
             return n
-        except Exception:
+        except ValueError:
             return None
 
 

@@ -1,16 +1,19 @@
+from typing import Any
+
 from django.conf import settings
 
 import structlog
 
 from rating_app.models import Speciality, Student
 from rating_app.models.choices import EducationLevel
+from rating_app.repositories.protocol import IRepository
 
 User = settings.AUTH_USER_MODEL
 
 logger = structlog.get_logger()
 
 
-class StudentRepository:
+class StudentRepository(IRepository[Student]):
     def get_all(self) -> list[Student]:
         return list(Student.objects.select_related("speciality").all())
 
@@ -53,3 +56,7 @@ class StudentRepository:
     def create_user_for_student(self, student: Student, email: str | None = None) -> None:
         # To be implemented
         pass
+
+    def filter(self, *args: Any, **kwargs: Any) -> list[Student]:
+        #! TODO: not implemented
+        return self.get_all()

@@ -1,8 +1,9 @@
 import * as React from "react";
 
-import { Filter } from "lucide-react";
+import { Filter, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Label } from "@/components/ui/Label";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
 import type { FilterOptions } from "@/lib/api/generated";
+import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
 import type { FilterState } from "./CoursesTable";
 import {
@@ -24,15 +26,26 @@ import {
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
 
-interface CourseFiltersPanelProps {
+interface CourseFiltersBaseProps {
 	filters: FilterState;
 	onFilterChange: <K extends keyof FilterState>(
 		key: K,
 		value: FilterState[K],
 	) => void;
 	filterOptions?: FilterOptions;
+}
+
+interface CourseFiltersPanelProps extends CourseFiltersBaseProps {
 	onReset: () => void;
 	isLoading?: boolean;
+	className?: string;
+}
+
+export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
+	onReset: () => void;
+	onClose: () => void;
+	isLoading?: boolean;
+	className?: string;
 }
 
 type SelectOption = {
@@ -59,13 +72,18 @@ type RangeFilterConfig = {
 	captions: [string, string];
 };
 
-export function CourseFiltersPanel({
+type CourseFiltersData = {
+	rangeFilters: RangeFilterConfig[];
+	selectFilters: SelectFilterConfig[];
+	activeBadges: Array<{ key: string; label: string }>;
+	hasActiveFilters: boolean;
+};
+
+function useCourseFiltersData({
 	filters,
 	onFilterChange,
 	filterOptions,
-	onReset,
-	isLoading,
-}: Readonly<CourseFiltersPanelProps>) {
+}: CourseFiltersBaseProps): CourseFiltersData {
 	const {
 		faculties = [],
 		departments: allDepartments = [],
@@ -345,104 +363,169 @@ export function CourseFiltersPanel({
 		selectedSpecialityOption,
 	]);
 
-	const hasActiveFilters = activeBadges.length > 0;
+	return {
+		rangeFilters,
+		selectFilters,
+		activeBadges,
+		hasActiveFilters: activeBadges.length > 0,
+	};
+}
+
+interface CourseFiltersContentProps {
+	data: CourseFiltersData;
+}
+
+function CourseFiltersContent({ data }: Readonly<CourseFiltersContentProps>) {
+	return (
+		<div className="space-y-6">
+			{data.rangeFilters.map(
+				({ key, label, value, onChange, range, captions }) => (
+					<div key={key} className="space-y-3">
+						<Label className="text-sm font-medium">
+							{label}: {value[0].toFixed(1)} - {value[1].toFixed(1)}
+						</Label>
+						<Slider
+							min={range[0]}
+							max={range[1]}
+							step={0.1}
+							value={value}
+							onValueChange={(next) => onChange(next as [number, number])}
+							className="w-full"
+						/>
+						<div className="flex justify-between text-xs text-muted-foreground">
+							<span>{captions[0]}</span>
+							<span>{captions[1]}</span>
+						</div>
+					</div>
+				),
+			)}
+
+			{data.selectFilters.map(
+				({
+					key,
+					label,
+					placeholder,
+					value,
+					onChange,
+					options,
+					contentClassName,
+				}) => (
+					<div key={key} className="space-y-3">
+						<Label className="text-sm font-medium">{label}</Label>
+						<Select
+							value={value || "all"}
+							onValueChange={(nextValue) =>
+								onChange(nextValue === "all" ? "" : nextValue)
+							}
+							disabled={options.length === 0}
+						>
+							<SelectTrigger className="w-full">
+								<SelectValue placeholder={placeholder} />
+							</SelectTrigger>
+							<SelectContent className={contentClassName}>
+								<SelectItem value="all">{placeholder}</SelectItem>
+								{options.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+				),
+			)}
+
+			{data.hasActiveFilters && (
+				<div className="pt-4 border-t space-y-2">
+					<div className="text-xs font-medium text-muted-foreground">
+						Активні фільтри:
+					</div>
+					<div className="flex flex-wrap gap-2">
+						{data.activeBadges.map((badge) => (
+							<Badge key={badge.key} variant="secondary" className="text-xs">
+								{badge.label}
+							</Badge>
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
+function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
+	return (
+		<button
+			type="button"
+			onClick={onReset}
+			className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+		>
+			Скинути
+		</button>
+	);
+}
+
+export function CourseFiltersPanel({
+	onReset,
+	isLoading,
+	className,
+	...baseProps
+}: Readonly<CourseFiltersPanelProps>) {
+	const data = useCourseFiltersData(baseProps);
 
 	if (isLoading) {
 		return <CourseFiltersPanelSkeleton />;
 	}
 
 	return (
-		<Card className="sticky top-6">
+		<Card className={cn("sticky top-6", className)}>
 			<CardHeader className="pb-4">
 				<div className="flex items-center justify-between">
 					<CardTitle className="text-lg flex items-center gap-2">
 						<Filter className="h-5 w-5" />
 						Фільтри
 					</CardTitle>
-					{hasActiveFilters && (
-						<button
-							type="button"
-							onClick={onReset}
-							className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-						>
-							Скинути
-						</button>
-					)}
+					{data.hasActiveFilters && <ResetButton onReset={onReset} />}
 				</div>
 			</CardHeader>
-			<CardContent className="space-y-6">
-				{rangeFilters.map(
-					({ key, label, value, onChange, range, captions }) => (
-						<div key={key} className="space-y-3">
-							<Label className="text-sm font-medium">
-								{label}: {value[0].toFixed(1)} - {value[1].toFixed(1)}
-							</Label>
-							<Slider
-								min={range[0]}
-								max={range[1]}
-								step={0.1}
-								value={value}
-								onValueChange={(next) => onChange(next as [number, number])}
-								className="w-full"
-							/>
-							<div className="flex justify-between text-xs text-muted-foreground">
-								<span>{captions[0]}</span>
-								<span>{captions[1]}</span>
-							</div>
-						</div>
-					),
-				)}
-
-				{selectFilters.map(
-					({
-						key,
-						label,
-						placeholder,
-						value,
-						onChange,
-						options,
-						contentClassName,
-					}) => (
-						<div key={key} className="space-y-3">
-							<Label className="text-sm font-medium">{label}</Label>
-							<Select
-								value={value || "all"}
-								onValueChange={(nextValue) =>
-									onChange(nextValue === "all" ? "" : nextValue)
-								}
-								disabled={options.length === 0}
-							>
-								<SelectTrigger className="w-full">
-									<SelectValue placeholder={placeholder} />
-								</SelectTrigger>
-								<SelectContent className={contentClassName}>
-									<SelectItem value="all">{placeholder}</SelectItem>
-									{options.map((option) => (
-										<SelectItem key={option.value} value={option.value}>
-											{option.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					),
-				)}
-
-				{hasActiveFilters && (
-					<div className="pt-4 border-t space-y-2">
-						<div className="text-xs font-medium text-muted-foreground">
-							Активні фільтри:
-						</div>
-						<div className="flex flex-wrap gap-2">
-							{activeBadges.map((badge) => (
-								<Badge key={badge.key} variant="secondary" className="text-xs">
-									{badge.label}
-								</Badge>
-							))}
-						</div>
-					</div>
-				)}
+			<CardContent>
+				<CourseFiltersContent data={data} />
 			</CardContent>
 		</Card>
+	);
+}
+
+export function CourseFiltersDrawer({
+	onReset,
+	isLoading,
+	onClose,
+	className,
+	...baseProps
+}: Readonly<CourseFiltersDrawerProps>) {
+	const data = useCourseFiltersData(baseProps);
+
+	if (isLoading) {
+		return <CourseFiltersPanelSkeleton />;
+	}
+
+	return (
+		<div className={cn("space-y-6", className)}>
+			<div className="flex items-center justify-between">
+				<span className="text-lg font-semibold">Фільтри</span>
+				<div className="flex items-center gap-2">
+					{data.hasActiveFilters && <ResetButton onReset={onReset} />}
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-9 w-9 rounded-full p-0"
+						onClick={onClose}
+						aria-label="Закрити фільтри"
+					>
+						<X className="h-4 w-4" />
+					</Button>
+				</div>
+			</div>
+			<CourseFiltersContent data={data} />
+		</div>
 	);
 }

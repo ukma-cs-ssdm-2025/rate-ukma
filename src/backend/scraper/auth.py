@@ -4,6 +4,7 @@ from pathlib import Path
 
 import structlog
 from playwright.async_api import BrowserContext, Page, async_playwright
+from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 logger = structlog.get_logger(__name__)
@@ -107,11 +108,12 @@ async def check_auth_status(context: BrowserContext, base_url: str) -> bool:
     try:
         await page.goto(f"{base_url}/course/catalog")
         current_url = page.url
-        await page.close()
         return not ("/auth/login" in current_url or "login.microsoftonline" in current_url)
-    except Exception:
-        await page.close()
+    except PlaywrightError as exc:
+        logger.debug("auth_status_check_failed", err=str(exc), base_url=base_url)
         return False
+    finally:
+        await page.close()
 
 
 def with_authenticated_context(

@@ -194,3 +194,140 @@ def test_non_existent_course_retrieve(course_factory, token_client):
 
     # Assert
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_course_list_pagination_last_page(token_client, course_factory):
+    # Arrange
+    total_courses = 12
+    page_size = 5
+    course_factory.create_batch(total_courses)
+    url = f"/api/v1/courses/?page=3&page_size={page_size}"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    data = response.json()
+    assert response.status_code == 200
+    assert data["page"] == 3
+    assert data["total"] == total_courses
+    assert len(data["items"]) == 2  # Last page has only 2 items
+
+
+@pytest.mark.django_db
+def test_filter_by_multiple_parameters(
+    token_client, course_factory, course_offering_factory, semester_factory
+):
+    semester = semester_factory(term="FALL", year=2024)
+    course = course_factory()
+    course_offering_factory(course=course, semester=semester)
+
+    faculty_id = course.department.faculty.id
+    department_id = course.department.id
+
+    url = (
+        f"/api/v1/courses/?department={department_id}&faculty={faculty_id}"
+        f"&semesterYear=2024&semesterTerm=FALL"
+    )
+
+    response = token_client.get(url)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] >= 1
+
+
+@pytest.mark.django_db
+def test_course_list_with_avg_filters(token_client, course_factory):
+    # Arrange
+    course_factory.create_batch(5)
+    url = "/api/v1/courses/?avg_difficulty_min=2&avg_difficulty_max=4"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_course_list_with_invalid_page_default_value(token_client, course_factory):
+    # Arrange
+    course_factory.create_batch(3)
+    url = "/api/v1/courses/?page=999"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 1
+    assert data["total"] == 3
+    assert len(data["items"]) == 3
+
+
+@pytest.mark.django_db
+def test_course_retrieve_with_ratings(
+    token_client, course_factory, course_offering_factory, rating_factory
+):
+    # Arrange
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    rating_factory.create_batch(3, course_offering=offering, difficulty=4, usefulness=5)
+
+    url = f"/api/v1/courses/{course.id}/"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert "avg_difficulty" in data or "avgDifficulty" in data
+
+
+@pytest.mark.django_db
+def test_filter_by_type_kind(token_client, course_factory, course_speciality_factory):
+    # Arrange
+    course = course_factory()
+    course_speciality_factory(course=course, type_kind="COMPULSORY")
+
+    url = "/api/v1/courses/?typeKind=COMPULSORY"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_course_list_response_structure(token_client, course_factory):
+    course_factory.create_batch(2)
+    url = "/api/v1/courses/"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "page_size" in data or "pageSize" in data
+    assert isinstance(data["items"], list)
+
+
+@pytest.mark.django_db
+def test_course_retrieve_invalid_uuid_format(token_client):
+    # Arrange
+    url = "/api/v1/courses/not-a-valid-uuid/"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 400

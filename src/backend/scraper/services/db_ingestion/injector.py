@@ -158,9 +158,7 @@ class CourseDbInjector(IDbInjector):
             semester=semester,
             code=offering_data.code,
             exam_type=offering_data.exam_type.value,
-            practice_type=offering_data.practice_type.value
-            if offering_data.practice_type
-            else None,
+            practice_type=offering_data.practice_type.value if offering_data.practice_type else "",
             credits=offering_data.credits,
             weekly_hours=offering_data.weekly_hours,
             lecture_count=offering_data.lecture_count,
@@ -189,13 +187,13 @@ class CourseDbInjector(IDbInjector):
         instructor, _ = self.instructor_repository.get_or_create(
             first_name=instructor_data.first_name,
             last_name=instructor_data.last_name,
-            patronymic=instructor_data.patronymic,
+            patronymic=instructor_data.patronymic or "",
             academic_degree=instructor_data.academic_degree.value
             if instructor_data.academic_degree
-            else None,
+            else "",
             academic_title=instructor_data.academic_title.value
             if instructor_data.academic_title
-            else None,
+            else "",
         )
         return instructor
 
@@ -223,11 +221,12 @@ class CourseDbInjector(IDbInjector):
         if not student_speciality:
             return None
 
+        education_level = student_data.education_level or ""
         student, _ = self.student_repository.get_or_create(
             first_name=student_data.first_name,
             last_name=student_data.last_name,
-            patronymic=student_data.patronymic,
-            education_level=EducationLevel(student_data.education_level),
+            patronymic=student_data.patronymic or "",
+            education_level=EducationLevel(education_level),
             speciality=student_speciality,
         )
         return student
