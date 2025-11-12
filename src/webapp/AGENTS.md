@@ -1,16 +1,26 @@
-# Frontend helpful instructions
+# Frontend instructions
 
-## shadcn instructions
+## Convention reminders
 
-Use the latest version of Shadcn to install new components, like this command to add a button component:
+- **Readme first:** Skim `README.md` before touching code so you know the repo layout, tooling, and style constraints.
+- **Immutable props:** Wrap immutable props (or slices of them) in `Readonly<T>` and mirror existing patterns for read-only approvals.
+- **Focused components:** Keep UI parts tiny—break buttons/menus into single-purpose pieces, avoid deeply nested hooks, and favor obvious control flow.
+- **Pattern recheck:** Search `src/components` and `src/components/ui` before introducing new patterns; reuse an existing solution when it fits.
+- **Reuse:** Prefer existing components when the markup/behavior already exists instead of recreating similar UI.
+
+## Tooling reminders
+
+### shadcn install
+
+Use the latest shadcn CLI to add UI components, for example:
 
 ```bash
 pnpx shadcn@latest add button
 ```
 
-## Linting and formatting
+### lint & formatting
 
-Use the following commands to lint and format the code:
+Run these commands regularly:
 
 ```bash
 pnpm lint
@@ -18,10 +28,6 @@ pnpm format --write
 pnpm check
 ```
 
-## Agent workflow
+## Small tips
 
-- **Read the README.** Before making edits, skim `README.md` so you understand the repo’s structure, tooling, and style decisions.
-- **Prop immutability.** When props are not supposed to change, wrap the prop definitions (or the relevant subset) in `Readonly<T>` and follow the surrounding codebase conventions instead of inventing new patterns for read-only props.
-- **Keep components tiny.** Break buttons/menus/etc. into small, single-responsibility pieces, avoid “hook hell” (deep nesting, cascading effects), and prefer obvious control flow over clever abstractions.
-- **Recheck the pattern.** Whenever you reach for a new pattern, quickly search the repo for how similar concerns were addressed earlier; copy the established style if one exists, otherwise keep the addition trivial and well-justified.
-- **Reuse before you build.** Before creating a new component (or even just picking a raw HTML element), search `src/components` and `src/components/ui`—if an existing component covers the same concern or markup, reuse it rather than inventing another variant.
+- Prefer `globalThis` over `window` when touching the global scope.

@@ -15,38 +15,25 @@ on:
         required: false
         type: string
         default: "latest"
+      backend_changed:
+        description: "Whether backend code has changed"
+        required: true
+        type: boolean
+      webapp_changed:
+        description: "Whether webapp code has changed"
+        required: true
+        type: boolean
 
 env:
   SOURCE_CODE_DIR: src
-  BACKEND_DIR: src/backend
-  WEBAPP_DIR: src/webapp
-  OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
 
 permissions:
   packages: write
   contents: read
 
 jobs:
-  filter:
-    runs-on: ubuntu-24.04
-    outputs:
-      backend_changed: ${{ steps.filter.outputs.backend }}
-      webapp_changed: ${{ steps.filter.outputs.webapp }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
-        id: filter
-        with:
-          filters: |
-            backend:
-              - '${{ env.BACKEND_DIR }}/**'
-            webapp:
-              - '${{ env.WEBAPP_DIR }}/**'
-              - '${{ env.OPENAPI_SCHEMA_FILE }}'
-
   build-backend:
-    needs: filter
-    if: needs.filter.outputs.backend_changed == 'true'
+    if: inputs.backend_changed == true
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -85,8 +72,7 @@ jobs:
         run: docker push ${{ steps.extract_name.outputs.backend_image }}:${BACKEND_IMAGE_TAG}
 
   build-webapp:
-    needs: filter
-    if: needs.filter.outputs.webapp_changed == 'true'
+    if: inputs.webapp_changed == true
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
