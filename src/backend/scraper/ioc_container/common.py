@@ -1,4 +1,4 @@
-from rating_app.ioc_container.repos import (
+from rating_app.ioc_container.repositories import (
     course_instructor_repository,
     course_offering_repository,
     course_repository,

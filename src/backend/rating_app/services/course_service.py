@@ -1,179 +1,111 @@
-from typing import Any
+from django.db.models import QuerySet
 
-from rating_app.filters import CourseFilterOptions, CourseFilterPayload, CourseFilters
-from rating_app.ioc_container.repos import (
-    course_repository,
-    department_repository,
-    faculty_repository,
-    instructor_repository,
-    semester_repository,
-    speciality_repository,
+import structlog
+
+from rating_app.application_schemas.course import (
+    CourseFilterCriteria,
+    CourseFilterOptions,
+    CourseSearchResult,
 )
-from rating_app.models import Course, Faculty, Instructor
-from rating_app.models.choices import CourseTypeKind, SemesterTerm
-from rating_app.models.department import Department
-from rating_app.models.speciality import Speciality
+from rating_app.application_schemas.pagination import PaginationMetadata
+from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
+from rating_app.models import Course
+from rating_app.models.choices import CourseTypeKind
+from rating_app.repositories import CourseRepository
+from rating_app.services.department_service import DepartmentService
+from rating_app.services.faculty_service import FacultyService
+from rating_app.services.instructor_service import InstructorService
+from rating_app.services.paginator import QuerysetPaginator
+from rating_app.services.semester_service import SemesterService
+from rating_app.services.speciality_service import SpecialityService
+
+logger = structlog.get_logger(__name__)
 
 
 class CourseService:
-    def __init__(self):
-        self.course_repository = course_repository()
-        self.instructor_repository = instructor_repository()
-        self.faculty_repository = faculty_repository()
-        self.department_repository = department_repository()
-        self.semester_repository = semester_repository()
-        self.speciality_repository = speciality_repository()
+    def __init__(
+        self,
+        course_repository: CourseRepository,
+        paginator: QuerysetPaginator,
+        instructor_service: InstructorService,
+        faculty_service: FacultyService,
+        department_service: DepartmentService,
+        speciality_service: SpecialityService,
+        semester_service: SemesterService,
+    ):
+        self.course_repository = course_repository
+        self.paginator = paginator
+        self.instructor_service = instructor_service
+        self.faculty_service = faculty_service
+        self.department_service = department_service
+        self.speciality_service = speciality_service
+        self.semester_service = semester_service
 
     def list_courses(self) -> list[Course]:
         return self.course_repository.get_all()
 
-    def get_course(self, course_id) -> Course | None:
+    def get_course(self, course_id: str) -> Course:
         return self.course_repository.get_by_id(course_id)
 
-    def filter_courses(self, **kwargs) -> CourseFilterPayload:
-        filters = CourseFilters.of(**kwargs)
-        return self.course_repository.filter(filters)
+    def filter_courses(
+        self, filters: CourseFilterCriteria, paginate: bool = True
+    ) -> CourseSearchResult:
+        courses = self.course_repository.filter(filters)
+
+        if paginate:
+            return self._paginated_result(courses, filters)
+
+        return CourseSearchResult(
+            items=list(courses),
+            pagination=self._empty_pagination_metadata(courses.count()),
+            applied_filters=filters.model_dump(by_alias=True),
+        )
 
     # -- admin functions --
-    def create_course(self, **course_data: dict[str, Any]) -> Course:
-        return self.course_repository.create(**course_data)
+    def create_course(self, **course_data) -> Course:
+        course, _ = self.course_repository.get_or_create(**course_data)
+        return course
 
-    def update_course(self, course_id: str, **update_data: dict[str, Any]) -> Course | None:
+    def update_course(self, course_id: str, **update_data) -> Course:
         course = self.course_repository.get_by_id(course_id)
         if not course:
             return None
         return self.course_repository.update(course, **update_data)
 
-    def delete_course(self, course_id: str) -> bool:
+    def delete_course(self, course_id: str) -> None:
         course = self.course_repository.get_by_id(course_id)
         if not course:
-            return False
-        self.course_repository.delete(course)
-        return True
-
-    def get_filter_options(self) -> CourseFilterOptions:
-        instructors: list[Instructor] = self._get_sorted_instructors()
-        faculties: list[Faculty] = self._get_sorted_faculties()
-        departments: list[Department] = self._get_sorted_departments()
-        specialities: list[Speciality] = self._get_sorted_specialities()
-
-        semester_terms, semester_years = self._process_semesters()
-        course_types = [{"value": value, "label": label} for value, label in CourseTypeKind.choices]
+            semester_filter_options = self.semester_service.get_filter_options()
 
         return CourseFilterOptions(
-            instructors=self._build_instructors_data(instructors),
-            faculties=self._build_faculties_data(faculties),
-            departments=self._build_departments_data(departments),
-            semester_terms=semester_terms,
-            semester_years=semester_years,
-            course_types=course_types,
-            specialities=self._build_specialities_data(specialities),
+            instructors=self.instructor_service.get_filter_options(),
+            faculties=self.faculty_service.get_filter_options(),
+            departments=self.department_service.get_filter_options(),
+            specialities=self.speciality_service.get_filter_options(),
+            semester_terms=semester_filter_options["terms"],
+            semester_years=semester_filter_options["years"],
+            course_types=[
+                {"value": str(value), "label": str(label)}
+                for value, label in CourseTypeKind.choices
+            ],
         )
 
-    def _get_sorted_instructors(self) -> list[Instructor]:
-        return sorted(
-            self.instructor_repository.get_all(),
-            key=lambda instructor: (
-                (instructor.last_name or "").lower(),
-                (instructor.first_name or "").lower(),
-            ),
+    def _paginated_result(
+        self, courses: QuerySet[Course], criteria: CourseFilterCriteria
+    ) -> CourseSearchResult:
+        page_size = criteria.page_size or DEFAULT_COURSE_PAGE_SIZE
+        obj_list, metadata = self.paginator.process(courses, criteria.page, page_size)
+
+        return CourseSearchResult(
+            items=obj_list,
+            pagination=metadata,
+            applied_filters=criteria.model_dump(by_alias=True),
         )
 
-    def _get_sorted_faculties(self) -> list[Faculty]:
-        return sorted(
-            self.faculty_repository.get_all(),
-            key=lambda faculty: (faculty.name or "").lower(),
+    def _empty_pagination_metadata(self, courses_count: int) -> PaginationMetadata:
+        return PaginationMetadata(
+            page=1,
+            page_size=courses_count,
+            total=courses_count,
+            total_pages=1,
         )
-
-    def _get_sorted_departments(self) -> list[Department]:
-        return sorted(
-            self.department_repository.get_all(),
-            key=lambda department: (department.name or "").lower(),
-        )
-
-    def _get_sorted_specialities(self) -> list[Speciality]:
-        return sorted(
-            self.speciality_repository.get_all(),
-            key=lambda speciality: (speciality.name or "").lower(),
-        )
-
-    def _process_semesters(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        semesters = self.semester_repository.get_all()
-        semester_term_order = {value: index for index, value in enumerate(SemesterTerm.values)}
-        sorted_semesters = sorted(
-            semesters,
-            key=lambda semester: (
-                getattr(semester, "year", 0) or 0,
-                semester_term_order.get(getattr(semester, "term", None), -1),
-            ),
-            reverse=True,
-        )
-
-        term_labels: dict[SemesterTerm, str] = {}
-        years: set[int] = set()
-        for semester in sorted_semesters:
-            year = getattr(semester, "year", None)
-            term = getattr(semester, "term", None)
-            if year is None or term is None:
-                continue
-
-            years.add(year)
-            if term not in term_labels:
-                label = (
-                    SemesterTerm(term).label if term in SemesterTerm.values else str(term).title()
-                )
-                term_labels[SemesterTerm(term)] = label
-
-        term_priority = {
-            SemesterTerm.SPRING: 0,
-            SemesterTerm.SUMMER: 1,
-            SemesterTerm.FALL: 2,
-        }
-        semester_terms = [
-            {"value": term, "label": term_labels[term]}
-            for term in sorted(
-                term_labels.keys(),
-                key=lambda value: term_priority.get(value, len(term_priority)),
-            )
-        ]
-
-        semester_years = [
-            {"value": str(year), "label": str(year)} for year in sorted(years, reverse=True)
-        ]
-
-        return semester_terms, semester_years
-
-    def _build_instructors_data(self, instructors: list[Instructor]) -> list[dict[str, Any]]:
-        return [
-            {
-                "id": instructor.id,
-                "name": f"{instructor.first_name} {instructor.last_name}",
-                "department": None,
-            }
-            for instructor in instructors
-        ]
-
-    def _build_faculties_data(self, faculties: list[Faculty]) -> list[dict[str, Any]]:
-        return [{"id": faculty.id, "name": faculty.name} for faculty in faculties]
-
-    def _build_departments_data(self, departments: list[Department]) -> list[dict[str, Any]]:
-        return [
-            {
-                "id": department.id,
-                "name": department.name,
-                "faculty_id": department.faculty_id,
-                "faculty_name": department.faculty.name if department.faculty else None,
-            }
-            for department in departments
-        ]
-
-    def _build_specialities_data(self, specialities: list[Speciality]) -> list[dict[str, Any]]:
-        return [
-            {
-                "id": speciality.id,
-                "name": speciality.name,
-                "faculty_id": speciality.faculty_id,
-                "faculty_name": speciality.faculty.name if speciality.faculty else None,
-            }
-            for speciality in specialities
-        ]

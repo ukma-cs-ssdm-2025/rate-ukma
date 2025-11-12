@@ -1,8 +1,17 @@
 from rateukma.ioc.decorators import once
-from rating_app.repositories import (
+
+from ..repositories import (
+    CourseInstructorRepository,
+    CourseOfferingRepository,
     CourseRepository,
+    DepartmentRepository,
     EnrollmentRepository,
+    FacultyRepository,
+    InstructorRepository,
     RatingRepository,
+    SemesterRepository,
+    SpecialityRepository,
+    StudentRepository,
     StudentStatisticsRepository,
 )
 
@@ -13,8 +22,43 @@ def course_repository() -> CourseRepository:
 
 
 @once
-def rating_repository() -> RatingRepository:
-    return RatingRepository()
+def department_repository() -> DepartmentRepository:
+    return DepartmentRepository()
+
+
+@once
+def faculty_repository() -> FacultyRepository:
+    return FacultyRepository()
+
+
+@once
+def semester_repository() -> SemesterRepository:
+    return SemesterRepository()
+
+
+@once
+def speciality_repository() -> SpecialityRepository:
+    return SpecialityRepository()
+
+
+@once
+def instructor_repository() -> InstructorRepository:
+    return InstructorRepository()
+
+
+@once
+def student_repository() -> StudentRepository:
+    return StudentRepository()
+
+
+@once
+def course_offering_repository() -> CourseOfferingRepository:
+    return CourseOfferingRepository()
+
+
+@once
+def course_instructor_repository() -> CourseInstructorRepository:
+    return CourseInstructorRepository()
 
 
 @once
@@ -23,13 +67,10 @@ def enrollment_repository() -> EnrollmentRepository:
 
 
 @once
+def rating_repository() -> RatingRepository:
+    return RatingRepository()
+
+
+@once
 def student_stats_repository() -> StudentStatisticsRepository:
     return StudentStatisticsRepository()
-
-
-__all__ = [
-    "course_repository",
-    "rating_repository",
-    "enrollment_repository",
-    "student_stats_repository",
-]

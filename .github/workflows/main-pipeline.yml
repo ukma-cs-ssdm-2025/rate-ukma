@@ -23,13 +23,41 @@ jobs:
     secrets: inherit
 
   build:
+    needs: [version]
     uses: ./.github/workflows/build.yml
+    with:
+      version_tag: ${{ needs.version.outputs.version_tag }}
+
+  release-needed:
+    needs: [version]
+    runs-on: ubuntu-24.04
+    outputs:
+      release_needed: ${{ steps.check.outputs.release_needed }}
+    env:
+      VERSION_TAG: ${{ needs.version.outputs.version_tag }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check if release is needed
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view $VERSION_TAG; then
+            RELEASE_NEEDED=false
+          else
+            RELEASE_NEEDED=true
+          fi
+
+          echo "release_needed=$RELEASE_NEEDED" >> $GITHUB_OUTPUT
+          echo "Release needed: $RELEASE_NEEDED -> $VERSION_TAG"
 
   deploy-staging:
     needs: [version, test, openapi-validation, audit, build]
     uses: ./.github/workflows/deploy-staging.yml
     with:
       deployment_ref: ${{ github.sha }}
+      version_tag: ${{ needs.version.outputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
@@ -38,8 +66,8 @@ jobs:
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   release:
-    needs: [deploy-staging, version]
-    if: needs.version.outputs.version_type != 'none'
+    needs: [deploy-staging, version, release-needed]
+    if: needs.release-needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}

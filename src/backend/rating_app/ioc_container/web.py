@@ -5,10 +5,15 @@ from django.urls import path
 
 from rateukma.ioc.decorators import once
 
-from ..views import AnalyticsViewSet, CourseViewSet, InstructorViewSet, RatingViewSet, StudentStatisticsViewSet
+from ..views import (
+    AnalyticsViewSet,
+    CourseViewSet,
+    InstructorViewSet,
+    RatingViewSet,
+    StudentStatisticsViewSet,
+)
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
-from .common import course_filter_parser
-from .services import course_service
+from .services import course_service, instructor_service, rating_service, student_service
 
 
 @once
@@ -16,7 +21,6 @@ def course_list_view():
     return CourseViewSet.as_view(
         {"get": "list"},
         course_service=course_service(),
-        course_filter_parser=course_filter_parser(),
     )
 
 
@@ -25,7 +29,6 @@ def course_detail_view():
     return CourseViewSet.as_view(
         {"get": "retrieve"},
         course_service=course_service(),
-        course_filter_parser=course_filter_parser(),
     )
 
 
@@ -37,31 +40,42 @@ def course_filter_options_view():
     )
 
 
+# TODO: move post request under a different endpoint
 @once
 def course_ratings_list_create_view():
-    return RatingViewSet.as_view({"get": "list", "post": "create"})
+    return RatingViewSet.as_view(
+        {"get": "list", "post": "create"},
+        rating_service=rating_service(),
+        student_service=student_service(),
+    )
 
 
 @once
 def course_rating_detail_view():
     return RatingViewSet.as_view(
-        {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
+        {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"},
+        rating_service=rating_service(),
+        student_service=student_service(),
     )
 
 
 @once
 def course_rating_stats():
-    return StudentStatisticsViewSet.as_view({"get": "get_ratings"})
+    return StudentStatisticsViewSet.as_view(
+        {"get": "get_ratings"}, student_service=student_service()
+    )
 
 
 @once
 def course_detailed_rating_stats():
-    return StudentStatisticsViewSet.as_view({"get": "get_detailed_ratings"})
+    return StudentStatisticsViewSet.as_view(
+        {"get": "get_detailed_ratings"}, student_service=student_service()
+    )
 
 
 @once
 def instructor_detail_view():
-    return InstructorViewSet.as_view({"get": "retrieve"})
+    return InstructorViewSet.as_view({"get": "retrieve"}, instructor_service=instructor_service())
 
 
 @once
@@ -94,7 +108,6 @@ def analytics_list_view():
     return AnalyticsViewSet.as_view(
         {"get": "list"},
         course_service=course_service(),
-        course_filter_parser=course_filter_parser(),
     )
 
 
@@ -103,7 +116,6 @@ def analytics_detail_view():
     return AnalyticsViewSet.as_view(
         {"get": "retrieve"},
         course_service=course_service(),
-        course_filter_parser=course_filter_parser(),
     )
 
 

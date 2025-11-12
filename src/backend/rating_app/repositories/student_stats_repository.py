@@ -2,13 +2,20 @@ from typing import Any
 
 from django.db.models import Q
 
-from rating_app.models import CourseOffering
+from rating_app.exception.student_exceptions import StudentNotFoundError
+from rating_app.models import CourseOffering, Student
 
 
 class StudentStatisticsRepository:
     """
     Get student specific statistics (specifically on courses/offerings rated).
     """
+
+    def get_student_by_user_id(self, user_id: str):
+        try:
+            return Student.objects.get(user_id=user_id)
+        except Student.DoesNotExist as err:
+            raise StudentNotFoundError() from err
 
     def get_rating_stats(self, student_id: str) -> list[dict[str, Any]]:
         """
