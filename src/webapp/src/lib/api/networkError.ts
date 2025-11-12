@@ -36,6 +36,12 @@ const redirectToConnectionError = (
 	globalThis.location.replace(url.toString());
 };
 
+export const redirectToConnectionErrorPage = (
+	reason: ConnectionIssueReason = "server",
+) => {
+	redirectToConnectionError(reason);
+};
+
 const getConnectionIssueReason = (
 	error: unknown,
 ): ConnectionIssueReason | null => {
@@ -46,11 +52,6 @@ const getConnectionIssueReason = (
 	if (!error.response) {
 		return isOffline() ? "offline" : "server";
 	}
-
-	if (error.response.status >= 500) {
-		return "server";
-	}
-
 	if (error.code === "ERR_NETWORK") {
 		return isOffline() ? "offline" : "server";
 	}

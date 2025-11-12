@@ -74,7 +74,7 @@ describe("networkError", () => {
 			expectConnectionErrorRedirect("offline");
 		});
 
-		it("redirects with server reason when response status is 5xx", () => {
+		it("does not treat 5xx responses as connection issues", () => {
 			// Arrange
 			stubNavigatorOnline();
 			const axiosError = createAxiosError({
@@ -85,8 +85,8 @@ describe("networkError", () => {
 			const handled = handleConnectionIssue(axiosError);
 
 			// Assert
-			expect(handled).toBe(true);
-			expectConnectionErrorRedirect("server");
+			expect(handled).toBe(false);
+			expect(mockWindowReplace).not.toHaveBeenCalled();
 		});
 
 		it("redirects with offline reason when ERR_NETWORK occurs and user is offline", () => {
@@ -183,7 +183,8 @@ describe("networkError", () => {
 				// Arrange
 				stubNavigatorOnline();
 				const axiosError = createAxiosError({
-					response: { status: 503 } as AxiosError["response"],
+					code: "ERR_NETWORK",
+					response: undefined,
 				});
 
 				// Act
@@ -198,10 +199,12 @@ describe("networkError", () => {
 				// Arrange
 				stubNavigatorOnline();
 				const error1 = createAxiosError({
-					response: { status: 503 } as AxiosError["response"],
+					code: "ERR_NETWORK",
+					response: undefined,
 				});
 				const error2 = createAxiosError({
-					response: { status: 500 } as AxiosError["response"],
+					code: "ERR_NETWORK",
+					response: undefined,
 				});
 
 				// Act
@@ -223,7 +226,8 @@ describe("networkError", () => {
 				mockWindowReplace = replace;
 				stubNavigatorOnline();
 				const axiosError = createAxiosError({
-					response: { status: 503 } as AxiosError["response"],
+					code: "ERR_NETWORK",
+					response: undefined,
 				});
 
 				// Act
@@ -237,10 +241,12 @@ describe("networkError", () => {
 				// Arrange
 				stubNavigatorOnline();
 				const error1 = createAxiosError({
-					response: { status: 503 } as AxiosError["response"],
+					code: "ERR_NETWORK",
+					response: undefined,
 				});
 				const error2 = createAxiosError({
-					response: { status: 500 } as AxiosError["response"],
+					code: "ERR_NETWORK",
+					response: undefined,
 				});
 
 				// Act
