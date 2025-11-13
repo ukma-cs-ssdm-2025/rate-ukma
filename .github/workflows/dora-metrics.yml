@@ -32,6 +32,6 @@ jobs:
       - name: Calculate Deployment Frequency
         uses: DeveloperMetrics/deployment-frequency@main
         with:
-          workflows: 'main-pipeline.yml,deploy.yml,deploy-live.yml'
+          workflows: 'main-pipeline.yml,prod-pipeline.yml'
           actions-token: "${{ secrets.GITHUB_TOKEN }}"
           number-of-days: ${{ inputs.calculation_period_days || 30 }}
