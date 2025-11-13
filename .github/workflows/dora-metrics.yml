@@ -1,0 +1,316 @@
+name: DORA Metrics
+
+on:
+  workflow_dispatch:
+    inputs:
+      calculation_period_days:
+        description: "Number of days to analyze for metrics calculation"
+        required: false
+        type: number
+        default: 30
+  push:
+  schedule:
+    - cron: "0 8 * * 1" # Weekly on Monday at 08:00 UTC
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: dora-metrics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calculate-dora-metrics:
+    name: Calculate DORA Metrics
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Calculate deployment frequency
+        id: deployment_frequency
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAYS: ${{ inputs.calculation_period_days || 30 }}
+        run: |
+          # Calculate deployment frequency based on releases
+          SINCE_DATE=$(date -u -d "$DAYS days ago" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u -v-${DAYS}d +"%Y-%m-%dT%H:%M:%SZ")
+
+          echo "Calculating deployment frequency for the last $DAYS days (since $SINCE_DATE)"
+
+          # Count production deployments (releases without prerelease flag)
+          PROD_DEPLOYMENTS=$(gh release list --limit 1000 --json tagName,isPrerelease,createdAt --jq "[.[] | select(.isPrerelease == false and .createdAt > \"$SINCE_DATE\")] | length")
+
+          # Count staging deployments (pre-releases)
+          STAGING_DEPLOYMENTS=$(gh release list --limit 1000 --json tagName,isPrerelease,createdAt --jq "[.[] | select(.isPrerelease == true and .createdAt > \"$SINCE_DATE\")] | length")
+
+          TOTAL_DEPLOYMENTS=$((PROD_DEPLOYMENTS + STAGING_DEPLOYMENTS))
+
+          # Calculate deployments per day
+          if [ "$DAYS" -gt 0 ]; then
+            DEPLOY_PER_DAY=$(echo "scale=2; $TOTAL_DEPLOYMENTS / $DAYS" | bc)
+          else
+            DEPLOY_PER_DAY=0
+          fi
+
+          # Determine DORA rating
+          if (( $(echo "$DEPLOY_PER_DAY >= 1" | bc -l) )); then
+            RATING="Elite (On-demand deployments)"
+          elif (( $(echo "$DEPLOY_PER_DAY >= 0.14" | bc -l) )); then
+            RATING="High (Between once per day and once per week)"
+          elif (( $(echo "$DEPLOY_PER_DAY >= 0.033" | bc -l) )); then
+            RATING="Medium (Between once per week and once per month)"
+          else
+            RATING="Low (Fewer than once per month)"
+          fi
+
+          echo "deployment_frequency=$DEPLOY_PER_DAY" >> "$GITHUB_OUTPUT"
+          echo "deployment_rating=$RATING" >> "$GITHUB_OUTPUT"
+          echo "total_deployments=$TOTAL_DEPLOYMENTS" >> "$GITHUB_OUTPUT"
+          echo "prod_deployments=$PROD_DEPLOYMENTS" >> "$GITHUB_OUTPUT"
+          echo "staging_deployments=$STAGING_DEPLOYMENTS" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate lead time for changes
+        id: lead_time
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAYS: ${{ inputs.calculation_period_days || 30 }}
+        run: |
+          SINCE_DATE=$(date -u -d "$DAYS days ago" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u -v-${DAYS}d +"%Y-%m-%dT%H:%M:%SZ")
+
+          echo "Calculating lead time for the last $DAYS days"
+
+          # Get merged PRs in the time period
+          MERGED_PRS=$(gh pr list --state merged --limit 1000 --json number,mergedAt,createdAt --jq "[.[] | select(.mergedAt > \"$SINCE_DATE\")] | map({number, mergedAt, createdAt, leadTime: (((.mergedAt | fromdateiso8601) - (.createdAt | fromdateiso8601)) / 3600)}) | .[]")
+
+          if [ -z "$MERGED_PRS" ]; then
+            echo "No merged PRs found in the specified period"
+            echo "lead_time_hours=0" >> "$GITHUB_OUTPUT"
+            echo "lead_time_rating=N/A" >> "$GITHUB_OUTPUT"
+            echo "merged_prs=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Calculate average lead time
+          TOTAL_LEAD_TIME=$(echo "$MERGED_PRS" | jq -s 'map(.leadTime) | add')
+          PR_COUNT=$(echo "$MERGED_PRS" | jq -s 'length')
+
+          if [ "$PR_COUNT" -gt 0 ]; then
+            AVG_LEAD_TIME=$(echo "scale=2; $TOTAL_LEAD_TIME / $PR_COUNT" | bc)
+          else
+            AVG_LEAD_TIME=0
+          fi
+
+          # Determine DORA rating (in hours)
+          if (( $(echo "$AVG_LEAD_TIME <= 24" | bc -l) )); then
+            RATING="Elite (Less than one day)"
+          elif (( $(echo "$AVG_LEAD_TIME <= 168" | bc -l) )); then
+            RATING="High (Between one day and one week)"
+          elif (( $(echo "$AVG_LEAD_TIME <= 720" | bc -l) )); then
+            RATING="Medium (Between one week and one month)"
+          else
+            RATING="Low (More than one month)"
+          fi
+
+          echo "lead_time_hours=$AVG_LEAD_TIME" >> "$GITHUB_OUTPUT"
+          echo "lead_time_rating=$RATING" >> "$GITHUB_OUTPUT"
+          echo "merged_prs=$PR_COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate change failure rate
+        id: change_failure_rate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAYS: ${{ inputs.calculation_period_days || 30 }}
+        run: |
+          SINCE_DATE=$(date -u -d "$DAYS days ago" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u -v-${DAYS}d +"%Y-%m-%dT%H:%M:%SZ")
+
+          echo "Calculating change failure rate for the last $DAYS days"
+
+          # Count total releases (deployments)
+          TOTAL_RELEASES=$(gh release list --limit 1000 --json tagName,createdAt --jq "[.[] | select(.createdAt > \"$SINCE_DATE\")] | length")
+
+          # Count bug-related issues created after deployments
+          BUG_ISSUES=$(gh issue list --state all --limit 1000 --json number,labels,createdAt --jq "[.[] | select(.createdAt > \"$SINCE_DATE\" and ([.labels[].name] | map(select(test(\"bug|hotfix|incident\"; \"i\"))) | length > 0))] | length")
+
+          if [ "$TOTAL_RELEASES" -gt 0 ]; then
+            FAILURE_RATE=$(echo "scale=2; ($BUG_ISSUES / $TOTAL_RELEASES) * 100" | bc)
+          else
+            FAILURE_RATE=0
+          fi
+
+          # Determine DORA rating
+          if (( $(echo "$FAILURE_RATE <= 15" | bc -l) )); then
+            RATING="Elite (0-15%)"
+          elif (( $(echo "$FAILURE_RATE <= 30" | bc -l) )); then
+            RATING="High (16-30%)"
+          elif (( $(echo "$FAILURE_RATE <= 45" | bc -l) )); then
+            RATING="Medium (31-45%)"
+          else
+            RATING="Low (46%+)"
+          fi
+
+          echo "failure_rate=$FAILURE_RATE" >> "$GITHUB_OUTPUT"
+          echo "failure_rating=$RATING" >> "$GITHUB_OUTPUT"
+          echo "bug_issues=$BUG_ISSUES" >> "$GITHUB_OUTPUT"
+          echo "total_releases=$TOTAL_RELEASES" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate mean time to recovery
+        id: mttr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAYS: ${{ inputs.calculation_period_days || 30 }}
+        run: |
+          SINCE_DATE=$(date -u -d "$DAYS days ago" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u -v-${DAYS}d +"%Y-%m-%dT%H:%M:%SZ")
+
+          echo "Calculating MTTR for the last $DAYS days"
+
+          # Get closed bug issues with their resolution time
+          BUG_ISSUES=$(gh issue list --state closed --limit 1000 --json number,labels,createdAt,closedAt --jq "[.[] | select(.createdAt > \"$SINCE_DATE\" and ([.labels[].name] | map(select(test(\"bug|hotfix|incident\"; \"i\"))) | length > 0))] | map({number, createdAt, closedAt, recoveryTime: (((.closedAt | fromdateiso8601) - (.createdAt | fromdateiso8601)) / 3600)}) | .[]")
+
+          if [ -z "$BUG_ISSUES" ]; then
+            echo "No closed bug issues found in the specified period"
+            echo "mttr_hours=0" >> "$GITHUB_OUTPUT"
+            echo "mttr_rating=N/A" >> "$GITHUB_OUTPUT"
+            echo "resolved_bugs=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Calculate average MTTR
+          TOTAL_RECOVERY_TIME=$(echo "$BUG_ISSUES" | jq -s 'map(.recoveryTime) | add')
+          BUG_COUNT=$(echo "$BUG_ISSUES" | jq -s 'length')
+
+          if [ "$BUG_COUNT" -gt 0 ]; then
+            AVG_MTTR=$(echo "scale=2; $TOTAL_RECOVERY_TIME / $BUG_COUNT" | bc)
+          else
+            AVG_MTTR=0
+          fi
+
+          # Determine DORA rating (in hours)
+          if (( $(echo "$AVG_MTTR <= 1" | bc -l) )); then
+            RATING="Elite (Less than one hour)"
+          elif (( $(echo "$AVG_MTTR <= 24" | bc -l) )); then
+            RATING="High (Less than one day)"
+          elif (( $(echo "$AVG_MTTR <= 168" | bc -l) )); then
+            RATING="Medium (Between one day and one week)"
+          else
+            RATING="Low (More than one week)"
+          fi
+
+          echo "mttr_hours=$AVG_MTTR" >> "$GITHUB_OUTPUT"
+          echo "mttr_rating=$RATING" >> "$GITHUB_OUTPUT"
+          echo "resolved_bugs=$BUG_COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Generate DORA metrics report
+        env:
+          DAYS: ${{ inputs.calculation_period_days || 30 }}
+          DEPLOY_FREQ: ${{ steps.deployment_frequency.outputs.deployment_frequency }}
+          DEPLOY_RATING: ${{ steps.deployment_frequency.outputs.deployment_rating }}
+          TOTAL_DEPLOYS: ${{ steps.deployment_frequency.outputs.total_deployments }}
+          PROD_DEPLOYS: ${{ steps.deployment_frequency.outputs.prod_deployments }}
+          STAGING_DEPLOYS: ${{ steps.deployment_frequency.outputs.staging_deployments }}
+          LEAD_TIME: ${{ steps.lead_time.outputs.lead_time_hours }}
+          LEAD_TIME_RATING: ${{ steps.lead_time.outputs.lead_time_rating }}
+          MERGED_PRS: ${{ steps.lead_time.outputs.merged_prs }}
+          FAILURE_RATE: ${{ steps.change_failure_rate.outputs.failure_rate }}
+          FAILURE_RATING: ${{ steps.change_failure_rate.outputs.failure_rating }}
+          BUG_ISSUES: ${{ steps.change_failure_rate.outputs.bug_issues }}
+          TOTAL_RELEASES: ${{ steps.change_failure_rate.outputs.total_releases }}
+          MTTR: ${{ steps.mttr.outputs.mttr_hours }}
+          MTTR_RATING: ${{ steps.mttr.outputs.mttr_rating }}
+          RESOLVED_BUGS: ${{ steps.mttr.outputs.resolved_bugs }}
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          # 📊 DORA Metrics Report
+
+          **Analysis Period:** Last $DAYS days
+          **Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ---
+
+          ## 🚀 Deployment Frequency
+          - **Metric:** $DEPLOY_FREQ deployments per day
+          - **Rating:** $DEPLOY_RATING
+          - **Details:**
+            - Total Deployments: $TOTAL_DEPLOYS
+            - Production Deployments: $PROD_DEPLOYS
+            - Staging Deployments: $STAGING_DEPLOYS
+
+          ## ⏱️ Lead Time for Changes
+          - **Metric:** $LEAD_TIME hours
+          - **Rating:** $LEAD_TIME_RATING
+          - **Details:**
+            - Merged PRs: $MERGED_PRS
+
+          ## 🐛 Change Failure Rate
+          - **Metric:** $FAILURE_RATE%
+          - **Rating:** $FAILURE_RATING
+          - **Details:**
+            - Bug Issues: $BUG_ISSUES
+            - Total Releases: $TOTAL_RELEASES
+
+          ## 🔧 Mean Time to Recovery (MTTR)
+          - **Metric:** $MTTR hours
+          - **Rating:** $MTTR_RATING
+          - **Details:**
+            - Resolved Bugs: $RESOLVED_BUGS
+
+          ---
+
+          ## 📈 DORA Performance Levels
+
+          | Metric | Elite | High | Medium | Low |
+          |--------|-------|------|--------|-----|
+          | Deployment Frequency | On-demand (multiple per day) | Weekly to daily | Monthly to weekly | Less than monthly |
+          | Lead Time for Changes | < 1 day | 1 day - 1 week | 1 week - 1 month | > 1 month |
+          | Change Failure Rate | 0-15% | 16-30% | 31-45% | > 45% |
+          | Mean Time to Recovery | < 1 hour | < 1 day | 1 day - 1 week | > 1 week |
+
+          ---
+
+          *Note: These metrics are calculated based on GitHub releases, pull requests, and issues labeled as bugs/hotfixes/incidents.*
+          EOF
+
+      - name: Save metrics to artifact
+        run: |
+          mkdir -p metrics
+          cat > metrics/dora-metrics-$(date +%Y-%m-%d).json <<EOF
+          {
+            "date": "$(date -u +"%Y-%m-%d")",
+            "period_days": ${{ inputs.calculation_period_days || 30 }},
+            "deployment_frequency": {
+              "value": ${{ steps.deployment_frequency.outputs.deployment_frequency }},
+              "rating": "${{ steps.deployment_frequency.outputs.deployment_rating }}",
+              "total_deployments": ${{ steps.deployment_frequency.outputs.total_deployments }},
+              "production_deployments": ${{ steps.deployment_frequency.outputs.prod_deployments }},
+              "staging_deployments": ${{ steps.deployment_frequency.outputs.staging_deployments }}
+            },
+            "lead_time_for_changes": {
+              "value_hours": ${{ steps.lead_time.outputs.lead_time_hours }},
+              "rating": "${{ steps.lead_time.outputs.lead_time_rating }}",
+              "merged_prs": ${{ steps.lead_time.outputs.merged_prs }}
+            },
+            "change_failure_rate": {
+              "value_percent": ${{ steps.change_failure_rate.outputs.failure_rate }},
+              "rating": "${{ steps.change_failure_rate.outputs.failure_rating }}",
+              "bug_issues": ${{ steps.change_failure_rate.outputs.bug_issues }},
+              "total_releases": ${{ steps.change_failure_rate.outputs.total_releases }}
+            },
+            "mean_time_to_recovery": {
+              "value_hours": ${{ steps.mttr.outputs.mttr_hours }},
+              "rating": "${{ steps.mttr.outputs.mttr_rating }}",
+              "resolved_bugs": ${{ steps.mttr.outputs.resolved_bugs }}
+            }
+          }
+          EOF
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dora-metrics-${{ github.run_number }}
+          path: metrics/
+          retention-days: 90
