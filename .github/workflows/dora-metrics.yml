@@ -33,5 +33,6 @@ jobs:
         uses: DeveloperMetrics/deployment-frequency@main
         with:
           workflows: 'main-pipeline.yml,prod-pipeline.yml'
+          default-branch: 'main'
           actions-token: "${{ secrets.GITHUB_TOKEN }}"
           number-of-days: ${{ inputs.calculation_period_days || 30 }}
