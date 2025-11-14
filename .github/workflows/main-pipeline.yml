@@ -10,26 +10,29 @@ on:
 jobs:
   changes-filter:
     uses: ./.github/workflows/changes-filter.yml
+    with:
+      base: ${{ github.event.before }}
+      ref: ${{ github.sha }}
 
   version:
     needs: changes-filter
     if: |
-      fromJSON(needs.changes-filter.outputs.backend_changed) ||
-      fromJSON(needs.changes-filter.outputs.webapp_changed)
+      needs.changes-filter.outputs.backend_changed == 'true' ||
+      needs.changes-filter.outputs.webapp_changed == 'true'
     uses: ./.github/workflows/version.yml
 
   test:
     needs: [changes-filter, version]
     uses: ./.github/workflows/test.yml
     with:
-      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
-      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
+      backend_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
+      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
 
   openapi-validation:
     needs: changes-filter
     if: |
-      fromJSON(needs.changes-filter.outputs.backend_changed) ||
-      fromJSON(needs.changes-filter.outputs.openapi_changed)
+      needs.changes-filter.outputs.backend_changed  == 'true' ||
+      needs.changes-filter.outputs.openapi_changed == 'true'
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
@@ -37,16 +40,16 @@ jobs:
     uses: ./.github/workflows/audit.yml
     secrets: inherit
     with:
-      run_backend_audit: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
-      run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
+      run_backend_audit: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
+      run_frontend_audit: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
 
   build:
     needs: [version, test, openapi-validation, audit]
     uses: ./.github/workflows/build.yml
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}
-      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
-      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
+      backend_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
+      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
 
   release-needed:
     needs: [version]

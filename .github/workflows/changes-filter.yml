@@ -2,6 +2,17 @@ name: Changes Filter
 
 on:
   workflow_call:
+    inputs:
+      base:
+        description: "Base ref to compare against (e.g., main, develop, or a commit SHA)"
+        required: false
+        type: string
+        default: ""
+      ref:
+        description: "Ref to compare against (e.g., main, develop, or a commit SHA)"
+        required: false
+        type: string
+        default: ${{ github.sha }}
     outputs:
       backend_changed:
         description: "Whether backend code changed in the caller ref"
@@ -27,9 +38,14 @@ jobs:
       openapi_changed: ${{ steps.filter.outputs.openapi }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
         id: filter
         with:
+          base: ${{ inputs.base || github.event.before }}
+          ref: ${{ inputs.ref || github.sha }}
           filters: |
             backend:
               - '${{ env.BACKEND_DIR }}/**'
