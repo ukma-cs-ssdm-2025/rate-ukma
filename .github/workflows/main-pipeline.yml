@@ -1,6 +1,12 @@
 name: Staging Build
 on:
   workflow_dispatch:
+    inputs:
+      force-deploy:
+        description: "Force deploy current"
+        required: false
+        type: boolean
+        default: false
   push:
     branches:
       - main

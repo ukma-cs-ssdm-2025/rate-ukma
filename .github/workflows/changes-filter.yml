@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: ${{ github.sha }}
+      force_all_changes:
+        description: "Force all changes to be considered"
+        required: false
+        type: boolean
+        default: false
     outputs:
       backend_changed:
         description: "Whether backend code changed in the caller ref"
@@ -33,9 +38,9 @@ jobs:
   filter:
     runs-on: ubuntu-latest
     outputs:
-      backend_changed: ${{ steps.filter.outputs.backend }}
-      webapp_changed: ${{ steps.filter.outputs.webapp }}
-      openapi_changed: ${{ steps.filter.outputs.openapi }}
+      backend_changed: ${{ inputs.force_all_changes || steps.filter.outputs.backend == 'true' }}
+      webapp_changed: ${{ inputs.force_all_changes || steps.filter.outputs.webapp == 'true' }}
+      openapi_changed: ${{ inputs.force_all_changes || steps.filter.outputs.openapi == 'true' }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -43,6 +48,7 @@ jobs:
 
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
         id: filter
+        if: inputs.force_all_changes != true
         with:
           base: ${{ inputs.base || github.event.before }}
           ref: ${{ inputs.ref || github.sha }}
