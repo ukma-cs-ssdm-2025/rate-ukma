@@ -38,9 +38,9 @@ jobs:
   filter:
     runs-on: ubuntu-latest
     outputs:
-      backend_changed: ${{ inputs.force_all_changes || steps.filter.outputs.backend == 'true' }}
-      webapp_changed: ${{ inputs.force_all_changes || steps.filter.outputs.webapp == 'true' }}
-      openapi_changed: ${{ inputs.force_all_changes || steps.filter.outputs.openapi == 'true' }}
+      backend_changed: ${{ inputs.force_all_changes == true || steps.filter.outputs.backend == 'true' }}
+      webapp_changed: ${{ inputs.force_all_changes == true || steps.filter.outputs.webapp == 'true' }}
+      openapi_changed: ${{ inputs.force_all_changes == true || steps.filter.outputs.openapi == 'true' }}
     steps:
       - uses: actions/checkout@v5
         with:

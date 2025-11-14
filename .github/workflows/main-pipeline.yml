@@ -19,6 +19,7 @@ jobs:
     with:
       base: ${{ github.event.before }}
       ref: ${{ github.sha }}
+      force_all_changes: ${{ inputs.force-deploy }}
 
   version:
     needs: changes-filter
