@@ -33,7 +33,9 @@ jobs:
         working-directory: ${{ env.WEBAPP_DIR }}
         run: |
           NODE_VERSION=$(jq -r '.engines.node' package.json | sed 's/>=//')
+          PLAYWRIGHT_VERSION=$(jq -r '.devDependencies["@playwright/test"] // .dependencies["@playwright/test"]' package.json)
           echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          echo "playwright-version=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -48,23 +50,33 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: ${{ env.WEBAPP_DIR }}/pnpm-lock.yaml
 
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
       - name: Install dependencies
         working-directory: ${{ env.WEBAPP_DIR }}
         run: pnpm install --frozen-lockfile
 
       - name: Cache Playwright browsers
+        id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('src/webapp/pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}-${{ steps.versions.outputs.playwright-version }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
 
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: ${{ env.WEBAPP_DIR }}
-        run: pnpm exec playwright install chromium firefox webkit --with-deps
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
 
-      - name: Generate API client
+      - name: Install only system dependencies (on cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
         working-directory: ${{ env.WEBAPP_DIR }}
-        run: pnpm run generate-api
+        run: pnpm exec playwright install-deps chromium firefox webkit
 
       - name: Run E2E tests
         working-directory: ${{ env.WEBAPP_DIR }}
