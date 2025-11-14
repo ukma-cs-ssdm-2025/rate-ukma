@@ -6,17 +6,20 @@ on:
       - main
     paths:
       - src/**
-      - .github/**
 
 jobs:
-  version:
-    uses: ./.github/workflows/version.yml
-
   changes-filter:
     uses: ./.github/workflows/changes-filter.yml
 
-  test:
+  version:
     needs: changes-filter
+    if: |
+      fromJSON(needs.changes-filter.outputs.backend_changed) ||
+      fromJSON(needs.changes-filter.outputs.webapp_changed)
+    uses: ./.github/workflows/version.yml
+
+  test:
+    needs: [changes-filter, version]
     uses: ./.github/workflows/test.yml
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
@@ -38,7 +41,7 @@ jobs:
       run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   build:
-    needs: [version, changes-filter]
+    needs: [version, test, openapi-validation, audit]
     uses: ./.github/workflows/build.yml
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}
@@ -70,10 +73,7 @@ jobs:
           echo "Release needed: $RELEASE_NEEDED -> $VERSION_TAG"
 
   deploy-staging:
-    needs: [version, test, openapi-validation, audit, build]
-    if: |
-      always() &&
-      (!contains(needs.*.result, 'failure') || github.event_name == 'workflow_dispatch')
+    needs: [version, build]
     uses: ./.github/workflows/deploy-staging.yml
     with:
       deployment_ref: ${{ github.sha }}
@@ -86,7 +86,7 @@ jobs:
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   release:
-    needs: [deploy-staging, version, release-needed]
+    needs: [deploy-staging, release-needed]
     if: needs.release-needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:
