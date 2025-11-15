@@ -1,0 +1,38 @@
+name: DORA Metrics
+
+on:
+  workflow_dispatch:
+    inputs:
+      calculation_period_days:
+        description: "Number of days to analyze"
+        required: false
+        type: number
+        default: 30
+  push:
+  schedule:
+    - cron: "0 8 * * 1" # Weekly on Monday at 08:00 UTC
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: dora-metrics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calculate-dora-metrics:
+    name: Calculate DORA Metrics
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Calculate Deployment Frequency
+        uses: DeveloperMetrics/deployment-frequency@main
+        with:
+          workflows: 'Staging Build,Live Build'
+          default-branch: 'main'
+          actions-token: "${{ secrets.GITHUB_TOKEN }}"
+          number-of-days: ${{ inputs.calculation_period_days || 30 }}
