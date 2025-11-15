@@ -19,13 +19,14 @@ jobs:
     with:
       base: ${{ github.event.before }}
       ref: ${{ github.sha }}
-      force_all_changes: ${{ inputs.force-deploy == true }}
+      force-deployment: ${{ inputs.force-deploy == 'true' }}
 
   version:
     needs: changes-filter
-    if: |
-      needs.changes-filter.outputs.backend_changed == 'true' ||
-      needs.changes-filter.outputs.webapp_changed == 'true'
+    with:
+      force-deployment: ${{ inputs.force-deploy == 'true' }}
+      backend_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
+      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
     uses: ./.github/workflows/version.yml
 
   test:
@@ -37,9 +38,9 @@ jobs:
 
   openapi-validation:
     needs: changes-filter
-    if: |
-      needs.changes-filter.outputs.backend_changed  == 'true' ||
-      needs.changes-filter.outputs.openapi_changed == 'true'
+    with:
+      backend_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
+      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
