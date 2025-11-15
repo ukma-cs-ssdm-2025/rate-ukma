@@ -20,9 +20,8 @@ jobs:
 
   openapi-validation:
     needs: changes-filter
-    if: |
-      fromJSON(needs.changes-filter.outputs.backend_changed) ||
-      fromJSON(needs.changes-filter.outputs.openapi_changed)
+    with:
+      api_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' || needs.changes-filter.outputs.openapi_changed == 'true'}}
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
