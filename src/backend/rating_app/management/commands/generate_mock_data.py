@@ -1,6 +1,6 @@
 import random
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 import structlog
@@ -80,10 +80,7 @@ class Command(BaseCommand):
         )
 
         if options["clear"] and options["clean_only"]:
-            self.stderr.write(
-                self.style.ERROR("Error: Cannot use --clear and --clean-only options together.")
-            )
-            return
+            raise CommandError("Cannot use --clear and --clean-only options together.")
 
         if options["clean_only"]:
             if not self._confirm_clear():
