@@ -3,7 +3,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 import structlog
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
 from rating_app.application_schemas.rating import (
@@ -13,6 +13,7 @@ from rating_app.application_schemas.rating import (
     RatingPutParams,
     RatingReadParams,
 )
+from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.models import Rating, Student
 from rating_app.serializers import (
     RatingCreateUpdateSerializer,
@@ -20,7 +21,6 @@ from rating_app.serializers import (
     RatingReadSerializer,
 )
 from rating_app.services import RatingService, StudentService
-from rating_app.views.api_spec.rating import RATING_LIST_QUERY_PARAMS
 from rating_app.views.decorators import require_rating_ownership, require_student
 from rating_app.views.responses import (
     R_NO_CONTENT,
@@ -30,6 +30,7 @@ from rating_app.views.responses import (
 )
 
 logger = structlog.get_logger(__name__)
+to_openapi = pydantic_to_openapi_request_mapper().map
 
 
 @extend_schema(tags=["ratings"])
@@ -43,7 +44,10 @@ class RatingViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="List ratings for a course",
         description="List all ratings for a specific course with filters and pagination.",
-        parameters=RATING_LIST_QUERY_PARAMS,
+        parameters=[
+            *to_openapi((RatingFilterCriteria, OpenApiParameter.QUERY)),
+            *to_openapi((RatingReadParams, OpenApiParameter.PATH)),
+        ],
         responses=R_RATING_LIST,
     )
     def list(self, request, course_id=None):
