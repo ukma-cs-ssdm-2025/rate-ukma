@@ -61,7 +61,7 @@ jobs:
 
       - name: Build backend
         env:
-          BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
+          BACKEND_IMAGE_TAG: ${{ inputs.version_tag || '' }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: docker compose --profile prod build --build-arg BACKEND_IMAGE_TAG=${BACKEND_IMAGE_TAG} backend
 
@@ -101,7 +101,7 @@ jobs:
       - name: Build staging webapp
         env:
           VITE_API_BASE_URL: ${{ vars.STAGING_URL }}
-          WEBAPP_IMAGE_TAG: staging-${{ inputs.version_tag }}
+          WEBAPP_IMAGE_TAG: staging-${{ inputs.version_tag || '' }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Building webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
