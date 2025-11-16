@@ -15,8 +15,45 @@ class Command(BaseCommand):
         parser.add_argument(
             "--clear",
             action="store_true",
-            help="Clear existing data before generating new data",
+            help=(
+                "Clear existing data before generating new data "
+                "(LOCAL DEVELOPMENT ONLY – deletes all mock-related data)"
+            ),
         )
+        parser.add_argument(
+            "--clean-only",
+            action="store_true",
+            help=(
+                "Only clear existing data without generating new data "
+                "(LOCAL DEVELOPMENT ONLY – deletes all mock-related data)"
+            ),
+        )
+
+    def _confirm_clear(self) -> bool:
+        self.stdout.write("")
+        self.stdout.write(
+            self.style.WARNING(
+                "You are about to DELETE ALL mock-related data from the database.\n"
+                "This is intended for LOCAL development only.\n"
+            )
+        )
+        self.stdout.write(
+            "Type 'yes' to continue, or anything else to abort: ",
+        )
+        try:
+            answer = input()
+        except EOFError:
+            logger.warning("mock_data_clear_confirmation_failed", reason="no_input")
+            self.stdout.write(self.style.ERROR("No input received. Aborting."))
+            return False
+
+        if answer.strip().lower() != "yes":
+            logger.info("mock_data_clear_aborted", answer=answer.strip())
+            self.stdout.write(self.style.ERROR("Aborted. No data was deleted."))
+            return False
+
+        logger.info("mock_data_clear_confirmed")
+        return True
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -42,7 +79,40 @@ class Command(BaseCommand):
             SemesterTerm,
         )
 
+        if options["clear"] and options["clean_only"]:
+            self.stderr.write(
+                self.style.ERROR("Error: Cannot use --clear and --clean-only options together.")
+            )
+            return
+
+        if options["clean_only"]:
+            if not self._confirm_clear():
+                return
+
+            logger.info("mock_data_clear_start")
+            Rating.objects.all().delete()
+            CourseInstructor.objects.all().delete()
+            CourseOffering.objects.all().delete()
+            Student.objects.all().delete()
+            Course.objects.all().delete()
+            Instructor.objects.all().delete()
+            Speciality.objects.all().delete()
+            Department.objects.all().delete()
+            Faculty.objects.all().delete()
+            Semester.objects.all().delete()
+
+            logger.info("mock_data_clear_complete")
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "\nAll mock data has been successfully cleared from the database."
+                )
+            )
+            return
+
         if options["clear"]:
+            if not self._confirm_clear():
+                return
+
             logger.info("mock_data_clear_start")
             Rating.objects.all().delete()
             CourseInstructor.objects.all().delete()
@@ -780,3 +850,5 @@ class Command(BaseCommand):
         self.stdout.write("  python manage.py generate_mock_data")
         self.stdout.write("\nTo clear existing data and create new:")
         self.stdout.write("  python manage.py generate_mock_data --clear")
+        self.stdout.write("\nTo only clear existing data without generating new:")
+        self.stdout.write("  python manage.py generate_mock_data --clean-only")
