@@ -1,3 +1,4 @@
+---
 name: Semantic Version
 
 on:
@@ -7,6 +8,10 @@ on:
         description: "Prefix for version tag (e.g., v or live-v)"
         type: string
         default: "v"
+      code_changed:
+        description: "Flag if source code changed"
+        type: boolean
+        default: false
     outputs:
       version_tag:
         description: "Generated semantic version tag"
@@ -30,6 +35,7 @@ env:
 jobs:
   version:
     runs-on: ubuntu-24.04
+    if: inputs.code_changed == true
     outputs:
       version_tag: ${{ steps.semantic.outputs.version_tag }}
       version_type: ${{ steps.semantic.outputs.version_type }}

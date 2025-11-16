@@ -1,3 +1,4 @@
+---
 name: Live Build
 on:
   workflow_dispatch:
@@ -20,9 +21,10 @@ jobs:
 
   openapi-validation:
     needs: changes-filter
-    if: |
-      fromJSON(needs.changes-filter.outputs.backend_changed) ||
-      fromJSON(needs.changes-filter.outputs.openapi_changed)
+    with:
+      api_changed: >-
+        ${{ fromJSON(needs.changes-filter.outputs.backend_changed) ||
+        fromJSON(needs.changes-filter.outputs.openapi_changed) }}
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
