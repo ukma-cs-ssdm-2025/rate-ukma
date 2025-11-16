@@ -38,11 +38,11 @@ env:
 jobs:
   filter:
     runs-on: ubuntu-latest
-    if: inputs.force_all_changed != true
+    if: inputs.force_all_changed != 'true'
     outputs:
-      backend_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.backend == 'true' }}
-      webapp_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.webapp == 'true' }}
-      openapi_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.openapi == 'true' }}
+      backend_changed: ${{ inputs.force_all_changed == 'true' || steps.filter.outputs.backend == 'true' }}
+      webapp_changed: ${{ inputs.force_all_changed == 'true' || steps.filter.outputs.webapp == 'true' }}
+      openapi_changed: ${{ inputs.force_all_changed == 'true' || steps.filter.outputs.openapi == 'true' }}
     steps:
       - uses: actions/checkout@v5
         with:
