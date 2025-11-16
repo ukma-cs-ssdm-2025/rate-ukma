@@ -213,7 +213,7 @@ def create_mock_enrollment(
     first_name: str = "John",
     last_name: str = "Doe",
     speciality: str = "SpecX",
-    level: EducationLevel = EducationLevel.BACHELOR,
+    level: EducationLevel | None = EducationLevel.BACHELOR,
     status: EnrollmentStatus = EnrollmentStatus.ENROLLED,
 ) -> DeduplicatedEnrollment:
     return DeduplicatedEnrollment(

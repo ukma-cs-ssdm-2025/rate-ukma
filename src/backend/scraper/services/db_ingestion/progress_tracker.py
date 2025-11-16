@@ -33,7 +33,7 @@ class InjectionProgressTracker:
                 percentage=percentage,
             )
 
-    def complete(self, summary: str) -> None:
+    def complete(self) -> None:
         total = self.total_courses
         processed = self.processed_courses
         percentage = f"{(processed / total) * 100:.1f}%" if total else "0.0%"

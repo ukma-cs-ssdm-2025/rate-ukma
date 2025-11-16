@@ -2,8 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from scraper.models.deduplicated import CourseStatus, DeduplicatedCourse
-
+from ...models.deduplicated import CourseStatus, DeduplicatedCourse
 from .file_reader import CoursesJSONLFileReader
 
 
