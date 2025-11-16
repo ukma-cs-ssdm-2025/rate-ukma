@@ -4,19 +4,18 @@
 import sys
 from pathlib import Path
 
-script_dir = Path(__file__).parent
-sys.path.insert(0, str(script_dir))
-
 from calculate_dora_metrics import (
-    parse_table,
-    deployment_frequency,
-    lead_time,
     change_failure_rate,
-    time_to_restore,
+    deployment_frequency,
     format_duration,
+    lead_time,
+    parse_table,
+    time_to_restore,
 )
 
-runs = parse_table("results/metrics-raw.md")
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir))
+runs = parse_table(f"{script_dir}/results/metrics-raw.md")
 
 freq = deployment_frequency(runs)
 lt = lead_time(runs)
