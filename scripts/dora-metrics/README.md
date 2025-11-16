@@ -30,16 +30,10 @@ gh auth login
 ## Usage
 
 ```bash
-# Fetch workflow data
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -l 20
+# Fetch workflow data (to see all options run --help)
+./scripts/dora-metrics/generate_metrics.sh --workflow main-pipeline.yml --limit 20
 
-# Calculate metrics
-python3 scripts/dora-metrics/calculate_dora_metrics.py scripts/dora-metrics/results/metrics-raw.md
-```
-
-For more options, run:
-```bash
-./scripts/dora-metrics/generate_metrics.sh --help
+# TODO: TBD - report generation
 ```
 
 ## Example script
@@ -47,3 +41,18 @@ For more options, run:
 **TODO: remove this**
 
 See `example.py` for how to import and use the calculation functions in your own scripts.
+
+```bash
+python scripts/dora-metrics/example.py
+```
+
+It would give you the following output:
+
+```
+Deployment Frequency: 25.21/week
+Lead Time: 13.1min
+Change Failure Rate: 25.6%
+Time to Restore: 4.6h
+
+Total successful runs: 93
+```
