@@ -9,7 +9,6 @@ LIMIT=100
 WORKFLOW_NAME="main-pipeline.yml"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 METRICS_FILE="${SCRIPT_DIR}/results/metrics-raw.md"
-COMMIT_CACHE_FILE="/tmp/commit_cache.txt"
 CREATED_AFTER=""
 CREATED_BEFORE=""
 GH_BIN="${GH_BIN:-gh}"
@@ -93,6 +92,33 @@ done
 log() {
     timestamp=$(date +%Y-%m-%d\ %H:%M:%S)
     echo "[LOG:${timestamp}] $*" >&2
+    return 0
+}
+
+ensure_git_up_to_date() {
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        log "Not inside a git repository; cannot resolve commit messages locally"
+        exit 1
+    fi
+
+    if ! git fetch --quiet; then
+        log "Failed to fetch from remote; cannot verify repository state"
+        exit 1
+    fi
+
+    local local_ref remote_ref
+    local_ref=$(git rev-parse @)
+    if ! remote_ref=$(git rev-parse "@{u}" 2>/dev/null); then
+        log "Current branch has no upstream; cannot verify repository is up to date"
+        exit 1
+    fi
+
+    if [[ "$local_ref" != "$remote_ref" ]]; then
+        log "Local branch is not up to date with its upstream. Please pull the latest changes."
+        exit 1
+    fi
+
+    return 0
 }
 
 fetch_all_runs() {
@@ -123,25 +149,7 @@ fetch_all_runs() {
     local count=$(echo "$runs" | jq -s 'length')
     log "Fetched $count workflow runs"
     echo "$runs"
-}
-
-fetch_commit_messages_batch() {
-    local runs_json=$1
-
-    log "Fetching commit messages..."
-    local unique_shas=$(echo "$runs_json" | jq -r '.[].sha' | sort -u)
-    local sha_count=$(echo "$unique_shas" | wc -l)
-    log "Found $sha_count unique commit SHAs"
-
-    local current=0
-    echo "$unique_shas" | while read -r sha; do
-        ((current++))
-        log "Fetching commit message for SHA $sha ($current/$sha_count)"
-        local msg=$($GH_BIN api repos/:owner/:repo/commits/$sha --jq '.commit.message' 2>/dev/null | head -n1 | tr -d '\n\r' | tr '|' ',' || echo "N/A")
-        echo "${sha}|${msg}"
-    done
-
-    log "Commit messages fetched and cached"
+    return 0
 }
 
 format_duration() {
@@ -149,17 +157,7 @@ format_duration() {
     local duration_min=$((duration_sec / 60))
     local duration_rem=$((duration_sec % 60))
     echo "${duration_min}m ${duration_rem}s"
-}
-
-get_status_label() {
-    local conclusion=$1
-    case "$conclusion" in
-        success) echo "Success" ;;
-        failure) echo "Failure" ;;
-        cancelled) echo "Cancelled" ;;
-        skipped) echo "Skipped" ;;
-        *) echo "Pending" ;;
-    esac
+    return 0
 }
 
 write_metadata() {
@@ -196,6 +194,7 @@ EOF
 <!-- APPEND: $current_time - Added $total_runs runs from $min_date to $max_date -->
 EOF
     fi
+    return 0
 }
 
 get_existing_run_ids() {
@@ -206,19 +205,23 @@ get_existing_run_ids() {
 
     # Extract run IDs from existing file (first column after '|')
     grep -E '^\| [0-9]+ \|' "$METRICS_FILE" 2>/dev/null | awk -F'|' '{print $2}' | tr -d ' ' || echo ""
+    return 0
 }
 
 write_table_header() {
     log "Writing table header to $METRICS_FILE"
     cat >> $METRICS_FILE << 'EOF'
-| Run ID | Commit SHA | Status | Conclusion | Created At | Updated At | Duration | Event | Commit Message |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+<!-- DORA_TABLE_START -->
+| Run ID | Commit SHA | Status | Conclusion | Deployed? | Created At | Updated At | Duration | Event | Commit Message |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 EOF
+    return 0
 }
 
 get_commit_message() {
     local sha=$1
-    grep "^${sha}|" $COMMIT_CACHE_FILE 2>/dev/null | cut -d'|' -f2- || echo "N/A"
+    git show -s --format=%s "$sha" 2>/dev/null | head -n1 | tr -d '\n\r' | tr '|' ',' || echo "N/A"
+    return 0
 }
 
 process_run_data() {
@@ -237,11 +240,17 @@ process_run_data() {
     log "Processing run #$run_id: SHA=$short_sha, status=$status, conclusion=$conclusion"
 
     local duration=$(format_duration "$duration_sec")
-    local conclusion_label=$(get_status_label "$conclusion")
+    local deployed_label="No"
+    if [[ "$status" == "completed" && "$conclusion" == "success" ]]; then
+        deployed_label="Yes"
+    fi
+    local commit_message
+    commit_message=$(get_commit_message "$sha")
 
-    log "Run #$run_id: SHA=$short_sha, duration=$duration, event=$event"
+    log "Run #$run_id: SHA=$short_sha, status=$status, conclusion=$conclusion, deployed=$deployed_label, duration=$duration, event=$event"
 
-    echo "| $run_id | $short_sha | $status | $conclusion_label | $created_at | $updated_at | $duration | $event | - |"
+    echo "| $run_id | $short_sha | $status | $conclusion | $deployed_label | $created_at | $updated_at | $duration | $event | $commit_message |"
+    return 0
 }
 
 build_metrics_report() {
@@ -258,7 +267,6 @@ build_metrics_report() {
         log "No workflow runs found for the specified criteria"
         if [[ "$APPEND_MODE" == "false" ]]; then
             write_metadata "$runs_json" 0 "new"
-            write_table_header
             echo "No workflow runs found." >> $METRICS_FILE
         fi
         return
@@ -291,16 +299,19 @@ build_metrics_report() {
         write_metadata "$runs_json" "$total_runs" "append"
     else
         write_metadata "$runs_json" "$total_runs" "new"
-        write_table_header
     fi
+    write_table_header
 
     log "Processing $total_runs runs"
     echo "$runs_json" | jq -c '.[]' | while read -r line; do
         process_run_data "$line" >> $METRICS_FILE
     done
 
+    echo "<!-- DORA_TABLE_END -->" >> "$METRICS_FILE"
+
     log "Metrics report generated successfully: $METRICS_FILE"
     log "Total runs processed: $total_runs"
+    return 0
 }
 
 
@@ -312,6 +323,7 @@ if [[ "$APPEND_MODE" == "false" ]]; then
     rm -f $METRICS_FILE
 fi
 
+ensure_git_up_to_date
 build_metrics_report
 
 log "Job: done"

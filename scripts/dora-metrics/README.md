@@ -49,10 +49,10 @@ python scripts/dora-metrics/example.py
 It would give you the following output:
 
 ```
-Deployment Frequency: 25.21/week
-Lead Time: 13.1min
-Change Failure Rate: 25.6%
-Time to Restore: 4.6h
+Deployment Frequency: 25.12/week
+Lead Time: 12m 56s
+Change Failure Rate: 25.4%
+Time to Restore: 4h 39m
 
-Total successful runs: 93
+Total successful runs: 94
 ```

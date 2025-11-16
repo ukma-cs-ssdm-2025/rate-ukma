@@ -27,5 +27,9 @@ print(f"Lead Time: {format_duration(lt)}")
 print(f"Change Failure Rate: {cfr:.1f}%")
 print(f"Time to Restore: {format_duration(ttr)}")
 
-successful_runs = [r for r in runs if r["conclusion"] == "Success"]
+successful_runs = [
+    r
+    for r in runs
+    if r["status"] == "completed" and r["conclusion"].lower() == "success"
+]
 print(f"\nTotal successful runs: {len(successful_runs)}")

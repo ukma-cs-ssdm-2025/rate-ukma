@@ -2,6 +2,18 @@ import re
 from datetime import datetime, timezone
 from typing import TypedDict
 
+TABLE_COLUMNS_NUMBER = 10
+TABLE_MARKER_START = "<!-- DORA_TABLE_START -->"
+TABLE_MARKER_END = "<!-- DORA_TABLE_END -->"
+HEADER_RUN_ID = "Run ID"
+HEADER_CONCLUSION = "Conclusion"
+STATUS_COMPLETED = "completed"
+CONCLUSION_SUCCESS = "success"
+CONCLUSION_FAILURE = "failure"
+MINUTES_PER_HOUR = 60.0
+MINUTES_PER_DAY = 24.0 * MINUTES_PER_HOUR
+SECONDS_PER_DAY = MINUTES_PER_DAY * 60
+
 
 class WorkflowRun(TypedDict):
     run_id: str
@@ -12,6 +24,8 @@ class WorkflowRun(TypedDict):
     updated_at: datetime
     duration_minutes: float
     event: str
+    deployed: str
+    commit_message: str
 
 
 def parse_iso_timestamp(timestamp_str: str) -> datetime:
@@ -40,61 +54,124 @@ def parse_table(file_path: str) -> list[WorkflowRun]:
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    header_idx = next(
-        (
-            i
-            for i, line in enumerate(lines)
-            if "Run ID" in line and "Conclusion" in line
-        ),
-        None,
-    )
-    if header_idx is None:
-        raise ValueError("Table header not found")
+    def parse_block(block_lines: list[str]) -> list[WorkflowRun]:
+        header_idx = next(
+            (
+                i
+                for i, line in enumerate(block_lines)
+                if HEADER_RUN_ID in line and HEADER_CONCLUSION in line
+            ),
+            None,
+        )
+        if header_idx is None:
+            raise ValueError("Table header not found")
 
-    runs: list[WorkflowRun] = []
-    for line in lines[header_idx + 2 :]:
-        if not line.strip() or not line.startswith("|"):
-            continue
+        if (
+            header_idx + 1 >= len(block_lines)
+            or "---" not in block_lines[header_idx + 1]
+        ):
+            raise ValueError("Table separator row not found after header")
 
-        parts = [p.strip() for p in line.split("|")]
-        if len(parts) < 9:
-            continue
+        runs_block: list[WorkflowRun] = []
+        for line in block_lines[header_idx + 2 :]:
+            if not line.strip():
+                continue
 
-        try:
-            runs.append(
+            if not line.startswith("|"):
+                # Stop at the first non-table line inside a block
+                break
+
+            parts = [p.strip() for p in line.split("|")]
+            expected_parts = TABLE_COLUMNS_NUMBER + 2  # leading + trailing empty fields
+            if len(parts) != expected_parts:
+                raise ValueError(
+                    f"Malformed table row in {file_path!r}: {line.strip()} "
+                    f"(expected {TABLE_COLUMNS_NUMBER} columns, got {len(parts) - 2})"
+                )
+
+            runs_block.append(
                 {
                     "run_id": parts[1],
                     "commit_sha": parts[2],
                     "status": parts[3],
                     "conclusion": parts[4],
-                    "created_at": parse_iso_timestamp(parts[5]),
-                    "updated_at": parse_iso_timestamp(parts[6]),
-                    "duration_minutes": parse_duration(parts[7]),
-                    "event": parts[8],
+                    "deployed": parts[5],
+                    "created_at": parse_iso_timestamp(parts[6]),
+                    "updated_at": parse_iso_timestamp(parts[7]),
+                    "duration_minutes": parse_duration(parts[8]),
+                    "event": parts[9],
+                    "commit_message": parts[10],
                 }
             )
-        except (IndexError, ValueError):
+
+        if not runs_block:
+            raise ValueError("No workflow runs found in table")
+
+        return runs_block
+
+    # Require parsing tables wrapped in DORA_TABLE_START/END markers.
+    if not any(line.strip() == TABLE_MARKER_START for line in lines):
+        raise ValueError("No DORA table block found in metrics file")
+
+    tables: list[list[str]] = []
+    current_block: list[str] = []
+    inside = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped == TABLE_MARKER_START:
+            if inside:
+                raise ValueError("Nested DORA_TABLE_START markers are not supported")
+            inside = True
+            current_block = []
+            continue
+        if stripped == TABLE_MARKER_END:
+            if not inside:
+                raise ValueError("DORA_TABLE_END without matching start")
+            tables.append(current_block)
+            inside = False
+            current_block = []
             continue
 
+        if inside:
+            current_block.append(line)
+
+    if inside:
+        raise ValueError("Unclosed DORA_TABLE_START marker in metrics file")
+
+    if not tables:
+        raise ValueError("No table content found between DORA_TABLE markers")
+
+    runs: list[WorkflowRun] = []
+    for block in tables:
+        runs.extend(parse_block(block))
     return runs
 
 
 def deployment_frequency(runs: list[WorkflowRun]) -> float:
     successful = [
-        r for r in runs if r["conclusion"] == "Success" and r["status"] == "completed"
+        r
+        for r in runs
+        if r["status"] == STATUS_COMPLETED
+        and r["conclusion"].lower() == CONCLUSION_SUCCESS
     ]
 
     if len(runs) < 2:
         return len(successful)
 
     timestamps = [r["created_at"] for r in runs]
-    days = max((max(timestamps) - min(timestamps)).total_seconds() / 86400, 1.0)
+    days = max(
+        (max(timestamps) - min(timestamps)).total_seconds() / SECONDS_PER_DAY, 1.0
+    )
     return len(successful) / (days / 7.0)
 
 
 def lead_time(runs: list[WorkflowRun]) -> float:
     successful = [
-        r for r in runs if r["conclusion"] == "Success" and r["status"] == "completed"
+        r
+        for r in runs
+        if r["status"] == STATUS_COMPLETED
+        and r["conclusion"].lower() == CONCLUSION_SUCCESS
     ]
     return (
         sum(r["duration_minutes"] for r in successful) / len(successful)
@@ -107,11 +184,12 @@ def change_failure_rate(runs: list[WorkflowRun]) -> float:
     completed = [
         r
         for r in runs
-        if r["status"] == "completed" and r["conclusion"] in ["Success", "Failure"]
+        if r["status"] == STATUS_COMPLETED
+        and r["conclusion"].lower() in [CONCLUSION_SUCCESS, CONCLUSION_FAILURE]
     ]
     if not completed:
         return 0.0
-    failed = sum(1 for r in completed if r["conclusion"] == "Failure")
+    failed = sum(1 for r in completed if r["conclusion"].lower() == CONCLUSION_FAILURE)
     return (failed / len(completed)) * 100.0
 
 
@@ -120,11 +198,14 @@ def time_to_restore(runs: list[WorkflowRun]) -> float:
     restore_times: list[float] = []
 
     for i, run in enumerate(sorted_runs):
-        if run["conclusion"] == "Failure" and run["status"] == "completed":
+        if (
+            run["status"] == STATUS_COMPLETED
+            and run["conclusion"].lower() == CONCLUSION_FAILURE
+        ):
             for next_run in sorted_runs[i + 1 :]:
                 if (
-                    next_run["conclusion"] == "Success"
-                    and next_run["status"] == "completed"
+                    next_run["status"] == STATUS_COMPLETED
+                    and next_run["conclusion"].lower() == CONCLUSION_SUCCESS
                 ):
                     restore_times.append(
                         (next_run["created_at"] - run["created_at"]).total_seconds()
@@ -136,9 +217,20 @@ def time_to_restore(runs: list[WorkflowRun]) -> float:
 
 
 def format_duration(minutes: float) -> str:
-    if minutes < 60:
-        return f"{minutes:.1f}min"
-    elif minutes < 1440:
-        return f"{minutes / 60:.1f}h"
-    else:
-        return f"{minutes / 1440:.1f}d"
+    if minutes < MINUTES_PER_HOUR:
+        total_seconds = int(round(minutes * 60.0))
+        whole_minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        return f"{whole_minutes}m {seconds}s"
+
+    if minutes < MINUTES_PER_DAY:
+        total_minutes = int(round(minutes))
+        hours = total_minutes // int(MINUTES_PER_HOUR)
+        rem_minutes = total_minutes % int(MINUTES_PER_HOUR)
+        return f"{hours}h {rem_minutes}m"
+
+    total_minutes = int(round(minutes))
+    days = total_minutes // int(MINUTES_PER_DAY)
+    rem_minutes = total_minutes % int(MINUTES_PER_DAY)
+    hours = rem_minutes // int(MINUTES_PER_HOUR)
+    return f"{days}d {hours}h"
