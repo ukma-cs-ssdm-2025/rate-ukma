@@ -7,7 +7,8 @@ set -o pipefail # Exit on pipe failure
 # Default values
 LIMIT=100
 WORKFLOW_NAME="main-pipeline.yml"
-METRICS_FILE="metrics-raw.md"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+METRICS_FILE="${SCRIPT_DIR}/results/metrics-raw.md"
 COMMIT_CACHE_FILE="/tmp/commit_cache.txt"
 CREATED_AFTER=""
 CREATED_BEFORE=""
@@ -27,7 +28,7 @@ OPTIONS:
     -l, --limit LIMIT          Number of workflow runs to fetch (default: 100)
     -f, --from DATE            Start date (YYYY-MM-DD format, optional)
     -t, --to DATE              End date (YYYY-MM-DD format, optional)
-    -o, --output FILE          Output file path (default: metrics-raw.md)
+    -o, --output FILE          Output file path (default: scripts/dora-metrics/results/metrics-raw.md)
     -a, --append               Append to existing file (skip duplicates)
     -h, --help                 Show this help message
 
@@ -245,6 +246,8 @@ process_run_data() {
 
 build_metrics_report() {
     log "Generation started (append mode: $APPEND_MODE)"
+
+    mkdir -p "$(dirname "$METRICS_FILE")"
 
     log "Fetching all runs data"
     local runs_json=$(fetch_all_runs | jq -s '.')

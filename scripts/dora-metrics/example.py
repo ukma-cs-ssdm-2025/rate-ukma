@@ -16,7 +16,7 @@ from calculate_dora_metrics import (
     format_duration,
 )
 
-runs = parse_table("metrics-raw.md")
+runs = parse_table("results/metrics-raw.md")
 
 freq = deployment_frequency(runs)
 lt = lead_time(runs)

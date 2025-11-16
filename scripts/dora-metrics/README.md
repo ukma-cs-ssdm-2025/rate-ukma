@@ -12,7 +12,7 @@ export GITHUB_TOKEN=ghp_your_token_here
 ./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -l 20
 
 # 3. Calculate metrics
-python3 scripts/dora-metrics/calculate_dora_metrics.py metrics-raw.md
+python3 scripts/dora-metrics/calculate_dora_metrics.py scripts/dora-metrics/results/metrics-raw.md
 ```
 
 Output:
@@ -28,16 +28,16 @@ Time to Restore: 2.0h
 ```bash
 # Same command every week - just change the date!
 # Week 1: Creates new file (--append creates file if it doesn't exist)
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-01-01 --append -o metrics.md
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-01-01 --append
 
 # Week 2: Appends only new runs (skips duplicates)
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-11-01 --append -o metrics.md
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-11-01 --append
 
 # Week 3: Continue appending
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-11-15 --append -o metrics.md
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-11-15 --append
 
 # Calculate metrics from all data
-python3 scripts/dora-metrics/calculate_dora_metrics.py metrics.md
+python3 scripts/dora-metrics/calculate_dora_metrics.py scripts/dora-metrics/results/metrics-raw.md
 ```
 
 **Note:** `--append` automatically creates the file on first run, so you can use the same command every week!
@@ -80,7 +80,7 @@ Options:
 - `-l, --limit` - Number of runs (default: 100)
 - `-f, --from` - Start date (YYYY-MM-DD)
 - `-t, --to` - End date (YYYY-MM-DD)
-- `-o, --output` - Output file (default: metrics-raw.md)
+- `-o, --output` - Output file (default: scripts/dora-metrics/results/metrics-raw.md)
 - `-a, --append` - Append to existing file (skips duplicates)
 
 Examples:
@@ -103,7 +103,7 @@ python3 scripts/dora-metrics/calculate_dora_metrics.py <file>
 
 Example:
 ```bash
-python3 scripts/dora-metrics/calculate_dora_metrics.py metrics-raw.md
+python3 scripts/dora-metrics/calculate_dora_metrics.py scripts/dora-metrics/results/metrics-raw.md
 ```
 
 ## Reusing Functions
@@ -113,7 +113,7 @@ The Python script exports functions you can import:
 ```python
 from calculate_dora_metrics import parse_table, deployment_frequency, lead_time, change_failure_rate, time_to_restore
 
-runs = parse_table("metrics-raw.md")
+runs = parse_table("results/metrics-raw.md")
 print(f"Frequency: {deployment_frequency(runs):.2f}/week")
 print(f"Lead Time: {lead_time(runs):.1f}min")
 print(f"Failure Rate: {change_failure_rate(runs):.1f}%")
@@ -125,22 +125,22 @@ print(f"Restore Time: {time_to_restore(runs):.1f}min")
 ### Main Pipeline
 ```bash
 export GITHUB_TOKEN=your_token
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -o main.md
-python3 scripts/dora-metrics/calculate_dora_metrics.py main.md
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml
+python3 scripts/dora-metrics/calculate_dora_metrics.py scripts/dora-metrics/results/metrics-raw.md
 ```
 
 ### Production Pipeline
 ```bash
 export GITHUB_TOKEN=your_token
-./scripts/dora-metrics/generate_metrics.sh -w prod-pipeline.yml -o prod.md
-python3 scripts/dora-metrics/calculate_dora_metrics.py prod.md
+./scripts/dora-metrics/generate_metrics.sh -w prod-pipeline.yml -o scripts/dora-metrics/results/prod.md
+python3 scripts/dora-metrics/calculate_dora_metrics.py scripts/dora-metrics/results/prod.md
 ```
 
 ### Dev Pipeline
 ```bash
 export GITHUB_TOKEN=your_token
-./scripts/dora-metrics/generate_metrics.sh -w dev-pipeline.yml -o dev.md
-python3 scripts/dora-metrics/calculate_dora_metrics.py dev.md
+./scripts/dora-metrics/generate_metrics.sh -w dev-pipeline.yml -o scripts/dora-metrics/results/dev.md
+python3 scripts/dora-metrics/calculate_dora_metrics.py scripts/dora-metrics/results/dev.md
 ```
 
 ## CI Weekly Collection
@@ -169,18 +169,17 @@ jobs:
           ./scripts/dora-metrics/generate_metrics.sh \
             -w main-pipeline.yml \
             -f $(date -d '14 days ago' +%Y-%m-%d) \
-            --append \
-            -o dora-metrics.md
+            --append
 
       - name: Calculate metrics
         run: |
-          python3 scripts/dora-metrics/calculate_dora_metrics.py dora-metrics.md
+          python3 scripts/dora-metrics/calculate_dora_metrics.py scripts/dora-metrics/results/metrics-raw.md
 
       - name: Commit results
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add dora-metrics.md
+          git add scripts/dora-metrics/results/metrics-raw.md
           git commit -m "chore: update DORA metrics data" || true
           git push
 ```

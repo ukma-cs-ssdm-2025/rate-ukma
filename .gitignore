@@ -58,7 +58,5 @@ playwright/.auth
 .github/workflows/event.json
 
 # DORA metrics generated files
-metrics-raw.md
-*-metrics-raw.md
-*-metrics.md
-dora-metrics-report.md
+scripts/dora-metrics/results/*
+!scripts/dora-metrics/results/.gitkeep
