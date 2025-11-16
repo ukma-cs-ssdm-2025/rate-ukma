@@ -112,29 +112,27 @@ def _has_table_markers(lines: list[str]) -> bool:
     return any(line.strip() == TABLE_MARKER_START for line in lines)
 
 
-def _extract_table_blocks(lines: list[str]) -> list[list[str]]:
+def _extract_table_block(lines: list[str]) -> list[str]:
     if not _has_table_markers(lines):
         raise ValueError("No DORA table block found in metrics file")
 
-    tables: list[list[str]] = []
     current_block: list[str] = []
     inside = False
 
     for line in lines:
         stripped = line.strip()
+
         if stripped == TABLE_MARKER_START:
             if inside:
                 raise ValueError("Nested DORA_TABLE_START markers are not supported")
             inside = True
             current_block = []
             continue
+
         if stripped == TABLE_MARKER_END:
             if not inside:
                 raise ValueError("DORA_TABLE_END without matching start")
-            tables.append(current_block)
-            inside = False
-            current_block = []
-            continue
+            return current_block
 
         if inside:
             current_block.append(line)
@@ -142,19 +140,12 @@ def _extract_table_blocks(lines: list[str]) -> list[list[str]]:
     if inside:
         raise ValueError("Unclosed DORA_TABLE_START marker in metrics file")
 
-    if not tables:
-        raise ValueError("No table content found between DORA_TABLE markers")
-
-    return tables
+    raise ValueError("No table content found between DORA_TABLE markers")
 
 
 def parse_table(file_path: str) -> list[WorkflowRun]:
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    tables = _extract_table_blocks(lines)
-
-    runs: list[WorkflowRun] = []
-    for block in tables:
-        runs.extend(_parse_block(block, file_path))
-    return runs
+    block = _extract_table_block(lines)
+    return _parse_block(block, file_path)
