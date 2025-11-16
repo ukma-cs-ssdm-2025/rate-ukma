@@ -38,18 +38,19 @@ env:
 jobs:
   filter:
     runs-on: ubuntu-latest
-    if: inputs.force_all_changed != true
     outputs:
       backend_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.backend == 'true' }}
       webapp_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.webapp == 'true' }}
       openapi_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.openapi == 'true' }}
     steps:
       - uses: actions/checkout@v5
+        if: inputs.force_all_changed != true
         with:
           fetch-depth: 0
 
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
         id: filter
+        if: inputs.force_all_changed != true
         with:
           base: ${{ inputs.base || github.event.before }}
           ref: ${{ inputs.ref || github.sha }}
