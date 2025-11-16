@@ -285,7 +285,7 @@ build_metrics_report() {
     # Handle append mode
     if [[ "$APPEND_MODE" == "true" ]]; then
         if [[ ! -f "$METRICS_FILE" ]]; then
-            log "File doesn't exist, switching to new mode"
+            log "File doesn't exist, creating new file (first run)"
             APPEND_MODE=false
         else
             log "Filtering duplicates..."

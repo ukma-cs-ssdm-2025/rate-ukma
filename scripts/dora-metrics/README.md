@@ -26,15 +26,21 @@ Time to Restore: 2.0h
 ## Weekly Updates (Append Mode)
 
 ```bash
-# Week 1: Initial collection
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-01-01 -o metrics.md
+# Same command every week - just change the date!
+# Week 1: Creates new file (--append creates file if it doesn't exist)
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-01-01 --append -o metrics.md
 
-# Week 2: Append only new runs (skips duplicates automatically)
+# Week 2: Appends only new runs (skips duplicates)
 ./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-11-01 --append -o metrics.md
+
+# Week 3: Continue appending
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-11-15 --append -o metrics.md
 
 # Calculate metrics from all data
 python3 scripts/dora-metrics/calculate_dora_metrics.py metrics.md
 ```
+
+**Note:** `--append` automatically creates the file on first run, so you can use the same command every week!
 
 ## What are DORA Metrics?
 
@@ -160,20 +166,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # First run: create file
-          if [ ! -f dora-metrics.md ]; then
-            ./scripts/dora-metrics/generate_metrics.sh \
-              -w main-pipeline.yml \
-              -f $(date -d '90 days ago' +%Y-%m-%d) \
-              -o dora-metrics.md
-          else
-            # Weekly: append last 14 days (overlap for safety)
-            ./scripts/dora-metrics/generate_metrics.sh \
-              -w main-pipeline.yml \
-              -f $(date -d '14 days ago' +%Y-%m-%d) \
-              --append \
-              -o dora-metrics.md
-          fi
+          # Same command every week - creates file on first run, appends thereafter
+          ./scripts/dora-metrics/generate_metrics.sh \
+            -w main-pipeline.yml \
+            -f $(date -d '14 days ago' +%Y-%m-%d) \
+            --append \
+            -o dora-metrics.md
 
       - name: Calculate metrics
         run: |
@@ -189,8 +187,10 @@ jobs:
 ```
 
 **Benefits:**
+- Same command every week (no if/else needed)
 - Fetches only ~14 days of data weekly (~10-50 runs)
 - Saves API rate limits (5000 req/hour)
-- Fast execution
+- Fast execution (< 30 seconds)
 - Automatic duplicate detection
 - Continuous historical data
+- Creates file automatically on first run
