@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from faker import Faker
 
 from scraper.models.deduplicated import (
     CourseStatus,
@@ -21,6 +22,8 @@ from scraper.models.deduplicated import (
     SemesterTerm,
 )
 from scraper.services.db_ingestion.injector import CourseDbInjector
+
+faker = Faker()
 
 
 @pytest.fixture(autouse=True)
@@ -45,14 +48,14 @@ def repo_mocks():
     enrollment_repo = MagicMock()
     tracker = MagicMock()
 
-    faculty = SimpleNamespace()
-    department = SimpleNamespace()
+    faculty = SimpleNamespace(name=faker.company())
+    department = SimpleNamespace(name=faker.catch_phrase())
     course = Mock()
     course.specialities = Mock()
     course.specialities.add = Mock()
     semester = SimpleNamespace()
     course_offering = SimpleNamespace()
-    speciality = SimpleNamespace()
+    speciality = SimpleNamespace(name=faker.word())
     instructor = SimpleNamespace()
     student = SimpleNamespace()
 
