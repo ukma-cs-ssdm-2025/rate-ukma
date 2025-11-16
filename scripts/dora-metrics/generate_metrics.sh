@@ -50,6 +50,7 @@ EXAMPLES:
 
 EOF
     exit 1
+    return 0
 }
 
 # Parse command line arguments

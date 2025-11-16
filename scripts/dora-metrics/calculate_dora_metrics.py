@@ -7,12 +7,10 @@ TABLE_MARKER_START = "<!-- DORA_TABLE_START -->"
 TABLE_MARKER_END = "<!-- DORA_TABLE_END -->"
 HEADER_RUN_ID = "Run ID"
 HEADER_CONCLUSION = "Conclusion"
+
 STATUS_COMPLETED = "completed"
 CONCLUSION_SUCCESS = "success"
 CONCLUSION_FAILURE = "failure"
-MINUTES_PER_HOUR = 60.0
-MINUTES_PER_DAY = 24.0 * MINUTES_PER_HOUR
-SECONDS_PER_DAY = MINUTES_PER_DAY * 60
 
 
 class WorkflowRun(TypedDict):
@@ -50,66 +48,71 @@ def parse_duration(time_str: str) -> float:
     return minutes + (seconds / 60.0)
 
 
-def parse_table(file_path: str) -> list[WorkflowRun]:
-    with open(file_path, "r") as f:
-        lines = f.readlines()
+def _find_header_index(block_lines: list[str]) -> int:
+    header_idx = next(
+        (
+            i
+            for i, line in enumerate(block_lines)
+            if HEADER_RUN_ID in line and HEADER_CONCLUSION in line
+        ),
+        None,
+    )
+    if header_idx is None:
+        raise ValueError("Table header not found")
 
-    def parse_block(block_lines: list[str]) -> list[WorkflowRun]:
-        header_idx = next(
-            (
-                i
-                for i, line in enumerate(block_lines)
-                if HEADER_RUN_ID in line and HEADER_CONCLUSION in line
-            ),
-            None,
+    if header_idx + 1 >= len(block_lines) or "---" not in block_lines[header_idx + 1]:
+        raise ValueError("Table separator row not found after header")
+
+    return header_idx
+
+
+def _parse_row(parts: list[str], file_path: str, raw_line: str) -> WorkflowRun:
+    expected_parts = TABLE_COLUMNS_NUMBER + 2  # leading + trailing empty fields
+    if len(parts) != expected_parts:
+        raise ValueError(
+            f"Malformed table row in {file_path!r}: {raw_line.strip()} "
+            f"(expected {TABLE_COLUMNS_NUMBER} columns, got {len(parts) - 2})"
         )
-        if header_idx is None:
-            raise ValueError("Table header not found")
 
-        if (
-            header_idx + 1 >= len(block_lines)
-            or "---" not in block_lines[header_idx + 1]
-        ):
-            raise ValueError("Table separator row not found after header")
+    return {
+        "run_id": parts[1],
+        "commit_sha": parts[2],
+        "status": parts[3],
+        "conclusion": parts[4],
+        "deployed": parts[5],
+        "created_at": parse_iso_timestamp(parts[6]),
+        "updated_at": parse_iso_timestamp(parts[7]),
+        "duration_minutes": parse_duration(parts[8]),
+        "event": parts[9],
+        "commit_message": parts[10],
+    }
 
-        runs_block: list[WorkflowRun] = []
-        for line in block_lines[header_idx + 2 :]:
-            if not line.strip():
-                continue
 
-            if not line.startswith("|"):
-                # Stop at the first non-table line inside a block
-                break
+def _parse_block(block_lines: list[str], file_path: str) -> list[WorkflowRun]:
+    header_idx = _find_header_index(block_lines)
 
-            parts = [p.strip() for p in line.split("|")]
-            expected_parts = TABLE_COLUMNS_NUMBER + 2  # leading + trailing empty fields
-            if len(parts) != expected_parts:
-                raise ValueError(
-                    f"Malformed table row in {file_path!r}: {line.strip()} "
-                    f"(expected {TABLE_COLUMNS_NUMBER} columns, got {len(parts) - 2})"
-                )
+    runs_block: list[WorkflowRun] = []
+    for line in block_lines[header_idx + 2 :]:
+        stripped = line.strip()
+        if not stripped:
+            continue
 
-            runs_block.append(
-                {
-                    "run_id": parts[1],
-                    "commit_sha": parts[2],
-                    "status": parts[3],
-                    "conclusion": parts[4],
-                    "deployed": parts[5],
-                    "created_at": parse_iso_timestamp(parts[6]),
-                    "updated_at": parse_iso_timestamp(parts[7]),
-                    "duration_minutes": parse_duration(parts[8]),
-                    "event": parts[9],
-                    "commit_message": parts[10],
-                }
+        if not line.startswith("|"):
+            raise ValueError(
+                f"Unexpected non-table line inside DORA table in {file_path!r}: "
+                f"{stripped}"
             )
 
-        if not runs_block:
-            raise ValueError("No workflow runs found in table")
+        parts = [p.strip() for p in line.split("|")]
+        runs_block.append(_parse_row(parts, file_path, line))
 
-        return runs_block
+    if not runs_block:
+        raise ValueError("No workflow runs found in table")
 
-    # Require parsing tables wrapped in DORA_TABLE_START/END markers.
+    return runs_block
+
+
+def _extract_table_blocks(lines: list[str]) -> list[list[str]]:
     if not any(line.strip() == TABLE_MARKER_START for line in lines):
         raise ValueError("No DORA table block found in metrics file")
 
@@ -142,9 +145,18 @@ def parse_table(file_path: str) -> list[WorkflowRun]:
     if not tables:
         raise ValueError("No table content found between DORA_TABLE markers")
 
+    return tables
+
+
+def parse_table(file_path: str) -> list[WorkflowRun]:
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
+    tables = _extract_table_blocks(lines)
+
     runs: list[WorkflowRun] = []
     for block in tables:
-        runs.extend(parse_block(block))
+        runs.extend(_parse_block(block, file_path))
     return runs
 
 
@@ -161,7 +173,8 @@ def deployment_frequency(runs: list[WorkflowRun]) -> float:
 
     timestamps = [r["created_at"] for r in runs]
     days = max(
-        (max(timestamps) - min(timestamps)).total_seconds() / SECONDS_PER_DAY, 1.0
+        (max(timestamps) - min(timestamps)).total_seconds() / 86400.0,
+        1.0,
     )
     return len(successful) / (days / 7.0)
 
@@ -217,20 +230,20 @@ def time_to_restore(runs: list[WorkflowRun]) -> float:
 
 
 def format_duration(minutes: float) -> str:
-    if minutes < MINUTES_PER_HOUR:
+    if minutes < 60.0:
         total_seconds = int(round(minutes * 60.0))
         whole_minutes = total_seconds // 60
         seconds = total_seconds % 60
         return f"{whole_minutes}m {seconds}s"
 
-    if minutes < MINUTES_PER_DAY:
+    if minutes < 1440.0:
         total_minutes = int(round(minutes))
-        hours = total_minutes // int(MINUTES_PER_HOUR)
-        rem_minutes = total_minutes % int(MINUTES_PER_HOUR)
+        hours = total_minutes // 60
+        rem_minutes = total_minutes % 60
         return f"{hours}h {rem_minutes}m"
 
     total_minutes = int(round(minutes))
-    days = total_minutes // int(MINUTES_PER_DAY)
-    rem_minutes = total_minutes % int(MINUTES_PER_DAY)
-    hours = rem_minutes // int(MINUTES_PER_HOUR)
+    days = total_minutes // 1440
+    rem_minutes = total_minutes % 1440
+    hours = rem_minutes // 60
     return f"{days}d {hours}h"
