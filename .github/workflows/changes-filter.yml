@@ -14,6 +14,11 @@ on:
         required: false
         type: string
         default: ${{ github.sha }}
+      force_all_changes:
+        description: "Force all changes to be considered"
+        required: false
+        type: boolean
+        default: false
     outputs:
       backend_changed:
         description: "Whether backend code changed in the caller ref"
@@ -33,10 +38,11 @@ env:
 jobs:
   filter:
     runs-on: ubuntu-latest
+    if: inputs.force_all_changes != true
     outputs:
-      backend_changed: ${{ steps.filter.outputs.backend == 'true' }}
-      webapp_changed: ${{ steps.filter.outputs.webapp == 'true' }}
-      openapi_changed: ${{ steps.filter.outputs.openapi == 'true' }}
+      backend_changed: ${{ inputs.force_all_changes == true || steps.filter.outputs.backend == 'true' }}
+      webapp_changed: ${{ inputs.force_all_changes == true || steps.filter.outputs.webapp == 'true' }}
+      openapi_changed: ${{ inputs.force_all_changes == true || steps.filter.outputs.openapi == 'true' }}
     steps:
       - uses: actions/checkout@v5
         with:

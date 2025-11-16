@@ -17,8 +17,9 @@ jobs:
   changes-filter:
     uses: ./.github/workflows/changes-filter.yml
     with:
-      base: ${{ inputs.version-tag || github.event.before }}
-      ref: ${{ inputs.version-tag || github.sha }}
+      base: ${{ github.event.before }}
+      ref: ${{ github.sha }}
+      force_all_changed: ${{ inputs.version-tag == '' }}
 
   version:
     needs: changes-filter
