@@ -172,9 +172,6 @@ python manage.py group_courses
 
 ```bash
 python manage.py insert_scraped --file scraper/state/grouped_courses.jsonl
-
-# Alternative: use staging database
-python manage.py insert_scraped --file scraper/state/grouped_courses.jsonl --staging
 ```
 
 ## Security Audit

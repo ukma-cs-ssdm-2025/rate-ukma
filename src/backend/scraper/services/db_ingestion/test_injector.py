@@ -152,6 +152,30 @@ def create_mock_no_speciality_payload() -> list[DeduplicatedCourse]:
     ]
 
 
+def create_mock_empty_education_level_payload() -> list[DeduplicatedCourse]:
+    return [
+        create_mock_course(
+            title="Course D",
+            offerings=[
+                create_mock_offering(
+                    code="XYZ999",
+                    term=SemesterTerm.SPRING,
+                    exam_type=ExamType.CREDIT,
+                    instructors=[],
+                    enrollments=[
+                        create_mock_enrollment(
+                            first_name="Bob",
+                            last_name="Johnson",
+                            speciality="SpecX",
+                            level=None,  # Empty education level
+                        )
+                    ],
+                )
+            ],
+        )
+    ]
+
+
 def create_mock_payload() -> list[DeduplicatedCourse]:
     return [
         create_mock_course(
@@ -321,3 +345,18 @@ def test_injector_skips_student_creation_when_missing_speciality(injector, repo_
 
     # Assert
     repo_mocks.student_repo.get_or_create.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_injector_handles_empty_education_level(injector, repo_mocks):
+    # Arrange
+    models = create_mock_empty_education_level_payload()
+
+    # Act
+    injector.execute(models)
+
+    # Assert
+    # Should create the student with empty education level
+    repo_mocks.student_repo.get_or_create.assert_called_once()
+    call_args = repo_mocks.student_repo.get_or_create.call_args
+    assert call_args[1]["education_level"] == ""

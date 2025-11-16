@@ -11,8 +11,10 @@ from rateukma.protocols.generic import IOperation
 from rating_app.models import (
     Course,
     CourseOffering,
+    Department,
     Faculty,
     Instructor,
+    Semester,
     Speciality,
     Student,
 )
@@ -79,6 +81,15 @@ class CourseDbInjector(IDbInjector):
         self.enrollment_repository = enrollment_repository
         self.tracker = injection_progress_tracker
 
+        self._faculty_cache: dict[str, Faculty] = {}
+        self._department_cache: dict[tuple[str, str], Department] = {}
+        self._course_cache: dict[tuple[str, str], Course] = {}
+        self._speciality_cache: dict[str, Speciality | None] = {}
+        self._semester_cache: dict[tuple[int, str], Semester] = {}
+        self._instructor_cache: dict[tuple[str, str, str, str, str], Instructor] = {}
+        self._student_cache: dict[tuple[str, str, str, str, str], Student] = {}
+        self._batch_number: int | None = None
+
     @transaction.atomic
     @implements
     def execute(self, models: Sequence[DeduplicatedCourse]) -> None:
@@ -92,6 +103,24 @@ class CourseDbInjector(IDbInjector):
 
         self.tracker.complete(f"{len(models)} courses")
 
+    def reset_state(self) -> None:
+        self._reset_caches()
+        self._batch_number = None
+
+    def set_batch_number(self, batch_number: int) -> None:
+        self._batch_number = batch_number
+        if hasattr(self.tracker, "set_batch_number"):
+            self.tracker.set_batch_number(batch_number)
+
+    def _reset_caches(self) -> None:
+        self._faculty_cache.clear()
+        self._department_cache.clear()
+        self._course_cache.clear()
+        self._speciality_cache.clear()
+        self._semester_cache.clear()
+        self._instructor_cache.clear()
+        self._student_cache.clear()
+
     def _inject_to_db(self, models: Sequence[DeduplicatedCourse]) -> None:
         for course_data in models:
             self.tracker.increment()
@@ -101,19 +130,36 @@ class CourseDbInjector(IDbInjector):
             self._process_offerings(course, course_data)
 
     def _process_faculty(self, course_data: DeduplicatedCourse) -> Faculty:
-        faculty, _ = self.faculty_repository.get_or_create(name=course_data.faculty)
+        faculty_name = course_data.faculty
+        cached = self._faculty_cache.get(faculty_name)
+        if cached:
+            return cached
+
+        faculty, _ = self.faculty_repository.get_or_create(name=faculty_name)
+        self._faculty_cache[faculty_name] = faculty
         return faculty
 
     def _process_course(self, course_data: DeduplicatedCourse, faculty: Faculty) -> Course:
-        department, _ = self.department_repository.get_or_create(
-            name=course_data.department, faculty=faculty
-        )
-        course, _ = self.course_repository.get_or_create(
-            title=course_data.title,
-            department=department,
-            status=course_data.status.value,
-            description=course_data.description,
-        )
+        department_key = (course_data.department, faculty.name)
+        department = self._department_cache.get(department_key)
+        if not department:
+            department, _ = self.department_repository.get_or_create(
+                name=course_data.department,
+                faculty=faculty,
+            )
+            self._department_cache[department_key] = department
+
+        course_key = (course_data.title, department.name)
+        course = self._course_cache.get(course_key)
+        if not course:
+            course, _ = self.course_repository.get_or_create(
+                title=course_data.title,
+                department=department,
+                status=course_data.status.value,
+                description=course_data.description,
+            )
+            self._course_cache[course_key] = course
+
         return course
 
     def _process_specialities(
@@ -131,6 +177,7 @@ class CourseDbInjector(IDbInjector):
                     name=spec_data.name,
                     faculty=speciality_faculty,
                 )
+                self._speciality_cache[spec_data.name] = speciality
             course.specialities.add(speciality)  # type: ignore
 
     def _process_offerings(
@@ -148,10 +195,14 @@ class CourseDbInjector(IDbInjector):
         course: Course,
         offering_data: DeduplicatedCourseOffering,
     ) -> CourseOffering:
-        semester, _ = self.semester_repository.get_or_create(
-            year=offering_data.semester.year,
-            term=offering_data.semester.term.value,
-        )
+        semester_key = (offering_data.semester.year, offering_data.semester.term.value)
+        semester = self._semester_cache.get(semester_key)
+        if not semester:
+            semester, _ = self.semester_repository.get_or_create(
+                year=offering_data.semester.year,
+                term=offering_data.semester.term.value,
+            )
+            self._semester_cache[semester_key] = semester
 
         course_offering, _ = self.course_offering_repository.get_or_upsert(
             course=course,
@@ -184,6 +235,17 @@ class CourseDbInjector(IDbInjector):
             )
 
     def _create_instructor(self, instructor_data: DeduplicatedInstructor) -> Instructor:
+        key = (
+            instructor_data.first_name,
+            instructor_data.last_name,
+            instructor_data.patronymic or "",
+            instructor_data.academic_degree.value if instructor_data.academic_degree else "",
+            instructor_data.academic_title.value if instructor_data.academic_title else "",
+        )
+        cached = self._instructor_cache.get(key)
+        if cached:
+            return cached
+
         instructor, _ = self.instructor_repository.get_or_create(
             first_name=instructor_data.first_name,
             last_name=instructor_data.last_name,
@@ -195,6 +257,7 @@ class CourseDbInjector(IDbInjector):
             if instructor_data.academic_title
             else "",
         )
+        self._instructor_cache[key] = instructor
         return instructor
 
     def _process_enrollments(
@@ -221,27 +284,49 @@ class CourseDbInjector(IDbInjector):
         if not student_speciality:
             return None
 
-        education_level = student_data.education_level or ""
+        education_level = ""
+        if student_data.education_level:
+            education_level = EducationLevel(student_data.education_level)
+
+        key = (
+            student_data.first_name,
+            student_data.last_name,
+            student_data.patronymic or "",
+            str(education_level),
+            student_speciality.name,
+        )
+        cached = self._student_cache.get(key)
+        if cached:
+            return cached
+
         student, _ = self.student_repository.get_or_create(
             first_name=student_data.first_name,
             last_name=student_data.last_name,
             patronymic=student_data.patronymic or "",
-            education_level=EducationLevel(education_level),
+            education_level=education_level,
             speciality=student_speciality,
         )
+        self._student_cache[key] = student
         return student
 
     def _get_or_create_speciality(self, speciality_name: str) -> Speciality | None:
+        cached = self._speciality_cache.get(speciality_name)
+        if cached is not None:
+            return cached
+
         speciality = self.speciality_repository.get_by_name(name=speciality_name)
         if speciality:
+            self._speciality_cache[speciality_name] = speciality
             return speciality
 
         faculty = self.faculty_repository.get_by_speciality_name(speciality_name)
         if not faculty:
+            self._speciality_cache[speciality_name] = None
             return None
 
         speciality, _ = self.speciality_repository.get_or_create(
             name=speciality_name,
             faculty=faculty,
         )
+        self._speciality_cache[speciality_name] = speciality
         return speciality
