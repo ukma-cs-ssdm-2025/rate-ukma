@@ -3,11 +3,10 @@ name: Staging Build
 on:
   workflow_dispatch:
     inputs:
-      force-deploy:
-        description: "Force deploy current"
-        required: false
-        type: boolean
-        default: false
+      version-tag:
+        description: "Version tag to deploy"
+        required: true
+        type: string
   push:
     branches:
       - main
@@ -18,20 +17,20 @@ jobs:
   changes-filter:
     uses: ./.github/workflows/changes-filter.yml
     with:
-      base: ${{ github.event.before }}
-      ref: ${{ github.sha }}
-      force_all_changes: ${{ inputs.force-deploy == true }}
+      base: ${{ inputs.version-tag || github.event.before }}
+      ref: ${{ inputs.version-tag || github.sha }}
 
   version:
     needs: changes-filter
     with:
       code_changed: >-
-        ${{ inputs.force-deploy != true && (fromJSON(needs.changes-filter.outputs.backend_changed) ||
+        ${{ inputs.version-tag == '' &&
+        (fromJSON(needs.changes-filter.outputs.backend_changed) ||
         fromJSON(needs.changes-filter.outputs.webapp_changed)) }}
     uses: ./.github/workflows/version.yml
 
   test:
-    needs: [changes-filter, version]
+    needs: [changes-filter]
     uses: ./.github/workflows/test.yml
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
@@ -54,15 +53,16 @@ jobs:
       run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   build:
-    needs: [version, test, openapi-validation, audit]
+    needs: [version, test, openapi-validation, audit, changes-filter]
     uses: ./.github/workflows/build.yml
     with:
-      version_tag: ${{ needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   release-needed:
     needs: [version]
+    if: inputs.version-tag == ''
     runs-on: ubuntu-24.04
     outputs:
       release_needed: ${{ steps.check.outputs.release_needed }}
@@ -90,7 +90,7 @@ jobs:
     uses: ./.github/workflows/deploy-staging.yml
     with:
       deployment_ref: ${{ github.sha }}
-      version_tag: ${{ needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
