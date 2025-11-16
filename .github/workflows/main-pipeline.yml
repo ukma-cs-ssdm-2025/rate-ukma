@@ -19,7 +19,7 @@ jobs:
     with:
       base: ${{ github.event.before }}
       ref: ${{ github.sha }}
-      force_all_changed: ${{ inputs.version-tag == '' }}
+      force_all_changed: ${{ inputs.version-tag != '' }}
 
   version:
     needs: changes-filter
