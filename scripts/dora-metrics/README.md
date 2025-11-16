@@ -1,6 +1,27 @@
-# DORA Metrics Scripts
+# DORA Metrics
 
-Calculate DORA (DevOps Research and Assessment) metrics for your CI/CD pipelines.
+Calculate the 4 key DORA metrics for your CI/CD pipelines.
+
+## Quick Example
+
+```bash
+# 1. Set your GitHub token
+export GITHUB_TOKEN=ghp_your_token_here
+
+# 2. Fetch workflow data
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -l 20
+
+# 3. Calculate metrics
+python3 scripts/dora-metrics/calculate_dora_metrics.py metrics-raw.md
+```
+
+Output:
+```
+Deployment Frequency: 12.50 deployments/week
+Lead Time for Changes: 15.0min
+Change Failure Rate: 15.8%
+Time to Restore: 2.0h
+```
 
 ## What are DORA Metrics?
 
@@ -13,189 +34,91 @@ Calculate DORA (DevOps Research and Assessment) metrics for your CI/CD pipelines
 
 ## Prerequisites
 
-- GitHub CLI (`gh`) installed and authenticated
-- Python 3.7+
-- `jq` command-line JSON processor
+- `gh` (GitHub CLI)
+- `jq`
+- Python 3.10+
 
-## Quick Start
-
-### 1. Install GitHub CLI
+## Authentication
 
 ```bash
-# Ubuntu/Debian
-curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-sudo apt update && sudo apt install gh
+# Method 1: Environment variable
+export GITHUB_TOKEN=ghp_your_token_here
 
-# macOS
-brew install gh
-```
-
-### 2. Authenticate with GitHub
-
-Option A - Interactive login:
-```bash
+# Method 2: Interactive login
 gh auth login
-```
-
-Option B - Using GitHub Token:
-```bash
-export GITHUB_TOKEN=your_github_token_here
-# or
-export GH_TOKEN=your_github_token_here
-```
-
-### 3. Generate metrics for a pipeline
-
-```bash
-# For main pipeline
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -o metrics-raw.md
-
-# For prod pipeline
-./scripts/dora-metrics/generate_metrics.sh -w prod-pipeline.yml -o prod-metrics-raw.md
-
-# For dev pipeline
-./scripts/dora-metrics/generate_metrics.sh -w dev-pipeline.yml -o dev-metrics-raw.md
-```
-
-### 4. Calculate DORA metrics
-
-```bash
-python3 ./scripts/dora-metrics/calculate_dora_metrics.py metrics-raw.md
-```
-
-Output:
-```
-Deployment Frequency: 12.50 deployments/week
-Lead Time for Changes: 15.0min
-Change Failure Rate: 15.8%
-Time to Restore: 2.0h
 ```
 
 ## Usage
 
-### generate_metrics.sh
-
-Fetches workflow run data from GitHub Actions.
+### Fetch Data
 
 ```bash
 ./scripts/dora-metrics/generate_metrics.sh [OPTIONS]
 ```
 
-**Options:**
-- `-w, --workflow WORKFLOW` - Workflow file name (default: main-pipeline.yml)
-- `-l, --limit LIMIT` - Number of runs to fetch (default: 100)
-- `-f, --from DATE` - Start date YYYY-MM-DD (optional)
-- `-t, --to DATE` - End date YYYY-MM-DD (optional)
-- `-o, --output FILE` - Output file (default: metrics-raw.md)
-- `-h, --help` - Show help
+Options:
+- `-w, --workflow` - Workflow file (main-pipeline.yml, prod-pipeline.yml, dev-pipeline.yml)
+- `-l, --limit` - Number of runs (default: 100)
+- `-f, --from` - Start date (YYYY-MM-DD)
+- `-t, --to` - End date (YYYY-MM-DD)
+- `-o, --output` - Output file (default: metrics-raw.md)
 
-**Examples:**
-
+Examples:
 ```bash
-# Last 100 runs from main pipeline
+# Main pipeline, last 100 runs
 ./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml
 
-# Last 50 runs from prod pipeline
+# Prod pipeline, last 50 runs
 ./scripts/dora-metrics/generate_metrics.sh -w prod-pipeline.yml -l 50
 
-# Specific date range
+# Date range
 ./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-01-01 -t 2024-12-31
-
-# All options
-./scripts/dora-metrics/generate_metrics.sh -w dev-pipeline.yml -l 200 -f 2024-01-01 -o dev-metrics.md
 ```
 
-### calculate_dora_metrics.py
-
-Calculates the 4 DORA metrics from raw data.
+### Calculate Metrics
 
 ```bash
-python3 ./scripts/dora-metrics/calculate_dora_metrics.py <input_file>
+python3 scripts/dora-metrics/calculate_dora_metrics.py <file>
 ```
 
-**Example:**
+Example:
 ```bash
-python3 ./scripts/dora-metrics/calculate_dora_metrics.py metrics-raw.md
+python3 scripts/dora-metrics/calculate_dora_metrics.py metrics-raw.md
+```
+
+## Reusing Functions
+
+The Python script exports functions you can import:
+
+```python
+from calculate_dora_metrics import parse_table, deployment_frequency, lead_time, change_failure_rate, time_to_restore
+
+runs = parse_table("metrics-raw.md")
+print(f"Frequency: {deployment_frequency(runs):.2f}/week")
+print(f"Lead Time: {lead_time(runs):.1f}min")
+print(f"Failure Rate: {change_failure_rate(runs):.1f}%")
+print(f"Restore Time: {time_to_restore(runs):.1f}min")
 ```
 
 ## Complete Examples
 
 ### Main Pipeline
 ```bash
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -o main-metrics.md
-python3 ./scripts/dora-metrics/calculate_dora_metrics.py main-metrics.md
+export GITHUB_TOKEN=your_token
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -o main.md
+python3 scripts/dora-metrics/calculate_dora_metrics.py main.md
 ```
 
 ### Production Pipeline
 ```bash
-./scripts/dora-metrics/generate_metrics.sh -w prod-pipeline.yml -o prod-metrics.md
-python3 ./scripts/dora-metrics/calculate_dora_metrics.py prod-metrics.md
+export GITHUB_TOKEN=your_token
+./scripts/dora-metrics/generate_metrics.sh -w prod-pipeline.yml -o prod.md
+python3 scripts/dora-metrics/calculate_dora_metrics.py prod.md
 ```
 
 ### Dev Pipeline
 ```bash
-./scripts/dora-metrics/generate_metrics.sh -w dev-pipeline.yml -o dev-metrics.md
-python3 ./scripts/dora-metrics/calculate_dora_metrics.py dev-metrics.md
-```
-
-### Specific Time Period
-```bash
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-10-01 -t 2024-12-31 -l 200 -o q4-metrics.md
-python3 ./scripts/dora-metrics/calculate_dora_metrics.py q4-metrics.md
-```
-
-## Authentication
-
-The `gh` CLI needs authentication to access your repository.
-
-### Method 1: Interactive Login
-```bash
-gh auth login
-```
-
-### Method 2: GitHub Token
-```bash
-# Set environment variable
-export GITHUB_TOKEN=ghp_your_token_here
-
-# Or set GH_TOKEN
-export GH_TOKEN=ghp_your_token_here
-
-# Run the script
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml
-```
-
-### Method 3: Custom gh binary path
-```bash
-export GH_BIN=/path/to/gh
-./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml
-```
-
-## Troubleshooting
-
-### "gh: command not found"
-Install GitHub CLI (see Quick Start section above).
-
-### "To get started with GitHub CLI, please run: gh auth login"
-You need to authenticate:
-```bash
-gh auth login
-# or
 export GITHUB_TOKEN=your_token
-```
-
-### "No workflow runs found"
-Check:
-- Workflow name is correct (`main-pipeline.yml`, `prod-pipeline.yml`, or `dev-pipeline.yml`)
-- Date range has runs
-- You have repository access
-
-### "jq: command not found"
-```bash
-# Ubuntu/Debian
-sudo apt install jq
-
-# macOS
-brew install jq
+./scripts/dora-metrics/generate_metrics.sh -w dev-pipeline.yml -o dev.md
+python3 scripts/dora-metrics/calculate_dora_metrics.py dev.md
 ```

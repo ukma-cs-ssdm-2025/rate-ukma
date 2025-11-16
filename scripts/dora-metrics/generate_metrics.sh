@@ -12,6 +12,7 @@ COMMIT_CACHE_FILE="/tmp/commit_cache.txt"
 CREATED_AFTER=""
 CREATED_BEFORE=""
 GH_BIN="${GH_BIN:-gh}"
+REPO="${REPO:-}"
 
 # Usage information
 usage() {
@@ -27,7 +28,13 @@ OPTIONS:
     -f, --from DATE            Start date (YYYY-MM-DD format, optional)
     -t, --to DATE              End date (YYYY-MM-DD format, optional)
     -o, --output FILE          Output file path (default: metrics-raw.md)
+    -r, --repo REPO            Repository (owner/name, uses git remote if not set)
     -h, --help                 Show this help message
+
+ENVIRONMENT:
+    GITHUB_TOKEN               GitHub personal access token
+    REPO                       Repository (owner/name)
+    GH_BIN                     Path to gh binary (default: gh)
 
 EXAMPLES:
     # Generate metrics for main pipeline (last 100 runs)
@@ -69,6 +76,10 @@ while [[ $# -gt 0 ]]; do
             METRICS_FILE="$2"
             shift 2
             ;;
+        -r|--repo)
+            REPO="$2"
+            shift 2
+            ;;
         -h|--help)
             usage
             ;;
@@ -89,6 +100,10 @@ fetch_all_runs() {
 
     # Build gh command with optional date filters
     local gh_cmd="$GH_BIN run list --workflow=$WORKFLOW_NAME --limit=$LIMIT"
+
+    if [[ -n "$REPO" ]]; then
+        gh_cmd="$gh_cmd --repo=$REPO"
+    fi
 
     if [[ -n "$CREATED_AFTER" ]]; then
         gh_cmd="$gh_cmd --created >=$CREATED_AFTER"
@@ -126,10 +141,15 @@ fetch_commit_messages_batch() {
     log "Found $sha_count unique commit SHAs"
 
     local current=0
+    local api_repo_flag=""
+    if [[ -n "$REPO" ]]; then
+        api_repo_flag="--repo=$REPO"
+    fi
+
     echo "$unique_shas" | while read -r sha; do
         ((current++))
         log "Fetching commit message for SHA $sha ($current/$sha_count)"
-        local msg=$(gh api repos/:owner/:repo/commits/$sha --jq '.commit.message' 2>/dev/null | head -n1 | tr -d '\n\r' | tr '|' ',' || echo "N/A")
+        local msg=$($GH_BIN api repos/:owner/:repo/commits/$sha $api_repo_flag --jq '.commit.message' 2>/dev/null | head -n1 | tr -d '\n\r' | tr '|' ',' || echo "N/A")
         echo "${sha}|${msg}"
     done
 
@@ -182,13 +202,12 @@ process_run_data() {
 
     log "Processing run #$run_id: SHA=$short_sha, status=$status, conclusion=$conclusion"
 
-    local commit_msg=$(get_commit_message "$sha")
     local duration=$(format_duration "$duration_sec")
     local conclusion_label=$(get_status_label "$conclusion")
 
-    log "Run #$run_id: duration=$duration, event=$event, commit_msg=${commit_msg:0:50}..."
+    log "Run #$run_id: SHA=$short_sha, duration=$duration, event=$event"
 
-    echo "| $run_id | $short_sha | $status | $conclusion_label | $created_at | $updated_at | $duration | $event | $commit_msg |"
+    echo "| $run_id | $short_sha | $status | $conclusion_label | $created_at | $updated_at | $duration | $event | - |"
 }
 
 build_metrics_report() {
@@ -209,16 +228,10 @@ build_metrics_report() {
         return
     fi
 
-    fetch_commit_messages_batch "$runs_json" > $COMMIT_CACHE_FILE
-    log "Commit cache file created: $COMMIT_CACHE_FILE"
-
-    log "Processing runs in batches"
+    log "Processing runs"
     echo "$runs_json" | jq -c '.[]' | while read -r line; do
         process_run_data "$line" >> $METRICS_FILE
     done
-
-    log "Cleaning up cache file"
-    rm -f $COMMIT_CACHE_FILE
 
     log "Metrics report generated successfully: $METRICS_FILE"
     log "Total runs processed: $total_runs"
