@@ -23,6 +23,19 @@ Change Failure Rate: 15.8%
 Time to Restore: 2.0h
 ```
 
+## Weekly Updates (Append Mode)
+
+```bash
+# Week 1: Initial collection
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-01-01 -o metrics.md
+
+# Week 2: Append only new runs (skips duplicates automatically)
+./scripts/dora-metrics/generate_metrics.sh -w main-pipeline.yml -f 2024-11-01 --append -o metrics.md
+
+# Calculate metrics from all data
+python3 scripts/dora-metrics/calculate_dora_metrics.py metrics.md
+```
+
 ## What are DORA Metrics?
 
 | Metric | What it shows | What pain it reflects |
@@ -62,6 +75,8 @@ Options:
 - `-f, --from` - Start date (YYYY-MM-DD)
 - `-t, --to` - End date (YYYY-MM-DD)
 - `-o, --output` - Output file (default: metrics-raw.md)
+- `-a, --append` - Append to existing file (skips duplicates)
+- `-r, --repo` - Repository (owner/name)
 
 Examples:
 ```bash
@@ -122,3 +137,60 @@ export GITHUB_TOKEN=your_token
 ./scripts/dora-metrics/generate_metrics.sh -w dev-pipeline.yml -o dev.md
 python3 scripts/dora-metrics/calculate_dora_metrics.py dev.md
 ```
+
+## CI Weekly Collection
+
+For efficient weekly data collection in CI:
+
+```yaml
+# .github/workflows/weekly-dora.yml
+name: DORA Metrics Collection
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Every Sunday at midnight
+  workflow_dispatch:
+
+jobs:
+  collect-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch DORA metrics
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # First run: create file
+          if [ ! -f dora-metrics.md ]; then
+            ./scripts/dora-metrics/generate_metrics.sh \
+              -w main-pipeline.yml \
+              -f $(date -d '90 days ago' +%Y-%m-%d) \
+              -o dora-metrics.md
+          else
+            # Weekly: append last 14 days (overlap for safety)
+            ./scripts/dora-metrics/generate_metrics.sh \
+              -w main-pipeline.yml \
+              -f $(date -d '14 days ago' +%Y-%m-%d) \
+              --append \
+              -o dora-metrics.md
+          fi
+
+      - name: Calculate metrics
+        run: |
+          python3 scripts/dora-metrics/calculate_dora_metrics.py dora-metrics.md
+
+      - name: Commit results
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add dora-metrics.md
+          git commit -m "chore: update DORA metrics data" || true
+          git push
+```
+
+**Benefits:**
+- Fetches only ~14 days of data weekly (~10-50 runs)
+- Saves API rate limits (5000 req/hour)
+- Fast execution
+- Automatic duplicate detection
+- Continuous historical data

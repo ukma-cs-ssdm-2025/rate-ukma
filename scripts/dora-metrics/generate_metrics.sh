@@ -13,6 +13,7 @@ CREATED_AFTER=""
 CREATED_BEFORE=""
 GH_BIN="${GH_BIN:-gh}"
 REPO="${REPO:-}"
+APPEND_MODE=false
 
 # Usage information
 usage() {
@@ -29,6 +30,7 @@ OPTIONS:
     -t, --to DATE              End date (YYYY-MM-DD format, optional)
     -o, --output FILE          Output file path (default: metrics-raw.md)
     -r, --repo REPO            Repository (owner/name, uses git remote if not set)
+    -a, --append               Append to existing file (skip duplicates)
     -h, --help                 Show this help message
 
 ENVIRONMENT:
@@ -79,6 +81,10 @@ while [[ $# -gt 0 ]]; do
         -r|--repo)
             REPO="$2"
             shift 2
+            ;;
+        -a|--append)
+            APPEND_MODE=true
+            shift
             ;;
         -h|--help)
             usage
@@ -174,9 +180,57 @@ get_status_label() {
     esac
 }
 
+write_metadata() {
+    local runs_json=$1
+    local total_runs=$2
+    local mode=$3
+
+    local timestamps=$(echo "$runs_json" | jq -r '.[].createdAt' | sort)
+    local min_date=$(echo "$timestamps" | head -1 | cut -dT -f1)
+    local max_date=$(echo "$timestamps" | tail -1 | cut -dT -f1)
+
+    local current_time=$(date +"%Y-%m-%d %H:%M:%S")
+
+    if [[ "$mode" == "new" ]]; then
+        cat > $METRICS_FILE << EOF
+# DORA Metrics Data
+
+**Generated:** $current_time
+**Workflow:** $WORKFLOW_NAME
+**Repository:** ${REPO:-auto-detected}
+**Runs fetched:** $total_runs
+**Time range:** $min_date to $max_date
+
+**Collection parameters:**
+- Limit: $LIMIT
+- From date: ${CREATED_AFTER:-not set}
+- To date: ${CREATED_BEFORE:-not set}
+
+---
+
+EOF
+    else
+        # Append mode: add append marker
+        cat >> $METRICS_FILE << EOF
+
+<!-- APPEND: $current_time - Added $total_runs runs from $min_date to $max_date -->
+EOF
+    fi
+}
+
+get_existing_run_ids() {
+    if [[ ! -f "$METRICS_FILE" ]]; then
+        echo ""
+        return
+    fi
+
+    # Extract run IDs from existing file (first column after '|')
+    grep -E '^\| [0-9]+ \|' "$METRICS_FILE" 2>/dev/null | awk -F'|' '{print $2}' | tr -d ' ' || echo ""
+}
+
 write_table_header() {
     log "Writing table header to $METRICS_FILE"
-    cat > $METRICS_FILE << 'EOF'
+    cat >> $METRICS_FILE << 'EOF'
 | Run ID | Commit SHA | Status | Conclusion | Created At | Updated At | Duration | Event | Commit Message |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 EOF
@@ -211,24 +265,58 @@ process_run_data() {
 }
 
 build_metrics_report() {
-    log "Generation started"
-
-    write_table_header
+    log "Generation started (append mode: $APPEND_MODE)"
 
     log "Fetching all runs data"
-
     local runs_json=$(fetch_all_runs | jq -s '.')
     local total_runs=$(echo "$runs_json" | jq 'length')
-    log "Total runs to process: $total_runs"
+    log "Total runs fetched: $total_runs"
 
     if [[ $total_runs -eq 0 ]]; then
         log "No workflow runs found for the specified criteria"
-        echo ""
-        echo "No workflow runs found." >> $METRICS_FILE
+        if [[ "$APPEND_MODE" == "false" ]]; then
+            write_metadata "$runs_json" 0 "new"
+            write_table_header
+            echo "No workflow runs found." >> $METRICS_FILE
+        fi
         return
     fi
 
-    log "Processing runs"
+    # Handle append mode
+    if [[ "$APPEND_MODE" == "true" ]]; then
+        if [[ ! -f "$METRICS_FILE" ]]; then
+            log "File doesn't exist, switching to new mode"
+            APPEND_MODE=false
+        else
+            log "Filtering duplicates..."
+            local existing_ids=$(get_existing_run_ids)
+
+            # Filter out duplicates
+            local filtered_json=$(echo "$runs_json" | jq -c --arg existing_ids "$existing_ids" '
+                [.[] | select(.id as $id | ($existing_ids | split("\n") | index($id | tostring) | not))]
+            ')
+
+            runs_json=$filtered_json
+            total_runs=$(echo "$runs_json" | jq 'length')
+            log "After filtering duplicates: $total_runs new runs"
+
+            if [[ $total_runs -eq 0 ]]; then
+                log "No new runs to add (all duplicates)"
+                return
+            fi
+        fi
+    fi
+
+    # Write metadata
+    if [[ "$APPEND_MODE" == "true" ]]; then
+        write_metadata "$runs_json" "$total_runs" "append"
+    else
+        write_metadata "$runs_json" "$total_runs" "new"
+        write_table_header
+    fi
+
+    # Process and write runs
+    log "Processing $total_runs runs"
     echo "$runs_json" | jq -c '.[]' | while read -r line; do
         process_run_data "$line" >> $METRICS_FILE
     done
@@ -239,9 +327,13 @@ build_metrics_report() {
 
 
 log "Job: generate metrics report for '$WORKFLOW_NAME'"
-log "Parameters: limit=$LIMIT, from=$CREATED_AFTER, to=$CREATED_BEFORE, output=$METRICS_FILE"
+log "Parameters: limit=$LIMIT, from=$CREATED_AFTER, to=$CREATED_BEFORE, output=$METRICS_FILE, append=$APPEND_MODE"
 
-rm -f $METRICS_FILE
+# Only remove file if not in append mode
+if [[ "$APPEND_MODE" == "false" ]]; then
+    rm -f $METRICS_FILE
+fi
+
 build_metrics_report
 
 log "Job: done"
