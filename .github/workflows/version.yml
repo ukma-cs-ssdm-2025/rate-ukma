@@ -1,3 +1,4 @@
+---
 name: Semantic Version
 
 on:
@@ -34,7 +35,7 @@ env:
 jobs:
   version:
     runs-on: ubuntu-24.04
-    if: inputs.code_changed == 'true'
+    if: inputs.code_changed == true
     outputs:
       version_tag: ${{ steps.semantic.outputs.version_tag }}
       version_type: ${{ steps.semantic.outputs.version_type }}

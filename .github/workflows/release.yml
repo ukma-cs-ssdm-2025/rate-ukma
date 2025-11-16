@@ -1,3 +1,4 @@
+---
 name: Create Release
 on:
   workflow_dispatch:
@@ -60,7 +61,7 @@ jobs:
             else
               CHANGELOG="No changes since last release"
             fi
-            
+
           else
             CHANGELOG="No previous release"
           fi

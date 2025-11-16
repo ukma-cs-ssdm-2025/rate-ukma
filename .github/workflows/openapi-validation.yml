@@ -1,3 +1,4 @@
+---
 name: Check OpenAPI schema
 
 on:
@@ -18,7 +19,7 @@ env:
 jobs:
   verify-openapi:
     runs-on: ubuntu-24.04
-    if: inputs.api_changed == 'true'
+    if: inputs.api_changed == true
     steps:
       - name: Checkout
         uses: actions/checkout@v5

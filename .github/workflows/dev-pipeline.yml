@@ -1,3 +1,4 @@
+---
 name: Dev Pipeline
 on:
   pull_request:
@@ -16,14 +17,15 @@ jobs:
     needs: changes-filter
     uses: ./.github/workflows/test.yml
     with:
-      backend_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
-      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
+      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   openapi-validation:
     needs: changes-filter
-    if: |
-      needs.changes-filter.outputs.backend_changed == 'true' ||
-      needs.changes-filter.outputs.openapi_changed == 'true'
+    with:
+      api_changed: >-
+        ${{ fromJSON(needs.changes-filter.outputs.backend_changed) ||
+        fromJSON(needs.changes-filter.outputs.openapi_changed) }}
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
@@ -31,12 +33,12 @@ jobs:
     uses: ./.github/workflows/audit.yml
     secrets: inherit
     with:
-      run_backend_audit: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
-      run_frontend_audit: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
+      run_backend_audit: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   build:
     needs: changes-filter
     uses: ./.github/workflows/build.yml
     with:
-      backend_changed: ${{ needs.changes-filter.outputs.backend_changed == 'true' }}
-      webapp_changed: ${{ needs.changes-filter.outputs.webapp_changed == 'true' }}
+      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
+      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
