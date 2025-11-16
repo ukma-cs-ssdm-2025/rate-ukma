@@ -57,7 +57,7 @@ jobs:
     needs: [version, test, openapi-validation, audit, changes-filter]
     uses: ./.github/workflows/build.yml
     with:
-      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
+      version_tag: ${{ needs.version.outputs.version_tag || '' }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
