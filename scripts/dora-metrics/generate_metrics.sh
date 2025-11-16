@@ -104,7 +104,6 @@ log() {
 fetch_all_runs() {
     log "Fetching workflow runs for '$WORKFLOW_NAME' (limit: $LIMIT)..."
 
-    # Build gh command with optional date filters
     local gh_cmd="$GH_BIN run list --workflow=$WORKFLOW_NAME --limit=$LIMIT"
 
     if [[ -n "$REPO" ]]; then
@@ -119,7 +118,6 @@ fetch_all_runs() {
         gh_cmd="$gh_cmd --created <=$CREATED_BEFORE"
     fi
 
-    # Fetch runs with all necessary data for DORA metrics
     local runs=$(eval "$gh_cmd --json databaseId,status,conclusion,createdAt,updatedAt,headSha,event --jq '.[] | {
             id: .databaseId,
             sha: .headSha,
@@ -141,7 +139,6 @@ fetch_commit_messages_batch() {
     local runs_json=$1
 
     log "Fetching commit messages..."
-    # extract all unique SHAs and fetch commit messages
     local unique_shas=$(echo "$runs_json" | jq -r '.[].sha' | sort -u)
     local sha_count=$(echo "$unique_shas" | wc -l)
     log "Found $sha_count unique commit SHAs"
@@ -210,7 +207,6 @@ write_metadata() {
 
 EOF
     else
-        # Append mode: add append marker
         cat >> $METRICS_FILE << EOF
 
 <!-- APPEND: $current_time - Added $total_runs runs from $min_date to $max_date -->
@@ -282,7 +278,6 @@ build_metrics_report() {
         return
     fi
 
-    # Handle append mode
     if [[ "$APPEND_MODE" == "true" ]]; then
         if [[ ! -f "$METRICS_FILE" ]]; then
             log "File doesn't exist, creating new file (first run)"
@@ -291,7 +286,6 @@ build_metrics_report() {
             log "Filtering duplicates..."
             local existing_ids=$(get_existing_run_ids)
 
-            # Filter out duplicates
             local filtered_json=$(echo "$runs_json" | jq -c --arg existing_ids "$existing_ids" '
                 [.[] | select(.id as $id | ($existing_ids | split("\n") | index($id | tostring) | not))]
             ')
@@ -307,7 +301,6 @@ build_metrics_report() {
         fi
     fi
 
-    # Write metadata
     if [[ "$APPEND_MODE" == "true" ]]; then
         write_metadata "$runs_json" "$total_runs" "append"
     else
@@ -315,7 +308,6 @@ build_metrics_report() {
         write_table_header
     fi
 
-    # Process and write runs
     log "Processing $total_runs runs"
     echo "$runs_json" | jq -c '.[]' | while read -r line; do
         process_run_data "$line" >> $METRICS_FILE

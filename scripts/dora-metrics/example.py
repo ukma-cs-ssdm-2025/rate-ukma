@@ -4,7 +4,6 @@
 import sys
 from pathlib import Path
 
-# Add script directory to path (works from any location)
 script_dir = Path(__file__).parent
 sys.path.insert(0, str(script_dir))
 
@@ -17,21 +16,17 @@ from calculate_dora_metrics import (
     format_duration,
 )
 
-# Parse data
 runs = parse_table("metrics-raw.md")
 
-# Calculate individual metrics
 freq = deployment_frequency(runs)
 lt = lead_time(runs)
 cfr = change_failure_rate(runs)
 ttr = time_to_restore(runs)
 
-# Print results
 print(f"Deployment Frequency: {freq:.2f}/week")
 print(f"Lead Time: {format_duration(lt)}")
 print(f"Change Failure Rate: {cfr:.1f}%")
 print(f"Time to Restore: {format_duration(ttr)}")
 
-# You can also filter runs before calculating
 successful_runs = [r for r in runs if r["conclusion"] == "Success"]
 print(f"\nTotal successful runs: {len(successful_runs)}")
