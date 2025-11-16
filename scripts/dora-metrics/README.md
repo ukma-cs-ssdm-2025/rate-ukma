@@ -82,7 +82,6 @@ Options:
 - `-t, --to` - End date (YYYY-MM-DD)
 - `-o, --output` - Output file (default: metrics-raw.md)
 - `-a, --append` - Append to existing file (skips duplicates)
-- `-r, --repo` - Repository (owner/name)
 
 Examples:
 ```bash

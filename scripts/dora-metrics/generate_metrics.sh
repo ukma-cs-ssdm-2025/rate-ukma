@@ -12,7 +12,6 @@ COMMIT_CACHE_FILE="/tmp/commit_cache.txt"
 CREATED_AFTER=""
 CREATED_BEFORE=""
 GH_BIN="${GH_BIN:-gh}"
-REPO="${REPO:-}"
 APPEND_MODE=false
 
 # Usage information
@@ -29,13 +28,11 @@ OPTIONS:
     -f, --from DATE            Start date (YYYY-MM-DD format, optional)
     -t, --to DATE              End date (YYYY-MM-DD format, optional)
     -o, --output FILE          Output file path (default: metrics-raw.md)
-    -r, --repo REPO            Repository (owner/name, uses git remote if not set)
     -a, --append               Append to existing file (skip duplicates)
     -h, --help                 Show this help message
 
 ENVIRONMENT:
     GITHUB_TOKEN               GitHub personal access token
-    REPO                       Repository (owner/name)
     GH_BIN                     Path to gh binary (default: gh)
 
 EXAMPLES:
@@ -78,10 +75,6 @@ while [[ $# -gt 0 ]]; do
             METRICS_FILE="$2"
             shift 2
             ;;
-        -r|--repo)
-            REPO="$2"
-            shift 2
-            ;;
         -a|--append)
             APPEND_MODE=true
             shift
@@ -105,10 +98,6 @@ fetch_all_runs() {
     log "Fetching workflow runs for '$WORKFLOW_NAME' (limit: $LIMIT)..."
 
     local gh_cmd="$GH_BIN run list --workflow=$WORKFLOW_NAME --limit=$LIMIT"
-
-    if [[ -n "$REPO" ]]; then
-        gh_cmd="$gh_cmd --repo=$REPO"
-    fi
 
     if [[ -n "$CREATED_AFTER" ]]; then
         gh_cmd="$gh_cmd --created >=$CREATED_AFTER"
@@ -144,15 +133,10 @@ fetch_commit_messages_batch() {
     log "Found $sha_count unique commit SHAs"
 
     local current=0
-    local api_repo_flag=""
-    if [[ -n "$REPO" ]]; then
-        api_repo_flag="--repo=$REPO"
-    fi
-
     echo "$unique_shas" | while read -r sha; do
         ((current++))
         log "Fetching commit message for SHA $sha ($current/$sha_count)"
-        local msg=$($GH_BIN api repos/:owner/:repo/commits/$sha $api_repo_flag --jq '.commit.message' 2>/dev/null | head -n1 | tr -d '\n\r' | tr '|' ',' || echo "N/A")
+        local msg=$($GH_BIN api repos/:owner/:repo/commits/$sha --jq '.commit.message' 2>/dev/null | head -n1 | tr -d '\n\r' | tr '|' ',' || echo "N/A")
         echo "${sha}|${msg}"
     done
 
@@ -194,7 +178,6 @@ write_metadata() {
 
 **Generated:** $current_time
 **Workflow:** $WORKFLOW_NAME
-**Repository:** ${REPO:-auto-detected}
 **Runs fetched:** $total_runs
 **Time range:** $min_date to $max_date
 
