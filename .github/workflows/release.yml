@@ -84,7 +84,10 @@ jobs:
             ## Changelog since last release:
             ${{ steps.changelog.outputs.changelog }}
 
-            [View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.changelog.outputs.prev_tag }}...${{ inputs.version_tag }})
+            CHANGES_PATH="${{ github.server_url }}/${{ github.repository }}/compare"
+            CHANGES_URL_DIFF_PARAM = "${{ steps.changelog.outputs.prev_tag }}...${{ inputs.version_tag }}"
+
+            [View changes]($CHANGES_PATH/$CHANGES_URL_DIFF_PARAM)
 
           draft: false
           prerelease: ${{ inputs.pre-release }}
