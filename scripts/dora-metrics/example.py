@@ -2,7 +2,11 @@
 """Example of how to reuse DORA metrics functions."""
 
 import sys
-sys.path.insert(0, '/home/user/rate-ukma/scripts/dora-metrics')
+from pathlib import Path
+
+# Add script directory to path (works from any location)
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir))
 
 from calculate_dora_metrics import (
     parse_table,

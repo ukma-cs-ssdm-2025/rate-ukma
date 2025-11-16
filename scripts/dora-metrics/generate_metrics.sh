@@ -1,8 +1,8 @@
 #!/bin/bash
 
-set -e
-set -u
-set -o pipefail
+set -e          # Exit on any error
+set -u          # Exit on undefined variable
+set -o pipefail # Exit on pipe failure
 
 # Default values
 LIMIT=100
