@@ -9,18 +9,50 @@ on:
         type: string
 
 jobs:
+  get-latest-live-tag:
+    runs-on: ubuntu-24.04
+    outputs:
+      latest_live_tag: ${{ steps.get_latest.outputs.latest_live_tag }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Get Latest Live Tag
+        id: get_latest
+        env:
+          LIVE_TAG_PREFIX: "live-"
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          git fetch --tags
+
+          LATEST_LIVE_TAG=$(git tag -l "$LIVE_TAG_PREFIX*" --sort=-v:refname | head -n 1)
+
+          if [[ -z "$LATEST_LIVE_TAG" ]]; then
+            echo "No live tags found, using main as base"
+            echo "latest_live_tag=main" >> "$GITHUB_OUTPUT"
+          else
+            echo "Latest live tag: $LATEST_LIVE_TAG"
+            echo "latest_live_tag=$LATEST_LIVE_TAG" >> "$GITHUB_OUTPUT"
+          fi
+
   changes-filter:
+    needs: [get-latest-live-tag]
     uses: ./.github/workflows/changes-filter.yml
+    with:
+      base: ${{ needs.get-latest-live-tag.outputs.latest_live_tag }}
+      ref: ${{ inputs.version_tag }}
 
   test:
-    needs: changes-filter
+    needs: [changes-filter]
     uses: ./.github/workflows/test.yml
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   openapi-validation:
-    needs: changes-filter
+    needs: [changes-filter]
     with:
       api_changed: >-
         ${{ fromJSON(needs.changes-filter.outputs.backend_changed) ||
@@ -28,7 +60,7 @@ jobs:
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
-    needs: changes-filter
+    needs: [changes-filter]
     uses: ./.github/workflows/audit.yml
     secrets: inherit
     with:
@@ -57,7 +89,7 @@ jobs:
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   update_pre_releases:
-    needs: [deploy-live]
+    needs: [get-latest-live-tag, deploy-live]
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
@@ -71,18 +103,10 @@ jobs:
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           git fetch --tags
 
-      - name: Get Previous Live Release
-        id: prev_live_release
-        env:
-          LIVE_TAG_PREFIX: "live-"
-        run: |
-          PREV_TAG=$(git tag -l "$LIVE_TAG_PREFIX*" --sort=-v:refname | head -n 1)
-          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
-
       - name: Get all releases between last live and current
         id: get_releases
         env:
-          PREV_LIVE_TAG: ${{ steps.prev_live_release.outputs.prev_tag }}
+          PREV_LIVE_TAG: ${{ needs.get-latest-live-tag.outputs.latest_live_tag }}
           VERSION_TAG: "${{ inputs.version_tag }}"
           LIVE_TAG_PREFIX: "live-"
         run: |
