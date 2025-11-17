@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from django.conf import settings
 
@@ -30,7 +30,7 @@ class StudentRepository(IRepository[Student]):
         first_name: str,
         last_name: str,
         patronymic: str | None,
-        education_level: EducationLevel,
+        education_level: EducationLevel | Literal[""],
         speciality: Speciality,
     ) -> tuple[Student, bool]:
         return Student.objects.get_or_create(

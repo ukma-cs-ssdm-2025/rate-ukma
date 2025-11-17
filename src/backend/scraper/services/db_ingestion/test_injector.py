@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from faker import Faker
 
 from scraper.models.deduplicated import (
     CourseStatus,
@@ -21,6 +22,8 @@ from scraper.models.deduplicated import (
     SemesterTerm,
 )
 from scraper.services.db_ingestion.injector import CourseDbInjector
+
+faker = Faker()
 
 
 @pytest.fixture(autouse=True)
@@ -45,14 +48,14 @@ def repo_mocks():
     enrollment_repo = MagicMock()
     tracker = MagicMock()
 
-    faculty = SimpleNamespace()
-    department = SimpleNamespace()
+    faculty = SimpleNamespace(name=faker.company())
+    department = SimpleNamespace(name=faker.catch_phrase())
     course = Mock()
     course.specialities = Mock()
     course.specialities.add = Mock()
     semester = SimpleNamespace()
     course_offering = SimpleNamespace()
-    speciality = SimpleNamespace()
+    speciality = SimpleNamespace(name=faker.word())
     instructor = SimpleNamespace()
     student = SimpleNamespace()
 
@@ -152,6 +155,30 @@ def create_mock_no_speciality_payload() -> list[DeduplicatedCourse]:
     ]
 
 
+def create_mock_empty_education_level_payload() -> list[DeduplicatedCourse]:
+    return [
+        create_mock_course(
+            title="Course D",
+            offerings=[
+                create_mock_offering(
+                    code="XYZ999",
+                    term=SemesterTerm.SPRING,
+                    exam_type=ExamType.CREDIT,
+                    instructors=[],
+                    enrollments=[
+                        create_mock_enrollment(
+                            first_name="Bob",
+                            last_name="Johnson",
+                            speciality="SpecX",
+                            level=None,  # Empty education level
+                        )
+                    ],
+                )
+            ],
+        )
+    ]
+
+
 def create_mock_payload() -> list[DeduplicatedCourse]:
     return [
         create_mock_course(
@@ -186,7 +213,7 @@ def create_mock_enrollment(
     first_name: str = "John",
     last_name: str = "Doe",
     speciality: str = "SpecX",
-    level: EducationLevel = EducationLevel.BACHELOR,
+    level: EducationLevel | None = EducationLevel.BACHELOR,
     status: EnrollmentStatus = EnrollmentStatus.ENROLLED,
 ) -> DeduplicatedEnrollment:
     return DeduplicatedEnrollment(
@@ -321,3 +348,18 @@ def test_injector_skips_student_creation_when_missing_speciality(injector, repo_
 
     # Assert
     repo_mocks.student_repo.get_or_create.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_injector_handles_empty_education_level(injector, repo_mocks):
+    # Arrange
+    models = create_mock_empty_education_level_payload()
+
+    # Act
+    injector.execute(models)
+
+    # Assert
+    # Should create the student with empty education level
+    repo_mocks.student_repo.get_or_create.assert_called_once()
+    call_args = repo_mocks.student_repo.get_or_create.call_args
+    assert call_args[1]["education_level"] == ""
