@@ -56,3 +56,5 @@ playwright/.auth
 .act.secrets
 .secrets
 .github/workflows/event.json
+
+scripts/dora-metrics/results/*
