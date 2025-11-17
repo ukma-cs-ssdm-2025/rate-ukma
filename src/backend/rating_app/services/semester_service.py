@@ -37,7 +37,7 @@ class SemesterService(IFilterable):
     def get_semesters(self):
         return self.semester_repository.get_all()
 
-    def get_filter_options(self) -> dict[str, Any]:
+    def get_filter_options(self) -> dict[str, Any]:  # type: ignore[override]
         return self._build_filter_options().to_dict()
 
     def _build_filter_options(self) -> SemesterFilterData:

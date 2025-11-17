@@ -14,6 +14,7 @@ from rating_app.application_schemas.course import (
 )
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
 from rating_app.services import CourseService
+from rating_app.utils import pydantic_errors_to_drf_format
 from rating_app.views.api_spec.course import (
     COURSES_LIST_QUERY_PARAMS,
     SINGLE_COURSE_QUERY_PARAMS,
@@ -44,7 +45,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         try:
             filters = CourseFilterCriteria.model_validate(request.query_params.dict())
         except ModelValidationError as e:
-            raise ValidationError(detail=e.errors()) from e
+            raise ValidationError(detail=pydantic_errors_to_drf_format(e.errors())) from e
 
         payload: CourseSearchResult = self.course_service.filter_courses(filters, paginate=False)
         serialized = self.serializer_class(payload.items, many=True).data
@@ -64,7 +65,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         try:
             params = CourseReadParams.model_validate({"course_id": course_id})
         except ModelValidationError as e:
-            raise ValidationError(detail=e.errors()) from e
+            raise ValidationError(detail=pydantic_errors_to_drf_format(e.errors())) from e
 
         course = self.course_service.get_course(params.course_id)
 

@@ -58,7 +58,7 @@ class RatingService:
             return self._paginated_result(ratings, filters)
 
         return RatingSearchResult(
-            items=list(ratings),
+            items=list(ratings),  # type: ignore[arg-type]
             pagination=self._empty_pagination_metadata(ratings.count()),
             applied_filters=filters.model_dump(by_alias=True),
         )
@@ -71,7 +71,7 @@ class RatingService:
         self.rating_repository.delete(rating)
 
     def _paginated_result(
-        self, ratings: QuerySet[Rating], criteria: RatingFilterCriteria
+        self, ratings: QuerySet[Rating, Rating], criteria: RatingFilterCriteria
     ) -> RatingSearchResult:
         page_size = criteria.page_size or DEFAULT_PAGE_SIZE
         obj_list, metadata = self.paginator.process(ratings, criteria.page, page_size)

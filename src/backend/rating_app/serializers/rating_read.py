@@ -17,7 +17,7 @@ class RatingReadSerializer(serializers.ModelSerializer):
     course = serializers.UUIDField(source="course_offering.course_id", read_only=True)
     course_offering = serializers.UUIDField(source="course_offering_id", read_only=True)
 
-    class Meta:
+    class Meta:  # type: ignore[misc]
         model = Rating
         fields = [
             "id",

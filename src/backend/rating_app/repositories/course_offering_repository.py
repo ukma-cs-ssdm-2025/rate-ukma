@@ -5,10 +5,10 @@ from rating_app.repositories.protocol import IRepository
 
 
 class CourseOfferingRepository(IRepository[CourseOffering]):
-    def get_all(self) -> list[CourseOffering]:
+    def get_all(self) -> list[CourseOffering]:  # type: ignore[override]
         return list(CourseOffering.objects.select_related("course", "semester").all())
 
-    def get_by_id(self, offering_id: str) -> CourseOffering:
+    def get_by_id(self, offering_id: str) -> CourseOffering:  # type: ignore[override]
         return CourseOffering.objects.select_related("course", "semester").get(id=offering_id)
 
     def get_or_upsert(
@@ -43,24 +43,24 @@ class CourseOfferingRepository(IRepository[CourseOffering]):
             "group_size_min": group_size_min,
             "group_size_max": group_size_max,
         }
-        return CourseOffering.objects.update_or_create(**lookup, defaults=defaults)
+        return CourseOffering.objects.update_or_create(**lookup, defaults=defaults)  # type: ignore[arg-type]
 
     def create(self, **offering_data) -> CourseOffering:
         return CourseOffering.objects.create(**offering_data)
 
-    def update(self, offering: CourseOffering, **offering_data) -> CourseOffering:
+    def update(self, offering: CourseOffering, **offering_data) -> CourseOffering:  # type: ignore[override]
         for field, value in offering_data.items():
             setattr(offering, field, value)
         offering.save()
         return offering
 
-    def delete(self, offering: CourseOffering) -> None:
+    def delete(self, offering: CourseOffering) -> None:  # type: ignore[override]
         offering.delete()
 
     def get_or_create(self, *args: Any, **kwargs: Any) -> tuple[CourseOffering, bool]:
         #! TODO: not implemented
         return self.get_or_upsert(*args, **kwargs)
 
-    def filter(self, *args: Any, **kwargs: Any) -> list[CourseOffering]:
+    def filter(self, *args: Any, **kwargs: Any) -> list[CourseOffering]:  # type: ignore[override]
         #! TODO: not implemented
         return self.get_all()

@@ -2,10 +2,6 @@ import dis
 import sys
 from collections.abc import Callable
 from types import FrameType
-from typing import ParamSpec, TypeVar
-
-_P = ParamSpec("_P")
-_RT = TypeVar("_RT", covariant=True)
 
 
 def _get_base_classes(frame: FrameType, namespace: dict) -> list[type]:
@@ -59,7 +55,7 @@ def _get_base_class(components: list[str], namespace: dict) -> type:
     return obj
 
 
-def implements(method: Callable[_P, _RT]) -> Callable[_P, _RT]:
+def implements[**P, RT](method: Callable[P, RT]) -> Callable[P, RT]:
     """
     Decorator that verifies a method implements a protocol method.
 
@@ -93,7 +89,7 @@ def implements(method: Callable[_P, _RT]) -> Callable[_P, _RT]:
             return "https://github.com"
     ```
     """
-    method.__implements__ = True
+    method.__implements__ = True  # type: ignore[attr-defined]
     global_vars = getattr(method, "__globals__", None)
     if global_vars is None:
         global_vars = vars(sys.modules[method.__module__])

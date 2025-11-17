@@ -123,7 +123,7 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
                 filtered_count=filtered_out_count,
                 original_count=len(all_courses),
                 remaining_count=len(valid_courses),
-                reason="zero_credits_or_hours"
+                reason="zero_credits_or_hours",
             )
 
         courses_by_key = defaultdict(list)

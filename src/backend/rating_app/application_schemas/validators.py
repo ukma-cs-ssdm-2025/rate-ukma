@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from pydantic import field_validator
 
@@ -24,8 +25,8 @@ def validate_uuid_string(field_name: str):
     """
 
     @field_validator(field_name, mode="before")
-    @classmethod
-    def _validate_uuid(cls, value):
+    @classmethod  # type: ignore[arg-type]
+    def _validate_uuid(cls, value: Any) -> Any:
         try:
             uuid.UUID(value)
         except (ValueError, TypeError) as e:

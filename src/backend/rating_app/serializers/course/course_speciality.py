@@ -12,7 +12,7 @@ class CourseSpecialityInlineSerializer(serializers.ModelSerializer):
     speciality_id = serializers.UUIDField(source="speciality.id", read_only=True)
     speciality_title = serializers.CharField(source="speciality.name", read_only=True)
 
-    class Meta:
+    class Meta:  # type: ignore[misc]
         model = CourseSpeciality
         fields = ["speciality_id", "speciality_title", "type_kind"]
 

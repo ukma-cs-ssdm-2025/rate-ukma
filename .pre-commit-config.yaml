@@ -8,6 +8,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: pyright
+        name: Pyright type checker
+        entry: bash -c "cd src/backend && uv run pyright"
+        language: system
+        types: [python]
+        files: ^src/backend/
+        pass_filenames: false
       - id: generate-openapi-schema
         name: Generate OpenAPI schema
         entry: bash -c "cd src/backend && uv run python manage.py spectacular --file ../../docs/api/openapi-generated.yaml"

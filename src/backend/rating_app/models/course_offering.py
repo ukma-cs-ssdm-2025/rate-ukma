@@ -57,7 +57,7 @@ class CourseOffering(models.Model):
 
     @property
     def occupied_seats(self) -> int:
-        return self.enrollments.filter(status=EnrollmentStatus.ENROLLED).count()
+        return self.enrollments.filter(status=EnrollmentStatus.ENROLLED).count()  # type: ignore[attr-defined]
 
     @property
     def free_seats(self):

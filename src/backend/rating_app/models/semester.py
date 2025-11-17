@@ -15,4 +15,4 @@ class Semester(models.Model):
         ordering = ["-year", "-term"]
 
     def __str__(self):
-        return f"{self.year} {self.get_term_display()}"
+        return f"{self.year} {self.get_term_display()}"  # type: ignore[attr-defined]

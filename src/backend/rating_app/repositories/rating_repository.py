@@ -17,7 +17,7 @@ logger = structlog.get_logger(__name__)
 
 
 class RatingRepository(IRepository[Rating]):
-    def get_all(self) -> list[Rating]:
+    def get_all(self) -> list[Rating]:  # type: ignore[override]
         return list(
             Rating.objects.select_related(
                 "course_offering__course",
@@ -26,7 +26,7 @@ class RatingRepository(IRepository[Rating]):
             ).all()
         )
 
-    def get_by_id(self, rating_id: str) -> Rating:
+    def get_by_id(self, rating_id: str) -> Rating:  # type: ignore[override]
         try:
             return Rating.objects.select_related(
                 "course_offering__course",
@@ -36,7 +36,7 @@ class RatingRepository(IRepository[Rating]):
         except Rating.DoesNotExist as err:
             raise RatingNotFoundError() from err
 
-    def get_or_create(self, create_params: RatingCreateParams) -> tuple[Rating, bool]:
+    def get_or_create(self, create_params: RatingCreateParams) -> tuple[Rating, bool]:  # type: ignore[override]
         return Rating.objects.get_or_create(
             student_id=str(create_params.student),
             course_offering_id=str(create_params.course_offering),
@@ -57,7 +57,7 @@ class RatingRepository(IRepository[Rating]):
     def filter(
         self,
         criteria: RatingFilterCriteria,
-    ) -> QuerySet[Rating]:
+    ) -> QuerySet[Rating, Rating]:
         # find a cleaner way to do this
         filters = criteria.model_dump(exclude_none=True, exclude={"page", "page_size"})
 
@@ -89,7 +89,7 @@ class RatingRepository(IRepository[Rating]):
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
-    def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> Rating:
+    def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> Rating:  # type: ignore[override]
         allow_unset = isinstance(update_data, RatingPatchParams)
         update_data_map = update_data.model_dump(exclude_unset=allow_unset)
         for attr, value in update_data_map.items():
@@ -109,7 +109,7 @@ class RatingRepository(IRepository[Rating]):
 
         return rating
 
-    def delete(self, rating: Rating) -> None:
+    def delete(self, rating: Rating) -> None:  # type: ignore[override]
         rating.delete()
         logger.info(
             "rating_deleted",

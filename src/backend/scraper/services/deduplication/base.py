@@ -12,19 +12,19 @@ class DataValidationError(Exception):
     pass
 
 
-class Extractor[T, U](ABC):
+class Extractor[T, U](ABC):  # type: ignore[valid-type]
     @abstractmethod
     def extract(self, data: T) -> U:
         pass
 
 
-class DeduplicationComponent[T, U](ABC):
+class DeduplicationComponent[T, U](ABC):  # type: ignore[valid-type]
     @abstractmethod
     def process(self, data: T) -> U:
         pass
 
 
-class ProcessingStep[T, U]:
+class ProcessingStep[T, U]:  # type: ignore[valid-type]
     def __init__(self, processor: DeduplicationComponent[T, U]):
         self.processor = processor
 
@@ -32,11 +32,11 @@ class ProcessingStep[T, U]:
         return self.processor.process(data)
 
 
-class ProcessingChain[T, U]:
+class ProcessingChain[T, U]:  # type: ignore[valid-type]
     def __init__(self, steps: list[ProcessingStep[Any, Any]] | None = None):
         self._steps: list[ProcessingStep[Any, Any]] = steps.copy() if steps else []
 
-    def add_step[V](self, processor: DeduplicationComponent[U, V]) -> "ProcessingChain[T, V]":
+    def add_step[V](self, processor: DeduplicationComponent[U, V]) -> "ProcessingChain[T, V]":  # type: ignore[valid-type]
         step = ProcessingStep(processor)
         new_steps = self._steps.copy()
         new_steps.append(step)

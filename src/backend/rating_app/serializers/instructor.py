@@ -4,7 +4,7 @@ from rating_app.models import Instructor
 
 
 class InstructorSerializer(serializers.ModelSerializer):
-    class Meta:
+    class Meta:  # type: ignore[misc]
         model = Instructor
         fields = [
             "id",

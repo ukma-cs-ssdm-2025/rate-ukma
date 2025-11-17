@@ -151,7 +151,63 @@ exclude_lines = [
 [tool.pytest.ini_options]
 addopts = "--cov --cov-report=term-missing:skip-covered --cov-report=html --cov-report=xml"
 
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+include = ["rateukma", "rating_app", "scraper"]
+exclude = [
+    "**/__pycache__",
+    "**/migrations",
+    "**/test_*.py",
+    "**/tests/**",
+    "conftest.py",
+    ".venv",
+    "venv",
+    "**/node_modules",
+    "**/.pytest_cache",
+    "**/staticfiles",
+    "**/media",
+]
+# Report settings
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportUnusedImport = true
+reportUnusedClass = true
+reportUnusedFunction = true
+reportUnusedVariable = true
+reportDuplicateImport = true
+reportOptionalSubscript = true
+reportOptionalMemberAccess = true
+reportOptionalCall = true
+reportOptionalIterable = true
+reportOptionalContextManager = true
+reportPrivateUsage = true
+reportConstantRedefinition = true
+# Django-specific settings
+reportIncompatibleMethodOverride = false
+reportIncompatibleVariableOverride = false
+# Relax some strict checks for Django patterns
+reportGeneralTypeIssues = true
+reportUntypedFunctionDecorator = false
+reportUntypedClassDecorator = false
+reportUntypedBaseClass = false
+reportUnknownParameterType = false
+reportUnknownArgumentType = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportMissingParameterType = false
+reportMissingTypeArgument = false
+
 [[tool.uv.index]]
 name = "safety"
 url = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/"
 default = false
+
+[dependency-groups]
+dev = [
+    "django-stubs>=5.2.7",
+    "djangorestframework-stubs>=3.16.5",
+    "faker>=37.11.0",
+    "pyright>=1.1.407",
+    "types-requests>=2.32.4.20250913",
+]

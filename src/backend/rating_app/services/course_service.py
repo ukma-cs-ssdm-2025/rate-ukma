@@ -56,7 +56,7 @@ class CourseService:
             return self._paginated_result(courses, filters)
 
         return CourseSearchResult(
-            items=list(courses),
+            items=list(courses),  # type: ignore[arg-type]
             pagination=self._empty_pagination_metadata(courses.count()),
             applied_filters=filters.model_dump(by_alias=True),
         )
@@ -93,7 +93,7 @@ class CourseService:
         )
 
     def _paginated_result(
-        self, courses: QuerySet[Course], criteria: CourseFilterCriteria
+        self, courses: QuerySet[Course, Course], criteria: CourseFilterCriteria
     ) -> CourseSearchResult:
         page_size = criteria.page_size or DEFAULT_COURSE_PAGE_SIZE
         obj_list, metadata = self.paginator.process(courses, criteria.page, page_size)

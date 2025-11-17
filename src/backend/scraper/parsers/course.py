@@ -8,14 +8,14 @@ from .base import BaseParser
 
 
 class ParserUtils:
-    @staticmethod
+    @staticmethod  # type: ignore[arg-type]
     def clean_text(s) -> str:
         if s is None:
             return ""
         text = str(s)
         return re.sub(r"\s+", " ", text).strip()
 
-    @staticmethod
+    @staticmethod  # type: ignore[arg-type]
     def parse_int(s: str | None) -> int | None:
         if not s:
             return None
@@ -25,7 +25,7 @@ class ParserUtils:
         except (ValueError, IndexError):
             return None
 
-    @staticmethod
+    @staticmethod  # type: ignore[arg-type]
     def parse_float(s: str | None) -> float | None:
         if not s:
             return None

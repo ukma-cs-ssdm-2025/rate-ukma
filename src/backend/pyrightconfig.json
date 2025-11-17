@@ -1,0 +1,18 @@
+{
+  "defineConstant": {
+    "DEBUG": true
+  },
+  "stubPath": ".venv/lib/python3.12/site-packages",
+  "venvPath": ".",
+  "venv": ".venv",
+  "exclude": [
+    "**/__pycache__",
+    "**/migrations",
+    "**/test_*.py",
+    "**/tests",
+    "conftest.py",
+    "**/conftest.py",
+    ".venv",
+    "venv"
+  ]
+}

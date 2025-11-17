@@ -14,17 +14,17 @@ logger = structlog.get_logger()
 
 
 class StudentRepository(IRepository[Student]):
-    def get_all(self) -> list[Student]:
+    def get_all(self) -> list[Student]:  # type: ignore[override]
         return list(Student.objects.select_related("speciality").all())
 
-    def get_by_id(self, student_id: str) -> Student | None:
+    def get_by_id(self, student_id: str) -> Student | None:  # type: ignore[override]
         try:
             return Student.objects.select_related("speciality").get(id=student_id)
         except Student.DoesNotExist:
             logger.error("student_not_found", student_id=student_id)
             return None
 
-    def get_or_create(
+    def get_or_create(  # type: ignore[override]
         self,
         *,
         first_name: str,
@@ -44,19 +44,19 @@ class StudentRepository(IRepository[Student]):
     def create(self, **student_data) -> Student:
         return Student.objects.create(**student_data)
 
-    def update(self, student: Student, **student_data) -> Student:
+    def update(self, student: Student, **student_data) -> Student:  # type: ignore[override]
         for field, value in student_data.items():
             setattr(student, field, value)
         student.save()
         return student
 
-    def delete(self, student: Student) -> None:
+    def delete(self, student: Student) -> None:  # type: ignore[override]
         student.delete()
 
     def create_user_for_student(self, student: Student, email: str | None = None) -> None:
         # To be implemented
         pass
 
-    def filter(self, *args: Any, **kwargs: Any) -> list[Student]:
+    def filter(self, *args: Any, **kwargs: Any) -> list[Student]:  # type: ignore[override]
         #! TODO: not implemented
         return self.get_all()

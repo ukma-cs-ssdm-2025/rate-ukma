@@ -21,17 +21,17 @@ class DepartmentOptionSerializer(FilterOptionSerializer):
 
 class SemesterTermOptionSerializer(serializers.Serializer):
     value = serializers.CharField()
-    label = serializers.CharField()
+    label = serializers.CharField()  # type: ignore[assignment]
 
 
 class SemesterYearOptionSerializer(serializers.Serializer):
     value = serializers.CharField()
-    label = serializers.CharField()
+    label = serializers.CharField()  # type: ignore[assignment]
 
 
 class CourseTypeOptionSerializer(serializers.Serializer):
     value = serializers.CharField()
-    label = serializers.CharField()
+    label = serializers.CharField()  # type: ignore[assignment]
 
 
 class SpecialityOptionSerializer(FilterOptionSerializer):

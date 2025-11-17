@@ -6,16 +6,16 @@ from rating_app.repositories.protocol import IRepository
 
 
 class InstructorRepository(IRepository[Instructor]):
-    def get_all(self) -> list[Instructor]:
-        return list(Instructor.objects.all())
+    def get_all(self) -> list[Instructor]:  # type: ignore[override]
+        return list(Instructor.objects.all())  # type: ignore[return-value]
 
-    def get_by_id(self, instructor_id: str) -> Instructor:
+    def get_by_id(self, instructor_id: str) -> Instructor:  # type: ignore[override]
         try:
             return Instructor.objects.get(id=instructor_id)
         except Instructor.DoesNotExist as e:
             raise InstructorNotFoundError() from e
 
-    def get_or_create(
+    def get_or_create(  # type: ignore[override]
         self,
         *,
         first_name: str,
@@ -35,15 +35,15 @@ class InstructorRepository(IRepository[Instructor]):
     def create(self, **instructor_data) -> Instructor:
         return Instructor.objects.create(**instructor_data)
 
-    def update(self, instructor: Instructor, **instructor_data) -> Instructor:
+    def update(self, instructor: Instructor, **instructor_data) -> Instructor:  # type: ignore[override]
         for field, value in instructor_data.items():
             setattr(instructor, field, value)
         instructor.save()
         return instructor
 
-    def delete(self, instructor: Instructor) -> None:
+    def delete(self, instructor: Instructor) -> None:  # type: ignore[override]
         instructor.delete()
 
-    def filter(self, *args: Any, **kwargs: Any) -> list[Instructor]:
+    def filter(self, *args: Any, **kwargs: Any) -> list[Instructor]:  # type: ignore[override]
         #! TODO: not implemented
         return self.get_all()

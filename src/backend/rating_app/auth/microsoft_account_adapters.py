@@ -66,7 +66,7 @@ class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
 
 
 class MicrosoftAccountAdapter(DefaultAccountAdapter):
-    def is_open_for_signup(self, request: HttpRequest) -> bool:
+    def is_open_for_signup(self, request: HttpRequest) -> bool:  # type: ignore[override]
         return settings.ACCOUNT_ALLOW_REGISTRATION
 
     def get_login_redirect_url(self, request: HttpRequest) -> str:

@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 
 from ..constants import (
@@ -22,10 +22,10 @@ AvgOrder = Literal["asc", "desc"]
 
 # needs external validation
 class CourseReadParams(BaseModel):
-    model_config = {
-        "alias_generator": to_camel,
-        "populate_by_name": True,
-    }
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
     course_id: str = Field(description="ID of the course being read")
 
@@ -34,10 +34,10 @@ class CourseReadParams(BaseModel):
 
 # needs external validation
 class CourseFilterCriteria(BaseModel):
-    model_config = {
-        "alias_generator": to_camel,
-        "populate_by_name": True,
-    }
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
     name: str | None = Field(default=None)
     type_kind: CourseTypeKind | None = Field(default=None)
@@ -57,15 +57,15 @@ class CourseFilterCriteria(BaseModel):
     page_size: int | None = Field(default=None, ge=MIN_PAGE_SIZE)
 
     @field_validator("semester_term", mode="before")
-    @classmethod
-    def normalize_semester_term(cls, value):
+    @classmethod  # type: ignore[arg-type]
+    def normalize_semester_term(cls, value: Any) -> Any:
         if isinstance(value, str):
             return SemesterTerm(value.upper())
         return value
 
     @field_validator("avg_difficulty_order", "avg_usefulness_order", mode="before")
-    @classmethod
-    def normalize_sort_order(cls, value):
+    @classmethod  # type: ignore[arg-type]
+    def normalize_sort_order(cls, value: Any) -> Any:
         if isinstance(value, str):
             return value.lower()
         return value

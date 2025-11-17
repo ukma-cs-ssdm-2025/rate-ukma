@@ -21,10 +21,10 @@ logger = structlog.get_logger()
 
 
 class CourseRepository(IRepository[Course]):
-    def get_all(self) -> list[Course]:
-        return list(Course.objects.all())
+    def get_all(self) -> list[Course]:  # type: ignore[override]
+        return list(Course.objects.all())  # type: ignore[return-value]
 
-    def get_by_id(self, course_id: str) -> Course:
+    def get_by_id(self, course_id: str) -> Course:  # type: ignore[override]
         try:
             return (
                 Course.objects.select_related("department__faculty")
@@ -43,7 +43,7 @@ class CourseRepository(IRepository[Course]):
             logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
             raise InvalidCourseIdentifierError(course_id) from exc
 
-    def filter(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
+    def filter(self, filters: CourseFilterCriteria) -> QuerySet[Course, Course]:
         courses = self._build_base_queryset()
         courses = self._apply_basic_filters(courses, filters)
         courses = self._apply_speciality_filters(courses, filters)
@@ -53,7 +53,7 @@ class CourseRepository(IRepository[Course]):
         courses = courses.distinct()
         return courses
 
-    def get_or_create(
+    def get_or_create(  # type: ignore[override]
         self,
         *,
         title: str,
@@ -68,16 +68,16 @@ class CourseRepository(IRepository[Course]):
             description=description,
         )
 
-    def update(self, course: Course, **course_data) -> Course:
+    def update(self, course: Course, **course_data) -> Course:  # type: ignore[override]
         for field, value in course_data.items():
             setattr(course, field, value)
         course.save()
         return course
 
-    def delete(self, course: Course) -> None:
+    def delete(self, course: Course) -> None:  # type: ignore[override]
         course.delete()
 
-    def _build_base_queryset(self) -> QuerySet[Course]:
+    def _build_base_queryset(self) -> QuerySet[Course, Course]:
         return (
             Course.objects.select_related("department__faculty")
             .prefetch_related(
@@ -89,8 +89,8 @@ class CourseRepository(IRepository[Course]):
         )
 
     def _apply_basic_filters(
-        self, courses: QuerySet[Course], filters: CourseFilterCriteria
-    ) -> QuerySet[Course]:
+        self, courses: QuerySet[Course, Course], filters: CourseFilterCriteria
+    ) -> QuerySet[Course, Course]:
         # TODO: research if reflection can be applied here
 
         q_filters: dict[str, Any] = {}
@@ -116,15 +116,15 @@ class CourseRepository(IRepository[Course]):
         return courses.filter(**q_filters) if q_filters else courses
 
     def _apply_speciality_filters(
-        self, courses: QuerySet[Course], filters: CourseFilterCriteria
-    ) -> QuerySet[Course]:
+        self, courses: QuerySet[Course, Course], filters: CourseFilterCriteria
+    ) -> QuerySet[Course, Course]:
         if filters.type_kind:
             courses = courses.filter(course_specialities__type_kind=filters.type_kind)
         if filters.speciality:
             courses = courses.filter(course_specialities__speciality_id=filters.speciality)
         return courses
 
-    def _apply_annotations(self, courses: QuerySet[Course]) -> QuerySet[Course]:
+    def _apply_annotations(self, courses: QuerySet[Course, Course]) -> QuerySet[Course, Course]:
         return courses.annotate(
             avg_difficulty_annot=Avg("offerings__ratings__difficulty"),
             avg_usefulness_annot=Avg("offerings__ratings__usefulness"),
@@ -132,8 +132,8 @@ class CourseRepository(IRepository[Course]):
         )
 
     def _apply_range_filters(
-        self, courses: QuerySet[Course], filters: CourseFilterCriteria
-    ) -> QuerySet[Course]:
+        self, courses: QuerySet[Course, Course], filters: CourseFilterCriteria
+    ) -> QuerySet[Course, Course]:
         if filters.avg_difficulty_min is not None:
             courses = courses.filter(avg_difficulty_annot__gte=filters.avg_difficulty_min)
         if filters.avg_difficulty_max is not None:
@@ -145,8 +145,8 @@ class CourseRepository(IRepository[Course]):
         return courses
 
     def _apply_sorting(
-        self, courses: QuerySet[Course], filters: CourseFilterCriteria
-    ) -> QuerySet[Course]:
+        self, courses: QuerySet[Course, Course], filters: CourseFilterCriteria
+    ) -> QuerySet[Course, Course]:
         order_by_fields = self._build_order_by_fields(filters)
 
         if order_by_fields:

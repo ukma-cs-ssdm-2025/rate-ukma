@@ -17,7 +17,7 @@ class RatingInlineSerializer(serializers.ModelSerializer):
     course_offering_code = serializers.CharField(source="course_offering.code", read_only=True)
     semester = serializers.SerializerMethodField()
 
-    class Meta:
+    class Meta:  # type: ignore[misc]
         model = Rating
         fields = [
             "id",
@@ -66,7 +66,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
     faculty_name = serializers.CharField(source="department.faculty.name", read_only=True)
     specialities_with_kind = SpecialityWithKindPayload(many=True, write_only=True, required=False)
 
-    class Meta:
+    class Meta:  # type: ignore[misc]
         model = Course
         fields = [
             "id",

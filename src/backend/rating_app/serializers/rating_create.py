@@ -12,7 +12,7 @@ class RatingCreateUpdateSerializer(serializers.ModelSerializer):
 
     course_offering = serializers.UUIDField(help_text="UUID of the course offering being rated")
 
-    class Meta:
+    class Meta:  # type: ignore[misc]
         model = Rating
         fields = [
             "course_offering",

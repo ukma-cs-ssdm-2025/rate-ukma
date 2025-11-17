@@ -3,12 +3,13 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
+from pydantic import ValidationError as ModelValidationError
 
 from rating_app.application_schemas.instructor import InstructorReadParams
 from rating_app.serializers import InstructorSerializer
 from rating_app.services import InstructorService
+from rating_app.utils import pydantic_errors_to_drf_format
 from rating_app.views.api_spec.instructor import INSTRUCTOR_DETAIL_PATH_PARAMS
-from rating_app.views.rating_viewset import ModelValidationError
 
 from .responses import R_INSTRUCTOR
 
@@ -30,7 +31,7 @@ class InstructorViewSet(viewsets.ModelViewSet):
         try:
             params = InstructorReadParams.model_validate({"instructor_id": instructor_id})
         except ModelValidationError as e:
-            raise ValidationError(detail=e.errors()) from e
+            raise ValidationError(detail=pydantic_errors_to_drf_format(e.errors())) from e
 
         instructor = self.instructor_service.get_instructor_by_id(params.instructor_id)
 

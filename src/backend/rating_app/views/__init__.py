@@ -9,5 +9,5 @@ __all__ = [
     "RatingViewSet",
     "InstructorViewSet",
     "AnalyticsViewSet",
-    "StudentStatisticsViewSet"
+    "StudentStatisticsViewSet",
 ]

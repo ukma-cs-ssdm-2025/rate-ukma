@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class CourseLinkParser(BaseParser):
-    def parse(self, html: str, base_url: str) -> list[str]:
+    def parse(self, html: str, base_url: str) -> list[str]:  # type: ignore[override]
         if not base_url or not isinstance(base_url, str):
             raise ValueError("base_url must be a non-empty string")
 
@@ -72,7 +72,7 @@ class CatalogParser(BaseParser):
     def __init__(self):
         self.course_link_parser = CourseLinkParser()
 
-    def parse(self, html: str, base_url: str) -> tuple[list[str], int | None]:
+    def parse(self, html: str, base_url: str) -> tuple[list[str], int | None]:  # type: ignore[override]
         if not base_url or not isinstance(base_url, str):
             raise ValueError("base_url must be a non-empty string")
 
@@ -113,7 +113,7 @@ class CatalogParser(BaseParser):
             if "page" in q:
                 return int(q["page"][0])
         except (ValueError, TypeError) as exc:
-            logger.debug("pagination_href_extract_failed", err=exc, href=str(href))
+            logger.debug("pagination_href_extract_failed", err=exc, href=str(href))  # type: ignore[call-arg]
         return None
 
     def _extract_from_data_attribute(self, element: Tag) -> int | None:
@@ -128,7 +128,7 @@ class CatalogParser(BaseParser):
         try:
             return int(dp_str) + 1
         except ValueError as exc:
-            logger.debug("pagination_data_page_invalid", data_page=dp_str, err=exc)
+            logger.debug("pagination_data_page_invalid", data_page=dp_str, err=exc)  # type: ignore[call-arg]
             return None
 
     def _extract_from_pagination_links(self, pag: Tag) -> int | None:

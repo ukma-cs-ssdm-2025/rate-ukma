@@ -15,7 +15,7 @@ class CourseAnalyticsSerializer(serializers.ModelSerializer):
     ratings_count = serializers.SerializerMethodField(read_only=True)
     faculty_name = serializers.SerializerMethodField(read_only=True)
 
-    class Meta:
+    class Meta:  # type: ignore[misc]
         model = Course
         fields = (
             "id",

@@ -20,6 +20,7 @@ from rating_app.serializers import (
     RatingReadSerializer,
 )
 from rating_app.services import RatingService, StudentService
+from rating_app.utils import pydantic_errors_to_drf_format
 from rating_app.views.api_spec.rating import RATING_LIST_QUERY_PARAMS
 from rating_app.views.decorators import require_rating_ownership, require_student
 from rating_app.views.responses import (
@@ -54,7 +55,7 @@ class RatingViewSet(viewsets.ViewSet):
             filters = RatingFilterCriteria.model_validate(filter_data)
         except ModelValidationError as e:
             logger.error("validation_error", errors=e.errors())
-            raise ValidationError(detail=e.errors()) from e
+            raise ValidationError(detail=pydantic_errors_to_drf_format(e.errors())) from e
 
         ratings = self.rating_service.filter_ratings(filters)
 
@@ -89,7 +90,7 @@ class RatingViewSet(viewsets.ViewSet):
                 {**request.data, "student": student.id}
             )
         except ModelValidationError as e:
-            raise ValidationError(detail=e.errors()) from e
+            raise ValidationError(detail=pydantic_errors_to_drf_format(e.errors())) from e
 
         rating = self.rating_service.create_rating(rating_params)
 
@@ -113,7 +114,7 @@ class RatingViewSet(viewsets.ViewSet):
         try:
             params = RatingReadParams.model_validate({"rating_id": rating_id})
         except ModelValidationError as e:
-            raise ValidationError(detail=e.errors()) from e
+            raise ValidationError(detail=pydantic_errors_to_drf_format(e.errors())) from e
 
         rating = self.rating_service.get_rating(params.rating_id)
 
@@ -133,7 +134,7 @@ class RatingViewSet(viewsets.ViewSet):
         try:
             update_params = RatingPutParams.model_validate(request.data)
         except ModelValidationError as e:
-            raise ValidationError(detail=e.errors()) from e
+            raise ValidationError(detail=pydantic_errors_to_drf_format(e.errors())) from e
 
         rating = self.rating_service.update_rating(rating, update_params)
 
@@ -154,7 +155,7 @@ class RatingViewSet(viewsets.ViewSet):
         try:
             update_params = RatingPatchParams.model_validate(request.data)
         except ModelValidationError as e:
-            raise ValidationError(detail=e.errors()) from e
+            raise ValidationError(detail=pydantic_errors_to_drf_format(e.errors())) from e
 
         rating = self.rating_service.update_rating(rating, update_params)
 

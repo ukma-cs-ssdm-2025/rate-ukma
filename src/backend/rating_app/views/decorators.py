@@ -36,7 +36,7 @@ def require_rating_ownership(func):
             pass
     """
 
-    @wraps(func)
+    @wraps(func)  # type: ignore[arg-type]
     def wrapper(self, request, *args, **kwargs):
         assert self.rating_service is not None
         assert self.student_service is not None
@@ -88,7 +88,7 @@ def require_student(func):
             pass
     """
 
-    @wraps(func)
+    @wraps(func)  # type: ignore[arg-type]
     def wrapper(self, request, *args, **kwargs):
         assert self.student_service is not None
 

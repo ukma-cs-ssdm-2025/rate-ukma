@@ -22,7 +22,7 @@ class CourseListSerializer(serializers.ModelSerializer):
     ratings_count = serializers.IntegerField(source="ratings_count_annot", read_only=True)
     course_specialities = CourseSpecialityInlineSerializer(many=True, read_only=True)
 
-    class Meta:
+    class Meta:  # type: ignore[misc]
         model = Course
         fields = [
             "id",
