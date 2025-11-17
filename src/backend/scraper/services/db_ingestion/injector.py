@@ -101,7 +101,7 @@ class CourseDbInjector(IDbInjector):
             self.tracker.fail(str(e))
             raise e
 
-        self.tracker.complete(f"{len(models)} courses")
+        self.tracker.complete()
 
     def reset_state(self) -> None:
         self._reset_caches()
