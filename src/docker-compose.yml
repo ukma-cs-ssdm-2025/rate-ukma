@@ -12,11 +12,10 @@ services:
       - dev
       - prod
 
-  backend:
+  backend-dev:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/backend:${BACKEND_IMAGE_TAG}
     container_name: "${COMPOSE_PROJECT_NAME}_django_backend"
     env_file:
       - .env
@@ -33,9 +32,30 @@ services:
       - db-rateukma
     profiles:
       - dev
+
+  backend:
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/backend:${BACKEND_IMAGE_TAG:-latest}
+    container_name: "${COMPOSE_PROJECT_NAME}_django_backend"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - STATIC_ROOT=/static
+      - MEDIA_ROOT=/media
+    volumes:
+      - ./backend:/app
+      - ${STATIC_ROOT}:/static
+      - ${MEDIA_ROOT}:/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db-rateukma
+    profiles:
       - prod
 
-  webapp:
+  webapp-dev:
     build:
       context: ..
       dockerfile: ./src/webapp/Dockerfile
@@ -49,7 +69,7 @@ services:
     env_file:
       - .env
     depends_on:
-      - backend
+      - backend-dev
     profiles:
       - dev
 
