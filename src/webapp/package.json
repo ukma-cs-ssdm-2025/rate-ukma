@@ -47,7 +47,7 @@
 		"@tanstack/react-router-devtools": "^1.133.28",
 		"@tanstack/react-store": "^0.7.7",
 		"@tanstack/react-table": "^8.21.3",
-		"@tanstack/router-plugin": "^1.132.33",
+		"@tanstack/router-plugin": "^1.133.29",
 		"@tanstack/store": "^0.7.7",
 		"axios": "^1.12.2",
 		"class-variance-authority": "^0.7.1",
