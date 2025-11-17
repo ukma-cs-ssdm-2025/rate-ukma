@@ -19,8 +19,8 @@ from rating_app.serializers import (
     RatingListResponseSerializer,
     RatingReadSerializer,
 )
+from rating_app.serializers.validation import pydantic_errors_to_drf_format
 from rating_app.services import RatingService, StudentService
-from rating_app.utils import pydantic_errors_to_drf_format
 from rating_app.views.api_spec.rating import RATING_LIST_QUERY_PARAMS
 from rating_app.views.decorators import require_rating_ownership, require_student
 from rating_app.views.responses import (

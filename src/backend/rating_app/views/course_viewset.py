@@ -15,8 +15,8 @@ from rating_app.application_schemas.course import (
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list_resp import CourseListResponseSerializer
+from rating_app.serializers.validation import pydantic_errors_to_drf_format
 from rating_app.services import CourseService
-from rating_app.utils import pydantic_errors_to_drf_format
 from rating_app.views.api_spec.course import (
     COURSES_LIST_PAGINATED_QUERY_PARAMS,
     SINGLE_COURSE_QUERY_PARAMS,

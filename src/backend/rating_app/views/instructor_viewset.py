@@ -7,8 +7,8 @@ from pydantic import ValidationError as ModelValidationError
 
 from rating_app.application_schemas.instructor import InstructorReadParams
 from rating_app.serializers import InstructorSerializer
+from rating_app.serializers.validation import pydantic_errors_to_drf_format
 from rating_app.services import InstructorService
-from rating_app.utils import pydantic_errors_to_drf_format
 from rating_app.views.api_spec.instructor import INSTRUCTOR_DETAIL_PATH_PARAMS
 
 from .responses import R_INSTRUCTOR

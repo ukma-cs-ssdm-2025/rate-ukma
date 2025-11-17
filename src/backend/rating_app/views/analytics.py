@@ -13,8 +13,8 @@ from rating_app.application_schemas.course import (
     CourseSearchResult,
 )
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
+from rating_app.serializers.validation import pydantic_errors_to_drf_format
 from rating_app.services import CourseService
-from rating_app.utils import pydantic_errors_to_drf_format
 from rating_app.views.api_spec.course import (
     COURSES_LIST_QUERY_PARAMS,
     SINGLE_COURSE_QUERY_PARAMS,
