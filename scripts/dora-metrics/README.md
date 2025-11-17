@@ -31,6 +31,7 @@ gh auth login
 
 ```bash
 # Fetch workflow data (to see all options run --help)
+# From the project root, run:
 ./scripts/dora-metrics/generate_metrics.sh --workflow main-pipeline.yml --limit 20
 
 # TODO: TBD - report generation

@@ -2,11 +2,12 @@ import re
 from datetime import datetime, timezone
 from typing import TypedDict
 
-TABLE_COLUMNS_NUMBER = 10
+TABLE_COLUMNS_NUMBER = 9
 TABLE_MARKER_START = "<!-- DORA_TABLE_START -->"
 TABLE_MARKER_END = "<!-- DORA_TABLE_END -->"
 HEADER_RUN_ID = "Run ID"
 HEADER_CONCLUSION = "Conclusion"
+HUMAN_TIMESTAMP_FORMAT = "%d %B %Y, %H:%M:%S %Z"
 
 
 class WorkflowRun(TypedDict):
@@ -15,7 +16,6 @@ class WorkflowRun(TypedDict):
     status: str
     conclusion: str
     created_at: datetime
-    updated_at: datetime
     duration_minutes: float
     event: str
     deployed: str
@@ -24,12 +24,9 @@ class WorkflowRun(TypedDict):
 
 def parse_iso_timestamp(timestamp_str: str) -> datetime:
     timestamp_str = timestamp_str.strip()
-    try:
-        return datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-    except ValueError:
-        return datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%SZ").replace(
-            tzinfo=timezone.utc
-        )
+    return datetime.strptime(timestamp_str, HUMAN_TIMESTAMP_FORMAT).replace(
+        tzinfo=timezone.utc
+    )
 
 
 def parse_duration(time_str: str) -> float:
@@ -77,10 +74,9 @@ def _parse_row(parts: list[str], file_path: str, raw_line: str) -> WorkflowRun:
         "conclusion": parts[4],
         "deployed": parts[5],
         "created_at": parse_iso_timestamp(parts[6]),
-        "updated_at": parse_iso_timestamp(parts[7]),
-        "duration_minutes": parse_duration(parts[8]),
-        "event": parts[9],
-        "commit_message": parts[10],
+        "duration_minutes": parse_duration(parts[7]),
+        "event": parts[8],
+        "commit_message": parts[9],
     }
 
 

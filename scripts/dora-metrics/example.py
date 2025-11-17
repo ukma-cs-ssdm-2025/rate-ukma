@@ -9,9 +9,9 @@ from calculate_dora_metrics import (
     deployment_frequency,
     format_duration,
     lead_time,
-    parse_table,
     time_to_restore,
 )
+from parse_dora_metrics import parse_table
 
 script_dir = Path(__file__).parent
 sys.path.insert(0, str(script_dir))

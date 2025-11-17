@@ -14,6 +14,9 @@ CREATED_BEFORE=""
 GH_BIN="${GH_BIN:-gh}"
 APPEND_MODE=false
 
+# Shared human-readable timestamp format with seconds, also used by jq via env.HUMAN_TIMESTAMP_FORMAT
+export HUMAN_TIMESTAMP_FORMAT="%d %B %Y, %H:%M:%S %Z"
+
 # Usage information
 usage() {
     cat << EOF
@@ -141,8 +144,7 @@ fetch_all_runs() {
             shortSha: .headSha[0:7],
             status: .status,
             conclusion: .conclusion,
-            createdAt: .createdAt,
-            updatedAt: .updatedAt,
+            createdAt: (.createdAt | fromdateiso8601 | strftime(env.HUMAN_TIMESTAMP_FORMAT)),
             event: .event,
             duration: (((.updatedAt | fromdate) - (.createdAt | fromdate)))
         }'")
@@ -170,16 +172,17 @@ write_metadata() {
     local min_date=$(echo "$timestamps" | head -1 | cut -dT -f1)
     local max_date=$(echo "$timestamps" | tail -1 | cut -dT -f1)
 
-    local current_time=$(date +"%Y-%m-%d %H:%M:%S")
+    local current_time
+    current_time=$(date -u +"$HUMAN_TIMESTAMP_FORMAT")
 
     if [[ "$mode" == "new" ]]; then
         cat > $METRICS_FILE << EOF
 # DORA Metrics Data
 
-**Generated:** $current_time
-**Workflow:** $WORKFLOW_NAME
-**Runs fetched:** $total_runs
-**Time range:** $min_date to $max_date
+- **Generated:** $current_time
+- **Workflow:** $WORKFLOW_NAME
+- **Runs fetched:** $total_runs
+- **Time range:** $min_date to $max_date
 
 **Collection parameters:**
 - Limit: $LIMIT
@@ -213,8 +216,8 @@ write_table_header() {
     log "Writing table header to $METRICS_FILE"
     cat >> $METRICS_FILE << 'EOF'
 <!-- DORA_TABLE_START -->
-| Run ID | Commit SHA | Status | Conclusion | Deployed? | Created At | Updated At | Duration | Event | Commit Message |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Run ID | Commit SHA | Status | Conclusion | Deployed? | Created At | Duration | Event | Commit Message |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 EOF
     return 0
 }
@@ -234,7 +237,6 @@ process_run_data() {
     local status=$(echo "$line" | jq -r '.status')
     local conclusion=$(echo "$line" | jq -r '.conclusion')
     local created_at=$(echo "$line" | jq -r '.createdAt')
-    local updated_at=$(echo "$line" | jq -r '.updatedAt')
     local duration_sec=$(echo "$line" | jq -r '.duration')
     local event=$(echo "$line" | jq -r '.event')
 
@@ -250,7 +252,7 @@ process_run_data() {
 
     log "Run #$run_id: SHA=$short_sha, status=$status, conclusion=$conclusion, deployed=$deployed_label, duration=$duration, event=$event"
 
-    echo "| $run_id | $short_sha | $status | $conclusion | $deployed_label | $created_at | $updated_at | $duration | $event | $commit_message |"
+    echo "| $run_id | $short_sha | $status | $conclusion | $deployed_label | $created_at | $duration | $event | $commit_message |"
     return 0
 }
 
