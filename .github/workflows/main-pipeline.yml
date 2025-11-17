@@ -1,22 +1,37 @@
+---
 name: Staging Build
 on:
   workflow_dispatch:
+    inputs:
+      version-tag:
+        description: "Version tag to deploy"
+        required: true
+        type: string
   push:
     branches:
       - main
     paths:
       - src/**
-      - .github/**
 
 jobs:
-  version:
-    uses: ./.github/workflows/version.yml
-
   changes-filter:
     uses: ./.github/workflows/changes-filter.yml
+    with:
+      base: ${{ github.event.before }}
+      ref: ${{ github.sha }}
+      force_all_changed: ${{ inputs.version-tag != '' }}
+
+  version:
+    needs: changes-filter
+    with:
+      code_changed: >-
+        ${{ inputs.version-tag == '' &&
+        (fromJSON(needs.changes-filter.outputs.backend_changed) ||
+        fromJSON(needs.changes-filter.outputs.webapp_changed)) }}
+    uses: ./.github/workflows/version.yml
 
   test:
-    needs: changes-filter
+    needs: [changes-filter]
     uses: ./.github/workflows/test.yml
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
@@ -24,9 +39,10 @@ jobs:
 
   openapi-validation:
     needs: changes-filter
-    if: |
-      fromJSON(needs.changes-filter.outputs.backend_changed) ||
-      fromJSON(needs.changes-filter.outputs.openapi_changed)
+    with:
+      api_changed: >-
+        ${{ fromJSON(needs.changes-filter.outputs.backend_changed) ||
+        fromJSON(needs.changes-filter.outputs.openapi_changed) }}
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
@@ -38,15 +54,16 @@ jobs:
       run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   build:
-    needs: [version, changes-filter]
+    needs: [version, test, openapi-validation, audit, changes-filter]
     uses: ./.github/workflows/build.yml
     with:
-      version_tag: ${{ needs.version.outputs.version_tag }}
+      version_tag: ${{ needs.version.outputs.version_tag || '' }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
 
   release-needed:
     needs: [version]
+    if: inputs.version-tag == ''
     runs-on: ubuntu-24.04
     outputs:
       release_needed: ${{ steps.check.outputs.release_needed }}
@@ -70,14 +87,11 @@ jobs:
           echo "Release needed: $RELEASE_NEEDED -> $VERSION_TAG"
 
   deploy-staging:
-    needs: [version, test, openapi-validation, audit, build]
-    if: |
-      always() &&
-      (!contains(needs.*.result, 'failure') || github.event_name == 'workflow_dispatch')
+    needs: [version, build]
     uses: ./.github/workflows/deploy-staging.yml
     with:
       deployment_ref: ${{ github.sha }}
-      version_tag: ${{ needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
@@ -86,7 +100,7 @@ jobs:
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   release:
-    needs: [deploy-staging, version, release-needed]
+    needs: [deploy-staging, release-needed]
     if: needs.release-needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:

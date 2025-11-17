@@ -1,7 +1,24 @@
+---
 name: Changes Filter
 
 on:
   workflow_call:
+    inputs:
+      base:
+        description: "Base ref to compare against (e.g., main, develop, or a commit SHA)"
+        required: false
+        type: string
+        default: ""
+      ref:
+        description: "Ref to compare against (e.g., main, develop, or a commit SHA)"
+        required: false
+        type: string
+        default: ${{ github.sha }}
+      force_all_changed:
+        description: "Force all changes to be considered"
+        required: false
+        type: boolean
+        default: false
     outputs:
       backend_changed:
         description: "Whether backend code changed in the caller ref"
@@ -10,7 +27,7 @@ on:
         description: "Whether webapp code changed in the caller ref"
         value: ${{ jobs.filter.outputs.webapp_changed }}
       openapi_changed:
-        description: "Whether webapp code changed in the caller ref"
+        description: "Whether openapi schema changed in the caller ref"
         value: ${{ jobs.filter.outputs.openapi_changed }}
 
 env:
@@ -22,14 +39,21 @@ jobs:
   filter:
     runs-on: ubuntu-latest
     outputs:
-      backend_changed: ${{ steps.filter.outputs.backend }}
-      webapp_changed: ${{ steps.filter.outputs.webapp }}
-      openapi_changed: ${{ steps.filter.outputs.openapi }}
+      backend_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.backend == 'true' }}
+      webapp_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.webapp == 'true' }}
+      openapi_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.openapi == 'true' }}
     steps:
       - uses: actions/checkout@v5
+        if: inputs.force_all_changed != true
+        with:
+          fetch-depth: 0
+
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
         id: filter
+        if: inputs.force_all_changed != true
         with:
+          base: ${{ inputs.base || github.event.before }}
+          ref: ${{ inputs.ref || github.sha }}
           filters: |
             backend:
               - '${{ env.BACKEND_DIR }}/**'

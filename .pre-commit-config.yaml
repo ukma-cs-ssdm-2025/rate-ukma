@@ -24,3 +24,9 @@ repos:
         entry: "./semantic-commit.sh"
         language: system
         stages: [commit-msg]
+      - id: yaml-lint
+        name: Lint YAML workflows files
+        entry: yamllint -c .yamllint.yaml --strict .github/workflows
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+        pass_filenames: false

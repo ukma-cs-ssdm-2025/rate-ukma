@@ -1,3 +1,4 @@
+---
 name: Semantic Version
 
 on:
@@ -7,6 +8,10 @@ on:
         description: "Prefix for version tag (e.g., v or live-v)"
         type: string
         default: "v"
+      code_changed:
+        description: "Flag if source code changed"
+        type: boolean
+        default: false
     outputs:
       version_tag:
         description: "Generated semantic version tag"
@@ -23,8 +28,8 @@ on:
 
 env:
   SEMANTIC_VERSION_MAJOR_PATTERN: "/^feat!/"
-  SEMANTIC_VERSION_MINOR_PATTERN: "/^(feat|security|ci)/"
-  SEMANTIC_VERSION_PATCH_PATTERN: "/^(fix|style|refactor|test)/"
+  SEMANTIC_VERSION_MINOR_PATTERN: "/^(feat)/"
+  SEMANTIC_VERSION_PATCH_PATTERN: "/^(fix|style|refactor|test|security)/"
   SEMANTIC_VERSION_VERSION_FORMAT: "${major}.${minor}.${patch}"
 
 jobs:
@@ -50,6 +55,7 @@ jobs:
 
       - name: Generate Semantic Version
         id: semantic
+        if: inputs.code_changed == true
         uses: paulhatch/semantic-version@v5.4.0
         with:
           tag_prefix: ${{ inputs.tag_prefix }}
