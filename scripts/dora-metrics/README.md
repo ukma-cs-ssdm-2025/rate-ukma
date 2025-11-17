@@ -49,7 +49,7 @@ python scripts/dora-metrics/example.py
 
 It would give you the following output:
 
-```
+```text
 Deployment Frequency: 25.12/week
 Lead Time: 12m 56s
 Change Failure Rate: 25.4%

@@ -138,7 +138,8 @@ fetch_all_runs() {
         gh_cmd="$gh_cmd --created <=$CREATED_BEFORE"
     fi
 
-    local runs=$(eval "$gh_cmd --json databaseId,status,conclusion,createdAt,updatedAt,headSha,event --jq '.[] | {
+    local runs
+    runs=$(eval "$gh_cmd --json databaseId,status,conclusion,createdAt,updatedAt,headSha,event --jq '.[] | {
             id: .databaseId,
             sha: .headSha,
             shortSha: .headSha[0:7],
@@ -149,7 +150,8 @@ fetch_all_runs() {
             duration: (((.updatedAt | fromdate) - (.createdAt | fromdate)))
         }'")
 
-    local count=$(echo "$runs" | jq -s 'length')
+    local count
+    count=$(echo "$runs" | jq -s 'length')
     log "Fetched $count workflow runs"
     echo "$runs"
     return 0
@@ -168,11 +170,11 @@ write_metadata() {
     local total_runs=$2
     local mode=$3
 
-    local timestamps=$(echo "$runs_json" | jq -r '.[].createdAt' | sort)
-    local min_date=$(echo "$timestamps" | head -1 | cut -dT -f1)
-    local max_date=$(echo "$timestamps" | tail -1 | cut -dT -f1)
+    local timestamps min_date max_date current_time
+    timestamps=$(echo "$runs_json" | jq -r '.[].createdAt' | sort)
+    min_date=$(echo "$timestamps" | head -1 | cut -dT -f1)
+    max_date=$(echo "$timestamps" | tail -1 | cut -dT -f1)
 
-    local current_time
     current_time=$(date -u +"$HUMAN_TIMESTAMP_FORMAT")
 
     if [[ "$mode" == "new" ]]; then
@@ -231,23 +233,23 @@ get_commit_message() {
 process_run_data() {
     local line=$1
 
-    local run_id=$(echo "$line" | jq -r '.id')
-    local sha=$(echo "$line" | jq -r '.sha')
-    local short_sha=$(echo "$line" | jq -r '.shortSha')
-    local status=$(echo "$line" | jq -r '.status')
-    local conclusion=$(echo "$line" | jq -r '.conclusion')
-    local created_at=$(echo "$line" | jq -r '.createdAt')
-    local duration_sec=$(echo "$line" | jq -r '.duration')
-    local event=$(echo "$line" | jq -r '.event')
+    local run_id sha short_sha status conclusion created_at duration_sec event duration deployed_label commit_message
+    run_id=$(echo "$line" | jq -r '.id')
+    sha=$(echo "$line" | jq -r '.sha')
+    short_sha=$(echo "$line" | jq -r '.shortSha')
+    status=$(echo "$line" | jq -r '.status')
+    conclusion=$(echo "$line" | jq -r '.conclusion')
+    created_at=$(echo "$line" | jq -r '.createdAt')
+    duration_sec=$(echo "$line" | jq -r '.duration')
+    event=$(echo "$line" | jq -r '.event')
 
     log "Processing run #$run_id: SHA=$short_sha, status=$status, conclusion=$conclusion"
 
-    local duration=$(format_duration "$duration_sec")
-    local deployed_label="No"
+    duration=$(format_duration "$duration_sec")
+    deployed_label="No"
     if [[ "$status" == "completed" && "$conclusion" == "success" ]]; then
         deployed_label="Yes"
     fi
-    local commit_message
     commit_message=$(get_commit_message "$sha")
 
     log "Run #$run_id: SHA=$short_sha, status=$status, conclusion=$conclusion, deployed=$deployed_label, duration=$duration, event=$event"
@@ -262,8 +264,9 @@ build_metrics_report() {
     mkdir -p "$(dirname "$METRICS_FILE")"
 
     log "Fetching all runs data"
-    local runs_json=$(fetch_all_runs | jq -s '.')
-    local total_runs=$(echo "$runs_json" | jq 'length')
+    local runs_json total_runs
+    runs_json=$(fetch_all_runs | jq -s '.')
+    total_runs=$(echo "$runs_json" | jq 'length')
     log "Total runs fetched: $total_runs"
 
     if [[ $total_runs -eq 0 ]]; then
@@ -281,9 +284,10 @@ build_metrics_report() {
             APPEND_MODE=false
         else
             log "Filtering duplicates..."
-            local existing_ids=$(get_existing_run_ids)
+            local existing_ids filtered_json
+            existing_ids=$(get_existing_run_ids)
 
-            local filtered_json=$(echo "$runs_json" | jq -c --arg existing_ids "$existing_ids" '
+            filtered_json=$(echo "$runs_json" | jq -c --arg existing_ids "$existing_ids" '
                 [.[] | select(.id as $id | ($existing_ids | split("\n") | index($id | tostring) | not))]
             ')
 
