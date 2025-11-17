@@ -26,6 +26,7 @@ class PydanticToOpenApiRequestMapper(
 
         schema = model_type.model_json_schema()
         properties = schema.get("properties", {})
+        definitions = schema.get("$defs", {})
 
         for field_name, field_info in properties.items():
             param_name: str = field_info.get("serialization_alias") or field_name
@@ -34,14 +35,18 @@ class PydanticToOpenApiRequestMapper(
             openapi_type: OpenApiTypes | None = None
             enum: list[str] | None = None
 
-            field_type = self._get_field_type(field_schema)
+            field_type = self._get_field_type(field_schema, definitions)
 
             openapi_type = self._get_openapi_type(field_type)
             if openapi_type is None:
-                logger.warning(f"Unknown field type: {field_type} for field {field_name}")
+                logger.warning(
+                    "unknown_field_type_skipped",
+                    field_name=field_name,
+                    field_type=field_type,
+                )
                 continue
 
-            enum = self._get_enum(field_schema)
+            enum = self._get_enum(field_schema, definitions)
             description = field_info.get("description", "")
             required = field_info.get("required") or False
 
@@ -53,7 +58,9 @@ class PydanticToOpenApiRequestMapper(
 
         return params
 
-    def _get_field_type(self, field_schema: dict[str, Any]) -> FieldType:
+    def _get_field_type(
+        self, field_schema: dict[str, Any], definitions: dict[str, Any]
+    ) -> FieldType:
         field_format = field_schema.get("format")
         if self._is_uuid_format(field_format):
             return "uuid"
@@ -69,6 +76,14 @@ class PydanticToOpenApiRequestMapper(
             if union_type.get("type") == "null":
                 continue
 
+            # Handle $ref references (e.g., enum types)
+            ref = union_type.get("$ref")
+            if ref is not None:
+                resolved_type = self._resolve_ref_type(ref, definitions)
+                if resolved_type is not None:
+                    return resolved_type
+                continue
+
             union_format = union_type.get("format")
             if self._is_uuid_format(union_format):
                 return "uuid"
@@ -78,6 +93,20 @@ class PydanticToOpenApiRequestMapper(
                 return union_field_type
 
         return None
+
+    def _resolve_ref_type(self, ref: str, definitions: dict[str, Any]) -> FieldType:
+        if not ref.startswith("#/$defs/"):
+            return None
+
+        def_name = ref.replace("#/$defs/", "")
+        def_schema = definitions.get(def_name)
+        if def_schema is None:
+            return None
+
+        if "enum" in def_schema:
+            return def_schema.get("type", "string")
+
+        return def_schema.get("type")
 
     def _is_uuid_format(self, field_format: str | None) -> bool:
         return field_format == "uuid"
@@ -97,11 +126,42 @@ class PydanticToOpenApiRequestMapper(
             case _:
                 return None
 
-    def _get_enum(self, field_schema: dict[str, Any]) -> list[str] | None:
-        if "enum" not in field_schema:
+    def _get_enum(
+        self, field_schema: dict[str, Any], definitions: dict[str, Any]
+    ) -> list[str] | None:
+        # direct enum
+        if "enum" in field_schema:
+            return field_schema["enum"]
+
+        # optional enum
+        if "anyOf" in field_schema:
+            for union_type in field_schema["anyOf"]:
+                if union_type.get("type") == "null":
+                    continue
+
+                # resolve $ref type
+                ref = union_type.get("$ref")
+                if ref is not None:
+                    enum_values = self._resolve_ref_enum(ref, definitions)
+                    if enum_values is not None:
+                        return enum_values
+
+                # direct enum in union type
+                if "enum" in union_type:
+                    return union_type["enum"]
+
+        return None
+
+    def _resolve_ref_enum(self, ref: str, definitions: dict[str, Any]) -> list[str] | None:
+        if not ref.startswith("#/$defs/"):
             return None
 
-        return field_schema["enum"]
+        def_name = ref.replace("#/$defs/", "")
+        def_schema = definitions.get(def_name)
+        if def_schema is None:
+            return None
+
+        return def_schema.get("enum")
 
     def _build_param(
         self,

@@ -74,6 +74,9 @@ jobs:
         uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGES_BASE_URL: ${{ github.server_url }}/${{ github.repository }}/compare
+          PREV_TAG: ${{ steps.changelog.outputs.prev_tag }}
+          NEW_TAG: ${{ inputs.version_tag }}
         with:
           tag_name: ${{ inputs.version_tag }}
           name: "Release ${{ inputs.version_tag }}"
@@ -84,10 +87,7 @@ jobs:
             ## Changelog since last release:
             ${{ steps.changelog.outputs.changelog }}
 
-            CHANGES_PATH="${{ github.server_url }}/${{ github.repository }}/compare"
-            CHANGES_URL_DIFF_PARAM = "${{ steps.changelog.outputs.prev_tag }}...${{ inputs.version_tag }}"
-
-            [View changes]($CHANGES_PATH/$CHANGES_URL_DIFF_PARAM)
+            [View changes](${{ env.CHANGES_BASE_URL }}/${{ env.PREV_TAG }}...${{ env.NEW_TAG }})
 
           draft: false
           prerelease: ${{ inputs.pre-release }}

@@ -11,6 +11,7 @@ from ..constants import (
     MIN_DIFFICULTY_VALUE,
     MIN_USEFULNESS_VALUE,
 )
+from ..models.choices import CourseTypeKind, SemesterTerm
 from ..models.course import ICourse
 from .pagination import PaginationMetadata
 
@@ -35,16 +36,18 @@ class CourseFilterCriteria(BaseModel):
     }
 
     name: str | None = Field(default=None, description="Filter by course name")
-    type_kind: str | None = Field(
-        default=None, description="Course type kind (COMPULSORY, ELECTIVE, PROF_ORIENTED)"
+    type_kind: CourseTypeKind | None = Field(
+        default=None,
+        description="Course type kind (COMPULSORY, ELECTIVE, PROF_ORIENTED)",
     )
     instructor: uuid.UUID | None = Field(default=None, description="Filter by instructor UUID")
     faculty: uuid.UUID | None = Field(default=None, description="Filter by faculty UUID")
     department: uuid.UUID | None = Field(default=None, description="Filter by department UUID")
     speciality: uuid.UUID | None = Field(default=None, description="Filter by speciality UUID")
     semester_year: int | None = Field(default=None, ge=2000, description="Semester year")
-    semester_term: str | None = Field(
-        default=None, description="Semester term (FALL, SPRING, SUMMER)"
+    semester_term: SemesterTerm | None = Field(
+        default=None,
+        description="Semester term (FALL, SPRING, SUMMER)",
     )
     avg_difficulty_min: float | None = Field(
         default=None,

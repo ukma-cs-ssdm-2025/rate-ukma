@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, Field
-from pydantic.alias_generators import to_camel, to_snake
+from pydantic.alias_generators import to_snake
 
 from rating_app.constants import (
     DEFAULT_PAGE_NUMBER,
@@ -18,7 +18,7 @@ from rating_app.models.rating import IRating
 from .pagination import PaginationMetadata
 
 
-class RatingReadParams(BaseModel):
+class RatingCourseFilterParams(BaseModel):
     model_config = {
         "alias_generator": to_snake,
         "populate_by_name": True,
@@ -27,8 +27,16 @@ class RatingReadParams(BaseModel):
     course_id: uuid.UUID = Field(description="Unique identifier of rating course")
 
 
-# needs external validation
-class RatingFilterCriteria(BaseModel):
+class RatingRetrieveParams(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    rating_id: uuid.UUID = Field(description="Unique identifier of rating")
+
+
+class RatingPaginationParams(BaseModel):
     model_config = {
         "alias_generator": to_snake,
         "populate_by_name": True,
@@ -46,10 +54,27 @@ class RatingFilterCriteria(BaseModel):
     )
 
 
+class RatingFilterCriteria(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    page: int | None = Field(
+        default=MIN_PAGE_NUMBER,
+        ge=MIN_PAGE_NUMBER,
+    )
+    page_size: int | None = Field(
+        default=DEFAULT_PAGE_SIZE,
+        ge=MIN_PAGE_SIZE,
+    )
+    course_id: uuid.UUID | None = Field(default=None)
+
+
 # needs external validation
 class RatingCreateParams(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
@@ -63,7 +88,7 @@ class RatingCreateParams(BaseModel):
 
 class RatingPutParams(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
@@ -76,7 +101,7 @@ class RatingPutParams(BaseModel):
 # needs external validation
 class RatingPatchParams(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 

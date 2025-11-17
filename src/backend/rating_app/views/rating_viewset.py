@@ -7,16 +7,17 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
 from rating_app.application_schemas.rating import (
+    RatingCourseFilterParams,
     RatingCreateParams,
     RatingFilterCriteria,
+    RatingPaginationParams,
     RatingPatchParams,
     RatingPutParams,
-    RatingReadParams,
+    RatingRetrieveParams,
 )
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.models import Rating, Student
 from rating_app.serializers import (
-    RatingCreateUpdateSerializer,
     RatingListResponseSerializer,
     RatingReadSerializer,
 )
@@ -45,8 +46,8 @@ class RatingViewSet(viewsets.ViewSet):
         summary="List ratings for a course",
         description="List all ratings for a specific course with filters and pagination.",
         parameters=[
-            *to_openapi((RatingFilterCriteria, OpenApiParameter.QUERY)),
-            *to_openapi((RatingReadParams, OpenApiParameter.PATH)),
+            *to_openapi((RatingPaginationParams, OpenApiParameter.QUERY)),
+            *to_openapi((RatingCourseFilterParams, OpenApiParameter.PATH)),
         ],
         responses=R_RATING_LIST,
     )
@@ -79,7 +80,7 @@ class RatingViewSet(viewsets.ViewSet):
             "Each student can only rate a course offering once and must be enrolled in the course. "
             "The student is automatically determined from the authenticated user."
         ),
-        request=RatingCreateUpdateSerializer,
+        request=RatingCreateParams,
         responses=R_RATING_CREATE,
     )
     @require_student
@@ -109,13 +110,16 @@ class RatingViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Get rating details",
         description="Retrieve a specific rating by ID.",
+        parameters=[
+            *to_openapi((RatingRetrieveParams, OpenApiParameter.PATH)),
+        ],
         responses=R_RATING,
     )
     def retrieve(self, request, rating_id: str | None = None, *args, **kwargs):
         assert self.rating_service is not None
 
         try:
-            params = RatingReadParams.model_validate({"rating_id": rating_id})
+            params = RatingRetrieveParams.model_validate({"rating_id": rating_id})
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
@@ -127,7 +131,7 @@ class RatingViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Update a rating",
         description="Update an existing rating. Only the owner can update their rating.",
-        request=RatingCreateUpdateSerializer,
+        request=RatingPutParams,
         responses=R_RATING,
     )
     @require_rating_ownership
@@ -148,7 +152,7 @@ class RatingViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Partially update a rating",
         description="Partially update an existing rating. Only the owner can update their rating.",
-        request=RatingCreateUpdateSerializer,
+        request=RatingPatchParams,
         responses=R_RATING,
     )
     @require_rating_ownership
