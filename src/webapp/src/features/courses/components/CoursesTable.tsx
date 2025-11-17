@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
 	type ColumnDef,
@@ -22,6 +24,11 @@ import { CourseScoreCell } from "./CourseScoreCell";
 import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesTableSkeleton } from "./CoursesTableSkeleton";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+import { DEFAULT_FILTERS, filterSchema } from "../filterSchema";
+import {
+	transformFiltersToApiParams,
+	transformSortingToApiParams,
+} from "../filterTransformations";
 
 interface PaginationInfo {
 	page: number;
@@ -148,32 +155,6 @@ const columns: ColumnDef<CourseList>[] = [
 	},
 ];
 
-export type FilterState = {
-	searchQuery: string;
-	difficultyRange: [number, number];
-	usefulnessRange: [number, number];
-	faculty: string;
-	department: string;
-	instructor: string;
-	semesterTerm: string;
-	semesterYear: string;
-	courseType: string;
-	speciality: string;
-};
-
-export const DEFAULT_FILTERS: FilterState = {
-	searchQuery: "",
-	difficultyRange: DIFFICULTY_RANGE,
-	usefulnessRange: USEFULNESS_RANGE,
-	faculty: "",
-	department: "",
-	instructor: "",
-	semesterTerm: "",
-	semesterYear: "",
-	courseType: "",
-	speciality: "",
-};
-
 export function CoursesTable({
 	data,
 	isLoading,
@@ -188,75 +169,33 @@ export function CoursesTable({
 		pageSize: serverPagination ? serverPagination.pageSize : 20,
 	});
 
-	const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
 
-	const updateFilter = useCallback(
-		<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
-			setFilters((prev) => ({ ...prev, [key]: value }));
-		},
-		[],
-	);
+	// Use React Hook Form for filter state management
+	const form = useForm({
+		defaultValues: DEFAULT_FILTERS,
+		resolver: zodResolver(filterSchema),
+		mode: "onChange",
+	});
+
+	const filters = form.watch();
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
 
+	// Transform sorting state to API parameters
 	const apiSorting = useMemo(() => {
 		if (sorting.length === 0) return {};
 		const firstSort = sorting[0];
-
-		if (firstSort.id === "avg_difficulty") {
-			return {
-				avg_difficulty_order: firstSort.desc ? "desc" : "asc",
-			};
-		}
-
-		if (firstSort.id === "avg_usefulness") {
-			return {
-				avg_usefulness_order: firstSort.desc ? "desc" : "asc",
-			};
-		}
-
-		return {};
+		return transformSortingToApiParams(firstSort.id, firstSort.desc);
 	}, [sorting]);
 
-	const apiFilters = useMemo(() => {
-		const isDifficultyModified =
-			filters.difficultyRange[0] !== DIFFICULTY_RANGE[0] ||
-			filters.difficultyRange[1] !== DIFFICULTY_RANGE[1];
-
-		const isUsefulnessModified =
-			filters.usefulnessRange[0] !== USEFULNESS_RANGE[0] ||
-			filters.usefulnessRange[1] !== USEFULNESS_RANGE[1];
-
-		const params = {
-			name: filters.searchQuery,
-			faculty: filters.faculty,
-			department: filters.department,
-			instructor: filters.instructor,
-			typeKind: filters.courseType,
-			speciality: filters.speciality,
-			semesterTerm: filters.semesterTerm,
-			semesterYear: filters.semesterYear
-				? Number(filters.semesterYear)
-				: undefined,
-			...(isDifficultyModified && {
-				avg_difficulty_min: filters.difficultyRange[0],
-				avg_difficulty_max: filters.difficultyRange[1],
-			}),
-			...(isUsefulnessModified && {
-				avg_usefulness_min: filters.usefulnessRange[0],
-				avg_usefulness_max: filters.usefulnessRange[1],
-			}),
-		};
-
-		return Object.fromEntries(
-			Object.entries(params).filter(
-				([_, v]) => v !== "" && v !== undefined && !Number.isNaN(v),
-			),
-		);
-	}, [filters]);
+	// Transform filter form state to API parameters
+	const apiFilters = useMemo(
+		() => transformFiltersToApiParams(filters),
+		[filters],
+	);
 
 	const combinedFilters = useMemo(
 		() => ({ ...apiSorting, ...apiFilters }),
@@ -347,8 +286,8 @@ export function CoursesTable({
 	}, [combinedFilters, onFiltersChange]);
 
 	const handleResetFilters = useCallback(() => {
-		setFilters(DEFAULT_FILTERS);
-	}, []);
+		form.reset(DEFAULT_FILTERS);
+	}, [form]);
 
 	const toggleFiltersDrawer = useCallback(() => {
 		setIsFiltersDrawerOpen((prev) => !prev);
@@ -394,7 +333,9 @@ export function CoursesTable({
 								placeholder="Пошук курсів за назвою..."
 								value={filters.searchQuery}
 								onChange={(event) =>
-									updateFilter("searchQuery", event.target.value)
+									form.setValue("searchQuery", event.target.value, {
+										shouldDirty: true,
+									})
 								}
 								className="pl-10 h-12 text-base"
 								disabled={isInitialLoading}
@@ -407,8 +348,7 @@ export function CoursesTable({
 
 				<div className="hidden lg:block w-80 shrink-0">
 					<CourseFiltersPanel
-						filters={filters}
-						onFilterChange={updateFilter}
+						form={form}
 						filterOptions={filterOptions}
 						onReset={handleResetFilters}
 						isLoading={isPanelLoading}
@@ -433,8 +373,7 @@ export function CoursesTable({
 				closeButtonLabel="Закрити фільтри"
 			>
 				<CourseFiltersDrawer
-					filters={filters}
-					onFilterChange={updateFilter}
+					form={form}
 					filterOptions={filterOptions}
 					onReset={handleResetFilters}
 					isLoading={isPanelLoading}

@@ -1,0 +1,336 @@
+import * as React from "react";
+import type { UseFormReturn } from "react-hook-form";
+import type { FilterOptions } from "@/lib/api/generated";
+import type { FilterState } from "../filterSchema";
+import {
+	DIFFICULTY_RANGE,
+	getCourseTypeDisplay,
+	getFacultyAbbreviation,
+	getSemesterTermDisplay,
+	USEFULNESS_RANGE,
+} from "../courseFormatting";
+
+type SelectOption = {
+	value: string;
+	label: string;
+};
+
+export type SelectFilterConfig = {
+	key: string;
+	label: string;
+	placeholder: string;
+	value: string;
+	options: SelectOption[];
+	contentClassName?: string;
+};
+
+export type RangeFilterConfig = {
+	key: keyof Pick<FilterState, "difficultyRange" | "usefulnessRange">;
+	label: string;
+	value: [number, number];
+	range: [number, number];
+	captions: [string, string];
+};
+
+export type CourseFiltersData = {
+	rangeFilters: RangeFilterConfig[];
+	selectFilters: SelectFilterConfig[];
+	activeBadges: Array<{ key: string; label: string }>;
+	hasActiveFilters: boolean;
+};
+
+interface UseCourseFiltersDataProps {
+	form: UseFormReturn<FilterState>;
+	filterOptions?: FilterOptions;
+}
+
+/**
+ * Hook to process filter form state and options into UI configuration
+ * Handles:
+ * - Faculty-based department filtering
+ * - Selected option lookups
+ * - Active filter badge generation
+ * - Range and select filter configurations
+ */
+export function useCourseFiltersData({
+	form,
+	filterOptions,
+}: UseCourseFiltersDataProps): CourseFiltersData {
+	const filters = form.watch();
+
+	const {
+		faculties = [],
+		departments: allDepartments = [],
+		instructors = [],
+		semester_terms: semesterTerms = [],
+		semester_years: semesterYears = [],
+		course_types: courseTypes = [],
+		specialities = [],
+	} = filterOptions ?? {};
+
+	const selectedFacultyOption = React.useMemo(
+		() => faculties.find((option) => option.id === filters.faculty),
+		[faculties, filters.faculty],
+	);
+
+	const selectedDepartmentOption = React.useMemo(
+		() => allDepartments.find((option) => option.id === filters.department),
+		[allDepartments, filters.department],
+	);
+
+	const selectedSemesterTermOption = React.useMemo(
+		() =>
+			semesterTerms.find((option) => option.value === filters.semesterTerm) ??
+			null,
+		[semesterTerms, filters.semesterTerm],
+	);
+
+	const selectedSemesterYearOption = React.useMemo(
+		() =>
+			semesterYears.find((option) => option.value === filters.semesterYear) ??
+			null,
+		[semesterYears, filters.semesterYear],
+	);
+
+	const selectedInstructorOption = React.useMemo(
+		() => instructors.find((option) => option.id === filters.instructor),
+		[instructors, filters.instructor],
+	);
+
+	const selectedCourseTypeOption = React.useMemo(
+		() => courseTypes.find((option) => option.value === filters.courseType),
+		[courseTypes, filters.courseType],
+	);
+
+	const selectedSpecialityOption = React.useMemo(
+		() => specialities.find((option) => option.id === filters.speciality),
+		[specialities, filters.speciality],
+	);
+
+	const filteredDepartments = React.useMemo(() => {
+		if (!filters.faculty) {
+			return allDepartments;
+		}
+
+		return allDepartments.filter(
+			(department) => department.faculty_id === filters.faculty,
+		);
+	}, [allDepartments, filters.faculty]);
+
+	const rangeFilters: RangeFilterConfig[] = [
+		{
+			key: "difficultyRange",
+			label: "Складність",
+			value: filters.difficultyRange,
+			range: DIFFICULTY_RANGE,
+			captions: ["Легко", "Складно"],
+		},
+		{
+			key: "usefulnessRange",
+			label: "Корисність",
+			value: filters.usefulnessRange,
+			range: USEFULNESS_RANGE,
+			captions: ["Низька", "Висока"],
+		},
+	];
+
+	const selectFilters: SelectFilterConfig[] = React.useMemo(
+		() => [
+			{
+				key: "semesterTerm",
+				label: "Семестровий період",
+				placeholder: "Усі періоди",
+				value: filters.semesterTerm,
+				options: semesterTerms.map((term) => ({
+					value: term.value,
+					label: getSemesterTermDisplay(term.value, term.label),
+				})),
+			},
+			{
+				key: "semesterYear",
+				label: "Рік",
+				placeholder: "Усі роки",
+				value: filters.semesterYear,
+				options: semesterYears.map((year) => ({
+					value: year.value,
+					label: year.label ?? year.value,
+				})),
+			},
+			{
+				key: "faculty",
+				label: "Факультет",
+				placeholder: "Усі факультети",
+				value: filters.faculty,
+				options: faculties.map((faculty) => ({
+					value: faculty.id,
+					label: `${getFacultyAbbreviation(faculty.name)} - ${faculty.name}`,
+				})),
+			},
+			{
+				key: "department",
+				label: "Кафедра",
+				placeholder: "Усі кафедри",
+				value: filters.department,
+				options: filteredDepartments.map((department) => ({
+					value: department.id,
+					label:
+						filters.faculty || !department.faculty_name
+							? department.name
+							: `${department.name} — ${department.faculty_name}`,
+				})),
+			},
+			{
+				key: "speciality",
+				label: "Спеціальність",
+				placeholder: "Усі спеціальності",
+				value: filters.speciality,
+				options: specialities.map((speciality) => ({
+					value: speciality.id,
+					label: speciality.faculty_name
+						? `${speciality.name} — ${speciality.faculty_name}`
+						: speciality.name,
+				})),
+				contentClassName: "max-h-72",
+			},
+			{
+				key: "courseType",
+				label: "Тип курсу",
+				placeholder: "Усі типи курсів",
+				value: filters.courseType,
+				options: courseTypes.map((type) => ({
+					value: type.value,
+					label: getCourseTypeDisplay(type.value, type.label),
+				})),
+			},
+			{
+				key: "instructor",
+				label: "Викладач",
+				placeholder: "Усі викладачі",
+				value: filters.instructor,
+				options: instructors.map((instructor) => ({
+					value: instructor.id,
+					label: instructor.name,
+				})),
+				contentClassName: "max-h-72",
+			},
+		],
+		[
+			courseTypes,
+			faculties,
+			filteredDepartments,
+			filters,
+			instructors,
+			semesterTerms,
+			semesterYears,
+			specialities,
+		],
+	);
+
+	const activeBadges = React.useMemo(() => {
+		const badges: Array<{ key: string; label: string }> = [];
+
+		if (filters.searchQuery) {
+			badges.push({ key: "search", label: `Пошук: ${filters.searchQuery}` });
+		}
+
+		if (
+			filters.difficultyRange[0] !== DIFFICULTY_RANGE[0] ||
+			filters.difficultyRange[1] !== DIFFICULTY_RANGE[1]
+		) {
+			badges.push({
+				key: "difficulty",
+				label: `Складність: ${filters.difficultyRange[0].toFixed(1)}-${filters.difficultyRange[1].toFixed(1)}`,
+			});
+		}
+
+		if (
+			filters.usefulnessRange[0] !== USEFULNESS_RANGE[0] ||
+			filters.usefulnessRange[1] !== USEFULNESS_RANGE[1]
+		) {
+			badges.push({
+				key: "usefulness",
+				label: `Корисність: ${filters.usefulnessRange[0].toFixed(1)}-${filters.usefulnessRange[1].toFixed(1)}`,
+			});
+		}
+
+		const semesterTermLabel = selectedSemesterTermOption
+			? getSemesterTermDisplay(
+					selectedSemesterTermOption.value,
+					selectedSemesterTermOption.label,
+				)
+			: null;
+
+		if (selectedSemesterYearOption && semesterTermLabel) {
+			badges.push({
+				key: "semester",
+				label: `Семестр: ${selectedSemesterYearOption.label} ${semesterTermLabel}`,
+			});
+		} else if (semesterTermLabel) {
+			badges.push({
+				key: "semesterTerm",
+				label: `Період: ${semesterTermLabel}`,
+			});
+		} else if (selectedSemesterYearOption) {
+			badges.push({
+				key: "semesterYear",
+				label: `Рік: ${selectedSemesterYearOption.label}`,
+			});
+		}
+
+		if (selectedFacultyOption) {
+			badges.push({
+				key: "faculty",
+				label: `Факультет: ${getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
+			});
+		}
+
+		if (selectedDepartmentOption) {
+			badges.push({
+				key: "department",
+				label: `Кафедра: ${selectedDepartmentOption.name}`,
+			});
+		}
+
+		if (selectedSpecialityOption) {
+			badges.push({
+				key: "speciality",
+				label: `Спеціальність: ${selectedSpecialityOption.name}`,
+			});
+		}
+
+		if (selectedCourseTypeOption) {
+			badges.push({
+				key: "courseType",
+				label: `Тип курсу: ${getCourseTypeDisplay(
+					selectedCourseTypeOption.value,
+					selectedCourseTypeOption.label,
+				)}`,
+			});
+		}
+
+		if (selectedInstructorOption) {
+			badges.push({
+				key: "instructor",
+				label: `Викладач: ${selectedInstructorOption.name}`,
+			});
+		}
+
+		return badges;
+	}, [
+		filters,
+		selectedCourseTypeOption,
+		selectedDepartmentOption,
+		selectedFacultyOption,
+		selectedInstructorOption,
+		selectedSemesterTermOption,
+		selectedSemesterYearOption,
+		selectedSpecialityOption,
+	]);
+
+	return {
+		rangeFilters,
+		selectFilters,
+		activeBadges,
+		hasActiveFilters: activeBadges.length > 0,
+	};
+}
