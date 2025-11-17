@@ -235,10 +235,10 @@ export function CoursesTable({
 			faculty: filters.faculty,
 			department: filters.department,
 			instructor: filters.instructor,
-			typeKind: filters.courseType,
+			type_kind: filters.courseType,
 			speciality: filters.speciality,
-			semesterTerm: filters.semesterTerm,
-			semesterYear: filters.semesterYear
+			semester_term: filters.semesterTerm,
+			semester_year: filters.semesterYear
 				? Number(filters.semesterYear)
 				: undefined,
 			...(isDifficultyModified && {

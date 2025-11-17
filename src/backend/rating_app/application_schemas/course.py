@@ -3,19 +3,17 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
-from pydantic.alias_generators import to_camel
+from pydantic.alias_generators import to_snake
 
 from ..constants import (
-    MAX_RATING_VALUE,
-    MIN_PAGE_NUMBER,
-    MIN_PAGE_SIZE,
-    MIN_RATING_VALUE,
-    MIN_SEMESTER_YEAR,
+    MAX_DIFFICULTY_VALUE,
+    MAX_USEFULNESS_VALUE,
+    MIN_DIFFICULTY_VALUE,
+    MIN_USEFULNESS_VALUE,
 )
 from ..models.choices import CourseTypeKind, SemesterTerm
 from ..models.course import ICourse
 from .pagination import PaginationMetadata
-from .validators import validate_uuid_string
 
 AvgOrder = Literal["asc", "desc"]
 
@@ -23,44 +21,72 @@ AvgOrder = Literal["asc", "desc"]
 # needs external validation
 class CourseReadParams(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
-    course_id: str = Field(description="ID of the course being read")
-
-    validate_course_id = validate_uuid_string("course_id")
+    course_id: uuid.UUID = Field(description="A unique identifier for the course")
 
 
 # needs external validation
 class CourseFilterCriteria(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
-    name: str | None = Field(default=None)
-    type_kind: CourseTypeKind | None = Field(default=None)
-    instructor: uuid.UUID | None = Field(default=None)
-    faculty: uuid.UUID | None = Field(default=None)
-    department: uuid.UUID | None = Field(default=None)
-    speciality: uuid.UUID | None = Field(default=None)
-    semester_year: int | None = Field(default=None, ge=MIN_SEMESTER_YEAR)
-    semester_term: SemesterTerm | None = Field(default=None)
-    avg_difficulty_min: float | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    avg_difficulty_max: float | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    avg_usefulness_min: float | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    avg_usefulness_max: float | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    avg_difficulty_order: AvgOrder = Field(default="asc")
-    avg_usefulness_order: AvgOrder = Field(default="asc")
-    page: int | None = Field(default=MIN_PAGE_NUMBER, ge=MIN_PAGE_NUMBER)
-    page_size: int | None = Field(default=None, ge=MIN_PAGE_SIZE)
+    name: str | None = Field(default=None, description="Filter by course name")
+    type_kind: CourseTypeKind | None = Field(
+        default=None,
+        description="Course type kind (COMPULSORY, ELECTIVE, PROF_ORIENTED)",
+    )
+    instructor: uuid.UUID | None = Field(default=None, description="Filter by instructor UUID")
+    faculty: uuid.UUID | None = Field(default=None, description="Filter by faculty UUID")
+    department: uuid.UUID | None = Field(default=None, description="Filter by department UUID")
+    speciality: uuid.UUID | None = Field(default=None, description="Filter by speciality UUID")
+    semester_year: int | None = Field(default=None, ge=2000, description="Semester year")
+    semester_term: SemesterTerm | None = Field(
+        default=None,
+        description="Semester term (FALL, SPRING, SUMMER)",
+    )
+    avg_difficulty_min: float | None = Field(
+        default=None,
+        ge=MIN_DIFFICULTY_VALUE,
+        le=MAX_DIFFICULTY_VALUE,
+        description="Minimum average difficulty (1.0 - 5.0)",
+    )
+    avg_difficulty_max: float | None = Field(
+        default=None,
+        ge=MIN_DIFFICULTY_VALUE,
+        le=MAX_DIFFICULTY_VALUE,
+        description="Maximum average difficulty (1.0 - 5.0)",
+    )
+    avg_usefulness_min: float | None = Field(
+        default=None,
+        ge=MIN_USEFULNESS_VALUE,
+        le=MAX_USEFULNESS_VALUE,
+        description="Minimum average usefulness (1.0 - 5.0)",
+    )
+    avg_usefulness_max: float | None = Field(
+        default=None,
+        ge=MIN_USEFULNESS_VALUE,
+        le=MAX_USEFULNESS_VALUE,
+        description="Maximum average usefulness (1.0 - 5.0)",
+    )
+    avg_difficulty_order: AvgOrder = Field(
+        default="asc", description="Sort order for difficulty (asc/desc)"
+    )
+    avg_usefulness_order: AvgOrder = Field(
+        default="asc", description="Sort order for usefulness (asc/desc)"
+    )
+    page: int | None = Field(default=1, ge=1, description="Page number")
+    page_size: int | None = Field(default=None, ge=1, description="Items per page")
 
     @field_validator("semester_term", mode="before")
     @classmethod
     def normalize_semester_term(cls, value):
         if isinstance(value, str):
-            return SemesterTerm(value.upper())
+            return value.upper()
         return value
 
     @field_validator("avg_difficulty_order", "avg_usefulness_order", mode="before")

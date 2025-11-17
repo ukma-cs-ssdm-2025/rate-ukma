@@ -4,7 +4,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 import structlog
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
 from rating_app.application_schemas.course import (
@@ -12,17 +12,15 @@ from rating_app.application_schemas.course import (
     CourseReadParams,
     CourseSearchResult,
 )
+from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.serializers import FilterOptionsSerializer
 from rating_app.serializers.course.course_detail import CourseDetailSerializer
 from rating_app.serializers.course.course_list_resp import CourseListResponseSerializer
 from rating_app.services import CourseService
-from rating_app.views.api_spec.course import (
-    COURSES_LIST_PAGINATED_QUERY_PARAMS,
-    SINGLE_COURSE_QUERY_PARAMS,
-)
 from rating_app.views.responses import R_COURSE, R_COURSE_LIST, R_FILTER_OPTIONS
 
 logger = structlog.get_logger(__name__)
+to_openapi = pydantic_to_openapi_request_mapper().map
 
 
 @extend_schema(tags=["courses"])
@@ -36,7 +34,7 @@ class CourseViewSet(viewsets.ViewSet):
         summary="List courses",
         description="List courses with optional filters and pagination. "
         "Returns courses with aggregated ratings.",
-        parameters=COURSES_LIST_PAGINATED_QUERY_PARAMS,
+        parameters=to_openapi((CourseFilterCriteria, OpenApiParameter.QUERY)),
         responses=R_COURSE_LIST,
     )
     def list(self, request, *args, **kwargs):
@@ -75,7 +73,7 @@ class CourseViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Retrieve a course",
         description="Retrieve a single course by its ID with detailed information.",
-        parameters=SINGLE_COURSE_QUERY_PARAMS,
+        parameters=to_openapi((CourseReadParams, OpenApiParameter.PATH)),
         responses=R_COURSE,
     )
     def retrieve(self, request, course_id=None, *args, **kwargs):
@@ -87,7 +85,7 @@ class CourseViewSet(viewsets.ViewSet):
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
-        course = self.course_service.get_course(params.course_id)
+        course = self.course_service.get_course(str(params.course_id))
 
         serializer = CourseDetailSerializer(course)
         return Response(serializer.data, status=status.HTTP_200_OK)

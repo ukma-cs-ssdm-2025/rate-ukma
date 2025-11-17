@@ -3,42 +3,78 @@ from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, Field
-from pydantic.alias_generators import to_camel
+from pydantic.alias_generators import to_snake
 
-from rating_app.constants import MAX_RATING_VALUE, MIN_PAGE_NUMBER, MIN_PAGE_SIZE, MIN_RATING_VALUE
+from rating_app.constants import (
+    DEFAULT_PAGE_NUMBER,
+    DEFAULT_PAGE_SIZE,
+    MAX_RATING_VALUE,
+    MIN_PAGE_NUMBER,
+    MIN_PAGE_SIZE,
+    MIN_RATING_VALUE,
+)
 from rating_app.models.rating import IRating
 
 from .pagination import PaginationMetadata
-from .validators import validate_uuid_string
 
 
-class RatingReadParams(BaseModel):
+class RatingCourseFilterParams(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
-    rating_id: str = Field(description="ID of the rating being read")
-
-    validate_rating_id = validate_uuid_string("rating_id")
+    course_id: uuid.UUID = Field(description="Unique identifier of rating course")
 
 
-# needs external validation
+class RatingRetrieveParams(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    rating_id: uuid.UUID = Field(description="Unique identifier of rating")
+
+
+class RatingPaginationParams(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    page: int | None = Field(
+        default=MIN_PAGE_NUMBER,
+        ge=MIN_PAGE_NUMBER,
+        description=f"Page number (default: {DEFAULT_PAGE_NUMBER})",
+    )
+    page_size: int | None = Field(
+        default=DEFAULT_PAGE_SIZE,
+        ge=MIN_PAGE_SIZE,
+        description=f"Items per page (default: {DEFAULT_PAGE_SIZE})",
+    )
+
+
 class RatingFilterCriteria(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
+    page: int | None = Field(
+        default=MIN_PAGE_NUMBER,
+        ge=MIN_PAGE_NUMBER,
+    )
+    page_size: int | None = Field(
+        default=DEFAULT_PAGE_SIZE,
+        ge=MIN_PAGE_SIZE,
+    )
     course_id: uuid.UUID | None = Field(default=None)
-    page: int | None = Field(default=MIN_PAGE_NUMBER, ge=MIN_PAGE_NUMBER)
-    page_size: int | None = Field(default=None, ge=MIN_PAGE_SIZE)
 
 
 # needs external validation
 class RatingCreateParams(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
@@ -52,7 +88,7 @@ class RatingCreateParams(BaseModel):
 
 class RatingPutParams(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
@@ -65,7 +101,7 @@ class RatingPutParams(BaseModel):
 # needs external validation
 class RatingPatchParams(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 

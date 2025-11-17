@@ -1,3 +1,11 @@
-# This file is empty because we don't have any common services to inject yet
+from drf_spectacular.utils import OpenApiParameter
+from pydantic import BaseModel
+
+from rateukma.protocols.generic import IMapper
+from rating_app.api_spec import Location, PydanticToOpenApiRequestMapper
 
 
+def pydantic_to_openapi_request_mapper() -> IMapper[
+    tuple[type[BaseModel], Location], list[OpenApiParameter]
+]:
+    return PydanticToOpenApiRequestMapper()

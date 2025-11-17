@@ -28,6 +28,10 @@ During SRE review, we discovered several issues:
    - Domain exceptions inherit from DRF exception classes for automatic HTTP status code mapping
    - This prevents database implementation details from leaking into service and API layers
 
+3. **Use Pydantic models for OpenAPI schema generation**.
+   - This allows to keep OpenAPI schema in sync with defined Pydantic models parameters.
+   - use a custom mapper to convert Pydantic models to OpenAPIParams (due to the lack of support for Pydantic models in DRF-spectacular)
+
 ## Consequences
 
 ### Positive
@@ -42,7 +46,7 @@ During SRE review, we discovered several issues:
 ### Negative
 
 - Additional dependency (Pydantic) alongside DRF serializers
-- DRF serializers still used for response serialization and API schema generation
+- DRF serializers still used for response serialization
 
 ### Additional Improvements Made During Refactoring
 

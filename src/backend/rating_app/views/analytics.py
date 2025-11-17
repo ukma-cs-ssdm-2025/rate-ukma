@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 import structlog
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
 from rating_app.application_schemas.course import (
@@ -12,15 +12,13 @@ from rating_app.application_schemas.course import (
     CourseReadParams,
     CourseSearchResult,
 )
+from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
 from rating_app.services import CourseService
-from rating_app.views.api_spec.course import (
-    COURSES_LIST_QUERY_PARAMS,
-    SINGLE_COURSE_QUERY_PARAMS,
-)
 from rating_app.views.responses import R_ANALYTICS
 
 logger = structlog.get_logger(__name__)
+to_openapi = pydantic_to_openapi_request_mapper().map
 
 
 @extend_schema(tags=["analytics"])
@@ -35,7 +33,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         summary="Get course analytics",
         description="Get course analytics with optional filters"
         "Returns courses analytics with aggregated ratings.",
-        parameters=COURSES_LIST_QUERY_PARAMS,
+        parameters=to_openapi((CourseFilterCriteria, OpenApiParameter.QUERY)),
         responses=R_ANALYTICS,
     )
     def list(self, request: Request, *args, **kwargs):
@@ -55,7 +53,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         summary="Get course analytics",
         description="Get course analytics with optional filters"
         "Returns courses analytics with aggregated ratings.",
-        parameters=SINGLE_COURSE_QUERY_PARAMS,
+        parameters=to_openapi((CourseReadParams, OpenApiParameter.PATH)),
         responses=R_ANALYTICS,
     )
     def retrieve(self, request, course_id=None, *args, **kwargs):
@@ -66,7 +64,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
-        course = self.course_service.get_course(params.course_id)
+        course = self.course_service.get_course(str(params.course_id))
 
         serialized = self.serializer_class(course).data
         return Response(serialized, status=status.HTTP_200_OK)
