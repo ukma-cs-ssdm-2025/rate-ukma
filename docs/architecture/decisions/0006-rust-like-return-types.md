@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Proposed
+
+*This ADR proposes a significant architectural change and requires team review and approval before implementation.*
 
 ## Date
 
@@ -143,54 +145,411 @@ We will adopt **Result types in backend service and repository layers**, while m
 3. Maintain exceptions in views (unwrap Results, let DRF handle)
 4. No changes required to frontend code
 
-**Example Pattern:**
+**Detailed Implementation Examples:**
+
+#### 1. Error Type Definitions
+
+Define explicit error types for each layer with clear semantics:
 
 ```python
-# Repository Layer
+# rating_app/domain_errors.py
+from dataclasses import dataclass
+from typing import Literal
+
+# Base error types
+@dataclass(frozen=True)
+class DomainError:
+    """Base class for all domain errors"""
+    message: str
+
+# Repository Layer Errors
+@dataclass(frozen=True)
+class CourseNotFoundError(DomainError):
+    course_id: int
+
+    def __post_init__(self):
+        object.__setattr__(self, 'message', f"Course with ID {self.course_id} not found")
+
+@dataclass(frozen=True)
+class StudentNotFoundError(DomainError):
+    student_id: int
+
+    def __post_init__(self):
+        object.__setattr__(self, 'message', f"Student with ID {self.student_id} not found")
+
+@dataclass(frozen=True)
+class InvalidCourseIdentifierError(DomainError):
+    course_id: int
+    reason: str
+
+    def __post_init__(self):
+        object.__setattr__(self, 'message', f"Invalid course ID {self.course_id}: {self.reason}")
+
+# Service Layer Errors
+@dataclass(frozen=True)
+class NotEnrolledError(DomainError):
+    student_id: int
+    course_id: int
+
+    def __post_init__(self):
+        object.__setattr__(self, 'message',
+            f"Student {self.student_id} is not enrolled in course {self.course_id}")
+
+@dataclass(frozen=True)
+class DuplicateRatingError(DomainError):
+    student_id: int
+    course_id: int
+
+    def __post_init__(self):
+        object.__setattr__(self, 'message',
+            f"Student {self.student_id} already rated course {self.course_id}")
+
+@dataclass(frozen=True)
+class InvalidRatingValueError(DomainError):
+    value: int
+
+    def __post_init__(self):
+        object.__setattr__(self, 'message',
+            f"Rating value {self.value} must be between 1 and 5")
+
+# Union types for each layer
+RepositoryError = CourseNotFoundError | StudentNotFoundError | InvalidCourseIdentifierError
+ServiceError = NotEnrolledError | DuplicateRatingError | InvalidRatingValueError | RepositoryError
+```
+
+#### 2. Repository Layer: Creating Errors
+
+Repository methods return `Result[T, RepositoryError]` and create errors explicitly:
+
+```python
+# rating_app/repositories/course_repository.py
 from returns.result import Result, Success, Failure
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import DataError
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 class CourseRepository:
-    def get_course(self, course_id: int) -> Result[Course, CourseNotFoundError]:
+    def get_course(self, course_id: int) -> Result[Course, RepositoryError]:
+        """
+        Retrieve a course by ID.
+
+        Returns:
+            Success(Course) if found
+            Failure(CourseNotFoundError) if course doesn't exist
+            Failure(InvalidCourseIdentifierError) if ID is invalid
+        """
         try:
             course = Course.objects.get(id=course_id)
+            logger.info("course_retrieved", course_id=course_id)
             return Success(course)
-        except Course.DoesNotExist:
-            return Failure(CourseNotFoundError(course_id))
 
-# Service Layer
+        except Course.DoesNotExist:
+            logger.warning("course_not_found", course_id=course_id)
+            return Failure(CourseNotFoundError(course_id=course_id))
+
+        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
+            logger.error("invalid_course_id", course_id=course_id, error=str(exc))
+            return Failure(InvalidCourseIdentifierError(
+                course_id=course_id,
+                reason=str(exc)
+            ))
+
+    def get_student(self, student_id: int) -> Result[Student, RepositoryError]:
+        """Get student by ID."""
+        try:
+            student = Student.objects.get(id=student_id)
+            return Success(student)
+        except Student.DoesNotExist:
+            return Failure(StudentNotFoundError(student_id=student_id))
+        except (ValueError, TypeError) as exc:
+            return Failure(InvalidCourseIdentifierError(
+                course_id=student_id,  # Reuse error type
+                reason=f"Invalid student ID: {exc}"
+            ))
+```
+
+#### 3. Service Layer: Composing Operations with Error Propagation
+
+Service methods compose repository operations and add business logic validation:
+
+```python
+# rating_app/services/rating_service.py
+from returns.result import Result, Success, Failure
+from returns.pipeline import flow
+from returns.pointfree import bind
+
 class RatingService:
+    def __init__(self, course_repo: CourseRepository, rating_repo: RatingRepository):
+        self._course_repo = course_repo
+        self._rating_repo = rating_repo
+
     def create_rating(
         self,
         student_id: int,
         course_id: int,
-        rating: int
+        rating_value: int
     ) -> Result[Rating, ServiceError]:
+        """
+        Create a new rating for a course.
+
+        Returns:
+            Success(Rating) if created successfully
+            Failure(InvalidRatingValueError) if rating value is invalid
+            Failure(NotEnrolledError) if student not enrolled
+            Failure(DuplicateRatingError) if rating already exists
+            Failure(CourseNotFoundError) if course doesn't exist
+            Failure(StudentNotFoundError) if student doesn't exist
+        """
+        # First validate rating value (service-level validation)
+        if not (1 <= rating_value <= 5):
+            return Failure(InvalidRatingValueError(value=rating_value))
+
+        # Chain repository operations using railway-oriented programming
         return (
-            self._check_enrollment(student_id, course_id)
-            .and_then(lambda _: self._check_duplicate(student_id, course_id))
-            .and_then(lambda _: self._repo.create_rating(student_id, course_id, rating))
+            self._validate_enrollment(student_id, course_id)
+            .and_then(lambda _: self._check_no_duplicate(student_id, course_id))
+            .and_then(lambda _: self._rating_repo.create_rating(
+                student_id=student_id,
+                course_id=course_id,
+                rating=rating_value
+            ))
         )
 
-# View Layer
+    def _validate_enrollment(
+        self,
+        student_id: int,
+        course_id: int
+    ) -> Result[bool, ServiceError]:
+        """Check if student is enrolled in course."""
+        # Repository errors propagate automatically
+        student_result = self._course_repo.get_student(student_id)
+        course_result = self._course_repo.get_course(course_id)
+
+        # Combine two Results - fails if either fails
+        return (
+            student_result
+            .and_then(lambda student: course_result.map(lambda course: (student, course)))
+            .and_then(lambda pair: self._check_enrollment_status(pair[0], pair[1], course_id))
+        )
+
+    def _check_enrollment_status(
+        self,
+        student: Student,
+        course: Course,
+        course_id: int
+    ) -> Result[bool, NotEnrolledError]:
+        """Business logic: verify enrollment."""
+        is_enrolled = course.enrolled_students.filter(id=student.id).exists()
+
+        if is_enrolled:
+            return Success(True)
+        else:
+            return Failure(NotEnrolledError(
+                student_id=student.id,
+                course_id=course_id
+            ))
+
+    def _check_no_duplicate(
+        self,
+        student_id: int,
+        course_id: int
+    ) -> Result[bool, ServiceError]:
+        """Check if rating already exists."""
+        return (
+            self._rating_repo.find_rating(student_id, course_id)
+            .map(lambda rating: rating is not None)
+            .and_then(lambda exists: (
+                Failure(DuplicateRatingError(student_id=student_id, course_id=course_id))
+                if exists
+                else Success(False)
+            ))
+        )
+```
+
+#### 4. View Layer: Exhaustive Error Handling
+
+Views must handle **all possible error cases** explicitly using pattern matching:
+
+```python
+# rating_app/views/rating_viewset.py
+from rest_framework import status
+from rest_framework.viewsets import ViewSet
+from rest_framework.response import Response
+from rest_framework.exceptions import (
+    NotFound, ValidationError, PermissionDenied, APIException
+)
+from returns.result import Result
+
 class RatingViewSet(ViewSet):
     def create(self, request):
-        result = self.rating_service.create_rating(...)
+        """
+        Create a new rating.
 
-        # Unwrap converts Failure to exception
-        rating = result.unwrap()  # Raises ServiceError if failed
+        Request body:
+            {
+                "student_id": 123,
+                "course_id": 456,
+                "rating": 5
+            }
+        """
+        # Extract and validate request data (could use Pydantic here)
+        student_id = request.data.get('student_id')
+        course_id = request.data.get('course_id')
+        rating_value = request.data.get('rating')
 
-        # DRF exception handler converts to HTTP response
-        return Response(RatingSerializer(rating).data, status=201)
+        # Call service layer
+        result = self.rating_service.create_rating(
+            student_id=student_id,
+            course_id=course_id,
+            rating_value=rating_value
+        )
+
+        # Handle all error cases explicitly with pattern matching
+        return result.lash(
+            lambda error: self._handle_create_rating_error(error)
+        ).map(
+            lambda rating: Response(
+                RatingSerializer(rating).data,
+                status=status.HTTP_201_CREATED
+            )
+        ).unwrap()  # Safe to unwrap because we handled errors with .lash()
+
+    def _handle_create_rating_error(self, error: ServiceError) -> Response:
+        """
+        Convert domain errors to DRF exceptions.
+        Pattern match on error type to handle each case.
+        """
+        match error:
+            # Service-level validation errors → 400 Bad Request
+            case InvalidRatingValueError(value=val):
+                raise ValidationError({
+                    "rating": f"Rating must be between 1 and 5, got {val}"
+                })
+
+            # Business rule violations → 403 Forbidden
+            case NotEnrolledError(student_id=sid, course_id=cid):
+                raise PermissionDenied(
+                    f"Student {sid} is not enrolled in course {cid}"
+                )
+
+            # Duplicate operations → 409 Conflict
+            case DuplicateRatingError(student_id=sid, course_id=cid):
+                raise APIException(
+                    detail=f"Student {sid} has already rated course {cid}",
+                    code=status.HTTP_409_CONFLICT
+                )
+
+            # Repository errors → 404 Not Found
+            case CourseNotFoundError(course_id=cid):
+                raise NotFound(f"Course with ID {cid} not found")
+
+            case StudentNotFoundError(student_id=sid):
+                raise NotFound(f"Student with ID {sid} not found")
+
+            # Invalid identifiers → 400 Bad Request
+            case InvalidCourseIdentifierError(course_id=cid, reason=reason):
+                raise ValidationError({
+                    "course_id": f"Invalid course ID {cid}: {reason}"
+                })
+
+            # Exhaustiveness check: if we add new error types, MyPy will warn
+            case _:
+                # This should never happen if error types are properly defined
+                logger.error("unhandled_error_type", error=error)
+                raise APIException("An unexpected error occurred")
+
+    def list(self, request):
+        """Get all ratings with filtering."""
+        # Get filters from query params
+        course_id = request.query_params.get('course_id')
+
+        if course_id:
+            result = self.rating_service.get_ratings_for_course(int(course_id))
+
+            # Handle potential CourseNotFoundError
+            return result.lash(lambda error: match error:
+                case CourseNotFoundError(course_id=cid) =>
+                    raise NotFound(f"Course {cid} not found"),
+                case _ =>
+                    raise APIException("Unexpected error")
+            ).map(
+                lambda ratings: Response(RatingSerializer(ratings, many=True).data)
+            ).unwrap()
+
+        # No filtering - always succeeds
+        ratings = self.rating_service.get_all_ratings()
+        return Response(RatingSerializer(ratings, many=True).data)
 ```
+
+**Key Benefits of This Approach:**
+
+1. **Type Safety:** MyPy enforces that all error cases in the union type are handled
+2. **Explicit Error Flow:** Function signatures declare exactly what can fail
+3. **No Forgotten Errors:** Pattern matching with `match/case` ensures exhaustiveness
+4. **Clear Boundaries:** Domain errors in service/repo, HTTP exceptions in views
+5. **Railway-Oriented:** Errors propagate automatically through `.and_then()` chains
+6. **Self-Documenting:** Return types show all possible failures without reading docs
 
 ### Guidelines
 
-- **Repository methods** return `Result[Model, RepositoryError]`
-- **Service methods** return `Result[DomainObject, ServiceError]`
-- **View methods** unwrap Results and let exceptions propagate to DRF
-- Use **railway-oriented programming** for operation chaining
-- Document error types in function signatures (self-documenting)
-- Keep frontend and third-party integrations using exceptions
+**Error Type Design:**
+- Define errors as frozen dataclasses with descriptive fields
+- Use union types (`|`) to declare all possible errors per layer
+- Repository errors: `CourseNotFoundError | InvalidIdentifierError | ...`
+- Service errors: Include all repository errors + business logic errors
+- Each error type should be self-explanatory with context fields
+
+**Repository Layer:**
+- Return `Result[Model, RepositoryError]` from all methods
+- Catch ORM exceptions and convert to domain errors
+- Use `Success(value)` for successful operations
+- Use `Failure(ErrorType(...))` with descriptive error instances
+- Log error context with structlog before returning Failure
+
+**Service Layer:**
+- Return `Result[T, ServiceError]` from all public methods
+- Validate business rules and return `Failure(...)` early if invalid
+- Chain repository operations with `.and_then()` for sequential operations
+- Use `.map()` for transformations that don't fail
+- Repository errors automatically propagate through the chain
+- Document all possible error types in function docstring
+
+**View Layer:**
+- Call service methods and get `Result[T, ServiceError]`
+- Use `.lash(handler)` to convert errors to DRF exceptions
+- Use `match/case` for exhaustive error handling
+- Map each domain error to appropriate HTTP status code:
+  - `404 NotFound` for entity not found errors
+  - `400 ValidationError` for invalid input
+  - `403 PermissionDenied` for business rule violations
+  - `409 Conflict` for duplicate/conflict errors
+- After `.lash()`, safe to call `.unwrap()` since errors are handled
+- Include `case _:` fallback for unhandled errors (defensive programming)
+
+**Type Checking:**
+- Enable strict MyPy checking in `pyproject.toml`:
+  ```toml
+  [tool.mypy]
+  strict = true
+  warn_return_any = true
+  warn_unreachable = true
+  ```
+- MyPy will warn if Result types aren't handled properly
+- Use `# type: ignore` sparingly and document why
+
+**Testing:**
+- Test both success and all failure cases for each method
+- Service layer tests should verify error propagation
+- View layer tests should verify correct HTTP status codes for each error
+- Example:
+  ```python
+  def test_create_rating_not_enrolled():
+      result = service.create_rating(student_id=1, course_id=2, rating=5)
+      assert result.is_failure()
+      assert isinstance(result.failure(), NotEnrolledError)
+  ```
 
 ## Consequences
 
@@ -348,3 +707,145 @@ After **6 months** of adoption, review this decision:
 - Consider expanding or reverting based on concrete evidence
 
 If the pattern proves problematic (difficult debugging, team resistance, minimal bug reduction), this decision can be revisited.
+
+## Quick Reference
+
+### Cheat Sheet for Developers
+
+**1. Creating Errors:**
+```python
+# ❌ Don't raise exceptions in service/repo layers
+raise CourseNotFoundError(course_id)
+
+# ✅ Do return Failure with error instance
+return Failure(CourseNotFoundError(course_id=course_id))
+```
+
+**2. Repository Pattern:**
+```python
+def get_entity(self, id: int) -> Result[Entity, RepositoryError]:
+    try:
+        return Success(Entity.objects.get(id=id))
+    except Entity.DoesNotExist:
+        return Failure(EntityNotFoundError(entity_id=id))
+```
+
+**3. Service Composition:**
+```python
+# Sequential operations (railway-oriented)
+return (
+    repo.get_course(course_id)                    # Result[Course, RepoError]
+    .and_then(lambda course: self.validate(course))  # Result[bool, ServiceError]
+    .and_then(lambda _: repo.create(...))         # Result[Entity, RepoError]
+)
+
+# Early return on validation
+if not (1 <= rating <= 5):
+    return Failure(InvalidRatingValueError(value=rating))
+```
+
+**4. View Error Handling:**
+```python
+result = service.create_rating(...)
+return result.lash(lambda error: match error:
+    case CourseNotFoundError(course_id=cid) => raise NotFound(f"Course {cid} not found"),
+    case NotEnrolledError(...) => raise PermissionDenied(...),
+    case _ => raise APIException("Unexpected error")
+).map(
+    lambda rating: Response(RatingSerializer(rating).data, status=201)
+).unwrap()
+```
+
+**5. Common Operations:**
+```python
+# Transform success value (doesn't change error)
+result.map(lambda course: course.name)  # Result[str, Error]
+
+# Chain operation that can fail
+result.and_then(lambda course: repo.get_student(course.id))
+
+# Provide default value on failure
+result.value_or(default_value)
+
+# Check if success/failure
+if result.is_success():
+    value = result.unwrap()
+```
+
+**6. Type Signatures:**
+```python
+# Repository
+def get_course(self, id: int) -> Result[Course, RepositoryError]: ...
+
+# Service
+def create_rating(self, ...) -> Result[Rating, ServiceError]: ...
+
+# View (returns DRF Response)
+def create(self, request) -> Response: ...
+```
+
+**7. Testing:**
+```python
+# Test success case
+result = service.create_rating(1, 2, 5)
+assert result.is_success()
+assert isinstance(result.unwrap(), Rating)
+
+# Test failure case
+result = service.create_rating(999, 2, 5)  # Non-existent course
+assert result.is_failure()
+assert isinstance(result.failure(), CourseNotFoundError)
+```
+
+### Common Pitfalls to Avoid
+
+❌ **Don't unwrap Results in service/repo layers**
+```python
+# BAD: Defeats the purpose of Result types
+course = repo.get_course(id).unwrap()  # Raises exception!
+```
+
+❌ **Don't mix exceptions and Results in service layer**
+```python
+# BAD: Inconsistent error handling
+def create_rating(...) -> Result[Rating, ServiceError]:
+    if invalid:
+        raise InvalidRatingError()  # Should return Failure(...)
+```
+
+❌ **Don't forget to handle all error cases in views**
+```python
+# BAD: Missing error handling
+result = service.create_rating(...)
+return Response(result.unwrap())  # Might raise unexpected exception!
+
+# GOOD: Explicit error handling with .lash()
+return result.lash(self._handle_errors).map(...).unwrap()
+```
+
+❌ **Don't use generic Exception types**
+```python
+# BAD: Not specific enough
+return Failure(Exception("Course not found"))
+
+# GOOD: Specific error type with context
+return Failure(CourseNotFoundError(course_id=course_id))
+```
+
+✅ **Do use type annotations everywhere**
+```python
+def create_rating(self, ...) -> Result[Rating, ServiceError]:
+    # MyPy will check this!
+```
+
+✅ **Do document all possible errors in docstrings**
+```python
+def create_rating(...) -> Result[Rating, ServiceError]:
+    """
+    Returns:
+        Success(Rating) if created
+        Failure(InvalidRatingValueError) if rating invalid
+        Failure(NotEnrolledError) if student not enrolled
+        Failure(CourseNotFoundError) if course doesn't exist
+    """
+```
