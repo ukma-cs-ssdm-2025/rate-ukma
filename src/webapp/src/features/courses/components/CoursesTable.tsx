@@ -13,7 +13,7 @@ import { BookOpen, Filter } from "lucide-react";
 import { DataTable } from "@/components/DataTable/DataTable";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
-import type { CourseList } from "@/lib/api/generated";
+import type { CourseList, FilterOptions } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFacultyBadge } from "./CourseFacultyBadge";
@@ -37,6 +37,9 @@ interface CoursesTableProps {
 	onFiltersChange?: (filters: Record<string, unknown>) => void;
 	filtersKey: string;
 	pagination?: PaginationInfo;
+	externalFilters?: FilterState;
+	externalFilterOptions?: FilterOptions;
+	hideFiltersPanel?: boolean;
 }
 
 const columns: ColumnDef<CourseList>[] = [
@@ -181,6 +184,9 @@ export function CoursesTable({
 	onFiltersChange,
 	filtersKey,
 	pagination: serverPagination,
+	externalFilters,
+	externalFilterOptions,
+	hideFiltersPanel = false,
 }: Readonly<CoursesTableProps>) {
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [pagination, setPagination] = useState<PaginationState>({
@@ -188,18 +194,20 @@ export function CoursesTable({
 		pageSize: serverPagination ? serverPagination.pageSize : 20,
 	});
 
-	const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+	const [internalFilters, setInternalFilters] = useState<FilterState>(DEFAULT_FILTERS);
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
+
+	const filters = externalFilters ?? internalFilters;
 
 	const updateFilter = useCallback(
 		<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
-			setFilters((prev) => ({ ...prev, [key]: value }));
+			setInternalFilters((prev) => ({ ...prev, [key]: value }));
 		},
 		[],
 	);
 
-	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
-	const filterOptions = filterOptionsQuery.data;
+	const filterOptionsQuery = useCoursesFilterOptionsRetrieve({ query: { enabled: !externalFilterOptions } });
+	const filterOptions = externalFilterOptions ?? filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
 
 	const apiSorting = useMemo(() => {
@@ -347,7 +355,7 @@ export function CoursesTable({
 	}, [combinedFilters, onFiltersChange]);
 
 	const handleResetFilters = useCallback(() => {
-		setFilters(DEFAULT_FILTERS);
+		setInternalFilters(DEFAULT_FILTERS);
 	}, []);
 
 	const toggleFiltersDrawer = useCallback(() => {
@@ -382,6 +390,28 @@ export function CoursesTable({
 			/>
 		);
 	};
+
+	if (hideFiltersPanel) {
+		return (
+			<div className="space-y-4">
+				<div className="flex items-center gap-4">
+					<div className="relative flex-1">
+						<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+						<Input
+							placeholder="Пошук курсів за назвою..."
+							value={filters.searchQuery}
+							onChange={(event) =>
+								updateFilter("searchQuery", event.target.value)
+							}
+							className="pl-10 h-12 text-base"
+							disabled={isInitialLoading}
+						/>
+					</div>
+				</div>
+				{renderTableContent()}
+			</div>
+		);
+	}
 
 	return (
 		<>

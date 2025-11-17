@@ -20,6 +20,19 @@ import type { CourseAnalytics } from "@/lib/api/generated";
 import { CourseFacultyBadge } from "./CourseFacultyBadge";
 
 const GROUPING_THRESHOLD = 50;
+const JITTER_AMOUNT = 0.08;
+
+const FACULTY_COLORS: Record<string, string> = {
+	"Факультет інформатики": "hsl(var(--chart-1))",
+	"Факультет соціальних наук і соціальних технологій": "hsl(var(--chart-2))",
+	"Факультет охорони здоров`я, соціальної роботи і психології": "hsl(var(--chart-3))",
+	"Факультет економічних наук": "hsl(var(--chart-4))",
+	"Факультет правничих наук": "hsl(var(--chart-5))",
+	"Києво-Могилянська школа професійної та неперервної освіти": "hsl(210 100% 45%)",
+	"Факультет природничих наук": "hsl(140 60% 45%)",
+	"Факультет гуманітарних наук": "hsl(30 90% 50%)",
+	"Центр \"Військовий вишкіл ім. гетьмана Петра Конашевича-Сагайдачного в Києво-Могилянській Академії\"": "hsl(0 70% 50%)",
+};
 
 type DataPoint = {
 	id: string;
@@ -43,17 +56,13 @@ interface AnalyticsScatterPlotProps {
 	isLoading: boolean;
 }
 
-const CHART_COLORS = [
-	"hsl(var(--chart-1))",
-	"hsl(var(--chart-2))",
-	"hsl(var(--chart-3))",
-	"hsl(var(--chart-4))",
-	"hsl(var(--chart-5))",
-];
-
-function getFacultyColor(facultyName: string | null, facultyIndex: number): string {
+function getFacultyColor(facultyName: string | null): string {
 	if (!facultyName) return "hsl(var(--muted-foreground))";
-	return CHART_COLORS[facultyIndex % CHART_COLORS.length];
+	return FACULTY_COLORS[facultyName] || "hsl(var(--muted-foreground))";
+}
+
+function applyJitter(value: number): number {
+	return value + (Math.random() - 0.5) * JITTER_AMOUNT * 2;
 }
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: DataPoint }> }) {
@@ -151,8 +160,8 @@ export function AnalyticsScatterPlot({
 		return coursesToShow.map((course) => ({
 			id: course.id || "",
 			name: course.name || "",
-			difficulty: course.avg_difficulty || 0,
-			usefulness: course.avg_usefulness || 0,
+			difficulty: applyJitter(course.avg_difficulty || 0),
+			usefulness: applyJitter(course.avg_usefulness || 0),
 			ratingsCount: course.ratings_count || 0,
 			facultyName: course.faculty_name,
 			isFacultyGroup: false,
@@ -162,10 +171,9 @@ export function AnalyticsScatterPlot({
 	const getPointColor = useCallback(
 		(point: DataPoint) => {
 			const facultyName = point.facultyName || "Інше";
-			const facultyIndex = Array.from(facultyGroups.keys()).indexOf(facultyName);
-			return getFacultyColor(facultyName, facultyIndex);
+			return getFacultyColor(facultyName);
 		},
-		[facultyGroups],
+		[],
 	);
 
 	const handleClick = useCallback(
@@ -300,12 +308,12 @@ export function AnalyticsScatterPlot({
 				</div>
 
 				<div className="flex flex-wrap gap-3 justify-center">
-					{Array.from(facultyGroups.keys()).map((facultyName, index) => (
+					{Array.from(facultyGroups.keys()).map((facultyName) => (
 						<div key={facultyName} className="flex items-center gap-2">
 							<div
 								className="w-3 h-3 rounded-full"
 								style={{
-									backgroundColor: getFacultyColor(facultyName, index),
+									backgroundColor: getFacultyColor(facultyName),
 								}}
 							/>
 							<span className="text-xs text-muted-foreground">
