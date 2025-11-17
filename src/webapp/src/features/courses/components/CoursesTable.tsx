@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from "@tanstack/react-router";
 
 import {
 	type ColumnDef,
@@ -24,11 +25,12 @@ import { CourseScoreCell } from "./CourseScoreCell";
 import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesTableSkeleton } from "./CoursesTableSkeleton";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
-import { DEFAULT_FILTERS, filterSchema } from "../filterSchema";
+import { DEFAULT_FILTERS, filterSchema, type FilterState } from "../filterSchema";
 import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
 } from "../filterTransformations";
+import { filtersToSearchParams } from "../urlSync";
 
 interface PaginationInfo {
 	page: number;
@@ -44,6 +46,7 @@ interface CoursesTableProps {
 	onFiltersChange?: (filters: Record<string, unknown>) => void;
 	filtersKey: string;
 	pagination?: PaginationInfo;
+	initialFilters?: FilterState;
 }
 
 const columns: ColumnDef<CourseList>[] = [
@@ -162,7 +165,10 @@ export function CoursesTable({
 	onFiltersChange,
 	filtersKey,
 	pagination: serverPagination,
+	initialFilters = DEFAULT_FILTERS,
 }: Readonly<CoursesTableProps>) {
+	const navigate = useNavigate({ from: "/" });
+
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: serverPagination ? serverPagination.page - 1 : 0,
@@ -173,7 +179,7 @@ export function CoursesTable({
 
 	// Use React Hook Form for filter state management
 	const form = useForm({
-		defaultValues: DEFAULT_FILTERS,
+		defaultValues: initialFilters,
 		resolver: zodResolver(filterSchema),
 		mode: "onChange",
 	});
@@ -253,6 +259,32 @@ export function CoursesTable({
 	}, [filtersKey]);
 
 	const previousFiltersRef = useRef<Record<string, unknown>>({});
+	const urlSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+	// Sync filters to URL with debounce
+	useEffect(() => {
+		// Clear any pending URL sync
+		if (urlSyncTimeoutRef.current) {
+			clearTimeout(urlSyncTimeoutRef.current);
+		}
+
+		// Debounce URL updates (same 500ms as API calls)
+		urlSyncTimeoutRef.current = setTimeout(() => {
+			const searchParams = filtersToSearchParams(filters);
+
+			// Update URL without adding to history (use replace)
+			navigate({
+				search: searchParams,
+				replace: true,
+			});
+		}, 500);
+
+		return () => {
+			if (urlSyncTimeoutRef.current) {
+				clearTimeout(urlSyncTimeoutRef.current);
+			}
+		};
+	}, [filters, navigate]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: pagination is intentionally excluded to prevent circular updates
 	useEffect(() => {

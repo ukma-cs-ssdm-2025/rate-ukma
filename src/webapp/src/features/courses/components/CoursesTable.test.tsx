@@ -6,6 +6,16 @@ import { renderWithProviders } from "@/test-utils/render";
 import { CoursesTable } from "./CoursesTable";
 import { createMockCourse, createMockFilterOptions } from "@/test-utils/factories";
 
+// Mock TanStack Router hooks
+const mockNavigate = vi.fn();
+vi.mock("@tanstack/react-router", async () => {
+	const actual = await vi.importActual("@tanstack/react-router");
+	return {
+		...actual,
+		useNavigate: () => mockNavigate,
+	};
+});
+
 // Mock the filter options API hook
 vi.mock("@/lib/api/generated", () => ({
 	useCoursesFilterOptionsRetrieve: () => ({
@@ -24,6 +34,7 @@ describe("CoursesTable", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mockNavigate.mockClear();
 	});
 
 	describe("Initial Rendering", () => {
@@ -551,6 +562,204 @@ describe("CoursesTable", () => {
 			// Assert
 			const filterButton = screen.getByRole("button", { name: /фільтри/i });
 			expect(filterButton).toHaveAttribute("aria-label", "Фільтри");
+		});
+	});
+
+	describe("URL Sync", () => {
+		it("should sync search query to URL after debounce", async () => {
+			// Arrange
+			const user = userEvent.setup();
+			renderWithProviders(<CoursesTable {...defaultProps} />);
+
+			// Act
+			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			await user.type(searchInput, "React");
+
+			// Assert
+			// Should not call navigate immediately
+			expect(mockNavigate).not.toHaveBeenCalled();
+
+			// Wait for debounce (500ms)
+			await waitFor(
+				() => {
+					expect(mockNavigate).toHaveBeenCalledWith(
+						expect.objectContaining({
+							search: expect.objectContaining({
+								q: "React",
+							}),
+							replace: true,
+						}),
+					);
+				},
+				{ timeout: 600 },
+			);
+		});
+
+		it("should sync difficulty range to URL", async () => {
+			// Arrange
+			renderWithProviders(
+				<CoursesTable
+					{...defaultProps}
+					initialFilters={{
+						...defaultProps,
+						searchQuery: "",
+						difficultyRange: [2.0, 4.0],
+						usefulnessRange: [1, 5],
+						faculty: "",
+						department: "",
+						instructor: "",
+						semesterTerm: "",
+						semesterYear: "",
+						courseType: "",
+						speciality: "",
+					}}
+				/>,
+			);
+
+			// Assert
+			// Wait for URL sync
+			await waitFor(
+				() => {
+					expect(mockNavigate).toHaveBeenCalledWith(
+						expect.objectContaining({
+							search: expect.objectContaining({
+								diff: "2-4",
+							}),
+							replace: true,
+						}),
+					);
+				},
+				{ timeout: 600 },
+			);
+		});
+
+		it("should sync faculty filter to URL", async () => {
+			// Arrange
+			renderWithProviders(
+				<CoursesTable
+					{...defaultProps}
+					initialFilters={{
+						...defaultProps,
+						searchQuery: "",
+						difficultyRange: [1, 5],
+						usefulnessRange: [1, 5],
+						faculty: "faculty-123",
+						department: "",
+						instructor: "",
+						semesterTerm: "",
+						semesterYear: "",
+						courseType: "",
+						speciality: "",
+					}}
+				/>,
+			);
+
+			// Assert
+			// Wait for URL sync
+			await waitFor(
+				() => {
+					expect(mockNavigate).toHaveBeenCalledWith(
+						expect.objectContaining({
+							search: expect.objectContaining({
+								faculty: "faculty-123",
+							}),
+							replace: true,
+						}),
+					);
+				},
+				{ timeout: 600 },
+			);
+		});
+
+		it("should not include default values in URL", async () => {
+			// Arrange
+			renderWithProviders(<CoursesTable {...defaultProps} />);
+
+			// Assert
+			// Wait for URL sync
+			await waitFor(
+				() => {
+					expect(mockNavigate).toHaveBeenCalledWith(
+						expect.objectContaining({
+							search: {},
+							replace: true,
+						}),
+					);
+				},
+				{ timeout: 600 },
+			);
+		});
+
+		it("should use replace: true to avoid history pollution", async () => {
+			// Arrange
+			const user = userEvent.setup();
+			renderWithProviders(<CoursesTable {...defaultProps} />);
+
+			// Act
+			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			await user.type(searchInput, "Test");
+
+			// Assert
+			await waitFor(
+				() => {
+					expect(mockNavigate).toHaveBeenCalledWith(
+						expect.objectContaining({
+							replace: true,
+						}),
+					);
+				},
+				{ timeout: 600 },
+			);
+		});
+
+		it("should initialize form from URL params", () => {
+			// Arrange
+			const initialFilters = {
+				searchQuery: "Database",
+				difficultyRange: [2.0, 4.0] as [number, number],
+				usefulnessRange: [3.0, 5.0] as [number, number],
+				faculty: "faculty-1",
+				department: "",
+				instructor: "",
+				semesterTerm: "",
+				semesterYear: "",
+				courseType: "",
+				speciality: "",
+			};
+
+			// Act
+			renderWithProviders(
+				<CoursesTable {...defaultProps} initialFilters={initialFilters} />,
+			);
+
+			// Assert
+			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			expect(searchInput).toHaveValue("Database");
+		});
+
+		it("should debounce multiple filter changes into single URL update", async () => {
+			// Arrange
+			const user = userEvent.setup();
+			renderWithProviders(<CoursesTable {...defaultProps} />);
+
+			// Act - Type multiple characters quickly
+			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			await user.type(searchInput, "ABC");
+
+			// Assert - Should only call navigate once after debounce
+			await waitFor(
+				() => {
+					expect(mockNavigate).toHaveBeenCalledTimes(1);
+					expect(mockNavigate).toHaveBeenCalledWith(
+						expect.objectContaining({
+							search: expect.objectContaining({
+								q: "ABC",
+							}),
+						}),
+					);
+				},
+				{ timeout: 600 },
+			);
 		});
 	});
 });

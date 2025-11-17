@@ -1,19 +1,25 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
 import { CoursesErrorState } from "@/features/courses/components/CoursesErrorState";
 import { CoursesHeader } from "@/features/courses/components/CoursesHeader";
 import { CoursesTable } from "@/features/courses/components/CoursesTable";
+import { searchParamsToFilters } from "@/features/courses/urlSync";
 import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
+
+type CoursesSearch = Record<string, string>;
 
 const DEFAULT_PAGE_SIZE = 20;
 
 function CoursesRoute() {
 	const navigate = useNavigate();
+	const search = useSearch({ from: "/" });
+	const initialFilters = searchParamsToFilters(search);
+
 	const [filters, setFilters] = useState<CoursesListParams>({
 		page: 1,
 		page_size: DEFAULT_PAGE_SIZE,
@@ -56,6 +62,7 @@ function CoursesRoute() {
 						data={data?.items ?? []}
 						isLoading={isLoading}
 						filtersKey={filtersKey}
+						initialFilters={initialFilters}
 						onFiltersChange={handleFiltersChange}
 						onRowClick={handleRowClick}
 						pagination={
@@ -77,4 +84,14 @@ function CoursesRoute() {
 
 export const Route = createFileRoute("/")({
 	component: withAuth(CoursesRoute),
+	validateSearch: (search: Record<string, unknown>): CoursesSearch => {
+		// Accept all search params as strings
+		const result: Record<string, string> = {};
+		for (const [key, value] of Object.entries(search)) {
+			if (typeof value === "string") {
+				result[key] = value;
+			}
+		}
+		return result;
+	},
 });
