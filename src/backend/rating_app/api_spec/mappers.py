@@ -27,6 +27,7 @@ class PydanticToOpenApiRequestMapper(
         schema = model_type.model_json_schema()
         properties = schema.get("properties", {})
         definitions = schema.get("$defs", {})
+        required_fields = set(schema.get("required", []))
 
         for field_name, field_info in properties.items():
             param_name: str = field_info.get("serialization_alias") or field_name
@@ -48,7 +49,7 @@ class PydanticToOpenApiRequestMapper(
 
             enum = self._get_enum(field_schema, definitions)
             description = field_info.get("description", "")
-            required = field_info.get("required") or False
+            required = field_name in required_fields
 
             param = self._build_param(
                 param_name, openapi_type, description, required, enum, location
