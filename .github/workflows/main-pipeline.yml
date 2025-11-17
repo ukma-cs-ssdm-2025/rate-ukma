@@ -100,7 +100,7 @@ jobs:
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   release:
-    needs: [deploy-staging, release-needed]
+    needs: [version, deploy-staging, release-needed]
     if: needs.release-needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:
