@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
+import { Minus, Plus, RotateCcw } from "lucide-react";
 import {
 	ResponsiveContainer,
 	ScatterChart,
@@ -12,26 +13,28 @@ import {
 	ZAxis,
 	Cell,
 	Label,
+	ReferenceArea,
 } from "recharts";
 
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { CourseAnalytics } from "@/lib/api/generated";
 
 import { CourseFacultyBadge } from "./CourseFacultyBadge";
 
 const GROUPING_THRESHOLD = 50;
-const JITTER_AMOUNT = 0.08;
+const JITTER_AMOUNT = 0.06;
 
 const FACULTY_COLORS: Record<string, string> = {
-	"Факультет інформатики": "hsl(var(--chart-1))",
-	"Факультет соціальних наук і соціальних технологій": "hsl(var(--chart-2))",
-	"Факультет охорони здоров`я, соціальної роботи і психології": "hsl(var(--chart-3))",
-	"Факультет економічних наук": "hsl(var(--chart-4))",
-	"Факультет правничих наук": "hsl(var(--chart-5))",
+	"Факультет інформатики": "hsl(221 83% 53%)",
+	"Факультет соціальних наук і соціальних технологій": "hsl(262 83% 58%)",
+	"Факультет охорони здоров`я, соціальної роботи і психології": "hsl(330 81% 60%)",
+	"Факультет економічних наук": "hsl(142 71% 45%)",
+	"Факультет правничих наук": "hsl(35 92% 50%)",
 	"Києво-Могилянська школа професійної та неперервної освіти": "hsl(210 100% 45%)",
-	"Факультет природничих наук": "hsl(140 60% 45%)",
-	"Факультет гуманітарних наук": "hsl(30 90% 50%)",
-	"Центр \"Військовий вишкіл ім. гетьмана Петра Конашевича-Сагайдачного в Києво-Могилянській Академії\"": "hsl(0 70% 50%)",
+	"Факультет природничих наук": "hsl(174 72% 40%)",
+	"Факультет гуманітарних наук": "hsl(0 84% 60%)",
+	"Центр \"Військовий вишкіл ім. гетьмана Петра Конашевича-Сагайдачного в Києво-Могилянській Академії\"": "hsl(45 93% 47%)",
 };
 
 type DataPoint = {
@@ -56,9 +59,19 @@ interface AnalyticsScatterPlotProps {
 	isLoading: boolean;
 }
 
+type ZoomDomain = {
+	x: [number, number];
+	y: [number, number];
+};
+
+const DEFAULT_DOMAIN: ZoomDomain = {
+	x: [0.5, 5.5],
+	y: [0.5, 5.5],
+};
+
 function getFacultyColor(facultyName: string | null): string {
 	if (!facultyName) return "hsl(var(--muted-foreground))";
-	return FACULTY_COLORS[facultyName] || "hsl(var(--muted-foreground))";
+	return FACULTY_COLORS[facultyName] || "hsl(215 14% 55%)";
 }
 
 function applyJitter(value: number): number {
@@ -101,6 +114,12 @@ export function AnalyticsScatterPlot({
 }: AnalyticsScatterPlotProps) {
 	const navigate = useNavigate();
 	const [selectedFaculty, setSelectedFaculty] = useState<string | null>(null);
+	const [domain, setDomain] = useState<ZoomDomain>(DEFAULT_DOMAIN);
+	const [refAreaLeft, setRefAreaLeft] = useState<number | null>(null);
+	const [refAreaRight, setRefAreaRight] = useState<number | null>(null);
+	const [refAreaTop, setRefAreaTop] = useState<number | null>(null);
+	const [refAreaBottom, setRefAreaBottom] = useState<number | null>(null);
+	const [isSelecting, setIsSelecting] = useState(false);
 
 	const facultyGroups = useMemo(() => {
 		const groups = new Map<string, CourseAnalytics[]>();
@@ -121,7 +140,6 @@ export function AnalyticsScatterPlot({
 	const scatterData = useMemo(() => {
 		if (shouldGroup) {
 			const groups: FacultyGroup[] = [];
-			let facultyIndex = 0;
 
 			for (const [facultyName, courses] of facultyGroups.entries()) {
 				if (courses.length === 0) continue;
@@ -146,8 +164,6 @@ export function AnalyticsScatterPlot({
 					facultyName,
 					isFacultyGroup: true,
 				});
-
-				facultyIndex++;
 			}
 
 			return groups;
@@ -189,7 +205,89 @@ export function AnalyticsScatterPlot({
 
 	const handleReset = useCallback(() => {
 		setSelectedFaculty(null);
+		setDomain(DEFAULT_DOMAIN);
 	}, []);
+
+	const zoomIn = useCallback(() => {
+		setDomain((prev) => {
+			const xRange = prev.x[1] - prev.x[0];
+			const yRange = prev.y[1] - prev.y[0];
+			const xCenter = (prev.x[0] + prev.x[1]) / 2;
+			const yCenter = (prev.y[0] + prev.y[1]) / 2;
+			const newXRange = xRange * 0.7;
+			const newYRange = yRange * 0.7;
+			return {
+				x: [xCenter - newXRange / 2, xCenter + newXRange / 2],
+				y: [yCenter - newYRange / 2, yCenter + newYRange / 2],
+			};
+		});
+	}, []);
+
+	const zoomOut = useCallback(() => {
+		setDomain((prev) => {
+			const xRange = prev.x[1] - prev.x[0];
+			const yRange = prev.y[1] - prev.y[0];
+			const xCenter = (prev.x[0] + prev.x[1]) / 2;
+			const yCenter = (prev.y[0] + prev.y[1]) / 2;
+			const newXRange = Math.min(xRange * 1.4, 5);
+			const newYRange = Math.min(yRange * 1.4, 5);
+			return {
+				x: [
+					Math.max(0.5, xCenter - newXRange / 2),
+					Math.min(5.5, xCenter + newXRange / 2),
+				],
+				y: [
+					Math.max(0.5, yCenter - newYRange / 2),
+					Math.min(5.5, yCenter + newYRange / 2),
+				],
+			};
+		});
+	}, []);
+
+	const resetZoom = useCallback(() => {
+		setDomain(DEFAULT_DOMAIN);
+	}, []);
+
+	const handleMouseDown = useCallback((state: Record<string, unknown> | null) => {
+		const xValue = state?.xValue as number | undefined;
+		const yValue = state?.yValue as number | undefined;
+		if (xValue !== undefined && yValue !== undefined) {
+			setRefAreaLeft(xValue);
+			setRefAreaBottom(yValue);
+			setIsSelecting(true);
+		}
+	}, []);
+
+	const handleMouseMove = useCallback((state: Record<string, unknown> | null) => {
+		const xValue = state?.xValue as number | undefined;
+		const yValue = state?.yValue as number | undefined;
+		if (isSelecting && xValue !== undefined && yValue !== undefined) {
+			setRefAreaRight(xValue);
+			setRefAreaTop(yValue);
+		}
+	}, [isSelecting]);
+
+	const handleMouseUp = useCallback(() => {
+		if (refAreaLeft && refAreaRight && refAreaBottom && refAreaTop) {
+			const x1 = Math.min(refAreaLeft, refAreaRight);
+			const x2 = Math.max(refAreaLeft, refAreaRight);
+			const y1 = Math.min(refAreaBottom, refAreaTop);
+			const y2 = Math.max(refAreaBottom, refAreaTop);
+
+			if (x2 - x1 > 0.1 && y2 - y1 > 0.1) {
+				setDomain({
+					x: [x1, x2],
+					y: [y1, y2],
+				});
+			}
+		}
+
+		setRefAreaLeft(null);
+		setRefAreaRight(null);
+		setRefAreaTop(null);
+		setRefAreaBottom(null);
+		setIsSelecting(false);
+	}, [refAreaLeft, refAreaRight, refAreaBottom, refAreaTop]);
 
 	if (isLoading) {
 		return (
@@ -229,24 +327,53 @@ export function AnalyticsScatterPlot({
 								? "Натисніть на факультет для деталей"
 								: selectedFaculty
 									? `Курси факультету: ${selectedFaculty}`
-									: "Натисніть на курс для деталей"}
+									: "Виділіть область для збільшення"}
 						</p>
 					</div>
-					{selectedFaculty && (
-						<button
-							type="button"
-							onClick={handleReset}
-							className="text-sm text-primary hover:underline"
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={zoomOut}
+							title="Зменшити"
 						>
-							← Повернутися до факультетів
-						</button>
-					)}
+							<Minus className="h-4 w-4" />
+						</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={zoomIn}
+							title="Збільшити"
+						>
+							<Plus className="h-4 w-4" />
+						</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={resetZoom}
+							title="Скинути масштаб"
+						>
+							<RotateCcw className="h-4 w-4" />
+						</Button>
+						{selectedFaculty && (
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleReset}
+							>
+								← Назад
+							</Button>
+						)}
+					</div>
 				</div>
 
 				<div className="w-full h-[500px]">
 					<ResponsiveContainer width="100%" height="100%">
 						<ScatterChart
 							margin={{ top: 20, right: 20, bottom: 60, left: 60 }}
+							onMouseDown={handleMouseDown}
+							onMouseMove={handleMouseMove}
+							onMouseUp={handleMouseUp}
 						>
 							<CartesianGrid
 								strokeDasharray="3 3"
@@ -256,9 +383,10 @@ export function AnalyticsScatterPlot({
 								type="number"
 								dataKey="difficulty"
 								name="Складність"
-								domain={[0.5, 5.5]}
+								domain={domain.x}
 								ticks={[1, 2, 3, 4, 5]}
 								stroke="hsl(var(--muted-foreground))"
+								allowDataOverflow
 							>
 								<Label
 									value="Складність"
@@ -271,9 +399,10 @@ export function AnalyticsScatterPlot({
 								type="number"
 								dataKey="usefulness"
 								name="Корисність"
-								domain={[0.5, 5.5]}
+								domain={domain.y}
 								ticks={[1, 2, 3, 4, 5]}
 								stroke="hsl(var(--muted-foreground))"
+								allowDataOverflow
 							>
 								<Label
 									value="Корисність"
@@ -286,40 +415,60 @@ export function AnalyticsScatterPlot({
 							<ZAxis
 								type="number"
 								dataKey={shouldGroup ? "courseCount" : "ratingsCount"}
-								range={[100, 1000]}
+								range={[50, 400]}
 							/>
 							<Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: "3 3" }} />
 							<Scatter
 								data={scatterData}
 								fill="hsl(var(--primary))"
-								style={{ cursor: "pointer" }}
 							>
 								{scatterData.map((entry) => (
 									<Cell
 										key={`cell-${entry.id}`}
 										fill={getPointColor(entry)}
+										fillOpacity={0.6}
+										stroke={getPointColor(entry)}
+										strokeWidth={2}
 										onClick={() => handleClick(entry)}
 										style={{ cursor: "pointer" }}
 									/>
 								))}
 							</Scatter>
+							{refAreaLeft && refAreaRight && refAreaBottom && refAreaTop && (
+								<ReferenceArea
+									x1={refAreaLeft}
+									x2={refAreaRight}
+									y1={refAreaBottom}
+									y2={refAreaTop}
+									strokeOpacity={0.3}
+									fill="hsl(var(--primary))"
+									fillOpacity={0.1}
+								/>
+							)}
 						</ScatterChart>
 					</ResponsiveContainer>
 				</div>
 
 				<div className="flex flex-wrap gap-3 justify-center">
 					{Array.from(facultyGroups.keys()).map((facultyName) => (
-						<div key={facultyName} className="flex items-center gap-2">
+						<button
+							key={facultyName}
+							type="button"
+							onClick={() => setSelectedFaculty(facultyName)}
+							className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent transition-colors"
+						>
 							<div
-								className="w-3 h-3 rounded-full"
+								className="w-3 h-3 rounded-full border-2"
 								style={{
 									backgroundColor: getFacultyColor(facultyName),
+									borderColor: getFacultyColor(facultyName),
+									opacity: 0.6,
 								}}
 							/>
 							<span className="text-xs text-muted-foreground">
 								{facultyName}
 							</span>
-						</div>
+						</button>
 					))}
 				</div>
 			</div>
