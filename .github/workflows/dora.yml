@@ -83,3 +83,83 @@ jobs:
           add: ${{ env.DORA_SUMMARY_FILE }}
           default_author: github_actions
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Send Discord Notification
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DEPLOYMENT_FREQUENCY: ${{ steps.calculate_metrics.outputs.deployment_frequency }}
+          LEAD_TIME: ${{ steps.calculate_metrics.outputs.lead_time }}
+          CHANGE_FAILURE_RATE: ${{ steps.calculate_metrics.outputs.change_failure_rate }}
+          TIME_TO_RESTORE: ${{ steps.calculate_metrics.outputs.time_to_restore }}
+          TOTAL_RUNS: ${{ steps.calculate_metrics.outputs.total_runs }}
+          WORKFLOW_NAME: ${{ inputs.pipeline-config-file || 'main-pipeline.yml' }}
+          REPORT_URL: ${{ github.server_url }}/${{ github.repository }}/blob/main/docs/ci-cd/dora-summary.md
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "Discord webhook URL not configured, skipping notification"
+            exit 0
+          fi
+
+          if [ "$JOB_STATUS" = "success" ]; then
+            COLOR=3066993  # Green
+            STATUS_EMOJI="✅"
+          else
+            COLOR=15158332  # Red
+            STATUS_EMOJI="❌"
+          fi
+
+          LEAD_TIME_MIN=$(echo "$LEAD_TIME" | cut -d. -f1)
+          TTR_MIN=$(echo "$TIME_TO_RESTORE" | cut -d. -f1)
+
+          PAYLOAD=$(cat <<EOF
+          {
+            "embeds": [{
+              "title": "${STATUS_EMOJI} DORA Metrics Report Updated",
+              "description": "Weekly DORA metrics report has been generated and committed to the repository.",
+              "color": ${COLOR},
+              "fields": [
+                {
+                  "name": "-> Workflow",
+                  "value": "`${WORKFLOW_NAME}`",
+                  "inline": true
+                },
+                {
+                  "name": "-> Deployment Frequency",
+                  "value": "${DEPLOYMENT_FREQUENCY}/week",
+                  "inline": true
+                },
+                {
+                  "name": "-> Lead Time",
+                  "value": "${LEAD_TIME_MIN} minutes",
+                  "inline": true
+                },
+                {
+                  "name": "-> Change Failure Rate",
+                  "value": "${CHANGE_FAILURE_RATE}%",
+                  "inline": true
+                },
+                {
+                  "name": "-> Time to Restore",
+                  "value": "${TTR_MIN} minutes",
+                  "inline": true
+                },
+                {
+                  "name": "-> Total Runs Analyzed",
+                  "value": "${TOTAL_RUNS}",
+                  "inline": true
+                }
+              ],
+              "url": "${REPORT_URL}",
+              "footer": {
+                "text": "DORA Metrics Workflow"
+              },
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            }]
+          }
+          EOF
+          )
+
+          curl -H "Content-Type: application/json" \
+               -d "$PAYLOAD" \
+               "$DISCORD_WEBHOOK_URL"
