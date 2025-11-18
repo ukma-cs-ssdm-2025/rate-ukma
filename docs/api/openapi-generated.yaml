@@ -1706,6 +1706,9 @@ components:
     InlineRatingDetailed:
       type: object
       properties:
+        id:
+          type: string
+          readOnly: true
         difficulty:
           type: integer
           readOnly: true
