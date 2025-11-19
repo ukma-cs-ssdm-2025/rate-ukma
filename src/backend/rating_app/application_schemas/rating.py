@@ -71,7 +71,21 @@ class RatingFilterCriteria(BaseModel):
     course_id: uuid.UUID | None = Field(default=None)
 
 
-# needs external validation
+# API request schema (student is set automatically from authenticated user)
+class RatingCreateRequest(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    course_offering: uuid.UUID = Field(description="UUID of the course offering being rated")
+    difficulty: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
+    usefulness: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
+    comment: str | None = Field(default=None)
+    is_anonymous: bool = Field(default=False)
+
+
+# Internal schema used by service layer (includes student)
 class RatingCreateParams(BaseModel):
     model_config = {
         "alias_generator": to_snake,
