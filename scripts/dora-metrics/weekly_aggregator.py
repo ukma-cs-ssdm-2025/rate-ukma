@@ -69,7 +69,7 @@ class WeeklyAggregator:
 
         for run in filtered_runs:
             week_start = run["created_at"] - timedelta(days=run["created_at"].weekday())
-            week_key = week_start.strftime("%Y-W%U")
+            week_key = week_start.strftime("%Y-W%W")
             week_label = week_start.strftime("%b %d")
 
             weekly_data[(week_key, week_label)].append(run)
