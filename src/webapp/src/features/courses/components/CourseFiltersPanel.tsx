@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 import { Filter, X } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
@@ -19,14 +19,7 @@ import { Slider } from "@/components/ui/Slider";
 import type { FilterOptions } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
-import {
-	DIFFICULTY_RANGE,
-	formatDecimalValue,
-	getCourseTypeDisplay,
-	getFacultyAbbreviation,
-	getSemesterTermDisplay,
-	USEFULNESS_RANGE,
-} from "../courseFormatting";
+import { formatDecimalValue } from "../courseFormatting";
 import type { FilterState } from "../filterSchema";
 import {
 	areFiltersActive,
@@ -104,153 +97,16 @@ function useHasActiveFilters(form: UseFormReturn<FilterState>): boolean {
 }
 
 function ActiveFilters({
-	form,
-	filterOptions,
+	badges,
 }: Readonly<{
-	form: UseFormReturn<FilterState>;
-	filterOptions?: FilterOptions;
+	badges: Array<{ key: string; label: string }>;
 }>) {
-	const filters = useWatch({ control: form.control });
-
-	const {
-		faculties = [],
-		departments: allDepartments = [],
-		instructors = [],
-		semester_terms: semesterTerms = [],
-		semester_years: semesterYears = [],
-		course_types: courseTypes = [],
-		specialities = [],
-	} = filterOptions ?? {};
-
-	const badges = useMemo(() => {
-		const result: Array<{ key: string; label: string }> = [];
-
-		if (filters.searchQuery) {
-			result.push({
-				key: "search",
-				label: `Пошук: ${filters.searchQuery}`,
-			});
-		}
-
-		if (
-			filters.difficultyRange?.[0] !== DIFFICULTY_RANGE[0] ||
-			filters.difficultyRange?.[1] !== DIFFICULTY_RANGE[1]
-		) {
-			result.push({
-				key: "difficulty",
-				label: `Складність: ${formatDecimalValue(filters.difficultyRange?.[0], { fallback: "0" })}-${formatDecimalValue(filters.difficultyRange?.[1], { fallback: "0" })}`,
-			});
-		}
-
-		if (
-			filters.usefulnessRange?.[0] !== USEFULNESS_RANGE[0] ||
-			filters.usefulnessRange?.[1] !== USEFULNESS_RANGE[1]
-		) {
-			result.push({
-				key: "usefulness",
-				label: `Корисність: ${formatDecimalValue(filters.usefulnessRange?.[0], { fallback: "0" })}-${formatDecimalValue(filters.usefulnessRange?.[1], { fallback: "0" })}`,
-			});
-		}
-
-		const selectedSemesterTerm = semesterTerms.find(
-			(term) => term.value === filters.semesterTerm,
-		);
-		const selectedSemesterYear = semesterYears.find(
-			(year) => year.value === filters.semesterYear,
-		);
-		const semesterTermLabel = selectedSemesterTerm
-			? getSemesterTermDisplay(
-					selectedSemesterTerm.value,
-					selectedSemesterTerm.label,
-				)
-			: null;
-
-		if (selectedSemesterYear && semesterTermLabel) {
-			result.push({
-				key: "semester",
-				label: `Семестр: ${selectedSemesterYear.label} ${semesterTermLabel}`,
-			});
-		} else if (semesterTermLabel) {
-			result.push({
-				key: "semesterTerm",
-				label: `Період: ${semesterTermLabel}`,
-			});
-		} else if (selectedSemesterYear) {
-			result.push({
-				key: "semesterYear",
-				label: `Рік: ${selectedSemesterYear.label}`,
-			});
-		}
-
-		const selectedFaculty = faculties.find((f) => f.id === filters.faculty);
-		if (selectedFaculty) {
-			result.push({
-				key: "faculty",
-				label: `Факультет: ${getFacultyAbbreviation(selectedFaculty.name)} · ${selectedFaculty.name}`,
-			});
-		}
-
-		const selectedDepartment = allDepartments.find(
-			(d) => d.id === filters.department,
-		);
-		if (selectedDepartment) {
-			result.push({
-				key: "department",
-				label: `Кафедра: ${selectedDepartment.name}`,
-			});
-		}
-
-		const selectedSpeciality = specialities.find(
-			(s) => s.id === filters.speciality,
-		);
-		if (selectedSpeciality) {
-			result.push({
-				key: "speciality",
-				label: `Спеціальність: ${selectedSpeciality.name}`,
-			});
-		}
-
-		const selectedCourseType = courseTypes.find(
-			(type) => type.value === filters.courseType,
-		);
-		if (selectedCourseType) {
-			result.push({
-				key: "courseType",
-				label: `Тип курсу: ${getCourseTypeDisplay(
-					selectedCourseType.value,
-					selectedCourseType.label,
-				)}`,
-			});
-		}
-
-		const selectedInstructor = instructors.find(
-			(i) => i.id === filters.instructor,
-		);
-		if (selectedInstructor) {
-			result.push({
-				key: "instructor",
-				label: `Викладач: ${selectedInstructor.name}`,
-			});
-		}
-
-		return result;
-	}, [
-		filters,
-		faculties,
-		allDepartments,
-		instructors,
-		semesterTerms,
-		semesterYears,
-		courseTypes,
-		specialities,
-	]);
-
 	if (badges.length === 0) {
 		return null;
 	}
 
 	return (
-		<div className="pb-4 border-b space-y-2">
+		<div className="pt-4 border-t space-y-2">
 			<div className="text-xs font-medium text-muted-foreground">
 				Активні фільтри:
 			</div>
@@ -272,12 +128,9 @@ function ActiveFilters({
 function CourseFiltersContent({
 	form,
 	data,
-	filterOptions,
-}: Readonly<CourseFiltersContentProps & { filterOptions?: FilterOptions }>) {
+}: Readonly<CourseFiltersContentProps>) {
 	return (
 		<div className="space-y-6">
-			<ActiveFilters form={form} filterOptions={filterOptions} />
-
 			{data.rangeFilters.map(({ key, ...filter }) => (
 				<Controller
 					key={key}
@@ -334,6 +187,8 @@ function CourseFiltersContent({
 					/>
 				),
 			)}
+
+			<ActiveFilters badges={data.activeBadges} />
 		</div>
 	);
 }
@@ -375,11 +230,7 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 				</div>
 			</CardHeader>
 			<CardContent>
-				<CourseFiltersContent
-					form={baseProps.form}
-					data={data}
-					filterOptions={baseProps.filterOptions}
-				/>
+				<CourseFiltersContent form={baseProps.form} data={data} />
 			</CardContent>
 		</Card>
 	);
@@ -416,11 +267,7 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 					</Button>
 				</div>
 			</div>
-			<CourseFiltersContent
-				form={baseProps.form}
-				data={data}
-				filterOptions={baseProps.filterOptions}
-			/>
+			<CourseFiltersContent form={baseProps.form} data={data} />
 		</div>
 	);
 });

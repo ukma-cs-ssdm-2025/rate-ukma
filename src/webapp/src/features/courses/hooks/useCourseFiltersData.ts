@@ -215,23 +215,23 @@ export function useCourseFiltersData({
 					label: getCourseTypeDisplay(type.value, type.label),
 				})),
 			},
-			{
-				key: "instructor",
-				label: "Викладач",
-				placeholder: "Усі викладачі",
-				value: filters.instructor,
-				options: instructors.map((instructor) => ({
-					value: instructor.id,
-					label: instructor.name,
-				})),
-				contentClassName: "max-h-72",
-			},
+			// {
+			// 	key: "instructor",
+			// 	label: "Викладач",
+			// 	placeholder: "Усі викладачі",
+			// 	value: filters.instructor,
+			// 	options: instructors.map((instructor) => ({
+			// 		value: instructor.id,
+			// 		label: instructor.name,
+			// 	})),
+			// 	contentClassName: "max-h-72",
+			// }, // unstable backend data
 		],
 		[
 			courseTypes,
 			faculties,
 			filteredDepartments,
-			instructors,
+			// instructors, // unstable backend data - commented out from selectFilters
 			semesterTerms,
 			semesterYears,
 			specialities,
@@ -241,7 +241,7 @@ export function useCourseFiltersData({
 			filters.department,
 			filters.speciality,
 			filters.courseType,
-			filters.instructor,
+			// filters.instructor, // unstable backend data - commented out from selectFilters
 		],
 	);
 
