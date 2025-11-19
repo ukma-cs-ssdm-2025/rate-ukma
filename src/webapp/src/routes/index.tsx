@@ -115,7 +115,6 @@ function CoursesRoute() {
 export const Route = createFileRoute("/")({
 	component: withAuth(CoursesRoute),
 	validateSearch: (search: Record<string, unknown>): CoursesSearch => {
-		// Accept all search params as strings
 		const result: Record<string, string> = {};
 		for (const [key, value] of Object.entries(search)) {
 			if (typeof value === "string") {

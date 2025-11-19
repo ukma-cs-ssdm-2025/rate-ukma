@@ -56,7 +56,6 @@ describe("Initial Rendering", () => {
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
 		// Assert
-		// Filter panel title should be visible
 		expect(screen.getByText("Фільтри")).toBeInTheDocument();
 	});
 
@@ -74,8 +73,6 @@ describe("Initial Rendering", () => {
 		renderWithProviders(<CoursesTable {...defaultProps} isLoading={true} />);
 
 		// Assert
-		// CoursesTableSkeleton may render a table element with skeleton rows
-		// Just verify that the table exists (skeleton uses table structure)
 		expect(screen.getByRole("table")).toBeInTheDocument();
 	});
 
@@ -86,7 +83,6 @@ describe("Initial Rendering", () => {
 		);
 
 		// Assert
-		// Empty state component should be rendered with specific text
 		expect(screen.getByText("Курси не знайдено")).toBeInTheDocument();
 	});
 
@@ -125,9 +121,10 @@ describe("Search Filter", () => {
 		expect(searchInput).toHaveValue("React");
 	});
 
-	it("should debounce filter changes by 500ms", async () => {
+	it("should debounce filter changes", async () => {
 		// Arrange
-		const user = userEvent.setup();
+		vi.useFakeTimers();
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 		const onFiltersChange = vi.fn();
 		renderWithProviders(
 			<CoursesTable {...defaultProps} onFiltersChange={onFiltersChange} />,
@@ -139,16 +136,15 @@ describe("Search Filter", () => {
 		);
 		await user.type(searchInput, "React");
 
-		// Assert - should not be called immediately
+		// Assert
 		expect(onFiltersChange).not.toHaveBeenCalled();
 
-		// Wait for debounce
-		await waitFor(
-			() => {
-				expect(onFiltersChange).toHaveBeenCalled();
-			},
-			{ timeout: 1000 },
-		);
+		await vi.advanceTimersByTimeAsync(1000);
+
+		// Assert
+		expect(onFiltersChange).toHaveBeenCalled();
+
+		vi.useRealTimers();
 	});
 
 	it("should include search query in filter params after debounce", async () => {
@@ -212,9 +208,7 @@ describe("Pagination", () => {
 		);
 
 		// Assert
-		// Table should render with pagination data provided
 		expect(screen.getByRole("table")).toBeInTheDocument();
-		// Course data should be displayed (not skeleton/empty state)
 		expect(screen.queryByText("Курси не знайдено")).not.toBeInTheDocument();
 	});
 
@@ -286,7 +280,7 @@ describe("Pagination", () => {
 			() => {
 				expect(onFiltersChange).toHaveBeenCalledWith(
 					expect.objectContaining({
-						page: 1, // Should reset to page 1
+						page: 1,
 					}),
 				);
 			},
@@ -310,7 +304,6 @@ describe("Filter Options Loading", () => {
 		});
 
 		// Assert
-		// Filter panel should be present with title
 		expect(screen.getByText("Фільтри")).toBeInTheDocument();
 	});
 });
@@ -325,13 +318,11 @@ describe("Reset Filters", () => {
 		);
 
 		// Act
-		// Type in search to activate filters
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук курсів за назвою...",
 		);
 		await user.type(searchInput, "Test");
 
-		// Wait for filters to be active
 		await waitFor(
 			() => {
 				expect(
@@ -341,12 +332,10 @@ describe("Reset Filters", () => {
 			{ timeout: 1000 },
 		);
 
-		// Click reset
 		const resetButton = screen.getByRole("button", { name: /скинути/i });
 		await user.click(resetButton);
 
 		// Assert
-		// Search input should be cleared
 		await waitFor(() => {
 			expect(searchInput).toHaveValue("");
 		});
@@ -364,12 +353,9 @@ describe("Mobile Filter Drawer", () => {
 		await user.click(filterButton);
 
 		// Assert
-		// Drawer should be open (check for drawer-specific elements)
-		// The exact assertion depends on Drawer component implementation
 		await waitFor(() => {
-			// After clicking, drawer content should be visible
 			const allFilterTexts = screen.getAllByText("Фільтри");
-			expect(allFilterTexts.length).toBeGreaterThan(1); // Both panel and drawer
+			expect(allFilterTexts.length).toBeGreaterThan(1);
 		});
 	});
 });
@@ -390,12 +376,11 @@ describe("Row Click Handling", () => {
 
 		// Act
 		const row = screen.getByText("React Programming").closest("tr");
-		if (row) {
-			await user.click(row);
+		expect(row).not.toBeNull();
+		await user.click(row as HTMLElement);
 
-			// Assert
-			expect(onRowClick).toHaveBeenCalledWith(course);
-		}
+		// Assert
+		expect(onRowClick).toHaveBeenCalledWith(course);
 	});
 });
 
@@ -419,7 +404,6 @@ describe("Filter Transformation", () => {
 			() => {
 				expect(onFiltersChange).toHaveBeenCalled();
 				const call = onFiltersChange.mock.calls[0][0];
-				// Should only include non-empty values
 				expect(call).not.toHaveProperty("faculty");
 				expect(call).not.toHaveProperty("department");
 				expect(call).toHaveProperty("name", "Test");
@@ -436,10 +420,8 @@ describe("Filter Transformation", () => {
 		);
 
 		// Act
-		// Wait a moment for initial state
 		await waitFor(() => {}, { timeout: 100 });
 
-		// Type something to trigger filter change
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук курсів за назвою...",
 		);
@@ -449,7 +431,6 @@ describe("Filter Transformation", () => {
 		await waitFor(
 			() => {
 				const call = onFiltersChange.mock.calls[0]?.[0];
-				// Default ranges should not be included
 				expect(call).not.toHaveProperty("avg_difficulty_min");
 				expect(call).not.toHaveProperty("avg_difficulty_max");
 				expect(call).not.toHaveProperty("avg_usefulness_min");
@@ -468,29 +449,24 @@ describe("Filter Transformation", () => {
 		);
 
 		// Act
-		// Radix Select uses button role
 		const yearLabel = screen.getByText("Рік");
 		const yearSelect =
 			yearLabel.parentElement?.querySelector('[role="button"]');
-		if (yearSelect) {
-			await user.click(yearSelect);
+		expect(yearSelect).not.toBeNull();
+		await user.click(yearSelect as HTMLElement);
 
-			// Select 2024 (if available in mock options)
-			const year2024 = screen.queryByText("2024");
-			if (year2024) {
-				await user.click(year2024);
+		const year2024 = screen.getByText("2024");
+		await user.click(year2024);
 
-				// Assert
-				await waitFor(
-					() => {
-						const call = onFiltersChange.mock.calls[0]?.[0];
-						expect(call).toHaveProperty("semesterYear", 2024);
-						expect(typeof call.semesterYear).toBe("number");
-					},
-					{ timeout: 1000 },
-				);
-			}
-		}
+		// Assert
+		await waitFor(
+			() => {
+				const call = onFiltersChange.mock.calls[0]?.[0];
+				expect(call).toHaveProperty("semesterYear", 2024);
+				expect(typeof call.semesterYear).toBe("number");
+			},
+			{ timeout: 1000 },
+		);
 	});
 });
 
@@ -535,7 +511,6 @@ describe("Course Display", () => {
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
 		// Assert
-		// There may be multiple "3.5" values (e.g., in sliders), so just check one exists
 		const difficultyElements = screen.getAllByText("3.5");
 		expect(difficultyElements.length).toBeGreaterThan(0);
 	});
@@ -550,7 +525,6 @@ describe("Course Display", () => {
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
 		// Assert
-		// There may be multiple "4.2" values (e.g., in sliders), so just check one exists
 		const usefulnessElements = screen.getAllByText("4.2");
 		expect(usefulnessElements.length).toBeGreaterThan(0);
 	});
@@ -568,7 +542,6 @@ describe("Course Display", () => {
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
 		// Assert
-		// CourseFacultyBadge should display the faculty abbreviation
 		expect(screen.getByText("ФІТ")).toBeInTheDocument();
 	});
 });
@@ -582,7 +555,6 @@ describe("Accessibility", () => {
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук курсів за назвою...",
 		);
-		// Input component from @/components/ui/Input may not explicitly set type="text" (it's the default)
 		expect(searchInput).toBeInTheDocument();
 		expect(searchInput.tagName.toLowerCase()).toBe("input");
 	});
@@ -610,10 +582,8 @@ describe("URL Sync", () => {
 		await user.type(searchInput, "React");
 
 		// Assert
-		// Should not call navigate immediately
 		expect(mockNavigate).not.toHaveBeenCalled();
 
-		// Wait for debounce (500ms)
 		await waitFor(
 			() => {
 				expect(mockNavigate).toHaveBeenCalledWith(
@@ -650,7 +620,6 @@ describe("URL Sync", () => {
 		);
 
 		// Assert
-		// Wait for URL sync
 		await waitFor(
 			() => {
 				expect(mockNavigate).toHaveBeenCalledWith(
@@ -687,7 +656,6 @@ describe("URL Sync", () => {
 		);
 
 		// Assert
-		// Wait for URL sync
 		await waitFor(
 			() => {
 				expect(mockNavigate).toHaveBeenCalledWith(
@@ -777,13 +745,13 @@ describe("URL Sync", () => {
 		const user = userEvent.setup();
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
-		// Act - Type multiple characters quickly
+		// Act
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук курсів за назвою...",
 		);
 		await user.type(searchInput, "ABC");
 
-		// Assert - Should only call navigate once after debounce
+		// Assert
 		await waitFor(
 			() => {
 				expect(mockNavigate).toHaveBeenCalledTimes(1);

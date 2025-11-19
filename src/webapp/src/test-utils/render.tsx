@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type RenderOptions, render } from "@testing-library/react";
@@ -20,12 +20,12 @@ export function renderWithProviders(
 		new QueryClient({
 			defaultOptions: {
 				queries: {
-					gcTime: Number.POSITIVE_INFINITY, // Keep data in cache
+					gcTime: Number.POSITIVE_INFINITY,
 				},
 			},
 		});
 
-	function Wrapper({ children }: Readonly<{ children: React.ReactNode }>) {
+	function Wrapper({ children }: Readonly<{ children: ReactNode }>) {
 		return (
 			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 		);

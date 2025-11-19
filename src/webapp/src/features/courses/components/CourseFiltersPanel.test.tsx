@@ -343,7 +343,6 @@ describe("CourseFiltersPanel", () => {
 				screen.getByText("Активні фільтри:").parentElement,
 				"Badges section not found",
 			);
-			// Should have 3 badges
 			const badges = within(badgesSection).getAllByText(/:/);
 			expect(badges.length).toBeGreaterThanOrEqual(3);
 		});

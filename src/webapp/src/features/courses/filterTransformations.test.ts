@@ -17,7 +17,6 @@ describe("filterTransformations", () => {
 			const result = transformFiltersToApiParams(filters);
 
 			// Assert
-			// All empty strings and default ranges should be excluded
 			expect(result).toEqual({});
 		});
 
@@ -313,7 +312,7 @@ describe("filterTransformations", () => {
 			const filters = {
 				...DEFAULT_FILTERS,
 				faculty: "faculty-1",
-				semesterYear: "", // This becomes undefined after conversion
+				semesterYear: "",
 			};
 
 			// Act
