@@ -1748,12 +1748,20 @@ components:
           type: string
           format: uuid
           readOnly: true
+        course_title:
+          type: string
+          nullable: true
+          readOnly: true
         semester_id:
           type: string
           format: uuid
           readOnly: true
         semester_year:
           type: integer
+          nullable: true
+          readOnly: true
+        semester_term:
+          type: string
           nullable: true
           readOnly: true
         code:

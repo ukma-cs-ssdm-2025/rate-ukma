@@ -7,14 +7,18 @@ from rating_app.models import CourseOffering
 
 class CourseOfferingSerializer(serializers.ModelSerializer):
     semester_year = serializers.SerializerMethodField(read_only=True)
+    course_title = serializers.SerializerMethodField(read_only=True)
+    semester_term = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CourseOffering
         fields = [
             "id",
             "course_id",
+            "course_title",
             "semester_id",
             "semester_year",
+            "semester_term",
             "code",
             "exam_type",
             "practice_type",
@@ -32,6 +36,14 @@ class CourseOfferingSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_semester_year(self, obj):
         return obj.semester.year
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_course_title(self, obj):
+        return obj.course.title
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_semester_term(self, obj):
+        return obj.semester.label
 
 
 class CourseOfferingListResponseSerializer(serializers.Serializer):

@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { CourseOfferingsDropdown } from "@/features/course-offerings/components/CourseOfferingsDropdown";
 import {
 	CourseDetailsHeader,
 	CourseDetailsHeaderSkeleton,
@@ -15,14 +16,21 @@ import {
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
-import { useCoursesRetrieve } from "@/lib/api/generated";
+import {
+	useCoursesOfferingsList,
+	useCoursesRetrieve,
+} from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
 	const { data: course, isLoading, isError } = useCoursesRetrieve(courseId);
-
-	if (isLoading) {
+	const {
+		data: offerings,
+		isLoading: isOfferingsLoading,
+		isError: isOffersError,
+	} = useCoursesOfferingsList(courseId);
+	if (isLoading || isOfferingsLoading) {
 		return (
 			<Layout>
 				<CourseDetailsSkeleton />
@@ -30,7 +38,8 @@ function CourseDetailsRoute() {
 		);
 	}
 
-	if (isError || !course) {
+	// TODO: fix var names and CourseOfferingsExternalLinksList input type
+	if (isError || isOffersError || !course) {
 		return (
 			<Layout>
 				<div className="space-y-6">
@@ -50,12 +59,18 @@ function CourseDetailsRoute() {
 		<Layout>
 			<div className="space-y-8 pb-12">
 				<div className="space-y-6">
-					<CourseDetailsHeader
-						title={course.title}
-						status={course.status}
-						facultyName={course.faculty_name}
-						departmentName={course.department_name}
-					/>
+					<div className="flex items-center justify-between">
+						<CourseDetailsHeader
+							title={course.title}
+							status={course.status}
+							facultyName={course.faculty_name}
+							departmentName={course.department_name}
+						/>
+
+						<CourseOfferingsDropdown
+							courseOfferings={offerings?.course_offerings ?? []}
+						/>
+					</div>
 
 					{course.description && (
 						<p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">

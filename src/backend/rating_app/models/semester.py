@@ -16,3 +16,7 @@ class Semester(models.Model):
 
     def __str__(self):
         return f"{self.year} {self.get_term_display()}"
+
+    @property
+    def label(self):
+        return SemesterTerm(self.term).label
