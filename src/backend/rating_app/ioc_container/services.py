@@ -1,5 +1,6 @@
 from rateukma.ioc.decorators import once
 from rating_app.ioc_container.repositories import (
+    course_offering_repository,
     course_repository,
     department_repository,
     enrollment_repository,
@@ -11,6 +12,7 @@ from rating_app.ioc_container.repositories import (
     student_stats_repository,
 )
 from rating_app.services import (
+    CourseOfferingService,
     CourseService,
     DepartmentService,
     FacultyService,
@@ -73,6 +75,11 @@ def instructor_service() -> InstructorService:
 @once
 def student_service() -> StudentService:
     return StudentService(student_stats_repository=student_stats_repository())
+
+
+@once
+def course_offering_service() -> CourseOfferingService:
+    return CourseOfferingService(course_offering_repository=course_offering_repository())
 
 
 @once

@@ -1,3 +1,4 @@
+from .course_offering_service import CourseOfferingService
 from .course_service import CourseService
 from .department_service import DepartmentService
 from .faculty_service import FacultyService
@@ -16,4 +17,5 @@ __all__ = [
     "DepartmentService",
     "SpecialityService",
     "SemesterService",
+    "CourseOfferingService",
 ]

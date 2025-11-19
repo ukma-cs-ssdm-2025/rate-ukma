@@ -6,6 +6,7 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { CourseOfferingsDropdown } from "@/features/course-offerings/components/CourseOfferingsDropdown";
 import {
 	CourseDetailsHeader,
 	CourseDetailsHeaderSkeleton,
@@ -21,6 +22,7 @@ import {
 import { RatingModal } from "@/features/ratings/components/RatingModal";
 import type { InlineCourseOffering } from "@/lib/api/generated";
 import {
+	useCoursesOfferingsList,
 	useCoursesRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
@@ -28,7 +30,18 @@ import { withAuth } from "@/lib/auth";
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
-	const { data: course, isLoading, isError } = useCoursesRetrieve(courseId);
+	const {
+		data: course,
+		isLoading: isCourseLoading,
+		isError: isCourseError,
+	} = useCoursesRetrieve(courseId);
+
+	const {
+		data: courseOfferings,
+		isLoading: isOfferingsLoading,
+		isError: isOfferingsError,
+	} = useCoursesOfferingsList(courseId);
+
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 
 	const { data: studentCourses, isLoading: isStudentCoursesLoading } =
@@ -53,7 +66,7 @@ function CourseDetailsRoute() {
 
 	const selectedOffering = ratedOffering || attendedOfferings[0] || null;
 
-	if (isLoading || isStudentCoursesLoading) {
+	if (isCourseLoading || isStudentCoursesLoading || isOfferingsLoading) {
 		return (
 			<Layout>
 				<CourseDetailsSkeleton />
@@ -61,7 +74,7 @@ function CourseDetailsRoute() {
 		);
 	}
 
-	if (isError || !course) {
+	if (isCourseError || isOfferingsError || !course || !courseOfferings) {
 		return (
 			<Layout>
 				<div className="space-y-6">
@@ -81,12 +94,18 @@ function CourseDetailsRoute() {
 		<Layout>
 			<div className="space-y-8 pb-12">
 				<div className="space-y-6">
-					<CourseDetailsHeader
-						title={course.title}
-						status={course.status}
-						facultyName={course.faculty_name}
-						departmentName={course.department_name}
-					/>
+					<div className="flex items-center justify-between">
+						<CourseDetailsHeader
+							title={course.title}
+							status={course.status}
+							facultyName={course.faculty_name}
+							departmentName={course.department_name}
+						/>
+
+						<CourseOfferingsDropdown
+							courseOfferings={courseOfferings?.course_offerings ?? []}
+						/>
+					</div>
 
 					{course.description && (
 						<p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
