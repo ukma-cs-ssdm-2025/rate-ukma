@@ -24,14 +24,24 @@ import type { InlineCourseOffering } from "@/lib/api/generated";
 import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
-	useCoursesRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
-	const { data: course, isLoading, isError } = useCoursesRetrieve(courseId);
+	const {
+		data: course,
+		isLoading: isCourseLoading,
+		isError: isCourseError,
+	} = useCoursesRetrieve(courseId);
+
+	const {
+		data: courseOfferings,
+		isLoading: isOfferingsLoading,
+		isError: isOfferingsError,
+	} = useCoursesOfferingsList(courseId);
+
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 
 	const { data: studentCourses, isLoading: isStudentCoursesLoading } =
@@ -56,7 +66,7 @@ function CourseDetailsRoute() {
 
 	const selectedOffering = ratedOffering || attendedOfferings[0] || null;
 
-	if (isLoading || isStudentCoursesLoading) {
+	if (isCourseLoading || isStudentCoursesLoading || isOfferingsLoading) {
 		return (
 			<Layout>
 				<CourseDetailsSkeleton />
@@ -64,7 +74,7 @@ function CourseDetailsRoute() {
 		);
 	}
 
-	if (isCourseError || isOfferingsError || !course) {
+	if (isCourseError || isOfferingsError || !course || !courseOfferings) {
 		return (
 			<Layout>
 				<div className="space-y-6">
