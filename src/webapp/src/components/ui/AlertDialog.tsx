@@ -19,11 +19,16 @@ export function AlertDialog({
 		if (open) {
 			setIsMounted(true);
 			document.body.style.overflow = "hidden";
-		} else {
-			const timer = setTimeout(() => setIsMounted(false), 200);
-			document.body.style.overflow = "";
-			return () => clearTimeout(timer);
+			return () => {
+				document.body.style.overflow = "";
+			};
 		}
+		const timer = setTimeout(() => setIsMounted(false), 200);
+		document.body.style.overflow = "";
+		return () => {
+			clearTimeout(timer);
+			document.body.style.overflow = "";
+		};
 	}, [open]);
 
 	useEffect(() => {
@@ -80,8 +85,6 @@ export function AlertDialogContent({
 				"scale-100 opacity-100",
 				className,
 			)}
-			onClick={(e) => e.stopPropagation()}
-			onKeyDown={(e) => e.stopPropagation()}
 		>
 			{children}
 		</div>
