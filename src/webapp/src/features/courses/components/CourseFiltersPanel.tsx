@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
 import {
 	DIFFICULTY_RANGE,
+	formatDecimalValue,
 	getCourseTypeDisplay,
 	getFacultyAbbreviation,
 	getSemesterTermDisplay,
@@ -33,26 +34,26 @@ import {
 } from "../hooks/useCourseFiltersData";
 
 interface CourseFiltersBaseProps {
-	form: UseFormReturn<FilterState>;
-	filterOptions?: FilterOptions;
+	readonly form: UseFormReturn<FilterState>;
+	readonly filterOptions?: FilterOptions;
 }
 
 interface CourseFiltersPanelProps extends CourseFiltersBaseProps {
-	onReset: () => void;
-	isLoading?: boolean;
-	className?: string;
+	readonly onReset: () => void;
+	readonly isLoading?: boolean;
+	readonly className?: string;
 }
 
 export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
-	onReset: () => void;
-	onClose: () => void;
-	isLoading?: boolean;
-	className?: string;
+	readonly onReset: () => void;
+	readonly onClose: () => void;
+	readonly isLoading?: boolean;
+	readonly className?: string;
 }
 
 interface CourseFiltersContentProps {
-	form: UseFormReturn<FilterState>;
-	data: ReturnType<typeof useCourseFiltersData>;
+	readonly form: UseFormReturn<FilterState>;
+	readonly data: ReturnType<typeof useCourseFiltersData>;
 }
 
 function FilterSlider({
@@ -61,13 +62,13 @@ function FilterSlider({
 	range,
 	captions,
 	onValueChange,
-}: {
+}: Readonly<{
 	label: string;
 	value: [number, number];
 	range: [number, number];
 	captions: [string, string];
 	onValueChange: (value: [number, number]) => void;
-}) {
+}>) {
 	const [localValue, setLocalValue] = useState(value);
 
 	useEffect(() => {
@@ -77,7 +78,8 @@ function FilterSlider({
 	return (
 		<div className="space-y-3">
 			<Label className="text-sm font-medium">
-				{label}: {localValue[0].toFixed(1)} - {localValue[1].toFixed(1)}
+				{label}: {formatDecimalValue(localValue[0], { fallback: "0" })} -{" "}
+				{formatDecimalValue(localValue[1], { fallback: "0" })}
 			</Label>
 			<Slider
 				min={range[0]}
@@ -104,10 +106,10 @@ function useHasActiveFilters(form: UseFormReturn<FilterState>): boolean {
 function ActiveFilters({
 	form,
 	filterOptions,
-}: {
+}: Readonly<{
 	form: UseFormReturn<FilterState>;
 	filterOptions?: FilterOptions;
-}) {
+}>) {
 	const filters = useWatch({ control: form.control });
 
 	const {
@@ -136,7 +138,7 @@ function ActiveFilters({
 		) {
 			result.push({
 				key: "difficulty",
-				label: `Складність: ${filters.difficultyRange?.[0]?.toFixed(1) ?? 0}-${filters.difficultyRange?.[1]?.toFixed(1) ?? 0}`,
+				label: `Складність: ${formatDecimalValue(filters.difficultyRange?.[0], { fallback: "0" })}-${formatDecimalValue(filters.difficultyRange?.[1], { fallback: "0" })}`,
 			});
 		}
 
@@ -146,7 +148,7 @@ function ActiveFilters({
 		) {
 			result.push({
 				key: "usefulness",
-				label: `Корисність: ${filters.usefulnessRange?.[0]?.toFixed(1) ?? 0}-${filters.usefulnessRange?.[1]?.toFixed(1) ?? 0}`,
+				label: `Корисність: ${formatDecimalValue(filters.usefulnessRange?.[0], { fallback: "0" })}-${formatDecimalValue(filters.usefulnessRange?.[1], { fallback: "0" })}`,
 			});
 		}
 

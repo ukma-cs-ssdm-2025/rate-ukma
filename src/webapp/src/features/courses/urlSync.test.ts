@@ -19,9 +19,9 @@ const TEST_IDS = {
 } as const;
 
 const TEST_RANGES = {
-	DIFFICULTY_MODIFIED: [2.0, 4.5] as [number, number],
+	DIFFICULTY_MODIFIED: [2, 4.5] as [number, number],
 	DIFFICULTY_DECIMAL: [2.5, 3.7] as [number, number],
-	USEFULNESS_MODIFIED: [3.0, 5.0] as [number, number],
+	USEFULNESS_MODIFIED: [3, 5] as [number, number],
 	USEFULNESS_DECIMAL: [3.2, 4.8] as [number, number],
 } as const;
 
@@ -105,7 +105,7 @@ describe("urlSync", () => {
 					searchQuery: "Database",
 					faculty: "faculty-1",
 					semesterYear: "2024",
-					difficultyRange: [2.0, 4.0] as [number, number],
+					difficultyRange: [2, 4] as [number, number],
 				}),
 			);
 			expect(result).toEqual({
@@ -159,12 +159,12 @@ describe("urlSync", () => {
 
 		it("should parse difficulty range", () => {
 			const result = searchParamsToFilters({ diff: "2-4.5" });
-			expect(result.difficultyRange).toEqual([2.0, 4.5]);
+			expect(result.difficultyRange).toEqual([2, 4.5]);
 		});
 
 		it("should parse usefulness range", () => {
 			const result = searchParamsToFilters({ use: "3-5" });
-			expect(result.usefulnessRange).toEqual([3.0, 5.0]);
+			expect(result.usefulnessRange).toEqual([3, 5]);
 		});
 
 		it.each([
@@ -263,8 +263,8 @@ describe("urlSync", () => {
 				searchQuery: "Database Systems",
 				faculty: "faculty-1",
 				department: "dept-2",
-				difficultyRange: [2.5, 4.0] as [number, number],
-				usefulnessRange: [3.0, 5.0] as [number, number],
+				difficultyRange: [2.5, 4] as [number, number],
+				usefulnessRange: [3, 5] as [number, number],
 				semesterYear: "2024",
 			});
 

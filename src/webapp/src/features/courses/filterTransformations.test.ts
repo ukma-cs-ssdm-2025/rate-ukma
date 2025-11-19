@@ -182,7 +182,7 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_FILTERS,
-				difficultyRange: [2.0, 4.5] as [number, number],
+				difficultyRange: [2, 4.5] as [number, number],
 			};
 
 			// Act
@@ -190,7 +190,7 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).toEqual({
-				avg_difficulty_min: 2.0,
+				avg_difficulty_min: 2,
 				avg_difficulty_max: 4.5,
 			});
 		});
@@ -244,7 +244,7 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_FILTERS,
-				usefulnessRange: [3.0, 5.0] as [number, number],
+				usefulnessRange: [3, 5] as [number, number],
 			};
 
 			// Act
@@ -252,8 +252,8 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).toEqual({
-				avg_usefulness_min: 3.0,
-				avg_usefulness_max: 5.0,
+				avg_usefulness_min: 3,
+				avg_usefulness_max: 5,
 			});
 		});
 
@@ -284,8 +284,8 @@ describe("filterTransformations", () => {
 				semesterYear: "2025",
 				courseType: "ELECTIVE",
 				speciality: "spec-4",
-				difficultyRange: [2.0, 4.0] as [number, number],
-				usefulnessRange: [3.5, 5.0] as [number, number],
+				difficultyRange: [2, 4] as [number, number],
+				usefulnessRange: [3.5, 5] as [number, number],
 			};
 
 			// Act
@@ -301,10 +301,10 @@ describe("filterTransformations", () => {
 				semesterYear: 2025,
 				typeKind: "ELECTIVE",
 				speciality: "spec-4",
-				avg_difficulty_min: 2.0,
-				avg_difficulty_max: 4.0,
+				avg_difficulty_min: 2,
+				avg_difficulty_max: 4,
 				avg_usefulness_min: 3.5,
-				avg_usefulness_max: 5.0,
+				avg_usefulness_max: 5,
 			});
 		});
 

@@ -9,9 +9,11 @@ import { type RenderOptions, render } from "@testing-library/react";
  */
 export function renderWithProviders(
 	ui: ReactElement,
-	options?: RenderOptions & {
-		queryClient?: QueryClient;
-	},
+	options?: Readonly<
+		RenderOptions & {
+			queryClient?: QueryClient;
+		}
+	>,
 ) {
 	const queryClient =
 		options?.queryClient ??
@@ -23,7 +25,7 @@ export function renderWithProviders(
 			},
 		});
 
-	function Wrapper({ children }: { children: React.ReactNode }) {
+	function Wrapper({ children }: Readonly<{ children: React.ReactNode }>) {
 		return (
 			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 		);

@@ -115,14 +115,14 @@ describe("useCourseFiltersData", () => {
 		it("should include current filter values in range configs", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				difficultyRange: [2.0, 4.0] as [number, number],
+				difficultyRange: [2, 4] as [number, number],
 			});
 
 			// Assert
 			const difficultyFilter = result.current.rangeFilters.find(
 				(f) => f.key === "difficultyRange",
 			);
-			expect(difficultyFilter?.value).toEqual([2.0, 4.0]);
+			expect(difficultyFilter?.value).toEqual([2, 4]);
 		});
 
 		it("should include range bounds in configurations", () => {
@@ -317,13 +317,13 @@ describe("useCourseFiltersData", () => {
 		it("should show badge for modified difficulty range", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				difficultyRange: [2.0, 4.0] as [number, number],
+				difficultyRange: [2, 4] as [number, number],
 			});
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "difficulty",
-				label: "Складність: 2.0-4.0",
+				label: "Складність: 2-4",
 			});
 		});
 
@@ -343,13 +343,13 @@ describe("useCourseFiltersData", () => {
 		it("should show badge for modified usefulness range", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				usefulnessRange: [3.0, 5.0] as [number, number],
+				usefulnessRange: [3, 5] as [number, number],
 			});
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "usefulness",
-				label: "Корисність: 3.0-5.0",
+				label: "Корисність: 3-5",
 			});
 		});
 
@@ -514,7 +514,7 @@ describe("useCourseFiltersData", () => {
 				{
 					searchQuery: "Database",
 					faculty: "fac-1",
-					difficultyRange: [2.0, 4.0] as [number, number],
+					difficultyRange: [2, 4] as [number, number],
 				},
 				filterOptions,
 			);

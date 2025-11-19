@@ -1,62 +1,66 @@
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
 import { DEFAULT_FILTERS, type FilterState } from "./filterSchema";
 
+type RangeFilterKey = keyof Pick<
+	FilterState,
+	"difficultyRange" | "usefulnessRange"
+>;
+type SimpleFilterKey = keyof Pick<
+	FilterState,
+	| "searchQuery"
+	| "faculty"
+	| "department"
+	| "instructor"
+	| "semesterTerm"
+	| "semesterYear"
+	| "courseType"
+	| "speciality"
+>;
+
+const RANGE_PARAM_CONFIG = [
+	{ key: "difficultyRange", param: "diff", bounds: DIFFICULTY_RANGE },
+	{ key: "usefulnessRange", param: "use", bounds: USEFULNESS_RANGE },
+] as const satisfies ReadonlyArray<{
+	key: RangeFilterKey;
+	param: string;
+	bounds: [number, number];
+}>;
+
+const SIMPLE_PARAM_CONFIG = [
+	{ key: "searchQuery", param: "q" },
+	{ key: "faculty", param: "faculty" },
+	{ key: "department", param: "dept" },
+	{ key: "instructor", param: "instructor" },
+	{ key: "semesterTerm", param: "term" },
+	{ key: "semesterYear", param: "year" },
+	{ key: "courseType", param: "type" },
+	{ key: "speciality", param: "spec" },
+] as const satisfies ReadonlyArray<{
+	key: SimpleFilterKey;
+	param: string;
+}>;
+
 export function filtersToSearchParams(
 	filters: FilterState,
 ): Record<string, string> {
 	const params: Record<string, string> = {};
 
-	if (
-		filters.searchQuery &&
-		filters.searchQuery !== DEFAULT_FILTERS.searchQuery
-	) {
-		params.q = filters.searchQuery;
+	for (const { key, param } of RANGE_PARAM_CONFIG) {
+		const [currentMin, currentMax] = filters[key];
+		const [defaultMin, defaultMax] = DEFAULT_FILTERS[key];
+
+		if (currentMin !== defaultMin || currentMax !== defaultMax) {
+			params[param] = `${currentMin}-${currentMax}`;
+		}
 	}
 
-	const [diffMin, diffMax] = filters.difficultyRange;
-	const [defaultDiffMin, defaultDiffMax] = DEFAULT_FILTERS.difficultyRange;
-	if (diffMin !== defaultDiffMin || diffMax !== defaultDiffMax) {
-		params.diff = `${diffMin}-${diffMax}`;
-	}
+	for (const { key, param } of SIMPLE_PARAM_CONFIG) {
+		const value = filters[key];
+		const defaultValue = DEFAULT_FILTERS[key];
 
-	const [useMin, useMax] = filters.usefulnessRange;
-	const [defaultUseMin, defaultUseMax] = DEFAULT_FILTERS.usefulnessRange;
-	if (useMin !== defaultUseMin || useMax !== defaultUseMax) {
-		params.use = `${useMin}-${useMax}`;
-	}
-
-	if (filters.faculty && filters.faculty !== DEFAULT_FILTERS.faculty) {
-		params.faculty = filters.faculty;
-	}
-
-	if (filters.department && filters.department !== DEFAULT_FILTERS.department) {
-		params.dept = filters.department;
-	}
-
-	if (filters.instructor && filters.instructor !== DEFAULT_FILTERS.instructor) {
-		params.instructor = filters.instructor;
-	}
-
-	if (
-		filters.semesterTerm &&
-		filters.semesterTerm !== DEFAULT_FILTERS.semesterTerm
-	) {
-		params.term = filters.semesterTerm;
-	}
-
-	if (
-		filters.semesterYear &&
-		filters.semesterYear !== DEFAULT_FILTERS.semesterYear
-	) {
-		params.year = filters.semesterYear;
-	}
-
-	if (filters.courseType && filters.courseType !== DEFAULT_FILTERS.courseType) {
-		params.type = filters.courseType;
-	}
-
-	if (filters.speciality && filters.speciality !== DEFAULT_FILTERS.speciality) {
-		params.spec = filters.speciality;
+		if (value && value !== defaultValue) {
+			params[param] = value;
+		}
 	}
 
 	return params;
@@ -68,12 +72,28 @@ function parseRange(rangeStr: string | undefined): [number, number] | null {
 	const parts = rangeStr.split("-");
 	if (parts.length !== 2) return null;
 
-	const min = parseFloat(parts[0]);
-	const max = parseFloat(parts[1]);
+	const min = Number.parseFloat(parts[0]);
+	const max = Number.parseFloat(parts[1]);
 
 	if (Number.isNaN(min) || Number.isNaN(max)) return null;
 
 	return [min, max];
+}
+
+function isRangeWithinBounds(
+	range: [number, number],
+	bounds: [number, number],
+): boolean {
+	const [min, max] = range;
+	const [minBound, maxBound] = bounds;
+
+	return (
+		min >= minBound &&
+		min <= maxBound &&
+		max >= minBound &&
+		max <= maxBound &&
+		min <= max
+	);
 }
 
 export function searchParamsToFilters(
@@ -81,64 +101,18 @@ export function searchParamsToFilters(
 ): FilterState {
 	const filters: FilterState = { ...DEFAULT_FILTERS };
 
-	if (params.q) {
-		filters.searchQuery = params.q;
-	}
-
-	const diffRange = parseRange(params.diff);
-	if (diffRange) {
-		const [min, max] = diffRange;
-		if (
-			min >= DIFFICULTY_RANGE[0] &&
-			min <= DIFFICULTY_RANGE[1] &&
-			max >= DIFFICULTY_RANGE[0] &&
-			max <= DIFFICULTY_RANGE[1] &&
-			min <= max
-		) {
-			filters.difficultyRange = [min, max];
+	for (const { key, param, bounds } of RANGE_PARAM_CONFIG) {
+		const range = parseRange(params[param]);
+		if (range && isRangeWithinBounds(range, bounds)) {
+			filters[key] = range;
 		}
 	}
 
-	const useRange = parseRange(params.use);
-	if (useRange) {
-		const [min, max] = useRange;
-		if (
-			min >= USEFULNESS_RANGE[0] &&
-			min <= USEFULNESS_RANGE[1] &&
-			max >= USEFULNESS_RANGE[0] &&
-			max <= USEFULNESS_RANGE[1] &&
-			min <= max
-		) {
-			filters.usefulnessRange = [min, max];
+	for (const { key, param } of SIMPLE_PARAM_CONFIG) {
+		const value = params[param];
+		if (value) {
+			filters[key] = value;
 		}
-	}
-
-	if (params.faculty) {
-		filters.faculty = params.faculty;
-	}
-
-	if (params.dept) {
-		filters.department = params.dept;
-	}
-
-	if (params.instructor) {
-		filters.instructor = params.instructor;
-	}
-
-	if (params.term) {
-		filters.semesterTerm = params.term;
-	}
-
-	if (params.year) {
-		filters.semesterYear = params.year;
-	}
-
-	if (params.type) {
-		filters.courseType = params.type;
-	}
-
-	if (params.spec) {
-		filters.speciality = params.spec;
 	}
 
 	return filters;

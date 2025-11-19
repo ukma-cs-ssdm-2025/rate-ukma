@@ -5,6 +5,7 @@ import type { UseFormReturn } from "react-hook-form";
 import type { FilterOptions } from "@/lib/api/generated";
 import {
 	DIFFICULTY_RANGE,
+	formatDecimalValue,
 	getCourseTypeDisplay,
 	getFacultyAbbreviation,
 	getSemesterTermDisplay,
@@ -257,7 +258,7 @@ export function useCourseFiltersData({
 		) {
 			badges.push({
 				key: "difficulty",
-				label: `Складність: ${filters.difficultyRange[0].toFixed(1)}-${filters.difficultyRange[1].toFixed(1)}`,
+				label: `Складність: ${formatDecimalValue(filters.difficultyRange[0], { fallback: "0" })}-${formatDecimalValue(filters.difficultyRange[1], { fallback: "0" })}`,
 			});
 		}
 
@@ -267,7 +268,7 @@ export function useCourseFiltersData({
 		) {
 			badges.push({
 				key: "usefulness",
-				label: `Корисність: ${filters.usefulnessRange[0].toFixed(1)}-${filters.usefulnessRange[1].toFixed(1)}`,
+				label: `Корисність: ${formatDecimalValue(filters.usefulnessRange[0], { fallback: "0" })}-${formatDecimalValue(filters.usefulnessRange[1], { fallback: "0" })}`,
 			});
 		}
 

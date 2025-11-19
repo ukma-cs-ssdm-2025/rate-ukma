@@ -22,11 +22,11 @@ function TestWrapper({
 	onReset,
 	filterOptions = createMockFilterOptions(),
 	initialValues = DEFAULT_FILTERS,
-}: {
+}: Readonly<{
 	onReset?: () => void;
 	filterOptions?: ReturnType<typeof createMockFilterOptions>;
 	initialValues?: typeof DEFAULT_FILTERS;
-}) {
+}>) {
 	const form = useForm({ defaultValues: initialValues });
 
 	return (
@@ -117,7 +117,7 @@ describe("CourseFiltersPanel", () => {
 				<TestWrapper
 					initialValues={{
 						...DEFAULT_FILTERS,
-						usefulnessRange: [3.0, 5.0],
+						usefulnessRange: [3, 5],
 					}}
 				/>,
 			);
@@ -240,14 +240,14 @@ describe("CourseFiltersPanel", () => {
 				<TestWrapper
 					initialValues={{
 						...DEFAULT_FILTERS,
-						difficultyRange: [2.0, 4.0],
+						difficultyRange: [2, 4],
 					}}
 				/>,
 			);
 
 			// Assert
 			expect(screen.getByText("Активні фільтри:")).toBeInTheDocument();
-			expect(screen.getByText("Складність: 2.0-4.0")).toBeInTheDocument();
+			expect(screen.getByText("Складність: 2-4")).toBeInTheDocument();
 		});
 
 		it("should show badge for modified usefulness range", () => {
@@ -256,13 +256,13 @@ describe("CourseFiltersPanel", () => {
 				<TestWrapper
 					initialValues={{
 						...DEFAULT_FILTERS,
-						usefulnessRange: [3.5, 5.0],
+						usefulnessRange: [3.5, 5],
 					}}
 				/>,
 			);
 
 			// Assert
-			expect(screen.getByText("Корисність: 3.5-5.0")).toBeInTheDocument();
+			expect(screen.getByText("Корисність: 3.5-5")).toBeInTheDocument();
 		});
 
 		it("should show badge for selected faculty", () => {
@@ -332,7 +332,7 @@ describe("CourseFiltersPanel", () => {
 						...DEFAULT_FILTERS,
 						searchQuery: "Database",
 						faculty: "faculty-1",
-						difficultyRange: [2.0, 4.0],
+						difficultyRange: [2, 4],
 					}}
 					filterOptions={filterOptions}
 				/>,

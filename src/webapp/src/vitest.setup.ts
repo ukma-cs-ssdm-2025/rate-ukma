@@ -9,7 +9,7 @@ afterEach(() => {
 });
 
 // Mock window.matchMedia for responsive design tests
-Object.defineProperty(window, "matchMedia", {
+Object.defineProperty(globalThis, "matchMedia", {
 	writable: true,
 	value: vi.fn().mockImplementation((query) => ({
 		matches: false,
@@ -24,7 +24,7 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 // Mock IntersectionObserver for components that use it
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+globalThis.IntersectionObserver = vi.fn().mockImplementation(() => ({
 	observe: vi.fn(),
 	unobserve: vi.fn(),
 	disconnect: vi.fn(),
@@ -35,7 +35,7 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 })) as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver for components that use it
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
+globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
 	observe: vi.fn(),
 	unobserve: vi.fn(),
 	disconnect: vi.fn(),

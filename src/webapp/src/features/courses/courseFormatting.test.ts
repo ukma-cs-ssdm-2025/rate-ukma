@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	DIFFICULTY_RANGE,
 	formatDate,
+	formatDecimalValue,
 	getCourseTypeDisplay,
 	getDifficultyTone,
 	getFacultyAbbreviation,
@@ -97,9 +98,9 @@ describe("courseFormatting", () => {
 
 		it.each([
 			["high difficulty (4.5)", 4.5, TONES.DESTRUCTIVE],
-			["exact boundary 4", 4.0, TONES.DESTRUCTIVE],
+			["exact boundary 4", 4, TONES.DESTRUCTIVE],
 			["medium difficulty (3.2)", 3.2, TONES.MEDIUM],
-			["exact boundary 3", 3.0, TONES.MEDIUM],
+			["exact boundary 3", 3, TONES.MEDIUM],
 			["low difficulty (2.1)", 2.1, TONES.PRIMARY],
 		])("should return correct tone for %s", (_, value, expected) => {
 			expect(getDifficultyTone(value)).toBe(expected);
@@ -306,6 +307,20 @@ describe("courseFormatting", () => {
 
 			// Assert
 			expect(result).toContain("січня");
+		});
+	});
+
+	describe("formatDecimalValue", () => {
+		it("should strip trailing zero fractions", () => {
+			expect(formatDecimalValue(3)).toBe("3");
+		});
+
+		it("should keep decimal precision when needed", () => {
+			expect(formatDecimalValue(3.5)).toBe("3.5");
+		});
+
+		it("should return fallback when value is missing", () => {
+			expect(formatDecimalValue(null, { fallback: "N/A" })).toBe("N/A");
 		});
 	});
 });

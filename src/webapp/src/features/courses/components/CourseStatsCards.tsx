@@ -3,7 +3,11 @@ import { BookOpen, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
-import { getDifficultyTone, getUsefulnessTone } from "../courseFormatting";
+import {
+	formatDecimalValue,
+	getDifficultyTone,
+	getUsefulnessTone,
+} from "../courseFormatting";
 
 const SKELETON_STATS_COUNT = 3;
 const SKELETON_KEYS = Array.from(
@@ -50,8 +54,8 @@ export function CourseStatsCards({
 			title: "Складність",
 			description: getDescription(difficulty, "difficulty"),
 			value: difficulty,
-			formatted: difficulty?.toFixed(1) ?? "—",
-			hint: difficulty == null ? "Недостатньо даних" : "з 5.0",
+			formatted: formatDecimalValue(difficulty, { fallback: "—" }),
+			hint: difficulty == null ? "Недостатньо даних" : "з 5",
 			icon: TrendingUp,
 			accent: getDifficultyTone(difficulty),
 		},
@@ -59,8 +63,8 @@ export function CourseStatsCards({
 			title: "Корисність",
 			description: getDescription(usefulness, "usefulness"),
 			value: usefulness,
-			formatted: usefulness?.toFixed(1) ?? "—",
-			hint: usefulness == null ? "Недостатньо даних" : "з 5.0",
+			formatted: formatDecimalValue(usefulness, { fallback: "—" }),
+			hint: usefulness == null ? "Недостатньо даних" : "з 5",
 			icon: TrendingUp,
 			accent: getUsefulnessTone(usefulness),
 		},
