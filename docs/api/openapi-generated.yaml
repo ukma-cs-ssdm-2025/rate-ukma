@@ -783,13 +783,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RatingCreateParams'
+              $ref: '#/components/schemas/RatingCreateRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/RatingCreateParams'
+              $ref: '#/components/schemas/RatingCreateRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RatingCreateParams'
+              $ref: '#/components/schemas/RatingCreateRequest'
         required: true
       security:
       - cookieAuth: []
@@ -1703,6 +1703,9 @@ components:
         id:
           type: string
           readOnly: true
+        course_id:
+          type: string
+          readOnly: true
         year:
           type: integer
           readOnly: true
@@ -1717,6 +1720,9 @@ components:
     InlineRating:
       type: object
       properties:
+        id:
+          type: string
+          readOnly: true
         difficulty:
           type: integer
         usefulness:
@@ -1727,9 +1733,12 @@ components:
           type: string
           format: date-time
           readOnly: true
+        is_anonymous:
+          type: boolean
       required:
       - comment
       - difficulty
+      - is_anonymous
       - usefulness
     InlineRatingDetailed:
       type: object
@@ -1838,17 +1847,12 @@ components:
           title: Is Anonymous
       title: RatingPatchParams
       type: object
-    RatingCreateParams:
+    RatingCreateRequest:
       properties:
         course_offering:
           description: UUID of the course offering being rated
           format: uuid
           title: Course Offering
-          type: string
-        student:
-          description: UUID of the student creating the rating
-          format: uuid
-          title: Student
           type: string
         difficulty:
           maximum: 5
@@ -1872,10 +1876,9 @@ components:
           type: boolean
       required:
       - course_offering
-      - student
       - difficulty
       - usefulness
-      title: RatingCreateParams
+      title: RatingCreateRequest
       type: object
     RatingListResponse:
       type: object

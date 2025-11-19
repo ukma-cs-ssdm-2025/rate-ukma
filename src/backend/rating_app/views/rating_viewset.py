@@ -9,6 +9,7 @@ from pydantic import ValidationError as ModelValidationError
 from rating_app.application_schemas.rating import (
     RatingCourseFilterParams,
     RatingCreateParams,
+    RatingCreateRequest,
     RatingFilterCriteria,
     RatingPaginationParams,
     RatingPatchParams,
@@ -80,7 +81,7 @@ class RatingViewSet(viewsets.ViewSet):
             "Each student can only rate a course offering once and must be enrolled in the course. "
             "The student is automatically determined from the authenticated user."
         ),
-        request=RatingCreateParams,
+        request=RatingCreateRequest,
         responses=R_RATING_CREATE,
     )
     @require_student
@@ -89,12 +90,29 @@ class RatingViewSet(viewsets.ViewSet):
         # TODO: find a more consistent way to generate request body schema
         # course_id is not used, will be potentially removed after using a different endpoint
 
+        logger.info(
+            "rating_create_attempt",
+            student_id=str(student.id),
+            request_data=request.data,
+            course_id=course_id,
+        )
+
         try:
+            # Validate the request body without student field
+            request_params = RatingCreateRequest.model_validate(request.data)
+            # Build internal params with student from authenticated user
             rating_params = RatingCreateParams.model_validate(
-                {**request.data, "student": student.id}
+                {**request_params.model_dump(), "student": student.id}
             )
         except ModelValidationError as e:
+            logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
+
+        logger.info(
+            "rating_params_validated",
+            student_id=str(rating_params.student),
+            offering_id=str(rating_params.course_offering),
+        )
 
         rating = self.rating_service.create_rating(rating_params)
 

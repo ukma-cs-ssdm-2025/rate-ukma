@@ -55,6 +55,7 @@ def test_get_courses_stats_returns_enrolled_courses(token_client):
     assert data[0]["id"] == str(course.id)
     assert len(data[0]["offerings"]) == 1
     assert data[0]["offerings"][0]["id"] == str(offering.id)
+    assert data[0]["offerings"][0]["course_id"] == str(course.id)
     assert data[0]["offerings"][0]["year"] == 2024
     assert data[0]["offerings"][0]["season"] == SemesterTerm.FALL
     assert data[0]["offerings"][0]["rated"] is None
@@ -86,6 +87,7 @@ def test_get_courses_stats_returns_rated_courses(token_client):
     assert len(data[0]["offerings"]) == 1
     # Since offerings are unordered, find the one with rating
     offering_data = data[0]["offerings"][0]
+    assert offering_data["course_id"] == str(course.id)
     assert offering_data["rated"] is not None
     assert offering_data["rated"]["difficulty"] == 4
     assert offering_data["rated"]["usefulness"] == 5
@@ -195,6 +197,7 @@ def test_get_courses_stats_serializes_response_correctly(token_client):
 
     offering_data = data[0]["offerings"][0]
     assert "id" in offering_data
+    assert "course_id" in offering_data
     assert "year" in offering_data
     assert "season" in offering_data
     assert "rated" in offering_data
@@ -204,3 +207,4 @@ def test_get_courses_stats_serializes_response_correctly(token_client):
     assert "usefulness" in rating_data
     assert "comment" in rating_data
     assert "created_at" in rating_data
+    assert "is_anonymous" in rating_data
