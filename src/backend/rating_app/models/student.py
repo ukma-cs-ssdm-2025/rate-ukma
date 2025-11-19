@@ -14,6 +14,12 @@ class Student(Person):
         blank=True,
         default="",
     )
+    email = models.EmailField(
+        max_length=254,
+        blank=True,
+        default="",
+        db_index=True,
+    )
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

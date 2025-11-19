@@ -9,7 +9,9 @@ from rating_app.ioc_container.repositories import (
     rating_repository,
     semester_repository,
     speciality_repository,
+    student_repository,
     student_stats_repository,
+    user_repository,
 )
 from rating_app.services import (
     CourseOfferingService,
@@ -74,7 +76,11 @@ def instructor_service() -> InstructorService:
 
 @once
 def student_service() -> StudentService:
-    return StudentService(student_stats_repository=student_stats_repository())
+    return StudentService(
+        student_stats_repository=student_stats_repository(),
+        student_repository=student_repository(),
+        user_repository=user_repository(),
+    )
 
 
 @once

@@ -13,6 +13,7 @@ from ..repositories import (
     SpecialityRepository,
     StudentRepository,
     StudentStatisticsRepository,
+    UserRepository,
 )
 
 
@@ -74,3 +75,8 @@ def rating_repository() -> RatingRepository:
 @once
 def student_stats_repository() -> StudentStatisticsRepository:
     return StudentStatisticsRepository()
+
+
+@once
+def user_repository() -> UserRepository:
+    return UserRepository()

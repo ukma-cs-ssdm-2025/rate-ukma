@@ -32,14 +32,20 @@ class StudentRepository(IRepository[Student]):
         patronymic: str | None,
         education_level: EducationLevel | Literal[""],
         speciality: Speciality,
+        email: str = "",
     ) -> tuple[Student, bool]:
-        return Student.objects.get_or_create(
+        student, created = Student.objects.get_or_create(
             first_name=first_name,
             last_name=last_name,
             patronymic=patronymic,
             education_level=education_level,
             speciality=speciality,
+            defaults={"email": email},
         )
+        if not created and email and not student.email:
+            student.email = email
+            student.save(update_fields=["email"])
+        return student, created
 
     def create(self, **student_data) -> Student:
         return Student.objects.create(**student_data)
@@ -60,3 +66,18 @@ class StudentRepository(IRepository[Student]):
     def filter(self, *args: Any, **kwargs: Any) -> list[Student]:
         #! TODO: not implemented
         return self.get_all()
+
+    def get_by_email(self, email: str) -> Student | None:
+        """Get a student by email that is not yet linked to a user."""
+        try:
+            return Student.objects.get(email=email, user__isnull=True)
+        except Student.DoesNotExist:
+            return None
+        except Student.MultipleObjectsReturned:
+            logger.warning("multiple_students_with_same_email", email=email)
+            return None
+
+    def link_to_user(self, student: Student, user) -> None:
+        """Link a student to a user."""
+        student.user = user
+        student.save(update_fields=["user"])
