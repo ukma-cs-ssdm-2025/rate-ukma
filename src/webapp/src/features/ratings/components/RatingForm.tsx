@@ -38,11 +38,11 @@ const ratingSchema = z.object({
 export type RatingFormData = z.infer<typeof ratingSchema>;
 
 interface RatingFormProps {
-	onSubmit: (data: RatingFormData) => void;
-	onCancel: () => void;
-	isLoading?: boolean;
-	isEditMode?: boolean;
-	initialData?: RatingFormData;
+	readonly onSubmit: (data: RatingFormData) => void | Promise<void>;
+	readonly onCancel: () => void;
+	readonly isLoading?: boolean;
+	readonly isEditMode?: boolean;
+	readonly initialData?: RatingFormData;
 }
 
 export function RatingForm({
@@ -179,11 +179,15 @@ export function RatingForm({
 						Скасувати
 					</Button>
 					<Button type="submit" disabled={isLoading}>
-						{isLoading
-							? "Надсилання..."
-							: isEditMode
-								? "Зберегти зміни"
-								: "Надіслати оцінку"}
+						{(() => {
+							if (isLoading) {
+								return "Надсилання...";
+							}
+							if (isEditMode) {
+								return "Зберегти зміни";
+							}
+							return "Надіслати оцінку";
+						})()}
 					</Button>
 				</div>
 			</form>

@@ -15,13 +15,13 @@ import { RatingForm, type RatingFormData } from "./RatingForm";
 type RatingWithAnonymousFlag = InlineRating & { is_anonymous?: boolean };
 
 interface RatingModalProps {
-	isOpen: boolean;
-	onClose: () => void;
-	offeringId: string;
-	courseName?: string;
-	existingRating?: RatingWithAnonymousFlag | null;
-	ratingId?: string;
-	onSuccess?: () => void;
+	readonly isOpen: boolean;
+	readonly onClose: () => void;
+	readonly offeringId: string;
+	readonly courseName?: string;
+	readonly existingRating?: RatingWithAnonymousFlag | null;
+	readonly ratingId?: string;
+	readonly onSuccess?: () => void;
 }
 
 export function RatingModal({
@@ -66,7 +66,7 @@ export function RatingModal({
 
 			onSuccess?.();
 			onClose();
-			window.location.reload();
+			globalThis.location.reload();
 		} catch (error) {
 			console.error("Failed to submit rating:", error);
 		}
