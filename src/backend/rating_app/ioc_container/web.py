@@ -7,13 +7,20 @@ from rateukma.ioc.decorators import once
 
 from ..views import (
     AnalyticsViewSet,
+    CourseOfferingViewSet,
     CourseViewSet,
     InstructorViewSet,
     RatingViewSet,
     StudentStatisticsViewSet,
 )
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
-from .services import course_service, instructor_service, rating_service, student_service
+from .services import (
+    course_offering_service,
+    course_service,
+    instructor_service,
+    rating_service,
+    student_service,
+)
 
 
 @once
@@ -120,6 +127,22 @@ def analytics_detail_view():
 
 
 @once
+def course_offering_list_view():
+    return CourseOfferingViewSet.as_view(
+        {"get": "list"},
+        course_offering_service=course_offering_service(),
+    )
+
+
+@once
+def course_offering_detail_view():
+    return CourseOfferingViewSet.as_view(
+        {"get": "retrieve"},
+        course_offering_service=course_offering_service(),
+    )
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -196,6 +219,16 @@ def rest_urlpatterns() -> list:
             "analytics/<str:course_id>/",
             analytics_detail_view(),
             name="analytics-detail",
+        ),
+        path(
+            "courses/<str:course_id>/offerings/",
+            course_offering_list_view(),
+            name="course-offerings",
+        ),
+        path(
+            "course-offerings/<str:course_offering_id>/",
+            course_offering_detail_view(),
+            name="course-offering-detail",
         ),
     ]
 

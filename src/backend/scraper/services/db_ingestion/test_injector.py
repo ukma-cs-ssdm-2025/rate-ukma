@@ -47,6 +47,7 @@ def repo_mocks():
     course_instructor_repo = MagicMock()
     enrollment_repo = MagicMock()
     tracker = MagicMock()
+    student_service = MagicMock()
 
     faculty = SimpleNamespace(name=faker.company())
     department = SimpleNamespace(name=faker.catch_phrase())
@@ -57,7 +58,7 @@ def repo_mocks():
     course_offering = SimpleNamespace()
     speciality = SimpleNamespace(name=faker.word())
     instructor = SimpleNamespace()
-    student = SimpleNamespace()
+    student = SimpleNamespace(email="", user=None)
 
     faculty_repo.get_or_create.return_value = (faculty, True)
     dept_repo.get_or_create.return_value = (department, True)
@@ -80,6 +81,7 @@ def repo_mocks():
         course_instructor_repo=course_instructor_repo,
         enrollment_repo=enrollment_repo,
         tracker=tracker,
+        student_service=student_service,
         faculty=faculty,
         department=department,
         course=course,
@@ -105,6 +107,7 @@ def injector(repo_mocks) -> CourseDbInjector:
         repo_mocks.course_instructor_repo,
         repo_mocks.enrollment_repo,
         repo_mocks.tracker,
+        repo_mocks.student_service,
     )
 
 
@@ -215,6 +218,7 @@ def create_mock_enrollment(
     speciality: str = "SpecX",
     level: EducationLevel | None = EducationLevel.BACHELOR,
     status: EnrollmentStatus = EnrollmentStatus.ENROLLED,
+    email: str = "",
 ) -> DeduplicatedEnrollment:
     return DeduplicatedEnrollment(
         student=DeduplicatedStudent(
@@ -222,6 +226,7 @@ def create_mock_enrollment(
             last_name=last_name,
             speciality=speciality,
             education_level=level,
+            email=email,
         ),
         status=status,
     )

@@ -4,10 +4,10 @@ import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import {
-	formatDecimalValue,
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "../courseFormatting";
+	difficultyDescriptions,
+	usefulnessDescriptions,
+} from "../../ratings/definitions/ratingDefinitions";
+import { getDifficultyTone, getUsefulnessTone } from "../courseFormatting";
 
 const SKELETON_STATS_COUNT = 3;
 const SKELETON_KEYS = Array.from(
@@ -49,13 +49,26 @@ export function CourseStatsCards({
 		return "Дуже корисний курс";
 	};
 
+	const getDetailedDescription = (
+		value: number | null,
+		type: "difficulty" | "usefulness",
+	) => {
+		if (value == null) return "Недостатньо даних";
+
+		const roundedValue = Math.round(value);
+		const descriptions =
+			type === "difficulty" ? difficultyDescriptions : usefulnessDescriptions;
+		return descriptions[roundedValue as keyof typeof descriptions] || "";
+	};
+
 	const stats = [
 		{
 			title: "Складність",
 			description: getDescription(difficulty, "difficulty"),
 			value: difficulty,
-			formatted: formatDecimalValue(difficulty, { fallback: "—" }),
-			hint: difficulty == null ? "Недостатньо даних" : "з 5",
+			type: "difficulty" as const,
+			formatted: difficulty?.toFixed(1) ?? "—",
+			hint: difficulty == null ? "Недостатньо даних" : "з 5.0",
 			icon: TrendingUp,
 			accent: getDifficultyTone(difficulty),
 		},
@@ -63,8 +76,9 @@ export function CourseStatsCards({
 			title: "Корисність",
 			description: getDescription(usefulness, "usefulness"),
 			value: usefulness,
-			formatted: formatDecimalValue(usefulness, { fallback: "—" }),
-			hint: usefulness == null ? "Недостатньо даних" : "з 5",
+			type: "usefulness" as const,
+			formatted: usefulness?.toFixed(1) ?? "—",
+			hint: usefulness == null ? "Недостатньо даних" : "з 5.0",
 			icon: TrendingUp,
 			accent: getUsefulnessTone(usefulness),
 		},
@@ -89,30 +103,42 @@ export function CourseStatsCards({
 
 	return (
 		<div className="grid gap-4 sm:grid-cols-3">
-			{stats.map(({ title, description, formatted, hint, accent }, index) => (
-				<Card
-					key={`${title}-${index.toString()}`}
-					className="border border-border/50 bg-card p-5 shadow-sm hover:shadow-md transition-shadow"
-				>
-					<div className="space-y-2">
-						<div className="flex items-baseline gap-1.5">
-							<span
-								className={cn(
-									"text-3xl font-bold tabular-nums sm:text-4xl",
-									accent,
-								)}
-							>
-								{formatted}
-							</span>
-							<span className="text-xs text-muted-foreground">{hint}</span>
+			{stats.map(
+				(
+					{ title, description, formatted, hint, accent, value, type },
+					index,
+				) => (
+					<Card
+						key={`${title}-${index.toString()}`}
+						className="border border-border/50 bg-card p-5 shadow-sm hover:shadow-md transition-shadow"
+						title={
+							type && value !== null
+								? getDetailedDescription(value, type)
+								: undefined
+						}
+					>
+						<div className="space-y-2">
+							<div className="flex items-baseline gap-1.5">
+								<span
+									className={cn(
+										"text-3xl font-bold tabular-nums sm:text-4xl",
+										accent,
+									)}
+								>
+									{formatted}
+								</span>
+								<span className="text-xs text-muted-foreground">{hint}</span>
+							</div>
+							<div className="space-y-1">
+								<p className="text-sm font-medium text-foreground">{title}</p>
+								<p className="text-xs text-muted-foreground/60">
+									{description}
+								</p>
+							</div>
 						</div>
-						<div className="space-y-1">
-							<p className="text-sm font-medium text-foreground">{title}</p>
-							<p className="text-xs text-muted-foreground/60">{description}</p>
-						</div>
-					</div>
-				</Card>
-			))}
+					</Card>
+				),
+			)}
 		</div>
 	);
 }

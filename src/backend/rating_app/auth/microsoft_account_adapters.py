@@ -11,6 +11,8 @@ from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialLogin
 
+from rating_app.ioc_container.services import student_service
+
 logger = structlog.get_logger(__name__)
 
 
@@ -74,3 +76,18 @@ class MicrosoftAccountAdapter(DefaultAccountAdapter):
 
     def get_logout_redirect_url(self, request: HttpRequest) -> str:
         return settings.ACCOUNT_LOGOUT_REDIRECT_URL
+
+    def save_user(self, request: HttpRequest, user, form, commit=True):
+        user = super().save_user(request, user, form, commit)
+
+        if commit and user.email:
+            service = student_service()
+            linked = service.link_user_to_student(user)
+            if linked:
+                logger.info(
+                    "new_user_linked_to_student",
+                    user_id=user.id,
+                    email=user.email,
+                )
+
+        return user
