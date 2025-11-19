@@ -247,3 +247,77 @@ def test_account_adapter_returns_logout_redirect(
 
     # Assert
     assert result == "/goodbye"
+
+
+def test_save_user_calls_link_user_to_student(
+    account_adapter: MicrosoftAccountAdapter, http_request: MagicMock
+):
+    # Arrange
+    mock_user = SimpleNamespace(email="test@ukma.edu.ua", id=1)
+    mock_form = MagicMock()
+
+    with (
+        patch(
+            "rating_app.auth.microsoft_account_adapters.DefaultAccountAdapter.save_user",
+            autospec=True,
+        ) as mock_super,
+        patch("rating_app.auth.microsoft_account_adapters.student_service") as mock_student_service,
+    ):
+        mock_super.return_value = mock_user
+        mock_service_instance = MagicMock()
+        mock_student_service.return_value = mock_service_instance
+
+        # Act
+        result = account_adapter.save_user(http_request, mock_user, mock_form, commit=True)
+
+    # Assert
+    assert result is mock_user
+    mock_service_instance.link_user_to_student.assert_called_once_with(mock_user)
+
+
+def test_save_user_does_not_link_when_commit_is_false(
+    account_adapter: MicrosoftAccountAdapter, http_request: MagicMock
+):
+    # Arrange
+    mock_user = SimpleNamespace(email="test@ukma.edu.ua", id=1)
+    mock_form = MagicMock()
+
+    with (
+        patch(
+            "rating_app.auth.microsoft_account_adapters.DefaultAccountAdapter.save_user",
+            autospec=True,
+        ) as mock_super,
+        patch("rating_app.auth.microsoft_account_adapters.student_service") as mock_student_service,
+    ):
+        mock_super.return_value = mock_user
+
+        # Act
+        result = account_adapter.save_user(http_request, mock_user, mock_form, commit=False)
+
+    # Assert
+    assert result is mock_user
+    mock_student_service.return_value.link_user_to_student.assert_not_called()
+
+
+def test_save_user_does_not_link_when_user_has_no_email(
+    account_adapter: MicrosoftAccountAdapter, http_request: MagicMock
+):
+    # Arrange
+    mock_user = SimpleNamespace(email="", id=1)
+    mock_form = MagicMock()
+
+    with (
+        patch(
+            "rating_app.auth.microsoft_account_adapters.DefaultAccountAdapter.save_user",
+            autospec=True,
+        ) as mock_super,
+        patch("rating_app.auth.microsoft_account_adapters.student_service") as mock_student_service,
+    ):
+        mock_super.return_value = mock_user
+
+        # Act
+        result = account_adapter.save_user(http_request, mock_user, mock_form, commit=True)
+
+    # Assert
+    assert result is mock_user
+    mock_student_service.return_value.link_user_to_student.assert_not_called()

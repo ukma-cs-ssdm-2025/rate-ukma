@@ -31,6 +31,7 @@ from rating_app.repositories import (
     SpecialityRepository,
     StudentRepository,
 )
+from rating_app.services import StudentService
 from scraper.services.db_ingestion.progress_tracker import InjectionProgressTracker
 
 from ...models.deduplicated import (
@@ -68,6 +69,7 @@ class CourseDbInjector(IDbInjector):
         course_instructor_repository: CourseInstructorRepository,
         enrollment_repository: EnrollmentRepository,
         injection_progress_tracker: InjectionProgressTracker,
+        student_service: StudentService,
     ):
         self.course_repository = course_repository
         self.department_repository = department_repository
@@ -80,6 +82,7 @@ class CourseDbInjector(IDbInjector):
         self.course_instructor_repository = course_instructor_repository
         self.enrollment_repository = enrollment_repository
         self.tracker = injection_progress_tracker
+        self.student_service = student_service
 
         self._faculty_cache: dict[str, Faculty] = {}
         self._department_cache: dict[tuple[str, str], Department] = {}
@@ -299,13 +302,18 @@ class CourseDbInjector(IDbInjector):
         if cached:
             return cached
 
-        student, _ = self.student_repository.get_or_create(
+        student, created = self.student_repository.get_or_create(
             first_name=student_data.first_name,
             last_name=student_data.last_name,
             patronymic=student_data.patronymic or "",
             education_level=education_level,
             speciality=student_speciality,
+            email=student_data.email or "",
         )
+
+        if created or (student_data.email and not student.user):
+            self.student_service.link_student_to_user(student)
+
         self._student_cache[key] = student
         return student
 
