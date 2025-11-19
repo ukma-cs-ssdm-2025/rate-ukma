@@ -1,22 +1,99 @@
 #!/usr/bin/env python3
+"""Generate DORA metrics report from workflow run data."""
 
-#! Placeholder for the script
+import argparse
+import os
+import sys
+from pathlib import Path
+
+from dora_md_generator import DORAMetrics
+from parse_dora_metrics import parse_table
 
 
 def main():
-    import os
-    from pathlib import Path
+    args = parse_arguments()
 
-    print("Placeholder for the script")
+    try:
+        runs = parse_table(args.metrics_file)
 
-    output_file = Path(os.environ.get("GITHUB_OUTPUT", "/dev/stdout"))
-    with open(output_file, "a") as f:
-        f.write("deployment_frequency=0.00\n")
-        f.write("lead_time=0.00\n")
-        f.write("change_failure_rate=0.0\n")
-        f.write("time_to_restore=0.00\n")
-        f.write("total_runs=0\n")
-        f.write("successful_runs=0\n")
+        metrics = DORAMetrics(runs)
+        report = metrics.generate_report()
+
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(report, encoding="utf-8")
+
+        # Calculate metrics
+        freq = metrics.deployment_frequency()
+        lt = metrics.lead_time()
+        cfr = metrics.change_failure_rate()
+        ttr = metrics.time_to_restore()
+
+        # Print success message with statistics
+        print(f"Report generated: {output_path}")
+        print(f"- {len(metrics.weekly_runs)} runs analyzed (past week)")
+        print(f"- {len(metrics.successful_runs)} successful deployments")
+        print(f"- {freq:.2f} deployments/week")
+
+        # Output metrics to GITHUB_OUTPUT if in CI environment
+        github_output = os.getenv("GITHUB_OUTPUT")
+        if github_output:
+            with open(github_output, "a") as f:
+                f.write(f"deployment_frequency={freq:.2f}\n")
+                f.write(f"lead_time={lt:.2f}\n")
+                f.write(f"change_failure_rate={cfr:.2f}\n")
+                f.write(f"time_to_restore={ttr:.2f}\n")
+                f.write(f"total_runs={len(metrics.weekly_runs)}\n")
+
+    except FileNotFoundError:
+        print(f"Metrics file not found: {args.metrics_file}")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Invalid data format: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"✗ Unexpected error: {e}")
+        sys.exit(1)
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description="Generate DORA metrics report from workflow data"
+    )
+
+    # Support both positional and flag-based arguments for backward compatibility
+    parser.add_argument(
+        "metrics_file_positional",
+        nargs="?",
+        type=str,
+        help="Path to the metrics-raw.md file (positional)",
+    )
+    parser.add_argument(
+        "output_positional",
+        nargs="?",
+        type=str,
+        help="Path to write the generated report (positional)",
+    )
+    parser.add_argument(
+        "config_file_positional",
+        nargs="?",
+        type=str,
+        help="Config file (unused, for backward compatibility)",
+    )
+    parser.add_argument(
+        "--metrics-file", type=str, help="Path to the metrics-raw.md file"
+    )
+    parser.add_argument("--output", type=str, help="Path to write the generated report")
+
+    args = parser.parse_args()
+
+    # Resolve which arguments to use (positional takes precedence)
+    args.metrics_file = (
+        args.metrics_file_positional or args.metrics_file or "docs/ci-cd/metrics-raw.md"
+    )
+    args.output = args.output_positional or args.output or "docs/ci-cd/dora-report.md"
+
+    return args
 
 
 if __name__ == "__main__":
