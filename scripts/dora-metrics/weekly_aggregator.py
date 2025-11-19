@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Callable, Optional
 
+from constants import CONCLUSION_FAILURE, STATUS_COMPLETED
 from parse_dora_metrics import WorkflowRun
 
 
@@ -37,7 +38,10 @@ class WeeklyData:
     def failed_runs(self) -> int:
         """Number of failed runs."""
         return sum(
-            1 for r in self.runs if str(r.get("conclusion", "")).lower() == "failure"
+            1
+            for r in self.runs
+            if r.get("status") == STATUS_COMPLETED
+            and str(r.get("conclusion", "")).lower() == CONCLUSION_FAILURE
         )
 
     @property
