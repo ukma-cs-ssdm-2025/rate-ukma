@@ -63,7 +63,7 @@ export function RatingForm({
 	});
 
 	React.useEffect(() => {
-		if (initialData) {
+		if (initialData && !form.formState.isSubmitting) {
 			form.reset(initialData);
 		}
 	}, [initialData, form]);

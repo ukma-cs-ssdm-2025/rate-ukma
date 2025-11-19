@@ -41,9 +41,12 @@ function CourseDetailsRoute() {
 			: [studentCoursesData];
 	}, [studentCoursesData]);
 
-	const attendedOfferings = React.useMemo(() => {
+	const { attendedOfferings, attendedCourseId } = React.useMemo(() => {
 		const courseData = studentCourses.find((c) => c.id === courseId);
-		return courseData?.offerings || [];
+		return {
+			attendedOfferings: courseData?.offerings || [],
+			attendedCourseId: courseData?.id,
+		};
 	}, [studentCourses, courseId]);
 
 	const hasAttendedCourse = attendedOfferings.length > 0;
@@ -120,10 +123,11 @@ function CourseDetailsRoute() {
 				<CourseRatingsList courseId={courseId} />
 			</div>
 
-			{selectedOffering?.id && (
+			{selectedOffering?.id && attendedCourseId && (
 				<RatingModal
 					isOpen={isRatingModalOpen}
 					onClose={() => setIsRatingModalOpen(false)}
+					courseId={attendedCourseId}
 					offeringId={selectedOffering.id}
 					courseName={course.title}
 					existingRating={ratedOffering?.rated || null}

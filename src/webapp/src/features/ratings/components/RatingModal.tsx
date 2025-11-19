@@ -17,6 +17,7 @@ type RatingWithAnonymousFlag = InlineRating & { is_anonymous?: boolean };
 interface RatingModalProps {
 	readonly isOpen: boolean;
 	readonly onClose: () => void;
+	readonly courseId: string;
 	readonly offeringId: string;
 	readonly courseName?: string;
 	readonly existingRating?: RatingWithAnonymousFlag | null;
@@ -27,6 +28,7 @@ interface RatingModalProps {
 export function RatingModal({
 	isOpen,
 	onClose,
+	courseId,
 	offeringId,
 	courseName,
 	existingRating,
@@ -42,7 +44,7 @@ export function RatingModal({
 		try {
 			if (isEditMode && ratingId) {
 				await updateMutation.mutateAsync({
-					courseId: offeringId,
+					courseId: courseId,
 					ratingId: ratingId,
 					data: {
 						difficulty: data.difficulty,
@@ -53,7 +55,7 @@ export function RatingModal({
 				});
 			} else {
 				await createMutation.mutateAsync({
-					courseId: offeringId,
+					courseId: courseId,
 					data: {
 						course_offering: offeringId,
 						difficulty: data.difficulty,
