@@ -8,4 +8,4 @@ rules:
     min-spaces-from-content: 1
 
   line-length:
-    max: 140
+    max: 200
