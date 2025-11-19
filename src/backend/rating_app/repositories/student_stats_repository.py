@@ -42,6 +42,7 @@ class StudentStatisticsRepository:
             rated = None
             if rating_obj:
                 rated = {
+                    "id": str(rating_obj.id),
                     "difficulty": rating_obj.difficulty,
                     "usefulness": rating_obj.usefulness,
                     "comment": rating_obj.comment,
@@ -85,6 +86,7 @@ class StudentStatisticsRepository:
             rated = None
             if rating_obj:
                 rated = {
+                    "id": str(rating_obj.id),
                     "difficulty": rating_obj.difficulty,
                     "usefulness": rating_obj.usefulness,
                     "comment": rating_obj.comment,
