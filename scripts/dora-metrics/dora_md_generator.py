@@ -117,6 +117,45 @@ class DORAMetrics:
 
         return sum(restore_times) / len(restore_times) if restore_times else 0.0
 
+    # Classification and statistics methods
+
+    def get_deployment_frequency_class(self) -> str:
+        return classify_deployment_frequency(self.deployment_frequency())
+
+    def get_lead_time_class(self) -> str:
+        return classify_lead_time(self.lead_time())
+
+    def get_change_failure_rate_class(self) -> str:
+        return classify_change_failure_rate(self.change_failure_rate())
+
+    def get_time_to_restore_class(self) -> str:
+        return classify_time_to_restore(self.time_to_restore())
+
+    def get_success_rate(self) -> float:
+        if not self.weekly_runs:
+            return 0.0
+        return (len(self.successful_runs) / len(self.weekly_runs)) * 100.0
+
+    def get_overall_performance(self) -> str:
+        classifications = [
+            self.get_deployment_frequency_class(),
+            self.get_lead_time_class(),
+            self.get_change_failure_rate_class(),
+            self.get_time_to_restore_class(),
+        ]
+
+        elite_count = sum(1 for c in classifications if c == "Elite")
+        high_count = sum(1 for c in classifications if c == "High")
+
+        if elite_count >= 3:
+            return "Elite"
+        elif elite_count + high_count >= 3:
+            return "High"
+        elif elite_count + high_count >= 2:
+            return "Medium"
+        else:
+            return "Low"
+
     def generate_outcomes_chart(self) -> str:
         """Generate pie chart of workflow run outcomes."""
         return (

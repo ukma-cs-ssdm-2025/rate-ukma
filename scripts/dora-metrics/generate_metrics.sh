@@ -128,18 +128,18 @@ ensure_git_up_to_date() {
 fetch_all_runs() {
     log "Fetching workflow runs for '$WORKFLOW_NAME' (limit: $LIMIT)..."
 
-    local gh_cmd="$GH_BIN run list --workflow=$WORKFLOW_NAME --limit=$LIMIT"
+    local gh_cmd=("$GH_BIN" "run" "list" "--workflow=$WORKFLOW_NAME" "--limit=$LIMIT")
 
     if [[ -n "$CREATED_AFTER" ]]; then
-        gh_cmd="$gh_cmd --created >=$CREATED_AFTER"
+        gh_cmd+=("--created" ">=$CREATED_AFTER")
     fi
 
     if [[ -n "$CREATED_BEFORE" ]]; then
-        gh_cmd="$gh_cmd --created <=$CREATED_BEFORE"
+        gh_cmd+=("--created" "<=$CREATED_BEFORE")
     fi
 
     local runs
-    runs=$(eval "$gh_cmd --json databaseId,status,conclusion,createdAt,updatedAt,headSha,event --jq '.[] | {
+    runs=$("${gh_cmd[@]}" --json databaseId,status,conclusion,createdAt,updatedAt,headSha,event --jq '.[] | {
             id: .databaseId,
             sha: .headSha,
             shortSha: .headSha[0:7],
@@ -148,7 +148,8 @@ fetch_all_runs() {
             createdAt: (.createdAt | fromdateiso8601 | strftime(env.HUMAN_TIMESTAMP_FORMAT)),
             event: .event,
             duration: (((.updatedAt | fromdate) - (.createdAt | fromdate)))
-        }'")
+        }')
+
 
     local count
     count=$(echo "$runs" | jq -s 'length')
