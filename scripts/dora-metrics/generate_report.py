@@ -1,22 +1,60 @@
 #!/usr/bin/env python3
+"""Generate DORA metrics report from workflow run data."""
 
-#! Placeholder for the script
+import argparse
+import sys
+from pathlib import Path
+
+from dora_md_generator import DORAMetrics
+from parse_dora_metrics import parse_table
 
 
 def main():
-    import os
-    from pathlib import Path
+    args = parse_arguments()
 
-    print("Placeholder for the script")
+    try:
+        runs = parse_table(args.metrics_file)
 
-    output_file = Path(os.environ.get("GITHUB_OUTPUT", "/dev/stdout"))
-    with open(output_file, "a") as f:
-        f.write("deployment_frequency=0.00\n")
-        f.write("lead_time=0.00\n")
-        f.write("change_failure_rate=0.0\n")
-        f.write("time_to_restore=0.00\n")
-        f.write("total_runs=0\n")
-        f.write("successful_runs=0\n")
+        metrics = DORAMetrics(runs)
+        report = metrics.generate_report()
+
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(report, encoding="utf-8")
+
+        print(f"Report generated: {output_path}")
+        print(f"- {len(metrics.weekly_runs)} runs analyzed (past week)")
+        print(f"- {len(metrics.successful_runs)} successful deployments")
+        print(f"- {metrics.deployment_frequency():.2f} deployments/week")
+
+    except FileNotFoundError:
+        print(f"Metrics file not found: {args.metrics_file}")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Invalid data format: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"✗ Unexpected error: {e}")
+        sys.exit(1)
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description="Generate DORA metrics report from workflow data"
+    )
+    parser.add_argument(
+        "--metrics-file",
+        type=str,
+        default="docs/ci-cd/metrics-raw.md",
+        help="Path to the metrics-raw.md file (default: docs/ci-cd/metrics-raw.md)",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="docs/ci-cd/dora-report.md",
+        help="Path to write the generated report (default: docs/ci-cd/dora-report.md)",
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
