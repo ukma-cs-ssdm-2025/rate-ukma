@@ -31,18 +31,11 @@ function CourseDetailsRoute() {
 	const { data: course, isLoading, isError } = useCoursesRetrieve(courseId);
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 
-	const { data: studentCoursesData, isLoading: isStudentCoursesLoading } =
+	const { data: studentCourses, isLoading: isStudentCoursesLoading } =
 		useStudentsMeCoursesRetrieve();
 
-	const studentCourses = React.useMemo(() => {
-		if (!studentCoursesData) return [];
-		return Array.isArray(studentCoursesData)
-			? studentCoursesData
-			: [studentCoursesData];
-	}, [studentCoursesData]);
-
 	const { attendedOfferings, attendedCourseId } = React.useMemo(() => {
-		const courseData = studentCourses.find((c) => c.id === courseId);
+		const courseData = studentCourses?.find((c) => c.id === courseId);
 		return {
 			attendedOfferings: courseData?.offerings || [],
 			attendedCourseId: courseData?.id,
