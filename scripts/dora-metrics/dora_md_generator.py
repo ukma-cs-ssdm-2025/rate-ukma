@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from calculate_dora_metrics import format_duration
 from chart_builder import MermaidChartBuilder, PieChartBuilder
 from constants import (
     CHANGE_FAILURE_RATE_ELITE,
@@ -24,26 +25,6 @@ from dora_metrics_classifier import (
 )
 from parse_dora_metrics import WorkflowRun
 from weekly_aggregator import WeeklyAggregator, WeeklyData
-
-
-def format_duration(minutes: float) -> str:
-    if minutes < 60.0:
-        total_seconds = int(round(minutes * 60.0))
-        whole_minutes = total_seconds // 60
-        seconds = total_seconds % 60
-        return f"{whole_minutes}m {seconds}s"
-
-    if minutes < 1440.0:
-        total_minutes = int(round(minutes))
-        hours = total_minutes // 60
-        rem_minutes = total_minutes % 60
-        return f"{hours}h {rem_minutes}m"
-
-    total_minutes = int(round(minutes))
-    days = total_minutes // 1440
-    rem_minutes = total_minutes % 1440
-    hours = rem_minutes // 60
-    return f"{days}d {hours}h"
 
 
 def _is_success(run: WorkflowRun) -> bool:
