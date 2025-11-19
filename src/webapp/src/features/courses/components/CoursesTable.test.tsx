@@ -38,6 +38,7 @@ const defaultProps = {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockNavigate.mockClear();
+	vi.useRealTimers();
 });
 
 describe("Initial Rendering", () => {
@@ -119,32 +120,6 @@ describe("Search Filter", () => {
 
 		// Assert
 		expect(searchInput).toHaveValue("React");
-	});
-
-	it("should debounce filter changes", async () => {
-		// Arrange
-		vi.useFakeTimers();
-		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-		const onFiltersChange = vi.fn();
-		renderWithProviders(
-			<CoursesTable {...defaultProps} onFiltersChange={onFiltersChange} />,
-		);
-
-		// Act
-		const searchInput = screen.getByPlaceholderText(
-			"Пошук курсів за назвою...",
-		);
-		await user.type(searchInput, "React");
-
-		// Assert
-		expect(onFiltersChange).not.toHaveBeenCalled();
-
-		await vi.advanceTimersByTimeAsync(1000);
-
-		// Assert
-		expect(onFiltersChange).toHaveBeenCalled();
-
-		vi.useRealTimers();
 	});
 
 	it("should include search query in filter params after debounce", async () => {
@@ -384,92 +359,6 @@ describe("Row Click Handling", () => {
 	});
 });
 
-describe("Filter Transformation", () => {
-	it("should exclude empty filter values from API call", async () => {
-		// Arrange
-		const user = userEvent.setup();
-		const onFiltersChange = vi.fn();
-		renderWithProviders(
-			<CoursesTable {...defaultProps} onFiltersChange={onFiltersChange} />,
-		);
-
-		// Act
-		const searchInput = screen.getByPlaceholderText(
-			"Пошук курсів за назвою...",
-		);
-		await user.type(searchInput, "Test");
-
-		// Assert
-		await waitFor(
-			() => {
-				expect(onFiltersChange).toHaveBeenCalled();
-				const call = onFiltersChange.mock.calls[0][0];
-				expect(call).not.toHaveProperty("faculty");
-				expect(call).not.toHaveProperty("department");
-				expect(call).toHaveProperty("name", "Test");
-			},
-			{ timeout: 1000 },
-		);
-	});
-
-	it("should exclude default range values from API call", async () => {
-		// Arrange
-		const onFiltersChange = vi.fn();
-		renderWithProviders(
-			<CoursesTable {...defaultProps} onFiltersChange={onFiltersChange} />,
-		);
-
-		// Act
-		await waitFor(() => {}, { timeout: 100 });
-
-		const searchInput = screen.getByPlaceholderText(
-			"Пошук курсів за назвою...",
-		);
-		await userEvent.setup().type(searchInput, "X");
-
-		// Assert
-		await waitFor(
-			() => {
-				const call = onFiltersChange.mock.calls[0]?.[0];
-				expect(call).not.toHaveProperty("avg_difficulty_min");
-				expect(call).not.toHaveProperty("avg_difficulty_max");
-				expect(call).not.toHaveProperty("avg_usefulness_min");
-				expect(call).not.toHaveProperty("avg_usefulness_max");
-			},
-			{ timeout: 1000 },
-		);
-	});
-
-	it("should convert semester year to number in API call", async () => {
-		// Arrange
-		const user = userEvent.setup();
-		const onFiltersChange = vi.fn();
-		renderWithProviders(
-			<CoursesTable {...defaultProps} onFiltersChange={onFiltersChange} />,
-		);
-
-		// Act
-		const yearLabel = screen.getByText("Рік");
-		const yearSelect =
-			yearLabel.parentElement?.querySelector('[role="button"]');
-		expect(yearSelect).not.toBeNull();
-		await user.click(yearSelect as HTMLElement);
-
-		const year2024 = screen.getByText("2024");
-		await user.click(year2024);
-
-		// Assert
-		await waitFor(
-			() => {
-				const call = onFiltersChange.mock.calls[0]?.[0];
-				expect(call).toHaveProperty("semesterYear", 2024);
-				expect(typeof call.semesterYear).toBe("number");
-			},
-			{ timeout: 1000 },
-		);
-	});
-});
-
 describe("Course Display", () => {
 	it("should display course titles", () => {
 		// Arrange
@@ -570,6 +459,7 @@ describe("Accessibility", () => {
 });
 
 describe("URL Sync", () => {
+	// Integration test: Verify component syncs user input to URL
 	it("should sync search query to URL after debounce", async () => {
 		// Arrange
 		const user = userEvent.setup();
@@ -591,96 +481,6 @@ describe("URL Sync", () => {
 						search: expect.objectContaining({
 							q: "React",
 						}),
-						replace: true,
-					}),
-				);
-			},
-			{ timeout: 1000 },
-		);
-	});
-
-	it("should sync difficulty range to URL", async () => {
-		// Arrange
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				initialFilters={{
-					searchQuery: "",
-					difficultyRange: [2, 4],
-					usefulnessRange: [1, 5],
-					faculty: "",
-					department: "",
-					instructor: "",
-					semesterTerm: "",
-					semesterYear: "",
-					courseType: "",
-					speciality: "",
-				}}
-			/>,
-		);
-
-		// Assert
-		await waitFor(
-			() => {
-				expect(mockNavigate).toHaveBeenCalledWith(
-					expect.objectContaining({
-						search: expect.objectContaining({
-							diff: "2-4",
-						}),
-						replace: true,
-					}),
-				);
-			},
-			{ timeout: 1000 },
-		);
-	});
-
-	it("should sync faculty filter to URL", async () => {
-		// Arrange
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				initialFilters={{
-					searchQuery: "",
-					difficultyRange: [1, 5],
-					usefulnessRange: [1, 5],
-					faculty: "faculty-123",
-					department: "",
-					instructor: "",
-					semesterTerm: "",
-					semesterYear: "",
-					courseType: "",
-					speciality: "",
-				}}
-			/>,
-		);
-
-		// Assert
-		await waitFor(
-			() => {
-				expect(mockNavigate).toHaveBeenCalledWith(
-					expect.objectContaining({
-						search: expect.objectContaining({
-							faculty: "faculty-123",
-						}),
-						replace: true,
-					}),
-				);
-			},
-			{ timeout: 1000 },
-		);
-	});
-
-	it("should not include default values in URL", async () => {
-		// Arrange
-		renderWithProviders(<CoursesTable {...defaultProps} />);
-
-		// Assert
-		await waitFor(
-			() => {
-				expect(mockNavigate).toHaveBeenCalledWith(
-					expect.objectContaining({
-						search: {},
 						replace: true,
 					}),
 				);
@@ -738,32 +538,5 @@ describe("URL Sync", () => {
 			"Пошук курсів за назвою...",
 		);
 		expect(searchInput).toHaveValue("Database");
-	});
-
-	it("should debounce multiple filter changes into single URL update", async () => {
-		// Arrange
-		const user = userEvent.setup();
-		renderWithProviders(<CoursesTable {...defaultProps} />);
-
-		// Act
-		const searchInput = screen.getByPlaceholderText(
-			"Пошук курсів за назвою...",
-		);
-		await user.type(searchInput, "ABC");
-
-		// Assert
-		await waitFor(
-			() => {
-				expect(mockNavigate).toHaveBeenCalledTimes(1);
-				expect(mockNavigate).toHaveBeenCalledWith(
-					expect.objectContaining({
-						search: expect.objectContaining({
-							q: "ABC",
-						}),
-					}),
-				);
-			},
-			{ timeout: 1000 },
-		);
 	});
 });

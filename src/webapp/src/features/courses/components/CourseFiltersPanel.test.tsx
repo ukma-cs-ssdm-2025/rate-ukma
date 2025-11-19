@@ -91,7 +91,7 @@ describe("CourseFiltersPanel", () => {
 			expect(screen.getByText("Кафедра")).toBeInTheDocument();
 			expect(screen.getByText("Спеціальність")).toBeInTheDocument();
 			expect(screen.getByText("Тип курсу")).toBeInTheDocument();
-			expect(screen.getByText("Викладач")).toBeInTheDocument();
+			// expect(screen.getByText("Викладач")).toBeInTheDocument(); // Disabled
 		});
 	});
 
@@ -499,8 +499,8 @@ describe("CourseFiltersPanel", () => {
 			// Assert
 			// Radix Select uses combobox role
 			const selects = screen.getAllByRole("combobox");
-			// There are 7 select filters
-			expect(selects).toHaveLength(7);
+			// There are 6 select filters (instructor is disabled)
+			expect(selects).toHaveLength(6);
 		});
 
 		it("should have reset button with proper text", () => {

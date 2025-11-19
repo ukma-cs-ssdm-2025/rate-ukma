@@ -142,7 +142,7 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).toEqual({
-				semesterTerm: "FALL",
+				semester_term: "FALL",
 			});
 		});
 
@@ -158,9 +158,9 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).toEqual({
-				semesterYear: 2024,
+				semester_year: 2024,
 			});
-			expect(typeof result.semesterYear).toBe("number");
+			expect(typeof result.semester_year).toBe("number");
 		});
 
 		it("should exclude semester year when empty string", () => {
@@ -296,8 +296,8 @@ describe("filterTransformations", () => {
 				faculty: "faculty-1",
 				department: "dept-2",
 				instructor: "instructor-3",
-				semesterTerm: "SPRING",
-				semesterYear: 2025,
+				semester_term: "SPRING",
+				semester_year: 2025,
 				typeKind: "ELECTIVE",
 				speciality: "spec-4",
 				avg_difficulty_min: 2,

@@ -159,7 +159,7 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook();
 
 			// Assert
-			expect(result.current.selectFilters).toHaveLength(7);
+			expect(result.current.selectFilters).toHaveLength(6);
 			const filterKeys = result.current.selectFilters.map((f) => f.key);
 			expect(filterKeys).toEqual([
 				"semesterTerm",
@@ -168,7 +168,7 @@ describe("useCourseFiltersData", () => {
 				"department",
 				"speciality",
 				"courseType",
-				"instructor",
+				// "instructor", // Disabled
 			]);
 		});
 

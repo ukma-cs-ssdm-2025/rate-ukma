@@ -8,8 +8,8 @@ export type CourseApiFilters = {
 	instructor?: string;
 	typeKind?: string;
 	speciality?: string;
-	semesterTerm?: string;
-	semesterYear?: number;
+	semester_term?: string;
+	semester_year?: number;
 	avg_difficulty_min?: number;
 	avg_difficulty_max?: number;
 	avg_usefulness_min?: number;
@@ -34,8 +34,8 @@ export function transformFiltersToApiParams(
 		instructor: filters.instructor,
 		typeKind: filters.courseType,
 		speciality: filters.speciality,
-		semesterTerm: filters.semesterTerm,
-		semesterYear: filters.semesterYear
+		semester_term: filters.semesterTerm,
+		semester_year: filters.semesterYear
 			? Number(filters.semesterYear)
 			: undefined,
 		...(isDifficultyModified && {
