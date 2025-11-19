@@ -87,284 +87,93 @@ describe("courseFormatting", () => {
 	});
 
 	describe("getDifficultyTone", () => {
-		it("should return destructive tone for high difficulty (>= 4)", () => {
-			// Arrange
-			const highDifficulty = 4.5;
-
-			// Act
-			const result = getDifficultyTone(highDifficulty);
-
-			// Assert
-			expect(result).toBe(
+		const TONES = {
+			DESTRUCTIVE:
 				"text-[var(--destructive)] dark:text-[var(--destructive-foreground)]",
-			);
+			MEDIUM: "text-[var(--chart-5)] dark:text-[var(--chart-5)]",
+			PRIMARY: "text-[var(--primary)] dark:text-[var(--primary-foreground)]",
+			MUTED: "text-muted-foreground",
+		};
+
+		it.each([
+			["high difficulty (4.5)", 4.5, TONES.DESTRUCTIVE],
+			["exact boundary 4", 4.0, TONES.DESTRUCTIVE],
+			["medium difficulty (3.2)", 3.2, TONES.MEDIUM],
+			["exact boundary 3", 3.0, TONES.MEDIUM],
+			["low difficulty (2.1)", 2.1, TONES.PRIMARY],
+		])("should return correct tone for %s", (_, value, expected) => {
+			expect(getDifficultyTone(value)).toBe(expected);
 		});
 
-		it("should return chart-5 tone for medium difficulty (>= 3)", () => {
-			// Arrange
-			const mediumDifficulty = 3.2;
-
-			// Act
-			const result = getDifficultyTone(mediumDifficulty);
-
-			// Assert
-			expect(result).toBe("text-[var(--chart-5)] dark:text-[var(--chart-5)]");
-		});
-
-		it("should return primary tone for low difficulty (< 3)", () => {
-			// Arrange
-			const lowDifficulty = 2.1;
-
-			// Act
-			const result = getDifficultyTone(lowDifficulty);
-
-			// Assert
-			expect(result).toBe(
-				"text-[var(--primary)] dark:text-[var(--primary-foreground)]",
-			);
-		});
-
-		it("should return muted tone for null value", () => {
-			// Arrange
-			const nullValue = null;
-
-			// Act
-			const result = getDifficultyTone(nullValue);
-
-			// Assert
-			expect(result).toBe("text-muted-foreground");
-		});
-
-		it("should return muted tone for undefined value", () => {
-			// Arrange
-			const undefinedValue = undefined;
-
-			// Act
-			const result = getDifficultyTone(undefinedValue);
-
-			// Assert
-			expect(result).toBe("text-muted-foreground");
-		});
-
-		it("should return muted tone for zero value", () => {
-			// Arrange
-			const zeroValue = 0;
-
-			// Act
-			const result = getDifficultyTone(zeroValue);
-
-			// Assert
-			expect(result).toBe("text-muted-foreground");
-		});
-
-		it("should handle exact boundary value 4", () => {
-			// Arrange
-			const exactFour = 4.0;
-
-			// Act
-			const result = getDifficultyTone(exactFour);
-
-			// Assert
-			expect(result).toBe(
-				"text-[var(--destructive)] dark:text-[var(--destructive-foreground)]",
-			);
-		});
-
-		it("should handle exact boundary value 3", () => {
-			// Arrange
-			const exactThree = 3.0;
-
-			// Act
-			const result = getDifficultyTone(exactThree);
-
-			// Assert
-			expect(result).toBe("text-[var(--chart-5)] dark:text-[var(--chart-5)]");
+		it.each([
+			["null", null],
+			["undefined", undefined],
+			["zero", 0],
+		])("should return muted tone for %s value", (_, value) => {
+			expect(getDifficultyTone(value)).toBe(TONES.MUTED);
 		});
 	});
 
 	describe("getUsefulnessTone", () => {
-		it("should return primary tone for high usefulness (>= 4)", () => {
-			// Arrange
-			const highUsefulness = 4.5;
+		const TONES = {
+			PRIMARY: "text-[var(--primary)] dark:text-[var(--primary-foreground)]",
+			MEDIUM: "text-[var(--chart-2)] dark:text-[var(--chart-2)]",
+			LOW: "text-[var(--muted-foreground)]",
+			MUTED: "text-muted-foreground",
+		};
 
-			// Act
-			const result = getUsefulnessTone(highUsefulness);
-
-			// Assert
-			expect(result).toBe(
-				"text-[var(--primary)] dark:text-[var(--primary-foreground)]",
-			);
+		it.each([
+			["high usefulness (4.5)", 4.5, TONES.PRIMARY],
+			["medium usefulness (3.2)", 3.2, TONES.MEDIUM],
+			["low usefulness (2.1)", 2.1, TONES.LOW],
+		])("should return correct tone for %s", (_, value, expected) => {
+			expect(getUsefulnessTone(value)).toBe(expected);
 		});
 
-		it("should return chart-2 tone for medium usefulness (>= 3)", () => {
-			// Arrange
-			const mediumUsefulness = 3.2;
-
-			// Act
-			const result = getUsefulnessTone(mediumUsefulness);
-
-			// Assert
-			expect(result).toBe("text-[var(--chart-2)] dark:text-[var(--chart-2)]");
-		});
-
-		it("should return muted tone for low usefulness (< 3)", () => {
-			// Arrange
-			const lowUsefulness = 2.1;
-
-			// Act
-			const result = getUsefulnessTone(lowUsefulness);
-
-			// Assert
-			expect(result).toBe("text-[var(--muted-foreground)]");
-		});
-
-		it("should return muted tone for null value", () => {
-			// Arrange
-			const nullValue = null;
-
-			// Act
-			const result = getUsefulnessTone(nullValue);
-
-			// Assert
-			expect(result).toBe("text-muted-foreground");
-		});
-
-		it("should return muted tone for undefined value", () => {
-			// Arrange
-			const undefinedValue = undefined;
-
-			// Act
-			const result = getUsefulnessTone(undefinedValue);
-
-			// Assert
-			expect(result).toBe("text-muted-foreground");
+		it.each([
+			["null", null],
+			["undefined", undefined],
+		])("should return muted tone for %s value", (_, value) => {
+			expect(getUsefulnessTone(value)).toBe(TONES.MUTED);
 		});
 	});
 
 	describe("getCourseTypeDisplay", () => {
-		it("should return Ukrainian label for COMPULSORY type", () => {
-			// Arrange
-			const type = "COMPULSORY";
-
-			// Act
-			const result = getCourseTypeDisplay(type);
-
-			// Assert
-			expect(result).toBe("Обов'язковий");
-		});
-
-		it("should return Ukrainian label for ELECTIVE type", () => {
-			// Arrange
-			const type = "ELECTIVE";
-
-			// Act
-			const result = getCourseTypeDisplay(type);
-
-			// Assert
-			expect(result).toBe("Вибірковий");
-		});
-
-		it("should return Ukrainian label for PROF_ORIENTED type", () => {
-			// Arrange
-			const type = "PROF_ORIENTED";
-
-			// Act
-			const result = getCourseTypeDisplay(type);
-
-			// Assert
-			expect(result).toBe("Професійно орієнтований");
+		it.each([
+			["COMPULSORY", "Обов'язковий"],
+			["ELECTIVE", "Вибірковий"],
+			["PROF_ORIENTED", "Професійно орієнтований"],
+		])("should return Ukrainian label for %s type", (type, expected) => {
+			expect(getCourseTypeDisplay(type)).toBe(expected);
 		});
 
 		it("should return fallback for unknown type when provided", () => {
-			// Arrange
-			const unknownType = "UNKNOWN_TYPE";
-			const fallback = "Custom Label";
-
-			// Act
-			const result = getCourseTypeDisplay(unknownType, fallback);
-
-			// Assert
-			expect(result).toBe("Custom Label");
+			expect(getCourseTypeDisplay("UNKNOWN_TYPE", "Custom Label")).toBe(
+				"Custom Label",
+			);
 		});
 
 		it("should return original value for unknown type without fallback", () => {
-			// Arrange
-			const unknownType = "UNKNOWN_TYPE";
-
-			// Act
-			const result = getCourseTypeDisplay(unknownType);
-
-			// Assert
-			expect(result).toBe("UNKNOWN_TYPE");
+			expect(getCourseTypeDisplay("UNKNOWN_TYPE")).toBe("UNKNOWN_TYPE");
 		});
 	});
 
 	describe("getSemesterTermDisplay", () => {
-		it("should return Ukrainian label for FALL term", () => {
-			// Arrange
-			const term = "FALL";
-
-			// Act
-			const result = getSemesterTermDisplay(term);
-
-			// Assert
-			expect(result).toBe("Осінь");
-		});
-
-		it("should return Ukrainian label for SPRING term", () => {
-			// Arrange
-			const term = "SPRING";
-
-			// Act
-			const result = getSemesterTermDisplay(term);
-
-			// Assert
-			expect(result).toBe("Весна");
-		});
-
-		it("should return Ukrainian label for SUMMER term", () => {
-			// Arrange
-			const term = "SUMMER";
-
-			// Act
-			const result = getSemesterTermDisplay(term);
-
-			// Assert
-			expect(result).toBe("Літо");
-		});
-
-		it("should handle lowercase term by converting to uppercase", () => {
-			// Arrange
-			const lowercaseTerm = "fall";
-
-			// Act
-			const result = getSemesterTermDisplay(lowercaseTerm);
-
-			// Assert
-			expect(result).toBe("Осінь");
+		it.each([
+			["FALL", "Осінь"],
+			["SPRING", "Весна"],
+			["SUMMER", "Літо"],
+			["fall", "Осінь"], // lowercase handling
+		])("should return Ukrainian label for %s term", (term, expected) => {
+			expect(getSemesterTermDisplay(term)).toBe(expected);
 		});
 
 		it("should return fallback for unknown term when provided", () => {
-			// Arrange
-			const unknownTerm = "WINTER";
-			const fallback = "Зима";
-
-			// Act
-			const result = getSemesterTermDisplay(unknownTerm, fallback);
-
-			// Assert
-			expect(result).toBe("Зима");
+			expect(getSemesterTermDisplay("WINTER", "Зима")).toBe("Зима");
 		});
 
 		it("should return original value for unknown term without fallback", () => {
-			// Arrange
-			const unknownTerm = "WINTER";
-
-			// Act
-			const result = getSemesterTermDisplay(unknownTerm);
-
-			// Assert
-			expect(result).toBe("WINTER");
+			expect(getSemesterTermDisplay("WINTER")).toBe("WINTER");
 		});
 	});
 
@@ -396,164 +205,48 @@ describe("courseFormatting", () => {
 	});
 
 	describe("getStatusLabel", () => {
-		it("should return Ukrainian label for PLANNED status", () => {
-			// Arrange
-			const status = "PLANNED";
-
-			// Act
-			const result = getStatusLabel(status);
-
-			// Assert
-			expect(result).toBe("Заплановано");
-		});
-
-		it("should return Ukrainian label for ACTIVE status", () => {
-			// Arrange
-			const status = "ACTIVE";
-
-			// Act
-			const result = getStatusLabel(status);
-
-			// Assert
-			expect(result).toBe("Активний");
-		});
-
-		it("should return Ukrainian label for FINISHED status", () => {
-			// Arrange
-			const status = "FINISHED";
-
-			// Act
-			const result = getStatusLabel(status);
-
-			// Assert
-			expect(result).toBe("Завершено");
+		it.each([
+			["PLANNED", "Заплановано"],
+			["ACTIVE", "Активний"],
+			["FINISHED", "Завершено"],
+		])("should return Ukrainian label for %s status", (status, expected) => {
+			expect(getStatusLabel(status)).toBe(expected);
 		});
 
 		it("should return original value for unknown status", () => {
-			// Arrange
-			const unknownStatus = "UNKNOWN_STATUS";
-
-			// Act
-			const result = getStatusLabel(unknownStatus);
-
-			// Assert
-			expect(result).toBe("UNKNOWN_STATUS");
+			expect(getStatusLabel("UNKNOWN_STATUS")).toBe("UNKNOWN_STATUS");
 		});
 	});
 
 	describe("getStatusVariant", () => {
-		it("should return outline variant for PLANNED status", () => {
-			// Arrange
-			const status = "PLANNED";
-
-			// Act
-			const result = getStatusVariant(status);
-
-			// Assert
-			expect(result).toBe("outline");
-		});
-
-		it("should return default variant for ACTIVE status", () => {
-			// Arrange
-			const status = "ACTIVE";
-
-			// Act
-			const result = getStatusVariant(status);
-
-			// Assert
-			expect(result).toBe("default");
-		});
-
-		it("should return secondary variant for FINISHED status", () => {
-			// Arrange
-			const status = "FINISHED";
-
-			// Act
-			const result = getStatusVariant(status);
-
-			// Assert
-			expect(result).toBe("secondary");
-		});
-
-		it("should return default variant for unknown status", () => {
-			// Arrange
-			const unknownStatus = "UNKNOWN_STATUS";
-
-			// Act
-			const result = getStatusVariant(unknownStatus);
-
-			// Assert
-			expect(result).toBe("default");
+		it.each([
+			["PLANNED", "outline"],
+			["ACTIVE", "default"],
+			["FINISHED", "secondary"],
+			["UNKNOWN_STATUS", "default"],
+		])("should return correct variant for %s status", (status, expected) => {
+			expect(getStatusVariant(status)).toBe(expected);
 		});
 	});
 
 	describe("getTypeKindLabel", () => {
 		it("should return Ukrainian label for COMPULSORY type", () => {
-			// Arrange
-			const typeKind = "COMPULSORY";
-
-			// Act
-			const result = getTypeKindLabel(typeKind);
-
-			// Assert
-			expect(result).toBe("Обов'язковий");
+			expect(getTypeKindLabel("COMPULSORY")).toBe("Обов'язковий");
 		});
 
 		it("should return original value for unknown type", () => {
-			// Arrange
-			const unknownType = "UNKNOWN_TYPE";
-
-			// Act
-			const result = getTypeKindLabel(unknownType);
-
-			// Assert
-			expect(result).toBe("UNKNOWN_TYPE");
+			expect(getTypeKindLabel("UNKNOWN_TYPE")).toBe("UNKNOWN_TYPE");
 		});
 	});
 
 	describe("getTypeKindVariant", () => {
-		it("should return default variant for COMPULSORY type", () => {
-			// Arrange
-			const typeKind = "COMPULSORY";
-
-			// Act
-			const result = getTypeKindVariant(typeKind);
-
-			// Assert
-			expect(result).toBe("default");
-		});
-
-		it("should return secondary variant for ELECTIVE type", () => {
-			// Arrange
-			const typeKind = "ELECTIVE";
-
-			// Act
-			const result = getTypeKindVariant(typeKind);
-
-			// Assert
-			expect(result).toBe("secondary");
-		});
-
-		it("should return outline variant for PROF_ORIENTED type", () => {
-			// Arrange
-			const typeKind = "PROF_ORIENTED";
-
-			// Act
-			const result = getTypeKindVariant(typeKind);
-
-			// Assert
-			expect(result).toBe("outline");
-		});
-
-		it("should return outline variant for unknown type", () => {
-			// Arrange
-			const unknownType = "UNKNOWN_TYPE";
-
-			// Act
-			const result = getTypeKindVariant(unknownType);
-
-			// Assert
-			expect(result).toBe("outline");
+		it.each([
+			["COMPULSORY", "default"],
+			["ELECTIVE", "secondary"],
+			["PROF_ORIENTED", "outline"],
+			["UNKNOWN_TYPE", "outline"],
+		])("should return correct variant for %s type", (typeKind, expected) => {
+			expect(getTypeKindVariant(typeKind)).toBe(expected);
 		});
 	});
 

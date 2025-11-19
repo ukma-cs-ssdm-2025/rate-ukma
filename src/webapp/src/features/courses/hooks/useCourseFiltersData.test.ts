@@ -4,24 +4,105 @@ import { describe, expect, it } from "vitest";
 
 import { createMockFilterOptions } from "@/test-utils/factories";
 import { useCourseFiltersData } from "./useCourseFiltersData";
+import type { FilterState } from "../filterSchema";
 import { DEFAULT_FILTERS } from "../filterSchema";
+
+// Shared mock data
+const MOCK_FACULTIES = {
+	FI: { id: "fac-1", name: "Факультет інформатики" },
+	FEN: { id: "fac-2", name: "Факультет економічних наук" },
+} as const;
+
+const MOCK_DEPARTMENTS = {
+	PROGRAMMING: {
+		id: "dept-1",
+		name: "Кафедра мультимедійних систем",
+		faculty_id: "fac-1",
+		faculty_name: "ФІ",
+	},
+	ECONOMICS: {
+		id: "dept-2",
+		name: "Кафедра фінансів",
+		faculty_id: "fac-2",
+		faculty_name: "ФЕН",
+	},
+	DATABASES: {
+		id: "dept-3",
+		name: "Кафедра інформаційних систем",
+		faculty_id: "fac-1",
+		faculty_name: "ФІ",
+	},
+} as const;
+
+const MOCK_INSTRUCTORS = {
+	IVAN: { id: "instructor-1", name: "Іван Іванович" },
+} as const;
+
+const MOCK_SPECIALITIES = {
+	SOFTWARE: {
+		id: "spec-1",
+		name: "Інженерія програмного забезпечення",
+		faculty_id: "fac-1",
+		faculty_name: "ФІ",
+	},
+} as const;
+
+const MOCK_SEMESTER_TERMS = {
+	FALL: { value: "FALL", label: "Осінь" },
+	SPRING: { value: "SPRING", label: "Весна" },
+} as const;
+
+const MOCK_SEMESTER_YEARS = {
+	Y2024: { value: "2024", label: "2024" },
+	Y2025: { value: "2025", label: "2025" },
+} as const;
+
+const MOCK_COURSE_TYPES = {
+	MANDATORY: { value: "MANDATORY", label: "Обов'язковий" },
+} as const;
+
+/**
+ * Helper to render useCourseFiltersData hook with form
+ */
+function renderFiltersHook(
+	defaultValues: Partial<FilterState> = {},
+	filterOptions?: ReturnType<typeof createMockFilterOptions>,
+) {
+	const { result: formResult } = renderHook(() =>
+		useForm({ defaultValues: { ...DEFAULT_FILTERS, ...defaultValues } }),
+	);
+
+	return renderHook(() =>
+		useCourseFiltersData({
+			form: formResult.current,
+			filterOptions: filterOptions ?? createMockFilterOptions(),
+		}),
+	);
+}
+
+/**
+ * Helper to render hook with explicitly undefined filter options
+ */
+function renderFiltersHookWithoutOptions(
+	defaultValues: Partial<FilterState> = {},
+) {
+	const { result: formResult } = renderHook(() =>
+		useForm({ defaultValues: { ...DEFAULT_FILTERS, ...defaultValues } }),
+	);
+
+	return renderHook(() =>
+		useCourseFiltersData({
+			form: formResult.current,
+			filterOptions: undefined,
+		}),
+	);
+}
 
 describe("useCourseFiltersData", () => {
 	describe("Range Filters", () => {
 		it("should return difficulty and usefulness range configurations", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({ defaultValues: DEFAULT_FILTERS }),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook();
 
 			// Assert
 			expect(result.current.rangeFilters).toHaveLength(2);
@@ -32,24 +113,10 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should include current filter values in range configs", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						difficultyRange: [2.0, 4.0] as [number, number],
-					},
-				}),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({
+				difficultyRange: [2.0, 4.0] as [number, number],
+			});
 
 			// Assert
 			const difficultyFilter = result.current.rangeFilters.find(
@@ -59,19 +126,8 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should include range bounds in configurations", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({ defaultValues: DEFAULT_FILTERS }),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook();
 
 			// Assert
 			const difficultyFilter = result.current.rangeFilters.find(
@@ -81,19 +137,8 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should include captions for range filters", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({ defaultValues: DEFAULT_FILTERS }),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook();
 
 			// Assert
 			const difficultyFilter = result.current.rangeFilters.find(
@@ -110,19 +155,8 @@ describe("useCourseFiltersData", () => {
 
 	describe("Select Filters", () => {
 		it("should return all select filter configurations", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({ defaultValues: DEFAULT_FILTERS }),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook();
 
 			// Assert
 			expect(result.current.selectFilters).toHaveLength(7);
@@ -140,23 +174,12 @@ describe("useCourseFiltersData", () => {
 
 		it("should map filter options to select options", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({ defaultValues: DEFAULT_FILTERS }),
-			);
 			const filterOptions = createMockFilterOptions({
-				faculties: [
-					{ id: "fac-1", name: "Факультет інформаційних технологій" },
-					{ id: "fac-2", name: "Економічний факультет" },
-				],
+				faculties: [MOCK_FACULTIES.FI, MOCK_FACULTIES.FEN],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({}, filterOptions);
 
 			// Assert
 			const facultyFilter = result.current.selectFilters.find(
@@ -165,29 +188,13 @@ describe("useCourseFiltersData", () => {
 			expect(facultyFilter?.options).toHaveLength(2);
 			expect(facultyFilter?.options[0]).toEqual({
 				value: "fac-1",
-				label: "ФІТ - Факультет інформаційних технологій",
+				label: "ФІ - Факультет інформатики",
 			});
 		});
 
 		it("should include current filter values in select configs", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						faculty: "fac-1",
-					},
-				}),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({ faculty: "fac-1" });
 
 			// Assert
 			const facultyFilter = result.current.selectFilters.find(
@@ -197,19 +204,8 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should handle empty filter options gracefully", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({ defaultValues: DEFAULT_FILTERS }),
-			);
-			const filterOptions = undefined;
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHookWithoutOptions();
 
 			// Assert
 			result.current.selectFilters.forEach((filter) => {
@@ -221,33 +217,12 @@ describe("useCourseFiltersData", () => {
 	describe("Department Filtering by Faculty", () => {
 		it("should show all departments when no faculty is selected", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({ defaultValues: DEFAULT_FILTERS }),
-			);
 			const filterOptions = createMockFilterOptions({
-				departments: [
-					{
-						id: "dept-1",
-						name: "Кафедра програмування",
-						faculty_id: "fac-1",
-						faculty_name: "ФІТ",
-					},
-					{
-						id: "dept-2",
-						name: "Кафедра економіки",
-						faculty_id: "fac-2",
-						faculty_name: "ЕФ",
-					},
-				],
+				departments: [MOCK_DEPARTMENTS.PROGRAMMING, MOCK_DEPARTMENTS.ECONOMICS],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({}, filterOptions);
 
 			// Assert
 			const departmentFilter = result.current.selectFilters.find(
@@ -258,44 +233,16 @@ describe("useCourseFiltersData", () => {
 
 		it("should filter departments by selected faculty", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						faculty: "fac-1",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
 				departments: [
-					{
-						id: "dept-1",
-						name: "Кафедра програмування",
-						faculty_id: "fac-1",
-						faculty_name: "ФІТ",
-					},
-					{
-						id: "dept-2",
-						name: "Кафедра економіки",
-						faculty_id: "fac-2",
-						faculty_name: "ЕФ",
-					},
-					{
-						id: "dept-3",
-						name: "Кафедра баз даних",
-						faculty_id: "fac-1",
-						faculty_name: "ФІТ",
-					},
+					MOCK_DEPARTMENTS.PROGRAMMING,
+					MOCK_DEPARTMENTS.ECONOMICS,
+					MOCK_DEPARTMENTS.DATABASES,
 				],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({ faculty: "fac-1" }, filterOptions);
 
 			// Assert
 			const departmentFilter = result.current.selectFilters.find(
@@ -310,89 +257,45 @@ describe("useCourseFiltersData", () => {
 
 		it("should show department name without faculty when faculty is selected", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						faculty: "fac-1",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				departments: [
-					{
-						id: "dept-1",
-						name: "Кафедра програмування",
-						faculty_id: "fac-1",
-						faculty_name: "ФІТ",
-					},
-				],
+				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
-
-			// Assert
-			const departmentFilter = result.current.selectFilters.find(
-				(f) => f.key === "department",
-			);
-			expect(departmentFilter?.options[0].label).toBe("Кафедра програмування");
-		});
-
-		it("should show department with faculty name when no faculty selected", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({ defaultValues: DEFAULT_FILTERS }),
-			);
-			const filterOptions = createMockFilterOptions({
-				departments: [
-					{
-						id: "dept-1",
-						name: "Кафедра програмування",
-						faculty_id: "fac-1",
-						faculty_name: "ФІТ",
-					},
-				],
-			});
-
-			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({ faculty: "fac-1" }, filterOptions);
 
 			// Assert
 			const departmentFilter = result.current.selectFilters.find(
 				(f) => f.key === "department",
 			);
 			expect(departmentFilter?.options[0].label).toBe(
-				"Кафедра програмування — ФІТ",
+				"Кафедра мультимедійних систем",
+			);
+		});
+
+		it("should show department with faculty name when no faculty selected", () => {
+			// Arrange
+			const filterOptions = createMockFilterOptions({
+				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+			});
+
+			// Act
+			const { result } = renderFiltersHook({}, filterOptions);
+
+			// Assert
+			const departmentFilter = result.current.selectFilters.find(
+				(f) => f.key === "department",
+			);
+			expect(departmentFilter?.options[0].label).toBe(
+				"Кафедра мультимедійних систем — ФІ",
 			);
 		});
 	});
 
 	describe("Active Badges", () => {
 		it("should show no badges when using default filters", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({ defaultValues: DEFAULT_FILTERS }),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook();
 
 			// Assert
 			expect(result.current.activeBadges).toHaveLength(0);
@@ -400,24 +303,8 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should show badge for search query", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						searchQuery: "React",
-					},
-				}),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({ searchQuery: "React" });
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
@@ -428,24 +315,10 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should show badge for modified difficulty range", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						difficultyRange: [2.0, 4.0] as [number, number],
-					},
-				}),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({
+				difficultyRange: [2.0, 4.0] as [number, number],
+			});
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
@@ -455,24 +328,10 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should not show badge for default difficulty range", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						difficultyRange: [1, 5] as [number, number],
-					},
-				}),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({
+				difficultyRange: [1, 5] as [number, number],
+			});
 
 			// Assert
 			const difficultyBadge = result.current.activeBadges.find(
@@ -482,24 +341,10 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should show badge for modified usefulness range", () => {
-			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						usefulnessRange: [3.0, 5.0] as [number, number],
-					},
-				}),
-			);
-			const filterOptions = createMockFilterOptions();
-
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({
+				usefulnessRange: [3.0, 5.0] as [number, number],
+			});
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
@@ -510,94 +355,49 @@ describe("useCourseFiltersData", () => {
 
 		it("should show badge for selected faculty", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						faculty: "faculty-1",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				faculties: [
-					{
-						id: "faculty-1",
-						name: "Факультет інформаційних технологій",
-					},
-				],
+				faculties: [MOCK_FACULTIES.FI],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
-			);
+			const { result } = renderFiltersHook({ faculty: "fac-1" }, filterOptions);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "faculty",
-				label: "Факультет: ФІТ · Факультет інформаційних технологій",
+				label: "Факультет: ФІ · Факультет інформатики",
 			});
 		});
 
 		it("should show badge for selected department", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						department: "dept-1",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				departments: [
-					{
-						id: "dept-1",
-						name: "Кафедра програмування",
-						faculty_id: "fac-1",
-						faculty_name: "ФІТ",
-					},
-				],
+				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
+			const { result } = renderFiltersHook(
+				{ department: "dept-1" },
+				filterOptions,
 			);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "department",
-				label: "Кафедра: Кафедра програмування",
+				label: "Кафедра: Кафедра мультимедійних систем",
 			});
 		});
 
 		it("should show badge for selected instructor", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						instructor: "instructor-1",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				instructors: [{ id: "instructor-1", name: "Іван Іванович" }],
+				instructors: [MOCK_INSTRUCTORS.IVAN],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
+			const { result } = renderFiltersHook(
+				{ instructor: "instructor-1" },
+				filterOptions,
 			);
 
 			// Assert
@@ -609,26 +409,15 @@ describe("useCourseFiltersData", () => {
 
 		it("should show combined semester badge when both year and term selected", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						semesterYear: "2024",
-						semesterTerm: "FALL",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				semester_years: [{ value: "2024", label: "2024" }],
-				semester_terms: [{ value: "FALL", label: "Осінь" }],
+				semester_years: [MOCK_SEMESTER_YEARS.Y2024],
+				semester_terms: [MOCK_SEMESTER_TERMS.FALL],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
+			const { result } = renderFiltersHook(
+				{ semesterYear: "2024", semesterTerm: "FALL" },
+				filterOptions,
 			);
 
 			// Assert
@@ -640,24 +429,14 @@ describe("useCourseFiltersData", () => {
 
 		it("should show separate term badge when only term selected", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						semesterTerm: "SPRING",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				semester_terms: [{ value: "SPRING", label: "Весна" }],
+				semester_terms: [MOCK_SEMESTER_TERMS.SPRING],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
+			const { result } = renderFiltersHook(
+				{ semesterTerm: "SPRING" },
+				filterOptions,
 			);
 
 			// Assert
@@ -669,24 +448,14 @@ describe("useCourseFiltersData", () => {
 
 		it("should show separate year badge when only year selected", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						semesterYear: "2025",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				semester_years: [{ value: "2025", label: "2025" }],
+				semester_years: [MOCK_SEMESTER_YEARS.Y2025],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
+			const { result } = renderFiltersHook(
+				{ semesterYear: "2025" },
+				filterOptions,
 			);
 
 			// Assert
@@ -698,24 +467,14 @@ describe("useCourseFiltersData", () => {
 
 		it("should show badge for selected course type", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						courseType: "MANDATORY",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				course_types: [{ value: "MANDATORY", label: "Обов'язковий" }],
+				course_types: [MOCK_COURSE_TYPES.MANDATORY],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
+			const { result } = renderFiltersHook(
+				{ courseType: "MANDATORY" },
+				filterOptions,
 			);
 
 			// Assert
@@ -727,31 +486,14 @@ describe("useCourseFiltersData", () => {
 
 		it("should show badge for selected speciality", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						speciality: "spec-1",
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				specialities: [
-					{
-						id: "spec-1",
-						name: "Інженерія програмного забезпечення",
-						faculty_id: "faculty-1",
-						faculty_name: "ФІТ",
-					},
-				],
+				specialities: [MOCK_SPECIALITIES.SOFTWARE],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
+			const { result } = renderFiltersHook(
+				{ speciality: "spec-1" },
+				filterOptions,
 			);
 
 			// Assert
@@ -763,31 +505,18 @@ describe("useCourseFiltersData", () => {
 
 		it("should show multiple badges when multiple filters applied", () => {
 			// Arrange
-			const { result: formResult } = renderHook(() =>
-				useForm({
-					defaultValues: {
-						...DEFAULT_FILTERS,
-						searchQuery: "Database",
-						faculty: "faculty-1",
-						difficultyRange: [2.0, 4.0] as [number, number],
-					},
-				}),
-			);
 			const filterOptions = createMockFilterOptions({
-				faculties: [
-					{
-						id: "faculty-1",
-						name: "Факультет інформаційних технологій",
-					},
-				],
+				faculties: [MOCK_FACULTIES.FI],
 			});
 
 			// Act
-			const { result } = renderHook(() =>
-				useCourseFiltersData({
-					form: formResult.current,
-					filterOptions,
-				}),
+			const { result } = renderFiltersHook(
+				{
+					searchQuery: "Database",
+					faculty: "fac-1",
+					difficultyRange: [2.0, 4.0] as [number, number],
+				},
+				filterOptions,
 			);
 
 			// Assert
