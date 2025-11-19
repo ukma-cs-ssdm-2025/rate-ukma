@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useForm } from "react-hook-form";
 import { describe, expect, it, vi } from "vitest";
@@ -6,6 +6,16 @@ import { describe, expect, it, vi } from "vitest";
 import { createMockFilterOptions } from "@/test-utils/factories";
 import { CourseFiltersPanel } from "./CourseFiltersPanel";
 import { DEFAULT_FILTERS } from "../filterSchema";
+
+function assertElement(
+	element: Element | null | undefined,
+	message: string,
+): HTMLElement {
+	if (!element) {
+		throw new Error(message);
+	}
+	return element as HTMLElement;
+}
 
 // Helper component to render CourseFiltersPanel with form
 function TestWrapper({
@@ -133,8 +143,8 @@ describe("CourseFiltersPanel", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
-					{ id: "fac-1", name: "Факультет інформаційних технологій" },
-					{ id: "fac-2", name: "Економічний факультет" },
+					{ id: "fac-1", name: "Факультет інформатики" },
+					{ id: "fac-2", name: "Факультет економічних наук" },
 				],
 			});
 
@@ -145,9 +155,11 @@ describe("CourseFiltersPanel", () => {
 			// Verify faculty select is rendered
 			const facultyLabel = screen.getByText("Факультет");
 			expect(facultyLabel).toBeInTheDocument();
-			const selectContainer = facultyLabel.closest(".space-y-3");
-			expect(selectContainer).toBeInTheDocument();
-			const facultySelect = within(selectContainer!).getByRole("combobox");
+			const selectContainer = assertElement(
+				facultyLabel.closest(".space-y-3"),
+				"Faculty select container not found",
+			);
+			const facultySelect = within(selectContainer).getByRole("combobox");
 			expect(facultySelect).toBeInTheDocument();
 			expect(facultySelect).not.toBeDisabled();
 		});
@@ -168,9 +180,11 @@ describe("CourseFiltersPanel", () => {
 			// Verify semester term select is rendered
 			const termLabel = screen.getByText("Семестровий період");
 			expect(termLabel).toBeInTheDocument();
-			const selectContainer = termLabel.closest(".space-y-3");
-			expect(selectContainer).toBeInTheDocument();
-			const termSelect = within(selectContainer!).getByRole("combobox");
+			const selectContainer = assertElement(
+				termLabel.closest(".space-y-3"),
+				"Semester term select container not found",
+			);
+			const termSelect = within(selectContainer).getByRole("combobox");
 			expect(termSelect).toBeInTheDocument();
 			expect(termSelect).not.toBeDisabled();
 		});
@@ -186,9 +200,11 @@ describe("CourseFiltersPanel", () => {
 
 			// Assert
 			const facultyLabel = screen.getByText("Факультет");
-			const selectContainer = facultyLabel.closest(".space-y-3");
-			expect(selectContainer).toBeInTheDocument();
-			const facultySelect = within(selectContainer!).getByRole("combobox");
+			const selectContainer = assertElement(
+				facultyLabel.closest(".space-y-3"),
+				"Faculty select container not found",
+			);
+			const facultySelect = within(selectContainer).getByRole("combobox");
 			expect(facultySelect).toBeDisabled();
 		});
 	});
@@ -255,7 +271,7 @@ describe("CourseFiltersPanel", () => {
 				faculties: [
 					{
 						id: "faculty-1",
-						name: "Факультет інформаційних технологій",
+						name: "Факультет інформатики",
 					},
 				],
 			});
@@ -273,7 +289,7 @@ describe("CourseFiltersPanel", () => {
 
 			// Assert
 			expect(
-				screen.getByText("Факультет: ФІТ · Факультет інформаційних технологій"),
+				screen.getByText("Факультет: ФІ · Факультет інформатики"),
 			).toBeInTheDocument();
 		});
 
@@ -304,7 +320,7 @@ describe("CourseFiltersPanel", () => {
 				faculties: [
 					{
 						id: "faculty-1",
-						name: "Факультет інформаційних технологій",
+						name: "Факультет інформатики",
 					},
 				],
 			});
@@ -323,10 +339,12 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			const badgesSection = screen.getByText("Активні фільтри:").parentElement;
-			expect(badgesSection).toBeInTheDocument();
+			const badgesSection = assertElement(
+				screen.getByText("Активні фільтри:").parentElement,
+				"Badges section not found",
+			);
 			// Should have 3 badges
-			const badges = within(badgesSection!).getAllByText(/:/);
+			const badges = within(badgesSection).getAllByText(/:/);
 			expect(badges.length).toBeGreaterThanOrEqual(3);
 		});
 	});
@@ -409,9 +427,11 @@ describe("CourseFiltersPanel", () => {
 			// Verify department select is rendered and not disabled
 			const deptLabel = screen.getByText("Кафедра");
 			expect(deptLabel).toBeInTheDocument();
-			const selectContainer = deptLabel.closest(".space-y-3");
-			expect(selectContainer).toBeInTheDocument();
-			const deptSelect = within(selectContainer!).getByRole("combobox");
+			const selectContainer = assertElement(
+				deptLabel.closest(".space-y-3"),
+				"Department select container not found",
+			);
+			const deptSelect = within(selectContainer).getByRole("combobox");
 			expect(deptSelect).toBeInTheDocument();
 			expect(deptSelect).not.toBeDisabled();
 		});
@@ -419,9 +439,7 @@ describe("CourseFiltersPanel", () => {
 		it("should render department select when faculty is selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				faculties: [
-					{ id: "fac-1", name: "Факультет інформаційних технологій" },
-				],
+				faculties: [{ id: "fac-1", name: "Факультет інформатики" }],
 				departments: [
 					{
 						id: "dept-1",
@@ -453,9 +471,11 @@ describe("CourseFiltersPanel", () => {
 			// Verify department select is rendered (filtering logic is tested in hook tests)
 			const deptLabel = screen.getByText("Кафедра");
 			expect(deptLabel).toBeInTheDocument();
-			const selectContainer = deptLabel.closest(".space-y-3");
-			expect(selectContainer).toBeInTheDocument();
-			const deptSelect = within(selectContainer!).getByRole("combobox");
+			const selectContainer = assertElement(
+				deptLabel.closest(".space-y-3"),
+				"Department select container not found",
+			);
+			const deptSelect = within(selectContainer).getByRole("combobox");
 			expect(deptSelect).toBeInTheDocument();
 			expect(deptSelect).not.toBeDisabled();
 		});

@@ -740,6 +740,7 @@ describe("useCourseFiltersData", () => {
 					{
 						id: "spec-1",
 						name: "Інженерія програмного забезпечення",
+						faculty_id: "faculty-1",
 						faculty_name: "ФІТ",
 					},
 				],

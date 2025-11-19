@@ -2,14 +2,14 @@ import { faker } from "@faker-js/faker";
 
 import type {
 	CourseList,
-	FilterOptionCourseType,
-	FilterOptionDepartment,
-	FilterOptionFaculty,
-	FilterOptionInstructor,
-	FilterOptionSemesterTerm,
-	FilterOptionSemesterYear,
-	FilterOptionSpeciality,
+	CourseTypeOption,
+	DepartmentOption,
+	FacultyOption,
 	FilterOptions,
+	InstructorOption,
+	SemesterTermOption,
+	SemesterYearOption,
+	SpecialityOption,
 } from "@/lib/api/generated";
 
 /**
@@ -18,16 +18,21 @@ import type {
  */
 export function createMockCourse(overrides?: Partial<CourseList>): CourseList {
 	const facultyNames = [
-		"Факультет інформаційних технологій",
-		"Економічний факультет",
-		"Філософський факультет",
-		"Історичний факультет",
-		"Фізичний факультет",
+		"Факультет інформатики",
+		"Факультет економічних наук",
+		"Факультет гуманітарних наук",
+		"Факультет правничих наук",
+		"Факультет природничих наук",
 	];
 
 	return {
 		id: faker.string.uuid(),
 		title: faker.lorem.words(3),
+		status: faker.helpers.arrayElement([
+			"PLANNED",
+			"ACTIVE",
+			"FINISHED",
+		] as const),
 		faculty_name: faker.helpers.arrayElement(facultyNames),
 		avg_difficulty: faker.number.float({ min: 1, max: 5, fractionDigits: 2 }),
 		avg_usefulness: faker.number.float({
@@ -51,8 +56,8 @@ export function createMockCourses(count: number): CourseList[] {
  * Factory for creating mock faculty option
  */
 export function createMockFaculty(
-	overrides?: Partial<FilterOptionFaculty>,
-): FilterOptionFaculty {
+	overrides?: Partial<FacultyOption>,
+): FacultyOption {
 	return {
 		id: faker.string.uuid(),
 		name: faker.lorem.words(3),
@@ -64,8 +69,8 @@ export function createMockFaculty(
  * Factory for creating mock department option
  */
 export function createMockDepartment(
-	overrides?: Partial<FilterOptionDepartment>,
-): FilterOptionDepartment {
+	overrides?: Partial<DepartmentOption>,
+): DepartmentOption {
 	return {
 		id: faker.string.uuid(),
 		name: faker.lorem.words(3),
@@ -79,8 +84,8 @@ export function createMockDepartment(
  * Factory for creating mock instructor option
  */
 export function createMockInstructor(
-	overrides?: Partial<FilterOptionInstructor>,
-): FilterOptionInstructor {
+	overrides?: Partial<InstructorOption>,
+): InstructorOption {
 	return {
 		id: faker.string.uuid(),
 		name: faker.person.fullName(),
@@ -92,8 +97,8 @@ export function createMockInstructor(
  * Factory for creating mock semester term option
  */
 export function createMockSemesterTerm(
-	overrides?: Partial<FilterOptionSemesterTerm>,
-): FilterOptionSemesterTerm {
+	overrides?: Partial<SemesterTermOption>,
+): SemesterTermOption {
 	return {
 		value: faker.helpers.arrayElement(["FALL", "SPRING"]),
 		label: faker.helpers.arrayElement(["Осінь", "Весна"]),
@@ -105,8 +110,8 @@ export function createMockSemesterTerm(
  * Factory for creating mock semester year option
  */
 export function createMockSemesterYear(
-	overrides?: Partial<FilterOptionSemesterYear>,
-): FilterOptionSemesterYear {
+	overrides?: Partial<SemesterYearOption>,
+): SemesterYearOption {
 	const year = faker.number.int({ min: 2020, max: 2025 }).toString();
 	return {
 		value: year,
@@ -119,8 +124,8 @@ export function createMockSemesterYear(
  * Factory for creating mock course type option
  */
 export function createMockCourseType(
-	overrides?: Partial<FilterOptionCourseType>,
-): FilterOptionCourseType {
+	overrides?: Partial<CourseTypeOption>,
+): CourseTypeOption {
 	return {
 		value: faker.helpers.arrayElement(["MANDATORY", "ELECTIVE", "FREE_CHOICE"]),
 		label: faker.helpers.arrayElement([
@@ -136,11 +141,12 @@ export function createMockCourseType(
  * Factory for creating mock speciality option
  */
 export function createMockSpeciality(
-	overrides?: Partial<FilterOptionSpeciality>,
-): FilterOptionSpeciality {
+	overrides?: Partial<SpecialityOption>,
+): SpecialityOption {
 	return {
 		id: faker.string.uuid(),
 		name: faker.lorem.words(2),
+		faculty_id: faker.string.uuid(),
 		faculty_name: faker.lorem.words(2),
 		...overrides,
 	};
@@ -156,25 +162,25 @@ export function createMockFilterOptions(
 		faculties: [
 			createMockFaculty({
 				id: "faculty-1",
-				name: "Факультет інформаційних технологій",
+				name: "Факультет інформатики",
 			}),
 			createMockFaculty({
 				id: "faculty-2",
-				name: "Економічний факультет",
+				name: "Факультет економічних наук",
 			}),
 		],
 		departments: [
 			createMockDepartment({
 				id: "dept-1",
-				name: "Кафедра програмування",
+				name: "Кафедра мультимедійних систем",
 				faculty_id: "faculty-1",
-				faculty_name: "Факультет інформаційних технологій",
+				faculty_name: "Факультет інформатики",
 			}),
 			createMockDepartment({
 				id: "dept-2",
-				name: "Кафедра економіки",
+				name: "Кафедра фінансів",
 				faculty_id: "faculty-2",
-				faculty_name: "Економічний факультет",
+				faculty_name: "Факультет економічних наук",
 			}),
 		],
 		instructors: [
@@ -197,12 +203,14 @@ export function createMockFilterOptions(
 			createMockSpeciality({
 				id: "spec-1",
 				name: "Інженерія програмного забезпечення",
-				faculty_name: "Факультет інформаційних технологій",
+				faculty_id: "faculty-1",
+				faculty_name: "Факультет інформатики",
 			}),
 			createMockSpeciality({
 				id: "spec-2",
-				name: "Економіка підприємства",
-				faculty_name: "Економічний факультет",
+				name: "Економіка",
+				faculty_id: "faculty-2",
+				faculty_name: "Факультет економічних наук",
 			}),
 		],
 		...overrides,
