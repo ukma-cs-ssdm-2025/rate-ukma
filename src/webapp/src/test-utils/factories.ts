@@ -99,9 +99,14 @@ export function createMockInstructor(
 export function createMockSemesterTerm(
 	overrides?: Partial<SemesterTermOption>,
 ): SemesterTermOption {
+	const terms = [
+		{ value: "FALL", label: "Осінь" },
+		{ value: "SPRING", label: "Весна" },
+	] as const;
+	const term = faker.helpers.arrayElement(terms);
 	return {
-		value: faker.helpers.arrayElement(["FALL", "SPRING"]),
-		label: faker.helpers.arrayElement(["Осінь", "Весна"]),
+		value: term.value,
+		label: term.label,
 		...overrides,
 	};
 }
@@ -126,13 +131,15 @@ export function createMockSemesterYear(
 export function createMockCourseType(
 	overrides?: Partial<CourseTypeOption>,
 ): CourseTypeOption {
+	const courseTypes = [
+		{ value: "MANDATORY", label: "Обов'язковий" },
+		{ value: "ELECTIVE", label: "Вибірковий" },
+		{ value: "FREE_CHOICE", label: "Вільного вибору" },
+	] as const;
+	const courseType = faker.helpers.arrayElement(courseTypes);
 	return {
-		value: faker.helpers.arrayElement(["MANDATORY", "ELECTIVE", "FREE_CHOICE"]),
-		label: faker.helpers.arrayElement([
-			"Обов'язковий",
-			"Вибірковий",
-			"Вільного вибору",
-		]),
+		value: courseType.value,
+		label: courseType.label,
 		...overrides,
 	};
 }

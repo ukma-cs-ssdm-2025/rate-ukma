@@ -208,13 +208,15 @@ describe("CoursesTable", () => {
 				<CoursesTable
 					{...defaultProps}
 					pagination={pagination}
-					data={createMockCourse() ? [createMockCourse()] : []}
+					data={[createMockCourse()]}
 				/>,
 			);
 
 			// Assert
-			// Pagination should reflect page 2 (this is visible in pagination controls)
-			// Note: Exact assertion depends on DataTable pagination UI
+			// Table should render with pagination data provided
+			expect(screen.getByRole("table")).toBeInTheDocument();
+			// Course data should be displayed (not skeleton/empty state)
+			expect(screen.queryByText("Курси не знайдено")).not.toBeInTheDocument();
 		});
 
 		it("should call onFiltersChange with correct page when pagination changes", async () => {
@@ -239,21 +241,18 @@ describe("CoursesTable", () => {
 			);
 
 			// Act
-			// Find and click next page button (depends on DataTable implementation)
-			const nextButton = screen.queryByRole("button", { name: /next/i });
-			if (nextButton) {
-				await user.click(nextButton);
+			const nextButton = screen.getByRole("button", { name: /next/i });
+			await user.click(nextButton);
 
-				// Assert
-				await waitFor(() => {
-					expect(onFiltersChange).toHaveBeenCalledWith(
-						expect.objectContaining({
-							page: 2,
-							page_size: 20,
-						}),
-					);
-				});
-			}
+			// Assert
+			await waitFor(() => {
+				expect(onFiltersChange).toHaveBeenCalledWith(
+					expect.objectContaining({
+						page: 2,
+						page_size: 20,
+					}),
+				);
+			});
 		});
 
 		it("should reset to page 1 when filters change", async () => {
@@ -298,7 +297,7 @@ describe("CoursesTable", () => {
 	});
 
 	describe("Filter Options Loading", () => {
-		it("should show panel skeleton when filter options are loading", () => {
+		it("should show filter panel title regardless of loading state", () => {
 			// Arrange
 			const queryClient = new QueryClient({
 				defaultOptions: {
@@ -306,23 +305,14 @@ describe("CoursesTable", () => {
 				},
 			});
 
-			// Mock loading state
-			vi.doMock("@/lib/api/generated", () => ({
-				useCoursesFilterOptionsRetrieve: () => ({
-					data: undefined,
-					isLoading: true,
-					error: null,
-				}),
-			}));
-
 			// Act
 			renderWithProviders(<CoursesTable {...defaultProps} />, {
 				queryClient,
 			});
 
 			// Assert
-			// Filter panel should show skeleton
-			// The exact check depends on CourseFiltersPanelSkeleton implementation
+			// Filter panel should be present with title
+			expect(screen.getByText("Фільтри")).toBeInTheDocument();
 		});
 	});
 
@@ -428,7 +418,8 @@ describe("CoursesTable", () => {
 			// Assert
 			await waitFor(
 				() => {
-					const call = onFiltersChange.mock.calls[0]?.[0];
+					expect(onFiltersChange).toHaveBeenCalled();
+					const call = onFiltersChange.mock.calls[0][0];
 					// Should only include non-empty values
 					expect(call).not.toHaveProperty("faculty");
 					expect(call).not.toHaveProperty("department");
@@ -560,7 +551,9 @@ describe("CoursesTable", () => {
 			renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
 			// Assert
-			expect(screen.getByText("4.2")).toBeInTheDocument();
+			// There may be multiple "4.2" values (e.g., in sliders), so just check one exists
+			const usefulnessElements = screen.getAllByText("4.2");
+			expect(usefulnessElements.length).toBeGreaterThan(0);
 		});
 
 		it("should display faculty badge", () => {
@@ -643,7 +636,6 @@ describe("CoursesTable", () => {
 				<CoursesTable
 					{...defaultProps}
 					initialFilters={{
-						...defaultProps,
 						searchQuery: "",
 						difficultyRange: [2.0, 4.0],
 						usefulnessRange: [1, 5],
@@ -681,7 +673,6 @@ describe("CoursesTable", () => {
 				<CoursesTable
 					{...defaultProps}
 					initialFilters={{
-						...defaultProps,
 						searchQuery: "",
 						difficultyRange: [1, 5],
 						usefulnessRange: [1, 5],
