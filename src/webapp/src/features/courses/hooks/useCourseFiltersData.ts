@@ -18,6 +18,9 @@ export function areFiltersActive(filters: FilterState): boolean {
 		const defaultValue = DEFAULT_FILTERS[key];
 
 		if (Array.isArray(value)) {
+			if (!Array.isArray(defaultValue)) {
+				return true;
+			}
 			const defaultArr = defaultValue as [number, number];
 			if (value[0] !== defaultArr[0] || value[1] !== defaultArr[1]) {
 				return true;

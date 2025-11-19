@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { keepPreviousData } from "@tanstack/react-query";
 import {
@@ -11,6 +11,7 @@ import Layout from "@/components/Layout";
 import { CoursesErrorState } from "@/features/courses/components/CoursesErrorState";
 import { CoursesHeader } from "@/features/courses/components/CoursesHeader";
 import { CoursesTable } from "@/features/courses/components/CoursesTable";
+import { transformFiltersToApiParams } from "@/features/courses/filterTransformations";
 import { searchParamsToFilters } from "@/features/courses/urlSync";
 import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
@@ -23,12 +24,32 @@ const DEFAULT_PAGE_SIZE = 20;
 function CoursesRoute() {
 	const navigate = useNavigate();
 	const search = useSearch({ from: "/" });
-	const initialFilters = searchParamsToFilters(search);
+	const initialFilters = useMemo(() => searchParamsToFilters(search), [search]);
+	const initialApiFilters = useMemo(
+		() => transformFiltersToApiParams(initialFilters),
+		[initialFilters],
+	);
 
-	const [filters, setFilters] = useState<CoursesListParams>({
+	const [filters, setFilters] = useState<CoursesListParams>(() => ({
 		page: 1,
 		page_size: DEFAULT_PAGE_SIZE,
-	});
+		...initialApiFilters,
+	}));
+
+	useEffect(() => {
+		const nextFilters: CoursesListParams = {
+			page: 1,
+			page_size: DEFAULT_PAGE_SIZE,
+			...initialApiFilters,
+		};
+
+		setFilters((previous) => {
+			if (JSON.stringify(previous) === JSON.stringify(nextFilters)) {
+				return previous;
+			}
+			return nextFilters;
+		});
+	}, [initialApiFilters]);
 
 	const { data, isFetching, isError, refetch } = useCoursesList(filters, {
 		query: {

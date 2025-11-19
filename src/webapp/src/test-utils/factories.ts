@@ -107,9 +107,10 @@ export function createMockSemesterTerm(
 export function createMockSemesterYear(
 	overrides?: Partial<FilterOptionSemesterYear>,
 ): FilterOptionSemesterYear {
+	const year = faker.number.int({ min: 2020, max: 2025 }).toString();
 	return {
-		value: faker.number.int({ min: 2020, max: 2025 }).toString(),
-		label: faker.number.int({ min: 2020, max: 2025 }).toString(),
+		value: year,
+		label: year,
 		...overrides,
 	};
 }
