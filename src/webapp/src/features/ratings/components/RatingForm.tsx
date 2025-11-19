@@ -32,7 +32,7 @@ const ratingSchema = z.object({
 		.min(1, "Оцінка корисності є обов'язковою")
 		.max(5, "Оцінка корисності повинна бути від 1 до 5"),
 	comment: z.string().optional(),
-	is_anonymous: z.boolean().default(false),
+	is_anonymous: z.boolean(),
 });
 
 export type RatingFormData = z.infer<typeof ratingSchema>;
