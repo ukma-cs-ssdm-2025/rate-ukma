@@ -22,6 +22,7 @@ import { BookOpen, Filter, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { DataTable } from "@/components/DataTable/DataTable";
+import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import type { CourseList } from "@/lib/api/generated";
@@ -31,7 +32,6 @@ import { CourseFacultyBadge } from "./CourseFacultyBadge";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CoursesEmptyState } from "./CoursesEmptyState";
-import { CoursesTableSkeleton } from "./CoursesTableSkeleton";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import {
 	DEFAULT_FILTERS,
@@ -388,7 +388,7 @@ export function CoursesTable({
 
 	const renderTableContent = () => {
 		if (isInitialLoading) {
-			return <CoursesTableSkeleton />;
+			return <DataTableSkeleton columnCount={4} withViewOptions={false} />;
 		}
 		if (isEmptyState) {
 			return <CoursesEmptyState />;
