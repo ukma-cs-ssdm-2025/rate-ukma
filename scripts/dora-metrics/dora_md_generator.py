@@ -46,6 +46,19 @@ def format_duration(minutes: float) -> str:
     return f"{days}d {hours}h"
 
 
+def _is_success(run: WorkflowRun) -> bool:
+    """Check if a run completed successfully."""
+    return (
+        run.get("status") == STATUS_COMPLETED
+        and str(run.get("conclusion", "")).lower() == CONCLUSION_SUCCESS
+    )
+
+
+def _is_failure(run: WorkflowRun) -> bool:
+    """Check if a run failed."""
+    return str(run.get("conclusion", "")).lower() == CONCLUSION_FAILURE
+
+
 class DORAMetrics:
     def __init__(self, runs: list[WorkflowRun]):
         self.runs = runs
@@ -63,30 +76,19 @@ class DORAMetrics:
     @property
     def successful_runs(self) -> list[WorkflowRun]:
         if self._successful_runs is None:
-            self._successful_runs = [
-                r
-                for r in self.weekly_runs
-                if r["status"] == STATUS_COMPLETED
-                and r["conclusion"].lower() == CONCLUSION_SUCCESS
-            ]
+            self._successful_runs = [r for r in self.weekly_runs if _is_success(r)]
         return self._successful_runs
 
     @property
     def failed_runs(self) -> list[WorkflowRun]:
         if self._failed_runs is None:
-            self._failed_runs = [
-                r
-                for r in self.weekly_runs
-                if r["conclusion"].lower() == CONCLUSION_FAILURE
-            ]
+            self._failed_runs = [r for r in self.weekly_runs if _is_failure(r)]
         return self._failed_runs
 
     @property
     def other_runs(self) -> list[WorkflowRun]:
         return [
-            r
-            for r in self.weekly_runs
-            if r["conclusion"].lower() not in [CONCLUSION_SUCCESS, CONCLUSION_FAILURE]
+            r for r in self.weekly_runs if not _is_success(r) and not _is_failure(r)
         ]
 
     def deployment_frequency(self) -> float:
@@ -111,17 +113,10 @@ class DORAMetrics:
 
     def change_failure_rate(self) -> float:
         """Calculate change failure rate as percentage."""
-        completed = [
-            r
-            for r in self.weekly_runs
-            if r["status"] == STATUS_COMPLETED
-            and r["conclusion"].lower() in [CONCLUSION_SUCCESS, CONCLUSION_FAILURE]
-        ]
+        completed = [r for r in self.weekly_runs if _is_success(r) or _is_failure(r)]
         if not completed:
             return 0.0
-        failed_count = sum(
-            1 for r in completed if r["conclusion"].lower() == CONCLUSION_FAILURE
-        )
+        failed_count = sum(1 for r in completed if _is_failure(r))
         return (failed_count / len(completed)) * 100.0
 
     def time_to_restore(self) -> float:
@@ -130,15 +125,9 @@ class DORAMetrics:
         restore_times: list[float] = []
 
         for i, run in enumerate(sorted_runs):
-            if (
-                run["status"] == STATUS_COMPLETED
-                and run["conclusion"].lower() == CONCLUSION_FAILURE
-            ):
+            if _is_failure(run):
                 for next_run in sorted_runs[i + 1 :]:
-                    if (
-                        next_run["status"] == STATUS_COMPLETED
-                        and next_run["conclusion"].lower() == CONCLUSION_SUCCESS
-                    ):
+                    if _is_success(next_run):
                         restore_time = (
                             next_run["created_at"] - run["created_at"]
                         ).total_seconds() / 60.0
@@ -160,9 +149,7 @@ class DORAMetrics:
 
     def generate_lead_time_trend(self) -> str:
         """Generate weekly lead time trend chart with statistics table."""
-        weekly_data = WeeklyAggregator.group_by_week(
-            self.runs, filter_fn=lambda r: r["conclusion"].lower() == CONCLUSION_SUCCESS
-        )
+        weekly_data = WeeklyAggregator.group_by_week(self.runs, filter_fn=_is_success)
 
         if not weekly_data:
             return ""
@@ -184,9 +171,7 @@ class DORAMetrics:
 
     def generate_frequency_trend(self) -> str:
         """Generate deployment frequency trend chart with cadence analysis."""
-        weekly_data = WeeklyAggregator.group_by_week(
-            self.runs, filter_fn=lambda r: r["conclusion"].lower() == CONCLUSION_SUCCESS
-        )
+        weekly_data = WeeklyAggregator.group_by_week(self.runs, filter_fn=_is_success)
 
         if not weekly_data:
             return ""

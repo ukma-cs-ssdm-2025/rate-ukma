@@ -36,7 +36,9 @@ class WeeklyData:
     @property
     def failed_runs(self) -> int:
         """Number of failed runs."""
-        return sum(1 for r in self.runs if r["conclusion"].lower() == "failure")
+        return sum(
+            1 for r in self.runs if str(r.get("conclusion", "")).lower() == "failure"
+        )
 
     @property
     def failure_rate(self) -> float:
