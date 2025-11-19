@@ -94,7 +94,7 @@ def test_analytics_by_course_id(token_client, course_factory, analytics_url):
 def test_invalid_filter_provided(course_factory, token_client, analytics_url):
     # Arrange
     course_factory.create_batch(3)
-    url = f"{analytics_url}?semesterTerm=INVALID_TERM"
+    url = f"{analytics_url}?semester_term=INVALID_TERM"
 
     # Act
     response = token_client.get(url)

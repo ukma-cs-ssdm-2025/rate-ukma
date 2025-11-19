@@ -1,7 +1,7 @@
 import json
 from collections.abc import Generator
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 import structlog
 from pydantic import BaseModel, ValidationError
@@ -16,12 +16,10 @@ logger = structlog.get_logger(__name__)
 _T = TypeVar("_T", bound=BaseModel)
 
 
-class IFileReader(IProvider[[Path, int], Generator[list[_T], None, None]], Generic[_T]):
+class IFileReader[T](IProvider[[Path, int], Generator[list[T], None, None]]):
     _is_protocol = True
 
-    def provide(
-        self, file_path: Path, batch_size: int = 100
-    ) -> Generator[list[_T], None, None]: ...
+    def provide(self, file_path: Path, batch_size: int = 100) -> Generator[list[T], None, None]: ...
 
 
 class CoursesJSONLFileReader(IFileReader[DeduplicatedCourse]):
@@ -59,7 +57,7 @@ class CoursesJSONLFileReader(IFileReader[DeduplicatedCourse]):
 
                 valid_count += 1
                 batch.append(course)
-                logger.info("course_read", course_title=course.title, line_num=line_num)
+                logger.debug("course_read", course_title=course.title, line_num=line_num)
 
                 if len(batch) >= batch_size:
                     yield batch

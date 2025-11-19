@@ -16,13 +16,13 @@ paths:
         schema:
           type: number
           format: float
-        description: Maximum average difficulty (1-5)
+        description: Maximum average difficulty (1.0 - 5.0)
       - in: query
         name: avg_difficulty_min
         schema:
           type: number
           format: float
-        description: Minimum average difficulty (1-5)
+        description: Minimum average difficulty (1.0 - 5.0)
       - in: query
         name: avg_difficulty_order
         schema:
@@ -30,19 +30,19 @@ paths:
           enum:
           - asc
           - desc
-        description: Sort by average difficulty (asc or desc)
+        description: Sort order for difficulty (asc/desc)
       - in: query
         name: avg_usefulness_max
         schema:
           type: number
           format: float
-        description: Maximum average usefulness (1-5)
+        description: Maximum average usefulness (1.0 - 5.0)
       - in: query
         name: avg_usefulness_min
         schema:
           type: number
           format: float
-        description: Minimum average usefulness (1-5)
+        description: Minimum average usefulness (1.0 - 5.0)
       - in: query
         name: avg_usefulness_order
         schema:
@@ -50,51 +50,69 @@ paths:
           enum:
           - asc
           - desc
-        description: Sort by average usefulness (asc or desc)
+        description: Sort order for usefulness (asc/desc)
       - in: query
         name: department
         schema:
           type: string
           format: uuid
-        description: Filter by department ID
+        description: Filter by department UUID
       - in: query
         name: faculty
         schema:
           type: string
           format: uuid
-        description: Filter by faculty ID
+        description: Filter by faculty UUID
       - in: query
         name: instructor
         schema:
           type: string
           format: uuid
-        description: Filter by instructor ID
+        description: Filter by instructor UUID
       - in: query
         name: name
         schema:
           type: string
-        description: Filter courses by name (case-insensitive partial match)
+        description: Filter by course name
       - in: query
-        name: semesterTerm
-        schema:
-          type: string
-        description: Filter by semester term (FALL, SPRING, SUMMER)
-      - in: query
-        name: semesterYear
+        name: page
         schema:
           type: integer
-        description: Filter by semester year
+        description: Page number
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Items per page
+      - in: query
+        name: semester_term
+        schema:
+          type: string
+          enum:
+          - FALL
+          - SPRING
+          - SUMMER
+        description: Semester term (FALL, SPRING, SUMMER)
+      - in: query
+        name: semester_year
+        schema:
+          type: integer
+        description: Semester year
       - in: query
         name: speciality
         schema:
           type: string
           format: uuid
-        description: Filter by speciality ID
+        description: Filter by speciality UUID
       - in: query
-        name: typeKind
+        name: type_kind
         schema:
           type: string
-        description: Filter by course type (COMPULSORY, ELECTIVE, PROF_ORIENTED)
+          enum:
+          - COMPULSORY
+          - ELECTIVE
+          - PROF_ORIENTED
+        description: Course type kind (COMPULSORY, ELECTIVE, PROF_ORIENTED)
       tags:
       - analytics
       security:
@@ -170,7 +188,7 @@ paths:
         schema:
           type: string
           format: uuid
-        description: A unique identifier for the course.
+        description: A unique identifier for the course
         required: true
       tags:
       - analytics
@@ -443,13 +461,13 @@ paths:
         schema:
           type: number
           format: float
-        description: Maximum average difficulty (1-5)
+        description: Maximum average difficulty (1.0 - 5.0)
       - in: query
         name: avg_difficulty_min
         schema:
           type: number
           format: float
-        description: Minimum average difficulty (1-5)
+        description: Minimum average difficulty (1.0 - 5.0)
       - in: query
         name: avg_difficulty_order
         schema:
@@ -457,19 +475,19 @@ paths:
           enum:
           - asc
           - desc
-        description: Sort by average difficulty (asc or desc)
+        description: Sort order for difficulty (asc/desc)
       - in: query
         name: avg_usefulness_max
         schema:
           type: number
           format: float
-        description: Maximum average usefulness (1-5)
+        description: Maximum average usefulness (1.0 - 5.0)
       - in: query
         name: avg_usefulness_min
         schema:
           type: number
           format: float
-        description: Minimum average usefulness (1-5)
+        description: Minimum average usefulness (1.0 - 5.0)
       - in: query
         name: avg_usefulness_order
         schema:
@@ -477,61 +495,69 @@ paths:
           enum:
           - asc
           - desc
-        description: Sort by average usefulness (asc or desc)
+        description: Sort order for usefulness (asc/desc)
       - in: query
         name: department
         schema:
           type: string
           format: uuid
-        description: Filter by department ID
+        description: Filter by department UUID
       - in: query
         name: faculty
         schema:
           type: string
           format: uuid
-        description: Filter by faculty ID
+        description: Filter by faculty UUID
       - in: query
         name: instructor
         schema:
           type: string
           format: uuid
-        description: Filter by instructor ID
+        description: Filter by instructor UUID
       - in: query
         name: name
         schema:
           type: string
-        description: Filter courses by name (case-insensitive partial match)
+        description: Filter by course name
       - in: query
         name: page
         schema:
           type: integer
-        description: 'Page number (default: 1)'
+        description: Page number
       - in: query
         name: page_size
         schema:
           type: integer
-        description: 'Page size (default: 20)'
+        description: Items per page
       - in: query
-        name: semesterTerm
+        name: semester_term
         schema:
           type: string
-        description: Filter by semester term (FALL, SPRING, SUMMER)
+          enum:
+          - FALL
+          - SPRING
+          - SUMMER
+        description: Semester term (FALL, SPRING, SUMMER)
       - in: query
-        name: semesterYear
+        name: semester_year
         schema:
           type: integer
-        description: Filter by semester year
+        description: Semester year
       - in: query
         name: speciality
         schema:
           type: string
           format: uuid
-        description: Filter by speciality ID
+        description: Filter by speciality UUID
       - in: query
-        name: typeKind
+        name: type_kind
         schema:
           type: string
-        description: Filter by course type (COMPULSORY, ELECTIVE, PROF_ORIENTED)
+          enum:
+          - COMPULSORY
+          - ELECTIVE
+          - PROF_ORIENTED
+        description: Course type kind (COMPULSORY, ELECTIVE, PROF_ORIENTED)
       tags:
       - courses
       security:
@@ -592,7 +618,7 @@ paths:
         schema:
           type: string
           format: uuid
-        description: A unique identifier for the course.
+        description: A unique identifier for the course
         required: true
       tags:
       - courses
@@ -666,7 +692,7 @@ paths:
         schema:
           type: string
           format: uuid
-        description: Course ID from URL path
+        description: Unique identifier of rating course
         required: true
       - in: query
         name: page
@@ -757,13 +783,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RatingCreateUpdate'
+              $ref: '#/components/schemas/RatingCreateParams'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/RatingCreateUpdate'
+              $ref: '#/components/schemas/RatingCreateParams'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RatingCreateUpdate'
+              $ref: '#/components/schemas/RatingCreateParams'
         required: true
       security:
       - cookieAuth: []
@@ -851,6 +877,8 @@ paths:
         name: rating_id
         schema:
           type: string
+          format: uuid
+        description: Unique identifier of rating
         required: true
       tags:
       - ratings
@@ -934,13 +962,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RatingCreateUpdate'
+              $ref: '#/components/schemas/RatingPutParams'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/RatingCreateUpdate'
+              $ref: '#/components/schemas/RatingPutParams'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RatingCreateUpdate'
+              $ref: '#/components/schemas/RatingPutParams'
         required: true
       security:
       - cookieAuth: []
@@ -1023,13 +1051,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedRatingCreateUpdate'
+              $ref: '#/components/schemas/PatchedRatingPatchParams'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedRatingCreateUpdate'
+              $ref: '#/components/schemas/PatchedRatingPatchParams'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedRatingCreateUpdate'
+              $ref: '#/components/schemas/PatchedRatingPatchParams'
       security:
       - cookieAuth: []
       - tokenAuth: []
@@ -1196,7 +1224,7 @@ paths:
         schema:
           type: string
           format: uuid
-        description: A unique identifier for the instructor.
+        description: Unique identifier of instructor
         required: true
       tags:
       - instructors
@@ -1778,56 +1806,77 @@ components:
       required:
       - password
       - username
-    PatchedRatingCreateUpdate:
+    PatchedRatingPatchParams:
+      properties:
+        difficulty:
+          anyOf:
+          - maximum: 5
+            minimum: 1
+            type: integer
+          - type: 'null'
+          default: null
+          title: Difficulty
+        usefulness:
+          anyOf:
+          - maximum: 5
+            minimum: 1
+            type: integer
+          - type: 'null'
+          default: null
+          title: Usefulness
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Comment
+        is_anonymous:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          title: Is Anonymous
+      title: RatingPatchParams
       type: object
-      description: |-
-        Serializer for documenting rating creation/update API endpoints in OpenAPI spec.
-        This serializer is currently used only for API documentation (drf-spectacular).
-        Actual validation is done via Pydantic models.
+    RatingCreateParams:
       properties:
         course_offering:
-          type: string
-          format: uuid
           description: UUID of the course offering being rated
-        difficulty:
-          type: integer
-          maximum: 5
-          minimum: 1
-        usefulness:
-          type: integer
-          maximum: 5
-          minimum: 1
-        comment:
-          type: string
-        is_anonymous:
-          type: boolean
-    RatingCreateUpdate:
-      type: object
-      description: |-
-        Serializer for documenting rating creation/update API endpoints in OpenAPI spec.
-        This serializer is currently used only for API documentation (drf-spectacular).
-        Actual validation is done via Pydantic models.
-      properties:
-        course_offering:
-          type: string
           format: uuid
-          description: UUID of the course offering being rated
-        difficulty:
-          type: integer
-          maximum: 5
-          minimum: 1
-        usefulness:
-          type: integer
-          maximum: 5
-          minimum: 1
-        comment:
+          title: Course Offering
           type: string
+        student:
+          description: UUID of the student creating the rating
+          format: uuid
+          title: Student
+          type: string
+        difficulty:
+          maximum: 5
+          minimum: 1
+          title: Difficulty
+          type: integer
+        usefulness:
+          maximum: 5
+          minimum: 1
+          title: Usefulness
+          type: integer
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Comment
         is_anonymous:
+          default: false
+          title: Is Anonymous
           type: boolean
       required:
       - course_offering
+      - student
       - difficulty
       - usefulness
+      title: RatingCreateParams
+      type: object
     RatingListResponse:
       type: object
       properties:
@@ -1863,6 +1912,33 @@ components:
       - previous_page
       - total
       - total_pages
+    RatingPutParams:
+      properties:
+        difficulty:
+          maximum: 5
+          minimum: 1
+          title: Difficulty
+          type: integer
+        usefulness:
+          maximum: 5
+          minimum: 1
+          title: Usefulness
+          type: integer
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Comment
+        is_anonymous:
+          default: false
+          title: Is Anonymous
+          type: boolean
+      required:
+      - difficulty
+      - usefulness
+      title: RatingPutParams
+      type: object
     RatingRead:
       type: object
       description: |-

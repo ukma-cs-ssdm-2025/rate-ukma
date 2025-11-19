@@ -1,15 +1,13 @@
-from pydantic import BaseModel, Field
-from pydantic.alias_generators import to_camel
+import uuid
 
-from .validators import validate_uuid_string
+from pydantic import BaseModel, Field
+from pydantic.alias_generators import to_snake
 
 
 class InstructorReadParams(BaseModel):
     model_config = {
-        "alias_generator": to_camel,
+        "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
-    instructor_id: str = Field(description="ID of the instructor being read")
-
-    validate_instructor_id = validate_uuid_string("instructor_id")
+    instructor_id: uuid.UUID = Field(description="Unique identifier of instructor")

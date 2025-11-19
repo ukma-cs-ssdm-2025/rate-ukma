@@ -4,15 +4,19 @@ logger = structlog.get_logger(__name__)
 
 
 class InjectionProgressTracker:
-    LOG_INTERVAL = 1  # currently set to small value for development purposes
+    LOG_INTERVAL = 20
 
     def __init__(self):
         self.total_courses = 0
         self.processed_courses = 0
+        self.batch_number: int | None = None
+
+    def set_batch_number(self, batch_number: int | None) -> None:
+        self.batch_number = batch_number
 
     def start(self, total: int) -> None:
         self.total_courses = total
-        logger.info("starting_injection", total_courses=total)
+        logger.info("starting_injection", total_courses=total, batch_number=self.batch_number)
 
     def increment(self) -> None:
         self.processed_courses += 1
@@ -20,10 +24,7 @@ class InjectionProgressTracker:
             logger.error("total_courses_not_set", total_courses=self.total_courses)
             return
 
-        if (
-            self.processed_courses % self.LOG_INTERVAL == 0
-            or self.processed_courses == self.total_courses
-        ):
+        if self.processed_courses % self.LOG_INTERVAL == 0:
             percentage = f"{(self.processed_courses / self.total_courses) * 100:.1f}%"
             logger.info(
                 "injection_progress",
@@ -32,8 +33,17 @@ class InjectionProgressTracker:
                 percentage=percentage,
             )
 
-    def complete(self, message: str) -> None:
-        logger.info("injection_completed", message=message, total_processed=self.processed_courses)
+    def complete(self) -> None:
+        total = self.total_courses
+        processed = self.processed_courses
+        percentage = f"{(processed / total) * 100:.1f}%" if total else "0.0%"
+        logger.info(
+            "injection_completed",
+            processed=processed,
+            total=total,
+            percentage=percentage,
+            batch_number=self.batch_number,
+        )
         self.reset()
 
     def fail(self, error: str) -> None:

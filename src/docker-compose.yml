@@ -35,7 +35,7 @@ services:
 
   backend:
     image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/backend:${BACKEND_IMAGE_TAG:-latest}
-    container_name: "${COMPOSE_PROJECT_NAME}_django_backend"
+    container_name: "${COMPOSE_PROJECT_NAME}_django_backend_release"
     build:
       context: ./backend
       dockerfile: Dockerfile

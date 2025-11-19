@@ -145,7 +145,7 @@ def test_sorting_params(token_client, course_factory):
 def test_invalid_semester_term(course_factory, token_client):
     # Arrange
     course_factory.create_batch(3)
-    url = "/api/v1/courses/?semesterTerm=INVALID_TERM"
+    url = "/api/v1/courses/?semester_term=INVALID_TERM"
 
     # Act
     response = token_client.get(url)
@@ -228,7 +228,7 @@ def test_filter_by_multiple_parameters(
 
     url = (
         f"/api/v1/courses/?department={department_id}&faculty={faculty_id}"
-        f"&semesterYear=2024&semesterTerm=FALL"
+        f"&semester_year=2024&semester_term=FALL"
     )
 
     response = token_client.get(url)
@@ -285,7 +285,7 @@ def test_course_retrieve_with_ratings(
     # Assert
     assert response.status_code == 200
     data = response.json()
-    assert "avg_difficulty" in data or "avgDifficulty" in data
+    assert "avg_difficulty" in data
 
 
 @pytest.mark.django_db
@@ -294,7 +294,7 @@ def test_filter_by_type_kind(token_client, course_factory, course_speciality_fac
     course = course_factory()
     course_speciality_factory(course=course, type_kind="COMPULSORY")
 
-    url = "/api/v1/courses/?typeKind=COMPULSORY"
+    url = "/api/v1/courses/?type_kind=COMPULSORY"
 
     # Act
     response = token_client.get(url)
@@ -317,7 +317,7 @@ def test_course_list_response_structure(token_client, course_factory):
     assert "items" in data
     assert "total" in data
     assert "page" in data
-    assert "page_size" in data or "pageSize" in data
+    assert "page_size" in data
     assert isinstance(data["items"], list)
 
 
