@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useForm } from "react-hook-form";
+import { describe, expect, it } from "vitest";
+
+import { createMockFilterOptions } from "@/test-utils/factories";
 import { useCourseFiltersData } from "./useCourseFiltersData";
 import { DEFAULT_FILTERS } from "../filterSchema";
-import { createMockFilterOptions } from "@/test-utils/factories";
 
 describe("useCourseFiltersData", () => {
 	describe("Range Filters", () => {
@@ -537,8 +538,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "faculty",
-				label:
-					"Факультет: ФІТ · Факультет інформаційних технологій",
+				label: "Факультет: ФІТ · Факультет інформаційних технологій",
 			});
 		});
 

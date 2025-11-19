@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
+
 import {
 	DIFFICULTY_RANGE,
-	USEFULNESS_RANGE,
-	getFacultyAbbreviation,
-	getDifficultyTone,
-	getUsefulnessTone,
+	formatDate,
 	getCourseTypeDisplay,
-	getSemesterTermDisplay,
+	getDifficultyTone,
+	getFacultyAbbreviation,
 	getSemesterDisplay,
+	getSemesterTermDisplay,
 	getStatusLabel,
 	getStatusVariant,
 	getTypeKindLabel,
 	getTypeKindVariant,
-	formatDate,
+	getUsefulnessTone,
+	USEFULNESS_RANGE,
 } from "./courseFormatting";
 
 describe("courseFormatting", () => {

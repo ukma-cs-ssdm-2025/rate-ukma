@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
-import { render, type RenderOptions } from "@testing-library/react";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type RenderOptions, render } from "@testing-library/react";
 
 /**
  * Custom render function that wraps components with necessary providers
@@ -17,11 +18,7 @@ export function renderWithProviders(
 		new QueryClient({
 			defaultOptions: {
 				queries: {
-					retry: false, // Disable retries in tests
 					gcTime: Number.POSITIVE_INFINITY, // Keep data in cache
-				},
-				mutations: {
-					retry: false,
 				},
 			},
 		});
@@ -38,6 +35,5 @@ export function renderWithProviders(
 	};
 }
 
-// Re-export everything from testing library
 export * from "@testing-library/react";
 export { renderWithProviders as render };

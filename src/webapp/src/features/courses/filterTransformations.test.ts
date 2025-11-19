@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
+import { DEFAULT_FILTERS } from "./filterSchema";
 import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
 } from "./filterTransformations";
-import { DEFAULT_FILTERS } from "./filterSchema";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
 
 describe("filterTransformations", () => {
 	describe("transformFiltersToApiParams", () => {
@@ -419,7 +420,10 @@ describe("filterTransformations", () => {
 			const isDescending = false;
 
 			// Act
-			const result = transformSortingToApiParams(unknownSortingId, isDescending);
+			const result = transformSortingToApiParams(
+				unknownSortingId,
+				isDescending,
+			);
 
 			// Assert
 			expect(result).toEqual({});

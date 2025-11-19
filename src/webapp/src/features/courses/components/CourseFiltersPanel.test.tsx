@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useForm } from "react-hook-form";
+import { describe, expect, it, vi } from "vitest";
+
+import { createMockFilterOptions } from "@/test-utils/factories";
 import { CourseFiltersPanel } from "./CourseFiltersPanel";
 import { DEFAULT_FILTERS } from "../filterSchema";
-import { createMockFilterOptions } from "@/test-utils/factories";
 
 // Helper component to render CourseFiltersPanel with form
 function TestWrapper({
@@ -272,9 +273,7 @@ describe("CourseFiltersPanel", () => {
 
 			// Assert
 			expect(
-				screen.getByText(
-					"Факультет: ФІТ · Факультет інформаційних технологій",
-				),
+				screen.getByText("Факультет: ФІТ · Факультет інформаційних технологій"),
 			).toBeInTheDocument();
 		});
 

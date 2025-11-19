@@ -1,7 +1,8 @@
 import * as React from "react";
+
 import type { UseFormReturn } from "react-hook-form";
+
 import type { FilterOptions } from "@/lib/api/generated";
-import type { FilterState } from "../filterSchema";
 import {
 	DIFFICULTY_RANGE,
 	getCourseTypeDisplay,
@@ -9,6 +10,24 @@ import {
 	getSemesterTermDisplay,
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
+import { DEFAULT_FILTERS, type FilterState } from "../filterSchema";
+
+export function areFiltersActive(filters: FilterState): boolean {
+	for (const key of Object.keys(DEFAULT_FILTERS) as (keyof FilterState)[]) {
+		const value = filters[key];
+		const defaultValue = DEFAULT_FILTERS[key];
+
+		if (Array.isArray(value)) {
+			const defaultArr = defaultValue as [number, number];
+			if (value[0] !== defaultArr[0] || value[1] !== defaultArr[1]) {
+				return true;
+			}
+		} else if (value !== defaultValue) {
+			return true;
+		}
+	}
+	return false;
+}
 
 type SelectOption = {
 	value: string;
@@ -39,23 +58,13 @@ export type CourseFiltersData = {
 	hasActiveFilters: boolean;
 };
 
-interface UseCourseFiltersDataProps {
-	form: UseFormReturn<FilterState>;
-	filterOptions?: FilterOptions;
-}
-
-/**
- * Hook to process filter form state and options into UI configuration
- * Handles:
- * - Faculty-based department filtering
- * - Selected option lookups
- * - Active filter badge generation
- * - Range and select filter configurations
- */
 export function useCourseFiltersData({
 	form,
 	filterOptions,
-}: UseCourseFiltersDataProps): CourseFiltersData {
+}: {
+	form: UseFormReturn<FilterState>;
+	filterOptions?: FilterOptions;
+}): CourseFiltersData {
 	const filters = form.watch();
 
 	const {
@@ -218,11 +227,17 @@ export function useCourseFiltersData({
 			courseTypes,
 			faculties,
 			filteredDepartments,
-			filters,
 			instructors,
 			semesterTerms,
 			semesterYears,
 			specialities,
+			filters.semesterTerm,
+			filters.semesterYear,
+			filters.faculty,
+			filters.department,
+			filters.speciality,
+			filters.courseType,
+			filters.instructor,
 		],
 	);
 
@@ -331,6 +346,6 @@ export function useCourseFiltersData({
 		rangeFilters,
 		selectFilters,
 		activeBadges,
-		hasActiveFilters: activeBadges.length > 0,
+		hasActiveFilters: areFiltersActive(filters),
 	};
 }

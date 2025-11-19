@@ -1,9 +1,7 @@
 import { z } from "zod";
+
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
 
-/**
- * Zod schema for course filter validation
- */
 export const filterSchema = z.object({
 	searchQuery: z.string(),
 	difficultyRange: z.tuple([

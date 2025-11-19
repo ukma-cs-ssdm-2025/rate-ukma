@@ -1,6 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { keepPreviousData } from "@tanstack/react-query";
+import {
+	createFileRoute,
+	useNavigate,
+	useSearch,
+} from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
 import { CoursesErrorState } from "@/features/courses/components/CoursesErrorState";
@@ -25,7 +30,11 @@ function CoursesRoute() {
 		page_size: DEFAULT_PAGE_SIZE,
 	});
 
-	const { data, isLoading, isError, refetch } = useCoursesList(filters);
+	const { data, isFetching, isError, refetch } = useCoursesList(filters, {
+		query: {
+			placeholderData: keepPreviousData,
+		},
+	});
 
 	const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
 
@@ -60,7 +69,7 @@ function CoursesRoute() {
 				) : (
 					<CoursesTable
 						data={data?.items ?? []}
-						isLoading={isLoading}
+						isLoading={isFetching}
 						filtersKey={filtersKey}
 						initialFilters={initialFilters}
 						onFiltersChange={handleFiltersChange}

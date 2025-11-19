@@ -1,8 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import {
+	type ComponentProps,
+	useCallback,
+	useDeferredValue,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "@tanstack/react-router";
-
 import {
 	type ColumnDef,
 	getCoreRowModel,
@@ -11,7 +18,8 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { BookOpen, Filter } from "lucide-react";
+import { BookOpen, Filter, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { Drawer } from "@/components/ui/Drawer";
@@ -25,7 +33,11 @@ import { CourseScoreCell } from "./CourseScoreCell";
 import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesTableSkeleton } from "./CoursesTableSkeleton";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
-import { DEFAULT_FILTERS, filterSchema, type FilterState } from "../filterSchema";
+import {
+	DEFAULT_FILTERS,
+	type FilterState,
+	filterSchema,
+} from "../filterSchema";
 import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
@@ -59,15 +71,16 @@ const columns: ColumnDef<CourseList>[] = [
 		cell: ({ row }) => {
 			const course = row.original;
 			return (
-				<div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
+				<span className="whitespace-normal break-words">
 					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline md:text-base">
 						{course.title}
-					</span>
+					</span>{" "}
 					<CourseFacultyBadge facultyName={course.faculty_name} />
-				</div>
+				</span>
 			);
 		},
 		enableSorting: false,
+		size: 300,
 		meta: {
 			label: "Назва курсу",
 			placeholder: "Пошук курсів...",
@@ -95,6 +108,7 @@ const columns: ColumnDef<CourseList>[] = [
 			);
 		},
 		enableSorting: false,
+		size: 80,
 		meta: {
 			label: "Відгуки",
 			align: "center",
@@ -120,6 +134,7 @@ const columns: ColumnDef<CourseList>[] = [
 			/>
 		),
 		enableSorting: true,
+		size: 100,
 		meta: {
 			label: "Складність",
 			placeholder: "Фільтр за складністю...",
@@ -148,6 +163,7 @@ const columns: ColumnDef<CourseList>[] = [
 			/>
 		),
 		enableSorting: true,
+		size: 100,
 		meta: {
 			label: "Корисність",
 			placeholder: "Фільтр за корисністю...",
@@ -157,6 +173,50 @@ const columns: ColumnDef<CourseList>[] = [
 		},
 	},
 ];
+
+function DebouncedInput({
+	value: initialValue,
+	onChange,
+	debounce = 300,
+	isLoading = false,
+	...props
+}: {
+	value: string | number;
+	onChange: (value: string | number) => void;
+	debounce?: number;
+	isLoading?: boolean;
+} & Omit<ComponentProps<typeof Input>, "onChange">) {
+	const [value, setValue] = useState(initialValue);
+
+	useEffect(() => {
+		setValue(initialValue);
+	}, [initialValue]);
+
+	useEffect(() => {
+		const timeout = setTimeout(() => {
+			if (value !== initialValue) {
+				onChange(value);
+			}
+		}, debounce);
+
+		return () => clearTimeout(timeout);
+	}, [value, debounce, onChange, initialValue]);
+
+	return (
+		<div className="relative">
+			<Input
+				{...props}
+				value={value}
+				onChange={(e) => setValue(e.target.value)}
+			/>
+			{isLoading && (
+				<div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+					<Loader2 className="h-4 w-4 animate-spin" />
+				</div>
+			)}
+		</div>
+	);
+}
 
 export function CoursesTable({
 	data,
@@ -177,7 +237,6 @@ export function CoursesTable({
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
 
-	// Use React Hook Form for filter state management
 	const form = useForm({
 		defaultValues: initialFilters,
 		resolver: zodResolver(filterSchema),
@@ -185,22 +244,21 @@ export function CoursesTable({
 	});
 
 	const filters = form.watch();
+	const deferredFilters = useDeferredValue(filters);
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
 
-	// Transform sorting state to API parameters
 	const apiSorting = useMemo(() => {
 		if (sorting.length === 0) return {};
 		const firstSort = sorting[0];
 		return transformSortingToApiParams(firstSort.id, firstSort.desc);
 	}, [sorting]);
 
-	// Transform filter form state to API parameters
 	const apiFilters = useMemo(
-		() => transformFiltersToApiParams(filters),
-		[filters],
+		() => transformFiltersToApiParams(deferredFilters),
+		[deferredFilters],
 	);
 
 	const combinedFilters = useMemo(
@@ -208,7 +266,6 @@ export function CoursesTable({
 		[apiSorting, apiFilters],
 	);
 
-	// Update local pagination state when server pagination changes
 	useEffect(() => {
 		if (serverPagination) {
 			setPagination({
@@ -230,7 +287,6 @@ export function CoursesTable({
 
 			setPagination(newPagination);
 
-			// Trigger filter change to fetch new page from server, including all current filters
 			if (onFiltersChange) {
 				onFiltersChange({
 					...combinedFilters,
@@ -261,18 +317,13 @@ export function CoursesTable({
 	const previousFiltersRef = useRef<Record<string, unknown>>({});
 	const urlSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-	// Sync filters to URL with debounce
 	useEffect(() => {
-		// Clear any pending URL sync
 		if (urlSyncTimeoutRef.current) {
 			clearTimeout(urlSyncTimeoutRef.current);
 		}
 
-		// Debounce URL updates (same 500ms as API calls)
 		urlSyncTimeoutRef.current = setTimeout(() => {
-			const searchParams = filtersToSearchParams(filters);
-
-			// Update URL without adding to history (use replace)
+			const searchParams = filtersToSearchParams(deferredFilters);
 			navigate({
 				search: searchParams,
 				replace: true,
@@ -284,7 +335,7 @@ export function CoursesTable({
 				clearTimeout(urlSyncTimeoutRef.current);
 			}
 		};
-	}, [filters, navigate]);
+	}, [deferredFilters, navigate]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: pagination is intentionally excluded to prevent circular updates
 	useEffect(() => {
@@ -296,7 +347,6 @@ export function CoursesTable({
 			return;
 		}
 
-		// Reset to page 1 when filters change (do this immediately, not in timeout)
 		if (pagination.pageIndex !== 0) {
 			setPagination((prev) => ({ ...prev, pageIndex: 0 }));
 		}
@@ -304,7 +354,6 @@ export function CoursesTable({
 		const timeout = setTimeout(() => {
 			previousFiltersRef.current = combinedFilters;
 
-			// Include current pagination in filters (will be page 1 due to reset above)
 			const filtersWithPagination = {
 				...combinedFilters,
 				page: 1,
@@ -360,17 +409,18 @@ export function CoursesTable({
 				<div className="flex-1 min-w-0 space-y-4">
 					<div className="flex items-center gap-4">
 						<div className="relative flex-1">
-							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-							<Input
+							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 z-10 text-muted-foreground" />
+							<DebouncedInput
 								placeholder="Пошук курсів за назвою..."
-								value={filters.searchQuery}
-								onChange={(event) =>
-									form.setValue("searchQuery", event.target.value, {
+								value={filters.searchQuery as string}
+								onChange={(value) =>
+									form.setValue("searchQuery", value as string, {
 										shouldDirty: true,
 									})
 								}
 								className="pl-10 h-12 text-base"
 								disabled={isInitialLoading}
+								isLoading={isLoading}
 							/>
 						</div>
 					</div>

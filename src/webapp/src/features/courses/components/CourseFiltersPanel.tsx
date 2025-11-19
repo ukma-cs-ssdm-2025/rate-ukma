@@ -1,7 +1,8 @@
-import * as React from "react";
-import type { UseFormReturn } from "react-hook-form";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import { Filter, X } from "lucide-react";
+import type { UseFormReturn } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -18,8 +19,18 @@ import { Slider } from "@/components/ui/Slider";
 import type { FilterOptions } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
+import {
+	DIFFICULTY_RANGE,
+	getCourseTypeDisplay,
+	getFacultyAbbreviation,
+	getSemesterTermDisplay,
+	USEFULNESS_RANGE,
+} from "../courseFormatting";
 import type { FilterState } from "../filterSchema";
-import { useCourseFiltersData } from "../hooks/useCourseFiltersData";
+import {
+	areFiltersActive,
+	useCourseFiltersData,
+} from "../hooks/useCourseFiltersData";
 
 interface CourseFiltersBaseProps {
 	form: UseFormReturn<FilterState>;
@@ -44,86 +55,282 @@ interface CourseFiltersContentProps {
 	data: ReturnType<typeof useCourseFiltersData>;
 }
 
+function FilterSlider({
+	label,
+	value,
+	range,
+	captions,
+	onValueChange,
+}: {
+	label: string;
+	value: [number, number];
+	range: [number, number];
+	captions: [string, string];
+	onValueChange: (value: [number, number]) => void;
+}) {
+	const [localValue, setLocalValue] = useState(value);
+
+	useEffect(() => {
+		setLocalValue(value);
+	}, [value]);
+
+	return (
+		<div className="space-y-3">
+			<Label className="text-sm font-medium">
+				{label}: {localValue[0].toFixed(1)} - {localValue[1].toFixed(1)}
+			</Label>
+			<Slider
+				min={range[0]}
+				max={range[1]}
+				step={0.1}
+				value={localValue}
+				onValueChange={(val) => setLocalValue(val as [number, number])}
+				onValueCommit={(val) => onValueChange(val as [number, number])}
+				className="w-full"
+			/>
+			<div className="flex justify-between text-xs text-muted-foreground">
+				<span>{captions[0]}</span>
+				<span>{captions[1]}</span>
+			</div>
+		</div>
+	);
+}
+
+function useHasActiveFilters(form: UseFormReturn<FilterState>): boolean {
+	const filters = useWatch({ control: form.control });
+	return areFiltersActive(filters as FilterState);
+}
+
+function ActiveFilters({
+	form,
+	filterOptions,
+}: {
+	form: UseFormReturn<FilterState>;
+	filterOptions?: FilterOptions;
+}) {
+	const filters = useWatch({ control: form.control });
+
+	const {
+		faculties = [],
+		departments: allDepartments = [],
+		instructors = [],
+		semester_terms: semesterTerms = [],
+		semester_years: semesterYears = [],
+		course_types: courseTypes = [],
+		specialities = [],
+	} = filterOptions ?? {};
+
+	const badges = useMemo(() => {
+		const result: Array<{ key: string; label: string }> = [];
+
+		if (filters.searchQuery) {
+			result.push({
+				key: "search",
+				label: `Пошук: ${filters.searchQuery}`,
+			});
+		}
+
+		if (
+			filters.difficultyRange?.[0] !== DIFFICULTY_RANGE[0] ||
+			filters.difficultyRange?.[1] !== DIFFICULTY_RANGE[1]
+		) {
+			result.push({
+				key: "difficulty",
+				label: `Складність: ${filters.difficultyRange?.[0]?.toFixed(1) ?? 0}-${filters.difficultyRange?.[1]?.toFixed(1) ?? 0}`,
+			});
+		}
+
+		if (
+			filters.usefulnessRange?.[0] !== USEFULNESS_RANGE[0] ||
+			filters.usefulnessRange?.[1] !== USEFULNESS_RANGE[1]
+		) {
+			result.push({
+				key: "usefulness",
+				label: `Корисність: ${filters.usefulnessRange?.[0]?.toFixed(1) ?? 0}-${filters.usefulnessRange?.[1]?.toFixed(1) ?? 0}`,
+			});
+		}
+
+		const selectedSemesterTerm = semesterTerms.find(
+			(term) => term.value === filters.semesterTerm,
+		);
+		const selectedSemesterYear = semesterYears.find(
+			(year) => year.value === filters.semesterYear,
+		);
+		const semesterTermLabel = selectedSemesterTerm
+			? getSemesterTermDisplay(
+					selectedSemesterTerm.value,
+					selectedSemesterTerm.label,
+				)
+			: null;
+
+		if (selectedSemesterYear && semesterTermLabel) {
+			result.push({
+				key: "semester",
+				label: `Семестр: ${selectedSemesterYear.label} ${semesterTermLabel}`,
+			});
+		} else if (semesterTermLabel) {
+			result.push({
+				key: "semesterTerm",
+				label: `Період: ${semesterTermLabel}`,
+			});
+		} else if (selectedSemesterYear) {
+			result.push({
+				key: "semesterYear",
+				label: `Рік: ${selectedSemesterYear.label}`,
+			});
+		}
+
+		const selectedFaculty = faculties.find((f) => f.id === filters.faculty);
+		if (selectedFaculty) {
+			result.push({
+				key: "faculty",
+				label: `Факультет: ${getFacultyAbbreviation(selectedFaculty.name)} · ${selectedFaculty.name}`,
+			});
+		}
+
+		const selectedDepartment = allDepartments.find(
+			(d) => d.id === filters.department,
+		);
+		if (selectedDepartment) {
+			result.push({
+				key: "department",
+				label: `Кафедра: ${selectedDepartment.name}`,
+			});
+		}
+
+		const selectedSpeciality = specialities.find(
+			(s) => s.id === filters.speciality,
+		);
+		if (selectedSpeciality) {
+			result.push({
+				key: "speciality",
+				label: `Спеціальність: ${selectedSpeciality.name}`,
+			});
+		}
+
+		const selectedCourseType = courseTypes.find(
+			(type) => type.value === filters.courseType,
+		);
+		if (selectedCourseType) {
+			result.push({
+				key: "courseType",
+				label: `Тип курсу: ${getCourseTypeDisplay(
+					selectedCourseType.value,
+					selectedCourseType.label,
+				)}`,
+			});
+		}
+
+		const selectedInstructor = instructors.find(
+			(i) => i.id === filters.instructor,
+		);
+		if (selectedInstructor) {
+			result.push({
+				key: "instructor",
+				label: `Викладач: ${selectedInstructor.name}`,
+			});
+		}
+
+		return result;
+	}, [
+		filters,
+		faculties,
+		allDepartments,
+		instructors,
+		semesterTerms,
+		semesterYears,
+		courseTypes,
+		specialities,
+	]);
+
+	if (badges.length === 0) {
+		return null;
+	}
+
+	return (
+		<div className="pb-4 border-b space-y-2">
+			<div className="text-xs font-medium text-muted-foreground">
+				Активні фільтри:
+			</div>
+			<div className="flex flex-wrap gap-2">
+				{badges.map((badge) => (
+					<Badge
+						key={badge.key}
+						variant="secondary"
+						className="text-xs whitespace-normal h-auto py-1 break-words"
+					>
+						{badge.label}
+					</Badge>
+				))}
+			</div>
+		</div>
+	);
+}
+
 function CourseFiltersContent({
 	form,
 	data,
-}: Readonly<CourseFiltersContentProps>) {
+	filterOptions,
+}: Readonly<CourseFiltersContentProps & { filterOptions?: FilterOptions }>) {
 	return (
 		<div className="space-y-6">
-			{data.rangeFilters.map(({ key, label, value, range, captions }) => (
-				<div key={key} className="space-y-3">
-					<Label className="text-sm font-medium">
-						{label}: {value[0].toFixed(1)} - {value[1].toFixed(1)}
-					</Label>
-					<Slider
-						min={range[0]}
-						max={range[1]}
-						step={0.1}
-						value={value}
-						onValueChange={(next) =>
-							form.setValue(key, next as [number, number], {
-								shouldDirty: true,
-							})
-						}
-						className="w-full"
-					/>
-					<div className="flex justify-between text-xs text-muted-foreground">
-						<span>{captions[0]}</span>
-						<span>{captions[1]}</span>
-					</div>
-				</div>
+			<ActiveFilters form={form} filterOptions={filterOptions} />
+
+			{data.rangeFilters.map(({ key, ...filter }) => (
+				<Controller
+					key={key}
+					control={form.control}
+					name={key as keyof FilterState}
+					render={({ field }) => (
+						<FilterSlider
+							{...filter}
+							value={field.value as [number, number]}
+							onValueChange={(next) => {
+								field.onChange(next);
+							}}
+						/>
+					)}
+				/>
 			))}
 
 			{data.selectFilters.map(
-				({ key, label, placeholder, value, options, contentClassName }) => (
-					<div key={key} className="space-y-3">
-						<Label className="text-sm font-medium">{label}</Label>
-						<Select
-							value={value || "all"}
-							onValueChange={(nextValue) => {
-								const newValue = nextValue === "all" ? "" : nextValue;
-								form.setValue(
-									key as keyof FilterState,
-									newValue as FilterState[keyof FilterState],
-									{ shouldDirty: true },
-								);
+				({ key, label, placeholder, options, contentClassName }) => (
+					<Controller
+						key={key}
+						control={form.control}
+						name={key as keyof FilterState}
+						render={({ field }) => (
+							<div className="space-y-3">
+								<Label className="text-sm font-medium">{label}</Label>
+								<Select
+									value={(field.value as string) || "all"}
+									onValueChange={(nextValue) => {
+										const newValue = nextValue === "all" ? "" : nextValue;
+										field.onChange(newValue);
 
-								// Clear department when faculty changes
-								if (key === "faculty" && nextValue !== value) {
-									form.setValue("department", "", { shouldDirty: true });
-								}
-							}}
-							disabled={options.length === 0}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder={placeholder} />
-							</SelectTrigger>
-							<SelectContent className={contentClassName}>
-								<SelectItem value="all">{placeholder}</SelectItem>
-								{options.map((option) => (
-									<SelectItem key={option.value} value={option.value}>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
+										// Clear department when faculty changes
+										if (key === "faculty" && field.value !== newValue) {
+											form.setValue("department", "", { shouldDirty: true });
+										}
+									}}
+									disabled={options.length === 0}
+								>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder={placeholder} />
+									</SelectTrigger>
+									<SelectContent className={contentClassName}>
+										<SelectItem value="all">{placeholder}</SelectItem>
+										{options.map((option) => (
+											<SelectItem key={option.value} value={option.value}>
+												{option.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						)}
+					/>
 				),
-			)}
-
-			{data.hasActiveFilters && (
-				<div className="pt-4 border-t space-y-2">
-					<div className="text-xs font-medium text-muted-foreground">
-						Активні фільтри:
-					</div>
-					<div className="flex flex-wrap gap-2">
-						{data.activeBadges.map((badge) => (
-							<Badge key={badge.key} variant="secondary" className="text-xs">
-								{badge.label}
-							</Badge>
-						))}
-					</div>
-				</div>
 			)}
 		</div>
 	);
@@ -141,13 +348,14 @@ function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
 	);
 }
 
-export function CourseFiltersPanel({
+export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 	onReset,
 	isLoading,
 	className,
 	...baseProps
 }: Readonly<CourseFiltersPanelProps>) {
 	const data = useCourseFiltersData(baseProps);
+	const hasActiveFilters = useHasActiveFilters(baseProps.form);
 
 	if (isLoading) {
 		return <CourseFiltersPanelSkeleton />;
@@ -161,17 +369,21 @@ export function CourseFiltersPanel({
 						<Filter className="h-5 w-5" />
 						Фільтри
 					</CardTitle>
-					{data.hasActiveFilters && <ResetButton onReset={onReset} />}
+					{hasActiveFilters && <ResetButton onReset={onReset} />}
 				</div>
 			</CardHeader>
 			<CardContent>
-				<CourseFiltersContent form={baseProps.form} data={data} />
+				<CourseFiltersContent
+					form={baseProps.form}
+					data={data}
+					filterOptions={baseProps.filterOptions}
+				/>
 			</CardContent>
 		</Card>
 	);
-}
+});
 
-export function CourseFiltersDrawer({
+export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 	onReset,
 	isLoading,
 	onClose,
@@ -179,6 +391,7 @@ export function CourseFiltersDrawer({
 	...baseProps
 }: Readonly<CourseFiltersDrawerProps>) {
 	const data = useCourseFiltersData(baseProps);
+	const hasActiveFilters = useHasActiveFilters(baseProps.form);
 
 	if (isLoading) {
 		return <CourseFiltersPanelSkeleton />;
@@ -189,7 +402,7 @@ export function CourseFiltersDrawer({
 			<div className="flex items-center justify-between">
 				<span className="text-lg font-semibold">Фільтри</span>
 				<div className="flex items-center gap-2">
-					{data.hasActiveFilters && <ResetButton onReset={onReset} />}
+					{hasActiveFilters && <ResetButton onReset={onReset} />}
 					<Button
 						variant="ghost"
 						size="icon"
@@ -201,7 +414,11 @@ export function CourseFiltersDrawer({
 					</Button>
 				</div>
 			</div>
-			<CourseFiltersContent form={baseProps.form} data={data} />
+			<CourseFiltersContent
+				form={baseProps.form}
+				data={data}
+				filterOptions={baseProps.filterOptions}
+			/>
 		</div>
 	);
-}
+});

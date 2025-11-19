@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
 import { DEFAULT_FILTERS } from "./filterSchema";
 import { filtersToSearchParams, searchParamsToFilters } from "./urlSync";

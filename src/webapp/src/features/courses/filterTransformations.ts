@@ -1,9 +1,6 @@
-import type { FilterState } from "./filterSchema";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
+import type { FilterState } from "./filterSchema";
 
-/**
- * API query parameters for course list
- */
 export type CourseApiFilters = {
 	name?: string;
 	faculty?: string;
@@ -19,10 +16,6 @@ export type CourseApiFilters = {
 	avg_usefulness_max?: number;
 };
 
-/**
- * Transform filter form state to API query parameters
- * Excludes default/empty values to keep API calls clean
- */
 export function transformFiltersToApiParams(
 	filters: FilterState,
 ): CourseApiFilters {
@@ -55,7 +48,6 @@ export function transformFiltersToApiParams(
 		}),
 	};
 
-	// Remove empty strings, undefined values, and NaN
 	return Object.fromEntries(
 		Object.entries(params).filter(
 			([_, v]) => v !== "" && v !== undefined && !Number.isNaN(v),
@@ -63,9 +55,6 @@ export function transformFiltersToApiParams(
 	) as CourseApiFilters;
 }
 
-/**
- * Transform sorting state to API query parameters
- */
 export function transformSortingToApiParams(
 	sortingId: string,
 	isDescending: boolean,

@@ -1,10 +1,14 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { QueryClient } from "@tanstack/react-query";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { QueryClient } from "@tanstack/react-query";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+	createMockCourse,
+	createMockFilterOptions,
+} from "@/test-utils/factories";
 import { renderWithProviders } from "@/test-utils/render";
 import { CoursesTable } from "./CoursesTable";
-import { createMockCourse, createMockFilterOptions } from "@/test-utils/factories";
 
 // Mock TanStack Router hooks
 const mockNavigate = vi.fn();
@@ -78,7 +82,9 @@ describe("CoursesTable", () => {
 
 		it("should render empty state when no data and not loading", () => {
 			// Arrange & Act
-			renderWithProviders(<CoursesTable {...defaultProps} data={[]} isLoading={false} />);
+			renderWithProviders(
+				<CoursesTable {...defaultProps} data={[]} isLoading={false} />,
+			);
 
 			// Assert
 			// Empty state component should be rendered with specific text
@@ -111,7 +117,9 @@ describe("CoursesTable", () => {
 			);
 
 			// Act
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await user.type(searchInput, "React");
 
 			// Assert
@@ -127,7 +135,9 @@ describe("CoursesTable", () => {
 			);
 
 			// Act
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await user.type(searchInput, "React");
 
 			// Assert - should not be called immediately
@@ -138,7 +148,7 @@ describe("CoursesTable", () => {
 				() => {
 					expect(onFiltersChange).toHaveBeenCalled();
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 
@@ -151,7 +161,9 @@ describe("CoursesTable", () => {
 			);
 
 			// Act
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await user.type(searchInput, "Database");
 
 			// Assert
@@ -165,7 +177,7 @@ describe("CoursesTable", () => {
 						}),
 					);
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 
@@ -174,7 +186,9 @@ describe("CoursesTable", () => {
 			renderWithProviders(<CoursesTable {...defaultProps} isLoading={true} />);
 
 			// Assert
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			expect(searchInput).toBeDisabled();
 		});
 	});
@@ -191,7 +205,11 @@ describe("CoursesTable", () => {
 
 			// Act
 			renderWithProviders(
-				<CoursesTable {...defaultProps} pagination={pagination} data={createMockCourse() ? [createMockCourse()] : []} />,
+				<CoursesTable
+					{...defaultProps}
+					pagination={pagination}
+					data={createMockCourse() ? [createMockCourse()] : []}
+				/>,
 			);
 
 			// Assert
@@ -260,7 +278,9 @@ describe("CoursesTable", () => {
 			);
 
 			// Act
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await user.type(searchInput, "Test");
 
 			// Assert
@@ -272,7 +292,7 @@ describe("CoursesTable", () => {
 						}),
 					);
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 	});
@@ -317,13 +337,20 @@ describe("CoursesTable", () => {
 
 			// Act
 			// Type in search to activate filters
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await user.type(searchInput, "Test");
 
 			// Wait for filters to be active
-			await waitFor(() => {
-				expect(screen.getByRole("button", { name: /скинути/i })).toBeInTheDocument();
-			}, { timeout: 600 });
+			await waitFor(
+				() => {
+					expect(
+						screen.getByRole("button", { name: /скинути/i }),
+					).toBeInTheDocument();
+				},
+				{ timeout: 1000 },
+			);
 
 			// Click reset
 			const resetButton = screen.getByRole("button", { name: /скинути/i });
@@ -365,7 +392,11 @@ describe("CoursesTable", () => {
 			const onRowClick = vi.fn();
 			const course = createMockCourse({ title: "React Programming" });
 			renderWithProviders(
-				<CoursesTable {...defaultProps} data={[course]} onRowClick={onRowClick} />,
+				<CoursesTable
+					{...defaultProps}
+					data={[course]}
+					onRowClick={onRowClick}
+				/>,
 			);
 
 			// Act
@@ -389,7 +420,9 @@ describe("CoursesTable", () => {
 			);
 
 			// Act
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await user.type(searchInput, "Test");
 
 			// Assert
@@ -401,7 +434,7 @@ describe("CoursesTable", () => {
 					expect(call).not.toHaveProperty("department");
 					expect(call).toHaveProperty("name", "Test");
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 
@@ -417,7 +450,9 @@ describe("CoursesTable", () => {
 			await waitFor(() => {}, { timeout: 100 });
 
 			// Type something to trigger filter change
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await userEvent.setup().type(searchInput, "X");
 
 			// Assert
@@ -430,7 +465,7 @@ describe("CoursesTable", () => {
 					expect(call).not.toHaveProperty("avg_usefulness_min");
 					expect(call).not.toHaveProperty("avg_usefulness_max");
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 
@@ -445,7 +480,8 @@ describe("CoursesTable", () => {
 			// Act
 			// Radix Select uses button role
 			const yearLabel = screen.getByText("Рік");
-			const yearSelect = yearLabel.parentElement?.querySelector('[role="button"]');
+			const yearSelect =
+				yearLabel.parentElement?.querySelector('[role="button"]');
 			if (yearSelect) {
 				await user.click(yearSelect);
 
@@ -461,7 +497,7 @@ describe("CoursesTable", () => {
 							expect(call).toHaveProperty("semesterYear", 2024);
 							expect(typeof call.semesterYear).toBe("number");
 						},
-						{ timeout: 600 },
+						{ timeout: 1000 },
 					);
 				}
 			}
@@ -480,7 +516,9 @@ describe("CoursesTable", () => {
 			renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
 			// Assert
-			expect(screen.getByText("Algorithms and Data Structures")).toBeInTheDocument();
+			expect(
+				screen.getByText("Algorithms and Data Structures"),
+			).toBeInTheDocument();
 			expect(screen.getByText("Web Development")).toBeInTheDocument();
 		});
 
@@ -549,7 +587,9 @@ describe("CoursesTable", () => {
 			renderWithProviders(<CoursesTable {...defaultProps} />);
 
 			// Assert
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			// Input component from @/components/ui/Input may not explicitly set type="text" (it's the default)
 			expect(searchInput).toBeInTheDocument();
 			expect(searchInput.tagName.toLowerCase()).toBe("input");
@@ -572,7 +612,9 @@ describe("CoursesTable", () => {
 			renderWithProviders(<CoursesTable {...defaultProps} />);
 
 			// Act
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await user.type(searchInput, "React");
 
 			// Assert
@@ -591,7 +633,7 @@ describe("CoursesTable", () => {
 						}),
 					);
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 
@@ -629,7 +671,7 @@ describe("CoursesTable", () => {
 						}),
 					);
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 
@@ -667,7 +709,7 @@ describe("CoursesTable", () => {
 						}),
 					);
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 
@@ -676,7 +718,6 @@ describe("CoursesTable", () => {
 			renderWithProviders(<CoursesTable {...defaultProps} />);
 
 			// Assert
-			// Wait for URL sync
 			await waitFor(
 				() => {
 					expect(mockNavigate).toHaveBeenCalledWith(
@@ -686,7 +727,7 @@ describe("CoursesTable", () => {
 						}),
 					);
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 
@@ -696,7 +737,9 @@ describe("CoursesTable", () => {
 			renderWithProviders(<CoursesTable {...defaultProps} />);
 
 			// Act
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await user.type(searchInput, "Test");
 
 			// Assert
@@ -708,7 +751,7 @@ describe("CoursesTable", () => {
 						}),
 					);
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 
@@ -733,7 +776,9 @@ describe("CoursesTable", () => {
 			);
 
 			// Assert
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			expect(searchInput).toHaveValue("Database");
 		});
 
@@ -743,7 +788,9 @@ describe("CoursesTable", () => {
 			renderWithProviders(<CoursesTable {...defaultProps} />);
 
 			// Act - Type multiple characters quickly
-			const searchInput = screen.getByPlaceholderText("Пошук курсів за назвою...");
+			const searchInput = screen.getByPlaceholderText(
+				"Пошук курсів за назвою...",
+			);
 			await user.type(searchInput, "ABC");
 
 			// Assert - Should only call navigate once after debounce
@@ -758,7 +805,7 @@ describe("CoursesTable", () => {
 						}),
 					);
 				},
-				{ timeout: 600 },
+				{ timeout: 1000 },
 			);
 		});
 	});

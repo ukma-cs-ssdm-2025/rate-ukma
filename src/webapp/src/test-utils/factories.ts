@@ -1,23 +1,22 @@
 import { faker } from "@faker-js/faker";
+
 import type {
 	CourseList,
-	FilterOptions,
-	FilterOptionFaculty,
+	FilterOptionCourseType,
 	FilterOptionDepartment,
+	FilterOptionFaculty,
 	FilterOptionInstructor,
 	FilterOptionSemesterTerm,
 	FilterOptionSemesterYear,
-	FilterOptionCourseType,
 	FilterOptionSpeciality,
+	FilterOptions,
 } from "@/lib/api/generated";
 
 /**
  * Factory for creating mock course data
  * Uses faker for realistic test data generation
  */
-export function createMockCourse(
-	overrides?: Partial<CourseList>,
-): CourseList {
+export function createMockCourse(overrides?: Partial<CourseList>): CourseList {
 	const facultyNames = [
 		"Факультет інформаційних технологій",
 		"Економічний факультет",
