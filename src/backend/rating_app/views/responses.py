@@ -161,7 +161,7 @@ R_ANALYTICS = {
 }
 
 R_COURSE_OFFERING_LIST = {
-    200: OpenApiResponse(CourseOfferingListResponseSerializer, "OK"),
+    200: OpenApiResponse(forced_singular_serializer(CourseOfferingListResponseSerializer), "OK"),
     **common_errors(include_404=True),
 }
 

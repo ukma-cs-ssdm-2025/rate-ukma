@@ -24,13 +24,20 @@ import { withAuth } from "@/lib/auth";
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
-	const { data: course, isLoading, isError } = useCoursesRetrieve(courseId);
+
 	const {
-		data: offerings,
+		data: course,
+		isLoading: isCourseLoading,
+		isError: isCourseError,
+	} = useCoursesRetrieve(courseId);
+
+	const {
+		data: courseOfferings,
 		isLoading: isOfferingsLoading,
-		isError: isOffersError,
+		isError: isOfferingsError,
 	} = useCoursesOfferingsList(courseId);
-	if (isLoading || isOfferingsLoading) {
+
+	if (isCourseLoading || isOfferingsLoading) {
 		return (
 			<Layout>
 				<CourseDetailsSkeleton />
@@ -38,8 +45,7 @@ function CourseDetailsRoute() {
 		);
 	}
 
-	// TODO: fix var names and CourseOfferingsExternalLinksList input type
-	if (isError || isOffersError || !course) {
+	if (isCourseError || isOfferingsError || !course) {
 		return (
 			<Layout>
 				<div className="space-y-6">
@@ -68,7 +74,7 @@ function CourseDetailsRoute() {
 						/>
 
 						<CourseOfferingsDropdown
-							courseOfferings={offerings?.course_offerings ?? []}
+							courseOfferings={courseOfferings?.course_offerings ?? []}
 						/>
 					</div>
 

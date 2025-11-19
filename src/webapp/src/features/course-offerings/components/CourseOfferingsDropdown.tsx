@@ -88,34 +88,6 @@ export function CourseOfferingsDropdown({
 								<ExternalLink className="ml-3 h-4 w-4 text-gray-500" />
 							</a>
 						))}
-						{courseOfferings.map((offering) => (
-							<a
-								key={offering.id}
-								href={`${BASE_EXTERNAL_URL}${offering.code}`}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-							>
-								<span>
-									Environmental Studies - {offering.semester_term} 2024
-								</span>
-								<ExternalLink className="ml-3 h-4 w-4 text-gray-500" />
-							</a>
-						))}
-						{courseOfferings.map((offering) => (
-							<a
-								key={offering.id}
-								href={`${BASE_EXTERNAL_URL}${offering.code}`}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-							>
-								<span>
-									Environmental Studies Old - {offering.semester_term} 2023
-								</span>
-								<ExternalLink className="ml-3 h-4 w-4 text-gray-500" />
-							</a>
-						))}
 					</div>
 				</div>
 			)}
