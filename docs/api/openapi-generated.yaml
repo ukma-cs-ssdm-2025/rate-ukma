@@ -758,7 +758,7 @@ paths:
   /api/v1/courses/{course_id}/offerings/:
     get:
       operationId: courses_offerings_list
-      description: List all ratings for a specific course with filters and pagination.
+      description: List all offerings  for a specific course.
       summary: List offerings for a course
       parameters:
       - in: path

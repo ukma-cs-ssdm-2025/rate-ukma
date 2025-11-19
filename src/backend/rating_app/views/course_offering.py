@@ -31,7 +31,7 @@ class CourseOfferingViewSet(viewsets.ViewSet):
 
     @extend_schema(
         summary="List offerings for a course",
-        description="List all ratings for a specific course with filters and pagination.",
+        description="List all offerings  for a specific course.",
         parameters=[
             *to_openapi((CourseOfferingCourseFilterParams, OpenApiParameter.PATH)),
         ],

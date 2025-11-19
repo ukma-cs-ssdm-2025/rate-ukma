@@ -12,7 +12,9 @@ class CourseOfferingRepository(IRepository[CourseOffering]):
         return CourseOffering.objects.select_related("course", "semester").get(id=offering_id)
 
     def get_by_course(self, course_id: str) -> list[CourseOffering]:
-        return list(CourseOffering.objects.select_related("course").filter(course_id=course_id))
+        return list(
+            CourseOffering.objects.select_related("course", "semester").filter(course_id=course_id)
+        )
 
     def get_or_upsert(
         self,

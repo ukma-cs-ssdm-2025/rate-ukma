@@ -35,14 +35,20 @@ class CourseOfferingSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_semester_year(self, obj):
+        if obj.semester is None:
+            return None
         return obj.semester.year
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_course_title(self, obj):
+        if obj.course is None:
+            return None
         return obj.course.title
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_semester_term(self, obj):
+        if obj.semester is None:
+            return None
         return obj.semester.label
 
 
