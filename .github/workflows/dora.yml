@@ -129,7 +129,7 @@ jobs:
           TIME_TO_RESTORE_CLASS: ${{ steps.calculate_metrics.outputs.time_to_restore_class }}
           OVERALL_PERFORMANCE: ${{ steps.calculate_metrics.outputs.overall_performance }}
           WORKFLOW_NAME: ${{ inputs.pipeline-config-file || 'main-pipeline.yml' }}
-          REPORT_URL: ${{ github.server_url }}/ukma-cs-ssdm-2025/rate-ukma/blob/main/docs/ci-cd/dora-summary.md
+          WORKFLOW_URL: ${{ github.server_url }}/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/dora.yml
           JOB_STATUS: ${{ job.status }}
           FROM: ${{ inputs.from-date || '7 days ago' }}
           TO: ${{ inputs.to-date || 'now' }}
@@ -202,9 +202,9 @@ jobs:
                   "inline": true
                 }
               ],
-              "url": "${REPORT_URL}",
+              "url": "${WORKFLOW_URL}",
               "footer": {
-                "text": "DORA Metrics Workflow • Click title to view full report"
+                "text": "DORA Metrics Workflow • Click title to view workflow run history"
               },
               "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             }]
