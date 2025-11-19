@@ -1,6 +1,9 @@
+import * as React from "react";
+
 import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -15,14 +18,42 @@ import {
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
-import { useCoursesRetrieve } from "@/lib/api/generated";
+import { RatingModal } from "@/features/ratings/components/RatingModal";
+import type { InlineCourseOffering } from "@/lib/api/generated";
+import {
+	useCoursesRetrieve,
+	useStudentsMeCoursesRetrieve,
+} from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
 	const { data: course, isLoading, isError } = useCoursesRetrieve(courseId);
+	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 
-	if (isLoading) {
+	const { data: studentCourses, isLoading: isStudentCoursesLoading } =
+		useStudentsMeCoursesRetrieve();
+
+	const { attendedOfferings, attendedCourseId } = React.useMemo(() => {
+		const courseData = studentCourses?.find((c) => c.id === courseId);
+		return {
+			attendedOfferings: courseData?.offerings || [],
+			attendedCourseId: courseData?.id,
+		};
+	}, [studentCourses, courseId]);
+
+	const hasAttendedCourse = attendedOfferings.length > 0;
+
+	const ratedOffering = React.useMemo(() => {
+		return attendedOfferings.find(
+			(offering: InlineCourseOffering) =>
+				offering.rated !== null && offering.rated !== undefined,
+		);
+	}, [attendedOfferings]);
+
+	const selectedOffering = ratedOffering || attendedOfferings[0] || null;
+
+	if (isLoading || isStudentCoursesLoading) {
 		return (
 			<Layout>
 				<CourseDetailsSkeleton />
@@ -70,8 +101,32 @@ function CourseDetailsRoute() {
 					ratingsCount={course.ratings_count ?? null}
 				/>
 
+				{hasAttendedCourse && selectedOffering && (
+					<div className="flex justify-center">
+						<Button
+							onClick={() => setIsRatingModalOpen(true)}
+							size="lg"
+							className="w-full max-w-md"
+						>
+							{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
+						</Button>
+					</div>
+				)}
+
 				<CourseRatingsList courseId={courseId} />
 			</div>
+
+			{selectedOffering?.id && attendedCourseId && (
+				<RatingModal
+					isOpen={isRatingModalOpen}
+					onClose={() => setIsRatingModalOpen(false)}
+					courseId={attendedCourseId}
+					offeringId={selectedOffering.id}
+					courseName={course.title}
+					existingRating={ratedOffering?.rated || null}
+					ratingId={ratedOffering?.rated?.id}
+				/>
+			)}
 		</Layout>
 	);
 }
