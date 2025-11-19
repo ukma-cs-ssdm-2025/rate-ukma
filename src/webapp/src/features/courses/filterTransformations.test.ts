@@ -174,7 +174,7 @@ describe("filterTransformations", () => {
 			const result = transformFiltersToApiParams(filters);
 
 			// Assert
-			expect(result).not.toHaveProperty("semesterYear");
+			expect(result).not.toHaveProperty("semester_year");
 		});
 
 		it("should include difficulty range when modified from default", () => {
@@ -322,7 +322,7 @@ describe("filterTransformations", () => {
 			expect(result).toEqual({
 				faculty: "faculty-1",
 			});
-			expect(result).not.toHaveProperty("semesterYear");
+			expect(result).not.toHaveProperty("semester_year");
 		});
 
 		it("should map courseType to typeKind in API params", () => {

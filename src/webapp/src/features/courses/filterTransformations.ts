@@ -1,3 +1,4 @@
+import type { CoursesListSemesterTerm } from "@/lib/api/generated";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
 import type { FilterState } from "./filterSchema";
 
@@ -8,7 +9,7 @@ export type CourseApiFilters = {
 	instructor?: string;
 	typeKind?: string;
 	speciality?: string;
-	semester_term?: string;
+	semester_term?: CoursesListSemesterTerm;
 	semester_year?: number;
 	avg_difficulty_min?: number;
 	avg_difficulty_max?: number;
