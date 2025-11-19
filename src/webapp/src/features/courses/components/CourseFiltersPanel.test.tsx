@@ -123,7 +123,7 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByText(/Корисність: 3\.0 - 5\.0/)).toBeInTheDocument();
+			expect(screen.getByText(/Корисність: 3 - 5/)).toBeInTheDocument();
 		});
 
 		it("should display range captions", () => {
