@@ -8,6 +8,7 @@ from rating_app.models import (
     Course,
     CourseOffering,
     Department,
+    Enrollment,
     Faculty,
     Instructor,
     Rating,
@@ -165,6 +166,25 @@ class InstructorAdmin(VersionAdmin):
     @admin.display(description="Courses")
     def courses_count(self, obj):
         return obj.course_offerings.count()
+
+
+@admin.register(Enrollment)
+class EnrollmentAdmin(VersionAdmin):
+    list_display = ("student", "offering", "enrolled_at")
+    list_select_related = ("student", "offering", "offering__course")
+    list_filter = ("offering__course__department", "status", "enrolled_at")
+    search_fields = (
+        "student__last_name",
+        "student__first_name",
+        "student__patronymic",
+        "offering__course__title",
+    )
+    ordering = ("-enrolled_at",)
+
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request).select_related("student", "offering", "offering__course")
+        )
 
 
 @admin.register(Student)
