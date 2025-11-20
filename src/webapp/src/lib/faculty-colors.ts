@@ -21,11 +21,54 @@ const FACULTY_COLOR_MAP = {
 
 type ColorConfig = { bg: string; text: string; border: string; hex: string };
 
+// Explicit mapping of color names to Tailwind classes (prevents purging in production)
+const COLOR_CLASS_MAP: Record<string, Omit<ColorConfig, "hex">> = {
+	purple: {
+		bg: "bg-purple-100",
+		text: "text-purple-700",
+		border: "border-purple-300",
+	},
+	orange: {
+		bg: "bg-orange-100",
+		text: "text-orange-700",
+		border: "border-orange-300",
+	},
+	rose: {
+		bg: "bg-rose-100",
+		text: "text-rose-700",
+		border: "border-rose-300",
+	},
+	blue: {
+		bg: "bg-blue-100",
+		text: "text-blue-700",
+		border: "border-blue-300",
+	},
+	green: {
+		bg: "bg-green-100",
+		text: "text-green-700",
+		border: "border-green-300",
+	},
+	yellow: {
+		bg: "bg-yellow-100",
+		text: "text-yellow-700",
+		border: "border-yellow-300",
+	},
+	teal: {
+		bg: "bg-teal-100",
+		text: "text-teal-700",
+		border: "border-teal-300",
+	},
+	gray: {
+		bg: "bg-gray-100",
+		text: "text-gray-700",
+		border: "border-gray-300",
+	},
+};
+
 function createColorConfig(color: string, hex: string): ColorConfig {
+	const classes = COLOR_CLASS_MAP[color] ?? COLOR_CLASS_MAP.gray;
 	return {
-		bg: `bg-${color}-100`,
-		text: `text-${color}-700`,
-		border: `border-${color}-300`,
+		...classes,
 		hex,
 	};
 }
