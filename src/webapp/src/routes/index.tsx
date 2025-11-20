@@ -1,25 +1,61 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { keepPreviousData } from "@tanstack/react-query";
+import {
+	createFileRoute,
+	useNavigate,
+	useSearch,
+} from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
 import { CoursesErrorState } from "@/features/courses/components/CoursesErrorState";
 import { CoursesHeader } from "@/features/courses/components/CoursesHeader";
 import { CoursesTable } from "@/features/courses/components/CoursesTable";
+import { transformFiltersToApiParams } from "@/features/courses/filterTransformations";
+import { searchParamsToFilters } from "@/features/courses/urlSync";
 import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
+
+type CoursesSearch = Record<string, string>;
 
 const DEFAULT_PAGE_SIZE = 20;
 
 function CoursesRoute() {
 	const navigate = useNavigate();
-	const [filters, setFilters] = useState<CoursesListParams>({
+	const search = useSearch({ from: "/" });
+	const initialFilters = useMemo(() => searchParamsToFilters(search), [search]);
+	const initialApiFilters = useMemo(
+		() => transformFiltersToApiParams(initialFilters),
+		[initialFilters],
+	);
+
+	const [filters, setFilters] = useState<CoursesListParams>(() => ({
 		page: 1,
 		page_size: DEFAULT_PAGE_SIZE,
-	});
+		...initialApiFilters,
+	}));
 
-	const { data, isLoading, isError, refetch } = useCoursesList(filters);
+	useEffect(() => {
+		const nextFilters: CoursesListParams = {
+			page: 1,
+			page_size: DEFAULT_PAGE_SIZE,
+			...initialApiFilters,
+		};
+
+		setFilters((previous) => {
+			if (JSON.stringify(previous) === JSON.stringify(nextFilters)) {
+				return previous;
+			}
+			return nextFilters;
+		});
+	}, [initialApiFilters]);
+
+	const { data, isFetching, isError, refetch } = useCoursesList(filters, {
+		query: {
+			placeholderData: keepPreviousData,
+		},
+	});
 
 	const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
 
@@ -54,8 +90,9 @@ function CoursesRoute() {
 				) : (
 					<CoursesTable
 						data={data?.items ?? []}
-						isLoading={isLoading}
+						isLoading={isFetching}
 						filtersKey={filtersKey}
+						initialFilters={initialFilters}
 						onFiltersChange={handleFiltersChange}
 						onRowClick={handleRowClick}
 						pagination={
@@ -77,4 +114,13 @@ function CoursesRoute() {
 
 export const Route = createFileRoute("/")({
 	component: withAuth(CoursesRoute),
+	validateSearch: (search: Record<string, unknown>): CoursesSearch => {
+		const result: Record<string, string> = {};
+		for (const [key, value] of Object.entries(search)) {
+			if (typeof value === "string") {
+				result[key] = value;
+			}
+		}
+		return result;
+	},
 });

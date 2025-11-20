@@ -1,6 +1,8 @@
-import * as React from "react";
+import { memo, useEffect, useState } from "react";
 
 import { Filter, X } from "lucide-react";
+import type { UseFormReturn } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -17,438 +19,176 @@ import { Slider } from "@/components/ui/Slider";
 import type { FilterOptions } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
-import type { FilterState } from "./CoursesTable";
+import { formatDecimalValue } from "../courseFormatting";
+import type { FilterState } from "../filterSchema";
 import {
-	DIFFICULTY_RANGE,
-	getCourseTypeDisplay,
-	getFacultyAbbreviation,
-	getSemesterTermDisplay,
-	USEFULNESS_RANGE,
-} from "../courseFormatting";
+	areFiltersActive,
+	useCourseFiltersData,
+} from "../hooks/useCourseFiltersData";
 
 interface CourseFiltersBaseProps {
-	filters: FilterState;
-	onFilterChange: <K extends keyof FilterState>(
-		key: K,
-		value: FilterState[K],
-	) => void;
-	filterOptions?: FilterOptions;
+	readonly form: UseFormReturn<FilterState>;
+	readonly filterOptions?: FilterOptions;
 }
 
 interface CourseFiltersPanelProps extends CourseFiltersBaseProps {
-	onReset: () => void;
-	isLoading?: boolean;
-	className?: string;
+	readonly onReset: () => void;
+	readonly isLoading?: boolean;
+	readonly className?: string;
 }
 
 export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
-	onReset: () => void;
-	onClose: () => void;
-	isLoading?: boolean;
-	className?: string;
-}
-
-type SelectOption = {
-	value: string;
-	label: string;
-};
-
-type SelectFilterConfig = {
-	key: string;
-	label: string;
-	placeholder: string;
-	value: string;
-	onChange: (value: string) => void;
-	options: SelectOption[];
-	contentClassName?: string;
-};
-
-type RangeFilterConfig = {
-	key: string;
-	label: string;
-	value: [number, number];
-	onChange: (value: [number, number]) => void;
-	range: [number, number];
-	captions: [string, string];
-};
-
-type CourseFiltersData = {
-	rangeFilters: RangeFilterConfig[];
-	selectFilters: SelectFilterConfig[];
-	activeBadges: Array<{ key: string; label: string }>;
-	hasActiveFilters: boolean;
-};
-
-function useCourseFiltersData({
-	filters,
-	onFilterChange,
-	filterOptions,
-}: CourseFiltersBaseProps): CourseFiltersData {
-	const {
-		faculties = [],
-		departments: allDepartments = [],
-		instructors = [],
-		semester_terms: semesterTerms = [],
-		semester_years: semesterYears = [],
-		course_types: courseTypes = [],
-		specialities = [],
-	} = filterOptions ?? {};
-
-	const selectedFacultyOption = React.useMemo(
-		() => faculties.find((option) => option.id === filters.faculty),
-		[faculties, filters.faculty],
-	);
-
-	const selectedDepartmentOption = React.useMemo(
-		() => allDepartments.find((option) => option.id === filters.department),
-		[allDepartments, filters.department],
-	);
-
-	const selectedSemesterTermOption = React.useMemo(
-		() =>
-			semesterTerms.find((option) => option.value === filters.semesterTerm) ??
-			null,
-		[semesterTerms, filters.semesterTerm],
-	);
-
-	const selectedSemesterYearOption = React.useMemo(
-		() =>
-			semesterYears.find((option) => option.value === filters.semesterYear) ??
-			null,
-		[semesterYears, filters.semesterYear],
-	);
-
-	const selectedInstructorOption = React.useMemo(
-		() => instructors.find((option) => option.id === filters.instructor),
-		[instructors, filters.instructor],
-	);
-
-	const selectedCourseTypeOption = React.useMemo(
-		() => courseTypes.find((option) => option.value === filters.courseType),
-		[courseTypes, filters.courseType],
-	);
-
-	const selectedSpecialityOption = React.useMemo(
-		() => specialities.find((option) => option.id === filters.speciality),
-		[specialities, filters.speciality],
-	);
-
-	const filteredDepartments = React.useMemo(() => {
-		if (!filters.faculty) {
-			return allDepartments;
-		}
-
-		return allDepartments.filter(
-			(department) => department.faculty_id === filters.faculty,
-		);
-	}, [allDepartments, filters.faculty]);
-
-	const rangeFilters: RangeFilterConfig[] = [
-		{
-			key: "difficulty",
-			label: "Складність",
-			value: filters.difficultyRange,
-			onChange: (value) => onFilterChange("difficultyRange", value),
-			range: DIFFICULTY_RANGE,
-			captions: ["Легко", "Складно"],
-		},
-		{
-			key: "usefulness",
-			label: "Корисність",
-			value: filters.usefulnessRange,
-			onChange: (value) => onFilterChange("usefulnessRange", value),
-			range: USEFULNESS_RANGE,
-			captions: ["Низька", "Висока"],
-		},
-	];
-
-	const selectFilters: SelectFilterConfig[] = React.useMemo(
-		() => [
-			{
-				key: "semesterTerm",
-				label: "Семестровий період",
-				placeholder: "Усі періоди",
-				value: filters.semesterTerm,
-				onChange: (value) => onFilterChange("semesterTerm", value),
-				options: semesterTerms.map((term) => ({
-					value: term.value,
-					label: getSemesterTermDisplay(term.value, term.label),
-				})),
-			},
-			{
-				key: "semesterYear",
-				label: "Рік",
-				placeholder: "Усі роки",
-				value: filters.semesterYear,
-				onChange: (value) => onFilterChange("semesterYear", value),
-				options: semesterYears.map((year) => ({
-					value: year.value,
-					label: year.label ?? year.value,
-				})),
-			},
-			{
-				key: "faculty",
-				label: "Факультет",
-				placeholder: "Усі факультети",
-				value: filters.faculty,
-				onChange: (value) => onFilterChange("faculty", value),
-				options: faculties.map((faculty) => ({
-					value: faculty.id,
-					label: `${getFacultyAbbreviation(faculty.name)} - ${faculty.name}`,
-				})),
-			},
-			{
-				key: "department",
-				label: "Кафедра",
-				placeholder: "Усі кафедри",
-				value: filters.department,
-				onChange: (value) => onFilterChange("department", value),
-				options: filteredDepartments.map((department) => ({
-					value: department.id,
-					label:
-						filters.faculty || !department.faculty_name
-							? department.name
-							: `${department.name} — ${department.faculty_name}`,
-				})),
-			},
-			{
-				key: "speciality",
-				label: "Спеціальність",
-				placeholder: "Усі спеціальності",
-				value: filters.speciality,
-				onChange: (value) => onFilterChange("speciality", value),
-				options: specialities.map((speciality) => ({
-					value: speciality.id,
-					label: speciality.faculty_name
-						? `${speciality.name} — ${speciality.faculty_name}`
-						: speciality.name,
-				})),
-				contentClassName: "max-h-72",
-			},
-			{
-				key: "courseType",
-				label: "Тип курсу",
-				placeholder: "Усі типи курсів",
-				value: filters.courseType,
-				onChange: (value) => onFilterChange("courseType", value),
-				options: courseTypes.map((type) => ({
-					value: type.value,
-					label: getCourseTypeDisplay(type.value, type.label),
-				})),
-			},
-			{
-				key: "instructor",
-				label: "Викладач",
-				placeholder: "Усі викладачі",
-				value: filters.instructor,
-				onChange: (value) => onFilterChange("instructor", value),
-				options: instructors.map((instructor) => ({
-					value: instructor.id,
-					label: instructor.name,
-				})),
-				contentClassName: "max-h-72",
-			},
-		],
-		[
-			courseTypes,
-			faculties,
-			filteredDepartments,
-			filters,
-			instructors,
-			onFilterChange,
-			semesterTerms,
-			semesterYears,
-			specialities,
-		],
-	);
-
-	const activeBadges = React.useMemo(() => {
-		const badges: Array<{ key: string; label: string }> = [];
-
-		if (filters.searchQuery) {
-			badges.push({ key: "search", label: `Пошук: ${filters.searchQuery}` });
-		}
-
-		if (
-			filters.difficultyRange[0] !== DIFFICULTY_RANGE[0] ||
-			filters.difficultyRange[1] !== DIFFICULTY_RANGE[1]
-		) {
-			badges.push({
-				key: "difficulty",
-				label: `Складність: ${filters.difficultyRange[0].toFixed(1)}-${filters.difficultyRange[1].toFixed(1)}`,
-			});
-		}
-
-		if (
-			filters.usefulnessRange[0] !== USEFULNESS_RANGE[0] ||
-			filters.usefulnessRange[1] !== USEFULNESS_RANGE[1]
-		) {
-			badges.push({
-				key: "usefulness",
-				label: `Корисність: ${filters.usefulnessRange[0].toFixed(1)}-${filters.usefulnessRange[1].toFixed(1)}`,
-			});
-		}
-
-		const semesterTermLabel = selectedSemesterTermOption
-			? getSemesterTermDisplay(
-					selectedSemesterTermOption.value,
-					selectedSemesterTermOption.label,
-				)
-			: null;
-
-		if (selectedSemesterYearOption && semesterTermLabel) {
-			badges.push({
-				key: "semester",
-				label: `Семестр: ${selectedSemesterYearOption.label} ${semesterTermLabel}`,
-			});
-		} else if (semesterTermLabel) {
-			badges.push({
-				key: "semesterTerm",
-				label: `Період: ${semesterTermLabel}`,
-			});
-		} else if (selectedSemesterYearOption) {
-			badges.push({
-				key: "semesterYear",
-				label: `Рік: ${selectedSemesterYearOption.label}`,
-			});
-		}
-
-		if (selectedFacultyOption) {
-			badges.push({
-				key: "faculty",
-				label: `Факультет: ${getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
-			});
-		}
-
-		if (selectedDepartmentOption) {
-			badges.push({
-				key: "department",
-				label: `Кафедра: ${selectedDepartmentOption.name}`,
-			});
-		}
-
-		if (selectedSpecialityOption) {
-			badges.push({
-				key: "speciality",
-				label: `Спеціальність: ${selectedSpecialityOption.name}`,
-			});
-		}
-
-		if (selectedCourseTypeOption) {
-			badges.push({
-				key: "courseType",
-				label: `Тип курсу: ${getCourseTypeDisplay(
-					selectedCourseTypeOption.value,
-					selectedCourseTypeOption.label,
-				)}`,
-			});
-		}
-
-		if (selectedInstructorOption) {
-			badges.push({
-				key: "instructor",
-				label: `Викладач: ${selectedInstructorOption.name}`,
-			});
-		}
-
-		return badges;
-	}, [
-		filters,
-		selectedCourseTypeOption,
-		selectedDepartmentOption,
-		selectedFacultyOption,
-		selectedInstructorOption,
-		selectedSemesterTermOption,
-		selectedSemesterYearOption,
-		selectedSpecialityOption,
-	]);
-
-	return {
-		rangeFilters,
-		selectFilters,
-		activeBadges,
-		hasActiveFilters: activeBadges.length > 0,
-	};
+	readonly onReset: () => void;
+	readonly onClose: () => void;
+	readonly isLoading?: boolean;
+	readonly className?: string;
 }
 
 interface CourseFiltersContentProps {
-	data: CourseFiltersData;
+	readonly form: UseFormReturn<FilterState>;
+	readonly data: ReturnType<typeof useCourseFiltersData>;
 }
 
-function CourseFiltersContent({ data }: Readonly<CourseFiltersContentProps>) {
+function FilterSlider({
+	label,
+	value,
+	range,
+	captions,
+	onValueChange,
+}: Readonly<{
+	label: string;
+	value: [number, number];
+	range: [number, number];
+	captions: [string, string];
+	onValueChange: (value: [number, number]) => void;
+}>) {
+	const [localValue, setLocalValue] = useState(value);
+
+	useEffect(() => {
+		setLocalValue(value);
+	}, [value]);
+
+	return (
+		<div className="space-y-3">
+			<Label className="text-sm font-medium">
+				{label}: {formatDecimalValue(localValue[0], { fallback: "0" })} -{" "}
+				{formatDecimalValue(localValue[1], { fallback: "0" })}
+			</Label>
+			<Slider
+				min={range[0]}
+				max={range[1]}
+				step={0.1}
+				value={localValue}
+				onValueChange={(val) => setLocalValue(val as [number, number])}
+				onValueCommit={(val) => onValueChange(val as [number, number])}
+				className="w-full"
+			/>
+			<div className="flex justify-between text-xs text-muted-foreground">
+				<span>{captions[0]}</span>
+				<span>{captions[1]}</span>
+			</div>
+		</div>
+	);
+}
+
+function useHasActiveFilters(form: UseFormReturn<FilterState>): boolean {
+	const filters = useWatch({ control: form.control });
+	return areFiltersActive(filters as FilterState);
+}
+
+function ActiveFilters({
+	badges,
+}: Readonly<{
+	badges: Array<{ key: string; label: string }>;
+}>) {
+	if (badges.length === 0) {
+		return null;
+	}
+
+	return (
+		<div className="pt-4 border-t space-y-2">
+			<div className="text-xs font-medium text-muted-foreground">
+				Активні фільтри:
+			</div>
+			<div className="flex flex-wrap gap-2">
+				{badges.map((badge) => (
+					<Badge
+						key={badge.key}
+						variant="secondary"
+						className="text-xs whitespace-normal h-auto py-1 break-words"
+					>
+						{badge.label}
+					</Badge>
+				))}
+			</div>
+		</div>
+	);
+}
+
+function CourseFiltersContent({
+	form,
+	data,
+}: Readonly<CourseFiltersContentProps>) {
 	return (
 		<div className="space-y-6">
-			{data.rangeFilters.map(
-				({ key, label, value, onChange, range, captions }) => (
-					<div key={key} className="space-y-3">
-						<Label className="text-sm font-medium">
-							{label}: {value[0].toFixed(1)} - {value[1].toFixed(1)}
-						</Label>
-						<Slider
-							min={range[0]}
-							max={range[1]}
-							step={0.1}
-							value={value}
-							onValueChange={(next) => onChange(next as [number, number])}
-							className="w-full"
+			{data.rangeFilters.map(({ key, ...filter }) => (
+				<Controller
+					key={key}
+					control={form.control}
+					name={key as keyof FilterState}
+					render={({ field }) => (
+						<FilterSlider
+							{...filter}
+							value={field.value as [number, number]}
+							onValueChange={(next) => {
+								field.onChange(next);
+							}}
 						/>
-						<div className="flex justify-between text-xs text-muted-foreground">
-							<span>{captions[0]}</span>
-							<span>{captions[1]}</span>
-						</div>
-					</div>
-				),
-			)}
+					)}
+				/>
+			))}
 
 			{data.selectFilters.map(
-				({
-					key,
-					label,
-					placeholder,
-					value,
-					onChange,
-					options,
-					contentClassName,
-				}) => (
-					<div key={key} className="space-y-3">
-						<Label className="text-sm font-medium">{label}</Label>
-						<Select
-							value={value || "all"}
-							onValueChange={(nextValue) =>
-								onChange(nextValue === "all" ? "" : nextValue)
-							}
-							disabled={options.length === 0}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder={placeholder} />
-							</SelectTrigger>
-							<SelectContent className={contentClassName}>
-								<SelectItem value="all">{placeholder}</SelectItem>
-								{options.map((option) => (
-									<SelectItem key={option.value} value={option.value}>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
+				({ key, label, placeholder, options, contentClassName }) => (
+					<Controller
+						key={key}
+						control={form.control}
+						name={key as keyof FilterState}
+						render={({ field }) => (
+							<div className="space-y-3">
+								<Label className="text-sm font-medium">{label}</Label>
+								<Select
+									value={(field.value as string) || "all"}
+									onValueChange={(nextValue) => {
+										const newValue = nextValue === "all" ? "" : nextValue;
+										field.onChange(newValue);
+
+										// Clear department when faculty changes
+										if (key === "faculty" && field.value !== newValue) {
+											form.setValue("department", "", { shouldDirty: true });
+										}
+									}}
+									disabled={options.length === 0}
+								>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder={placeholder} />
+									</SelectTrigger>
+									<SelectContent className={contentClassName}>
+										<SelectItem value="all">{placeholder}</SelectItem>
+										{options.map((option) => (
+											<SelectItem key={option.value} value={option.value}>
+												{option.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						)}
+					/>
 				),
 			)}
 
-			{data.hasActiveFilters && (
-				<div className="pt-4 border-t space-y-2">
-					<div className="text-xs font-medium text-muted-foreground">
-						Активні фільтри:
-					</div>
-					<div className="flex flex-wrap gap-2">
-						{data.activeBadges.map((badge) => (
-							<Badge key={badge.key} variant="secondary" className="text-xs">
-								{badge.label}
-							</Badge>
-						))}
-					</div>
-				</div>
-			)}
+			<ActiveFilters badges={data.activeBadges} />
 		</div>
 	);
 }
@@ -465,13 +205,14 @@ function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
 	);
 }
 
-export function CourseFiltersPanel({
+export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 	onReset,
 	isLoading,
 	className,
 	...baseProps
 }: Readonly<CourseFiltersPanelProps>) {
 	const data = useCourseFiltersData(baseProps);
+	const hasActiveFilters = useHasActiveFilters(baseProps.form);
 
 	if (isLoading) {
 		return <CourseFiltersPanelSkeleton />;
@@ -485,17 +226,17 @@ export function CourseFiltersPanel({
 						<Filter className="h-5 w-5" />
 						Фільтри
 					</CardTitle>
-					{data.hasActiveFilters && <ResetButton onReset={onReset} />}
+					{hasActiveFilters && <ResetButton onReset={onReset} />}
 				</div>
 			</CardHeader>
 			<CardContent>
-				<CourseFiltersContent data={data} />
+				<CourseFiltersContent form={baseProps.form} data={data} />
 			</CardContent>
 		</Card>
 	);
-}
+});
 
-export function CourseFiltersDrawer({
+export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 	onReset,
 	isLoading,
 	onClose,
@@ -503,6 +244,7 @@ export function CourseFiltersDrawer({
 	...baseProps
 }: Readonly<CourseFiltersDrawerProps>) {
 	const data = useCourseFiltersData(baseProps);
+	const hasActiveFilters = useHasActiveFilters(baseProps.form);
 
 	if (isLoading) {
 		return <CourseFiltersPanelSkeleton />;
@@ -513,7 +255,7 @@ export function CourseFiltersDrawer({
 			<div className="flex items-center justify-between">
 				<span className="text-lg font-semibold">Фільтри</span>
 				<div className="flex items-center gap-2">
-					{data.hasActiveFilters && <ResetButton onReset={onReset} />}
+					{hasActiveFilters && <ResetButton onReset={onReset} />}
 					<Button
 						variant="ghost"
 						size="icon"
@@ -525,7 +267,7 @@ export function CourseFiltersDrawer({
 					</Button>
 				</div>
 			</div>
-			<CourseFiltersContent data={data} />
+			<CourseFiltersContent form={baseProps.form} data={data} />
 		</div>
 	);
-}
+});

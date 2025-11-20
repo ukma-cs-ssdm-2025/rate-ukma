@@ -1,6 +1,20 @@
 export const DIFFICULTY_RANGE: [number, number] = [1, 5];
 export const USEFULNESS_RANGE: [number, number] = [1, 5];
 
+export function formatDecimalValue(
+	value: number | null | undefined,
+	{
+		fallback = "—",
+		precision = 1,
+	}: { fallback?: string; precision?: number } = {},
+): string {
+	if (value == null) {
+		return fallback;
+	}
+
+	return Number(value.toFixed(precision)).toString();
+}
+
 export function getFacultyAbbreviation(facultyName: string): string {
 	const words = facultyName.trim().split(/\s+/);
 	return words.map((word) => word.charAt(0).toUpperCase()).join("");

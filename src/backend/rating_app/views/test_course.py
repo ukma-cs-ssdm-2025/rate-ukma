@@ -104,7 +104,7 @@ def test_filter_by_semester(token_client, course_factory):
     semester_year = 2024
     semester_term = "FALL"
     course_factory.create()
-    url = f"/api/v1/courses/?semesterYear={semester_year}&semesterTerm={semester_term}"
+    url = f"/api/v1/courses/?semester_year={semester_year}&semester_term={semester_term}"
 
     # Act
     response = token_client.get(url)
