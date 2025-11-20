@@ -1,54 +1,42 @@
 /**
  * Faculty color mappings for NaUKMA
- * Each faculty has a unique color for visual distinction
+ * Maps faculty names to their Tailwind color names and brand hex colors
  */
 
-export const FACULTY_COLORS = {
-	"Факультет інформатики": {
-		bg: "bg-purple-100",
-		text: "text-purple-700",
-		border: "border-purple-300",
-		hex: "#4c217a",
-	},
-	"Факультет економічних наук": {
-		bg: "bg-orange-100",
-		text: "text-orange-700",
-		border: "border-orange-300",
-		hex: "#ed6d40",
-	},
-	"Факультет правничих наук": {
-		bg: "bg-rose-100",
-		text: "text-rose-700",
-		border: "border-rose-300",
-		hex: "#870825",
-	},
-	"Факультет гуманітарних наук": {
-		bg: "bg-blue-100",
-		text: "text-blue-700",
-		border: "border-blue-300",
-		hex: "#0076b3",
-	},
-	"Факультет природничих наук": {
-		bg: "bg-green-100",
-		text: "text-green-700",
-		border: "border-green-300",
-		hex: "#006e31",
-	},
+const FACULTY_COLOR_MAP = {
+	"Факультет інформатики": { color: "purple", hex: "#4c217a" },
+	"Факультет економічних наук": { color: "orange", hex: "#ed6d40" },
+	"Факультет правничих наук": { color: "rose", hex: "#870825" },
+	"Факультет гуманітарних наук": { color: "blue", hex: "#0076b3" },
+	"Факультет природничих наук": { color: "green", hex: "#006e31" },
 	"Факультет соціальних наук та соціальних технологій": {
-		bg: "bg-yellow-100",
-		text: "text-yellow-700",
-		border: "border-yellow-300",
+		color: "yellow",
 		hex: "#f6b213",
 	},
-	"Факультет охорони здоров'я": {
-		bg: "bg-amber-100",
-		text: "text-amber-700",
-		border: "border-amber-300",
-		hex: "#f6b213",
-	},
+	"Факультет охорони здоров'я": { color: "teal", hex: "#9b338c" },
 } as const;
 
-export type FacultyName = keyof typeof FACULTY_COLORS;
+type ColorConfig = { bg: string; text: string; border: string; hex: string };
+
+function createColorConfig(color: string, hex: string): ColorConfig {
+	return {
+		bg: `bg-${color}-100`,
+		text: `text-${color}-700`,
+		border: `border-${color}-300`,
+		hex,
+	};
+}
+
+// Build the full faculty colors object
+export const FACULTY_COLORS = Object.entries(FACULTY_COLOR_MAP).reduce(
+	(acc, [faculty, { color, hex }]) => {
+		acc[faculty] = createColorConfig(color, hex);
+		return acc;
+	},
+	{} as Record<string, ColorConfig>,
+);
+
+export type FacultyName = keyof typeof FACULTY_COLOR_MAP;
 export function getFacultyColors(facultyName: string) {
 	const colors = FACULTY_COLORS[facultyName as FacultyName];
 
