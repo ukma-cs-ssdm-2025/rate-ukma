@@ -13,7 +13,10 @@ const FACULTY_COLOR_MAP = {
 		color: "yellow",
 		hex: "#f6b213",
 	},
-	"Факультет охорони здоров'я": { color: "teal", hex: "#9b338c" },
+	"Факультет охорони здоров'я, соціальної роботи та психології": {
+		color: "teal",
+		hex: "#9b338c",
+	},
 } as const;
 
 type ColorConfig = { bg: string; text: string; border: string; hex: string };
