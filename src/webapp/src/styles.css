@@ -135,4 +135,16 @@ code {
 	body {
 		@apply bg-background text-foreground;
 	}
+	dialog {
+		border: none;
+		padding: 0;
+		max-width: none;
+		max-height: none;
+		width: 100%;
+		height: 100%;
+		background: transparent;
+	}
+	dialog::backdrop {
+		display: none;
+	}
 }
