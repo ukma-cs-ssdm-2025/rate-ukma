@@ -176,7 +176,7 @@ export function useCourseFiltersData({
 				value: filters.faculty,
 				options: faculties.map((faculty) => ({
 					value: faculty.id,
-					label: `${getFacultyAbbreviation(faculty.name)} - ${faculty.name}`,
+					label: `${faculty.custom_abbreviation || getFacultyAbbreviation(faculty.name)} - ${faculty.name}`,
 				})),
 			},
 			{

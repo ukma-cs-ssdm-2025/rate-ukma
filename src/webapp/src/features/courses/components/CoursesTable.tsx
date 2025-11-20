@@ -75,7 +75,10 @@ const columns: ColumnDef<CourseList>[] = [
 					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline md:text-base">
 						{course.title}
 					</span>{" "}
-					<CourseFacultyBadge facultyName={course.faculty_name} />
+					<CourseFacultyBadge
+						facultyName={course.faculty_name}
+						facultyCustomAbbreviation={course.faculty_custom_abbreviation}
+					/>
 				</span>
 			);
 		},
