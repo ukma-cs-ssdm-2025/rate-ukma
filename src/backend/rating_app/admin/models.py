@@ -63,8 +63,8 @@ class CourseAdmin(VersionAdmin):
 
 @admin.register(Faculty)
 class FacultyAdmin(VersionAdmin):
-    list_display = ("name", "departments_count", "specialities_count")
-    search_fields = ("name",)
+    list_display = ("name", "custom_abbreviation", "departments_count", "specialities_count")
+    search_fields = ("name", "custom_abbreviation")
     ordering = ("name",)
 
     def get_queryset(self, request):

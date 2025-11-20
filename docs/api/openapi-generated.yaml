@@ -1680,6 +1680,9 @@ components:
         faculty_name:
           type: string
           readOnly: true
+        faculty_custom_abbreviation:
+          type: string
+          readOnly: true
         avg_difficulty:
           type: number
           format: double
@@ -1892,6 +1895,9 @@ components:
           format: uuid
         name:
           type: string
+        custom_abbreviation:
+          type: string
+          nullable: true
       required:
       - id
       - name
@@ -2296,6 +2302,9 @@ components:
           type: string
           format: uuid
         faculty_name:
+          type: string
+          nullable: true
+        faculty_custom_abbreviation:
           type: string
           nullable: true
       required:

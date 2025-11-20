@@ -11,7 +11,7 @@ class InstructorOptionSerializer(FilterOptionSerializer):
 
 
 class FacultyOptionSerializer(FilterOptionSerializer):
-    pass
+    custom_abbreviation = serializers.CharField(allow_null=True, required=False)
 
 
 class DepartmentOptionSerializer(FilterOptionSerializer):
@@ -37,6 +37,7 @@ class CourseTypeOptionSerializer(serializers.Serializer):
 class SpecialityOptionSerializer(FilterOptionSerializer):
     faculty_id = serializers.UUIDField()
     faculty_name = serializers.CharField(allow_null=True, required=False)
+    faculty_custom_abbreviation = serializers.CharField(allow_null=True, required=False)
 
 
 class FilterOptionsSerializer(serializers.Serializer):
