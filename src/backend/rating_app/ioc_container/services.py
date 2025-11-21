@@ -81,6 +81,7 @@ def student_service() -> StudentService:
     return StudentService(
         student_stats_repository=student_stats_repository(),
         student_repository=student_repository(),
+        semester_service=semester_service(),
         user_repository=user_repository(),
     )
 
