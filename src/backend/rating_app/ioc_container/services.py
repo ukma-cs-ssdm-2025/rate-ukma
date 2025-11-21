@@ -65,6 +65,8 @@ def rating_service() -> RatingService:
     return RatingService(
         rating_repository=rating_repository(),
         enrollment_repository=enrollment_repository(),
+        semester_service=semester_service(),
+        course_offering_repository=course_offering_repository(),
         paginator=paginator(),
     )
 

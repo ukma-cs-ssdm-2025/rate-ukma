@@ -1,4 +1,5 @@
 import pytest
+from freezegun import freeze_time
 
 
 @pytest.mark.django_db
@@ -46,13 +47,20 @@ def test_ratings_list_pagination(
 
 
 @pytest.mark.django_db
+@freeze_time("2025-10-15")  # October = FALL semester
 def test_create_rating(
     token_client,
     course_factory,
     course_offering_factory,
     student_factory,
     enrollment_factory,
+    semester_factory,
 ):
+    # Create current semester for validation (Fall 2025)
+    from rating_app.models.semester import SemesterTerm
+
+    semester_factory(year=2025, term=SemesterTerm.FALL)
+
     course = course_factory()
     offering = course_offering_factory(course=course)
     student = student_factory(user=token_client.user)
@@ -350,6 +358,7 @@ def test_create_rating_validation_error_invalid_difficulty(
 
 
 @pytest.mark.django_db
+@freeze_time("2025-10-15")  # October = FALL semester
 def test_create_duplicate_rating_same_offering(
     token_client,
     course_factory,
@@ -357,7 +366,13 @@ def test_create_duplicate_rating_same_offering(
     student_factory,
     enrollment_factory,
     rating_factory,
+    semester_factory,
 ):
+    # Create current semester for validation (Fall 2025)
+    from rating_app.models.semester import SemesterTerm
+
+    semester_factory(year=2025, term=SemesterTerm.FALL)
+
     course = course_factory()
     offering = course_offering_factory(course=course)
     student = student_factory(user=token_client.user)
