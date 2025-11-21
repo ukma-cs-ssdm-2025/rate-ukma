@@ -62,13 +62,15 @@ class SemesterService(IFilterable):
         if current_semester.year == semester_to_check.year:  # the same year
             if current_semester.term == semester_to_check.term:  # same term
                 return True
-            elif current_semester.term == "SUMMER":
-                return semester_to_check.term == "SPRING"
-            elif current_semester.term == "SPRING":
+            elif current_semester.term == SemesterTerm.SUMMER:
+                return semester_to_check.term == SemesterTerm.SPRING
+            elif current_semester.term == SemesterTerm.SPRING:
                 return False
-            elif current_semester.term == "FALL":
+            elif current_semester.term == SemesterTerm.FALL:
                 # In Fall, can rate Spring and Summer from same year
-                return semester_to_check.term in ["SPRING", "SUMMER"]
+                return semester_to_check.term in [SemesterTerm.SPRING, SemesterTerm.SUMMER]
+            else:
+                return False
 
         return True
 
