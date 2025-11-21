@@ -1,0 +1,36 @@
+---
+name: Deployment
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        type: string
+
+# TODO: add output for version tag from deploy-staging.yml
+jobs:
+  staging:
+    uses: ./.github/workflows/deploy-staging.yml
+    with:
+      environment: staging
+    secrets:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+      CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
+      CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
+
+  live:
+    if: needs.staging.result == 'success'
+    uses: ./.github/workflows/deploy-live.yml
+    with:
+      version_tag: ${{ inputs.version_tag }}
+      environment: live
+    secrets:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+      CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
+      CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
+    needs: staging
