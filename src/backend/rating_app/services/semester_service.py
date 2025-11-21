@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+from rating_app.models import Semester
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories import SemesterRepository
 from rating_app.services.protocols import IFilterable
@@ -39,6 +40,30 @@ class SemesterService(IFilterable):
 
     def get_filter_options(self) -> dict[str, Any]:
         return self._build_filter_options().to_dict()
+
+    def get_current(self) -> Semester:
+        return self.semester_repository.get_current()
+
+    def is_past_or_current_semester(
+        self, semester_to_check: Semester, current_semester: Semester | None = None
+    ) -> bool:
+        if not current_semester:
+            current_semester = self.semester_repository.get_current()
+
+        if semester_to_check.year > current_semester.year:
+            return False
+        if current_semester.year == semester_to_check.year:  # the same year
+            if current_semester.term == semester_to_check.term:  # same term
+                return True
+            elif current_semester.term == "SUMMER":
+                return semester_to_check.term == "SPRING"
+            elif current_semester.term == "SPRING":
+                return False
+            elif current_semester.term == "FALL":
+                # In Fall, can rate Spring and Summer from same year
+                return semester_to_check.term in ["SPRING", "SUMMER"]
+
+        return True
 
     def _build_filter_options(self) -> SemesterFilterData:
         semesters = self.semester_repository.get_all()
