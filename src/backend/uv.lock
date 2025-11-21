@@ -565,6 +565,18 @@ wheels = [
 ]
 
 [[package]]
+name = "freezegun"
+version = "1.5.5"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/95/dd/23e2f4e357f8fd3bdff613c1fe4466d21bfb00a6177f238079b17f7b1c84/freezegun-1.5.5.tar.gz", hash = "sha256:ac7742a6cc6c25a2c35e9292dfd554b897b517d2dec26891a2e8debf205cb94a", size = 35914, upload-time = "2025-08-09T10:39:08.338Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/5e/2e/b41d8a1a917d6581fc27a35d05561037b048e47df50f27f8ac9c7e27a710/freezegun-1.5.5-py3-none-any.whl", hash = "sha256:cd557f4a75cf074e84bc374249b9dd491eaeacd61376b9eb3c423282211619d2", size = 19266, upload-time = "2025-08-09T10:39:06.636Z" },
+]
+
+[[package]]
 name = "greenlet"
 version = "3.2.4"
 source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
@@ -1384,6 +1396,18 @@ wheels = [
 ]
 
 [[package]]
+name = "python-dateutil"
+version = "2.9.0.post0"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892, upload-time = "2024-03-01T18:36:18.57Z" },
+]
+
+[[package]]
 name = "python-decouple"
 version = "3.8"
 source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
@@ -1471,6 +1495,7 @@ dev = [
     { name = "coverage" },
     { name = "factory-boy" },
     { name = "flake8" },
+    { name = "freezegun" },
     { name = "ipython" },
     { name = "isort" },
     { name = "pre-commit" },
@@ -1493,6 +1518,7 @@ security = [
 test = [
     { name = "coverage" },
     { name = "factory-boy" },
+    { name = "freezegun" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
@@ -1515,6 +1541,7 @@ requires-dist = [
     { name = "factory-boy", marker = "extra == 'test'", specifier = "==3.3.3" },
     { name = "filelock", specifier = ">=3.20" },
     { name = "flake8", marker = "extra == 'linting'", specifier = "==6.1.0" },
+    { name = "freezegun", marker = "extra == 'test'", specifier = "==1.5.5" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "ipython", marker = "extra == 'dev'", specifier = ">=9.4.0" },
     { name = "isort", marker = "extra == 'linting'", specifier = "==5.12.0" },
@@ -1781,6 +1808,8 @@ wheels = [
     { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/6b/fa/3234f913fe9a6525a7b97c6dad1f51e72b917e6872e051a5e2ffd8b16fbb/ruamel.yaml.clib-0.2.14-cp314-cp314-macosx_15_0_arm64.whl", hash = "sha256:70eda7703b8126f5e52fcf276e6c0f40b0d314674f896fc58c47b0aef2b9ae83", size = 137970, upload-time = "2025-09-22T19:51:09.472Z" },
     { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/ef/ec/4edbf17ac2c87fa0845dd366ef8d5852b96eb58fcd65fc1ecf5fe27b4641/ruamel.yaml.clib-0.2.14-cp314-cp314-musllinux_1_2_i686.whl", hash = "sha256:a0cb71ccc6ef9ce36eecb6272c81afdc2f565950cdcec33ae8e6cd8f7fc86f27", size = 739639, upload-time = "2025-09-22T19:51:10.566Z" },
     { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/15/18/b0e1fafe59051de9e79cdd431863b03593ecfa8341c110affad7c8121efc/ruamel.yaml.clib-0.2.14-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:e7cb9ad1d525d40f7d87b6df7c0ff916a66bc52cb61b66ac1b2a16d0c1b07640", size = 764456, upload-time = "2025-09-22T19:51:11.736Z" },
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/e7/cd/150fdb96b8fab27fe08d8a59fe67554568727981806e6bc2677a16081ec7/ruamel_yaml_clib-0.2.14-cp314-cp314-win32.whl", hash = "sha256:9b4104bf43ca0cd4e6f738cb86326a3b2f6eef00f417bd1e7efb7bdffe74c539", size = 102394, upload-time = "2025-11-14T21:57:36.703Z" },
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/bd/e6/a3fa40084558c7e1dc9546385f22a93949c890a8b2e445b2ba43935f51da/ruamel_yaml_clib-0.2.14-cp314-cp314-win_amd64.whl", hash = "sha256:13997d7d354a9890ea1ec5937a219817464e5cc344805b37671562a401ca3008", size = 122673, upload-time = "2025-11-14T21:57:38.177Z" },
 ]
 
 [[package]]
@@ -1883,6 +1912,15 @@ source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate
 sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/58/15/8b3609fd3830ef7b27b655beb4b4e9c62313a4e8da8c676e142cc210d58e/shellingham-1.5.4.tar.gz", hash = "sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de", size = 10310, upload-time = "2023-10-24T04:13:40.426Z" }
 wheels = [
     { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686", size = 9755, upload-time = "2023-10-24T04:13:38.866Z" },
+]
+
+[[package]]
+name = "six"
+version = "1.17.0"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
 ]
 
 [[package]]
