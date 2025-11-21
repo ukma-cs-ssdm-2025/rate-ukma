@@ -122,7 +122,7 @@ function CourseDetailsRoute() {
 
 				{hasAttendedCourse && selectedOffering && (
 					<div className="flex justify-center">
-						{(selectedOffering as any).can_rate !== false ? (
+						{(selectedOffering.can_rate ?? true) ? (
 							<Button
 								onClick={() => setIsRatingModalOpen(true)}
 								size="lg"
