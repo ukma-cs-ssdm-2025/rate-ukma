@@ -122,13 +122,30 @@ function CourseDetailsRoute() {
 
 				{hasAttendedCourse && selectedOffering && (
 					<div className="flex justify-center">
-						<Button
-							onClick={() => setIsRatingModalOpen(true)}
-							size="lg"
-							className="w-full max-w-md"
-						>
-							{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
-						</Button>
+						{(selectedOffering as any).can_rate !== false ? (
+							<Button
+								onClick={() => setIsRatingModalOpen(true)}
+								size="lg"
+								className="w-full max-w-md"
+							>
+								{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
+							</Button>
+						) : (
+							<div className="relative inline-block group">
+								<Button
+									variant="secondary"
+									size="lg"
+									disabled
+									className="cursor-not-allowed opacity-40 bg-gray-400 w-full max-w-md"
+								>
+									{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
+								</Button>
+								<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap pointer-events-none z-10">
+									Ви не можете оцінити курс, не послухавши його
+									<div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+								</div>
+							</div>
+						)}
 					</div>
 				)}
 

@@ -123,6 +123,7 @@ export function MyRatingCard({
 					comment={comment}
 					hasRating={hasRating}
 					courseId={courseId}
+					canRate={(course as any).can_rate ?? true}
 				/>
 			</CardContent>
 
