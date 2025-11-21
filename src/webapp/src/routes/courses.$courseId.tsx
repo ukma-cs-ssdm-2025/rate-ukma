@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
 
+import DisabledRatingButtonWithTooltip from "@/components/DisabledButtonWithTooltip";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -20,6 +21,7 @@ import {
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { InlineCourseOffering } from "@/lib/api/generated";
 import {
 	useCoursesOfferingsList,
@@ -131,7 +133,9 @@ function CourseDetailsRoute() {
 								{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
 							</Button>
 						) : (
-							<div className="relative inline-block group">
+							<DisabledRatingButtonWithTooltip
+								tooltip={CANNOT_RATE_TOOLTIP_TEXT}
+							>
 								<Button
 									variant="secondary"
 									size="lg"
@@ -140,11 +144,7 @@ function CourseDetailsRoute() {
 								>
 									{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
 								</Button>
-								<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap pointer-events-none z-10">
-									Ви не можете оцінити курс, не послухавши його
-									<div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
-								</div>
-							</div>
+							</DisabledRatingButtonWithTooltip>
 						)}
 					</div>
 				)}
