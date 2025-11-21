@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
+from rating_app.exception.semester_exception import SemesterDoesNotExistError
 from rating_app.models import Semester
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories import SemesterRepository
@@ -42,7 +44,12 @@ class SemesterService(IFilterable):
         return self._build_filter_options().to_dict()
 
     def get_current(self) -> Semester:
-        return self.semester_repository.get_current()
+        try:
+            return self.semester_repository.get_current()
+        except Semester.DoesNotExist as exc:
+            raise SemesterDoesNotExistError(
+                f"Current semester ({datetime.now().year} {datetime.now().strftime('%B')})"
+            ) from exc
 
     def is_past_or_current_semester(
         self, semester_to_check: Semester, current_semester: Semester | None = None
