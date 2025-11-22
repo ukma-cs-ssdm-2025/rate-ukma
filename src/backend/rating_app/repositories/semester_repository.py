@@ -34,7 +34,7 @@ class SemesterRepository(IRepository[Semester]):
 
     def get_current(self) -> Semester:
         month = datetime.now().month
-        if month >= 9 and month <= 12:
+        if month >= 9:
             term = SemesterTerm.FALL
         elif month < 5:
             term = SemesterTerm.SPRING
