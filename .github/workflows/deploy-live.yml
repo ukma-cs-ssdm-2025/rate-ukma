@@ -28,7 +28,7 @@ on:
 
 jobs:
   deploy:
-    uses: ./.github/workflows/deploy.yml
+    uses: ./.github/workflows/deploy-script.yml
     with:
       version_tag: ${{ inputs.version_tag }}
       environment: live
