@@ -15,7 +15,6 @@ on:
         description: "Version tag to use for the build"
         required: false
         type: string
-        default: "latest"
       backend_changed:
         description: "Whether backend code has changed"
         required: true
@@ -66,7 +65,7 @@ jobs:
         run: docker compose --profile prod build --build-arg BACKEND_IMAGE_TAG=${BACKEND_IMAGE_TAG} backend
 
       - name: Push backend image
-        if: inputs.version_tag != ''
+        if: inputs.version_tag
         env:
           BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
@@ -111,7 +110,7 @@ jobs:
             webapp-build
 
       - name: Push staging webapp
-        if: inputs.version_tag != ''
+        if: inputs.version_tag
         env:
           WEBAPP_IMAGE_TAG: staging-${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
@@ -132,7 +131,7 @@ jobs:
             webapp-build
 
       - name: Push live webapp
-        if: inputs.version_tag != ''
+        if: inputs.version_tag
         env:
           WEBAPP_IMAGE_TAG: live-${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
