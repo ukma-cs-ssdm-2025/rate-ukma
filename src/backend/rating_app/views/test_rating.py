@@ -1,4 +1,9 @@
 import pytest
+from freezegun import freeze_time
+
+DEFAULT_DATE = "2023-10-25"
+DEFAULT_YEAR = 2023
+DEFAULT_TERM = "FALL"
 
 
 @pytest.mark.django_db
@@ -46,15 +51,19 @@ def test_ratings_list_pagination(
 
 
 @pytest.mark.django_db
+@freeze_time(DEFAULT_DATE)  # October = FALL semester
 def test_create_rating(
     token_client,
     course_factory,
     course_offering_factory,
     student_factory,
     enrollment_factory,
+    semester_factory,
 ):
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+
     course = course_factory()
-    offering = course_offering_factory(course=course)
+    offering = course_offering_factory(course=course, semester=semester)
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)  # must be enrolled
 
@@ -145,13 +154,11 @@ def test_patch_rating(
 
 @pytest.mark.django_db
 def test_create_rating_not_enrolled(
-    token_client,
-    course_factory,
-    course_offering_factory,
-    student_factory,
+    token_client, course_factory, course_offering_factory, student_factory, semester_factory
 ):
     course = course_factory()
-    offering = course_offering_factory(course=course)
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+    offering = course_offering_factory(course=course, semester=semester)
     student_factory(user=token_client.user)  # not-enrolled student
 
     url = f"/api/v1/courses/{course.id}/ratings/"
@@ -350,6 +357,7 @@ def test_create_rating_validation_error_invalid_difficulty(
 
 
 @pytest.mark.django_db
+@freeze_time(DEFAULT_DATE)  # October = FALL semester
 def test_create_duplicate_rating_same_offering(
     token_client,
     course_factory,
@@ -357,9 +365,12 @@ def test_create_duplicate_rating_same_offering(
     student_factory,
     enrollment_factory,
     rating_factory,
+    semester_factory,
 ):
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+
     course = course_factory()
-    offering = course_offering_factory(course=course)
+    offering = course_offering_factory(course=course, semester=semester)
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
 

@@ -1,4 +1,5 @@
 import pytest
+from freezegun import freeze_time
 
 from rating_app.models.choices import SemesterTerm
 from rating_app.tests.factories import (
@@ -9,6 +10,10 @@ from rating_app.tests.factories import (
     SemesterFactory,
     StudentFactory,
 )
+
+DEFAULT_DATE = "2023-10-25"
+DEFAULT_YEAR = 2023
+DEFAULT_TERM = "FALL"
 
 
 @pytest.mark.django_db
@@ -23,10 +28,12 @@ def test_get_courses_stats_requires_student_record(token_client):
     assert response.json()["detail"] == "Only students can perform this action."
 
 
+@freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
 def test_get_courses_stats_returns_empty_list_for_student_with_no_courses(token_client):
     # Arrange
     _student = StudentFactory(user=token_client.user)
+    _semester = SemesterFactory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
 
     # Act
     response = token_client.get("/api/v1/students/me/courses/")
@@ -36,12 +43,13 @@ def test_get_courses_stats_returns_empty_list_for_student_with_no_courses(token_
     assert response.json() == []
 
 
+@freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
 def test_get_courses_stats_returns_enrolled_courses(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
     course = CourseFactory(title="Test Course")
-    semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
+    semester = SemesterFactory(term=SemesterTerm[DEFAULT_TERM], year=DEFAULT_YEAR)
     offering = CourseOfferingFactory(course=course, semester=semester)
     EnrollmentFactory(student=student, offering=offering)
 
@@ -56,17 +64,18 @@ def test_get_courses_stats_returns_enrolled_courses(token_client):
     assert len(data[0]["offerings"]) == 1
     assert data[0]["offerings"][0]["id"] == str(offering.id)
     assert data[0]["offerings"][0]["course_id"] == str(course.id)
-    assert data[0]["offerings"][0]["year"] == 2024
-    assert data[0]["offerings"][0]["season"] == SemesterTerm.FALL
+    assert data[0]["offerings"][0]["year"] == DEFAULT_YEAR
+    assert data[0]["offerings"][0]["season"] == SemesterTerm[DEFAULT_TERM]
     assert data[0]["offerings"][0]["rated"] is None
 
 
+@freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
 def test_get_courses_stats_returns_rated_courses(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
     course = CourseFactory(title="Rated Course")
-    semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
+    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
     offering = CourseOfferingFactory(course=course, semester=semester)
     EnrollmentFactory(student=student, offering=offering)
     _rating = RatingFactory(
@@ -95,19 +104,20 @@ def test_get_courses_stats_returns_rated_courses(token_client):
     assert "created_at" in offering_data["rated"]
 
 
+@freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
 def test_get_courses_stats_returns_multiple_offerings_same_course(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
     course = CourseFactory(title="Multi-offering Course")
 
-    # Fall 2024 - enrolled only
-    fall_semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
+    # Fall (default) - enrolled only
+    fall_semester = SemesterFactory(term=SemesterTerm.FALL, year=DEFAULT_YEAR)
     fall_offering = CourseOfferingFactory(course=course, semester=fall_semester)
     EnrollmentFactory(student=student, offering=fall_offering)
 
-    # Spring 2025 - enrolled and rated
-    spring_semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
+    # Spring (next) - enrolled and rated
+    spring_semester = SemesterFactory(term=SemesterTerm.SPRING, year=DEFAULT_YEAR)
     spring_offering = CourseOfferingFactory(course=course, semester=spring_semester)
     EnrollmentFactory(student=student, offering=spring_offering)
     RatingFactory(
@@ -135,29 +145,31 @@ def test_get_courses_stats_returns_multiple_offerings_same_course(token_client):
         fall_offering = data[0]["offerings"][1]
         spring_offering = data[0]["offerings"][0]
 
-    assert fall_offering["year"] == 2024
+    assert fall_offering["year"] == DEFAULT_YEAR
     assert fall_offering["season"] == SemesterTerm.FALL
     assert fall_offering["rated"] is None
 
-    assert spring_offering["year"] == 2025
+    assert spring_offering["year"] == DEFAULT_YEAR
     assert spring_offering["season"] == SemesterTerm.SPRING
     assert spring_offering["rated"] is not None
 
 
+@freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
 def test_get_courses_stats_excludes_other_students_courses(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
+    semester = SemesterFactory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
 
     # Student's course
     course1 = CourseFactory(title="My Course")
-    offering1 = CourseOfferingFactory(course=course1)
+    offering1 = CourseOfferingFactory(course=course1, semester=semester)
     EnrollmentFactory(student=student, offering=offering1)
 
     # Other student's course
     other_student = StudentFactory()
     course2 = CourseFactory(title="Other Student Course")
-    offering2 = CourseOfferingFactory(course=course2)
+    offering2 = CourseOfferingFactory(course=course2, semester=semester)
     EnrollmentFactory(student=other_student, offering=offering2)
 
     # Act
@@ -171,11 +183,12 @@ def test_get_courses_stats_excludes_other_students_courses(token_client):
 
 
 @pytest.mark.django_db
+@freeze_time(DEFAULT_DATE)
 def test_get_courses_stats_serializes_response_correctly(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
     course = CourseFactory(title="Test Course")
-    semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
+    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
     offering = CourseOfferingFactory(course=course, semester=semester)
     EnrollmentFactory(student=student, offering=offering)
     RatingFactory(

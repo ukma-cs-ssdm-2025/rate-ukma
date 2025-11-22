@@ -9,10 +9,15 @@ from rating_app.application_schemas.rating import (
     RatingSearchResult,
 )
 from rating_app.constants import DEFAULT_PAGE_SIZE
-from rating_app.exception.rating_exceptions import DuplicateRatingException, NotEnrolledException
+from rating_app.exception.rating_exceptions import (
+    DuplicateRatingException,
+    EnrolledButNotCompleted,
+    NotEnrolledException,
+)
 from rating_app.models import Rating
-from rating_app.repositories import EnrollmentRepository, RatingRepository
+from rating_app.repositories import CourseOfferingRepository, EnrollmentRepository, RatingRepository
 from rating_app.services.paginator import QuerysetPaginator
+from rating_app.services.semester_service import SemesterService
 
 
 class RatingService:
@@ -20,10 +25,14 @@ class RatingService:
         self,
         rating_repository: RatingRepository,
         enrollment_repository: EnrollmentRepository,
+        course_offering_repository: CourseOfferingRepository,
+        semester_service: SemesterService,
         paginator: QuerysetPaginator,
     ):
         self.rating_repository = rating_repository
         self.enrollment_repository = enrollment_repository
+        self.course_offering_repository = course_offering_repository
+        self.semester_service = semester_service
         self.paginator = paginator
 
     def create_rating(self, params: RatingCreateParams):
@@ -33,8 +42,14 @@ class RatingService:
         is_enrolled = self.enrollment_repository.is_student_enrolled(
             student_id=student_id, offering_id=offering_id
         )
+
         if not is_enrolled:
             raise NotEnrolledException()
+
+        course_offering = self.course_offering_repository.get_by_id(offering_id)
+        course_semester = course_offering.semester
+        if not self.semester_service.is_past_or_current_semester(course_semester):
+            raise EnrolledButNotCompleted()
 
         rating_exists = self.rating_repository.exists(
             student_id=student_id, course_offering_id=offering_id

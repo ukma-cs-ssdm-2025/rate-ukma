@@ -1,7 +1,8 @@
 import structlog
 
-from rating_app.models import Student
+from rating_app.models import Semester, Student
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
+from rating_app.services import SemesterService
 
 logger = structlog.get_logger(__name__)
 
@@ -10,21 +11,47 @@ class StudentService:
     def __init__(
         self,
         student_stats_repository: StudentStatisticsRepository,
-        student_repository: StudentRepository | None = None,
-        user_repository: UserRepository | None = None,
+        student_repository: StudentRepository,
+        semester_service: SemesterService,
+        user_repository: UserRepository,
     ) -> None:
         self.student_stats_repository = student_stats_repository
         self.student_repository = student_repository
+        self.semester_service = semester_service
         self.user_repository = user_repository
 
     def get_student_by_user_id(self, user_id: str):
         return self.student_stats_repository.get_student_by_user_id(user_id=user_id)
 
     def get_ratings(self, student_id: str):
-        return self.student_stats_repository.get_rating_stats(student_id=student_id)
+        courses = self.student_stats_repository.get_rating_stats(student_id=student_id)
+        current_semester = self.semester_service.get_current()
+
+        for course in courses:
+            for offering in course["offerings"]:
+                course_semester = Semester(
+                    year=offering["year"],
+                    term=offering["season"],
+                )
+                # forbid rating future courses
+                offering["can_rate"] = self.semester_service.is_past_or_current_semester(
+                    course_semester, current_semester
+                )
+
+        return courses
 
     def get_ratings_detail(self, student_id: str):
-        return self.student_stats_repository.get_detailed_rating_stats(student_id=student_id)
+        result = self.student_stats_repository.get_detailed_rating_stats(student_id=student_id)
+        current_semester = self.semester_service.get_current()
+        for course in result:
+            course_semester = Semester(
+                year=course["semester"]["year"], term=course["semester"]["season"]
+            )
+            # Check whether this course is in the past or present (to forbid rating future courses)
+            course["can_rate"] = self.semester_service.is_past_or_current_semester(
+                course_semester, current_semester
+            )
+        return result
 
     def link_student_to_user(self, student: Student) -> bool:
         if not student.email:

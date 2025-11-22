@@ -22,11 +22,17 @@ def user_repo():
 
 
 @pytest.fixture
-def service(student_stats_repo, student_repo, user_repo):
+def semester_service():
+    return MagicMock()
+
+
+@pytest.fixture
+def service(student_stats_repo, student_repo, user_repo, semester_service):
     return StudentService(
         student_stats_repository=student_stats_repo,
         student_repository=student_repo,
         user_repository=user_repo,
+        semester_service=semester_service,
     )
 
 

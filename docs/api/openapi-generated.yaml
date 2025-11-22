@@ -1955,6 +1955,9 @@ components:
         season:
           type: string
           readOnly: true
+        can_rate:
+          type: boolean
+          readOnly: true
         rated:
           allOf:
           - $ref: '#/components/schemas/InlineRating'
@@ -2359,6 +2362,9 @@ components:
           - $ref: '#/components/schemas/InlineRatingDetailed'
           readOnly: true
           nullable: true
+        can_rate:
+          type: boolean
+          readOnly: true
     StudentRatingsLight:
       type: object
       properties:

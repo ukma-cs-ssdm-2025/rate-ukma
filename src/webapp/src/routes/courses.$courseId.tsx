@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
 
+import DisabledRatingButtonWithTooltip from "@/components/DisabledButtonWithTooltip";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -20,6 +21,7 @@ import {
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { InlineCourseOffering } from "@/lib/api/generated";
 import {
 	useCoursesOfferingsList,
@@ -122,13 +124,28 @@ function CourseDetailsRoute() {
 
 				{hasAttendedCourse && selectedOffering && (
 					<div className="flex justify-center">
-						<Button
-							onClick={() => setIsRatingModalOpen(true)}
-							size="lg"
-							className="w-full max-w-md"
-						>
-							{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
-						</Button>
+						{(selectedOffering.can_rate ?? true) ? (
+							<Button
+								onClick={() => setIsRatingModalOpen(true)}
+								size="lg"
+								className="w-full max-w-md"
+							>
+								{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
+							</Button>
+						) : (
+							<DisabledRatingButtonWithTooltip
+								tooltip={CANNOT_RATE_TOOLTIP_TEXT}
+							>
+								<Button
+									variant="secondary"
+									size="lg"
+									disabled
+									className="cursor-not-allowed opacity-40 bg-gray-400 w-full max-w-md"
+								>
+									{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
+								</Button>
+							</DisabledRatingButtonWithTooltip>
+						)}
 					</div>
 				)}
 
