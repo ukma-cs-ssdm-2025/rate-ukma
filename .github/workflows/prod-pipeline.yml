@@ -1,6 +1,10 @@
 ---
 name: Live Build
 on:
+  workflow_run:
+    workflows: [Staging Build]
+    types: [completed]
+
   workflow_dispatch:
     inputs:
       version_tag:
@@ -8,8 +12,10 @@ on:
         required: true
         type: string
 
+# TODO: get a version tag from the main pipeline
 jobs:
   get-latest-live-tag:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
     outputs:
       latest_live_tag: ${{ steps.get_latest.outputs.latest_live_tag }}
