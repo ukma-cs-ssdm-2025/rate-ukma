@@ -18,7 +18,7 @@ See also:
 - ⚠️ **Partial** — Implementation is partially complete or depends on infrastructure/deployment
 - ❌ **Missing** — No implementation found in the codebase
 
-**Note:** See [traceability-analysis.md](./copilot/traceability-analysis.md) for detailed proof of implementation with file paths, line numbers, and explanations.
+**Note:** See [traceability-analysis-2025-11-18.md](./copilot/traceability-analysis-2025-11-18.md) for detailed proof of implementation with file paths, line numbers, and explanations. Previous analysis: [traceability-analysis.md](./copilot/traceability-analysis.md)
 
 ---
 
