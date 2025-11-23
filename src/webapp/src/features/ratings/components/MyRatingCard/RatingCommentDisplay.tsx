@@ -49,7 +49,7 @@ export function RatingCommentDisplay({
 							variant="default"
 							size="sm"
 							disabled
-							className="!bg-gray-400 !text-white hover:!bg-gray-400"
+							className="!bg-gray-400 !text-white hover:!bg-gray-400 disabled:opacity-100 !cursor-default"
 						>
 							<Star className="h-3.5 w-3.5" />
 							<span className="ml-1">Залишити відгук</span>
