@@ -225,15 +225,23 @@ def test_get_courses_stats_serializes_response_correctly(token_client):
     assert "is_anonymous" in rating_data
 
 
+def _create_student_course_setup(
+    token_client, term=DEFAULT_TERM, year=DEFAULT_YEAR, title="Test Course"
+):
+    """Helper function to create student, course, semester, offering, and enrollment."""
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title=title)
+    semester = SemesterFactory(term=term, year=year)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+    return student, course, semester, offering
+
+
 @freeze_time(DEFAULT_INVALID_DATE)  # Before midpoint (September)
 @pytest.mark.django_db
 def test_get_courses_stats_cannot_rate_before_midpoint(token_client):
     # Arrange
-    student = StudentFactory(user=token_client.user)
-    course = CourseFactory(title="Test Course")
-    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
+    _create_student_course_setup(token_client)
 
     # Act
     response = token_client.get("/api/v1/students/me/courses/")
@@ -243,19 +251,14 @@ def test_get_courses_stats_cannot_rate_before_midpoint(token_client):
     data = response.json()
     assert len(data) == 1
     assert len(data[0]["offerings"]) == 1
-    offering_data = data[0]["offerings"][0]
-    assert offering_data["can_rate"] is False
+    assert data[0]["offerings"][0]["can_rate"] is False
 
 
 @freeze_time(DEFAULT_DATE)  # Just before midpoint (October)
 @pytest.mark.django_db
 def test_get_courses_stats_cannot_rate_just_before_midpoint(token_client):
     # Arrange
-    student = StudentFactory(user=token_client.user)
-    course = CourseFactory(title="Test Course")
-    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
+    _create_student_course_setup(token_client)
 
     # Act
     response = token_client.get("/api/v1/students/me/courses/")
@@ -265,19 +268,14 @@ def test_get_courses_stats_cannot_rate_just_before_midpoint(token_client):
     data = response.json()
     assert len(data) == 1
     assert len(data[0]["offerings"]) == 1
-    offering_data = data[0]["offerings"][0]
-    assert offering_data["can_rate"] is False
+    assert data[0]["offerings"][0]["can_rate"] is False
 
 
 @freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint (November)
 @pytest.mark.django_db
 def test_get_courses_stats_can_rate_at_midpoint(token_client):
     # Arrange
-    student = StudentFactory(user=token_client.user)
-    course = CourseFactory(title="Test Course")
-    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
+    _create_student_course_setup(token_client)
 
     # Act
     response = token_client.get("/api/v1/students/me/courses/")
@@ -287,22 +285,16 @@ def test_get_courses_stats_can_rate_at_midpoint(token_client):
     data = response.json()
     assert len(data) == 1
     assert len(data[0]["offerings"]) == 1
-    offering_data = data[0]["offerings"][0]
-    assert offering_data["can_rate"] is True
+    assert data[0]["offerings"][0]["can_rate"] is True
 
 
 @freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint
 @pytest.mark.django_db
 def test_get_courses_stats_can_rate_past_semester(token_client):
     # Arrange
-    student = StudentFactory(user=token_client.user)
-    course = CourseFactory(title="Past Course")
-
-    # Create a past semester (Spring 2023, while current is Fall 2023)
-    past_semester = SemesterFactory(term=SemesterTerm.SPRING, year=DEFAULT_YEAR)
-    offering = CourseOfferingFactory(course=course, semester=past_semester)
-    EnrollmentFactory(student=student, offering=offering)
-
+    student, course, _past_semester, offering = _create_student_course_setup(
+        token_client, term=SemesterTerm.SPRING, year=DEFAULT_YEAR, title="Past Course"
+    )
     # Create current semester so get_current() works
     _current_semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
 
@@ -314,8 +306,7 @@ def test_get_courses_stats_can_rate_past_semester(token_client):
     data = response.json()
     assert len(data) == 1
     assert len(data[0]["offerings"]) == 1
-    offering_data = data[0]["offerings"][0]
-    assert offering_data["can_rate"] is True
+    assert data[0]["offerings"][0]["can_rate"] is True
 
 
 @freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint
@@ -372,11 +363,9 @@ def test_get_courses_stats_multiple_offerings_different_can_rate(token_client):
 @pytest.mark.django_db
 def test_get_courses_stats_rated_course_still_shows_can_rate(token_client):
     # Arrange - verify that can_rate is still True even if already rated
-    student = StudentFactory(user=token_client.user)
-    course = CourseFactory(title="Rated Course")
-    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
+    student, course, semester, offering = _create_student_course_setup(
+        token_client, title="Rated Course"
+    )
     RatingFactory(
         student=student,
         course_offering=offering,
