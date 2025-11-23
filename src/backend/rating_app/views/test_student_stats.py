@@ -341,21 +341,17 @@ def test_get_courses_stats_multiple_offerings_different_can_rate(token_client):
     assert data[0]["id"] == str(course.id)
     assert len(data[0]["offerings"]) == 3
 
-    # Find each offering and verify can_rate
-    offerings_by_term = {offering["season"]: offering for offering in data[0]["offerings"]}
+    # Find each offering (season, year) and verify can_rate
+    offerings_by_term_year = {
+        (offering["season"], offering["year"]): offering for offering in data[0]["offerings"]
+    }
 
-    assert offerings_by_term[SemesterTerm.SPRING]["year"] == DEFAULT_YEAR
-    assert offerings_by_term[SemesterTerm.SPRING]["can_rate"] is True
+    past_spring = offerings_by_term_year[(SemesterTerm.SPRING, DEFAULT_YEAR)]
+    current_fall = offerings_by_term_year[(SemesterTerm.FALL, DEFAULT_YEAR)]
+    future_spring = offerings_by_term_year[(SemesterTerm.SPRING, DEFAULT_YEAR + 1)]
 
-    assert offerings_by_term[SemesterTerm.FALL]["year"] == DEFAULT_YEAR
-    assert offerings_by_term[SemesterTerm.FALL]["can_rate"] is True
-
-    # Future offering
-    future_spring = next(
-        o
-        for o in data[0]["offerings"]
-        if o["season"] == SemesterTerm.SPRING and o["year"] == DEFAULT_YEAR + 1
-    )
+    assert past_spring["can_rate"] is True
+    assert current_fall["can_rate"] is True
     assert future_spring["can_rate"] is False
 
 
