@@ -292,7 +292,7 @@ def test_get_courses_stats_can_rate_at_midpoint(token_client):
 @pytest.mark.django_db
 def test_get_courses_stats_can_rate_past_semester(token_client):
     # Arrange
-    student, course, _past_semester, offering = _create_student_course_setup(
+    _, _, _past_semester, _ = _create_student_course_setup(
         token_client, term=SemesterTerm.SPRING, year=DEFAULT_YEAR, title="Past Course"
     )
     # Create current semester so get_current() works
@@ -359,9 +359,7 @@ def test_get_courses_stats_multiple_offerings_different_can_rate(token_client):
 @pytest.mark.django_db
 def test_get_courses_stats_rated_course_still_shows_can_rate(token_client):
     # Arrange - verify that can_rate is still True even if already rated
-    student, course, semester, offering = _create_student_course_setup(
-        token_client, title="Rated Course"
-    )
+    student, _, _, offering = _create_student_course_setup(token_client, title="Rated Course")
     RatingFactory(
         student=student,
         course_offering=offering,

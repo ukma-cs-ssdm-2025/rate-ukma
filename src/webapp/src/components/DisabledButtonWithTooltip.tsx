@@ -14,7 +14,7 @@ export function DisabledButtonWithTooltip({
 	tooltip,
 	className,
 	forceDisable = true,
-}: Props) {
+}: Readonly<Props>) {
 	const tooltipId = React.useId();
 
 	const childDisabledProp = children.props.disabled === true;

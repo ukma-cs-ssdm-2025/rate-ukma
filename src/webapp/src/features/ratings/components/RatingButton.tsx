@@ -19,7 +19,7 @@ export function RatingButton({
 	className = "",
 	size = "lg",
 	asChild = false,
-}: RatingButtonProps) {
+}: Readonly<RatingButtonProps>) {
 	const [showTooltip, setShowTooltip] = React.useState(false);
 	const tooltipId = React.useId();
 
@@ -45,11 +45,11 @@ export function RatingButton({
 				onFocus={() => !canRate && setShowTooltip(true)}
 				onBlur={() => setShowTooltip(false)}
 				asChild={canRate ? asChild : false}
-				aria-describedby={!canRate ? tooltipId : undefined}
+				aria-describedby={canRate ? undefined : tooltipId}
 				className={`${size === "lg" ? "w-full" : ""} ${
-					!canRate
-						? "!bg-gray-400 !text-white hover:!bg-gray-400 disabled:opacity-100"
-						: ""
+					canRate
+						? ""
+						: "!bg-gray-400 !text-white hover:!bg-gray-400 disabled:opacity-100"
 				} ${className}`}
 			>
 				{children}
