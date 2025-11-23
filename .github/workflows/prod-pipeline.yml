@@ -1,15 +1,46 @@
 ---
 name: Live Build
 on:
-  workflow_dispatch:
-    inputs:
-      version_tag:
-        description: "Version tag to deploy (e.g., v1.2.3)"
-        required: true
-        type: string
+  workflow_run:
+    workflows: [Staging Build]
+    types: [completed]
 
 jobs:
+  get-staging-version:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      version_tag: ${{ steps.get_version.outputs.version_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Get version from latest release
+        id: get_version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+          VERSION_TAG=$(git tag --points-at $COMMIT_SHA | grep '^v' | head -n 1)
+
+          if [[ -z "$VERSION_TAG" ]]; then
+            echo "No version tag found for commit $COMMIT_SHA"
+            exit 1
+          fi
+
+          if ! gh release view "$VERSION_TAG" >/dev/null 2>&1; then
+            echo "Release $VERSION_TAG not found"
+            exit 1
+          fi
+
+          echo "Staging version: $VERSION_TAG"
+          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+
   get-latest-live-tag:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
     outputs:
       latest_live_tag: ${{ steps.get_latest.outputs.latest_live_tag }}
@@ -37,49 +68,12 @@ jobs:
             echo "latest_live_tag=$LATEST_LIVE_TAG" >> "$GITHUB_OUTPUT"
           fi
 
-  changes-filter:
-    needs: [get-latest-live-tag]
-    uses: ./.github/workflows/changes-filter.yml
-    with:
-      base: ${{ needs.get-latest-live-tag.outputs.latest_live_tag }}
-      ref: ${{ inputs.version_tag }}
-
-  test:
-    needs: [changes-filter]
-    uses: ./.github/workflows/test.yml
-    with:
-      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
-      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
-
-  openapi-validation:
-    needs: [changes-filter]
-    with:
-      api_changed: >-
-        ${{ fromJSON(needs.changes-filter.outputs.backend_changed) ||
-        fromJSON(needs.changes-filter.outputs.openapi_changed) }}
-    uses: ./.github/workflows/openapi-validation.yml
-
-  audit:
-    needs: [changes-filter]
-    uses: ./.github/workflows/audit.yml
-    secrets: inherit
-    with:
-      run_backend_audit: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
-      run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
-
-  build:
-    needs: [changes-filter, test, openapi-validation, audit]
-    uses: ./.github/workflows/build.yml
-    with:
-      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
-      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
-
   deploy-live:
-    needs: [build]
     uses: ./.github/workflows/deploy-live.yml
+    needs: [get-staging-version]
     with:
-      deployment_ref: ${{ inputs.version_tag }}
-      version_tag: ${{ inputs.version_tag }}
+      deployment_ref: ${{ needs.get-staging-version.outputs.version_tag }}
+      version_tag: ${{ needs.get-staging-version.outputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
@@ -88,13 +82,13 @@ jobs:
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   update_pre_releases:
-    needs: [get-latest-live-tag, deploy-live]
+    needs: [get-latest-live-tag, get-staging-version, deploy-live]
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.version_tag }}
+          ref: ${{ needs.get-staging-version.outputs.version_tag }}
           fetch-depth: 0
 
       - name: Fetch Tags
@@ -106,7 +100,7 @@ jobs:
         id: get_releases
         env:
           PREV_LIVE_TAG: ${{ needs.get-latest-live-tag.outputs.latest_live_tag }}
-          VERSION_TAG: "${{ inputs.version_tag }}"
+          VERSION_TAG: "${{ needs.get-staging-version.outputs.version_tag }}"
           LIVE_TAG_PREFIX: "live-"
         run: |
           LAST_TAG=${PREV_LIVE_TAG#$LIVE_TAG_PREFIX}
@@ -152,19 +146,19 @@ jobs:
           done
 
   push_live_tag:
-    needs: [update_pre_releases]
+    needs: [get-staging-version, update_pre_releases]
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.version_tag }}
+          ref: ${{ needs.get-staging-version.outputs.version_tag }}
           fetch-depth: 0
 
       - name: Push Live Version Tag
         id: push_live_tag
         env:
-          LIVE_VERSION_TAG: "live-${{ inputs.version_tag }}"
+          LIVE_VERSION_TAG: "live-${{ needs.get-staging-version.outputs.version_tag }}"
         run: |
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           git tag $LIVE_VERSION_TAG
