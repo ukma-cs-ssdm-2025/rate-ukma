@@ -10,7 +10,6 @@ def repo():
     return DepartmentRepository()
 
 
-# Tests for get_all
 
 
 @pytest.mark.django_db
@@ -49,7 +48,6 @@ def test_get_all_prefetches_related_faculty(repo, django_assert_num_queries):
             _ = dept.faculty.name
 
 
-# Tests for get_by_id
 
 
 @pytest.mark.django_db
@@ -87,7 +85,6 @@ def test_get_by_id_prefetches_related_faculty(repo, django_assert_num_queries):
         _ = result.faculty.name
 
 
-# Tests for filter
 
 
 @pytest.mark.django_db
@@ -102,7 +99,6 @@ def test_filter_returns_all_departments(repo):
     assert len(result) == 3
 
 
-# Tests for get_or_create
 
 
 @pytest.mark.django_db
@@ -148,7 +144,6 @@ def test_get_or_create_creates_different_department_with_same_name_different_fac
     assert department.faculty == different_faculty
 
 
-# Tests for create
 
 
 @pytest.mark.django_db
@@ -166,7 +161,6 @@ def test_create_creates_department_with_provided_data(repo):
     assert Department.objects.filter(id=result.id).exists()
 
 
-# Tests for update
 
 
 @pytest.mark.django_db
@@ -183,7 +177,6 @@ def test_update_persists_updates_to_database(repo):
     assert updated.name == new_name
 
 
-# Tests for delete
 
 
 @pytest.mark.django_db

@@ -15,7 +15,6 @@ def repo():
     return CourseInstructorRepository()
 
 
-# Tests for get_all
 
 
 @pytest.mark.django_db
@@ -47,7 +46,6 @@ def test_get_all_prefetches_related_instructor_and_course_offering(repo, django_
             _ = ci.course_offering.code
 
 
-# Tests for get_by_id
 
 
 @pytest.mark.django_db
@@ -80,7 +78,6 @@ def test_get_by_id_prefetches_related_instructor_and_course_offering(
         _ = result.course_offering.code
 
 
-# Tests for get_or_create
 
 
 @pytest.mark.django_db
@@ -128,7 +125,6 @@ def test_get_or_create_creates_different_instructor_with_different_role(repo):
     assert course_instructor.role == InstructorRole.PRACTICUM_INSTRUCTOR
 
 
-# Tests for create
 
 
 @pytest.mark.django_db
@@ -149,7 +145,6 @@ def test_create_creates_course_instructor_with_provided_data(repo):
     assert CourseInstructor.objects.filter(id=result.id).exists()
 
 
-# Tests for update
 
 
 @pytest.mark.django_db
@@ -163,7 +158,6 @@ def test_update_persists_updates_to_database(repo):
     assert updated.role == new_role
 
 
-# Tests for delete
 
 
 @pytest.mark.django_db
