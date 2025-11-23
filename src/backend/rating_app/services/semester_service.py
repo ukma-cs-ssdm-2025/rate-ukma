@@ -44,8 +44,18 @@ class SemesterService(IFilterable):
         return self._build_filter_options().to_dict()
 
     def get_current(self) -> Semester:
+        month = datetime.now().month
+        if month >= 9:
+            term = SemesterTerm.FALL
+        elif month < 5:
+            term = SemesterTerm.SPRING
+        else:
+            term = SemesterTerm.SUMMER
+
+        year = datetime.now().year
+
         try:
-            return self.semester_repository.get_current()
+            return self.semester_repository.get_by_year_and_term(year=year, term=term)
         except Semester.DoesNotExist as exc:
             raise SemesterDoesNotExistError(
                 f"Current semester ({datetime.now().year} {datetime.now().strftime('%B')})"
@@ -55,7 +65,7 @@ class SemesterService(IFilterable):
         self, semester_to_check: Semester, current_semester: Semester | None = None
     ) -> bool:
         if not current_semester:
-            current_semester = self.semester_repository.get_current()
+            current_semester = self.get_current()
 
         if semester_to_check.year > current_semester.year:
             return False

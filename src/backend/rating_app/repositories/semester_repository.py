@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any
 
 from rating_app.models import Semester
@@ -32,16 +31,5 @@ class SemesterRepository(IRepository[Semester]):
         #! TODO: not implemented
         return self.get_all()
 
-    def get_current(self) -> Semester:
-        month = datetime.now().month
-        if month >= 9:
-            term = SemesterTerm.FALL
-        elif month < 5:
-            term = SemesterTerm.SPRING
-        else:
-            term = SemesterTerm.SUMMER
-
-        year = datetime.now().year
-        current_sem = Semester.objects.get(year=year, term=term)
-
-        return current_sem
+    def get_by_year_and_term(self, year: int, term: SemesterTerm) -> Semester:
+        return Semester.objects.get(year=year, term=term)
