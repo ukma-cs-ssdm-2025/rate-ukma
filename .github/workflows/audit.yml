@@ -23,7 +23,6 @@ permissions:
 
 concurrency:
   group: security-audit-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   FRONTEND_DIR: src/webapp
