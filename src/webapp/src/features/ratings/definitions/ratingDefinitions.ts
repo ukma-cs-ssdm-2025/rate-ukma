@@ -15,4 +15,4 @@ export const usefulnessDescriptions = {
 } as const;
 
 export const CANNOT_RATE_TOOLTIP_TEXT =
-	"Ви зможете оцінити курс, коли він розпочнеться";
+	"Оцінювання стане доступним з середини семестру курсу";

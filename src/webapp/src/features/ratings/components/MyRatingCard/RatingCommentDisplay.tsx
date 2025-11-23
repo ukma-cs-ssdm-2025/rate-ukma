@@ -46,10 +46,10 @@ export function RatingCommentDisplay({
 				ratingAction = (
 					<DisabledRatingButtonWithTooltip tooltip={CANNOT_RATE_TOOLTIP_TEXT}>
 						<Button
-							variant="secondary"
+							variant="default"
 							size="sm"
 							disabled
-							className="cursor-not-allowed opacity-10 bg-gray-300"
+							className="!bg-gray-400 !text-white hover:!bg-gray-400"
 						>
 							<Star className="h-3.5 w-3.5" />
 							<span className="ml-1">Залишити відгук</span>
