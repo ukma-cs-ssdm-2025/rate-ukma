@@ -44,7 +44,8 @@ class SemesterService(IFilterable):
         return self._build_filter_options().to_dict()
 
     def get_current(self) -> Semester:
-        month = datetime.now().month
+        now = datetime.now()
+        month = now.month
         if month >= 9:
             term = SemesterTerm.FALL
         elif month < 5:
@@ -52,13 +53,13 @@ class SemesterService(IFilterable):
         else:
             term = SemesterTerm.SUMMER
 
-        year = datetime.now().year
+        year = now.year
 
         try:
             return self.semester_repository.get_by_year_and_term(year=year, term=term)
         except Semester.DoesNotExist as exc:
             raise SemesterDoesNotExistError(
-                f"Current semester ({datetime.now().year} {datetime.now().strftime('%B')})"
+                f"Current semester ({now.year} {now.strftime('%B')})"
             ) from exc
 
     def is_past_or_current_semester(
@@ -67,22 +68,13 @@ class SemesterService(IFilterable):
         if not current_semester:
             current_semester = self.get_current()
 
-        if semester_to_check.year > current_semester.year:
-            return False
-        if current_semester.year == semester_to_check.year:  # the same year
-            if current_semester.term == semester_to_check.term:  # same term
-                return True
-            elif current_semester.term == SemesterTerm.SUMMER:
-                return semester_to_check.term == SemesterTerm.SPRING
-            elif current_semester.term == SemesterTerm.SPRING:
-                return False
-            elif current_semester.term == SemesterTerm.FALL:
-                # In Fall, can rate Spring and Summer from same year
-                return semester_to_check.term in [SemesterTerm.SPRING, SemesterTerm.SUMMER]
-            else:
-                return False
+        check_priority = self._get_term_priority(semester_to_check.term)
+        current_priority = self._get_term_priority(current_semester.term)
 
-        return True
+        return (semester_to_check.year, check_priority) <= (
+            current_semester.year,
+            current_priority,
+        )
 
     def _build_filter_options(self) -> SemesterFilterData:
         semesters = self.semester_repository.get_all()
