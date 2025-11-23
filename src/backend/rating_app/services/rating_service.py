@@ -48,7 +48,10 @@ class RatingService:
 
         course_offering = self.course_offering_repository.get_by_id(offering_id)
         course_semester = course_offering.semester
-        if not self.semester_service.is_past_or_current_semester(course_semester):
+        if not (
+            self.semester_service.is_past_semester(course_semester)
+            or self.semester_service.is_midpoint(course_semester)
+        ):
             raise EnrolledButNotCompleted()
 
         rating_exists = self.rating_repository.exists(

@@ -12,6 +12,8 @@ from rating_app.tests.factories import (
 )
 
 DEFAULT_DATE = "2023-10-25"
+DEFAULT_MID_TERM_DATE = "2023-11-25"
+DEFAULT_INVALID_DATE = "2023-9-25"
 DEFAULT_YEAR = 2023
 DEFAULT_TERM = "FALL"
 
@@ -221,3 +223,176 @@ def test_get_courses_stats_serializes_response_correctly(token_client):
     assert "comment" in rating_data
     assert "created_at" in rating_data
     assert "is_anonymous" in rating_data
+
+
+@freeze_time(DEFAULT_INVALID_DATE)  # Before midpoint (September)
+@pytest.mark.django_db
+def test_get_courses_stats_cannot_rate_before_midpoint(token_client):
+    # Arrange
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title="Test Course")
+    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+
+    # Act
+    response = token_client.get("/api/v1/students/me/courses/")
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert len(data[0]["offerings"]) == 1
+    offering_data = data[0]["offerings"][0]
+    assert offering_data["can_rate"] is False
+
+
+@freeze_time(DEFAULT_DATE)  # Just before midpoint (October)
+@pytest.mark.django_db
+def test_get_courses_stats_cannot_rate_just_before_midpoint(token_client):
+    # Arrange
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title="Test Course")
+    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+
+    # Act
+    response = token_client.get("/api/v1/students/me/courses/")
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert len(data[0]["offerings"]) == 1
+    offering_data = data[0]["offerings"][0]
+    assert offering_data["can_rate"] is False
+
+
+@freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint (November)
+@pytest.mark.django_db
+def test_get_courses_stats_can_rate_at_midpoint(token_client):
+    # Arrange
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title="Test Course")
+    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+
+    # Act
+    response = token_client.get("/api/v1/students/me/courses/")
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert len(data[0]["offerings"]) == 1
+    offering_data = data[0]["offerings"][0]
+    assert offering_data["can_rate"] is True
+
+
+@freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint
+@pytest.mark.django_db
+def test_get_courses_stats_can_rate_past_semester(token_client):
+    # Arrange
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title="Past Course")
+
+    # Create a past semester (Spring 2023, while current is Fall 2023)
+    past_semester = SemesterFactory(term=SemesterTerm.SPRING, year=DEFAULT_YEAR)
+    offering = CourseOfferingFactory(course=course, semester=past_semester)
+    EnrollmentFactory(student=student, offering=offering)
+
+    # Create current semester so get_current() works
+    _current_semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
+
+    # Act
+    response = token_client.get("/api/v1/students/me/courses/")
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert len(data[0]["offerings"]) == 1
+    offering_data = data[0]["offerings"][0]
+    assert offering_data["can_rate"] is True
+
+
+@freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint
+@pytest.mark.django_db
+def test_get_courses_stats_multiple_offerings_different_can_rate(token_client):
+    # Arrange
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title="Multi-offering Course")
+
+    # Past semester - can rate
+    past_semester = SemesterFactory(term=SemesterTerm.SPRING, year=DEFAULT_YEAR)
+    past_offering = CourseOfferingFactory(course=course, semester=past_semester)
+    EnrollmentFactory(student=student, offering=past_offering)
+
+    # Current semester at midpoint - can rate
+    current_semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
+    current_offering = CourseOfferingFactory(course=course, semester=current_semester)
+    EnrollmentFactory(student=student, offering=current_offering)
+
+    # Future semester - cannot rate
+    future_semester = SemesterFactory(term=SemesterTerm.SPRING, year=DEFAULT_YEAR + 1)
+    future_offering = CourseOfferingFactory(course=course, semester=future_semester)
+    EnrollmentFactory(student=student, offering=future_offering)
+
+    # Act
+    response = token_client.get("/api/v1/students/me/courses/")
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == str(course.id)
+    assert len(data[0]["offerings"]) == 3
+
+    # Find each offering and verify can_rate
+    offerings_by_term = {offering["season"]: offering for offering in data[0]["offerings"]}
+
+    assert offerings_by_term[SemesterTerm.SPRING]["year"] == DEFAULT_YEAR
+    assert offerings_by_term[SemesterTerm.SPRING]["can_rate"] is True
+
+    assert offerings_by_term[SemesterTerm.FALL]["year"] == DEFAULT_YEAR
+    assert offerings_by_term[SemesterTerm.FALL]["can_rate"] is True
+
+    # Future offering
+    future_spring = next(
+        o
+        for o in data[0]["offerings"]
+        if o["season"] == SemesterTerm.SPRING and o["year"] == DEFAULT_YEAR + 1
+    )
+    assert future_spring["can_rate"] is False
+
+
+@freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint
+@pytest.mark.django_db
+def test_get_courses_stats_rated_course_still_shows_can_rate(token_client):
+    # Arrange - verify that can_rate is still True even if already rated
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title="Rated Course")
+    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+    RatingFactory(
+        student=student,
+        course_offering=offering,
+        difficulty=4,
+        usefulness=5,
+        comment="Already rated",
+    )
+
+    # Act
+    response = token_client.get("/api/v1/students/me/courses/")
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert len(data[0]["offerings"]) == 1
+    offering_data = data[0]["offerings"][0]
+    assert offering_data["can_rate"] is True
+    assert offering_data["rated"] is not None

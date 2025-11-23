@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import structlog
 
 from rating_app.models import Semester, Student
@@ -26,7 +28,7 @@ class StudentService:
     def get_ratings(self, student_id: str):
         courses = self.student_stats_repository.get_rating_stats(student_id=student_id)
         current_semester = self.semester_service.get_current()
-
+        now = datetime.now()
         for course in courses:
             for offering in course["offerings"]:
                 course_semester = Semester(
@@ -34,9 +36,9 @@ class StudentService:
                     term=offering["season"],
                 )
                 # forbid rating future courses
-                offering["can_rate"] = self.semester_service.is_past_or_current_semester(
+                offering["can_rate"] = self.semester_service.is_past_semester(
                     course_semester, current_semester
-                )
+                ) or self.semester_service.is_midpoint(course_semester, now)
 
         return courses
 
@@ -47,10 +49,9 @@ class StudentService:
             course_semester = Semester(
                 year=course["semester"]["year"], term=course["semester"]["season"]
             )
-            # Check whether this course is in the past or present (to forbid rating future courses)
-            course["can_rate"] = self.semester_service.is_past_or_current_semester(
+            course["can_rate"] = self.semester_service.is_past_semester(
                 course_semester, current_semester
-            )
+            ) or self.semester_service.is_midpoint(course_semester)
         return result
 
     def link_student_to_user(self, student: Student) -> bool:

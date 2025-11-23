@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from rating_app.exception.semester_exception import SemesterDoesNotExistError
@@ -34,6 +34,12 @@ class SemesterService(IFilterable):
         SemesterTerm.FALL: 2,
     }
 
+    MIDTERM_MONTH = {
+        SemesterTerm.SPRING: 3,  # March
+        SemesterTerm.SUMMER: 6,  # June
+        SemesterTerm.FALL: 11,  # November
+    }
+
     def __init__(self, semester_repository: SemesterRepository):
         self.semester_repository = semester_repository
 
@@ -62,7 +68,26 @@ class SemesterService(IFilterable):
                 f"Current semester ({now.year} {now.strftime('%B')})"
             ) from exc
 
-    def is_past_or_current_semester(
+    def is_midpoint(
+        self,
+        current_semester: Semester | None = None,
+        current_date: datetime | None = None,
+    ) -> bool:
+        if current_date is None:
+            current_date = datetime.now()
+        if current_semester is None:
+            current_semester = self.get_current()
+
+        term = SemesterTerm(current_semester.term)
+
+        semester_year = current_semester.year
+        midpoint_month = self.MIDTERM_MONTH[term]
+        midpoint_date = date(year=semester_year, month=midpoint_month, day=1)
+
+        today = current_date.date()
+        return today >= midpoint_date
+
+    def is_past_semester(
         self, semester_to_check: Semester, current_semester: Semester | None = None
     ) -> bool:
         if not current_semester:
@@ -71,7 +96,7 @@ class SemesterService(IFilterable):
         check_priority = self._get_term_priority(semester_to_check.term)
         current_priority = self._get_term_priority(current_semester.term)
 
-        return (semester_to_check.year, check_priority) <= (
+        return (semester_to_check.year, check_priority) < (
             current_semester.year,
             current_priority,
         )

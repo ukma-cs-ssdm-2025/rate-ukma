@@ -2,6 +2,8 @@ import pytest
 from freezegun import freeze_time
 
 DEFAULT_DATE = "2023-10-25"
+DEFAULT_AFTER_MIDTERM_DATE = "2023-11-25"
+DEFAULT_BEFORE_MIDTERM_DATE = "2023-9-25"
 DEFAULT_YEAR = 2023
 DEFAULT_TERM = "FALL"
 
@@ -51,7 +53,7 @@ def test_ratings_list_pagination(
 
 
 @pytest.mark.django_db
-@freeze_time(DEFAULT_DATE)  # October = FALL semester
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)  # October = FALL semester
 def test_create_rating(
     token_client,
     course_factory,
@@ -357,7 +359,7 @@ def test_create_rating_validation_error_invalid_difficulty(
 
 
 @pytest.mark.django_db
-@freeze_time(DEFAULT_DATE)  # October = FALL semester
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)  # October = FALL semester
 def test_create_duplicate_rating_same_offering(
     token_client,
     course_factory,
@@ -495,6 +497,7 @@ def test_ratings_list_filters_by_course(
 
 
 @pytest.mark.django_db
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
 def test_create_rating_without_student_record(
     token_client,
     course_factory,
@@ -514,3 +517,25 @@ def test_create_rating_without_student_record(
     response = token_client.post(url, data=payload, format="json")
     assert response.status_code == 403
     assert "Only students can perform this action" in response.json()["detail"]
+
+
+@pytest.mark.django_db
+@freeze_time(DEFAULT_BEFORE_MIDTERM_DATE)
+def test_create_rating_before_midterm(
+    token_client,
+    course_factory,
+    course_offering_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    url = f"/api/v1/courses/{course.id}/ratings/"
+    payload = {
+        "course_offering": str(offering.id),
+        "difficulty": 4,
+        "usefulness": 5,
+        "comment": "Test",
+    }
+
+    response = token_client.post(url, data=payload, format="json")
+    assert response.status_code == 403
