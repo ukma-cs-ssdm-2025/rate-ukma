@@ -23,22 +23,32 @@ export function RatingButton({
 	const [showTooltip, setShowTooltip] = React.useState(false);
 	const tooltipId = React.useId();
 
+	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+		if (!canRate) {
+			e.preventDefault();
+			return;
+		}
+		onClick?.();
+	};
+
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: wrapper div for tooltip positioning
 		<div
 			className={`relative ${size === "lg" ? "w-full max-w-md" : "inline-block"}`}
-			onMouseEnter={() => !canRate && setShowTooltip(true)}
-			onMouseLeave={() => setShowTooltip(false)}
 		>
 			<Button
 				size={size}
-				disabled={!canRate}
-				onClick={canRate ? onClick : undefined}
+				aria-disabled={!canRate}
+				tabIndex={0}
+				onClick={handleClick}
+				onMouseEnter={() => !canRate && setShowTooltip(true)}
+				onMouseLeave={() => setShowTooltip(false)}
+				onFocus={() => !canRate && setShowTooltip(true)}
+				onBlur={() => setShowTooltip(false)}
 				asChild={canRate ? asChild : false}
-				aria-describedby={!canRate ? tooltipId : undefined}
+				aria-describedby={!canRate && showTooltip ? tooltipId : undefined}
 				className={`${size === "lg" ? "w-full" : ""} ${
 					!canRate
-						? "!bg-gray-400 !text-white hover:!bg-gray-400 pointer-events-none disabled:opacity-100"
+						? "!bg-gray-400 !text-white hover:!bg-gray-400 disabled:opacity-100"
 						: ""
 				} ${className}`}
 			>
