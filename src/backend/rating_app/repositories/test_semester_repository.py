@@ -60,7 +60,9 @@ def test_get_by_id_raises_error_when_id_not_found(repo):
 @pytest.mark.django_db
 def test_filter_returns_all_semesters(repo):
     # Arrange
-    SemesterFactory.create_batch(3)
+    SemesterFactory(year=2024, term=SemesterTerm.FALL)
+    SemesterFactory(year=2024, term=SemesterTerm.SPRING)
+    SemesterFactory(year=2023, term=SemesterTerm.FALL)
 
     # Act
     result = repo.filter()
@@ -171,9 +173,9 @@ def test_delete_deletes_semester_from_database(repo):
 @pytest.mark.django_db
 def test_delete_deletes_correct_semester(repo):
     # Arrange
-    keep1 = SemesterFactory()
-    to_delete = SemesterFactory()
-    keep2 = SemesterFactory()
+    keep1 = SemesterFactory(year=2024, term=SemesterTerm.FALL)
+    to_delete = SemesterFactory(year=2024, term=SemesterTerm.SPRING)
+    keep2 = SemesterFactory(year=2023, term=SemesterTerm.FALL)
 
     # Act
     repo.delete(to_delete)
