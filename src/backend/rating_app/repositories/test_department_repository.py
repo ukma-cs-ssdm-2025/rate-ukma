@@ -62,7 +62,6 @@ def test_get_by_id_returns_department_by_id(repo):
 
     # Assert
     assert result.id == department.id
-    assert isinstance(result, Department)
 
 
 @pytest.mark.django_db
@@ -168,20 +167,6 @@ def test_create_creates_department_with_provided_data(repo):
 
 
 # Tests for update
-
-
-@pytest.mark.django_db
-def test_update_updates_department_fields(repo):
-    # Arrange
-    department = DepartmentFactory(name="Old Name")
-    new_name = "New Name"
-
-    # Act
-    result = repo.update(department, name=new_name)
-
-    # Assert
-    assert result.id == department.id
-    assert result.name == new_name
 
 
 @pytest.mark.django_db

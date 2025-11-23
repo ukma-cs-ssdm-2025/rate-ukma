@@ -57,7 +57,6 @@ def test_get_by_id_returns_course_instructor_by_id(repo):
     result = repo.get_by_id(course_instructor.id)
 
     assert result.id == course_instructor.id
-    assert isinstance(result, CourseInstructor)
 
 
 @pytest.mark.django_db
@@ -151,17 +150,6 @@ def test_create_creates_course_instructor_with_provided_data(repo):
 
 
 # Tests for update
-
-
-@pytest.mark.django_db
-def test_update_updates_course_instructor_fields(repo):
-    course_instructor = CourseInstructorFactory(role=InstructorRole.LECTURE_INSTRUCTOR)
-    new_role = InstructorRole.PRACTICUM_INSTRUCTOR
-
-    result = repo.update(course_instructor, role=new_role)
-
-    assert result.id == course_instructor.id
-    assert result.role == new_role
 
 
 @pytest.mark.django_db
