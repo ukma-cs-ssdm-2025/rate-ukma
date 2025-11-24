@@ -1,9 +1,10 @@
 import uuid
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import BaseModel, Field
 from pydantic.alias_generators import to_snake
+from pydantic.json_schema import SkipJsonSchema
 
 from rating_app.constants import (
     DEFAULT_PAGE_NUMBER,
@@ -16,6 +17,8 @@ from rating_app.constants import (
 from rating_app.models.rating import IRating
 
 from .pagination import PaginationMetadata
+
+RatingValue = Annotated[int, Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)]
 
 
 class RatingCourseFilterParams(BaseModel):
@@ -79,9 +82,9 @@ class RatingCreateRequest(BaseModel):
     }
 
     course_offering: uuid.UUID = Field(description="UUID of the course offering being rated")
-    difficulty: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    usefulness: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    comment: str | None = Field(default=None)
+    difficulty: RatingValue = Field()
+    usefulness: RatingValue = Field()
+    comment: str | SkipJsonSchema[None] = Field(default=None)
     is_anonymous: bool = Field(default=False)
 
 
@@ -94,9 +97,9 @@ class RatingCreateParams(BaseModel):
 
     course_offering: uuid.UUID = Field(description="UUID of the course offering being rated")
     student: uuid.UUID = Field(description="UUID of the student creating the rating")
-    difficulty: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    usefulness: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    comment: str | None = Field(default=None)
+    difficulty: RatingValue = Field()
+    usefulness: RatingValue = Field()
+    comment: str | SkipJsonSchema[None] = Field(default=None)
     is_anonymous: bool = Field(default=False)
 
 
@@ -106,9 +109,9 @@ class RatingPutParams(BaseModel):
         "populate_by_name": True,
     }
 
-    difficulty: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    usefulness: int = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    comment: str | None = Field(default=None)
+    difficulty: RatingValue = Field()
+    usefulness: RatingValue = Field()
+    comment: str | SkipJsonSchema[None] = Field(default=None)
     is_anonymous: bool = Field(default=False)
 
 
@@ -119,10 +122,14 @@ class RatingPatchParams(BaseModel):
         "populate_by_name": True,
     }
 
-    difficulty: int | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    usefulness: int | None = Field(default=None, ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    comment: str | None = Field(default=None)
-    is_anonymous: bool | None = Field(default=None)
+    difficulty: RatingValue | SkipJsonSchema[None] = Field(
+        default=None,
+    )
+    usefulness: RatingValue | SkipJsonSchema[None] = Field(
+        default=None,
+    )
+    comment: str | SkipJsonSchema[None] = Field(default=None)
+    is_anonymous: bool = Field(default=False)
 
 
 # is constructed internally
