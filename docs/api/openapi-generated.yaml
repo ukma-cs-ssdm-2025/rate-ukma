@@ -2064,33 +2064,25 @@ components:
     PatchedRatingPatchParams:
       properties:
         difficulty:
-          anyOf:
-          - maximum: 5
-            minimum: 1
-            type: integer
-          - type: 'null'
           default: null
+          maximum: 5
+          minimum: 1
           title: Difficulty
+          type: integer
         usefulness:
-          anyOf:
-          - maximum: 5
-            minimum: 1
-            type: integer
-          - type: 'null'
           default: null
+          maximum: 5
+          minimum: 1
           title: Usefulness
+          type: integer
         comment:
-          anyOf:
-          - type: string
-          - type: 'null'
           default: null
           title: Comment
+          type: string
         is_anonymous:
-          anyOf:
-          - type: boolean
-          - type: 'null'
-          default: null
+          default: false
           title: Is Anonymous
+          type: boolean
       title: RatingPatchParams
       type: object
     PracticeTypeEnum:
@@ -2119,11 +2111,9 @@ components:
           title: Usefulness
           type: integer
         comment:
-          anyOf:
-          - type: string
-          - type: 'null'
           default: null
           title: Comment
+          type: string
         is_anonymous:
           default: false
           title: Is Anonymous
@@ -2182,11 +2172,9 @@ components:
           title: Usefulness
           type: integer
         comment:
-          anyOf:
-          - type: string
-          - type: 'null'
           default: null
           title: Comment
+          type: string
         is_anonymous:
           default: false
           title: Is Anonymous
