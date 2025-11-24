@@ -97,8 +97,8 @@ class RatingCreateParams(BaseModel):
 
     course_offering: uuid.UUID = Field(description="UUID of the course offering being rated")
     student: uuid.UUID = Field(description="UUID of the student creating the rating")
-    difficulty: RatingValue = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
-    usefulness: RatingValue = Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)
+    difficulty: RatingValue = Field()
+    usefulness: RatingValue = Field()
     comment: str | SkipJsonSchema[None] = Field(default=None)
     is_anonymous: bool = Field(default=False)
 
@@ -124,11 +124,9 @@ class RatingPatchParams(BaseModel):
 
     difficulty: RatingValue | SkipJsonSchema[None] = Field(
         default=None,
-        json_schema_extra={"minimum": MIN_RATING_VALUE, "maximum": MAX_RATING_VALUE},
     )
     usefulness: RatingValue | SkipJsonSchema[None] = Field(
         default=None,
-        json_schema_extra={"minimum": MIN_RATING_VALUE, "maximum": MAX_RATING_VALUE},
     )
     comment: str | SkipJsonSchema[None] = Field(default=None)
     is_anonymous: bool = Field(default=False)
