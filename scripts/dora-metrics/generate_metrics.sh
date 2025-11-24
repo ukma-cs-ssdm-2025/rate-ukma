@@ -6,7 +6,7 @@ set -o pipefail # Exit on pipe failure
 
 # Default values
 LIMIT=100
-WORKFLOW_NAME="main-pipeline.yml"
+WORKFLOW_NAME="prod-pipeline.yml"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 METRICS_FILE="${SCRIPT_DIR}/results/metrics-raw.md"
 CREATED_AFTER=""
@@ -25,7 +25,7 @@ Usage: $0 [OPTIONS]
 Generate DORA metrics raw data from GitHub Actions workflow runs.
 
 OPTIONS:
-    -w, --workflow WORKFLOW    Workflow file name (default: main-pipeline.yml)
+    -w, --workflow WORKFLOW    Workflow file name (default: prod-pipeline.yml)
                                Options: main-pipeline.yml, prod-pipeline.yml, dev-pipeline.yml
     -l, --limit LIMIT          Number of workflow runs to fetch (default: 100)
     -f, --from DATE            Start date (YYYY-MM-DD format, optional)
@@ -46,7 +46,7 @@ EXAMPLES:
     $0 -w prod-pipeline.yml -l 50
 
     # Generate metrics for specific date range
-    $0 -w main-pipeline.yml -f 2024-01-01 -t 2024-12-31
+    $0 -w prod-pipeline.yml -f 2024-01-01 -t 2024-12-31
 
     # Generate metrics for dev pipeline with all options
     $0 -w dev-pipeline.yml -l 200 -f 2024-01-01 -o dev-metrics.md
