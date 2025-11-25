@@ -18,19 +18,18 @@ test.describe("Course Page", () => {
 	test("courses page loads and navigates to a course details page", async ({
 		page,
 	}) => {
-		const firstCourse = page
-			.locator("table tbody tr")
-			.first()
+		const firstRow = page.locator("table tbody tr").first();
+
+		const courseTitle = await firstRow
 			.locator("td")
 			.first()
-			.locator("span.font-semibold");
+			.locator("span.font-semibold")
+			.textContent();
 
-		await expect(firstCourse).toBeVisible();
-
-		const courseTitle = await firstCourse.textContent();
 		console.log(`Clicking course: ${courseTitle}`);
 
-		await firstCourse.click();
+		await Promise.all([page.waitForURL(COURSE_PAGE_PATTERN), firstRow.click()]);
+		await page.waitForLoadState("domcontentloaded");
 
 		await expect(page).toHaveURL(COURSE_PAGE_PATTERN);
 		await expect(page.locator("h1")).toContainText(courseTitle || "");
