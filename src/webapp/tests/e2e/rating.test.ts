@@ -102,6 +102,7 @@ test.describe("Course Ratings Display", () => {
 	test("shows 'insufficient data' for stats when course has no ratings", async ({
 		page,
 	}) => {
+		// TODO: move to a separate test suite with a correct beforeEach()
 		await page.goto(NO_RATINGS_COURSE_DETAILS_PAGE);
 		await page.waitForLoadState("domcontentloaded");
 
@@ -166,5 +167,36 @@ test.describe("Rating Modal Functionality", () => {
 		await expect(
 			modal.locator("button").filter({ hasText: /Зберегти|Надіслати/ }),
 		).toBeVisible();
+	});
+
+	test("rating modal submission", async ({ page }) => {
+		const rateButton = page
+			.locator("button")
+			.filter({ hasText: /Оцінити цей курс|Редагувати оцінку/ });
+
+		await rateButton.isVisible();
+		await rateButton.click();
+
+		// TODO: add slider test
+
+		const commentTextarea = page.locator("textarea[name='comment']");
+		await commentTextarea.isVisible();
+		await commentTextarea.fill("Test comment!");
+
+		const saveButton = page
+			.locator("button")
+			.filter({ hasText: /Зберегти|Надіслати/ });
+		await saveButton.isVisible();
+		await saveButton.click();
+
+		const modal = page.locator("[role='dialog']");
+		await expect(modal).toBeHidden();
+
+		const reviewCard = page
+			.locator("article")
+			.filter({ hasText: /Test comment!/ });
+		await reviewCard.isVisible();
+
+		// TODO: handle removing the test comment or configuring realistic test data
 	});
 });
