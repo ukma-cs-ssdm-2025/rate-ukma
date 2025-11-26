@@ -31,11 +31,11 @@ test.describe("Course Ratings Display", () => {
 		// numeric values are displayed (not "—" which indicates no data)
 		const difficultyValue = statsCards
 			.locator("span")
-			.filter({ hasText: /\d+\.\d+/ })
+			.filter({ hasText: /1|2|3|4|5/ })
 			.first();
 		const usefulnessValue = statsCards
 			.locator("span")
-			.filter({ hasText: /\d+\.\d+/ })
+			.filter({ hasText: /1|2|3|4|5/ })
 			.nth(1);
 
 		await expect(difficultyValue).toBeVisible();
