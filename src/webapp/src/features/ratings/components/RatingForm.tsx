@@ -173,11 +173,11 @@ export function RatingForm({
 				/>
 
 				<div className="flex justify-end gap-3">
-					{isEditMode && (
+					{isEditMode && onDelete && (
 						<Button
 							type="button"
 							variant="outline"
-							onClick={onDelete}
+							onClick={() => onDelete?.()}
 							disabled={isLoading}
 							className="flex items-center gap-2"
 						>

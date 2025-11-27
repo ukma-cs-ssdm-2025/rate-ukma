@@ -120,19 +120,21 @@ export function RatingModal({
 				</DialogContent>
 			</Dialog>
 
-			<DeleteRatingDialog
-				courseId={courseId}
-				ratingId={ratingId || ""}
-				open={showDeleteDialog}
-				onOpenChange={setShowDeleteDialog}
-				onSuccess={() => {
-					onSuccess?.();
-					onClose();
-					globalThis.location.reload();
-				}}
-				title="Видалити оцінку?"
-				description="Ця дія незворотна. Вашу оцінку буде видалено назавжди."
-			/>
+			{ratingId && (
+				<DeleteRatingDialog
+					courseId={courseId}
+					ratingId={ratingId}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+					onSuccess={() => {
+						onSuccess?.();
+						onClose();
+						globalThis.location.reload();
+					}}
+					title="Видалити оцінку?"
+					description="Ця дія незворотна. Вашу оцінку буде видалено назавжди."
+				/>
+			)}
 		</>
 	);
 }

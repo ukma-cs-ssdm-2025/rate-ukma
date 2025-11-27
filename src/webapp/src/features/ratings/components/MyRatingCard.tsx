@@ -23,6 +23,7 @@ export function MyRatingCard({
 }: Readonly<MyRatingCardProps>) {
 	const courseId = course.course_id;
 	const rating = course.rated ?? null;
+	const disableActions = false;
 
 	const difficultyValue =
 		typeof rating?.difficulty === "number" ? rating.difficulty.toFixed(1) : "—";
@@ -39,8 +40,6 @@ export function MyRatingCard({
 		setIsEditing(false);
 		onRatingChanged();
 	};
-
-	const disableActions = false; // This can be removed since it's not used anymore
 
 	const handleEditToggle = () => {
 		setActionError(null);
@@ -95,13 +94,15 @@ export function MyRatingCard({
 				/>
 			</CardContent>
 
-			<DeleteRatingDialog
-				courseId={courseId || ""}
-				ratingId={rating?.id || ""}
-				open={showDeleteDialog}
-				onOpenChange={setShowDeleteDialog}
-				onSuccess={onDeleteSuccess}
-			/>
+			{courseId && rating?.id && (
+				<DeleteRatingDialog
+					courseId={courseId}
+					ratingId={rating.id}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+					onSuccess={onDeleteSuccess}
+				/>
+			)}
 		</Card>
 	);
 }

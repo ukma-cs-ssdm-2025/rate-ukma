@@ -1,136 +1,65 @@
 import { expect, test } from "@playwright/test";
 
-const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-const COURSE_ID_TO_RATE =
-	process.env.COURSE_ID_TO_RATE ?? "07c28c6a-079c-4300-898e-5e552b6c19a5";
-const COURSE_DETAILS_PAGE_TO_RATE = `${BASE_URL}/courses/${COURSE_ID_TO_RATE}`;
+import { navigateToCoursePage, waitForPageReady } from "../components";
+import { CourseDetailsPage } from "../components/course-details-page";
+import { RatingModal } from "../components/rating-modal";
+import { createTestRatingData, TEST_CONFIG } from "../components/test-config";
 
-test.describe("Rating Modal Functionality", () => {
+test.describe("Rating modal functionality", () => {
+	let coursePage: CourseDetailsPage;
+	let ratingModal: RatingModal;
+
 	test.beforeEach(async ({ page }) => {
-		await page.goto(COURSE_DETAILS_PAGE_TO_RATE);
-		await page.waitForLoadState("domcontentloaded");
+		coursePage = new CourseDetailsPage(page);
+		ratingModal = new RatingModal(page);
+
+		await navigateToCoursePage(page, TEST_CONFIG.courses.rateCourse);
+		await waitForPageReady(page);
 	});
 
-	test("rating modal opens when rate button is clicked", async ({ page }) => {
-		const rateButton = page
-			.locator("button")
-			.filter({ hasText: /Оцінити цей курс|Редагувати оцінку/ });
+	test("rating modal opens when rate button is clicked", async () => {
+		expect(await coursePage.isRateButtonVisible()).toBe(true);
 
-		await rateButton.isVisible();
-		await rateButton.click();
+		await coursePage.clickRateButton();
 
-		const modal = page.locator("[role='dialog']");
-		await modal.isVisible();
-
-		const modalTitle = modal.locator("h2").filter({ hasText: "Оцінити курс" });
-		await expect(modalTitle).toBeVisible();
+		expect(await ratingModal.isVisible()).toBe(true);
+		expect(await ratingModal.isTitleVisible()).toBe(true);
 	});
 
-	test("rating modal submission and deletion afterwards", async ({ page }) => {
-		const rateButton = page
-			.locator("button")
-			.filter({ hasText: /Оцінити цей курс|Редагувати оцінку/ });
+	test("rating modal submission and deletion afterwards", async () => {
+		expect(await coursePage.isRateButtonVisible()).toBe(true);
+		await coursePage.clickRateButton();
+		expect(await ratingModal.isVisible()).toBe(true);
 
-		await rateButton.isVisible();
-		await rateButton.click();
+		const testData = createTestRatingData();
 
-		// difficulty
-		const difficultyLabel = page.locator("label", { hasText: /^Складність:/ });
-		await difficultyLabel.isVisible();
-		const difficultyValue = await difficultyLabel.textContent();
-		if (!difficultyValue) {
-			throw new Error("Difficulty value not found");
-		}
-		const difficultyValueNumber = Number(
-			difficultyValue.replace("Складність: ", "").split("/")[0],
-		);
+		// Set difficulty and usefulness
+		const initialDifficulty = await ratingModal.getCurrentDifficultyValue();
+		const initialUsefulness = await ratingModal.getCurrentUsefulnessValue();
 
-		const difficultyContainer = page.locator("div[data-slot='form-item']", {
-			has: difficultyLabel,
-		});
-		await difficultyContainer.isVisible();
+		const targetDifficulty = Math.min(initialDifficulty + 1, 5);
+		const targetUsefulness = Math.min(initialUsefulness + 1, 5);
 
-		const difficultySlider = difficultyContainer.getByRole("slider");
-		await difficultySlider.isVisible();
-		await difficultySlider.focus();
-		await difficultySlider.press("ArrowRight");
-		const newDifficultyValue = await difficultyLabel.textContent();
-		if (!newDifficultyValue) {
-			throw new Error("New difficulty value not found");
-		}
-		const newDifficultyValueNumber = Number(
-			newDifficultyValue.replace("Складність: ", "").split("/")[0],
-		);
-		if (newDifficultyValueNumber !== difficultyValueNumber + 1) {
-			throw new Error("Difficulty value not incremented");
-		}
-		console.log(`Set difficulty to: ${newDifficultyValueNumber}`);
-		console.log(`Expected difficulty: ${difficultyValueNumber + 1}`);
+		await ratingModal.setDifficultyRating(targetDifficulty);
+		await ratingModal.setUsefulnessRating(targetUsefulness);
 
-		// usefulness
-		const usefulnessLabel = page.locator("label", { hasText: /^Корисність:/ });
-		await usefulnessLabel.isVisible();
-		const usefulnessValue = await usefulnessLabel.textContent();
-		if (!usefulnessValue) {
-			throw new Error("Usefulness value not found");
-		}
-		const usefulnessValueNumber = Number(
-			usefulnessValue.replace("Корисність: ", "").split("/")[0],
-		);
+		// Set comment
+		await ratingModal.setComment(testData.comment);
 
-		const usefulnessContainer = page.locator("div[data-slot='form-item']", {
-			has: usefulnessLabel,
-		});
-		await usefulnessContainer.isVisible();
+		// Submit
+		await ratingModal.submitRating();
+		await ratingModal.waitForHidden();
 
-		const usefulnessSlider = usefulnessContainer.getByRole("slider");
-		await usefulnessSlider.isVisible();
-		await usefulnessSlider.focus();
-		await usefulnessSlider.press("ArrowRight");
-		const newUsefulnessValue = await usefulnessLabel.textContent();
-		if (!newUsefulnessValue) {
-			throw new Error("New usefulness value not found");
-		}
-		const newUsefulnessValueNumber = Number(
-			newUsefulnessValue.replace("Корисність: ", "").split("/")[0],
-		);
-		if (newUsefulnessValueNumber !== usefulnessValueNumber + 1) {
-			throw new Error("Usefulness value not incremented");
-		}
-		console.log(`Set usefulness to: ${newUsefulnessValueNumber}`);
-		console.log(`Expected usefulness: ${usefulnessValueNumber + 1}`);
+		// Verify review appears on page
+		const reviewCard = await coursePage.findReviewCardByText(testData.comment);
+		await expect(reviewCard).toBeVisible();
 
-		// comment
-		const testComment = "Test comment!";
-		const commentTextarea = page.locator("textarea[name='comment']");
-		await commentTextarea.isVisible();
-		await commentTextarea.fill(testComment);
-		console.log(`Set comment to: ${testComment}`);
+		// Clean up: deleting the rating
+		await coursePage.clickRateButton();
+		expect(await ratingModal.isVisible()).toBe(true);
 
-		const saveButton = page
-			.locator("button")
-			.filter({ hasText: /Зберегти|Надіслати/ });
-		await saveButton.isVisible();
-		await saveButton.click();
-
-		const modal = page.locator("[role='dialog']");
-		await expect(modal).toBeHidden();
-
-		const reviewCard = page.locator("article").filter({ hasText: testComment });
-		await reviewCard.isVisible();
-
-		// clean up
-		await rateButton.click();
-
-		const deleteButton = page.locator("button").filter({ hasText: /Видалити/ });
-		await deleteButton.isVisible();
-		await deleteButton.click();
-
-		const confirmButton = page
-			.locator("button.bg-destructive.text-white")
-			.filter({ hasText: "Видалити" });
-		await confirmButton.isVisible();
-		await confirmButton.click();
+		await ratingModal.deleteRating();
+		await ratingModal.waitForHidden();
 
 		await expect(reviewCard).toBeHidden();
 	});
