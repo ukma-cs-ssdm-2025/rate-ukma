@@ -8,8 +8,6 @@ export async function waitForPageReady(page: Page): Promise<void> {
 	await page.waitForLoadState("networkidle", {
 		timeout: TEST_CONFIG.networkIdleTimeout,
 	});
-
-	await page.waitForTimeout(500);
 }
 
 export async function withRetry<T>(
@@ -70,7 +68,7 @@ export async function extractTextSafely(
 }
 
 export function extractRatingFromText(text: string, label: string): number {
-	const regex = new RegExp(`${label}:\\s*(\\d+)/\\d+`);
+	const regex = new RegExp(String.raw`${label}:\s*(\d+)/\d+`);
 	const match = text.match(regex);
 
 	if (!match) {

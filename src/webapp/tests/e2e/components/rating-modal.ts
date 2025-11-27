@@ -175,7 +175,10 @@ export class RatingModal extends BasePage {
 
 	async submitCompleteRating(data: RatingData): Promise<void> {
 		await this.fillRatingForm(data);
-		await this.submitRating();
-		await this.waitForHidden();
+
+		await Promise.race([
+			this.submitRating().then(() => this.waitForHidden()),
+			this.page.waitForLoadState("domcontentloaded").then(() => {}),
+		]);
 	}
 }

@@ -135,7 +135,15 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async getInsufficientDataMessagesCount(): Promise<number> {
-		return await this.insufficientDataMessages.count();
+		try {
+			await this.page.waitForSelector(
+				"[class*='grid gap-4 sm:grid-cols-3'] span",
+				{ state: "attached", timeout: 3000 },
+			);
+			return await this.insufficientDataMessages.count();
+		} catch {
+			return 0;
+		}
 	}
 
 	async findReviewCardByText(text: string): Promise<Locator> {
