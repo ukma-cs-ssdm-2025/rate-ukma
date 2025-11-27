@@ -7,8 +7,8 @@ class NotEnrolledException(PermissionDenied):
     default_code = "not_enrolled"
 
 
-class EnrolledButNotCompleted(PermissionDenied):
-    default_detail = "You are enrolled but have not completed this course offering yet."
+class RatingPeriodNotStarted(PermissionDenied):
+    default_detail = "You cannot rate this course yet."
     default_code = "enrolled_but_not_completed"
 
 

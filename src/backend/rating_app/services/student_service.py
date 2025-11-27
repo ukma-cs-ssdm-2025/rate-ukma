@@ -4,7 +4,8 @@ import structlog
 
 from rating_app.models import Semester, Student
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
-from rating_app.services import SemesterService
+from rating_app.services.rating_policy import RatingWindowPolicy
+from rating_app.services.semester_service import SemesterService
 
 logger = structlog.get_logger(__name__)
 
@@ -16,11 +17,13 @@ class StudentService:
         student_repository: StudentRepository,
         semester_service: SemesterService,
         user_repository: UserRepository,
+        rating_window: RatingWindowPolicy,
     ) -> None:
         self.student_stats_repository = student_stats_repository
         self.student_repository = student_repository
         self.semester_service = semester_service
         self.user_repository = user_repository
+        self.rating_window = rating_window
 
     def get_student_by_user_id(self, user_id: str):
         return self.student_stats_repository.get_student_by_user_id(user_id=user_id)
@@ -36,22 +39,23 @@ class StudentService:
                     term=offering["season"],
                 )
                 # forbid rating future courses
-                offering["can_rate"] = self.semester_service.is_past_semester(
-                    course_semester, current_semester
-                ) or self.semester_service.is_midpoint(course_semester, now)
+                offering["can_rate"] = self.rating_window.is_semester_open_for_rating(
+                    course_semester, current_semester=current_semester, current_date=now
+                )
 
         return courses
 
     def get_ratings_detail(self, student_id: str):
         result = self.student_stats_repository.get_detailed_rating_stats(student_id=student_id)
         current_semester = self.semester_service.get_current()
+        now = datetime.now()
         for course in result:
             course_semester = Semester(
                 year=course["semester"]["year"], term=course["semester"]["season"]
             )
-            course["can_rate"] = self.semester_service.is_past_semester(
-                course_semester, current_semester
-            ) or self.semester_service.is_midpoint(course_semester)
+            course["can_rate"] = self.rating_window.is_semester_open_for_rating(
+                course_semester, current_semester=current_semester, current_date=now
+            )
         return result
 
     def link_student_to_user(self, student: Student) -> bool:
