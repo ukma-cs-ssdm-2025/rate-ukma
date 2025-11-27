@@ -2,7 +2,6 @@ export { BasePage } from "./base-page";
 export {
 	extractRatingFromText,
 	extractTextSafely,
-	generateTestId,
 	verifyRatingChange,
 	waitForElementWithContext,
 	waitForPageReady,
