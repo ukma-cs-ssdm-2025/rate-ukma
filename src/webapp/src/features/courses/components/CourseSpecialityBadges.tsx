@@ -19,7 +19,9 @@ function getSpecialityAlias(
 	if (customAbbreviation) {
 		return customAbbreviation;
 	}
-	// Extract first letters of each word
+	if (name.split(" ").length === 1) {
+		return name;
+	}
 	const matches = name.match(/\b\w/g);
 	return matches
 		? matches.join("").toUpperCase()
@@ -33,7 +35,6 @@ export function CourseSpecialityBadges({
 		return null;
 	}
 
-	// Filter out specialities without required data
 	const validSpecialities = specialities.filter(
 		(s) => s.speciality_id && s.speciality_title,
 	);
