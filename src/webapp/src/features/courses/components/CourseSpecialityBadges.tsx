@@ -22,10 +22,11 @@ function getSpecialityAlias(
 	if (name.split(" ").length === 1) {
 		return name;
 	}
-	const matches = name.match(/\b\w/g);
-	return matches
-		? matches.join("").toUpperCase()
-		: name.substring(0, 3).toUpperCase();
+	return name
+		.split(/\s+/)
+		.map((word) => word[0])
+		.join("")
+		.toUpperCase();
 }
 
 export function CourseSpecialityBadges({
