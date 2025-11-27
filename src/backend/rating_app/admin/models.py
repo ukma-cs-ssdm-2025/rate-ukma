@@ -98,7 +98,7 @@ class DepartmentAdmin(VersionAdmin):
 
 @admin.register(Speciality)
 class SpecialityAdmin(VersionAdmin):
-    list_display = ("name", "faculty", "courses_count")
+    list_display = ("name", "faculty", "alias", "courses_count")
     list_select_related = ("faculty",)
     list_filter = ("faculty",)
     search_fields = ("name", "faculty__name")

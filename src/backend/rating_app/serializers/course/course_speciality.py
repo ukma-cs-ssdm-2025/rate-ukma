@@ -11,10 +11,20 @@ class CourseSpecialityInlineSerializer(serializers.ModelSerializer):
 
     speciality_id = serializers.UUIDField(source="speciality.id", read_only=True)
     speciality_title = serializers.CharField(source="speciality.name", read_only=True)
+    speciality_alias = serializers.CharField(source="speciality.alias", read_only=True)
+    faculty_id = serializers.UUIDField(source="speciality.faculty.id", read_only=True)
+    faculty_name = serializers.CharField(source="speciality.faculty.name", read_only=True)
 
     class Meta:
         model = CourseSpeciality
-        fields = ["speciality_id", "speciality_title", "type_kind"]
+        fields = [
+            "speciality_id",
+            "speciality_title",
+            "type_kind",
+            "speciality_alias",
+            "faculty_id",
+            "faculty_name",
+        ]
 
 
 class SpecialityWithKindPayload(serializers.Serializer):

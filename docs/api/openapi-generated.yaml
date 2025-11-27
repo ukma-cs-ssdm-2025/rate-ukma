@@ -1677,6 +1677,10 @@ components:
         department_name:
           type: string
           readOnly: true
+        faculty_id:
+          type: string
+          format: uuid
+          readOnly: true
         faculty_name:
           type: string
           readOnly: true
@@ -1833,6 +1837,16 @@ components:
           readOnly: true
         type_kind:
           $ref: '#/components/schemas/TypeKindEnum'
+        speciality_alias:
+          type: string
+          readOnly: true
+        faculty_id:
+          type: string
+          format: uuid
+          readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
       required:
       - type_kind
     CourseTypeOption:
