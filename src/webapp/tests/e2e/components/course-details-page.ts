@@ -69,24 +69,6 @@ export class CourseDetailsPage extends BasePage {
 		}
 	}
 
-	async isTitleVisible(expectedTitle?: string): Promise<boolean> {
-		try {
-			await this.waitForElement(this.pageTitle, 5000);
-
-			if (expectedTitle) {
-				const actual = (await this.getTextContent(this.pageTitle))
-					.trim()
-					.toLowerCase();
-				const expected = expectedTitle.trim().toLowerCase();
-				return actual.includes(expected);
-			}
-
-			return true;
-		} catch {
-			return false;
-		}
-	}
-
 	async isRateButtonVisible(): Promise<boolean> {
 		try {
 			await this.waitForElement(this.rateButton, 5000);
