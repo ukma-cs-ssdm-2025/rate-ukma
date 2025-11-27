@@ -7,10 +7,10 @@ export const TEST_CONFIG = {
 			process.env.COURSE_ID_TO_RATE ?? "07c28c6a-079c-4300-898e-5e552b6c19a5",
 		withRatings:
 			process.env.WITH_RATINGS_COURSE_ID ??
-			"5c52f0bc-d409-42a0-a1d7-10f80c6c0b7d",
+			"15f6e43a-888a-44b2-bca8-d55b1e9f43d3", // "Автоматизація роботи з програмними проектами мовою Java"
 		noRatings:
 			process.env.NO_RATINGS_COURSE_ID ??
-			"5c52f0bc-d409-42a0-a1d7-10f80c6c0b7d",
+			"2689bb14-ba10-4e01-9534-eb5c8d3fd116", // "C4D: Communication for Development"
 	},
 
 	// Test data
