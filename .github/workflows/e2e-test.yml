@@ -74,6 +74,9 @@ jobs:
           CI: true
           CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
           CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
+          COURSE_ID_TO_RATE: ${{ vars.COURSE_ID_TO_RATE }}
+          NO_RATINGS_COURSE_ID: ${{ vars.NO_RATINGS_COURSE_ID }}
+          WITH_RATINGS_COURSE_ID: ${{ vars.WITH_RATINGS_COURSE_ID }}
         run: pnpm run test:e2e
 
       - name: Upload test results
