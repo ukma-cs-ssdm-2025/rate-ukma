@@ -28,9 +28,9 @@ import { Input } from "@/components/ui/Input";
 import type { CourseList } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { CourseColumnHeader } from "./CourseColumnHeader";
-import { CourseFacultyBadge } from "./CourseFacultyBadge";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
+import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import { CoursesEmptyState } from "./CoursesEmptyState";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import {
@@ -75,10 +75,7 @@ const columns: ColumnDef<CourseList>[] = [
 					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline md:text-base">
 						{course.title}
 					</span>{" "}
-					<CourseFacultyBadge
-						facultyName={course.faculty_name}
-						facultyCustomAbbreviation={course.faculty_custom_abbreviation}
-					/>
+					<CourseSpecialityBadges specialities={course.course_specialities} />
 				</span>
 			);
 		},

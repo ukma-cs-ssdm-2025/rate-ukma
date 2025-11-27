@@ -2,20 +2,26 @@ import { GraduationCap } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { CourseFacultyBadge } from "./CourseFacultyBadge";
+import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import { getStatusLabel, getStatusVariant } from "../courseFormatting";
 
 interface CourseDetailsHeaderProps {
 	title: string;
 	status: string;
-	facultyName?: string | null;
+	specialities?: ReadonlyArray<{
+		readonly speciality_id?: string;
+		readonly speciality_title?: string;
+		readonly speciality_alias?: string | null;
+		readonly faculty_id?: string;
+		readonly faculty_name?: string;
+	}> | null;
 	departmentName?: string | null;
 }
 
 export function CourseDetailsHeader({
 	title,
 	status,
-	facultyName,
+	specialities,
 	departmentName,
 }: Readonly<CourseDetailsHeaderProps>) {
 	return (
@@ -27,7 +33,7 @@ export function CourseDetailsHeader({
 				</Badge>
 			</div>
 			<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-				{facultyName && <CourseFacultyBadge facultyName={facultyName} />}
+				<CourseSpecialityBadges specialities={specialities} />
 				{departmentName && (
 					<Badge variant="outline" className="text-xs">
 						<GraduationCap className="mr-1.5 h-3.5 w-3.5" />
