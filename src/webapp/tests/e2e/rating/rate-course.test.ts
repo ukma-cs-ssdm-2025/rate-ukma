@@ -1,35 +1,34 @@
 import { expect, test } from "@playwright/test";
 
-import { navigateToCoursePage, waitForPageReady } from "../components";
-import { CourseDetailsPage } from "../components/course-details-page";
-import { RatingModal } from "../components/rating-modal";
-import { createTestRatingData, TEST_CONFIG } from "../components/test-config";
+import {
+	CourseDetailsPage,
+	createTestRatingData,
+	MyRatingsPage,
+	RatingModal,
+	waitForPageReady,
+} from "../components";
 
 test.describe("Rating modal functionality", () => {
 	let coursePage: CourseDetailsPage;
 	let ratingModal: RatingModal;
+	let myRatingsPage: MyRatingsPage;
 
 	test.beforeEach(async ({ page }) => {
 		coursePage = new CourseDetailsPage(page);
 		ratingModal = new RatingModal(page);
+		myRatingsPage = new MyRatingsPage(page);
 
-		await navigateToCoursePage(page, TEST_CONFIG.courses.rateCourse);
+		await myRatingsPage.goto();
+		await myRatingsPage.openFirstCourseToRate();
+
 		await waitForPageReady(page);
-	});
-
-	test("rating modal opens when rate button is clicked", async () => {
-		expect(await coursePage.isRateButtonVisible()).toBe(true);
-
-		await coursePage.clickRateButton();
-
-		expect(await ratingModal.isVisible()).toBe(true);
-		expect(await ratingModal.isTitleVisible()).toBe(true);
 	});
 
 	test("rating modal submission and deletion afterwards", async () => {
 		expect(await coursePage.isRateButtonVisible()).toBe(true);
 		await coursePage.clickRateButton();
 		expect(await ratingModal.isVisible()).toBe(true);
+		expect(await ratingModal.isTitleVisible()).toBe(true);
 
 		const testData = createTestRatingData();
 

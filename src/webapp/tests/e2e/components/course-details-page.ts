@@ -1,7 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 
 import { BasePage } from "./base-page";
-import { TEST_CONFIG } from "./test-config";
 
 export class CourseDetailsPage extends BasePage {
 	// Main
@@ -84,6 +83,7 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async hasStatsData(): Promise<boolean> {
+		await this.waitForElement(this.statsCardsContainer);
 		try {
 			const spans = this.statsCardsContainer.locator("span");
 
@@ -148,21 +148,5 @@ export class CourseDetailsPage extends BasePage {
 
 	async findReviewCardByText(text: string): Promise<Locator> {
 		return this.page.locator("article").filter({ hasText: text });
-	}
-}
-
-export async function navigateToCoursePage(
-	page: Page,
-	courseId: string,
-): Promise<void> {
-	const url = `${TEST_CONFIG.baseUrl}/courses/${courseId}`;
-
-	try {
-		await page.goto(url, { waitUntil: "domcontentloaded" });
-		await page.waitForLoadState("networkidle", {
-			timeout: TEST_CONFIG.networkIdleTimeout,
-		});
-	} catch (error) {
-		throw new Error(`Failed to navigate to course page ${courseId}: ${error}`);
 	}
 }
