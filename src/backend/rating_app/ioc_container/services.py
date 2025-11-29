@@ -20,7 +20,6 @@ from rating_app.services import (
     FacultyService,
     InstructorService,
     RatingService,
-    RatingWindowPolicy,
     SemesterService,
     SpecialityService,
     StudentService,
@@ -62,17 +61,12 @@ def course_service() -> CourseService:
 
 
 @once
-def rating_window_policy() -> RatingWindowPolicy:
-    return RatingWindowPolicy(semester_service=semester_service())
-
-
-@once
 def rating_service() -> RatingService:
     return RatingService(
         rating_repository=rating_repository(),
         enrollment_repository=enrollment_repository(),
         course_offering_service=course_offering_service(),
-        rating_window=rating_window_policy(),
+        semester_service=semester_service(),
         paginator=paginator(),
     )
 
@@ -89,7 +83,7 @@ def student_service() -> StudentService:
         student_repository=student_repository(),
         semester_service=semester_service(),
         user_repository=user_repository(),
-        rating_window=rating_window_policy(),
+        rating_service=rating_service(),
     )
 
 

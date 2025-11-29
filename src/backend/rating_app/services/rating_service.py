@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db.models import QuerySet
 
 from rating_app.application_schemas.pagination import PaginationMetadata
@@ -14,11 +16,11 @@ from rating_app.exception.rating_exceptions import (
     NotEnrolledException,
     RatingPeriodNotStarted,
 )
-from rating_app.models import Rating
+from rating_app.models import Rating, Semester
 from rating_app.repositories import EnrollmentRepository, RatingRepository
 from rating_app.services.course_offering_service import CourseOfferingService
 from rating_app.services.paginator import QuerysetPaginator
-from rating_app.services.rating_policy import RatingWindowPolicy
+from rating_app.services.semester_service import SemesterService
 
 
 class RatingService:
@@ -27,13 +29,13 @@ class RatingService:
         rating_repository: RatingRepository,
         enrollment_repository: EnrollmentRepository,
         course_offering_service: CourseOfferingService,
-        rating_window: RatingWindowPolicy,
+        semester_service: SemesterService,
         paginator: QuerysetPaginator,
     ):
         self.rating_repository = rating_repository
         self.enrollment_repository = enrollment_repository
         self.course_offering_service = course_offering_service
-        self.rating_window = rating_window
+        self.semester_service = semester_service
         self.paginator = paginator
 
     def create_rating(self, params: RatingCreateParams):
@@ -48,7 +50,7 @@ class RatingService:
             raise NotEnrolledException()
 
         course_offering = self.course_offering_service.get_course_offering(offering_id)
-        if not self.rating_window.is_semester_open_for_rating(course_offering.semester):
+        if not self.is_semester_open_for_rating(course_offering.semester):
             raise RatingPeriodNotStarted()
 
         rating_exists = self.rating_repository.exists(
@@ -84,6 +86,17 @@ class RatingService:
     def delete_rating(self, rating_id):
         rating = self.rating_repository.get_by_id(rating_id)
         self.rating_repository.delete(rating)
+
+    def is_semester_open_for_rating(
+        self,
+        semester: Semester,
+        *,
+        current_semester: Semester | None = None,
+        current_date: datetime | None = None,
+    ) -> bool:
+        return self.semester_service.is_past_semester(
+            semester, current_semester
+        ) or self.semester_service.is_midpoint(semester, current_date)
 
     def _paginated_result(
         self, ratings: QuerySet[Rating], criteria: RatingFilterCriteria

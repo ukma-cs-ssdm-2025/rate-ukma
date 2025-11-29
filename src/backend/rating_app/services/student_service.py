@@ -4,7 +4,7 @@ import structlog
 
 from rating_app.models import Semester, Student
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
-from rating_app.services.rating_policy import RatingWindowPolicy
+from rating_app.services.rating_service import RatingService
 from rating_app.services.semester_service import SemesterService
 
 logger = structlog.get_logger(__name__)
@@ -17,13 +17,13 @@ class StudentService:
         student_repository: StudentRepository,
         semester_service: SemesterService,
         user_repository: UserRepository,
-        rating_window: RatingWindowPolicy,
+        rating_service: RatingService,
     ) -> None:
         self.student_stats_repository = student_stats_repository
         self.student_repository = student_repository
         self.semester_service = semester_service
         self.user_repository = user_repository
-        self.rating_window = rating_window
+        self.rating_service = rating_service
 
     def get_student_by_user_id(self, user_id: str):
         return self.student_stats_repository.get_student_by_user_id(user_id=user_id)
@@ -39,7 +39,7 @@ class StudentService:
                     term=offering["season"],
                 )
                 # forbid rating future courses
-                offering["can_rate"] = self.rating_window.is_semester_open_for_rating(
+                offering["can_rate"] = self.rating_service.is_semester_open_for_rating(
                     course_semester, current_semester=current_semester, current_date=now
                 )
 
@@ -53,7 +53,7 @@ class StudentService:
             course_semester = Semester(
                 year=course["semester"]["year"], term=course["semester"]["season"]
             )
-            course["can_rate"] = self.rating_window.is_semester_open_for_rating(
+            course["can_rate"] = self.rating_service.is_semester_open_for_rating(
                 course_semester, current_semester=current_semester, current_date=now
             )
         return result

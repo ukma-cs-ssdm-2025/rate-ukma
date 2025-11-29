@@ -27,18 +27,18 @@ def semester_service():
 
 
 @pytest.fixture
-def rating_window():
+def rating_service():
     return MagicMock()
 
 
 @pytest.fixture
-def service(student_stats_repo, student_repo, user_repo, semester_service, rating_window):
+def service(student_stats_repo, student_repo, user_repo, semester_service, rating_service):
     return StudentService(
         student_stats_repository=student_stats_repo,
         student_repository=student_repo,
         user_repository=user_repo,
         semester_service=semester_service,
-        rating_window=rating_window,
+        rating_service=rating_service,
     )
 
 
