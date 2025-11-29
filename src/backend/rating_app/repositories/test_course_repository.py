@@ -18,6 +18,7 @@ def repo():
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_instructor_returns_only_assigned_courses(repo):
     # Arrange
     instructor = InstructorFactory()
@@ -37,6 +38,7 @@ def test_filter_by_instructor_returns_only_assigned_courses(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_semester_limits_to_matching_courses(repo):
     # Arrange
     fall_semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
@@ -62,6 +64,7 @@ def test_filter_by_semester_limits_to_matching_courses(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_prefetches_instructors(django_assert_num_queries, repo):
     # Arrange
     semester = SemesterFactory()

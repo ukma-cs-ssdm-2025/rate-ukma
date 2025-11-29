@@ -75,9 +75,15 @@ docker exec -it <backend_container_name> python manage.py createsuperuser
 ```bash
 # Local
 pytest
+# Fast unit-only (skip integration)
+pytest -m "not integration"
+# Integration only
+pytest -m "integration"
 
 # Docker
 docker exec -it <backend_container_name> pytest
+docker exec -it <backend_container_name> pytest -m "not integration"
+docker exec -it <backend_container_name> pytest -m "integration"
 ```
 
 To generate an HTML coverage report:
