@@ -423,7 +423,14 @@ describe("Course Display", () => {
 		const courses = [
 			createMockCourse({
 				title: "Test Course",
-				faculty_name: "Факультет інформаційних технологій",
+				faculty_name: "Факультет інформатики",
+				course_specialities: [
+					{
+						speciality_id: "spec-1",
+						speciality_title: "Спеціальність",
+						type_kind: "COMPULSORY" as any,
+					},
+				],
 			}),
 		];
 
