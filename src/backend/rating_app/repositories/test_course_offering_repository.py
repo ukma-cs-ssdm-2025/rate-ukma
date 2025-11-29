@@ -55,7 +55,7 @@ def test_get_or_upsert_updates_existing_offering_when_code_matches(repo):
 
     assert created is False
     assert offering.id == existing.id
-    assert offering.credits == 4.0
+    assert offering.credits == pytest.approx(4.0)
     assert offering.weekly_hours == 4
     assert offering.course == course2
     assert offering.semester == semester2
