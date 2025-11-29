@@ -98,7 +98,7 @@ function CourseDetailsRoute() {
 						<CourseDetailsHeader
 							title={course.title}
 							status={course.status}
-							facultyName={course.faculty_name}
+							specialities={course.course_specialities}
 							departmentName={course.department_name}
 						/>
 
