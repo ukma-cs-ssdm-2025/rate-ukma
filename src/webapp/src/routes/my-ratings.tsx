@@ -138,7 +138,7 @@ function getAcademicYear(
 	season: string | undefined,
 ): { academicYearStart: number; academicYearLabel: string } {
 	const academicYearStart = season?.toUpperCase() === "FALL" ? year : year - 1;
-	const academicYearLabel = `	${academicYearStart} – ${academicYearStart + 1}`;
+	const academicYearLabel = `${academicYearStart} – ${academicYearStart + 1}`;
 
 	return { academicYearStart, academicYearLabel };
 }
