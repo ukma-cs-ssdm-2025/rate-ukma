@@ -8,7 +8,7 @@ on:
         description: "Pipeline configuration file to evaluate"
         required: false
         type: string
-        default: "main-pipeline.yml"
+        default: "prod-pipeline.yml"
       limit:
         description: "Workflow runs limit"
         required: false
@@ -48,7 +48,7 @@ jobs:
         working-directory: scripts/dora-metrics
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PIPELINE_CONFIG_FILE: ${{ inputs.pipeline-config-file || 'main-pipeline.yml' }}
+          PIPELINE_CONFIG_FILE: ${{ inputs.pipeline-config-file || 'prod-pipeline.yml' }}
           LIMIT: ${{ inputs.limit || '100' }}
           RESULTS_DIR: results
           SCRIPT_FILE: generate_metrics.sh
@@ -131,7 +131,7 @@ jobs:
           CHANGE_FAILURE_RATE_CLASS: ${{ steps.calculate_metrics.outputs.change_failure_rate_class }}
           TIME_TO_RESTORE_CLASS: ${{ steps.calculate_metrics.outputs.time_to_restore_class }}
           OVERALL_PERFORMANCE: ${{ steps.calculate_metrics.outputs.overall_performance }}
-          WORKFLOW_NAME: ${{ inputs.pipeline-config-file || 'main-pipeline.yml' }}
+          WORKFLOW_NAME: ${{ inputs.pipeline-config-file || 'prod-pipeline.yml' }}
           WORKFLOW_URL: ${{ github.server_url }}/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/dora.yml
           JOB_STATUS: ${{ job.status }}
           FROM: ${{ inputs.from-date || '7 days ago' }}
