@@ -10,7 +10,7 @@ class Speciality(models.Model):
     alias = models.CharField(
         max_length=255,
         blank=True,
-        null=True,
+        default="",
         help_text="Custom alias for the speciality. If not provided, the name will be used.",
     )
 

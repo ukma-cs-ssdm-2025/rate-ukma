@@ -13,10 +13,10 @@ class Migration(migrations.Migration):
             model_name="speciality",
             name="alias",
             field=models.CharField(
-                blank=True,
-                help_text="Custom alias for the speciality. If not provided, the name will be used.",
                 max_length=255,
-                null=True,
+                blank=True,
+                default="",
+                help_text="Custom alias for the speciality. If not provided, the name will be used.",
             ),
         ),
     ]
