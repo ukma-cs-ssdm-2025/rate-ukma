@@ -127,10 +127,10 @@ interface YearGroup {
 	ratedCount: number;
 }
 
-const SEASON_ORDER: Record<string, number> = {
-	FALL: 1,
+const TERM_ORDER: Record<string, number> = {
+	SUMMER: 1,
 	SPRING: 2,
-	SUMMER: 3,
+	FALL: 3,
 };
 
 function getAcademicYear(
@@ -196,7 +196,7 @@ function groupRatingsByYearAndSemester(
 					? getSemesterTermDisplay(seasonRaw, "Невідомий семестр")
 					: "Семестр не вказано"
 				: "Без семестра";
-		const seasonOrder = SEASON_ORDER[seasonRaw ?? ""] ?? 99;
+		const seasonOrder = TERM_ORDER[seasonRaw ?? ""] ?? 99;
 
 		const yearEntry = years.get(yearKey);
 		if (yearEntry) {
