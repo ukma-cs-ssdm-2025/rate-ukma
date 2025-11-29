@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
+from rating_app.exception.semester_exception import SemesterDoesNotExistError
+from rating_app.models import Semester
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories import SemesterRepository
 from rating_app.services.protocols import IFilterable
@@ -31,6 +34,12 @@ class SemesterService(IFilterable):
         SemesterTerm.FALL: 2,
     }
 
+    MIDTERM_MONTH = {
+        SemesterTerm.SPRING: 3,  # March
+        SemesterTerm.SUMMER: 6,  # June
+        SemesterTerm.FALL: 11,  # November
+    }
+
     def __init__(self, semester_repository: SemesterRepository):
         self.semester_repository = semester_repository
 
@@ -39,6 +48,58 @@ class SemesterService(IFilterable):
 
     def get_filter_options(self) -> dict[str, Any]:
         return self._build_filter_options().to_dict()
+
+    def get_current(self) -> Semester:
+        now = datetime.now()
+        month = now.month
+        if month >= 9:
+            term = SemesterTerm.FALL
+        elif month < 5:
+            term = SemesterTerm.SPRING
+        else:
+            term = SemesterTerm.SUMMER
+
+        year = now.year
+
+        try:
+            return self.semester_repository.get_by_year_and_term(year=year, term=term)
+        except Semester.DoesNotExist as exc:
+            raise SemesterDoesNotExistError(
+                f"Current semester ({now.year} {now.strftime('%B')})"
+            ) from exc
+
+    def is_midpoint(
+        self,
+        current_semester: Semester | None = None,
+        current_date: datetime | None = None,
+    ) -> bool:
+        if current_date is None:
+            current_date = datetime.now()
+        if current_semester is None:
+            current_semester = self.get_current()
+
+        term = SemesterTerm(current_semester.term)
+
+        semester_year = current_semester.year
+        midpoint_month = self.MIDTERM_MONTH[term]
+        midpoint_date = date(year=semester_year, month=midpoint_month, day=1)
+
+        today = current_date.date()
+        return today >= midpoint_date
+
+    def is_past_semester(
+        self, semester_to_check: Semester, current_semester: Semester | None = None
+    ) -> bool:
+        if not current_semester:
+            current_semester = self.get_current()
+
+        check_priority = self._get_term_priority(semester_to_check.term)
+        current_priority = self._get_term_priority(current_semester.term)
+
+        return (semester_to_check.year, check_priority) < (
+            current_semester.year,
+            current_priority,
+        )
 
     def _build_filter_options(self) -> SemesterFilterData:
         semesters = self.semester_repository.get_all()

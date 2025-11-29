@@ -13,3 +13,6 @@ export const usefulnessDescriptions = {
 	4: "Дуже корисно - значна користь",
 	5: "Надзвичайно корисно - необхідно для кар'єри/навчання",
 } as const;
+
+export const CANNOT_RATE_TOOLTIP_TEXT =
+	"Оцінювання стане доступним з середини семестру курсу";

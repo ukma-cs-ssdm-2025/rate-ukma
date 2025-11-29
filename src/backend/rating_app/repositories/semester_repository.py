@@ -1,6 +1,7 @@
 from typing import Any
 
 from rating_app.models import Semester
+from rating_app.models.choices import SemesterTerm
 from rating_app.repositories.protocol import IRepository
 
 
@@ -29,3 +30,6 @@ class SemesterRepository(IRepository[Semester]):
     def filter(self, *args: Any, **kwargs: Any) -> list[Semester]:
         #! TODO: not implemented
         return self.get_all()
+
+    def get_by_year_and_term(self, year: int, term: SemesterTerm) -> Semester:
+        return Semester.objects.get(year=year, term=term)

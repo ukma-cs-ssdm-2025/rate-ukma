@@ -1,0 +1,2 @@
+class SemesterDoesNotExistError(Exception):
+    pass
