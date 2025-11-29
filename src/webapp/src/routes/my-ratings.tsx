@@ -127,11 +127,21 @@ interface YearGroup {
 	ratedCount: number;
 }
 
-const SEASON_ORDER: Record<string, number> = {
-	FALL: 1,
+const TERM_ORDER: Record<string, number> = {
+	SUMMER: 1,
 	SPRING: 2,
-	SUMMER: 3,
+	FALL: 3,
 };
+
+function getAcademicYear(
+	year: number,
+	season: string | undefined,
+): { academicYearStart: number; academicYearLabel: string } {
+	const academicYearStart = season?.toUpperCase() === "FALL" ? year : year - 1;
+	const academicYearLabel = `${academicYearStart} – ${academicYearStart + 1}`;
+
+	return { academicYearStart, academicYearLabel };
+}
 
 function groupRatingsByYearAndSemester(
 	items: StudentRatingsDetailed[],
@@ -150,19 +160,34 @@ function groupRatingsByYearAndSemester(
 			typeof course.semester?.year === "number"
 				? course.semester?.year
 				: undefined;
-		const yearKey = yearValue != null ? String(yearValue) : "unknown";
-		const yearLabel = yearValue != null ? String(yearValue) : "Без року";
+		const seasonRaw = course.semester?.season?.toUpperCase();
+
+		let yearKey: string;
+		let yearLabel: string;
+		let academicYearStart: number | undefined;
+
+		if (yearValue == null) {
+			yearKey = "unknown";
+			yearLabel = "Без року";
+		} else {
+			const { academicYearStart: ayStart, academicYearLabel } = getAcademicYear(
+				yearValue,
+				seasonRaw,
+			);
+			academicYearStart = ayStart;
+			yearKey = String(ayStart);
+			yearLabel = academicYearLabel;
+		}
 
 		if (!years.has(yearKey)) {
 			years.set(yearKey, {
 				key: yearKey,
 				label: yearLabel,
-				year: yearValue,
+				year: academicYearStart,
 				seasons: new Map(),
 			});
 		}
 
-		const seasonRaw = course.semester?.season?.toUpperCase();
 		const seasonKey =
 			yearValue != null ? (seasonRaw ?? "no-semester") : "no-semester";
 		const seasonLabel =
@@ -171,7 +196,7 @@ function groupRatingsByYearAndSemester(
 					? getSemesterTermDisplay(seasonRaw, "Невідомий семестр")
 					: "Семестр не вказано"
 				: "Без семестра";
-		const seasonOrder = SEASON_ORDER[seasonRaw ?? ""] ?? 99;
+		const seasonOrder = TERM_ORDER[seasonRaw ?? ""] ?? 99;
 
 		const yearEntry = years.get(yearKey);
 		if (yearEntry) {
