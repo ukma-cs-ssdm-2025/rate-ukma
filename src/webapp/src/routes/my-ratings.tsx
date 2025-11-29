@@ -166,7 +166,10 @@ function groupRatingsByYearAndSemester(
 		let yearLabel: string;
 		let academicYearStart: number | undefined;
 
-		if (yearValue != null) {
+		if (yearValue == null) {
+			yearKey = "unknown";
+			yearLabel = "Без року";
+		} else {
 			const { academicYearStart: ayStart, academicYearLabel } = getAcademicYear(
 				yearValue,
 				seasonRaw,
@@ -174,9 +177,6 @@ function groupRatingsByYearAndSemester(
 			academicYearStart = ayStart;
 			yearKey = String(ayStart);
 			yearLabel = academicYearLabel;
-		} else {
-			yearKey = "unknown";
-			yearLabel = "Без року";
 		}
 
 		if (!years.has(yearKey)) {
