@@ -88,15 +88,23 @@ class RatingRepository(IRepository[Rating]):
                 course_offering_id=str(create_params.course_offering),
                 difficulty=create_params.difficulty,
                 usefulness=create_params.usefulness,
-                comment=create_params.comment,
+                comment=create_params.comment or "",
                 is_anonymous=create_params.is_anonymous,
             )
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
     def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> Rating:
-        allow_unset = isinstance(update_data, RatingPatchParams)
-        update_data_map = update_data.model_dump(exclude_unset=allow_unset)
+        is_patch = isinstance(update_data, RatingPatchParams)
+
+        if is_patch:
+            fields_set = update_data.__pydantic_fields_set__
+            update_data_map = {k: v for k, v in update_data.model_dump().items() if k in fields_set}
+        else:
+            update_data_map = update_data.model_dump()
+
+        if "comment" in update_data_map and update_data_map["comment"] is None:
+            update_data_map["comment"] = ""
 
         for attr, value in update_data_map.items():
             setattr(rating, attr, value)

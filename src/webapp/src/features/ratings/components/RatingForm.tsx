@@ -32,7 +32,10 @@ const ratingSchema = z.object({
 		.number()
 		.min(1, "Оцінка корисності є обов'язковою")
 		.max(5, "Оцінка корисності повинна бути від 1 до 5"),
-	comment: z.string().optional(),
+	comment: z
+		.string()
+		.transform((val) => val?.trim() || undefined)
+		.optional(),
 	is_anonymous: z.boolean(),
 });
 

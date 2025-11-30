@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Annotated, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 from pydantic.alias_generators import to_snake
 from pydantic.json_schema import SkipJsonSchema
 
@@ -82,6 +82,13 @@ class RatingFilterCriteria(BaseModel):
     )
 
 
+def strip_string(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped if stripped else None
+
+
 # API request schema (student is set automatically from authenticated user)
 class RatingCreateRequest(BaseModel):
     model_config = {
@@ -92,7 +99,9 @@ class RatingCreateRequest(BaseModel):
     course_offering: uuid.UUID = Field(description="UUID of the course offering being rated")
     difficulty: RatingValue = Field()
     usefulness: RatingValue = Field()
-    comment: str | SkipJsonSchema[None] = Field(default=None)
+    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None
+    )
     is_anonymous: bool = Field(default=False)
 
 
@@ -107,7 +116,9 @@ class RatingCreateParams(BaseModel):
     student: uuid.UUID = Field(description="UUID of the student creating the rating")
     difficulty: RatingValue = Field()
     usefulness: RatingValue = Field()
-    comment: str | SkipJsonSchema[None] = Field(default=None)
+    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None
+    )
     is_anonymous: bool = Field(default=False)
 
 
@@ -119,7 +130,9 @@ class RatingPutParams(BaseModel):
 
     difficulty: RatingValue = Field()
     usefulness: RatingValue = Field()
-    comment: str | SkipJsonSchema[None] = Field(default=None)
+    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None
+    )
     is_anonymous: bool = Field(default=False)
 
 
@@ -136,7 +149,9 @@ class RatingPatchParams(BaseModel):
     usefulness: RatingValue | SkipJsonSchema[None] = Field(
         default=None,
     )
-    comment: str | SkipJsonSchema[None] = Field(default=None)
+    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None
+    )
     is_anonymous: bool = Field(default=False)
 
 

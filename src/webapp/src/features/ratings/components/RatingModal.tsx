@@ -78,7 +78,7 @@ export function RatingModal({
 					data: {
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
-						comment: data.comment || undefined,
+						comment: data.comment ?? "",
 						is_anonymous: data.is_anonymous,
 					},
 				});
