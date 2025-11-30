@@ -85,6 +85,12 @@ export function MyRatingCard({
 								{rating?.created_at ? `${formatDate(rating.created_at)}` : "—"}
 							</span>
 						</div>
+						<div className="flex items-baseline gap-2">
+							<span className="text-xs text-muted-foreground/90">•</span>
+							<span className="text-xs text-muted-foreground/90 leading-none relative top-[2px]">
+								Відгук залишено: {rating?.is_anonymous ? "Анонімно" : "Не анонімно"}
+							</span>
+						</div>
 					</div>
 				) : null}
 
