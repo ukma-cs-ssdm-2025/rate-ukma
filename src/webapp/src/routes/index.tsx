@@ -9,7 +9,6 @@ import {
 
 import Layout from "@/components/Layout";
 import { CoursesErrorState } from "@/features/courses/components/CoursesErrorState";
-import { CoursesHeader } from "@/features/courses/components/CoursesHeader";
 import { CoursesTable } from "@/features/courses/components/CoursesTable";
 import { transformFiltersToApiParams } from "@/features/courses/filterTransformations";
 import { searchParamsToFilters } from "@/features/courses/urlSync";
@@ -84,7 +83,6 @@ function CoursesRoute() {
 	return (
 		<Layout>
 			<div className="space-y-8">
-				<CoursesHeader />
 				{isError ? (
 					<CoursesErrorState onRetry={handleRetry} />
 				) : (
