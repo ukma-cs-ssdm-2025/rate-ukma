@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   build-backend:
-    if: inputs.backend_changed == true
+    if: inputs.backend_changed == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -72,7 +72,7 @@ jobs:
         run: docker push ${{ steps.extract_name.outputs.backend_image }}:${BACKEND_IMAGE_TAG}
 
   build-webapp:
-    if: inputs.webapp_changed == true
+    if: inputs.webapp_changed == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
