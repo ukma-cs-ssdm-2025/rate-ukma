@@ -2026,6 +2026,9 @@ components:
           type: string
           format: date-time
           readOnly: true
+        is_anonymous:
+          type: boolean
+          readOnly: true
     InlineSemester:
       type: object
       properties:
@@ -2299,6 +2302,8 @@ components:
         first_name:
           type: string
         last_name:
+          type: string
+        patronymic:
           type: string
       required:
       - id

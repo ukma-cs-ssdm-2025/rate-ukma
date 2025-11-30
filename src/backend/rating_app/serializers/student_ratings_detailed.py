@@ -7,6 +7,7 @@ class InlineRatingDetailedSerializer(serializers.Serializer):
     usefulness = serializers.IntegerField(read_only=True)
     comment = serializers.CharField(allow_blank=True, read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
+    is_anonymous = serializers.BooleanField(read_only=True)
 
 
 class InlineSemesterSerializer(serializers.Serializer):

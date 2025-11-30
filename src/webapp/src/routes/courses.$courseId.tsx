@@ -109,13 +109,13 @@ function CourseDetailsRoute() {
 					ratingsCount={course.ratings_count ?? null}
 				/>
 
-				{hasAttendedCourse && selectedOffering && (
+				{hasAttendedCourse && selectedOffering && !ratedOffering && (
 					<div className="flex justify-center">
 						<RatingButton
 							canRate={selectedOffering.can_rate ?? true}
 							onClick={() => setIsRatingModalOpen(true)}
 						>
-							{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
+							Оцінити цей курс
 						</RatingButton>
 					</div>
 				)}
