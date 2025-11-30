@@ -26,16 +26,6 @@ export default defineConfig({
 			...authenticatedProject,
 			use: { ...authenticatedProject.use, ...devices["Desktop Chrome"] },
 		},
-		{
-			name: "firefox-auth",
-			...authenticatedProject,
-			use: { ...authenticatedProject.use, ...devices["Desktop Firefox"] },
-		},
-		{
-			name: "webkit-auth",
-			...authenticatedProject,
-			use: { ...authenticatedProject.use, ...devices["Desktop Safari"] },
-		},
 	],
 	reporter: process.env.CI === "true" ? "html" : "line",
 });

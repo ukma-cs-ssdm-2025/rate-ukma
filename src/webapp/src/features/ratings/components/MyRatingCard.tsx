@@ -1,14 +1,13 @@
 import { useState } from "react";
 
 import { Card, CardContent } from "@/components/ui/Card";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
 	formatDate,
 	getDifficultyTone,
 	getUsefulnessTone,
 } from "@/features/courses/courseFormatting";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
-import { useCoursesRatingsDestroy } from "@/lib/api/generated";
+import { DeleteRatingDialog } from "./DeleteRatingDialog";
 import { RatingCardHeader } from "./MyRatingCard/RatingCardHeader";
 import { RatingCommentDisplay } from "./MyRatingCard/RatingCommentDisplay";
 import { RatingMetric } from "./MyRatingCard/RatingMetric";
@@ -24,6 +23,7 @@ export function MyRatingCard({
 }: Readonly<MyRatingCardProps>) {
 	const courseId = course.course_id;
 	const rating = course.rated ?? null;
+	const disableActions = false;
 
 	const difficultyValue =
 		typeof rating?.difficulty === "number" ? rating.difficulty.toFixed(1) : "—";
@@ -34,49 +34,17 @@ export function MyRatingCard({
 	const canModify = Boolean(hasRating && rating?.id && courseId);
 	const [isEditing, setIsEditing] = useState(false);
 	const [actionError, setActionError] = useState<string | null>(null);
+
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-	const deleteMutation = useCoursesRatingsDestroy({
-		mutation: {
-			onSuccess: () => {
-				setIsEditing(false);
-				onRatingChanged();
-			},
-		},
-	});
-
-	const isDeleting = deleteMutation.isPending;
-	const disableActions = isDeleting;
+	const onDeleteSuccess = () => {
+		setIsEditing(false);
+		onRatingChanged();
+	};
 
 	const handleEditToggle = () => {
 		setActionError(null);
 		setIsEditing((previous) => !previous);
 		// TODO: Implement edit form
-	};
-
-	const handleDelete = () => {
-		if (!canModify || !courseId || !rating?.id) {
-			return;
-		}
-		setShowDeleteDialog(true);
-	};
-
-	const confirmDelete = async () => {
-		if (!courseId || !rating?.id) {
-			return;
-		}
-		setActionError(null);
-		setShowDeleteDialog(false);
-
-		try {
-			await deleteMutation.mutateAsync({
-				courseId,
-				ratingId: rating.id,
-			});
-		} catch (error) {
-			console.error("Failed to delete rating", error);
-			setActionError("Не вдалося видалити відгук. Спробуйте пізніше.");
-		}
 	};
 
 	return (
@@ -89,7 +57,7 @@ export function MyRatingCard({
 				isEditing={isEditing}
 				disableActions={disableActions}
 				onEditToggle={handleEditToggle}
-				onDelete={handleDelete}
+				onDelete={() => setShowDeleteDialog(true)}
 			/>
 			<CardContent className="space-y-4 border-t border-dashed border-border pt-3">
 				{hasRating ? (
@@ -127,16 +95,15 @@ export function MyRatingCard({
 				/>
 			</CardContent>
 
-			<ConfirmDialog
-				open={showDeleteDialog}
-				onOpenChange={setShowDeleteDialog}
-				onConfirm={confirmDelete}
-				title="Видалити відгук?"
-				description="Ця дія незворотна. Ваш відгук буде видалено назавжди."
-				confirmText="Видалити"
-				cancelText="Скасувати"
-				variant="destructive"
-			/>
+			{courseId && rating?.id && (
+				<DeleteRatingDialog
+					courseId={courseId}
+					ratingId={rating.id}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+					onSuccess={onDeleteSuccess}
+				/>
+			)}
 		</Card>
 	);
 }

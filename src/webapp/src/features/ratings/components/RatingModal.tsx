@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import {
 	Dialog,
 	DialogContent,
@@ -10,6 +12,7 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
+import { DeleteRatingDialog } from "./DeleteRatingDialog";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
 type RatingWithAnonymousFlag = InlineRating & { is_anonymous?: boolean };
@@ -39,6 +42,8 @@ export function RatingModal({
 
 	const createMutation = useCoursesRatingsCreate();
 	const updateMutation = useCoursesRatingsPartialUpdate();
+
+	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
 	const handleSubmit = async (data: RatingFormData) => {
 		try {
@@ -86,30 +91,51 @@ export function RatingModal({
 	const isLoading = createMutation.isPending || updateMutation.isPending;
 
 	return (
-		<Dialog open={isOpen} onOpenChange={onClose}>
-			<DialogContent className="sm:max-w-[500px]">
-				<DialogHeader>
-					<DialogTitle>
-						{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
-					</DialogTitle>
-					{courseName && (
-						<DialogDescription>
-							{isEditMode
-								? `Змініть свою оцінку для курсу ${courseName}`
-								: `Поділіться своїм досвідом про курс ${courseName}`}
-						</DialogDescription>
-					)}
-				</DialogHeader>
+		<>
+			<Dialog open={isOpen && !showDeleteDialog} onOpenChange={onClose}>
+				<DialogContent className="sm:max-w-[500px]">
+					<DialogHeader>
+						<div className="flex items-center justify-between">
+							<DialogTitle>
+								{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
+							</DialogTitle>
+						</div>
+						{courseName && (
+							<DialogDescription>
+								{isEditMode
+									? `Змініть свою оцінку для курсу ${courseName}`
+									: `Поділіться своїм досвідом про курс ${courseName}`}
+							</DialogDescription>
+						)}
+					</DialogHeader>
 
-				<RatingForm
-					onSubmit={handleSubmit}
-					onCancel={onClose}
-					isLoading={isLoading}
-					isEditMode={isEditMode}
-					initialData={initialData}
+					<RatingForm
+						onSubmit={handleSubmit}
+						onCancel={onClose}
+						isLoading={isLoading}
+						isEditMode={isEditMode}
+						initialData={initialData}
+						onDelete={() => setShowDeleteDialog(true)}
+					/>
+				</DialogContent>
+			</Dialog>
+
+			{ratingId && (
+				<DeleteRatingDialog
+					courseId={courseId}
+					ratingId={ratingId}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+					onSuccess={() => {
+						onSuccess?.();
+						onClose();
+						globalThis.location.reload();
+					}}
+					title="Видалити оцінку?"
+					description="Ця дія незворотна. Вашу оцінку буде видалено назавжди."
 				/>
-			</DialogContent>
-		</Dialog>
+			)}
+		</>
 	);
 }
 
