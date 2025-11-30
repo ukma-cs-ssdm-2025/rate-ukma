@@ -59,7 +59,9 @@ class RatingRepository(IRepository[Rating]):
         criteria: RatingFilterCriteria,
     ) -> QuerySet[Rating]:
         # find a cleaner way to do this
-        filters = criteria.model_dump(exclude_none=True, exclude={"page", "page_size"})
+        filters = criteria.model_dump(
+            exclude_none=True, exclude={"page", "page_size", "exclude_student_id"}
+        )
 
         if "course_id" in filters:
             filters["course_offering__course_id"] = filters.pop("course_id")
@@ -73,6 +75,9 @@ class RatingRepository(IRepository[Rating]):
             .filter(**filters)
             .order_by("-created_at")
         )
+
+        if criteria.exclude_student_id:
+            ratings = ratings.exclude(student_id=str(criteria.exclude_student_id))
 
         return ratings
 

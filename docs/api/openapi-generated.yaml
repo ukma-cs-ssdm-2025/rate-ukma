@@ -833,6 +833,8 @@ paths:
     get:
       operationId: courses_ratings_list
       description: List all ratings for a specific course with filters and pagination.
+        Use exclude_current_user=true to exclude the authenticated user's rating from
+        results.
       summary: List ratings for a course
       parameters:
       - in: path
@@ -842,6 +844,11 @@ paths:
           format: uuid
         description: Unique identifier of rating course
         required: true
+      - in: query
+        name: exclude_current_user
+        schema:
+          type: boolean
+        description: Exclude the current user's rating from the list
       - in: query
         name: page
         schema:

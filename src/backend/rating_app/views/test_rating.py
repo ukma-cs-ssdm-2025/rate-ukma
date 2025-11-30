@@ -592,3 +592,39 @@ def test_create_rating_before_midterm(
 
     response = token_client.post(url, data=payload, format="json")
     assert response.status_code == 403
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_list_exclude_current_user(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    rating_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    student = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=student)
+    my_rating = rating_factory(
+        course_offering=offering, student=student, difficulty=3, usefulness=4
+    )
+
+    rating_factory.create_batch(3, course_offering=offering)
+
+    url = f"/api/v1/courses/{course.id}/ratings/"
+    response = token_client.get(url)
+    data = response.json()
+    assert response.status_code == 200
+    assert data["total"] == 4
+
+    url_with_exclude = f"/api/v1/courses/{course.id}/ratings/?exclude_current_user=true"
+    response = token_client.get(url_with_exclude)
+    data = response.json()
+    assert response.status_code == 200
+    assert data["total"] == 3
+    rating_ids = [r["id"] for r in data["items"]]
+    assert str(my_rating.id) not in rating_ids

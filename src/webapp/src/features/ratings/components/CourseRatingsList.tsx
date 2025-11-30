@@ -2,8 +2,9 @@ import { MessageSquare } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
-import type { RatingRead } from "@/lib/api/generated";
+import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { RatingCard } from "./RatingCard";
+import { UserRatingCard } from "./UserRatingCard";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
 
 const SKELETON_RATINGS_COUNT = 3;
@@ -14,6 +15,9 @@ const SKELETON_KEYS = Array.from(
 
 interface CourseRatingsListProps {
 	courseId: string;
+	userRating?: InlineRating | null;
+	onEditUserRating?: () => void;
+	onDeleteUserRating?: () => void;
 }
 
 interface RatingsContentProps {
@@ -65,23 +69,38 @@ function RatingsContent({
 
 export function CourseRatingsList({
 	courseId,
+	userRating,
+	onEditUserRating,
+	onDeleteUserRating,
 }: Readonly<CourseRatingsListProps>) {
+	const excludeCurrentUser = !!userRating;
+
 	const { allRatings, hasMoreRatings, isLoading, loaderRef, totalRatings } =
-		useInfiniteScrollRatings(courseId);
+		useInfiniteScrollRatings(courseId, { excludeCurrentUser });
 
 	const showSkeleton = isLoading && allRatings.length === 0;
+
+	const displayCount = (totalRatings ?? 0) + (userRating ? 1 : 0);
 
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center gap-2">
 				<MessageSquare className="h-5 w-5" />
 				<h2 className="text-xl font-semibold">Відгуки студентів</h2>
-				{totalRatings !== undefined && totalRatings > 0 && (
+				{displayCount > 0 && (
 					<span className="text-sm text-muted-foreground">
-						({totalRatings})
+						({displayCount})
 					</span>
 				)}
 			</div>
+
+			{userRating && onEditUserRating && onDeleteUserRating && (
+				<UserRatingCard
+					rating={userRating}
+					onEdit={onEditUserRating}
+					onDelete={onDeleteUserRating}
+				/>
+			)}
 
 			{showSkeleton ? (
 				<CourseRatingsListSkeleton />

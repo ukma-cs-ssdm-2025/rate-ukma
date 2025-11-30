@@ -55,6 +55,10 @@ class RatingPaginationParams(BaseModel):
         ge=MIN_PAGE_SIZE,
         description=f"Items per page (default: {DEFAULT_PAGE_SIZE})",
     )
+    exclude_current_user: bool = Field(
+        default=False,
+        description="Exclude the current user's rating from the list",
+    )
 
 
 class RatingFilterCriteria(BaseModel):
@@ -72,6 +76,10 @@ class RatingFilterCriteria(BaseModel):
         ge=MIN_PAGE_SIZE,
     )
     course_id: uuid.UUID | None = Field(default=None)
+    exclude_student_id: uuid.UUID | None = Field(
+        default=None,
+        description="Exclude ratings from this student ID",
+    )
 
 
 # API request schema (student is set automatically from authenticated user)

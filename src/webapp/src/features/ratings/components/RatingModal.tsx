@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import {
 	Dialog,
 	DialogContent,
@@ -8,6 +10,10 @@ import {
 	DialogTitle,
 } from "@/components/ui/Dialog";
 import {
+	getCoursesRatingsListQueryKey,
+	getCoursesRetrieveQueryKey,
+	getStudentsMeCoursesRetrieveQueryKey,
+	getStudentsMeGradesRetrieveQueryKey,
 	type InlineRating,
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
@@ -39,11 +45,29 @@ export function RatingModal({
 	onSuccess,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
+	const queryClient = useQueryClient();
 
 	const createMutation = useCoursesRatingsCreate();
 	const updateMutation = useCoursesRatingsPartialUpdate();
 
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+	const invalidateRatingQueries = async () => {
+		await Promise.all([
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeCoursesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeGradesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getCoursesRatingsListQueryKey(courseId),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getCoursesRetrieveQueryKey(courseId),
+			}),
+		]);
+	};
 
 	const handleSubmit = async (data: RatingFormData) => {
 		try {
@@ -71,9 +95,9 @@ export function RatingModal({
 				});
 			}
 
+			await invalidateRatingQueries();
 			onSuccess?.();
 			onClose();
-			globalThis.location.reload();
 		} catch (error) {
 			console.error("Failed to submit rating:", error);
 		}
@@ -126,10 +150,10 @@ export function RatingModal({
 					ratingId={ratingId}
 					open={showDeleteDialog}
 					onOpenChange={setShowDeleteDialog}
-					onSuccess={() => {
+					onSuccess={async () => {
+						await invalidateRatingQueries();
 						onSuccess?.();
 						onClose();
-						globalThis.location.reload();
 					}}
 					title="Видалити оцінку?"
 					description="Ця дія незворотна. Вашу оцінку буде видалено назавжди."

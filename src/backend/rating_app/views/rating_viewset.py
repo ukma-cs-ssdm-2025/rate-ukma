@@ -16,6 +16,7 @@ from rating_app.application_schemas.rating import (
     RatingPutParams,
     RatingRetrieveParams,
 )
+from rating_app.exception.student_exceptions import StudentNotFoundError
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.models import Rating, Student
 from rating_app.serializers import (
@@ -45,7 +46,8 @@ class RatingViewSet(viewsets.ViewSet):
 
     @extend_schema(
         summary="List ratings for a course",
-        description="List all ratings for a specific course with filters and pagination.",
+        description="List all ratings for a specific course with filters and pagination. "
+        "Use exclude_current_user=true to exclude the authenticated user's rating from results.",
         parameters=[
             *to_openapi((RatingPaginationParams, OpenApiParameter.QUERY)),
             *to_openapi((RatingCourseFilterParams, OpenApiParameter.PATH)),
@@ -54,9 +56,23 @@ class RatingViewSet(viewsets.ViewSet):
     )
     def list(self, request, course_id=None):
         assert self.rating_service is not None
+        assert self.student_service is not None
 
         try:
-            filter_data = {**request.query_params.dict(), "course_id": course_id}
+            query_params = request.query_params.dict()
+            exclude_current_user = (
+                query_params.pop("exclude_current_user", "false").lower() == "true"
+            )
+
+            filter_data = {**query_params, "course_id": course_id}
+
+            if exclude_current_user and request.user.is_authenticated:
+                try:
+                    student = self.student_service.get_student_by_user_id(request.user.id)
+                    filter_data["exclude_student_id"] = str(student.id)
+                except StudentNotFoundError:
+                    pass
+
             filters = RatingFilterCriteria.model_validate(filter_data)
         except ModelValidationError as e:
             logger.error("validation_error", errors=e.errors())
