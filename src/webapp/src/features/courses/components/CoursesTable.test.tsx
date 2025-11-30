@@ -418,12 +418,18 @@ describe("Course Display", () => {
 		expect(usefulnessElements.length).toBeGreaterThan(0);
 	});
 
-	it("should display faculty badge", () => {
+	it("should display speciality badge", () => {
 		// Arrange
 		const courses = [
 			createMockCourse({
 				title: "Test Course",
-				faculty_name: "Факультет інформаційних технологій",
+				course_specialities: [
+					{
+						speciality_id: "spec-1",
+						speciality_title: "Інженерія програмного забезпечення",
+						type_kind: "MANDATORY" as any,
+					},
+				],
 			}),
 		];
 
@@ -431,7 +437,7 @@ describe("Course Display", () => {
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
 		// Assert
-		expect(screen.getByText("ФІТ")).toBeInTheDocument();
+		expect(screen.getByText("ІПЗ")).toBeInTheDocument();
 	});
 });
 

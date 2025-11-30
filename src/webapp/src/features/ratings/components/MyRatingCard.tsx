@@ -91,6 +91,7 @@ export function MyRatingCard({
 					comment={comment}
 					hasRating={hasRating}
 					courseId={courseId}
+					canRate={course.can_rate ?? true}
 				/>
 			</CardContent>
 

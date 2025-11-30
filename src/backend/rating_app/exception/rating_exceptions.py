@@ -7,6 +7,11 @@ class NotEnrolledException(PermissionDenied):
     default_code = "not_enrolled"
 
 
+class RatingPeriodNotStarted(PermissionDenied):
+    default_detail = "You cannot rate this course yet."
+    default_code = "enrolled_but_not_completed"
+
+
 class DuplicateRatingException(APIException):
     default_detail = "You have already rated this course offering"
     default_code = "duplicate_rating"

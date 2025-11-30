@@ -1677,6 +1677,10 @@ components:
         department_name:
           type: string
           readOnly: true
+        faculty_id:
+          type: string
+          format: uuid
+          readOnly: true
         faculty_name:
           type: string
           readOnly: true
@@ -1833,6 +1837,16 @@ components:
           readOnly: true
         type_kind:
           $ref: '#/components/schemas/TypeKindEnum'
+        speciality_alias:
+          type: string
+          readOnly: true
+        faculty_id:
+          type: string
+          format: uuid
+          readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
       required:
       - type_kind
     CourseTypeOption:
@@ -1954,6 +1968,9 @@ components:
           readOnly: true
         season:
           type: string
+          readOnly: true
+        can_rate:
+          type: boolean
           readOnly: true
         rated:
           allOf:
@@ -2347,6 +2364,9 @@ components:
           - $ref: '#/components/schemas/InlineRatingDetailed'
           readOnly: true
           nullable: true
+        can_rate:
+          type: boolean
+          readOnly: true
     StudentRatingsLight:
       type: object
       properties:

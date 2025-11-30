@@ -3,7 +3,6 @@ import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
-import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CourseOfferingsDropdown } from "@/features/course-offerings/components/CourseOfferingsDropdown";
@@ -19,6 +18,7 @@ import {
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
+import { RatingButton } from "@/features/ratings/components/RatingButton";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
 import type { InlineCourseOffering } from "@/lib/api/generated";
 import {
@@ -98,7 +98,7 @@ function CourseDetailsRoute() {
 						<CourseDetailsHeader
 							title={course.title}
 							status={course.status}
-							facultyName={course.faculty_name}
+							specialities={course.course_specialities}
 							departmentName={course.department_name}
 						/>
 
@@ -122,13 +122,12 @@ function CourseDetailsRoute() {
 
 				{hasAttendedCourse && selectedOffering && (
 					<div className="flex justify-center">
-						<Button
+						<RatingButton
+							canRate={selectedOffering.can_rate ?? true}
 							onClick={() => setIsRatingModalOpen(true)}
-							size="lg"
-							className="w-full max-w-md"
 						>
 							{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
-						</Button>
+						</RatingButton>
 					</div>
 				)}
 
