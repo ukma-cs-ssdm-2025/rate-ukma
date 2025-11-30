@@ -1,1 +1,0 @@
-BASE_URL=http://localhost:3000 CORPORATE_EMAIL=a.aleksieienko@ukma.edu.ua CORPORATE_PASSWORD=Mom22869  pnpm run test:e2e
