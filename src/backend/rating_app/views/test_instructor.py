@@ -6,6 +6,7 @@ import pytest
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_instructor_detail(token_client, instructor_factory):
     # Arrange
     instructor = instructor_factory.create()
@@ -23,6 +24,7 @@ def test_get_instructor_detail(token_client, instructor_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_nonexistent_instructor_id_returns_404(token_client):
     invalid_id = uuid.uuid4()
     url = reverse("instructor-detail", kwargs={"instructor_id": str(invalid_id)})
@@ -33,6 +35,7 @@ def test_nonexistent_instructor_id_returns_404(token_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_bad_uuid(token_client):
     url = reverse("instructor-detail", kwargs={"instructor_id": "not-a-uuid"})
 

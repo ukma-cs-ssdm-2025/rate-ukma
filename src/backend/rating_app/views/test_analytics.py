@@ -7,6 +7,7 @@ def analytics_url():
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_analytics_list_no_filters(token_client, course_factory, analytics_url):
     # Arrange
     num_courses = 5
@@ -23,6 +24,7 @@ def test_analytics_list_no_filters(token_client, course_factory, analytics_url):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_analytics_no_pagination(token_client, course_factory, analytics_url):
     # Arrange
     num_courses = 5
@@ -39,6 +41,7 @@ def test_analytics_no_pagination(token_client, course_factory, analytics_url):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_analytics_filter_applied(
     token_client, course_factory, rating_factory, course_offering_factory, analytics_url
 ):
@@ -74,6 +77,7 @@ def test_analytics_filter_applied(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_analytics_by_course_id(token_client, course_factory, analytics_url):
     # Arrange
     course = course_factory.create()
@@ -91,6 +95,7 @@ def test_analytics_by_course_id(token_client, course_factory, analytics_url):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_invalid_filter_provided(course_factory, token_client, analytics_url):
     # Arrange
     course_factory.create_batch(3)

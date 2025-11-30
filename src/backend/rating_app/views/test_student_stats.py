@@ -19,6 +19,7 @@ DEFAULT_TERM = "FALL"
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_requires_student_record(token_client):
     # Arrange - user without student record
 
@@ -32,6 +33,7 @@ def test_get_courses_stats_requires_student_record(token_client):
 
 @freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_returns_empty_list_for_student_with_no_courses(token_client):
     # Arrange
     _student = StudentFactory(user=token_client.user)
@@ -47,6 +49,7 @@ def test_get_courses_stats_returns_empty_list_for_student_with_no_courses(token_
 
 @freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_returns_enrolled_courses(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
@@ -73,6 +76,7 @@ def test_get_courses_stats_returns_enrolled_courses(token_client):
 
 @freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_returns_rated_courses(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
@@ -108,6 +112,7 @@ def test_get_courses_stats_returns_rated_courses(token_client):
 
 @freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_returns_multiple_offerings_same_course(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
@@ -158,6 +163,7 @@ def test_get_courses_stats_returns_multiple_offerings_same_course(token_client):
 
 @freeze_time(DEFAULT_DATE)
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_excludes_other_students_courses(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
@@ -185,6 +191,7 @@ def test_get_courses_stats_excludes_other_students_courses(token_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @freeze_time(DEFAULT_DATE)
 def test_get_courses_stats_serializes_response_correctly(token_client):
     # Arrange
@@ -239,6 +246,7 @@ def _create_student_course_setup(
 
 @freeze_time(DEFAULT_INVALID_DATE)  # Before midpoint (September)
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_cannot_rate_before_midpoint(token_client):
     # Arrange
     _create_student_course_setup(token_client)
@@ -256,6 +264,7 @@ def test_get_courses_stats_cannot_rate_before_midpoint(token_client):
 
 @freeze_time(DEFAULT_DATE)  # Just before midpoint (October)
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_cannot_rate_just_before_midpoint(token_client):
     # Arrange
     _create_student_course_setup(token_client)
@@ -273,6 +282,7 @@ def test_get_courses_stats_cannot_rate_just_before_midpoint(token_client):
 
 @freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint (November)
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_can_rate_at_midpoint(token_client):
     # Arrange
     _create_student_course_setup(token_client)
@@ -290,6 +300,7 @@ def test_get_courses_stats_can_rate_at_midpoint(token_client):
 
 @freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_can_rate_past_semester(token_client):
     # Arrange
     _, _, _past_semester, _ = _create_student_course_setup(
@@ -311,6 +322,7 @@ def test_get_courses_stats_can_rate_past_semester(token_client):
 
 @freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_multiple_offerings_different_can_rate(token_client):
     # Arrange
     student = StudentFactory(user=token_client.user)
@@ -357,6 +369,7 @@ def test_get_courses_stats_multiple_offerings_different_can_rate(token_client):
 
 @freeze_time(DEFAULT_MID_TERM_DATE)  # At midpoint
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_courses_stats_rated_course_still_shows_can_rate(token_client):
     # Arrange - verify that can_rate is still True even if already rated
     student, _, _, offering = _create_student_course_setup(token_client, title="Rated Course")

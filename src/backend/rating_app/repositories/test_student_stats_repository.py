@@ -21,6 +21,7 @@ def repo():
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_by_student_returns_enrolled_courses(repo):
     # Arrange
     student = StudentFactory()
@@ -44,6 +45,7 @@ def test_get_by_student_returns_enrolled_courses(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_by_student_returns_rated_courses(repo):
     # Arrange
     student = StudentFactory()
@@ -76,6 +78,7 @@ def test_get_by_student_returns_rated_courses(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_by_student_returns_enrolled_and_rated_courses(repo):
     # Arrange
     student = StudentFactory()
@@ -101,6 +104,7 @@ def test_get_by_student_returns_enrolled_and_rated_courses(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_by_student_excludes_unrelated_courses(repo):
     # Arrange
     student1 = StudentFactory()
@@ -123,6 +127,7 @@ def test_get_by_student_excludes_unrelated_courses(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_by_student_returns_empty_list_for_student_with_no_courses(repo):
     # Arrange
     student = StudentFactory()
@@ -135,6 +140,7 @@ def test_get_by_student_returns_empty_list_for_student_with_no_courses(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_by_student_handles_multiple_offerings_same_course(repo):
     # Arrange
     student = StudentFactory()
@@ -188,6 +194,7 @@ def test_get_by_student_handles_multiple_offerings_same_course(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_by_student_does_not_return_dropped_offerings(repo):
     # Arrange
     student = StudentFactory()
@@ -214,6 +221,7 @@ def test_get_by_student_does_not_return_dropped_offerings(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_by_student_returns_enrolled_and_forced_offerings(repo):
     # Arrange
     student = StudentFactory()
@@ -243,6 +251,7 @@ def test_get_by_student_returns_enrolled_and_forced_offerings(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_returns_enrolled_offerings(repo):
     # Arrange
     student = StudentFactory()
@@ -265,6 +274,7 @@ def test_get_detailed_by_student_returns_enrolled_offerings(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_includes_rating_with_created_at(repo):
     # Arrange
     student = StudentFactory()
@@ -288,6 +298,7 @@ def test_get_detailed_by_student_includes_rating_with_created_at(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_returns_one_record_per_offering(repo):
     # Arrange
     student = StudentFactory()
@@ -316,6 +327,7 @@ def test_get_detailed_by_student_returns_one_record_per_offering(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_excludes_other_students(repo):
     # Arrange
     student1 = StudentFactory()
@@ -338,6 +350,7 @@ def test_get_detailed_by_student_excludes_other_students(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_returns_empty_for_no_enrollments(repo):
     # Arrange
     student = StudentFactory()
@@ -350,6 +363,7 @@ def test_get_detailed_by_student_returns_empty_for_no_enrollments(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_excludes_non_enrolled_offerings(repo):
     # Arrange
     student = StudentFactory()
@@ -374,6 +388,7 @@ def test_get_detailed_by_student_excludes_non_enrolled_offerings(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_orders_by_semester_then_course(repo):
     # Arrange
     student = StudentFactory()
@@ -411,6 +426,7 @@ def test_get_detailed_by_student_orders_by_semester_then_course(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_does_not_return_dropped_offerings(repo):
     # Arrange
     student = StudentFactory()
@@ -436,6 +452,7 @@ def test_get_detailed_by_student_does_not_return_dropped_offerings(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_returns_enrolled_and_forced_offerings(repo):
     # Arrange
     student = StudentFactory()
@@ -462,6 +479,7 @@ def test_get_detailed_by_student_returns_enrolled_and_forced_offerings(repo):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_detailed_by_student_includes_all_course_fields(repo):
     # Arrange
     student = StudentFactory()
