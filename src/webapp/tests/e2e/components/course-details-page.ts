@@ -125,6 +125,12 @@ export class CourseDetailsPage extends BasePage {
 		return await this.reviewCards.count();
 	}
 
+	async waitForRatingElements(): Promise<void> {
+		await this.waitForElement(this.reviewCards.first(), 15000);
+		await this.waitForElement(this.reviewsCountStat, 15000);
+		await this.waitForElement(this.reviewsSection, 15000);
+	}
+
 	async isNoReviewsMessageVisible(): Promise<boolean> {
 		try {
 			await this.waitForElement(this.noReviewsMessage, 3000);
@@ -147,6 +153,6 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async findReviewCardByText(text: string): Promise<Locator> {
-		return this.page.locator("article").filter({ hasText: text });
+		return this.reviewCards.filter({ hasText: text });
 	}
 }

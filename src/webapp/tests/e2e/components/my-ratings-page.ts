@@ -3,13 +3,13 @@ import type { Locator, Page } from "@playwright/test";
 import { BasePage } from "./base-page";
 
 export class MyRatingsPage extends BasePage {
-	private readonly leaveReviewButtons: Locator;
+	private readonly activeLeaveReviewButtons: Locator;
 
 	constructor(page: Page) {
 		super(page);
-		this.leaveReviewButtons = page.locator("span", {
-			hasText: "Залишити відгук",
-		});
+		this.activeLeaveReviewButtons = this.page.locator(`
+		a[data-slot="button"]:has(span:has-text("Залишити відгук"))
+	`);
 	}
 
 	async goto(): Promise<void> {
@@ -19,15 +19,12 @@ export class MyRatingsPage extends BasePage {
 	}
 
 	async openFirstCourseToRate(): Promise<void> {
-		const button = this.leaveReviewButtons.first();
-		await this.waitForElement(button);
+		const enabledAction = this.activeLeaveReviewButtons.first();
 
-		const courseTitle = button.locator(
-			"xpath=(ancestor::*[.//h3])[1]/descendant::h3[1]",
-		);
+		await this.waitForElement(enabledAction);
 
 		await Promise.all([
-			this.clickWithRetry(courseTitle),
+			this.clickWithRetry(enabledAction),
 			this.page.waitForLoadState("networkidle"),
 		]);
 	}

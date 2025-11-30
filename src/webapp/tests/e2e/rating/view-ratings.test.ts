@@ -16,41 +16,23 @@ test.describe("Ratings are displayed", () => {
 		await coursesPage.goto();
 		await coursesPage.navigateToFirstCourseDetailsPage();
 		await waitForPageReady(page);
+
+		await courseDetailsPage.waitForPageLoad();
 	});
 
 	test("displays average ratings when course has ratings", async () => {
-		await Promise.all([
-			courseDetailsPage.waitForPageLoad(),
-			courseDetailsPage.waitForElement(
-				courseDetailsPage["statsCardsContainer"],
-			),
-		]);
+		await courseDetailsPage.waitForRatingElements();
 
-		expect(await courseDetailsPage.isPageLoaded()).toBe(true);
 		expect(await courseDetailsPage.hasStatsData()).toBe(true);
-	});
-
-	test("displays ratings count when course has ratings", async () => {
-		await Promise.all([
-			courseDetailsPage.waitForPageLoad(),
-			courseDetailsPage.waitForElement(courseDetailsPage["reviewsCountStat"]),
-		]);
 
 		const reviewsCount = await courseDetailsPage.getReviewsCount();
 		expect(reviewsCount).toBeGreaterThan(0);
-
-		const reviewsCard = courseDetailsPage["reviewsCountStat"];
-		await expect(reviewsCard).toBeVisible();
 	});
 
 	test("displays individual reviews list when course has reviews", async () => {
-		await Promise.all([
-			courseDetailsPage.waitForPageLoad(),
-			courseDetailsPage.waitForElement(courseDetailsPage["reviewsSection"]),
-		]);
+		await courseDetailsPage.waitForRatingElements();
 
 		expect(await courseDetailsPage.isReviewsSectionVisible()).toBe(true);
-
 		const reviewCount = await courseDetailsPage.getReviewCardsCount();
 		expect(reviewCount).toBeGreaterThan(0);
 	});
