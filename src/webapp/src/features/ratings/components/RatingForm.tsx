@@ -79,10 +79,10 @@ export function RatingForm({
 					name="difficulty"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Складність: {field.value}/5</FormLabel>
+							<FormLabel>Складність: {field.value ?? 3}/5</FormLabel>
 							<FormControl>
 								<Slider
-									value={[field.value]}
+									value={[field.value ?? 3]}
 									onValueChange={(next) => field.onChange(next[0])}
 									min={1}
 									max={5}
@@ -90,7 +90,7 @@ export function RatingForm({
 									className="w-full"
 									title={
 										difficultyDescriptions[
-											field.value as keyof typeof difficultyDescriptions
+											(field.value ?? 3) as keyof typeof difficultyDescriptions
 										]
 									}
 								/>
@@ -105,10 +105,10 @@ export function RatingForm({
 					name="usefulness"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Корисність: {field.value}/5</FormLabel>
+							<FormLabel>Корисність: {field.value ?? 3}/5</FormLabel>
 							<FormControl>
 								<Slider
-									value={[field.value]}
+									value={[field.value ?? 3]}
 									onValueChange={(next) => field.onChange(next[0])}
 									min={1}
 									max={5}
@@ -116,7 +116,7 @@ export function RatingForm({
 									className="w-full"
 									title={
 										usefulnessDescriptions[
-											field.value as keyof typeof usefulnessDescriptions
+											(field.value ?? 3) as keyof typeof usefulnessDescriptions
 										]
 									}
 								/>
