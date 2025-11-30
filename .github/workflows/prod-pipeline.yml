@@ -1,13 +1,20 @@
 ---
 name: Live Build
+
 on:
   workflow_run:
     workflows: [Staging Build]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: "Version tag to deploy (e.g., v1.2.3)"
+        required: true
+        type: string
 
 jobs:
   get-staging-version:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
     outputs:
       version_tag: ${{ steps.get_version.outputs.version_tag }}
@@ -15,7 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.version_tag || github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Get version from latest release
@@ -23,12 +30,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
-          VERSION_TAG=$(git tag --points-at $COMMIT_SHA | grep '^v' | head -n 1)
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION_TAG="${{ inputs.version_tag }}"
+            echo "Using manual version: $VERSION_TAG"
+          else
+            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+            VERSION_TAG=$(git tag --points-at $COMMIT_SHA | grep '^v' | head -n 1)
 
-          if [[ -z "$VERSION_TAG" ]]; then
-            echo "No version tag found for commit $COMMIT_SHA"
-            exit 1
+            if [[ -z "$VERSION_TAG" ]]; then
+              echo "No version tag found for commit $COMMIT_SHA"
+              echo "Staging build ran without creating a new version, skipping deployment"
+              echo "skip_deployment=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Staging version: $VERSION_TAG"
           fi
 
           if ! gh release view "$VERSION_TAG" >/dev/null 2>&1; then
@@ -36,11 +51,11 @@ jobs:
             exit 1
           fi
 
-          echo "Staging version: $VERSION_TAG"
           echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          echo "skip_deployment=false" >> "$GITHUB_OUTPUT"
 
   get-latest-live-tag:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
     outputs:
       latest_live_tag: ${{ steps.get_latest.outputs.latest_live_tag }}
@@ -57,7 +72,6 @@ jobs:
         run: |
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           git fetch --tags
-
           LATEST_LIVE_TAG=$(git tag -l "$LIVE_TAG_PREFIX*" --sort=-v:refname | head -n 1)
 
           if [[ -z "$LATEST_LIVE_TAG" ]]; then
@@ -69,6 +83,7 @@ jobs:
           fi
 
   deploy-live:
+    if: needs.get-staging-version.outputs.skip_deployment != 'true'
     uses: ./.github/workflows/deploy-live.yml
     needs: [get-staging-version]
     with:
@@ -82,6 +97,7 @@ jobs:
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
 
   update_pre_releases:
+    if: needs.get-staging-version.outputs.skip_deployment != 'true'
     needs: [get-latest-live-tag, get-staging-version, deploy-live]
     runs-on: ubuntu-24.04
     steps:
@@ -125,6 +141,7 @@ jobs:
         run: |
           readarray -t tags <<< "${{ steps.get_releases.outputs.tags }}"
           echo "Processing releases: ${tags[@]}"
+
           LAST_INDEX=$(( ${#tags[@]} - 1 ))
 
           for i in "${!tags[@]}"; do
@@ -146,6 +163,7 @@ jobs:
           done
 
   push_live_tag:
+    if: needs.get-staging-version.outputs.skip_deployment != 'true'
     needs: [get-staging-version, update_pre_releases]
     runs-on: ubuntu-24.04
     steps:
