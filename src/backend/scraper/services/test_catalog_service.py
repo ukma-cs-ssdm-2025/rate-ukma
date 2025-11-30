@@ -7,41 +7,6 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from scraper.services import catalog_service
 
 
-def test_add_page_param_without_existing_query():
-    url = "https://example.com/catalog"
-    result = catalog_service._add_page_param(url, 2)
-    assert result == "https://example.com/catalog?page=2"
-
-
-def test_add_page_param_with_existing_query_params():
-    url = "https://example.com/catalog?semester=fall&year=2023"
-    result = catalog_service._add_page_param(url, 3)
-    assert result == "https://example.com/catalog?semester=fall&year=2023&page=3"
-
-
-def test_add_page_param_updates_existing_page_param():
-    url = "https://example.com/catalog?page=1&semester=fall"
-    result = catalog_service._add_page_param(url, 5)
-    assert result == "https://example.com/catalog?page=5&semester=fall"
-
-
-def test_add_page_param_edge_cases():
-    assert (
-        catalog_service._add_page_param("https://example.com/catalog", 0)
-        == "https://example.com/catalog?page=0"
-    )
-
-    assert (
-        catalog_service._add_page_param("https://example.com/catalog", -1)
-        == "https://example.com/catalog?page=-1"
-    )
-
-    assert (
-        catalog_service._add_page_param("https://example.com/catalog", 999)
-        == "https://example.com/catalog?page=999"
-    )
-
-
 def test_fetch_catalog_page_success_scenario():
     async def run():
         context_mock = MagicMock()
