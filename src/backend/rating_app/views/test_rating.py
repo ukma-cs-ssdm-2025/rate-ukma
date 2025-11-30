@@ -3,7 +3,7 @@ from freezegun import freeze_time
 
 DEFAULT_DATE = "2023-10-25"
 DEFAULT_AFTER_MIDTERM_DATE = "2023-11-25"
-DEFAULT_BEFORE_MIDTERM_DATE = "2023-9-25"
+DEFAULT_BEFORE_MIDTERM_DATE = "2023-09-25"
 DEFAULT_YEAR = 2023
 DEFAULT_TERM = "FALL"
 
@@ -243,7 +243,6 @@ def test_update_rating_not_enrolled(
     }
 
     response = token_client.put(url, data=payload, format="json")
-    print(response.data)
     assert response.status_code == 403, response.data
 
 
