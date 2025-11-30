@@ -18,6 +18,7 @@ export interface AuthUser {
 	email?: string;
 	firstName?: string;
 	lastName?: string;
+	patronymic?: string;
 }
 
 export interface AuthState {
@@ -102,6 +103,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 						email: userData.email,
 						firstName: userData.first_name,
 						lastName: userData.last_name,
+						patronymic: userData.patronymic,
 					}
 				: null,
 		};

@@ -25,6 +25,7 @@ interface RatingsContentProps {
 	hasMoreRatings: boolean;
 	isLoading: boolean;
 	loaderRef: React.RefObject<HTMLDivElement | null>;
+	hasUserRating: boolean;
 }
 
 function RatingsContent({
@@ -32,8 +33,12 @@ function RatingsContent({
 	hasMoreRatings,
 	isLoading,
 	loaderRef,
+	hasUserRating,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0) {
+		if (hasUserRating) {
+			return null;
+		}
 		return (
 			<p className="text-center text-sm text-muted-foreground py-8">
 				Поки що немає відгуків для цього курсу
@@ -110,6 +115,7 @@ export function CourseRatingsList({
 					hasMoreRatings={hasMoreRatings}
 					isLoading={isLoading}
 					loaderRef={loaderRef}
+					hasUserRating={!!userRating}
 				/>
 			)}
 		</div>

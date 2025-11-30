@@ -145,13 +145,24 @@ def session(request):
         logger.info("session_anonymous")
         return Response(status=status.HTTP_401_UNAUTHORIZED)
 
+    student_profile = getattr(user, "student_profile", None)
+    if student_profile:
+        first_name = student_profile.first_name
+        last_name = student_profile.last_name
+        patronymic = student_profile.patronymic or ""
+    else:
+        first_name = user.first_name
+        last_name = user.last_name
+        patronymic = ""
+
     data = {
         "is_authenticated": True,
         "user": {
             "id": user.id,
             "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
+            "first_name": first_name,
+            "last_name": last_name,
+            "patronymic": patronymic,
         },
         "expires_at": _get_session_expiry(request),
     }
