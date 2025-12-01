@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { CoursesPage, waitForPageReady } from "../components";
+import { CoursesPage } from "../components";
 import { CourseDetailsPage } from "../components/course-details-page";
 
 test.describe("Ratings are displayed", () => {
@@ -14,26 +14,22 @@ test.describe("Ratings are displayed", () => {
 		courseDetailsPage = new CourseDetailsPage(page);
 
 		await coursesPage.goto();
+		await page.waitForLoadState("networkidle");
+
 		await coursesPage.navigateToFirstCourseDetailsPage();
-		await waitForPageReady(page);
+		await page.waitForLoadState("networkidle");
 
 		await courseDetailsPage.waitForPageLoad();
 	});
 
-	test("displays average ratings when course has ratings", async () => {
-		await courseDetailsPage.waitForRatingElements();
-
+	test("displays reviews list and stats when course has reviews", async () => {
 		expect(await courseDetailsPage.hasStatsData()).toBe(true);
-
-		const reviewsCount = await courseDetailsPage.getReviewsCount();
-		expect(reviewsCount).toBeGreaterThan(0);
-	});
-
-	test("displays individual reviews list when course has reviews", async () => {
-		await courseDetailsPage.waitForRatingElements();
-
 		expect(await courseDetailsPage.isReviewsSectionVisible()).toBe(true);
-		const reviewCount = await courseDetailsPage.getReviewCardsCount();
-		expect(reviewCount).toBeGreaterThan(0);
+
+		const reviewCountStats = await courseDetailsPage.getReviewCardsCount();
+		const reviewsCount = await courseDetailsPage.getReviewsCount();
+
+		expect(reviewCountStats).toBeGreaterThan(0);
+		expect(reviewsCount).toBeGreaterThan(0);
 	});
 });

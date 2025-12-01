@@ -25,6 +25,8 @@ export class CoursesPage extends BasePage {
 		const baseUrl = process.env.BASE_URL || "http://localhost:3000";
 		await this.page.goto(baseUrl);
 		await this.waitForPageLoad();
+		await this.coursesTable.waitFor({ state: "visible" });
+		await this.page.waitForLoadState("networkidle");
 	}
 
 	async isPageLoaded(): Promise<boolean> {
@@ -57,14 +59,27 @@ export class CoursesPage extends BasePage {
 		return title.trim();
 	}
 
+	async waitForRatingsAPIResponse(): Promise<void> {
+		await this.page.waitForResponse(
+			(response) =>
+				response.url().includes("/ratings") && response.status() === 200,
+			{ timeout: 20000 },
+		);
+	}
+
 	async navigateToFirstCourseDetailsPage(): Promise<string> {
 		const courseTitle = await this.getFirstCourseCardTitle();
 		const firstCourseCard = await this.getFirstCourseCard();
 
+		await firstCourseCard.waitFor({ state: "visible" });
+
 		await Promise.all([
+			this.page.waitForURL(this.courseDetailsPagePattern, { timeout: 10000 }),
+			this.waitForRatingsAPIResponse(),
 			firstCourseCard.click(),
-			this.page.waitForURL(this.courseDetailsPagePattern),
 		]);
+
+		await this.page.waitForLoadState("networkidle");
 
 		return courseTitle;
 	}

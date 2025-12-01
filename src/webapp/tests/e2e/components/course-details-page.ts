@@ -126,9 +126,9 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async waitForRatingElements(): Promise<void> {
-		await this.waitForElement(this.reviewCards.first(), 15000);
-		await this.waitForElement(this.reviewsCountStat, 15000);
-		await this.waitForElement(this.reviewsSection, 15000);
+		await this.waitForElement(this.reviewsSection, 10000);
+		await this.waitForElement(this.reviewsCountStat, 10000);
+		await this.waitForElement(this.reviewCards.first(), 10000);
 	}
 
 	async isNoReviewsMessageVisible(): Promise<boolean> {
