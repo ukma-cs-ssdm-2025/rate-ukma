@@ -60,6 +60,10 @@ function ExploreRoute() {
 	const form = useFilterForm(initialFilters);
 	const filters = form.watch();
 	const deferredFilters = useDeferredValue(filters);
+	const searchParams = useMemo(
+		() => filtersToSearchParams(deferredFilters),
+		[deferredFilters],
+	);
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
@@ -72,21 +76,15 @@ function ExploreRoute() {
 
 	useEffect(() => {
 		const timeout = setTimeout(() => {
-			const params = filtersToSearchParams(deferredFilters);
 			navigate({
 				to: "/explore",
-				search: params,
+				search: searchParams,
 				replace: true,
 			});
 		}, 400);
 
 		return () => clearTimeout(timeout);
-	}, [deferredFilters, navigate]);
-
-	const tableLinkSearch = useMemo(
-		() => filtersToSearchParams(deferredFilters),
-		[deferredFilters],
-	);
+	}, [searchParams, navigate]);
 
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 	const [showAllLabels, setShowAllLabels] = useState(false);
@@ -103,12 +101,12 @@ function ExploreRoute() {
 									className="rounded-lg border bg-card p-1 shadow-sm"
 								>
 									<Button asChild variant="ghost" size="sm">
-										<Link to="/" search={tableLinkSearch}>
+										<Link to="/" search={searchParams}>
 											Таблиця
 										</Link>
 									</Button>
 									<Button asChild variant="secondary" size="sm">
-										<Link to="/explore" search={tableLinkSearch}>
+										<Link to="/explore" search={searchParams}>
 											Візуалізація
 										</Link>
 									</Button>
@@ -172,7 +170,7 @@ function ExploreRoute() {
 
 				<Drawer
 					open={isFiltersOpen}
-					onOpenChange={(open) => setIsFiltersOpen(open)}
+					onOpenChange={setIsFiltersOpen}
 					ariaLabel="Фільтри курсів"
 					closeButtonLabel="Закрити фільтри"
 				>

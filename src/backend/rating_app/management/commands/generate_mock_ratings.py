@@ -95,8 +95,7 @@ class Command(BaseCommand):
                 return
 
             logger.info("ratings_clear_start")
-            deleted_count = Rating.objects.all().count()
-            Rating.objects.all().delete()
+            deleted_count, _ = Rating.objects.all().delete()
 
             logger.info("ratings_clear_complete", count=deleted_count)
             self.stdout.write(
@@ -111,8 +110,7 @@ class Command(BaseCommand):
                 return
 
             logger.info("ratings_clear_start")
-            deleted_count = Rating.objects.all().count()
-            Rating.objects.all().delete()
+            deleted_count, _ = Rating.objects.all().delete()
             logger.info("ratings_cleared", count=deleted_count)
             self.stdout.write(self.style.SUCCESS(f"Cleared {deleted_count} existing ratings."))
 
@@ -224,32 +222,42 @@ class Command(BaseCommand):
             # Generate random number of ratings for this offering
             num_ratings = random.randint(min_ratings, max_ratings)
 
+            # Get existing ratings for this offering to avoid duplicates
+            existing_rater_ids = set(
+                Rating.objects.filter(course_offering=offering).values_list("student_id", flat=True)
+            )
+
+            # Filter out students who have already rated this offering
+            available_students = [s for s in students if s.id not in existing_rater_ids]
+
             # Don't try to select more students than available
-            num_ratings = min(num_ratings, len(students))
+            num_ratings = min(num_ratings, len(available_students))
+
+            # Skip if no available students
+            if not available_students:
+                continue
 
             # Randomly select students for this offering
-            selected_students = random.sample(students, num_ratings)
+            selected_students = random.sample(available_students, num_ratings)
 
             for student in selected_students:
-                # Check if student hasn't already rated this offering
-                if not Rating.objects.filter(student=student, course_offering=offering).exists():
-                    # Use the profile's weights for this course
-                    difficulty = random.choices(
-                        [1, 2, 3, 4, 5], weights=profile["difficulty_weights"]
-                    )[0]
-                    usefulness = random.choices(
-                        [1, 2, 3, 4, 5], weights=profile["usefulness_weights"]
-                    )[0]
+                # Use the profile's weights for this course
+                difficulty = random.choices([1, 2, 3, 4, 5], weights=profile["difficulty_weights"])[
+                    0
+                ]
+                usefulness = random.choices([1, 2, 3, 4, 5], weights=profile["usefulness_weights"])[
+                    0
+                ]
 
-                    Rating.objects.create(
-                        student=student,
-                        course_offering=offering,
-                        difficulty=difficulty,
-                        usefulness=usefulness,
-                        comment=random.choice(rating_comments),
-                        is_anonymous=random.choice([True, False]),
-                    )
-                    ratings_created += 1
+                Rating.objects.create(
+                    student=student,
+                    course_offering=offering,
+                    difficulty=difficulty,
+                    usefulness=usefulness,
+                    comment=random.choice(rating_comments),
+                    is_anonymous=random.choice([True, False]),
+                )
+                ratings_created += 1
 
         logger.info("mock_ratings_generation_complete", count=ratings_created)
 

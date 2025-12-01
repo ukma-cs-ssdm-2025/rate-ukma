@@ -39,6 +39,50 @@ export const MIN_LABEL_BASE_DISTANCE_SPARSE_PX = 18;
 export const DENSE_LABEL_SUPPRESSION_COUNT = 140;
 export const AUTO_LABEL_LIMIT = 60;
 
+type LabelDensityMeta = Readonly<{
+	isDenseDataset: boolean;
+	canShowWithoutZoom: boolean;
+}>;
+
+function computeLabelDensityMeta(params: {
+	dataLength: number;
+	innerWidth: number;
+	innerHeight: number;
+}): LabelDensityMeta {
+	const { dataLength, innerWidth, innerHeight } = params;
+	const isDenseDataset = dataLength >= DENSE_LABEL_SUPPRESSION_COUNT;
+	const areaPerPoint = (innerWidth * innerHeight) / Math.max(1, dataLength);
+	const sparseByCount = dataLength <= 20;
+	const sparseByArea = areaPerPoint > 20000;
+
+	return {
+		isDenseDataset,
+		canShowWithoutZoom: sparseByCount && sparseByArea,
+	};
+}
+
+function shouldShowLabels(
+	params: LabelDensityMeta & {
+		transformK: number;
+		forceShowAllLabels: boolean;
+	},
+): boolean {
+	const { forceShowAllLabels, transformK, isDenseDataset, canShowWithoutZoom } =
+		params;
+
+	if (forceShowAllLabels) return true;
+
+	if (!canShowWithoutZoom && transformK < LABEL_ZOOM_THRESHOLD) {
+		return false;
+	}
+
+	if (isDenseDataset && transformK < LABEL_ZOOM_THRESHOLD + 0.5) {
+		return false;
+	}
+
+	return true;
+}
+
 export function computeLabelPoints(params: {
 	chartData: CourseDataPoint[];
 	variant: "default" | "mini";
@@ -75,45 +119,34 @@ export function computeLabelPoints(params: {
 	const sortedByImportance = [...chartData].sort((a, b) => b.radius - a.radius);
 	if (sortedByImportance.length === 0) return [];
 
-	const isDenseDataset =
-		sortedByImportance.length >= DENSE_LABEL_SUPPRESSION_COUNT;
-
-	const areaPerPoint =
-		(innerWidth * innerHeight) / Math.max(1, sortedByImportance.length);
-	const sparseByCount = sortedByImportance.length <= 20;
-	const sparseByArea = areaPerPoint > 20000;
-	const canShowWithoutZoom = sparseByCount && sparseByArea;
+	const labelDensity = computeLabelDensityMeta({
+		dataLength: sortedByImportance.length,
+		innerWidth,
+		innerHeight,
+	});
 
 	if (
-		!forceShowAllLabels &&
-		!canShowWithoutZoom &&
-		transform.k < LABEL_ZOOM_THRESHOLD
+		!shouldShowLabels({
+			...labelDensity,
+			transformK: transform.k,
+			forceShowAllLabels,
+		})
 	) {
 		return [];
 	}
 
-	if (
-		!forceShowAllLabels &&
-		isDenseDataset &&
-		transform.k < LABEL_ZOOM_THRESHOLD + 0.5
-	) {
-		return [];
-	}
-
-	const minDistance = forceShowAllLabels
-		? Math.max(
-				MIN_LABEL_BASE_DISTANCE_SPARSE,
-				MIN_LABEL_BASE_DISTANCE_SPARSE_PX / Math.max(1, transform.k),
-			)
-		: canShowWithoutZoom
-			? Math.max(
-					MIN_LABEL_BASE_DISTANCE_SPARSE,
-					MIN_LABEL_BASE_DISTANCE_SPARSE_PX / Math.max(1, transform.k),
-				)
-			: Math.max(
-					MIN_LABEL_BASE_DISTANCE_DENSE,
-					MIN_LABEL_BASE_DISTANCE_DENSE_PX / Math.max(1, transform.k),
-				);
+	const useSparseDistance =
+		forceShowAllLabels || labelDensity.canShowWithoutZoom;
+	const baseDistance = useSparseDistance
+		? MIN_LABEL_BASE_DISTANCE_SPARSE
+		: MIN_LABEL_BASE_DISTANCE_DENSE;
+	const pixelDistance = useSparseDistance
+		? MIN_LABEL_BASE_DISTANCE_SPARSE_PX
+		: MIN_LABEL_BASE_DISTANCE_DENSE_PX;
+	const minDistance = Math.max(
+		baseDistance,
+		pixelDistance / Math.max(1, transform.k),
+	);
 
 	const maxLabels = forceShowAllLabels
 		? Number.POSITIVE_INFINITY

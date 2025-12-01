@@ -39,6 +39,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
@@ -303,14 +304,8 @@ export function CoursesTable({
 	});
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
-	const getIsDesktop = useCallback(
-		() =>
-			typeof window !== "undefined" &&
-			window.matchMedia("(min-width: 768px)").matches,
-		[],
-	);
-	const [isDesktop, setIsDesktop] = useState(getIsDesktop);
-	const [isScatterPlotOpen, setIsScatterPlotOpen] = useState(getIsDesktop);
+	const isDesktop = useMediaQuery("(min-width: 768px)");
+	const [isScatterPlotOpen, setIsScatterPlotOpen] = useState(isDesktop);
 	const fullscreenTimeoutRef = useRef<number | null>(null);
 
 	const form = useForm({
@@ -331,24 +326,6 @@ export function CoursesTable({
 	}, [form, initialFilters]);
 
 	useEffect(() => {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		const mediaQuery = window.matchMedia("(min-width: 768px)");
-		const handleChange = (event: MediaQueryListEvent) => {
-			setIsDesktop(event.matches);
-		};
-
-		setIsDesktop(mediaQuery.matches);
-		mediaQuery.addEventListener("change", handleChange);
-
-		return () => {
-			mediaQuery.removeEventListener("change", handleChange);
-		};
-	}, []);
-
-	useEffect(() => {
 		setIsScatterPlotOpen(isDesktop);
 	}, [isDesktop]);
 
@@ -361,15 +338,12 @@ export function CoursesTable({
 
 		setIsScatterPlotOpen(true);
 
-		const viewTransitionDocument =
-			typeof document !== "undefined"
-				? (document as Document & {
-						startViewTransition?: (callback: () => void) => void;
-					})
-				: null;
-
-		if (viewTransitionDocument?.startViewTransition) {
-			viewTransitionDocument.startViewTransition(runNavigation);
+		if (typeof document !== "undefined" && "startViewTransition" in document) {
+			(
+				document as Document & {
+					startViewTransition: (cb: () => void) => void;
+				}
+			).startViewTransition(runNavigation);
 			return;
 		}
 

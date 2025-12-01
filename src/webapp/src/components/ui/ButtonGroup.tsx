@@ -28,6 +28,11 @@ function isButtonElement(child: ReactNode): child is ReactElement<{
 	);
 }
 
+/**
+ * Groups together buttons and rounds their corners based on position.
+ * Buttons inside the group must include `data-slot="button"` so the component can detect and style them.
+ * The shared `Button` component sets this automatically; custom buttons should forward the same attribute.
+ */
 function ButtonGroup({
 	className,
 	children,

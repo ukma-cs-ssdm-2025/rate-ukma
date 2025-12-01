@@ -108,6 +108,23 @@ function getRandomLoadingMessage(): LoadingMessage {
 	return PLOT_LOADING_MESSAGES[index];
 }
 
+function computeDomain(
+	min: number | undefined,
+	max: number | undefined,
+	range: [number, number],
+	padding = 0.15,
+): [number, number] {
+	const clampedMin = Math.max(range[0], min ?? range[0]);
+	const clampedMax = Math.min(range[1], max ?? range[1]);
+	if (clampedMin >= clampedMax) {
+		return range;
+	}
+	return [
+		Math.max(range[0], clampedMin - padding),
+		Math.min(range[1], clampedMax + padding),
+	];
+}
+
 function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
 	return (
 		<div className="absolute inset-0 grid place-items-center">
@@ -524,33 +541,19 @@ export function CoursesScatterPlot({
 	const navigate = useNavigate();
 
 	const usefulnessDomain = useMemo<[number, number]>(() => {
-		const min = filters.avg_usefulness_min ?? USEFULNESS_RANGE[0];
-		const max = filters.avg_usefulness_max ?? USEFULNESS_RANGE[1];
-		const clampedMin = Math.max(USEFULNESS_RANGE[0], min);
-		const clampedMax = Math.min(USEFULNESS_RANGE[1], max);
-		if (clampedMin >= clampedMax) {
-			return [USEFULNESS_RANGE[0], USEFULNESS_RANGE[1]];
-		}
-		const padding = 0.15;
-		return [
-			Math.max(USEFULNESS_RANGE[0], clampedMin - padding),
-			Math.min(USEFULNESS_RANGE[1], clampedMax + padding),
-		];
+		return computeDomain(
+			filters.avg_usefulness_min,
+			filters.avg_usefulness_max,
+			USEFULNESS_RANGE,
+		);
 	}, [filters.avg_usefulness_max, filters.avg_usefulness_min]);
 
 	const difficultyDomain = useMemo<[number, number]>(() => {
-		const min = filters.avg_difficulty_min ?? DIFFICULTY_RANGE[0];
-		const max = filters.avg_difficulty_max ?? DIFFICULTY_RANGE[1];
-		const clampedMin = Math.max(DIFFICULTY_RANGE[0], min);
-		const clampedMax = Math.min(DIFFICULTY_RANGE[1], max);
-		if (clampedMin >= clampedMax) {
-			return [DIFFICULTY_RANGE[0], DIFFICULTY_RANGE[1]];
-		}
-		const padding = 0.15;
-		return [
-			Math.max(DIFFICULTY_RANGE[0], clampedMin - padding),
-			Math.min(DIFFICULTY_RANGE[1], clampedMax + padding),
-		];
+		return computeDomain(
+			filters.avg_difficulty_min,
+			filters.avg_difficulty_max,
+			DIFFICULTY_RANGE,
+		);
 	}, [filters.avg_difficulty_max, filters.avg_difficulty_min]);
 
 	const analyticsFilters = useMemo(
