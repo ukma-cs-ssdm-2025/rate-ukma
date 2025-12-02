@@ -16,18 +16,33 @@ vi.mock("@tanstack/react-router", async () => {
 	const actual = await vi.importActual("@tanstack/react-router");
 	return {
 		...actual,
-		useNavigate: () => mockNavigate,
+		useNavigate: vi.fn(function () {
+			return mockNavigate;
+		}),
 	};
 });
 
 // Mock the filter options API hook
-vi.mock("@/lib/api/generated", () => ({
-	useCoursesFilterOptionsRetrieve: () => ({
-		data: createMockFilterOptions(),
-		isLoading: false,
-		error: null,
-	}),
-}));
+vi.mock("@/lib/api/generated", async () => {
+	const actual = await vi.importActual("@/lib/api/generated");
+	return {
+		...actual,
+		useCoursesFilterOptionsRetrieve: vi.fn(function () {
+			return {
+				data: createMockFilterOptions(),
+				isLoading: false,
+				error: null,
+			};
+		}),
+		useAnalyticsList: vi.fn(function () {
+			return {
+				data: [],
+				isLoading: false,
+				error: null,
+			};
+		}),
+	};
+});
 
 const defaultProps = {
 	data: [],
@@ -427,7 +442,7 @@ describe("Course Display", () => {
 					{
 						speciality_id: "spec-1",
 						speciality_title: "Інженерія програмного забезпечення",
-						type_kind: "MANDATORY" as any,
+						type_kind: "COMPULSORY" as const,
 					},
 				],
 			}),

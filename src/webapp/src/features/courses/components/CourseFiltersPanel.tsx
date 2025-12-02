@@ -35,6 +35,8 @@ interface CourseFiltersPanelProps extends CourseFiltersBaseProps {
 	readonly onReset: () => void;
 	readonly isLoading?: boolean;
 	readonly className?: string;
+	readonly variant?: "card" | "plain";
+	readonly showTitle?: boolean;
 }
 
 export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
@@ -209,6 +211,8 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 	onReset,
 	isLoading,
 	className,
+	variant = "card",
+	showTitle = true,
 	...baseProps
 }: Readonly<CourseFiltersPanelProps>) {
 	const data = useCourseFiltersData(baseProps);
@@ -216,6 +220,26 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 
 	if (isLoading) {
 		return <CourseFiltersPanelSkeleton />;
+	}
+
+	if (variant === "plain") {
+		const showHeader = showTitle || hasActiveFilters;
+		return (
+			<div className={cn("space-y-6", className)}>
+				{showHeader && (
+					<div className="flex items-center justify-between">
+						{showTitle && (
+							<div className="flex items-center gap-2 text-sm font-semibold">
+								<Filter className="h-4 w-4" />
+								<span>Фільтри</span>
+							</div>
+						)}
+						{hasActiveFilters && <ResetButton onReset={onReset} />}
+					</div>
+				)}
+				<CourseFiltersContent form={baseProps.form} data={data} />
+			</div>
+		);
 	}
 
 	return (

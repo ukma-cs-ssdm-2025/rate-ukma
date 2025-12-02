@@ -17,9 +17,14 @@ function assertElement(
 	return element as HTMLElement;
 }
 
+// Default mock functions
+const defaultOnReset = vi.fn(function () {
+	// Default no-op implementation
+});
+
 // Helper component to render CourseFiltersPanel with form
 function TestWrapper({
-	onReset,
+	onReset = defaultOnReset,
 	filterOptions = createMockFilterOptions(),
 	initialValues = DEFAULT_FILTERS,
 }: Readonly<{
@@ -33,7 +38,7 @@ function TestWrapper({
 		<CourseFiltersPanel
 			form={form}
 			filterOptions={filterOptions}
-			onReset={onReset ?? vi.fn()}
+			onReset={onReset}
 		/>
 	);
 }
@@ -86,7 +91,7 @@ describe("CourseFiltersPanel", () => {
 
 			// Assert
 			expect(screen.getByText("Семестровий період")).toBeInTheDocument();
-			expect(screen.getByText("Рік")).toBeInTheDocument();
+			expect(screen.getByText("Навчальний рік")).toBeInTheDocument();
 			expect(screen.getByText("Факультет")).toBeInTheDocument();
 			expect(screen.getByText("Кафедра")).toBeInTheDocument();
 			expect(screen.getByText("Спеціальність")).toBeInTheDocument();
