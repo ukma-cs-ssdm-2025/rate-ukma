@@ -45,6 +45,7 @@ export type SelectFilterConfig = {
 	value: string;
 	options: SelectOption[];
 	contentClassName?: string;
+	useCombobox?: boolean;
 };
 
 export type RangeFilterConfig = {
@@ -178,6 +179,7 @@ export function useCourseFiltersData({
 					value: faculty.id,
 					label: `${faculty.custom_abbreviation || getFacultyAbbreviation(faculty.name)} - ${faculty.name}`,
 				})),
+				useCombobox: true,
 			},
 			{
 				key: "department",
@@ -191,6 +193,7 @@ export function useCourseFiltersData({
 							? department.name
 							: `${department.name} — ${department.faculty_name}`,
 				})),
+				useCombobox: true,
 			},
 			{
 				key: "speciality",
@@ -204,6 +207,7 @@ export function useCourseFiltersData({
 						: speciality.name,
 				})),
 				contentClassName: "max-h-72",
+				useCombobox: true,
 			},
 			{
 				key: "courseType",
