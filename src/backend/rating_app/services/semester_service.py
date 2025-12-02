@@ -157,7 +157,17 @@ class SemesterService(IFilterable):
     def _get_academic_year_range(self, year: int, term: str) -> tuple[int, int] | None:
         """Get academic year range for a given semester year and term.
 
-        Returns a tuple of (start_year, end_year) representing the academic year.
+        Academic year is determined by the semester:
+        - Fall semester starts the academic year (e.g., Fall 2024 → 2024-2025)
+        - Spring/Summer semesters end the academic year (e.g., Spring 2025 → 2024-2025)
+
+        Args:
+            year: The calendar year of the semester.
+            term: The semester term (must be a valid SemesterTerm value).
+
+        Returns:
+            A tuple of (start_year, end_year) representing the academic year,
+            or None if the term is not a recognized SemesterTerm value.
         """
         if term == SemesterTerm.FALL:
             return (year, year + 1)
