@@ -99,5 +99,11 @@
 		"vite": "^7.2.4",
 		"vitest": "^4.0.14",
 		"web-vitals": "^5.1.0"
+	},
+	"pnpm": {
+		"overrides": {
+			"@modelcontextprotocol/sdk@<1.24.0": ">=1.24.0",
+			"parse5": "^7.2.1"
+		}
 	}
 }

@@ -17,9 +17,14 @@ function assertElement(
 	return element as HTMLElement;
 }
 
+// Default mock functions
+const defaultOnReset = vi.fn(() => {
+	// Default no-op implementation
+});
+
 // Helper component to render CourseFiltersPanel with form
 function TestWrapper({
-	onReset,
+	onReset = defaultOnReset,
 	filterOptions = createMockFilterOptions(),
 	initialValues = DEFAULT_FILTERS,
 }: Readonly<{
@@ -33,7 +38,7 @@ function TestWrapper({
 		<CourseFiltersPanel
 			form={form}
 			filterOptions={filterOptions}
-			onReset={onReset ?? vi.fn()}
+			onReset={onReset}
 		/>
 	);
 }
