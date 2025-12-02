@@ -1,8 +1,9 @@
 from django.conf import settings
 
-from backend.rateukma.caching.cache_manager import ICacheManager, RedisCacheManager
-from backend.rateukma.ioc.decorators import once
 from redis import Redis
+
+from ..caching.cache_manager import ICacheManager, RedisCacheManager
+from ..ioc.decorators import once
 
 
 @once

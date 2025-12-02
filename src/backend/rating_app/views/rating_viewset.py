@@ -6,6 +6,7 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
+from rateukma.caching.decorators import rcached
 from rating_app.application_schemas.rating import (
     RatingCourseFilterParams,
     RatingCreateParams,
@@ -52,6 +53,7 @@ class RatingViewSet(viewsets.ViewSet):
         ],
         responses=R_RATING_LIST,
     )
+    @rcached(ttl=300)
     def list(self, request, course_id=None):
         assert self.rating_service is not None
 
@@ -87,7 +89,6 @@ class RatingViewSet(viewsets.ViewSet):
     @require_student
     def create(self, request, student: Student, course_id=None):
         assert self.rating_service is not None
-        # TODO: find a more consistent way to generate request body schema
         # course_id is not used, will be potentially removed after using a different endpoint
 
         logger.info(

@@ -7,6 +7,7 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
+from rateukma.caching.decorators import rcached
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
     CourseReadParams,
@@ -37,6 +38,7 @@ class CourseViewSet(viewsets.ViewSet):
         parameters=to_openapi((CourseFilterCriteria, OpenApiParameter.QUERY)),
         responses=R_COURSE_LIST,
     )
+    @rcached(ttl=300)
     def list(self, request, *args, **kwargs):
         assert self.course_service is not None
 
@@ -62,6 +64,7 @@ class CourseViewSet(viewsets.ViewSet):
         responses=R_FILTER_OPTIONS,
     )
     @action(detail=False, methods=["get"], url_path="filter-options")
+    @rcached(ttl=300)
     def filter_options(self, request):
         assert self.course_service is not None
 

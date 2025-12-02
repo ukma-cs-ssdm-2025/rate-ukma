@@ -2,7 +2,8 @@ import json
 from typing import Any, Protocol
 
 import structlog
-from redis import Redis, RedisError
+from redis.client import Redis
+from redis.exceptions import RedisError
 
 logger = structlog.get_logger(__name__)
 
@@ -27,6 +28,7 @@ class ICacheManager(Protocol):
     def get_stats(self) -> dict: ...
 
 
+# TODO: fix stubs
 class RedisCacheManager(ICacheManager):
     def __init__(
         self,
@@ -51,15 +53,16 @@ class RedisCacheManager(ICacheManager):
 
     def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         cache_key = self._make_key(key)
+
         serialized = self._serialize(value)
         ttl = ttl if ttl is not None else self.default_ttl
 
         try:
             if ttl:
-                self.redis_client.setex(cache_key, ttl, serialized)
+                ok = self.redis_client.setex(cache_key, ttl, serialized)
             else:
-                self.redis_client.set(cache_key, serialized)
-            return True
+                ok = self.redis_client.set(cache_key, serialized)
+            return bool(ok)
         except RedisError as e:
             self._handle_error("set", e)
             return False
@@ -67,7 +70,8 @@ class RedisCacheManager(ICacheManager):
     def invalidate(self, key: str) -> bool:
         cache_key = self._make_key(key)
         try:
-            return self.redis_client.delete(cache_key)
+            deleted = self.redis_client.delete(cache_key)
+            return bool(deleted)
         except RedisError as e:
             self._handle_error("delete", e)
             return False
@@ -75,13 +79,14 @@ class RedisCacheManager(ICacheManager):
     def increment_version(self, key: str) -> int:
         try:
             version_key = self._version_key(key)
-            return self.redis_client.incr(version_key)
+            value = self.redis_client.incr(version_key)
+            return int(value)
         except RedisError as e:
             self._handle_error("increment_version", e)
             return 1
 
     def get_versioned_key(self, key: str) -> str:
-        version = self.get_version(key)
+        version = self.get_versioned(key)
         return f"{key}:v{version}"
 
     def get_versioned(self, key: str) -> Any | None:
@@ -102,7 +107,7 @@ class RedisCacheManager(ICacheManager):
                 cursor, keys = self.redis_client.scan(cursor, match=full_pattern, count=100)
 
                 if keys:
-                    deleted += self.redis_client.delete(*keys)
+                    deleted += int(self.redis_client.delete(*keys))  # cast
 
                 if cursor == 0:
                     break
