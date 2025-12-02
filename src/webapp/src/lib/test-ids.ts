@@ -34,7 +34,7 @@ export function getTestId(...parts: string[]): string {
  * Note: This assumes input is kebab-case with lowercase letters (e.g., 'submit-button')
  */
 function toCamelCase(str: string): string {
-	return str.replace(/-([a-zA-Z])/g, (_, char) => char.toUpperCase());
+	return str.replaceAll(/-([a-zA-Z])/g, (_, char) => char.toUpperCase());
 }
 
 /**
