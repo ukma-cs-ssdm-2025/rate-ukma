@@ -18,7 +18,7 @@ function assertElement(
 }
 
 // Default mock functions
-const defaultOnReset = vi.fn(() => {
+const defaultOnReset = vi.fn(function () {
 	// Default no-op implementation
 });
 

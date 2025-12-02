@@ -312,8 +312,9 @@ export function CoursesTable({
 		const stored = localStorageAdapter.getItem<boolean>(
 			SCATTER_COLLAPSE_STORAGE_KEY,
 		);
-		return stored ?? isDesktop;
+		return stored ?? true;
 	});
+	const hasInitializedRef = useRef(false);
 	const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
 	);
@@ -354,16 +355,17 @@ export function CoursesTable({
 		);
 	}, [isScatterPlotOpen]);
 
+	// Only initialize scatter plot state once on mount, don't reset on viewport changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only run once on mount
 	useEffect(() => {
-		if (isDesktop) {
-			const stored = localStorageAdapter.getItem<boolean>(
-				SCATTER_COLLAPSE_STORAGE_KEY,
-			);
-			setIsScatterPlotOpen(stored ?? true);
-		} else {
+		if (hasInitializedRef.current) return;
+		hasInitializedRef.current = true;
+
+		if (!isDesktop) {
 			setIsScatterPlotOpen(true);
 		}
-	}, [isDesktop]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const openExploreWithAnimation = useCallback(() => {
 		const runNavigation = () =>

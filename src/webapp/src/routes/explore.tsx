@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -48,9 +48,12 @@ function useFilterForm(initialFilters: FilterState) {
 		mode: "onChange",
 	});
 
+	const formRef = useRef(form);
+	formRef.current = form;
+
 	useEffect(() => {
-		form.reset(initialFilters);
-	}, [form, initialFilters]);
+		formRef.current.reset(initialFilters);
+	}, [initialFilters]);
 
 	return form;
 }

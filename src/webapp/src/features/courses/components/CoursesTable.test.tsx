@@ -16,7 +16,9 @@ vi.mock("@tanstack/react-router", async () => {
 	const actual = await vi.importActual("@tanstack/react-router");
 	return {
 		...actual,
-		useNavigate: vi.fn(() => mockNavigate),
+		useNavigate: vi.fn(function () {
+			return mockNavigate;
+		}),
 	};
 });
 
@@ -25,16 +27,20 @@ vi.mock("@/lib/api/generated", async () => {
 	const actual = await vi.importActual("@/lib/api/generated");
 	return {
 		...actual,
-		useCoursesFilterOptionsRetrieve: vi.fn(() => ({
-			data: createMockFilterOptions(),
-			isLoading: false,
-			error: null,
-		})),
-		useAnalyticsList: vi.fn(() => ({
-			data: [],
-			isLoading: false,
-			error: null,
-		})),
+		useCoursesFilterOptionsRetrieve: vi.fn(function () {
+			return {
+				data: createMockFilterOptions(),
+				isLoading: false,
+				error: null,
+			};
+		}),
+		useAnalyticsList: vi.fn(function () {
+			return {
+				data: [],
+				isLoading: false,
+				error: null,
+			};
+		}),
 	};
 });
 

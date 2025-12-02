@@ -22,6 +22,9 @@
 		"enabled": true,
 		"rules": {
 			"recommended": true,
+			"complexity": {
+				"useArrowFunction": "off"
+			},
 			"suspicious": {
 				"noUnknownAtRules": "off"
 			}
