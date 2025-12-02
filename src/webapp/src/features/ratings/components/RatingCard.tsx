@@ -1,10 +1,7 @@
-import {
-	formatDate,
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "@/features/courses/courseFormatting";
+import { formatDate } from "@/features/courses/courseFormatting";
 import type { RatingRead } from "@/lib/api/generated";
-import { cn } from "@/lib/utils";
+import { RatingComment } from "./RatingComment";
+import { RatingStats } from "./RatingStats";
 
 interface RatingCardProps {
 	rating: RatingRead;
@@ -14,8 +11,6 @@ export function RatingCard({ rating }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
 		? "Анонімний відгук"
 		: rating.student_name || "Студент";
-	const difficultyValue = rating.difficulty?.toFixed(1) ?? "—";
-	const usefulnessValue = rating.usefulness?.toFixed(1) ?? "—";
 
 	return (
 		<article className="py-4 px-4">
@@ -29,38 +24,13 @@ export function RatingCard({ rating }: Readonly<RatingCardProps>) {
 						</>
 					)}
 				</div>
-				<div className="flex items-center gap-2 text-xs">
-					<span className="text-muted-foreground">Складність:</span>
-					<span
-						className={cn(
-							"font-semibold tabular-nums",
-							getDifficultyTone(rating.difficulty),
-						)}
-					>
-						{difficultyValue}
-					</span>
-					<span className="text-muted-foreground/40">•</span>
-					<span className="text-muted-foreground">Корисність:</span>
-					<span
-						className={cn(
-							"font-semibold tabular-nums",
-							getUsefulnessTone(rating.usefulness),
-						)}
-					>
-						{usefulnessValue}
-					</span>
-				</div>
+				<RatingStats
+					difficulty={rating.difficulty}
+					usefulness={rating.usefulness}
+				/>
 			</div>
 
-			{rating.comment ? (
-				<p className="text-sm leading-relaxed text-foreground/90">
-					{rating.comment}
-				</p>
-			) : (
-				<p className="text-xs italic text-muted-foreground/60">
-					Студент не залишив коментар.
-				</p>
-			)}
+			<RatingComment comment={rating.comment} />
 		</article>
 	);
 }

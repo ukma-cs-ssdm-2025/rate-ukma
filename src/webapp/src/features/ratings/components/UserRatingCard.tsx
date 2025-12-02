@@ -1,14 +1,11 @@
 import { Pencil, Star, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import {
-	formatDate,
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "@/features/courses/courseFormatting";
+import { formatDate } from "@/features/courses/courseFormatting";
 import type { InlineRating } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
-import { cn } from "@/lib/utils";
+import { RatingComment } from "./RatingComment";
+import { RatingStats } from "./RatingStats";
 
 interface UserRatingCardProps {
 	readonly rating: InlineRating;
@@ -22,8 +19,6 @@ export function UserRatingCard({
 	onDelete,
 }: UserRatingCardProps) {
 	const { user } = useAuth();
-	const difficultyValue = rating.difficulty?.toFixed(1) ?? "—";
-	const usefulnessValue = rating.usefulness?.toFixed(1) ?? "—";
 
 	const getUserDisplayName = () => {
 		if (rating.is_anonymous) {
@@ -78,38 +73,16 @@ export function UserRatingCard({
 						</>
 					)}
 				</div>
-				<div className="flex items-center gap-2 text-xs">
-					<span className="text-muted-foreground">Складність:</span>
-					<span
-						className={cn(
-							"font-semibold tabular-nums",
-							getDifficultyTone(rating.difficulty),
-						)}
-					>
-						{difficultyValue}
-					</span>
-					<span className="text-muted-foreground/40">•</span>
-					<span className="text-muted-foreground">Корисність:</span>
-					<span
-						className={cn(
-							"font-semibold tabular-nums",
-							getUsefulnessTone(rating.usefulness),
-						)}
-					>
-						{usefulnessValue}
-					</span>
-				</div>
+				<RatingStats
+					difficulty={rating.difficulty}
+					usefulness={rating.usefulness}
+				/>
 			</div>
 
-			{rating.comment ? (
-				<p className="text-sm leading-relaxed text-foreground/90">
-					{rating.comment}
-				</p>
-			) : (
-				<p className="text-xs italic text-muted-foreground/60">
-					Ви не залишили коментар.
-				</p>
-			)}
+			<RatingComment
+				comment={rating.comment}
+				emptyMessage="Ви не залишили коментар."
+			/>
 		</article>
 	);
 }

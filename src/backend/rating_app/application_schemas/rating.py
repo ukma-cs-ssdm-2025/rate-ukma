@@ -152,7 +152,9 @@ class RatingPatchParams(BaseModel):
     comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
         default=None
     )
-    is_anonymous: bool = Field(default=False)
+    is_anonymous: bool | SkipJsonSchema[None] = Field(
+        default=None,
+    )
 
 
 # is constructed internally

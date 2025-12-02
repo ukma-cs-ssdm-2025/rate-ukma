@@ -2107,7 +2107,7 @@ components:
           title: Comment
           type: string
         is_anonymous:
-          default: false
+          default: null
           title: Is Anonymous
           type: boolean
       title: RatingPatchParams

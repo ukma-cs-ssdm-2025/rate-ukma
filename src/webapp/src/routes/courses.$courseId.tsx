@@ -141,7 +141,7 @@ function CourseDetailsRoute() {
 
 			{ratingId && attendedCourseId && (
 				<DeleteRatingDialog
-					courseId={attendedCourseId}
+					courseId={courseId}
 					ratingId={ratingId}
 					open={isDeleteDialogOpen}
 					onOpenChange={setIsDeleteDialogOpen}
