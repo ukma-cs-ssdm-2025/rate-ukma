@@ -321,14 +321,13 @@ export function CoursesTable({
 
 	const clearFullscreenTimeout = useCallback(() => {
 		const timeoutId = fullscreenTimeoutRef.current;
-		if (timeoutId === null) return;
+		if (timeoutId !== null) {
+			const win = globalThis.window !== undefined ? globalThis.window : null;
+			const clearFn = win?.clearTimeout ?? clearTimeout;
+			clearFn(timeoutId);
 
-		const win =
-			typeof globalThis.window !== "undefined" ? globalThis.window : null;
-		const clearFn = win?.clearTimeout ?? clearTimeout;
-		clearFn(timeoutId);
-
-		fullscreenTimeoutRef.current = null;
+			fullscreenTimeoutRef.current = null;
+		}
 	}, []);
 
 	const form = useForm({
@@ -387,8 +386,7 @@ export function CoursesTable({
 
 		clearFullscreenTimeout();
 
-		const win =
-			typeof globalThis.window !== "undefined" ? globalThis.window : null;
+		const win = globalThis.window !== undefined ? globalThis.window : null;
 		const setFn = win?.setTimeout ?? setTimeout;
 		fullscreenTimeoutRef.current = setFn(runNavigation, 200);
 	}, [clearFullscreenTimeout, deferredFilters, navigate]);
