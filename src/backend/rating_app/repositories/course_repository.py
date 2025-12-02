@@ -118,13 +118,6 @@ class CourseRepository(IRepository[Course]):
     def _apply_academic_year_filter(
         self, courses: QuerySet[Course], academic_year: str
     ) -> QuerySet[Course]:
-        """Filter courses by academic year range (e.g., '2024–2025').
-
-        Academic year 2024–2025 includes:
-        - Fall 2024
-        - Spring 2025
-        - Summer 2025
-        """
         parsed = self._parse_academic_year(academic_year)
         if not parsed:
             return courses
@@ -139,9 +132,7 @@ class CourseRepository(IRepository[Course]):
         )
 
     def _parse_academic_year(self, academic_year: str) -> tuple[int, int] | None:
-        """Parse academic year string like '2024–2025' into (start_year, end_year)."""
         try:
-            # Support both en-dash (–) and hyphen (-) separators
             separator = "–" if "–" in academic_year else "-"
             parts = academic_year.split(separator)
             if len(parts) != 2:
