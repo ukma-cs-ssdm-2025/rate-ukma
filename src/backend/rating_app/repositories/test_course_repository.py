@@ -50,10 +50,10 @@ def test_filter_by_semester_limits_to_matching_courses(repo):
     spring_course = CourseFactory(title="Spring Course")
     CourseOfferingFactory(course=spring_course, semester=spring_semester)
 
-    # Act
+    # Act - Use academic year format "2024–2025" which includes Fall 2024 and Spring 2025
     result = repo.filter(
         CourseFilterCriteria(
-            semester_year=fall_semester.year,
+            semester_year="2024–2025",
             semester_term=fall_semester.term,
         )
     )

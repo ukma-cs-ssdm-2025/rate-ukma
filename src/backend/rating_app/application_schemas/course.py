@@ -44,7 +44,9 @@ class CourseFilterCriteria(BaseModel):
     faculty: uuid.UUID | None = Field(default=None, description="Filter by faculty UUID")
     department: uuid.UUID | None = Field(default=None, description="Filter by department UUID")
     speciality: uuid.UUID | None = Field(default=None, description="Filter by speciality UUID")
-    semester_year: int | None = Field(default=None, ge=2000, description="Semester year")
+    semester_year: str | None = Field(
+        default=None, description="Academic year range (e.g., '2024–2025')"
+    )
     semester_term: SemesterTerm | None = Field(
         default=None,
         description="Semester term (FALL, SPRING, SUMMER)",
