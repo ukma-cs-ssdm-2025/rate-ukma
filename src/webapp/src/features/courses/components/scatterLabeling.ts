@@ -83,6 +83,50 @@ function shouldShowLabels(
 	return true;
 }
 
+function shouldSkipLabeling(params: {
+	variant: "default" | "mini";
+	width: number;
+	height: number;
+	dataLength: number;
+}): boolean {
+	const { variant, width, height, dataLength } = params;
+	return variant === "mini" || width < 10 || height < 10 || dataLength === 0;
+}
+
+function resolveMinDistance(
+	forceShowAllLabels: boolean,
+	labelDensity: LabelDensityMeta,
+	zoomLevel: number,
+): number {
+	const useSparseDistance =
+		forceShowAllLabels || labelDensity.canShowWithoutZoom;
+
+	const baseDistance = useSparseDistance
+		? MIN_LABEL_BASE_DISTANCE_SPARSE
+		: MIN_LABEL_BASE_DISTANCE_DENSE;
+	const pixelDistance = useSparseDistance
+		? MIN_LABEL_BASE_DISTANCE_SPARSE_PX
+		: MIN_LABEL_BASE_DISTANCE_DENSE_PX;
+
+	return Math.max(baseDistance, pixelDistance / Math.max(1, zoomLevel));
+}
+
+function shouldPlaceLabel(params: {
+	placed: LabelPoint[];
+	margin: Margin;
+	transform: ZoomTransform;
+	minDistance: number;
+	screenX: number;
+	screenY: number;
+}): boolean {
+	const { placed, margin, transform, minDistance, screenX, screenY } = params;
+	return !placed.some((existing) => {
+		const dx = margin.left + transform.applyX(existing.cx) - screenX;
+		const dy = margin.top + transform.applyY(existing.cy) - screenY;
+		return Math.hypot(dx, dy) < minDistance;
+	});
+}
+
 export function computeLabelPoints(params: {
 	chartData: CourseDataPoint[];
 	variant: "default" | "mini";
@@ -110,14 +154,18 @@ export function computeLabelPoints(params: {
 		forceShowAllLabels = false,
 	} = params;
 
-	if (variant === "mini") {
+	const sortedByImportance = [...chartData].sort((a, b) => b.radius - a.radius);
+
+	if (
+		shouldSkipLabeling({
+			variant,
+			width,
+			height,
+			dataLength: sortedByImportance.length,
+		})
+	) {
 		return [];
 	}
-
-	if (width < 10 || height < 10) return [];
-
-	const sortedByImportance = [...chartData].sort((a, b) => b.radius - a.radius);
-	if (sortedByImportance.length === 0) return [];
 
 	const labelDensity = computeLabelDensityMeta({
 		dataLength: sortedByImportance.length,
@@ -135,22 +183,14 @@ export function computeLabelPoints(params: {
 		return [];
 	}
 
-	const useSparseDistance =
-		forceShowAllLabels || labelDensity.canShowWithoutZoom;
-	const baseDistance = useSparseDistance
-		? MIN_LABEL_BASE_DISTANCE_SPARSE
-		: MIN_LABEL_BASE_DISTANCE_DENSE;
-	const pixelDistance = useSparseDistance
-		? MIN_LABEL_BASE_DISTANCE_SPARSE_PX
-		: MIN_LABEL_BASE_DISTANCE_DENSE_PX;
-	const minDistance = Math.max(
-		baseDistance,
-		pixelDistance / Math.max(1, transform.k),
-	);
-
 	const maxLabels = forceShowAllLabels
 		? Number.POSITIVE_INFINITY
 		: AUTO_LABEL_LIMIT;
+	const minDistance = resolveMinDistance(
+		forceShowAllLabels,
+		labelDensity,
+		transform.k,
+	);
 
 	const placed: LabelPoint[] = [];
 
@@ -162,17 +202,16 @@ export function computeLabelPoints(params: {
 		const screenX = margin.left + transform.applyX(cx);
 		const screenY = margin.top + transform.applyY(cy);
 
-		let tooClose = false;
-		for (const existing of placed) {
-			const dx = margin.left + transform.applyX(existing.cx) - screenX;
-			const dy = margin.top + transform.applyY(existing.cy) - screenY;
-			if (Math.hypot(dx, dy) < minDistance) {
-				tooClose = true;
-				break;
-			}
-		}
+		const canPlaceLabel = shouldPlaceLabel({
+			placed,
+			margin,
+			transform,
+			minDistance,
+			screenX,
+			screenY,
+		});
 
-		if (tooClose) continue;
+		if (!canPlaceLabel) continue;
 
 		placed.push({ point, cx, cy });
 	}

@@ -40,6 +40,7 @@ import { Input } from "@/components/ui/Input";
 import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { localStorageAdapter } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
@@ -128,6 +129,8 @@ interface CoursesTableProps {
 	pagination?: PaginationInfo;
 	initialFilters?: FilterState;
 }
+
+const SCATTER_COLLAPSE_STORAGE_KEY = "courses:scatter-open";
 
 const columns: ColumnDef<CourseList>[] = [
 	{
@@ -305,8 +308,27 @@ export function CoursesTable({
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
 	const isDesktop = useMediaQuery("(min-width: 768px)");
-	const [isScatterPlotOpen, setIsScatterPlotOpen] = useState(isDesktop);
-	const fullscreenTimeoutRef = useRef<number | null>(null);
+	const [isScatterPlotOpen, setIsScatterPlotOpen] = useState<boolean>(() => {
+		const stored = localStorageAdapter.getItem<boolean>(
+			SCATTER_COLLAPSE_STORAGE_KEY,
+		);
+		return stored ?? isDesktop;
+	});
+	const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+
+	const clearFullscreenTimeout = useCallback(() => {
+		const timeoutId = fullscreenTimeoutRef.current;
+		if (timeoutId === null) return;
+
+		const win =
+			typeof globalThis.window !== "undefined" ? globalThis.window : null;
+		const clearFn = win?.clearTimeout ?? clearTimeout;
+		clearFn(timeoutId);
+
+		fullscreenTimeoutRef.current = null;
+	}, []);
 
 	const form = useForm({
 		defaultValues: initialFilters,
@@ -326,7 +348,21 @@ export function CoursesTable({
 	}, [form, initialFilters]);
 
 	useEffect(() => {
-		setIsScatterPlotOpen(isDesktop);
+		localStorageAdapter.setItem(
+			SCATTER_COLLAPSE_STORAGE_KEY,
+			isScatterPlotOpen,
+		);
+	}, [isScatterPlotOpen]);
+
+	useEffect(() => {
+		if (isDesktop) {
+			const stored = localStorageAdapter.getItem<boolean>(
+				SCATTER_COLLAPSE_STORAGE_KEY,
+			);
+			setIsScatterPlotOpen(stored ?? true);
+		} else {
+			setIsScatterPlotOpen(true);
+		}
 	}, [isDesktop]);
 
 	const openExploreWithAnimation = useCallback(() => {
@@ -347,20 +383,19 @@ export function CoursesTable({
 			return;
 		}
 
-		if (fullscreenTimeoutRef.current !== null) {
-			window.clearTimeout(fullscreenTimeoutRef.current);
-		}
+		clearFullscreenTimeout();
 
-		fullscreenTimeoutRef.current = window.setTimeout(runNavigation, 200);
-	}, [deferredFilters, navigate]);
+		const win =
+			typeof globalThis.window !== "undefined" ? globalThis.window : null;
+		const setFn = win?.setTimeout ?? setTimeout;
+		fullscreenTimeoutRef.current = setFn(runNavigation, 200);
+	}, [clearFullscreenTimeout, deferredFilters, navigate]);
 
 	useEffect(
 		() => () => {
-			if (fullscreenTimeoutRef.current !== null) {
-				window.clearTimeout(fullscreenTimeoutRef.current);
-			}
+			clearFullscreenTimeout();
 		},
-		[],
+		[clearFullscreenTimeout],
 	);
 
 	const apiSorting = useMemo(() => {
@@ -456,27 +491,27 @@ export function CoursesTable({
 			JSON.stringify(combinedFilters) !==
 			JSON.stringify(previousFiltersRef.current);
 
-		if (!hasFiltersChanged) {
-			return;
+		if (hasFiltersChanged) {
+			if (pagination.pageIndex !== 0) {
+				setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+			}
+
+			const timeout = setTimeout(() => {
+				previousFiltersRef.current = combinedFilters;
+
+				const filtersWithPagination = {
+					...combinedFilters,
+					page: 1,
+					page_size: pagination.pageSize,
+				};
+
+				onFiltersChange?.(filtersWithPagination);
+			}, 500);
+
+			return () => clearTimeout(timeout);
 		}
 
-		if (pagination.pageIndex !== 0) {
-			setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-		}
-
-		const timeout = setTimeout(() => {
-			previousFiltersRef.current = combinedFilters;
-
-			const filtersWithPagination = {
-				...combinedFilters,
-				page: 1,
-				page_size: pagination.pageSize,
-			};
-
-			onFiltersChange?.(filtersWithPagination);
-		}, 500);
-
-		return () => clearTimeout(timeout);
+		return undefined;
 	}, [combinedFilters, onFiltersChange]);
 
 	const handleResetFilters = useCallback(() => {

@@ -336,9 +336,11 @@ function ScatterPlotContent({
 				width={width}
 				height={height}
 				className="bg-background cursor-grab active:cursor-grabbing"
-				role="img"
-				aria-label="Діаграма розподілу курсів за корисністю та складністю"
+				aria-labelledby="courses-scatterplot-title"
 			>
+				<title id="courses-scatterplot-title">
+					Діаграма розподілу курсів за корисністю та складністю
+				</title>
 				<Group
 					transform={`translate(${margin.left + transform.x}, ${margin.top + transform.y}) scale(${transform.k})`}
 				>
@@ -359,7 +361,7 @@ function ScatterPlotContent({
 						const scale = isHovered ? 1.08 : 1;
 						const strokeWidth = isHovered ? 3.2 : 1.5;
 						return (
-							// biome-ignore lint/a11y/useSemanticElements: SVG circles with role=button are required for interactive data visualization
+							// biome-ignore lint/a11y/useSemanticElements: Interactive SVG point cannot be a native button element
 							<circle
 								key={point.id}
 								cx={cx}
@@ -376,14 +378,27 @@ function ScatterPlotContent({
 									hideTooltip();
 								}}
 								onClick={() => onCourseClick?.(point.id)}
+								onKeyDown={(event) => {
+									if (event.key === "Enter" || event.key === " ") {
+										event.preventDefault();
+										onCourseClick?.(point.id);
+									}
+								}}
+								onFocus={() => setHoveredPointId(point.id)}
+								onBlur={() => {
+									setHoveredPointId(null);
+									hideTooltip();
+								}}
+								tabIndex={0}
+								role="button"
 								style={{
 									cursor: "pointer",
 									transform: `scale(${scale})`,
 									transformOrigin: `${cx}px ${cy}px`,
 									transition:
 										"transform 200ms ease, stroke-width 200ms ease, fill-opacity 200ms ease",
+									outline: "none",
 								}}
-								role="button"
 								aria-label={`${point.name}, ${point.facultyName}`}
 							/>
 						);

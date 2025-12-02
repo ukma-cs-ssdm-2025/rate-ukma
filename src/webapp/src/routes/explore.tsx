@@ -35,8 +35,11 @@ import {
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
+import { localStorageAdapter } from "@/lib/storage";
 
 type CoursesSearch = Record<string, string>;
+
+const SHOW_ALL_LABELS_STORAGE_KEY = "explore:show-all-labels";
 
 function useFilterForm(initialFilters: FilterState) {
 	const form = useForm<FilterState>({
@@ -87,7 +90,16 @@ function ExploreRoute() {
 	}, [searchParams, navigate]);
 
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-	const [showAllLabels, setShowAllLabels] = useState(false);
+	const [showAllLabels, setShowAllLabels] = useState<boolean>(() => {
+		const stored = localStorageAdapter.getItem<boolean>(
+			SHOW_ALL_LABELS_STORAGE_KEY,
+		);
+		return stored ?? false;
+	});
+
+	useEffect(() => {
+		localStorageAdapter.setItem(SHOW_ALL_LABELS_STORAGE_KEY, showAllLabels);
+	}, [showAllLabels]);
 
 	return (
 		<Layout>
@@ -131,7 +143,7 @@ function ExploreRoute() {
 										>
 											<div className="flex flex-col gap-0.5">
 												<span className="font-medium text-foreground">
-													Показувати всі підписи
+													Завжди показувати підписи
 												</span>
 												<span className="text-xs text-muted-foreground">
 													Може перекривати точки, якщо їх багато

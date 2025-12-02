@@ -427,7 +427,7 @@ describe("Course Display", () => {
 					{
 						speciality_id: "spec-1",
 						speciality_title: "Інженерія програмного забезпечення",
-						type_kind: "MANDATORY" as any,
+						type_kind: "MANDATORY" as const,
 					},
 				],
 			}),
