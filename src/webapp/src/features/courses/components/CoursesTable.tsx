@@ -41,6 +41,7 @@ import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { localStorageAdapter } from "@/lib/storage";
+import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
@@ -562,6 +563,7 @@ export function CoursesTable({
 								className="pl-10 h-12 text-base"
 								disabled={isInitialLoading}
 								isLoading={isLoading}
+								data-testid={testIds.courses.searchInput}
 							/>
 						</div>
 					</div>
@@ -580,6 +582,7 @@ export function CoursesTable({
 										size="sm"
 										className="h-8 gap-2 text-muted-foreground hover:text-foreground"
 										onClick={openExploreWithAnimation}
+										data-testid={testIds.courses.scatterPlotFullscreenButton}
 									>
 										<Maximize2 className="h-4 w-4" />
 										<span className="hidden sm:inline">Повний екран</span>
@@ -633,6 +636,7 @@ export function CoursesTable({
 				style={{ top: "35%" }}
 				onClick={toggleFiltersDrawer}
 				aria-label="Фільтри"
+				data-testid={testIds.filters.drawerTrigger}
 			>
 				<Filter className="h-6 w-6" />
 			</button>

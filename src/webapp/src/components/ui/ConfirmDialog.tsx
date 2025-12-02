@@ -8,6 +8,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/AlertDialog";
+import { testIds } from "@/lib/test-ids";
 
 interface ConfirmDialogProps {
 	open: boolean;
@@ -32,13 +33,16 @@ export function ConfirmDialog({
 }: Readonly<ConfirmDialogProps>) {
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent>
+			<AlertDialogContent data-testid={testIds.deleteDialog.root}>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{title}</AlertDialogTitle>
 					<AlertDialogDescription>{description}</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel onClick={() => onOpenChange(false)}>
+					<AlertDialogCancel
+						onClick={() => onOpenChange(false)}
+						data-testid={testIds.deleteDialog.cancelButton}
+					>
 						{cancelText}
 					</AlertDialogCancel>
 					<AlertDialogAction
@@ -48,6 +52,7 @@ export function ConfirmDialog({
 								? "bg-destructive text-white hover:bg-destructive/80 transition-colors"
 								: ""
 						}
+						data-testid={testIds.deleteDialog.confirmButton}
 					>
 						{confirmText}
 					</AlertDialogAction>

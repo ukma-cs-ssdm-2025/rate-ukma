@@ -2,6 +2,7 @@ import { BookOpen, TrendingUp } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import {
 	difficultyDescriptions,
@@ -102,7 +103,10 @@ export function CourseStatsCards({
 	];
 
 	return (
-		<div className="grid gap-4 sm:grid-cols-3">
+		<div
+			className="grid gap-4 sm:grid-cols-3"
+			data-testid={testIds.courseDetails.statsCards}
+		>
 			{stats.map(
 				(
 					{ title, description, formatted, hint, accent, value, type },
