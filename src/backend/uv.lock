@@ -457,6 +457,19 @@ wheels = [
 ]
 
 [[package]]
+name = "django-redis"
+version = "5.4.0"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+dependencies = [
+    { name = "django" },
+    { name = "redis" },
+]
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/83/9d/2272742fdd9d0a9f0b28cd995b0539430c9467a2192e4de2cea9ea6ad38c/django-redis-5.4.0.tar.gz", hash = "sha256:6a02abaa34b0fea8bf9b707d2c363ab6adc7409950b2db93602e6cb292818c42", size = 52567, upload-time = "2023-10-01T20:22:01.221Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/b7/f1/63caad7c9222c26a62082f4f777de26389233b7574629996098bf6d25a4d/django_redis-5.4.0-py3-none-any.whl", hash = "sha256:ebc88df7da810732e2af9987f7f426c96204bf89319df4c6da6ca9a2942edd5b", size = 31119, upload-time = "2023-10-01T20:21:33.009Z" },
+]
+
+[[package]]
 name = "django-reversion"
 version = "6.0.0"
 source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
@@ -1513,6 +1526,7 @@ dependencies = [
     { name = "django" },
     { name = "django-allauth" },
     { name = "django-cors-headers" },
+    { name = "django-redis" },
     { name = "django-reversion" },
     { name = "django-vite" },
     { name = "djangorestframework" },
@@ -1525,6 +1539,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyjwt" },
     { name = "python-decouple" },
+    { name = "redis" },
     { name = "requests" },
     { name = "structlog" },
 ]
@@ -1578,6 +1593,7 @@ requires-dist = [
     { name = "django-allauth", specifier = "==65.12.0" },
     { name = "django-cors-headers", specifier = "==4.3.1" },
     { name = "django-debug-toolbar", marker = "extra == 'dev'", specifier = ">=4.4.0" },
+    { name = "django-redis", specifier = "==5.4.0" },
     { name = "django-reversion", specifier = ">=5.1.0" },
     { name = "django-stubs", marker = "extra == 'dev'", specifier = ">=5.1.0" },
     { name = "django-vite", specifier = "==3.1.0" },
@@ -1603,12 +1619,22 @@ requires-dist = [
     { name = "rateukma", extras = ["linting"], marker = "extra == 'dev'" },
     { name = "rateukma", extras = ["security"], marker = "extra == 'dev'" },
     { name = "rateukma", extras = ["test"], marker = "extra == 'dev'" },
+    { name = "redis", specifier = "==5.0.3" },
     { name = "requests", specifier = "==2.32.4" },
     { name = "ruff", marker = "extra == 'linting'", specifier = "==0.9.6" },
     { name = "safety", marker = "extra == 'security'", specifier = ">=3.6.2" },
     { name = "structlog", specifier = ">=24.2.0" },
 ]
 provides-extras = ["test", "linting", "security", "dev"]
+
+[[package]]
+name = "redis"
+version = "5.0.3"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/eb/fc/8e822fd1e0a023c5ff80ca8c469b1d854c905ebb526ba38a90e7487c9897/redis-5.0.3.tar.gz", hash = "sha256:4973bae7444c0fbed64a06b87446f79361cb7e4ec1538c022d696ed7a5015580", size = 4580976, upload-time = "2024-03-10T15:18:57.599Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/bb/f1/a384c5582d9a28e4a02eb1a2c279668053dd09aafeb08d2bd4dd323fc466/redis-5.0.3-py3-none-any.whl", hash = "sha256:5da9b8fe9e1254293756c16c008e8620b3d15fcc6dde6babde9541850e72a32d", size = 251756, upload-time = "2024-03-10T15:18:54.892Z" },
+]
 
 [[package]]
 name = "referencing"

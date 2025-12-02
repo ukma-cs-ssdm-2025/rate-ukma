@@ -18,6 +18,10 @@ dependencies = [
     # Database
     "psycopg2-binary==2.9.10",
 
+    # Cache
+    "redis==5.0.3",
+    "django-redis==5.4.0",
+
     # Security
     "cryptography>=41.0.0",
     "PyJWT==2.9.0",
