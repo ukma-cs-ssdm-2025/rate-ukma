@@ -133,7 +133,7 @@ export function DataTable<TData>({
 									<TableRow
 										key={row.id}
 										data-state={row.getIsSelected() && "selected"}
-										data-highlighted={highlighted || undefined}
+										data-highlighted={highlighted ? true : undefined}
 										className={cn(
 											onRowClick && "group cursor-pointer",
 											highlighted &&

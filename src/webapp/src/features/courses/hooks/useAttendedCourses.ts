@@ -7,7 +7,9 @@ export function useAttendedCourses() {
 
 	const attendedCourseIds = useMemo(() => {
 		if (!data) return new Set<string>();
-		return new Set(data.map((course) => course.id).filter(Boolean) as string[]);
+		return new Set(
+			data.map((course) => course.id).filter((id): id is string => Boolean(id)),
+		);
 	}, [data]);
 
 	return {
