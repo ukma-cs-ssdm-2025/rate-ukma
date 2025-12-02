@@ -146,11 +146,11 @@ describe("filterTransformations", () => {
 			});
 		});
 
-		it("should convert semester year string to number", () => {
+		it("should include semester year as string (academic year range)", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_FILTERS,
-				semesterYear: "2024",
+				semesterYear: "2024–2025",
 			};
 
 			// Act
@@ -158,9 +158,9 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).toEqual({
-				semester_year: 2024,
+				semester_year: "2024–2025",
 			});
-			expect(typeof result.semester_year).toBe("number");
+			expect(typeof result.semester_year).toBe("string");
 		});
 
 		it("should exclude semester year when empty string", () => {
@@ -280,7 +280,7 @@ describe("filterTransformations", () => {
 				department: "dept-2",
 				instructor: "instructor-3",
 				semesterTerm: "SPRING",
-				semesterYear: "2025",
+				semesterYear: "2024–2025",
 				courseType: "ELECTIVE",
 				speciality: "spec-4",
 				difficultyRange: [2, 4] as [number, number],
@@ -297,7 +297,7 @@ describe("filterTransformations", () => {
 				department: "dept-2",
 				instructor: "instructor-3",
 				semester_term: "SPRING",
-				semester_year: 2025,
+				semester_year: "2024–2025",
 				typeKind: "ELECTIVE",
 				speciality: "spec-4",
 				avg_difficulty_min: 2,

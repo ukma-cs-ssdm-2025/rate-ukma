@@ -461,7 +461,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "semesterYear",
-				label: "Рік: 2025",
+				label: "Навчальний рік: 2025",
 			});
 		});
 
