@@ -1,6 +1,6 @@
 interface RatingCommentProps {
-	comment: string | null | undefined;
-	emptyMessage?: string;
+	readonly comment: string | null | undefined;
+	readonly emptyMessage?: string;
 }
 
 export function RatingComment({

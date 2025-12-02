@@ -5,8 +5,8 @@ import {
 import { cn } from "@/lib/utils";
 
 interface RatingStatsProps {
-	difficulty: number | undefined;
-	usefulness: number | undefined;
+	readonly difficulty: number | undefined;
+	readonly usefulness: number | undefined;
 }
 
 export function RatingStats({ difficulty, usefulness }: RatingStatsProps) {
