@@ -50,60 +50,29 @@ rate-ukma/
 - **Main README:** [`README.md`](../README.md) - Project overview, tech stack, running instructions
 - **Backend README:** [`src/backend/README.md`](../src/backend/README.md) - Django setup, virtual environment, IDE integration
 - **Frontend README:** [`src/webapp/README.md`](../src/webapp/README.md) - React setup, dependencies, IDE integration
-- **Frontend Conventions:** [`src/webapp/AGENTS.md`](../src/webapp/CLAUDE.md) - React patterns, component structure, tooling
+- **Frontend Conventions:** [`src/webapp/AGENTS.md`](../src/webapp/AGENTS.md) - React patterns, component structure, tooling
 - **Architecture Docs:** [`docs/architecture/`](../docs/architecture/) - High-level design, ADRs, UML diagrams
 - **API Documentation:** [`docs/api/`](../docs/api/) - REST API design, OpenAPI schema, versioning
 - **Testing Strategy:** [`docs/testing/testing-strategy.md`](../docs/testing/testing-strategy.md) - Test approach and quality gates
 
 ## Commit Message Convention
 
-**CRITICAL:** All commits MUST follow semantic commit style with issue numbers:
+All commits MUST follow semantic commit style: `<type>(#<issue_number>): <description>`
 
-```
-<type>(#<issue_number>): <description>
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `style`, `perf`
 
-Examples:
-- fix(#42): resolve authentication redirect loop
-- feat(#101): add scatter plot visualization
-- refactor(#89): extract course service logic
-- test(#56): add coverage for rating validation
-- docs(#23): update API authentication guide
-- chore(#78): upgrade Django to 5.2.8
-```
+## Code Formatting
 
-### Common Types
-- `feat`: New features
-- `fix`: Bug fixes
-- `refactor`: Code restructuring
-- `test`: Test additions/changes
-- `docs`: Documentation updates
-- `chore`: Dependency updates, tooling
-- `style`: Code style/formatting (no logic change)
-- `perf`: Performance improvements
+- **Backend:** `ruff format src/backend && ruff check src/backend --fix`
+- **Frontend:** `pnpm check` and `pnpm format --write` (from `src/webapp/`)
 
-## Code Formatting Requirements
+## Final Review: Remove AI Code Slop
 
-### Backend (Python)
+Before completing any task, check the diff against main and remove AI-generated slop:
 
-**ALWAYS format with ruff before committing:**
+- Extra comments that a human wouldn't add or are inconsistent with the file
+- Unnecessary defensive checks or try/catch blocks (especially for trusted codepaths)
+- Casts to `any` to bypass type issues
+- Any style inconsistent with the rest of the file
 
-```bash
-# From project root
-ruff format src/backend
-ruff check src/backend --fix
-
-# Or using pre-commit
-pre-commit run ruff-format --all-files
-pre-commit run ruff --all-files
-```
-
-### Frontend (TypeScript/React)
-
-**ALWAYS format with Biome before committing:**
-
-```bash
-# From src/webapp directory
-pnpm check         # Lint and format check
-pnpm format --write  # Auto-fix formatting
-pnpm lint          # Lint only
-```
+Report with a 1-3 sentence summary of changes made.
