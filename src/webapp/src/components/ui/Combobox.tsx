@@ -93,10 +93,10 @@ function Combobox({
 										setOpen(false);
 									}}
 								>
-									<span className="truncate">{option.label}</span>
+									<span className="break-words">{option.label}</span>
 									<CheckIcon
 										className={cn(
-											"ml-auto size-4",
+											"ml-auto size-4 shrink-0",
 											value === option.value ? "opacity-100" : "opacity-0",
 										)}
 									/>
