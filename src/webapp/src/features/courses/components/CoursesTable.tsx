@@ -131,6 +131,7 @@ interface CoursesTableProps {
 }
 
 const SCATTER_COLLAPSE_STORAGE_KEY = "courses:scatter-open";
+const FULLSCREEN_TRANSITION_DELAY_MS = 200;
 
 const columns: ColumnDef<CourseList>[] = [
 	{
@@ -315,19 +316,14 @@ export function CoursesTable({
 		return stored ?? true;
 	});
 	const hasInitializedRef = useRef(false);
-	const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-		null,
-	);
+	const fullscreenTimeoutRef = useRef<number | null>(null);
 
 	const clearFullscreenTimeout = useCallback(() => {
 		const timeoutId = fullscreenTimeoutRef.current;
-		if (timeoutId !== null) {
-			const win = globalThis.window !== undefined ? globalThis.window : null;
-			const clearFn = win?.clearTimeout ?? clearTimeout;
-			clearFn(timeoutId);
+		if (timeoutId === null) return;
 
-			fullscreenTimeoutRef.current = null;
-		}
+		clearTimeout(timeoutId);
+		fullscreenTimeoutRef.current = null;
 	}, []);
 
 	const form = useForm({
@@ -375,20 +371,17 @@ export function CoursesTable({
 
 		setIsScatterPlotOpen(true);
 
-		if (typeof document !== "undefined" && "startViewTransition" in document) {
-			(
-				document as Document & {
-					startViewTransition: (cb: () => void) => void;
-				}
-			).startViewTransition(runNavigation);
+		if ("startViewTransition" in document) {
+			document.startViewTransition(runNavigation);
 			return;
 		}
 
 		clearFullscreenTimeout();
 
-		const win = globalThis.window !== undefined ? globalThis.window : null;
-		const setFn = win?.setTimeout ?? setTimeout;
-		fullscreenTimeoutRef.current = setFn(runNavigation, 200);
+		fullscreenTimeoutRef.current = globalThis.window.setTimeout(
+			runNavigation,
+			FULLSCREEN_TRANSITION_DELAY_MS,
+		);
 	}, [clearFullscreenTimeout, deferredFilters, navigate]);
 
 	useEffect(

@@ -5,10 +5,7 @@ export interface PersistentStorage {
 }
 
 function hasLocalStorage(): boolean {
-	return (
-		globalThis.window !== undefined &&
-		globalThis.window.localStorage !== undefined
-	);
+	return globalThis.window?.localStorage !== undefined;
 }
 
 export class LocalStorageAdapter implements PersistentStorage {
