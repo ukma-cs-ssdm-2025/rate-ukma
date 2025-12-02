@@ -18,20 +18,36 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { BookOpen, Filter, Loader2 } from "lucide-react";
+import {
+	BookOpen,
+	ChevronDown,
+	Filter,
+	Loader2,
+	Maximize2,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
+import { Button } from "@/components/ui/Button";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/Collapsible";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
-import type { CourseList } from "@/lib/api/generated";
+import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { localStorageAdapter } from "@/lib/storage";
+import { cn } from "@/lib/utils";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import { CoursesEmptyState } from "./CoursesEmptyState";
+import { CoursesScatterPlot } from "./CoursesScatterPlot";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import {
 	DEFAULT_FILTERS,
@@ -51,6 +67,59 @@ interface PaginationInfo {
 	totalPages: number;
 }
 
+type ScatterPlotPreviewCardProps = Readonly<{
+	filters: CoursesListParams;
+	onOpenFullscreen?: () => void;
+	heightClass: string;
+	title?: string;
+	subtitle?: string;
+	showHeader?: boolean;
+}>;
+
+function ScatterPlotPreviewCard({
+	filters,
+	onOpenFullscreen,
+	heightClass,
+	title = "Карта курсів",
+	subtitle = "Корисність та складність курсів",
+	showHeader = true,
+}: ScatterPlotPreviewCardProps) {
+	const containerClass = cn(
+		"relative w-full overflow-hidden",
+		showHeader ? "rounded-lg border bg-card shadow-sm" : "bg-transparent",
+		heightClass,
+	);
+
+	return (
+		<div className={containerClass}>
+			<div className="absolute inset-0">
+				<CoursesScatterPlot filters={filters} variant="mini" />
+			</div>
+
+			{showHeader && (
+				<div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 px-4 py-3 bg-gradient-to-b from-background/95 via-background/70 to-transparent">
+					<div className="max-w-[70%] space-y-1">
+						<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+							{title}
+						</p>
+						<p className="text-sm text-foreground/80">{subtitle}</p>
+					</div>
+					<Button
+						size="sm"
+						variant="secondary"
+						className="gap-2 shadow-sm"
+						onClick={onOpenFullscreen}
+					>
+						<Maximize2 className="h-4 w-4" />
+						<span className="hidden sm:inline">Повний екран</span>
+						<span className="sm:hidden">Відкрити</span>
+					</Button>
+				</div>
+			)}
+		</div>
+	);
+}
+
 interface CoursesTableProps {
 	data: CourseList[];
 	isLoading: boolean;
@@ -60,6 +129,9 @@ interface CoursesTableProps {
 	pagination?: PaginationInfo;
 	initialFilters?: FilterState;
 }
+
+const SCATTER_COLLAPSE_STORAGE_KEY = "courses:scatter-open";
+const FULLSCREEN_TRANSITION_DELAY_MS = 200;
 
 const columns: ColumnDef<CourseList>[] = [
 	{
@@ -236,6 +308,23 @@ export function CoursesTable({
 	});
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
+	const isDesktop = useMediaQuery("(min-width: 768px)");
+	const [isScatterPlotOpen, setIsScatterPlotOpen] = useState<boolean>(() => {
+		const stored = localStorageAdapter.getItem<boolean>(
+			SCATTER_COLLAPSE_STORAGE_KEY,
+		);
+		return stored ?? true;
+	});
+	const hasInitializedRef = useRef(false);
+	const fullscreenTimeoutRef = useRef<number | null>(null);
+
+	const clearFullscreenTimeout = useCallback(() => {
+		const timeoutId = fullscreenTimeoutRef.current;
+		if (timeoutId === null) return;
+
+		clearTimeout(timeoutId);
+		fullscreenTimeoutRef.current = null;
+	}, []);
 
 	const form = useForm({
 		defaultValues: initialFilters,
@@ -249,6 +338,58 @@ export function CoursesTable({
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
+
+	useEffect(() => {
+		form.reset(initialFilters);
+	}, [form, initialFilters]);
+
+	useEffect(() => {
+		localStorageAdapter.setItem(
+			SCATTER_COLLAPSE_STORAGE_KEY,
+			isScatterPlotOpen,
+		);
+	}, [isScatterPlotOpen]);
+
+	// Only initialize scatter plot state once on mount, don't reset on viewport changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only run once on mount
+	useEffect(() => {
+		if (hasInitializedRef.current) return;
+		hasInitializedRef.current = true;
+
+		if (!isDesktop) {
+			setIsScatterPlotOpen(true);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	const openExploreWithAnimation = useCallback(() => {
+		const runNavigation = () =>
+			navigate({
+				to: "/explore",
+				search: filtersToSearchParams(deferredFilters),
+			});
+
+		setIsScatterPlotOpen(true);
+
+		if ("startViewTransition" in document) {
+			document.startViewTransition(runNavigation);
+			return;
+		}
+
+		clearFullscreenTimeout();
+
+		fullscreenTimeoutRef.current = globalThis.window.setTimeout(
+			runNavigation,
+			FULLSCREEN_TRANSITION_DELAY_MS,
+		);
+	}, [clearFullscreenTimeout, deferredFilters, navigate]);
+
+	useEffect(
+		() => () => {
+			clearFullscreenTimeout();
+		},
+		[clearFullscreenTimeout],
+	);
 
 	const apiSorting = useMemo(() => {
 		if (sorting.length === 0) return {};
@@ -343,27 +484,27 @@ export function CoursesTable({
 			JSON.stringify(combinedFilters) !==
 			JSON.stringify(previousFiltersRef.current);
 
-		if (!hasFiltersChanged) {
-			return;
+		if (hasFiltersChanged) {
+			if (pagination.pageIndex !== 0) {
+				setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+			}
+
+			const timeout = setTimeout(() => {
+				previousFiltersRef.current = combinedFilters;
+
+				const filtersWithPagination = {
+					...combinedFilters,
+					page: 1,
+					page_size: pagination.pageSize,
+				};
+
+				onFiltersChange?.(filtersWithPagination);
+			}, 500);
+
+			return () => clearTimeout(timeout);
 		}
 
-		if (pagination.pageIndex !== 0) {
-			setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-		}
-
-		const timeout = setTimeout(() => {
-			previousFiltersRef.current = combinedFilters;
-
-			const filtersWithPagination = {
-				...combinedFilters,
-				page: 1,
-				page_size: pagination.pageSize,
-			};
-
-			onFiltersChange?.(filtersWithPagination);
-		}, 500);
-
-		return () => clearTimeout(timeout);
+		return undefined;
 	}, [combinedFilters, onFiltersChange]);
 
 	const handleResetFilters = useCallback(() => {
@@ -424,6 +565,54 @@ export function CoursesTable({
 							/>
 						</div>
 					</div>
+
+					{isDesktop ? (
+						<Collapsible
+							open={isScatterPlotOpen}
+							onOpenChange={setIsScatterPlotOpen}
+							className="border rounded-lg overflow-hidden bg-card shadow-sm"
+						>
+							<div className="px-4 py-3 border-b bg-muted/20 flex items-center justify-between">
+								<h3 className="font-medium text-sm">Карта курсів</h3>
+								<div className="flex items-center gap-2">
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-8 gap-2 text-muted-foreground hover:text-foreground"
+										onClick={openExploreWithAnimation}
+									>
+										<Maximize2 className="h-4 w-4" />
+										<span className="hidden sm:inline">Повний екран</span>
+									</Button>
+									<CollapsibleTrigger asChild>
+										<Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+											<ChevronDown
+												className={`h-4 w-4 transition-transform duration-200 ${
+													isScatterPlotOpen ? "rotate-180" : ""
+												}`}
+											/>
+											<span className="sr-only">Toggle</span>
+										</Button>
+									</CollapsibleTrigger>
+								</div>
+							</div>
+							<CollapsibleContent>
+								<ScatterPlotPreviewCard
+									filters={combinedFilters}
+									showHeader={false}
+									heightClass="h-[350px]"
+								/>
+							</CollapsibleContent>
+						</Collapsible>
+					) : (
+						<ScatterPlotPreviewCard
+							filters={combinedFilters}
+							onOpenFullscreen={openExploreWithAnimation}
+							heightClass="h-[260px]"
+							title="Карта курсів"
+							subtitle="Торкніться, щоб розкрити на весь екран"
+						/>
+					)}
 
 					{renderTableContent()}
 				</div>
