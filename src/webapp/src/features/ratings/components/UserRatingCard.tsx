@@ -24,7 +24,7 @@ export function UserRatingCard({
 	const { user } = useAuth();
 	const difficultyValue = rating.difficulty?.toFixed(1) ?? "—";
 	const usefulnessValue = rating.usefulness?.toFixed(1) ?? "—";
-	
+
 	const getUserDisplayName = () => {
 		if (rating.is_anonymous) {
 			return "Анонімний відгук";

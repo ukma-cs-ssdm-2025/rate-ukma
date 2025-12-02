@@ -136,7 +136,6 @@ function CourseDetailsRoute() {
 					offeringId={selectedOffering.id}
 					courseName={course.title}
 					existingRating={ratedOffering?.rated || null}
-					ratingId={ratedOffering?.rated?.id}
 				/>
 			)}
 

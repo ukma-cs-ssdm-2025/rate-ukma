@@ -22,8 +22,6 @@ export class RatingModal extends BasePage {
 
 	// Action buttons
 	private readonly saveButton: Locator;
-	private readonly deleteButton: Locator;
-	private readonly confirmDeleteButton: Locator;
 
 	constructor(page: Page) {
 		super(page);
@@ -56,12 +54,6 @@ export class RatingModal extends BasePage {
 		this.saveButton = page
 			.locator("button")
 			.filter({ hasText: /Зберегти|Надіслати/ });
-		this.deleteButton = page.locator("button").filter({ hasText: /Видалити/ });
-		this.confirmDeleteButton = page
-			.locator("button.bg-destructive.text-white")
-			.filter({
-				hasText: "Видалити",
-			});
 	}
 
 	async isVisible(): Promise<boolean> {
@@ -157,14 +149,6 @@ export class RatingModal extends BasePage {
 	async submitRating(): Promise<void> {
 		await this.waitForElement(this.saveButton);
 		await this.clickWithRetry(this.saveButton);
-	}
-
-	async deleteRating(): Promise<void> {
-		await this.waitForElement(this.deleteButton);
-		await this.clickWithRetry(this.deleteButton);
-
-		await this.waitForElement(this.confirmDeleteButton);
-		await this.clickWithRetry(this.confirmDeleteButton);
 	}
 
 	async fillRatingForm(data: RatingData): Promise<void> {

@@ -88,7 +88,8 @@ export function MyRatingCard({
 						<div className="flex items-baseline gap-2">
 							<span className="text-xs text-muted-foreground/90">•</span>
 							<span className="text-xs text-muted-foreground/90 leading-none relative top-[2px]">
-								Відгук залишено: {rating?.is_anonymous ? "Анонімно" : "Не анонімно"}
+								Відгук залишено:{" "}
+								{rating?.is_anonymous ? "Анонімно" : "Не анонімно"}
 							</span>
 						</div>
 					</div>
@@ -110,7 +111,6 @@ export function MyRatingCard({
 					offeringId={offeringId}
 					courseName={course.course_title}
 					existingRating={rating}
-					ratingId={rating?.id}
 					onSuccess={handleRatingSuccess}
 				/>
 			)}

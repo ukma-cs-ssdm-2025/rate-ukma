@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -47,7 +46,6 @@ interface RatingFormProps {
 	readonly isLoading?: boolean;
 	readonly isEditMode?: boolean;
 	readonly initialData?: RatingFormData;
-	readonly onDelete?: () => void;
 }
 
 export function RatingForm({
@@ -56,7 +54,6 @@ export function RatingForm({
 	isLoading = false,
 	isEditMode = false,
 	initialData,
-	onDelete,
 }: RatingFormProps) {
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
@@ -176,18 +173,6 @@ export function RatingForm({
 				/>
 
 				<div className="flex justify-end gap-3">
-					{isEditMode && onDelete && (
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => onDelete?.()}
-							disabled={isLoading}
-							className="flex items-center gap-2"
-						>
-							<Trash2 className="h-4 w-4 text-destructive" />
-							Видалити
-						</Button>
-					)}
 					<Button
 						type="button"
 						variant="outline"
