@@ -12,13 +12,18 @@ import {
 	getCoursesRetrieveQueryKey,
 	getStudentsMeCoursesRetrieveQueryKey,
 	getStudentsMeGradesRetrieveQueryKey,
-	type InlineRating,
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
-type RatingWithAnonymousFlag = InlineRating & { is_anonymous?: boolean };
+interface ExistingRating {
+	id?: string;
+	difficulty?: number;
+	usefulness?: number;
+	comment?: string | null;
+	is_anonymous?: boolean;
+}
 
 interface RatingModalProps {
 	readonly isOpen: boolean;
@@ -26,7 +31,7 @@ interface RatingModalProps {
 	readonly courseId: string;
 	readonly offeringId: string;
 	readonly courseName?: string;
-	readonly existingRating?: RatingWithAnonymousFlag | null;
+	readonly existingRating?: ExistingRating | null;
 	readonly onSuccess?: () => void;
 }
 
@@ -98,8 +103,8 @@ export function RatingModal({
 
 	const initialData: RatingFormData | undefined = existingRating
 		? {
-				difficulty: existingRating.difficulty,
-				usefulness: existingRating.usefulness,
+				difficulty: existingRating.difficulty ?? 3,
+				usefulness: existingRating.usefulness ?? 3,
 				comment: existingRating.comment || "",
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
