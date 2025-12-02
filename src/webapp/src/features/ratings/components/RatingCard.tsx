@@ -18,7 +18,7 @@ export function RatingCard({ rating }: Readonly<RatingCardProps>) {
 	const usefulnessValue = rating.usefulness?.toFixed(1) ?? "—";
 
 	return (
-		<article className="py-4">
+		<article className="py-4 px-4">
 			<div className="flex flex-wrap items-start justify-between gap-3 mb-2">
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">
 					<span className="font-medium">{displayName}</span>
