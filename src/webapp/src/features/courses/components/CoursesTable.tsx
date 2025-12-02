@@ -58,6 +58,7 @@ import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
 } from "../filterTransformations";
+import { useAttendedCourses } from "../hooks/useAttendedCourses";
 import { filtersToSearchParams } from "../urlSync";
 
 interface PaginationInfo {
@@ -318,6 +319,15 @@ export function CoursesTable({
 	const hasInitializedRef = useRef(false);
 	const fullscreenTimeoutRef = useRef<number | null>(null);
 
+	const { attendedCourseIds } = useAttendedCourses();
+
+	const isRowHighlighted = useCallback(
+		(course: CourseList) => {
+			return course.id ? attendedCourseIds.has(course.id) : false;
+		},
+		[attendedCourseIds],
+	);
+
 	const clearFullscreenTimeout = useCallback(() => {
 		const timeoutId = fullscreenTimeoutRef.current;
 		if (timeoutId === null) return;
@@ -540,6 +550,7 @@ export function CoursesTable({
 				onRowClick={onRowClick}
 				totalRows={serverPagination?.total}
 				serverPageCount={serverPagination?.totalPages}
+				isRowHighlighted={isRowHighlighted}
 			/>
 		);
 	};
