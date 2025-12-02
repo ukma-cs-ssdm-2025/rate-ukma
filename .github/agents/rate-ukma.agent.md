@@ -47,13 +47,13 @@ rate-ukma/
 
 **Always skim these before making changes:**
 
-- **Main README:** [`README.md`](../README.md) - Project overview, tech stack, running instructions
-- **Backend README:** [`src/backend/README.md`](../src/backend/README.md) - Django setup, virtual environment, IDE integration
-- **Frontend README:** [`src/webapp/README.md`](../src/webapp/README.md) - React setup, dependencies, IDE integration
-- **Frontend Conventions:** [`src/webapp/AGENTS.md`](../src/webapp/AGENTS.md) - React patterns, component structure, tooling
-- **Architecture Docs:** [`docs/architecture/`](../docs/architecture/) - High-level design, ADRs, UML diagrams
-- **API Documentation:** [`docs/api/`](../docs/api/) - REST API design, OpenAPI schema, versioning
-- **Testing Strategy:** [`docs/testing/testing-strategy.md`](../docs/testing/testing-strategy.md) - Test approach and quality gates
+- **Main README:** [`README.md`](../../README.md) - Project overview, tech stack, running instructions
+- **Backend README:** [`src/backend/README.md`](../../src/backend/README.md) - Django setup, virtual environment, IDE integration
+- **Frontend README:** [`src/webapp/README.md`](../../src/webapp/README.md) - React setup, dependencies, IDE integration
+- **Frontend Conventions:** [`src/webapp/AGENTS.md`](../../src/webapp/AGENTS.md) - React patterns, component structure, tooling
+- **Architecture Docs:** [`docs/architecture/`](../../docs/architecture/) - High-level design, ADRs, UML diagrams
+- **API Documentation:** [`docs/api/`](../../docs/api/) - REST API design, OpenAPI schema, versioning
+- **Testing Strategy:** [`docs/testing/testing-strategy.md`](../../docs/testing/testing-strategy.md) - Test approach and quality gates
 
 ## Commit Message Convention
 
