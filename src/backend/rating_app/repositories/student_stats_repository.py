@@ -42,14 +42,17 @@ class StudentStatisticsRepository:
             rated = None
             if rating_obj:
                 rated = {
+                    "id": str(rating_obj.id),
                     "difficulty": rating_obj.difficulty,
                     "usefulness": rating_obj.usefulness,
                     "comment": rating_obj.comment,
                     "created_at": rating_obj.created_at,
+                    "is_anonymous": rating_obj.is_anonymous,
                 }
 
             offering_data = {
                 "id": str(offering.id),
+                "course_id": course_id,
                 "year": offering.semester.year,
                 "season": offering.semester.term,
                 "rated": rated,
@@ -85,10 +88,12 @@ class StudentStatisticsRepository:
             rated = None
             if rating_obj:
                 rated = {
+                    "id": str(rating_obj.id),
                     "difficulty": rating_obj.difficulty,
                     "usefulness": rating_obj.usefulness,
                     "comment": rating_obj.comment,
                     "created_at": rating_obj.created_at,
+                    "is_anonymous": rating_obj.is_anonymous,
                 }
 
             result.append(

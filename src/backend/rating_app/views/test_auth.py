@@ -8,6 +8,7 @@ import pytest
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("rating_app.views.auth.redirect")
 def test_microsoft_login_redirects(mock_redirect, api_client):
     # Arrange
@@ -24,6 +25,7 @@ def test_microsoft_login_redirects(mock_redirect, api_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("rating_app.views.auth.authenticate")
 @patch("rating_app.views.auth.django_login")
 def test_login_successful(mock_django_login, mock_authenticate, api_client):
@@ -44,6 +46,7 @@ def test_login_successful(mock_django_login, mock_authenticate, api_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("rating_app.views.auth.authenticate")
 def test_login_invalid_credentials(mock_authenticate, api_client):
     # Arrange
@@ -63,6 +66,7 @@ def test_login_invalid_credentials(mock_authenticate, api_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("rating_app.views.auth.django_logout")
 def test_logout_successful(mock_logout, api_client):
     # Arrange
@@ -76,3 +80,22 @@ def test_logout_successful(mock_logout, api_client):
     assert response.status_code == status.HTTP_200_OK
     assert response.data["detail"] == "Successfully logged out"
     mock_logout.assert_called_once()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_session_returns_active_user(token_client):
+    response = token_client.get("/api/v1/auth/session/")
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["is_authenticated"] is True
+    assert data["user"]["email"] == token_client.user.email
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_session_returns_unauthorized_for_anonymous(api_client):
+    response = api_client.get("/api/v1/auth/session/")
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

@@ -4,6 +4,7 @@ import pytest
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_courses_list_no_filters(token_client, course_factory):
     # Arrange
     num_courses = 5
@@ -21,6 +22,7 @@ def test_courses_list_no_filters(token_client, course_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_courses_paging(token_client, course_factory):
     # Arrange
     num_courses = 7
@@ -42,6 +44,7 @@ def test_courses_paging(token_client, course_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_department_and_faculty(token_client, course_factory):
     # Arrange
     course = course_factory.create()
@@ -60,6 +63,7 @@ def test_filter_by_department_and_faculty(token_client, course_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_instructor(
     token_client,
     course_factory,
@@ -83,6 +87,7 @@ def test_filter_by_instructor(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_name(token_client, course_factory):
     # Arrange
     unique_title = "UniqueCourseTitle123"
@@ -99,12 +104,13 @@ def test_filter_by_name(token_client, course_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_semester(token_client, course_factory):
     # Arrange
     semester_year = 2024
     semester_term = "FALL"
     course_factory.create()
-    url = f"/api/v1/courses/?semesterYear={semester_year}&semesterTerm={semester_term}"
+    url = f"/api/v1/courses/?semester_year={semester_year}&semester_term={semester_term}"
 
     # Act
     response = token_client.get(url)
@@ -114,6 +120,7 @@ def test_filter_by_semester(token_client, course_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_speciality_and_typekind(token_client, course_factory, course_speciality_factory):
     # Arrange
     course = course_factory.create()
@@ -129,6 +136,7 @@ def test_filter_by_speciality_and_typekind(token_client, course_factory, course_
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_sorting_params(token_client, course_factory):
     # Arrange
     course_factory.create_batch(3)
@@ -142,6 +150,7 @@ def test_sorting_params(token_client, course_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_invalid_semester_term(course_factory, token_client):
     # Arrange
     course_factory.create_batch(3)
@@ -155,6 +164,7 @@ def test_invalid_semester_term(course_factory, token_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_non_existent_department(course_factory, token_client):
     # Arrange
     course_factory.create_batch(10)
@@ -170,6 +180,7 @@ def test_non_existent_department(course_factory, token_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_course_retrieve(course_factory, token_client):
     # Arrange
     existing = course_factory()
@@ -183,6 +194,7 @@ def test_course_retrieve(course_factory, token_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_non_existent_course_retrieve(course_factory, token_client):
     # Arrange
     course_factory.create_batch(10)
@@ -197,6 +209,7 @@ def test_non_existent_course_retrieve(course_factory, token_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_course_list_pagination_last_page(token_client, course_factory):
     # Arrange
     total_courses = 12
@@ -216,6 +229,7 @@ def test_course_list_pagination_last_page(token_client, course_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_multiple_parameters(
     token_client, course_factory, course_offering_factory, semester_factory
 ):
@@ -239,6 +253,7 @@ def test_filter_by_multiple_parameters(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_course_list_with_avg_filters(token_client, course_factory):
     # Arrange
     course_factory.create_batch(5)
@@ -252,6 +267,7 @@ def test_course_list_with_avg_filters(token_client, course_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_course_list_with_invalid_page_default_value(token_client, course_factory):
     # Arrange
     course_factory.create_batch(3)
@@ -269,6 +285,7 @@ def test_course_list_with_invalid_page_default_value(token_client, course_factor
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_course_retrieve_with_ratings(
     token_client, course_factory, course_offering_factory, rating_factory
 ):
@@ -289,6 +306,7 @@ def test_course_retrieve_with_ratings(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_type_kind(token_client, course_factory, course_speciality_factory):
     # Arrange
     course = course_factory()
@@ -304,6 +322,7 @@ def test_filter_by_type_kind(token_client, course_factory, course_speciality_fac
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_course_list_response_structure(token_client, course_factory):
     course_factory.create_batch(2)
     url = "/api/v1/courses/"
@@ -322,6 +341,7 @@ def test_course_list_response_structure(token_client, course_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_course_retrieve_invalid_uuid_format(token_client):
     # Arrange
     url = "/api/v1/courses/not-a-valid-uuid/"

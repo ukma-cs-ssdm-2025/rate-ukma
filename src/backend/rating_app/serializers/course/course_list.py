@@ -12,7 +12,11 @@ class CourseListSerializer(serializers.ModelSerializer):
 
     department = serializers.UUIDField(source="department.id", read_only=True)
     department_name = serializers.CharField(source="department.name", read_only=True)
+    faculty_id = serializers.UUIDField(source="department.faculty.id", read_only=True)
     faculty_name = serializers.CharField(source="department.faculty.name", read_only=True)
+    faculty_custom_abbreviation = serializers.CharField(
+        source="department.faculty.custom_abbreviation", read_only=True
+    )
     avg_difficulty = serializers.FloatField(
         source="avg_difficulty_annot", read_only=True, allow_null=True
     )
@@ -31,7 +35,9 @@ class CourseListSerializer(serializers.ModelSerializer):
             "status",
             "department",
             "department_name",
+            "faculty_id",
             "faculty_name",
+            "faculty_custom_abbreviation",
             # read
             "avg_difficulty",
             "avg_usefulness",
@@ -41,7 +47,9 @@ class CourseListSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "department_name",
+            "faculty_id",
             "faculty_name",
+            "faculty_custom_abbreviation",
             "avg_difficulty",
             "avg_usefulness",
             "ratings_count",

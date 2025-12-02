@@ -15,6 +15,10 @@ from rating_app.serializers import (
 from rating_app.serializers import ErrorEnvelopeSerializer as Err
 from rating_app.serializers.analytics import CourseAnalyticsSerializer
 from rating_app.serializers.auth import CSRFTokenSerializer, SessionSerializer
+from rating_app.serializers.course_offering import (
+    CourseOfferingListResponseSerializer,
+    CourseOfferingSerializer,
+)
 
 NOT_FOUND = "Not found"
 INVALID_VALUE = "Invalid value"
@@ -143,7 +147,7 @@ R_INSTRUCTOR = {
 }
 
 R_STUDENT_RATINGS = {
-    200: OpenApiResponse(StudentRatingsLightSerializer, "OK"),
+    200: OpenApiResponse(StudentRatingsLightSerializer(many=True), "OK"),
     **common_errors(),
 }
 
@@ -153,5 +157,15 @@ R_STUDENT_RATINGS_DETAILED = {
 }
 R_ANALYTICS = {
     200: OpenApiResponse(CourseAnalyticsSerializer, "OK"),
+    **common_errors(include_404=True),
+}
+
+R_COURSE_OFFERING_LIST = {
+    200: OpenApiResponse(forced_singular_serializer(CourseOfferingListResponseSerializer), "OK"),
+    **common_errors(include_404=True),
+}
+
+R_COURSE_OFFERING = {
+    200: OpenApiResponse(CourseOfferingSerializer, "OK"),
     **common_errors(include_404=True),
 }

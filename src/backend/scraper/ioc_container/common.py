@@ -10,6 +10,7 @@ from rating_app.ioc_container.repositories import (
     speciality_repository,
     student_repository,
 )
+from rating_app.ioc_container.services import student_service
 from scraper.services.db_ingestion.progress_tracker import InjectionProgressTracker
 
 from ..services.db_ingestion.composite import CoursesIngestion
@@ -34,6 +35,7 @@ def course_db_injector() -> CourseDbInjector:
         course_instructor_repository(),
         enrollment_repository(),
         injection_progress_tracker(),
+        student_service(),
     )
 
 

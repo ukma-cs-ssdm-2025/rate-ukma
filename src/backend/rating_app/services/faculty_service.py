@@ -10,7 +10,14 @@ class FacultyService(IFilterable):
 
     def get_filter_options(self) -> list[dict[str, Any]]:
         faculties = self._get_sorted_faculties()
-        return [{"id": faculty.id, "name": faculty.name} for faculty in faculties]
+        return [
+            {
+                "id": faculty.id,
+                "name": faculty.name,
+                "custom_abbreviation": faculty.custom_abbreviation,
+            }
+            for faculty in faculties
+        ]
 
     def _get_sorted_faculties(self):
         return sorted(

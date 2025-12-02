@@ -47,6 +47,7 @@ test = [
     "coverage>=7.10.6",
     "pytest-cov==7.0.0",
     "factory-boy==3.3.3",
+    "freezegun==1.5.5",
 ]
 linting = ["ruff==0.9.6", "isort==5.12.0", "flake8==6.1.0"]
 security = [

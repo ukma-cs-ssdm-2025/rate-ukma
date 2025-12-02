@@ -449,6 +449,80 @@ paths:
                     detail: Authentication credentials were not provided
                     status: 401
           description: Unauthorized
+  /api/v1/course-offerings/{course_offering_id}/:
+    get:
+      operationId: course_offerings_retrieve
+      description: Retrieve a specific course offering by ID.
+      summary: Get course offering details
+      parameters:
+      - in: path
+        name: course_offering_id
+        schema:
+          type: string
+          format: uuid
+        description: Unique identifier of course offering
+        required: true
+      tags:
+      - course-offerings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseOffering'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/courses/:
     get:
       operationId: courses_list
@@ -681,6 +755,80 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/courses/{course_id}/offerings/:
+    get:
+      operationId: courses_offerings_list
+      description: List all offerings  for a specific course.
+      summary: List offerings for a course
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+          format: uuid
+        description: Unique identifier of offering course
+        required: true
+      tags:
+      - course-offerings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseOfferingListResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/courses/{course_id}/ratings/:
     get:
       operationId: courses_ratings_list
@@ -783,13 +931,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RatingCreateParams'
+              $ref: '#/components/schemas/RatingCreateRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/RatingCreateParams'
+              $ref: '#/components/schemas/RatingCreateRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RatingCreateParams'
+              $ref: '#/components/schemas/RatingCreateRequest'
         required: true
       security:
       - cookieAuth: []
@@ -1304,7 +1452,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StudentRatingsLight'
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudentRatingsLight'
           description: OK
         '400':
           content:
@@ -1527,7 +1677,14 @@ components:
         department_name:
           type: string
           readOnly: true
+        faculty_id:
+          type: string
+          format: uuid
+          readOnly: true
         faculty_name:
+          type: string
+          readOnly: true
+        faculty_custom_abbreviation:
           type: string
           readOnly: true
         avg_difficulty:
@@ -1587,6 +1744,85 @@ components:
       - previous_page
       - total
       - total_pages
+    CourseOffering:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_title:
+          type: string
+          nullable: true
+          readOnly: true
+        semester_id:
+          type: string
+          format: uuid
+          readOnly: true
+        semester_year:
+          type: integer
+          nullable: true
+          readOnly: true
+        semester_term:
+          type: string
+          nullable: true
+          readOnly: true
+        code:
+          type: string
+          readOnly: true
+        exam_type:
+          allOf:
+          - $ref: '#/components/schemas/ExamTypeEnum'
+          readOnly: true
+        practice_type:
+          allOf:
+          - $ref: '#/components/schemas/PracticeTypeEnum'
+          readOnly: true
+        credits:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+          readOnly: true
+        weekly_hours:
+          type: integer
+          readOnly: true
+        lecture_count:
+          type: integer
+          readOnly: true
+          nullable: true
+        practice_count:
+          type: integer
+          readOnly: true
+          nullable: true
+        max_students:
+          type: integer
+          readOnly: true
+          nullable: true
+        max_groups:
+          type: integer
+          readOnly: true
+          nullable: true
+        group_size_min:
+          type: integer
+          readOnly: true
+          nullable: true
+        group_size_max:
+          type: integer
+          readOnly: true
+          nullable: true
+    CourseOfferingListResponse:
+      type: object
+      properties:
+        course_offerings:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseOffering'
+      required:
+      - course_offerings
     CourseSpecialityInline:
       type: object
       description: Inline serializer for displaying course specialities with type
@@ -1601,6 +1837,16 @@ components:
           readOnly: true
         type_kind:
           $ref: '#/components/schemas/TypeKindEnum'
+        speciality_alias:
+          type: string
+          readOnly: true
+        faculty_id:
+          type: string
+          format: uuid
+          readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
       required:
       - type_kind
     CourseTypeOption:
@@ -1647,6 +1893,14 @@ components:
       required:
       - detail
       - status
+    ExamTypeEnum:
+      enum:
+      - EXAM
+      - CREDIT
+      type: string
+      description: |-
+        * `EXAM` - Exam
+        * `CREDIT` - Credit
     FacultyOption:
       type: object
       properties:
@@ -1655,6 +1909,9 @@ components:
           format: uuid
         name:
           type: string
+        custom_abbreviation:
+          type: string
+          nullable: true
       required:
       - id
       - name
@@ -1703,11 +1960,17 @@ components:
         id:
           type: string
           readOnly: true
+        course_id:
+          type: string
+          readOnly: true
         year:
           type: integer
           readOnly: true
         season:
           type: string
+          readOnly: true
+        can_rate:
+          type: boolean
           readOnly: true
         rated:
           allOf:
@@ -1717,6 +1980,9 @@ components:
     InlineRating:
       type: object
       properties:
+        id:
+          type: string
+          readOnly: true
         difficulty:
           type: integer
         usefulness:
@@ -1727,13 +1993,19 @@ components:
           type: string
           format: date-time
           readOnly: true
+        is_anonymous:
+          type: boolean
       required:
       - comment
       - difficulty
+      - is_anonymous
       - usefulness
     InlineRatingDetailed:
       type: object
       properties:
+        id:
+          type: string
+          readOnly: true
         difficulty:
           type: integer
           readOnly: true
@@ -1809,46 +2081,41 @@ components:
     PatchedRatingPatchParams:
       properties:
         difficulty:
-          anyOf:
-          - maximum: 5
-            minimum: 1
-            type: integer
-          - type: 'null'
           default: null
+          maximum: 5
+          minimum: 1
           title: Difficulty
+          type: integer
         usefulness:
-          anyOf:
-          - maximum: 5
-            minimum: 1
-            type: integer
-          - type: 'null'
           default: null
+          maximum: 5
+          minimum: 1
           title: Usefulness
+          type: integer
         comment:
-          anyOf:
-          - type: string
-          - type: 'null'
           default: null
           title: Comment
+          type: string
         is_anonymous:
-          anyOf:
-          - type: boolean
-          - type: 'null'
-          default: null
+          default: false
           title: Is Anonymous
+          type: boolean
       title: RatingPatchParams
       type: object
-    RatingCreateParams:
+    PracticeTypeEnum:
+      enum:
+      - PRACTICE
+      - SEMINAR
+      type: string
+      description: |-
+        * `PRACTICE` - Practice
+        * `SEMINAR` - Seminar
+    RatingCreateRequest:
       properties:
         course_offering:
           description: UUID of the course offering being rated
           format: uuid
           title: Course Offering
-          type: string
-        student:
-          description: UUID of the student creating the rating
-          format: uuid
-          title: Student
           type: string
         difficulty:
           maximum: 5
@@ -1861,21 +2128,18 @@ components:
           title: Usefulness
           type: integer
         comment:
-          anyOf:
-          - type: string
-          - type: 'null'
           default: null
           title: Comment
+          type: string
         is_anonymous:
           default: false
           title: Is Anonymous
           type: boolean
       required:
       - course_offering
-      - student
       - difficulty
       - usefulness
-      title: RatingCreateParams
+      title: RatingCreateRequest
       type: object
     RatingListResponse:
       type: object
@@ -1925,11 +2189,9 @@ components:
           title: Usefulness
           type: integer
         comment:
-          anyOf:
-          - type: string
-          - type: 'null'
           default: null
           title: Comment
+          type: string
         is_anonymous:
           default: false
           title: Is Anonymous
@@ -2047,6 +2309,9 @@ components:
         faculty_name:
           type: string
           nullable: true
+        faculty_custom_abbreviation:
+          type: string
+          nullable: true
       required:
       - faculty_id
       - id
@@ -2099,6 +2364,9 @@ components:
           - $ref: '#/components/schemas/InlineRatingDetailed'
           readOnly: true
           nullable: true
+        can_rate:
+          type: boolean
+          readOnly: true
     StudentRatingsLight:
       type: object
       properties:

@@ -8,6 +8,7 @@ from rating_app.models import (
     Course,
     CourseOffering,
     Department,
+    Enrollment,
     Faculty,
     Instructor,
     Rating,
@@ -63,8 +64,8 @@ class CourseAdmin(VersionAdmin):
 
 @admin.register(Faculty)
 class FacultyAdmin(VersionAdmin):
-    list_display = ("name", "departments_count", "specialities_count")
-    search_fields = ("name",)
+    list_display = ("name", "custom_abbreviation", "departments_count", "specialities_count")
+    search_fields = ("name", "custom_abbreviation")
     ordering = ("name",)
 
     def get_queryset(self, request):
@@ -97,7 +98,7 @@ class DepartmentAdmin(VersionAdmin):
 
 @admin.register(Speciality)
 class SpecialityAdmin(VersionAdmin):
-    list_display = ("name", "faculty", "courses_count")
+    list_display = ("name", "faculty", "alias", "courses_count")
     list_select_related = ("faculty",)
     list_filter = ("faculty",)
     search_fields = ("name", "faculty__name")
@@ -165,6 +166,25 @@ class InstructorAdmin(VersionAdmin):
     @admin.display(description="Courses")
     def courses_count(self, obj):
         return obj.course_offerings.count()
+
+
+@admin.register(Enrollment)
+class EnrollmentAdmin(VersionAdmin):
+    list_display = ("student", "offering", "enrolled_at")
+    list_select_related = ("student", "offering", "offering__course")
+    list_filter = ("offering__course__department", "status", "enrolled_at")
+    search_fields = (
+        "student__last_name",
+        "student__first_name",
+        "student__patronymic",
+        "offering__course__title",
+    )
+    ordering = ("-enrolled_at",)
+
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request).select_related("student", "offering", "offering__course")
+        )
 
 
 @admin.register(Student)

@@ -1,5 +1,5 @@
 ---
-name: Deploy
+name: Deploy Script
 
 on:
   workflow_call:
@@ -52,7 +52,6 @@ env:
 
 concurrency:
   group: deploy-${{ github.workflow }} # main-pipeline or prod-pipeline
-  cancel-in-progress: true
 
 jobs:
   deploy:
