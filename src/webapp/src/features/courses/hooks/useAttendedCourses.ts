@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 
-import type { StudentRatingsLight } from "@/lib/api/generated";
 import { useStudentsMeCoursesRetrieve } from "@/lib/api/generated";
 
 export function useAttendedCourses() {
@@ -14,7 +13,7 @@ export function useAttendedCourses() {
 	}, [data]);
 
 	return {
-		attendedCourses: data as StudentRatingsLight[] | undefined,
+		attendedCourses: data,
 		attendedCourseIds,
 		isLoading,
 		error,
