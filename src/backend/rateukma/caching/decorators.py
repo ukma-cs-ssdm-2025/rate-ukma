@@ -155,22 +155,39 @@ def _get_safe_representation(obj: Any) -> str:
     return repr(obj)
 
 
-def _convert_to_json_serializable(obj: Any) -> Any:
-    if isinstance(obj, UUID):
-        return str(obj)
+# ? possibly rewrite this function to use a more clear approach
+def _convert_to_json_serializable(obj: Any, _seen_objects: set | None = None) -> Any:
+    if _seen_objects is None:
+        _seen_objects = set()
 
-    if isinstance(obj, dict):
-        return {key: _convert_to_json_serializable(value) for key, value in obj.items()}
+    obj_id = id(obj)
+    if obj_id in _seen_objects:
+        return f"<circular reference to {type(obj).__name__}>"
+    _seen_objects.add(obj_id)
 
-    if isinstance(obj, (list, tuple)):
-        return [_convert_to_json_serializable(item) for item in obj]
+    try:
+        if isinstance(obj, str | int | float | bool) or obj is None:
+            return obj
 
-    if hasattr(obj, "__dict__"):
-        try:
-            return {
-                key: _convert_to_json_serializable(value) for key, value in obj.__dict__.items()
-            }
-        except (AttributeError, TypeError):
+        if isinstance(obj, UUID):
             return str(obj)
 
-    return obj
+        if hasattr(obj, "isoformat"):  # datetime, date, time objects
+            return obj.isoformat()
+
+        if isinstance(obj, dict):
+            return {
+                str(key): _convert_to_json_serializable(value, _seen_objects)
+                for key, value in obj.items()
+            }
+
+        if isinstance(obj, list | tuple):
+            return [_convert_to_json_serializable(item, _seen_objects) for item in obj]
+
+        # currently using str() as a generic fallback for any object
+        # later can use a more sophisticated approach to serialize the object,
+        # e.g. pickle or a more secure one
+        return str(obj)
+
+    finally:
+        _seen_objects.discard(obj_id)
