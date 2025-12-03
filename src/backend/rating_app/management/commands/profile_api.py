@@ -245,8 +245,6 @@ class Command(BaseCommand):
             for endpoint_name, data in errors:
                 self.stdout.write(f"  {endpoint_name}: {data['error']}")
 
-        return
-
     def _create_test_user(self, client: Client) -> User:
         speciality = Speciality.objects.all().first()
         test_user, created = User.objects.get_or_create(
@@ -258,7 +256,7 @@ class Command(BaseCommand):
             },
         )
 
-        student = Student.objects.get_or_create(
+        student, _ = Student.objects.get_or_create(
             user=test_user,
             defaults={
                 "first_name": "Test",
@@ -268,9 +266,8 @@ class Command(BaseCommand):
             },
         )
 
-        if created and student:
-            test_user.set_password("testpass123")
-            test_user.save()
+        test_user.set_password("testpass123")
+        test_user.save()
 
         client.force_login(test_user)
 

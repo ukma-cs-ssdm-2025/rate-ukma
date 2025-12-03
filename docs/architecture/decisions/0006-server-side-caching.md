@@ -30,7 +30,7 @@ We will implement Redis-based caching with a custom caching manager and decorato
 
 2. **Custom Caching Manager and Decorator**
    - Implement a `CacheManager` class that provides low-level cache operations with configurable TTL, serialization, and key generation
-   - Create a `@cached` decorator for method-level caching that supports:
+   - Create a `@rcached` decorator for method-level caching that supports:
      - Automatic key generation based on method parameters
      - Configurable TTL per endpoint
 
