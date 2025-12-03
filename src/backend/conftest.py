@@ -150,6 +150,12 @@ class FakeCacheManager:
     def set(self, key, value, ttl=None):
         self.store[key] = value
 
+    def invalidate_pattern(self, pattern):
+        keys_to_remove = [k for k in self.store.keys() if pattern.replace("*", "") in k]
+        for key in keys_to_remove:
+            del self.store[key]
+        return len(keys_to_remove)
+
 
 @pytest.fixture(autouse=True)
 def fake_cache(monkeypatch):

@@ -69,9 +69,14 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
         return f"{func_name}:{path_with_query}"
 
     def serialize(self, value: Response) -> dict[str, Any]:
-        return value.data if isinstance(value.data, dict) else {"data": value.data}
+        if isinstance(value.data, dict):
+            return {"_wrapped": False, **value.data}
+        return {"_wrapped": True, "data": value.data}
 
     def deserialize(self, data: dict[str, Any], value_type: type[Response]) -> Response:
+        if data.get("_wrapped"):
+            return Response(data=data["data"])
+        data.pop("_wrapped", None)
         return Response(data=data)
 
 

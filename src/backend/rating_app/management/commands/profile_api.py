@@ -247,7 +247,10 @@ class Command(BaseCommand):
 
     def _create_test_user(self, client: Client) -> User:
         speciality = Speciality.objects.all().first()
-        test_user, created = User.objects.get_or_create(
+        if speciality is None:
+            raise Exception("No specialities found")
+
+        test_user, _ = User.objects.get_or_create(
             username="test_profiler",
             defaults={
                 "email": "test@ukma.edu.ua",
@@ -256,7 +259,7 @@ class Command(BaseCommand):
             },
         )
 
-        student, _ = Student.objects.get_or_create(
+        _, _ = Student.objects.get_or_create(
             user=test_user,
             defaults={
                 "first_name": "Test",

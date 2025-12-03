@@ -29,6 +29,8 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - backend
     profiles:
       - dev
       - prod

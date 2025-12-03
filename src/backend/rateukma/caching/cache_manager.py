@@ -49,16 +49,16 @@ class RedisCacheManager(ICacheManager):
         self.default_ttl = default_ttl
         self.ignore_exceptions = ignore_exceptions
 
-    def get(self, key: str) -> Any | None:
+    def get(self, key: str) -> dict[str, Any] | None:
         try:
             cache_key = self._make_key(key)
             value = self.redis_client.get(cache_key)
-            return self._deserialize(value)
+            return self._deserialize(value) if value is not None else None
         except RedisError as e:
             self._handle_error("get", e)
             return None
 
-    def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
+    def set(self, key: str, value: dict[str, Any], ttl: int | None = None) -> bool:
         cache_key = self._make_key(key)
 
         serialized = self._serialize(value)
@@ -104,6 +104,7 @@ class RedisCacheManager(ICacheManager):
         return self.set(versioned_key, value, ttl)
 
     def invalidate_pattern(self, pattern: str) -> int:
+        logger.info("invalidating_pattern", pattern=pattern)
         try:
             full_pattern = self._make_key(pattern)
             cursor = 0
@@ -117,6 +118,9 @@ class RedisCacheManager(ICacheManager):
 
                 if cursor == 0:
                     break
+
+            logger.info("pattern_invalidated", pattern=pattern, deleted=deleted)
+            breakpoint()
 
             return deleted
         except RedisError as e:

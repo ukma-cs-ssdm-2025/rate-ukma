@@ -35,7 +35,7 @@ We will implement Redis-based caching with a custom caching manager and decorato
      - Configurable TTL per endpoint
 
 3. **Generic JSON-Serializable Caching**
-   - Support serialization of common Python data types: responses, Pydantic models, dataclasses, and, on demand,custom objects with bytestring support
+   - Support serialization of common Python data types: responses, Pydantic models, dataclasses - is configurable with custom extensions
    - Use JSON as the primary serialization format for compatibility and human readability
    - Implement custom serializers for complex objects that aren't natively JSON-serializable
 

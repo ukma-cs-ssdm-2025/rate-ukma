@@ -123,9 +123,9 @@ DATABASES = {
 # Redis Cache Configuration
 # ? if memory usage becomes >80%, consider using compression
 
-REDIS_HOST = config("REDIS_HOST", default="localhost")
-REDIS_PORT = config("REDIS_PORT", default=6379)
-REDIS_DB = config("REDIS_DB", default=0)
+REDIS_HOST = config("REDIS_HOST", default="redis")
+REDIS_PORT = config("REDIS_PORT", default=6379, cast=int)
+REDIS_DB = config("REDIS_DB", default=0, cast=int)
 
 CACHES = {
     "default": {
@@ -142,7 +142,7 @@ CACHES = {
             "IGNORE_EXCEPTIONS": False,
         },
         "KEY_PREFIX": "rateukma",
-        "TIMEOUT": 300,  # default TT
+        "TIMEOUT": 300,  # default TTL
     },
 }
 
