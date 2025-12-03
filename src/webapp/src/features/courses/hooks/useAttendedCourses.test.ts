@@ -125,4 +125,24 @@ describe("useAttendedCourses", () => {
 		// Assert
 		expect(result.current.error).toBe(mockError);
 	});
+
+	it("should return raw attendedCourses data", () => {
+		// Arrange
+		const mockData = [
+			{ id: "course-1", offerings: [{ id: "offering-1" }] },
+			{ id: "course-2", offerings: [] },
+		];
+
+		mockUseStudentsMeCoursesRetrieve.mockReturnValue({
+			data: mockData,
+			isLoading: false,
+			error: null,
+		} as ReturnType<typeof useStudentsMeCoursesRetrieve>);
+
+		// Act
+		const { result } = renderHookWithProviders(() => useAttendedCourses());
+
+		// Assert
+		expect(result.current.attendedCourses).toEqual(mockData);
+	});
 });
