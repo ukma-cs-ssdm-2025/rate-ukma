@@ -120,7 +120,6 @@ class RedisCacheManager(ICacheManager):
                     break
 
             logger.info("pattern_invalidated", pattern=pattern, deleted=deleted)
-            breakpoint()
 
             return deleted
         except RedisError as e:

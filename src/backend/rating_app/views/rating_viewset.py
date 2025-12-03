@@ -6,7 +6,7 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
-from rateukma.caching.decorators import rcached
+from rateukma.caching.decorators import invalidate_cache_for, rcached
 from rating_app.application_schemas.rating import (
     RatingCourseFilterParams,
     RatingCreateParams,
@@ -86,6 +86,7 @@ class RatingViewSet(viewsets.ViewSet):
         request=RatingCreateRequest,
         responses=R_RATING_CREATE,
     )
+    @invalidate_cache_for("list")
     @require_student
     def create(self, request, student: Student, course_id=None) -> Response:
         assert self.rating_service is not None
@@ -153,6 +154,7 @@ class RatingViewSet(viewsets.ViewSet):
         request=RatingPutParams,
         responses=R_RATING,
     )
+    @invalidate_cache_for("list")
     @require_rating_ownership
     def update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
@@ -174,6 +176,7 @@ class RatingViewSet(viewsets.ViewSet):
         request=RatingPatchParams,
         responses=R_RATING,
     )
+    @invalidate_cache_for("list")
     @require_rating_ownership
     def partial_update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
@@ -193,6 +196,7 @@ class RatingViewSet(viewsets.ViewSet):
         description="Delete a rating. Only the owner can delete their rating.",
         responses=R_NO_CONTENT,
     )
+    @invalidate_cache_for("list")
     @require_rating_ownership
     def destroy(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
