@@ -38,7 +38,10 @@ import {
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import type { CourseList, CoursesListParams } from "@/lib/api/generated";
-import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
+import {
+	useCoursesFilterOptionsRetrieve,
+	useStudentsMeCoursesRetrieve,
+} from "@/lib/api/generated";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { localStorageAdapter } from "@/lib/storage";
 import { cn } from "@/lib/utils";
@@ -58,7 +61,6 @@ import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
 } from "../filterTransformations";
-import { useAttendedCourses } from "../hooks/useAttendedCourses";
 import { filtersToSearchParams } from "../urlSync";
 
 interface PaginationInfo {
@@ -319,7 +321,16 @@ export function CoursesTable({
 	const hasInitializedRef = useRef(false);
 	const fullscreenTimeoutRef = useRef<number | null>(null);
 
-	const { attendedCourseIds } = useAttendedCourses();
+	const { data: studentCourses } = useStudentsMeCoursesRetrieve();
+
+	const attendedCourseIds = useMemo(() => {
+		if (!studentCourses) return new Set<string>();
+		return new Set(
+			studentCourses
+				.map((course) => course.id)
+				.filter((id): id is string => Boolean(id)),
+		);
+	}, [studentCourses]);
 
 	const isRowHighlighted = useCallback(
 		(course: CourseList) => {

@@ -14,7 +14,6 @@ import {
 	CourseStatsCards,
 	CourseStatsCardsSkeleton,
 } from "@/features/courses/components/CourseStatsCards";
-import { useAttendedCourses } from "@/features/courses/hooks/useAttendedCourses";
 import {
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
@@ -25,6 +24,7 @@ import type { InlineCourseOffering } from "@/lib/api/generated";
 import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
+	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
@@ -44,16 +44,16 @@ function CourseDetailsRoute() {
 
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 
-	const { attendedCourses, isLoading: isStudentCoursesLoading } =
-		useAttendedCourses();
+	const { data: studentCourses, isLoading: isStudentCoursesLoading } =
+		useStudentsMeCoursesRetrieve();
 
 	const { attendedOfferings, attendedCourseId } = React.useMemo(() => {
-		const courseData = attendedCourses?.find((c) => c.id === courseId);
+		const courseData = studentCourses?.find((c) => c.id === courseId);
 		return {
 			attendedOfferings: courseData?.offerings || [],
 			attendedCourseId: courseData?.id,
 		};
-	}, [attendedCourses, courseId]);
+	}, [studentCourses, courseId]);
 
 	const hasAttendedCourse = attendedOfferings.length > 0;
 
