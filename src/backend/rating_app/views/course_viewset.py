@@ -39,7 +39,7 @@ class CourseViewSet(viewsets.ViewSet):
         responses=R_COURSE_LIST,
     )
     @rcached(ttl=300)
-    def list(self, request, *args, **kwargs):
+    def list(self, request, *args, **kwargs) -> Response:
         assert self.course_service is not None
 
         try:
@@ -65,7 +65,7 @@ class CourseViewSet(viewsets.ViewSet):
     )
     @action(detail=False, methods=["get"], url_path="filter-options")
     @rcached(ttl=300)
-    def filter_options(self, request):
+    def filter_options(self, request) -> Response:
         assert self.course_service is not None
 
         filter_options = self.course_service.get_filter_options()
@@ -79,7 +79,8 @@ class CourseViewSet(viewsets.ViewSet):
         parameters=to_openapi((CourseReadParams, OpenApiParameter.PATH)),
         responses=R_COURSE,
     )
-    def retrieve(self, request, course_id=None, *args, **kwargs):
+    @rcached(ttl=300)
+    def retrieve(self, request, course_id=None, *args, **kwargs) -> Response:
         assert self.course_service is not None
 
         try:

@@ -38,7 +38,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         responses=R_ANALYTICS,
     )
     @rcached(ttl=300)
-    def list(self, request: Request, *args, **kwargs):
+    def list(self, request: Request, *args, **kwargs) -> Response:
         assert self.course_service is not None
 
         try:
@@ -59,7 +59,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         responses=R_ANALYTICS,
     )
     @rcached(ttl=300)
-    def retrieve(self, request, course_id=None, *args, **kwargs):
+    def retrieve(self, request, course_id=None, *args, **kwargs) -> Response:
         assert self.course_service is not None
 
         try:

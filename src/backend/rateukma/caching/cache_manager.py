@@ -1,5 +1,7 @@
 import json
+from datetime import date, datetime
 from typing import Any, Protocol
+from uuid import UUID
 
 import structlog
 from redis.client import Redis
@@ -9,9 +11,14 @@ logger = structlog.get_logger(__name__)
 
 
 class ICacheManager(Protocol):
-    def get(self, key: str) -> Any | None: ...
+    """
+    Interface for cache manager operations.
+    Stores values in JSON-serializable format.
+    """
 
-    def set(self, key: str, value: Any, ttl: int | None = None) -> bool: ...
+    def get(self, key: str) -> dict[str, Any] | None: ...
+
+    def set(self, key: str, value: dict[str, Any], ttl: int | None = None) -> bool: ...
 
     def invalidate(self, key: str) -> bool: ...
 
@@ -19,7 +26,7 @@ class ICacheManager(Protocol):
 
     def get_versioned(self, key: str) -> Any | None: ...
 
-    def set_versioned(self, key: str, value: Any, ttl: int | None = None) -> bool: ...
+    def set_versioned(self, key: str, value: dict[str, Any], ttl: int | None = None) -> bool: ...
 
     def get_versioned_key(self, key: str) -> str: ...
 
@@ -86,8 +93,7 @@ class RedisCacheManager(ICacheManager):
             return 1
 
     def get_versioned_key(self, key: str) -> str:
-        version = self.get_versioned(key)
-        return f"{key}:v{version}"
+        return self._version_key(key)
 
     def get_versioned(self, key: str) -> Any | None:
         versioned_key = self.get_versioned_key(key)
@@ -139,7 +145,7 @@ class RedisCacheManager(ICacheManager):
         return f"{self.key_prefix}:version:{key}"
 
     def _serialize(self, value: Any) -> bytes:
-        return json.dumps(value).encode("utf-8")
+        return json.dumps(value, cls=CacheJsonDataEncoder).encode("utf-8")
 
     def _deserialize(self, value: bytes | str | None) -> Any | None:
         if value is None:
@@ -162,3 +168,16 @@ class RedisCacheManager(ICacheManager):
             return 0.0
 
         return round((hits / total) * 100, 2)
+
+
+class CacheJsonDataEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, UUID):
+            return str(obj)
+        if isinstance(obj, (datetime | date)):
+            return obj.isoformat()
+        if isinstance(obj, bytes):
+            return obj.hex()
+        if hasattr(obj, "__dict__"):
+            return repr(obj)
+        return super().default(obj)

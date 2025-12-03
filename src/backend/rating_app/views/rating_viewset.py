@@ -54,7 +54,7 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_LIST,
     )
     @rcached(ttl=300)
-    def list(self, request, course_id=None):
+    def list(self, request, course_id=None) -> Response:
         assert self.rating_service is not None
 
         try:
@@ -87,7 +87,7 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_CREATE,
     )
     @require_student
-    def create(self, request, student: Student, course_id=None):
+    def create(self, request, student: Student, course_id=None) -> Response:
         assert self.rating_service is not None
         # course_id is not used, will be potentially removed after using a different endpoint
 
@@ -134,7 +134,7 @@ class RatingViewSet(viewsets.ViewSet):
         ],
         responses=R_RATING,
     )
-    def retrieve(self, request, rating_id: str | None = None, *args, **kwargs):
+    def retrieve(self, request, rating_id: str | None = None, *args, **kwargs) -> Response:
         assert self.rating_service is not None
 
         try:
@@ -154,7 +154,7 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING,
     )
     @require_rating_ownership
-    def update(self, request, rating: Rating, student: Student, **kwargs):
+    def update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
 
         try:
@@ -175,7 +175,7 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING,
     )
     @require_rating_ownership
-    def partial_update(self, request, rating: Rating, student: Student, **kwargs):
+    def partial_update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
 
         try:
@@ -194,7 +194,7 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_NO_CONTENT,
     )
     @require_rating_ownership
-    def destroy(self, request, rating: Rating, student: Student, **kwargs):
+    def destroy(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
 
         self.rating_service.delete_rating(rating.id)
