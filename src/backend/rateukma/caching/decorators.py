@@ -16,7 +16,6 @@ def rcached[**P, RT](
     ttl: int | None = None,
     key: str | None = None,
     return_type: type[RT] | None = None,
-    invalidate_on: list[str] | None = None,
 ) -> Callable[[Callable[P, RT]], Callable[P, RT]]:
     def decorator(func: Callable[P, RT]) -> Callable[P, RT]:
         type_hints = get_type_hints(func)

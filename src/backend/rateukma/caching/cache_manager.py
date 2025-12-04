@@ -27,18 +27,11 @@ class ICacheManager(Protocol):
 
     def invalidate_pattern(self, pattern: str) -> int: ...
 
-    def get_versioned(self, key: str) -> Any | None: ...
-
-    def set_versioned(self, key: str, value: JSON_Serializable, ttl: int | None = None) -> bool: ...
-
-    def get_versioned_key(self, key: str) -> str: ...
-
-    def increment_version(self, key: str) -> int: ...
-
     def get_stats(self) -> dict[str, Any]: ...
 
 
 #! TODO: fix stubs (current code works, but PyRight complains)
+# On demand -> implement versioned cache
 
 
 class RedisCacheManager(ICacheManager):
@@ -88,26 +81,6 @@ class RedisCacheManager(ICacheManager):
             self._handle_error("delete", e)
             return False
 
-    def increment_version(self, key: str) -> int:
-        try:
-            version_key = self._version_key(key)
-            value = self.redis_client.incr(version_key)
-            return int(value)
-        except RedisError as e:
-            self._handle_error("increment_version", e)
-            return 1
-
-    def get_versioned_key(self, key: str) -> str:
-        return self._version_key(key)
-
-    def get_versioned(self, key: str) -> Any | None:
-        versioned_key = self.get_versioned_key(key)
-        return self.get(versioned_key)
-
-    def set_versioned(self, key: str, value: Any, ttl: int | None = None) -> bool:
-        versioned_key = self.get_versioned_key(key)
-        return self.set(versioned_key, value, ttl)
-
     def invalidate_pattern(self, pattern: str) -> int:
         logger.info("invalidating_pattern", pattern=pattern)
         try:
@@ -148,9 +121,6 @@ class RedisCacheManager(ICacheManager):
 
     def _make_key(self, key: str) -> str:
         return f"{self.key_prefix}:{key}"
-
-    def _version_key(self, key: str) -> str:
-        return f"{self.key_prefix}:version:{key}"
 
     def _serialize(self, value: Any) -> bytes:
         return json.dumps(value, cls=CacheJsonDataEncoder).encode("utf-8")
