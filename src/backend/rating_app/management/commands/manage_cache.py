@@ -4,7 +4,7 @@ from rateukma.caching.instances import redis_cache_manager
 
 
 class Command(BaseCommand):
-    help = "Display rating_app Redis cache statistics and information"
+    help = "Display rating_app Redis cache statistics and information, or clear the cache"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -15,11 +15,26 @@ class Command(BaseCommand):
             default=0,
             help="Number of sample cache keys to show (default: 10 if flag used, 0 if not)",
         )
+        parser.add_argument(
+            "--clear",
+            action="store_true",
+            help="Clear all cache keys",
+        )
 
     def handle(self, *args, **options):
         keys_count = options.get("keys", 0)
+        should_clear = options.get("clear", False)
 
         cache_manager = redis_cache_manager()
+
+        if should_clear:
+            self.stdout.write("Clearing all cache keys...")
+            cleared_count = cache_manager.invalidate_pattern("*")
+            self.stdout.write(
+                self.style.SUCCESS(f"Successfully cleared {cleared_count} cache keys")  # type: ignore
+            )
+            return
+
         stats = cache_manager.get_stats()
 
         if not stats:

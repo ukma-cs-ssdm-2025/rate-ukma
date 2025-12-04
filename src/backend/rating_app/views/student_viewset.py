@@ -38,8 +38,8 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         "student is/was enrolled in with information about the rating.",
         responses=R_STUDENT_RATINGS_DETAILED,
     )
-    @rcached(ttl=300)
     @require_student
+    @rcached(ttl=300)
     def get_detailed_ratings(self, request, student: Student) -> Response:
         assert self.student_service is not None
 

@@ -1,6 +1,6 @@
 services:
   db-rateukma:
-    image: postgres:15-alpine
+    image: postgres:15
     container_name: "${COMPOSE_PROJECT_NAME}_postgres"
     restart: unless-stopped
     env_file:

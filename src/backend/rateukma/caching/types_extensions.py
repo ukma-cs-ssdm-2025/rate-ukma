@@ -55,10 +55,14 @@ class ICacheTypeExtension[V](Protocol):
 class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
     def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
         request = None
-        for arg in args:
+        request_index = None
+        for i, arg in enumerate(args):
             if isinstance(arg, Request):
                 request = arg
+                request_index = i
                 break
+
+        func_name = f"{func.__module__}.{func.__qualname__}"
 
         if request is None:
             return _make_cache_key_from_context(func, args, kwargs)
@@ -69,9 +73,17 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
             if query_string
             else f"{request.method}:{request.path}"
         )
-        func_name = f"{func.__module__}.{func.__qualname__}"
 
-        return f"{func_name}:{path_with_query}"
+        filtered_args = args
+        if request_index is not None:
+            filtered_args = args[:request_index] + args[request_index + 1 :]
+
+        if filtered_args or kwargs:
+            params_key = _make_cache_key_from_context(func, filtered_args, kwargs)
+            params_part = params_key[len(func_name) + 1 :]
+            return f"{func_name}:{path_with_query}:{params_part}"
+        else:
+            return f"{func_name}:{path_with_query}"
 
     def serialize(self, value: Response) -> JSON_Serializable:
         if isinstance(value.data, dict):
