@@ -139,7 +139,7 @@ CACHES = {
             },
             "SOCKET_CONNECT_TIMEOUT": 5,
             "SOCKET_TIMEOUT": 5,
-            "IGNORE_EXCEPTIONS": False,
+            "IGNORE_EXCEPTIONS": True,  # gracefully handle exceptions
         },
         "KEY_PREFIX": "rateukma",
         "TIMEOUT": 300,  # default TTL

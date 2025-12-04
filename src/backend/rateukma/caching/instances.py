@@ -31,7 +31,7 @@ def redis_cache_manager() -> ICacheManager:
         redis_client=redis_client,
         key_prefix="rateukma",
         default_ttl=300,  # 5 minutes
-        ignore_exceptions=False,
+        ignore_exceptions=True,  # gracefully handle exceptions
     )
 
 

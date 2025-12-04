@@ -38,7 +38,7 @@ def cache_manager(mock_redis_client) -> ICacheManager:
         redis_client=mock_redis_client,
         key_prefix="test",
         default_ttl=300,
-        ignore_exceptions=False,
+        ignore_exceptions=True,
     )
 
 
