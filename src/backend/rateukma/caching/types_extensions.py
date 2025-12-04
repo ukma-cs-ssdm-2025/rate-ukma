@@ -19,22 +19,26 @@ _RT = TypeVar("_RT")
 def _make_cache_key_from_context(func: Callable, args: tuple, kwargs: dict) -> str:
     func_name = f"{func.__module__}.{func.__qualname__}"
 
+    params_dict = {}
+
+    for i, arg in enumerate(args):
+        # skip self/cls and common instance patterns to avoid unstable repr
+        if hasattr(arg, "__dict__") and not isinstance(
+            arg, (str, int, float, bool, list, dict, tuple)
+        ):
+            continue
+        params_dict[f"arg_{i}"] = repr(arg)
+
+    for k, v in kwargs.items():
+        if k not in ("self", "cls", "request"):
+            params_dict[k] = repr(v)
+
     try:
-        params_dict = {}
-
-        for i, arg in enumerate(args):
-            params_dict[f"arg_{i}"] = repr(arg)
-
-        for k, v in kwargs.items():
-            if k not in ("self", "cls", "request"):
-                params_dict[k] = repr(v)
-
         params_str = json.dumps(params_dict, sort_keys=True, cls=CacheJsonDataEncoder)
+    except ValueError as e:
+        raise e
 
-        return f"{func_name}:{params_str}"
-
-    except Exception as e:
-        raise ValueError(f"Failed to serialize cache data: {e}") from e
+    return f"{func_name}:{params_str}"
 
 
 class ICacheTypeExtension[V](Protocol):
@@ -139,7 +143,7 @@ class PrimitiveCacheTypeExtension(ICacheTypeExtension[JSON_Serializable]):
 class CacheTypeExtensionRegistry:
     def __init__(
         self,
-        extensions: dict[type, ICacheTypeExtension],
+        extensions: dict[type | str, ICacheTypeExtension],
     ):
         self._extensions = extensions
 
@@ -154,10 +158,10 @@ class CacheTypeExtensionRegistry:
             return self._extensions[BaseModel]
 
         if is_dataclass(extension_type):
-            return DataclassCacheTypeExtension()
+            return self._extensions["dataclass"]
 
         if self._is_primitive_serializable_type(extension_type):
-            return PrimitiveCacheTypeExtension()
+            return self._extensions["primitive"]
 
         raise TypeError(f"No cache extension registered for type: {extension_type}")
 
