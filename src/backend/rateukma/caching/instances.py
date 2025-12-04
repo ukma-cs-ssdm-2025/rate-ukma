@@ -6,7 +6,7 @@ from redis import Redis
 
 from ..caching.cache_manager import ICacheManager, RedisCacheManager
 from ..ioc.decorators import once
-from .types_extenstions import (
+from .types_extensions import (
     BaseModelCacheTypeExtension,
     CacheTypeExtensionRegistry,
     DRFResponseCacheTypeExtension,

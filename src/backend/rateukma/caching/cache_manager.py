@@ -10,7 +10,7 @@ from redis.exceptions import RedisError
 logger = structlog.get_logger(__name__)
 
 
-JSON_Serializable = int | float | str | bool | list | dict | None
+JSON_Serializable = int | float | str | bool | list[Any] | dict[str, Any] | None
 
 
 class ICacheManager(Protocol):
@@ -38,7 +38,9 @@ class ICacheManager(Protocol):
     def get_stats(self) -> dict[str, Any]: ...
 
 
-# TODO: fix stubs
+#! TODO: fix stubs (current code works, but PyRight complains)
+
+
 class RedisCacheManager(ICacheManager):
     def __init__(
         self,

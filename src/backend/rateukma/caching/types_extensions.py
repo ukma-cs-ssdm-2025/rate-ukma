@@ -20,11 +20,16 @@ def _make_cache_key_from_context(func: Callable, args: tuple, kwargs: dict) -> s
     func_name = f"{func.__module__}.{func.__qualname__}"
 
     try:
-        params_str = json.dumps(
-            {k: repr(v) for k, v in kwargs.items() if k not in ("self", "cls", "request")},
-            sort_keys=True,
-            cls=CacheJsonDataEncoder,
-        )
+        params_dict = {}
+
+        for i, arg in enumerate(args):
+            params_dict[f"arg_{i}"] = repr(arg)
+
+        for k, v in kwargs.items():
+            if k not in ("self", "cls", "request"):
+                params_dict[k] = repr(v)
+
+        params_str = json.dumps(params_dict, sort_keys=True, cls=CacheJsonDataEncoder)
 
         return f"{func_name}:{params_str}"
 
@@ -73,9 +78,13 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
             return {"_wrapped": False, **value.data}
         return {"_wrapped": True, "data": value.data}
 
-    def deserialize(self, data: dict[str, Any], value_type: type[Response]) -> Response:
+    def deserialize(self, data: JSON_Serializable, value_type: type[Response]) -> Response:
+        if not isinstance(data, dict):
+            raise TypeError(f"Expected dict for Response deserialization, got {type(data)}")
+
         if data.get("_wrapped"):
             return Response(data=data["data"])
+
         data.pop("_wrapped", None)
         return Response(data=data)
 
@@ -87,7 +96,10 @@ class BaseModelCacheTypeExtension(ICacheTypeExtension[BaseModel]):
     def serialize(self, value: BaseModel) -> dict[str, Any]:
         return value.model_dump()
 
-    def deserialize(self, data: dict[str, Any], value_type: type[BaseModel]) -> BaseModel:
+    def deserialize(self, data: JSON_Serializable, value_type: type[BaseModel]) -> BaseModel:
+        if not isinstance(data, dict):
+            raise TypeError(f"Expected dict for BaseModel deserialization, got {type(data)}")
+
         return value_type.model_validate(data)
 
 
@@ -100,9 +112,13 @@ class DataclassCacheTypeExtension(ICacheTypeExtension[Any]):
             raise TypeError(f"{value} is not a dataclass instance")
         return asdict(value)  # type: ignore
 
-    def deserialize(self, data: dict[str, Any], value_type: type) -> Any:
+    def deserialize(self, data: JSON_Serializable, value_type: type) -> Any:
+        if not isinstance(data, dict):
+            raise TypeError(f"Expected dict for dataclass deserialization, got {type(data)}")
+
         if not is_dataclass(value_type):
             raise TypeError(f"{value_type} is not a dataclass")
+
         return value_type(**data)
 
 
