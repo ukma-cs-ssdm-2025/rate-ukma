@@ -10,7 +10,7 @@ import pytest
 from pydantic import BaseModel
 
 from rateukma.caching.cache_manager import ICacheManager, RedisCacheManager
-from rateukma.caching.decorators import rcached
+from rateukma.caching.decorators import invalidate_cache_for, rcached
 from rateukma.caching.types_extensions import (
     BaseModelCacheTypeExtension,
     DataclassCacheTypeExtension,
@@ -25,6 +25,7 @@ def mock_redis_client():
     client.get.return_value = None
     client.setex.return_value = True
     client.set.return_value = True
+    client.scan.return_value = (0, [])  # cursor=0 (done), keys=[]
     return client
 
 
@@ -224,3 +225,52 @@ class TestRCachedComponents:
         for key, value in kwargs.items():
             assert f"{key}" in key1
             assert f"{value}" in key1
+
+
+class TestCacheInvalidation:
+    class _TestService:
+        pass
+
+    def test_invalidate_cache_with_custom_pattern(self, cache_manager, mock_redis_client):
+        with (
+            patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager),
+            patch.object(cache_manager, "invalidate_pattern") as mock_invalidate,
+        ):
+            # Arrange
+            return_value = "executed"
+            pattern = "custom:*"
+            method_name = "test_method"
+
+            @invalidate_cache_for(method_name, pattern=pattern)
+            def test_operation():
+                return return_value
+
+            # Act
+            result = test_operation()
+
+            # Assert
+            assert result == return_value
+            mock_invalidate.assert_called_with(pattern)
+
+    def test_invalidate_cache_with_auto_pattern(self, cache_manager, mock_redis_client):
+        service_instance = self._TestService()
+
+        with (
+            patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager),
+            patch.object(cache_manager, "invalidate_pattern") as mock_invalidate,
+        ):
+            # Arrange
+            return_value = "executed"
+            method_name = "test_method"
+            pattern = f"*{service_instance.__class__.__name__}.{method_name}*"
+
+            @invalidate_cache_for(method_name)
+            def test_operation(self):
+                return return_value
+
+            # Act
+            result = test_operation(service_instance)
+
+            # Assert
+            assert result == return_value
+            mock_invalidate.assert_called_with(pattern)

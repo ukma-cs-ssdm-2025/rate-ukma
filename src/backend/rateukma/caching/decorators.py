@@ -89,11 +89,12 @@ def invalidate_cache_for(
 
             total_deleted = 0
 
-            logger.info(f"Invalidating cache for patterns: {patterns_to_try}")
             for pat in patterns_to_try:
                 total_deleted += cache_manager.invalidate_pattern(pat)
 
-            logger.info("invalidated_cache_keys", total_deleted=total_deleted)
+            logger.info(
+                "invalidated_cache_keys", total_deleted=total_deleted, seek_patterns=patterns_to_try
+            )
 
             return result
 
