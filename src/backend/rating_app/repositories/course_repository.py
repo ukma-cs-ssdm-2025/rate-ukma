@@ -22,7 +22,11 @@ logger = structlog.get_logger()
 
 class CourseRepository(IRepository[Course]):
     def get_all(self) -> list[Course]:
-        return list(Course.objects.all())
+        return list(
+            Course.objects.select_related("department__faculty")
+            .prefetch_related("offerings__semester", "course_specialities__speciality")
+            .all()
+        )
 
     def get_by_id(self, course_id: str) -> Course:
         try:

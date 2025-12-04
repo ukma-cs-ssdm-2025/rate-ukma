@@ -4,10 +4,16 @@ from rating_app.models.choices import EnrollmentStatus
 
 class EnrollmentRepository:
     def get_all(self) -> list[Enrollment]:
-        return list(Enrollment.objects.select_related("student", "offering").all())
+        return list(
+            Enrollment.objects.select_related(
+                "student__speciality", "offering__course", "offering__semester"
+            ).all()
+        )
 
     def get_by_id(self, enrollment_id: str) -> Enrollment:
-        return Enrollment.objects.select_related("student", "offering").get(id=enrollment_id)
+        return Enrollment.objects.select_related(
+            "student__speciality", "offering__course", "offering__semester"
+        ).get(id=enrollment_id)
 
     def get_or_upsert(
         self,
