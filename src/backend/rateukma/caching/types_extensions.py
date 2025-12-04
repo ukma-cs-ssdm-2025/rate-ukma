@@ -33,11 +33,7 @@ def _make_cache_key_from_context(func: Callable, args: tuple, kwargs: dict) -> s
         if k not in ("self", "cls", "request"):
             params_dict[k] = repr(v)
 
-    try:
-        params_str = json.dumps(params_dict, sort_keys=True, cls=CacheJsonDataEncoder)
-    except ValueError as e:
-        raise e
-
+    params_str = json.dumps(params_dict, sort_keys=True, cls=CacheJsonDataEncoder)
     return f"{func_name}:{params_str}"
 
 

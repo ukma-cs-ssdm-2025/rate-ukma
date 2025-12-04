@@ -62,11 +62,7 @@ def rcached[**P, RT](
                 )
 
             # try to get cached data
-            try:
-                ext = extension_registry.get_extension(cached_value_type)
-            except TypeError as e:
-                raise e
-
+            ext = extension_registry.get_extension(cached_value_type)
             cache_key = key or ext.get_cache_key(func, args, kwargs)
             cached_data = cache_manager.get(cache_key)
 
