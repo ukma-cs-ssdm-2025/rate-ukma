@@ -7,7 +7,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
 from rateukma.caching.cache_manager import ICacheManager
-from rateukma.caching.decorators import invalidate_cache_for, rcached
+from rateukma.caching.decorators import rcached
 from rating_app.application_schemas.rating import (
     RatingCourseFilterParams,
     RatingCreateParams,
@@ -88,10 +88,10 @@ class RatingViewSet(viewsets.ViewSet):
         request=RatingCreateRequest,
         responses=R_RATING_CREATE,
     )
-    @invalidate_cache_for("list")
     @require_student
     def create(self, request, student: Student, course_id=None) -> Response:
         assert self.rating_service is not None
+        assert self.cache_manager is not None
         # course_id is not used, will be potentially removed after using a different endpoint
 
         logger.info(
@@ -119,6 +119,9 @@ class RatingViewSet(viewsets.ViewSet):
         )
 
         rating = self.rating_service.create_rating(rating_params)
+
+        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
+        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
 
         logger.info(
             "rating_created",
@@ -168,7 +171,7 @@ class RatingViewSet(viewsets.ViewSet):
 
         rating = self.rating_service.update_rating(rating, update_params)
 
-        self.cache_manager.invalidate_pattern(f"**{student.id}**")
+        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
         self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
 
         logger.info("rating_updated", rating_id=rating.id)
@@ -195,7 +198,7 @@ class RatingViewSet(viewsets.ViewSet):
 
         response_serializer = RatingReadSerializer(rating)
 
-        self.cache_manager.invalidate_pattern(f"**{student.id}**")
+        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
         self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
 
         return Response(response_serializer.data, status=status.HTTP_200_OK)
@@ -212,7 +215,7 @@ class RatingViewSet(viewsets.ViewSet):
 
         self.rating_service.delete_rating(rating.id)
 
-        self.cache_manager.invalidate_pattern(f"**{student.id}**")
+        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
         self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
 
         return Response(status=status.HTTP_204_NO_CONTENT)
