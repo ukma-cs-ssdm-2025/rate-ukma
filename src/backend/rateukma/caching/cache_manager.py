@@ -10,15 +10,18 @@ from redis.exceptions import RedisError
 logger = structlog.get_logger(__name__)
 
 
+JSON_Serializable = int | float | str | bool | list | dict | None
+
+
 class ICacheManager(Protocol):
     """
     Interface for cache manager operations.
     Stores values in JSON-serializable format.
     """
 
-    def get(self, key: str) -> dict[str, Any] | None: ...
+    def get(self, key: str) -> JSON_Serializable | None: ...
 
-    def set(self, key: str, value: dict[str, Any], ttl: int | None = None) -> bool: ...
+    def set(self, key: str, value: JSON_Serializable, ttl: int | None = None) -> bool: ...
 
     def invalidate(self, key: str) -> bool: ...
 
@@ -26,13 +29,13 @@ class ICacheManager(Protocol):
 
     def get_versioned(self, key: str) -> Any | None: ...
 
-    def set_versioned(self, key: str, value: dict[str, Any], ttl: int | None = None) -> bool: ...
+    def set_versioned(self, key: str, value: JSON_Serializable, ttl: int | None = None) -> bool: ...
 
     def get_versioned_key(self, key: str) -> str: ...
 
     def increment_version(self, key: str) -> int: ...
 
-    def get_stats(self) -> dict: ...
+    def get_stats(self) -> dict[str, Any]: ...
 
 
 # TODO: fix stubs
@@ -49,7 +52,7 @@ class RedisCacheManager(ICacheManager):
         self.default_ttl = default_ttl
         self.ignore_exceptions = ignore_exceptions
 
-    def get(self, key: str) -> dict[str, Any] | None:
+    def get(self, key: str) -> JSON_Serializable | None:
         try:
             cache_key = self._make_key(key)
             value = self.redis_client.get(cache_key)
@@ -58,7 +61,7 @@ class RedisCacheManager(ICacheManager):
             self._handle_error("get", e)
             return None
 
-    def set(self, key: str, value: dict[str, Any], ttl: int | None = None) -> bool:
+    def set(self, key: str, value: JSON_Serializable, ttl: int | None = None) -> bool:
         cache_key = self._make_key(key)
 
         serialized = self._serialize(value)
@@ -126,7 +129,7 @@ class RedisCacheManager(ICacheManager):
             self._handle_error("invalidate_pattern", e)
             return 0
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         try:
             info = self.redis_client.info()
             return {

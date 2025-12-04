@@ -9,7 +9,6 @@ from ..ioc.decorators import once
 from .types_extenstions import (
     BaseModelCacheTypeExtension,
     CacheTypeExtensionRegistry,
-    DataclassCacheTypeExtension,
     DRFResponseCacheTypeExtension,
 )
 
@@ -40,8 +39,9 @@ def cache_type_extension_registry() -> CacheTypeExtensionRegistry:
         extensions={
             Response: DRFResponseCacheTypeExtension(),
             BaseModel: BaseModelCacheTypeExtension(),
-            DataclassCacheTypeExtension: DataclassCacheTypeExtension(),
         },
     )
+
+    # dataclasses and primitive types are handled by the registry
 
     return registry

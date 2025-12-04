@@ -37,7 +37,7 @@ def rcached[**P, RT](
 
             # try to get cached data
             ext = extension_registry.get_extension(cached_value_type)
-            cache_key = key or ext.get_cache_key(func, args, kwargs, cached_value_type)
+            cache_key = key or ext.get_cache_key(func, args, kwargs)
             cached_data = cache_manager.get(cache_key)
 
             # deserialize it and return

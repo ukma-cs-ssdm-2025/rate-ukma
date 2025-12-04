@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from pydantic import BaseModel
 
-from .cache_manager import CacheJsonDataEncoder
+from .cache_manager import CacheJsonDataEncoder, JSON_Serializable
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -38,17 +38,17 @@ class ICacheTypeExtension[V](Protocol):
     and cache key generation from function context
     """
 
-    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict, value: V) -> str:
-        """Generate cache key from function context (name + params) and value"""
+    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
+        """Generate cache key from function context (name + params)"""
         ...
 
-    def serialize(self, value: V) -> dict[str, Any]: ...
+    def serialize(self, value: V) -> JSON_Serializable: ...
 
-    def deserialize(self, data: dict[str, Any], value_type: type[V]) -> V: ...
+    def deserialize(self, data: JSON_Serializable, value_type: type[V]) -> V: ...
 
 
 class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
-    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict, value: Response) -> str:
+    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
         request = None
         for arg in args:
             if isinstance(arg, Request):
@@ -68,7 +68,7 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
 
         return f"{func_name}:{path_with_query}"
 
-    def serialize(self, value: Response) -> dict[str, Any]:
+    def serialize(self, value: Response) -> JSON_Serializable:
         if isinstance(value.data, dict):
             return {"_wrapped": False, **value.data}
         return {"_wrapped": True, "data": value.data}
@@ -81,15 +81,8 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
 
 
 class BaseModelCacheTypeExtension(ICacheTypeExtension[BaseModel]):
-    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict, value: BaseModel) -> str:
-        func_key = _make_cache_key_from_context(func, args, kwargs)
-
-        model_name = type(value).__name__
-        model_id = getattr(value, "id", None) or getattr(value, "pk", None)
-        if model_id:
-            return f"{func_key}:{model_name}:{model_id}"
-
-        return f"{func_key}:{model_name}"
+    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
+        return _make_cache_key_from_context(func, args, kwargs)
 
     def serialize(self, value: BaseModel) -> dict[str, Any]:
         return value.model_dump()
@@ -99,13 +92,8 @@ class BaseModelCacheTypeExtension(ICacheTypeExtension[BaseModel]):
 
 
 class DataclassCacheTypeExtension(ICacheTypeExtension[Any]):
-    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict, value: Any) -> str:
-        if not is_dataclass(value):
-            raise TypeError(f"{value} is not a dataclass instance")
-
-        func_key = _make_cache_key_from_context(func, args, kwargs)
-        value_type = type(value)
-        return f"{func_key}:{value_type.__name__}"
+    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
+        return _make_cache_key_from_context(func, args, kwargs)
 
     def serialize(self, value: Any) -> dict[str, Any]:
         if not is_dataclass(value):
@@ -116,6 +104,17 @@ class DataclassCacheTypeExtension(ICacheTypeExtension[Any]):
         if not is_dataclass(value_type):
             raise TypeError(f"{value_type} is not a dataclass")
         return value_type(**data)
+
+
+class PrimitiveCacheTypeExtension(ICacheTypeExtension[JSON_Serializable]):
+    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
+        return _make_cache_key_from_context(func, args, kwargs)
+
+    def serialize(self, value: Any) -> JSON_Serializable:
+        return value
+
+    def deserialize(self, data: JSON_Serializable, value_type: type) -> Any:
+        return data
 
 
 # TBD: class QuerySetCacheTypeExtension(ICacheTypeExtension[str, QuerySet]):
@@ -139,6 +138,12 @@ class CacheTypeExtensionRegistry:
             return self._extensions[BaseModel]
 
         if is_dataclass(extension_type):
-            return self._extensions[DataclassCacheTypeExtension]  # specific case for dataclasses
+            return DataclassCacheTypeExtension()
+
+        if self._is_primitive_serializable_type(extension_type):
+            return PrimitiveCacheTypeExtension()
 
         raise TypeError(f"No cache extension registered for type: {extension_type}")
+
+    def _is_primitive_serializable_type(self, extension_type: type) -> bool:
+        return extension_type in (int, float, str, bool, list, dict, type(None))
