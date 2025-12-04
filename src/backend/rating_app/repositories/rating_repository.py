@@ -96,12 +96,7 @@ class RatingRepository(IRepository[Rating]):
 
     def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> Rating:
         is_patch = isinstance(update_data, RatingPatchParams)
-
-        if is_patch:
-            fields_set = update_data.__pydantic_fields_set__
-            update_data_map = {k: v for k, v in update_data.model_dump().items() if k in fields_set}
-        else:
-            update_data_map = update_data.model_dump()
+        update_data_map = update_data.model_dump(exclude_unset=is_patch)
 
         if "comment" in update_data_map and update_data_map["comment"] is None:
             update_data_map["comment"] = ""
