@@ -18,6 +18,7 @@ test.describe("Course Page", () => {
 	});
 
 	test("navigates from courses page to course details page", async () => {
+		await coursesPage.clickFirstCourseCard();
 		expect(await courseDetailsPage.isPageLoaded()).toBe(true);
 	});
 });

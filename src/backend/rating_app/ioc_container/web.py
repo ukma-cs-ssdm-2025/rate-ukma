@@ -55,6 +55,7 @@ def course_ratings_list_create_view():
         {"get": "list", "post": "create"},
         rating_service=rating_service(),
         student_service=student_service(),
+        cache_manager=redis_cache_manager(),
     )
 
 
