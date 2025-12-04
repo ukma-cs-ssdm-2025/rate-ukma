@@ -10,7 +10,10 @@ import pytest
 from pydantic import BaseModel
 
 from rateukma.caching.cache_manager import ICacheManager, RedisCacheManager
-from rateukma.caching.decorators import invalidate_cache_for, rcached
+from rateukma.caching.decorators import (
+    invalidate_cache_for,
+    rcached,
+)
 from rateukma.caching.types_extensions import (
     BaseModelCacheTypeExtension,
     DataclassCacheTypeExtension,
@@ -239,9 +242,8 @@ class TestCacheInvalidation:
             # Arrange
             return_value = "executed"
             pattern = "custom:*"
-            method_name = "test_method"
 
-            @invalidate_cache_for(method_name, pattern=pattern)
+            @invalidate_cache_for(patterns=pattern)
             def test_operation():
                 return return_value
 
@@ -252,7 +254,7 @@ class TestCacheInvalidation:
             assert result == return_value
             mock_invalidate.assert_called_with(pattern)
 
-    def test_invalidate_cache_with_auto_pattern(self, cache_manager, mock_redis_client):
+    def test_invalidate_cache_with_method_name(self, cache_manager, mock_redis_client):
         service_instance = self._TestService()
 
         with (
@@ -262,7 +264,7 @@ class TestCacheInvalidation:
             # Arrange
             return_value = "executed"
             method_name = "test_method"
-            pattern = f"*{service_instance.__class__.__name__}.{method_name}*"
+            expected_pattern = f"*{service_instance.__class__.__name__}.{method_name}*"
 
             @invalidate_cache_for(method_name)
             def test_operation(self):
@@ -273,4 +275,27 @@ class TestCacheInvalidation:
 
             # Assert
             assert result == return_value
-            mock_invalidate.assert_called_with(pattern)
+            mock_invalidate.assert_called_with(expected_pattern)
+
+    def test_invalidate_cache_with_multiple_patterns(self, cache_manager, mock_redis_client):
+        with (
+            patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager),
+            patch.object(cache_manager, "invalidate_pattern") as mock_invalidate,
+        ):
+            # Arrange
+            return_value = "executed"
+            patterns = ["pattern1:*", "pattern2:*", "*common*"]
+
+            @invalidate_cache_for(patterns=patterns)
+            def test_operation():
+                return return_value
+
+            # Act
+            result = test_operation()
+
+            # Assert
+            assert result == return_value
+            assert mock_invalidate.call_count == len(patterns)
+            mock_invalidate.assert_any_call("pattern1:*")
+            mock_invalidate.assert_any_call("pattern2:*")
+            mock_invalidate.assert_any_call("*common*")

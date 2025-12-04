@@ -30,19 +30,24 @@ We will implement Redis-based caching with a custom caching manager and decorato
 
 2. **Custom Caching Manager and Decorator**
    - Implement a `CacheManager` class that provides low-level cache operations with configurable TTL, serialization, and key generation
+     - For now supports basic cache operations: get, set, invalidate, invalidate_pattern, get_stats
+     - On demand, we will implement versioned cache
    - Create a `@rcached` decorator for method-level caching that supports:
      - Automatic key generation based on method parameters
-     - Configurable TTL per endpoint
+     - Configurable TTL per endpoint  
+     - Value can be cached/retrieved manually by calling `CacheManager.set()` / `CacheManager.get()`
+   - Create a `@invalidate_cache_for` decorator for invalidating cache for a specific method
+     - Currently supports invalidating cache for a given pattern
+     - Cache can be invalidated manually by calling `CacheManager.invalidate()` or `CacheManager.invalidate_pattern()`
 
 3. **Generic JSON-Serializable Caching**
-   - Support serialization of common Python data types: responses, Pydantic models, dataclasses - is configurable with custom extensions
-   - Use JSON as the primary serialization format for compatibility and human readability
+   - Support serialization of common Python data types: responses, Pydantic models, dataclasses, primitive types - is configurable with custom extensions
+   - Use JSON-serializable format as the primary serialization format for compatibility and human readability
    - Implement custom serializers for complex objects that aren't natively JSON-serializable
 
 4. **Performance Monitoring and Benchmarking**
    - Include cache hit/miss ratios in application metrics
-   - Implement cache warming strategies for critical data
-   - Add cache bypass options for debugging and testing
+   - Add a command to get cache stats on demand
 
 ## Consequences
 
