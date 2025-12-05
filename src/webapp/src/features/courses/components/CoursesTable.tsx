@@ -38,7 +38,10 @@ import {
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import type { CourseList, CoursesListParams } from "@/lib/api/generated";
-import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
+import {
+	useCoursesFilterOptionsRetrieve,
+	useStudentsMeCoursesRetrieve,
+} from "@/lib/api/generated";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { localStorageAdapter } from "@/lib/storage";
 import { cn } from "@/lib/utils";
@@ -318,6 +321,24 @@ export function CoursesTable({
 	const hasInitializedRef = useRef(false);
 	const fullscreenTimeoutRef = useRef<number | null>(null);
 
+	const { data: studentCourses } = useStudentsMeCoursesRetrieve();
+
+	const attendedCourseIds = useMemo(() => {
+		if (!studentCourses) return new Set<string>();
+		return new Set(
+			studentCourses
+				.map((course) => course.id)
+				.filter((id): id is string => Boolean(id)),
+		);
+	}, [studentCourses]);
+
+	const isRowHighlighted = useCallback(
+		(course: CourseList) => {
+			return course.id ? attendedCourseIds.has(course.id) : false;
+		},
+		[attendedCourseIds],
+	);
+
 	const clearFullscreenTimeout = useCallback(() => {
 		const timeoutId = fullscreenTimeoutRef.current;
 		if (timeoutId === null) return;
@@ -540,6 +561,7 @@ export function CoursesTable({
 				onRowClick={onRowClick}
 				totalRows={serverPagination?.total}
 				serverPageCount={serverPagination?.totalPages}
+				isRowHighlighted={isRowHighlighted}
 			/>
 		);
 	};

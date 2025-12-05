@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type RenderOptions, render } from "@testing-library/react";
+import { type RenderOptions, render, renderHook } from "@testing-library/react";
 
 /**
  * Custom render function that wraps components with necessary providers
@@ -33,6 +33,42 @@ export function renderWithProviders(
 
 	return {
 		...render(ui, { wrapper: Wrapper, ...options }),
+		queryClient,
+	};
+}
+
+/**
+ * Custom renderHook function that wraps hooks with necessary providers
+ * Use this for testing hooks that depend on React Query
+ */
+export function renderHookWithProviders<Result, Props>(
+	renderCallback: (initialProps: Props) => Result,
+	options?: Readonly<{
+		queryClient?: QueryClient;
+		initialProps?: Props;
+	}>,
+) {
+	const queryClient =
+		options?.queryClient ??
+		new QueryClient({
+			defaultOptions: {
+				queries: {
+					gcTime: Number.POSITIVE_INFINITY,
+				},
+			},
+		});
+
+	function Wrapper({ children }: Readonly<{ children: ReactNode }>) {
+		return (
+			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+		);
+	}
+
+	return {
+		...renderHook(renderCallback, {
+			wrapper: Wrapper,
+			initialProps: options?.initialProps,
+		}),
 		queryClient,
 	};
 }
