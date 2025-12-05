@@ -3,6 +3,7 @@ import { LogOut, X } from "lucide-react";
 
 import { Drawer } from "@/components/ui/Drawer";
 import type { AuthUser } from "@/lib/auth";
+import { testIds } from "@/lib/test-ids";
 import type { NavigationItem, ThemeOption } from "./navigationData";
 import { themeOptions } from "./navigationData";
 import { Logo } from "../Logo";
@@ -139,6 +140,7 @@ export function MobileMenu({
 			}}
 			ariaLabel="Мобільне меню"
 			closeButtonLabel="Закрити меню"
+			data-testid={testIds.header.mobileMenu}
 		>
 			<div className="flex items-center justify-between">
 				<Logo />
@@ -148,6 +150,7 @@ export function MobileMenu({
 					className="h-9 w-9 rounded-full p-0"
 					onClick={() => onClose()}
 					aria-label="Закрити меню"
+					data-testid={testIds.header.mobileMenuCloseButton}
 				>
 					<X className="h-5 w-5" />
 				</Button>

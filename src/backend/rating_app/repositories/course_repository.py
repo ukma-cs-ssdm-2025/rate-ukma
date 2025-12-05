@@ -2,7 +2,7 @@ from typing import Any
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError
-from django.db.models import Avg, Count, F, QuerySet
+from django.db.models import Avg, Count, F, Q, QuerySet
 
 import structlog
 
@@ -12,7 +12,7 @@ from rating_app.exception.course_exceptions import (
     InvalidCourseIdentifierError,
 )
 from rating_app.models import Course, Department
-from rating_app.models.choices import CourseStatus
+from rating_app.models.choices import CourseStatus, SemesterTerm
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
@@ -22,7 +22,11 @@ logger = structlog.get_logger()
 
 class CourseRepository(IRepository[Course]):
     def get_all(self) -> list[Course]:
-        return list(Course.objects.all())
+        return list(
+            Course.objects.select_related("department__faculty")
+            .prefetch_related("offerings__semester", "course_specialities__speciality")
+            .all()
+        )
 
     def get_by_id(self, course_id: str) -> Course:
         try:
@@ -105,7 +109,7 @@ class CourseRepository(IRepository[Course]):
             q_filters["department_id"] = filters.department
 
         if filters.semester_year:
-            q_filters["offerings__semester__year"] = filters.semester_year
+            courses = self._apply_academic_year_filter(courses, filters.semester_year)
 
         if filters.semester_term:
             q_filters["offerings__semester__term"] = filters.semester_term
@@ -114,6 +118,36 @@ class CourseRepository(IRepository[Course]):
             q_filters["offerings__instructors__id"] = filters.instructor
 
         return courses.filter(**q_filters) if q_filters else courses
+
+    def _apply_academic_year_filter(
+        self, courses: QuerySet[Course], academic_year: str
+    ) -> QuerySet[Course]:
+        parsed = self._parse_academic_year(academic_year)
+        if not parsed:
+            return courses
+
+        start_year, end_year = parsed
+        return courses.filter(
+            Q(offerings__semester__year=start_year, offerings__semester__term=SemesterTerm.FALL)
+            | Q(
+                offerings__semester__year=end_year,
+                offerings__semester__term__in=[SemesterTerm.SPRING, SemesterTerm.SUMMER],
+            )
+        )
+
+    def _parse_academic_year(self, academic_year: str) -> tuple[int, int] | None:
+        try:
+            separator = "–" if "–" in academic_year else "-"
+            parts = academic_year.split(separator)
+            if len(parts) != 2:
+                return None
+            start_year = int(parts[0].strip())
+            end_year = int(parts[1].strip())
+            if end_year != start_year + 1:
+                return None
+            return (start_year, end_year)
+        except (ValueError, AttributeError):
+            return None
 
     def _apply_speciality_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteria

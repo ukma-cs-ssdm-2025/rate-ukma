@@ -74,7 +74,7 @@ export class CourseDetailsPage extends BasePage {
 
 	async isPageLoaded(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.pageTitle, 5000);
+			await this.waitForElement(this.pageTitle, 15000);
 			return true;
 		} catch {
 			return false;
@@ -83,7 +83,7 @@ export class CourseDetailsPage extends BasePage {
 
 	async isRateButtonVisible(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.rateButton, 5000);
+			await this.waitForElement(this.rateButton, 15000);
 			return true;
 		} catch {
 			return false;

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/Form";
 import { Slider } from "@/components/ui/Slider";
 import { Textarea } from "@/components/ui/Textarea";
+import { testIds } from "@/lib/test-ids";
 import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
@@ -73,7 +74,11 @@ export function RatingForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+			<form
+				onSubmit={form.handleSubmit(onSubmit)}
+				className="space-y-6"
+				data-testid={testIds.rating.form}
+			>
 				<FormField<RatingFormData, "difficulty">
 					control={form.control}
 					name="difficulty"
@@ -93,6 +98,7 @@ export function RatingForm({
 											(field.value ?? 3) as keyof typeof difficultyDescriptions
 										]
 									}
+									data-testid={testIds.rating.difficultySlider}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -119,6 +125,7 @@ export function RatingForm({
 											(field.value ?? 3) as keyof typeof usefulnessDescriptions
 										]
 									}
+									data-testid={testIds.rating.usefulnessSlider}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -136,6 +143,7 @@ export function RatingForm({
 								<Textarea
 									placeholder="Поділіться будь-якими думками про цей курс..."
 									{...field}
+									data-testid={testIds.rating.commentTextarea}
 								/>
 							</FormControl>
 							<FormDescription>
@@ -158,6 +166,7 @@ export function RatingForm({
 										onCheckedChange={(checked) =>
 											field.onChange(checked ?? false)
 										}
+										data-testid={testIds.rating.anonymousCheckbox}
 									/>
 								</FormControl>
 								<FormLabel className="m-0 text-sm font-medium">
@@ -178,10 +187,15 @@ export function RatingForm({
 						variant="outline"
 						onClick={onCancel}
 						disabled={isLoading}
+						data-testid={testIds.rating.cancelButton}
 					>
 						Скасувати
 					</Button>
-					<Button type="submit" disabled={isLoading}>
+					<Button
+						type="submit"
+						disabled={isLoading}
+						data-testid={testIds.rating.submitButton}
+					>
 						{(() => {
 							if (isLoading) {
 								return "Надсилання...";

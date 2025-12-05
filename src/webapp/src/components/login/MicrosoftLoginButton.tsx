@@ -5,6 +5,7 @@ import { PiMicrosoftOutlookLogoFill } from "react-icons/pi";
 
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth";
+import { testIds } from "@/lib/test-ids";
 
 type MicrosoftLoginButtonProps = {
 	className?: string;
@@ -37,6 +38,7 @@ export function MicrosoftLoginButton({
 			size="lg"
 			onClick={handleLoginClick}
 			disabled={isLoading}
+			data-testid={testIds.login.microsoftButton}
 		>
 			{isLoading ? (
 				<Loader2 className="h-6 w-6 animate-spin" />

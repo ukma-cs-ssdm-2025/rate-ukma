@@ -161,8 +161,8 @@ export function useCourseFiltersData({
 			},
 			{
 				key: "semesterYear",
-				label: "Рік",
-				placeholder: "Усі роки",
+				label: "Навчальний рік",
+				placeholder: "Усі навчальні роки",
 				value: filters.semesterYear,
 				options: semesterYears.map((year) => ({
 					value: year.value,
@@ -292,7 +292,7 @@ export function useCourseFiltersData({
 		} else if (selectedSemesterYearOption) {
 			badges.push({
 				key: "semesterYear",
-				label: `Рік: ${selectedSemesterYearOption.label}`,
+				label: `Навчальний рік: ${selectedSemesterYearOption.label}`,
 			});
 		}
 

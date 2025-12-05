@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
 import type { FilterOptions } from "@/lib/api/generated";
+import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
 import { formatDecimalValue } from "../courseFormatting";
@@ -201,6 +202,7 @@ function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
 			type="button"
 			onClick={onReset}
 			className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+			data-testid={testIds.filters.resetButton}
 		>
 			Скинути
 		</button>
@@ -243,7 +245,10 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 	}
 
 	return (
-		<Card className={cn("sticky top-6", className)}>
+		<Card
+			className={cn("sticky top-6", className)}
+			data-testid={testIds.filters.panel}
+		>
 			<CardHeader className="pb-4">
 				<div className="flex items-center justify-between">
 					<CardTitle className="text-lg flex items-center gap-2">
@@ -275,7 +280,10 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 	}
 
 	return (
-		<div className={cn("space-y-6", className)}>
+		<div
+			className={cn("space-y-6", className)}
+			data-testid={testIds.filters.drawer}
+		>
 			<div className="flex items-center justify-between">
 				<span className="text-lg font-semibold">Фільтри</span>
 				<div className="flex items-center gap-2">
@@ -286,6 +294,7 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 						className="h-9 w-9 rounded-full p-0"
 						onClick={onClose}
 						aria-label="Закрити фільтри"
+						data-testid={testIds.filters.drawerCloseButton}
 					>
 						<X className="h-4 w-4" />
 					</Button>

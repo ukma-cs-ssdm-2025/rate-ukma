@@ -58,3 +58,7 @@ playwright/.auth
 .github/workflows/event.json
 
 scripts/dora-metrics/results/*
+
+
+# local profiling results
+src/backend/rateukma/profiling/*

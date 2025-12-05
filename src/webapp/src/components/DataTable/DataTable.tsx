@@ -80,6 +80,7 @@ interface DataTableProps<TData> extends ComponentProps<"div"> {
 	onRowClick?: (row: TData) => void;
 	totalRows?: number;
 	serverPageCount?: number;
+	isRowHighlighted?: (row: TData) => boolean;
 }
 
 export function DataTable<TData>({
@@ -90,6 +91,7 @@ export function DataTable<TData>({
 	onRowClick,
 	totalRows,
 	serverPageCount,
+	isRowHighlighted,
 	...props
 }: Readonly<DataTableProps<TData>>) {
 	return (
@@ -125,29 +127,37 @@ export function DataTable<TData>({
 					</TableHeader>
 					<TableBody>
 						{table.getRowModel().rows?.length ? (
-							table.getRowModel().rows.map((row) => (
-								<TableRow
-									key={row.id}
-									data-state={row.getIsSelected() && "selected"}
-									className={cn(onRowClick && "group cursor-pointer")}
-									onClick={() => onRowClick?.(row.original)}
-								>
-									{row.getVisibleCells().map((cell) => (
-										<TableCell
-											key={cell.id}
-											style={{
-												...getCommonPinningStyles({ column: cell.column }),
-											}}
-											className={getAlignmentClass(cell.column.columnDef.meta)}
-										>
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
-											)}
-										</TableCell>
-									))}
-								</TableRow>
-							))
+							table.getRowModel().rows.map((row) => {
+								const highlighted = isRowHighlighted?.(row.original) ?? false;
+								return (
+									<TableRow
+										key={row.id}
+										data-state={row.getIsSelected() && "selected"}
+										data-highlighted={highlighted ? true : undefined}
+										className={cn(
+											onRowClick && "group cursor-pointer",
+											highlighted &&
+												"bg-primary/5 border-l-2 border-l-primary hover:bg-primary/10",
+										)}
+										onClick={() => onRowClick?.(row.original)}
+									>
+										{row.getVisibleCells().map((cell) => (
+											<TableCell
+												key={cell.id}
+												style={{
+													...getCommonPinningStyles({ column: cell.column }),
+												}}
+												className={getAlignmentClass(cell.column.columnDef.meta)}
+											>
+												{flexRender(
+													cell.column.columnDef.cell,
+													cell.getContext(),
+												)}
+											</TableCell>
+										))}
+									</TableRow>
+								);
+							})
 						) : (
 							<TableRow>
 								<TableCell

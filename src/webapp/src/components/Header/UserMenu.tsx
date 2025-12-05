@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 
 import type { AuthUser } from "@/lib/auth";
+import { testIds } from "@/lib/test-ids";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import {
@@ -25,7 +26,11 @@ export function UserMenu({ user, logout }: Readonly<UserMenuProps>) {
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" className="relative h-9 w-9 rounded-full">
+				<Button
+					variant="ghost"
+					className="relative h-9 w-9 rounded-full"
+					data-testid={testIds.header.userMenuTrigger}
+				>
 					<Avatar className="h-9 w-9">
 						<AvatarImage
 							src="/avatars/01.png"
@@ -37,7 +42,12 @@ export function UserMenu({ user, logout }: Readonly<UserMenuProps>) {
 					</Avatar>
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent className="w-56" align="end" forceMount>
+			<DropdownMenuContent
+				className="w-56"
+				align="end"
+				forceMount
+				data-testid={testIds.header.userMenu}
+			>
 				<DropdownMenuLabel className="font-normal">
 					<div className="flex flex-col space-y-1">
 						<p className="text-sm font-medium leading-none">
@@ -59,6 +69,7 @@ export function UserMenu({ user, logout }: Readonly<UserMenuProps>) {
 						event.preventDefault();
 						logout();
 					}}
+					data-testid={testIds.header.logoutButton}
 				>
 					<LogOut className="mr-2 h-4 w-4" /> Вийти
 				</DropdownMenuItem>

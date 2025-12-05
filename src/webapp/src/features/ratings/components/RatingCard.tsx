@@ -2,6 +2,7 @@ import { formatDate } from "@/features/courses/courseFormatting";
 import type { RatingRead } from "@/lib/api/generated";
 import { RatingComment } from "./RatingComment";
 import { RatingStats } from "./RatingStats";
+import { testIds } from "@/lib/test-ids";
 
 interface RatingCardProps {
 	rating: RatingRead;
@@ -13,7 +14,7 @@ export function RatingCard({ rating }: Readonly<RatingCardProps>) {
 		: rating.student_name || "Студент";
 
 	return (
-		<article className="py-4 px-4">
+		<article className="py-4 px-4" data-testid={testIds.courseDetails.reviewCard}>
 			<div className="flex flex-wrap items-start justify-between gap-3 mb-2">
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">
 					<span className="font-medium">{displayName}</span>

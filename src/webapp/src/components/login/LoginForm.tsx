@@ -16,6 +16,7 @@ import {
 	FormMessage,
 } from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
+import { testIds } from "@/lib/test-ids";
 
 const loginSchema = z.object({
 	username: z.string().min(1, "Username is required"),
@@ -102,9 +103,16 @@ export function LoginForm({
 			</div>
 
 			<Form {...form}>
-				<form onSubmit={handleSubmit} className="space-y-4">
+				<form
+					onSubmit={handleSubmit}
+					className="space-y-4"
+					data-testid={testIds.login.form}
+				>
 					{formError && (
-						<div className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive/10 p-3">
+						<div
+							className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive/10 p-3"
+							data-testid={testIds.login.errorMessage}
+						>
 							<AlertCircle className="h-4 w-4 flex-shrink-0 text-destructive" />
 							<p className="text-sm text-destructive">{formError}</p>
 						</div>
@@ -123,6 +131,7 @@ export function LoginForm({
 										placeholder="Enter username"
 										autoComplete="username"
 										disabled={isSubmitting}
+										data-testid={testIds.login.usernameInput}
 									/>
 								</FormControl>
 								<FormMessage />
@@ -145,6 +154,7 @@ export function LoginForm({
 											autoComplete="current-password"
 											disabled={isSubmitting}
 											className="pr-10"
+											data-testid={testIds.login.passwordInput}
 										/>
 									</FormControl>
 									<button
@@ -155,6 +165,7 @@ export function LoginForm({
 										aria-label={
 											showPassword ? "Hide password" : "Show password"
 										}
+										data-testid={testIds.login.togglePasswordButton}
 									>
 										{showPassword ? (
 											<EyeOff className="h-4 w-4" />
@@ -173,6 +184,7 @@ export function LoginForm({
 							type="submit"
 							className="flex-1 gap-2"
 							disabled={isSubmitting}
+							data-testid={testIds.login.submitButton}
 						>
 							{isSubmitting ? (
 								<Loader2 className="h-4 w-4 animate-spin" />
@@ -188,6 +200,7 @@ export function LoginForm({
 								onCancel();
 							}}
 							disabled={isSubmitting}
+							data-testid={testIds.login.backButton}
 						>
 							Back
 						</Button>

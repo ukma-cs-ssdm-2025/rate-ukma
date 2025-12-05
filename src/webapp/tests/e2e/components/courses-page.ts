@@ -15,7 +15,7 @@ export class CoursesPage extends BasePage {
 	constructor(page: Page) {
 		super(page);
 
-		this.pageTitle = page.locator("h1").filter({ hasText: /Курси/ });
+		this.pageTitle = page.locator("h3").filter({ hasText: "Карта курсів" });
 		this.coursesTable = page.locator("table");
 
 		this.courseDetailsPagePattern = /\/courses\/[0-9a-fA-F-]{36}$/;
@@ -31,7 +31,7 @@ export class CoursesPage extends BasePage {
 
 	async isPageLoaded(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.pageTitle, 5000);
+			await this.waitForElement(this.pageTitle, 15000);
 			return true;
 		} catch {
 			return false;

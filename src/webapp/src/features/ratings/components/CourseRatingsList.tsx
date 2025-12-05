@@ -3,6 +3,7 @@ import { MessageSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import type { InlineRating, RatingRead } from "@/lib/api/generated";
+import { testIds } from "@/lib/test-ids";
 import { RatingCard } from "./RatingCard";
 import { UserRatingCard } from "./UserRatingCard";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
@@ -40,7 +41,10 @@ function RatingsContent({
 			return null;
 		}
 		return (
-			<p className="text-center text-sm text-muted-foreground py-8">
+			<p
+				className="text-center text-sm text-muted-foreground py-8"
+				data-testid={testIds.courseDetails.noReviewsMessage}
+			>
 				Поки що немає відгуків для цього курсу
 			</p>
 		);
@@ -56,7 +60,7 @@ function RatingsContent({
 				<div
 					ref={loaderRef}
 					className="flex justify-center py-4 min-h-[60px]"
-					data-testid="infinite-scroll-loader"
+					data-testid={testIds.common.infiniteScrollLoader}
 				>
 					{isLoading ? (
 						<div className="flex items-center gap-2 text-muted-foreground">
@@ -88,7 +92,10 @@ export function CourseRatingsList({
 	const displayCount = (totalRatings ?? 0) + (userRating ? 1 : 0);
 
 	return (
-		<div className="space-y-4">
+		<div
+			className="space-y-4"
+			data-testid={testIds.courseDetails.reviewsSection}
+		>
 			<div className="flex items-center gap-2">
 				<MessageSquare className="h-5 w-5" />
 				<h2 className="text-xl font-semibold">Відгуки студентів</h2>

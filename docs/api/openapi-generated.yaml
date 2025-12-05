@@ -96,8 +96,8 @@ paths:
       - in: query
         name: semester_year
         schema:
-          type: integer
-        description: Semester year
+          type: string
+        description: Academic year range (e.g., '2024–2025')
       - in: query
         name: speciality
         schema:
@@ -615,8 +615,8 @@ paths:
       - in: query
         name: semester_year
         schema:
-          type: integer
-        description: Semester year
+          type: string
+        description: Academic year range (e.g., '2024–2025')
       - in: query
         name: speciality
         schema:
