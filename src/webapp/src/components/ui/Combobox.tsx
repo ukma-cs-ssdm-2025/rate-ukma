@@ -53,6 +53,18 @@ function Combobox({
 		[options, value],
 	);
 
+	// Disable page scrolling when combobox is open
+	React.useEffect(() => {
+		if (open) {
+			document.body.style.overflow = "hidden";
+		} else {
+			document.body.style.overflow = "";
+		}
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [open]);
+
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
@@ -75,11 +87,11 @@ function Combobox({
 			</PopoverTrigger>
 			<PopoverContent
 				className={cn(
-					"w-(--radix-popover-trigger-width) p-0",
+					"w-(--radix-popover-trigger-width) p-0 h-fit",
 					contentClassName,
 				)}
 			>
-				<Command>
+				<Command className="overflow-hidden rounded-md border-0">
 					<CommandInput placeholder={searchPlaceholder} />
 					<CommandList>
 						<CommandEmpty>{emptyText}</CommandEmpty>
