@@ -177,7 +177,7 @@ export function useCourseFiltersData({
 				value: filters.faculty,
 				options: faculties.map((faculty) => ({
 					value: faculty.id,
-					label: `${faculty.custom_abbreviation || getFacultyAbbreviation(faculty.name)} - ${faculty.name}`,
+					label: faculty.name,
 				})),
 				useCombobox: true,
 			},
@@ -191,7 +191,7 @@ export function useCourseFiltersData({
 					label:
 						filters.faculty || !department.faculty_name
 							? department.name
-							: `${department.name} — ${department.faculty_name}`,
+							: `${department.name} — ${department.faculty_custom_abbreviation || getFacultyAbbreviation(department.faculty_name)}`,
 				})),
 				useCombobox: true,
 			},
@@ -303,7 +303,7 @@ export function useCourseFiltersData({
 		if (selectedFacultyOption) {
 			badges.push({
 				key: "faculty",
-				label: `Факультет: ${getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
+				label: `Факультет: ${selectedFacultyOption.custom_abbreviation || getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
 			});
 		}
 
