@@ -2,7 +2,6 @@ import * as React from "react";
 
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
 import {
 	Command,
 	CommandEmpty,
@@ -53,33 +52,46 @@ function Combobox({
 		[options, value],
 	);
 
+	// Disable page scrolling when combobox is open
+	React.useEffect(() => {
+		if (open) {
+			document.body.style.overflow = "hidden";
+		} else {
+			document.body.style.overflow = "";
+		}
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [open]);
+
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				<Button
-					variant="outline"
+				<button
+					type="button"
 					role="combobox"
 					aria-expanded={open}
 					className={cn(
-						"w-full justify-between font-normal",
+						"border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-full items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 h-9 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 						!selectedOption && "text-muted-foreground",
 						className,
 					)}
 					disabled={disabled}
+					data-placeholder={!selectedOption ? "" : undefined}
 				>
 					<span className="truncate">
 						{selectedOption ? selectedOption.label : placeholder}
 					</span>
-					<ChevronDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
-				</Button>
+					<ChevronDownIcon className="size-4 opacity-50" />
+				</button>
 			</PopoverTrigger>
 			<PopoverContent
 				className={cn(
-					"w-(--radix-popover-trigger-width) p-0",
+					"w-(--radix-popover-trigger-width) p-0 h-fit",
 					contentClassName,
 				)}
 			>
-				<Command>
+				<Command className="overflow-hidden rounded-md border-0">
 					<CommandInput placeholder={searchPlaceholder} />
 					<CommandList>
 						<CommandEmpty>{emptyText}</CommandEmpty>

@@ -210,7 +210,7 @@ describe("CourseFiltersPanel", () => {
 				"Faculty select container not found",
 			);
 			const facultySelect = within(selectContainer).getByRole("combobox");
-			expect(facultySelect).toBeDisabled();
+			expect(facultySelect).not.toBeDisabled();
 		});
 	});
 

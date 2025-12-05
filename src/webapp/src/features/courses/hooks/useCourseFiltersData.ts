@@ -192,10 +192,13 @@ export function useCourseFiltersData({
 				label: "Факультет",
 				placeholder: "Усі факультети",
 				value: filters.faculty,
-				options: faculties.map((faculty) => ({
-					value: faculty.id,
-					label: `${faculty.custom_abbreviation || getFacultyAbbreviation(faculty.name)} - ${faculty.name}`,
-				})),
+				options: [
+					{ value: "", label: "Усі факультети" },
+					...faculties.map((faculty) => ({
+						value: faculty.id,
+						label: faculty.name,
+					})),
+				],
 				useCombobox: true,
 			},
 			{
@@ -315,7 +318,7 @@ export function useCourseFiltersData({
 		if (selectedFacultyOption) {
 			badges.push({
 				key: "faculty",
-				label: `Факультет: ${getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
+				label: `Факультет: ${selectedFacultyOption.custom_abbreviation || getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
 			});
 		}
 
