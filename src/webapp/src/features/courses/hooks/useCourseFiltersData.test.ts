@@ -19,18 +19,21 @@ const MOCK_DEPARTMENTS = {
 		name: "Кафедра мультимедійних систем",
 		faculty_id: "fac-1",
 		faculty_name: "ФІ",
+		faculty_custom_abbreviation: "ФІ",
 	},
 	ECONOMICS: {
 		id: "dept-2",
 		name: "Кафедра фінансів",
 		faculty_id: "fac-2",
 		faculty_name: "ФЕН",
+		faculty_custom_abbreviation: "ФЕН",
 	},
 	DATABASES: {
 		id: "dept-3",
 		name: "Кафедра інформаційних систем",
 		faculty_id: "fac-1",
 		faculty_name: "ФІ",
+		faculty_custom_abbreviation: "ФІ",
 	},
 } as const;
 
@@ -290,13 +293,10 @@ describe("useCourseFiltersData", () => {
 					{
 						id: "fac-1",
 						name: "ФІ",
-						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
-						specialities: [],
 					},
 				],
-			});
-
-			// Act
+				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+			}); // Act
 			const { result } = renderFiltersHook({}, filterOptions);
 
 			// Assert
