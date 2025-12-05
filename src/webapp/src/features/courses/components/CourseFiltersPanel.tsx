@@ -173,9 +173,10 @@ function CourseFiltersContent({
 										value={(field.value as string) || ""}
 										onValueChange={(nextValue) => {
 											field.onChange(nextValue);
-											// Clear department when faculty changes
+											// Clear department and speciality when faculty changes
 											if (key === "faculty" && field.value !== nextValue) {
 												form.setValue("department", "", { shouldDirty: true });
+												form.setValue("speciality", "", { shouldDirty: true });
 											}
 										}}
 										placeholder={placeholder}
@@ -191,9 +192,10 @@ function CourseFiltersContent({
 											const newValue = nextValue === "all" ? "" : nextValue;
 											field.onChange(newValue);
 
-											// Clear department when faculty changes
+											// Clear department and speciality when faculty changes
 											if (key === "faculty" && field.value !== newValue) {
 												form.setValue("department", "", { shouldDirty: true });
+												form.setValue("speciality", "", { shouldDirty: true });
 											}
 										}}
 										disabled={options.length === 0}
