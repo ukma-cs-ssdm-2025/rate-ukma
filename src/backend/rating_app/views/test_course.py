@@ -107,7 +107,7 @@ def test_filter_by_name(token_client, course_factory):
 @pytest.mark.integration
 def test_filter_by_semester(token_client, course_factory):
     # Arrange
-    semester_year = 2024
+    semester_year = "2024–2025"
     semester_term = "FALL"
     course_factory.create()
     url = f"/api/v1/courses/?semester_year={semester_year}&semester_term={semester_term}"
@@ -242,7 +242,7 @@ def test_filter_by_multiple_parameters(
 
     url = (
         f"/api/v1/courses/?department={department_id}&faculty={faculty_id}"
-        f"&semester_year=2024&semester_term=FALL"
+        f"&semester_year=2024–2025&semester_term=FALL"
     )
 
     response = token_client.get(url)

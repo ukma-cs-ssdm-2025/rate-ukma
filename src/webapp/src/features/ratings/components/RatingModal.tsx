@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
 	Dialog,
@@ -8,14 +8,23 @@ import {
 	DialogTitle,
 } from "@/components/ui/Dialog";
 import {
-	type InlineRating,
+	getCoursesRatingsListQueryKey,
+	getCoursesRetrieveQueryKey,
+	getStudentsMeCoursesRetrieveQueryKey,
+	getStudentsMeGradesRetrieveQueryKey,
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
-import { DeleteRatingDialog } from "./DeleteRatingDialog";
+import { testIds } from "@/lib/test-ids";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
-type RatingWithAnonymousFlag = InlineRating & { is_anonymous?: boolean };
+interface ExistingRating {
+	id?: string;
+	difficulty?: number;
+	usefulness?: number;
+	comment?: string | null;
+	is_anonymous?: boolean;
+}
 
 interface RatingModalProps {
 	readonly isOpen: boolean;
@@ -23,8 +32,7 @@ interface RatingModalProps {
 	readonly courseId: string;
 	readonly offeringId: string;
 	readonly courseName?: string;
-	readonly existingRating?: RatingWithAnonymousFlag | null;
-	readonly ratingId?: string;
+	readonly existingRating?: ExistingRating | null;
 	readonly onSuccess?: () => void;
 }
 
@@ -35,26 +43,41 @@ export function RatingModal({
 	offeringId,
 	courseName,
 	existingRating,
-	ratingId,
 	onSuccess,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
+	const queryClient = useQueryClient();
 
 	const createMutation = useCoursesRatingsCreate();
 	const updateMutation = useCoursesRatingsPartialUpdate();
 
-	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+	const invalidateRatingQueries = async () => {
+		await Promise.all([
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeCoursesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeGradesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getCoursesRatingsListQueryKey(courseId),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getCoursesRetrieveQueryKey(courseId),
+			}),
+		]);
+	};
 
 	const handleSubmit = async (data: RatingFormData) => {
 		try {
-			if (isEditMode && ratingId) {
+			if (isEditMode && existingRating?.id) {
 				await updateMutation.mutateAsync({
 					courseId: courseId,
-					ratingId: ratingId,
+					ratingId: existingRating.id,
 					data: {
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
-						comment: data.comment || undefined,
+						comment: data.comment ?? "",
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -71,9 +94,9 @@ export function RatingModal({
 				});
 			}
 
+			await invalidateRatingQueries();
 			onSuccess?.();
 			onClose();
-			globalThis.location.reload();
 		} catch (error) {
 			console.error("Failed to submit rating:", error);
 		}
@@ -81,8 +104,8 @@ export function RatingModal({
 
 	const initialData: RatingFormData | undefined = existingRating
 		? {
-				difficulty: existingRating.difficulty,
-				usefulness: existingRating.usefulness,
+				difficulty: existingRating.difficulty ?? 3,
+				usefulness: existingRating.usefulness ?? 3,
 				comment: existingRating.comment || "",
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
@@ -91,51 +114,32 @@ export function RatingModal({
 	const isLoading = createMutation.isPending || updateMutation.isPending;
 
 	return (
-		<>
-			<Dialog open={isOpen && !showDeleteDialog} onOpenChange={onClose}>
-				<DialogContent className="sm:max-w-[500px]">
-					<DialogHeader>
-						<div className="flex items-center justify-between">
-							<DialogTitle>
-								{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
-							</DialogTitle>
-						</div>
-						{courseName && (
-							<DialogDescription>
-								{isEditMode
-									? `Змініть свою оцінку для курсу ${courseName}`
-									: `Поділіться своїм досвідом про курс ${courseName}`}
-							</DialogDescription>
-						)}
-					</DialogHeader>
+		<Dialog open={isOpen} onOpenChange={onClose}>
+			<DialogContent className="sm:max-w-[500px]" data-testid={testIds.rating.modal}>
+				<DialogHeader>
+					<div className="flex items-center justify-between">
+						<DialogTitle>
+							{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
+						</DialogTitle>
+					</div>
+					{courseName && (
+						<DialogDescription>
+							{isEditMode
+								? `Змініть свою оцінку для курсу ${courseName}`
+								: `Поділіться своїм досвідом про курс ${courseName}`}
+						</DialogDescription>
+					)}
+				</DialogHeader>
 
-					<RatingForm
-						onSubmit={handleSubmit}
-						onCancel={onClose}
-						isLoading={isLoading}
-						isEditMode={isEditMode}
-						initialData={initialData}
-						onDelete={() => setShowDeleteDialog(true)}
-					/>
-				</DialogContent>
-			</Dialog>
-
-			{ratingId && (
-				<DeleteRatingDialog
-					courseId={courseId}
-					ratingId={ratingId}
-					open={showDeleteDialog}
-					onOpenChange={setShowDeleteDialog}
-					onSuccess={() => {
-						onSuccess?.();
-						onClose();
-						globalThis.location.reload();
-					}}
-					title="Видалити оцінку?"
-					description="Ця дія незворотна. Вашу оцінку буде видалено назавжди."
+				<RatingForm
+					onSubmit={handleSubmit}
+					onCancel={onClose}
+					isLoading={isLoading}
+					isEditMode={isEditMode}
+					initialData={initialData}
 				/>
-			)}
-		</>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

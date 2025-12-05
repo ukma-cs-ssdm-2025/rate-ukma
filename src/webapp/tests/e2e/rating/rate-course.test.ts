@@ -53,12 +53,8 @@ test.describe("Rating modal functionality", () => {
 		const reviewCard = await coursePage.findReviewCardByText(testData.comment);
 		await expect(reviewCard).toBeVisible();
 
-		// Clean up: deleting the rating
-		await coursePage.clickRateButton();
-		expect(await ratingModal.isVisible()).toBe(true);
-
-		await ratingModal.deleteRating();
-		await ratingModal.waitForHidden();
+		// Clean up: deleting the rating using the delete button on the user's rating card
+		await coursePage.deleteUserRating();
 
 		await expect(reviewCard).toBeHidden();
 	});

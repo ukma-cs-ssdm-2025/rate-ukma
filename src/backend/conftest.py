@@ -137,3 +137,30 @@ def enrollment_factory():
 @pytest.fixture
 def semester_factory():
     return SemesterFactory
+
+
+# Cache mocking fixtures
+class FakeCacheManager:
+    def __init__(self):
+        self.store = {}
+
+    def get(self, key):
+        return self.store.get(key)
+
+    def set(self, key, value, ttl=None):
+        self.store[key] = value
+
+    def invalidate_pattern(self, pattern):
+        keys_to_remove = [k for k in self.store.keys() if pattern.replace("*", "") in k]
+        for key in keys_to_remove:
+            del self.store[key]
+        return len(keys_to_remove)
+
+
+@pytest.fixture(autouse=True)
+def fake_cache(monkeypatch):
+    fake = FakeCacheManager()
+
+    monkeypatch.setattr("rateukma.caching.decorators.redis_cache_manager", lambda: fake)
+
+    yield fake

@@ -4,7 +4,8 @@ const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const MICROSOFT_LOGIN_PAGE_PATTERN = /.*login.microsoftonline.com.*/;
 
 const MICROSOFT_LOGIN_BUTTON_TEXT = "Увійти";
-const COURSES_PAGE_TITLE_TEXT = "Курси";
+const COURSE_MAP_TITLE = "Карта курсів";
+const FILTERS_LABEL = "Фільтри";
 
 const MICROSOFT_EMAIL = process.env.CORPORATE_EMAIL ?? "";
 const MICROSOFT_PASSWORD = process.env.CORPORATE_PASSWORD ?? "";
@@ -40,10 +41,13 @@ test.describe("Microsoft Login Page", () => {
 
 		await page.waitForURL(BASE_URL, { timeout: 20000 });
 
-		// on the courses page
+		// on the courses page - verify key elements are present
 		await expect(
-			page.locator("h1").filter({ hasText: COURSES_PAGE_TITLE_TEXT }),
-		).toBeVisible();
+			page.locator("h3").filter({ hasText: COURSE_MAP_TITLE }),
+		).toBeVisible({ timeout: 10000 });
+		await expect(
+			page.locator("h3").filter({ hasText: FILTERS_LABEL }),
+		).toBeVisible({ timeout: 10000 });
 
 		await context.storageState({ path: "playwright/.auth/microsoft.json" });
 	});

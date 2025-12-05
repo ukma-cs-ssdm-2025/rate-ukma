@@ -6,6 +6,8 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
+from rateukma.caching.cache_manager import ICacheManager
+from rateukma.caching.decorators import rcached
 from rating_app.application_schemas.rating import (
     RatingCourseFilterParams,
     RatingCreateParams,
@@ -16,6 +18,7 @@ from rating_app.application_schemas.rating import (
     RatingPutParams,
     RatingRetrieveParams,
 )
+from rating_app.exception.student_exceptions import StudentNotFoundError
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.models import Rating, Student
 from rating_app.serializers import (
@@ -42,21 +45,38 @@ class RatingViewSet(viewsets.ViewSet):
 
     rating_service: RatingService | None = None
     student_service: StudentService | None = None
+    cache_manager: ICacheManager | None = None
 
     @extend_schema(
         summary="List ratings for a course",
-        description="List all ratings for a specific course with filters and pagination.",
+        description="List all ratings for a specific course with filters and pagination. "
+        "Use exclude_current_user=true to exclude the authenticated user's rating from results.",
         parameters=[
             *to_openapi((RatingPaginationParams, OpenApiParameter.QUERY)),
             *to_openapi((RatingCourseFilterParams, OpenApiParameter.PATH)),
         ],
         responses=R_RATING_LIST,
     )
-    def list(self, request, course_id=None):
+    @rcached(ttl=300)
+    def list(self, request, course_id=None) -> Response:
         assert self.rating_service is not None
+        assert self.student_service is not None
 
         try:
-            filter_data = {**request.query_params.dict(), "course_id": course_id}
+            query_params = request.query_params.dict()
+            exclude_current_user = (
+                query_params.pop("exclude_current_user", "false").lower() == "true"
+            )
+
+            filter_data = {**query_params, "course_id": course_id}
+
+            if exclude_current_user and request.user.is_authenticated:
+                try:
+                    student = self.student_service.get_student_by_user_id(request.user.id)
+                    filter_data["exclude_student_id"] = str(student.id)
+                except StudentNotFoundError:
+                    pass
+
             filters = RatingFilterCriteria.model_validate(filter_data)
         except ModelValidationError as e:
             logger.error("validation_error", errors=e.errors())
@@ -85,9 +105,9 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_CREATE,
     )
     @require_student
-    def create(self, request, student: Student, course_id=None):
+    def create(self, request, student: Student, course_id=None) -> Response:
         assert self.rating_service is not None
-        # TODO: find a more consistent way to generate request body schema
+        assert self.cache_manager is not None
         # course_id is not used, will be potentially removed after using a different endpoint
 
         logger.info(
@@ -116,6 +136,9 @@ class RatingViewSet(viewsets.ViewSet):
 
         rating = self.rating_service.create_rating(rating_params)
 
+        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
+        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
+
         logger.info(
             "rating_created",
             rating_id=str(rating.id),
@@ -133,7 +156,7 @@ class RatingViewSet(viewsets.ViewSet):
         ],
         responses=R_RATING,
     )
-    def retrieve(self, request, rating_id: str | None = None, *args, **kwargs):
+    def retrieve(self, request, rating_id: str | None = None, *args, **kwargs) -> Response:
         assert self.rating_service is not None
 
         try:
@@ -153,8 +176,9 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING,
     )
     @require_rating_ownership
-    def update(self, request, rating: Rating, student: Student, **kwargs):
+    def update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
+        assert self.cache_manager is not None
 
         try:
             update_params = RatingPutParams.model_validate(request.data)
@@ -162,6 +186,9 @@ class RatingViewSet(viewsets.ViewSet):
             raise ValidationError(detail=e.errors()) from e
 
         rating = self.rating_service.update_rating(rating, update_params)
+
+        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
+        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
 
         logger.info("rating_updated", rating_id=rating.id)
         response_serializer = RatingReadSerializer(rating)
@@ -174,8 +201,9 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING,
     )
     @require_rating_ownership
-    def partial_update(self, request, rating: Rating, student: Student, **kwargs):
+    def partial_update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
+        assert self.cache_manager is not None
 
         try:
             update_params = RatingPatchParams.model_validate(request.data)
@@ -185,6 +213,10 @@ class RatingViewSet(viewsets.ViewSet):
         rating = self.rating_service.update_rating(rating, update_params)
 
         response_serializer = RatingReadSerializer(rating)
+
+        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
+        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
+
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -193,8 +225,13 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_NO_CONTENT,
     )
     @require_rating_ownership
-    def destroy(self, request, rating: Rating, student: Student, **kwargs):
+    def destroy(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
+        assert self.cache_manager is not None
 
         self.rating_service.delete_rating(rating.id)
+
+        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
+        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
+
         return Response(status=status.HTTP_204_NO_CONTENT)

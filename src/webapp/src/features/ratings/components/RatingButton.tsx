@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { Button } from "@/components/ui/Button";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
+import { testIds } from "@/lib/test-ids";
 
 interface RatingButtonProps {
 	canRate: boolean;
@@ -51,6 +52,7 @@ export function RatingButton({
 						? ""
 						: "!bg-gray-400 !text-white hover:!bg-gray-400 disabled:opacity-100"
 				} ${className}`}
+				data-testid={testIds.courseDetails.rateButton}
 			>
 				{children}
 			</Button>

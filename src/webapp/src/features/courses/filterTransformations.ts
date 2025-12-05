@@ -10,7 +10,7 @@ export type CourseApiFilters = {
 	typeKind?: string;
 	speciality?: string;
 	semester_term?: CoursesListSemesterTerm;
-	semester_year?: number;
+	semester_year?: string;
 	avg_difficulty_min?: number;
 	avg_difficulty_max?: number;
 	avg_usefulness_min?: number;
@@ -36,9 +36,7 @@ export function transformFiltersToApiParams(
 		typeKind: filters.courseType,
 		speciality: filters.speciality,
 		semester_term: filters.semesterTerm,
-		semester_year: filters.semesterYear
-			? Number(filters.semesterYear)
-			: undefined,
+		semester_year: filters.semesterYear || undefined,
 		...(isDifficultyModified && {
 			avg_difficulty_min: filters.difficultyRange[0],
 			avg_difficulty_max: filters.difficultyRange[1],

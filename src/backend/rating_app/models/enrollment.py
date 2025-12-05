@@ -26,3 +26,6 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.student} → {self.offering} ({self.get_status_display()})"
+
+    def get_status_display(self):
+        return EnrollmentStatus(self.status).label
