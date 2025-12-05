@@ -148,12 +148,20 @@ describe("CourseFiltersPanel", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
-					{ id: "fac-1", name: "Факультет інформатики" },
-					{ id: "fac-2", name: "Факультет економічних наук" },
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [],
+						specialities: [],
+					},
+					{
+						id: "fac-2",
+						name: "Факультет економічних наук",
+						departments: [],
+						specialities: [],
+					},
 				],
-			});
-
-			// Act
+			}); // Act
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
@@ -277,11 +285,11 @@ describe("CourseFiltersPanel", () => {
 					{
 						id: "faculty-1",
 						name: "Факультет інформатики",
+						departments: [],
+						specialities: [],
 					},
 				],
-			});
-
-			// Act
+			}); // Act
 			render(
 				<TestWrapper
 					initialValues={{
@@ -326,11 +334,11 @@ describe("CourseFiltersPanel", () => {
 					{
 						id: "faculty-1",
 						name: "Факультет інформатики",
+						departments: [],
+						specialities: [],
 					},
 				],
-			});
-
-			// Act
+			}); // Act
 			render(
 				<TestWrapper
 					initialValues={{

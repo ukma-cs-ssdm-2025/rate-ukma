@@ -61,6 +61,8 @@ export function createMockFaculty(
 	return {
 		id: faker.string.uuid(),
 		name: faker.lorem.words(3),
+		departments: [],
+		specialities: [],
 		...overrides,
 	};
 }

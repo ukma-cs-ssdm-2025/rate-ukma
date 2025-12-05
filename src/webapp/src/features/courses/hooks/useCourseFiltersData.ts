@@ -206,10 +206,13 @@ export function useCourseFiltersData({
 				label: "Кафедра",
 				placeholder: "Усі кафедри",
 				value: filters.department,
-				options: filteredDepartments.map((department) => ({
-					value: department.id,
-					label: department.name,
-				})),
+				options: [
+					{ value: "", label: "Усі кафедри" },
+					...filteredDepartments.map((department) => ({
+						value: department.id,
+						label: department.name,
+					})),
+				],
 				useCombobox: true,
 			},
 			{
@@ -217,10 +220,13 @@ export function useCourseFiltersData({
 				label: "Спеціальність",
 				placeholder: "Усі спеціальності",
 				value: filters.speciality,
-				options: filteredSpecialities.map((speciality) => ({
-					value: speciality.id,
-					label: speciality.name,
-				})),
+				options: [
+					{ value: "", label: "Усі спеціальності" },
+					...filteredSpecialities.map((speciality) => ({
+						value: speciality.id,
+						label: speciality.name,
+					})),
+				],
 				contentClassName: "max-h-72",
 				useCombobox: true,
 			},
