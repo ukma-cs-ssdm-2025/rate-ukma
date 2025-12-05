@@ -1873,6 +1873,9 @@ components:
         faculty_name:
           type: string
           nullable: true
+        faculty_custom_abbreviation:
+          type: string
+          nullable: true
       required:
       - faculty_id
       - id

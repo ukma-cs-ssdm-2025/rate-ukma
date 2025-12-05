@@ -7,6 +7,7 @@ import { Controller, useWatch } from "react-hook-form";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Combobox } from "@/components/ui/Combobox";
 import { Label } from "@/components/ui/Label";
 import {
 	Select,
@@ -152,7 +153,14 @@ function CourseFiltersContent({
 			))}
 
 			{data.selectFilters.map(
-				({ key, label, placeholder, options, contentClassName }) => (
+				({
+					key,
+					label,
+					placeholder,
+					options,
+					contentClassName,
+					useCombobox,
+				}) => (
 					<Controller
 						key={key}
 						control={form.control}
@@ -160,31 +168,50 @@ function CourseFiltersContent({
 						render={({ field }) => (
 							<div className="space-y-3">
 								<Label className="text-sm font-medium">{label}</Label>
-								<Select
-									value={(field.value as string) || "all"}
-									onValueChange={(nextValue) => {
-										const newValue = nextValue === "all" ? "" : nextValue;
-										field.onChange(newValue);
+								{useCombobox ? (
+									<Combobox
+										options={options}
+										value={(field.value as string) || ""}
+										onValueChange={(nextValue) => {
+											field.onChange(nextValue);
+											// Clear department when faculty changes
+											if (key === "faculty" && field.value !== nextValue) {
+												form.setValue("department", "", { shouldDirty: true });
+											}
+										}}
+										placeholder={placeholder}
+										searchPlaceholder="Пошук..."
+										emptyText="Нічого не знайдено."
+										disabled={options.length === 0}
+										contentClassName={contentClassName}
+									/>
+								) : (
+									<Select
+										value={(field.value as string) || "all"}
+										onValueChange={(nextValue) => {
+											const newValue = nextValue === "all" ? "" : nextValue;
+											field.onChange(newValue);
 
-										// Clear department when faculty changes
-										if (key === "faculty" && field.value !== newValue) {
-											form.setValue("department", "", { shouldDirty: true });
-										}
-									}}
-									disabled={options.length === 0}
-								>
-									<SelectTrigger className="w-full">
-										<SelectValue placeholder={placeholder} />
-									</SelectTrigger>
-									<SelectContent className={contentClassName}>
-										<SelectItem value="all">{placeholder}</SelectItem>
-										{options.map((option) => (
-											<SelectItem key={option.value} value={option.value}>
-												{option.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+											// Clear department when faculty changes
+											if (key === "faculty" && field.value !== newValue) {
+												form.setValue("department", "", { shouldDirty: true });
+											}
+										}}
+										disabled={options.length === 0}
+									>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder={placeholder} />
+										</SelectTrigger>
+										<SelectContent className={contentClassName}>
+											<SelectItem value="all">{placeholder}</SelectItem>
+											{options.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
 							</div>
 						)}
 					/>

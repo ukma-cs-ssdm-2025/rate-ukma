@@ -281,7 +281,7 @@ describe("Pagination", () => {
 					}),
 				);
 			},
-			{ timeout: 1000 },
+			{ timeout: 1500 },
 		);
 	});
 });

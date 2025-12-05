@@ -45,6 +45,7 @@ export type SelectFilterConfig = {
 	value: string;
 	options: SelectOption[];
 	contentClassName?: string;
+	useCombobox?: boolean;
 };
 
 export type RangeFilterConfig = {
@@ -174,36 +175,48 @@ export function useCourseFiltersData({
 				label: "Факультет",
 				placeholder: "Усі факультети",
 				value: filters.faculty,
-				options: faculties.map((faculty) => ({
-					value: faculty.id,
-					label: `${faculty.custom_abbreviation || getFacultyAbbreviation(faculty.name)} - ${faculty.name}`,
-				})),
+				options: [
+					{ value: "", label: "Усі факультети" },
+					...faculties.map((faculty) => ({
+						value: faculty.id,
+						label: faculty.name,
+					})),
+				],
+				useCombobox: true,
 			},
 			{
 				key: "department",
 				label: "Кафедра",
 				placeholder: "Усі кафедри",
 				value: filters.department,
-				options: filteredDepartments.map((department) => ({
-					value: department.id,
-					label:
-						filters.faculty || !department.faculty_name
-							? department.name
-							: `${department.name} — ${department.faculty_name}`,
-				})),
+				options: [
+					{ value: "", label: "Усі кафедри" },
+					...filteredDepartments.map((department) => ({
+						value: department.id,
+						label:
+							filters.faculty || !department.faculty_name
+								? department.name
+								: `${department.name} — ${department.faculty_custom_abbreviation || getFacultyAbbreviation(department.faculty_name)}`,
+					})),
+				],
+				useCombobox: true,
 			},
 			{
 				key: "speciality",
 				label: "Спеціальність",
 				placeholder: "Усі спеціальності",
 				value: filters.speciality,
-				options: specialities.map((speciality) => ({
-					value: speciality.id,
-					label: speciality.faculty_name
-						? `${speciality.name} — ${speciality.faculty_name}`
-						: speciality.name,
-				})),
+				options: [
+					{ value: "", label: "Усі спеціальності" },
+					...specialities.map((speciality) => ({
+						value: speciality.id,
+						label: speciality.faculty_name
+							? `${speciality.name} — ${speciality.faculty_name}`
+							: speciality.name,
+					})),
+				],
 				contentClassName: "max-h-72",
+				useCombobox: true,
 			},
 			{
 				key: "courseType",
@@ -299,7 +312,7 @@ export function useCourseFiltersData({
 		if (selectedFacultyOption) {
 			badges.push({
 				key: "faculty",
-				label: `Факультет: ${getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
+				label: `Факультет: ${selectedFacultyOption.custom_abbreviation || getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
 			});
 		}
 
