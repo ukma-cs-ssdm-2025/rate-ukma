@@ -1,7 +1,15 @@
 import type * as React from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { useCoursesRatingsDestroy } from "@/lib/api/generated";
+import {
+	getCoursesRatingsListQueryKey,
+	getCoursesRetrieveQueryKey,
+	getStudentsMeCoursesRetrieveQueryKey,
+	getStudentsMeGradesRetrieveQueryKey,
+	useCoursesRatingsDestroy,
+} from "@/lib/api/generated";
 
 interface DeleteRatingDialogProps {
 	courseId: string;
@@ -26,9 +34,29 @@ export function DeleteRatingDialog({
 	confirmText = "Видалити",
 	cancelText = "Скасувати",
 }: DeleteRatingDialogProps): React.JSX.Element {
+	const queryClient = useQueryClient();
+
+	const invalidateRatingQueries = async () => {
+		await Promise.all([
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeCoursesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeGradesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getCoursesRatingsListQueryKey(courseId),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getCoursesRetrieveQueryKey(courseId),
+			}),
+		]);
+	};
+
 	const deleteMutation = useCoursesRatingsDestroy({
 		mutation: {
-			onSuccess: () => {
+			onSuccess: async () => {
+				await invalidateRatingQueries();
 				onOpenChange(false);
 				onSuccess?.();
 			},

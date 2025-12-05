@@ -14,6 +14,9 @@ export class CourseDetailsPage extends BasePage {
 	// Reviews section
 	private readonly reviewsSection: Locator;
 	private readonly reviewCards: Locator;
+	private readonly userRatingCard: Locator;
+	private readonly userRatingDeleteButton: Locator;
+	private readonly deleteConfirmButton: Locator;
 
 	// Empty state
 	private readonly noReviewsMessage: Locator;
@@ -42,6 +45,16 @@ export class CourseDetailsPage extends BasePage {
 		this.reviewCards = page.locator("article").filter({
 			hasText: /Складність:|Корисність:/,
 		});
+
+		this.userRatingCard = page.locator("article").filter({
+			hasText: "Ваша оцінка",
+		});
+		this.userRatingDeleteButton = this.userRatingCard.locator(
+			"button[aria-label='Видалити оцінку']",
+		);
+		this.deleteConfirmButton = page
+			.locator("button.bg-destructive.text-white")
+			.filter({ hasText: "Видалити" });
 
 		this.noReviewsMessage = page.locator("p").filter({
 			hasText: "Поки що немає відгуків для цього курсу",
@@ -154,5 +167,12 @@ export class CourseDetailsPage extends BasePage {
 
 	async findReviewCardByText(text: string): Promise<Locator> {
 		return this.reviewCards.filter({ hasText: text });
+	}
+
+	async deleteUserRating(): Promise<void> {
+		await this.waitForElement(this.userRatingDeleteButton);
+		await this.clickWithRetry(this.userRatingDeleteButton);
+		await this.waitForElement(this.deleteConfirmButton);
+		await this.clickWithRetry(this.deleteConfirmButton);
 	}
 }

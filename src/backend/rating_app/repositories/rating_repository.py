@@ -59,7 +59,9 @@ class RatingRepository(IRepository[Rating]):
         criteria: RatingFilterCriteria,
     ) -> QuerySet[Rating]:
         # find a cleaner way to do this
-        filters = criteria.model_dump(exclude_none=True, exclude={"page", "page_size"})
+        filters = criteria.model_dump(
+            exclude_none=True, exclude={"page", "page_size", "exclude_student_id"}
+        )
 
         if "course_id" in filters:
             filters["course_offering__course_id"] = filters.pop("course_id")
@@ -74,6 +76,9 @@ class RatingRepository(IRepository[Rating]):
             .order_by("-created_at")
         )
 
+        if criteria.exclude_student_id:
+            ratings = ratings.exclude(student_id=str(criteria.exclude_student_id))
+
         return ratings
 
     def create(self, create_params: RatingCreateParams) -> Rating:
@@ -83,15 +88,18 @@ class RatingRepository(IRepository[Rating]):
                 course_offering_id=str(create_params.course_offering),
                 difficulty=create_params.difficulty,
                 usefulness=create_params.usefulness,
-                comment=create_params.comment,
+                comment=create_params.comment or "",
                 is_anonymous=create_params.is_anonymous,
             )
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
     def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> Rating:
-        allow_unset = isinstance(update_data, RatingPatchParams)
-        update_data_map = update_data.model_dump(exclude_unset=allow_unset)
+        is_patch = isinstance(update_data, RatingPatchParams)
+        update_data_map = update_data.model_dump(exclude_unset=is_patch)
+
+        if "comment" in update_data_map and update_data_map["comment"] is None:
+            update_data_map["comment"] = ""
 
         for attr, value in update_data_map.items():
             setattr(rating, attr, value)

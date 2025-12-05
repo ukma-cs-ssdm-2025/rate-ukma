@@ -11,6 +11,7 @@ import { DeleteRatingDialog } from "./DeleteRatingDialog";
 import { RatingCardHeader } from "./MyRatingCard/RatingCardHeader";
 import { RatingCommentDisplay } from "./MyRatingCard/RatingCommentDisplay";
 import { RatingMetric } from "./MyRatingCard/RatingMetric";
+import { RatingModal } from "./RatingModal";
 
 interface MyRatingCardProps {
 	course: StudentRatingsDetailed;
@@ -22,6 +23,7 @@ export function MyRatingCard({
 	onRatingChanged,
 }: Readonly<MyRatingCardProps>) {
 	const courseId = course.course_id;
+	const offeringId = course.course_offering_id;
 	const rating = course.rated ?? null;
 	const disableActions = false;
 
@@ -32,19 +34,24 @@ export function MyRatingCard({
 	const comment = rating?.comment?.trim();
 	const hasRating = Boolean(rating);
 	const canModify = Boolean(hasRating && rating?.id && courseId);
-	const [isEditing, setIsEditing] = useState(false);
-	const [actionError, setActionError] = useState<string | null>(null);
 
+	const [showRatingModal, setShowRatingModal] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
 	const onDeleteSuccess = () => {
-		setIsEditing(false);
 		onRatingChanged();
 	};
 
-	const handleEditToggle = () => {
-		setActionError(null);
-		setIsEditing((previous) => !previous);
-		// TODO: Implement edit form
+	const handleEditClick = () => {
+		setShowRatingModal(true);
+	};
+
+	const handleRatingModalClose = () => {
+		setShowRatingModal(false);
+	};
+
+	const handleRatingSuccess = () => {
+		onRatingChanged();
 	};
 
 	return (
@@ -54,9 +61,9 @@ export function MyRatingCard({
 				courseCode={course.course_code ?? undefined}
 				courseId={courseId}
 				canModify={canModify}
-				isEditing={isEditing}
+				isEditing={showRatingModal}
 				disableActions={disableActions}
-				onEditToggle={handleEditToggle}
+				onEditToggle={handleEditClick}
 				onDelete={() => setShowDeleteDialog(true)}
 			/>
 			<CardContent className="space-y-4 border-t border-dashed border-border pt-3">
@@ -78,13 +85,14 @@ export function MyRatingCard({
 								{rating?.created_at ? `${formatDate(rating.created_at)}` : "—"}
 							</span>
 						</div>
+						<div className="flex items-baseline gap-2">
+							<span className="text-xs text-muted-foreground/90">•</span>
+							<span className="text-xs text-muted-foreground/90 leading-none relative top-[2px]">
+								Відгук залишено:{" "}
+								{rating?.is_anonymous ? "Анонімно" : "Не анонімно"}
+							</span>
+						</div>
 					</div>
-				) : null}
-
-				{actionError ? (
-					<p className="text-sm text-destructive" role="alert">
-						{actionError}
-					</p>
 				) : null}
 
 				<RatingCommentDisplay
@@ -94,6 +102,18 @@ export function MyRatingCard({
 					canRate={course.can_rate ?? true}
 				/>
 			</CardContent>
+
+			{courseId && offeringId && (
+				<RatingModal
+					isOpen={showRatingModal}
+					onClose={handleRatingModalClose}
+					courseId={courseId}
+					offeringId={offeringId}
+					courseName={course.course_title}
+					existingRating={rating}
+					onSuccess={handleRatingSuccess}
+				/>
+			)}
 
 			{courseId && rating?.id && (
 				<DeleteRatingDialog
