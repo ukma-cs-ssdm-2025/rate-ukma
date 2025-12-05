@@ -8,6 +8,7 @@ interface DrawerProps {
 	children: React.ReactNode;
 	ariaLabel: string;
 	closeButtonLabel: string;
+	"data-testid"?: string;
 }
 
 const TRANSITION_DURATION_MS = 300;
@@ -18,6 +19,7 @@ export function Drawer({
 	children,
 	ariaLabel,
 	closeButtonLabel,
+	"data-testid": testId,
 }: Readonly<DrawerProps>) {
 	const [isMounted, setIsMounted] = useState(open);
 	const [shouldSlideIn, setShouldSlideIn] = useState(open);
@@ -76,6 +78,7 @@ export function Drawer({
 			}}
 			aria-modal="true"
 			aria-label={ariaLabel}
+			data-testid={testId}
 		>
 			<button
 				type="button"

@@ -12,6 +12,7 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
+import { testIds } from "@/lib/test-ids";
 import { DeleteRatingDialog } from "./DeleteRatingDialog";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
@@ -93,7 +94,10 @@ export function RatingModal({
 	return (
 		<>
 			<Dialog open={isOpen && !showDeleteDialog} onOpenChange={onClose}>
-				<DialogContent className="sm:max-w-[500px]">
+				<DialogContent
+					className="sm:max-w-[500px]"
+					data-testid={testIds.rating.modal}
+				>
 					<DialogHeader>
 						<div className="flex items-center justify-between">
 							<DialogTitle>
