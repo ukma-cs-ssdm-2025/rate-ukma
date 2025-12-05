@@ -79,11 +79,28 @@ class CourseService:
     def get_filter_options(self) -> CourseFilterOptions:
         semester_filter_options = self.semester_service.get_filter_options()
 
+        faculties = self.faculty_service.get_filter_options()
+        departments = self.department_service.get_filter_options()
+        specialities = self.speciality_service.get_filter_options()
+
+        for faculty in faculties:
+            faculty_departments = [
+                {"id": dept["id"], "name": dept["name"]}
+                for dept in departments
+                if dept["faculty_id"] == faculty["id"]
+            ]
+            faculty["departments"] = faculty_departments
+
+            faculty_specialitites = [
+                {"id": spec["id"], "name": spec["name"]}
+                for spec in specialities
+                if spec["faculty_id"] == faculty["id"]
+            ]
+            faculty["specialities"] = faculty_specialitites
+
         return CourseFilterOptions(
             instructors=self.instructor_service.get_filter_options(),
-            faculties=self.faculty_service.get_filter_options(),
-            departments=self.department_service.get_filter_options(),
-            specialities=self.speciality_service.get_filter_options(),
+            faculties=faculties,
             semester_terms=semester_filter_options["terms"],
             semester_years=semester_filter_options["years"],
             course_types=[
