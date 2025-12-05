@@ -15,6 +15,7 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/auth/microsoft_account_adapters.py`
   - **Lines 17-66:** `MicrosoftSocialAccountAdapter` class enforces `@ukma.edu.ua` domain restriction
   - **Line 18:** `ALLOWED_DOMAINS = ["ukma.edu.ua"]` - Enforces corporate email requirement
@@ -32,6 +33,7 @@ This document provides a detailed analysis of each requirement in the traceabili
   - **Lines 60-63:** Microsoft social account provider installed
 
 #### Frontend Implementation
+
 - **File:** `src/webapp/src/components/login/MicrosoftLoginButton.tsx`
   - Microsoft login button component for initiating OAuth flow
 
@@ -42,6 +44,7 @@ This document provides a detailed analysis of each requirement in the traceabili
   - Higher-order component for protecting authenticated routes
 
 #### API Endpoints
+
 - `POST /api/v1/auth/login/` - Login endpoint
 - `GET /api/v1/auth/login/microsoft/` - Microsoft OAuth initiation
 - `POST /api/v1/auth/logout/` - Logout endpoint
@@ -50,19 +53,23 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### NFR Coverage
 
 **NFR-S-001 (Security):** ✅ COVERED
+
 - Domain validation ensures only @ukma.edu.ua emails
 - OAuth2 authentication via Microsoft
 - Session-based authentication with CSRF protection
 
 **NFR-S-003 (Session Timeout):** ⚠️ PARTIAL
+
 - Django session framework is configured
 - **Gap:** No explicit 30-minute inactivity timeout configuration found in settings
 
 **NFR-U-001 (Usability):** ✅ COVERED
+
 - Simple OAuth flow with Microsoft single sign-on
 - UI components present: `MicrosoftLoginButton`
 
 **NFR-R-002 (Reliability - 99.5% uptime):** ⚠️ INFRASTRUCTURE
+
 - Depends on deployment configuration (ADR-0002)
 - Not verifiable in code alone
 
@@ -75,6 +82,7 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/views/course_viewset.py`
   - **Lines 41-159:** `list()` method with extensive pagination support
   - **Lines 45-123:** Query parameters for filtering and pagination defined
@@ -89,9 +97,11 @@ This document provides a detailed analysis of each requirement in the traceabili
   - Default page size and page number constants referenced
 
 #### API Endpoints
+
 - `GET /api/v1/courses/?page=1&page_size=20` - List courses with pagination
 
 #### Frontend Implementation
+
 - **File:** `src/webapp/src/routes/index.tsx`
   - **Lines 7-34:** Course browsing page skeleton
   - **Note:** UI shows "Курси поки недоступні" (Courses not yet available) placeholder
@@ -99,11 +109,13 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### NFR Coverage
 
 **NFR-PE-001 (Performance - 1.5s page load):** ⚠️ INFRASTRUCTURE
+
 - Backend pagination implemented efficiently
 - Query optimization with `select_related` and `prefetch_related`
 - Actual load time depends on deployment
 
 **NFR-PE-002 (Performance - 1s response):** ✅ COVERED
+
 - Efficient database queries with pagination
 - Indexes on relevant fields
 
@@ -116,6 +128,7 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/models/course.py`
   - **Lines 11-30:** Course model with title, description, department, status fields
   - Related models: Department (with faculty), Semester, Credits via CourseOffering
@@ -137,15 +150,18 @@ This document provides a detailed analysis of each requirement in the traceabili
   - **Lines 165-194:** `retrieve()` method returns detailed course information
 
 #### API Endpoints
+
 - `GET /api/v1/courses/<course_id>/` - Course detail endpoint
 
 ### NFR Coverage
 
 **NFR-U-002 (Usability - Readability):** ⚠️ PARTIAL
+
 - Backend provides all metadata
 - Frontend placeholder exists but full UI not implemented
 
 **NFR-R-004 (Reliability - Daily backups):** ⚠️ INFRASTRUCTURE
+
 - Uses `django-reversion` for version control (visible in admin)
 - Actual backup strategy is deployment-specific
 
@@ -158,6 +174,7 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/repositories/course_repository.py`
   - **Lines 56-59:** Name-based filtering with case-insensitive partial match
   - **Line 59:** `q_filters["title__icontains"] = filters.name` - Case-insensitive search
@@ -170,19 +187,23 @@ This document provides a detailed analysis of each requirement in the traceabili
   - **Line 50:** "Filter courses by name (case-insensitive partial match)"
 
 #### API Endpoints
+
 - `GET /api/v1/courses/?name=algorithm` - Search courses by name
 
 ### NFR Coverage
 
 **NFR-PE-002 (Performance - 1s response):** ✅ COVERED
+
 - Database index on title field for efficient search
 - ICONTAINS query with PostgreSQL text search capabilities
 
 **NFR-RB-001 (Robustness):** ✅ COVERED
+
 - Handles empty search results gracefully
 - Case-insensitive matching reduces user error
 
 **NFR-R-002 (Reliability - 99.5% uptime):** ⚠️ INFRASTRUCTURE
+
 - Depends on deployment
 
 ---
@@ -194,6 +215,7 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/filters/course_filters.py`
   - **Lines 8-20:** Complete filter dataclass with all attributes
   - **Line 10:** `type_kind` - Course type filter
@@ -216,15 +238,18 @@ This document provides a detailed analysis of each requirement in the traceabili
   - Includes: typeKind, instructor, faculty, department, speciality, semesterYear, semesterTerm
 
 #### API Endpoints
+
 - `GET /api/v1/courses/?faculty=<uuid>&department=<uuid>&typeKind=ELECTIVE`
 
 ### NFR Coverage
 
 **NFR-PE-002 (Performance - 1s response):** ✅ COVERED
+
 - Efficient filtering with indexed foreign keys
 - Query optimization with proper joins
 
 **NFR-PE-004 (Performance - 1.5s filter update):** ✅ COVERED
+
 - Backend supports real-time filtering
 - Efficient database queries
 
@@ -237,6 +262,7 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/models/rating.py`
   - **Lines 11-21:** Rating model with difficulty, usefulness, comment, is_anonymous
   - **Lines 17-18:** Difficulty and usefulness validators (1-5 range)
@@ -257,19 +283,23 @@ This document provides a detailed analysis of each requirement in the traceabili
   - Custom exceptions: `DuplicateRatingException`, `NotEnrolledException`
 
 #### API Endpoints
+
 - `POST /api/v1/courses/<course_id>/ratings/` - Submit rating
 
 ### NFR Coverage
 
 **NFR-R-001 (Reliability - No data loss):** ✅ COVERED
+
 - Database constraints ensure data integrity
 - Transaction management in Django ORM
 
 **NFR-R-003 (Reliability - Retry mechanism):** ⚠️ PARTIAL
+
 - Backend handles duplicate and enrollment errors
 - **Gap:** No explicit automatic retry mechanism (client-side responsibility)
 
 **NFR-S-002 (Security - Anonymous ratings):** ✅ COVERED
+
 - `is_anonymous` field in Rating model
 - Configurable per submission
 
@@ -282,6 +312,7 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/views/rating_viewset.py`
   - **Lines 159-194:** `update()` method for full rating update
   - **Lines 195-236:** `partial_update()` method for partial updates
@@ -294,6 +325,7 @@ This document provides a detailed analysis of each requirement in the traceabili
   - **Lines 65-67:** `delete_rating()` method
 
 #### API Endpoints
+
 - `PUT /api/v1/courses/<course_id>/ratings/<rating_id>/` - Full update
 - `PATCH /api/v1/courses/<course_id>/ratings/<rating_id>/` - Partial update
 - `DELETE /api/v1/courses/<course_id>/ratings/<rating_id>/` - Delete rating
@@ -301,14 +333,17 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### NFR Coverage
 
 **NFR-R-001 (Reliability - No data loss):** ✅ COVERED
+
 - Update and delete operations are transactional
 - Ownership verification prevents unauthorized modifications
 
 **NFR-R-003 (Reliability - Error handling):** ✅ COVERED
+
 - 403 Forbidden for non-owners
 - 404 Not Found for missing ratings
 
 **NFR-R-004 (Reliability - Backups):** ⚠️ INFRASTRUCTURE
+
 - Django-reversion tracks changes
 - Backup strategy is deployment-specific
 
@@ -323,6 +358,7 @@ This document provides a detailed analysis of each requirement in the traceabili
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/repositories/course_repository.py`
   - **Lines 21-24:** Aggregation in `get_by_id()` method
   - `avg_difficulty_annot`, `avg_usefulness_annot`, `ratings_count_annot`
@@ -335,12 +371,14 @@ This document provides a detailed analysis of each requirement in the traceabili
   - **Lines 17-21:** All rating fields are persisted and retrievable
 
 #### API Endpoints
+
 - `GET /api/v1/courses/<course_id>/` - Course detail with aggregated ratings
 - `GET /api/v1/courses/<course_id>/ratings/` - List all ratings for a course
 
 ### NFR Coverage
 
 **NFR-U-002 (Usability):** ⚠️ PARTIAL
+
 - Backend provides all data
 - Frontend course detail page not fully implemented
 
@@ -357,11 +395,13 @@ This document provides a detailed analysis of each requirement in the traceabili
 No implementation found for scatter plot visualization in the codebase.
 
 **Searched locations:**
+
 - Frontend: `src/webapp/src/` - No chart/visualization libraries detected
 - No components for plotting or data visualization
 - No references to scatter plot, chart libraries (e.g., D3, Chart.js, Recharts)
 
 **Required for implementation:**
+
 - Frontend charting library installation
 - Component for scatter plot rendering
 - API endpoint or data transformation for plot data
@@ -384,12 +424,14 @@ No implementation found for scatter plot visualization in the codebase.
 No recommendation system implementation found.
 
 **Searched locations:**
+
 - Backend services: No `recommendation_service.py` or similar
 - Models: No recommendation tracking or algorithm implementation
 - API endpoints: No recommendation endpoints in `urls.py`
 - Frontend: No recommendation display components
 
 **Required for implementation:**
+
 - Recommendation algorithm (collaborative filtering, content-based, or hybrid)
 - Service layer for generating recommendations
 - API endpoints for fetching recommendations
@@ -408,6 +450,7 @@ No recommendation system implementation found.
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/models/student.py`
   - **Lines 48-50:** `overall_rated_courses` property - Total rated courses count
   - **Lines 52-63:** `rated_courses_this_sem` property - Current semester count
@@ -418,18 +461,21 @@ No recommendation system implementation found.
   - **Lines 178-179:** `overall_rated_courses`, `rated_courses_this_sem` in list display
 
 **Gap Analysis:**
+
 - Properties exist on Student model but no dedicated API endpoint
 - No frontend page for displaying student progress
 - No completion percentage calculation visible
 - No dedicated service for progress tracking
 
 #### Frontend Implementation
+
 - **File:** `src/webapp/src/routes/my-ratings.tsx`
   - **Lines 7-34:** Skeleton page for student ratings
   - **Note:** Shows placeholder "Немає оцінок" (No ratings)
   - **Gap:** No actual data fetching or display logic
 
 **Required for full coverage:**
+
 - API endpoint: `GET /api/v1/students/me/progress/` or similar
 - Completion percentage calculation
 - Frontend integration to display progress metrics
@@ -453,6 +499,7 @@ No recommendation system implementation found.
 ### Implementation Evidence
 
 #### Backend Implementation
+
 - **File:** `src/backend/rating_app/admin/models.py`
   - **Lines 20-61:** CourseAdmin with aggregated statistics
   - **Lines 26-28:** Displays avg_difficulty, avg_usefulness, ratings_count
@@ -461,6 +508,7 @@ No recommendation system implementation found.
   - **Lines 201-207:** Filters by anonymity, difficulty, usefulness, department, date
 
 **Capabilities:**
+
 - Django admin interface provides:
   - Course statistics (average ratings, counts)
   - Rating list with filters
@@ -468,6 +516,7 @@ No recommendation system implementation found.
   - Temporal filtering (by creation date)
 
 **Gap Analysis:**
+
 - Statistics available only in Django admin (not via API)
 - No dedicated API endpoint for statistics
 - No custom admin dashboard or views
@@ -475,6 +524,7 @@ No recommendation system implementation found.
 - No trend analysis over time (requires custom queries)
 
 **Required for full coverage:**
+
 - API endpoint: `GET /api/v1/admin/statistics/`
 - Custom admin dashboard
 - Frontend admin interface
@@ -494,22 +544,26 @@ No recommendation system implementation found.
 ### Authentication Middleware
 
 **File:** `src/backend/rateukma/settings/_base.py`
+
 - **Lines 74-84:** Complete middleware stack
 - **Line 79:** CSRF protection middleware
 - **Line 80:** Authentication middleware
 - **Line 83:** Allauth account middleware
 
 **File:** `src/webapp/src/lib/auth/withAuth.tsx`
+
 - Higher-order component for route protection
 
 ### API Quality Attributes
 
 **API-QA-001 (Performance):** ⚠️ PARTIAL
+
 - Efficient database queries with select_related/prefetch_related
 - Pagination implemented
 - Missing: Performance monitoring, caching strategy
 
 **API-QA-002 (Security):** ✅ COVERED
+
 - CSRF protection enabled
 - Session-based authentication
 - OAuth2 via Microsoft
@@ -517,11 +571,13 @@ No recommendation system implementation found.
 - CORS configuration
 
 **API-QA-003 (Reliability):** ⚠️ PARTIAL
+
 - Database constraints for data integrity
 - Transaction support
 - Missing: Explicit retry logic, monitoring
 
 **API-QA-004 (Usability):** ⚠️ PARTIAL
+
 - OpenAPI/Swagger documentation via drf-spectacular
 - Frontend UI partially implemented
 - Missing: Full responsive design, accessibility testing
@@ -531,19 +587,23 @@ No recommendation system implementation found.
 ## Architecture Decision Records (ADRs)
 
 ### ADR-0001: N-tier Architecture ✅ VERIFIED
+
 - Clear separation: Models, Services, Repositories, Views
 - IoC container pattern in `ioc_container/`
 
 ### ADR-0002: Initial Deployment Strategy ⚠️ INFRASTRUCTURE
+
 - Configuration exists (Django settings, Docker files implied)
 - Actual deployment and uptime dependent on infrastructure
 
 ### ADR-0003: Technology Stack ✅ VERIFIED
+
 - Backend: Django, Django REST Framework, PostgreSQL
 - Frontend: React (Vite), TanStack Router, TanStack Query
 - Authentication: django-allauth, Microsoft OAuth
 
 ### ADR-0004: API Format ✅ VERIFIED
+
 - RESTful API endpoints
 - JSON request/response format
 - OpenAPI documentation via drf-spectacular
