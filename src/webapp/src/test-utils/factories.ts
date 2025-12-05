@@ -74,8 +74,6 @@ export function createMockDepartment(
 	return {
 		id: faker.string.uuid(),
 		name: faker.lorem.words(3),
-		faculty_id: faker.string.uuid(),
-		faculty_name: faker.lorem.words(2),
 		...overrides,
 	};
 }
@@ -153,8 +151,6 @@ export function createMockSpeciality(
 	return {
 		id: faker.string.uuid(),
 		name: faker.lorem.words(2),
-		faculty_id: faker.string.uuid(),
-		faculty_name: faker.lorem.words(2),
 		...overrides,
 	};
 }
@@ -170,24 +166,34 @@ export function createMockFilterOptions(
 			createMockFaculty({
 				id: "faculty-1",
 				name: "Факультет інформатики",
+				departments: [
+					createMockDepartment({
+						id: "dept-1",
+						name: "Кафедра мультимедійних систем",
+					}),
+				],
+				specialities: [
+					createMockSpeciality({
+						id: "spec-1",
+						name: "Інженерія програмного забезпечення",
+					}),
+				],
 			}),
 			createMockFaculty({
 				id: "faculty-2",
 				name: "Факультет економічних наук",
-			}),
-		],
-		departments: [
-			createMockDepartment({
-				id: "dept-1",
-				name: "Кафедра мультимедійних систем",
-				faculty_id: "faculty-1",
-				faculty_name: "Факультет інформатики",
-			}),
-			createMockDepartment({
-				id: "dept-2",
-				name: "Кафедра фінансів",
-				faculty_id: "faculty-2",
-				faculty_name: "Факультет економічних наук",
+				departments: [
+					createMockDepartment({
+						id: "dept-2",
+						name: "Кафедра фінансів",
+					}),
+				],
+				specialities: [
+					createMockSpeciality({
+						id: "spec-2",
+						name: "Економіка",
+					}),
+				],
 			}),
 		],
 		instructors: [
@@ -205,20 +211,6 @@ export function createMockFilterOptions(
 		course_types: [
 			createMockCourseType({ value: "MANDATORY", label: "Обов'язковий" }),
 			createMockCourseType({ value: "ELECTIVE", label: "Вибірковий" }),
-		],
-		specialities: [
-			createMockSpeciality({
-				id: "spec-1",
-				name: "Інженерія програмного забезпечення",
-				faculty_id: "faculty-1",
-				faculty_name: "Факультет інформатики",
-			}),
-			createMockSpeciality({
-				id: "spec-2",
-				name: "Економіка",
-				faculty_id: "faculty-2",
-				faculty_name: "Факультет економічних наук",
-			}),
 		],
 		...overrides,
 	};

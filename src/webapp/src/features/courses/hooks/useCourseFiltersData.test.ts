@@ -218,7 +218,23 @@ describe("useCourseFiltersData", () => {
 		it("should show all departments when no faculty is selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING, MOCK_DEPARTMENTS.ECONOMICS],
+				faculties: [
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [
+							MOCK_DEPARTMENTS.PROGRAMMING,
+							MOCK_DEPARTMENTS.DATABASES,
+						],
+						specialities: [],
+					},
+					{
+						id: "fac-2",
+						name: "Факультет економічних наук",
+						departments: [MOCK_DEPARTMENTS.ECONOMICS],
+						specialities: [],
+					},
+				],
 			});
 
 			// Act
@@ -228,16 +244,28 @@ describe("useCourseFiltersData", () => {
 			const departmentFilter = result.current.selectFilters.find(
 				(f) => f.key === "department",
 			);
-			expect(departmentFilter?.options).toHaveLength(2);
+			expect(departmentFilter?.options).toHaveLength(3);
 		});
 
 		it("should filter departments by selected faculty", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [
-					MOCK_DEPARTMENTS.PROGRAMMING,
-					MOCK_DEPARTMENTS.ECONOMICS,
-					MOCK_DEPARTMENTS.DATABASES,
+				faculties: [
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [
+							MOCK_DEPARTMENTS.PROGRAMMING,
+							MOCK_DEPARTMENTS.DATABASES,
+						],
+						specialities: [],
+					},
+					{
+						id: "fac-2",
+						name: "Факультет економічних наук",
+						departments: [MOCK_DEPARTMENTS.ECONOMICS],
+						specialities: [],
+					},
 				],
 			});
 
@@ -258,7 +286,14 @@ describe("useCourseFiltersData", () => {
 		it("should show department name without faculty when faculty is selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+				faculties: [
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+						specialities: [],
+					},
+				],
 			});
 
 			// Act
@@ -276,7 +311,14 @@ describe("useCourseFiltersData", () => {
 		it("should show department with faculty name when no faculty selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+				faculties: [
+					{
+						id: "fac-1",
+						name: "ФІ",
+						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+						specialities: [],
+					},
+				],
 			});
 
 			// Act
@@ -286,8 +328,9 @@ describe("useCourseFiltersData", () => {
 			const departmentFilter = result.current.selectFilters.find(
 				(f) => f.key === "department",
 			);
+			// Without faculty selected, labels are just the department name
 			expect(departmentFilter?.options[0].label).toBe(
-				"Кафедра мультимедійних систем — ФІ",
+				"Кафедра мультимедійних систем",
 			);
 		});
 	});
