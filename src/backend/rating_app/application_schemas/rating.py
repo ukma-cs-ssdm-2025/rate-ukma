@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, Field
@@ -163,3 +164,10 @@ class RatingSearchResult:
     items: list[IRating]
     pagination: PaginationMetadata
     applied_filters: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class AggregatedCourseRatingStats:
+    avg_difficulty: Decimal
+    avg_usefulness: Decimal
+    ratings_count: int
