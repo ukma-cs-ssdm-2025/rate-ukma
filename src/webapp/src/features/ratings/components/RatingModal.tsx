@@ -115,7 +115,10 @@ export function RatingModal({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
-			<DialogContent className="sm:max-w-[500px]" data-testid={testIds.rating.modal}>
+			<DialogContent
+				className="sm:max-w-[500px]"
+				data-testid={testIds.rating.modal}
+			>
 				<DialogHeader>
 					<div className="flex items-center justify-between">
 						<DialogTitle>

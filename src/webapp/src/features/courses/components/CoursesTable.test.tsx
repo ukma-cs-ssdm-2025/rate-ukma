@@ -19,6 +19,21 @@ vi.mock("@tanstack/react-router", async () => {
 		useNavigate: vi.fn(function () {
 			return mockNavigate;
 		}),
+		Link: ({
+			to,
+			params,
+			children,
+			className,
+		}: {
+			to: string;
+			params?: Record<string, string>;
+			children: React.ReactNode;
+			className?: string;
+		}) => (
+			<a href={to} data-params={JSON.stringify(params)} className={className}>
+				{children}
+			</a>
+		),
 	};
 });
 
@@ -358,26 +373,22 @@ describe("Mobile Filter Drawer", () => {
 });
 
 describe("Row Click Handling", () => {
-	it("should call onRowClick when a course row is clicked", async () => {
+	it("should render course title as a link", () => {
 		// Arrange
-		const user = userEvent.setup();
-		const onRowClick = vi.fn();
-		const course = createMockCourse({ title: "React Programming" });
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				data={[course]}
-				onRowClick={onRowClick}
-			/>,
-		);
-
-		// Act
-		const row = screen.getByText("React Programming").closest("tr");
-		expect(row).not.toBeNull();
-		await user.click(row as HTMLElement);
+		const course = createMockCourse({
+			id: "test-course-id",
+			title: "React Programming",
+		});
+		renderWithProviders(<CoursesTable {...defaultProps} data={[course]} />);
 
 		// Assert
-		expect(onRowClick).toHaveBeenCalledWith(course);
+		const link = screen.getByRole("link", { name: "React Programming" });
+		expect(link).toBeInTheDocument();
+		expect(link).toHaveAttribute("href", "/courses/$courseId");
+		expect(link).toHaveAttribute(
+			"data-params",
+			JSON.stringify({ courseId: "test-course-id" }),
+		);
 	});
 });
 
