@@ -74,6 +74,7 @@ REST_SESSION_LOGIN = True
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "compression_middleware.middleware.CompressionMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -117,6 +118,10 @@ DATABASES = {
         "PASSWORD": config("POSTGRES_PASSWORD"),
         "HOST": config("POSTGRES_HOST"),
         "PORT": config("POSTGRES_PORT"),
+        "CONN_MAX_AGE": 600,  # Persistent connections for 10 minutes
+        "OPTIONS": {
+            "connect_timeout": 10,
+        },
     }
 }
 
