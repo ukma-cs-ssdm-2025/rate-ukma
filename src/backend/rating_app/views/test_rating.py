@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from freezegun import freeze_time
 
@@ -86,8 +88,8 @@ def test_create_rating(
     assert response.status_code == 201, response.data
 
     course.refresh_from_db()
-    assert course.avg_difficulty == 4.0
-    assert course.avg_usefulness == 5.0
+    assert course.avg_difficulty == Decimal("4.00")
+    assert course.avg_usefulness == Decimal("5.00")
     assert course.ratings_count == 1
 
 
@@ -144,8 +146,8 @@ def test_delete_rating(
     assert response.status_code == 204
 
     course.refresh_from_db()
-    assert course.avg_difficulty == 0.0
-    assert course.avg_usefulness == 0.0
+    assert course.avg_difficulty == Decimal("0.00")
+    assert course.avg_usefulness == Decimal("0.00")
     assert course.ratings_count == 0
 
 
@@ -179,8 +181,8 @@ def test_update_rating(
     assert response.status_code == 200, response.data
 
     course.refresh_from_db()
-    assert course.avg_difficulty == 4.0
-    assert course.avg_usefulness == 5.0
+    assert course.avg_difficulty == Decimal("4.00")
+    assert course.avg_usefulness == Decimal("5.00")
     assert course.ratings_count == 1
 
 
