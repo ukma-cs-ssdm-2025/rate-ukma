@@ -24,6 +24,9 @@ from rating_app.services import (
     SpecialityService,
     StudentService,
 )
+from rating_app.services.domain_event_listeners.aggregates_update import (
+    CourseModelAggregatesUpdateObserver,
+)
 from rating_app.services.paginator import QuerysetPaginator
 
 
@@ -72,6 +75,14 @@ def rating_service() -> RatingService:
 
 
 @once
+def course_model_aggregates_update_observer() -> CourseModelAggregatesUpdateObserver:
+    return CourseModelAggregatesUpdateObserver(
+        course_service=course_service(),
+        rating_service=rating_service(),
+    )
+
+
+@once
 def instructor_service() -> InstructorService:
     return InstructorService(instructor_repository=instructor_repository())
 
@@ -95,6 +106,10 @@ def course_offering_service() -> CourseOfferingService:
 @once
 def paginator() -> QuerysetPaginator:
     return QuerysetPaginator()
+
+
+def register_observers() -> None:
+    rating_service().add_observer(course_model_aggregates_update_observer())
 
 
 __all__ = [

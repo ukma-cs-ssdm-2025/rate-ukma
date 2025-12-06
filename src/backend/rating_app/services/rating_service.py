@@ -1,9 +1,14 @@
 from datetime import datetime
+from decimal import Decimal
+from typing import cast
 
 from django.db.models import QuerySet
 
+from rateukma.protocols import implements
+from rateukma.protocols.generic import IEventListener, IObservable
 from rating_app.application_schemas.pagination import PaginationMetadata
 from rating_app.application_schemas.rating import (
+    AggregatedCourseRatingStats,
     RatingCreateParams,
     RatingFilterCriteria,
     RatingPatchParams,
@@ -16,14 +21,14 @@ from rating_app.exception.rating_exceptions import (
     NotEnrolledException,
     RatingPeriodNotStarted,
 )
-from rating_app.models import Rating, Semester
+from rating_app.models import Course, Rating, Semester
 from rating_app.repositories import EnrollmentRepository, RatingRepository
 from rating_app.services.course_offering_service import CourseOfferingService
 from rating_app.services.paginator import QuerysetPaginator
 from rating_app.services.semester_service import SemesterService
 
 
-class RatingService:
+class RatingService(IObservable[Rating]):
     def __init__(
         self,
         rating_repository: RatingRepository,
@@ -37,8 +42,43 @@ class RatingService:
         self.course_offering_service = course_offering_service
         self.semester_service = semester_service
         self.paginator = paginator
+        self._listeners: list[IEventListener[Rating]] = []
 
-    def create_rating(self, params: RatingCreateParams):
+    @implements
+    def notify(self, event: Rating, *args, **kwargs) -> None:
+        for listener in self._listeners:
+            listener.on_event(event, *args, **kwargs)
+
+    @implements
+    def add_observer(self, listener: IEventListener[Rating]) -> None:
+        self._listeners.append(listener)
+
+    def get_rating(self, rating_id):
+        return self.rating_repository.get_by_id(rating_id)
+
+    def get_avg_difficulty(self, course: Course) -> Decimal:
+        return cast(Decimal, course.avg_difficulty)
+
+    def get_aggregated_course_stats(self, course: Course) -> AggregatedCourseRatingStats:
+        return self.rating_repository.get_aggregated_course_stats(course)
+
+    def filter_ratings(
+        self,
+        filters: RatingFilterCriteria,
+        paginate: bool = True,
+    ) -> RatingSearchResult:
+        ratings = self.rating_repository.filter(filters)
+
+        if paginate:
+            return self._paginated_result(ratings, filters)
+
+        return RatingSearchResult(
+            items=list(ratings),
+            pagination=self._empty_pagination_metadata(ratings.count()),
+            applied_filters=filters.model_dump(by_alias=True),
+        )
+
+    def create_rating(self, params: RatingCreateParams) -> Rating:
         student_id = str(params.student)
         offering_id = str(params.course_offering)
 
@@ -59,33 +99,19 @@ class RatingService:
         if rating_exists:
             raise DuplicateRatingException()
 
-        return self.rating_repository.create(params)
-
-    def get_rating(self, rating_id):
-        return self.rating_repository.get_by_id(rating_id)
-
-    def filter_ratings(
-        self,
-        filters: RatingFilterCriteria,
-        paginate: bool = True,
-    ) -> RatingSearchResult:
-        ratings = self.rating_repository.filter(filters)
-
-        if paginate:
-            return self._paginated_result(ratings, filters)
-
-        return RatingSearchResult(
-            items=list(ratings),
-            pagination=self._empty_pagination_metadata(ratings.count()),
-            applied_filters=filters.model_dump(by_alias=True),
-        )
+        rating = self.rating_repository.create(params)
+        self.notify(rating)
+        return rating
 
     def update_rating(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams):
-        return self.rating_repository.update(rating, update_data)
+        updated_rating = self.rating_repository.update(rating, update_data)
+        self.notify(updated_rating)
+        return updated_rating
 
     def delete_rating(self, rating_id):
         rating = self.rating_repository.get_by_id(rating_id)
         self.rating_repository.delete(rating)
+        self.notify(rating)
 
     def is_semester_open_for_rating(
         self,

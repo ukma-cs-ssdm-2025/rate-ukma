@@ -9,7 +9,7 @@ import {
 } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	type ColumnDef,
 	getCoreRowModel,
@@ -127,7 +127,6 @@ function ScatterPlotPreviewCard({
 interface CoursesTableProps {
 	data: CourseList[];
 	isLoading: boolean;
-	onRowClick?: (course: CourseList) => void;
 	onFiltersChange?: (filters: Record<string, unknown>) => void;
 	filtersKey: string;
 	pagination?: PaginationInfo;
@@ -146,11 +145,22 @@ const columns: ColumnDef<CourseList>[] = [
 		),
 		cell: ({ row }) => {
 			const course = row.original;
+			const courseId = course.id;
 			return (
 				<span className="whitespace-normal break-words">
-					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline md:text-base">
-						{course.title}
-					</span>{" "}
+					{courseId ? (
+						<Link
+							to="/courses/$courseId"
+							params={{ courseId }}
+							className="font-semibold text-sm transition-colors hover:text-primary hover:underline md:text-base"
+						>
+							{course.title}
+						</Link>
+					) : (
+						<span className="font-semibold text-sm md:text-base">
+							{course.title}
+						</span>
+					)}{" "}
 					<CourseSpecialityBadges specialities={course.course_specialities} />
 				</span>
 			);
@@ -297,7 +307,6 @@ function DebouncedInput({
 export function CoursesTable({
 	data,
 	isLoading,
-	onRowClick,
 	onFiltersChange,
 	filtersKey,
 	pagination: serverPagination,
@@ -559,7 +568,6 @@ export function CoursesTable({
 		return (
 			<DataTable
 				table={table}
-				onRowClick={onRowClick}
 				totalRows={serverPagination?.total}
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}

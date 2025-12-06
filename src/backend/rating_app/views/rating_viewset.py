@@ -136,8 +136,7 @@ class RatingViewSet(viewsets.ViewSet):
 
         rating = self.rating_service.create_rating(rating_params)
 
-        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
-        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
+        self._invalidate_caches_after_rating_change(student)
 
         logger.info(
             "rating_created",
@@ -187,8 +186,7 @@ class RatingViewSet(viewsets.ViewSet):
 
         rating = self.rating_service.update_rating(rating, update_params)
 
-        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
-        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
+        self._invalidate_caches_after_rating_change(student)
 
         logger.info("rating_updated", rating_id=rating.id)
         response_serializer = RatingReadSerializer(rating)
@@ -214,8 +212,7 @@ class RatingViewSet(viewsets.ViewSet):
 
         response_serializer = RatingReadSerializer(rating)
 
-        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
-        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
+        self._invalidate_caches_after_rating_change(student)
 
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -231,7 +228,14 @@ class RatingViewSet(viewsets.ViewSet):
 
         self.rating_service.delete_rating(rating.id)
 
-        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
-        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
+        self._invalidate_caches_after_rating_change(student)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _invalidate_caches_after_rating_change(self, student: Student) -> None:
+        assert self.cache_manager is not None
+
+        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
+        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
+        self.cache_manager.invalidate_pattern("*AnalyticsViewSet.list*")
+        self.cache_manager.invalidate_pattern("*CourseViewSet.retrieve*")

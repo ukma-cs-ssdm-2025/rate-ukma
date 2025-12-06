@@ -31,8 +31,8 @@ class AnalyticsViewSet(viewsets.ViewSet):
     course_service: CourseService | None = None
 
     @extend_schema(
-        summary="Get course analytics",
-        description="Get course analytics with optional filters"
+        summary="Get courses analytics",
+        description="Get courses analytics with optional filters.\n"
         "Returns courses analytics with aggregated ratings.",
         parameters=to_openapi((CourseFilterCriteria, OpenApiParameter.QUERY)),
         responses=R_ANALYTICS,
@@ -54,7 +54,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Get course analytics",
         description="Get course analytics with optional filters"
-        "Returns courses analytics with aggregated ratings.",
+        "Returns course's analytics with aggregated ratings.",
         parameters=to_openapi((CourseReadParams, OpenApiParameter.PATH)),
         responses=R_ANALYTICS,
     )
