@@ -153,6 +153,7 @@ const columns: ColumnDef<CourseList>[] = [
 							to="/courses/$courseId"
 							params={{ courseId }}
 							className="font-semibold text-sm transition-colors hover:text-primary hover:underline md:text-base"
+							data-testid={testIds.courses.tableTitleLink}
 						>
 							{course.title}
 						</Link>
@@ -571,6 +572,7 @@ export function CoursesTable({
 				totalRows={serverPagination?.total}
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}
+				data-testid={testIds.courses.table}
 			/>
 		);
 	};

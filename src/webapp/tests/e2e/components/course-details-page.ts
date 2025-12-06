@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 
+import { testIds } from "@/lib/test-ids";
 import { BasePage } from "./base-page";
 
 export class CourseDetailsPage extends BasePage {
@@ -25,26 +26,21 @@ export class CourseDetailsPage extends BasePage {
 	constructor(page: Page) {
 		super(page);
 
-		this.pageTitle = page.locator("h1");
-		this.rateButton = page.locator("button").filter({
-			hasText: /Оцінити цей курс|Редагувати оцінку/,
-		});
+		this.pageTitle = page.getByTestId(testIds.courseDetails.title);
+		this.rateButton = page.getByTestId(testIds.courseDetails.rateButton);
 
-		this.statsCardsContainer = page.locator(
-			"[class*='grid gap-4 sm:grid-cols-3']",
+		this.statsCardsContainer = page.getByTestId(
+			testIds.courseDetails.statsCards,
 		);
-		this.reviewsCountStat = this.statsCardsContainer
-			.locator("div")
-			.filter({ hasText: "відгуків" })
-			.first();
+		this.reviewsCountStat = page.getByTestId(
+			testIds.courseDetails.ratingsCountStat,
+		);
 
-		this.reviewsSection = page
-			.locator("h2")
-			.filter({ hasText: "Відгуки студентів" });
+		this.reviewsSection = page.getByTestId(
+			testIds.courseDetails.reviewsSection,
+		);
 
-		this.reviewCards = page.locator("article").filter({
-			hasText: /Складність:|Корисність:/,
-		});
+		this.reviewCards = page.getByTestId(testIds.courseDetails.reviewCard);
 
 		this.userRatingCard = page.locator("article").filter({
 			hasText: "Ваша оцінка",
@@ -56,9 +52,9 @@ export class CourseDetailsPage extends BasePage {
 			.locator("button.bg-destructive.text-white")
 			.filter({ hasText: "Видалити" });
 
-		this.noReviewsMessage = page.locator("p").filter({
-			hasText: "Поки що немає відгуків для цього курсу",
-		});
+		this.noReviewsMessage = page.getByTestId(
+			testIds.courseDetails.noReviewsMessage,
+		);
 		this.insufficientDataMessages = this.statsCardsContainer
 			.locator("span")
 			.filter({
@@ -127,7 +123,7 @@ export class CourseDetailsPage extends BasePage {
 
 	async isReviewsSectionVisible(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.reviewsSection, 3000);
+			await this.waitForElement(this.reviewsSection);
 			return true;
 		} catch {
 			return false;
@@ -155,10 +151,7 @@ export class CourseDetailsPage extends BasePage {
 
 	async getInsufficientDataMessagesCount(): Promise<number> {
 		try {
-			await this.page.waitForSelector(
-				"[class*='grid gap-4 sm:grid-cols-3'] span",
-				{ state: "attached", timeout: 3000 },
-			);
+			await this.waitForElement(this.statsCardsContainer);
 			return await this.insufficientDataMessages.count();
 		} catch {
 			return 0;
@@ -166,7 +159,9 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async findReviewCardByText(text: string): Promise<Locator> {
-		return this.reviewCards.filter({ hasText: text });
+		const reviewCard = this.reviewCards.filter({ hasText: text });
+		await this.waitForElement(reviewCard);
+		return reviewCard;
 	}
 
 	async deleteUserRating(): Promise<void> {

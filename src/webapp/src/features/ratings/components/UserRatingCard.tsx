@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/features/courses/courseFormatting";
 import type { InlineRating } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
+import { testIds } from "@/lib/test-ids";
 import { RatingComment } from "./RatingComment";
 import { RatingStats } from "./RatingStats";
 
@@ -35,7 +36,10 @@ export function UserRatingCard({
 	const displayName = getUserDisplayName();
 
 	return (
-		<article className="py-4 px-4 bg-primary/5 rounded-lg border border-primary/20">
+		<article
+			className="py-4 px-4 bg-primary/5 rounded-lg border border-primary/20"
+			data-testid={testIds.courseDetails.reviewCard}
+		>
 			<div className="flex items-center justify-between mb-2">
 				<div className="flex items-center gap-2 text-xs">
 					<Star className="h-3.5 w-3.5 text-primary fill-primary" />

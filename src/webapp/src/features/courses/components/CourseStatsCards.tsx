@@ -99,6 +99,7 @@ export function CourseStatsCards({
 				ratingsCount && ratingsCount > 0
 					? "text-primary"
 					: "text-muted-foreground",
+			testId: testIds.courseDetails.ratingsCountStat,
 		},
 	];
 
@@ -109,7 +110,7 @@ export function CourseStatsCards({
 		>
 			{stats.map(
 				(
-					{ title, description, formatted, hint, accent, value, type },
+					{ title, description, formatted, hint, accent, value, type, testId },
 					index,
 				) => (
 					<Card
@@ -120,6 +121,7 @@ export function CourseStatsCards({
 								? getDetailedDescription(value, type)
 								: undefined
 						}
+						data-testid={testId}
 					>
 						<div className="space-y-2">
 							<div className="flex items-baseline gap-1.5">

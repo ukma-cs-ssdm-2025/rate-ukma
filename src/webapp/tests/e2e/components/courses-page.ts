@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 
+import { testIds } from "@/lib/test-ids";
 import { BasePage } from "./base-page";
 
 export class CoursesPage extends BasePage {
@@ -8,6 +9,7 @@ export class CoursesPage extends BasePage {
 	// Main
 	private readonly pageTitle: Locator;
 	private readonly coursesTable: Locator;
+	private readonly courseTitleLinks: Locator;
 
 	// Navigation
 	private readonly courseDetailsPagePattern: RegExp;
@@ -16,7 +18,8 @@ export class CoursesPage extends BasePage {
 		super(page);
 
 		this.pageTitle = page.locator("h3").filter({ hasText: "Карта курсів" });
-		this.coursesTable = page.locator("table");
+		this.coursesTable = page.getByTestId(testIds.courses.table);
+		this.courseTitleLinks = page.getByTestId(testIds.courses.tableTitleLink);
 
 		this.courseDetailsPagePattern = /\/courses\/[0-9a-fA-F-]{36}$/;
 	}
@@ -39,20 +42,26 @@ export class CoursesPage extends BasePage {
 	}
 
 	async getFirstCourseCard(): Promise<Locator> {
-		return await this.coursesTable.locator("tbody tr").first();
+		return await this.courseTitleLinks.first();
 	}
 
 	async clickFirstCourseCard(): Promise<void> {
 		const firstCourseCard = await this.getFirstCourseCard();
-		await firstCourseCard.click();
+		await this.waitForElement(firstCourseCard);
+
+		await Promise.all([
+			this.page.waitForURL(this.courseDetailsPagePattern, { timeout: 10000 }),
+			this.waitForRatingsAPIResponse(),
+			firstCourseCard.click(),
+		]);
+
+		await this.page.waitForLoadState("networkidle");
 	}
 
 	async getFirstCourseCardTitle(): Promise<string> {
 		const firstCourseCard = await this.getFirstCourseCard();
-		const title = await firstCourseCard
-			.locator("td span.font-semibold")
-			.first()
-			.textContent();
+		await this.waitForElement(firstCourseCard);
+		const title = await firstCourseCard.textContent();
 		if (!title) {
 			throw new Error("Course title not found");
 		}
@@ -69,17 +78,7 @@ export class CoursesPage extends BasePage {
 
 	async navigateToFirstCourseDetailsPage(): Promise<string> {
 		const courseTitle = await this.getFirstCourseCardTitle();
-		const firstCourseCard = await this.getFirstCourseCard();
-
-		await firstCourseCard.waitFor({ state: "visible" });
-
-		await Promise.all([
-			this.page.waitForURL(this.courseDetailsPagePattern, { timeout: 10000 }),
-			this.waitForRatingsAPIResponse(),
-			firstCourseCard.click(),
-		]);
-
-		await this.page.waitForLoadState("networkidle");
+		await this.clickFirstCourseCard();
 
 		return courseTitle;
 	}
