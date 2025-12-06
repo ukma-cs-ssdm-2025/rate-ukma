@@ -18,6 +18,10 @@ dependencies = [
     # Database
     "psycopg2-binary==2.9.10",
 
+    # Cache
+    "redis>=7.0.0",
+    "django-redis>=6.0.0",
+
     # Security
     "cryptography>=41.0.0",
     "PyJWT==2.9.0",
@@ -63,6 +67,8 @@ dev = [
     # dev-only
     "pre-commit==4.3.0",
     "ipython>=9.4.0",
+    "django-debug-toolbar>=4.4.0",
+    "django-stubs>=5.1.0",
 ]
 
 [tool.setuptools]

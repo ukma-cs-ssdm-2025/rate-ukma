@@ -105,9 +105,9 @@ class SemesterService(IFilterable):
         semesters = self.semester_repository.get_all()
         sorted_semesters = self._sort_semesters(semesters)
         term_labels = self._extract_term_labels(sorted_semesters)
-        years = self._extract_years(sorted_semesters)
+        academic_years = self._extract_academic_years(sorted_semesters)
         semester_terms = self._build_semester_terms(term_labels)
-        semester_years = self._build_semester_years(years)
+        semester_years = self._build_semester_years(academic_years)
         return SemesterFilterData(terms=semester_terms, years=semester_years)
 
     def _sort_semesters(self, semesters):
@@ -135,16 +135,25 @@ class SemesterService(IFilterable):
 
         return term_labels
 
-    def _extract_years(self, sorted_semesters) -> set[int]:
-        years: set[int] = set()
+    def _extract_academic_years(self, sorted_semesters) -> set[tuple[int, int]]:
+        academic_years: set[tuple[int, int]] = set()
 
         for semester in sorted_semesters:
             year = getattr(semester, "year", None)
             term = getattr(semester, "term", None)
             if year is not None and term is not None:
-                years.add(year)
+                academic_year = self._get_academic_year_range(year, term)
+                if academic_year:
+                    academic_years.add(academic_year)
 
-        return years
+        return academic_years
+
+    def _get_academic_year_range(self, year: int, term: str) -> tuple[int, int] | None:
+        if term == SemesterTerm.FALL:
+            return (year, year + 1)
+        elif term in (SemesterTerm.SPRING, SemesterTerm.SUMMER):
+            return (year - 1, year)
+        return None
 
     def _build_semester_terms(
         self, term_labels: dict[str | SemesterTerm, str]
@@ -162,8 +171,16 @@ class SemesterService(IFilterable):
         else:
             return len(self.TERM_PRIORITY)
 
-    def _build_semester_years(self, years: set[int]) -> list[SemesterFilterOption]:
+    def _build_semester_years(
+        self, academic_years: set[tuple[int, int]]
+    ) -> list[SemesterFilterOption]:
+        """Build academic year filter options from academic year ranges.
+
+        Format: "start_year–end_year" (e.g., "2024–2025")
+        """
         return [
-            SemesterFilterOption(value=str(year), label=str(year))
-            for year in sorted(years, reverse=True)
+            SemesterFilterOption(
+                value=f"{start_year}–{end_year}", label=f"{start_year}–{end_year}"
+            )
+            for start_year, end_year in sorted(academic_years, reverse=True)
         ]

@@ -3,6 +3,7 @@ from collections.abc import Callable
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
 
+from rateukma.caching.instances import redis_cache_manager
 from rateukma.ioc.decorators import once
 
 from ..views import (
@@ -54,6 +55,7 @@ def course_ratings_list_create_view():
         {"get": "list", "post": "create"},
         rating_service=rating_service(),
         student_service=student_service(),
+        cache_manager=redis_cache_manager(),
     )
 
 
@@ -63,6 +65,7 @@ def course_rating_detail_view():
         {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"},
         rating_service=rating_service(),
         student_service=student_service(),
+        cache_manager=redis_cache_manager(),
     )
 
 

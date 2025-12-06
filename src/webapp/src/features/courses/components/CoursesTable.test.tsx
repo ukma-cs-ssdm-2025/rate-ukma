@@ -41,6 +41,13 @@ vi.mock("@/lib/api/generated", async () => {
 				error: null,
 			};
 		}),
+		useStudentsMeCoursesRetrieve: vi.fn(function () {
+			return {
+				data: [],
+				isLoading: false,
+				error: null,
+			};
+		}),
 	};
 });
 
@@ -559,5 +566,74 @@ describe("URL Sync", () => {
 			"Пошук курсів за назвою...",
 		);
 		expect(searchInput).toHaveValue("Database");
+	});
+});
+
+describe("Attended Courses Highlighting", () => {
+	it("should highlight attended course rows", async () => {
+		// Arrange
+		const { useStudentsMeCoursesRetrieve } = await import(
+			"@/lib/api/generated"
+		);
+		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
+		const attendedCourseId = "course-attended-1";
+		const nonAttendedCourseId = "course-non-attended-2";
+
+		mockedHook.mockReturnValue({
+			data: [{ id: attendedCourseId, offerings: [] }],
+			isLoading: false,
+			error: null,
+		} as ReturnType<typeof useStudentsMeCoursesRetrieve>);
+
+		const courses = [
+			createMockCourse({ id: attendedCourseId, title: "Attended Course" }),
+			createMockCourse({
+				id: nonAttendedCourseId,
+				title: "Non-Attended Course",
+			}),
+		];
+
+		// Act
+		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+
+		// Assert
+		const attendedRow = screen.getByText("Attended Course").closest("tr");
+		const nonAttendedRow = screen
+			.getByText("Non-Attended Course")
+			.closest("tr");
+
+		expect(attendedRow).toHaveAttribute("data-highlighted", "true");
+		expect(nonAttendedRow).not.toHaveAttribute("data-highlighted");
+	});
+
+	it("should not highlight any rows when no attended courses", async () => {
+		// Arrange
+		const { useStudentsMeCoursesRetrieve } = await import(
+			"@/lib/api/generated"
+		);
+		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
+
+		mockedHook.mockReturnValue({
+			data: [],
+			isLoading: false,
+			error: null,
+		} as ReturnType<typeof useStudentsMeCoursesRetrieve>);
+
+		const courses = [
+			createMockCourse({ id: "course-1", title: "Course One" }),
+			createMockCourse({ id: "course-2", title: "Course Two" }),
+		];
+
+		// Act
+		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+
+		// Assert
+		const rows = screen.getAllByRole("row").filter((row) => {
+			return row.closest("tbody");
+		});
+
+		for (const row of rows) {
+			expect(row).not.toHaveAttribute("data-highlighted");
+		}
 	});
 });

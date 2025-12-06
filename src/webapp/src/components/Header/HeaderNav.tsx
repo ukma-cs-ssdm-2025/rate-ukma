@@ -11,11 +11,16 @@ import {
 interface HeaderNavProps {
 	className?: string;
 	items: NavigationItem[];
+	"data-testid"?: string;
 }
 
-export function HeaderNav({ className, items }: Readonly<HeaderNavProps>) {
+export function HeaderNav({
+	className,
+	items,
+	"data-testid": testId,
+}: Readonly<HeaderNavProps>) {
 	return (
-		<NavigationMenu className={className}>
+		<NavigationMenu className={className} data-testid={testId}>
 			<NavigationMenuList className="gap-2">
 				{items.map((item) => (
 					<NavigationMenuItem key={item.href}>

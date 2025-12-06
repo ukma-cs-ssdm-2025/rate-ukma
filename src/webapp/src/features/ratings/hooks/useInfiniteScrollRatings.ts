@@ -12,12 +12,19 @@ interface UseInfiniteScrollRatingsReturn {
 	totalRatings: number | undefined;
 }
 
+interface UseInfiniteScrollRatingsOptions {
+	pageSize?: number;
+	excludeCurrentUser?: boolean;
+}
+
 const DEFAULT_PAGE_SIZE = 10;
 
 export function useInfiniteScrollRatings(
 	courseId: string,
-	pageSize = DEFAULT_PAGE_SIZE,
+	options: UseInfiniteScrollRatingsOptions = {},
 ): UseInfiniteScrollRatingsReturn {
+	const { pageSize = DEFAULT_PAGE_SIZE, excludeCurrentUser = false } = options;
+
 	const [ratingsPage, setRatingsPage] = useState(1);
 	const [allRatings, setAllRatings] = useState<RatingRead[]>([]);
 
@@ -26,6 +33,7 @@ export function useInfiniteScrollRatings(
 		{
 			page: ratingsPage,
 			page_size: pageSize,
+			exclude_current_user: excludeCurrentUser,
 		},
 	);
 

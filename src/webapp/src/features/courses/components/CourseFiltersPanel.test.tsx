@@ -91,7 +91,7 @@ describe("CourseFiltersPanel", () => {
 
 			// Assert
 			expect(screen.getByText("Семестровий період")).toBeInTheDocument();
-			expect(screen.getByText("Рік")).toBeInTheDocument();
+			expect(screen.getByText("Навчальний рік")).toBeInTheDocument();
 			expect(screen.getByText("Факультет")).toBeInTheDocument();
 			expect(screen.getByText("Кафедра")).toBeInTheDocument();
 			expect(screen.getByText("Спеціальність")).toBeInTheDocument();
