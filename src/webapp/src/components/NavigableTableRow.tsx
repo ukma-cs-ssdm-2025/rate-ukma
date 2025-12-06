@@ -1,19 +1,19 @@
-import { type MouseEvent, useCallback } from "react";
+import { type KeyboardEvent, type MouseEvent, useCallback } from "react";
 
-import { type LinkProps, useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 
 import { TableRow } from "@/components/ui/Table";
 import { cn } from "@/lib/utils";
 
-interface NavigableTableRowProps<TTo extends string = string>
-	extends Omit<React.ComponentProps<typeof TableRow>, "onClick"> {
-	to: TTo;
-	params?: LinkProps<"to", TTo, never>["params"];
-	search?: LinkProps<"to", TTo, never>["search"];
+interface NavigableTableRowProps
+	extends Omit<React.ComponentProps<typeof TableRow>, "onClick" | "onKeyDown"> {
+	to: string;
+	params?: Record<string, string>;
+	search?: Record<string, unknown>;
 	highlighted?: boolean;
 }
 
-export function NavigableTableRow<TTo extends string = string>({
+export function NavigableTableRow({
 	to,
 	params,
 	search,
@@ -21,8 +21,9 @@ export function NavigableTableRow<TTo extends string = string>({
 	className,
 	highlighted,
 	...props
-}: NavigableTableRowProps<TTo>) {
+}: NavigableTableRowProps) {
 	const navigate = useNavigate();
+	const router = useRouter();
 
 	const handleClick = useCallback(
 		(e: MouseEvent<HTMLTableRowElement>) => {
@@ -37,24 +38,26 @@ export function NavigableTableRow<TTo extends string = string>({
 			}
 
 			if (e.button === 1 || e.ctrlKey || e.metaKey) {
-				const url = navigate.buildLocation({
+				e.preventDefault();
+				const location = router.buildLocation({
 					to,
-					params: params as never,
-					search: search as never,
-				});
-				globalThis.open(url.href, "_blank");
+					params,
+					search,
+				} as never);
+				globalThis.open(location.href, "_blank");
 				return;
 			}
 
-			if (e.button === 0) {
+			if (e.button === 0 && !e.shiftKey && !e.altKey) {
+				e.preventDefault();
 				navigate({
 					to,
-					params: params as never,
-					search: search as never,
-				});
+					params,
+					search,
+				} as never);
 			}
 		},
-		[navigate, to, params, search],
+		[navigate, router, to, params, search],
 	);
 
 	const handleAuxClick = useCallback(
@@ -65,6 +68,20 @@ export function NavigableTableRow<TTo extends string = string>({
 			}
 		},
 		[handleClick],
+	);
+
+	const handleKeyDown = useCallback(
+		(e: KeyboardEvent<HTMLTableRowElement>) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				navigate({
+					to,
+					params,
+					search,
+				} as never);
+			}
+		},
+		[navigate, to, params, search],
 	);
 
 	return (
@@ -78,6 +95,9 @@ export function NavigableTableRow<TTo extends string = string>({
 			)}
 			onClick={handleClick}
 			onAuxClick={handleAuxClick}
+			onKeyDown={handleKeyDown}
+			tabIndex={0}
+			role="link"
 			{...props}
 		>
 			{children}

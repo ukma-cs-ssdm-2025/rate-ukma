@@ -1,6 +1,5 @@
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
-import type { LinkProps } from "@tanstack/react-router";
 import {
 	type Column,
 	flexRender,
@@ -76,10 +75,10 @@ function getAlignmentClass<TData, TValue>(
 	return "text-left";
 }
 
-interface RowLinkConfig<TTo extends string = string> {
-	to: TTo;
-	params?: LinkProps<"to", TTo, never>["params"];
-	search?: LinkProps<"to", TTo, never>["search"];
+interface RowLinkConfig {
+	to: string;
+	params?: Record<string, string>;
+	search?: Record<string, unknown>;
 }
 
 interface DataTableProps<TData> extends ComponentProps<"div"> {
@@ -159,8 +158,8 @@ export function DataTable<TData>({
 											key={row.id}
 											data-state={row.getIsSelected() && "selected"}
 											to={rowLink.to}
-											params={rowLink.params as never}
-											search={rowLink.search as never}
+											params={rowLink.params}
+											search={rowLink.search}
 											highlighted={highlighted}
 										>
 											{rowContent}
