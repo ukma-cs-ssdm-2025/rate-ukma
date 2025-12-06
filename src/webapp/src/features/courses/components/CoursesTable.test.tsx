@@ -358,18 +358,14 @@ describe("Mobile Filter Drawer", () => {
 });
 
 describe("Row Click Handling", () => {
-	it("should call onRowClick when a course row is clicked", async () => {
+	it("should navigate when a course row is clicked", async () => {
 		// Arrange
 		const user = userEvent.setup();
-		const onRowClick = vi.fn();
-		const course = createMockCourse({ title: "React Programming" });
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				data={[course]}
-				onRowClick={onRowClick}
-			/>,
-		);
+		const course = createMockCourse({
+			id: "test-course-id",
+			title: "React Programming",
+		});
+		renderWithProviders(<CoursesTable {...defaultProps} data={[course]} />);
 
 		// Act
 		const row = screen.getByText("React Programming").closest("tr");
@@ -377,7 +373,12 @@ describe("Row Click Handling", () => {
 		await user.click(row as HTMLElement);
 
 		// Assert
-		expect(onRowClick).toHaveBeenCalledWith(course);
+		await waitFor(() => {
+			expect(mockNavigate).toHaveBeenCalledWith({
+				to: "/courses/$courseId",
+				params: { courseId: "test-course-id" },
+			});
+		});
 	});
 });
 

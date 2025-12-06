@@ -127,7 +127,6 @@ function ScatterPlotPreviewCard({
 interface CoursesTableProps {
 	data: CourseList[];
 	isLoading: boolean;
-	onRowClick?: (course: CourseList) => void;
 	onFiltersChange?: (filters: Record<string, unknown>) => void;
 	filtersKey: string;
 	pagination?: PaginationInfo;
@@ -297,7 +296,6 @@ function DebouncedInput({
 export function CoursesTable({
 	data,
 	isLoading,
-	onRowClick,
 	onFiltersChange,
 	filtersKey,
 	pagination: serverPagination,
@@ -339,6 +337,14 @@ export function CoursesTable({
 		},
 		[attendedCourseIds],
 	);
+
+	const getRowLink = useCallback((course: CourseList) => {
+		if (!course.id) return null;
+		return {
+			to: "/courses/$courseId" as const,
+			params: { courseId: course.id },
+		};
+	}, []);
 
 	const clearFullscreenTimeout = useCallback(() => {
 		const timeoutId = fullscreenTimeoutRef.current;
@@ -559,7 +565,7 @@ export function CoursesTable({
 		return (
 			<DataTable
 				table={table}
-				onRowClick={onRowClick}
+				getRowLink={getRowLink}
 				totalRows={serverPagination?.total}
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}

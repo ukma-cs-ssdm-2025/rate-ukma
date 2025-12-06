@@ -1,5 +1,6 @@
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
+import type { LinkProps } from "@tanstack/react-router";
 import {
 	type Column,
 	flexRender,
@@ -7,6 +8,7 @@ import {
 } from "@tanstack/react-table";
 
 import { DataTablePagination } from "@/components/DataTable/DataTablePagination";
+import { NavigableTableRow } from "@/components/NavigableTableRow";
 import {
 	Table,
 	TableBody,
@@ -74,10 +76,17 @@ function getAlignmentClass<TData, TValue>(
 	return "text-left";
 }
 
+interface RowLinkConfig<TTo extends string = string> {
+	to: TTo;
+	params?: LinkProps<"to", TTo, never>["params"];
+	search?: LinkProps<"to", TTo, never>["search"];
+}
+
 interface DataTableProps<TData> extends ComponentProps<"div"> {
 	table: TanstackTable<TData>;
 	actionBar?: ReactNode;
 	onRowClick?: (row: TData) => void;
+	getRowLink?: (row: TData) => RowLinkConfig | null;
 	totalRows?: number;
 	serverPageCount?: number;
 	isRowHighlighted?: (row: TData) => boolean;
@@ -89,6 +98,7 @@ export function DataTable<TData>({
 	children,
 	className,
 	onRowClick,
+	getRowLink,
 	totalRows,
 	serverPageCount,
 	isRowHighlighted,
@@ -129,6 +139,35 @@ export function DataTable<TData>({
 						{table.getRowModel().rows?.length ? (
 							table.getRowModel().rows.map((row) => {
 								const highlighted = isRowHighlighted?.(row.original) ?? false;
+								const rowLink = getRowLink?.(row.original);
+
+								const rowContent = row.getVisibleCells().map((cell) => (
+									<TableCell
+										key={cell.id}
+										style={{
+											...getCommonPinningStyles({ column: cell.column }),
+										}}
+										className={getAlignmentClass(cell.column.columnDef.meta)}
+									>
+										{flexRender(cell.column.columnDef.cell, cell.getContext())}
+									</TableCell>
+								));
+
+								if (rowLink) {
+									return (
+										<NavigableTableRow
+											key={row.id}
+											data-state={row.getIsSelected() && "selected"}
+											to={rowLink.to}
+											params={rowLink.params as never}
+											search={rowLink.search as never}
+											highlighted={highlighted}
+										>
+											{rowContent}
+										</NavigableTableRow>
+									);
+								}
+
 								return (
 									<TableRow
 										key={row.id}
@@ -141,20 +180,7 @@ export function DataTable<TData>({
 										)}
 										onClick={() => onRowClick?.(row.original)}
 									>
-										{row.getVisibleCells().map((cell) => (
-											<TableCell
-												key={cell.id}
-												style={{
-													...getCommonPinningStyles({ column: cell.column }),
-												}}
-												className={getAlignmentClass(cell.column.columnDef.meta)}
-											>
-												{flexRender(
-													cell.column.columnDef.cell,
-													cell.getContext(),
-												)}
-											</TableCell>
-										))}
+										{rowContent}
 									</TableRow>
 								);
 							})
