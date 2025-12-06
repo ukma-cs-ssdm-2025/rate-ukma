@@ -9,9 +9,19 @@ import { DEFAULT_FILTERS } from "../filterSchema";
 
 // Shared mock data
 const MOCK_FACULTIES = {
-	FI: { id: "fac-1", name: "Факультет інформатики" },
-	FEN: { id: "fac-2", name: "Факультет економічних наук" },
-} as const;
+	FI: {
+		id: "fac-1",
+		name: "Факультет інформатики",
+		departments: [],
+		specialities: [],
+	},
+	FEN: {
+		id: "fac-2",
+		name: "Факультет економічних наук",
+		departments: [],
+		specialities: [],
+	},
+};
 
 const MOCK_DEPARTMENTS = {
 	PROGRAMMING: {
@@ -230,7 +240,23 @@ describe("useCourseFiltersData", () => {
 		it("should show all departments when no faculty is selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING, MOCK_DEPARTMENTS.ECONOMICS],
+				faculties: [
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [
+							MOCK_DEPARTMENTS.PROGRAMMING,
+							MOCK_DEPARTMENTS.DATABASES,
+						],
+						specialities: [],
+					},
+					{
+						id: "fac-2",
+						name: "Факультет економічних наук",
+						departments: [MOCK_DEPARTMENTS.ECONOMICS],
+						specialities: [],
+					},
+				],
 			});
 
 			// Act
@@ -240,16 +266,27 @@ describe("useCourseFiltersData", () => {
 			const departmentFilter = result.current.selectFilters.find(
 				(f) => f.key === "department",
 			);
-			expect(departmentFilter?.options).toHaveLength(3);
+			expect(departmentFilter?.options).toHaveLength(4); // 1 All + 3 departments
 		});
-
 		it("should filter departments by selected faculty", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [
-					MOCK_DEPARTMENTS.PROGRAMMING,
-					MOCK_DEPARTMENTS.ECONOMICS,
-					MOCK_DEPARTMENTS.DATABASES,
+				faculties: [
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [
+							MOCK_DEPARTMENTS.PROGRAMMING,
+							MOCK_DEPARTMENTS.DATABASES,
+						],
+						specialities: [],
+					},
+					{
+						id: "fac-2",
+						name: "Факультет економічних наук",
+						departments: [MOCK_DEPARTMENTS.ECONOMICS],
+						specialities: [],
+					},
 				],
 			});
 
@@ -271,7 +308,14 @@ describe("useCourseFiltersData", () => {
 		it("should show department name without faculty when faculty is selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+				faculties: [
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+						specialities: [],
+					},
+				],
 			});
 
 			// Act
@@ -293,19 +337,22 @@ describe("useCourseFiltersData", () => {
 					{
 						id: "fac-1",
 						name: "ФІ",
+						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+						specialities: [],
 					},
 				],
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
-			}); // Act
+			});
+
+			// Act
 			const { result } = renderFiltersHook({}, filterOptions);
 
 			// Assert
 			const departmentFilter = result.current.selectFilters.find(
 				(f) => f.key === "department",
 			);
-			// When no faculty is selected but department has faculty_name, it shows with abbreviation
+			// Without faculty selected, labels include 'All' option at index 0
 			expect(departmentFilter?.options[1].label).toBe(
-				"Кафедра мультимедійних систем — ФІ",
+				"Кафедра мультимедійних систем",
 			);
 		});
 	});
@@ -390,10 +437,15 @@ describe("useCourseFiltersData", () => {
 		it("should show badge for selected department", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
-			});
-
-			// Act
+				faculties: [
+					{
+						id: "fac-1",
+						name: "ФІ",
+						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+						specialities: [],
+					},
+				],
+			}); // Act
 			const { result } = renderFiltersHook(
 				{ department: "dept-1" },
 				filterOptions,
@@ -505,10 +557,15 @@ describe("useCourseFiltersData", () => {
 		it("should show badge for selected speciality", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				specialities: [MOCK_SPECIALITIES.SOFTWARE],
-			});
-
-			// Act
+				faculties: [
+					{
+						id: "fac-1",
+						name: "ФІ",
+						departments: [],
+						specialities: [MOCK_SPECIALITIES.SOFTWARE],
+					},
+				],
+			}); // Act
 			const { result } = renderFiltersHook(
 				{ speciality: "spec-1" },
 				filterOptions,
