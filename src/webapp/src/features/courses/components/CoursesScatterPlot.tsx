@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { keepPreviousData } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { AxisBottom, AxisLeft } from "@visx/axis";
 import { Grid } from "@visx/grid";
 import { Group } from "@visx/group";
 import { ParentSize } from "@visx/responsive";
@@ -10,7 +9,7 @@ import { scaleLinear } from "@visx/scale";
 import { Text } from "@visx/text";
 import { TooltipWithBounds, useTooltip } from "@visx/tooltip";
 import { select } from "d3-selection";
-import { zoom as d3Zoom, type ZoomTransform, zoomIdentity } from "d3-zoom";
+import { zoom as d3Zoom, zoomIdentity, type ZoomTransform } from "d3-zoom";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -78,7 +77,6 @@ function normalizeAnalyticsFilters(
 		avg_usefulness_max,
 		avg_difficulty_order,
 		avg_usefulness_order,
-		page_size,
 		type_kind,
 	} = filters;
 
@@ -96,7 +94,6 @@ function normalizeAnalyticsFilters(
 		avg_usefulness_max,
 		avg_difficulty_order,
 		avg_usefulness_order,
-		page_size: page_size ?? 500,
 		type_kind,
 	};
 }
@@ -112,7 +109,7 @@ function computeDomain(
 	min: number | undefined,
 	max: number | undefined,
 	range: [number, number],
-	padding = 0.15,
+	padding = DOMAIN_PADDING,
 ): [number, number] {
 	const clampedMin = Math.max(range[0], min ?? range[0]);
 	const clampedMax = Math.min(range[1], max ?? range[1]);
@@ -144,6 +141,52 @@ function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
 }
 
 const margin: Margin = { top: 20, right: 20, bottom: 60, left: 60 };
+
+// Axis styling constants
+const AXIS_TICK_FONT_SIZE = 12;
+const AXIS_LABEL_FONT_SIZE = 14;
+const AXIS_LABEL_FONT_WEIGHT = 500;
+
+// Axis positioning constants
+const AXIS_BG_TOP_EXTENSION = 20; // Extension above the Y-axis
+const X_AXIS_TICK_Y_OFFSET = 20; // Distance of tick labels from axis
+const X_AXIS_LABEL_Y_OFFSET = 45; // Distance of axis label from axis
+const Y_AXIS_TICK_X_OFFSET = 10; // Distance of tick labels from axis
+const Y_AXIS_LABEL_X_OFFSET = 40; // Distance of axis label from axis
+
+// Grid styling constants
+const GRID_STROKE_OPACITY = 0.3;
+const GRID_STROKE_DASHARRAY = "3,3";
+
+// Point styling constants
+const POINT_HOVER_SCALE = 1.08;
+const POINT_DEFAULT_SCALE = 1;
+const POINT_HOVER_STROKE_WIDTH = 3.2;
+const POINT_DEFAULT_STROKE_WIDTH = 1.5;
+const POINT_HOVER_FILL_OPACITY = 1;
+const POINT_DEFAULT_FILL_OPACITY = 0.8;
+const POINT_TRANSITION_DURATION_MS = 200;
+
+// Label styling constants
+const LABEL_FONT_SIZE = 11;
+const LABEL_Y_OFFSET = 4; // Distance from point radius
+
+// Zoom constants
+const ZOOM_MIN_SCALE = 1;
+const ZOOM_MAX_SCALE = 8;
+const ZOOM_IN_FACTOR = 1.25;
+const ZOOM_OUT_FACTOR = 0.8;
+
+// Point radius constants
+const POINT_MIN_RADIUS = 3;
+const POINT_MAX_RADIUS = 30;
+const POINT_RADIUS_MULTIPLIER = 2;
+
+// Axis ticks
+const NUM_AXIS_TICKS = 5;
+
+const DOMAIN_PADDING = 0.15;
+const TOOLTIP_DECIMAL_PLACES = 2;
 
 function FacultyBadge({ name }: Readonly<{ name: string }>) {
 	const colors = getFacultyColors(name);
@@ -255,7 +298,7 @@ function ScatterPlotContent({
 
 		const svg = select(svgRef.current);
 		const zoomBehavior = d3Zoom<SVGSVGElement, unknown>()
-			.scaleExtent([1, 8])
+			.scaleExtent([ZOOM_MIN_SCALE, ZOOM_MAX_SCALE])
 			.extent([
 				[0, 0],
 				[width, height],
@@ -349,17 +392,19 @@ function ScatterPlotContent({
 						yScale={yScale}
 						width={innerWidth}
 						height={innerHeight}
-						stroke="hsl(var(--border))"
-						strokeOpacity={0.3}
-						strokeDasharray="3,3"
+						stroke="var(--color-border)"
+						strokeOpacity={GRID_STROKE_OPACITY}
+						strokeDasharray={GRID_STROKE_DASHARRAY}
 					/>
 
 					{chartData.map((point) => {
 						const cx = xScale(point.x);
 						const cy = yScale(point.y);
 						const isHovered = hoveredPointId === point.id;
-						const scale = isHovered ? 1.08 : 1;
-						const strokeWidth = isHovered ? 3.2 : 1.5;
+						const scale = isHovered ? POINT_HOVER_SCALE : POINT_DEFAULT_SCALE;
+						const strokeWidth = isHovered
+							? POINT_HOVER_STROKE_WIDTH
+							: POINT_DEFAULT_STROKE_WIDTH;
 						return (
 							// biome-ignore lint/a11y/useSemanticElements: Interactive SVG point cannot be a native button element
 							<circle
@@ -368,8 +413,12 @@ function ScatterPlotContent({
 								cy={cy}
 								r={point.radius}
 								fill={point.color}
-								fillOpacity={isHovered ? 1 : 0.8}
-								stroke={isHovered ? point.color : "hsl(var(--background))"}
+								fillOpacity={
+									isHovered
+										? POINT_HOVER_FILL_OPACITY
+										: POINT_DEFAULT_FILL_OPACITY
+								}
+								stroke={isHovered ? point.color : "var(--color-background)"}
 								strokeWidth={strokeWidth}
 								onMouseEnter={() => setHoveredPointId(point.id)}
 								onMouseMove={(event) => handleMouseMove(event, point)}
@@ -395,8 +444,7 @@ function ScatterPlotContent({
 									cursor: "pointer",
 									transform: `scale(${scale})`,
 									transformOrigin: `${cx}px ${cy}px`,
-									transition:
-										"transform 200ms ease, stroke-width 200ms ease, fill-opacity 200ms ease",
+									transition: `transform ${POINT_TRANSITION_DURATION_MS}ms ease, stroke-width ${POINT_TRANSITION_DURATION_MS}ms ease, fill-opacity ${POINT_TRANSITION_DURATION_MS}ms ease`,
 									outline: "none",
 								}}
 								aria-label={`${point.name}, ${point.facultyName}`}
@@ -410,9 +458,9 @@ function ScatterPlotContent({
 							<Text
 								key={`label-${point.id}`}
 								x={cx}
-								y={cy - point.radius - 4}
-								fontSize={11 / transform.k}
-								fill="hsl(var(--foreground))"
+								y={cy - point.radius - LABEL_Y_OFFSET}
+								fontSize={LABEL_FONT_SIZE / transform.k}
+								fill="var(--color-foreground)"
 								textAnchor="middle"
 								style={{ pointerEvents: "none", userSelect: "none" }}
 							>
@@ -422,44 +470,86 @@ function ScatterPlotContent({
 				</Group>
 
 				<Group left={margin.left} top={margin.top}>
-					<AxisBottom
-						top={innerHeight}
-						scale={xAxisScale}
-						numTicks={5}
-						stroke="hsl(var(--muted-foreground))"
-						tickStroke="hsl(var(--muted-foreground))"
-						tickLabelProps={() => ({
-							fill: "hsl(var(--muted-foreground))",
-							fontSize: 12,
-							textAnchor: "middle",
-						})}
-						label="Корисність"
-						labelProps={{
-							fill: "hsl(var(--foreground))",
-							fontSize: 14,
-							fontWeight: 500,
-							textAnchor: "middle",
-						}}
+					{/* X-axis background bar */}
+					<rect
+						x={-margin.left}
+						y={innerHeight}
+						width={innerWidth + margin.left}
+						height={margin.bottom}
+						fill="var(--color-background)"
 					/>
-					<AxisLeft
-						scale={yAxisScale}
-						numTicks={5}
-						stroke="hsl(var(--muted-foreground))"
-						tickStroke="hsl(var(--muted-foreground))"
-						tickLabelProps={() => ({
-							fill: "hsl(var(--muted-foreground))",
-							fontSize: 12,
-							textAnchor: "end",
-							dy: "0.33em",
-						})}
-						label="Складність"
-						labelProps={{
-							fill: "hsl(var(--foreground))",
-							fontSize: 14,
-							fontWeight: 500,
-							textAnchor: "middle",
-						}}
+
+					{/* Y-axis background bar */}
+					<rect
+						x={-margin.left}
+						y={-AXIS_BG_TOP_EXTENSION}
+						width={margin.left}
+						height={innerHeight + AXIS_BG_TOP_EXTENSION}
+						fill="var(--color-background)"
 					/>
+
+					{/* X-axis tick labels */}
+					{xAxisScale.ticks(NUM_AXIS_TICKS).map((tick) => {
+						const x = xAxisScale(tick) ?? 0;
+						return (
+							<text
+								key={`x-tick-${tick}`}
+								x={x}
+								y={innerHeight + X_AXIS_TICK_Y_OFFSET}
+								fill="var(--color-muted-foreground)"
+								fontSize={AXIS_TICK_FONT_SIZE}
+								textAnchor="middle"
+								dominantBaseline="middle"
+							>
+								{tick}
+							</text>
+						);
+					})}
+
+					{/* Y-axis tick labels */}
+					{yAxisScale.ticks(NUM_AXIS_TICKS).map((tick) => {
+						const y = yAxisScale(tick) ?? 0;
+						return (
+							<text
+								key={`y-tick-${tick}`}
+								x={-Y_AXIS_TICK_X_OFFSET}
+								y={y}
+								fill="var(--color-muted-foreground)"
+								fontSize={AXIS_TICK_FONT_SIZE}
+								textAnchor="end"
+								dominantBaseline="middle"
+							>
+								{tick}
+							</text>
+						);
+					})}
+
+					{/* X-axis label */}
+					<text
+						x={innerWidth / 2}
+						y={innerHeight + X_AXIS_LABEL_Y_OFFSET}
+						fill="var(--color-foreground)"
+						fontSize={AXIS_LABEL_FONT_SIZE}
+						fontWeight={AXIS_LABEL_FONT_WEIGHT}
+						textAnchor="middle"
+						dominantBaseline="middle"
+					>
+						Корисність
+					</text>
+
+					{/* Y-axis label */}
+					<text
+						x={-Y_AXIS_LABEL_X_OFFSET}
+						y={innerHeight / 2}
+						fill="var(--color-foreground)"
+						fontSize={AXIS_LABEL_FONT_SIZE}
+						fontWeight={AXIS_LABEL_FONT_WEIGHT}
+						textAnchor="middle"
+						dominantBaseline="middle"
+						transform={`rotate(-90, -${Y_AXIS_LABEL_X_OFFSET}, ${innerHeight / 2})`}
+					>
+						Складність
+					</text>
 				</Group>
 			</svg>
 
@@ -484,7 +574,7 @@ function ScatterPlotContent({
 								<span
 									className={`font-medium ${getUsefulnessTone(tooltipData.x)}`}
 								>
-									{tooltipData.x.toFixed(2)}
+									{tooltipData.x.toFixed(TOOLTIP_DECIMAL_PLACES)}
 								</span>
 							</div>
 							<div className="flex justify-between gap-4">
@@ -492,7 +582,7 @@ function ScatterPlotContent({
 								<span
 									className={`font-medium ${getDifficultyTone(tooltipData.y)}`}
 								>
-									{tooltipData.y.toFixed(2)}
+									{tooltipData.y.toFixed(TOOLTIP_DECIMAL_PLACES)}
 								</span>
 							</div>
 							<div className="flex justify-between gap-4">
@@ -519,7 +609,7 @@ function ScatterPlotContent({
 							className="h-10 w-10 shadow-none"
 							onClick={() => {
 								if (!zoomRef.current || !svgRef.current) return;
-								zoomRef.current.scaleBy(select(svgRef.current), 1.25);
+								zoomRef.current.scaleBy(select(svgRef.current), ZOOM_IN_FACTOR);
 							}}
 							aria-label="Збільшити"
 						>
@@ -531,7 +621,10 @@ function ScatterPlotContent({
 							className="h-10 w-10 shadow-none"
 							onClick={() => {
 								if (!zoomRef.current || !svgRef.current) return;
-								zoomRef.current.scaleBy(select(svgRef.current), 0.8);
+								zoomRef.current.scaleBy(
+									select(svgRef.current),
+									ZOOM_OUT_FACTOR,
+								);
 							}}
 							aria-label="Зменшити"
 						>
@@ -607,7 +700,13 @@ export function CoursesScatterPlot({
 			)
 			.map((course) => {
 				const ratingsCount = course.ratings_count ?? 0;
-				const radius = Math.max(3, Math.min(Math.sqrt(ratingsCount) * 2, 30));
+				const radius = Math.max(
+					POINT_MIN_RADIUS,
+					Math.min(
+						Math.sqrt(ratingsCount) * POINT_RADIUS_MULTIPLIER,
+						POINT_MAX_RADIUS,
+					),
+				);
 
 				return {
 					id: course.id ?? "unknown",

@@ -131,7 +131,7 @@ function ExploreRoute() {
 										<Button
 											variant="ghost"
 											size="sm"
-											className="h-8 w-8 p-0 border shadow-sm"
+											className="h-8 w-8 p-0 border bg-card shadow-sm"
 											aria-label="Налаштування візуалізації"
 										>
 											<MoreHorizontal className="h-4 w-4" />
@@ -173,7 +173,7 @@ function ExploreRoute() {
 
 						{/* Main Chart Area */}
 						<div className="absolute inset-0 top-0">
-							<div className="w-full h-full px-0 py-4 md:py-6 lg:py-8">
+							<div className="w-full h-full">
 								<CoursesScatterPlot
 									filters={apiFilters}
 									forceShowAllLabels={showAllLabels}
