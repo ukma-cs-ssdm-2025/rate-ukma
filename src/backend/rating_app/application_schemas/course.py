@@ -75,11 +75,11 @@ class CourseFilterCriteria(BaseModel):
         le=MAX_USEFULNESS_VALUE,
         description="Maximum average usefulness (1.0 - 5.0)",
     )
-    avg_difficulty_order: AvgOrder = Field(
-        default="asc", description="Sort order for difficulty (asc/desc)"
+    avg_difficulty_order: AvgOrder | None = Field(
+        default=None, description="Sort order for difficulty (asc/desc)"
     )
-    avg_usefulness_order: AvgOrder = Field(
-        default="asc", description="Sort order for usefulness (asc/desc)"
+    avg_usefulness_order: AvgOrder | None = Field(
+        default=None, description="Sort order for usefulness (asc/desc)"
     )
     page: int | None = Field(default=1, ge=1, description="Page number")
     page_size: int | None = Field(default=None, ge=1, description="Items per page")

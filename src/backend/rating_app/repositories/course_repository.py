@@ -172,7 +172,7 @@ class CourseRepository(IRepository[Course]):
 
         if order_by_fields:
             return courses.order_by(*order_by_fields, "title")
-        return courses.order_by("title")
+        return courses.order_by("-ratings_count", "title")
 
     def _build_order_by_fields(self, filters: CourseFilterCriteria) -> list[Any]:
         order_by_fields = []
