@@ -92,7 +92,7 @@ describe("courseFormatting", () => {
 			DESTRUCTIVE:
 				"text-[var(--destructive)] dark:text-[var(--destructive-foreground)]",
 			MEDIUM: "text-[var(--chart-5)] dark:text-[var(--chart-5)]",
-			PRIMARY: "text-[var(--primary)] dark:text-[var(--primary-foreground)]",
+			PRIMARY: "text-[var(--primary)]",
 			MUTED: "text-muted-foreground",
 		};
 
@@ -117,7 +117,7 @@ describe("courseFormatting", () => {
 
 	describe("getUsefulnessTone", () => {
 		const TONES = {
-			PRIMARY: "text-[var(--primary)] dark:text-[var(--primary-foreground)]",
+			PRIMARY: "text-[var(--primary)]",
 			MEDIUM: "text-[var(--chart-2)] dark:text-[var(--chart-2)]",
 			LOW: "text-[var(--muted-foreground)]",
 			MUTED: "text-muted-foreground",
