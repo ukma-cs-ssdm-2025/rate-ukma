@@ -369,7 +369,7 @@ function ScatterPlotContent({
 								r={point.radius}
 								fill={point.color}
 								fillOpacity={isHovered ? 1 : 0.8}
-								stroke={isHovered ? point.color : "#fff"}
+								stroke={isHovered ? point.color : "hsl(var(--background))"}
 								strokeWidth={strokeWidth}
 								onMouseEnter={() => setHoveredPointId(point.id)}
 								onMouseMove={(event) => handleMouseMove(event, point)}

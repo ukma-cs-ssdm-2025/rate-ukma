@@ -147,7 +147,9 @@ export function DataTable<TData>({
 												style={{
 													...getCommonPinningStyles({ column: cell.column }),
 												}}
-												className={getAlignmentClass(cell.column.columnDef.meta)}
+												className={getAlignmentClass(
+													cell.column.columnDef.meta,
+												)}
 											>
 												{flexRender(
 													cell.column.columnDef.cell,
