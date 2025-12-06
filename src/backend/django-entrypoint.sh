@@ -28,23 +28,29 @@ uv run python manage.py migrate --noinput
 mkdir -p "${STATIC_ROOT}"
 uv run python manage.py collectstatic --noinput
 
-# optimal number of workers
-CORES=$(nproc)
-WORKERS=$CORES # for bigger instances we can use $((2 * CORES + 1))
-
 # available memory in MB
 AVAILABLE_MEMORY=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
 MAX_REQUESTS=$((AVAILABLE_MEMORY * 2 / 1024))
 
+# optimal number of workers
+CORES=$(nproc)
+MEMORY_PER_WORKER=150
+MAX_WORKERS_BY_MEMORY=$((AVAILABLE_MEMORY / MEMORY_PER_WORKER))
+WORKERS=$((CORES < MAX_WORKERS_BY_MEMORY ? CORES : MAX_WORKERS_BY_MEMORY)) # for bigger instances we can use $((2 * CORES + 1))
+WORKERS=$((WORKERS < 1 ? 1 : WORKERS)) # minimum 1 worker
+
+# number of threads
+THREADS=2 # for bigger instances we can use 4
+
 # start gunicorn
-echo "Starting gunicorn with $WORKERS workers and $MAX_REQUESTS max requests"
+echo "Starting gunicorn with $WORKERS workers, $THREADS threads and $MAX_REQUESTS max requests"
 
 GUNICORN_ARGS=(
     --timeout 300
     --bind 0.0.0.0:8000
     --workers "$WORKERS"
     --worker-class gthread
-    --threads 4
+    --threads "$THREADS"
     --access-logfile -
     --max-requests "$MAX_REQUESTS"
     --max-requests-jitter "$((MAX_REQUESTS / 10))"
@@ -55,6 +61,9 @@ GUNICORN_ARGS=(
 if [[ "${DJANGO_SETTINGS_MODULE:-}" = "rateukma.settings.dev" ]]; then
     echo "Development environment detected, hot reload enabled"
     GUNICORN_ARGS+=( --reload )
+else
+    echo "Production environment detected, preload enabled"
+    GUNICORN_ARGS+=( --preload )
 fi
 
 gunicorn rateukma.wsgi:application "${GUNICORN_ARGS[@]}" &
