@@ -117,6 +117,19 @@ TEMPLATES = [
     },
 ]
 
+# Enable template caching in production
+if not DEBUG:
+    TEMPLATES[0]["OPTIONS"]["loaders"] = [
+        (
+            "django.template.loaders.cached.CachedLoader",
+            [
+                "django.template.loaders.filesystem.Loader",
+                "django.template.loaders.app_directories.Loader",
+            ],
+        ),
+    ]
+    TEMPLATES[0]["APP_DIRS"] = False  # Must be False when using custom loaders
+
 WSGI_APPLICATION = "rateukma.wsgi.application"
 
 
@@ -132,6 +145,10 @@ DATABASES = {
         "PASSWORD": config("POSTGRES_PASSWORD"),
         "HOST": config("POSTGRES_HOST"),
         "PORT": config("POSTGRES_PORT"),
+        "CONN_MAX_AGE": 600,  # Persistent connections for 10 minutes
+        "OPTIONS": {
+            "connect_timeout": 10,
+        },
     }
 }
 
