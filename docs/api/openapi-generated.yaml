@@ -7,9 +7,10 @@ paths:
   /api/v1/analytics/:
     get:
       operationId: analytics_list
-      description: Get course analytics with optional filtersReturns courses analytics
-        with aggregated ratings.
-      summary: Get course analytics
+      description: |-
+        Get courses analytics with optional filters.
+        Returns courses analytics with aggregated ratings.
+      summary: Get courses analytics
       parameters:
       - in: query
         name: avg_difficulty_max
@@ -179,7 +180,7 @@ paths:
   /api/v1/analytics/{course_id}/:
     get:
       operationId: analytics_retrieve
-      description: Get course analytics with optional filtersReturns courses analytics
+      description: Get course analytics with optional filtersReturns course's analytics
         with aggregated ratings.
       summary: Get course analytics
       parameters:
