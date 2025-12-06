@@ -9,7 +9,7 @@ import { scaleLinear } from "@visx/scale";
 import { Text } from "@visx/text";
 import { TooltipWithBounds, useTooltip } from "@visx/tooltip";
 import { select } from "d3-selection";
-import { zoom as d3Zoom, zoomIdentity, type ZoomTransform } from "d3-zoom";
+import { zoom as d3Zoom, type ZoomTransform, zoomIdentity } from "d3-zoom";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
