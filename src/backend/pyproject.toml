@@ -35,6 +35,7 @@ dependencies = [
 
     # Production
     "gunicorn>=23.0.0",
+    "django-compression-middleware>=0.5.0",
 
     # Scraper
     "playwright>=1.55",

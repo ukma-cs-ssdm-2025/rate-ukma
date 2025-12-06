@@ -74,7 +74,7 @@ REST_SESSION_LOGIN = True
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "django.middleware.gzip.GZipMiddleware",
+    "compression_middleware.middleware.CompressionMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -102,19 +102,6 @@ TEMPLATES = [
         },
     },
 ]
-
-# Enable template caching in production
-if not DEBUG:
-    TEMPLATES[0]["OPTIONS"]["loaders"] = [
-        (
-            "django.template.loaders.cached.CachedLoader",
-            [
-                "django.template.loaders.filesystem.Loader",
-                "django.template.loaders.app_directories.Loader",
-            ],
-        ),
-    ]
-    TEMPLATES[0]["APP_DIRS"] = False  # Must be False when using custom loaders
 
 WSGI_APPLICATION = "rateukma.wsgi.application"
 
