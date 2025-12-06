@@ -1,16 +1,17 @@
 from django.db import IntegrityError
-from django.db.models import QuerySet
+from django.db.models import Avg, Count, QuerySet
 
 import structlog
 
 from rating_app.application_schemas.rating import (
+    AggregatedCourseRatingStats,
     RatingCreateParams,
     RatingFilterCriteria,
     RatingPatchParams,
     RatingPutParams,
 )
 from rating_app.exception.rating_exceptions import DuplicateRatingException, RatingNotFoundError
-from rating_app.models import Rating
+from rating_app.models import Course, Rating
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
@@ -46,6 +47,18 @@ class RatingRepository(IRepository[Rating]):
                 "comment": create_params.comment,
                 "is_anonymous": create_params.is_anonymous,
             },
+        )
+
+    def get_aggregated_course_stats(self, course: Course) -> AggregatedCourseRatingStats:
+        aggregates = Rating.objects.filter(course_offering__course=course).aggregate(
+            avg_difficulty=Avg("difficulty"),
+            avg_usefulness=Avg("usefulness"),
+            ratings_count=Count("id", distinct=True),
+        )
+        return AggregatedCourseRatingStats(
+            avg_difficulty=aggregates["avg_difficulty"],
+            avg_usefulness=aggregates["avg_usefulness"],
+            ratings_count=aggregates["ratings_count"],
         )
 
     def exists(self, student_id: str, course_offering_id: str) -> bool:

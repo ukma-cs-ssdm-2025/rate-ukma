@@ -8,6 +8,7 @@ from rating_app.application_schemas.course import (
     CourseSearchResult,
 )
 from rating_app.application_schemas.pagination import PaginationMetadata
+from rating_app.application_schemas.rating import AggregatedCourseRatingStats
 from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
 from rating_app.models import Course
 from rating_app.models.choices import CourseTypeKind
@@ -71,6 +72,17 @@ class CourseService:
         if not course:
             return None
         return self.course_repository.update(course, **update_data)
+
+    def update_course_aggregates(
+        self, course: Course, aggregates: AggregatedCourseRatingStats
+    ) -> Course:
+        self.course_repository.update(
+            course,
+            avg_difficulty=aggregates.avg_difficulty,
+            avg_usefulness=aggregates.avg_usefulness,
+            ratings_count=aggregates.ratings_count,
+        )
+        return course
 
     def delete_course(self, course_id: str) -> None:
         course = self.course_repository.get_by_id(course_id)
