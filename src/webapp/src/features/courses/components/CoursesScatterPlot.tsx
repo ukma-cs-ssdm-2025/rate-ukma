@@ -78,7 +78,6 @@ function normalizeAnalyticsFilters(
 		avg_usefulness_max,
 		avg_difficulty_order,
 		avg_usefulness_order,
-		page_size,
 		type_kind,
 	} = filters;
 
@@ -96,7 +95,6 @@ function normalizeAnalyticsFilters(
 		avg_usefulness_max,
 		avg_difficulty_order,
 		avg_usefulness_order,
-		page_size: page_size ?? 500,
 		type_kind,
 	};
 }
