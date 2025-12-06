@@ -5,7 +5,6 @@ set -o pipefail # exit on pipe error
 set -o nounset # exit on unset variable
 set -m # enable job control
 
-
 gunicorn_process=""
 
 # function to handle gunicorn shutdown
@@ -31,7 +30,7 @@ uv run python manage.py collectstatic --noinput
 
 # optimal number of workers
 CORES=$(nproc)
-WORKERS=$((2 * CORES + 1))
+WORKERS=$CORES # for bigger instances we can use $((2 * CORES + 1))
 
 # available memory in MB
 AVAILABLE_MEMORY=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
