@@ -162,5 +162,6 @@ def fake_cache(monkeypatch):
     fake = FakeCacheManager()
 
     monkeypatch.setattr("rateukma.caching.decorators.redis_cache_manager", lambda: fake)
+    monkeypatch.setattr("rateukma.caching.instances.redis_cache_manager", lambda: fake)
 
     yield fake

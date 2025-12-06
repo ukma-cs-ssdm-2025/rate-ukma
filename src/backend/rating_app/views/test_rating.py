@@ -85,6 +85,11 @@ def test_create_rating(
 
     assert response.status_code == 201, response.data
 
+    course.refresh_from_db()
+    assert course.avg_difficulty == 4.0
+    assert course.avg_usefulness == 5.0
+    assert course.ratings_count == 1
+
 
 @pytest.mark.django_db
 @pytest.mark.integration
@@ -138,6 +143,11 @@ def test_delete_rating(
     response = token_client.delete(url)
     assert response.status_code == 204
 
+    course.refresh_from_db()
+    assert course.avg_difficulty == 0.0
+    assert course.avg_usefulness == 0.0
+    assert course.ratings_count == 0
+
 
 @pytest.mark.django_db
 @pytest.mark.integration
@@ -167,6 +177,11 @@ def test_update_rating(
 
     response = client.put(url, data=payload, format="json")
     assert response.status_code == 200, response.data
+
+    course.refresh_from_db()
+    assert course.avg_difficulty == 4.0
+    assert course.avg_usefulness == 5.0
+    assert course.ratings_count == 1
 
 
 @pytest.mark.django_db

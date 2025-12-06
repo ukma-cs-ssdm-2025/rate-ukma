@@ -59,8 +59,8 @@ class RatingService(IObservable[Rating]):
     def get_avg_difficulty(self, course: Course) -> Decimal:
         return cast(Decimal, course.avg_difficulty)
 
-    def get_aggregated_course_stats(self, rating: Rating) -> AggregatedCourseRatingStats:
-        return self.rating_repository.get_aggregated_course_stats(rating.course_offering.course)
+    def get_aggregated_course_stats(self, course: Course) -> AggregatedCourseRatingStats:
+        return self.rating_repository.get_aggregated_course_stats(course)
 
     def filter_ratings(
         self,
@@ -110,8 +110,8 @@ class RatingService(IObservable[Rating]):
 
     def delete_rating(self, rating_id):
         rating = self.rating_repository.get_by_id(rating_id)
-        self.notify(rating)
         self.rating_repository.delete(rating)
+        self.notify(rating)
 
     def is_semester_open_for_rating(
         self,

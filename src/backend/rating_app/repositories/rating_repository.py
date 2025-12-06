@@ -56,9 +56,9 @@ class RatingRepository(IRepository[Rating]):
             ratings_count=Count("id", distinct=True),
         )
         return AggregatedCourseRatingStats(
-            avg_difficulty=aggregates["avg_difficulty"],
-            avg_usefulness=aggregates["avg_usefulness"],
-            ratings_count=aggregates["ratings_count"],
+            avg_difficulty=aggregates["avg_difficulty"] or 0,
+            avg_usefulness=aggregates["avg_usefulness"] or 0,
+            ratings_count=aggregates["ratings_count"] or 0,
         )
 
     def exists(self, student_id: str, course_offering_id: str) -> bool:

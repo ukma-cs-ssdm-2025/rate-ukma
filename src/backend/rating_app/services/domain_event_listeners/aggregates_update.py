@@ -12,6 +12,6 @@ class CourseModelAggregatesUpdateObserver(IEventListener[Rating]):
 
     @implements
     def on_event(self, event: Rating, *args, **kwargs) -> None:
-        course = event.course_offering.course  # type: ignore - temporary fix
+        course = event.course_offering.course
         stats = self.rating_service.get_aggregated_course_stats(course)
         self.course_service.update_course_aggregates(course, stats)
