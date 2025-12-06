@@ -9,7 +9,7 @@ import {
 } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	type ColumnDef,
 	getCoreRowModel,
@@ -145,11 +145,22 @@ const columns: ColumnDef<CourseList>[] = [
 		),
 		cell: ({ row }) => {
 			const course = row.original;
+			const courseId = course.id;
 			return (
 				<span className="whitespace-normal break-words">
-					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline md:text-base">
-						{course.title}
-					</span>{" "}
+					{courseId ? (
+						<Link
+							to="/courses/$courseId"
+							params={{ courseId }}
+							className="font-semibold text-sm transition-colors hover:text-primary hover:underline md:text-base"
+						>
+							{course.title}
+						</Link>
+					) : (
+						<span className="font-semibold text-sm md:text-base">
+							{course.title}
+						</span>
+					)}{" "}
 					<CourseSpecialityBadges specialities={course.course_specialities} />
 				</span>
 			);
@@ -337,14 +348,6 @@ export function CoursesTable({
 		},
 		[attendedCourseIds],
 	);
-
-	const getRowLink = useCallback((course: CourseList) => {
-		if (!course.id) return null;
-		return {
-			to: "/courses/$courseId" as const,
-			params: { courseId: course.id },
-		};
-	}, []);
 
 	const clearFullscreenTimeout = useCallback(() => {
 		const timeoutId = fullscreenTimeoutRef.current;
@@ -565,7 +568,6 @@ export function CoursesTable({
 		return (
 			<DataTable
 				table={table}
-				getRowLink={getRowLink}
 				totalRows={serverPagination?.total}
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}
