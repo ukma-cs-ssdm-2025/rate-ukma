@@ -1874,17 +1874,7 @@ components:
           format: uuid
         name:
           type: string
-        faculty_id:
-          type: string
-          format: uuid
-        faculty_name:
-          type: string
-          nullable: true
-        faculty_custom_abbreviation:
-          type: string
-          nullable: true
       required:
-      - faculty_id
       - id
       - name
     ErrorEnvelope:
@@ -1922,9 +1912,19 @@ components:
         custom_abbreviation:
           type: string
           nullable: true
+        departments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartmentOption'
+        specialities:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpecialityOption'
       required:
+      - departments
       - id
       - name
+      - specialities
     FilterOptions:
       type: object
       properties:
@@ -1936,10 +1936,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FacultyOption'
-        departments:
-          type: array
-          items:
-            $ref: '#/components/schemas/DepartmentOption'
         semester_terms:
           type: array
           items:
@@ -1952,18 +1948,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CourseTypeOption'
-        specialities:
-          type: array
-          items:
-            $ref: '#/components/schemas/SpecialityOption'
       required:
       - course_types
-      - departments
       - faculties
       - instructors
       - semester_terms
       - semester_years
-      - specialities
     InlineCourseOffering:
       type: object
       properties:
@@ -2318,17 +2308,7 @@ components:
           format: uuid
         name:
           type: string
-        faculty_id:
-          type: string
-          format: uuid
-        faculty_name:
-          type: string
-          nullable: true
-        faculty_custom_abbreviation:
-          type: string
-          nullable: true
       required:
-      - faculty_id
       - id
       - name
     SpecialityWithKindPayload:

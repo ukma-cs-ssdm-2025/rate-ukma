@@ -221,9 +221,13 @@ def test_get_filter_options_aggregates_options_from_all_services(
 ):
     # Arrange
     instructor_service.get_filter_options.return_value = [{"value": "1", "label": "Instructor 1"}]
-    faculty_service.get_filter_options.return_value = [{"value": "2", "label": "Faculty 1"}]
-    department_service.get_filter_options.return_value = [{"value": "3", "label": "Dept 1"}]
-    speciality_service.get_filter_options.return_value = [{"value": "4", "label": "Spec 1"}]
+    faculty_service.get_filter_options.return_value = [{"id": "fac-1", "name": "Faculty 1"}]
+    department_service.get_filter_options.return_value = [
+        {"id": "dept-1", "name": "Dept 1", "faculty_id": "fac-1"}
+    ]
+    speciality_service.get_filter_options.return_value = [
+        {"id": "spec-1", "name": "Spec 1", "faculty_id": "fac-1"}
+    ]
     semester_service.get_filter_options.return_value = {
         "terms": [{"value": "FALL", "label": "Fall"}],
         "years": [{"value": "2024", "label": "2024"}],
@@ -234,9 +238,15 @@ def test_get_filter_options_aggregates_options_from_all_services(
 
     # Assert
     assert result.instructors == [{"value": "1", "label": "Instructor 1"}]
-    assert result.faculties == [{"value": "2", "label": "Faculty 1"}]
-    assert result.departments == [{"value": "3", "label": "Dept 1"}]
-    assert result.specialities == [{"value": "4", "label": "Spec 1"}]
+    assert len(result.faculties) == 1
+    assert result.faculties[0]["id"] == "fac-1"
+    assert result.faculties[0]["name"] == "Faculty 1"
+    assert len(result.faculties[0]["departments"]) == 1
+    assert result.faculties[0]["departments"][0]["id"] == "dept-1"
+    assert result.faculties[0]["departments"][0]["name"] == "Dept 1"
+    assert len(result.faculties[0]["specialities"]) == 1
+    assert result.faculties[0]["specialities"][0]["id"] == "spec-1"
+    assert result.faculties[0]["specialities"][0]["name"] == "Spec 1"
     assert result.semester_terms == [{"value": "FALL", "label": "Fall"}]
     assert result.semester_years == [{"value": "2024", "label": "2024"}]
     assert len(result.course_types) > 0
