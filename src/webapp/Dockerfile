@@ -34,6 +34,7 @@ FROM base AS builder
 ARG VITE_API_BASE_URL
 RUN test -n "${VITE_API_BASE_URL}" || (echo "VITE_API_BASE_URL build arg required" && exit 1)
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN pnpm build
 
 # Production stage - minimal Alpine to handle file operations
