@@ -39,9 +39,9 @@ class Course(models.Model):
         Speciality, through="CourseSpeciality", related_name="courses"
     )
 
-    avg_difficulty = models.DecimalField(null=True, blank=True, max_digits=3, decimal_places=2)
-    avg_usefulness = models.DecimalField(null=True, blank=True, max_digits=3, decimal_places=2)
-    ratings_count = models.PositiveIntegerField(null=True, blank=True)
+    avg_difficulty = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    avg_usefulness = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    ratings_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"{self.id} — {self.title}"
