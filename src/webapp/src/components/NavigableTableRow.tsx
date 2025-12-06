@@ -39,6 +39,7 @@ export function NavigableTableRow({
 
 			if (e.button === 1 || e.ctrlKey || e.metaKey) {
 				e.preventDefault();
+				// Type assertion needed due to TanStack Router's complex generic types
 				const location = router.buildLocation({
 					to,
 					params,
@@ -50,6 +51,7 @@ export function NavigableTableRow({
 
 			if (e.button === 0 && !e.shiftKey && !e.altKey) {
 				e.preventDefault();
+				// Type assertion needed due to TanStack Router's complex generic types
 				navigate({
 					to,
 					params,
@@ -60,20 +62,11 @@ export function NavigableTableRow({
 		[navigate, router, to, params, search],
 	);
 
-	const handleAuxClick = useCallback(
-		(e: MouseEvent<HTMLTableRowElement>) => {
-			if (e.button === 1) {
-				e.preventDefault();
-				handleClick(e);
-			}
-		},
-		[handleClick],
-	);
-
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLTableRowElement>) => {
 			if (e.key === "Enter" || e.key === " ") {
 				e.preventDefault();
+				// Type assertion needed due to TanStack Router's complex generic types
 				navigate({
 					to,
 					params,
@@ -94,7 +87,7 @@ export function NavigableTableRow({
 				className,
 			)}
 			onClick={handleClick}
-			onAuxClick={handleAuxClick}
+			onAuxClick={handleClick}
 			onKeyDown={handleKeyDown}
 			tabIndex={0}
 			role="link"
