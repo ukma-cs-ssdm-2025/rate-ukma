@@ -1,9 +1,9 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from django.core.management import call_command
 from django.core.management.base import CommandError
-
-import pytest
 
 
 @pytest.mark.django_db
