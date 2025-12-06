@@ -143,6 +143,7 @@ omit = [
     "*/urls.py",
     "*/ioc_container/*",
     "manage.py",
+    "rating_app/management/commands/*",
 ]
 
 [tool.coverage.report]
