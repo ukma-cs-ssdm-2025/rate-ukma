@@ -74,6 +74,7 @@ REST_SESSION_LOGIN = True
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "compression_middleware.middleware.CompressionMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -82,6 +83,20 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+]
+
+# Compression settings
+COMPRESSION_ENABLED = True
+COMPRESSION_MIN_SIZE_KB = 5  # Only compress responses larger than 5 KB
+COMPRESSION_CONTENT_TYPES = [
+    "text/html",
+    "text/plain",
+    "text/css",
+    "text/javascript",
+    "application/javascript",
+    "application/json",
+    "application/xml",
+    "text/xml",
 ]
 
 ROOT_URLCONF = "rateukma.urls"
