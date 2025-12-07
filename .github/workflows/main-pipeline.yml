@@ -64,6 +64,7 @@ jobs:
       needs.audit.result != 'failure' &&
       needs.changes-filter.result != 'failure'
     uses: ./.github/workflows/build.yml
+    secrets: inherit
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}

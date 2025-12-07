@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Login to GitHub Container Registry
         env:
@@ -70,6 +72,17 @@ jobs:
           BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: docker push ${{ steps.extract_name.outputs.backend_image }}:${BACKEND_IMAGE_TAG}
+
+      - name: Create Sentry release for Backend
+        if: inputs.version_tag
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_BACKEND }}
+        with:
+          environment: production
+          release: ${{ inputs.version_tag }}
 
   build-webapp:
     if: inputs.webapp_changed == true || github.event_name == 'workflow_dispatch'
@@ -168,17 +181,6 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_FRONTEND }}
-        with:
-          environment: production
-          release: ${{ inputs.version_tag }}
-
-      - name: Create Sentry release for Backend
-        if: inputs.version_tag
-        uses: getsentry/action-release@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_BACKEND }}
         with:
           environment: production
           release: ${{ inputs.version_tag }}

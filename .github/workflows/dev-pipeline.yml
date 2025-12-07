@@ -39,6 +39,7 @@ jobs:
   build:
     needs: changes-filter
     uses: ./.github/workflows/build.yml
+    secrets: inherit
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
