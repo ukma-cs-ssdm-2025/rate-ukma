@@ -20,13 +20,13 @@ export function initSentry() {
 		enableLogs: true,
 
 		// Set sample rates based on environment
-		tracesSampleRate: import.meta.env.MODE === "production" ? 0.1 : 1.0,
+		tracesSampleRate: import.meta.env.MODE === "production" ? 0.1 : 1,
 
 		// Capture 100% of sessions for replay in non-production
-		replaysSessionSampleRate: import.meta.env.MODE === "production" ? 0.1 : 1.0,
+		replaysSessionSampleRate: import.meta.env.MODE === "production" ? 0.1 : 1,
 
 		// Capture 100% of sessions with errors for replay
-		replaysOnErrorSampleRate: 1.0,
+		replaysOnErrorSampleRate: 1,
 
 		// Setting this option to true will send default PII data to Sentry
 		// (e.g., IP addresses, user agents)
