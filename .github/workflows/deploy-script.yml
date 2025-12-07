@@ -208,7 +208,8 @@ jobs:
 
               # Get current image tags
               if [ -z "$PREV_WEBAPP_TAG" ]; then
-                PREV_WEBAPP_TAG=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep "webapp.*live-" | head -1 | awk -F: '{print $2}' || echo "")
+                WEBAPP_PATTERN="webapp.*${ENVIRONMENT}-"
+                PREV_WEBAPP_TAG=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep "$WEBAPP_PATTERN" | head -1 | awk -F: '{print $2}' || echo "")
               fi
               if [ -z "$PREV_BACKEND_TAG" ]; then
                 PREV_BACKEND_TAG=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep "backend.*v" | head -1 | awk -F: '{print $2}' || echo "")
@@ -279,14 +280,14 @@ jobs:
 
 
               echo "Deployment successful, cleaning up old images for the last 7 days..."
-              docker image prune -a -f --filter "until=168h"
-              docker container prune -f --filter "until=168h"
+              sudo docker image prune -a -f --filter "until=168h"
+              sudo docker container prune -f --filter "until=168h"
 
               echo "Cleaning up unused networks..."
-              docker network prune -f
+              sudo docker network prune -f
 
               echo "Reclaimed space:"
-              docker system df
+              sudo docker system df
 
               echo "Deployment successful"
 
