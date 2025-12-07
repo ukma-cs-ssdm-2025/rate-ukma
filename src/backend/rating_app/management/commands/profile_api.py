@@ -37,7 +37,7 @@ class Command(BaseProfileApiCommand):
             "--cprofile",
             action="store_true",
             required=False,
-            default=True,
+            default=False,
             help="Capture CProfile results",
         )
 
