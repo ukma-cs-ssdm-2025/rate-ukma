@@ -195,6 +195,9 @@ jobs:
             mkdir -p "${{ env.REMOTE_TMP_DEPLOY_DIR }}"
             mkdir -p "${{ env.REMOTE_BACKUP_CODE_DIR }}"
 
+            PREV_WEBAPP_TAG=""
+            PREV_BACKEND_TAG=""
+
             if [ -d "${{ env.PROJECT_SOURCE_CODE }}" ]; then
               echo "Backing up current source code..."
               cp -r ${{ env.PROJECT_SOURCE_CODE }} "${{ env.REMOTE_BACKUP_CODE_DIR }}/"
@@ -202,8 +205,15 @@ jobs:
 
               echo "Saving current image tags for potential rollback..."
               cd ${{ env.PROJECT_SOURCE_CODE }}
-              PREV_WEBAPP_TAG=$(grep "WEBAPP_IMAGE_TAG=" .env | cut -d'=' -f2 || echo "")
-              PREV_BACKEND_TAG=$(grep "BACKEND_IMAGE_TAG=" .env | cut -d'=' -f2 || echo "")
+
+              # Get current image tags
+              if [ -z "$PREV_WEBAPP_TAG" ]; then
+                PREV_WEBAPP_TAG=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep "webapp.*live-" | head -1 | awk -F: '{print $2}' || echo "")
+              fi
+              if [ -z "$PREV_BACKEND_TAG" ]; then
+                PREV_BACKEND_TAG=$(sudo docker images --format "{{.Repository}}:{{.Tag}}" | grep "backend.*v" | head -1 | awk -F: '{print $2}' || echo "")
+              fi
+
               echo "Previous WEBAPP_IMAGE_TAG: $PREV_WEBAPP_TAG"
               echo "Previous BACKEND_IMAGE_TAG: $PREV_BACKEND_TAG"
               echo "PREV_WEBAPP_TAG=$PREV_WEBAPP_TAG" > "${{ env.REMOTE_TMP_DEPLOY_DIR }}/prev_tags.env"
@@ -212,7 +222,11 @@ jobs:
 
             echo "Stopping existing services..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo docker compose --profile prod down || true
+            if [ -n "$PREV_WEBAPP_TAG" ] && [ -n "$PREV_BACKEND_TAG" ]; then
+              sudo WEBAPP_IMAGE_TAG=$PREV_WEBAPP_TAG BACKEND_IMAGE_TAG=$PREV_BACKEND_TAG docker compose --profile prod down || true
+            else
+              sudo docker compose --profile prod down || true
+            fi
 
             echo "Cleaning project directory..."
             rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
@@ -262,6 +276,20 @@ jobs:
               rm -rf "${{ env.REMOTE_BACKUP_CODE_DIR }}"
               rm -f "${{ env.REMOTE_TMP_DEPLOY_DIR }}/prev_tags.env"
               echo "Deployment finished successfully"
+
+
+              echo "Deployment successful, cleaning up old images for the last 7 days..."
+              docker image prune -a -f --filter "until=168h"
+              docker container prune -f --filter "until=168h"
+
+              echo "Cleaning up unused networks..."
+              docker network prune -f
+
+              echo "Reclaimed space:"
+              docker system df
+
+              echo "Deployment successful"
+
             else
               echo "Services failed to start properly. Rolling back..."
               sudo docker compose --profile prod down || true
