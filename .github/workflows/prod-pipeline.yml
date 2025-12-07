@@ -97,6 +97,7 @@ jobs:
       SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
       CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
   update_pre_releases:
     if: needs.get-staging-version.outputs.skip_deployment != 'true'

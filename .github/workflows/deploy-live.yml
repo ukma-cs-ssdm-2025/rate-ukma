@@ -25,6 +25,8 @@ on:
         required: true
       CORPORATE_PASSWORD:
         required: true
+      SENTRY_AUTH_TOKEN:
+        required: true
 
 jobs:
   create-sentry-releases:

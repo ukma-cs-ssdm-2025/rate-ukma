@@ -108,6 +108,7 @@ jobs:
       SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
       CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
   release:
     needs: [version, deploy-staging, release-needed]
