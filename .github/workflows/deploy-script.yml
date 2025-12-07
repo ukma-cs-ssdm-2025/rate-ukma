@@ -209,7 +209,7 @@ jobs:
 
               # Get current image tags
               if [ -z "$PREV_WEBAPP_TAG" ]; then
-                WEBAPP_PATTERN="webapp.*$ENVIRONMENT-"
+                WEBAPP_PATTERN="webapp.*${ENVIRONMENT}-"
                 PREV_WEBAPP_TAG=$(sudo docker ps --format "{{.Image}}" | grep "webapp" | awk -F: '{print $2}' || echo "")
               fi
               if [ -z "$PREV_BACKEND_TAG" ]; then
@@ -246,7 +246,7 @@ jobs:
             cp ${{ env.PROJECT_DIR }}/.env ${{ env.PROJECT_SOURCE_CODE }}/.env
 
             echo "Logging in to GitHub Container Registry..."
-            if ! echo "$GITHUB_TOKEN" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin; then
+            if ! echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin; then
               echo "Docker login failed"
               exit 1
             fi
