@@ -31,3 +31,7 @@ pnpm check
 ## Small tips
 
 - Prefer `globalThis` over `window` when touching the global scope.
+
+## Sentry Integration
+
+Sentry is configured for error tracking, performance monitoring, and session replays. Use `console.log()`, `console.warn()`, and `console.error()` for logging - they're automatically sent to Sentry. Add logs where appropriate to help with debugging.

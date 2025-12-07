@@ -3,11 +3,14 @@ import { StrictMode } from "react";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
+import { initSentry } from "./integrations/sentry/init.ts";
 import * as TanStackQueryProvider from "./integrations/tanstack-query/RootProvider.tsx";
 import reportWebVitals from "./reportWebVitals.ts";
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
+
+initSentry();
 
 // Create a new router instance
 
