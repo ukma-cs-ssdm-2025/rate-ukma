@@ -239,3 +239,4 @@ class RatingViewSet(viewsets.ViewSet):
         self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
         self.cache_manager.invalidate_pattern("*AnalyticsViewSet.list*")
         self.cache_manager.invalidate_pattern("*CourseViewSet.retrieve*")
+        self.cache_manager.invalidate_pattern("*CourseViewSet.list*")
