@@ -3,6 +3,7 @@ import type * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/Toaster";
 import {
 	getCoursesRatingsListQueryKey,
 	getCoursesRetrieveQueryKey,
@@ -58,7 +59,11 @@ export function DeleteRatingDialog({
 			onSuccess: async () => {
 				await invalidateRatingQueries();
 				onOpenChange(false);
+				toast.success("Оцінку видалено");
 				onSuccess?.();
+			},
+			onError: () => {
+				toast.error("Не вдалося видалити оцінку. Спробуйте ще раз");
 			},
 		},
 	});

@@ -7,6 +7,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/Dialog";
+import { toast } from "@/components/ui/Toaster";
 import {
 	getCoursesRatingsListQueryKey,
 	getCoursesRetrieveQueryKey,
@@ -94,11 +95,15 @@ export function RatingModal({
 				});
 			}
 
+			toast.success(
+				isEditMode ? "Оцінку успішно оновлено" : "Оцінку успішно додано",
+			);
 			await invalidateRatingQueries();
 			onSuccess?.();
 			onClose();
 		} catch (error) {
 			console.error("Failed to submit rating:", error);
+			toast.error("Не вдалося зберегти оцінку. Спробуйте ще раз");
 		}
 	};
 
