@@ -1,28 +1,22 @@
-import cProfile
 import io
 import json
 import os
-import pstats
-import time
-from typing import Any, cast
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.management.base import BaseCommand
-from django.http import HttpResponseBase
 from django.test import Client
-from django.urls import reverse
 
 import structlog
 
-from rating_app.models import Speciality, Student
+from ._base_api_profiling_command import BaseProfileApiCommand
 
 logger = structlog.get_logger(__name__)
 
 
-class Command(BaseCommand):
+class Command(BaseProfileApiCommand):
     help = "Profile API endpoints performance"
-    iterations = 10
+
     results_output_file = settings.PERFORMANCE_METRICS_FILE
     cprofile_output_file = settings.CPROFILE_OUTPUT_FILE
 
@@ -30,45 +24,86 @@ class Command(BaseCommand):
         parser.add_argument(
             "--course-id",
             type=str,
-            required=True,
+            required=False,
             help="Course ID to profile",
+        )
+        parser.add_argument(
+            "--no-output",
+            action="store_true",
+            required=False,
+            help="Don't write results to file",
+        )
+        parser.add_argument(
+            "--cprofile",
+            action="store_true",
+            required=False,
+            default=False,
+            help="Capture CProfile results",
         )
 
     def handle(self, *args, **options):
-        self.course_id = options["course_id"]
+        self._initialize_options(options)
+        self._import_cprofile_if_needed()
 
-        dict_results = {}
-        cprofile_outputs = []
         client = Client()
-
-        test_user = self._create_test_user(client)
-        self._configure_test_server()
+        test_user = self._setup_test_environment(client)
         endpoints = self._get_endpoints()
 
         self.stdout.write(f"Profiling {len(endpoints)} endpoints...")
 
+        results = self._profile_all_endpoints(endpoints, client, test_user)
+        self._save_results(results)
+
+    def _initialize_options(self, options):
+        self.course_id = options["course_id"]
+        self.no_output = options["no_output"]
+        self.cprofile_enabled = options["cprofile"]
+
+    def _import_cprofile_if_needed(self):
+        if self.cprofile_enabled:
+            import cProfile
+            import pstats
+
+            self.cprofile_module = cProfile
+            self.pstats = pstats
+
+    def _profile_all_endpoints(
+        self, endpoints: dict[str, dict[str, Any]], client: Client, test_user: User
+    ) -> dict[str, Any]:
+        dict_results = {}
+        cprofile_outputs = []
+
         for endpoint_name, endpoint_config in endpoints.items():
             self.stdout.write(f"\nProfiling {endpoint_name}...")
-            dict_result, cprofile_output = self._profile_endpoint(
-                endpoint_config, client, test_user
-            )
-            dict_results[endpoint_name] = dict_result
 
-            if cprofile_output:
-                cprofile_outputs.append(f"=== {endpoint_name} ===\n{cprofile_output}\n\n")
+            result, cprofile_output = self._process_endpoint(endpoint_config, client, test_user)
+
+            dict_results[endpoint_name] = result
+
+            if self.cprofile_enabled and cprofile_output:
+                formatted_output = self._format_cprofile_output(endpoint_name, cprofile_output)
+                cprofile_outputs.append(formatted_output)
+
+        return {"results": dict_results, "cprofile_outputs": cprofile_outputs}
+
+    def _format_cprofile_output(self, endpoint_name: str, output: str) -> str:
+        return f"=== {endpoint_name} ===\n{output}\n\n"
+
+    def _save_results(self, results: dict[str, Any]):
+        dict_results = results["results"]
+        cprofile_outputs = results["cprofile_outputs"]
 
         self._write_stdout_results(dict_results)
+
+        if self.no_output:
+            return
+
         self._write_json_results(dict_results)
-
-        if cprofile_outputs:
-            self._write_cprofile_output(cprofile_outputs)
-            self.stdout.write(f"\nCProfile output saved to {self.cprofile_output_file}")
-
         self.stdout.write(f"\nResults saved to {self.results_output_file}")
 
-    def _configure_test_server(self):
-        if "testserver" not in settings.ALLOWED_HOSTS:
-            settings.ALLOWED_HOSTS.append("testserver")
+        if self.cprofile_enabled and cprofile_outputs:
+            self._write_cprofile_output(cprofile_outputs)
+            self.stdout.write(f"\nCProfile output saved to {self.cprofile_output_file}")
 
     def _write_json_results(self, results: dict[str, dict[str, Any]]):
         os.makedirs(self.results_output_file.parent, exist_ok=True)
@@ -81,7 +116,16 @@ class Command(BaseCommand):
             f.write("".join(cprofile_outputs))
 
     def _get_endpoints(self) -> dict[str, dict[str, Any]]:
-        all_endpoints = {
+        endpoints = self._get_base_endpoints()
+
+        if self.course_id:
+            course_endpoints = self._get_course_specific_endpoints()
+            endpoints.update(course_endpoints)
+
+        return endpoints
+
+    def _get_base_endpoints(self) -> dict[str, dict[str, Any]]:
+        return {
             "course_list": {
                 "url_name": "course-list",
                 "method": "GET",
@@ -95,25 +139,6 @@ class Command(BaseCommand):
                 "method": "GET",
                 "params": {"page": 1, "page_size": 25, "semester_year": "2024"},
                 "description": "List courses with filters",
-                "requires_auth": True,
-                "enabled": True,
-            },
-            "course_detail": {
-                "url_name": "course-detail",
-                "method": "GET",
-                "kwargs": {"course_id": self.course_id},
-                "description": "Get course details",
-                "requires_data": True,
-                "requires_auth": True,
-                "enabled": True,
-            },
-            "course_ratings": {
-                "url_name": "course-ratings",
-                "method": "GET",
-                "kwargs": {"course_id": self.course_id},
-                "params": {"page": 1, "page_size": 25},
-                "description": "List ratings for a course",
-                "requires_data": True,
                 "requires_auth": True,
                 "enabled": True,
             },
@@ -140,138 +165,65 @@ class Command(BaseCommand):
             },
         }
 
+    def _get_course_specific_endpoints(self) -> dict[str, dict[str, Any]]:
         return {
-            name: config for name, config in all_endpoints.items() if config.get("enabled", False)
+            "course_ratings": {
+                "url_name": "course-ratings",
+                "method": "GET",
+                "kwargs": {"course_id": self.course_id},
+                "params": {"page": 1, "page_size": 25},
+                "description": "List ratings for a course",
+                "requires_data": True,
+                "requires_auth": True,
+                "enabled": True,
+            },
+            "course_detail": {
+                "url_name": "course-detail",
+                "method": "GET",
+                "kwargs": {"course_id": self.course_id},
+                "description": "Get course details",
+                "requires_data": True,
+                "requires_auth": True,
+                "enabled": True,
+            },
         }
 
-    def _profile_endpoint(
+    def _process_endpoint(
         self, config: dict[str, Any], client: Client, test_user: User | None = None
     ) -> tuple[dict[str, Any], str | None]:
-        try:
-            url_kwargs = config.get("kwargs", {})
-            url = reverse(config["url_name"], kwargs=url_kwargs)
-        except Exception as e:
-            return (
-                {
-                    "error": f"Failed to reverse URL: {e}",
-                    "description": config.get("description", ""),
-                },
-                None,
-            )
+        url = self._build_endpoint_url(config)
+        if isinstance(url, dict):  # Error case
+            return url, None
 
-        method = config.get("method", "GET")
-        params = config.get("params", {})
-        requires_auth = config.get("requires_auth", False)
-
-        times = []
-        pr = cProfile.Profile()
-        pr.enable()
-
-        for i in range(self.iterations):
-            start_time = time.time()
-
-            try:
-                headers = {}
-                if requires_auth and not test_user:
-                    continue
-
-                if method == "GET":
-                    response = client.get(url, params, **headers)
-                elif method == "POST":
-                    response = client.post(url, params, **headers)
-                else:
-                    response = client.generic(method, url, params, **headers)
-
-                response = cast(HttpResponseBase, response)
-                if response.status_code not in [200, 201]:
-                    self.stderr.write(f"Request {i + 1} failed with status {response.status_code}")
-                    continue
-
-                execution_time = time.time() - start_time
-                times.append(execution_time * 1000)
-
-            except Exception as e:
-                self.stderr.write(f"Request {i + 1} failed: {e}")
-                continue
-
-        pr.disable()
-        s = io.StringIO()
-        ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
-        ps.print_stats(20)
-        profile_output = s.getvalue().strip()
+        profiler = self._start_profiler()
+        times = self._execute_endpoint_requests(config, client, test_user, url)
+        profile_output = self._stop_profiler(profiler)
 
         if not times:
-            return (
-                {
-                    "error": "No successful requests",
-                    "description": config.get("description", ""),
-                },
-                None,
-            )
+            return self._create_error_result(config, "No successful requests"), None
 
-        return (
-            {
-                "description": config.get("description", ""),
-                "iterations": len(times),
-                "avg_time_ms": round(sum(times) / len(times), 2),
-                "min_time_ms": round(min(times), 2),
-                "max_time_ms": round(max(times), 2),
-                "total_time_ms": round(sum(times), 2),
-                "times": [round(t, 2) for t in times],
-            },
-            profile_output,
-        )
+        return self._create_success_result(config, times), profile_output
+
+    def _start_profiler(self):
+        if not self.cprofile_enabled:
+            return None
+
+        profiler = self.cprofile_module.Profile()
+        profiler.enable()
+        return profiler
+
+    def _stop_profiler(self, profiler) -> str | None:
+        if not profiler:
+            return None
+
+        profiler.disable()
+
+        stream = io.StringIO()
+        stats = self.pstats.Stats(profiler, stream=stream).sort_stats("cumulative")
+        stats.print_stats(20)
+
+        return stream.getvalue().strip()
 
     def _write_stdout_results(self, results: dict[str, dict[str, Any]]):
         self.stdout.write("\nAPI PROFILING RESULTS\n")
-
-        sorted_results = sorted(
-            [(name, data) for name, data in results.items() if "error" not in data],
-            key=lambda x: x[1]["avg_time_ms"],
-            reverse=True,
-        )
-
-        for endpoint_name, data in sorted_results:
-            self.stdout.write(f"\n{endpoint_name}")
-            self.stdout.write(f"  Description: {data['description']}")
-            self.stdout.write(f"  Iterations: {data['iterations']}")
-            self.stdout.write(f"  Avg Time: {data['avg_time_ms']}ms")
-            self.stdout.write(f"  Min/Max: {data['min_time_ms']}ms / {data['max_time_ms']}ms")
-            self.stdout.write(f"  Total Time: {data['total_time_ms']}ms")
-
-        errors = [(name, data) for name, data in results.items() if "error" in data]
-        if errors:
-            self.stdout.write(f"\n\nERRORS ({len(errors)}):")
-            for endpoint_name, data in errors:
-                self.stdout.write(f"  {endpoint_name}: {data['error']}")
-
-    def _create_test_user(self, client: Client) -> User:
-        speciality = Speciality.objects.all().first()
-        if speciality is None:
-            raise Exception("No specialities found")
-
-        test_user, _ = User.objects.get_or_create(
-            username="test_profiler",
-            defaults={
-                "email": "test@ukma.edu.ua",
-                "is_staff": False,
-                "is_superuser": False,
-            },
-        )
-
-        _, _ = Student.objects.get_or_create(
-            user=test_user,
-            defaults={
-                "first_name": "Test",
-                "last_name": "Profiler",
-                "email": "test@ukma.edu.ua",
-                "speciality": speciality,
-            },
-        )
-
-        test_user.set_password("testpass123")
-        test_user.save()
-
-        client.force_login(test_user)
-
-        return test_user
+        super()._write_stdout_results(results)
