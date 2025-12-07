@@ -77,6 +77,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -159,41 +161,27 @@ jobs:
             -t ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG} \
             ..
 
-      - name: Create Sentry releases
+      - name: Create Sentry release for Frontend
         if: inputs.version_tag
+        uses: getsentry/action-release@v1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND }}
-          SENTRY_PROJECT_BACKEND: ${{ vars.SENTRY_PROJECT_BACKEND }}
-          VERSION_TAG: ${{ inputs.version_tag }}
-          SENTRY_CLI_VERSION: 2.56.0
-        run: |
-          curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=${SENTRY_CLI_VERSION} bash
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_FRONTEND }}
+        with:
+          environment: production
+          version: ${{ inputs.version_tag }}
 
-          # Create release for frontend project
-          sentry-cli releases new "$VERSION_TAG" \
-            --org "$SENTRY_ORG" \
-            --project "$SENTRY_PROJECT_FRONTEND"
-          sentry-cli releases set-commits "$VERSION_TAG" \
-            --org "$SENTRY_ORG" \
-            --project "$SENTRY_PROJECT_FRONTEND" \
-            --auto
-          sentry-cli releases finalize "$VERSION_TAG" \
-            --org "$SENTRY_ORG" \
-            --project "$SENTRY_PROJECT_FRONTEND"
-
-          # Create release for backend project
-          sentry-cli releases new "$VERSION_TAG" \
-            --org "$SENTRY_ORG" \
-            --project "$SENTRY_PROJECT_BACKEND"
-          sentry-cli releases set-commits "$VERSION_TAG" \
-            --org "$SENTRY_ORG" \
-            --project "$SENTRY_PROJECT_BACKEND" \
-            --auto
-          sentry-cli releases finalize "$VERSION_TAG" \
-            --org "$SENTRY_ORG" \
-            --project "$SENTRY_PROJECT_BACKEND"
+      - name: Create Sentry release for Backend
+        if: inputs.version_tag
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_BACKEND }}
+        with:
+          environment: production
+          version: ${{ inputs.version_tag }}
 
       - name: Push live webapp
         if: inputs.version_tag
