@@ -322,9 +322,36 @@ jobs:
               exit 1
             fi
 
+  warmup:
+    needs: deploy
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run warmup backend command
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: "30m"
+          script: |
+            backend_container=$(docker ps --format "{{.Names}}" | grep backend)
+            if [ -z "$backend_container" ]; then
+              echo "Backend running container is not found"
+              exit 1
+            fi
+
+            docker exec -it $backend_container uv run python manage.py warmup
+
+            if [ $? -ne 0 ]; then
+              echo "Warmup failed"
+              exit 1
+            fi
+
+            echo "Warmup completed"
+
   e2e-test:
     if: inputs.run_e2e_tests && inputs.test_url != ''
-    needs: deploy
+    needs: warmup
     uses: ./.github/workflows/e2e-test.yml
     with:
       test_url: ${{ inputs.test_url }}
