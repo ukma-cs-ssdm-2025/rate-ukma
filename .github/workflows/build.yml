@@ -73,17 +73,6 @@ jobs:
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: docker push ${{ steps.extract_name.outputs.backend_image }}:${BACKEND_IMAGE_TAG}
 
-      - name: Create Sentry release for Backend
-        if: inputs.version_tag
-        uses: getsentry/action-release@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_BACKEND }}
-        with:
-          environment: production
-          release: ${{ inputs.version_tag }}
-
   build-webapp:
     if: inputs.webapp_changed == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
@@ -173,17 +162,6 @@ jobs:
             -f webapp/Dockerfile \
             -t ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG} \
             ..
-
-      - name: Create Sentry release for Frontend
-        if: inputs.version_tag
-        uses: getsentry/action-release@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_FRONTEND }}
-        with:
-          environment: production
-          release: ${{ inputs.version_tag }}
 
       - name: Push live webapp
         if: inputs.version_tag

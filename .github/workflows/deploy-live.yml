@@ -27,7 +27,36 @@ on:
         required: true
 
 jobs:
+  create-sentry-releases:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Create Sentry release for Frontend
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_FRONTEND }}
+        with:
+          environment: live
+          release: ${{ inputs.version_tag }}
+
+      - name: Create Sentry release for Backend
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_BACKEND }}
+        with:
+          environment: live
+          release: ${{ inputs.version_tag }}
+
   deploy:
+    needs: create-sentry-releases
     uses: ./.github/workflows/deploy-script.yml
     with:
       version_tag: ${{ inputs.version_tag }}
