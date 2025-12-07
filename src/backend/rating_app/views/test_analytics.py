@@ -7,6 +7,7 @@ def analytics_url():
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_analytics_list_no_filters(token_client, course_factory, analytics_url):
     # Arrange
     num_courses = 5
@@ -23,6 +24,7 @@ def test_analytics_list_no_filters(token_client, course_factory, analytics_url):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_analytics_no_pagination(token_client, course_factory, analytics_url):
     # Arrange
     num_courses = 5
@@ -39,6 +41,7 @@ def test_analytics_no_pagination(token_client, course_factory, analytics_url):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_analytics_filter_applied(
     token_client, course_factory, rating_factory, course_offering_factory, analytics_url
 ):
@@ -74,6 +77,7 @@ def test_analytics_filter_applied(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_analytics_by_course_id(token_client, course_factory, analytics_url):
     # Arrange
     course = course_factory.create()
@@ -91,6 +95,7 @@ def test_analytics_by_course_id(token_client, course_factory, analytics_url):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_invalid_filter_provided(course_factory, token_client, analytics_url):
     # Arrange
     course_factory.create_batch(3)
@@ -101,3 +106,71 @@ def test_invalid_filter_provided(course_factory, token_client, analytics_url):
 
     # Assert
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_analytics_no_n_plus_1_queries(
+    token_client,
+    course_factory,
+    rating_factory,
+    course_offering_factory,
+    analytics_url,
+    django_assert_num_queries,
+):
+    """Test that analytics endpoint doesn't have N+1 query problems."""
+    # Arrange: Create multiple courses with departments and faculties
+    courses = course_factory.create_batch(10)
+    for course in courses:
+        offering = course_offering_factory(course=course)
+        rating_factory.create_batch(5, course_offering=offering)
+
+    # Act & Assert: The number of queries should be constant regardless of course count
+    # Expected queries:
+    # 1. Main query with select_related(department__faculty) and annotations
+    # 2. Prefetch course_specialities
+    # 3. Prefetch offerings with semester
+    # 4. Prefetch semester details
+    # 5. Prefetch instructors for offerings
+    # No additional queries should occur when accessing department.faculty in serializer
+    with django_assert_num_queries(5):
+        response = token_client.get(analytics_url)
+
+    # Verify we got all courses
+    data = response.json()
+    assert response.status_code == 200
+    assert len(data) == 10
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_analytics_single_course_no_n_plus_1(
+    token_client,
+    course_factory,
+    rating_factory,
+    course_offering_factory,
+    analytics_url,
+    django_assert_num_queries,
+):
+    """Test that fetching a single course analytics doesn't trigger extra queries."""
+    # Arrange
+    course = course_factory.create()
+    offering = course_offering_factory(course=course)
+    rating_factory.create_batch(5, course_offering=offering)
+
+    url = f"{analytics_url}{course.id}/"
+
+    # Act & Assert: Retrieving single course should use select_related for department/faculty
+    # Expected queries:
+    # 1. Main query with select_related(department__faculty) and annotations
+    # 2. Prefetch offerings with semester
+    # 3. Prefetch semester details
+    # 4. Prefetch course_specialities
+    with django_assert_num_queries(4):
+        response = token_client.get(url)
+
+    # Verify response
+    data = response.json()
+    assert response.status_code == 200
+    assert data["id"] == str(course.id)
+    assert data["faculty_name"] == course.department.faculty.name

@@ -54,10 +54,10 @@ def test_course_link_parser_with_no_course_links():
 
 
 def test_extract_course_ids_with_valid_html():
-    course_id_1, course_id_2 = (
-        str(fake.random_int(min=100, max=999)),
-        str(fake.random_int(min=100, max=999)),
-    )
+    course_id_1 = str(fake.random_int(min=100, max=999))
+    course_id_2 = str(fake.random_int(min=100, max=999))
+    while course_id_2 == course_id_1:
+        course_id_2 = str(fake.random_int(min=100, max=999))
 
     html = f"""
     <html>

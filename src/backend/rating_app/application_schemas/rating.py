@@ -1,8 +1,9 @@
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Annotated, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 from pydantic.alias_generators import to_snake
 from pydantic.json_schema import SkipJsonSchema
 
@@ -55,6 +56,10 @@ class RatingPaginationParams(BaseModel):
         ge=MIN_PAGE_SIZE,
         description=f"Items per page (default: {DEFAULT_PAGE_SIZE})",
     )
+    exclude_current_user: bool = Field(
+        default=False,
+        description="Exclude the current user's rating from the list",
+    )
 
 
 class RatingFilterCriteria(BaseModel):
@@ -72,6 +77,17 @@ class RatingFilterCriteria(BaseModel):
         ge=MIN_PAGE_SIZE,
     )
     course_id: uuid.UUID | None = Field(default=None)
+    exclude_student_id: uuid.UUID | None = Field(
+        default=None,
+        description="Exclude ratings from this student ID",
+    )
+
+
+def strip_string(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped if stripped else None
 
 
 # API request schema (student is set automatically from authenticated user)
@@ -84,7 +100,9 @@ class RatingCreateRequest(BaseModel):
     course_offering: uuid.UUID = Field(description="UUID of the course offering being rated")
     difficulty: RatingValue = Field()
     usefulness: RatingValue = Field()
-    comment: str | SkipJsonSchema[None] = Field(default=None)
+    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None
+    )
     is_anonymous: bool = Field(default=False)
 
 
@@ -99,7 +117,9 @@ class RatingCreateParams(BaseModel):
     student: uuid.UUID = Field(description="UUID of the student creating the rating")
     difficulty: RatingValue = Field()
     usefulness: RatingValue = Field()
-    comment: str | SkipJsonSchema[None] = Field(default=None)
+    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None
+    )
     is_anonymous: bool = Field(default=False)
 
 
@@ -111,7 +131,9 @@ class RatingPutParams(BaseModel):
 
     difficulty: RatingValue = Field()
     usefulness: RatingValue = Field()
-    comment: str | SkipJsonSchema[None] = Field(default=None)
+    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None
+    )
     is_anonymous: bool = Field(default=False)
 
 
@@ -128,8 +150,12 @@ class RatingPatchParams(BaseModel):
     usefulness: RatingValue | SkipJsonSchema[None] = Field(
         default=None,
     )
-    comment: str | SkipJsonSchema[None] = Field(default=None)
-    is_anonymous: bool = Field(default=False)
+    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None
+    )
+    is_anonymous: bool | SkipJsonSchema[None] = Field(
+        default=None,
+    )
 
 
 # is constructed internally
@@ -138,3 +164,10 @@ class RatingSearchResult:
     items: list[IRating]
     pagination: PaginationMetadata
     applied_filters: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class AggregatedCourseRatingStats:
+    avg_difficulty: Decimal
+    avg_usefulness: Decimal
+    ratings_count: int

@@ -8,6 +8,7 @@ interface DrawerProps {
 	children: React.ReactNode;
 	ariaLabel: string;
 	closeButtonLabel: string;
+	"data-testid"?: string;
 }
 
 const TRANSITION_DURATION_MS = 300;
@@ -18,6 +19,7 @@ export function Drawer({
 	children,
 	ariaLabel,
 	closeButtonLabel,
+	"data-testid": testId,
 }: Readonly<DrawerProps>) {
 	const [isMounted, setIsMounted] = useState(open);
 	const [shouldSlideIn, setShouldSlideIn] = useState(open);
@@ -76,6 +78,7 @@ export function Drawer({
 			}}
 			aria-modal="true"
 			aria-label={ariaLabel}
+			data-testid={testId}
 		>
 			<button
 				type="button"
@@ -89,7 +92,7 @@ export function Drawer({
 			/>
 			<aside
 				className={cn(
-					"fixed right-0 top-0 h-full z-10 w-full max-w-sm flex flex-col gap-6 overflow-y-auto rounded-tl-[32px] rounded-bl-0 bg-popover/95 p-6 pb-6 shadow-[0_20px_45px_rgba(15,23,42,0.35)] backdrop-blur-sm",
+					"fixed right-0 top-0 h-full z-10 w-full max-w-sm flex flex-col gap-6 overflow-y-auto rounded-tl-[32px] rounded-bl-0 bg-card/95 p-6 pb-6 shadow-[0_20px_45px_rgba(15,23,42,0.35)] backdrop-blur-sm text-card-foreground",
 				)}
 				style={{
 					transition: `transform ${TRANSITION_DURATION_MS}ms ease, opacity ${TRANSITION_DURATION_MS}ms ease`,

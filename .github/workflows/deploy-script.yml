@@ -173,27 +173,31 @@ jobs:
         env:
           BACKEND_IMAGE_TAG: ${{ steps.find-tags.outputs.backend_tag }}
           WEBAPP_IMAGE_TAG: ${{ steps.find-tags.outputs.webapp_tag }}
+          ENVIRONMENT: ${{ inputs.environment }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           command_timeout: "30m"
-          envs: BACKEND_IMAGE_TAG,WEBAPP_IMAGE_TAG
+          envs: BACKEND_IMAGE_TAG,WEBAPP_IMAGE_TAG,ENVIRONMENT
           script: |
             echo "Deploying..."
 
             echo "Setting up project directory ownership..."
-            sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.PROJECT_DIR }} || true
-            sudo chmod -R 755 ${{ env.PROJECT_DIR }} || true
+            sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.PROJECT_DIR }}
+            sudo chmod -R 755 ${{ env.PROJECT_DIR }}
 
             echo "Setting up tmp deploy directory ownership..."
-            sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.REMOTE_TMP_DEPLOY_DIR }} || true
-            sudo chmod -R 755 ${{ env.REMOTE_TMP_DEPLOY_DIR }} || true
+            sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ env.REMOTE_TMP_DEPLOY_DIR }}
+            sudo chmod -R 755 ${{ env.REMOTE_TMP_DEPLOY_DIR }}
 
             echo "Creating backup of current version..."
 
             mkdir -p "${{ env.REMOTE_TMP_DEPLOY_DIR }}"
             mkdir -p "${{ env.REMOTE_BACKUP_CODE_DIR }}"
+
+            PREV_WEBAPP_TAG=""
+            PREV_BACKEND_TAG=""
 
             if [ -d "${{ env.PROJECT_SOURCE_CODE }}" ]; then
               echo "Backing up current source code..."
@@ -202,8 +206,17 @@ jobs:
 
               echo "Saving current image tags for potential rollback..."
               cd ${{ env.PROJECT_SOURCE_CODE }}
-              PREV_WEBAPP_TAG=$(grep "WEBAPP_IMAGE_TAG=" .env | cut -d'=' -f2 || echo "")
-              PREV_BACKEND_TAG=$(grep "BACKEND_IMAGE_TAG=" .env | cut -d'=' -f2 || echo "")
+
+              # Get current image tags
+              if [ -z "$PREV_WEBAPP_TAG" ]; then
+                WEBAPP_PATTERN="webapp.*${ENVIRONMENT}-"
+                PREV_WEBAPP_TAG=$(sudo docker ps --format "{{.Image}}" | grep "webapp" | awk -F: '{print $2}' || echo "")
+              fi
+              if [ -z "$PREV_BACKEND_TAG" ]; then
+                PREV_BACKEND_TAG=$(sudo docker ps --format "{{.Image}}" | grep "backend" | awk -F: '{print $2}' || echo "")
+
+              fi
+
               echo "Previous WEBAPP_IMAGE_TAG: $PREV_WEBAPP_TAG"
               echo "Previous BACKEND_IMAGE_TAG: $PREV_BACKEND_TAG"
               echo "PREV_WEBAPP_TAG=$PREV_WEBAPP_TAG" > "${{ env.REMOTE_TMP_DEPLOY_DIR }}/prev_tags.env"
@@ -212,21 +225,31 @@ jobs:
 
             echo "Stopping existing services..."
             cd ${{ env.PROJECT_SOURCE_CODE }}
-            sudo docker compose --profile prod down || true
+            if [ -n "$PREV_WEBAPP_TAG" ] && [ -n "$PREV_BACKEND_TAG" ]; then
+              sudo WEBAPP_IMAGE_TAG=$PREV_WEBAPP_TAG BACKEND_IMAGE_TAG=$PREV_BACKEND_TAG docker compose --profile prod down || true
+            else
+              sudo docker compose --profile prod down || true
+            fi
 
             echo "Cleaning project directory..."
             rm -rf ${{ env.PROJECT_SOURCE_CODE }}/*
 
             echo "Extracting new version..."
             cd ${{ env.PROJECT_DIR }}
-            tar xzf ${{ env.REMOTE_TMP_DEPLOY_DIR }}/${{ env.ARCHIVE_NAME }}
+            if ! tar xzf ${{ env.REMOTE_TMP_DEPLOY_DIR }}/${{ env.ARCHIVE_NAME }}; then
+              echo "Failed to extract archive"
+              exit 1
+            fi
             rm ${{ env.REMOTE_TMP_DEPLOY_DIR }}/${{ env.ARCHIVE_NAME }}
 
             echo "Copying environment file..."
             cp ${{ env.PROJECT_DIR }}/.env ${{ env.PROJECT_SOURCE_CODE }}/.env
 
             echo "Logging in to GitHub Container Registry..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            if ! echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin; then
+              echo "Docker login failed"
+              exit 1
+            fi
 
             echo "Pulling docker images..."
             echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
@@ -245,8 +268,11 @@ jobs:
             while [ $attempt -le $max_attempts ]; do
               echo "Up and running check attempt $attempt/$max_attempts..."
 
-              if sudo docker compose ps --status=running | grep "Up" && \
-                 [ -f ${{ env.STATIC_ROOT }}/index.html ]; then
+              EXPECTED_SERVICES=3
+              RUNNING_SERVICES=$(sudo docker compose ps --status=running --format json | jq -s 'length')
+
+              if [ "$RUNNING_SERVICES" -eq "$EXPECTED_SERVICES" ] && \
+                  [ -f ${{ env.STATIC_ROOT }}/index.html ]; then
                 services_healthy=true
                 break
               fi
@@ -262,6 +288,20 @@ jobs:
               rm -rf "${{ env.REMOTE_BACKUP_CODE_DIR }}"
               rm -f "${{ env.REMOTE_TMP_DEPLOY_DIR }}/prev_tags.env"
               echo "Deployment finished successfully"
+
+
+              echo "Deployment successful, cleaning up old images for the last 7 days..."
+              sudo docker image prune -a -f --filter "until=168h"
+              sudo docker container prune -f --filter "until=168h"
+
+              echo "Cleaning up unused networks..."
+              sudo docker network prune -f
+
+              echo "Reclaimed space:"
+              sudo docker system df
+
+              echo "Deployment successful"
+
             else
               echo "Services failed to start properly. Rolling back..."
               sudo docker compose --profile prod down || true
@@ -293,9 +333,34 @@ jobs:
               exit 1
             fi
 
+  warmup:
+    needs: deploy
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run warmup backend command
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: "30m"
+          script: |
+            backend_container=$(docker ps --format "{{.Names}}" | grep backend)
+            if [ -z "$backend_container" ]; then
+              echo "Backend running container is not found"
+              exit 1
+            fi
+
+            if ! docker exec $backend_container uv run python manage.py warmup; then
+              echo "Warmup failed"
+              exit 1
+            fi
+
+            echo "Warmup completed"
+
   e2e-test:
     if: inputs.run_e2e_tests && inputs.test_url != ''
-    needs: deploy
+    needs: warmup
     uses: ./.github/workflows/e2e-test.yml
     with:
       test_url: ${{ inputs.test_url }}

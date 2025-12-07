@@ -16,7 +16,28 @@ from rating_app.ioc_container.services import student_service
 logger = structlog.get_logger(__name__)
 
 
-class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
+class StudentLinkingMixin:
+    """Mixin that provides student linking functionality for auth adapters."""
+
+    def save_user(self, request: HttpRequest, *args, **kwargs) -> User:
+        user = super().save_user(request, *args, **kwargs)
+
+        commit = kwargs.get("commit", True)
+        if commit and user.email:
+            service = student_service()
+            linked = service.link_user_to_student(user)
+
+            if linked:
+                logger.info(
+                    "new_user_linked_to_student",
+                    user_id=user.id,
+                    email=user.email,
+                )
+
+        return user
+
+
+class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAdapter):
     ALLOWED_DOMAINS = ["ukma.edu.ua"]
 
     def populate_user(self, request: HttpRequest, sociallogin: SocialLogin, data: dict) -> User:
@@ -67,7 +88,7 @@ class MicrosoftSocialAccountAdapter(DefaultSocialAccountAdapter):
         return email.endswith(tuple(self.ALLOWED_DOMAINS))
 
 
-class MicrosoftAccountAdapter(DefaultAccountAdapter):
+class MicrosoftAccountAdapter(StudentLinkingMixin, DefaultAccountAdapter):
     def is_open_for_signup(self, request: HttpRequest) -> bool:
         return settings.ACCOUNT_ALLOW_REGISTRATION
 
@@ -76,18 +97,3 @@ class MicrosoftAccountAdapter(DefaultAccountAdapter):
 
     def get_logout_redirect_url(self, request: HttpRequest) -> str:
         return settings.ACCOUNT_LOGOUT_REDIRECT_URL
-
-    def save_user(self, request: HttpRequest, user, form, commit=True):
-        user = super().save_user(request, user, form, commit)
-
-        if commit and user.email:
-            service = student_service()
-            linked = service.link_user_to_student(user)
-            if linked:
-                logger.info(
-                    "new_user_linked_to_student",
-                    user_id=user.id,
-                    email=user.email,
-                )
-
-        return user

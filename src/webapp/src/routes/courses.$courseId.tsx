@@ -3,7 +3,6 @@ import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
-import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CourseOfferingsDropdown } from "@/features/course-offerings/components/CourseOfferingsDropdown";
@@ -19,12 +18,13 @@ import {
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
+import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
+import { RatingButton } from "@/features/ratings/components/RatingButton";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
-import type { InlineCourseOffering } from "@/lib/api/generated";
+import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
-	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
@@ -43,30 +43,19 @@ function CourseDetailsRoute() {
 	} = useCoursesOfferingsList(courseId);
 
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
-	const { data: studentCourses, isLoading: isStudentCoursesLoading } =
-		useStudentsMeCoursesRetrieve();
+	const {
+		rating: userRating,
+		ratingId,
+		ratedOffering,
+		hasAttendedCourse,
+		selectedOffering,
+		attendedCourseId,
+		isLoading: isUserRatingLoading,
+	} = useUserCourseRating(courseId);
 
-	const { attendedOfferings, attendedCourseId } = React.useMemo(() => {
-		const courseData = studentCourses?.find((c) => c.id === courseId);
-		return {
-			attendedOfferings: courseData?.offerings || [],
-			attendedCourseId: courseData?.id,
-		};
-	}, [studentCourses, courseId]);
-
-	const hasAttendedCourse = attendedOfferings.length > 0;
-
-	const ratedOffering = React.useMemo(() => {
-		return attendedOfferings.find(
-			(offering: InlineCourseOffering) =>
-				offering.rated !== null && offering.rated !== undefined,
-		);
-	}, [attendedOfferings]);
-
-	const selectedOffering = ratedOffering || attendedOfferings[0] || null;
-
-	if (isCourseLoading || isStudentCoursesLoading || isOfferingsLoading) {
+	if (isCourseLoading || isUserRatingLoading || isOfferingsLoading) {
 		return (
 			<Layout>
 				<CourseDetailsSkeleton />
@@ -120,19 +109,23 @@ function CourseDetailsRoute() {
 					ratingsCount={course.ratings_count ?? null}
 				/>
 
-				{hasAttendedCourse && selectedOffering && (
+				{hasAttendedCourse && selectedOffering && !ratedOffering && (
 					<div className="flex justify-center">
-						<Button
+						<RatingButton
+							canRate={selectedOffering.can_rate ?? true}
 							onClick={() => setIsRatingModalOpen(true)}
-							size="lg"
-							className="w-full max-w-md"
 						>
-							{ratedOffering ? "Редагувати оцінку" : "Оцінити цей курс"}
-						</Button>
+							Оцінити цей курс
+						</RatingButton>
 					</div>
 				)}
 
-				<CourseRatingsList courseId={courseId} />
+				<CourseRatingsList
+					courseId={courseId}
+					userRating={userRating}
+					onEditUserRating={() => setIsRatingModalOpen(true)}
+					onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
+				/>
 			</div>
 
 			{selectedOffering?.id && attendedCourseId && (
@@ -143,7 +136,15 @@ function CourseDetailsRoute() {
 					offeringId={selectedOffering.id}
 					courseName={course.title}
 					existingRating={ratedOffering?.rated || null}
-					ratingId={ratedOffering?.rated?.id}
+				/>
+			)}
+
+			{ratingId && attendedCourseId && (
+				<DeleteRatingDialog
+					courseId={courseId}
+					ratingId={ratingId}
+					open={isDeleteDialogOpen}
+					onOpenChange={setIsDeleteDialogOpen}
 				/>
 			)}
 		</Layout>

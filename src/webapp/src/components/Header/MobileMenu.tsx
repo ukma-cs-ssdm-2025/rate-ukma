@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { LogOut, X } from "lucide-react";
+import { LogOut, Moon, Sun, X } from "lucide-react";
 
 import { Drawer } from "@/components/ui/Drawer";
 import type { AuthUser } from "@/lib/auth";
+import { testIds } from "@/lib/test-ids";
 import type { NavigationItem, ThemeOption } from "./navigationData";
-import { themeOptions } from "./navigationData";
 import { Logo } from "../Logo";
 import { Button } from "../ui/Button";
-import { ToggleGroup, ToggleGroupItem } from "../ui/ToggleGroup";
 
 interface MobileMenuProps {
 	isOpen: boolean;
@@ -32,7 +31,7 @@ function NavigationLinks({
 					variant="ghost"
 					size="lg"
 					asChild
-					className="w-full justify-start rounded-xl px-0 py-3 text-base font-medium transition hover:bg-accent/10 focus-visible:bg-accent/10"
+					className="w-full justify-start rounded-xl px-0 py-3 text-base font-medium text-popover-foreground transition hover:bg-accent/10 focus-visible:bg-accent/10"
 				>
 					<Link to={item.href} onClick={onClose}>
 						{item.label}
@@ -47,31 +46,31 @@ function ThemeSwitcher({
 	theme,
 	setTheme,
 }: Readonly<Pick<MobileMenuProps, "theme" | "setTheme">>) {
+	const toggleTheme = () => {
+		if (theme === "system") {
+			const systemTheme = globalThis.matchMedia("(prefers-color-scheme: dark)")
+				.matches
+				? "dark"
+				: "light";
+			setTheme(systemTheme === "dark" ? "light" : "dark");
+		} else {
+			setTheme(theme === "dark" ? "light" : "dark");
+		}
+	};
+
 	return (
 		<div className="mb-3 flex items-center justify-between">
 			<span className="text-sm text-muted-foreground">Тема</span>
-			<ToggleGroup
-				type="single"
-				value={theme}
-				onValueChange={(value) => {
-					if (value) {
-						setTheme(value as ThemeOption);
-					}
-				}}
-				className="gap-1"
+			<Button
+				variant="ghost"
+				size="icon"
+				onClick={toggleTheme}
+				className="h-9 w-9"
 			>
-				{themeOptions.map((option) => (
-					<ToggleGroupItem
-						key={option.value}
-						value={option.value}
-						size="sm"
-						aria-label={option.label}
-					>
-						{option.icon({ className: "h-4 w-4" })}
-						<span className="sr-only">{option.label}</span>
-					</ToggleGroupItem>
-				))}
-			</ToggleGroup>
+				<Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+				<Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+				<span className="sr-only">Перемкнути тему</span>
+			</Button>
 		</div>
 	);
 }
@@ -139,6 +138,7 @@ export function MobileMenu({
 			}}
 			ariaLabel="Мобільне меню"
 			closeButtonLabel="Закрити меню"
+			data-testid={testIds.header.mobileMenu}
 		>
 			<div className="flex items-center justify-between">
 				<Logo />
@@ -148,6 +148,7 @@ export function MobileMenu({
 					className="h-9 w-9 rounded-full p-0"
 					onClick={() => onClose()}
 					aria-label="Закрити меню"
+					data-testid={testIds.header.mobileMenuCloseButton}
 				>
 					<X className="h-5 w-5" />
 				</Button>

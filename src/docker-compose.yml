@@ -2,6 +2,7 @@ services:
   db-rateukma:
     image: postgres:15
     container_name: "${COMPOSE_PROJECT_NAME}_postgres"
+    restart: unless-stopped
     env_file:
       - .env
     ports:
@@ -11,12 +12,46 @@ services:
     profiles:
       - dev
       - prod
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:8.4-alpine
+    container_name: "${COMPOSE_PROJECT_NAME}_redis"
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    profiles:
+      - dev
+      - prod
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lfu
+
 
   backend-dev:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: "${COMPOSE_PROJECT_NAME}_django_backend"
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -28,17 +63,28 @@ services:
       - ${MEDIA_ROOT}:/media
     ports:
       - "8000:8000"
+    networks:
+      - backend
+      - frontend
     depends_on:
       - db-rateukma
+      - redis
     profiles:
       - dev
 
   backend:
     image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/backend:${BACKEND_IMAGE_TAG:-latest}
     container_name: "${COMPOSE_PROJECT_NAME}_django_backend_release"
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
+    networks:
+      - backend
+      - frontend
+    depends_on:
+      - db-rateukma
+      - redis
     env_file:
       - .env
     environment:
@@ -50,8 +96,6 @@ services:
       - ${MEDIA_ROOT}:/media
     ports:
       - "8000:8000"
-    depends_on:
-      - db-rateukma
     profiles:
       - prod
 
@@ -61,11 +105,14 @@ services:
       dockerfile: ./src/webapp/Dockerfile
       target: ${NODE_ENV:-development}
     container_name: "${COMPOSE_PROJECT_NAME}_webapp"
+    restart: unless-stopped
     volumes:
       - ./webapp:/app
       - /app/node_modules
     ports:
       - "3000:3000"
+    networks:
+      - frontend
     env_file:
       - .env
     depends_on:
@@ -81,6 +128,10 @@ services:
       target: production
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_SENTRY_DSN_FRONTEND: ${VITE_SENTRY_DSN_FRONTEND}
+        VITE_ENVIRONMENT: ${VITE_ENVIRONMENT}
+        SENTRY_ORG: ${SENTRY_ORG}
+        SENTRY_PROJECT_FRONTEND: ${SENTRY_PROJECT_FRONTEND}
     env_file:
       - .env
     volumes:
@@ -90,3 +141,13 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
+
+
+networks:
+  frontend:
+    driver: bridge
+    name: "${COMPOSE_PROJECT_NAME}_frontend"
+  backend:
+    driver: bridge
+    name: "${COMPOSE_PROJECT_NAME}_backend"

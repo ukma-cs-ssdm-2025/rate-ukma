@@ -7,9 +7,10 @@ paths:
   /api/v1/analytics/:
     get:
       operationId: analytics_list
-      description: Get course analytics with optional filtersReturns courses analytics
-        with aggregated ratings.
-      summary: Get course analytics
+      description: |-
+        Get courses analytics with optional filters.
+        Returns courses analytics with aggregated ratings.
+      summary: Get courses analytics
       parameters:
       - in: query
         name: avg_difficulty_max
@@ -96,8 +97,8 @@ paths:
       - in: query
         name: semester_year
         schema:
-          type: integer
-        description: Semester year
+          type: string
+        description: Academic year range (e.g., '2024–2025')
       - in: query
         name: speciality
         schema:
@@ -179,7 +180,7 @@ paths:
   /api/v1/analytics/{course_id}/:
     get:
       operationId: analytics_retrieve
-      description: Get course analytics with optional filtersReturns courses analytics
+      description: Get course analytics with optional filtersReturns course's analytics
         with aggregated ratings.
       summary: Get course analytics
       parameters:
@@ -615,8 +616,8 @@ paths:
       - in: query
         name: semester_year
         schema:
-          type: integer
-        description: Semester year
+          type: string
+        description: Academic year range (e.g., '2024–2025')
       - in: query
         name: speciality
         schema:
@@ -833,6 +834,8 @@ paths:
     get:
       operationId: courses_ratings_list
       description: List all ratings for a specific course with filters and pagination.
+        Use exclude_current_user=true to exclude the authenticated user's rating from
+        results.
       summary: List ratings for a course
       parameters:
       - in: path
@@ -842,6 +845,11 @@ paths:
           format: uuid
         description: Unique identifier of rating course
         required: true
+      - in: query
+        name: exclude_current_user
+        schema:
+          type: boolean
+        description: Exclude the current user's rating from the list
       - in: query
         name: page
         schema:
@@ -1867,14 +1875,7 @@ components:
           format: uuid
         name:
           type: string
-        faculty_id:
-          type: string
-          format: uuid
-        faculty_name:
-          type: string
-          nullable: true
       required:
-      - faculty_id
       - id
       - name
     ErrorEnvelope:
@@ -1912,9 +1913,19 @@ components:
         custom_abbreviation:
           type: string
           nullable: true
+        departments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartmentOption'
+        specialities:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpecialityOption'
       required:
+      - departments
       - id
       - name
+      - specialities
     FilterOptions:
       type: object
       properties:
@@ -1926,10 +1937,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FacultyOption'
-        departments:
-          type: array
-          items:
-            $ref: '#/components/schemas/DepartmentOption'
         semester_terms:
           type: array
           items:
@@ -1942,18 +1949,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CourseTypeOption'
-        specialities:
-          type: array
-          items:
-            $ref: '#/components/schemas/SpecialityOption'
       required:
       - course_types
-      - departments
       - faculties
       - instructors
       - semester_terms
       - semester_years
-      - specialities
     InlineCourseOffering:
       type: object
       properties:
@@ -1968,6 +1969,9 @@ components:
           readOnly: true
         season:
           type: string
+          readOnly: true
+        can_rate:
+          type: boolean
           readOnly: true
         rated:
           allOf:
@@ -1986,6 +1990,7 @@ components:
           type: integer
         comment:
           type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -1993,7 +1998,6 @@ components:
         is_anonymous:
           type: boolean
       required:
-      - comment
       - difficulty
       - is_anonymous
       - usefulness
@@ -2015,6 +2019,9 @@ components:
         created_at:
           type: string
           format: date-time
+          readOnly: true
+        is_anonymous:
+          type: boolean
           readOnly: true
     InlineSemester:
       type: object
@@ -2094,7 +2101,7 @@ components:
           title: Comment
           type: string
         is_anonymous:
-          default: false
+          default: null
           title: Is Anonymous
           type: boolean
       title: RatingPatchParams
@@ -2290,6 +2297,8 @@ components:
           type: string
         last_name:
           type: string
+        patronymic:
+          type: string
       required:
       - id
     SpecialityOption:
@@ -2300,17 +2309,7 @@ components:
           format: uuid
         name:
           type: string
-        faculty_id:
-          type: string
-          format: uuid
-        faculty_name:
-          type: string
-          nullable: true
-        faculty_custom_abbreviation:
-          type: string
-          nullable: true
       required:
-      - faculty_id
       - id
       - name
     SpecialityWithKindPayload:
@@ -2361,6 +2360,9 @@ components:
           - $ref: '#/components/schemas/InlineRatingDetailed'
           readOnly: true
           nullable: true
+        can_rate:
+          type: boolean
+          readOnly: true
     StudentRatingsLight:
       type: object
       properties:

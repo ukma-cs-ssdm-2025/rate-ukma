@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.db.models import QuerySet
 
 import structlog
@@ -8,9 +10,11 @@ from rating_app.application_schemas.course import (
     CourseSearchResult,
 )
 from rating_app.application_schemas.pagination import PaginationMetadata
+from rating_app.application_schemas.rating import AggregatedCourseRatingStats
 from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
 from rating_app.models import Course
 from rating_app.models.choices import CourseTypeKind
+from rating_app.models.course import ICourse
 from rating_app.repositories import CourseRepository
 from rating_app.services.department_service import DepartmentService
 from rating_app.services.faculty_service import FacultyService
@@ -56,7 +60,7 @@ class CourseService:
             return self._paginated_result(courses, filters)
 
         return CourseSearchResult(
-            items=list(courses),
+            items=cast(list[ICourse], list(courses)),
             pagination=self._empty_pagination_metadata(courses.count()),
             applied_filters=filters.model_dump(by_alias=True),
         )
@@ -72,6 +76,17 @@ class CourseService:
             return None
         return self.course_repository.update(course, **update_data)
 
+    def update_course_aggregates(
+        self, course: Course, aggregates: AggregatedCourseRatingStats
+    ) -> Course:
+        self.course_repository.update(
+            course,
+            avg_difficulty=aggregates.avg_difficulty,
+            avg_usefulness=aggregates.avg_usefulness,
+            ratings_count=aggregates.ratings_count,
+        )
+        return course
+
     def delete_course(self, course_id: str) -> None:
         course = self.course_repository.get_by_id(course_id)
         self.course_repository.delete(course)
@@ -79,11 +94,28 @@ class CourseService:
     def get_filter_options(self) -> CourseFilterOptions:
         semester_filter_options = self.semester_service.get_filter_options()
 
+        faculties = self.faculty_service.get_filter_options()
+        departments = self.department_service.get_filter_options()
+        specialities = self.speciality_service.get_filter_options()
+
+        for faculty in faculties:
+            faculty_departments = [
+                {"id": dept["id"], "name": dept["name"]}
+                for dept in departments
+                if dept["faculty_id"] == faculty["id"]
+            ]
+            faculty["departments"] = faculty_departments
+
+            faculty_specialitites = [
+                {"id": spec["id"], "name": spec["name"]}
+                for spec in specialities
+                if spec["faculty_id"] == faculty["id"]
+            ]
+            faculty["specialities"] = faculty_specialitites
+
         return CourseFilterOptions(
             instructors=self.instructor_service.get_filter_options(),
-            faculties=self.faculty_service.get_filter_options(),
-            departments=self.department_service.get_filter_options(),
-            specialities=self.speciality_service.get_filter_options(),
+            faculties=faculties,
             semester_terms=semester_filter_options["terms"],
             semester_years=semester_filter_options["years"],
             course_types=[

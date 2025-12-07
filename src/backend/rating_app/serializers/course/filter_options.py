@@ -10,18 +10,23 @@ class InstructorOptionSerializer(FilterOptionSerializer):
     department = serializers.CharField(allow_null=True, required=False)
 
 
-class FacultyOptionSerializer(FilterOptionSerializer):
-    custom_abbreviation = serializers.CharField(allow_null=True, required=False)
-
-
-class DepartmentOptionSerializer(FilterOptionSerializer):
-    faculty_id = serializers.UUIDField()
-    faculty_name = serializers.CharField(allow_null=True, required=False)
-
-
 class SemesterTermOptionSerializer(serializers.Serializer):
     value = serializers.CharField()
     label = serializers.CharField()
+
+
+class DepartmentOptionSerializer(FilterOptionSerializer):
+    pass
+
+
+class SpecialityOptionSerializer(FilterOptionSerializer):
+    pass
+
+
+class FacultyOptionSerializer(FilterOptionSerializer):
+    custom_abbreviation = serializers.CharField(allow_null=True, required=False)
+    departments = DepartmentOptionSerializer(many=True)
+    specialities = SpecialityOptionSerializer(many=True)
 
 
 class SemesterYearOptionSerializer(serializers.Serializer):
@@ -34,17 +39,9 @@ class CourseTypeOptionSerializer(serializers.Serializer):
     label = serializers.CharField()
 
 
-class SpecialityOptionSerializer(FilterOptionSerializer):
-    faculty_id = serializers.UUIDField()
-    faculty_name = serializers.CharField(allow_null=True, required=False)
-    faculty_custom_abbreviation = serializers.CharField(allow_null=True, required=False)
-
-
 class FilterOptionsSerializer(serializers.Serializer):
     instructors = InstructorOptionSerializer(many=True)
     faculties = FacultyOptionSerializer(many=True)
-    departments = DepartmentOptionSerializer(many=True)
     semester_terms = SemesterTermOptionSerializer(many=True)
     semester_years = SemesterYearOptionSerializer(many=True)
     course_types = CourseTypeOptionSerializer(many=True)
-    specialities = SpecialityOptionSerializer(many=True)

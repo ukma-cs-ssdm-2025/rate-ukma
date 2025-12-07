@@ -1,7 +1,17 @@
+from decimal import Decimal
+
 import pytest
+from freezegun import freeze_time
+
+DEFAULT_DATE = "2023-10-25"
+DEFAULT_AFTER_MIDTERM_DATE = "2023-11-25"
+DEFAULT_BEFORE_MIDTERM_DATE = "2023-09-25"
+DEFAULT_YEAR = 2023
+DEFAULT_TERM = "FALL"
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_ratings_list(token_client, course_factory, course_offering_factory, rating_factory):
     course = course_factory()
     offering = course_offering_factory(course=course)
@@ -19,6 +29,7 @@ def test_ratings_list(token_client, course_factory, course_offering_factory, rat
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_ratings_list_pagination(
     token_client,
     course_factory,
@@ -46,15 +57,20 @@ def test_ratings_list_pagination(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)  # October = FALL semester
 def test_create_rating(
     token_client,
     course_factory,
     course_offering_factory,
     student_factory,
     enrollment_factory,
+    semester_factory,
 ):
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+
     course = course_factory()
-    offering = course_offering_factory(course=course)
+    offering = course_offering_factory(course=course, semester=semester)
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)  # must be enrolled
 
@@ -71,8 +87,46 @@ def test_create_rating(
 
     assert response.status_code == 201, response.data
 
+    course.refresh_from_db()
+    assert course.avg_difficulty == Decimal("4.00")
+    assert course.avg_usefulness == Decimal("5.00")
+    assert course.ratings_count == 1
+
 
 @pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_BEFORE_MIDTERM_DATE)  # before midpoint, rating should be blocked
+def test_create_rating_before_midterm_forbidden(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    semester_factory,
+):
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+    course = course_factory()
+    offering = course_offering_factory(course=course, semester=semester)
+    student = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=student)
+
+    url = f"/api/v1/courses/{course.id}/ratings/"
+    payload = {
+        "course_offering": str(offering.id),
+        "difficulty": 4,
+        "usefulness": 5,
+        "comment": "Too early to rate",
+        "is_anonymous": False,
+    }
+
+    response = token_client.post(url, data=payload, format="json")
+
+    assert response.status_code == 403
+    assert "You cannot rate this course yet" in response.data["detail"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_delete_rating(
     token_client,
     course_factory,
@@ -91,8 +145,14 @@ def test_delete_rating(
     response = token_client.delete(url)
     assert response.status_code == 204
 
+    course.refresh_from_db()
+    assert course.avg_difficulty == Decimal("0.00")
+    assert course.avg_usefulness == Decimal("0.00")
+    assert course.ratings_count == 0
+
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_update_rating(
     token_client,
     course_factory,
@@ -120,8 +180,14 @@ def test_update_rating(
     response = client.put(url, data=payload, format="json")
     assert response.status_code == 200, response.data
 
+    course.refresh_from_db()
+    assert course.avg_difficulty == Decimal("4.00")
+    assert course.avg_usefulness == Decimal("5.00")
+    assert course.ratings_count == 1
+
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_patch_rating(
     token_client,
     course_factory,
@@ -144,14 +210,13 @@ def test_patch_rating(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_create_rating_not_enrolled(
-    token_client,
-    course_factory,
-    course_offering_factory,
-    student_factory,
+    token_client, course_factory, course_offering_factory, student_factory, semester_factory
 ):
     course = course_factory()
-    offering = course_offering_factory(course=course)
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+    offering = course_offering_factory(course=course, semester=semester)
     student_factory(user=token_client.user)  # not-enrolled student
 
     url = f"/api/v1/courses/{course.id}/ratings/"
@@ -168,6 +233,7 @@ def test_create_rating_not_enrolled(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_update_rating_not_enrolled(
     token_client,
     course_factory,
@@ -194,11 +260,11 @@ def test_update_rating_not_enrolled(
     }
 
     response = token_client.put(url, data=payload, format="json")
-    print(response.data)
     assert response.status_code == 403, response.data
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_patch_rating_not_enrolled(
     token_client,
     course_factory,
@@ -224,6 +290,7 @@ def test_patch_rating_not_enrolled(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_delete_rating_not_enrolled(
     token_client,
     course_factory,
@@ -246,6 +313,7 @@ def test_delete_rating_not_enrolled(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_retrieve_rating(
     token_client,
     course_factory,
@@ -271,6 +339,7 @@ def test_retrieve_rating(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_retrieve_nonexistent_rating(
     token_client,
     course_factory,
@@ -287,6 +356,7 @@ def test_retrieve_nonexistent_rating(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_retrieve_rating_invalid_uuid(
     token_client,
     course_factory,
@@ -300,6 +370,7 @@ def test_retrieve_rating_invalid_uuid(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_create_rating_validation_error_missing_difficulty(
     token_client,
     course_factory,
@@ -325,6 +396,7 @@ def test_create_rating_validation_error_missing_difficulty(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_create_rating_validation_error_invalid_difficulty(
     token_client,
     course_factory,
@@ -350,6 +422,8 @@ def test_create_rating_validation_error_invalid_difficulty(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)  # October = FALL semester
 def test_create_duplicate_rating_same_offering(
     token_client,
     course_factory,
@@ -357,9 +431,12 @@ def test_create_duplicate_rating_same_offering(
     student_factory,
     enrollment_factory,
     rating_factory,
+    semester_factory,
 ):
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+
     course = course_factory()
-    offering = course_offering_factory(course=course)
+    offering = course_offering_factory(course=course, semester=semester)
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
 
@@ -380,6 +457,7 @@ def test_create_duplicate_rating_same_offering(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_update_rating_with_immutable_field_attempt(
     token_client,
     course_factory,
@@ -414,6 +492,7 @@ def test_update_rating_with_immutable_field_attempt(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_partial_update_single_field(
     token_client,
     course_factory,
@@ -448,6 +527,7 @@ def test_partial_update_single_field(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_ratings_list_empty_for_course_with_no_ratings(
     token_client, course_factory, course_offering_factory
 ):
@@ -464,6 +544,7 @@ def test_ratings_list_empty_for_course_with_no_ratings(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_ratings_list_filters_by_course(
     token_client, course_factory, course_offering_factory, rating_factory
 ):
@@ -484,6 +565,8 @@ def test_ratings_list_filters_by_course(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
 def test_create_rating_without_student_record(
     token_client,
     course_factory,
@@ -503,3 +586,62 @@ def test_create_rating_without_student_record(
     response = token_client.post(url, data=payload, format="json")
     assert response.status_code == 403
     assert "Only students can perform this action" in response.json()["detail"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_BEFORE_MIDTERM_DATE)
+def test_create_rating_before_midterm(
+    token_client,
+    course_factory,
+    course_offering_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    url = f"/api/v1/courses/{course.id}/ratings/"
+    payload = {
+        "course_offering": str(offering.id),
+        "difficulty": 4,
+        "usefulness": 5,
+        "comment": "Test",
+    }
+
+    response = token_client.post(url, data=payload, format="json")
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_list_exclude_current_user(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    rating_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    student = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=student)
+    my_rating = rating_factory(
+        course_offering=offering, student=student, difficulty=3, usefulness=4
+    )
+
+    rating_factory.create_batch(3, course_offering=offering)
+
+    url = f"/api/v1/courses/{course.id}/ratings/"
+    response = token_client.get(url)
+    data = response.json()
+    assert response.status_code == 200
+    assert data["total"] == 4
+
+    url_with_exclude = f"/api/v1/courses/{course.id}/ratings/?exclude_current_user=true"
+    response = token_client.get(url_with_exclude)
+    data = response.json()
+    assert response.status_code == 200
+    assert data["total"] == 3
+    rating_ids = [r["id"] for r in data["items"]]
+    assert str(my_rating.id) not in rating_ids

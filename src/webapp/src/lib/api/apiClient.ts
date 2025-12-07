@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import axios, { AxiosHeaders } from "axios";
 
 import { env } from "@/env";
@@ -6,7 +7,7 @@ import { handleConnectionIssue } from "./networkError";
 export const authorizedHttpClient = axios.create({
 	withCredentials: true,
 	baseURL: env.VITE_API_BASE_URL,
-	timeout: 10000,
+	timeout: 60000,
 });
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -54,6 +55,23 @@ authorizedHttpClient.interceptors.response.use(
 	(response) => response,
 	(error) => {
 		handleConnectionIssue(error);
+
+		if (axios.isAxiosError(error) && !axios.isCancel(error)) {
+			const method = error.config?.method?.toUpperCase();
+
+			Sentry.captureException(error, {
+				level: "error",
+				tags: {
+					httpMethod: method,
+					httpStatus: error.response?.status?.toString(),
+					axiosErrorCode: error.code,
+				},
+				extra: {
+					url: error.config?.url,
+				},
+			});
+		}
+
 		return Promise.reject(error);
 	},
 );

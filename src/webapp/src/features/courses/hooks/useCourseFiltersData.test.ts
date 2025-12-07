@@ -9,9 +9,19 @@ import { DEFAULT_FILTERS } from "../filterSchema";
 
 // Shared mock data
 const MOCK_FACULTIES = {
-	FI: { id: "fac-1", name: "Факультет інформатики" },
-	FEN: { id: "fac-2", name: "Факультет економічних наук" },
-} as const;
+	FI: {
+		id: "fac-1",
+		name: "Факультет інформатики",
+		departments: [],
+		specialities: [],
+	},
+	FEN: {
+		id: "fac-2",
+		name: "Факультет економічних наук",
+		departments: [],
+		specialities: [],
+	},
+};
 
 const MOCK_DEPARTMENTS = {
 	PROGRAMMING: {
@@ -19,18 +29,21 @@ const MOCK_DEPARTMENTS = {
 		name: "Кафедра мультимедійних систем",
 		faculty_id: "fac-1",
 		faculty_name: "ФІ",
+		faculty_custom_abbreviation: "ФІ",
 	},
 	ECONOMICS: {
 		id: "dept-2",
 		name: "Кафедра фінансів",
 		faculty_id: "fac-2",
 		faculty_name: "ФЕН",
+		faculty_custom_abbreviation: "ФЕН",
 	},
 	DATABASES: {
 		id: "dept-3",
 		name: "Кафедра інформаційних систем",
 		faculty_id: "fac-1",
 		faculty_name: "ФІ",
+		faculty_custom_abbreviation: "ФІ",
 	},
 } as const;
 
@@ -185,10 +198,14 @@ describe("useCourseFiltersData", () => {
 			const facultyFilter = result.current.selectFilters.find(
 				(f) => f.key === "faculty",
 			);
-			expect(facultyFilter?.options).toHaveLength(2);
+			expect(facultyFilter?.options).toHaveLength(3); // Includes 'All' option
 			expect(facultyFilter?.options[0]).toEqual({
+				value: "",
+				label: "Усі факультети",
+			});
+			expect(facultyFilter?.options[1]).toEqual({
 				value: "fac-1",
-				label: "ФІ - Факультет інформатики",
+				label: "Факультет інформатики",
 			});
 		});
 
@@ -209,7 +226,12 @@ describe("useCourseFiltersData", () => {
 
 			// Assert
 			result.current.selectFilters.forEach((filter) => {
-				expect(filter.options).toEqual([]);
+				if (filter.useCombobox) {
+					expect(filter.options).toHaveLength(1);
+					expect(filter.options[0].value).toBe("");
+				} else {
+					expect(filter.options).toEqual([]);
+				}
 			});
 		});
 	});
@@ -218,7 +240,23 @@ describe("useCourseFiltersData", () => {
 		it("should show all departments when no faculty is selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING, MOCK_DEPARTMENTS.ECONOMICS],
+				faculties: [
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [
+							MOCK_DEPARTMENTS.PROGRAMMING,
+							MOCK_DEPARTMENTS.DATABASES,
+						],
+						specialities: [],
+					},
+					{
+						id: "fac-2",
+						name: "Факультет економічних наук",
+						departments: [MOCK_DEPARTMENTS.ECONOMICS],
+						specialities: [],
+					},
+				],
 			});
 
 			// Act
@@ -228,16 +266,27 @@ describe("useCourseFiltersData", () => {
 			const departmentFilter = result.current.selectFilters.find(
 				(f) => f.key === "department",
 			);
-			expect(departmentFilter?.options).toHaveLength(2);
+			expect(departmentFilter?.options).toHaveLength(4); // 1 All + 3 departments
 		});
-
 		it("should filter departments by selected faculty", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [
-					MOCK_DEPARTMENTS.PROGRAMMING,
-					MOCK_DEPARTMENTS.ECONOMICS,
-					MOCK_DEPARTMENTS.DATABASES,
+				faculties: [
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [
+							MOCK_DEPARTMENTS.PROGRAMMING,
+							MOCK_DEPARTMENTS.DATABASES,
+						],
+						specialities: [],
+					},
+					{
+						id: "fac-2",
+						name: "Факультет економічних наук",
+						departments: [MOCK_DEPARTMENTS.ECONOMICS],
+						specialities: [],
+					},
 				],
 			});
 
@@ -248,8 +297,9 @@ describe("useCourseFiltersData", () => {
 			const departmentFilter = result.current.selectFilters.find(
 				(f) => f.key === "department",
 			);
-			expect(departmentFilter?.options).toHaveLength(2);
+			expect(departmentFilter?.options).toHaveLength(3); // Includes 'All' option
 			expect(departmentFilter?.options.map((o) => o.value)).toEqual([
+				"", // 'All' option
 				"dept-1",
 				"dept-3",
 			]);
@@ -258,7 +308,14 @@ describe("useCourseFiltersData", () => {
 		it("should show department name without faculty when faculty is selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+				faculties: [
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+						specialities: [],
+					},
+				],
 			});
 
 			// Act
@@ -268,7 +325,7 @@ describe("useCourseFiltersData", () => {
 			const departmentFilter = result.current.selectFilters.find(
 				(f) => f.key === "department",
 			);
-			expect(departmentFilter?.options[0].label).toBe(
+			expect(departmentFilter?.options[1].label).toBe(
 				"Кафедра мультимедійних систем",
 			);
 		});
@@ -276,7 +333,14 @@ describe("useCourseFiltersData", () => {
 		it("should show department with faculty name when no faculty selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+				faculties: [
+					{
+						id: "fac-1",
+						name: "ФІ",
+						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+						specialities: [],
+					},
+				],
 			});
 
 			// Act
@@ -286,8 +350,9 @@ describe("useCourseFiltersData", () => {
 			const departmentFilter = result.current.selectFilters.find(
 				(f) => f.key === "department",
 			);
-			expect(departmentFilter?.options[0].label).toBe(
-				"Кафедра мультимедійних систем — ФІ",
+			// Without faculty selected, labels include 'All' option at index 0
+			expect(departmentFilter?.options[1].label).toBe(
+				"Кафедра мультимедійних систем",
 			);
 		});
 	});
@@ -372,10 +437,15 @@ describe("useCourseFiltersData", () => {
 		it("should show badge for selected department", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [MOCK_DEPARTMENTS.PROGRAMMING],
-			});
-
-			// Act
+				faculties: [
+					{
+						id: "fac-1",
+						name: "ФІ",
+						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
+						specialities: [],
+					},
+				],
+			}); // Act
 			const { result } = renderFiltersHook(
 				{ department: "dept-1" },
 				filterOptions,
@@ -461,7 +531,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "semesterYear",
-				label: "Рік: 2025",
+				label: "Навчальний рік: 2025",
 			});
 		});
 
@@ -487,10 +557,15 @@ describe("useCourseFiltersData", () => {
 		it("should show badge for selected speciality", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				specialities: [MOCK_SPECIALITIES.SOFTWARE],
-			});
-
-			// Act
+				faculties: [
+					{
+						id: "fac-1",
+						name: "ФІ",
+						departments: [],
+						specialities: [MOCK_SPECIALITIES.SOFTWARE],
+					},
+				],
+			}); // Act
 			const { result } = renderFiltersHook(
 				{ speciality: "spec-1" },
 				filterOptions,

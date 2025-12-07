@@ -13,7 +13,7 @@ interface RatingCardHeaderProps {
 	isEditing: boolean;
 	disableActions: boolean;
 	onEditToggle: () => void;
-	onDelete: () => void;
+	onDelete?: () => void;
 }
 
 export function RatingCardHeader({
@@ -72,7 +72,7 @@ export function RatingCardHeader({
 						size="sm"
 						variant="outline"
 						className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-						onClick={onDelete}
+						onClick={() => onDelete?.()}
 						disabled={disableActions}
 						aria-label="Видалити оцінку"
 					>

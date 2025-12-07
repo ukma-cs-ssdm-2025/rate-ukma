@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/Form";
 import { Slider } from "@/components/ui/Slider";
 import { Textarea } from "@/components/ui/Textarea";
+import { testIds } from "@/lib/test-ids";
 import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
@@ -31,7 +32,10 @@ const ratingSchema = z.object({
 		.number()
 		.min(1, "Оцінка корисності є обов'язковою")
 		.max(5, "Оцінка корисності повинна бути від 1 до 5"),
-	comment: z.string().optional(),
+	comment: z
+		.string()
+		.transform((val) => val?.trim() || undefined)
+		.optional(),
 	is_anonymous: z.boolean(),
 });
 
@@ -70,16 +74,20 @@ export function RatingForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+			<form
+				onSubmit={form.handleSubmit(onSubmit)}
+				className="space-y-6"
+				data-testid={testIds.rating.form}
+			>
 				<FormField<RatingFormData, "difficulty">
 					control={form.control}
 					name="difficulty"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Складність: {field.value}/5</FormLabel>
+							<FormLabel>Складність: {field.value ?? 3}/5</FormLabel>
 							<FormControl>
 								<Slider
-									value={[field.value]}
+									value={[field.value ?? 3]}
 									onValueChange={(next) => field.onChange(next[0])}
 									min={1}
 									max={5}
@@ -87,9 +95,10 @@ export function RatingForm({
 									className="w-full"
 									title={
 										difficultyDescriptions[
-											field.value as keyof typeof difficultyDescriptions
+											(field.value ?? 3) as keyof typeof difficultyDescriptions
 										]
 									}
+									data-testid={testIds.rating.difficultySlider}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -102,10 +111,10 @@ export function RatingForm({
 					name="usefulness"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Корисність: {field.value}/5</FormLabel>
+							<FormLabel>Корисність: {field.value ?? 3}/5</FormLabel>
 							<FormControl>
 								<Slider
-									value={[field.value]}
+									value={[field.value ?? 3]}
 									onValueChange={(next) => field.onChange(next[0])}
 									min={1}
 									max={5}
@@ -113,9 +122,10 @@ export function RatingForm({
 									className="w-full"
 									title={
 										usefulnessDescriptions[
-											field.value as keyof typeof usefulnessDescriptions
+											(field.value ?? 3) as keyof typeof usefulnessDescriptions
 										]
 									}
+									data-testid={testIds.rating.usefulnessSlider}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -133,6 +143,7 @@ export function RatingForm({
 								<Textarea
 									placeholder="Поділіться будь-якими думками про цей курс..."
 									{...field}
+									data-testid={testIds.rating.commentTextarea}
 								/>
 							</FormControl>
 							<FormDescription>
@@ -155,6 +166,7 @@ export function RatingForm({
 										onCheckedChange={(checked) =>
 											field.onChange(checked ?? false)
 										}
+										data-testid={testIds.rating.anonymousCheckbox}
 									/>
 								</FormControl>
 								<FormLabel className="m-0 text-sm font-medium">
@@ -175,10 +187,15 @@ export function RatingForm({
 						variant="outline"
 						onClick={onCancel}
 						disabled={isLoading}
+						data-testid={testIds.rating.cancelButton}
 					>
 						Скасувати
 					</Button>
-					<Button type="submit" disabled={isLoading}>
+					<Button
+						type="submit"
+						disabled={isLoading}
+						data-testid={testIds.rating.submitButton}
+					>
 						{(() => {
 							if (isLoading) {
 								return "Надсилання...";

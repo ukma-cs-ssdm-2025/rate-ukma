@@ -1,19 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { keepPreviousData } from "@tanstack/react-query";
-import {
-	createFileRoute,
-	useNavigate,
-	useSearch,
-} from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
 import { CoursesErrorState } from "@/features/courses/components/CoursesErrorState";
-import { CoursesHeader } from "@/features/courses/components/CoursesHeader";
 import { CoursesTable } from "@/features/courses/components/CoursesTable";
 import { transformFiltersToApiParams } from "@/features/courses/filterTransformations";
 import { searchParamsToFilters } from "@/features/courses/urlSync";
-import type { CourseList, CoursesListParams } from "@/lib/api/generated";
+import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
@@ -22,7 +17,6 @@ type CoursesSearch = Record<string, string>;
 const DEFAULT_PAGE_SIZE = 20;
 
 function CoursesRoute() {
-	const navigate = useNavigate();
 	const search = useSearch({ from: "/" });
 	const initialFilters = useMemo(() => searchParamsToFilters(search), [search]);
 	const initialApiFilters = useMemo(
@@ -72,19 +66,9 @@ function CoursesRoute() {
 		refetch();
 	}, [refetch]);
 
-	const handleRowClick = useCallback(
-		(course: CourseList) => {
-			if (course.id) {
-				navigate({ to: "/courses/$courseId", params: { courseId: course.id } });
-			}
-		},
-		[navigate],
-	);
-
 	return (
 		<Layout>
 			<div className="space-y-8">
-				<CoursesHeader />
 				{isError ? (
 					<CoursesErrorState onRetry={handleRetry} />
 				) : (
@@ -94,7 +78,6 @@ function CoursesRoute() {
 						filtersKey={filtersKey}
 						initialFilters={initialFilters}
 						onFiltersChange={handleFiltersChange}
-						onRowClick={handleRowClick}
 						pagination={
 							data
 								? {

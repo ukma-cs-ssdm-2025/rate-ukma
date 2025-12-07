@@ -17,9 +17,14 @@ function assertElement(
 	return element as HTMLElement;
 }
 
+// Default mock functions
+const defaultOnReset = vi.fn(function () {
+	// Default no-op implementation
+});
+
 // Helper component to render CourseFiltersPanel with form
 function TestWrapper({
-	onReset,
+	onReset = defaultOnReset,
 	filterOptions = createMockFilterOptions(),
 	initialValues = DEFAULT_FILTERS,
 }: Readonly<{
@@ -33,7 +38,7 @@ function TestWrapper({
 		<CourseFiltersPanel
 			form={form}
 			filterOptions={filterOptions}
-			onReset={onReset ?? vi.fn()}
+			onReset={onReset}
 		/>
 	);
 }
@@ -86,7 +91,7 @@ describe("CourseFiltersPanel", () => {
 
 			// Assert
 			expect(screen.getByText("Семестровий період")).toBeInTheDocument();
-			expect(screen.getByText("Рік")).toBeInTheDocument();
+			expect(screen.getByText("Навчальний рік")).toBeInTheDocument();
 			expect(screen.getByText("Факультет")).toBeInTheDocument();
 			expect(screen.getByText("Кафедра")).toBeInTheDocument();
 			expect(screen.getByText("Спеціальність")).toBeInTheDocument();
@@ -143,12 +148,20 @@ describe("CourseFiltersPanel", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
-					{ id: "fac-1", name: "Факультет інформатики" },
-					{ id: "fac-2", name: "Факультет економічних наук" },
+					{
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [],
+						specialities: [],
+					},
+					{
+						id: "fac-2",
+						name: "Факультет економічних наук",
+						departments: [],
+						specialities: [],
+					},
 				],
-			});
-
-			// Act
+			}); // Act
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
@@ -205,7 +218,7 @@ describe("CourseFiltersPanel", () => {
 				"Faculty select container not found",
 			);
 			const facultySelect = within(selectContainer).getByRole("combobox");
-			expect(facultySelect).toBeDisabled();
+			expect(facultySelect).not.toBeDisabled();
 		});
 	});
 
@@ -272,11 +285,11 @@ describe("CourseFiltersPanel", () => {
 					{
 						id: "faculty-1",
 						name: "Факультет інформатики",
+						departments: [],
+						specialities: [],
 					},
 				],
-			});
-
-			// Act
+			}); // Act
 			render(
 				<TestWrapper
 					initialValues={{
@@ -321,11 +334,11 @@ describe("CourseFiltersPanel", () => {
 					{
 						id: "faculty-1",
 						name: "Факультет інформатики",
+						departments: [],
+						specialities: [],
 					},
 				],
-			});
-
-			// Act
+			}); // Act
 			render(
 				<TestWrapper
 					initialValues={{
@@ -403,18 +416,28 @@ describe("CourseFiltersPanel", () => {
 		it("should render department select when no faculty selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				departments: [
+				faculties: [
 					{
-						id: "dept-1",
-						name: "Кафедра програмування",
-						faculty_id: "fac-1",
-						faculty_name: "ФІТ",
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [
+							{
+								id: "dept-1",
+								name: "Кафедра програмування",
+							},
+						],
+						specialities: [],
 					},
 					{
-						id: "dept-2",
-						name: "Кафедра економіки",
-						faculty_id: "fac-2",
-						faculty_name: "ЕФ",
+						id: "fac-2",
+						name: "Факультет економіки",
+						departments: [
+							{
+								id: "dept-2",
+								name: "Кафедра економіки",
+							},
+						],
+						specialities: [],
 					},
 				],
 			});
@@ -438,19 +461,28 @@ describe("CourseFiltersPanel", () => {
 		it("should render department select when faculty is selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				faculties: [{ id: "fac-1", name: "Факультет інформатики" }],
-				departments: [
+				faculties: [
 					{
-						id: "dept-1",
-						name: "Кафедра програмування",
-						faculty_id: "fac-1",
-						faculty_name: "ФІТ",
+						id: "fac-1",
+						name: "Факультет інформатики",
+						departments: [
+							{
+								id: "dept-1",
+								name: "Кафедра програмування",
+							},
+						],
+						specialities: [],
 					},
 					{
-						id: "dept-2",
-						name: "Кафедра економіки",
-						faculty_id: "fac-2",
-						faculty_name: "ЕФ",
+						id: "fac-2",
+						name: "Факультет економіки",
+						departments: [
+							{
+								id: "dept-2",
+								name: "Кафедра економіки",
+							},
+						],
+						specialities: [],
 					},
 				],
 			});

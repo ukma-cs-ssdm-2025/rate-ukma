@@ -7,6 +7,7 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
+from rateukma.caching.decorators import rcached
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
     CourseReadParams,
@@ -30,13 +31,14 @@ class AnalyticsViewSet(viewsets.ViewSet):
     course_service: CourseService | None = None
 
     @extend_schema(
-        summary="Get course analytics",
-        description="Get course analytics with optional filters"
+        summary="Get courses analytics",
+        description="Get courses analytics with optional filters.\n"
         "Returns courses analytics with aggregated ratings.",
         parameters=to_openapi((CourseFilterCriteria, OpenApiParameter.QUERY)),
         responses=R_ANALYTICS,
     )
-    def list(self, request: Request, *args, **kwargs):
+    @rcached(ttl=300)
+    def list(self, request: Request, *args, **kwargs) -> Response:
         assert self.course_service is not None
 
         try:
@@ -52,11 +54,12 @@ class AnalyticsViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Get course analytics",
         description="Get course analytics with optional filters"
-        "Returns courses analytics with aggregated ratings.",
+        "Returns course's analytics with aggregated ratings.",
         parameters=to_openapi((CourseReadParams, OpenApiParameter.PATH)),
         responses=R_ANALYTICS,
     )
-    def retrieve(self, request, course_id=None, *args, **kwargs):
+    @rcached(ttl=300)
+    def retrieve(self, request, course_id=None, *args, **kwargs) -> Response:
         assert self.course_service is not None
 
         try:

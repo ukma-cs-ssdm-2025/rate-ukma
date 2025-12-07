@@ -1,3 +1,5 @@
+import { useQueryClient } from "@tanstack/react-query";
+
 import {
 	Dialog,
 	DialogContent,
@@ -5,14 +7,25 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/Dialog";
+import { toast } from "@/components/ui/Toaster";
 import {
-	type InlineRating,
+	getCoursesRatingsListQueryKey,
+	getCoursesRetrieveQueryKey,
+	getStudentsMeCoursesRetrieveQueryKey,
+	getStudentsMeGradesRetrieveQueryKey,
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
+import { testIds } from "@/lib/test-ids";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
-type RatingWithAnonymousFlag = InlineRating & { is_anonymous?: boolean };
+interface ExistingRating {
+	id?: string;
+	difficulty?: number;
+	usefulness?: number;
+	comment?: string | null;
+	is_anonymous?: boolean;
+}
 
 interface RatingModalProps {
 	readonly isOpen: boolean;
@@ -20,8 +33,7 @@ interface RatingModalProps {
 	readonly courseId: string;
 	readonly offeringId: string;
 	readonly courseName?: string;
-	readonly existingRating?: RatingWithAnonymousFlag | null;
-	readonly ratingId?: string;
+	readonly existingRating?: ExistingRating | null;
 	readonly onSuccess?: () => void;
 }
 
@@ -32,24 +44,41 @@ export function RatingModal({
 	offeringId,
 	courseName,
 	existingRating,
-	ratingId,
 	onSuccess,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
+	const queryClient = useQueryClient();
 
 	const createMutation = useCoursesRatingsCreate();
 	const updateMutation = useCoursesRatingsPartialUpdate();
 
+	const invalidateRatingQueries = async () => {
+		await Promise.all([
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeCoursesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeGradesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getCoursesRatingsListQueryKey(courseId),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getCoursesRetrieveQueryKey(courseId),
+			}),
+		]);
+	};
+
 	const handleSubmit = async (data: RatingFormData) => {
 		try {
-			if (isEditMode && ratingId) {
+			if (isEditMode && existingRating?.id) {
 				await updateMutation.mutateAsync({
 					courseId: courseId,
-					ratingId: ratingId,
+					ratingId: existingRating.id,
 					data: {
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
-						comment: data.comment || undefined,
+						comment: data.comment ?? "",
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -66,18 +95,22 @@ export function RatingModal({
 				});
 			}
 
+			toast.success(
+				isEditMode ? "Оцінку успішно оновлено" : "Оцінку успішно додано",
+			);
+			await invalidateRatingQueries();
 			onSuccess?.();
 			onClose();
-			globalThis.location.reload();
 		} catch (error) {
 			console.error("Failed to submit rating:", error);
+			toast.error("Не вдалося зберегти оцінку. Спробуйте ще раз");
 		}
 	};
 
 	const initialData: RatingFormData | undefined = existingRating
 		? {
-				difficulty: existingRating.difficulty,
-				usefulness: existingRating.usefulness,
+				difficulty: existingRating.difficulty ?? 3,
+				usefulness: existingRating.usefulness ?? 3,
 				comment: existingRating.comment || "",
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
@@ -87,11 +120,16 @@ export function RatingModal({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
-			<DialogContent className="sm:max-w-[500px]">
+			<DialogContent
+				className="sm:max-w-[500px]"
+				data-testid={testIds.rating.modal}
+			>
 				<DialogHeader>
-					<DialogTitle>
-						{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
-					</DialogTitle>
+					<div className="flex items-center justify-between">
+						<DialogTitle>
+							{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
+						</DialogTitle>
+					</div>
 					{courseName && (
 						<DialogDescription>
 							{isEditMode

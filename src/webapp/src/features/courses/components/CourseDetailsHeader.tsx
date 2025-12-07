@@ -2,6 +2,7 @@ import { GraduationCap } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { testIds } from "@/lib/test-ids";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import { getStatusLabel, getStatusVariant } from "../courseFormatting";
 
@@ -27,7 +28,12 @@ export function CourseDetailsHeader({
 	return (
 		<header className="space-y-3">
 			<div className="flex flex-wrap items-center gap-3">
-				<h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+				<h1
+					className="text-3xl font-bold tracking-tight"
+					data-testid={testIds.courseDetails.title}
+				>
+					{title}
+				</h1>
 				<Badge variant={getStatusVariant(status)}>
 					{getStatusLabel(status)}
 				</Badge>

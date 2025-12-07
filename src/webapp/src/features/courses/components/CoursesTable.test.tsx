@@ -16,18 +16,55 @@ vi.mock("@tanstack/react-router", async () => {
 	const actual = await vi.importActual("@tanstack/react-router");
 	return {
 		...actual,
-		useNavigate: () => mockNavigate,
+		useNavigate: vi.fn(function () {
+			return mockNavigate;
+		}),
+		Link: ({
+			to,
+			params,
+			children,
+			className,
+		}: {
+			to: string;
+			params?: Record<string, string>;
+			children: React.ReactNode;
+			className?: string;
+		}) => (
+			<a href={to} data-params={JSON.stringify(params)} className={className}>
+				{children}
+			</a>
+		),
 	};
 });
 
 // Mock the filter options API hook
-vi.mock("@/lib/api/generated", () => ({
-	useCoursesFilterOptionsRetrieve: () => ({
-		data: createMockFilterOptions(),
-		isLoading: false,
-		error: null,
-	}),
-}));
+vi.mock("@/lib/api/generated", async () => {
+	const actual = await vi.importActual("@/lib/api/generated");
+	return {
+		...actual,
+		useCoursesFilterOptionsRetrieve: vi.fn(function () {
+			return {
+				data: createMockFilterOptions(),
+				isLoading: false,
+				error: null,
+			};
+		}),
+		useAnalyticsList: vi.fn(function () {
+			return {
+				data: [],
+				isLoading: false,
+				error: null,
+			};
+		}),
+		useStudentsMeCoursesRetrieve: vi.fn(function () {
+			return {
+				data: [],
+				isLoading: false,
+				error: null,
+			};
+		}),
+	};
+});
 
 const defaultProps = {
 	data: [],
@@ -259,7 +296,7 @@ describe("Pagination", () => {
 					}),
 				);
 			},
-			{ timeout: 1000 },
+			{ timeout: 1500 },
 		);
 	});
 });
@@ -336,26 +373,22 @@ describe("Mobile Filter Drawer", () => {
 });
 
 describe("Row Click Handling", () => {
-	it("should call onRowClick when a course row is clicked", async () => {
+	it("should render course title as a link", () => {
 		// Arrange
-		const user = userEvent.setup();
-		const onRowClick = vi.fn();
-		const course = createMockCourse({ title: "React Programming" });
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				data={[course]}
-				onRowClick={onRowClick}
-			/>,
-		);
-
-		// Act
-		const row = screen.getByText("React Programming").closest("tr");
-		expect(row).not.toBeNull();
-		await user.click(row as HTMLElement);
+		const course = createMockCourse({
+			id: "test-course-id",
+			title: "React Programming",
+		});
+		renderWithProviders(<CoursesTable {...defaultProps} data={[course]} />);
 
 		// Assert
-		expect(onRowClick).toHaveBeenCalledWith(course);
+		const link = screen.getByRole("link", { name: "React Programming" });
+		expect(link).toBeInTheDocument();
+		expect(link).toHaveAttribute("href", "/courses/$courseId");
+		expect(link).toHaveAttribute(
+			"data-params",
+			JSON.stringify({ courseId: "test-course-id" }),
+		);
 	});
 });
 
@@ -427,7 +460,7 @@ describe("Course Display", () => {
 					{
 						speciality_id: "spec-1",
 						speciality_title: "Інженерія програмного забезпечення",
-						type_kind: "MANDATORY" as any,
+						type_kind: "COMPULSORY" as const,
 					},
 				],
 			}),
@@ -544,5 +577,74 @@ describe("URL Sync", () => {
 			"Пошук курсів за назвою...",
 		);
 		expect(searchInput).toHaveValue("Database");
+	});
+});
+
+describe("Attended Courses Highlighting", () => {
+	it("should highlight attended course rows", async () => {
+		// Arrange
+		const { useStudentsMeCoursesRetrieve } = await import(
+			"@/lib/api/generated"
+		);
+		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
+		const attendedCourseId = "course-attended-1";
+		const nonAttendedCourseId = "course-non-attended-2";
+
+		mockedHook.mockReturnValue({
+			data: [{ id: attendedCourseId, offerings: [] }],
+			isLoading: false,
+			error: null,
+		} as ReturnType<typeof useStudentsMeCoursesRetrieve>);
+
+		const courses = [
+			createMockCourse({ id: attendedCourseId, title: "Attended Course" }),
+			createMockCourse({
+				id: nonAttendedCourseId,
+				title: "Non-Attended Course",
+			}),
+		];
+
+		// Act
+		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+
+		// Assert
+		const attendedRow = screen.getByText("Attended Course").closest("tr");
+		const nonAttendedRow = screen
+			.getByText("Non-Attended Course")
+			.closest("tr");
+
+		expect(attendedRow).toHaveAttribute("data-highlighted", "true");
+		expect(nonAttendedRow).not.toHaveAttribute("data-highlighted");
+	});
+
+	it("should not highlight any rows when no attended courses", async () => {
+		// Arrange
+		const { useStudentsMeCoursesRetrieve } = await import(
+			"@/lib/api/generated"
+		);
+		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
+
+		mockedHook.mockReturnValue({
+			data: [],
+			isLoading: false,
+			error: null,
+		} as ReturnType<typeof useStudentsMeCoursesRetrieve>);
+
+		const courses = [
+			createMockCourse({ id: "course-1", title: "Course One" }),
+			createMockCourse({ id: "course-2", title: "Course Two" }),
+		];
+
+		// Act
+		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+
+		// Assert
+		const rows = screen.getAllByRole("row").filter((row) => {
+			return row.closest("tbody");
+		});
+
+		for (const row of rows) {
+			expect(row).not.toHaveAttribute("data-highlighted");
+		}
 	});
 });

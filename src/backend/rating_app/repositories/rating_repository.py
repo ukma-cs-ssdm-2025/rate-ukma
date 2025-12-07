@@ -1,16 +1,17 @@
 from django.db import IntegrityError
-from django.db.models import QuerySet
+from django.db.models import Avg, Count, QuerySet
 
 import structlog
 
 from rating_app.application_schemas.rating import (
+    AggregatedCourseRatingStats,
     RatingCreateParams,
     RatingFilterCriteria,
     RatingPatchParams,
     RatingPutParams,
 )
 from rating_app.exception.rating_exceptions import DuplicateRatingException, RatingNotFoundError
-from rating_app.models import Rating
+from rating_app.models import Course, Rating
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
@@ -48,6 +49,18 @@ class RatingRepository(IRepository[Rating]):
             },
         )
 
+    def get_aggregated_course_stats(self, course: Course) -> AggregatedCourseRatingStats:
+        aggregates = Rating.objects.filter(course_offering__course=course).aggregate(
+            avg_difficulty=Avg("difficulty"),
+            avg_usefulness=Avg("usefulness"),
+            ratings_count=Count("id", distinct=True),
+        )
+        return AggregatedCourseRatingStats(
+            avg_difficulty=aggregates["avg_difficulty"] or 0,
+            avg_usefulness=aggregates["avg_usefulness"] or 0,
+            ratings_count=aggregates["ratings_count"] or 0,
+        )
+
     def exists(self, student_id: str, course_offering_id: str) -> bool:
         return Rating.objects.filter(
             student_id=student_id,
@@ -59,7 +72,9 @@ class RatingRepository(IRepository[Rating]):
         criteria: RatingFilterCriteria,
     ) -> QuerySet[Rating]:
         # find a cleaner way to do this
-        filters = criteria.model_dump(exclude_none=True, exclude={"page", "page_size"})
+        filters = criteria.model_dump(
+            exclude_none=True, exclude={"page", "page_size", "exclude_student_id"}
+        )
 
         if "course_id" in filters:
             filters["course_offering__course_id"] = filters.pop("course_id")
@@ -74,6 +89,9 @@ class RatingRepository(IRepository[Rating]):
             .order_by("-created_at")
         )
 
+        if criteria.exclude_student_id:
+            ratings = ratings.exclude(student_id=str(criteria.exclude_student_id))
+
         return ratings
 
     def create(self, create_params: RatingCreateParams) -> Rating:
@@ -83,15 +101,18 @@ class RatingRepository(IRepository[Rating]):
                 course_offering_id=str(create_params.course_offering),
                 difficulty=create_params.difficulty,
                 usefulness=create_params.usefulness,
-                comment=create_params.comment,
+                comment=create_params.comment or "",
                 is_anonymous=create_params.is_anonymous,
             )
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
     def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> Rating:
-        allow_unset = isinstance(update_data, RatingPatchParams)
-        update_data_map = update_data.model_dump(exclude_unset=allow_unset)
+        is_patch = isinstance(update_data, RatingPatchParams)
+        update_data_map = update_data.model_dump(exclude_unset=is_patch)
+
+        if "comment" in update_data_map and update_data_map["comment"] is None:
+            update_data_map["comment"] = ""
 
         for attr, value in update_data_map.items():
             setattr(rating, attr, value)

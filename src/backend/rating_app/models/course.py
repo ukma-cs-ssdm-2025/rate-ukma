@@ -2,7 +2,6 @@ import uuid
 from typing import Any, Protocol, runtime_checkable
 
 from django.db import models
-from django.db.models import Avg
 
 from .choices import CourseStatus
 from .department import Department
@@ -40,48 +39,20 @@ class Course(models.Model):
         Speciality, through="CourseSpeciality", related_name="courses"
     )
 
-    avg_difficulty_annot: float | None = None
-    avg_usefulness_annot: float | None = None
-    ratings_count_annot: int | None = None
+    avg_difficulty = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    avg_usefulness = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    ratings_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["ratings_count"], name="course_ratings_count_idx"),
+            models.Index(fields=["avg_difficulty"], name="course_avg_difficulty_idx"),
+            models.Index(fields=["avg_usefulness"], name="course_avg_usefulness_idx"),
+            models.Index(fields=["title"], name="course_title_idx"),
+        ]
 
     def __str__(self):
         return f"{self.id} — {self.title}"
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id} title={self.title}>"
-
-    @property
-    def avg_difficulty(self):
-        if self.avg_difficulty_annot is not None:
-            return self.avg_difficulty_annot
-
-        # Fallback to DB query if not annotated
-        from .rating import Rating
-
-        return Rating.objects.filter(course_offering__course=self).aggregate(v=Avg("difficulty"))[
-            "v"
-        ]
-
-    @property
-    def avg_usefulness(self):
-        if self.avg_usefulness_annot is not None:
-            return self.avg_usefulness_annot
-
-        # Fallback to DB query if not annotated
-        from .rating import Rating
-
-        return Rating.objects.filter(course_offering__course=self).aggregate(v=Avg("usefulness"))[
-            "v"
-        ]
-
-    @property
-    def ratings_count(self) -> int | None:
-        if self.ratings_count_annot is not None:
-            count = self.ratings_count_annot
-            return None if count == 0 else count
-
-        # Fallback to DB query if not annotated
-        from .rating import Rating
-
-        count = Rating.objects.filter(course_offering__course=self).count()
-        return None if count == 0 else count

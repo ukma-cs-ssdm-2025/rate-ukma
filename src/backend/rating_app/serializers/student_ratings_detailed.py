@@ -7,6 +7,7 @@ class InlineRatingDetailedSerializer(serializers.Serializer):
     usefulness = serializers.IntegerField(read_only=True)
     comment = serializers.CharField(allow_blank=True, read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
+    is_anonymous = serializers.BooleanField(read_only=True)
 
 
 class InlineSemesterSerializer(serializers.Serializer):
@@ -21,3 +22,4 @@ class StudentRatingsDetailedSerializer(serializers.Serializer):
     course_offering_id = serializers.CharField(read_only=True)
     semester = InlineSemesterSerializer(read_only=True)
     rated = InlineRatingDetailedSerializer(allow_null=True, read_only=True)
+    can_rate = serializers.BooleanField(read_only=True)

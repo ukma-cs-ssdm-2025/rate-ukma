@@ -33,7 +33,7 @@ export function getDifficultyTone(value?: number | null): string {
 		return "text-[var(--chart-5)] dark:text-[var(--chart-5)]";
 	}
 
-	return "text-[var(--primary)] dark:text-[var(--primary-foreground)]";
+	return "text-[var(--primary)]";
 }
 
 export function getUsefulnessTone(value?: number | null): string {
@@ -42,7 +42,7 @@ export function getUsefulnessTone(value?: number | null): string {
 	}
 
 	if (value >= 4) {
-		return "text-[var(--primary)] dark:text-[var(--primary-foreground)]";
+		return "text-[var(--primary)]";
 	}
 
 	if (value >= 3) {

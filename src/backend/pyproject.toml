@@ -14,24 +14,23 @@ dependencies = [
     "django-vite==3.1.0",
     "django-reversion>=5.1.0",
     "drf-spectacular>=0.28.0",
-
     # Database
     "psycopg2-binary==2.9.10",
-
+    # Cache
+    "redis>=7.0.0",
+    "django-redis>=6.0.0",
     # Security
     "cryptography>=41.0.0",
     "PyJWT==2.9.0",
-
     # Environment & Configuration
     "python-decouple>=3.8",
     "requests==2.32.4",
-
     # Logging
     "structlog>=24.2.0",
-
+    "sentry-sdk[django]>=2.47.0",
     # Production
     "gunicorn>=23.0.0",
-
+    "django-compression-middleware>=0.5.0",
     # Scraper
     "playwright>=1.55",
     "beautifulsoup4>=4.14",
@@ -47,6 +46,7 @@ test = [
     "coverage>=7.10.6",
     "pytest-cov==7.0.0",
     "factory-boy==3.3.3",
+    "freezegun==1.5.5",
 ]
 linting = ["ruff==0.9.6", "isort==5.12.0", "flake8==6.1.0"]
 security = [
@@ -62,6 +62,8 @@ dev = [
     # dev-only
     "pre-commit==4.3.0",
     "ipython>=9.4.0",
+    "django-debug-toolbar>=4.4.0",
+    "django-stubs>=5.1.0",
 ]
 
 [tool.setuptools]
@@ -136,6 +138,7 @@ omit = [
     "*/urls.py",
     "*/ioc_container/*",
     "manage.py",
+    "rating_app/management/commands/*",
 ]
 
 [tool.coverage.report]

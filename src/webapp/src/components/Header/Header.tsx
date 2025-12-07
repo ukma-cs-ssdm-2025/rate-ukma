@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/lib/auth";
+import { testIds } from "@/lib/test-ids";
 import { HeaderNav } from "./HeaderNav";
 import { MobileMenu } from "./MobileMenu";
 import { navigationItems } from "./navigationData";
@@ -47,12 +48,19 @@ export default function Header() {
 
 	return (
 		<>
-			<header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+			<header
+				className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+				data-testid={testIds.header.root}
+			>
 				<div className="container mx-auto px-6 max-w-7xl flex h-16 items-center justify-between">
 					<Logo />
 
 					<div className="flex items-center justify-center flex-1">
-						<HeaderNav items={navigationItems} className="hidden md:flex" />
+						<HeaderNav
+							items={navigationItems}
+							className="hidden md:flex"
+							data-testid={testIds.header.nav}
+						/>
 					</div>
 
 					<div className="flex items-center md:space-x-3">
@@ -66,6 +74,7 @@ export default function Header() {
 								className="h-9 w-9 rounded-full p-0"
 								aria-label="Відкрити меню"
 								onClick={openMobileMenu}
+								data-testid={testIds.header.mobileMenuButton}
 							>
 								<Menu className="h-5 w-5" />
 							</Button>

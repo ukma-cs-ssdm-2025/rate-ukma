@@ -45,6 +45,7 @@ export type SelectFilterConfig = {
 	value: string;
 	options: SelectOption[];
 	contentClassName?: string;
+	useCombobox?: boolean;
 };
 
 export type RangeFilterConfig = {
@@ -73,13 +74,22 @@ export function useCourseFiltersData({
 
 	const {
 		faculties = [],
-		departments: allDepartments = [],
 		instructors = [],
 		semester_terms: semesterTerms = [],
 		semester_years: semesterYears = [],
 		course_types: courseTypes = [],
-		specialities = [],
 	} = filterOptions ?? {};
+
+	// Extract all departments and specialities from nested faculty structure
+	const allDepartments = React.useMemo(
+		() => faculties.flatMap((faculty) => faculty.departments || []),
+		[faculties],
+	);
+
+	const allSpecialities = React.useMemo(
+		() => faculties.flatMap((faculty) => faculty.specialities || []),
+		[faculties],
+	);
 
 	const selectedFacultyOption = React.useMemo(
 		() => faculties.find((option) => option.id === filters.faculty),
@@ -116,8 +126,8 @@ export function useCourseFiltersData({
 	);
 
 	const selectedSpecialityOption = React.useMemo(
-		() => specialities.find((option) => option.id === filters.speciality),
-		[specialities, filters.speciality],
+		() => allSpecialities.find((option) => option.id === filters.speciality),
+		[allSpecialities, filters.speciality],
 	);
 
 	const filteredDepartments = React.useMemo(() => {
@@ -125,10 +135,18 @@ export function useCourseFiltersData({
 			return allDepartments;
 		}
 
-		return allDepartments.filter(
-			(department) => department.faculty_id === filters.faculty,
-		);
-	}, [allDepartments, filters.faculty]);
+		const selectedFaculty = faculties.find((f) => f.id === filters.faculty);
+		return selectedFaculty?.departments || [];
+	}, [faculties, filters.faculty, allDepartments]);
+
+	const filteredSpecialities = React.useMemo(() => {
+		if (!filters.faculty) {
+			return allSpecialities;
+		}
+
+		const selectedFaculty = faculties.find((f) => f.id === filters.faculty);
+		return selectedFaculty?.specialities || [];
+	}, [faculties, filters.faculty, allSpecialities]);
 
 	const rangeFilters: RangeFilterConfig[] = [
 		{
@@ -161,8 +179,8 @@ export function useCourseFiltersData({
 			},
 			{
 				key: "semesterYear",
-				label: "Рік",
-				placeholder: "Усі роки",
+				label: "Навчальний рік",
+				placeholder: "Усі навчальні роки",
 				value: filters.semesterYear,
 				options: semesterYears.map((year) => ({
 					value: year.value,
@@ -174,36 +192,43 @@ export function useCourseFiltersData({
 				label: "Факультет",
 				placeholder: "Усі факультети",
 				value: filters.faculty,
-				options: faculties.map((faculty) => ({
-					value: faculty.id,
-					label: `${faculty.custom_abbreviation || getFacultyAbbreviation(faculty.name)} - ${faculty.name}`,
-				})),
+				options: [
+					{ value: "", label: "Усі факультети" },
+					...faculties.map((faculty) => ({
+						value: faculty.id,
+						label: faculty.name,
+					})),
+				],
+				useCombobox: true,
 			},
 			{
 				key: "department",
 				label: "Кафедра",
 				placeholder: "Усі кафедри",
 				value: filters.department,
-				options: filteredDepartments.map((department) => ({
-					value: department.id,
-					label:
-						filters.faculty || !department.faculty_name
-							? department.name
-							: `${department.name} — ${department.faculty_name}`,
-				})),
+				options: [
+					{ value: "", label: "Усі кафедри" },
+					...filteredDepartments.map((department) => ({
+						value: department.id,
+						label: department.name,
+					})),
+				],
+				useCombobox: true,
 			},
 			{
 				key: "speciality",
 				label: "Спеціальність",
 				placeholder: "Усі спеціальності",
 				value: filters.speciality,
-				options: specialities.map((speciality) => ({
-					value: speciality.id,
-					label: speciality.faculty_name
-						? `${speciality.name} — ${speciality.faculty_name}`
-						: speciality.name,
-				})),
+				options: [
+					{ value: "", label: "Усі спеціальності" },
+					...filteredSpecialities.map((speciality) => ({
+						value: speciality.id,
+						label: speciality.name,
+					})),
+				],
 				contentClassName: "max-h-72",
+				useCombobox: true,
 			},
 			{
 				key: "courseType",
@@ -231,10 +256,10 @@ export function useCourseFiltersData({
 			courseTypes,
 			faculties,
 			filteredDepartments,
+			filteredSpecialities,
 			// instructors, // unstable backend data - commented out from selectFilters
 			semesterTerms,
 			semesterYears,
-			specialities,
 			filters.semesterTerm,
 			filters.semesterYear,
 			filters.faculty,
@@ -292,14 +317,14 @@ export function useCourseFiltersData({
 		} else if (selectedSemesterYearOption) {
 			badges.push({
 				key: "semesterYear",
-				label: `Рік: ${selectedSemesterYearOption.label}`,
+				label: `Навчальний рік: ${selectedSemesterYearOption.label}`,
 			});
 		}
 
 		if (selectedFacultyOption) {
 			badges.push({
 				key: "faculty",
-				label: `Факультет: ${getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
+				label: `Факультет: ${selectedFacultyOption.custom_abbreviation || getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
 			});
 		}
 

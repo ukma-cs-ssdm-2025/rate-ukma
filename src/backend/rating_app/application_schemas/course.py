@@ -44,7 +44,9 @@ class CourseFilterCriteria(BaseModel):
     faculty: uuid.UUID | None = Field(default=None, description="Filter by faculty UUID")
     department: uuid.UUID | None = Field(default=None, description="Filter by department UUID")
     speciality: uuid.UUID | None = Field(default=None, description="Filter by speciality UUID")
-    semester_year: int | None = Field(default=None, ge=2000, description="Semester year")
+    semester_year: str | None = Field(
+        default=None, description="Academic year range (e.g., '2024–2025')"
+    )
     semester_term: SemesterTerm | None = Field(
         default=None,
         description="Semester term (FALL, SPRING, SUMMER)",
@@ -73,11 +75,11 @@ class CourseFilterCriteria(BaseModel):
         le=MAX_USEFULNESS_VALUE,
         description="Maximum average usefulness (1.0 - 5.0)",
     )
-    avg_difficulty_order: AvgOrder = Field(
-        default="asc", description="Sort order for difficulty (asc/desc)"
+    avg_difficulty_order: AvgOrder | None = Field(
+        default=None, description="Sort order for difficulty (asc/desc)"
     )
-    avg_usefulness_order: AvgOrder = Field(
-        default="asc", description="Sort order for usefulness (asc/desc)"
+    avg_usefulness_order: AvgOrder | None = Field(
+        default=None, description="Sort order for usefulness (asc/desc)"
     )
     page: int | None = Field(default=1, ge=1, description="Page number")
     page_size: int | None = Field(default=None, ge=1, description="Items per page")
@@ -110,8 +112,6 @@ class CourseSearchResult:
 class CourseFilterOptions:
     instructors: list[dict[str, Any]]
     faculties: list[dict[str, Any]]
-    departments: list[dict[str, Any]]
     semester_terms: list[dict[str, Any]]
     semester_years: list[dict[str, Any]]
     course_types: list[dict[str, Any]]
-    specialities: list[dict[str, Any]]

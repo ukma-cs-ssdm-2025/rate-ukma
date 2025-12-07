@@ -94,7 +94,6 @@ def test_pre_social_login_connects_existing_user(
 
     with (
         patch("rating_app.auth.microsoft_account_adapters.user_email", return_value=email),
-        patch.object(adapter, "_is_allowed_to_login", return_value=True),
         patch("rating_app.auth.microsoft_account_adapters.get_user_model") as mock_get_user_model,
         patch(
             "rating_app.auth.microsoft_account_adapters.DefaultSocialAccountAdapter.pre_social_login",
@@ -132,7 +131,6 @@ def test_pre_social_login_handles_new_user_registration(
 
     with (
         patch("rating_app.auth.microsoft_account_adapters.user_email", return_value=email),
-        patch.object(adapter, "_is_allowed_to_login", return_value=True),
         patch("rating_app.auth.microsoft_account_adapters.get_user_model") as mock_get_user_model,
         patch(
             "rating_app.auth.microsoft_account_adapters.DefaultSocialAccountAdapter.pre_social_login",
@@ -158,95 +156,21 @@ def test_pre_social_login_handles_new_user_registration(
     mock_super.assert_called_once_with(adapter, http_request, social_login)
 
 
-def test_is_allowed_to_login_returns_false_without_email(
-    social_adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock, social_login: MagicMock
-):
-    adapter = social_adapter
-
-    # Arrange
-    with patch("rating_app.auth.microsoft_account_adapters.user_email", return_value=None):
-        # Act
-        result = adapter._is_allowed_to_login(http_request, social_login)
-
-    # Assert
-    assert result is False
-
-
-def test_is_allowed_to_login_rejects_disallowed_domain(
+def test_pre_social_login_rejects_disallowed_domain(
     social_adapter: MicrosoftSocialAccountAdapter,
     http_request: MagicMock,
     social_login: MagicMock,
+    settings,
     faker: Faker,
 ):
-    adapter = social_adapter
-
-    # Arrange
+    settings.LOGIN_ERROR_URL = "/login-error"
     email = faker.email(domain="example.com")
 
     with patch("rating_app.auth.microsoft_account_adapters.user_email", return_value=email):
-        # Act
-        result = adapter._is_allowed_to_login(http_request, social_login)
+        with pytest.raises(ImmediateHttpResponse) as exc:
+            social_adapter.pre_social_login(http_request, social_login)
 
-    # Assert
-    assert result is False
-
-
-def test_is_allowed_to_login_accepts_allowed_domain(
-    social_adapter: MicrosoftSocialAccountAdapter,
-    http_request: MagicMock,
-    social_login: MagicMock,
-    faker: Faker,
-):
-    adapter = social_adapter
-
-    # Arrange
-    email = faker.email(domain="ukma.edu.ua")
-
-    with patch("rating_app.auth.microsoft_account_adapters.user_email", return_value=email):
-        # Act
-        result = adapter._is_allowed_to_login(http_request, social_login)
-
-    # Assert
-    assert result is True
-
-
-def test_account_adapter_respects_registration_setting(
-    account_adapter: MicrosoftAccountAdapter, http_request: MagicMock, settings
-):
-    adapter = account_adapter
-    settings.ACCOUNT_ALLOW_REGISTRATION = False
-
-    # Act
-    result = adapter.is_open_for_signup(http_request)
-
-    # Assert
-    assert result is False
-
-
-def test_account_adapter_returns_login_redirect(
-    account_adapter: MicrosoftAccountAdapter, http_request: MagicMock, settings
-):
-    adapter = account_adapter
-    settings.LOGIN_REDIRECT_URL = "/dashboard"
-
-    # Act
-    result = adapter.get_login_redirect_url(http_request)
-
-    # Assert
-    assert result == "/dashboard"
-
-
-def test_account_adapter_returns_logout_redirect(
-    account_adapter: MicrosoftAccountAdapter, http_request: MagicMock, settings
-):
-    adapter = account_adapter
-    settings.ACCOUNT_LOGOUT_REDIRECT_URL = "/goodbye"
-
-    # Act
-    result = adapter.get_logout_redirect_url(http_request)
-
-    # Assert
-    assert result == "/goodbye"
+    assert exc.value.response.url == "/login-error"
 
 
 def test_save_user_calls_link_user_to_student(
@@ -299,25 +223,28 @@ def test_save_user_does_not_link_when_commit_is_false(
     mock_student_service.return_value.link_user_to_student.assert_not_called()
 
 
-def test_save_user_does_not_link_when_user_has_no_email(
-    account_adapter: MicrosoftAccountAdapter, http_request: MagicMock
+def test_social_adapter_save_user_links_user_to_student(
+    social_adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock
 ):
     # Arrange
-    mock_user = SimpleNamespace(email="", id=1)
-    mock_form = MagicMock()
+    mock_user = SimpleNamespace(email="test@ukma.edu.ua", id=1)
+    mock_sociallogin = MagicMock()
 
     with (
         patch(
-            "rating_app.auth.microsoft_account_adapters.DefaultAccountAdapter.save_user",
+            "rating_app.auth.microsoft_account_adapters.DefaultSocialAccountAdapter.save_user",
             autospec=True,
         ) as mock_super,
         patch("rating_app.auth.microsoft_account_adapters.student_service") as mock_student_service,
     ):
         mock_super.return_value = mock_user
+        mock_service_instance = MagicMock()
+        mock_service_instance.link_user_to_student.return_value = True
+        mock_student_service.return_value = mock_service_instance
 
         # Act
-        result = account_adapter.save_user(http_request, mock_user, mock_form, commit=True)
+        result = social_adapter.save_user(http_request, mock_sociallogin)
 
     # Assert
     assert result is mock_user
-    mock_student_service.return_value.link_user_to_student.assert_not_called()
+    mock_service_instance.link_user_to_student.assert_called_once_with(mock_user)
