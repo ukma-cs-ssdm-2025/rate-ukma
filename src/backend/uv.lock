@@ -1594,6 +1594,7 @@ dependencies = [
     { name = "python-decouple" },
     { name = "redis" },
     { name = "requests" },
+    { name = "sentry-sdk", extra = ["django"] },
     { name = "structlog" },
 ]
 
@@ -1677,6 +1678,7 @@ requires-dist = [
     { name = "requests", specifier = "==2.32.4" },
     { name = "ruff", marker = "extra == 'linting'", specifier = "==0.9.6" },
     { name = "safety", marker = "extra == 'security'", specifier = ">=3.6.2" },
+    { name = "sentry-sdk", extras = ["django"], specifier = ">=2.47.0" },
     { name = "structlog", specifier = ">=24.2.0" },
 ]
 provides-extras = ["test", "linting", "security", "dev"]
@@ -2019,6 +2021,24 @@ dependencies = [
 sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/ba/de/bbdd93fe456d4011500784657c5e4a31e3f4fcbb276255d4db1213aed78c/sarif_om-1.0.4.tar.gz", hash = "sha256:cd5f416b3083e00d402a92e449a7ff67af46f11241073eea0461802a3b5aef98", size = 28847, upload-time = "2019-10-05T20:11:23.338Z" }
 wheels = [
     { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/82/7c/1d3d0467565aa8b3e77ab8712042a09dd1158056826f45783f3d2b34adf1/sarif_om-1.0.4-py3-none-any.whl", hash = "sha256:539ef47a662329b1c8502388ad92457425e95dc0aaaf995fe46f4984c4771911", size = 30193, upload-time = "2019-10-05T20:11:21.577Z" },
+]
+
+[[package]]
+name = "sentry-sdk"
+version = "2.47.0"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+dependencies = [
+    { name = "certifi" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/4a/2a/d225cbf87b6c8ecce5664db7bcecb82c317e448e3b24a2dcdaacb18ca9a7/sentry_sdk-2.47.0.tar.gz", hash = "sha256:8218891d5e41b4ea8d61d2aed62ed10c80e39d9f2959d6f939efbf056857e050", size = 381895, upload-time = "2025-12-03T14:06:36.846Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/bd/ac/d6286ea0d49e7b58847faf67b00e56bb4ba3d525281e2ac306e1f1f353da/sentry_sdk-2.47.0-py2.py3-none-any.whl", hash = "sha256:d72f8c61025b7d1d9e52510d03a6247b280094a327dd900d987717a4fce93412", size = 411088, upload-time = "2025-12-03T14:06:35.374Z" },
+]
+
+[package.optional-dependencies]
+django = [
+    { name = "django" },
 ]
 
 [[package]]

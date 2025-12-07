@@ -128,6 +128,10 @@ services:
       target: production
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_SENTRY_DSN_FRONTEND: ${VITE_SENTRY_DSN_FRONTEND}
+        VITE_ENVIRONMENT: ${VITE_ENVIRONMENT}
+        SENTRY_ORG: ${SENTRY_ORG}
+        SENTRY_PROJECT_FRONTEND: ${SENTRY_PROJECT_FRONTEND}
     env_file:
       - .env
     volumes:

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import axios, { AxiosHeaders } from "axios";
 
 import { env } from "@/env";
@@ -54,6 +55,23 @@ authorizedHttpClient.interceptors.response.use(
 	(response) => response,
 	(error) => {
 		handleConnectionIssue(error);
+
+		if (axios.isAxiosError(error) && !axios.isCancel(error)) {
+			const method = error.config?.method?.toUpperCase();
+
+			Sentry.captureException(error, {
+				level: "error",
+				tags: {
+					httpMethod: method,
+					httpStatus: error.response?.status?.toString(),
+					axiosErrorCode: error.code,
+				},
+				extra: {
+					url: error.config?.url,
+				},
+			});
+		}
+
 		return Promise.reject(error);
 	},
 );

@@ -12,6 +12,10 @@ const rawEnv = createEnv({
 
 	client: {
 		VITE_API_BASE_URL: z.url().default("http://localhost:8000"),
+		VITE_SENTRY_DSN_FRONTEND: z.string().optional(),
+		VITE_ENVIRONMENT: z
+			.enum(["development", "staging", "live"])
+			.default("development"),
 	},
 
 	/**
