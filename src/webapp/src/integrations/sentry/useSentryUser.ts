@@ -26,6 +26,7 @@ export function useSentryUser(user: AuthUser | null) {
 		} else {
 			Sentry.setUser(null);
 			Sentry.setTag("user.authenticated", false);
+			Sentry.setContext("user_details", null);
 		}
 	}, [user]);
 }

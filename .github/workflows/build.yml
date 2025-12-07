@@ -78,6 +78,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to GitHub Container Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -99,21 +102,23 @@ jobs:
 
       - name: Build staging webapp
         env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
           VITE_API_BASE_URL: ${{ vars.STAGING_URL }}
           VITE_SENTRY_DSN_FRONTEND: ${{ secrets.SENTRY_DSN_FRONTEND }}
           VITE_ENVIRONMENT: staging
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           WEBAPP_IMAGE_TAG: staging-${{ inputs.version_tag || 'dry-run-version' }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Building webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
           docker compose --profile prod build \
+            --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
             --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
             --build-arg VITE_SENTRY_DSN_FRONTEND=${VITE_SENTRY_DSN_FRONTEND} \
             --build-arg VITE_ENVIRONMENT=${VITE_ENVIRONMENT} \
-            --build-arg SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN} \
             --build-arg SENTRY_ORG=${SENTRY_ORG} \
             --build-arg SENTRY_PROJECT_FRONTEND=${SENTRY_PROJECT_FRONTEND} \
             --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
@@ -130,32 +135,34 @@ jobs:
 
       - name: Build live webapp
         env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
           VITE_API_BASE_URL: ${{ vars.LIVE_URL }}
           VITE_SENTRY_DSN_FRONTEND: ${{ secrets.SENTRY_DSN_FRONTEND }}
-          VITE_ENVIRONMENT: production
+          VITE_ENVIRONMENT: live
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG || 'ukma-cs-ssdm-2025' }}
-          SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND || 'webapp' }}
           WEBAPP_IMAGE_TAG: live-${{ inputs.version_tag || 'dry-run-version' }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Building webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
           docker compose --profile prod build \
+            --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
             --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
             --build-arg VITE_SENTRY_DSN_FRONTEND=${VITE_SENTRY_DSN_FRONTEND} \
             --build-arg VITE_ENVIRONMENT=${VITE_ENVIRONMENT} \
-            --build-arg SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN} \
             --build-arg SENTRY_ORG=${SENTRY_ORG} \
             --build-arg SENTRY_PROJECT_FRONTEND=${SENTRY_PROJECT_FRONTEND} \
             --build-arg WEBAPP_IMAGE_TAG=${WEBAPP_IMAGE_TAG} \
             webapp-build
 
-      - name: Create Sentry release (production)
+      - name: Create Sentry release
         if: inputs.version_tag
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG || 'ukma-cs-ssdm-2025' }}
-          SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND || 'webapp' }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND }}
           VERSION_TAG: ${{ inputs.version_tag }}
         run: |
           # Install sentry-cli

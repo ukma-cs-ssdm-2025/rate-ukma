@@ -20,11 +20,9 @@ export function initSentry() {
 		enableLogs: true,
 
 		// Set sample rates based on environment
-		// In production, you may want to sample fewer traces to reduce costs
 		tracesSampleRate: import.meta.env.MODE === "production" ? 0.1 : 1.0,
 
 		// Capture 100% of sessions for replay in non-production
-		// In production, you may want to reduce this
 		replaysSessionSampleRate: import.meta.env.MODE === "production" ? 0.1 : 1.0,
 
 		// Capture 100% of sessions with errors for replay
