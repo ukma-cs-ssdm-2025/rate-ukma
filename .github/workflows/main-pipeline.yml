@@ -12,6 +12,7 @@ on:
       - main
     paths:
       - src/**
+      - .github/workflows/**
 
 jobs:
   changes-filter:
