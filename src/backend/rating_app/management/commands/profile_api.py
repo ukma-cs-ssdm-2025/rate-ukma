@@ -44,7 +44,7 @@ class Command(BaseCommand):
             "--cprofile",
             action="store_true",
             required=False,
-            default=False,
+            default=True,
             help="Capture CProfile results",
         )
 
@@ -64,14 +64,14 @@ class Command(BaseCommand):
     def _initialize_options(self, options):
         self.course_id = options["course_id"]
         self.no_output = options["no_output"]
-        self.cprofile = options["cprofile"]
+        self.cprofile_enabled = options["cprofile"]
 
     def _import_cprofile_if_needed(self):
-        if self.cprofile:
+        if self.cprofile_enabled:
             import cProfile
             import pstats
 
-            self.cProfile = cProfile
+            self.cprofile_module = cProfile
             self.pstats = pstats
 
     def _setup_test_environment(self, client: Client) -> User:
@@ -95,13 +95,14 @@ class Command(BaseCommand):
 
             dict_results[endpoint_name] = result
 
-            if self.cprofile and cprofile_output:
+            if self.cprofile_enabled and cprofile_output:
                 formatted_output = self._format_cprofile_output(endpoint_name, cprofile_output)
                 cprofile_outputs.append(formatted_output)
 
         return {"results": dict_results, "cprofile_outputs": cprofile_outputs}
 
     def _format_cprofile_output(self, endpoint_name: str, output: str) -> str:
+        """Format cProfile output with endpoint name header."""
         return f"=== {endpoint_name} ===\n{output}\n\n"
 
     def _save_results(self, results: dict[str, Any]):
@@ -115,7 +116,7 @@ class Command(BaseCommand):
         self._write_json_results(dict_results)
         self.stdout.write(f"\nResults saved to {self.results_output_file}")
 
-        if self.cprofile and cprofile_outputs:
+        if self.cprofile_enabled and cprofile_outputs:
             self._write_cprofile_output(cprofile_outputs)
             self.stdout.write(f"\nCProfile output saved to {self.cprofile_output_file}")
 
@@ -226,10 +227,10 @@ class Command(BaseCommand):
             return self._create_error_result(config, f"Failed to reverse URL: {e}")
 
     def _start_profiler(self):
-        if not self.cprofile:
+        if not self.cprofile_enabled:
             return None
 
-        profiler = self.cProfile.Profile()
+        profiler = self.cprofile_module.Profile()
         profiler.enable()
         return profiler
 
