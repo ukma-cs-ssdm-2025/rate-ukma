@@ -159,21 +159,41 @@ jobs:
             -t ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG} \
             ..
 
-      - name: Create Sentry release
+      - name: Create Sentry releases
         if: inputs.version_tag
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND }}
+          SENTRY_PROJECT_BACKEND: ${{ vars.SENTRY_PROJECT_BACKEND }}
           VERSION_TAG: ${{ inputs.version_tag }}
+          SENTRY_CLI_VERSION: 2.56.0
         run: |
-          # Install sentry-cli
-          curl -sL https://sentry.io/get-cli/ | bash
+          curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=${SENTRY_CLI_VERSION} bash
 
-          # Create release with the actual version tag
-          sentry-cli releases new "$VERSION_TAG"
-          sentry-cli releases set-commits "$VERSION_TAG" --auto
-          sentry-cli releases finalize "$VERSION_TAG"
+          # Create release for frontend project
+          sentry-cli releases new "$VERSION_TAG" \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT_FRONTEND"
+          sentry-cli releases set-commits "$VERSION_TAG" \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT_FRONTEND" \
+            --auto
+          sentry-cli releases finalize "$VERSION_TAG" \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT_FRONTEND"
+
+          # Create release for backend project
+          sentry-cli releases new "$VERSION_TAG" \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT_BACKEND"
+          sentry-cli releases set-commits "$VERSION_TAG" \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT_BACKEND" \
+            --auto
+          sentry-cli releases finalize "$VERSION_TAG" \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT_BACKEND"
 
       - name: Push live webapp
         if: inputs.version_tag
