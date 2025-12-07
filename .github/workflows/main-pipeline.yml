@@ -110,7 +110,7 @@ jobs:
 
   release:
     needs: [version, deploy-staging, release-needed]
-    if: needs.release-needed.outputs.release_needed == 'true'
+    if: always() && needs.release-needed.result != 'failure' && needs.release-needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}
