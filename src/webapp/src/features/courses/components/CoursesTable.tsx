@@ -72,7 +72,7 @@ const columns: ColumnDef<CourseList>[] = [
 			const course = row.original;
 			return (
 				<span className="whitespace-normal break-words">
-					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline md:text-base">
+					<span className="font-semibold text-sm transition-colors group-hover:text-primary group-hover:underline group-[:has(.speciality-badges-trigger:hover)]:!no-underline md:text-base">
 						{course.title}
 					</span>{" "}
 					<CourseSpecialityBadges specialities={course.course_specialities} />

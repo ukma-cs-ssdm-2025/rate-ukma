@@ -91,13 +91,10 @@ describe("urlSync", () => {
 				{ speciality: TEST_IDS.SPECIALITY },
 				{ spec: TEST_IDS.SPECIALITY },
 			],
-		] as const)(
-			"should convert %s to search param",
-			(_, filterOverrides, expectedParams) => {
-				const result = filtersToSearchParams(createFilters(filterOverrides));
-				expect(result).toEqual(expectedParams);
-			},
-		);
+		] as const)("should convert %s to search param", (_, filterOverrides, expectedParams) => {
+			const result = filtersToSearchParams(createFilters(filterOverrides));
+			expect(result).toEqual(expectedParams);
+		});
 
 		it("should include multiple filters", () => {
 			const result = filtersToSearchParams(
@@ -190,13 +187,10 @@ describe("urlSync", () => {
 				"speciality",
 				TEST_IDS.SPECIALITY,
 			],
-		] as const)(
-			"should parse %s from search param",
-			(_, params, filterKey, expectedValue) => {
-				const result = searchParamsToFilters(params);
-				expect(result[filterKey]).toBe(expectedValue);
-			},
-		);
+		] as const)("should parse %s from search param", (_, params, filterKey, expectedValue) => {
+			const result = searchParamsToFilters(params);
+			expect(result[filterKey]).toBe(expectedValue);
+		});
 
 		it("should parse multiple parameters", () => {
 			const result = searchParamsToFilters({
