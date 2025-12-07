@@ -168,6 +168,8 @@ jobs:
     if: needs.get-staging-version.outputs.skip_deployment != 'true'
     needs: [get-staging-version, update_pre_releases]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
