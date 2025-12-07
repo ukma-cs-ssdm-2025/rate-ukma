@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version_tag: ${{ steps.get_version.outputs.version_tag }}
+      skip_deployment: ${{ steps.get_version.outputs.skip_deployment }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5

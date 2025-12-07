@@ -36,10 +36,10 @@ jobs:
   version:
     runs-on: ubuntu-24.04
     outputs:
-      version_tag: ${{ steps.semantic.outputs.version_tag }}
-      version_type: ${{ steps.semantic.outputs.version_type }}
-      previous_version: ${{ steps.semantic.outputs.previous_version }}
-      authors: ${{ steps.semantic.outputs.authors }}
+      version_tag: ${{ steps.final_version.outputs.version_tag }}
+      version_type: ${{ steps.final_version.outputs.version_type }}
+      previous_version: ${{ steps.final_version.outputs.previous_version }}
+      authors: ${{ steps.final_version.outputs.authors }}
 
     steps:
       - name: Checkout
@@ -68,6 +68,31 @@ jobs:
           major_regexp_flags: "i"
           minor_regexp_flags: "i"
           version_format: ${{ env.SEMANTIC_VERSION_VERSION_FORMAT }}
+
+      - name: Set Final Version Tag
+        id: final_version
+        run: |
+          # If semantic version was generated
+          if [[ -n "${{ steps.semantic.outputs.version_tag }}" ]]; then
+            echo "version_tag=${{ steps.semantic.outputs.version_tag }}" >> $GITHUB_OUTPUT
+            echo "version_type=${{ steps.semantic.outputs.version_type }}" >> $GITHUB_OUTPUT
+            echo "previous_version=${{ steps.semantic.outputs.previous_version }}" >> $GITHUB_OUTPUT
+            echo "authors=${{ steps.semantic.outputs.authors }}" >> $GITHUB_OUTPUT
+          else
+            # Fallback to latest tag from repo
+            LATEST_TAG=$(git tag --list "${{ inputs.tag_prefix }}*" --sort=-v:refname | head -n 1)
+
+            if [[ -z "$LATEST_TAG" ]]; then
+              echo "No latest tag found"
+              exit 1
+            fi
+
+            echo "version_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+            echo "version_type=none" >> $GITHUB_OUTPUT
+            echo "previous_version=$LATEST_TAG" >> $GITHUB_OUTPUT
+            echo "authors=" >> $GITHUB_OUTPUT
+            echo "No semantic version generated, using latest tag: $LATEST_TAG"
+          fi
 
       - name: Create Version Tag
         id: create_version_tag

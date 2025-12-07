@@ -31,11 +31,11 @@ jobs:
     uses: ./.github/workflows/version.yml
 
   test:
-    needs: [changes-filter]
+    needs: changes-filter
     uses: ./.github/workflows/test.yml
     with:
-      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
-      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
+      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
 
   openapi-validation:
     needs: changes-filter
@@ -55,11 +55,18 @@ jobs:
 
   build:
     needs: [version, test, openapi-validation, audit, changes-filter]
+    if: |
+      always() &&
+      needs.version.result != 'failure' &&
+      needs.test.result != 'failure' &&
+      needs.openapi-validation.result != 'failure' &&
+      needs.audit.result != 'failure' &&
+      needs.changes-filter.result != 'failure'
     uses: ./.github/workflows/build.yml
     with:
       version_tag: ${{ needs.version.outputs.version_tag }}
-      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
-      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
+      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
 
   release-needed:
     needs: [version]

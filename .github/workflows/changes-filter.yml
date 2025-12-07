@@ -29,11 +29,15 @@ on:
       openapi_changed:
         description: "Whether openapi schema changed in the caller ref"
         value: ${{ jobs.filter.outputs.openapi_changed }}
+      ci_changed:
+        description: "Whether CI code changed in the caller ref"
+        value: ${{ jobs.filter.outputs.ci_changed }}
 
 env:
   BACKEND_DIR: src/backend
   WEBAPP_DIR: src/webapp
   OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
+  CI_DIR: .github/workflows
 
 jobs:
   filter:
@@ -42,6 +46,7 @@ jobs:
       backend_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.backend == 'true' }}
       webapp_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.webapp == 'true' }}
       openapi_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.openapi == 'true' }}
+      ci_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.ci == 'true' }}
     steps:
       - uses: actions/checkout@v5
         if: inputs.force_all_changed != true
@@ -62,3 +67,5 @@ jobs:
               - '${{ env.OPENAPI_SCHEMA_FILE }}'
             openapi:
               - '${{ env.OPENAPI_SCHEMA_FILE }}'
+            ci:
+              - '${{ env.CI_DIR }}/**'
