@@ -163,25 +163,25 @@ jobs:
 
       - name: Create Sentry release for Frontend
         if: inputs.version_tag
-        uses: getsentry/action-release@v1
+        uses: getsentry/action-release@v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_FRONTEND }}
         with:
           environment: production
-          version: ${{ inputs.version_tag }}
+          release: ${{ inputs.version_tag }}
 
       - name: Create Sentry release for Backend
         if: inputs.version_tag
-        uses: getsentry/action-release@v1
+        uses: getsentry/action-release@v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_BACKEND }}
         with:
           environment: production
-          version: ${{ inputs.version_tag }}
+          release: ${{ inputs.version_tag }}
 
       - name: Push live webapp
         if: inputs.version_tag
