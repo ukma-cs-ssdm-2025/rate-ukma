@@ -15,6 +15,8 @@
 
 **Live**: <https://rateukma.com>
 
+**Releases**: <https://github.com/ukma-cs-ssdm-2025/rate-ukma/releases>
+
 ## 🧩 Features
 
 - Rate courses and leave reviews
