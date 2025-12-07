@@ -181,6 +181,7 @@ jobs:
         id: push_live_tag
         env:
           LIVE_VERSION_TAG: "live-${{ needs.get-staging-version.outputs.version_tag }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh api repos/${{ github.repository }}/git/refs/tags/${LIVE_VERSION_TAG} 2>/dev/null; then
             echo "Tag ${LIVE_VERSION_TAG} already exists. Skipping."
