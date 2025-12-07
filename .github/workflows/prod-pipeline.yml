@@ -182,11 +182,19 @@ jobs:
         env:
           LIVE_VERSION_TAG: "live-${{ needs.get-staging-version.outputs.version_tag }}"
         run: |
-          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
-          if git tag -l | grep -q "^${LIVE_VERSION_TAG}$"; then
-            echo "Tag ${LIVE_VERSION_TAG} already exists. Skipping tag creation and pushing."
-          else
-            echo "Creating and pushing tag ${LIVE_VERSION_TAG}"
-            git tag $LIVE_VERSION_TAG
-            git push origin $LIVE_VERSION_TAG
+          if gh api repos/${{ github.repository }}/git/refs/tags/${LIVE_VERSION_TAG} 2>/dev/null; then
+            echo "Tag ${LIVE_VERSION_TAG} already exists. Skipping."
+            exit 0
           fi
+
+          SHA=$(git rev-parse HEAD)
+          echo "Creating tag ${LIVE_VERSION_TAG} at commit ${SHA}"
+
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            repos/${{ github.repository }}/git/refs \
+            -f ref="refs/tags/${LIVE_VERSION_TAG}" \
+            -f sha="$SHA"
+
+          echo "Tag ${LIVE_VERSION_TAG} created successfully"
