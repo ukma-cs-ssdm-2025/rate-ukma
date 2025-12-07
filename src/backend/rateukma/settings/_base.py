@@ -156,6 +156,11 @@ CACHES = {
 # SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 # SESSION_CACHE_ALIAS = "default"
 
+# Session timeout configuration
+SESSION_COOKIE_AGE = 10800  # 3 hours
+SESSION_SAVE_EVERY_REQUEST = True  # Reset inactivity timer on each request
+SESSION_COOKIE_HTTPONLY = True  # XSS protection
+SESSION_COOKIE_SAMESITE = "Lax"  # CSRF protection
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
