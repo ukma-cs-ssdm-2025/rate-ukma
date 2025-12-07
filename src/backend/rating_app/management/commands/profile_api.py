@@ -90,13 +90,14 @@ class Command(BaseProfileApiCommand):
         return f"=== {endpoint_name} ===\n{output}\n\n"
 
     def _save_results(self, results: dict[str, Any]):
-        if self.no_output:
-            return
-
         dict_results = results["results"]
         cprofile_outputs = results["cprofile_outputs"]
 
         self._write_stdout_results(dict_results)
+
+        if self.no_output:
+            return
+
         self._write_json_results(dict_results)
         self.stdout.write(f"\nResults saved to {self.results_output_file}")
 
