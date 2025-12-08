@@ -86,6 +86,11 @@ paths:
           type: integer
         description: Items per page
       - in: query
+        name: ratings_count_min
+        schema:
+          type: integer
+        description: Minimum ratings count (0+)
+      - in: query
         name: semester_term
         schema:
           type: string
@@ -604,6 +609,11 @@ paths:
         schema:
           type: integer
         description: Items per page
+      - in: query
+        name: ratings_count_min
+        schema:
+          type: integer
+        description: Minimum ratings count (0+)
       - in: query
         name: semester_term
         schema:
