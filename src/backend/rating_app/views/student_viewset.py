@@ -23,7 +23,7 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         responses=R_STUDENT_RATINGS,
     )
     @require_student
-    @rcached(ttl=300)
+    @rcached(ttl=3600)  # 1 hour - student grades/enrollments change infrequently
     def get_ratings(self, request, student: Student) -> Response:
         assert self.student_service is not None
 
@@ -39,7 +39,7 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         responses=R_STUDENT_RATINGS_DETAILED,
     )
     @require_student
-    @rcached(ttl=300)
+    @rcached(ttl=3600)  # 1 hour - student grades/enrollments change infrequently
     def get_detailed_ratings(self, request, student: Student) -> Response:
         assert self.student_service is not None
 
