@@ -22,8 +22,9 @@ if SENTRY_DSN:
         send_default_pii=True,
         # Enable logs to be sent to Sentry
         enable_logs=True,
-        traces_sample_rate=0.1,
-        profile_session_sample_rate=0.1,
+        # Capture all transactions for now
+        traces_sample_rate=1.0,
+        profile_session_sample_rate=1.0,
         # Set profile_lifecycle to "trace" to automatically
         # run the profiler on when there is an active transaction
         profile_lifecycle="trace",
