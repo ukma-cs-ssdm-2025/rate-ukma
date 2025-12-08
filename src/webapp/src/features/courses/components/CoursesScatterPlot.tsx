@@ -371,13 +371,13 @@ function ScatterPlotContent({
 
 	return (
 		<>
+			{/* biome-ignore lint/a11y/noSvgWithoutTitle: Interactive chart with aria-label, title element not suitable for this interaction model */}
 			<svg
 				ref={svgRef}
 				width={width}
 				height={height}
 				className="bg-background cursor-grab active:cursor-grabbing"
 				aria-label="Діаграма розподілу курсів за корисністю та складністю"
-				role="img"
 			>
 				<Group
 					transform={`translate(${margin.left + transform.x}, ${margin.top + transform.y}) scale(${transform.k})`}
