@@ -30,7 +30,7 @@ function getSpecialityAlias(
 
 	return name
 		.split(separator)
-		.map((word) => word.replace(/[^\p{L}]/gu, ""))
+		.map((word) => word.replaceAll(/[^\p{L}]/gu, ""))
 		.filter((word) => word.length > 0)
 		.map((word) => word[0])
 		.join("")
