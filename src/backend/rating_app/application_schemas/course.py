@@ -75,6 +75,11 @@ class CourseFilterCriteria(BaseModel):
         le=MAX_USEFULNESS_VALUE,
         description="Maximum average usefulness (1.0 - 5.0)",
     )
+    ratings_count_min: int | None = Field(
+        default=None,
+        ge=0,
+        description="Minimum ratings count (0+)",
+    )
     avg_difficulty_order: AvgOrder | None = Field(
         default=None, description="Sort order for difficulty (asc/desc)"
     )

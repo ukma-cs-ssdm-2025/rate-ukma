@@ -95,6 +95,7 @@ function normalizeAnalyticsFilters(
 		avg_difficulty_order,
 		avg_usefulness_order,
 		type_kind,
+		ratings_count_min: 1,
 	};
 }
 
@@ -694,9 +695,7 @@ export function CoursesScatterPlot({
 			.filter(
 				(course) =>
 					course.avg_usefulness != null &&
-					course.avg_difficulty != null &&
-					course.ratings_count != null &&
-					course.ratings_count > 0,
+					course.avg_difficulty != null,
 			)
 			.map((course) => {
 				const ratingsCount = course.ratings_count ?? 0;
