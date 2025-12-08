@@ -51,11 +51,11 @@ const PLOT_LOADING_MESSAGES = [
 		description: "Вирішуємо, хто отримає свою мітку першим.",
 	},
 	{
-		title: "Обчислюємо складність корисності…",
+		title: "Обчислюємо складність й корисність…",
 		description: "Курси вже розміщуються по осях.",
 	},
 	{
-		title: "Наводимо красу на візуалізації ✨",
+		title: "Наводимо красу ✨",
 		description: "Ще мить — і графік буде готовий.",
 	},
 ] as const;
@@ -116,10 +116,7 @@ function computeDomain(
 	if (clampedMin >= clampedMax) {
 		return range;
 	}
-	return [
-		Math.max(range[0], clampedMin - padding),
-		Math.min(range[1], clampedMax + padding),
-	];
+	return [clampedMin - padding, clampedMax + padding];
 }
 
 function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
@@ -140,7 +137,7 @@ function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
 	);
 }
 
-const margin: Margin = { top: 20, right: 20, bottom: 60, left: 60 };
+const margin: Margin = { top: 40, right: 40, bottom: 60, left: 60 };
 
 // Axis styling constants
 const AXIS_TICK_FONT_SIZE = 12;
@@ -152,7 +149,7 @@ const AXIS_BG_TOP_EXTENSION = 20; // Extension above the Y-axis
 const X_AXIS_TICK_Y_OFFSET = 20; // Distance of tick labels from axis
 const X_AXIS_LABEL_Y_OFFSET = 45; // Distance of axis label from axis
 const Y_AXIS_TICK_X_OFFSET = 10; // Distance of tick labels from axis
-const Y_AXIS_LABEL_X_OFFSET = 40; // Distance of axis label from axis
+const Y_AXIS_LABEL_X_OFFSET = 35; // Distance of axis label from axis
 
 // Grid styling constants
 const GRID_STROKE_OPACITY = 0.3;
@@ -185,7 +182,7 @@ const POINT_RADIUS_MULTIPLIER = 2;
 // Axis ticks
 const NUM_AXIS_TICKS = 5;
 
-const DOMAIN_PADDING = 0.15;
+const DOMAIN_PADDING = 0.2;
 const TOOLTIP_DECIMAL_PLACES = 2;
 
 function FacultyBadge({ name }: Readonly<{ name: string }>) {
@@ -374,16 +371,14 @@ function ScatterPlotContent({
 
 	return (
 		<>
+			{/* biome-ignore lint/a11y/noSvgWithoutTitle: Interactive chart with aria-label, title element not suitable for this interaction model */}
 			<svg
 				ref={svgRef}
 				width={width}
 				height={height}
 				className="bg-background cursor-grab active:cursor-grabbing"
-				aria-labelledby="courses-scatterplot-title"
+				aria-label="Діаграма розподілу курсів за корисністю та складністю"
 			>
-				<title id="courses-scatterplot-title">
-					Діаграма розподілу курсів за корисністю та складністю
-				</title>
 				<Group
 					transform={`translate(${margin.left + transform.x}, ${margin.top + transform.y}) scale(${transform.k})`}
 				>
