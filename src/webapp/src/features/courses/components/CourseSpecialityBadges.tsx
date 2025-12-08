@@ -97,6 +97,8 @@ export function CourseSpecialityBadges({
 				<button
 					type="button"
 					className="text-xs text-muted-foreground font-semibold px-2 py-0.5 rounded-md hover:bg-muted hover:text-foreground transition-colors cursor-pointer speciality-badges-trigger"
+					aria-expanded={isExpanded}
+					aria-label={isExpanded ? "Менше" : `+${hiddenCount} більше`}
 					onClick={(e) => {
 						e.preventDefault();
 						e.stopPropagation();
