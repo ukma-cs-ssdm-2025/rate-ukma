@@ -162,10 +162,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
 		};
 
-		window.addEventListener("auth:session-expired", handleSessionExpired);
+		globalThis.addEventListener("auth:session-expired", handleSessionExpired);
 
 		return () => {
-			window.removeEventListener("auth:session-expired", handleSessionExpired);
+			globalThis.removeEventListener("auth:session-expired", handleSessionExpired);
 		};
 	}, [queryClient, sessionQuery.queryKey]);
 

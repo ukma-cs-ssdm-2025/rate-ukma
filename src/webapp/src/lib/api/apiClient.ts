@@ -58,11 +58,11 @@ const handleSessionExpiry = (error: unknown): boolean => {
 	const requestUrl = error.config?.url;
 	const currentPath = globalThis.location.pathname;
 
-	if (status !== 401 && status !== 403) return false;
+	if (status !== 401) return false;
 	if (currentPath.startsWith("/login") || currentPath.startsWith("/auth")) return false;
 	if (requestUrl?.includes("/auth/session")) return false;
 
-	window.dispatchEvent(new CustomEvent("auth:session-expired"));
+	globalThis.dispatchEvent(new CustomEvent("auth:session-expired"));
 
 	return true;
 };
