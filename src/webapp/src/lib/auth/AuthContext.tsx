@@ -10,6 +10,7 @@ import {
 	useAuthLogoutCreate,
 	useAuthSessionRetrieve,
 } from "../api/generated";
+import { setSessionExpiryListener } from "./sessionExpiry";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -24,6 +25,7 @@ export interface AuthUser {
 export interface AuthState {
 	status: AuthStatus;
 	user: AuthUser | null;
+	sessionExpired: boolean;
 }
 
 export interface AuthContextValue extends AuthState {
@@ -40,6 +42,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const navigate = useNavigate();
 	const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
+	const [sessionExpired, setSessionExpired] = useState(false);
 
 	// Lazy auth query - only run when explicitly requested
 	const sessionQuery = useAuthSessionRetrieve({
@@ -79,19 +82,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
 	const authState = useMemo((): AuthState => {
 		if (!hasCheckedAuth) {
-			return { status: "loading", user: null };
+			return { status: "loading", user: null, sessionExpired: false };
 		}
 
 		if (sessionQuery.isLoading || sessionQuery.isFetching) {
-			return { status: "loading", user: null };
+			return { status: "loading", user: null, sessionExpired: false };
 		}
 
 		if (sessionQuery.error) {
-			return { status: "unauthenticated", user: null };
+			return { status: "unauthenticated", user: null, sessionExpired };
 		}
 
 		if (!sessionQuery.data?.is_authenticated) {
-			return { status: "unauthenticated", user: null };
+			return { status: "unauthenticated", user: null, sessionExpired };
 		}
 
 		const userData = sessionQuery.data?.user;
@@ -106,6 +109,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 						patronymic: userData.patronymic,
 					}
 				: null,
+			sessionExpired: false,
 		};
 	}, [
 		hasCheckedAuth,
@@ -113,6 +117,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		sessionQuery.isFetching,
 		sessionQuery.error,
 		sessionQuery.data,
+		sessionExpired,
 	]);
 
 	const loginWithMicrosoft = useCallback((redirect?: string) => {
@@ -128,6 +133,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const loginWithDjango = useCallback(
 		async (username: string, password: string) => {
 			await loginMutation.mutateAsync({ data: { username, password } });
+			setSessionExpired(false);
 		},
 		[loginMutation],
 	);
@@ -145,6 +151,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		} finally {
 			setHasCheckedAuth(false);
 			setIsLoggingOut(false);
+			setSessionExpired(false);
 		}
 	}, [logoutMutation, navigate, queryClient, sessionQuery.queryKey]);
 
@@ -157,15 +164,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	// Listen for session expiration events from apiClient
 	useEffect(() => {
 		const handleSessionExpired = () => {
+			setSessionExpired(true);
 			// Invalidate the session query to trigger re-evaluation of auth state
 			queryClient.setQueryData(sessionQuery.queryKey, undefined);
 			queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
 		};
 
-		globalThis.addEventListener("auth:session-expired", handleSessionExpired);
+		setSessionExpiryListener(handleSessionExpired);
 
 		return () => {
-			globalThis.removeEventListener("auth:session-expired", handleSessionExpired);
+			setSessionExpiryListener(null);
 		};
 	}, [queryClient, sessionQuery.queryKey]);
 

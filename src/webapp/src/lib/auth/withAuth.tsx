@@ -19,7 +19,7 @@ export function withAuth<P extends object>(
 		options;
 
 	return function WithAuthComponent(props: P) {
-		const { status, checkAuth } = useAuth();
+		const { status, checkAuth, sessionExpired } = useAuth();
 		const navigate = useNavigate();
 		const hasShownToast = useRef(false);
 
@@ -32,7 +32,9 @@ export function withAuth<P extends object>(
 			if (status === "unauthenticated") {
 				if (!hasShownToast.current) {
 					hasShownToast.current = true;
-					toast.error("Час сесії закінчився, перезайдіть, будь ласка");
+					if (sessionExpired) {
+						toast.error("Час сесії закінчився, перезайдіть, будь ласка");
+					}
 				}
 
 				navigate({
@@ -43,7 +45,7 @@ export function withAuth<P extends object>(
 					replace: true,
 				});
 			}
-		}, [status, navigate]);
+		}, [status, navigate, sessionExpired]);
 
 		// Show loading state while checking auth
 		if (status === "loading") {

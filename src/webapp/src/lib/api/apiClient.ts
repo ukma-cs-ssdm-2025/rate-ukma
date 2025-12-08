@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/react";
 import axios, { AxiosHeaders } from "axios";
 
 import { env } from "@/env";
+import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
 import { handleConnectionIssue } from "./networkError";
 
 export const authorizedHttpClient = axios.create({
@@ -13,6 +14,9 @@ export const authorizedHttpClient = axios.create({
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const CSRF_COOKIE_NAME = "csrftoken";
 const CSRF_HEADER_NAME = "X-CSRFToken";
+const LOGIN_PATH_PREFIX = "/login";
+const AUTH_PATH_PREFIX = "/auth";
+const AUTH_SESSION_ENDPOINT_SUBSTRING = "/auth/session";
 
 const getCsrfToken = () => {
 	if (typeof document === "undefined") {
@@ -58,11 +62,16 @@ const handleSessionExpiry = (error: unknown): boolean => {
 	const requestUrl = error.config?.url;
 	const currentPath = globalThis.location.pathname ?? "";
 
-	if (status !== 401) return false;
-	if (currentPath.startsWith("/login") || currentPath.startsWith("/auth")) return false;
-	if (requestUrl?.includes("/auth/session")) return false;
+	if (status !== 401 && status !== 403) return false;
+	if (
+		currentPath.startsWith(LOGIN_PATH_PREFIX) ||
+		currentPath.startsWith(AUTH_PATH_PREFIX)
+	) {
+		return false;
+	}
+	if (requestUrl?.includes(AUTH_SESSION_ENDPOINT_SUBSTRING)) return false;
 
-	globalThis.dispatchEvent(new CustomEvent("auth:session-expired"));
+	notifySessionExpired();
 
 	return true;
 };
@@ -91,7 +100,7 @@ authorizedHttpClient.interceptors.response.use(
 	(response) => response,
 	(error) => {
 		handleConnectionIssue(error);
-		
+
 		const isSessionExpired = handleSessionExpiry(error);
 
 		if (!isSessionExpired) {
