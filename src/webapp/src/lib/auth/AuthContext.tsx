@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { createContext, useCallback, useMemo, useState } from "react";
+import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -153,6 +153,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			setHasCheckedAuth(true);
 		}
 	}, [hasCheckedAuth, isLoggingOut]);
+
+	// Listen for session expiration events from apiClient
+	useEffect(() => {
+		const handleSessionExpired = () => {
+			// Invalidate the session query to trigger re-evaluation of auth state
+			queryClient.setQueryData(sessionQuery.queryKey, undefined);
+			queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
+		};
+
+		window.addEventListener("auth:session-expired", handleSessionExpired);
+
+		return () => {
+			window.removeEventListener("auth:session-expired", handleSessionExpired);
+		};
+	}, [queryClient, sessionQuery.queryKey]);
 
 	const value = useMemo(
 		() => ({

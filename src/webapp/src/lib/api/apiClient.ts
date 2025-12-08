@@ -51,25 +51,51 @@ authorizedHttpClient.interceptors.request.use((config) => {
 	return config;
 });
 
+const handleSessionExpiry = (error: unknown): boolean => {
+	if (!axios.isAxiosError(error)) return false;
+
+	const status = error.response?.status;
+	const requestUrl = error.config?.url;
+	const currentPath = globalThis.location.pathname;
+
+	if (status !== 401 && status !== 403) return false;
+	if (currentPath.startsWith("/login") || currentPath.startsWith("/auth")) return false;
+	if (requestUrl?.includes("/auth/session")) return false;
+
+	window.dispatchEvent(new CustomEvent("auth:session-expired"));
+
+	return true;
+};
+
+const logErrorToSentry = (error: unknown) => {
+	if (!axios.isAxiosError(error) || axios.isCancel(error)) {
+		return;
+	}
+
+	const method = error.config?.method?.toUpperCase();
+	const status = error.response?.status;
+	const url = error.config?.url;
+
+	Sentry.captureException(error, {
+		level: "error",
+		tags: {
+			httpMethod: method,
+			httpStatus: status?.toString(),
+			axiosErrorCode: error.code,
+		},
+		extra: { url },
+	});
+};
+
 authorizedHttpClient.interceptors.response.use(
 	(response) => response,
 	(error) => {
 		handleConnectionIssue(error);
+		
+		const isSessionExpired = handleSessionExpiry(error);
 
-		if (axios.isAxiosError(error) && !axios.isCancel(error)) {
-			const method = error.config?.method?.toUpperCase();
-
-			Sentry.captureException(error, {
-				level: "error",
-				tags: {
-					httpMethod: method,
-					httpStatus: error.response?.status?.toString(),
-					axiosErrorCode: error.code,
-				},
-				extra: {
-					url: error.config?.url,
-				},
-			});
+		if (!isSessionExpired) {
+			logErrorToSentry(error);
 		}
 
 		return Promise.reject(error);

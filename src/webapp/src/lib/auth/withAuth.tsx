@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
 
 import { Spinner } from "@/components/ui/Spinner";
+import { toast } from "@/components/ui/Toaster";
 import { useAuth } from "./useAuth";
 
 interface WithAuthProps {
@@ -20,6 +21,7 @@ export function withAuth<P extends object>(
 	return function WithAuthComponent(props: P) {
 		const { status, checkAuth } = useAuth();
 		const navigate = useNavigate();
+		const hasShownToast = useRef(false);
 
 		useEffect(() => {
 			checkAuth();
@@ -28,6 +30,11 @@ export function withAuth<P extends object>(
 		useEffect(() => {
 			// Redirect to login if unauthenticated
 			if (status === "unauthenticated") {
+				if (!hasShownToast.current) {
+					hasShownToast.current = true;
+					toast.error("Час сесії закінчився, перезайдіть, будь ласка");
+				}
+
 				navigate({
 					to: redirectTo,
 					search: {
