@@ -56,7 +56,7 @@ const handleSessionExpiry = (error: unknown): boolean => {
 
 	const status = error.response?.status;
 	const requestUrl = error.config?.url;
-	const currentPath = globalThis.location.pathname;
+	const currentPath = globalThis.location.pathname ?? "";
 
 	if (status !== 401) return false;
 	if (currentPath.startsWith("/login") || currentPath.startsWith("/auth")) return false;
