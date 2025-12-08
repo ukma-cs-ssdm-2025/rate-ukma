@@ -1,4 +1,4 @@
-import { useState, useId } from "react";
+import { useId, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { getFacultyColors } from "@/lib/faculty-colors";
@@ -99,7 +99,11 @@ export function CourseSpecialityBadges({
 					type="button"
 					className="text-xs text-muted-foreground font-semibold px-2 py-0.5 rounded-md hover:bg-muted hover:text-foreground transition-colors cursor-pointer speciality-badges-trigger"
 					aria-expanded={isExpanded}
-					aria-label={isExpanded ? "Приховати додаткові спеціальності" : `Показати ще ${hiddenCount} спеціальностей`}
+					aria-label={
+						isExpanded
+							? "Приховати додаткові спеціальності"
+							: `Показати ще ${hiddenCount} спеціальностей`
+					}
 					aria-controls={badgesId}
 					onClick={(e) => {
 						e.preventDefault();

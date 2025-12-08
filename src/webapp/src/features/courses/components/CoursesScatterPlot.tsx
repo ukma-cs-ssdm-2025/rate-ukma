@@ -379,11 +379,9 @@ function ScatterPlotContent({
 				width={width}
 				height={height}
 				className="bg-background cursor-grab active:cursor-grabbing"
-				aria-labelledby="courses-scatterplot-title"
+				aria-label="Діаграма розподілу курсів за корисністю та складністю"
+				role="img"
 			>
-				<title id="courses-scatterplot-title">
-					Діаграма розподілу курсів за корисністю та складністю
-				</title>
 				<Group
 					transform={`translate(${margin.left + transform.x}, ${margin.top + transform.y}) scale(${transform.k})`}
 				>
