@@ -1,3 +1,5 @@
+import { useState, useId } from "react";
+
 import { Badge } from "@/components/ui/Badge";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { cn } from "@/lib/utils";
@@ -19,19 +21,30 @@ function getSpecialityAlias(
 	if (customAbbreviation) {
 		return customAbbreviation;
 	}
-	if (name.split(" ").length === 1) {
+
+	const separator = /[\s-]+/;
+
+	if (name.split(separator).length === 1) {
 		return name;
 	}
+
 	return name
-		.split(/\s+/)
+		.split(separator)
+		.map((word) => word.replaceAll(/[^\p{L}]/gu, ""))
+		.filter((word) => word.length > 0)
 		.map((word) => word[0])
 		.join("")
 		.toUpperCase();
 }
 
+const MAX_VISIBLE_BADGES = 5;
+
 export function CourseSpecialityBadges({
 	specialities,
 }: Readonly<CourseSpecialityBadgesProps>) {
+	const [isExpanded, setIsExpanded] = useState(false);
+	const badgesId = useId();
+
 	if (!specialities || specialities.length === 0) {
 		return null;
 	}
@@ -44,9 +57,15 @@ export function CourseSpecialityBadges({
 		return null;
 	}
 
+	const hasHiddenBadges = validSpecialities.length > MAX_VISIBLE_BADGES;
+	const displayedSpecialities = isExpanded
+		? validSpecialities
+		: validSpecialities.slice(0, MAX_VISIBLE_BADGES);
+	const hiddenCount = validSpecialities.length - MAX_VISIBLE_BADGES;
+
 	return (
-		<span className="inline-flex flex-wrap gap-1.5">
-			{validSpecialities.map((speciality) => {
+		<span id={badgesId} className="inline-flex flex-wrap gap-1.5">
+			{displayedSpecialities.map((speciality) => {
 				const abbreviation = getSpecialityAlias(
 					speciality.speciality_title || "",
 					speciality.speciality_alias,
@@ -75,6 +94,22 @@ export function CourseSpecialityBadges({
 					</Badge>
 				);
 			})}
+			{hasHiddenBadges && (
+				<button
+					type="button"
+					className="text-xs text-muted-foreground font-semibold px-2 py-0.5 rounded-md hover:bg-muted hover:text-foreground transition-colors cursor-pointer speciality-badges-trigger"
+					aria-expanded={isExpanded}
+					aria-label={isExpanded ? "Приховати додаткові спеціальності" : `Показати ще ${hiddenCount} спеціальностей`}
+					aria-controls={badgesId}
+					onClick={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						setIsExpanded(!isExpanded);
+					}}
+				>
+					{isExpanded ? "Менше" : `+${hiddenCount} більше`}
+				</button>
+			)}
 		</span>
 	);
 }
