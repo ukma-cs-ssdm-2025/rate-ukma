@@ -1,4 +1,4 @@
-import { useState, useId} from "react";
+import { useState, useId } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { getFacultyColors } from "@/lib/faculty-colors";
