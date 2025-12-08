@@ -1,5 +1,8 @@
 import pytest
 
+from rating_app.ioc_container.repositories import rating_repository
+from rating_app.ioc_container.services import course_service
+
 
 @pytest.fixture
 def analytics_url():
@@ -187,6 +190,10 @@ def test_analytics_filter_by_ratings_count(
 
     offering = course_offering_factory(course=course_with_ratings)
     rating_factory.create_batch(5, course_offering=offering)
+
+    # Manually update aggregates
+    stats = rating_repository().get_aggregated_course_stats(course_with_ratings)
+    course_service().update_course_aggregates(course_with_ratings, stats)
 
     course_with_ratings.refresh_from_db()
     course_no_ratings.refresh_from_db()
