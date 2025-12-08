@@ -71,6 +71,8 @@ jobs:
 
       - name: Set Final Version Tag
         id: final_version
+        env:
+          TAG_PREFIX: ${{ inputs.tag_prefix }}
         run: |
           # If semantic version was generated
           if [[ -n "${{ steps.semantic.outputs.version_tag }}" ]]; then
@@ -80,7 +82,7 @@ jobs:
             echo "authors=${{ steps.semantic.outputs.authors }}" >> $GITHUB_OUTPUT
           else
             # Fallback to latest tag from repo
-            LATEST_TAG=$(git tag --list "${{ inputs.tag_prefix }}*" --sort=-v:refname | head -n 1)
+            LATEST_TAG=$(git tag --list "${TAG_PREFIX}*" --sort=-v:refname | head -n 1)
 
             if [[ -z "$LATEST_TAG" ]]; then
               echo "No latest tag found"
