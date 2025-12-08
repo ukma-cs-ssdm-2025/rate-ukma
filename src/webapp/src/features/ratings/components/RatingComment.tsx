@@ -8,8 +8,11 @@ export function RatingComment({
 	emptyMessage = "Студент не лишив коментар.",
 }: RatingCommentProps) {
 	if (comment) {
+		const formattedComment = comment.replace(/\n{4,}/g, "\n\n\n");
 		return (
-			<p className="text-sm leading-relaxed text-foreground/90">{comment}</p>
+			<p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+				{formattedComment}
+			</p>
 		);
 	}
 
