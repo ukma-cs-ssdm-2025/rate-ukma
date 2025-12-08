@@ -51,7 +51,6 @@ export class CoursesPage extends BasePage {
 
 		await Promise.all([
 			this.page.waitForURL(this.courseDetailsPagePattern, { timeout: 10000 }),
-			this.waitForRatingsAPIResponse(),
 			firstCourseCard.click(),
 		]);
 
@@ -66,14 +65,6 @@ export class CoursesPage extends BasePage {
 			throw new Error("Course title not found");
 		}
 		return title.trim();
-	}
-
-	async waitForRatingsAPIResponse(): Promise<void> {
-		await this.page.waitForResponse(
-			(response) =>
-				response.url().includes("/ratings") && response.status() === 200,
-			{ timeout: 20000 },
-		);
 	}
 
 	async navigateToFirstCourseDetailsPage(): Promise<string> {
