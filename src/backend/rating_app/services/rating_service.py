@@ -150,7 +150,7 @@ class RatingService(IObservable[Rating]):
 
     @staticmethod
     def _normalize_comment(comment: str | None) -> str | None:
-        if comment is "":
+        if comment == "":
             return comment
 
         # normalize line breaks
