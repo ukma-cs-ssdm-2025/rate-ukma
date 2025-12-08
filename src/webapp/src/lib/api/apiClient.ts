@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/react";
 import axios, { AxiosHeaders } from "axios";
 
 import { env } from "@/env";
+import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
 import { handleConnectionIssue } from "./networkError";
 
 export const authorizedHttpClient = axios.create({
@@ -13,6 +14,9 @@ export const authorizedHttpClient = axios.create({
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const CSRF_COOKIE_NAME = "csrftoken";
 const CSRF_HEADER_NAME = "X-CSRFToken";
+const LOGIN_PATH_PREFIX = "/login";
+const AUTH_PATH_PREFIX = "/auth";
+const AUTH_SESSION_ENDPOINT_SUBSTRING = "/auth/session";
 
 const getCsrfToken = () => {
 	if (typeof document === "undefined") {
@@ -51,25 +55,56 @@ authorizedHttpClient.interceptors.request.use((config) => {
 	return config;
 });
 
+const handleSessionExpiry = (error: unknown): boolean => {
+	if (!axios.isAxiosError(error)) return false;
+
+	const status = error.response?.status;
+	const requestUrl = error.config?.url;
+	const currentPath = globalThis.location.pathname ?? "";
+
+	if (status !== 401 && status !== 403) return false;
+	if (
+		currentPath.startsWith(LOGIN_PATH_PREFIX) ||
+		currentPath.startsWith(AUTH_PATH_PREFIX)
+	) {
+		return false;
+	}
+	if (requestUrl?.includes(AUTH_SESSION_ENDPOINT_SUBSTRING)) return false;
+
+	notifySessionExpired();
+
+	return true;
+};
+
+const logErrorToSentry = (error: unknown) => {
+	if (!axios.isAxiosError(error) || axios.isCancel(error)) {
+		return;
+	}
+
+	const method = error.config?.method?.toUpperCase();
+	const status = error.response?.status;
+	const url = error.config?.url;
+
+	Sentry.captureException(error, {
+		level: "error",
+		tags: {
+			httpMethod: method,
+			httpStatus: status?.toString(),
+			axiosErrorCode: error.code,
+		},
+		extra: { url },
+	});
+};
+
 authorizedHttpClient.interceptors.response.use(
 	(response) => response,
 	(error) => {
 		handleConnectionIssue(error);
 
-		if (axios.isAxiosError(error) && !axios.isCancel(error)) {
-			const method = error.config?.method?.toUpperCase();
+		const isSessionExpired = handleSessionExpiry(error);
 
-			Sentry.captureException(error, {
-				level: "error",
-				tags: {
-					httpMethod: method,
-					httpStatus: error.response?.status?.toString(),
-					axiosErrorCode: error.code,
-				},
-				extra: {
-					url: error.config?.url,
-				},
-			});
+		if (!isSessionExpired) {
+			logErrorToSentry(error);
 		}
 
 		return Promise.reject(error);
