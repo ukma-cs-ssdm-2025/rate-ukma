@@ -13,7 +13,7 @@ export class BasePage {
 	/**
 	 * Wait for page to be fully loaded and ready for interactions
 	 */
-	async waitForPageLoad(timeout = TEST_CONFIG.pageLoadTimeout): Promise<void> {
+	async waitForPageLoad(timeout: number = TEST_CONFIG.pageLoadTimeout): Promise<void> {
 		await this.page.waitForLoadState("domcontentloaded", { timeout });
 		await this.page.waitForLoadState("networkidle", {
 			timeout: Math.max(timeout, TEST_CONFIG.networkIdleTimeout),
@@ -22,14 +22,14 @@ export class BasePage {
 
 	async waitForElement(
 		locator: Locator,
-		timeout = TEST_CONFIG.elementTimeout,
+		timeout: number = TEST_CONFIG.elementTimeout,
 	): Promise<void> {
 		await expect(locator).toBeVisible({ timeout });
 	}
 
 	async clickWithRetry(
 		locator: Locator,
-		maxRetries = TEST_CONFIG.maxRetries,
+		maxRetries: number = TEST_CONFIG.maxRetries,
 	): Promise<void> {
 		for (let i = 0; i < maxRetries; i++) {
 			try {
@@ -45,7 +45,7 @@ export class BasePage {
 	async fillWithRetry(
 		locator: Locator,
 		text: string,
-		maxRetries = TEST_CONFIG.maxRetries,
+		maxRetries: number = TEST_CONFIG.maxRetries,
 	): Promise<void> {
 		for (let i = 0; i < maxRetries; i++) {
 			try {

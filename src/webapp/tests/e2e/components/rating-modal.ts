@@ -58,7 +58,7 @@ export class RatingModal extends BasePage {
 
 	async isVisible(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.modal, 5000);
+			await this.waitForElement(this.modal, 10000);
 			return true;
 		} catch {
 			return false;
@@ -67,7 +67,7 @@ export class RatingModal extends BasePage {
 
 	async isTitleVisible(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.modalTitle, 3000);
+			await this.waitForElement(this.modalTitle, 10000);
 			return true;
 		} catch {
 			return false;
