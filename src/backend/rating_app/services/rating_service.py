@@ -1,7 +1,7 @@
+import re
 from datetime import datetime
 from decimal import Decimal
 from typing import cast
-import re
 
 from django.db.models import QuerySet
 
@@ -150,7 +150,7 @@ class RatingService(IObservable[Rating]):
 
     @staticmethod
     def _normalize_comment(comment: str | None) -> str | None:
-        if comment == "":
+        if not comment or comment == "":
             return comment
 
         # normalize line breaks
