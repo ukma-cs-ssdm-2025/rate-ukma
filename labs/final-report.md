@@ -24,7 +24,7 @@
 - **Database:** PostgreSQL
 - **Caching:** Redis
 - **Infrastructure:** Docker, AWS
-- **Testing:** Playwright (E2E), pytest (Unit/Integration)
+- **Testing:** Playwright (E2E), pytest (Backend Unit/Integration), Jest (Frontend Unit/Integration)
 - **API Contract:** OpenAPI/Swagger
 - **CI/CD:** GitHub Actions
 
@@ -96,71 +96,82 @@
 
 ## Key Features
 
-### 1. Course Catalog & Search
+See [Requirements Traceability Matrix](../docs/traceability-matrix.md) for detailed tracking (91.7% coverage).
 
-Students can browse all available courses at NaUKMA and search using advanced filters:
+### Core Features (Production)
 
-- Filter by department, professor and course name
-- Sort by rating, difficulty and usefulness
-- View rating trends
+#### 1. Course Catalog & Search (US-002, US-003)
 
-### 2. Smart Rating & Review System
+Full-text search and filtering by department, professor and course type with sorting by rating/difficulty/usefulness. Optimized for 300+ concurrent users, <1.5s response time.
 
-Authenticated students can:
+#### 2. Interactive Scatter Plot Visualization (US-005)
 
-- Rate courses on multiple dimensions (difficulty, usefulness)
-- Write detailed text reviews
-- View aggregate statistics and distribution charts
-- Maintain anonymity to prevent bias
+Explore courses by usefulness and difficulty with bubble sizing by rating count. Features D3 zoom (1x-8x), smart label placement, hover tooltips, faculty color-coding and responsive design. Handles 300+ concurrent users.
 
-### 3. Secure Authentication
+#### 3. Smart Rating & Review System (US-009, US-010)
 
-- NaUKMA Outlook OAuth integration
-- Student-only access control
-- Session management and token-based authentication
-- Anonymous review submission
+Rate courses on difficulty and usefulness (1-5 scales) with optional anonymous reviews. Full edit/delete capability, aggregate statistics and personal progress tracking per semester.
+
+#### 4. Secure Authentication (US-001)
+
+NaUKMA Outlook OAuth integration with token-based auth, 30-minute timeout, automatic enrollment linking. HTTPS/TLS encryption, 99.5% uptime target (Sentry monitored).
+
+### Partial/Pending Features
+
+#### 5. Admin Statistics & Monitoring (US-012)
+
+Partially Implemented - basic dashboard exists.
+Pending: large dataset optimization, full filter support, backup recovery verification.
 
 ---
 
 ## Deployment & Access
 
-**Staging Environment:** <https://staging.rateukma.com>
+- **Staging:** <https://staging.rateukma.com>
+- **Production:** <https://rateukma.com>
+- **Repository:** <https://github.com/ukma-cs-ssdm-2025/rate-ukma>
 
-**Production Environment:** <https://rateukma.com>
-
-**GitHub Repository:** <https://github.com/ukma-cs-ssdm-2025/rate-ukma>
-
-### Infrastructure
-
-- **Hosting:** AWS (EC2, RDS, ElastiCache)
-- **Containerization:** Docker & Docker Compose
-- **Database:** PostgreSQL (primary), Redis (caching)
-- **CI/CD:** GitHub Actions (automated testing, building, deployment)
-- **Monitoring:** AWS CloudWatch
+**Infrastructure:** AWS (EC2, RDS, ElastiCache), Docker Compose, PostgreSQL + Redis, GitHub Actions CI/CD, CloudWatch monitoring
 
 ---
 
 ## Project Statistics
 
+### Requirements Coverage
+
+- **Overall Traceability:** 91.7% coverage (see [Requirements Traceability Matrix](../docs/traceability-matrix.md))
+  - ✅ **10 Fully Implemented** (83.3%): Authentication, search, filtering, visualization, ratings and user profiles
+  - ⚠️ **1 Partially Implemented** (8.3%): Admin statistics dashboard (low priority; queries available when needed)
+  - 🔄 **1 In Progress** (8.3%): Course recommendations engine (foundation being built)
+
+**Focus:** Prioritized user-facing features and stability. Pre-release effort concentrated on bug fixes, performance optimization and production readiness rather than admin analytics or recommendations.
+
 ### Development Metrics
 
-- **Team Size:** 4 members
-- **Project Duration:** 10 labs + 1 midterm + final
-- **Code Coverage:** See [coverage badge](../coverage.svg)
-- **Release Status:** See [latest releases](https://github.com/ukma-cs-ssdm-2025/rate-ukma/releases)
+- **Team:** 4 members over 10 labs + midterm + final
+- **Coverage:** 10 of 12 user stories (83.3%), 11 of 12 functional requirements (91.7%)
+- **Testing:** E2E (Playwright), Unit/Integration (pytest, Jest), [Reliability Report](../docs/reliability/reliability-report.md)
+- **Code Quality:** [SonarCloud](../docs/refactor/sonarcloud-report.md), [Static Analysis](../docs/code-quality/static-analysis.md)
+- **Releases:** [Latest releases](https://github.com/ukma-cs-ssdm-2025/rate-ukma/releases)
 
 ### Process Metrics (DORA)
 
-- **Deployment Frequency:** Track in [CI/CD metrics](../docs/ci-cd/dora-summary.md)
-- **Lead Time for Changes:** Document in metrics reports
-- **Mean Time to Recovery (MTTR):** Monitor in [reliability reports](../docs/reliability/reliability-report.md)
-- **Change Failure Rate:** Assess in quality reports
+- **Deployment Frequency, Lead Time, MTTR:** See [CI/CD metrics](../docs/ci-cd/dora-summary.md) and [reliability reports](../docs/reliability/reliability-report.md)
 
-## Future Enhancements
+## Next Steps & Roadmap
 
-RateUKMA has successfully established the foundation for a comprehensive course rating platform at NaUKMA. Areas for future expansion include:
+RateUKMA has delivered core functionality with 91.7% requirements coverage. Future development focuses on stabilization and user engagement expansion:
 
-- Comment and reply system for discussions on reviews
-- Professor response mechanism to ratings
-- Course recommendation engine based on user preferences
-- Mobile application (iOS & Android)
+### Immediate Priorities
+
+- **User Interaction** (#281): Upvote/downvote for ratings, review helpfulness voting
+- **Review Management** (#251, #318): Comments/replies, content filtering, abuse reporting
+- **Personalization** (US-007, US-008): Course recommendations engine, home page suggestions, saved courses
+- **UI Polish** (#261, #225, #247): Highlight attended courses, display academic year, mobile optimization
+
+### Extended Development
+
+- **Academic Planning**: Build next-year course plans with RateUKMA guidance, curriculum builder, course scheduler
+- **Advanced Analytics**: Trend analysis over time, instructor performance metrics, department statistics
+- **Institutional Integration**: Course registration sync, admin dashboard (#177), analytics export
+- **Platform Scaling**: Kubernetes, CDN, database optimization, mobile apps (iOS/Android)
