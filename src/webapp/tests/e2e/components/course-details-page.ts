@@ -75,13 +75,19 @@ export class CourseDetailsPage extends BasePage {
 
 	async isPageLoaded(): Promise<boolean> {
 		try {
-			await this.page.waitForURL(this.courseDetailsUrlPattern, {
-				timeout: TEST_CONFIG.pageLoadTimeout,
-			});
-			await this.waitForPageLoad(TEST_CONFIG.pageLoadTimeout);
-			await this.waitForElement(
-				this.pageTitle,
-				TEST_CONFIG.pageLoadTimeout,
+			await withRetry(
+				async () => {
+					await this.page.waitForURL(this.courseDetailsUrlPattern, {
+						timeout: TEST_CONFIG.pageLoadTimeout,
+					});
+					await this.waitForPageLoad(TEST_CONFIG.pageLoadTimeout);
+					await this.waitForElement(
+						this.pageTitle,
+						TEST_CONFIG.pageLoadTimeout,
+					);
+				},
+				TEST_CONFIG.maxRetries,
+				TEST_CONFIG.retryDelay,
 			);
 			return true;
 		} catch {
@@ -147,10 +153,7 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async waitForRatingElements(): Promise<void> {
-		await this.waitForElement(
-			this.reviewsSection,
-			TEST_CONFIG.pageLoadTimeout,
-		);
+		await this.waitForElement(this.reviewsSection, TEST_CONFIG.pageLoadTimeout);
 		await this.waitForElement(
 			this.reviewsCountStat,
 			TEST_CONFIG.pageLoadTimeout,
