@@ -1,6 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+import { TEST_CONFIG } from "./test-config";
+
 export class BasePage {
 	protected page: Page;
 
@@ -11,23 +13,31 @@ export class BasePage {
 	/**
 	 * Wait for page to be fully loaded and ready for interactions
 	 */
-	async waitForPageLoad(): Promise<void> {
-		await this.page.waitForLoadState("domcontentloaded");
-		await this.page.waitForLoadState("networkidle");
+	async waitForPageLoad(timeout = TEST_CONFIG.pageLoadTimeout): Promise<void> {
+		await this.page.waitForLoadState("domcontentloaded", { timeout });
+		await this.page.waitForLoadState("networkidle", {
+			timeout: Math.max(timeout, TEST_CONFIG.networkIdleTimeout),
+		});
 	}
 
-	async waitForElement(locator: Locator, timeout = 10000): Promise<void> {
+	async waitForElement(
+		locator: Locator,
+		timeout = TEST_CONFIG.elementTimeout,
+	): Promise<void> {
 		await expect(locator).toBeVisible({ timeout });
 	}
 
-	async clickWithRetry(locator: Locator, maxRetries = 3): Promise<void> {
+	async clickWithRetry(
+		locator: Locator,
+		maxRetries = TEST_CONFIG.maxRetries,
+	): Promise<void> {
 		for (let i = 0; i < maxRetries; i++) {
 			try {
 				await locator.click();
 				return;
 			} catch (error) {
 				if (i === maxRetries - 1) throw error;
-				await this.page.waitForTimeout(500);
+				await this.page.waitForTimeout(TEST_CONFIG.retryDelay);
 			}
 		}
 	}
@@ -35,7 +45,7 @@ export class BasePage {
 	async fillWithRetry(
 		locator: Locator,
 		text: string,
-		maxRetries = 3,
+		maxRetries = TEST_CONFIG.maxRetries,
 	): Promise<void> {
 		for (let i = 0; i < maxRetries; i++) {
 			try {
@@ -43,7 +53,7 @@ export class BasePage {
 				return;
 			} catch (error) {
 				if (i === maxRetries - 1) throw error;
-				await this.page.waitForTimeout(500);
+				await this.page.waitForTimeout(TEST_CONFIG.retryDelay);
 			}
 		}
 	}
