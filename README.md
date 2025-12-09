@@ -56,6 +56,7 @@ For comprehensive project information, please refer to the following documents:
 - [API Quality Attributes](docs/api/api-quality-attributes.md) - Performance, security, reliability, usability, and maintainability targets for the API
 - [Testing Strategy](docs/testing/testing-strategy.md) - Comprehensive testing approach, tools, and quality gates
 - [Test Plan](docs/validation/test-plan.md) - Detailed test cases and acceptance criteria
+- [Final Report](labs/final-report.md) - Final report and navigation hub
 
 ## 🚀 Running Project
 
