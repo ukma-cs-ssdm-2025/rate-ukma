@@ -13,12 +13,12 @@
 
 ## 2. Roles & Responsibilities
 
-| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation | Construction I | Testing & Debugging | Verification & Validation | Refactoring & Evolution | Reliability Engineering |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead | Code Reviewer | Integration Lead | Review Manager | Release Manager | Resilience Engineer |
-| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead | Quality Lead | Debugger | Test Planner | Code Analyst | Risk Documentarian |
-| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead | Quality Lead | Security Analyst | Test Lead | Documentation Lead | QA Engineer | Fault Classifier |
-| **Milana** | Documentation Lead | Quality Lead | Documentation Lead | Documentation Lead | Documentation Lead | QA Planner | QA Analyst | Refactoring Lead | Reliability Explorer |
+| Name | Core | Project Requirements | Architecture & Design | API Design & Implementation | Construction I | Testing & Debugging | Verification & Validation | Refactoring & Evolution | Reliability Engineering | Integration & CI/CD |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Anastasiia** | CI Maintainer | Documentation Lead | Requirements–Architecture Mapper | Integration Lead | Code Reviewer | Integration Lead | Review Manager | Release Manager | Resilience Engineer | Metrics Analyst |
+| **Kateryna** | Repo Maintainer | Traceability Lead | Architecture Lead | Backend Lead | Quality Lead | Debugger | Test Planner | Code Analyst | Risk Documentarian | Documentation Lead |
+| **Andrii** | Issue Tracker Lead | Requirements Lead | UML Lead | Quality Lead | Security Analyst | Test Lead | Documentation Lead | QA Engineer | Fault Classifier | Data Gatherer |
+| **Milana** | Documentation Lead | Quality Lead | Documentation Lead | Documentation Lead | Documentation Lead | QA Planner | QA Analyst | Refactoring Lead | Reliability Explorer | Improvement Designer |
 
 ### Verification & Validation Roles
 
