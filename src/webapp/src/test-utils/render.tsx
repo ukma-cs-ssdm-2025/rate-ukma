@@ -3,6 +3,8 @@ import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type RenderOptions, render, renderHook } from "@testing-library/react";
 
+import { AuthProvider } from "@/lib/auth";
+
 /**
  * Custom render function that wraps components with necessary providers
  * Use this instead of @testing-library/react's render for tests that need API/query context
@@ -27,7 +29,9 @@ export function renderWithProviders(
 
 	function Wrapper({ children }: Readonly<{ children: ReactNode }>) {
 		return (
-			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+			<QueryClientProvider client={queryClient}>
+				<AuthProvider>{children}</AuthProvider>
+			</QueryClientProvider>
 		);
 	}
 
@@ -60,7 +64,9 @@ export function renderHookWithProviders<Result, Props>(
 
 	function Wrapper({ children }: Readonly<{ children: ReactNode }>) {
 		return (
-			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+			<QueryClientProvider client={queryClient}>
+				<AuthProvider>{children}</AuthProvider>
+			</QueryClientProvider>
 		);
 	}
 
