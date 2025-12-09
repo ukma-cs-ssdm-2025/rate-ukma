@@ -23,6 +23,8 @@ test.describe("Ratings are displayed", () => {
 	});
 
 	test("displays reviews list and stats when course has reviews", async () => {
+		await courseDetailsPage.waitForReviewsData();
+
 		expect(await courseDetailsPage.hasStatsData()).toBe(true);
 		expect(await courseDetailsPage.isReviewsSectionVisible()).toBe(true);
 

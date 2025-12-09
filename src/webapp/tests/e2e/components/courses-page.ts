@@ -2,6 +2,8 @@ import type { Locator, Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 import { BasePage } from "./base-page";
+import { withRetry } from "./common";
+import { TEST_CONFIG } from "./test-config";
 
 export class CoursesPage extends BasePage {
 	// TODO: add filtering functionality here
@@ -29,12 +31,15 @@ export class CoursesPage extends BasePage {
 		await this.page.goto(baseUrl);
 		await this.waitForPageLoad();
 		await this.coursesTable.waitFor({ state: "visible" });
-		await this.page.waitForLoadState("networkidle");
+		await this.waitForCoursesToRender();
 	}
 
 	async isPageLoaded(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.pageTitle, 15000);
+			await this.waitForElement(
+				this.pageTitle,
+				TEST_CONFIG.pageLoadTimeout,
+			);
 			return true;
 		} catch {
 			return false;
@@ -42,20 +47,24 @@ export class CoursesPage extends BasePage {
 	}
 
 	async getFirstCourseCard(): Promise<Locator> {
-		return await this.courseTitleLinks.first();
+		await this.waitForCoursesToRender();
+		return this.courseTitleLinks.first();
 	}
 
 	async clickFirstCourseCard(): Promise<void> {
 		const firstCourseCard = await this.getFirstCourseCard();
-		await this.waitForElement(firstCourseCard);
+		await withRetry(async () => {
+			await this.waitForElement(firstCourseCard, TEST_CONFIG.elementTimeout);
 
-		await Promise.all([
-			this.page.waitForURL(this.courseDetailsPagePattern, { timeout: 10000 }),
-			this.waitForRatingsAPIResponse(),
-			firstCourseCard.click(),
-		]);
+			await Promise.all([
+				this.page.waitForURL(this.courseDetailsPagePattern, {
+					timeout: TEST_CONFIG.pageLoadTimeout,
+				}),
+				this.clickWithRetry(firstCourseCard),
+			]);
+		}, TEST_CONFIG.maxRetries + 2);
 
-		await this.page.waitForLoadState("networkidle");
+		await this.waitForPageLoad();
 	}
 
 	async getFirstCourseCardTitle(): Promise<string> {
@@ -68,18 +77,20 @@ export class CoursesPage extends BasePage {
 		return title.trim();
 	}
 
-	async waitForRatingsAPIResponse(): Promise<void> {
-		await this.page.waitForResponse(
-			(response) =>
-				response.url().includes("/ratings") && response.status() === 200,
-			{ timeout: 20000 },
-		);
-	}
-
 	async navigateToFirstCourseDetailsPage(): Promise<string> {
 		const courseTitle = await this.getFirstCourseCardTitle();
 		await this.clickFirstCourseCard();
 
 		return courseTitle;
+	}
+
+	private async waitForCoursesToRender(): Promise<void> {
+		await this.waitForElement(this.coursesTable, TEST_CONFIG.pageLoadTimeout);
+		await withRetry(async () => {
+			const courseCount = await this.courseTitleLinks.count();
+			if (courseCount === 0) {
+				throw new Error("Courses have not finished loading");
+			}
+		}, TEST_CONFIG.maxRetries + 2);
 	}
 }

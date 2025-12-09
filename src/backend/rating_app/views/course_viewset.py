@@ -64,7 +64,7 @@ class CourseViewSet(viewsets.ViewSet):
         responses=R_FILTER_OPTIONS,
     )
     @action(detail=False, methods=["get"], url_path="filter-options")
-    @rcached(ttl=300)
+    @rcached(ttl=86400)  # 24 hours - filter options rarely change
     def filter_options(self, request) -> Response:
         assert self.course_service is not None
 

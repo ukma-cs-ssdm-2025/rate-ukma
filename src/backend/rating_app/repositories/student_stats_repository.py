@@ -1,9 +1,9 @@
 from typing import Any
 
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 
 from rating_app.exception.student_exceptions import StudentNotFoundError
-from rating_app.models import CourseOffering, Student
+from rating_app.models import CourseOffering, Rating, Student
 
 
 class StudentStatisticsRepository:
@@ -71,20 +71,26 @@ class StudentStatisticsRepository:
         Each record is an attended course offering.
         """
 
+        student_ratings = Prefetch(
+            "ratings",
+            queryset=Rating.objects.filter(student_id=student_id),
+            to_attr="student_ratings_list",
+        )
+
         offerings_qs = (
             CourseOffering.objects.filter(
                 Q(enrollments__student_id=student_id)
                 & (Q(enrollments__status="ENROLLED") | Q(enrollments__status="FORCED"))
             )
             .select_related("course", "semester")
-            .prefetch_related("ratings")
+            .prefetch_related(student_ratings)
             .distinct()
             .order_by("semester__year", "semester__term", "course__title")
         )
 
         result = []
         for offering in offerings_qs:
-            rating_obj = offering.ratings.filter(student_id=student_id).first()  # type: ignore[attr-defined]
+            rating_obj = offering.student_ratings_list[0] if offering.student_ratings_list else None
             rated = None
             if rating_obj:
                 rated = {
