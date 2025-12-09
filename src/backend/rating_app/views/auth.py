@@ -165,6 +165,7 @@ def session(request):
             "patronymic": patronymic,
         },
         "expires_at": _get_session_expiry(request),
+        "is_student": bool(student_profile),
     }
 
     serializer = SessionSerializer(data=data)

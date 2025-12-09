@@ -689,8 +689,7 @@ export function CoursesScatterPlot({
 		return analytics
 			.filter(
 				(course) =>
-					course.avg_usefulness != null &&
-					course.avg_difficulty != null,
+					course.avg_usefulness != null && course.avg_difficulty != null,
 			)
 			.map((course) => {
 				const ratingsCount = course.ratings_count ?? 0;

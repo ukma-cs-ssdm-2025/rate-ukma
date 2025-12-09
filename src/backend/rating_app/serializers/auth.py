@@ -25,6 +25,7 @@ class SessionSerializer(serializers.Serializer):
     is_authenticated = serializers.BooleanField()
     user = SessionUserSerializer(allow_null=True)
     expires_at = serializers.DateTimeField(allow_null=True, required=False)
+    is_student = serializers.BooleanField()
 
 
 class CSRFTokenSerializer(serializers.Serializer):

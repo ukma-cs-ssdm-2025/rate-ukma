@@ -2292,8 +2292,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        is_student:
+          type: boolean
       required:
       - is_authenticated
+      - is_student
       - user
     SessionUser:
       type: object

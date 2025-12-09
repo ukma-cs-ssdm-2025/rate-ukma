@@ -3,13 +3,13 @@ export type SessionExpiryListener = () => void;
 let sessionExpiryListener: SessionExpiryListener | null = null;
 
 export const setSessionExpiryListener = (
-    listener: SessionExpiryListener | null,
+	listener: SessionExpiryListener | null,
 ) => {
-    sessionExpiryListener = listener;
+	sessionExpiryListener = listener;
 };
 
 export const notifySessionExpired = () => {
-    if (sessionExpiryListener) {
-        sessionExpiryListener();
-    }
+	if (sessionExpiryListener) {
+		sessionExpiryListener();
+	}
 };
