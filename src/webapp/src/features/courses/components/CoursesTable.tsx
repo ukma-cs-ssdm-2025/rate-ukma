@@ -42,6 +42,7 @@ import {
 	useCoursesFilterOptionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
+import { useAuth } from "@/lib/auth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
@@ -314,6 +315,7 @@ export function CoursesTable({
 	initialFilters = DEFAULT_FILTERS,
 }: Readonly<CoursesTableProps>) {
 	const navigate = useNavigate({ from: "/" });
+	const { isStudent } = useAuth();
 
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [pagination, setPagination] = useState<PaginationState>({
@@ -332,7 +334,11 @@ export function CoursesTable({
 	const hasInitializedRef = useRef(false);
 	const fullscreenTimeoutRef = useRef<number | null>(null);
 
-	const { data: studentCourses } = useStudentsMeCoursesRetrieve();
+	const { data: studentCourses } = useStudentsMeCoursesRetrieve({
+		query: {
+			enabled: isStudent,
+		},
+	});
 
 	const attendedCourseIds = useMemo(() => {
 		if (!studentCourses) return new Set<string>();

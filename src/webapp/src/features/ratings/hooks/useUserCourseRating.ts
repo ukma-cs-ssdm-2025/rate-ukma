@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { InlineCourseOffering, InlineRating } from "@/lib/api/generated";
 import { useStudentsMeCoursesRetrieve } from "@/lib/api/generated";
+import { useAuth } from "@/lib/auth";
 
 export interface UserCourseRating {
 	rating: InlineRating | null;
@@ -15,7 +16,13 @@ export interface UserCourseRating {
 }
 
 export function useUserCourseRating(courseId: string): UserCourseRating {
-	const { data: studentCourses, isLoading } = useStudentsMeCoursesRetrieve();
+	const { isStudent } = useAuth();
+
+	const { data: studentCourses, isLoading } = useStudentsMeCoursesRetrieve({
+		query: {
+			enabled: isStudent,
+		},
+	});
 
 	return useMemo(() => {
 		const courseData = studentCourses?.find((c) => c.id === courseId);

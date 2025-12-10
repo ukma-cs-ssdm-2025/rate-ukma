@@ -1,16 +1,22 @@
 import type { PropsWithChildren } from "react";
-import { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
 import { env } from "@/env";
+import { setSessionExpiryListener } from "./sessionExpiry";
 import {
 	useAuthLoginCreate,
 	useAuthLogoutCreate,
 	useAuthSessionRetrieve,
 } from "../api/generated";
-import { setSessionExpiryListener } from "./sessionExpiry";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -26,6 +32,7 @@ export interface AuthState {
 	status: AuthStatus;
 	user: AuthUser | null;
 	sessionExpired: boolean;
+	isStudent: boolean;
 }
 
 export interface AuthContextValue extends AuthState {
@@ -82,19 +89,39 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
 	const authState = useMemo((): AuthState => {
 		if (!hasCheckedAuth) {
-			return { status: "loading", user: null, sessionExpired: false };
+			return {
+				status: "loading",
+				user: null,
+				sessionExpired: false,
+				isStudent: false,
+			};
 		}
 
 		if (sessionQuery.isLoading || sessionQuery.isFetching) {
-			return { status: "loading", user: null, sessionExpired: false };
+			return {
+				status: "loading",
+				user: null,
+				sessionExpired: false,
+				isStudent: false,
+			};
 		}
 
 		if (sessionQuery.error) {
-			return { status: "unauthenticated", user: null, sessionExpired };
+			return {
+				status: "unauthenticated",
+				user: null,
+				sessionExpired,
+				isStudent: false,
+			};
 		}
 
 		if (!sessionQuery.data?.is_authenticated) {
-			return { status: "unauthenticated", user: null, sessionExpired };
+			return {
+				status: "unauthenticated",
+				user: null,
+				sessionExpired,
+				isStudent: false,
+			};
 		}
 
 		const userData = sessionQuery.data?.user;
@@ -110,6 +137,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 					}
 				: null,
 			sessionExpired: false,
+			isStudent: sessionQuery.data.is_student,
 		};
 	}, [
 		hasCheckedAuth,

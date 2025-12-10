@@ -13,7 +13,9 @@ export class BasePage {
 	/**
 	 * Wait for page to be fully loaded and ready for interactions
 	 */
-	async waitForPageLoad(timeout: number = TEST_CONFIG.pageLoadTimeout): Promise<void> {
+	async waitForPageLoad(
+		timeout: number = TEST_CONFIG.pageLoadTimeout,
+	): Promise<void> {
 		await this.page.waitForLoadState("domcontentloaded", { timeout });
 		await this.page.waitForLoadState("networkidle", {
 			timeout: Math.max(timeout, TEST_CONFIG.networkIdleTimeout),

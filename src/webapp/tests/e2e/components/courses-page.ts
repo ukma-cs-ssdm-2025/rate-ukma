@@ -36,10 +36,7 @@ export class CoursesPage extends BasePage {
 
 	async isPageLoaded(): Promise<boolean> {
 		try {
-			await this.waitForElement(
-				this.pageTitle,
-				TEST_CONFIG.pageLoadTimeout,
-			);
+			await this.waitForElement(this.pageTitle, TEST_CONFIG.pageLoadTimeout);
 			return true;
 		} catch {
 			return false;
