@@ -648,3 +648,77 @@ describe("Attended Courses Highlighting", () => {
 		}
 	});
 });
+
+describe("Course Row Navigation", () => {
+	it("should navigate to course details when row is clicked", async () => {
+		const user = userEvent.setup();
+		const courseId = "course-1";
+		const courseTitle = "Clickable Course";
+
+		const courses = [createMockCourse({ id: courseId, title: courseTitle })];
+
+		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+
+		const row = screen.getByText(courseTitle).closest("tr");
+		expect(row).not.toBeNull();
+
+		await user.click(row as HTMLElement);
+
+		expect(mockNavigate).toHaveBeenCalledWith({
+			to: "/courses/$courseId",
+			params: { courseId },
+		});
+	});
+
+	it("should not navigate when '+N більше' is clicked", async () => {
+		const user = userEvent.setup();
+		const courseId = "course-2";
+		const courseTitle = "Badges Course";
+
+		const specialities = Array.from({ length: 7 }, (_, i) => ({
+			speciality_id: `spec-${i + 1}`,
+			speciality_title: `Speciality ${i + 1}`,
+			faculty_name: "Факультет інформатики",
+		}));
+
+		const courses = [
+			createMockCourse({
+				id: courseId,
+				title: courseTitle,
+				course_specialities: specialities,
+			}),
+		];
+
+		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+
+		await user.click(screen.getByText("+2 більше"));
+
+		expect(mockNavigate).not.toHaveBeenCalled();
+	});
+
+	it("should not navigate when selecting text", async () => {
+		const user = userEvent.setup();
+		const courseId = "course-3";
+		const courseTitle = "Selectable Course";
+
+		const selection = {
+			type: "Range",
+			isCollapsed: false,
+			toString: () => courseTitle,
+		} satisfies Partial<Selection>;
+		const getSelectionSpy = vi
+			.spyOn(globalThis, "getSelection")
+			.mockReturnValue(selection as Selection);
+
+		const courses = [createMockCourse({ id: courseId, title: courseTitle })];
+		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+
+		const row = screen.getByText(courseTitle).closest("tr");
+		expect(row).not.toBeNull();
+
+		await user.click(row as HTMLElement);
+
+		expect(mockNavigate).not.toHaveBeenCalled();
+		getSelectionSpy.mockRestore();
+	});
+});

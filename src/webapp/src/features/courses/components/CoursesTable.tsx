@@ -148,7 +148,7 @@ const columns: ColumnDef<CourseList>[] = [
 			const course = row.original;
 			const courseId = course.id;
 			return (
-				<span className="whitespace-normal break-words">
+				<span className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words">
 					{courseId ? (
 						<Link
 							to="/courses/$courseId"
@@ -162,7 +162,7 @@ const columns: ColumnDef<CourseList>[] = [
 						<span className="font-semibold text-sm md:text-base">
 							{course.title}
 						</span>
-					)}{" "}
+					)}
 					<CourseSpecialityBadges specialities={course.course_specialities} />
 				</span>
 			);
@@ -354,6 +354,17 @@ export function CoursesTable({
 			return course.id ? attendedCourseIds.has(course.id) : false;
 		},
 		[attendedCourseIds],
+	);
+
+	const handleRowClick = useCallback(
+		(course: CourseList) => {
+			if (!course.id) return;
+			navigate({
+				to: "/courses/$courseId",
+				params: { courseId: course.id },
+			});
+		},
+		[navigate],
 	);
 
 	const clearFullscreenTimeout = useCallback(() => {
@@ -578,6 +589,7 @@ export function CoursesTable({
 				totalRows={serverPagination?.total}
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}
+				onRowClick={handleRowClick}
 				data-testid={testIds.courses.table}
 			/>
 		);

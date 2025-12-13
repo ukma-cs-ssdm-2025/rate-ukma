@@ -1,4 +1,9 @@
-import type { ComponentProps, CSSProperties, ReactNode } from "react";
+import type {
+	ComponentProps,
+	CSSProperties,
+	MouseEvent,
+	ReactNode,
+} from "react";
 
 import {
 	type Column,
@@ -16,6 +21,31 @@ import {
 	TableRow,
 } from "@/components/ui/Table";
 import { cn } from "@/lib/utils";
+
+const ROW_CLICK_IGNORE_SELECTOR =
+	'a,button,input,select,textarea,label,[role="button"],[role="link"],[contenteditable],[data-row-click-ignore="true"]';
+
+// Modifier-key clicks typically mean "do something else" (e.g. open in new tab, multi-select),
+// so row navigation should not trigger in those cases.
+function isModifiedClick(event: MouseEvent): boolean {
+	return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+}
+
+// Avoid navigating when the user is selecting text (e.g. to copy a course title).
+function hasActiveTextSelection(): boolean {
+	const selection = globalThis.getSelection?.();
+	if (!selection) return false;
+
+	const text = selection.toString().trim();
+	if (text.length === 0) return false;
+
+	return selection.type === "Range" || selection.isCollapsed === false;
+}
+
+function shouldIgnoreRowClickTarget(target: EventTarget | null): boolean {
+	if (!(target instanceof HTMLElement)) return false;
+	return Boolean(target.closest(ROW_CLICK_IGNORE_SELECTOR));
+}
 
 declare module "@tanstack/react-table" {
 	// biome-ignore lint: Required by TanStack Table interface signature
@@ -55,7 +85,7 @@ export function getCommonPinningStyles<TData>({
 		right: isPinned === "right" ? `${column.getAfter("right")}px` : undefined,
 		opacity: isPinned ? 0.97 : 1,
 		position: isPinned ? "sticky" : "relative",
-		background: "var(--background)",
+		background: isPinned ? "var(--background)" : undefined,
 		width: column.getSize(),
 		zIndex: isPinned ? 1 : 0,
 	};
@@ -136,19 +166,29 @@ export function DataTable<TData>({
 										data-highlighted={highlighted ? true : undefined}
 										className={cn(
 											onRowClick && "group cursor-pointer",
-											highlighted &&
-												"bg-primary/5 border-l-2 border-l-primary hover:bg-primary/10",
+											highlighted && "hover:bg-primary/5",
 										)}
-										onClick={() => onRowClick?.(row.original)}
+										onClick={(event) => {
+											if (!onRowClick) return;
+											if (event.defaultPrevented) return;
+											if (isModifiedClick(event)) return;
+											if (hasActiveTextSelection()) return;
+											if (shouldIgnoreRowClickTarget(event.target)) return;
+
+											onRowClick(row.original);
+										}}
 									>
-										{row.getVisibleCells().map((cell) => (
+										{row.getVisibleCells().map((cell, cellIndex) => (
 											<TableCell
 												key={cell.id}
 												style={{
 													...getCommonPinningStyles({ column: cell.column }),
 												}}
-												className={getAlignmentClass(
-													cell.column.columnDef.meta,
+												className={cn(
+													getAlignmentClass(cell.column.columnDef.meta),
+													highlighted &&
+														cellIndex === 0 &&
+														"relative before:content-[''] before:absolute before:left-0 before:inset-y-0 before:w-0.5 before:bg-primary/60 before:transition-[width] before:duration-150 group-hover:before:w-1",
 												)}
 											>
 												{flexRender(
