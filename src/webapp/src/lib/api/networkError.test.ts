@@ -74,11 +74,43 @@ describe("networkError", () => {
 			expectConnectionErrorRedirect("offline");
 		});
 
-		it("does not treat 5xx responses as connection issues", () => {
+		it("redirects with server reason on 503 responses", () => {
 			// Arrange
 			stubNavigatorOnline();
 			const axiosError = createAxiosError({
 				response: { status: 503 } as AxiosError["response"],
+			});
+
+			// Act
+			const handled = handleConnectionIssue(axiosError);
+
+			// Assert
+			expect(handled).toBe(true);
+			expectConnectionErrorRedirect("server");
+		});
+
+		it.each([
+			502, 504,
+		])("redirects with server reason on %s responses", (status) => {
+			// Arrange
+			stubNavigatorOnline();
+			const axiosError = createAxiosError({
+				response: { status } as AxiosError["response"],
+			});
+
+			// Act
+			const handled = handleConnectionIssue(axiosError);
+
+			// Assert
+			expect(handled).toBe(true);
+			expectConnectionErrorRedirect("server");
+		});
+
+		it("does not treat other 5xx responses as connection issues", () => {
+			// Arrange
+			stubNavigatorOnline();
+			const axiosError = createAxiosError({
+				response: { status: 500 } as AxiosError["response"],
 			});
 
 			// Act

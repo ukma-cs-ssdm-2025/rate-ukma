@@ -17,6 +17,7 @@ const CSRF_HEADER_NAME = "X-CSRFToken";
 const LOGIN_PATH_PREFIX = "/login";
 const AUTH_PATH_PREFIX = "/auth";
 const AUTH_SESSION_ENDPOINT_SUBSTRING = "/auth/session";
+const BACKEND_UNAVAILABLE_STATUSES = new Set([502, 503, 504]);
 
 const getCsrfToken = () => {
 	if (typeof document === "undefined") {
@@ -86,7 +87,8 @@ const logErrorToSentry = (error: unknown) => {
 	const url = error.config?.url;
 
 	Sentry.captureException(error, {
-		level: "error",
+		level:
+			status && BACKEND_UNAVAILABLE_STATUSES.has(status) ? "warning" : "error",
 		tags: {
 			httpMethod: method,
 			httpStatus: status?.toString(),
@@ -96,14 +98,23 @@ const logErrorToSentry = (error: unknown) => {
 	});
 };
 
+const isBackendUnavailableError = (error: unknown): boolean => {
+	if (!axios.isAxiosError(error) || axios.isCancel(error)) return false;
+	const status = error.response?.status;
+	return status ? BACKEND_UNAVAILABLE_STATUSES.has(status) : false;
+};
+
 authorizedHttpClient.interceptors.response.use(
 	(response) => response,
 	(error) => {
-		handleConnectionIssue(error);
+		const handledConnectionIssue = handleConnectionIssue(error);
 
 		const isSessionExpired = handleSessionExpiry(error);
 
-		if (!isSessionExpired) {
+		if (
+			!isSessionExpired &&
+			(!handledConnectionIssue || isBackendUnavailableError(error))
+		) {
 			logErrorToSentry(error);
 		}
 
