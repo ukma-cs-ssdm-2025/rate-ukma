@@ -4,9 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       version-tag:
-        description: "Version tag to deploy"
-        required: true
+        description: "Version tag to deploy. Provide only for main branch deployments."
+        required: false
         type: string
+        default: ""
+      deployment-ref:
+        description: "Commit SHA, tag, or branch to run and deploy. Used for any branch deployments (e.g. feature branches)."
+        required: false
+        type: string
+        default: ""
+      base-ref:
+        description: "Base ref for change detection when using deployment-ref"
+        required: false
+        type: string
+        default: ""
   push:
     branches:
       - main
@@ -15,20 +26,42 @@ on:
       - .github/workflows/**
 
 jobs:
+  validate-refs:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate version-tag usage
+        run: |
+          TARGET="${{ inputs.deployment-ref || github.ref_name }}"
+          VERSION="${{ inputs.version-tag }}"
+
+          if [ -n "$VERSION" ] && [ "$TARGET" != "main" ] && [ "$TARGET" != "refs/heads/main" ]; then
+            echo "version-tag can be provided only for main branch deployments."
+            exit 1
+          fi
+
+          if [ -z "$VERSION" ] && [ "$TARGET" = "main" ]; then
+            echo "version-tag is required for manual main branch deployments."
+            exit 1
+          fi
+
+          echo "Inputs validated for target: $TARGET with version-tag: ${VERSION:-<none>}"
+
   changes-filter:
+    needs: validate-refs
     uses: ./.github/workflows/changes-filter.yml
     with:
-      base: ${{ github.event.before }}
-      ref: ${{ github.sha }}
-      force_all_changed: ${{ inputs.version-tag != '' }}
+      base: ${{ inputs.base-ref || (github.event.before != '' && github.event.before || 'origin/main') }}
+      ref: ${{ inputs.deployment-ref || github.sha }}
+      force_all_changed: ${{ github.event_name == 'workflow_dispatch' || inputs.version-tag != '' }}
 
   version:
     needs: changes-filter
     with:
       code_changed: >-
-        ${{ inputs.version-tag == '' &&
+        ${{ inputs.version-tag == '' && inputs.deployment-ref == '' &&
         (fromJSON(needs.changes-filter.outputs.backend_changed) ||
         fromJSON(needs.changes-filter.outputs.webapp_changed)) }}
+      manual_version_tag: ${{ inputs.version-tag || (inputs.deployment-ref != '' && format('dry-run-{0}', github.sha)) }}
     uses: ./.github/workflows/version.yml
 
   test:
@@ -37,6 +70,7 @@ jobs:
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      deployment_ref: ${{ inputs.deployment-ref || github.ref_name }}
 
   openapi-validation:
     needs: changes-filter
@@ -44,6 +78,7 @@ jobs:
       api_changed: >-
         ${{ fromJSON(needs.changes-filter.outputs.backend_changed) ||
         fromJSON(needs.changes-filter.outputs.openapi_changed) }}
+      deployment_ref: ${{ inputs.deployment-ref || github.ref_name }}
     uses: ./.github/workflows/openapi-validation.yml
 
   audit:
@@ -53,6 +88,7 @@ jobs:
     with:
       run_backend_audit: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
       run_frontend_audit: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
+      deployment_ref: ${{ inputs.deployment-ref || github.ref_name }}
 
   build:
     needs: [version, test, openapi-validation, audit, changes-filter]
@@ -66,13 +102,14 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      version_tag: ${{ needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      deployment_ref: ${{ inputs.deployment-ref || github.sha }}
 
   release-needed:
     needs: [version]
-    if: inputs.version-tag == ''
+    if: inputs.version-tag == '' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     outputs:
       release_needed: ${{ steps.check.outputs.release_needed }}
@@ -100,7 +137,7 @@ jobs:
     if: always() && needs.build.result != 'failure'
     uses: ./.github/workflows/deploy-staging.yml
     with:
-      deployment_ref: ${{ github.sha }}
+      deployment_ref: ${{ inputs.deployment-ref || github.sha }}
       version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}

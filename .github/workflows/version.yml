@@ -8,6 +8,10 @@ on:
         description: "Prefix for version tag (e.g., v or live-v)"
         type: string
         default: "v"
+      manual_version_tag:
+        description: "Use a manually provided version tag instead of generating one"
+        type: string
+        default: ""
       code_changed:
         description: "Flag if source code changed"
         type: boolean
@@ -36,10 +40,10 @@ jobs:
   version:
     runs-on: ubuntu-24.04
     outputs:
-      version_tag: ${{ steps.final_version.outputs.version_tag }}
-      version_type: ${{ steps.final_version.outputs.version_type }}
-      previous_version: ${{ steps.final_version.outputs.previous_version }}
-      authors: ${{ steps.final_version.outputs.authors }}
+      version_tag: ${{ steps.manual_version.outputs.version_tag || steps.final_version.outputs.version_tag }}
+      version_type: ${{ steps.manual_version.outputs.version_type || steps.final_version.outputs.version_type }}
+      previous_version: ${{ steps.manual_version.outputs.previous_version || steps.final_version.outputs.previous_version }}
+      authors: ${{ steps.manual_version.outputs.authors || steps.final_version.outputs.authors }}
 
     steps:
       - name: Checkout
@@ -48,6 +52,15 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Use provided version tag
+        id: manual_version
+        if: inputs.manual_version_tag != ''
+        run: |
+          echo "version_tag=${{ inputs.manual_version_tag }}" >> $GITHUB_OUTPUT
+          echo "version_type=manual" >> $GITHUB_OUTPUT
+          echo "previous_version=" >> $GITHUB_OUTPUT
+          echo "authors=" >> $GITHUB_OUTPUT
+
       - name: Show current repo version state
         run: |
           git log --oneline --decorate -n 5
@@ -55,7 +68,7 @@ jobs:
 
       - name: Generate Semantic Version
         id: semantic
-        if: inputs.code_changed == true
+        if: inputs.code_changed == true && inputs.manual_version_tag == ''
         uses: paulhatch/semantic-version@v5.4.0
         with:
           tag_prefix: ${{ inputs.tag_prefix }}
@@ -71,6 +84,7 @@ jobs:
 
       - name: Set Final Version Tag
         id: final_version
+        if: inputs.manual_version_tag == ''
         env:
           TAG_PREFIX: ${{ inputs.tag_prefix }}
         run: |
@@ -98,7 +112,7 @@ jobs:
 
       - name: Create Version Tag
         id: create_version_tag
-        if: steps.semantic.outputs.version_type != 'none'
+        if: steps.semantic.outputs.version_type != 'none' && inputs.manual_version_tag == ''
         run: |
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 

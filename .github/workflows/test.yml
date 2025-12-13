@@ -8,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      deployment_ref:
+        description: "Commit SHA, tag, or branch to test"
+        required: false
+        type: string
+        default: ""
       backend_changed:
         description: "Whether backend code has changed"
         required: false
@@ -24,7 +29,7 @@ env:
   BACKEND_DIR: src/backend
   WEBAPP_DIR: src/webapp
   SRC_DIR: src
-  BRANCH: ${{ github.head_ref || github.ref_name }}
+  BRANCH: ${{ inputs.deployment_ref || github.head_ref || github.ref_name }}
   COVERAGE_BADGE_FILE: coverage.svg
   BADGE_COMMIT_MESSAGE: "chore(ci): update coverage badge"
 

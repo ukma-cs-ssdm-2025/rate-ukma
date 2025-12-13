@@ -8,6 +8,10 @@ on:
         description: "Flag that API has changed"
         type: boolean
         default: false
+      deployment_ref:
+        description: "Commit SHA, tag, or branch to validate"
+        type: string
+        default: ""
 
 env:
   DJANGO_DIR: src/backend
@@ -23,6 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.deployment_ref || github.sha }}
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v7

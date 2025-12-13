@@ -14,6 +14,11 @@ on:
         required: false
         type: boolean
         default: true
+      deployment_ref:
+        description: "Commit SHA, tag, or branch to audit"
+        required: false
+        type: string
+        default: ""
   schedule:
     - cron: "0 6 * * *" # Daily at 06:00 UTC
 
@@ -36,6 +41,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.deployment_ref || github.sha }}
 
       - name: Extract Node version from package.json
         id: versions
@@ -90,6 +97,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.deployment_ref || github.sha }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
