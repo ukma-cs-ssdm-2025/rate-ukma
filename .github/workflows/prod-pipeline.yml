@@ -14,7 +14,7 @@ on:
 
 jobs:
   get-staging-version:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-24.04
     outputs:
       version_tag: ${{ steps.get_version.outputs.version_tag }}
@@ -57,7 +57,7 @@ jobs:
           echo "skip_deployment=false" >> "$GITHUB_OUTPUT"
 
   get-latest-live-tag:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-24.04
     outputs:
       latest_live_tag: ${{ steps.get_latest.outputs.latest_live_tag }}
