@@ -92,6 +92,11 @@ export const testIds = {
 		logoutButton: "header-logout-button",
 	},
 
+	// Footer
+	footer: {
+		repoLink: "footer-repo-link",
+	},
+
 	// Courses page
 	courses: {
 		searchInput: "courses-search-input",
