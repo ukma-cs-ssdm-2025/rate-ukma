@@ -27,6 +27,8 @@ export const filterSchema = z.object({
 	semesterYear: z.string(),
 	courseType: z.string(),
 	speciality: z.string(),
+	page: z.number().int().positive().default(1),
+	page_size: z.number().int().positive().default(20),
 });
 
 export type FilterState = z.infer<typeof filterSchema>;
@@ -42,4 +44,6 @@ export const DEFAULT_FILTERS: FilterState = {
 	semesterYear: "",
 	courseType: "",
 	speciality: "",
+	page: 1,
+	page_size: 20,
 };

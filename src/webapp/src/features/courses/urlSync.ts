@@ -15,6 +15,8 @@ type SimpleFilterKey = keyof Pick<
 	| "semesterYear"
 	| "courseType"
 	| "speciality"
+	| "page"
+	| "page_size"
 >;
 
 const RANGE_PARAM_CONFIG = [
@@ -35,6 +37,8 @@ const SIMPLE_PARAM_CONFIG = [
 	{ key: "semesterYear", param: "year" },
 	{ key: "courseType", param: "type" },
 	{ key: "speciality", param: "spec" },
+	{ key: "page", param: "page" },
+	{ key: "page_size", param: "size" },
 ] as const satisfies ReadonlyArray<{
 	key: SimpleFilterKey;
 	param: string;
@@ -42,8 +46,8 @@ const SIMPLE_PARAM_CONFIG = [
 
 export function filtersToSearchParams(
 	filters: FilterState,
-): Record<string, string> {
-	const params: Record<string, string> = {};
+): Record<string, string | number> {
+	const params: Record<string, string | number> = {};
 
 	for (const { key, param } of RANGE_PARAM_CONFIG) {
 		const [currentMin, currentMax] = filters[key];
@@ -58,8 +62,13 @@ export function filtersToSearchParams(
 		const value = filters[key];
 		const defaultValue = DEFAULT_FILTERS[key];
 
-		if (value && value !== defaultValue) {
-			params[param] = value;
+		if (value !== undefined && value !== defaultValue) {
+			// Keep numbers as numbers for URL serialization
+			if (key === "page" || key === "page_size") {
+				params[param] = value as number;
+			} else {
+				params[param] = String(value);
+			}
 		}
 	}
 
@@ -111,7 +120,14 @@ export function searchParamsToFilters(
 	for (const { key, param } of SIMPLE_PARAM_CONFIG) {
 		const value = params[param];
 		if (value) {
-			filters[key] = value;
+			if (key === "page" || key === "page_size") {
+				const parsed = Number.parseInt(value, 10);
+				if (!Number.isNaN(parsed) && parsed > 0) {
+					filters[key] = parsed;
+				}
+			} else {
+				filters[key] = value;
+			}
 		}
 	}
 

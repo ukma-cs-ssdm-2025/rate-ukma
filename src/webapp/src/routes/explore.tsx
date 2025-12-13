@@ -86,6 +86,7 @@ function ExploreRoute() {
 				to: "/explore",
 				search: searchParams,
 				replace: true,
+				resetScroll: false,
 			});
 		}, 400);
 
@@ -209,6 +210,8 @@ export const Route = createFileRoute("/explore")({
 		for (const [key, value] of Object.entries(search)) {
 			if (typeof value === "string") {
 				result[key] = value;
+			} else if (typeof value === "number") {
+				result[key] = String(value);
 			}
 		}
 		return result;

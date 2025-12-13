@@ -128,10 +128,10 @@ function ScatterPlotPreviewCard({
 interface CoursesTableProps {
 	data: CourseList[];
 	isLoading: boolean;
-	onFiltersChange?: (filters: Record<string, unknown>) => void;
+	onFiltersChange?: (filters: FilterState) => void;
 	filtersKey: string;
 	pagination?: PaginationInfo;
-	initialFilters?: FilterState;
+	filters: FilterState;
 }
 
 const SCATTER_COLLAPSE_STORAGE_KEY = "courses:scatter-open";
@@ -312,16 +312,21 @@ export function CoursesTable({
 	onFiltersChange,
 	filtersKey,
 	pagination: serverPagination,
-	initialFilters = DEFAULT_FILTERS,
+	filters,
 }: Readonly<CoursesTableProps>) {
 	const navigate = useNavigate({ from: "/" });
 	const { isStudent } = useAuth();
 
 	const [sorting, setSorting] = useState<SortingState>([]);
-	const [pagination, setPagination] = useState<PaginationState>({
-		pageIndex: serverPagination ? serverPagination.page - 1 : 0,
-		pageSize: serverPagination ? serverPagination.pageSize : 20,
-	});
+
+	// Derive pagination from filters (no local state) - this eliminates the flicker bug
+	const pagination = useMemo<PaginationState>(
+		() => ({
+			pageIndex: filters.page - 1,
+			pageSize: filters.page_size,
+		}),
+		[filters.page, filters.page_size],
+	);
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
 	const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -376,21 +381,22 @@ export function CoursesTable({
 	}, []);
 
 	const form = useForm({
-		defaultValues: initialFilters,
+		defaultValues: filters,
 		resolver: zodResolver(filterSchema),
 		mode: "onChange",
 	});
 
-	const filters = form.watch();
-	const deferredFilters = useDeferredValue(filters);
+	const formFilters = form.watch();
+	const deferredFilters = useDeferredValue(formFilters);
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
 
+	// Sync form when filters prop changes
 	useEffect(() => {
-		form.reset(initialFilters);
-	}, [form, initialFilters]);
+		form.reset(filters);
+	}, [form, filters]);
 
 	useEffect(() => {
 		localStorageAdapter.setItem(
@@ -456,15 +462,6 @@ export function CoursesTable({
 		[apiSorting, apiFilters],
 	);
 
-	useEffect(() => {
-		if (serverPagination) {
-			setPagination({
-				pageIndex: serverPagination.page - 1,
-				pageSize: serverPagination.pageSize,
-			});
-		}
-	}, [serverPagination]);
-
 	const table = useReactTable({
 		data,
 		columns,
@@ -475,15 +472,14 @@ export function CoursesTable({
 			const newPagination =
 				typeof updater === "function" ? updater(pagination) : updater;
 
-			setPagination(newPagination);
+			// Create new FilterState with updated pagination
+			const nextFilters: FilterState = {
+				...deferredFilters,
+				page: newPagination.pageIndex + 1,
+				page_size: newPagination.pageSize,
+			};
 
-			if (onFiltersChange) {
-				onFiltersChange({
-					...combinedFilters,
-					page: newPagination.pageIndex + 1,
-					page_size: newPagination.pageSize,
-				});
-			}
+			onFiltersChange?.(nextFilters);
 		},
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
@@ -494,17 +490,30 @@ export function CoursesTable({
 		pageCount: serverPagination ? serverPagination.totalPages : -1,
 	});
 
+	// Reset to page 1 when filters (excluding pagination) change
+	const prevFiltersKeyRef = useRef<string | undefined>(undefined);
 	useEffect(() => {
 		if (filtersKey === undefined) {
 			return;
 		}
 
-		setPagination((previous) =>
-			previous.pageIndex === 0 ? previous : { ...previous, pageIndex: 0 },
-		);
-	}, [filtersKey]);
+		// Only reset if filtersKey actually changed (not on mount or pagination change)
+		if (
+			prevFiltersKeyRef.current !== undefined &&
+			prevFiltersKeyRef.current !== filtersKey
+		) {
+			if (filters.page !== 1) {
+				const nextFilters: FilterState = {
+					...filters,
+					page: 1,
+				};
+				onFiltersChange?.(nextFilters);
+			}
+		}
 
-	const previousFiltersRef = useRef<Record<string, unknown>>({});
+		prevFiltersKeyRef.current = filtersKey;
+	}, [filtersKey, filters, onFiltersChange]);
+
 	const urlSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	useEffect(() => {
@@ -517,6 +526,7 @@ export function CoursesTable({
 			navigate({
 				search: searchParams,
 				replace: true,
+				resetScroll: false,
 			});
 		}, 500);
 
@@ -526,35 +536,6 @@ export function CoursesTable({
 			}
 		};
 	}, [deferredFilters, navigate]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: pagination is intentionally excluded to prevent circular updates
-	useEffect(() => {
-		const hasFiltersChanged =
-			JSON.stringify(combinedFilters) !==
-			JSON.stringify(previousFiltersRef.current);
-
-		if (hasFiltersChanged) {
-			if (pagination.pageIndex !== 0) {
-				setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-			}
-
-			const timeout = setTimeout(() => {
-				previousFiltersRef.current = combinedFilters;
-
-				const filtersWithPagination = {
-					...combinedFilters,
-					page: 1,
-					page_size: pagination.pageSize,
-				};
-
-				onFiltersChange?.(filtersWithPagination);
-			}, 500);
-
-			return () => clearTimeout(timeout);
-		}
-
-		return undefined;
-	}, [combinedFilters, onFiltersChange]);
 
 	const handleResetFilters = useCallback(() => {
 		form.reset(DEFAULT_FILTERS);
@@ -604,7 +585,7 @@ export function CoursesTable({
 							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 z-10 text-muted-foreground" />
 							<DebouncedInput
 								placeholder="Пошук курсів за назвою..."
-								value={filters.searchQuery as string}
+								value={formFilters.searchQuery as string}
 								onChange={(value) =>
 									form.setValue("searchQuery", value as string, {
 										shouldDirty: true,
