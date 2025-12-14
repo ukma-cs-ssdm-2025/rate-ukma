@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Filter, MoreHorizontal } from "lucide-react";
-import { createStandardSchemaV1 } from "nuqs";
 
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/Button";
@@ -19,7 +18,6 @@ import {
 } from "@/features/courses/components/CourseFiltersPanel";
 import { CoursesScatterPlot } from "@/features/courses/components/CoursesScatterPlot";
 import {
-	courseFiltersParams,
 	DEFAULT_COURSE_FILTERS_PARAMS,
 	useCourseFiltersParams,
 } from "@/features/courses/courseFiltersParams";
@@ -55,9 +53,9 @@ function ExploreRoute() {
 			faculty: params.faculty || undefined,
 			department: params.dept || undefined,
 			instructor: params.instructor || undefined,
-			semester_term: params.term || undefined,
+			semester_term: params.term ?? undefined,
 			semester_year: params.year || undefined,
-			type_kind: params.type || undefined,
+			type_kind: params.type ?? undefined,
 			speciality: params.spec || undefined,
 		}),
 		[params],
@@ -167,7 +165,4 @@ function ExploreRoute() {
 
 export const Route = createFileRoute("/explore")({
 	component: withAuth(ExploreRoute),
-	validateSearch: createStandardSchemaV1(courseFiltersParams, {
-		partialOutput: true,
-	}),
 });

@@ -75,9 +75,9 @@ const defaultParams: CourseFiltersParamsState = {
 	faculty: "",
 	dept: "",
 	instructor: "",
-	term: "",
+	term: null,
 	year: "",
-	type: "",
+	type: null,
 	spec: "",
 	page: 1,
 	size: 10,
@@ -333,9 +333,9 @@ describe("Reset Filters", () => {
 			faculty: "",
 			dept: "",
 			instructor: "",
-			term: "",
+			term: null,
 			year: "",
-			type: "",
+			type: null,
 			spec: "",
 			page: 1,
 			size: 10,
@@ -585,6 +585,7 @@ describe("Course Row Navigation", () => {
 			speciality_id: `spec-${i + 1}`,
 			speciality_title: `Speciality ${i + 1}`,
 			faculty_name: "Факультет інформатики",
+			type_kind: "COMPULSORY" as const,
 		}));
 
 		const courses = [

@@ -21,9 +21,9 @@ export function areFiltersActive(params: CourseFiltersParamsState): boolean {
 		params.faculty !== "" ||
 		params.dept !== "" ||
 		params.instructor !== "" ||
-		params.term !== "" ||
+		params.term !== null ||
 		params.year !== "" ||
-		params.type !== "" ||
+		params.type !== null ||
 		params.spec !== "" ||
 		params.page !== 1 ||
 		params.size !== 10
@@ -164,7 +164,7 @@ export function useCourseFiltersData({
 				key: "term",
 				label: "Семестровий період",
 				placeholder: "Усі періоди",
-				value: filters.term,
+				value: filters.term ?? "",
 				options: semesterTerms.map((term) => ({
 					value: term.value,
 					label: getSemesterTermDisplay(term.value, term.label),
@@ -227,7 +227,7 @@ export function useCourseFiltersData({
 				key: "type",
 				label: "Тип курсу",
 				placeholder: "Усі типи курсів",
-				value: filters.type,
+				value: filters.type ?? "",
 				options: courseTypes.map((type) => ({
 					value: type.value,
 					label: getCourseTypeDisplay(type.value, type.label),

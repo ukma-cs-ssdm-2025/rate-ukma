@@ -2,10 +2,26 @@ import {
 	createParser,
 	parseAsInteger,
 	parseAsString,
+	parseAsStringEnum,
 	useQueryStates,
 } from "nuqs";
 
+import type {
+	CoursesListSemesterTerm,
+	CoursesListTypeKind,
+} from "@/lib/api/generated";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
+
+const VALID_SEMESTER_TERMS: readonly CoursesListSemesterTerm[] = [
+	"FALL",
+	"SPRING",
+	"SUMMER",
+];
+const VALID_TYPE_KINDS: readonly CoursesListTypeKind[] = [
+	"COMPULSORY",
+	"ELECTIVE",
+	"PROF_ORIENTED",
+];
 
 function createRangeParser(bounds: [number, number]) {
 	const [minBound, maxBound] = bounds;
@@ -44,9 +60,13 @@ export const courseFiltersParams = {
 	faculty: parseAsString.withDefault(""),
 	dept: parseAsString.withDefault(""),
 	instructor: parseAsString.withDefault(""),
-	term: parseAsString.withDefault(""),
+	term: parseAsStringEnum<CoursesListSemesterTerm>(
+		VALID_SEMESTER_TERMS as unknown as CoursesListSemesterTerm[],
+	),
 	year: parseAsString.withDefault(""),
-	type: parseAsString.withDefault(""),
+	type: parseAsStringEnum<CoursesListTypeKind>(
+		VALID_TYPE_KINDS as unknown as CoursesListTypeKind[],
+	),
 	spec: parseAsString.withDefault(""),
 	page: parseAsInteger.withDefault(1),
 	size: parseAsInteger.withDefault(10),
@@ -75,9 +95,9 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	faculty: "",
 	dept: "",
 	instructor: "",
-	term: "",
+	term: null,
 	year: "",
-	type: "",
+	type: null,
 	spec: "",
 	page: 1,
 	size: 10,

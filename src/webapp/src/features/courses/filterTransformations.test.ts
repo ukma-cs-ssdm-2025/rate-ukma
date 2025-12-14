@@ -14,9 +14,9 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	faculty: "",
 	dept: "",
 	instructor: "",
-	term: "",
+	term: null,
 	year: "",
-	type: "",
+	type: null,
 	spec: "",
 	page: 1,
 	size: 10,
@@ -117,7 +117,7 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_PARAMS,
-				type: "MANDATORY",
+				type: "COMPULSORY" as const,
 			};
 
 			// Act
@@ -125,7 +125,7 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).toEqual({
-				type_kind: "MANDATORY",
+				type_kind: "COMPULSORY",
 			});
 		});
 
@@ -149,7 +149,7 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_PARAMS,
-				term: "FALL",
+				term: "FALL" as const,
 			};
 
 			// Act
@@ -294,9 +294,9 @@ describe("filterTransformations", () => {
 				faculty: "faculty-1",
 				dept: "dept-2",
 				instructor: "instructor-3",
-				term: "SPRING",
+				term: "SPRING" as const,
 				year: "2024–2025",
-				type: "ELECTIVE",
+				type: "ELECTIVE" as const,
 				spec: "spec-4",
 				diff: [2, 4] as [number, number],
 				use: [3.5, 5] as [number, number],
@@ -344,14 +344,14 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_PARAMS,
-				type: "MANDATORY",
+				type: "COMPULSORY" as const,
 			};
 
 			// Act
 			const result = transformFiltersToApiParams(filters);
 
 			// Assert
-			expect(result).toHaveProperty("type_kind", "MANDATORY");
+			expect(result).toHaveProperty("type_kind", "COMPULSORY");
 			expect(result).not.toHaveProperty("type");
 		});
 

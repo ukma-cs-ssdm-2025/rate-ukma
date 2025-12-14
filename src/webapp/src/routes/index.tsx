@@ -2,15 +2,11 @@ import { useCallback } from "react";
 
 import { keepPreviousData } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { createStandardSchemaV1 } from "nuqs";
 
 import Layout from "@/components/Layout";
 import { CoursesErrorState } from "@/features/courses/components/CoursesErrorState";
 import { CoursesTable } from "@/features/courses/components/CoursesTable";
-import {
-	courseFiltersParams,
-	useCourseFiltersParams,
-} from "@/features/courses/courseFiltersParams";
+import { useCourseFiltersParams } from "@/features/courses/courseFiltersParams";
 import {
 	DIFFICULTY_RANGE,
 	USEFULNESS_RANGE,
@@ -38,9 +34,9 @@ function CoursesRoute() {
 		faculty: params.faculty || undefined,
 		department: params.dept || undefined,
 		instructor: params.instructor || undefined,
-		semester_term: params.term || undefined,
+		semester_term: params.term ?? undefined,
 		semester_year: params.year || undefined,
-		type_kind: params.type || undefined,
+		type_kind: params.type ?? undefined,
 		speciality: params.spec || undefined,
 	};
 
@@ -84,7 +80,4 @@ function CoursesRoute() {
 
 export const Route = createFileRoute("/")({
 	component: withAuth(CoursesRoute),
-	validateSearch: createStandardSchemaV1(courseFiltersParams, {
-		partialOutput: true,
-	}),
 });

@@ -13,9 +13,9 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	faculty: "",
 	dept: "",
 	instructor: "",
-	term: "",
+	term: null,
 	year: "",
-	type: "",
+	type: null,
 	spec: "",
 	page: 1,
 	size: 10,
@@ -85,7 +85,7 @@ const MOCK_SEMESTER_YEARS = {
 } as const;
 
 const MOCK_COURSE_TYPES = {
-	MANDATORY: { value: "MANDATORY", label: "Обов'язковий" },
+	COMPULSORY: { value: "COMPULSORY", label: "Обов'язковий" },
 } as const;
 
 /**
@@ -539,12 +539,12 @@ describe("useCourseFiltersData", () => {
 		it("should show badge for selected course type", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				course_types: [MOCK_COURSE_TYPES.MANDATORY],
+				course_types: [MOCK_COURSE_TYPES.COMPULSORY],
 			});
 
 			// Act
 			const { result } = renderFiltersHook(
-				{ type: "MANDATORY" },
+				{ type: "COMPULSORY" },
 				filterOptions,
 			);
 

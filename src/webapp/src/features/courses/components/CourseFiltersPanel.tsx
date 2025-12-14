@@ -15,7 +15,11 @@ import {
 	SelectValue,
 } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
-import type { FilterOptions } from "@/lib/api/generated";
+import type {
+	CoursesListSemesterTerm,
+	CoursesListTypeKind,
+	FilterOptions,
+} from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
@@ -145,7 +149,7 @@ function CourseFiltersContent({
 	const getSelectValue = (key: string): string => {
 		switch (key) {
 			case "term":
-				return params.term;
+				return params.term ?? "";
 			case "year":
 				return params.year;
 			case "faculty":
@@ -155,7 +159,7 @@ function CourseFiltersContent({
 			case "spec":
 				return params.spec;
 			case "type":
-				return params.type;
+				return params.type ?? "";
 			default:
 				return "";
 		}
@@ -164,7 +168,9 @@ function CourseFiltersContent({
 	const handleSelectChange = (key: string, value: string) => {
 		switch (key) {
 			case "term":
-				setWithPageReset({ term: value });
+				setWithPageReset({
+					term: (value || null) as CoursesListSemesterTerm | null,
+				});
 				return;
 			case "year":
 				setWithPageReset({ year: value });
@@ -178,8 +184,13 @@ function CourseFiltersContent({
 			case "spec":
 				setWithPageReset({ spec: value });
 				return;
+			case "instructor":
+				setWithPageReset({ instructor: value });
+				return;
 			case "type":
-				setWithPageReset({ type: value });
+				setWithPageReset({
+					type: (value || null) as CoursesListTypeKind | null,
+				});
 				return;
 			default:
 				return;
