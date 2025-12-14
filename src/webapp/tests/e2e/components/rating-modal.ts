@@ -77,7 +77,10 @@ export class RatingModal extends BasePage {
 		return value;
 	}
 
-	private async setSliderValue(slider: Locator, targetValue: number): Promise<void> {
+	private async setSliderValue(
+		slider: Locator,
+		targetValue: number,
+	): Promise<void> {
 		await this.waitForElement(slider);
 
 		const currentValue = await this.getSliderValue(slider);
@@ -95,7 +98,10 @@ export class RatingModal extends BasePage {
 		for (let i = 0; i < Math.abs(steps); i++) {
 			expectedValue += stepDelta;
 			await this.page.keyboard.press(direction);
-			await expect(slider).toHaveAttribute("aria-valuenow", String(expectedValue));
+			await expect(slider).toHaveAttribute(
+				"aria-valuenow",
+				String(expectedValue),
+			);
 		}
 
 		const newValue = await this.getSliderValue(slider);
