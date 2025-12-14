@@ -276,7 +276,7 @@ export function useCourseFiltersData({
 		) {
 			badges.push({
 				key: "difficulty",
-				label: `Складність: ${formatDecimalValue(filters.diff[0], { fallback: "0" })}-${formatDecimalValue(filters.diff[1], { fallback: "0" })}`,
+				label: `${formatDecimalValue(filters.diff[0], { fallback: "0" })}-${formatDecimalValue(filters.diff[1], { fallback: "0" })} складність`,
 			});
 		}
 
@@ -286,7 +286,7 @@ export function useCourseFiltersData({
 		) {
 			badges.push({
 				key: "usefulness",
-				label: `Корисність: ${formatDecimalValue(filters.use[0], { fallback: "0" })}-${formatDecimalValue(filters.use[1], { fallback: "0" })}`,
+				label: `${formatDecimalValue(filters.use[0], { fallback: "0" })}-${formatDecimalValue(filters.use[1], { fallback: "0" })} корисність`,
 			});
 		}
 
@@ -300,55 +300,57 @@ export function useCourseFiltersData({
 		if (selectedSemesterYearOption && semesterTermLabel) {
 			badges.push({
 				key: "semester",
-				label: `Семестр: ${selectedSemesterYearOption.label} ${semesterTermLabel}`,
+				label: `${selectedSemesterYearOption.label} ${semesterTermLabel}`,
 			});
 		} else if (semesterTermLabel) {
 			badges.push({
 				key: "semesterTerm",
-				label: `Період: ${semesterTermLabel}`,
+				label: semesterTermLabel,
 			});
 		} else if (selectedSemesterYearOption) {
 			badges.push({
 				key: "semesterYear",
-				label: `Навчальний рік: ${selectedSemesterYearOption.label}`,
+				label: selectedSemesterYearOption.label,
 			});
 		}
 
 		if (selectedFacultyOption) {
 			badges.push({
 				key: "faculty",
-				label: `Факультет: ${selectedFacultyOption.custom_abbreviation || getFacultyAbbreviation(selectedFacultyOption.name)} · ${selectedFacultyOption.name}`,
+				label:
+					selectedFacultyOption.custom_abbreviation ||
+					getFacultyAbbreviation(selectedFacultyOption.name),
 			});
 		}
 
 		if (selectedDepartmentOption) {
 			badges.push({
 				key: "department",
-				label: `Кафедра: ${selectedDepartmentOption.name}`,
+				label: selectedDepartmentOption.name,
 			});
 		}
 
 		if (selectedSpecialityOption) {
 			badges.push({
 				key: "speciality",
-				label: `Спеціальність: ${selectedSpecialityOption.name}`,
+				label: selectedSpecialityOption.name,
 			});
 		}
 
 		if (selectedCourseTypeOption) {
 			badges.push({
 				key: "courseType",
-				label: `Тип курсу: ${getCourseTypeDisplay(
+				label: getCourseTypeDisplay(
 					selectedCourseTypeOption.value,
 					selectedCourseTypeOption.label,
-				)}`,
+				),
 			});
 		}
 
 		if (selectedInstructorOption) {
 			badges.push({
 				key: "instructor",
-				label: `Викладач: ${selectedInstructorOption.name}`,
+				label: selectedInstructorOption.name,
 			});
 		}
 
