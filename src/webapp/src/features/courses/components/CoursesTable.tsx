@@ -315,7 +315,7 @@ export function CoursesTable({
 
 	const pagination = useMemo<PaginationState>(
 		() => ({
-			pageIndex: params.page - 1,
+			pageIndex: Math.max(0, params.page - 1),
 			pageSize: params.size,
 		}),
 		[params.page, params.size],

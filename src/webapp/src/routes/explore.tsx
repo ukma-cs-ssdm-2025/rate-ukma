@@ -77,8 +77,8 @@ function ExploreRoute() {
 		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
 	}, [setParams]);
 
-	const handleToggleShowAllLabels = () => {
-		setShowAllLabels((prev) => !prev);
+	const handleToggleShowAllLabels = (checked: boolean | "indeterminate") => {
+		setShowAllLabels(checked === true);
 	};
 
 	return (

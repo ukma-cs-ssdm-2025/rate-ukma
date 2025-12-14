@@ -211,7 +211,7 @@ export function createMockFilterOptions(
 			createMockSemesterYear({ value: "2025", label: "2025" }),
 		],
 		course_types: [
-			createMockCourseType({ value: "MANDATORY", label: "Обов'язковий" }),
+			createMockCourseType({ value: "COMPULSORY", label: "Обов'язковий" }),
 			createMockCourseType({ value: "ELECTIVE", label: "Вибірковий" }),
 		],
 		...overrides,
