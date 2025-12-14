@@ -14,6 +14,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/Select";
+import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 
 interface DataTablePaginationProps<TData> extends React.ComponentProps<"div"> {
@@ -33,6 +34,7 @@ export function DataTablePagination<TData>({
 }: Readonly<DataTablePaginationProps<TData>>) {
 	return (
 		<div
+			data-testid={testIds.common.pagination}
 			className={cn(
 				"flex w-full flex-col gap-3 px-1 py-2 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-0 sm:text-sm",
 				className,
@@ -60,13 +62,18 @@ export function DataTablePagination<TData>({
 				</Select>
 			</div>
 			<div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto">
-				<div className="font-medium">
+				<div
+					className="font-medium"
+					data-testid={testIds.common.paginationLabel}
+				>
 					Сторінка {table.getState().pagination.pageIndex + 1} з{" "}
 					{serverPageCount ?? table.getPageCount()}
 				</div>
+
 				<div className="flex gap-2">
 					<Button
 						aria-label="Go to first page"
+						data-testid={testIds.common.paginationFirst}
 						variant="outline"
 						size="icon"
 						className="hidden size-8 lg:flex"
@@ -77,6 +84,7 @@ export function DataTablePagination<TData>({
 					</Button>
 					<Button
 						aria-label="Go to previous page"
+						data-testid={testIds.common.paginationPrevious}
 						variant="outline"
 						size="icon"
 						className="size-8"
@@ -87,6 +95,7 @@ export function DataTablePagination<TData>({
 					</Button>
 					<Button
 						aria-label="Go to next page"
+						data-testid={testIds.common.paginationNext}
 						variant="outline"
 						size="icon"
 						className="size-8"
@@ -97,6 +106,7 @@ export function DataTablePagination<TData>({
 					</Button>
 					<Button
 						aria-label="Go to last page"
+						data-testid={testIds.common.paginationLast}
 						variant="outline"
 						size="icon"
 						className="hidden size-8 lg:flex"
