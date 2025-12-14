@@ -141,7 +141,9 @@ describe("Initial Rendering", () => {
 		);
 
 		// Assert
-		expect(screen.getByText("Курси не знайдено")).toBeInTheDocument();
+		expect(
+			screen.getByText("Курсів не знайдено за вашим запитом"),
+		).toBeInTheDocument();
 	});
 
 	it("should render data table when data is present", () => {

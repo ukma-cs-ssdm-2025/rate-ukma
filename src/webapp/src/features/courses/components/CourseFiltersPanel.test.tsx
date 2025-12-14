@@ -266,7 +266,7 @@ describe("CourseFiltersPanel", () => {
 
 			// Assert
 			expect(screen.getByText("Активні фільтри:")).toBeInTheDocument();
-			expect(screen.getByText("Складність: 2-4")).toBeInTheDocument();
+			expect(screen.getByText("2-4 складність")).toBeInTheDocument();
 		});
 
 		it("should show badge for modified usefulness range", () => {
@@ -281,7 +281,7 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByText("Корисність: 3.5-5")).toBeInTheDocument();
+			expect(screen.getByText("3.5-5 корисність")).toBeInTheDocument();
 		});
 
 		it("should show badge for selected faculty", () => {
@@ -307,9 +307,7 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(
-				screen.getByText("Факультет: ФІ · Факультет інформатики"),
-			).toBeInTheDocument();
+			expect(screen.getByText("ФІ")).toBeInTheDocument();
 		});
 
 		it("should show badge for selected instructor", () => {
@@ -330,7 +328,7 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByText("Викладач: Іван Петрович")).toBeInTheDocument();
+			expect(screen.getByText("Іван Петрович")).toBeInTheDocument();
 		});
 
 		it("should show multiple badges when multiple filters applied", () => {
@@ -358,12 +356,10 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			const badgesSection = assertElement(
-				screen.getByText("Активні фільтри:").parentElement,
-				"Badges section not found",
-			);
-			const badges = within(badgesSection).getAllByText(/:/);
-			expect(badges.length).toBeGreaterThanOrEqual(3);
+			expect(screen.getByText("Активні фільтри:")).toBeInTheDocument();
+			expect(screen.getByText("Пошук: Database")).toBeInTheDocument();
+			expect(screen.getByText("ФІ")).toBeInTheDocument();
+			expect(screen.getByText("2-4 складність")).toBeInTheDocument();
 		});
 	});
 

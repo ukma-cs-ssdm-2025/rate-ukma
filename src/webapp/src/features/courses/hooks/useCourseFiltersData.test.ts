@@ -80,8 +80,8 @@ const MOCK_SEMESTER_TERMS = {
 } as const;
 
 const MOCK_SEMESTER_YEARS = {
-	Y2024: { value: "2024", label: "2024" },
-	Y2025: { value: "2025", label: "2025" },
+	Y2024: { value: "2024", label: "2024-2025" },
+	Y2025: { value: "2025", label: "2025-2026" },
 } as const;
 
 const MOCK_COURSE_TYPES = {
@@ -398,7 +398,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "difficulty",
-				label: "Складність: 2-4",
+				label: "2-4 складність",
 			});
 		});
 
@@ -424,7 +424,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "usefulness",
-				label: "Корисність: 3-5",
+				label: "3-5 корисність",
 			});
 		});
 
@@ -440,7 +440,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "faculty",
-				label: "Факультет: ФІ · Факультет інформатики",
+				label: "ФІ",
 			});
 		});
 
@@ -461,7 +461,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "department",
-				label: "Кафедра: Кафедра мультимедійних систем",
+				label: "Кафедра мультимедійних систем",
 			});
 		});
 
@@ -480,7 +480,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "instructor",
-				label: "Викладач: Іван Іванович",
+				label: "Іван Іванович",
 			});
 		});
 
@@ -500,7 +500,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "semester",
-				label: "Семестр: 2024 Осінь",
+				label: "2024-2025 Осінь",
 			});
 		});
 
@@ -516,7 +516,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "semesterTerm",
-				label: "Період: Весна",
+				label: "Весна",
 			});
 		});
 
@@ -532,7 +532,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "semesterYear",
-				label: "Навчальний рік: 2025",
+				label: "2025-2026",
 			});
 		});
 
@@ -551,7 +551,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "courseType",
-				label: "Тип курсу: Обов'язковий",
+				label: "Обов'язковий",
 			});
 		});
 
@@ -572,7 +572,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "speciality",
-				label: "Спеціальність: Інженерія програмного забезпечення",
+				label: "Інженерія програмного забезпечення",
 			});
 		});
 
