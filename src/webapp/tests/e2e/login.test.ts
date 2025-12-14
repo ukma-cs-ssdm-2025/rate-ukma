@@ -52,7 +52,9 @@ test.describe("Microsoft Login Page", () => {
 		});
 
 		const filtersPanel = page.getByTestId(testIds.filters.panel);
-		const filtersDrawerTrigger = page.getByTestId(testIds.filters.drawerTrigger);
+		const filtersDrawerTrigger = page.getByTestId(
+			testIds.filters.drawerTrigger,
+		);
 
 		try {
 			await expect(filtersPanel).toBeVisible({ timeout: 5000 });
