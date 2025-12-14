@@ -1,6 +1,11 @@
 import { useId, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { cn } from "@/lib/utils";
 
@@ -72,26 +77,33 @@ export function CourseSpecialityBadges({
 				);
 				const colors = getFacultyColors(speciality.faculty_name || "");
 
-				// Create tooltip with speciality and faculty names
-				const tooltipText = speciality.faculty_name
-					? `${speciality.speciality_title} — ${speciality.faculty_name}`
-					: speciality.speciality_title;
-
 				return (
-					<Badge
-						key={speciality.speciality_id}
-						variant="secondary"
-						className={cn(
-							"font-medium text-xs px-2 py-0.5",
-							colors.bg,
-							colors.text,
-							colors.border,
-							"border",
-						)}
-						title={tooltipText}
-					>
-						{abbreviation}
-					</Badge>
+					<Tooltip key={speciality.speciality_id}>
+						<TooltipTrigger asChild>
+							<Badge
+								variant="secondary"
+								className={cn(
+									"font-medium text-xs px-2 py-0.5 cursor-default",
+									colors.bg,
+									colors.text,
+									colors.border,
+									"border",
+								)}
+							>
+								{abbreviation}
+							</Badge>
+						</TooltipTrigger>
+						<TooltipContent side="top" className="max-w-xs">
+							<div className="text-center">
+								{speciality.faculty_name && (
+									<div className="text-xs opacity-90 mb-0.5">
+										{speciality.faculty_name}
+									</div>
+								)}
+								<div className="font-medium">{speciality.speciality_title}</div>
+							</div>
+						</TooltipContent>
+					</Tooltip>
 				);
 			})}
 			{hasHiddenBadges && (

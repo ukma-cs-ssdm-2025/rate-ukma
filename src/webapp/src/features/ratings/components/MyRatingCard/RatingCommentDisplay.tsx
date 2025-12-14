@@ -3,8 +3,12 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { MessageSquareMore, Star } from "lucide-react";
 
-import DisabledRatingButtonWithTooltip from "@/components/DisabledButtonWithTooltip";
 import { Button } from "@/components/ui/Button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import { cn } from "@/lib/utils";
 
@@ -44,17 +48,24 @@ export function RatingCommentDisplay({
 				);
 			} else {
 				ratingAction = (
-					<DisabledRatingButtonWithTooltip tooltip={CANNOT_RATE_TOOLTIP_TEXT}>
-						<Button
-							variant="default"
-							size="sm"
-							disabled
-							className="!bg-gray-400 !text-white hover:!bg-gray-400 disabled:opacity-100 !cursor-default"
-						>
-							<Star className="h-3.5 w-3.5" />
-							<span className="ml-1">Залишити відгук</span>
-						</Button>
-					</DisabledRatingButtonWithTooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<span>
+								<Button
+									variant="default"
+									size="sm"
+									disabled
+									className="!bg-gray-400 !text-white hover:!bg-gray-400 disabled:opacity-100 !cursor-not-allowed"
+								>
+									<Star className="h-3.5 w-3.5" />
+									<span className="ml-1">Залишити відгук</span>
+								</Button>
+							</span>
+						</TooltipTrigger>
+						<TooltipContent>
+							<p>{CANNOT_RATE_TOOLTIP_TEXT}</p>
+						</TooltipContent>
+					</Tooltip>
 				);
 			}
 		}
