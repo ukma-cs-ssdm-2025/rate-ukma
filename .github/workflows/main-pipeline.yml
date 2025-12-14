@@ -79,7 +79,7 @@ jobs:
     outputs:
       release_needed: ${{ steps.check.outputs.release_needed }}
     env:
-      VERSION_TAG: ${{ needs.version.outputs.version_tag || inputs.version-tag }}
+      VERSION_TAG: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
     steps:
       - uses: actions/checkout@v5
 
@@ -123,5 +123,5 @@ jobs:
       needs.release-needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:
-      version_tag: ${{ needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
       pre-release: true
