@@ -5,6 +5,7 @@ import { Filter, MoreHorizontal } from "lucide-react";
 
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/Button";
+import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import { Drawer } from "@/components/ui/Drawer";
 import {
 	DropdownMenu,
@@ -12,10 +13,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-import {
-	CourseFiltersDrawer,
-	CourseFiltersPanel,
-} from "@/features/courses/components/CourseFiltersPanel";
+import { CourseFiltersDrawer } from "@/features/courses/components/CourseFiltersPanel";
 import { CoursesScatterPlot } from "@/features/courses/components/CoursesScatterPlot";
 import {
 	courseFiltersStateToSearchParams,
@@ -35,6 +33,10 @@ const SHOW_ALL_LABELS_STORAGE_KEY = "explore:show-all-labels";
 
 function ExploreRoute() {
 	const [params, setParams] = useCourseFiltersParams();
+	const searchParams = useMemo(
+		() => courseFiltersStateToSearchParams(params),
+		[params],
+	);
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
@@ -83,83 +85,97 @@ function ExploreRoute() {
 	};
 
 	return (
-		<Layout>
+		<Layout showFooter={false}>
 			<div
-				className="relative w-full"
+				className="fixed inset-0 top-16 bg-background"
 				style={{ viewTransitionName: "scatter" }}
 			>
-				<div className="absolute right-6 top-4 z-10 flex gap-2">
-					<Link
-						to="/"
-						search={() => courseFiltersStateToSearchParams(params)}
-						className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground shadow-sm ring-offset-background transition-colors hover:bg-secondary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-					>
-						← Назад до таблиці
-					</Link>
-
-					<Button
-						variant="secondary"
-						size="default"
-						className="h-10 gap-2 shadow-sm lg:hidden"
-						onClick={() => setIsFiltersOpen(true)}
-					>
-						<Filter className="h-4 w-4" />
-						Фільтри
-					</Button>
-
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="secondary" size="default" className="h-10">
-								<MoreHorizontal className="h-4 w-4" />
-								<span className="sr-only">Налаштування</span>
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuCheckboxItem
-								checked={showAllLabels}
-								onCheckedChange={handleToggleShowAllLabels}
+				<div className="relative h-full w-full">
+					<div className="absolute left-1/2 top-4 z-20 -translate-x-1/2">
+						<div className="flex items-center gap-2">
+							<ButtonGroup
+								aria-label="Перемикання режиму перегляду"
+								className="rounded-lg border bg-card p-1 shadow-sm"
 							>
-								Показати всі назви курсів
-							</DropdownMenuCheckboxItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
+								<Button asChild variant="ghost" size="sm">
+									<Link to="/" search={() => searchParams}>
+										Таблиця
+									</Link>
+								</Button>
+								<Button asChild variant="secondary" size="sm">
+									<Link to="/explore" search={() => searchParams}>
+										Візуалізація
+									</Link>
+								</Button>
+							</ButtonGroup>
 
-				<div className="flex gap-6">
-					<div className="hidden w-80 shrink-0 lg:block">
-						<CourseFiltersPanel
-							params={params}
-							setParams={setParams}
-							filterOptions={filterOptions}
-							onReset={handleResetFilters}
-							isLoading={isFilterOptionsLoading}
-						/>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-8 w-8 border bg-card p-0 shadow-sm"
+										aria-label="Налаштування візуалізації"
+									>
+										<MoreHorizontal className="h-4 w-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-56">
+									<DropdownMenuCheckboxItem
+										checked={showAllLabels}
+										onCheckedChange={handleToggleShowAllLabels}
+									>
+										<div className="flex flex-col gap-0.5">
+											<span className="font-medium text-foreground">
+												Завжди показувати підписи
+											</span>
+											<span className="text-xs text-muted-foreground">
+												Може перекривати точки, якщо їх багато
+											</span>
+										</div>
+									</DropdownMenuCheckboxItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
 					</div>
 
-					<div className="flex-1">
+					<div className="absolute right-3 top-3 z-20">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="gap-2 border bg-card/90 shadow-sm backdrop-blur"
+							onClick={() => setIsFiltersOpen(true)}
+							aria-label="Відкрити фільтри"
+						>
+							<Filter className="h-4 w-4" />
+							<span className="hidden md:inline">Фільтри</span>
+						</Button>
+					</div>
+
+					<div className="absolute inset-0">
 						<CoursesScatterPlot
 							filters={apiFilters}
 							forceShowAllLabels={showAllLabels}
 						/>
 					</div>
 				</div>
-			</div>
 
-			<Drawer
-				open={isFiltersOpen}
-				onOpenChange={setIsFiltersOpen}
-				ariaLabel="Фільтри курсів"
-				closeButtonLabel="Закрити фільтри"
-			>
-				<CourseFiltersDrawer
-					params={params}
-					setParams={setParams}
-					filterOptions={filterOptions}
-					onReset={handleResetFilters}
-					isLoading={isFilterOptionsLoading}
-					onClose={() => setIsFiltersOpen(false)}
-				/>
-			</Drawer>
+				<Drawer
+					open={isFiltersOpen}
+					onOpenChange={setIsFiltersOpen}
+					ariaLabel="Фільтри курсів"
+					closeButtonLabel="Закрити фільтри"
+				>
+					<CourseFiltersDrawer
+						params={params}
+						setParams={setParams}
+						filterOptions={filterOptions}
+						onReset={handleResetFilters}
+						isLoading={isFilterOptionsLoading}
+						onClose={() => setIsFiltersOpen(false)}
+					/>
+				</Drawer>
+			</div>
 		</Layout>
 	);
 }
