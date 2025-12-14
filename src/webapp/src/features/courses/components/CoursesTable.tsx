@@ -48,7 +48,6 @@ import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
-import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesScatterPlot } from "./CoursesScatterPlot";
 import {
 	type CourseFiltersParamsSetter,
@@ -481,14 +480,10 @@ export function CoursesTable({
 
 	const isInitialLoading = !hasResolvedFirstFetch && isLoading;
 	const isPanelLoading = isInitialLoading || isFilterOptionsLoading;
-	const isEmptyState = !isLoading && data.length === 0;
 
 	const renderTableContent = () => {
 		if (isInitialLoading) {
 			return <DataTableSkeleton columnCount={4} withViewOptions={false} />;
-		}
-		if (isEmptyState) {
-			return <CoursesEmptyState />;
 		}
 		return (
 			<DataTable
@@ -497,6 +492,7 @@ export function CoursesTable({
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}
 				onRowClick={handleRowClick}
+				emptyStateMessage="Курсів не знайдено за вашим запитом"
 				data-testid={testIds.courses.table}
 			/>
 		);

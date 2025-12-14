@@ -100,9 +100,10 @@ function getAlignmentClass<TData, TValue>(
 interface DataTableProps<TData> extends ComponentProps<"div"> {
 	table: TanstackTable<TData>;
 	actionBar?: ReactNode;
-	onRowClick?: (row: TData) => void;
 	totalRows?: number;
 	serverPageCount?: number;
+	emptyStateMessage: string;
+	onRowClick?: (row: TData) => void;
 	isRowHighlighted?: (row: TData) => boolean;
 }
 
@@ -111,9 +112,10 @@ export function DataTable<TData>({
 	actionBar,
 	children,
 	className,
-	onRowClick,
 	totalRows,
 	serverPageCount,
+	emptyStateMessage,
+	onRowClick,
 	isRowHighlighted,
 	...props
 }: Readonly<DataTableProps<TData>>) {
@@ -196,7 +198,7 @@ export function DataTable<TData>({
 									colSpan={table.getAllColumns().length}
 									className="h-24 text-center"
 								>
-									No results.
+									{emptyStateMessage}
 								</TableCell>
 							</TableRow>
 						)}
