@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version-tag:
-        description: "Version tag to deploy. Defaults to latest branch commit."
+        description: "Version tag to deploy. Defaults to latest project semantic version."
         required: false
         type: string
         default: ""
