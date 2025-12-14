@@ -14,7 +14,10 @@ export function MyRatingsErrorState({
 	isRetrying,
 }: Readonly<MyRatingsErrorStateProps>) {
 	return (
-		<div className="py-16 text-center" data-testid={testIds.myRatings.errorState}>
+		<div
+			className="py-16 text-center"
+			data-testid={testIds.myRatings.errorState}
+		>
 			<div className="mx-auto max-w-sm space-y-4">
 				<div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10">
 					<AlertTriangle className="h-10 w-10 text-destructive" />

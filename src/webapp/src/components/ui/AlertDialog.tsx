@@ -38,7 +38,9 @@ export function AlertDialogTitle(props: Readonly<AlertDialogTitleProps>) {
 	return <DialogTitle {...props} />;
 }
 
-type AlertDialogDescriptionProps = React.ComponentProps<typeof DialogDescription>;
+type AlertDialogDescriptionProps = React.ComponentProps<
+	typeof DialogDescription
+>;
 
 export function AlertDialogDescription(
 	props: Readonly<AlertDialogDescriptionProps>,

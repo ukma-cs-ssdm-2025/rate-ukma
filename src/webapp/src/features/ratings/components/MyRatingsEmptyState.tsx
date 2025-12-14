@@ -6,7 +6,10 @@ import { testIds } from "@/lib/test-ids";
 
 export function MyRatingsEmptyState() {
 	return (
-		<div className="py-16 text-center" data-testid={testIds.myRatings.emptyState}>
+		<div
+			className="py-16 text-center"
+			data-testid={testIds.myRatings.emptyState}
+		>
 			<div className="mx-auto max-w-sm space-y-4">
 				<div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted">
 					<Star className="h-10 w-10 text-muted-foreground" />
