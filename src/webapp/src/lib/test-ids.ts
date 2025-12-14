@@ -170,8 +170,11 @@ export const testIds = {
 		loadingSpinner: "loading-spinner",
 		infiniteScrollLoader: "infinite-scroll-loader",
 		pagination: "pagination",
+		paginationLabel: "pagination-label",
+		paginationFirst: "pagination-first-button",
 		paginationPrevious: "pagination-previous-button",
 		paginationNext: "pagination-next-button",
+		paginationLast: "pagination-last-button",
 	},
 } as const;
 
