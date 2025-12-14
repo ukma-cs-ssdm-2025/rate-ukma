@@ -160,6 +160,11 @@ export const testIds = {
 		errorState: "my-ratings-error-state",
 	},
 
+	// Footer
+	footer: {
+		repoLink: "footer-repo-link",
+	},
+
 	// Common / Shared
 	common: {
 		loadingSpinner: "loading-spinner",
