@@ -3,6 +3,8 @@ from collections.abc import Callable
 from dataclasses import asdict, is_dataclass
 from typing import Any, Protocol, TypeVar
 
+from django.db.models import Model
+from django.forms.models import model_to_dict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -143,6 +145,26 @@ class PrimitiveCacheTypeExtension(ICacheTypeExtension[JSON_Serializable]):
 
     def deserialize(self, data: JSON_Serializable, value_type: type) -> Any:
         return data
+
+
+class DjangoModelCacheTypeExtension(ICacheTypeExtension[JSON_Serializable]):
+    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
+        return _make_cache_key_from_context(func, args, kwargs)
+
+    def serialize(self, value: Model) -> JSON_Serializable:
+        return model_to_dict(value)
+
+    def deserialize(
+        self, data: JSON_Serializable, value_type: type, pk_field_name: str = "id"
+    ) -> Model:
+        if not isinstance(data, dict):
+            raise TypeError(f"Expected dict for DjangoModel deserialization, got {type(data)}")
+
+        instance = value_type(**data)
+
+        if pk_field_name in data:
+            instance.pk = data[pk_field_name]
+        return instance
 
 
 # TBD: class QuerySetCacheTypeExtension(ICacheTypeExtension[str, QuerySet]):

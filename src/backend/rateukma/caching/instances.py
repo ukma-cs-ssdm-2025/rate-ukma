@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db.models import Model
 from rest_framework.response import Response
 
 from pydantic import BaseModel
@@ -10,6 +11,7 @@ from .types_extensions import (
     BaseModelCacheTypeExtension,
     CacheTypeExtensionRegistry,
     DataclassCacheTypeExtension,
+    DjangoModelCacheTypeExtension,
     DRFResponseCacheTypeExtension,
     PrimitiveCacheTypeExtension,
 )
@@ -41,11 +43,10 @@ def cache_type_extension_registry() -> CacheTypeExtensionRegistry:
         extensions={
             Response: DRFResponseCacheTypeExtension(),
             BaseModel: BaseModelCacheTypeExtension(),
+            Model: DjangoModelCacheTypeExtension(),
             "dataclass": DataclassCacheTypeExtension(),
             "primitive": PrimitiveCacheTypeExtension(),
         },
     )
-
-    # dataclasses and primitive types are handled by the registry
 
     return registry
