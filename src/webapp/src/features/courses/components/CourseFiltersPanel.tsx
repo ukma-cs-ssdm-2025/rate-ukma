@@ -62,12 +62,14 @@ function FilterSlider({
 	value,
 	range,
 	captions,
+	testId,
 	onValueChange,
 }: Readonly<{
 	label: string;
 	value: [number, number];
 	range: [number, number];
 	captions: [string, string];
+	testId?: string;
 	onValueChange: (value: [number, number]) => void;
 }>) {
 	const [localValue, setLocalValue] = useState(value);
@@ -89,6 +91,7 @@ function FilterSlider({
 				value={localValue}
 				onValueChange={(val) => setLocalValue(val as [number, number])}
 				onValueCommit={(val) => onValueChange(val as [number, number])}
+				data-testid={testId}
 				className="w-full"
 			/>
 			<div className="flex justify-between text-xs text-muted-foreground">
@@ -203,6 +206,13 @@ function CourseFiltersContent({
 				<FilterSlider
 					key={key}
 					{...filter}
+					testId={
+						key === "diff"
+							? testIds.filters.difficultySlider
+							: key === "use"
+								? testIds.filters.usefulnessSlider
+								: undefined
+					}
 					value={params[key]}
 					onValueChange={(next) => handleRangeChange(key, next)}
 				/>
@@ -218,6 +228,12 @@ function CourseFiltersContent({
 					useCombobox,
 				}) => {
 					const currentValue = getSelectValue(key);
+					const testId =
+						key === "faculty"
+							? testIds.filters.facultySelect
+							: key === "dept"
+								? testIds.filters.departmentSelect
+								: undefined;
 					return (
 						<div key={key} className="space-y-3">
 							<Label className="text-sm font-medium">{label}</Label>
@@ -233,6 +249,7 @@ function CourseFiltersContent({
 									emptyText="Нічого не знайдено."
 									disabled={options.length === 0}
 									contentClassName={contentClassName}
+									data-testid={testId}
 								/>
 							) : (
 								<Select
@@ -243,7 +260,7 @@ function CourseFiltersContent({
 									}}
 									disabled={options.length === 0}
 								>
-									<SelectTrigger className="w-full">
+									<SelectTrigger className="w-full" data-testid={testId}>
 										<SelectValue placeholder={placeholder} />
 									</SelectTrigger>
 									<SelectContent className={contentClassName}>
