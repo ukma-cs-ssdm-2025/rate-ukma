@@ -32,6 +32,7 @@ interface ComboboxProps {
 	readonly disabled?: boolean;
 	readonly className?: string;
 	readonly contentClassName?: string;
+	readonly "data-testid"?: string;
 }
 
 function Combobox({
@@ -44,6 +45,7 @@ function Combobox({
 	disabled = false,
 	className,
 	contentClassName,
+	"data-testid": testId,
 }: ComboboxProps) {
 	const [open, setOpen] = React.useState(false);
 
@@ -78,6 +80,7 @@ function Combobox({
 					)}
 					disabled={disabled}
 					data-placeholder={!selectedOption ? "" : undefined}
+					data-testid={testId}
 				>
 					<span className="truncate">
 						{selectedOption ? selectedOption.label : placeholder}
