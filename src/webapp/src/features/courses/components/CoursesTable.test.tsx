@@ -9,6 +9,8 @@ import {
 } from "@/test-utils/factories";
 import { renderWithProviders } from "@/test-utils/render";
 import { CoursesTable } from "./CoursesTable";
+import type { CourseFiltersParamsState } from "../courseFiltersParams";
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 
 // Mock TanStack Router hooks
 const mockNavigate = vi.fn();
@@ -66,10 +68,28 @@ vi.mock("@/lib/api/generated", async () => {
 	};
 });
 
+const defaultParams: CourseFiltersParamsState = {
+	q: "",
+	diff: DIFFICULTY_RANGE,
+	use: USEFULNESS_RANGE,
+	faculty: "",
+	dept: "",
+	instructor: "",
+	term: "",
+	year: "",
+	type: "",
+	spec: "",
+	page: 1,
+	size: 10,
+};
+
+const defaultSetParams = vi.fn();
+
 const defaultProps = {
 	data: [],
 	isLoading: false,
-	filtersKey: "test-key",
+	params: defaultParams,
+	setParams: defaultSetParams,
 };
 
 beforeEach(() => {
@@ -144,10 +164,7 @@ describe("Search Filter", () => {
 	it("should update search query when typing in search input", async () => {
 		// Arrange
 		const user = userEvent.setup();
-		const onFiltersChange = vi.fn();
-		renderWithProviders(
-			<CoursesTable {...defaultProps} onFiltersChange={onFiltersChange} />,
-		);
+		renderWithProviders(<CoursesTable {...defaultProps} />);
 
 		// Act
 		const searchInput = screen.getByPlaceholderText(
@@ -159,32 +176,19 @@ describe("Search Filter", () => {
 		expect(searchInput).toHaveValue("React");
 	});
 
-	it("should include search query in filter params after debounce", async () => {
-		// Arrange
+	it("should call setParams with search query after debounce", async () => {
 		const user = userEvent.setup();
-		const onFiltersChange = vi.fn();
-		renderWithProviders(
-			<CoursesTable {...defaultProps} onFiltersChange={onFiltersChange} />,
-		);
+		renderWithProviders(<CoursesTable {...defaultProps} />);
 
-		// Act
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук курсів за назвою...",
 		);
 		await user.type(searchInput, "Database");
 
-		// Assert
-		await waitFor(
-			() => {
-				expect(onFiltersChange).toHaveBeenCalledWith(
-					expect.objectContaining({
-						name: "Database",
-						page: 1,
-						page_size: 20,
-					}),
-				);
-			},
-			{ timeout: 1000 },
+		await new Promise((resolve) => setTimeout(resolve, 350));
+
+		expect(defaultSetParams).toHaveBeenCalledWith(
+			expect.objectContaining({ q: "Database", page: 1 }),
 		);
 	});
 
@@ -224,10 +228,9 @@ describe("Pagination", () => {
 		expect(screen.queryByText("Курси не знайдено")).not.toBeInTheDocument();
 	});
 
-	it("should call onFiltersChange with correct page when pagination changes", async () => {
-		// Arrange
+	it("should update page params when pagination changes", async () => {
 		const user = userEvent.setup();
-		const onFiltersChange = vi.fn();
+		const setParams = vi.fn();
 		const courses = Array.from({ length: 20 }, () => createMockCourse());
 		const pagination = {
 			page: 1,
@@ -239,31 +242,24 @@ describe("Pagination", () => {
 		renderWithProviders(
 			<CoursesTable
 				{...defaultProps}
+				params={{ ...defaultParams, page: 1, size: 20 }}
+				setParams={setParams}
 				data={courses}
 				pagination={pagination}
-				onFiltersChange={onFiltersChange}
 			/>,
 		);
 
-		// Act
 		const nextButton = screen.getByRole("button", { name: /next/i });
 		await user.click(nextButton);
 
-		// Assert
 		await waitFor(() => {
-			expect(onFiltersChange).toHaveBeenCalledWith(
-				expect.objectContaining({
-					page: 2,
-					page_size: 20,
-				}),
-			);
+			expect(setParams).toHaveBeenCalledWith({ size: 20, page: 2 });
 		});
 	});
 
-	it("should reset to page 1 when filters change", async () => {
-		// Arrange
+	it("should reset to page 1 when search changes", async () => {
 		const user = userEvent.setup();
-		const onFiltersChange = vi.fn();
+		const setParams = vi.fn();
 		const courses = Array.from({ length: 20 }, () => createMockCourse());
 		const pagination = {
 			page: 3,
@@ -275,28 +271,22 @@ describe("Pagination", () => {
 		renderWithProviders(
 			<CoursesTable
 				{...defaultProps}
+				params={{ ...defaultParams, page: 3, size: 20 }}
+				setParams={setParams}
 				data={courses}
 				pagination={pagination}
-				onFiltersChange={onFiltersChange}
 			/>,
 		);
 
-		// Act
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук курсів за назвою...",
 		);
 		await user.type(searchInput, "Test");
 
-		// Assert
-		await waitFor(
-			() => {
-				expect(onFiltersChange).toHaveBeenCalledWith(
-					expect.objectContaining({
-						page: 1,
-					}),
-				);
-			},
-			{ timeout: 1500 },
+		await new Promise((resolve) => setTimeout(resolve, 350));
+
+		expect(setParams).toHaveBeenCalledWith(
+			expect.objectContaining({ q: "Test", page: 1 }),
 		);
 	});
 });
@@ -321,35 +311,34 @@ describe("Filter Options Loading", () => {
 });
 
 describe("Reset Filters", () => {
-	it("should reset all filters to default when reset is clicked", async () => {
-		// Arrange
+	it("should call setParams with defaults when reset is clicked", async () => {
 		const user = userEvent.setup();
-		const onFiltersChange = vi.fn();
+		const setParams = vi.fn();
+
 		renderWithProviders(
-			<CoursesTable {...defaultProps} onFiltersChange={onFiltersChange} />,
-		);
-
-		// Act
-		const searchInput = screen.getByPlaceholderText(
-			"Пошук курсів за назвою...",
-		);
-		await user.type(searchInput, "Test");
-
-		await waitFor(
-			() => {
-				expect(
-					screen.getByRole("button", { name: /скинути/i }),
-				).toBeInTheDocument();
-			},
-			{ timeout: 1000 },
+			<CoursesTable
+				{...defaultProps}
+				params={{ ...defaultParams, q: "Test", page: 2, size: 20 }}
+				setParams={setParams}
+			/>,
 		);
 
 		const resetButton = screen.getByRole("button", { name: /скинути/i });
 		await user.click(resetButton);
 
-		// Assert
-		await waitFor(() => {
-			expect(searchInput).toHaveValue("");
+		expect(setParams).toHaveBeenCalledWith({
+			q: "",
+			diff: DIFFICULTY_RANGE,
+			use: USEFULNESS_RANGE,
+			faculty: "",
+			dept: "",
+			instructor: "",
+			term: "",
+			year: "",
+			type: "",
+			spec: "",
+			page: 1,
+			size: 10,
 		});
 	});
 });
@@ -494,89 +483,6 @@ describe("Accessibility", () => {
 		// Assert
 		const filterButton = screen.getByRole("button", { name: /фільтри/i });
 		expect(filterButton).toHaveAttribute("aria-label", "Фільтри");
-	});
-});
-
-describe("URL Sync", () => {
-	// Integration test: Verify component syncs user input to URL
-	it("should sync search query to URL after debounce", async () => {
-		// Arrange
-		const user = userEvent.setup();
-		renderWithProviders(<CoursesTable {...defaultProps} />);
-
-		// Act
-		const searchInput = screen.getByPlaceholderText(
-			"Пошук курсів за назвою...",
-		);
-		await user.type(searchInput, "React");
-
-		// Assert
-		expect(mockNavigate).not.toHaveBeenCalled();
-
-		await waitFor(
-			() => {
-				expect(mockNavigate).toHaveBeenCalledWith(
-					expect.objectContaining({
-						search: expect.objectContaining({
-							q: "React",
-						}),
-						replace: true,
-					}),
-				);
-			},
-			{ timeout: 1000 },
-		);
-	});
-
-	it("should use replace: true to avoid history pollution", async () => {
-		// Arrange
-		const user = userEvent.setup();
-		renderWithProviders(<CoursesTable {...defaultProps} />);
-
-		// Act
-		const searchInput = screen.getByPlaceholderText(
-			"Пошук курсів за назвою...",
-		);
-		await user.type(searchInput, "Test");
-
-		// Assert
-		await waitFor(
-			() => {
-				expect(mockNavigate).toHaveBeenCalledWith(
-					expect.objectContaining({
-						replace: true,
-					}),
-				);
-			},
-			{ timeout: 1000 },
-		);
-	});
-
-	it("should initialize form from URL params", () => {
-		// Arrange
-		const initialFilters = {
-			searchQuery: "Database",
-			difficultyRange: [2, 4] as [number, number],
-			usefulnessRange: [3, 5] as [number, number],
-			faculty: "faculty-1",
-			department: "",
-			instructor: "",
-			semesterTerm: "",
-			semesterYear: "",
-			courseType: "",
-			speciality: "",
-		};
-
-		// Act
-		renderWithProviders(
-			<CoursesTable {...defaultProps} initialFilters={initialFilters} />,
-		);
-
-		// Assert
-		const searchInput = screen.getByPlaceholderText(
-			"Пошук курсів за назвою...",
-		);
-		expect(searchInput).toHaveValue("Database");
 	});
 });
 

@@ -1,18 +1,11 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	createFileRoute,
-	Link,
-	useNavigate,
-	useSearch,
-} from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Filter, MoreHorizontal } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { createStandardSchemaV1 } from "nuqs";
 
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/Button";
-import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import { Drawer } from "@/components/ui/Drawer";
 import {
 	DropdownMenu,
@@ -20,200 +13,161 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-import { CourseFiltersDrawer } from "@/features/courses/components/CourseFiltersPanel";
+import {
+	CourseFiltersDrawer,
+	CourseFiltersPanel,
+} from "@/features/courses/components/CourseFiltersPanel";
 import { CoursesScatterPlot } from "@/features/courses/components/CoursesScatterPlot";
 import {
-	DEFAULT_FILTERS,
-	type FilterState,
-	filterSchema,
-} from "@/features/courses/filterSchema";
-import { transformFiltersToApiParams } from "@/features/courses/filterTransformations";
+	courseFiltersParams,
+	DEFAULT_COURSE_FILTERS_PARAMS,
+	useCourseFiltersParams,
+} from "@/features/courses/courseFiltersParams";
 import {
-	filtersToSearchParams,
-	searchParamsToFilters,
-} from "@/features/courses/urlSync";
+	DIFFICULTY_RANGE,
+	USEFULNESS_RANGE,
+} from "@/features/courses/courseFormatting";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 import { localStorageAdapter } from "@/lib/storage";
 
-type CoursesSearch = Record<string, string>;
-
 const SHOW_ALL_LABELS_STORAGE_KEY = "explore:show-all-labels";
 
-function useFilterForm(initialFilters: FilterState) {
-	const form = useForm<FilterState>({
-		defaultValues: initialFilters,
-		resolver: zodResolver(filterSchema),
-		mode: "onChange",
-	});
-
-	const formRef = useRef(form);
-	formRef.current = form;
-
-	useEffect(() => {
-		formRef.current.reset(initialFilters);
-	}, [initialFilters]);
-
-	return form;
-}
-
 function ExploreRoute() {
-	const navigate = useNavigate();
-	const search = useSearch({ from: "/explore" });
-
-	const initialFilters = useMemo(() => searchParamsToFilters(search), [search]);
-	const form = useFilterForm(initialFilters);
-	const filters = form.watch();
-	const deferredFilters = useDeferredValue(filters);
-	const searchParams = useMemo(
-		() => filtersToSearchParams(deferredFilters),
-		[deferredFilters],
-	);
+	const [params, setParams] = useCourseFiltersParams();
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
 
 	const apiFilters = useMemo<CoursesListParams>(
-		() => transformFiltersToApiParams(deferredFilters),
-		[deferredFilters],
+		() => ({
+			name: params.q || undefined,
+			avg_difficulty_min:
+				params.diff[0] !== DIFFICULTY_RANGE[0] ? params.diff[0] : undefined,
+			avg_difficulty_max:
+				params.diff[1] !== DIFFICULTY_RANGE[1] ? params.diff[1] : undefined,
+			avg_usefulness_min:
+				params.use[0] !== USEFULNESS_RANGE[0] ? params.use[0] : undefined,
+			avg_usefulness_max:
+				params.use[1] !== USEFULNESS_RANGE[1] ? params.use[1] : undefined,
+			faculty: params.faculty || undefined,
+			department: params.dept || undefined,
+			instructor: params.instructor || undefined,
+			semester_term: params.term || undefined,
+			semester_year: params.year || undefined,
+			type_kind: params.type || undefined,
+			speciality: params.spec || undefined,
+		}),
+		[params],
 	);
-
-	useEffect(() => {
-		const timeout = setTimeout(() => {
-			navigate({
-				to: "/explore",
-				search: searchParams,
-				replace: true,
-				resetScroll: false,
-			});
-		}, 400);
-
-		return () => clearTimeout(timeout);
-	}, [searchParams, navigate]);
 
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 	const [showAllLabels, setShowAllLabels] = useState<boolean>(() => {
 		const stored = localStorageAdapter.getItem<boolean>(
 			SHOW_ALL_LABELS_STORAGE_KEY,
 		);
-		return stored ?? false;
+		return stored !== null ? stored : false;
 	});
 
 	useEffect(() => {
 		localStorageAdapter.setItem(SHOW_ALL_LABELS_STORAGE_KEY, showAllLabels);
 	}, [showAllLabels]);
 
+	const handleResetFilters = useCallback(() => {
+		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
+	}, [setParams]);
+
+	const handleToggleShowAllLabels = () => {
+		setShowAllLabels((prev) => !prev);
+	};
+
 	return (
 		<Layout>
-			<div className="fixed inset-0 top-16 bg-background">
-				<div className="absolute inset-0 top-0 flex">
-					<div className="relative flex-1">
-						<div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
-							<div className="flex items-center gap-2">
-								<ButtonGroup
-									aria-label="Перемикання режиму перегляду"
-									className="rounded-lg border bg-card p-1 shadow-sm"
-								>
-									<Button asChild variant="ghost" size="sm">
-										<Link to="/" search={searchParams}>
-											Таблиця
-										</Link>
-									</Button>
-									<Button asChild variant="secondary" size="sm">
-										<Link to="/explore" search={searchParams}>
-											Візуалізація
-										</Link>
-									</Button>
-								</ButtonGroup>
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-8 w-8 p-0 border bg-card shadow-sm"
-											aria-label="Налаштування візуалізації"
-										>
-											<MoreHorizontal className="h-4 w-4" />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="end" className="w-56">
-										<DropdownMenuCheckboxItem
-											checked={showAllLabels}
-											onCheckedChange={(checked) =>
-												setShowAllLabels(Boolean(checked))
-											}
-										>
-											<div className="flex flex-col gap-0.5">
-												<span className="font-medium text-foreground">
-													Завжди показувати підписи
-												</span>
-												<span className="text-xs text-muted-foreground">
-													Може перекривати точки, якщо їх багато
-												</span>
-											</div>
-										</DropdownMenuCheckboxItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							</div>
-						</div>
+			<div
+				className="relative w-full"
+				style={{ viewTransitionName: "scatter" }}
+			>
+				<div className="absolute right-6 top-4 z-10 flex gap-2">
+					<Link
+						to="/"
+						search={(prev) => prev}
+						className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground shadow-sm ring-offset-background transition-colors hover:bg-secondary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+					>
+						← Назад до таблиці
+					</Link>
 
-						{/* Filters Button (shared mobile/desktop trigger) */}
-						<div className="absolute right-3 top-3 z-20">
-							<Button
-								variant="ghost"
-								size="sm"
-								className="gap-2 border bg-card/90 shadow-sm backdrop-blur"
-								onClick={() => setIsFiltersOpen(true)}
-							>
-								<Filter className="h-4 w-4" />
-								<span className="hidden md:inline">Фільтри</span>
+					<Button
+						variant="secondary"
+						size="default"
+						className="h-10 gap-2 shadow-sm lg:hidden"
+						onClick={() => setIsFiltersOpen(true)}
+					>
+						<Filter className="h-4 w-4" />
+						Фільтри
+					</Button>
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="secondary" size="default" className="h-10">
+								<MoreHorizontal className="h-4 w-4" />
+								<span className="sr-only">Налаштування</span>
 							</Button>
-						</div>
-
-						{/* Main Chart Area */}
-						<div className="absolute inset-0 top-0">
-							<div className="w-full h-full">
-								<CoursesScatterPlot
-									filters={apiFilters}
-									forceShowAllLabels={showAllLabels}
-								/>
-							</div>
-						</div>
-					</div>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuCheckboxItem
+								checked={showAllLabels}
+								onCheckedChange={handleToggleShowAllLabels}
+							>
+								Показати всі назви курсів
+							</DropdownMenuCheckboxItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 
-				<Drawer
-					open={isFiltersOpen}
-					onOpenChange={setIsFiltersOpen}
-					ariaLabel="Фільтри курсів"
-					closeButtonLabel="Закрити фільтри"
-				>
-					<CourseFiltersDrawer
-						form={form}
-						filterOptions={filterOptions}
-						onReset={() => form.reset(DEFAULT_FILTERS)}
-						isLoading={isFilterOptionsLoading}
-						onClose={() => setIsFiltersOpen(false)}
-					/>
-				</Drawer>
+				<div className="flex gap-6">
+					<div className="hidden w-80 shrink-0 lg:block">
+						<CourseFiltersPanel
+							params={params}
+							setParams={setParams}
+							filterOptions={filterOptions}
+							onReset={handleResetFilters}
+							isLoading={isFilterOptionsLoading}
+						/>
+					</div>
+
+					<div className="flex-1">
+						<CoursesScatterPlot
+							filters={apiFilters}
+							forceShowAllLabels={showAllLabels}
+						/>
+					</div>
+				</div>
 			</div>
+
+			<Drawer
+				open={isFiltersOpen}
+				onOpenChange={setIsFiltersOpen}
+				ariaLabel="Фільтри курсів"
+				closeButtonLabel="Закрити фільтри"
+			>
+				<CourseFiltersDrawer
+					params={params}
+					setParams={setParams}
+					filterOptions={filterOptions}
+					onReset={handleResetFilters}
+					isLoading={isFilterOptionsLoading}
+					onClose={() => setIsFiltersOpen(false)}
+				/>
+			</Drawer>
 		</Layout>
 	);
 }
 
 export const Route = createFileRoute("/explore")({
 	component: withAuth(ExploreRoute),
-	validateSearch: (search: Record<string, unknown>): CoursesSearch => {
-		const result: Record<string, string> = {};
-		for (const [key, value] of Object.entries(search)) {
-			if (typeof value === "string") {
-				result[key] = value;
-			} else if (typeof value === "number") {
-				result[key] = String(value);
-			}
-		}
-		return result;
-	},
+	validateSearch: createStandardSchemaV1(courseFiltersParams, {
+		partialOutput: true,
+	}),
 });

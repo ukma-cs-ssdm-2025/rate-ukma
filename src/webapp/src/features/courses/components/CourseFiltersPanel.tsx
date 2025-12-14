@@ -1,8 +1,6 @@
 import { memo, useEffect, useState } from "react";
 
 import { Filter, X } from "lucide-react";
-import type { UseFormReturn } from "react-hook-form";
-import { Controller, useWatch } from "react-hook-form";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -21,15 +19,16 @@ import type { FilterOptions } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
+import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import { formatDecimalValue } from "../courseFormatting";
-import type { FilterState } from "../filterSchema";
 import {
 	areFiltersActive,
 	useCourseFiltersData,
 } from "../hooks/useCourseFiltersData";
 
 interface CourseFiltersBaseProps {
-	readonly form: UseFormReturn<FilterState>;
+	readonly params: CourseFiltersParamsState;
+	readonly setParams: (updates: Partial<CourseFiltersParamsState>) => void;
 	readonly filterOptions?: FilterOptions;
 }
 
@@ -49,7 +48,8 @@ export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
 }
 
 interface CourseFiltersContentProps {
-	readonly form: UseFormReturn<FilterState>;
+	readonly params: CourseFiltersParamsState;
+	readonly setParams: (updates: Partial<CourseFiltersParamsState>) => void;
 	readonly data: ReturnType<typeof useCourseFiltersData>;
 }
 
@@ -95,11 +95,6 @@ function FilterSlider({
 	);
 }
 
-function useHasActiveFilters(form: UseFormReturn<FilterState>): boolean {
-	const filters = useWatch({ control: form.control });
-	return areFiltersActive(filters as FilterState);
-}
-
 function ActiveFilters({
 	badges,
 }: Readonly<{
@@ -130,25 +125,75 @@ function ActiveFilters({
 }
 
 function CourseFiltersContent({
-	form,
+	params,
+	setParams,
 	data,
 }: Readonly<CourseFiltersContentProps>) {
+	const setWithPageReset = (updates: Partial<CourseFiltersParamsState>) => {
+		setParams({ ...updates, page: 1 });
+	};
+
+	const handleRangeChange = (key: "diff" | "use", value: [number, number]) => {
+		if (key === "diff") {
+			setWithPageReset({ diff: value });
+			return;
+		}
+
+		setWithPageReset({ use: value });
+	};
+
+	const getSelectValue = (key: string): string => {
+		switch (key) {
+			case "term":
+				return params.term;
+			case "year":
+				return params.year;
+			case "faculty":
+				return params.faculty;
+			case "dept":
+				return params.dept;
+			case "spec":
+				return params.spec;
+			case "type":
+				return params.type;
+			default:
+				return "";
+		}
+	};
+
+	const handleSelectChange = (key: string, value: string) => {
+		switch (key) {
+			case "term":
+				setWithPageReset({ term: value });
+				return;
+			case "year":
+				setWithPageReset({ year: value });
+				return;
+			case "faculty":
+				setParams({ faculty: value, dept: "", spec: "", page: 1 });
+				return;
+			case "dept":
+				setWithPageReset({ dept: value });
+				return;
+			case "spec":
+				setWithPageReset({ spec: value });
+				return;
+			case "type":
+				setWithPageReset({ type: value });
+				return;
+			default:
+				return;
+		}
+	};
+
 	return (
 		<div className="space-y-6">
 			{data.rangeFilters.map(({ key, ...filter }) => (
-				<Controller
+				<FilterSlider
 					key={key}
-					control={form.control}
-					name={key as keyof FilterState}
-					render={({ field }) => (
-						<FilterSlider
-							{...filter}
-							value={field.value as [number, number]}
-							onValueChange={(next) => {
-								field.onChange(next);
-							}}
-						/>
-					)}
+					{...filter}
+					value={params[key]}
+					onValueChange={(next) => handleRangeChange(key, next)}
 				/>
 			))}
 
@@ -160,64 +205,49 @@ function CourseFiltersContent({
 					options,
 					contentClassName,
 					useCombobox,
-				}) => (
-					<Controller
-						key={key}
-						control={form.control}
-						name={key as keyof FilterState}
-						render={({ field }) => (
-							<div className="space-y-3">
-								<Label className="text-sm font-medium">{label}</Label>
-								{useCombobox ? (
-									<Combobox
-										options={options}
-										value={(field.value as string) || ""}
-										onValueChange={(nextValue) => {
-											field.onChange(nextValue);
-											// Clear department and speciality when faculty changes
-											if (key === "faculty" && field.value !== nextValue) {
-												form.setValue("department", "", { shouldDirty: true });
-												form.setValue("speciality", "", { shouldDirty: true });
-											}
-										}}
-										placeholder={placeholder}
-										searchPlaceholder="Пошук..."
-										emptyText="Нічого не знайдено."
-										disabled={options.length === 0}
-										contentClassName={contentClassName}
-									/>
-								) : (
-									<Select
-										value={(field.value as string) || "all"}
-										onValueChange={(nextValue) => {
-											const newValue = nextValue === "all" ? "" : nextValue;
-											field.onChange(newValue);
-
-											// Clear department and speciality when faculty changes
-											if (key === "faculty" && field.value !== newValue) {
-												form.setValue("department", "", { shouldDirty: true });
-												form.setValue("speciality", "", { shouldDirty: true });
-											}
-										}}
-										disabled={options.length === 0}
-									>
-										<SelectTrigger className="w-full">
-											<SelectValue placeholder={placeholder} />
-										</SelectTrigger>
-										<SelectContent className={contentClassName}>
-											<SelectItem value="all">{placeholder}</SelectItem>
-											{options.map((option) => (
-												<SelectItem key={option.value} value={option.value}>
-													{option.label}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								)}
-							</div>
-						)}
-					/>
-				),
+				}) => {
+					const currentValue = getSelectValue(key);
+					return (
+						<div key={key} className="space-y-3">
+							<Label className="text-sm font-medium">{label}</Label>
+							{useCombobox ? (
+								<Combobox
+									options={options}
+									value={currentValue}
+									onValueChange={(nextValue) => {
+										handleSelectChange(key, nextValue);
+									}}
+									placeholder={placeholder}
+									searchPlaceholder="Пошук..."
+									emptyText="Нічого не знайдено."
+									disabled={options.length === 0}
+									contentClassName={contentClassName}
+								/>
+							) : (
+								<Select
+									value={currentValue || "all"}
+									onValueChange={(nextValue) => {
+										const newValue = nextValue === "all" ? "" : nextValue;
+										handleSelectChange(key, newValue);
+									}}
+									disabled={options.length === 0}
+								>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder={placeholder} />
+									</SelectTrigger>
+									<SelectContent className={contentClassName}>
+										<SelectItem value="all">{placeholder}</SelectItem>
+										{options.map((option) => (
+											<SelectItem key={option.value} value={option.value}>
+												{option.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							)}
+						</div>
+					);
+				},
 			)}
 
 			<ActiveFilters badges={data.activeBadges} />
@@ -247,7 +277,7 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 	...baseProps
 }: Readonly<CourseFiltersPanelProps>) {
 	const data = useCourseFiltersData(baseProps);
-	const hasActiveFilters = useHasActiveFilters(baseProps.form);
+	const hasActiveFilters = areFiltersActive(baseProps.params);
 
 	if (isLoading) {
 		return <CourseFiltersPanelSkeleton />;
@@ -268,7 +298,11 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 						{hasActiveFilters && <ResetButton onReset={onReset} />}
 					</div>
 				)}
-				<CourseFiltersContent form={baseProps.form} data={data} />
+				<CourseFiltersContent
+					params={baseProps.params}
+					setParams={baseProps.setParams}
+					data={data}
+				/>
 			</div>
 		);
 	}
@@ -288,7 +322,11 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 				</div>
 			</CardHeader>
 			<CardContent>
-				<CourseFiltersContent form={baseProps.form} data={data} />
+				<CourseFiltersContent
+					params={baseProps.params}
+					setParams={baseProps.setParams}
+					data={data}
+				/>
 			</CardContent>
 		</Card>
 	);
@@ -302,7 +340,7 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 	...baseProps
 }: Readonly<CourseFiltersDrawerProps>) {
 	const data = useCourseFiltersData(baseProps);
-	const hasActiveFilters = useHasActiveFilters(baseProps.form);
+	const hasActiveFilters = areFiltersActive(baseProps.params);
 
 	if (isLoading) {
 		return <CourseFiltersPanelSkeleton />;
@@ -329,7 +367,11 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 					</Button>
 				</div>
 			</div>
-			<CourseFiltersContent form={baseProps.form} data={data} />
+			<CourseFiltersContent
+				params={baseProps.params}
+				setParams={baseProps.setParams}
+				data={data}
+			/>
 		</div>
 	);
 });

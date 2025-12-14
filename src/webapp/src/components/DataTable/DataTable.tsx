@@ -25,26 +25,19 @@ import { cn } from "@/lib/utils";
 const ROW_CLICK_IGNORE_SELECTOR =
 	'a,button,input,select,textarea,label,[role="button"],[role="link"],[contenteditable],[data-row-click-ignore="true"]';
 
-// Modifier-key clicks typically mean "do something else" (e.g. open in new tab, multi-select),
-// so row navigation should not trigger in those cases.
 function isModifiedClick(event: MouseEvent): boolean {
 	return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
 }
 
-// Avoid navigating when the user is selecting text (e.g. to copy a course title).
 function hasActiveTextSelection(): boolean {
 	const selection = globalThis.getSelection?.();
-	if (!selection) return false;
-
-	const text = selection.toString().trim();
-	if (text.length === 0) return false;
-
-	return selection.type === "Range" || selection.isCollapsed === false;
+	return Boolean(selection?.type === "Range" && selection.toString().trim());
 }
 
 function shouldIgnoreRowClickTarget(target: EventTarget | null): boolean {
-	if (!(target instanceof HTMLElement)) return false;
-	return Boolean(target.closest(ROW_CLICK_IGNORE_SELECTOR));
+	return target instanceof HTMLElement
+		? Boolean(target.closest(ROW_CLICK_IGNORE_SELECTOR))
+		: false;
 }
 
 declare module "@tanstack/react-table" {
@@ -85,7 +78,7 @@ export function getCommonPinningStyles<TData>({
 		right: isPinned === "right" ? `${column.getAfter("right")}px` : undefined,
 		opacity: isPinned ? 0.97 : 1,
 		position: isPinned ? "sticky" : "relative",
-		background: isPinned ? "var(--background)" : undefined,
+		background: "var(--background)",
 		width: column.getSize(),
 		zIndex: isPinned ? 1 : 0,
 	};
@@ -166,11 +159,11 @@ export function DataTable<TData>({
 										data-highlighted={highlighted ? true : undefined}
 										className={cn(
 											onRowClick && "group cursor-pointer",
-											highlighted && "hover:bg-primary/5",
+											highlighted &&
+												"bg-primary/5 border-l-2 border-l-primary hover:bg-primary/10",
 										)}
 										onClick={(event) => {
 											if (!onRowClick) return;
-											if (event.defaultPrevented) return;
 											if (isModifiedClick(event)) return;
 											if (hasActiveTextSelection()) return;
 											if (shouldIgnoreRowClickTarget(event.target)) return;
@@ -178,17 +171,14 @@ export function DataTable<TData>({
 											onRowClick(row.original);
 										}}
 									>
-										{row.getVisibleCells().map((cell, cellIndex) => (
+										{row.getVisibleCells().map((cell) => (
 											<TableCell
 												key={cell.id}
 												style={{
 													...getCommonPinningStyles({ column: cell.column }),
 												}}
-												className={cn(
-													getAlignmentClass(cell.column.columnDef.meta),
-													highlighted &&
-														cellIndex === 0 &&
-														"relative before:content-[''] before:absolute before:left-0 before:inset-y-0 before:w-0.5 before:bg-primary/60 before:transition-[width] before:duration-150 group-hover:before:w-1",
+												className={getAlignmentClass(
+													cell.column.columnDef.meta,
 												)}
 											>
 												{flexRender(

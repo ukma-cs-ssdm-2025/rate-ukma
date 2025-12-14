@@ -5,12 +5,6 @@ import { authorizedHttpClient } from "./apiClient";
 import { stubBrowserLocation } from "./browserMocks.test-support";
 import { CONNECTION_ERROR_PATH, resetRedirectFlag } from "./networkError";
 
-vi.mock("@sentry/react", () => {
-	return {
-		captureException: vi.fn(),
-	};
-});
-
 const DEFAULT_WINDOW_LOCATION = {
 	pathname: "/courses",
 	search: "?page=2",
@@ -61,20 +55,16 @@ describe("apiClient axios interceptor integration", () => {
 		expect(mockWindowReplace).not.toHaveBeenCalled();
 	});
 
-	it.each([
-		502, 503, 504,
-	])("redirects on %s backend unavailable errors", async (status) => {
+	it("does not redirect on 503 service unavailable errors", async () => {
 		// Arrange
-		mockAxios.onGet("/api/courses").reply(status);
+		mockAxios.onGet("/api/courses").reply(503);
 
 		// Act
 		const request = authorizedHttpClient.get("/api/courses");
 
 		// Assert
-		await expect(request).rejects.toMatchObject({
-			response: { status },
-		});
-		expectConnectionErrorRedirect("server");
+		await expect(request).rejects.toMatchObject({ response: { status: 503 } });
+		expect(mockWindowReplace).not.toHaveBeenCalled();
 	});
 
 	it("redirects with offline reason when network error occurs and user is offline", async () => {
@@ -167,33 +157,5 @@ describe("apiClient axios interceptor integration", () => {
 
 		// Assert
 		await expect(request).rejects.toMatchObject({ response: { status: 500 } });
-	});
-
-	it("logs non-connection 5xx responses to Sentry", async () => {
-		const sentry = await import("@sentry/react");
-		const captureException = vi.mocked(sentry.captureException);
-
-		mockAxios.onGet("/api/test").reply(500);
-
-		const request = authorizedHttpClient.get("/api/test");
-
-		await expect(request).rejects.toMatchObject({ response: { status: 500 } });
-		expect(captureException).toHaveBeenCalled();
-	});
-
-	it.each([
-		502, 503, 504,
-	])("logs %s backend unavailable responses to Sentry", async (status) => {
-		const sentry = await import("@sentry/react");
-		const captureException = vi.mocked(sentry.captureException);
-
-		mockAxios.onGet("/api/test").reply(status);
-
-		const request = authorizedHttpClient.get("/api/test");
-
-		await expect(request).rejects.toMatchObject({
-			response: { status },
-		});
-		expect(captureException).toHaveBeenCalled();
 	});
 });

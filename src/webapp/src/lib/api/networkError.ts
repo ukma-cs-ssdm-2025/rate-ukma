@@ -4,8 +4,6 @@ export const CONNECTION_ERROR_PATH = "/connection-error";
 
 export type ConnectionIssueReason = "offline" | "server" | "unknown";
 
-const BACKEND_UNAVAILABLE_STATUSES = new Set([502, 503, 504]);
-
 let isRedirecting = false;
 
 export const resetRedirectFlag = () => {
@@ -47,9 +45,6 @@ const getConnectionIssueReason = (
 
 	if (!error.response) {
 		return isOffline() ? "offline" : "server";
-	}
-	if (BACKEND_UNAVAILABLE_STATUSES.has(error.response.status)) {
-		return "server";
 	}
 	if (error.code === "ERR_NETWORK") {
 		return isOffline() ? "offline" : "server";

@@ -1,67 +1,46 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback } from "react";
 
 import { keepPreviousData } from "@tanstack/react-query";
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { createStandardSchemaV1 } from "nuqs";
 
 import Layout from "@/components/Layout";
 import { CoursesErrorState } from "@/features/courses/components/CoursesErrorState";
 import { CoursesTable } from "@/features/courses/components/CoursesTable";
-import type { FilterState } from "@/features/courses/filterSchema";
-import { transformFiltersToApiParams } from "@/features/courses/filterTransformations";
-import { searchParamsToFilters } from "@/features/courses/urlSync";
+import {
+	courseFiltersParams,
+	useCourseFiltersParams,
+} from "@/features/courses/courseFiltersParams";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
-type CoursesSearch = Record<string, string>;
-
 function CoursesRoute() {
-	const search = useSearch({ from: "/" });
-	const initialFilters = useMemo(() => searchParamsToFilters(search), [search]);
+	const [params, setParams] = useCourseFiltersParams();
 
-	const [filters, setFilters] = useState<FilterState>(initialFilters);
-
-	// Sync with URL changes (e.g., browser back/forward)
-	useEffect(() => {
-		setFilters((previous) => {
-			if (JSON.stringify(previous) === JSON.stringify(initialFilters)) {
-				return previous;
-			}
-			return initialFilters;
-		});
-	}, [initialFilters]);
-
-	// Convert to API params
-	const apiFilters = useMemo<CoursesListParams>(
-		() => ({
-			page: filters.page,
-			page_size: filters.page_size,
-			...transformFiltersToApiParams(filters),
-		}),
-		[filters],
-	);
+	// Convert nuqs params directly to API params
+	const apiFilters: CoursesListParams = {
+		page: params.page,
+		page_size: params.size,
+		name: params.q || undefined,
+		avg_difficulty_min: params.diff[0] !== 1 ? params.diff[0] : undefined,
+		avg_difficulty_max: params.diff[1] !== 5 ? params.diff[1] : undefined,
+		avg_usefulness_min: params.use[0] !== 1 ? params.use[0] : undefined,
+		avg_usefulness_max: params.use[1] !== 5 ? params.use[1] : undefined,
+		faculty: params.faculty || undefined,
+		department: params.dept || undefined,
+		instructor: params.instructor || undefined,
+		semester_term: params.term || undefined,
+		semester_year: params.year || undefined,
+		type_kind: params.type || undefined,
+		speciality: params.spec || undefined,
+	};
 
 	const { data, isFetching, isError, refetch } = useCoursesList(apiFilters, {
 		query: {
 			placeholderData: keepPreviousData,
 		},
 	});
-
-	// Create filtersKey WITHOUT pagination for reset-to-page-1 logic
-	const filtersKey = useMemo(() => {
-		// biome-ignore lint/correctness/noUnusedVariables: Intentionally destructuring to exclude page/page_size
-		const { page, page_size, ...filtersOnly } = filters;
-		return JSON.stringify(filtersOnly);
-	}, [filters]);
-
-	const handleFiltersChange = useCallback((nextFilters: FilterState) => {
-		setFilters((previous) => {
-			if (JSON.stringify(previous) === JSON.stringify(nextFilters)) {
-				return previous;
-			}
-			return nextFilters;
-		});
-	}, []);
 
 	const handleRetry = useCallback(() => {
 		refetch();
@@ -76,9 +55,8 @@ function CoursesRoute() {
 					<CoursesTable
 						data={data?.items ?? []}
 						isLoading={isFetching}
-						filtersKey={filtersKey}
-						filters={filters}
-						onFiltersChange={handleFiltersChange}
+						params={params}
+						setParams={setParams}
 						pagination={
 							data
 								? {
@@ -98,15 +76,7 @@ function CoursesRoute() {
 
 export const Route = createFileRoute("/")({
 	component: withAuth(CoursesRoute),
-	validateSearch: (search: Record<string, unknown>): CoursesSearch => {
-		const result: Record<string, string> = {};
-		for (const [key, value] of Object.entries(search)) {
-			if (typeof value === "string") {
-				result[key] = value;
-			} else if (typeof value === "number") {
-				result[key] = String(value);
-			}
-		}
-		return result;
-	},
+	validateSearch: createStandardSchemaV1(courseFiltersParams, {
+		partialOutput: true,
+	}),
 });

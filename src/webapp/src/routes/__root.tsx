@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -18,7 +19,9 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			<AuthProvider>
 				<SentryUserSync />
 				<ThemeProvider defaultTheme="system" storageKey="rate-ukma-theme">
-					<Outlet />
+					<NuqsAdapter>
+						<Outlet />
+					</NuqsAdapter>
 					<Toaster />
 				</ThemeProvider>
 				<TanStackRouterDevtools position="bottom-left" />

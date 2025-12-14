@@ -1,17 +1,32 @@
 import { describe, expect, it } from "vitest";
 
+import type { CourseFiltersParamsState } from "./courseFiltersParams";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
-import { DEFAULT_FILTERS } from "./filterSchema";
 import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
 } from "./filterTransformations";
 
+const DEFAULT_PARAMS: CourseFiltersParamsState = {
+	q: "",
+	diff: DIFFICULTY_RANGE,
+	use: USEFULNESS_RANGE,
+	faculty: "",
+	dept: "",
+	instructor: "",
+	term: "",
+	year: "",
+	type: "",
+	spec: "",
+	page: 1,
+	size: 10,
+};
+
 describe("filterTransformations", () => {
 	describe("transformFiltersToApiParams", () => {
 		it("should exclude all fields when using default filters", () => {
 			// Arrange
-			const filters = DEFAULT_FILTERS;
+			const filters = DEFAULT_PARAMS;
 
 			// Act
 			const result = transformFiltersToApiParams(filters);
@@ -23,8 +38,8 @@ describe("filterTransformations", () => {
 		it("should include search query when provided", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				searchQuery: "React Programming",
+				...DEFAULT_PARAMS,
+				q: "React Programming",
 			};
 
 			// Act
@@ -39,8 +54,8 @@ describe("filterTransformations", () => {
 		it("should exclude empty search query", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				searchQuery: "",
+				...DEFAULT_PARAMS,
+				q: "",
 			};
 
 			// Act
@@ -53,7 +68,7 @@ describe("filterTransformations", () => {
 		it("should include faculty when provided", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
+				...DEFAULT_PARAMS,
 				faculty: "faculty-123",
 			};
 
@@ -69,8 +84,8 @@ describe("filterTransformations", () => {
 		it("should include department when provided", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				department: "dept-456",
+				...DEFAULT_PARAMS,
+				dept: "dept-456",
 			};
 
 			// Act
@@ -85,7 +100,7 @@ describe("filterTransformations", () => {
 		it("should include instructor when provided", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
+				...DEFAULT_PARAMS,
 				instructor: "instructor-789",
 			};
 
@@ -101,8 +116,8 @@ describe("filterTransformations", () => {
 		it("should include course type when provided", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				courseType: "MANDATORY",
+				...DEFAULT_PARAMS,
+				type: "MANDATORY",
 			};
 
 			// Act
@@ -110,15 +125,15 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).toEqual({
-				typeKind: "MANDATORY",
+				type_kind: "MANDATORY",
 			});
 		});
 
 		it("should include speciality when provided", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				speciality: "spec-101",
+				...DEFAULT_PARAMS,
+				spec: "spec-101",
 			};
 
 			// Act
@@ -133,8 +148,8 @@ describe("filterTransformations", () => {
 		it("should include semester term when provided", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				semesterTerm: "FALL",
+				...DEFAULT_PARAMS,
+				term: "FALL",
 			};
 
 			// Act
@@ -149,8 +164,8 @@ describe("filterTransformations", () => {
 		it("should include semester year as string (academic year range)", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				semesterYear: "2024–2025",
+				...DEFAULT_PARAMS,
+				year: "2024–2025",
 			};
 
 			// Act
@@ -166,8 +181,8 @@ describe("filterTransformations", () => {
 		it("should exclude semester year when empty string", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				semesterYear: "",
+				...DEFAULT_PARAMS,
+				year: "",
 			};
 
 			// Act
@@ -180,8 +195,8 @@ describe("filterTransformations", () => {
 		it("should include difficulty range when modified from default", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				difficultyRange: [2, 4.5] as [number, number],
+				...DEFAULT_PARAMS,
+				diff: [2, 4.5] as [number, number],
 			};
 
 			// Act
@@ -197,8 +212,8 @@ describe("filterTransformations", () => {
 		it("should exclude difficulty range when matching default range", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				difficultyRange: DIFFICULTY_RANGE,
+				...DEFAULT_PARAMS,
+				diff: DIFFICULTY_RANGE,
 			};
 
 			// Act
@@ -212,8 +227,8 @@ describe("filterTransformations", () => {
 		it("should include difficulty range when only min is modified", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				difficultyRange: [2.5, DIFFICULTY_RANGE[1]] as [number, number],
+				...DEFAULT_PARAMS,
+				diff: [2.5, DIFFICULTY_RANGE[1]] as [number, number],
 			};
 
 			// Act
@@ -227,8 +242,8 @@ describe("filterTransformations", () => {
 		it("should include difficulty range when only max is modified", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				difficultyRange: [DIFFICULTY_RANGE[0], 3.5] as [number, number],
+				...DEFAULT_PARAMS,
+				diff: [DIFFICULTY_RANGE[0], 3.5] as [number, number],
 			};
 
 			// Act
@@ -242,8 +257,8 @@ describe("filterTransformations", () => {
 		it("should include usefulness range when modified from default", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				usefulnessRange: [3, 5] as [number, number],
+				...DEFAULT_PARAMS,
+				use: [3, 5] as [number, number],
 			};
 
 			// Act
@@ -259,8 +274,8 @@ describe("filterTransformations", () => {
 		it("should exclude usefulness range when matching default range", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				usefulnessRange: USEFULNESS_RANGE,
+				...DEFAULT_PARAMS,
+				use: USEFULNESS_RANGE,
 			};
 
 			// Act
@@ -274,17 +289,17 @@ describe("filterTransformations", () => {
 		it("should handle multiple filters at once", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				searchQuery: "Database Systems",
+				...DEFAULT_PARAMS,
+				q: "Database Systems",
 				faculty: "faculty-1",
-				department: "dept-2",
+				dept: "dept-2",
 				instructor: "instructor-3",
-				semesterTerm: "SPRING",
-				semesterYear: "2024–2025",
-				courseType: "ELECTIVE",
-				speciality: "spec-4",
-				difficultyRange: [2, 4] as [number, number],
-				usefulnessRange: [3.5, 5] as [number, number],
+				term: "SPRING",
+				year: "2024–2025",
+				type: "ELECTIVE",
+				spec: "spec-4",
+				diff: [2, 4] as [number, number],
+				use: [3.5, 5] as [number, number],
 			};
 
 			// Act
@@ -298,7 +313,7 @@ describe("filterTransformations", () => {
 				instructor: "instructor-3",
 				semester_term: "SPRING",
 				semester_year: "2024–2025",
-				typeKind: "ELECTIVE",
+				type_kind: "ELECTIVE",
 				speciality: "spec-4",
 				avg_difficulty_min: 2,
 				avg_difficulty_max: 4,
@@ -310,9 +325,9 @@ describe("filterTransformations", () => {
 		it("should exclude undefined values", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
+				...DEFAULT_PARAMS,
 				faculty: "faculty-1",
-				semesterYear: "",
+				year: "",
 			};
 
 			// Act
@@ -325,26 +340,26 @@ describe("filterTransformations", () => {
 			expect(result).not.toHaveProperty("semester_year");
 		});
 
-		it("should map courseType to typeKind in API params", () => {
+		it("should map type to type_kind in API params", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				courseType: "MANDATORY",
+				...DEFAULT_PARAMS,
+				type: "MANDATORY",
 			};
 
 			// Act
 			const result = transformFiltersToApiParams(filters);
 
 			// Assert
-			expect(result).toHaveProperty("typeKind", "MANDATORY");
-			expect(result).not.toHaveProperty("courseType");
+			expect(result).toHaveProperty("type_kind", "MANDATORY");
+			expect(result).not.toHaveProperty("type");
 		});
 
-		it("should map searchQuery to name in API params", () => {
+		it("should map q to name in API params", () => {
 			// Arrange
 			const filters = {
-				...DEFAULT_FILTERS,
-				searchQuery: "Test Course",
+				...DEFAULT_PARAMS,
+				q: "Test Course",
 			};
 
 			// Act
@@ -352,7 +367,7 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).toHaveProperty("name", "Test Course");
-			expect(result).not.toHaveProperty("searchQuery");
+			expect(result).not.toHaveProperty("q");
 		});
 	});
 

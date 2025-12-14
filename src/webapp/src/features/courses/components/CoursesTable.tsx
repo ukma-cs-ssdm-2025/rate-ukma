@@ -1,14 +1,12 @@
 import {
 	type ComponentProps,
 	useCallback,
-	useDeferredValue,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	type ColumnDef,
@@ -25,7 +23,6 @@ import {
 	Loader2,
 	Maximize2,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
@@ -53,17 +50,17 @@ import { CourseScoreCell } from "./CourseScoreCell";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesScatterPlot } from "./CoursesScatterPlot";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import {
-	DEFAULT_FILTERS,
-	type FilterState,
-	filterSchema,
-} from "../filterSchema";
+	type CourseFiltersParamsSetter,
+	type CourseFiltersParamsState,
+	courseFiltersStateToSearchParams,
+	DEFAULT_COURSE_FILTERS_PARAMS,
+} from "../courseFiltersParams";
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
 } from "../filterTransformations";
-import { filtersToSearchParams } from "../urlSync";
 
 interface PaginationInfo {
 	page: number;
@@ -128,10 +125,9 @@ function ScatterPlotPreviewCard({
 interface CoursesTableProps {
 	data: CourseList[];
 	isLoading: boolean;
-	onFiltersChange?: (filters: FilterState) => void;
-	filtersKey: string;
+	params: CourseFiltersParamsState;
+	setParams: CourseFiltersParamsSetter;
 	pagination?: PaginationInfo;
-	filters: FilterState;
 }
 
 const SCATTER_COLLAPSE_STORAGE_KEY = "courses:scatter-open";
@@ -309,23 +305,21 @@ function DebouncedInput({
 export function CoursesTable({
 	data,
 	isLoading,
-	onFiltersChange,
-	filtersKey,
+	params,
+	setParams,
 	pagination: serverPagination,
-	filters,
 }: Readonly<CoursesTableProps>) {
 	const navigate = useNavigate({ from: "/" });
 	const { isStudent } = useAuth();
 
 	const [sorting, setSorting] = useState<SortingState>([]);
 
-	// Derive pagination from filters (no local state) - this eliminates the flicker bug
 	const pagination = useMemo<PaginationState>(
 		() => ({
-			pageIndex: filters.page - 1,
-			pageSize: filters.page_size,
+			pageIndex: params.page - 1,
+			pageSize: params.size,
 		}),
-		[filters.page, filters.page_size],
+		[params.page, params.size],
 	);
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
@@ -380,23 +374,9 @@ export function CoursesTable({
 		fullscreenTimeoutRef.current = null;
 	}, []);
 
-	const form = useForm({
-		defaultValues: filters,
-		resolver: zodResolver(filterSchema),
-		mode: "onChange",
-	});
-
-	const formFilters = form.watch();
-	const deferredFilters = useDeferredValue(formFilters);
-
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
-
-	// Sync form when filters prop changes
-	useEffect(() => {
-		form.reset(filters);
-	}, [form, filters]);
 
 	useEffect(() => {
 		localStorageAdapter.setItem(
@@ -405,23 +385,18 @@ export function CoursesTable({
 		);
 	}, [isScatterPlotOpen]);
 
-	// Only initialize scatter plot state once on mount, don't reset on viewport changes
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only run once on mount
 	useEffect(() => {
 		if (hasInitializedRef.current) return;
 		hasInitializedRef.current = true;
 
-		if (!isDesktop) {
-			setIsScatterPlotOpen(true);
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+		if (!isDesktop) setIsScatterPlotOpen(true);
+	}, [isDesktop]);
 
 	const openExploreWithAnimation = useCallback(() => {
 		const runNavigation = () =>
 			navigate({
 				to: "/explore",
-				search: filtersToSearchParams(deferredFilters),
+				search: courseFiltersStateToSearchParams(params),
 			});
 
 		setIsScatterPlotOpen(true);
@@ -437,7 +412,7 @@ export function CoursesTable({
 			runNavigation,
 			FULLSCREEN_TRANSITION_DELAY_MS,
 		);
-	}, [clearFullscreenTimeout, deferredFilters, navigate]);
+	}, [clearFullscreenTimeout, navigate, params]);
 
 	useEffect(
 		() => () => {
@@ -453,8 +428,8 @@ export function CoursesTable({
 	}, [sorting]);
 
 	const apiFilters = useMemo(
-		() => transformFiltersToApiParams(deferredFilters),
-		[deferredFilters],
+		() => transformFiltersToApiParams(params),
+		[params],
 	);
 
 	const combinedFilters = useMemo(
@@ -472,14 +447,12 @@ export function CoursesTable({
 			const newPagination =
 				typeof updater === "function" ? updater(pagination) : updater;
 
-			// Create new FilterState with updated pagination
-			const nextFilters: FilterState = {
-				...deferredFilters,
-				page: newPagination.pageIndex + 1,
-				page_size: newPagination.pageSize,
-			};
-
-			onFiltersChange?.(nextFilters);
+			const nextSize = newPagination.pageSize;
+			const nextPage = newPagination.pageIndex + 1;
+			setParams({
+				size: nextSize,
+				page: nextSize !== params.size ? 1 : nextPage,
+			});
 		},
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
@@ -490,56 +463,9 @@ export function CoursesTable({
 		pageCount: serverPagination ? serverPagination.totalPages : -1,
 	});
 
-	// Reset to page 1 when filters (excluding pagination) change
-	const prevFiltersKeyRef = useRef<string | undefined>(undefined);
-	useEffect(() => {
-		if (filtersKey === undefined) {
-			return;
-		}
-
-		// Only reset if filtersKey actually changed (not on mount or pagination change)
-		if (
-			prevFiltersKeyRef.current !== undefined &&
-			prevFiltersKeyRef.current !== filtersKey
-		) {
-			if (filters.page !== 1) {
-				const nextFilters: FilterState = {
-					...filters,
-					page: 1,
-				};
-				onFiltersChange?.(nextFilters);
-			}
-		}
-
-		prevFiltersKeyRef.current = filtersKey;
-	}, [filtersKey, filters, onFiltersChange]);
-
-	const urlSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-	useEffect(() => {
-		if (urlSyncTimeoutRef.current) {
-			clearTimeout(urlSyncTimeoutRef.current);
-		}
-
-		urlSyncTimeoutRef.current = setTimeout(() => {
-			const searchParams = filtersToSearchParams(deferredFilters);
-			navigate({
-				search: searchParams,
-				replace: true,
-				resetScroll: false,
-			});
-		}, 500);
-
-		return () => {
-			if (urlSyncTimeoutRef.current) {
-				clearTimeout(urlSyncTimeoutRef.current);
-			}
-		};
-	}, [deferredFilters, navigate]);
-
 	const handleResetFilters = useCallback(() => {
-		form.reset(DEFAULT_FILTERS);
-	}, [form]);
+		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
+	}, [setParams]);
 
 	const toggleFiltersDrawer = useCallback(() => {
 		setIsFiltersDrawerOpen((prev) => !prev);
@@ -585,12 +511,10 @@ export function CoursesTable({
 							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 z-10 text-muted-foreground" />
 							<DebouncedInput
 								placeholder="Пошук курсів за назвою..."
-								value={formFilters.searchQuery as string}
-								onChange={(value) =>
-									form.setValue("searchQuery", value as string, {
-										shouldDirty: true,
-									})
-								}
+								value={params.q}
+								onChange={(value) => {
+									setParams({ q: String(value), page: 1 });
+								}}
 								className="pl-10 h-12 text-base"
 								disabled={isInitialLoading}
 								isLoading={isLoading}
@@ -653,7 +577,8 @@ export function CoursesTable({
 
 				<div className="hidden lg:block w-80 shrink-0">
 					<CourseFiltersPanel
-						form={form}
+						params={params}
+						setParams={setParams}
 						filterOptions={filterOptions}
 						onReset={handleResetFilters}
 						isLoading={isPanelLoading}
@@ -679,7 +604,8 @@ export function CoursesTable({
 				closeButtonLabel="Закрити фільтри"
 			>
 				<CourseFiltersDrawer
-					form={form}
+					params={params}
+					setParams={setParams}
 					filterOptions={filterOptions}
 					onReset={handleResetFilters}
 					isLoading={isPanelLoading}
