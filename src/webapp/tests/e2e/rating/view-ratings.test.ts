@@ -14,11 +14,7 @@ test.describe("Ratings are displayed", () => {
 		courseDetailsPage = new CourseDetailsPage(page);
 
 		await coursesPage.goto();
-		await page.waitForLoadState("networkidle");
-
 		await coursesPage.navigateToFirstCourseDetailsPage();
-		await page.waitForLoadState("networkidle");
-
 		await courseDetailsPage.waitForPageLoad();
 	});
 

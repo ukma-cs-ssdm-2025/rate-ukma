@@ -13,6 +13,7 @@ import { MyRatingsSkeleton } from "@/features/ratings/components/MyRatingsSkelet
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
 import { useAuth, withAuth } from "@/lib/auth";
+import { testIds } from "@/lib/test-ids";
 
 function MyRatings() {
 	const { isStudent } = useAuth();
@@ -57,7 +58,7 @@ function MyRatings() {
 		content = <MyRatingsEmptyState />;
 	} else {
 		content = (
-			<div className="space-y-8">
+			<div className="space-y-8" data-testid={testIds.myRatings.list}>
 				{groupedRatings.map((yearGroup) => (
 					<div key={yearGroup.key} className="space-y-4">
 						<div className="border-l-3 border-primary pl-4">

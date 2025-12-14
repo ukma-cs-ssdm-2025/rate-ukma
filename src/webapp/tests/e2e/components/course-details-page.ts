@@ -48,12 +48,12 @@ export class CourseDetailsPage extends BasePage {
 		this.userRatingCard = page.locator("article").filter({
 			hasText: "Ваша оцінка",
 		});
-		this.userRatingDeleteButton = this.userRatingCard.locator(
-			"button[aria-label='Видалити оцінку']",
+		this.userRatingDeleteButton = this.userRatingCard.getByTestId(
+			testIds.rating.deleteButton,
 		);
-		this.deleteConfirmButton = page
-			.locator("button.bg-destructive.text-white")
-			.filter({ hasText: "Видалити" });
+		this.deleteConfirmButton = page.getByTestId(
+			testIds.deleteDialog.confirmButton,
+		);
 
 		this.noReviewsMessage = page.getByTestId(
 			testIds.courseDetails.noReviewsMessage,
@@ -68,8 +68,7 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async goto(courseId: string): Promise<void> {
-		const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-		await this.page.goto(`${baseUrl}/courses/${courseId}`);
+		await this.page.goto(`${TEST_CONFIG.baseUrl}/courses/${courseId}`);
 		await this.waitForPageLoad();
 	}
 

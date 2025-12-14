@@ -5,9 +5,7 @@ import { TEST_CONFIG } from "./test-config";
 
 export async function waitForPageReady(page: Page): Promise<void> {
 	await page.waitForLoadState("domcontentloaded");
-	await page.waitForLoadState("networkidle", {
-		timeout: TEST_CONFIG.networkIdleTimeout,
-	});
+	await page.waitForLoadState("load", { timeout: TEST_CONFIG.pageLoadTimeout });
 }
 
 export async function withRetry<T>(

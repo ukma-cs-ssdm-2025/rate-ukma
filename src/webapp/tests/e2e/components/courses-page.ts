@@ -6,10 +6,7 @@ import { withRetry } from "./common";
 import { TEST_CONFIG } from "./test-config";
 
 export class CoursesPage extends BasePage {
-	// TODO: add filtering functionality here
-
 	// Main
-	private readonly pageTitle: Locator;
 	private readonly coursesTable: Locator;
 	private readonly courseTitleLinks: Locator;
 
@@ -19,7 +16,6 @@ export class CoursesPage extends BasePage {
 	constructor(page: Page) {
 		super(page);
 
-		this.pageTitle = page.locator("h3").filter({ hasText: "Карта курсів" });
 		this.coursesTable = page.getByTestId(testIds.courses.table);
 		this.courseTitleLinks = page.getByTestId(testIds.courses.tableTitleLink);
 
@@ -27,8 +23,7 @@ export class CoursesPage extends BasePage {
 	}
 
 	async goto(): Promise<void> {
-		const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-		await this.page.goto(baseUrl);
+		await this.page.goto(TEST_CONFIG.baseUrl);
 		await this.waitForPageLoad();
 		await this.coursesTable.waitFor({ state: "visible" });
 		await this.waitForCoursesToRender();
@@ -36,7 +31,7 @@ export class CoursesPage extends BasePage {
 
 	async isPageLoaded(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.pageTitle, TEST_CONFIG.pageLoadTimeout);
+			await this.waitForElement(this.coursesTable, TEST_CONFIG.pageLoadTimeout);
 			return true;
 		} catch {
 			return false;
