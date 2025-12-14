@@ -18,6 +18,7 @@ import {
 } from "@/features/courses/components/CourseFiltersPanel";
 import { CoursesScatterPlot } from "@/features/courses/components/CoursesScatterPlot";
 import {
+	courseFiltersStateToSearchParams,
 	DEFAULT_COURSE_FILTERS_PARAMS,
 	useCourseFiltersParams,
 } from "@/features/courses/courseFiltersParams";
@@ -90,7 +91,7 @@ function ExploreRoute() {
 				<div className="absolute right-6 top-4 z-10 flex gap-2">
 					<Link
 						to="/"
-						search={(prev) => prev}
+						search={() => courseFiltersStateToSearchParams(params)}
 						className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground shadow-sm ring-offset-background transition-colors hover:bg-secondary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
 					>
 						← Назад до таблиці

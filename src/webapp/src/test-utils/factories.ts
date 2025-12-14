@@ -132,7 +132,7 @@ export function createMockCourseType(
 	overrides?: Partial<CourseTypeOption>,
 ): CourseTypeOption {
 	const courseTypes = [
-		{ value: "MANDATORY", label: "Обов'язковий" },
+		{ value: "COMPULSORY", label: "Обов'язковий" },
 		{ value: "ELECTIVE", label: "Вибірковий" },
 		{ value: "FREE_CHOICE", label: "Вільного вибору" },
 	] as const;
