@@ -11,6 +11,10 @@ import {
 	courseFiltersParams,
 	useCourseFiltersParams,
 } from "@/features/courses/courseFiltersParams";
+import {
+	DIFFICULTY_RANGE,
+	USEFULNESS_RANGE,
+} from "@/features/courses/courseFormatting";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
@@ -23,10 +27,10 @@ function CoursesRoute() {
 		page: params.page,
 		page_size: params.size,
 		name: params.q || undefined,
-		avg_difficulty_min: params.diff[0] !== 1 ? params.diff[0] : undefined,
-		avg_difficulty_max: params.diff[1] !== 5 ? params.diff[1] : undefined,
-		avg_usefulness_min: params.use[0] !== 1 ? params.use[0] : undefined,
-		avg_usefulness_max: params.use[1] !== 5 ? params.use[1] : undefined,
+		avg_difficulty_min: params.diff[0] !== DIFFICULTY_RANGE[0] ? params.diff[0] : undefined,
+		avg_difficulty_max: params.diff[1] !== DIFFICULTY_RANGE[1] ? params.diff[1] : undefined,
+		avg_usefulness_min: params.use[0] !== USEFULNESS_RANGE[0] ? params.use[0] : undefined,
+		avg_usefulness_max: params.use[1] !== USEFULNESS_RANGE[1] ? params.use[1] : undefined,
 		faculty: params.faculty || undefined,
 		department: params.dept || undefined,
 		instructor: params.instructor || undefined,
