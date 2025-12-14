@@ -78,7 +78,7 @@ export function getCommonPinningStyles<TData>({
 		right: isPinned === "right" ? `${column.getAfter("right")}px` : undefined,
 		opacity: isPinned ? 0.97 : 1,
 		position: isPinned ? "sticky" : "relative",
-		background: "var(--background)",
+		backgroundColor: isPinned ? "inherit" : undefined,
 		width: column.getSize(),
 		zIndex: isPinned ? 1 : 0,
 	};
@@ -159,11 +159,8 @@ export function DataTable<TData>({
 										key={row.id}
 										data-state={row.getIsSelected() && "selected"}
 										data-highlighted={highlighted ? true : undefined}
-										className={cn(
-											onRowClick && "group cursor-pointer",
-											highlighted &&
-												"bg-primary/5 border-l-2 border-l-primary hover:bg-primary/10",
-										)}
+										data-clickable={onRowClick ? true : undefined}
+										className={cn(onRowClick && "group")}
 										onClick={(event) => {
 											if (!onRowClick) return;
 											if (isModifiedClick(event)) return;
