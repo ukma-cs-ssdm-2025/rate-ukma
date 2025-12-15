@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { cn } from "@/lib/utils";
 
 interface DrawerProps {
@@ -41,43 +42,30 @@ export function Drawer({
 
 	useEffect(() => {
 		if (!open) {
-			document.body.style.overflow = "";
 			setShouldSlideIn(false);
 			return;
 		}
 
-		document.body.style.overflow = "hidden";
-
-		const handleEscape = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
-				close();
-			}
-		};
+		const unlockScroll = lockBodyScroll();
 
 		const frame = requestAnimationFrame(() => setShouldSlideIn(true));
 
-		document.addEventListener("keydown", handleEscape);
 		return () => {
-			document.body.style.overflow = "";
+			unlockScroll();
 			cancelAnimationFrame(frame);
-			document.removeEventListener("keydown", handleEscape);
 		};
-	}, [open, close]);
+	}, [open]);
 
 	if (!isMounted) {
 		return null;
 	}
 
 	return (
-		<dialog
-			open
-			className="fixed inset-0 z-50 m-0 h-full w-full overflow-hidden"
-			onClose={(event) => {
-				event.preventDefault();
-				close();
-			}}
+		<div
+			role="dialog"
 			aria-modal="true"
 			aria-label={ariaLabel}
+			className="fixed inset-0 z-50 m-0 h-full w-full overflow-hidden"
 			data-testid={testId}
 		>
 			<button
@@ -102,6 +90,6 @@ export function Drawer({
 			>
 				{children}
 			</aside>
-		</dialog>
+		</div>
 	);
 }

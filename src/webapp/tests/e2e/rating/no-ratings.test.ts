@@ -1,26 +1,31 @@
 import { expect, test } from "@playwright/test";
 
 import { CourseDetailsPage } from "../components/course-details-page";
+import { CoursesPage } from "../components/courses-page";
 
 test.describe("No ratings are displayed correctly", () => {
-	//! TBD
-	// This test suite will be rewritten after ratings count filter sorting is implemented
-
+	let coursesPage: CoursesPage;
 	let coursePage: CourseDetailsPage;
 
 	test.beforeEach(async ({ page }) => {
+		coursesPage = new CoursesPage(page);
 		coursePage = new CourseDetailsPage(page);
+
+		await coursesPage.goto();
+		await coursesPage.goToLastPage();
+		await coursesPage.openLastCourseOnPage();
+
+		await coursePage.waitForTitle(15000);
+		await coursePage.waitForStats(15000);
 	});
 
-	test.skip("shows 'no reviews yet' message when course has no ratings", async () => {
+	test("shows 'no reviews yet' message when course has no ratings", async () => {
+		expect(await coursePage.getReviewsCount()).toBe(0);
 		expect(await coursePage.isNoReviewsMessageVisible()).toBe(true);
 	});
 
-	test.skip("shows 'insufficient data' for stats when course has no ratings", async () => {
+	test("shows aggregated stats are not meaningful when course has no ratings", async () => {
+		expect(await coursePage.getReviewsCount()).toBe(0);
 		expect(await coursePage.hasStatsData()).toBe(false);
-
-		const insufficientDataCount =
-			await coursePage.getInsufficientDataMessagesCount();
-		expect(insufficientDataCount).toBe(3);
 	});
 });
