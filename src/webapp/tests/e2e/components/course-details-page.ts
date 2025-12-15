@@ -72,6 +72,19 @@ export class CourseDetailsPage extends BasePage {
 		await this.waitForPageLoad();
 	}
 
+	async waitForTitle(
+		timeout: number = TEST_CONFIG.pageLoadTimeout,
+	): Promise<void> {
+		await this.waitForElement(this.pageTitle, timeout);
+	}
+
+	async waitForStats(
+		timeout: number = TEST_CONFIG.pageLoadTimeout,
+	): Promise<void> {
+		await this.waitForElement(this.statsCardsContainer, timeout);
+		await this.waitForElement(this.reviewsCountStat, timeout);
+	}
+
 	async isPageLoaded(): Promise<boolean> {
 		try {
 			await withRetry(
