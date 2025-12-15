@@ -15,6 +15,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/Popover";
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { cn } from "@/lib/utils";
 
 interface ComboboxOption {
@@ -54,16 +55,13 @@ function Combobox({
 		[options, value],
 	);
 
-	// Disable page scrolling when combobox is open
 	React.useEffect(() => {
-		if (open) {
-			document.body.style.overflow = "hidden";
-		} else {
-			document.body.style.overflow = "";
+		if (!open) {
+			return;
 		}
-		return () => {
-			document.body.style.overflow = "";
-		};
+
+		const unlockScroll = lockBodyScroll();
+		return () => unlockScroll();
 	}, [open]);
 
 	return (

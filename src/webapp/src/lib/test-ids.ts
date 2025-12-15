@@ -114,8 +114,12 @@ export const testIds = {
 		resetButton: "filters-reset-button",
 		difficultySlider: "filters-difficulty-slider",
 		usefulnessSlider: "filters-usefulness-slider",
+		termSelect: "filters-term-select",
+		yearSelect: "filters-year-select",
 		facultySelect: "filters-faculty-select",
 		departmentSelect: "filters-department-select",
+		specialitySelect: "filters-speciality-select",
+		typeSelect: "filters-type-select",
 	},
 
 	// Course details page

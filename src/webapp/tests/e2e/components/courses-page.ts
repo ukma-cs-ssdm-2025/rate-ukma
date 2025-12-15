@@ -21,6 +21,7 @@ export class CoursesPage extends BasePage {
 	private readonly paginationLabel: Locator;
 	private readonly paginationNextButton: Locator;
 	private readonly paginationPreviousButton: Locator;
+	private readonly paginationLastButton: Locator;
 
 	// Navigation
 	private readonly courseDetailsPagePattern: RegExp;
@@ -46,6 +47,7 @@ export class CoursesPage extends BasePage {
 		this.paginationPreviousButton = page.getByTestId(
 			testIds.common.paginationPrevious,
 		);
+		this.paginationLastButton = page.getByTestId(testIds.common.paginationLast);
 
 		this.courseDetailsPagePattern = /\/courses\/[0-9a-fA-F-]{36}$/;
 	}
@@ -161,6 +163,106 @@ export class CoursesPage extends BasePage {
 		);
 		await this.clickWithRetry(this.filtersDrawerCloseButton);
 		await this.filtersDrawer.waitFor({ state: "hidden" });
+	}
+
+	async openCourseByIndex(index: number): Promise<void> {
+		await this.waitForCoursesToRender();
+
+		await withRetry(async () => {
+			const row = this.coursesTable.locator("tbody tr").nth(index);
+			const courseLink = row.getByTestId(testIds.courses.tableTitleLink);
+
+			await expect(courseLink).toBeVisible({
+				timeout: TEST_CONFIG.elementTimeout,
+			});
+
+			await Promise.all([
+				this.page.waitForURL(this.courseDetailsPagePattern, {
+					timeout: TEST_CONFIG.pageLoadTimeout,
+				}),
+				this.clickWithRetry(courseLink),
+			]);
+		}, TEST_CONFIG.maxRetries + 2);
+
+		await this.waitForPageLoad();
+	}
+
+	async openLastCourseOnPage(): Promise<void> {
+		await this.waitForCoursesToRender();
+
+		await withRetry(async () => {
+			const row = this.coursesTable.locator("tbody tr").last();
+			const courseLink = row.getByTestId(testIds.courses.tableTitleLink);
+
+			await expect(courseLink).toBeVisible({
+				timeout: TEST_CONFIG.elementTimeout,
+			});
+
+			await Promise.all([
+				this.page.waitForURL(this.courseDetailsPagePattern, {
+					timeout: TEST_CONFIG.pageLoadTimeout,
+				}),
+				this.clickWithRetry(courseLink),
+			]);
+		}, TEST_CONFIG.maxRetries + 2);
+
+		await this.waitForPageLoad();
+	}
+
+	async goToLastPage(): Promise<void> {
+		await this.waitForElement(
+			this.paginationLabel,
+			TEST_CONFIG.pageLoadTimeout,
+		);
+
+		if (!(await this.paginationLastButton.isVisible())) {
+			throw new Error(
+				"Pagination last button is not visible. Run this flow on a desktop viewport.",
+			);
+		}
+
+		const before = await this.getPaginationLabelText();
+		const match = before.match(/\s(\d+)\s+з\s+(\d+)$/);
+		if (!match) {
+			throw new Error(`Unexpected pagination label: ${before}`);
+		}
+		const totalPages = Number(match[2]);
+		if (!Number.isFinite(totalPages) || totalPages < 1) {
+			throw new Error(`Invalid total pages: ${String(match[2])}`);
+		}
+
+		const waitForLastPageResponse = this.page.waitForResponse(
+			(response) => {
+				if (response.request().method() !== "GET") return false;
+				if (!response.url().includes("/api/v1/courses/")) return false;
+				try {
+					const url = new URL(response.url());
+					return url.searchParams.get("page") === String(totalPages);
+				} catch {
+					return false;
+				}
+			},
+			{ timeout: TEST_CONFIG.pageLoadTimeout },
+		);
+
+		await this.clickWithRetry(this.paginationLastButton);
+
+		await expect(this.paginationNextButton).toBeDisabled({
+			timeout: TEST_CONFIG.pageLoadTimeout,
+		});
+		await expect(this.paginationLabel).not.toHaveText(before, {
+			timeout: TEST_CONFIG.pageLoadTimeout,
+		});
+
+		await expect
+			.poll(
+				async () => new URL(this.page.url()).searchParams.get("page") ?? "",
+				{ timeout: TEST_CONFIG.pageLoadTimeout },
+			)
+			.toBe(String(totalPages));
+
+		await waitForLastPageResponse;
+		await this.waitForCoursesToRender();
 	}
 
 	async getPaginationLabelText(): Promise<string> {

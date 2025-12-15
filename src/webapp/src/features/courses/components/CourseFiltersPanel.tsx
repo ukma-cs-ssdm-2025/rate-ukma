@@ -229,11 +229,19 @@ function CourseFiltersContent({
 				}) => {
 					const currentValue = getSelectValue(key);
 					const testId =
-						key === "faculty"
-							? testIds.filters.facultySelect
-							: key === "dept"
-								? testIds.filters.departmentSelect
-								: undefined;
+						key === "term"
+							? testIds.filters.termSelect
+							: key === "year"
+								? testIds.filters.yearSelect
+								: key === "faculty"
+									? testIds.filters.facultySelect
+									: key === "dept"
+										? testIds.filters.departmentSelect
+										: key === "spec"
+											? testIds.filters.specialitySelect
+											: key === "type"
+												? testIds.filters.typeSelect
+												: undefined;
 					return (
 						<div key={key} className="space-y-3">
 							<Label className="text-sm font-medium">{label}</Label>
