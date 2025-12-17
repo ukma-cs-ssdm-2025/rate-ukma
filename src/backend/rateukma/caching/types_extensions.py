@@ -1,6 +1,6 @@
 import json
 from collections.abc import Callable
-from dataclasses import asdict, is_dataclass
+from dataclasses import is_dataclass
 from typing import Any, Protocol, TypeVar
 
 from django.db.models import Model
@@ -8,14 +8,12 @@ from django.forms.models import model_to_dict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
 from .cache_manager import CacheJsonDataEncoder, JSON_Serializable
 
-K = TypeVar("K")
 V = TypeVar("V")
-_P = TypeVar("_P")
-_RT = TypeVar("_RT")
+JSONValue = JSON_Serializable
 
 
 def _make_cache_key_from_context(func: Callable, args: tuple, kwargs: dict) -> str:
@@ -45,13 +43,25 @@ class ICacheTypeExtension[V](Protocol):
     and cache key generation from function context
     """
 
+    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str: ...
+    def serialize(self, value: V, value_type: type[V]) -> JSONValue: ...
+    def deserialize(self, data: JSONValue, value_type: type[V]) -> V: ...
+
+
+class TypeAdapterCacheExtension(ICacheTypeExtension[Any]):
     def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
-        """Generate cache key from function context (name + params)"""
-        ...
+        return _make_cache_key_from_context(func, args, kwargs)
 
-    def serialize(self, value: V) -> JSON_Serializable: ...
+    def serialize(self, value: Any, value_type: type[Any]) -> JSONValue:
+        adapter = self._adapter_for(value_type)
+        return adapter.dump_python(value)
 
-    def deserialize(self, data: JSON_Serializable, value_type: type[V]) -> V: ...
+    def deserialize(self, data: JSONValue, value_type: type[Any]) -> Any:
+        adapter = self._adapter_for(value_type)
+        return adapter.validate_python(data)
+
+    def _adapter_for(self, value_type: type[Any]) -> TypeAdapter[Any]:
+        return TypeAdapter(value_type)
 
 
 class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
@@ -87,7 +97,9 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
         else:
             return f"{func_name}:{path_with_query}"
 
-    def serialize(self, value: Response) -> JSON_Serializable:
+    def serialize(
+        self, value: Response, value_type: type[Response] | None = None
+    ) -> JSON_Serializable:
         if isinstance(value.data, dict):
             return {"_wrapped": False, **value.data}
         return {"_wrapped": True, "data": value.data}
@@ -103,79 +115,33 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
         return Response(data=data)
 
 
-class BaseModelCacheTypeExtension(ICacheTypeExtension[BaseModel]):
+class DjangoModelCacheTypeExtension(ICacheTypeExtension[Model]):
     def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
         return _make_cache_key_from_context(func, args, kwargs)
 
-    def serialize(self, value: BaseModel) -> dict[str, Any]:
-        return value.model_dump()
-
-    def deserialize(self, data: JSON_Serializable, value_type: type[BaseModel]) -> BaseModel:
-        if not isinstance(data, dict):
-            raise TypeError(f"Expected dict for BaseModel deserialization, got {type(data)}")
-
-        return value_type.model_validate(data)
-
-
-class DataclassCacheTypeExtension(ICacheTypeExtension[Any]):
-    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
-        return _make_cache_key_from_context(func, args, kwargs)
-
-    def serialize(self, value: Any) -> dict[str, Any]:
-        if not is_dataclass(value):
-            raise TypeError(f"{value} is not a dataclass instance")
-        return asdict(value)  # type: ignore
-
-    def deserialize(self, data: JSON_Serializable, value_type: type) -> Any:
-        if not isinstance(data, dict):
-            raise TypeError(f"Expected dict for dataclass deserialization, got {type(data)}")
-
-        if not is_dataclass(value_type):
-            raise TypeError(f"{value_type} is not a dataclass")
-
-        return value_type(**data)
-
-
-class PrimitiveCacheTypeExtension(ICacheTypeExtension[JSON_Serializable]):
-    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
-        return _make_cache_key_from_context(func, args, kwargs)
-
-    def serialize(self, value: Any) -> JSON_Serializable:
-        return value
-
-    def deserialize(self, data: JSON_Serializable, value_type: type) -> Any:
-        return data
-
-
-class DjangoModelCacheTypeExtension(ICacheTypeExtension[JSON_Serializable]):
-    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
-        return _make_cache_key_from_context(func, args, kwargs)
-
-    def serialize(self, value: Model) -> JSON_Serializable:
+    def serialize(self, value: Model, value_type: type[Model]) -> JSONValue:
         return model_to_dict(value)
 
-    def deserialize(
-        self, data: JSON_Serializable, value_type: type, pk_field_name: str = "id"
-    ) -> Model:
+    def deserialize(self, data: JSONValue, value_type: type[Model]) -> Model:
         if not isinstance(data, dict):
             raise TypeError(f"Expected dict for DjangoModel deserialization, got {type(data)}")
-
         instance = value_type(**data)
-
-        if pk_field_name in data:
-            instance.pk = data[pk_field_name]
+        pk_name = value_type._meta.pk.attname  # type: ignore[attr-defined]
+        if pk_name in data:
+            instance.pk = data[pk_name]
         return instance
 
 
-# TBD: class QuerySetCacheTypeExtension(ICacheTypeExtension[str, QuerySet]):
-
-
 class CacheTypeExtensionRegistry:
+    TYPEADAPTER_SUPPORTED_TYPES = [int, float, str, bool, list, dict, tuple, type(None), BaseModel]
+
     def __init__(
         self,
-        extensions: dict[type | str, ICacheTypeExtension],
+        custom_extensions: dict[type, ICacheTypeExtension],
+        generic_extension: ICacheTypeExtension[Any],
     ):
-        self._extensions = extensions
+        self._extensions = custom_extensions
+        self._generic = generic_extension
 
     def register(self, value_type: type, extension: ICacheTypeExtension) -> None:
         self._extensions[value_type] = extension
@@ -184,16 +150,13 @@ class CacheTypeExtensionRegistry:
         if extension_type in self._extensions:
             return self._extensions[extension_type]
 
-        if issubclass(extension_type, BaseModel):
-            return self._extensions[BaseModel]
+        if issubclass(extension_type, Model):
+            return self._extensions[Model]
 
-        if is_dataclass(extension_type):
-            return self._extensions["dataclass"]
-
-        if self._is_primitive_serializable_type(extension_type):
-            return self._extensions["primitive"]
+        if is_dataclass(extension_type) or self._is_typeadapter_supported_type(extension_type):
+            return self._generic
 
         raise TypeError(f"No cache extension registered for type: {extension_type}")
 
-    def _is_primitive_serializable_type(self, extension_type: type) -> bool:
-        return extension_type in (int, float, str, bool, list, dict, type(None))
+    def _is_typeadapter_supported_type(self, extension_type: type) -> bool:
+        return extension_type in self.TYPEADAPTER_SUPPORTED_TYPES

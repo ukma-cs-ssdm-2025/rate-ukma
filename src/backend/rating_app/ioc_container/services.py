@@ -1,4 +1,5 @@
 from rateukma.ioc.decorators import once
+from rating_app.ioc_container.common import course_model_mapper
 from rating_app.ioc_container.repositories import (
     course_offering_repository,
     course_repository,
@@ -60,6 +61,7 @@ def course_service() -> CourseService:
         department_service=department_service(),
         speciality_service=speciality_service(),
         semester_service=semester_service(),
+        course_model_mapper=course_model_mapper(),
     )
 
 

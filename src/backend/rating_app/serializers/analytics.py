@@ -2,9 +2,15 @@ from rest_framework import serializers
 
 import structlog
 
+from rating_app.application_schemas.course import Course as CourseDTO
+
 from ..models import Course
 
 logger = structlog.get_logger()
+
+
+# TODO: CourseDTO is now used instead of CourseModel
+# Serializer is updated, but it should be verified and explained
 
 
 class CourseAnalyticsSerializer(serializers.ModelSerializer):
@@ -26,13 +32,8 @@ class CourseAnalyticsSerializer(serializers.ModelSerializer):
             "faculty_name",
         )
 
-    def get_ratings_count(self, obj: Course) -> int:
-        return obj.ratings_count if obj.ratings_count is not None else 0
+    def get_ratings_count(self, obj: CourseDTO) -> int:
+        return obj.ratings_count or 0
 
-    def get_faculty_name(self, obj: Course) -> str | None:
-        department = obj.department
-        if not department:
-            return None
-
-        faculty = department.faculty  # type: ignore - temporary fix for type error
-        return str(faculty.name) if faculty else None
+    def get_faculty_name(self, obj: CourseDTO) -> str | None:
+        return obj.faculty_name

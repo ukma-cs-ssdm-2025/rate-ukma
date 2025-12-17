@@ -38,7 +38,6 @@ class CourseViewSet(viewsets.ViewSet):
         parameters=to_openapi((CourseFilterCriteria, OpenApiParameter.QUERY)),
         responses=R_COURSE_LIST,
     )
-    @rcached(ttl=300)
     def list(self, request, *args, **kwargs) -> Response:
         assert self.course_service is not None
 

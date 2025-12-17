@@ -2,18 +2,15 @@ from django.conf import settings
 from django.db.models import Model
 from rest_framework.response import Response
 
-from pydantic import BaseModel
 from redis import Redis
 
 from ..caching.cache_manager import ICacheManager, RedisCacheManager
 from ..ioc.decorators import once
 from .types_extensions import (
-    BaseModelCacheTypeExtension,
     CacheTypeExtensionRegistry,
-    DataclassCacheTypeExtension,
     DjangoModelCacheTypeExtension,
     DRFResponseCacheTypeExtension,
-    PrimitiveCacheTypeExtension,
+    TypeAdapterCacheExtension,
 )
 
 
@@ -40,13 +37,11 @@ def redis_cache_manager() -> ICacheManager:
 @once
 def cache_type_extension_registry() -> CacheTypeExtensionRegistry:
     registry = CacheTypeExtensionRegistry(
-        extensions={
+        custom_extensions={
             Response: DRFResponseCacheTypeExtension(),
-            BaseModel: BaseModelCacheTypeExtension(),
             Model: DjangoModelCacheTypeExtension(),
-            "dataclass": DataclassCacheTypeExtension(),
-            "primitive": PrimitiveCacheTypeExtension(),
         },
+        generic_extension=TypeAdapterCacheExtension(),
     )
 
     return registry

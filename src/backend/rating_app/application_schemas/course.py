@@ -11,8 +11,7 @@ from ..constants import (
     MIN_DIFFICULTY_VALUE,
     MIN_USEFULNESS_VALUE,
 )
-from ..models.choices import CourseTypeKind, SemesterTerm
-from ..models.course import ICourse
+from ..models.choices import CourseStatus, CourseTypeKind, SemesterTerm
 from .pagination import PaginationMetadata
 
 AvgOrder = Literal["asc", "desc"]
@@ -104,10 +103,25 @@ class CourseFilterCriteria(BaseModel):
         return value
 
 
+@dataclass(frozen=True)
+class Course:
+    id: uuid.UUID
+    title: str
+    description: str
+    status: CourseStatus
+    department_id: uuid.UUID
+    department_name: str
+    faculty_name: str
+    specialities: list[dict[str, Any]]
+    avg_difficulty: float | None
+    avg_usefulness: float | None
+    ratings_count: int | None
+
+
 # is constructed internally
 @dataclass(frozen=True)
 class CourseSearchResult:
-    items: list[ICourse]
+    items: list[Course]
     pagination: PaginationMetadata
     applied_filters: dict[str, Any]
 

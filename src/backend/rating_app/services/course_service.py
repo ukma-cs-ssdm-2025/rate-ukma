@@ -1,9 +1,11 @@
-from typing import cast
-
 from django.db.models import QuerySet
 
 import structlog
 
+from rateukma.caching.decorators import rcached
+from rating_app.application_schemas.course import (
+    Course as CourseDTO,
+)
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
     CourseFilterOptions,
@@ -12,11 +14,11 @@ from rating_app.application_schemas.course import (
 from rating_app.application_schemas.pagination import PaginationMetadata
 from rating_app.application_schemas.rating import AggregatedCourseRatingStats
 from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
-from rating_app.models import Course
+from rating_app.models import Course as CourseModel
 from rating_app.models.choices import CourseTypeKind
-from rating_app.models.course import ICourse
 from rating_app.repositories import CourseRepository
 from rating_app.services.department_service import DepartmentService
+from rating_app.services.django_mappers import CourseModelMapper
 from rating_app.services.faculty_service import FacultyService
 from rating_app.services.instructor_service import InstructorService
 from rating_app.services.paginator import QuerysetPaginator
@@ -36,6 +38,7 @@ class CourseService:
         department_service: DepartmentService,
         speciality_service: SpecialityService,
         semester_service: SemesterService,
+        course_model_mapper: CourseModelMapper,
     ):
         self.course_repository = course_repository
         self.paginator = paginator
@@ -44,13 +47,16 @@ class CourseService:
         self.department_service = department_service
         self.speciality_service = speciality_service
         self.semester_service = semester_service
+        self.course_model_mapper = course_model_mapper
 
-    def list_courses(self) -> list[Course]:
+    @rcached(ttl=86400)  # 24 hours - list of courses rarely changes
+    def list_courses(self) -> list[CourseModel]:
         return self.course_repository.get_all()
 
-    def get_course(self, course_id: str) -> Course:
+    def get_course(self, course_id: str) -> CourseModel:
         return self.course_repository.get_by_id(course_id)
 
+    @rcached(ttl=300)
     def filter_courses(
         self, filters: CourseFilterCriteria, paginate: bool = True
     ) -> CourseSearchResult:
@@ -59,26 +65,22 @@ class CourseService:
         if paginate:
             return self._paginated_result(courses, filters)
 
-        return CourseSearchResult(
-            items=cast(list[ICourse], list(courses)),
-            pagination=self._empty_pagination_metadata(courses.count()),
-            applied_filters=filters.model_dump(by_alias=True),
-        )
+        return self._build_search_result(list(courses), filters)
 
     # -- admin functions --
-    def create_course(self, **course_data) -> Course:
+    def create_course(self, **course_data) -> CourseModel:
         course, _ = self.course_repository.get_or_create(**course_data)
         return course
 
-    def update_course(self, course_id: str, **update_data) -> Course | None:
+    def update_course(self, course_id: str, **update_data) -> CourseModel | None:
         course = self.course_repository.get_by_id(course_id)
         if not course:
             return None
         return self.course_repository.update(course, **update_data)
 
     def update_course_aggregates(
-        self, course: Course, aggregates: AggregatedCourseRatingStats
-    ) -> Course:
+        self, course: CourseModel, aggregates: AggregatedCourseRatingStats
+    ) -> CourseModel:
         self.course_repository.update(
             course,
             avg_difficulty=aggregates.avg_difficulty,
@@ -125,16 +127,14 @@ class CourseService:
         )
 
     def _paginated_result(
-        self, courses: QuerySet[Course], criteria: CourseFilterCriteria
+        self, courses: QuerySet[CourseModel], criteria: CourseFilterCriteria
     ) -> CourseSearchResult:
         page_size = criteria.page_size or DEFAULT_COURSE_PAGE_SIZE
-        obj_list, metadata = self.paginator.process(courses, criteria.page, page_size)
-
-        return CourseSearchResult(
-            items=obj_list,
-            pagination=metadata,
-            applied_filters=criteria.model_dump(by_alias=True),
+        result: tuple[list[CourseModel], PaginationMetadata] = self.paginator.process(
+            courses, criteria.page, page_size
         )
+        page_courses, metadata = result
+        return self._build_search_result(page_courses, criteria, metadata)
 
     def _empty_pagination_metadata(self, courses_count: int) -> PaginationMetadata:
         return PaginationMetadata(
@@ -142,4 +142,17 @@ class CourseService:
             page_size=courses_count,
             total=courses_count,
             total_pages=1,
+        )
+
+    def _build_search_result(
+        self,
+        courses: list[CourseModel],
+        criteria: CourseFilterCriteria,
+        pagination: PaginationMetadata | None = None,
+    ) -> CourseSearchResult:
+        items: list[CourseDTO] = [self.course_model_mapper.map_to_dto(course) for course in courses]
+        return CourseSearchResult(
+            items=items,
+            pagination=pagination or self._empty_pagination_metadata(len(items)),
+            applied_filters=criteria.model_dump(by_alias=True),
         )

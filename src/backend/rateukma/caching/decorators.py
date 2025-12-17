@@ -72,7 +72,7 @@ def rcached[**P, RT](
 
             # execute the function and cache the result
             result = func(*args, **kwargs)
-            serialized_result = ext.serialize(result)
+            serialized_result = ext.serialize(result, cached_value_type)
             cache_manager.set(cache_key, serialized_result, ttl)
 
             return result
