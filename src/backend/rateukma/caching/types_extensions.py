@@ -115,6 +115,10 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
         return Response(data=data)
 
 
+# ? currently implemented with django native model_to_dict
+# ? but! I suppose that a much more cleaner approach is to cache only domain serializable models
+# ? this is flexible, convenient, isolated and backend-agnostic
+# ? as a result, the extension below will be not needed at all
 class DjangoModelCacheTypeExtension(ICacheTypeExtension[Model]):
     def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
         return _make_cache_key_from_context(func, args, kwargs)
@@ -125,10 +129,19 @@ class DjangoModelCacheTypeExtension(ICacheTypeExtension[Model]):
     def deserialize(self, data: JSONValue, value_type: type[Model]) -> Model:
         if not isinstance(data, dict):
             raise TypeError(f"Expected dict for DjangoModel deserialization, got {type(data)}")
-        instance = value_type(**data)
-        pk_name = value_type._meta.pk.attname  # type: ignore[attr-defined]
-        if pk_name in data:
-            instance.pk = data[pk_name]
+
+        kwargs: dict[str, Any] = {}
+        model_fields = value_type._meta.concrete_fields  # type: ignore[attr-defined]
+
+        for field in model_fields:
+            attname = field.attname  # *_id for FKs, pk name for PK
+            if attname in data:
+                kwargs[attname] = data[attname]
+            elif field.name in data:
+                # fallback if model_to_dict used field name; assign to attname
+                kwargs[attname] = data[field.name]
+
+        instance = value_type(**kwargs)
         return instance
 
 
