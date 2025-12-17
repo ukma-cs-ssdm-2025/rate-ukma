@@ -42,6 +42,11 @@ def semester_service():
 
 
 @pytest.fixture
+def course_model_mapper():
+    return MagicMock()
+
+
+@pytest.fixture
 def service(
     course_repo,
     paginator,
@@ -50,6 +55,7 @@ def service(
     department_service,
     speciality_service,
     semester_service,
+    course_model_mapper,
 ):
     return CourseService(
         course_repository=course_repo,
@@ -59,6 +65,7 @@ def service(
         department_service=department_service,
         speciality_service=speciality_service,
         semester_service=semester_service,
+        course_model_mapper=course_model_mapper,
     )
 
 
