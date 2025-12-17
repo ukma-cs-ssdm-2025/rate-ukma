@@ -1,7 +1,9 @@
 from datetime import datetime
+from typing import Any
 
 import structlog
 
+from rateukma.caching.decorators import rcached
 from rating_app.models import Semester, Student
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
 from rating_app.services.rating_service import RatingService
@@ -28,7 +30,8 @@ class StudentService:
     def get_student_by_user_id(self, user_id: str):
         return self.student_stats_repository.get_student_by_user_id(user_id=user_id)
 
-    def get_ratings(self, student_id: str):
+    @rcached(ttl=3600)  # 1 hour - student grades/enrollments change infrequently
+    def get_ratings(self, student_id: str) -> list[dict[str, Any]]:
         courses = self.student_stats_repository.get_rating_stats(student_id=student_id)
         current_semester = self.semester_service.get_current()
         now = datetime.now()
@@ -45,7 +48,8 @@ class StudentService:
 
         return courses
 
-    def get_ratings_detail(self, student_id: str):
+    @rcached(ttl=3600)  # 1 hour - student grades/enrollments change infrequently
+    def get_ratings_detail(self, student_id: str) -> list[dict[str, Any]]:
         result = self.student_stats_repository.get_detailed_rating_stats(student_id=student_id)
         current_semester = self.semester_service.get_current()
         now = datetime.now()
@@ -65,7 +69,7 @@ class StudentService:
         if student.user is not None:
             return False
 
-        user = self.user_repository.get_by_email(student.email)
+        user = self.user_repository.get_by_email(str(student.email))
         if not user:
             return False
 
@@ -96,7 +100,7 @@ class StudentService:
         if getattr(user, "student_profile", None) is not None:
             return False
 
-        student = self.student_repository.get_by_email(user.email)
+        student = self.student_repository.get_by_email(str(user.email))
         if not student:
             return False
 

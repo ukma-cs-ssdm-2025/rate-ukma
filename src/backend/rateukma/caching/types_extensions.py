@@ -1,7 +1,7 @@
 import json
 from collections.abc import Callable
 from dataclasses import is_dataclass
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol, TypeVar, get_origin
 
 from django.db.models import Model
 from django.forms.models import model_to_dict
@@ -147,13 +147,16 @@ class CacheTypeExtensionRegistry:
         self._extensions[value_type] = extension
 
     def get_extension(self, extension_type: type) -> ICacheTypeExtension:
-        if extension_type in self._extensions:
-            return self._extensions[extension_type]
+        origin = get_origin(extension_type)
+        candidate_type = origin or extension_type
 
-        if issubclass(extension_type, Model):
+        if isinstance(candidate_type, type) and candidate_type in self._extensions:
+            return self._extensions[candidate_type]
+
+        if isinstance(candidate_type, type) and issubclass(candidate_type, Model):
             return self._extensions[Model]
 
-        if is_dataclass(extension_type) or self._is_typeadapter_supported_type(extension_type):
+        if is_dataclass(candidate_type) or self._is_typeadapter_supported_type(candidate_type):
             return self._generic
 
         raise TypeError(f"No cache extension registered for type: {extension_type}")

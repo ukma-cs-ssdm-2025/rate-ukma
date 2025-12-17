@@ -53,6 +53,7 @@ class CourseService:
     def list_courses(self) -> list[CourseModel]:
         return self.course_repository.get_all()
 
+    @rcached(ttl=300)
     def get_course(self, course_id: str) -> CourseModel:
         return self.course_repository.get_by_id(course_id)
 
@@ -93,6 +94,7 @@ class CourseService:
         course = self.course_repository.get_by_id(course_id)
         self.course_repository.delete(course)
 
+    @rcached(ttl=86400)  # 24 hours - filter options rarely change
     def get_filter_options(self) -> CourseFilterOptions:
         semester_filter_options = self.semester_service.get_filter_options()
 

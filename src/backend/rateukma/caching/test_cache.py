@@ -15,11 +15,11 @@ from rateukma.caching.decorators import (
     rcached,
 )
 from rateukma.caching.types_extensions import (
-    BaseModelCacheTypeExtension,
-    DataclassCacheTypeExtension,
     DRFResponseCacheTypeExtension,
-    PrimitiveCacheTypeExtension,
+    TypeAdapterCacheExtension,
 )
+
+# TODO: update after refactoring
 
 
 @pytest.fixture
@@ -58,10 +58,10 @@ class TestCachePrimitives:
     )
     def test_cache_primitives(self, primitive_value, type):
         # Arrange
-        ext = PrimitiveCacheTypeExtension()
+        ext = TypeAdapterCacheExtension()
 
         # Act and Assert - serialize
-        result = ext.serialize(primitive_value)
+        result = ext.serialize(primitive_value, type)
         assert result == primitive_value
 
         # Act and Assert - deserialize
@@ -81,10 +81,10 @@ class TestCacheDataclasses:
     def test_cache_dataclasses(self):
         # Arrange
         test_data = self._TestData(name="test", value=42, active=False)
-        ext = DataclassCacheTypeExtension()
+        ext = TypeAdapterCacheExtension()
 
         # Act and Assert - serialize
-        result = ext.serialize(test_data)
+        result = ext.serialize(test_data, self._TestData)
         expected = asdict(test_data)
         assert result == expected
 
@@ -123,7 +123,7 @@ class TestCacheDRFResponses:
         mock_request.query_params = {"param": "value"}
 
         # Act and Assert - serialize
-        result = ext.serialize(response)
+        result = ext.serialize(response, Response)
         assert result == expected_result
 
         # Act and Assert - deserialize
@@ -149,11 +149,11 @@ class TestCacheBaseModels:
 
     def test_cache_base_models(self):
         # Arrange
-        ext = BaseModelCacheTypeExtension()
+        ext = TypeAdapterCacheExtension()
         instance = self._TestModel(name="test model", count=100, optional="custom")
 
         # Act and Assert - serialize
-        result = ext.serialize(instance)
+        result = ext.serialize(instance, self._TestModel)
         expected = instance.model_dump()
         assert result == expected
 
@@ -210,7 +210,7 @@ class TestRCachedComponents:
 
     def test_cache_key_generation(self):
         # Arrange
-        ext = PrimitiveCacheTypeExtension()
+        ext = TypeAdapterCacheExtension()
         kwargs = {"param": "value"}
         args1 = (1,)
         args2 = (2,)
