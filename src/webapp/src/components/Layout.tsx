@@ -5,16 +5,17 @@ import Header from "./Header/Header";
 
 interface LayoutProps {
 	children: ReactNode;
+	showFooter?: boolean;
 }
 
-function Layout({ children }: Readonly<LayoutProps>) {
+function Layout({ children, showFooter = true }: Readonly<LayoutProps>) {
 	return (
 		<div className="flex min-h-screen flex-col bg-background">
 			<Header />
-			<main className="container mx-auto px-6 py-8 max-w-7xl flex-1">
+			<main className="container mx-auto max-w-7xl flex-1 px-6 py-8">
 				{children}
 			</main>
-			<Footer />
+			{showFooter ? <Footer /> : null}
 		</div>
 	);
 }
