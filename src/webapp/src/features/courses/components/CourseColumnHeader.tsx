@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/Button";
 interface CourseColumnHeaderProps<TData, TValue> {
 	column: Column<TData, TValue>;
 	title: string;
+	initialSortDirection?: "asc" | "desc";
 }
 
 export function CourseColumnHeader<TData, TValue>({
 	column,
 	title,
+	initialSortDirection = "asc",
 }: Readonly<CourseColumnHeaderProps<TData, TValue>>) {
 	const sortState = column.getIsSorted() as false | "asc" | "desc";
 
@@ -23,12 +25,28 @@ export function CourseColumnHeader<TData, TValue>({
 
 		const isMultiSort = event.shiftKey;
 
-		if (sortState === "asc") {
-			column.toggleSorting(true, isMultiSort);
-		} else if (sortState === "desc") {
-			column.clearSorting();
+		// Cycle based on initial direction:
+		// If initialSortDirection is "asc": unsorted → asc → desc → unsorted
+		// If initialSortDirection is "desc": unsorted → desc → asc → unsorted
+
+		if (initialSortDirection === "asc") {
+			// Standard cycle: asc → desc → unsorted
+			if (sortState === "asc") {
+				column.toggleSorting(true, isMultiSort); // Switch to desc
+			} else if (sortState === "desc") {
+				column.clearSorting(); // Clear
+			} else {
+				column.toggleSorting(false, isMultiSort); // Start with asc
+			}
 		} else {
-			column.toggleSorting(false, isMultiSort);
+			// Reverse cycle: desc → asc → unsorted
+			if (sortState === "desc") {
+				column.toggleSorting(false, isMultiSort); // Switch to asc
+			} else if (sortState === "asc") {
+				column.clearSorting(); // Clear
+			} else {
+				column.toggleSorting(true, isMultiSort); // Start with desc
+			}
 		}
 	};
 
@@ -39,9 +57,17 @@ export function CourseColumnHeader<TData, TValue>({
 	};
 
 	const getSortHintText = () => {
-		if (sortState === "asc") return "Сортувати за спаданням";
-		if (sortState === "desc") return "Скинути сортування";
-		return "Сортувати за зростанням";
+		if (initialSortDirection === "asc") {
+			// Standard cycle: asc → desc → unsorted
+			if (sortState === "asc") return "Сортувати за спаданням";
+			if (sortState === "desc") return "Скинути сортування";
+			return "Сортувати за зростанням";
+		} else {
+			// Reverse cycle: desc → asc → unsorted
+			if (sortState === "desc") return "Сортувати за зростанням";
+			if (sortState === "asc") return "Скинути сортування";
+			return "Сортувати за спаданням";
+		}
 	};
 
 	const Icon = getSortIcon();
