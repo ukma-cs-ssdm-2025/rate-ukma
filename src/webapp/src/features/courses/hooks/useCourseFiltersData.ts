@@ -235,9 +235,9 @@ export function useCourseFiltersData({
 					label: getCourseTypeDisplay(type.value, type.label),
 				})),
 				disabled: !filters.spec,
-				tooltip: !filters.spec
-					? "Оберіть спеціальність, щоб обрати тип курсу"
-					: undefined,
+				tooltip: filters.spec
+					? undefined
+					: "Оберіть спеціальність, щоб обрати тип курсу",
 			},
 			// {
 			// 	key: "instructor",
