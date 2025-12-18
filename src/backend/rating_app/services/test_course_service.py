@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from rating_app.application_schemas.course import CourseFilterCriteria
+from rating_app.models.choices import CourseTypeKind
 from rating_app.services.course_service import CourseService
 
 
@@ -264,3 +265,21 @@ def test_get_filter_options_includes_all_course_type_choices(service, semester_s
     assert "COMPULSORY" in course_type_values
     assert "ELECTIVE" in course_type_values
     assert "PROF_ORIENTED" in course_type_values
+
+
+def test_filter_courses_applies_elective_business_rule(service, course_repo, paginator):
+    # Arrange
+    filters = CourseFilterCriteria(type_kind=CourseTypeKind.ELECTIVE)
+    mock_courses = MagicMock()
+    mock_courses.count.return_value = 0
+    course_repo.filter.return_value = mock_courses
+    paginator.process.return_value = ([], MagicMock())
+
+    # Act
+    service.filter_courses(filters)
+
+    # Assert
+    called_filters = course_repo.filter.call_args[0][0]
+    assert called_filters.type_kind is None
+    assert CourseTypeKind.COMPULSORY.value in called_filters.exclude_type_kinds
+    assert CourseTypeKind.PROF_ORIENTED.value in called_filters.exclude_type_kinds
