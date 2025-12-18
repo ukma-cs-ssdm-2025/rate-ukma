@@ -20,6 +20,8 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	spec: "",
 	page: 1,
 	size: 10,
+	diffOrder: null,
+	useOrder: null,
 };
 
 function assertElement(

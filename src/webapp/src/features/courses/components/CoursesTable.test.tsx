@@ -81,6 +81,8 @@ const defaultParams: CourseFiltersParamsState = {
 	spec: "",
 	page: 1,
 	size: 10,
+	diffOrder: null,
+	useOrder: null,
 };
 
 const defaultSetParams = vi.fn();
@@ -341,6 +343,8 @@ describe("Reset Filters", () => {
 			spec: "",
 			page: 1,
 			size: 10,
+			diffOrder: null,
+			useOrder: null,
 		});
 	});
 });

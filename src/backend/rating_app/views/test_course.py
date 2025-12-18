@@ -351,3 +351,92 @@ def test_course_retrieve_invalid_uuid_format(token_client):
 
     # Assert
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_sorting_preserves_order_with_various_ratings(token_client, course_factory):
+    """Test that courses are sorted correctly by avg_difficulty and avg_usefulness.
+
+    Courses with ratings_count=0 should always appear at the end regardless of sort direction.
+    """
+    # Arrange - Create courses with various ratings
+    # Course with medium ratings (avg_difficulty=3.0, avg_usefulness=4.0)
+    course_medium = course_factory.create()
+    course_medium.avg_difficulty = 3.0
+    course_medium.avg_usefulness = 4.0
+    course_medium.ratings_count = 5
+    course_medium.save()
+
+    # Course with low ratings (avg_difficulty=1.5, avg_usefulness=2.5)
+    course_low = course_factory.create()
+    course_low.avg_difficulty = 1.5
+    course_low.avg_usefulness = 2.5
+    course_low.ratings_count = 3
+    course_low.save()
+
+    # Course with high ratings (avg_difficulty=4.5, avg_usefulness=4.8)
+    course_high = course_factory.create()
+    course_high.avg_difficulty = 4.5
+    course_high.avg_usefulness = 4.8
+    course_high.ratings_count = 8
+    course_high.save()
+
+    # Course without ratings (ratings_count=0, should appear last)
+    course_no_ratings = course_factory.create()
+    course_no_ratings.avg_difficulty = 0.0
+    course_no_ratings.avg_usefulness = 0.0
+    course_no_ratings.ratings_count = 0
+    course_no_ratings.save()
+
+    # Test 1: Ascending difficulty order - courses with ratings_count=0 should be last
+    url_diff_asc = "/api/v1/courses/?avg_difficulty_order=asc&page_size=10"
+    response_diff_asc = token_client.get(url_diff_asc)
+    assert response_diff_asc.status_code == 200
+    items_diff_asc = response_diff_asc.json()["items"]
+
+    # Verify order: 1.5 -> 3.0 -> 4.5 -> no_ratings (last)
+    assert items_diff_asc[0]["id"] == str(course_low.id)
+    assert items_diff_asc[1]["id"] == str(course_medium.id)
+    assert items_diff_asc[2]["id"] == str(course_high.id)
+    assert items_diff_asc[3]["id"] == str(course_no_ratings.id)
+    assert items_diff_asc[3]["ratings_count"] == 0
+
+    # Test 2: Descending difficulty order - courses with ratings_count=0 should still be last
+    url_diff_desc = "/api/v1/courses/?avg_difficulty_order=desc&page_size=10"
+    response_diff_desc = token_client.get(url_diff_desc)
+    assert response_diff_desc.status_code == 200
+    items_diff_desc = response_diff_desc.json()["items"]
+
+    # Verify order: 4.5 -> 3.0 -> 1.5 -> no_ratings (last)
+    assert items_diff_desc[0]["id"] == str(course_high.id)
+    assert items_diff_desc[1]["id"] == str(course_medium.id)
+    assert items_diff_desc[2]["id"] == str(course_low.id)
+    assert items_diff_desc[3]["id"] == str(course_no_ratings.id)
+    assert items_diff_desc[3]["ratings_count"] == 0
+
+    # Test 3: Ascending usefulness order - courses with ratings_count=0 should be last
+    url_use_asc = "/api/v1/courses/?avg_usefulness_order=asc&page_size=10"
+    response_use_asc = token_client.get(url_use_asc)
+    assert response_use_asc.status_code == 200
+    items_use_asc = response_use_asc.json()["items"]
+
+    # Verify order: 2.5 -> 4.0 -> 4.8 -> no_ratings (last)
+    assert items_use_asc[0]["id"] == str(course_low.id)
+    assert items_use_asc[1]["id"] == str(course_medium.id)
+    assert items_use_asc[2]["id"] == str(course_high.id)
+    assert items_use_asc[3]["id"] == str(course_no_ratings.id)
+    assert items_use_asc[3]["ratings_count"] == 0
+
+    # Test 4: Descending usefulness order - courses with ratings_count=0 should still be last
+    url_use_desc = "/api/v1/courses/?avg_usefulness_order=desc&page_size=10"
+    response_use_desc = token_client.get(url_use_desc)
+    assert response_use_desc.status_code == 200
+    items_use_desc = response_use_desc.json()["items"]
+
+    # Verify order: 4.8 -> 4.0 -> 2.5 -> no_ratings (last)
+    assert items_use_desc[0]["id"] == str(course_high.id)
+    assert items_use_desc[1]["id"] == str(course_medium.id)
+    assert items_use_desc[2]["id"] == str(course_low.id)
+    assert items_use_desc[3]["id"] == str(course_no_ratings.id)
+    assert items_use_desc[3]["ratings_count"] == 0
