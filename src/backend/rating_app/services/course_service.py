@@ -54,6 +54,9 @@ class CourseService:
     def filter_courses(
         self, filters: CourseFilterCriteria, paginate: bool = True
     ) -> CourseSearchResult:
+        if filters.type_kind:
+            filters = self._apply_type_kind(filters, filters.type_kind)
+
         courses = self.course_repository.filter(filters)
 
         if paginate:
@@ -143,3 +146,17 @@ class CourseService:
             total=courses_count,
             total_pages=1,
         )
+
+    def _apply_type_kind(
+        self, criteria: CourseFilterCriteria, type_kind: str
+    ) -> CourseFilterCriteria:
+        """
+        Business rule: if type_kind is elective, exclude compulsory and prof oriented courses
+        """
+        if type_kind == CourseTypeKind.ELECTIVE.value:
+            criteria.type_kind = None
+            criteria.exclude_type_kinds = [
+                CourseTypeKind.COMPULSORY.value,
+                CourseTypeKind.PROF_ORIENTED.value,
+            ]
+        return criteria

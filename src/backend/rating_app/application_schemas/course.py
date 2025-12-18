@@ -40,6 +40,10 @@ class CourseFilterCriteria(BaseModel):
         default=None,
         description="Course type kind (COMPULSORY, ELECTIVE, PROF_ORIENTED)",
     )
+    exclude_type_kinds: list[str] | None = Field(
+        default=None,
+        description="Exclude courses with these type kinds (COMPULSORY, ELECTIVE, PROF_ORIENTED)",
+    )
     instructor: uuid.UUID | None = Field(default=None, description="Filter by instructor UUID")
     faculty: uuid.UUID | None = Field(default=None, description="Filter by faculty UUID")
     department: uuid.UUID | None = Field(default=None, description="Filter by department UUID")

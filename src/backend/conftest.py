@@ -9,10 +9,13 @@ from rating_app.tests.factories import (
     CourseInstructorFactory,
     CourseOfferingFactory,
     CourseSpecialityFactory,
+    DepartmentFactory,
     EnrollmentFactory,
+    FacultyFactory,
     InstructorFactory,
     RatingFactory,
     SemesterFactory,
+    SpecialityFactory,
     StudentFactory,
 )
 
@@ -137,6 +140,21 @@ def enrollment_factory():
 @pytest.fixture
 def semester_factory():
     return SemesterFactory
+
+
+@pytest.fixture
+def speciality_factory():
+    return SpecialityFactory
+
+
+@pytest.fixture
+def faculty_factory():
+    return FacultyFactory
+
+
+@pytest.fixture
+def department_factory():
+    return DepartmentFactory
 
 
 # Cache mocking fixtures

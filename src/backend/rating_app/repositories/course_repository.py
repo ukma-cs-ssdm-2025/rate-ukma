@@ -146,9 +146,21 @@ class CourseRepository(IRepository[Course]):
     def _apply_speciality_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteria
     ) -> QuerySet[Course]:
+        if filters.exclude_type_kinds:
+            exclusion_q = Q(course_specialities__type_kind__in=filters.exclude_type_kinds)
+
+            if filters.speciality:
+                exclusion_q &= Q(course_specialities__speciality_id=filters.speciality)
+
+            courses = courses.exclude(exclusion_q)
+
         if filters.type_kind:
-            courses = courses.filter(course_specialities__type_kind=filters.type_kind)
-        if filters.speciality:
+            type_q = Q(course_specialities__type_kind=filters.type_kind)
+            if filters.speciality:
+                type_q &= Q(course_specialities__speciality_id=filters.speciality)
+            courses = courses.filter(type_q)
+        elif filters.speciality and not filters.exclude_type_kinds:
+            # Filter by speciality if not already handled by exclusion
             courses = courses.filter(course_specialities__speciality_id=filters.speciality)
         return courses
 
