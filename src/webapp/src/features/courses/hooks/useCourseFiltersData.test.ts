@@ -246,6 +246,28 @@ describe("useCourseFiltersData", () => {
 		});
 	});
 
+	describe("Type Filter Tooltip", () => {
+		it("should have tooltip when no speciality is selected", () => {
+			const { result } = renderFiltersHook({ spec: "" });
+			const typeFilter = result.current.selectFilters.find(
+				(f) => f.key === "type",
+			);
+			expect(typeFilter?.tooltip).toBe(
+				"Оберіть спеціальність, щоб обрати тип курсу",
+			);
+			expect(typeFilter?.disabled).toBe(true);
+		});
+
+		it("should not have tooltip when speciality is selected", () => {
+			const { result } = renderFiltersHook({ spec: "spec-1" });
+			const typeFilter = result.current.selectFilters.find(
+				(f) => f.key === "type",
+			);
+			expect(typeFilter?.tooltip).toBeUndefined();
+			expect(typeFilter?.disabled).toBe(false);
+		});
+	});
+
 	describe("Department Filtering by Faculty", () => {
 		it("should show all departments when no faculty is selected", () => {
 			// Arrange

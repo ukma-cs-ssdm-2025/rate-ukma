@@ -43,6 +43,8 @@ export type SelectFilterConfig = {
 	options: SelectOption[];
 	contentClassName?: string;
 	useCombobox?: boolean;
+	disabled?: boolean;
+	tooltip?: string;
 };
 
 export type RangeFilterConfig = {
@@ -232,6 +234,10 @@ export function useCourseFiltersData({
 					value: type.value,
 					label: getCourseTypeDisplay(type.value, type.label),
 				})),
+				disabled: !filters.spec,
+				tooltip: !filters.spec
+					? "Оберіть спеціальність, щоб обрати тип курсу"
+					: undefined,
 			},
 			// {
 			// 	key: "instructor",
