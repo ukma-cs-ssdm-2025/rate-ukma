@@ -2,7 +2,7 @@ from typing import Any, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError
-from django.db.models import Case, F, IntegerField, Prefetch, Q, QuerySet, Value, When
+from django.db.models import F, Prefetch, Q, QuerySet
 
 import structlog
 
@@ -234,18 +234,6 @@ class CourseRepository(IRepository[CourseDTO]):
 
     def _build_order_by_fields(self, filters: CourseFilterCriteria) -> list[Any]:
         order_by_fields = []
-
-        # When sorting by average metrics, keep unrated courses last.
-        has_ordering = filters.avg_difficulty_order or filters.avg_usefulness_order
-
-        if has_ordering:
-            has_ratings = Case(
-                When(ratings_count__gt=0, then=Value(1)),
-                default=Value(0),
-                output_field=IntegerField(),
-            )
-            order_by_fields.append(has_ratings.desc())
-
         if filters.avg_difficulty_order:
             field = F("avg_difficulty")
             if filters.avg_difficulty_order == "asc":
