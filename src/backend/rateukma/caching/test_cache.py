@@ -182,8 +182,9 @@ class TestRCachedComponents:
         ],
     )
     def test_rcached_decorator_with_primitives(
-        self, cache_manager, mock_redis_client, primitive_value, expected_type
+        self, cache_manager, mock_redis_client, primitive_value, expected_type, settings
     ):
+        settings.CACHE_DISABLED = False
         with patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager):
             # Arrange
             @rcached(ttl=60, return_type=expected_type)
