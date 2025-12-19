@@ -10,8 +10,10 @@ class CacheInvalidator(IEventListener[Rating]):
 
     @implements
     def on_event(self, event: Rating, *args, **kwargs) -> None:
-        self.cache_manager.invalidate_pattern(f"*{str(event.student.id)}*")
-        self.cache_manager.invalidate_pattern("*filter_ratings*")
-        self.cache_manager.invalidate_pattern("*filter_courses*")
-        self.cache_manager.invalidate_pattern("*get_course*")
-        self.cache_manager.invalidate_pattern("*list_courses*")
+        patterns = {
+            f"*{event.student.id}*",
+            "*filter_ratings*",
+            "*course*",
+        }
+        for pattern in patterns:
+            self.cache_manager.invalidate_pattern(pattern)

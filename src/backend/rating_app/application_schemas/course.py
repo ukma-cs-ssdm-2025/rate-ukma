@@ -105,6 +105,16 @@ class CourseFilterCriteria(BaseModel):
 
 
 @dataclass(frozen=True)
+class CourseSpeciality:
+    speciality_id: str
+    speciality_title: str
+    faculty_id: str
+    faculty_name: str
+    speciality_alias: str | None
+    type_kind: CourseTypeKind
+
+
+@dataclass(frozen=True)
 class Course:
     id: str
     title: str
@@ -115,7 +125,7 @@ class Course:
     faculty: str
     faculty_name: str
     faculty_custom_abbreviation: str | None = None
-    specialities: list[dict[str, Any]] = field(default_factory=list)
+    specialities: list[CourseSpeciality] = field(default_factory=list)
     avg_difficulty: decimal.Decimal | None = None
     avg_usefulness: decimal.Decimal | None = None
     ratings_count: int | None = 0

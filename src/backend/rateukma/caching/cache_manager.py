@@ -151,10 +151,8 @@ class RedisCacheManager(ICacheManager):
 
 class CacheJsonDataEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, UUID):
+        if isinstance(obj, UUID | Decimal):
             return str(obj)
-        if isinstance(obj, Decimal):
-            return float(obj)
         if isinstance(obj, (datetime | date)):
             return obj.isoformat()
         if isinstance(obj, bytes):
