@@ -158,7 +158,7 @@ const columns: ColumnDef<CourseList>[] = [
 							{course.title}
 						</span>
 					)}
-					<CourseSpecialityBadges specialities={course.course_specialities} />
+					<CourseSpecialityBadges specialities={course.specialities} />
 				</span>
 			);
 		},

@@ -41,6 +41,7 @@ export function createMockCourse(overrides?: Partial<CourseList>): CourseList {
 			fractionDigits: 2,
 		}),
 		ratings_count: faker.number.int({ min: 0, max: 150 }),
+		specialities: [],
 		...overrides,
 	};
 }

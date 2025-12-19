@@ -87,8 +87,8 @@ function CourseDetailsRoute() {
 						<CourseDetailsHeader
 							title={course.title}
 							status={course.status}
-							specialities={course.course_specialities}
-							departmentName={course.department_name}
+							specialities={course.specialities}
+							departmentName={course.department_name ?? ""}
 						/>
 
 						<CourseOfferingsDropdown

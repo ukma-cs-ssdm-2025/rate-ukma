@@ -447,7 +447,7 @@ describe("Course Display", () => {
 		const courses = [
 			createMockCourse({
 				title: "Test Course",
-				course_specialities: [
+				specialities: [
 					{
 						speciality_id: "spec-1",
 						speciality_title: "Інженерія програмного забезпечення",
@@ -594,7 +594,7 @@ describe("Course Row Navigation", () => {
 			createMockCourse({
 				id: courseId,
 				title: courseTitle,
-				course_specialities: specialities,
+				specialities: specialities,
 			}),
 		];
 
