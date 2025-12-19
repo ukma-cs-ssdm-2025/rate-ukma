@@ -1,6 +1,6 @@
 import json
 from collections.abc import Callable
-from dataclasses import is_dataclass
+from dataclasses import asdict, is_dataclass
 from typing import Any, Protocol, TypeVar, get_origin
 
 from django.db.models import Model
@@ -16,6 +16,7 @@ V = TypeVar("V")
 JSONValue = JSON_Serializable
 
 
+# TODO: cleanup and simplify
 def _make_cache_key_from_context(func: Callable, args: tuple, kwargs: dict) -> str:
     func_name = f"{func.__module__}.{func.__qualname__}"
 
@@ -23,15 +24,28 @@ def _make_cache_key_from_context(func: Callable, args: tuple, kwargs: dict) -> s
 
     for i, arg in enumerate(args):
         # skip self/cls and common instance patterns to avoid unstable repr
+        if isinstance(arg, BaseModel):
+            params_dict[f"arg_{i}"] = arg.model_dump(mode="python", by_alias=True)
+            continue
+        if is_dataclass(arg) and not isinstance(arg, type):
+            params_dict[f"arg_{i}"] = asdict(arg)
+            continue
         if hasattr(arg, "__dict__") and not isinstance(
-            arg, (str, int, float, bool, list, dict, tuple)
+            arg, (str | int | float | bool | list | dict | tuple)
         ):
             continue
         params_dict[f"arg_{i}"] = repr(arg)
 
     for k, v in kwargs.items():
-        if k not in ("self", "cls", "request"):
-            params_dict[k] = repr(v)
+        if k in ("self", "cls", "request"):
+            continue
+        if isinstance(v, BaseModel):
+            params_dict[k] = v.model_dump(mode="python", by_alias=True)
+            continue
+        if is_dataclass(v) and not isinstance(v, type):
+            params_dict[k] = asdict(v)
+            continue
+        params_dict[k] = repr(v)
 
     params_str = json.dumps(params_dict, sort_keys=True, cls=CacheJsonDataEncoder)
     return f"{func_name}:{params_str}"

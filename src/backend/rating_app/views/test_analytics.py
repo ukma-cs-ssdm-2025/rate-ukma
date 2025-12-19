@@ -133,10 +133,9 @@ def test_analytics_no_n_plus_1_queries(
     # 1. Main query with select_related(department__faculty) and annotations
     # 2. Prefetch course_specialities
     # 3. Prefetch offerings with semester
-    # 4. Prefetch semester details
-    # 5. Prefetch instructors for offerings
+    # 4. Prefetch instructors for offerings
     # No additional queries should occur when accessing department.faculty in serializer
-    with django_assert_num_queries(5):
+    with django_assert_num_queries(4):
         response = token_client.get(analytics_url)
 
     # Verify we got all courses
@@ -166,10 +165,9 @@ def test_analytics_single_course_no_n_plus_1(
     # Act & Assert: Retrieving single course should use select_related for department/faculty
     # Expected queries:
     # 1. Main query with select_related(department__faculty) and annotations
-    # 2. Prefetch offerings with semester
-    # 3. Prefetch semester details
-    # 4. Prefetch course_specialities
-    with django_assert_num_queries(4):
+    # 2. Prefetch offerings with semester details
+    # 3. Prefetch course_specialities
+    with django_assert_num_queries(3):
         response = token_client.get(url)
 
     # Verify response

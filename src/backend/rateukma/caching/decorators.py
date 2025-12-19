@@ -2,6 +2,8 @@ from collections.abc import Callable
 from functools import wraps
 from typing import ParamSpec, TypeVar, get_type_hints
 
+from django.conf import settings
+
 import structlog
 
 from .instances import cache_type_extension_registry, redis_cache_manager
@@ -51,6 +53,9 @@ def rcached[**P, RT](
 
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> RT:
+            if settings.CACHE_DISABLED:
+                return func(*args, **kwargs)
+
             cache_manager = redis_cache_manager()
             extension_registry = cache_type_extension_registry()
 

@@ -150,6 +150,8 @@ CACHES = {
         "TIMEOUT": 300,  # default TTL
     },
 }
+CACHE_DISABLED = False
+
 
 # TODO: Redis session configuration (optional, will uncomment on demand later)
 # SESSION_ENGINE = "django.contrib.sessions.backends.cache"

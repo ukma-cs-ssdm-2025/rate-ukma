@@ -70,6 +70,7 @@ def service(
 
 
 def test_list_courses_returns_all_courses_from_repository(service, course_repo):
+    service.course_model_mapper.map_to_dto.side_effect = lambda c: c
     expected_courses = [MagicMock(), MagicMock()]
     course_repo.get_all.return_value = expected_courses
 
@@ -82,12 +83,15 @@ def test_list_courses_returns_all_courses_from_repository(service, course_repo):
 def test_get_course_returns_course_by_id(service, course_repo):
     course_id = "course-123"
     expected_course = MagicMock()
+    mapped_course = MagicMock()
     course_repo.get_by_id.return_value = expected_course
+    service.course_model_mapper.map_to_dto.return_value = mapped_course
 
     result = service.get_course(course_id)
 
-    assert result == expected_course
+    assert result == mapped_course
     course_repo.get_by_id.assert_called_once_with(course_id)
+    service.course_model_mapper.map_to_dto.assert_called_once_with(expected_course)
 
 
 def test_filter_courses_returns_paginated_result_when_paginate_true(
@@ -102,11 +106,13 @@ def test_filter_courses_returns_paginated_result_when_paginate_true(
     mock_items = [MagicMock(), MagicMock()]
     mock_metadata = MagicMock()
     paginator.process.return_value = (mock_items, mock_metadata)
+    service.course_model_mapper.map_to_dto.side_effect = lambda c: c
 
     # Act
     result = service.filter_courses(filters, paginate=True)
 
     # Assert
+    assert len(result.items) == len(mock_items)
     assert result.items == mock_items
     assert result.pagination == mock_metadata
     course_repo.filter.assert_called_once_with(filters)
@@ -121,6 +127,7 @@ def test_filter_courses_returns_all_items_when_paginate_false(service, course_re
     mock_courses.__iter__ = MagicMock(return_value=iter([mock_course1, mock_course2]))
     mock_courses.count.return_value = 2
     course_repo.filter.return_value = mock_courses
+    service.course_model_mapper.map_to_dto.side_effect = lambda c: c
 
     # Act
     result = service.filter_courses(filters, paginate=False)

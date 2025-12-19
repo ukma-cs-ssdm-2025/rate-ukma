@@ -19,8 +19,6 @@ from rateukma.caching.types_extensions import (
     TypeAdapterCacheExtension,
 )
 
-# TODO: update after refactoring
-
 
 @pytest.fixture
 def mock_redis_client():
