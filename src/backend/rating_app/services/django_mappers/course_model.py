@@ -48,12 +48,16 @@ class CourseModelMapper(IDjangoToDomainModelMapper[CourseModel, CourseDTO]):
             if speciality is None:
                 continue
 
+            faculty_obj = speciality.faculty
+            faculty_id = str(faculty_obj.id) if faculty_obj else ""
+            faculty_name = faculty_obj.name if faculty_obj else ""
+
             specialities.append(
                 CourseSpeciality(
                     speciality_id=str(speciality.id),
                     speciality_title=speciality.name,
-                    faculty_id=str(speciality.faculty_id),
-                    faculty_name=speciality.faculty.name,
+                    faculty_id=faculty_id,
+                    faculty_name=faculty_name,
                     speciality_alias=speciality.alias,
                     type_kind=course_speciality.type_kind,
                 )
