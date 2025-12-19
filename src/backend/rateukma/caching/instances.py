@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.db.models import Model
 from rest_framework.response import Response
 
 from redis import Redis
@@ -8,7 +7,6 @@ from ..caching.cache_manager import ICacheManager, RedisCacheManager
 from ..ioc.decorators import once
 from .types_extensions import (
     CacheTypeExtensionRegistry,
-    DjangoModelCacheTypeExtension,
     DRFResponseCacheTypeExtension,
     TypeAdapterCacheExtension,
 )
@@ -39,7 +37,6 @@ def cache_type_extension_registry() -> CacheTypeExtensionRegistry:
     registry = CacheTypeExtensionRegistry(
         custom_extensions={
             Response: DRFResponseCacheTypeExtension(),
-            Model: DjangoModelCacheTypeExtension(),
         },
         generic_extension=TypeAdapterCacheExtension(),
     )

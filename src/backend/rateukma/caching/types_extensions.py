@@ -3,8 +3,6 @@ from collections.abc import Callable
 from dataclasses import asdict, is_dataclass
 from typing import Any, Protocol, TypeVar, get_origin
 
-from django.db.models import Model
-from django.forms.models import model_to_dict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -129,36 +127,6 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
         return Response(data=data)
 
 
-# ? currently implemented with django native model_to_dict
-# ? but! I suppose that a much more cleaner approach is to cache only domain serializable models
-# ? this is flexible, convenient, isolated and backend-agnostic
-# ? as a result, the extension below will be not needed at all
-class DjangoModelCacheTypeExtension(ICacheTypeExtension[Model]):
-    def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
-        return _make_cache_key_from_context(func, args, kwargs)
-
-    def serialize(self, value: Model, value_type: type[Model]) -> JSONValue:
-        return model_to_dict(value)
-
-    def deserialize(self, data: JSONValue, value_type: type[Model]) -> Model:
-        if not isinstance(data, dict):
-            raise TypeError(f"Expected dict for DjangoModel deserialization, got {type(data)}")
-
-        kwargs: dict[str, Any] = {}
-        model_fields = value_type._meta.concrete_fields  # type: ignore[attr-defined]
-
-        for field in model_fields:
-            attname = field.attname  # *_id for FKs, pk name for PK
-            if attname in data:
-                kwargs[attname] = data[attname]
-            elif field.name in data:
-                # fallback if model_to_dict used field name; assign to attname
-                kwargs[attname] = data[field.name]
-
-        instance = value_type(**kwargs)
-        return instance
-
-
 class CacheTypeExtensionRegistry:
     TYPEADAPTER_SUPPORTED_TYPES = [int, float, str, bool, list, dict, tuple, type(None), BaseModel]
 
@@ -179,9 +147,6 @@ class CacheTypeExtensionRegistry:
 
         if isinstance(candidate_type, type) and candidate_type in self._extensions:
             return self._extensions[candidate_type]
-
-        if isinstance(candidate_type, type) and issubclass(candidate_type, Model):
-            return self._extensions[Model]
 
         if is_dataclass(candidate_type) or self._is_typeadapter_supported_type(candidate_type):
             return self._generic
