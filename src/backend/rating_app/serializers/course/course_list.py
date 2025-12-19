@@ -6,7 +6,7 @@ from rating_app.serializers.course.course_speciality import CourseSpecialityInli
 
 class CourseListSerializer(serializers.Serializer):
     """
-    Serializer for course list responses based on CourseDTO.
+    Serializer for course list responses based on Course DTO.
     """
 
     id = serializers.CharField(read_only=True)

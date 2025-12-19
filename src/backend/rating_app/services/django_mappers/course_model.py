@@ -49,10 +49,12 @@ class CourseModelMapper(IDjangoToDomainModelMapper[CourseModel, CourseDTO]):
 
             specialities.append(
                 {
-                    "id": speciality.id,
-                    "name": speciality.name,
+                    "speciality_id": speciality.id,
+                    "speciality_title": speciality.name,
                     "faculty_id": speciality.faculty_id,
-                    "alias": speciality.alias,
+                    "faculty_name": speciality.faculty.name,
+                    "speciality_alias": speciality.alias,
+                    "type_kind": course_speciality.type_kind,
                 }
             )
         return specialities

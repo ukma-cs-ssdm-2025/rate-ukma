@@ -1684,14 +1684,9 @@ components:
           type: integer
           readOnly: true
           default: 0
-        specialities_with_kind:
-          type: array
-          items:
-            $ref: '#/components/schemas/SpecialityWithKindPayload'
-          writeOnly: true
     CourseList:
       type: object
-      description: Serializer for course list responses based on CourseDTO.
+      description: Serializer for course list responses based on Course DTO.
       properties:
         id:
           type: string
@@ -2347,19 +2342,6 @@ components:
       required:
       - id
       - name
-    SpecialityWithKindPayload:
-      type: object
-      description: Payload serializer for creating/updating course speciality associations
-        (write-only).
-      properties:
-        speciality:
-          type: string
-          format: uuid
-        type_kind:
-          $ref: '#/components/schemas/TypeKindEnum'
-      required:
-      - speciality
-      - type_kind
     StatusEnum:
       enum:
       - PLANNED
