@@ -2,7 +2,7 @@ from typing import Any
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Prefetch, Q, QuerySet
 
 import structlog
 
@@ -11,7 +11,7 @@ from rating_app.exception.course_exceptions import (
     CourseNotFoundError,
     InvalidCourseIdentifierError,
 )
-from rating_app.models import Course, Department
+from rating_app.models import Course, CourseOffering, Department
 from rating_app.models.choices import CourseStatus, SemesterTerm
 from rating_app.repositories.protocol import IRepository
 
@@ -24,7 +24,10 @@ class CourseRepository(IRepository[Course]):
     def get_all(self) -> list[Course]:
         return list(
             Course.objects.select_related("department__faculty")
-            .prefetch_related("offerings__semester", "course_specialities__speciality")
+            .prefetch_related(
+                Prefetch("offerings", queryset=CourseOffering.objects.select_related("semester")),
+                "course_specialities__speciality",
+            )
             .all()
         )
 
@@ -32,7 +35,12 @@ class CourseRepository(IRepository[Course]):
         try:
             return (
                 Course.objects.select_related("department__faculty")
-                .prefetch_related("offerings__semester", "course_specialities__speciality")
+                .prefetch_related(
+                    Prefetch(
+                        "offerings", queryset=CourseOffering.objects.select_related("semester")
+                    ),
+                    "course_specialities__speciality",
+                )
                 .get(id=course_id)
             )
         except Course.DoesNotExist as exc:
@@ -79,9 +87,13 @@ class CourseRepository(IRepository[Course]):
         return (
             Course.objects.select_related("department__faculty")
             .prefetch_related(
+                Prefetch(
+                    "offerings",
+                    queryset=CourseOffering.objects.select_related("semester").prefetch_related(
+                        "instructors"
+                    ),
+                ),
                 "course_specialities__speciality",
-                "offerings__semester",
-                "offerings__instructors",
             )
             .all()
         )

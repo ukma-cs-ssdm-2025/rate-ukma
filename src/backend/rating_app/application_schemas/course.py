@@ -1,5 +1,6 @@
+import decimal
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -105,17 +106,19 @@ class CourseFilterCriteria(BaseModel):
 
 @dataclass(frozen=True)
 class Course:
-    id: uuid.UUID
+    id: str
     title: str
     description: str
     status: CourseStatus
-    department_id: uuid.UUID
+    department: str
     department_name: str
+    faculty: str
     faculty_name: str
-    specialities: list[dict[str, Any]]
-    avg_difficulty: float | None
-    avg_usefulness: float | None
-    ratings_count: int | None
+    faculty_custom_abbreviation: str | None = None
+    specialities: list[dict[str, Any]] = field(default_factory=list)
+    avg_difficulty: decimal.Decimal | None = None
+    avg_usefulness: decimal.Decimal | None = None
+    ratings_count: int | None = 0
 
 
 # is constructed internally

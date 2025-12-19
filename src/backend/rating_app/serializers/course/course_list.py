@@ -1,52 +1,26 @@
 from rest_framework import serializers
 
-from rating_app.models import Course
+from rating_app.models.choices import CourseStatus
+from rating_app.serializers.course.course_speciality import CourseSpecialityInlineSerializer
 
-from .course_speciality import CourseSpecialityInlineSerializer
 
-
-class CourseListSerializer(serializers.ModelSerializer):
+class CourseListSerializer(serializers.Serializer):
     """
-    Lighter serializer for listing courses.
+    Serializer for course list responses based on CourseDTO.
     """
 
-    department = serializers.UUIDField(source="department.id", read_only=True)
-    department_name = serializers.CharField(source="department.name", read_only=True)
-    faculty_id = serializers.UUIDField(source="department.faculty.id", read_only=True)
-    faculty_name = serializers.CharField(source="department.faculty.name", read_only=True)
+    id = serializers.CharField(read_only=True)
+    title = serializers.CharField(max_length=255, read_only=True)
+    description = serializers.CharField(allow_null=True, allow_blank=True, read_only=True)
+    status = serializers.ChoiceField(choices=CourseStatus.choices, read_only=True)
+    department = serializers.UUIDField(read_only=True)
+    department_name = serializers.CharField(read_only=True)
+    faculty = serializers.UUIDField(read_only=True)
+    faculty_name = serializers.CharField(read_only=True)
     faculty_custom_abbreviation = serializers.CharField(
-        source="department.faculty.custom_abbreviation", read_only=True
+        read_only=True, allow_null=True, default=None, max_length=255
     )
-    avg_difficulty = serializers.FloatField(read_only=True, allow_null=True)
-    avg_usefulness = serializers.FloatField(read_only=True, allow_null=True)
-    ratings_count = serializers.IntegerField(read_only=True)
-    course_specialities = CourseSpecialityInlineSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Course
-        fields = [
-            "id",
-            "title",
-            "description",
-            "status",
-            "department",
-            "department_name",
-            "faculty_id",
-            "faculty_name",
-            "faculty_custom_abbreviation",
-            # read
-            "avg_difficulty",
-            "avg_usefulness",
-            "ratings_count",
-            "course_specialities",
-        ]
-        read_only_fields = [
-            "id",
-            "department_name",
-            "faculty_id",
-            "faculty_name",
-            "faculty_custom_abbreviation",
-            "avg_difficulty",
-            "avg_usefulness",
-            "ratings_count",
-        ]
+    avg_difficulty = serializers.FloatField(read_only=True, allow_null=True, required=False)
+    avg_usefulness = serializers.FloatField(read_only=True, allow_null=True, required=False)
+    ratings_count = serializers.IntegerField(read_only=True, required=False, default=0)
+    specialities = CourseSpecialityInlineSerializer(many=True, read_only=True)

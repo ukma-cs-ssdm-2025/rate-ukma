@@ -2,29 +2,7 @@
 
 from rest_framework import serializers
 
-from rating_app.models import CourseSpeciality
 from rating_app.models.choices import CourseTypeKind
-
-
-class CourseSpecialityInlineSerializer(serializers.ModelSerializer):
-    """Inline serializer for displaying course specialities with type kind."""
-
-    speciality_id = serializers.UUIDField(source="speciality.id", read_only=True)
-    speciality_title = serializers.CharField(source="speciality.name", read_only=True)
-    speciality_alias = serializers.CharField(source="speciality.alias", read_only=True)
-    faculty_id = serializers.UUIDField(source="speciality.faculty.id", read_only=True)
-    faculty_name = serializers.CharField(source="speciality.faculty.name", read_only=True)
-
-    class Meta:
-        model = CourseSpeciality
-        fields = [
-            "speciality_id",
-            "speciality_title",
-            "type_kind",
-            "speciality_alias",
-            "faculty_id",
-            "faculty_name",
-        ]
 
 
 class SpecialityWithKindPayload(serializers.Serializer):
@@ -32,3 +10,18 @@ class SpecialityWithKindPayload(serializers.Serializer):
 
     speciality = serializers.UUIDField()
     type_kind = serializers.ChoiceField(choices=CourseTypeKind.choices)
+
+
+class CourseSpecialityInlineSerializer(serializers.Serializer):
+    """Inline serializer for course speciality DTO."""
+
+    speciality_id = serializers.UUIDField(read_only=True)
+    speciality_title = serializers.CharField(max_length=255, read_only=True)
+    speciality_alias = serializers.CharField(
+        max_length=255, allow_blank=True, required=False, read_only=True
+    )
+    faculty_name = serializers.CharField(max_length=255, read_only=True)
+    faculty_id = serializers.UUIDField(read_only=True)
+    type_kind = serializers.ChoiceField(
+        choices=CourseTypeKind.choices, required=False, allow_null=True
+    )

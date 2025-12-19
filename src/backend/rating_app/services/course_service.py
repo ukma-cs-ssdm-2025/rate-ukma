@@ -50,12 +50,14 @@ class CourseService:
         self.course_model_mapper = course_model_mapper
 
     @rcached(ttl=86400)  # 24 hours - list of courses rarely changes
-    def list_courses(self) -> list[CourseModel]:
-        return self.course_repository.get_all()
+    def list_courses(self) -> list[CourseDTO]:
+        courses = self.course_repository.get_all()
+        return [self.course_model_mapper.map_to_dto(course) for course in courses]
 
     @rcached(ttl=300)
-    def get_course(self, course_id: str) -> CourseModel:
-        return self.course_repository.get_by_id(course_id)
+    def get_course(self, course_id: str) -> CourseDTO:
+        course = self.course_repository.get_by_id(course_id)
+        return self.course_model_mapper.map_to_dto(course)
 
     @rcached(ttl=300)
     def filter_courses(
@@ -81,14 +83,13 @@ class CourseService:
 
     def update_course_aggregates(
         self, course: CourseModel, aggregates: AggregatedCourseRatingStats
-    ) -> CourseModel:
+    ) -> None:
         self.course_repository.update(
             course,
             avg_difficulty=aggregates.avg_difficulty,
             avg_usefulness=aggregates.avg_usefulness,
             ratings_count=aggregates.ratings_count,
         )
-        return course
 
     def delete_course(self, course_id: str) -> None:
         course = self.course_repository.get_by_id(course_id)

@@ -1,7 +1,3 @@
-from decimal import Decimal
-from typing import cast
-from uuid import UUID
-
 from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.models.choices import CourseStatus
 from rating_app.models.course import Course as CourseModel
@@ -11,39 +7,52 @@ from .protocol import IDjangoToDomainModelMapper
 
 class CourseModelMapper(IDjangoToDomainModelMapper[CourseModel, CourseDTO]):
     def map_to_dto(self, model: CourseModel) -> CourseDTO:
-        course_id = cast(UUID, model.id)
-
-        title = str(model.title)
-        description = str(getattr(model, "description", ""))
-
-        department = getattr(model, "department", None)
-        department_id = cast(UUID | None, getattr(model, "department_id", None))
-        if department_id is None and department is not None:
-            department_id = cast(UUID, department.id)
-        if department_id is None:
-            department_id = UUID(int=0)
-
-        faculty = getattr(department, "faculty", None) if department else None
-
-        raw_status = str(getattr(model, "status", ""))
-        status = (
-            CourseStatus(raw_status) if raw_status in CourseStatus.values else CourseStatus.PLANNED
-        )
-
-        avg_difficulty_raw = cast(float | Decimal | None, model.avg_difficulty)
-        avg_usefulness_raw = cast(float | Decimal | None, model.avg_usefulness)
-        ratings_count_raw = cast(int | None, model.ratings_count)
+        department = model.department
+        department_id = str(department.id)
+        faculty = department.faculty
+        faculty_id = str(faculty.id)
+        status = model.status
+        status = CourseStatus(status) if status in CourseStatus.values else CourseStatus.PLANNED
+        specialities = self._parse_prefetched_course_specialities(model)
 
         return CourseDTO(
-            id=course_id,
-            title=title,
-            description=description,
+            id=str(model.id),
+            title=model.title,
+            description=model.description,
             status=status,
-            department_id=department_id,
+            department=department_id,
             department_name=department.name if department else "",
-            faculty_name=faculty.name if faculty else "",
-            specialities=list(model.specialities.values()),  # type: ignore[attr-defined]
-            avg_difficulty=(float(avg_difficulty_raw) if avg_difficulty_raw is not None else None),
-            avg_usefulness=(float(avg_usefulness_raw) if avg_usefulness_raw is not None else None),
-            ratings_count=int(ratings_count_raw or 0),
+            faculty=faculty_id,
+            faculty_name=faculty.name,
+            faculty_custom_abbreviation=getattr(faculty, "custom_abbreviation", None)
+            if faculty
+            else None,
+            specialities=specialities,
+            avg_difficulty=model.avg_difficulty,
+            avg_usefulness=model.avg_usefulness,
+            ratings_count=model.ratings_count,
         )
+
+    def _parse_prefetched_course_specialities(self, model: CourseModel) -> list[dict[str, object]]:
+        prefetched_course_specialities = getattr(model, "_prefetched_objects_cache", {}).get(
+            "course_specialities"
+        )
+        specialities: list[dict[str, object]] = []
+
+        if prefetched_course_specialities is None:
+            return specialities
+
+        for course_speciality in prefetched_course_specialities:
+            speciality = getattr(course_speciality, "speciality", None)
+            if speciality is None:
+                continue
+
+            specialities.append(
+                {
+                    "id": speciality.id,
+                    "name": speciality.name,
+                    "faculty_id": speciality.faculty_id,
+                    "alias": speciality.alias,
+                }
+            )
+        return specialities
