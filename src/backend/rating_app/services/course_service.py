@@ -1,5 +1,3 @@
-from django.db.models import QuerySet
-
 import structlog
 
 from rateukma.caching.decorators import rcached
@@ -13,15 +11,12 @@ from rating_app.application_schemas.course import (
 )
 from rating_app.application_schemas.pagination import PaginationMetadata
 from rating_app.application_schemas.rating import AggregatedCourseRatingStats
-from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
-from rating_app.models import Course as CourseModel
 from rating_app.models.choices import CourseTypeKind
-from rating_app.repositories import CourseRepository
+from rating_app.repositories.course_repository import CourseRepository
 from rating_app.services.department_service import DepartmentService
-from rating_app.services.django_mappers import CourseModelMapper
 from rating_app.services.faculty_service import FacultyService
 from rating_app.services.instructor_service import InstructorService
-from rating_app.services.paginator import QuerysetPaginator
+from rating_app.services.pagination_course_adapter import PaginationCourseAdapter
 from rating_app.services.semester_service import SemesterService
 from rating_app.services.speciality_service import SpecialityService
 
@@ -31,58 +26,59 @@ logger = structlog.get_logger(__name__)
 class CourseService:
     def __init__(
         self,
+        pagination_course_adapter: PaginationCourseAdapter,
         course_repository: CourseRepository,
-        paginator: QuerysetPaginator,
         instructor_service: InstructorService,
         faculty_service: FacultyService,
         department_service: DepartmentService,
         speciality_service: SpecialityService,
         semester_service: SemesterService,
-        course_model_mapper: CourseModelMapper,
     ):
+        self.pagination_course_adapter = pagination_course_adapter
         self.course_repository = course_repository
-        self.paginator = paginator
         self.instructor_service = instructor_service
         self.faculty_service = faculty_service
         self.department_service = department_service
         self.speciality_service = speciality_service
         self.semester_service = semester_service
-        self.course_model_mapper = course_model_mapper
 
     @rcached(ttl=86400)  # 24 hours - list of courses rarely changes
     def list_courses(self) -> list[CourseDTO]:
-        courses = self.course_repository.get_all()
-        return [self.course_model_mapper.map_to_dto(course) for course in courses]
+        return self.course_repository.get_all()
 
     @rcached(ttl=300)
     def get_course(self, course_id: str) -> CourseDTO:
-        course = self.course_repository.get_by_id(course_id)
-        return self.course_model_mapper.map_to_dto(course)
+        return self.course_repository.get_by_id(course_id)
 
     @rcached(ttl=300)
     def filter_courses(
         self, filters: CourseFilterCriteria, paginate: bool = True
     ) -> CourseSearchResult:
+        if paginate:
+            return self.pagination_course_adapter.paginate(filters)
+
         courses = self.course_repository.filter(filters)
 
-        if paginate:
-            return self._paginated_result(courses, filters)
-
-        return self._build_search_result(list(courses), filters)
+        return CourseSearchResult(
+            items=courses,
+            pagination=self._empty_pagination_metadata(len(courses)),
+            applied_filters=filters.model_dump(by_alias=True),
+        )
 
     # -- admin functions --
-    def create_course(self, **course_data) -> CourseModel:
+    def create_course(self, **course_data) -> CourseDTO:
         course, _ = self.course_repository.get_or_create(**course_data)
         return course
 
-    def update_course(self, course_id: str, **update_data) -> CourseModel | None:
-        course = self.course_repository.get_by_id(course_id)
-        if not course:
+    def update_course(self, course_id: str, **update_data) -> CourseDTO | None:
+        try:
+            course_dto = self.course_repository.get_by_id(course_id)
+            return self.course_repository.update(course_dto, **update_data)
+        except Exception:
             return None
-        return self.course_repository.update(course, **update_data)
 
     def update_course_aggregates(
-        self, course: CourseModel, aggregates: AggregatedCourseRatingStats
+        self, course: CourseDTO, aggregates: AggregatedCourseRatingStats
     ) -> None:
         self.course_repository.update(
             course,
@@ -92,8 +88,11 @@ class CourseService:
         )
 
     def delete_course(self, course_id: str) -> None:
-        course = self.course_repository.get_by_id(course_id)
-        self.course_repository.delete(course)
+        try:
+            course_dto = self.course_repository.get_by_id(course_id)
+            self.course_repository.delete(course_dto)
+        except Exception:
+            pass
 
     @rcached(ttl=86400)  # 24 hours - filter options rarely change
     def get_filter_options(self) -> CourseFilterOptions:
@@ -129,33 +128,10 @@ class CourseService:
             ],
         )
 
-    def _paginated_result(
-        self, courses: QuerySet[CourseModel], criteria: CourseFilterCriteria
-    ) -> CourseSearchResult:
-        page_size = criteria.page_size or DEFAULT_COURSE_PAGE_SIZE
-        result: tuple[list[CourseModel], PaginationMetadata] = self.paginator.process(
-            courses, criteria.page, page_size
-        )
-        page_courses, metadata = result
-        return self._build_search_result(page_courses, criteria, metadata)
-
     def _empty_pagination_metadata(self, courses_count: int) -> PaginationMetadata:
         return PaginationMetadata(
             page=1,
             page_size=courses_count,
             total=courses_count,
             total_pages=1,
-        )
-
-    def _build_search_result(
-        self,
-        courses: list[CourseModel],
-        criteria: CourseFilterCriteria,
-        pagination: PaginationMetadata | None = None,
-    ) -> CourseSearchResult:
-        items: list[CourseDTO] = [self.course_model_mapper.map_to_dto(course) for course in courses]
-        return CourseSearchResult(
-            items=items,
-            pagination=pagination or self._empty_pagination_metadata(len(items)),
-            applied_filters=criteria.model_dump(by_alias=True),
         )

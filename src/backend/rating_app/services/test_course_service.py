@@ -12,11 +12,6 @@ def course_repo():
 
 
 @pytest.fixture
-def paginator():
-    return MagicMock()
-
-
-@pytest.fixture
 def instructor_service():
     return MagicMock()
 
@@ -42,35 +37,32 @@ def semester_service():
 
 
 @pytest.fixture
-def course_model_mapper():
+def pagination_course_adapter():
     return MagicMock()
 
 
 @pytest.fixture
 def service(
     course_repo,
-    paginator,
     instructor_service,
     faculty_service,
     department_service,
     speciality_service,
     semester_service,
-    course_model_mapper,
+    pagination_course_adapter,
 ):
     return CourseService(
+        pagination_course_adapter=pagination_course_adapter,
         course_repository=course_repo,
-        paginator=paginator,
         instructor_service=instructor_service,
         faculty_service=faculty_service,
         department_service=department_service,
         speciality_service=speciality_service,
         semester_service=semester_service,
-        course_model_mapper=course_model_mapper,
     )
 
 
 def test_list_courses_returns_all_courses_from_repository(service, course_repo):
-    service.course_model_mapper.map_to_dto.side_effect = lambda c: c
     expected_courses = [MagicMock(), MagicMock()]
     course_repo.get_all.return_value = expected_courses
 
@@ -83,74 +75,60 @@ def test_list_courses_returns_all_courses_from_repository(service, course_repo):
 def test_get_course_returns_course_by_id(service, course_repo):
     course_id = "course-123"
     expected_course = MagicMock()
-    mapped_course = MagicMock()
     course_repo.get_by_id.return_value = expected_course
-    service.course_model_mapper.map_to_dto.return_value = mapped_course
 
     result = service.get_course(course_id)
 
-    assert result == mapped_course
+    assert result == expected_course
     course_repo.get_by_id.assert_called_once_with(course_id)
-    service.course_model_mapper.map_to_dto.assert_called_once_with(expected_course)
 
 
-def test_filter_courses_returns_paginated_result_when_paginate_true(
-    service, course_repo, paginator
-):
+def test_filter_courses_returns_paginated_result_when_paginate_true(service, course_repo):
     # Arrange
     filters = CourseFilterCriteria()
-    mock_courses = MagicMock()
-    mock_courses.count.return_value = 50
-    course_repo.filter.return_value = mock_courses
-
-    mock_items = [MagicMock(), MagicMock()]
-    mock_metadata = MagicMock()
-    paginator.process.return_value = (mock_items, mock_metadata)
-    service.course_model_mapper.map_to_dto.side_effect = lambda c: c
+    mock_search_result = MagicMock()
+    course_repo.filter.return_value = mock_search_result
 
     # Act
     result = service.filter_courses(filters, paginate=True)
 
     # Assert
-    assert len(result.items) == len(mock_items)
-    assert result.items == mock_items
-    assert result.pagination == mock_metadata
+    assert result == mock_search_result
     course_repo.filter.assert_called_once_with(filters)
 
 
 def test_filter_courses_returns_all_items_when_paginate_false(service, course_repo):
     # Arrange
     filters = CourseFilterCriteria()
-    mock_course1 = MagicMock()
-    mock_course2 = MagicMock()
-    mock_courses = MagicMock()
-    mock_courses.__iter__ = MagicMock(return_value=iter([mock_course1, mock_course2]))
-    mock_courses.count.return_value = 2
-    course_repo.filter.return_value = mock_courses
-    service.course_model_mapper.map_to_dto.side_effect = lambda c: c
+    mock_search_result = MagicMock()
+    mock_search_result.items = [MagicMock(), MagicMock()]
+    course_repo.filter.return_value = mock_search_result
 
     # Act
     result = service.filter_courses(filters, paginate=False)
 
     # Assert
     assert len(result.items) == 2
+    assert result.items == mock_search_result.items
     assert result.pagination.page == 1
     assert result.pagination.total == 2
     assert result.pagination.total_pages == 1
+    # Should call filter with modified filters (page_size=10000)
+    assert course_repo.filter.call_count == 1
 
 
-def test_filter_courses_uses_custom_page_size(service, course_repo, paginator):
+def test_filter_courses_uses_custom_page_size(service, course_repo):
     # Arrange
     filters = CourseFilterCriteria(page=2, page_size=25)
-    mock_courses = MagicMock()
-    course_repo.filter.return_value = mock_courses
-    paginator.process.return_value = ([], MagicMock())
+    mock_search_result = MagicMock()
+    course_repo.filter.return_value = mock_search_result
 
     # Act
-    service.filter_courses(filters, paginate=True)
+    result = service.filter_courses(filters, paginate=True)
 
     # Assert
-    paginator.process.assert_called_once_with(mock_courses, 2, 25)
+    assert result == mock_search_result
+    course_repo.filter.assert_called_once_with(filters)
 
 
 def test_create_course_returns_created_course(service, course_repo):

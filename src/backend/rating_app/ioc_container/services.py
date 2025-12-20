@@ -1,6 +1,5 @@
 from rateukma.caching.instances import redis_cache_manager
 from rateukma.ioc.decorators import once
-from rating_app.ioc_container.common import course_model_mapper
 from rating_app.ioc_container.repositories import (
     course_offering_repository,
     course_repository,
@@ -30,6 +29,7 @@ from rating_app.services.domain_event_listeners.aggregates_update import (
     CourseModelAggregatesUpdateObserver,
 )
 from rating_app.services.domain_event_listeners.cache_invalidator import CacheInvalidator
+from rating_app.services.pagination_course_adapter import PaginationCourseAdapter
 from rating_app.services.paginator import QuerysetPaginator
 
 
@@ -54,16 +54,23 @@ def semester_service() -> SemesterService:
 
 
 @once
-def course_service() -> CourseService:
-    return CourseService(
+def pagination_course_adapter() -> PaginationCourseAdapter:
+    return PaginationCourseAdapter(
         course_repository=course_repository(),
         paginator=paginator(),
+    )
+
+
+@once
+def course_service() -> CourseService:
+    return CourseService(
+        pagination_course_adapter=pagination_course_adapter(),
+        course_repository=course_repository(),
         instructor_service=instructor_service(),
         faculty_service=faculty_service(),
         department_service=department_service(),
         speciality_service=speciality_service(),
         semester_service=semester_service(),
-        course_model_mapper=course_model_mapper(),
     )
 
 

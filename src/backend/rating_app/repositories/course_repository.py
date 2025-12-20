@@ -6,7 +6,13 @@ from django.db.models import F, Prefetch, Q, QuerySet
 
 import structlog
 
-from rating_app.application_schemas.course import CourseFilterCriteria
+from rating_app.application_schemas.course import (
+    Course as CourseDTO,
+)
+from rating_app.application_schemas.course import (
+    CourseFilterCriteria,
+    CourseSpeciality,
+)
 from rating_app.exception.course_exceptions import (
     CourseNotFoundError,
     InvalidCourseIdentifierError,
@@ -17,12 +23,10 @@ from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
 
-logger = structlog.get_logger()
 
-
-class CourseRepository(IRepository[Course]):
-    def get_all(self) -> list[Course]:
-        return list(
+class CourseRepository(IRepository[CourseDTO]):
+    def get_all(self) -> list[CourseDTO]:
+        courses = (
             Course.objects.select_related("department__faculty")
             .prefetch_related(
                 Prefetch("offerings", queryset=CourseOffering.objects.select_related("semester")),
@@ -30,10 +34,11 @@ class CourseRepository(IRepository[Course]):
             )
             .all()
         )
+        return [self._map_to_domain_model(course) for course in courses]
 
-    def get_by_id(self, course_id: str) -> Course:
+    def get_by_id(self, course_id: str) -> CourseDTO:
         try:
-            return (
+            course = (
                 Course.objects.select_related("department__faculty")
                 .prefetch_related(
                     Prefetch(
@@ -43,6 +48,7 @@ class CourseRepository(IRepository[Course]):
                 )
                 .get(id=course_id)
             )
+            return self._map_to_domain_model(course)
         except Course.DoesNotExist as exc:
             logger.info("course_not_found", course_id=course_id)
             raise CourseNotFoundError(course_id) from exc
@@ -50,7 +56,43 @@ class CourseRepository(IRepository[Course]):
             logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
             raise InvalidCourseIdentifierError(course_id) from exc
 
-    def filter(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
+    def filter(self, filters: CourseFilterCriteria) -> list[CourseDTO]:
+        qs = self._filter_qs(filters)
+        return self.map_to_domain_models(list(qs))
+
+    def filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
+        return self._filter_qs(filters)
+
+    def get_or_create(
+        self,
+        *,
+        title: str,
+        department_id: str,
+        status: str = CourseStatus.PLANNED,
+        description: str | None = None,
+    ) -> tuple[CourseDTO, bool]:
+        department = Department.objects.get(id=department_id)
+        course_orm, created = Course.objects.get_or_create(
+            title=title,
+            department=department,
+            status=status,
+            description=description,
+        )
+        course_dto = self._map_to_domain_model(course_orm)
+        return course_dto, created
+
+    def update(self, course_dto: CourseDTO, **course_data) -> CourseDTO:
+        course_orm = Course.objects.get(id=course_dto.id)
+        for field, value in course_data.items():
+            setattr(course_orm, field, value)
+        course_orm.save()
+        return self._map_to_domain_model(course_orm)
+
+    def delete(self, course_dto: CourseDTO) -> None:
+        course_orm = Course.objects.get(id=course_dto.id)
+        course_orm.delete()
+
+    def _filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
         courses = self._build_base_queryset()
         courses = self._apply_basic_filters(courses, filters)
         courses = self._apply_speciality_filters(courses, filters)
@@ -58,30 +100,6 @@ class CourseRepository(IRepository[Course]):
         courses = self._apply_sorting(courses, filters)
         courses = courses.distinct()
         return courses
-
-    def get_or_create(
-        self,
-        *,
-        title: str,
-        department: Department,
-        status: str = CourseStatus.PLANNED,
-        description: str | None = None,
-    ) -> tuple[Course, bool]:
-        return Course.objects.get_or_create(
-            title=title,
-            department=department,
-            status=status,
-            description=description,
-        )
-
-    def update(self, course: Course, **course_data) -> Course:
-        for field, value in course_data.items():
-            setattr(course, field, value)
-        course.save()
-        return course
-
-    def delete(self, course: Course) -> None:
-        course.delete()
 
     def _build_base_queryset(self) -> QuerySet[Course]:
         return (
@@ -203,3 +221,65 @@ class CourseRepository(IRepository[Course]):
             else:
                 order_by_fields.append(field.desc(nulls_last=True))
         return order_by_fields
+
+    def map_to_domain_models(self, models: list[Course]) -> list[CourseDTO]:
+        return [self._map_to_domain_model(model) for model in models]
+
+    def _map_to_domain_model(self, model: Course) -> CourseDTO:
+        department = model.department
+        department_id = str(department.id)
+        faculty_obj = department.faculty if department else None
+        faculty_id = str(faculty_obj.id) if faculty_obj else ""
+        faculty_name = faculty_obj.name if faculty_obj else ""
+        faculty_custom_abbreviation = faculty_obj.custom_abbreviation if faculty_obj else None
+        status = model.status
+        status = CourseStatus(status) if status in CourseStatus.values else CourseStatus.PLANNED
+        specialities = self._parse_prefetched_course_specialities(model)
+
+        return CourseDTO(
+            id=str(model.id),
+            title=model.title,
+            description=model.description,
+            status=status,
+            department=department_id,
+            department_name=department.name if department else "",
+            faculty=faculty_id,
+            faculty_name=faculty_name,
+            faculty_custom_abbreviation=faculty_custom_abbreviation,
+            specialities=specialities,
+            avg_difficulty=model.avg_difficulty,
+            avg_usefulness=model.avg_usefulness,
+            ratings_count=model.ratings_count,
+        )
+
+    def _parse_prefetched_course_specialities(self, model: Course) -> list[CourseSpeciality]:
+        from rating_app.application_schemas.course import CourseSpeciality
+
+        prefetched_course_specialities = getattr(model, "_prefetched_objects_cache", {}).get(
+            "course_specialities"
+        )
+        specialities: list[CourseSpeciality] = []
+
+        if prefetched_course_specialities is None:
+            return specialities
+
+        for course_speciality in prefetched_course_specialities:
+            speciality = getattr(course_speciality, "speciality", None)
+            if speciality is None:
+                continue
+
+            faculty_obj = speciality.faculty
+            faculty_id = str(faculty_obj.id) if faculty_obj else ""
+            faculty_name = faculty_obj.name if faculty_obj else ""
+
+            specialities.append(
+                CourseSpeciality(
+                    speciality_id=str(speciality.id),
+                    speciality_title=speciality.name,
+                    faculty_id=faculty_id,
+                    faculty_name=faculty_name,
+                    speciality_alias=speciality.alias,
+                    type_kind=course_speciality.type_kind,
+                )
+            )
+        return specialities

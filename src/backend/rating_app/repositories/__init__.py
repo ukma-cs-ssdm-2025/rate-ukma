@@ -22,7 +22,6 @@ __all__ = [
     "StudentRepository",
     "CourseOfferingRepository",
     "CourseInstructorRepository",
-    "CourseRepository",
     "RatingRepository",
     "EnrollmentRepository",
     "StudentStatisticsRepository",

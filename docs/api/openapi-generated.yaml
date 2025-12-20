@@ -1665,7 +1665,7 @@ components:
           readOnly: true
           nullable: true
           maxLength: 255
-        course_specialities:
+        specialities:
           type: array
           items:
             $ref: '#/components/schemas/CourseSpecialityInline'

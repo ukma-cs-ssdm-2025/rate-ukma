@@ -21,7 +21,7 @@ class CourseDetailSerializer(serializers.Serializer):
     faculty_custom_abbreviation = serializers.CharField(
         read_only=True, allow_null=True, default=None, max_length=255
     )
-    course_specialities = CourseSpecialityInlineSerializer(many=True, read_only=True)
+    specialities = CourseSpecialityInlineSerializer(many=True, read_only=True)
     avg_difficulty = serializers.FloatField(read_only=True, allow_null=True, required=False)
     avg_usefulness = serializers.FloatField(read_only=True, allow_null=True, required=False)
     ratings_count = serializers.IntegerField(read_only=True, required=False, default=0)
