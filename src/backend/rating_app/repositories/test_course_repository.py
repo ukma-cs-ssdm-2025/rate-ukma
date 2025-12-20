@@ -97,7 +97,7 @@ def test_filter_prefetches_instructors(django_assert_num_queries, repo):
     # Act
     qs = repo.filter_qs(CourseFilterCriteria())
 
-    # Assert: only the expected prefetch queries are executed (no N+1)
+    # Assert
     # 1) base courses + prefetches
     # 2) offerings
     # 3) instructors

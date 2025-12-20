@@ -273,8 +273,6 @@ class CourseRepository(IRepository[CourseDTO]):
         )
 
     def _parse_prefetched_course_specialities(self, model: Course) -> list[CourseSpeciality]:
-        from rating_app.application_schemas.course import CourseSpeciality
-
         prefetched_course_specialities = getattr(model, "_prefetched_objects_cache", {}).get(
             "course_specialities"
         )
