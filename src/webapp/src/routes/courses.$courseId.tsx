@@ -87,7 +87,7 @@ function CourseDetailsRoute() {
 						<CourseDetailsHeader
 							title={course.title}
 							status={course.status}
-							specialities={course.specialities}
+							specialities={course.specialities ?? []}
 							departmentName={course.department_name ?? ""}
 						/>
 
