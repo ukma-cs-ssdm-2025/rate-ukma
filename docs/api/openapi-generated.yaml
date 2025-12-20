@@ -1881,9 +1881,9 @@ components:
           format: uuid
           readOnly: true
         type_kind:
-          allOf:
-          - $ref: '#/components/schemas/TypeKindEnum'
-          nullable: true
+          $ref: '#/components/schemas/TypeKindEnum'
+      required:
+      - type_kind
     CourseTypeOption:
       type: object
       properties:
