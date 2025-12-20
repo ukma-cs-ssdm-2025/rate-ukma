@@ -11,7 +11,7 @@ class CourseDetailSerializer(serializers.Serializer):
     """
 
     id = serializers.CharField(read_only=True)
-    title = serializers.CharField(read_only=True, max_length=255)
+    title = serializers.CharField(read_only=True, max_length=255, allow_null=False)
     description = serializers.CharField(read_only=True, allow_null=True, allow_blank=True)
     status = serializers.ChoiceField(choices=CourseStatus.choices, read_only=True)
     department = serializers.UUIDField(read_only=True)
