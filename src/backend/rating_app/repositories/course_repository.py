@@ -61,6 +61,8 @@ class CourseRepository(IRepository[CourseDTO]):
         return self.map_to_domain_models(list(qs))
 
     def filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
+        # filter() method can`t be overloaded with different parameters,
+        # so we need a separate method for Paginator to use
         return self._filter_qs(filters)
 
     def get_or_create(
@@ -72,14 +74,32 @@ class CourseRepository(IRepository[CourseDTO]):
         description: str | None = None,
     ) -> tuple[CourseDTO, bool]:
         department = Department.objects.get(id=department_id)
-        course_orm, created = Course.objects.get_or_create(
+        course, created = Course.objects.get_or_create(
             title=title,
             department=department,
             status=status,
             description=description,
         )
-        course_dto = self._map_to_domain_model(course_orm)
-        return course_dto, created
+        return self._map_to_domain_model(course), created
+
+    def get_or_create_model(
+        self,
+        *,
+        title: str,
+        department_id: str,
+        status: str = CourseStatus.PLANNED,
+        description: str | None = None,
+    ) -> tuple[Course, bool]:
+        # we can`t effectively overload the method with different parameters,
+        # so we need to create a new method
+        # injector sets ORM M2M relations, so it needs an ORM model to be returned
+        department = Department.objects.get(id=department_id)
+        return Course.objects.get_or_create(
+            title=title,
+            department=department,
+            status=status,
+            description=description,
+        )
 
     def update(self, course_dto: CourseDTO, **course_data) -> CourseDTO:
         course_orm = Course.objects.get(id=course_dto.id)
