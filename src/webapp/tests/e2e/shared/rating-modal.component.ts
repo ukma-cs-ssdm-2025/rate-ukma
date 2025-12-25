@@ -1,8 +1,6 @@
-import type { Locator, Page } from "@playwright/test";
-import { expect } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { BasePage } from "../framework/base-page";
 
 export interface RatingData {
 	difficulty: number;
@@ -10,10 +8,10 @@ export interface RatingData {
 	comment: string;
 }
 
-export class RatingModal extends BasePage {
+export class RatingModal {
+	private readonly page: Page;
 	// Modal
 	private readonly modal: Locator;
-	private readonly modalTitle: Locator;
 
 	// Form
 	private readonly difficultySlider: Locator;
@@ -24,11 +22,9 @@ export class RatingModal extends BasePage {
 	private readonly saveButton: Locator;
 
 	constructor(page: Page) {
-		super(page);
+		this.page = page;
 
 		this.modal = page.getByTestId(testIds.rating.modal);
-		this.modalTitle = page.getByTestId(testIds.rating.modalTitle);
-
 		this.difficultySlider = page.getByTestId(
 			`${testIds.rating.difficultySlider}-thumb-0`,
 		);
@@ -40,30 +36,12 @@ export class RatingModal extends BasePage {
 		this.saveButton = page.getByTestId(testIds.rating.submitButton);
 	}
 
-	async isVisible(): Promise<boolean> {
-		try {
-			await this.waitForElement(this.modal, 10000);
-			return true;
-		} catch {
-			return false;
-		}
-	}
-
-	async isTitleVisible(): Promise<boolean> {
-		try {
-			await this.waitForElement(this.modalTitle, 10000);
-			return true;
-		} catch {
-			return false;
-		}
-	}
-
 	async waitForHidden(): Promise<void> {
 		await this.modal.waitFor({ state: "hidden" });
 	}
 
 	private async getSliderValue(slider: Locator): Promise<number> {
-		await this.waitForElement(slider);
+		await expect(slider).toBeVisible();
 		const raw = await slider.getAttribute("aria-valuenow");
 		if (!raw) {
 			throw new Error("Slider aria-valuenow is missing");
@@ -79,7 +57,7 @@ export class RatingModal extends BasePage {
 		slider: Locator,
 		targetValue: number,
 	): Promise<void> {
-		await this.waitForElement(slider);
+		await expect(slider).toBeVisible();
 
 		const currentValue = await this.getSliderValue(slider);
 		const steps = targetValue - currentValue;
@@ -127,13 +105,13 @@ export class RatingModal extends BasePage {
 	}
 
 	async setComment(comment: string): Promise<void> {
-		await this.waitForElement(this.commentTextarea);
-		await this.fillWithRetry(this.commentTextarea, comment);
+		await expect(this.commentTextarea).toBeVisible();
+		await this.commentTextarea.fill(comment);
 	}
 
 	async submitRating(): Promise<void> {
-		await this.waitForElement(this.saveButton);
-		await this.clickWithRetry(this.saveButton);
+		await expect(this.saveButton).toBeVisible();
+		await this.saveButton.click();
 	}
 
 	async fillRatingForm(data: RatingData): Promise<void> {

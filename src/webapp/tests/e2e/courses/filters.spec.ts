@@ -3,11 +3,12 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { testIds } from "@/lib/test-ids";
 import { CoursesPage } from "./courses.page";
 import { TEST_ACADEMIC_YEARS, TEST_QUERIES } from "./fixtures/courses";
-import { TEST_CONFIG } from "../framework/test-config";
 import { getSearchParam } from "../shared/url-assertions";
 
 test.describe("Courses filters", () => {
-	test("reset clears active filters (search query)", async ({ page }) => {
+	test("reset clears active filters (search query) @smoke", async ({
+		page,
+	}) => {
 		const coursesPage = new CoursesPage(page);
 		await coursesPage.goto();
 
@@ -77,35 +78,35 @@ test.describe("Courses filters", () => {
 		await trigger.scrollIntoViewIfNeeded();
 
 		await page.keyboard.press("Escape");
-		await clickWithRetries(trigger);
+		await trigger.click();
 
 		const content = await openRadixSelectContent(
 			page,
 			testIds.filters.yearSelect,
 		);
 
+		const items = content.locator("[data-slot='select-item']");
+
 		let selectedYear: string | undefined;
 		for (const candidate of TEST_ACADEMIC_YEARS.oldYearCandidates) {
-			const options = content.locator("[data-slot='select-item']", {
-				hasText: candidate,
-			});
+			const options = items.filter({ hasText: candidate });
 			if ((await options.count()) === 0) {
 				continue;
 			}
 
 			selectedYear = candidate;
-			await clickWithRetries(options.first());
-			await expect
-				.poll(() => getSearchParam(page, "year"), {
-					timeout: TEST_CONFIG.timeoutMs,
-				})
-				.toBe(candidate);
+			await options.first().click();
+			await expect.poll(() => getSearchParam(page, "year")).toBe(candidate);
 			break;
 		}
 
 		if (!selectedYear) {
-			await page.keyboard.press("Escape");
-			test.skip(true, "Old academic year option is not available");
+			const count = await items.count();
+			if (count === 0) {
+				throw new Error("Year select has no options");
+			}
+			await (count >= 2 ? items.nth(1) : items.first()).click();
+			await expect.poll(() => getSearchParam(page, "year")).not.toBe("");
 		}
 
 		await expect(panel.getByTestId(testIds.filters.resetButton)).toBeVisible();
@@ -142,33 +143,24 @@ test.describe("Courses filters", () => {
 		const trigger = panel.getByTestId(testIds.filters.facultySelect);
 		await trigger.scrollIntoViewIfNeeded();
 		await page.keyboard.press("Escape");
-		await clickWithRetries(trigger);
+		await trigger.click();
 
 		const list = await openComboboxList(page, testIds.filters.facultySelect);
 		const items = list.locator("[data-slot='command-item']");
 		const count = await items.count();
-		if (count < 3) {
+		if (count < 2) {
 			await page.keyboard.press("Escape");
-			test.skip(true, "Not enough faculty options to test cascading reset");
+			throw new Error("Not enough faculty options to test cascading reset");
 		}
 
-		await clickWithRetries(items.nth(2));
+		const nextFacultyIndex = count >= 3 ? 2 : 1;
+		await items.nth(nextFacultyIndex).click();
 		await expect
-			.poll(() => getSearchParam(page, "faculty"), {
-				timeout: TEST_CONFIG.timeoutMs,
-			})
+			.poll(() => getSearchParam(page, "faculty"))
 			.not.toBe(initialFaculty);
 
-		await expect
-			.poll(() => getSearchParam(page, "dept"), {
-				timeout: TEST_CONFIG.timeoutMs,
-			})
-			.toBe("");
-		await expect
-			.poll(() => getSearchParam(page, "spec"), {
-				timeout: TEST_CONFIG.timeoutMs,
-			})
-			.toBe("");
+		await expect.poll(() => getSearchParam(page, "dept")).toBe("");
+		await expect.poll(() => getSearchParam(page, "spec")).toBe("");
 	});
 
 	test("active filters persist on page reload", async ({ page }) => {
@@ -302,36 +294,17 @@ async function resetFilters({
 	page: Page;
 	scope: Locator;
 }): Promise<void> {
-	await clickWithRetries(scope.getByTestId(testIds.filters.resetButton));
+	await scope.getByTestId(testIds.filters.resetButton).click();
 
-	const pollTimeout = { timeout: TEST_CONFIG.timeoutMs };
-	await expect.poll(() => getSearchParam(page, "q"), pollTimeout).toBe("");
-	await expect.poll(() => getSearchParam(page, "diff"), pollTimeout).toBe("");
-	await expect.poll(() => getSearchParam(page, "use"), pollTimeout).toBe("");
-	await expect.poll(() => getSearchParam(page, "term"), pollTimeout).toBe("");
-	await expect.poll(() => getSearchParam(page, "year"), pollTimeout).toBe("");
-	await expect.poll(() => getSearchParam(page, "type"), pollTimeout).toBe("");
-	await expect
-		.poll(() => getSearchParam(page, "faculty"), pollTimeout)
-		.toBe("");
-	await expect.poll(() => getSearchParam(page, "dept"), pollTimeout).toBe("");
-	await expect.poll(() => getSearchParam(page, "spec"), pollTimeout).toBe("");
-}
-
-async function clickWithRetries(
-	locator: Locator,
-	maxRetries = 3,
-): Promise<void> {
-	for (let i = 0; i < maxRetries; i++) {
-		try {
-			await locator.click();
-			return;
-		} catch (error) {
-			if (i === maxRetries - 1) {
-				throw error;
-			}
-		}
-	}
+	await expect.poll(() => getSearchParam(page, "q")).toBe("");
+	await expect.poll(() => getSearchParam(page, "diff")).toBe("");
+	await expect.poll(() => getSearchParam(page, "use")).toBe("");
+	await expect.poll(() => getSearchParam(page, "term")).toBe("");
+	await expect.poll(() => getSearchParam(page, "year")).toBe("");
+	await expect.poll(() => getSearchParam(page, "type")).toBe("");
+	await expect.poll(() => getSearchParam(page, "faculty")).toBe("");
+	await expect.poll(() => getSearchParam(page, "dept")).toBe("");
+	await expect.poll(() => getSearchParam(page, "spec")).toBe("");
 }
 
 async function openRadixSelectContent(
@@ -367,7 +340,7 @@ async function selectSecondRadixSelectOption({
 	await trigger.scrollIntoViewIfNeeded();
 
 	await page.keyboard.press("Escape");
-	await clickWithRetries(trigger);
+	await trigger.click();
 
 	const content = await openRadixSelectContent(page, triggerTestId);
 	const items = content.locator("[data-slot='select-item']");
@@ -379,13 +352,9 @@ async function selectSecondRadixSelectOption({
 		);
 	}
 
-	await clickWithRetries(items.nth(1));
+	await items.nth(1).click();
 
-	await expect
-		.poll(() => getSearchParam(page, uiParamKey), {
-			timeout: TEST_CONFIG.timeoutMs,
-		})
-		.not.toBe("");
+	await expect.poll(() => getSearchParam(page, uiParamKey)).not.toBe("");
 }
 
 async function selectFacultyWithDepartmentsAndSpecialities({
@@ -401,7 +370,7 @@ async function selectFacultyWithDepartmentsAndSpecialities({
 
 	for (let i = 1; i < 12; i++) {
 		await page.keyboard.press("Escape");
-		await clickWithRetries(trigger);
+		await trigger.click();
 
 		const list = await openComboboxList(page, triggerTestId);
 		const items = list.locator("[data-slot='command-item']");
@@ -417,11 +386,7 @@ async function selectFacultyWithDepartmentsAndSpecialities({
 
 		await items.nth(optionIndex).click();
 
-		await expect
-			.poll(() => getSearchParam(page, "faculty"), {
-				timeout: TEST_CONFIG.timeoutMs,
-			})
-			.not.toBe("");
+		await expect.poll(() => getSearchParam(page, "faculty")).not.toBe("");
 
 		const deptOptions = await getComboboxOptionsCount({
 			page,
@@ -457,7 +422,7 @@ async function getComboboxOptionsCount({
 	await trigger.scrollIntoViewIfNeeded();
 
 	await page.keyboard.press("Escape");
-	await clickWithRetries(trigger);
+	await trigger.click();
 
 	const list = await openComboboxList(page, triggerTestId);
 	const count = await list.locator("[data-slot='command-item']").count();
@@ -483,7 +448,7 @@ async function selectSecondComboboxOption({
 	await trigger.scrollIntoViewIfNeeded();
 
 	await page.keyboard.press("Escape");
-	await clickWithRetries(trigger);
+	await trigger.click();
 
 	const list = await openComboboxList(page, triggerTestId);
 	const items = list.locator("[data-slot='command-item']");
@@ -495,13 +460,9 @@ async function selectSecondComboboxOption({
 		);
 	}
 
-	await clickWithRetries(items.nth(1));
+	await items.nth(1).click();
 
-	await expect
-		.poll(() => getSearchParam(page, uiParamKey), {
-			timeout: TEST_CONFIG.timeoutMs,
-		})
-		.not.toBe("");
+	await expect.poll(() => getSearchParam(page, uiParamKey)).not.toBe("");
 }
 
 async function nudgeRangeFilter({
@@ -525,9 +486,5 @@ async function nudgeRangeFilter({
 
 	await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2);
 
-	await expect
-		.poll(() => getSearchParam(page, uiParamKey), {
-			timeout: TEST_CONFIG.timeoutMs,
-		})
-		.not.toBe("");
+	await expect.poll(() => getSearchParam(page, uiParamKey)).not.toBe("");
 }
