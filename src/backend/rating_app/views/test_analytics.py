@@ -167,7 +167,8 @@ def test_analytics_single_course_no_n_plus_1(
     # 1. Main query with select_related(department__faculty) and annotations
     # 2. Prefetch offerings with semester details
     # 3. Prefetch course_specialities
-    with django_assert_num_queries(3):
+    # 4. Prefetch instructors for offerings
+    with django_assert_num_queries(4):
         response = token_client.get(url)
 
     # Verify response

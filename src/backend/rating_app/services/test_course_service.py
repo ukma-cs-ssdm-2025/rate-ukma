@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from rating_app.application_schemas.course import CourseFilterCriteria
+from rating_app.exception.course_exceptions import CourseNotFoundError
 from rating_app.services.course_service import CourseService
 
 
@@ -181,7 +182,7 @@ def test_update_course_updates_and_returns_course(service, course_repo):
 def test_update_course_returns_none_when_course_not_found(service, course_repo):
     # Arrange
     course_id = "nonexistent"
-    course_repo.get_by_id.side_effect = Exception("Course not found")
+    course_repo.get_by_id.side_effect = CourseNotFoundError(course_id)
 
     # Act
     result = service.update_course(course_id, title="New Title")

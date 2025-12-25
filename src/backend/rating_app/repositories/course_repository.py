@@ -33,7 +33,12 @@ class CourseRepository(IRepository[CourseDTO]):
         courses = (
             Course.objects.select_related("department__faculty")
             .prefetch_related(
-                Prefetch("offerings", queryset=CourseOffering.objects.select_related("semester")),
+                Prefetch(
+                    "offerings",
+                    queryset=CourseOffering.objects.select_related("semester").prefetch_related(
+                        "instructors"
+                    ),
+                ),
                 "course_specialities__speciality",
             )
             .all()
@@ -46,7 +51,10 @@ class CourseRepository(IRepository[CourseDTO]):
                 Course.objects.select_related("department__faculty")
                 .prefetch_related(
                     Prefetch(
-                        "offerings", queryset=CourseOffering.objects.select_related("semester")
+                        "offerings",
+                        queryset=CourseOffering.objects.select_related("semester").prefetch_related(
+                            "instructors"
+                        ),
                     ),
                     "course_specialities__speciality",
                 )
@@ -258,7 +266,7 @@ class CourseRepository(IRepository[CourseDTO]):
         faculty_custom_abbreviation = faculty_obj.custom_abbreviation if faculty_obj else None
         status = model.status
         status = CourseStatus(status) if status in CourseStatus.values else CourseStatus.PLANNED
-        specialities = self._parse_prefetched_course_specialities(model)
+        specialities = self._prefetched_course_specialities_to_domain_models(model)
 
         return CourseDTO(
             id=str(model.id),
@@ -276,7 +284,9 @@ class CourseRepository(IRepository[CourseDTO]):
             ratings_count=model.ratings_count,
         )
 
-    def _parse_prefetched_course_specialities(self, model: Course) -> list[CourseSpeciality]:
+    def _prefetched_course_specialities_to_domain_models(
+        self, model: Course
+    ) -> list[CourseSpeciality]:
         prefetched_course_specialities = getattr(model, "_prefetched_objects_cache", {}).get(
             "course_specialities"
         )
