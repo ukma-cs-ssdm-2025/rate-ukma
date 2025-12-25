@@ -111,7 +111,7 @@ class CourseSpeciality:
     faculty_id: str
     faculty_name: str
     speciality_alias: str | None
-    type_kind: CourseTypeKind
+    type_kind: CourseTypeKind | None
 
 
 @dataclass(frozen=True)

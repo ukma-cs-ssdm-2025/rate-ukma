@@ -239,7 +239,7 @@ class CourseRepository(IRepository[CourseDTO]):
         status = CourseStatus(status) if status in CourseStatus.values else CourseStatus.PLANNED
         specialities = self._prefetched_course_specialities_to_domain_models(model)
 
-        return CourseDTO(
+        course = CourseDTO(
             id=str(model.id),
             title=model.title,
             description=model.description,
@@ -254,6 +254,7 @@ class CourseRepository(IRepository[CourseDTO]):
             avg_usefulness=model.avg_usefulness,
             ratings_count=model.ratings_count,
         )
+        return course
 
     def _prefetched_course_specialities_to_domain_models(
         self, model: Course
@@ -269,20 +270,19 @@ class CourseRepository(IRepository[CourseDTO]):
         for course_speciality in prefetched_course_specialities:
             speciality = getattr(course_speciality, "speciality", None)
             if speciality is None:
+                logger.warning(
+                    "course_speciality_missing_speciality",
+                    course_speciality_id=str(course_speciality.id),
+                )
                 continue
 
             type_kind = course_speciality.type_kind
             if not type_kind:
-                logger.warning(
-                    "course_speciality_missing_type_kind",
-                    course_speciality_id=str(course_speciality.id),
-                    speciality_id=str(speciality.id),
-                )
-                continue
+                type_kind = None
 
             faculty_obj = speciality.faculty
-            faculty_id = str(faculty_obj.id) if faculty_obj else ""
-            faculty_name = faculty_obj.name if faculty_obj else ""
+            faculty_id = str(faculty_obj.id)
+            faculty_name = faculty_obj.name
 
             specialities.append(
                 CourseSpeciality(
@@ -294,6 +294,7 @@ class CourseRepository(IRepository[CourseDTO]):
                     type_kind=type_kind,
                 )
             )
+
         return specialities
 
     def _get_department_by_id(self, department_id: str) -> Department:
