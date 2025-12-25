@@ -24,7 +24,7 @@ export function RatingVotes({
 	initialDownvotes = 0,
 	initialUserVote = null,
 	readOnly = false,
-}: RatingVotesProps) {
+}: Readonly<RatingVotesProps>) {
 	// The "optimistic" vote state - updates immediately on click
 	const [userVote, setUserVote] = useState<"UPVOTE" | "DOWNVOTE" | null>(
 		initialUserVote,
@@ -84,102 +84,95 @@ export function RatingVotes({
 		return () => clearTimeout(timer);
 	}, [userVote, serverVote, ratingId, createVote, deleteVote]);
 
-	const handleUpvote = () => {
+	const toggleVote = (target: "UPVOTE" | "DOWNVOTE") => {
 		if (readOnly) return;
-		setUserVote((prev) => (prev === "UPVOTE" ? null : "UPVOTE"));
+		setUserVote((prev) => (prev === target ? null : target));
 	};
 
-	const handleDownvote = () => {
-		if (readOnly) return;
-		setUserVote((prev) => (prev === "DOWNVOTE" ? null : "DOWNVOTE"));
-	};
+	const upActive = userVote === "UPVOTE";
+	const downActive = userVote === "DOWNVOTE";
+
+	function Vote({
+		type,
+		count,
+		active,
+		onClick,
+		asButton = false,
+	}: {
+		type: "UPVOTE" | "DOWNVOTE";
+		count: number;
+		active: boolean;
+		onClick?: () => void;
+		asButton?: boolean;
+	}) {
+		const Icon = type === "UPVOTE" ? ArrowBigUp : ArrowBigDown;
+		if (asButton) {
+			return (
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={onClick}
+					className={cn(
+						"h-8 px-2 gap-1.5 transition-all duration-200",
+						"hover:bg-[#0076BB]/10 hover:text-[#0076BB]",
+						active
+							? "text-[#0076BB] bg-[#0076BB]/10 ring-1 ring-inset ring-[#0076BB]/20"
+							: "text-muted-foreground",
+					)}
+					aria-label={type === "UPVOTE" ? "За" : "Проти"}
+				>
+					<Icon className={cn("h-5 w-5", active && "fill-current")} />
+					<span className="text-xs font-bold">{count}</span>
+				</Button>
+			);
+		}
+
+		return (
+			<div className="flex items-center gap-1.5 transition-colors">
+				<Icon
+					className={cn(
+						"h-5 w-5",
+						active ? "fill-current text-[#0076BB]" : "text-muted-foreground/40",
+					)}
+				/>
+				<span
+					className={cn(
+						"text-xs font-bold",
+						active ? "text-[#0076BB]" : "text-muted-foreground",
+					)}
+				>
+					{count}
+				</span>
+			</div>
+		);
+	}
 
 	if (readOnly) {
 		return (
 			<div className="flex items-center gap-4 mt-3 justify-end">
-				<div className="flex items-center gap-1.5 transition-colors">
-					<ArrowBigUp
-						className={cn(
-							"h-5 w-5",
-							userVote === "UPVOTE"
-								? "fill-current text-[#0076BB]"
-								: "text-muted-foreground/40",
-						)}
-					/>
-					<span
-						className={cn(
-							"text-xs font-bold",
-							userVote === "UPVOTE"
-								? "text-[#0076BB]"
-								: "text-muted-foreground",
-						)}
-					>
-						{upvotes}
-					</span>
-				</div>
-				<div className="flex items-center gap-1.5 transition-colors">
-					<ArrowBigDown
-						className={cn(
-							"h-5 w-5",
-							userVote === "DOWNVOTE"
-								? "fill-current text-[#0076BB]"
-								: "text-muted-foreground/40",
-						)}
-					/>
-					<span
-						className={cn(
-							"text-xs font-bold",
-							userVote === "DOWNVOTE"
-								? "text-[#0076BB]"
-								: "text-muted-foreground",
-						)}
-					>
-						{downvotes}
-					</span>
-				</div>
+				<Vote type="UPVOTE" count={upvotes} active={upActive} />
+				<Vote type="DOWNVOTE" count={downvotes} active={downActive} />
 			</div>
 		);
 	}
 
 	return (
 		<div className="flex items-center gap-1 mt-3 justify-end">
-			<Button
-				variant="ghost"
-				size="sm"
-				onClick={handleUpvote}
-				className={cn(
-					"h-8 px-2 gap-1.5 transition-all duration-200",
-					"hover:bg-[#0076BB]/10 hover:text-[#0076BB]",
-					userVote === "UPVOTE"
-						? "text-[#0076BB] bg-[#0076BB]/10 ring-1 ring-inset ring-[#0076BB]/20"
-						: "text-muted-foreground",
-				)}
-				aria-label="За"
-			>
-				<ArrowBigUp
-					className={cn("h-5 w-5", userVote === "UPVOTE" && "fill-current")}
-				/>
-				<span className="text-xs font-bold">{upvotes}</span>
-			</Button>
+			<Vote
+				type="UPVOTE"
+				count={upvotes}
+				active={upActive}
+				onClick={() => toggleVote("UPVOTE")}
+				asButton
+			/>
 
-			<Button
-				variant="ghost"
-				size="sm"
-				onClick={handleDownvote}
-				className={cn(
-					"h-8 px-2 gap-1.5 transition-all duration-200",
-					"hover:bg-[#0076BB]/10 hover:text-[#0076BB]",
-					userVote === "DOWNVOTE"
-						? "text-[#0076BB] bg-[#0076BB]/10 ring-1 ring-inset ring-[#0076BB]/20"
-						: "text-muted-foreground",
-				)}
-				aria-label="Проти"
-			>
-				<ArrowBigDown
-					className={cn("h-5 w-5", userVote === "DOWNVOTE" && "fill-current")}
-				/>
-				<span className="text-xs font-bold">{downvotes}</span>
-			</Button>
+			<Vote
+				type="DOWNVOTE"
+				count={downvotes}
+				active={downActive}
+				onClick={() => toggleVote("DOWNVOTE")}
+				asButton
+			/>
 		</div>
 	);
 }
