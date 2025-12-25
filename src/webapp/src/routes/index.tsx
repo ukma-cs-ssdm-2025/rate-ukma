@@ -1,66 +1,50 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback } from "react";
 
 import { keepPreviousData } from "@tanstack/react-query";
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
 import { CoursesErrorState } from "@/features/courses/components/CoursesErrorState";
 import { CoursesTable } from "@/features/courses/components/CoursesTable";
-import { transformFiltersToApiParams } from "@/features/courses/filterTransformations";
-import { searchParamsToFilters } from "@/features/courses/urlSync";
+import { useCourseFiltersParams } from "@/features/courses/courseFiltersParams";
+import {
+	DIFFICULTY_RANGE,
+	USEFULNESS_RANGE,
+} from "@/features/courses/courseFormatting";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
-type CoursesSearch = Record<string, string>;
-
-const DEFAULT_PAGE_SIZE = 20;
-
 function CoursesRoute() {
-	const search = useSearch({ from: "/" });
-	const initialFilters = useMemo(() => searchParamsToFilters(search), [search]);
-	const initialApiFilters = useMemo(
-		() => transformFiltersToApiParams(initialFilters),
-		[initialFilters],
-	);
+	const [params, setParams] = useCourseFiltersParams();
 
-	const [filters, setFilters] = useState<CoursesListParams>(() => ({
-		page: 1,
-		page_size: DEFAULT_PAGE_SIZE,
-		...initialApiFilters,
-	}));
+	// Convert nuqs params directly to API params
+	const apiFilters: CoursesListParams = {
+		page: params.page,
+		page_size: params.size,
+		name: params.q || undefined,
+		avg_difficulty_min:
+			params.diff[0] !== DIFFICULTY_RANGE[0] ? params.diff[0] : undefined,
+		avg_difficulty_max:
+			params.diff[1] !== DIFFICULTY_RANGE[1] ? params.diff[1] : undefined,
+		avg_usefulness_min:
+			params.use[0] !== USEFULNESS_RANGE[0] ? params.use[0] : undefined,
+		avg_usefulness_max:
+			params.use[1] !== USEFULNESS_RANGE[1] ? params.use[1] : undefined,
+		faculty: params.faculty || undefined,
+		department: params.dept || undefined,
+		instructor: params.instructor || undefined,
+		semester_term: params.term ?? undefined,
+		semester_year: params.year || undefined,
+		type_kind: params.type ?? undefined,
+		speciality: params.spec || undefined,
+	};
 
-	useEffect(() => {
-		const nextFilters: CoursesListParams = {
-			page: 1,
-			page_size: DEFAULT_PAGE_SIZE,
-			...initialApiFilters,
-		};
-
-		setFilters((previous) => {
-			if (JSON.stringify(previous) === JSON.stringify(nextFilters)) {
-				return previous;
-			}
-			return nextFilters;
-		});
-	}, [initialApiFilters]);
-
-	const { data, isFetching, isError, refetch } = useCoursesList(filters, {
+	const { data, isFetching, isError, refetch } = useCoursesList(apiFilters, {
 		query: {
 			placeholderData: keepPreviousData,
 		},
 	});
-
-	const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
-
-	const handleFiltersChange = useCallback((nextFilters: CoursesListParams) => {
-		setFilters((previous) => {
-			if (JSON.stringify(previous) === JSON.stringify(nextFilters)) {
-				return previous;
-			}
-			return nextFilters;
-		});
-	}, []);
 
 	const handleRetry = useCallback(() => {
 		refetch();
@@ -75,9 +59,8 @@ function CoursesRoute() {
 					<CoursesTable
 						data={data?.items ?? []}
 						isLoading={isFetching}
-						filtersKey={filtersKey}
-						initialFilters={initialFilters}
-						onFiltersChange={handleFiltersChange}
+						params={params}
+						setParams={setParams}
 						pagination={
 							data
 								? {
@@ -97,13 +80,4 @@ function CoursesRoute() {
 
 export const Route = createFileRoute("/")({
 	component: withAuth(CoursesRoute),
-	validateSearch: (search: Record<string, unknown>): CoursesSearch => {
-		const result: Record<string, string> = {};
-		for (const [key, value] of Object.entries(search)) {
-			if (typeof value === "string") {
-				result[key] = value;
-			}
-		}
-		return result;
-	},
 });

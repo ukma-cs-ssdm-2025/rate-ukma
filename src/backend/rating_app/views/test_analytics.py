@@ -1,5 +1,8 @@
 import pytest
 
+from rating_app.ioc_container.repositories import rating_repository
+from rating_app.ioc_container.services import course_service
+
 
 @pytest.fixture
 def analytics_url():
@@ -174,3 +177,42 @@ def test_analytics_single_course_no_n_plus_1(
     assert response.status_code == 200
     assert data["id"] == str(course.id)
     assert data["faculty_name"] == course.department.faculty.name
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_analytics_filter_by_ratings_count(
+    token_client, course_factory, rating_factory, course_offering_factory, analytics_url
+):
+    # Arrange
+    course_no_ratings = course_factory.create(title="No Ratings Course")
+    course_with_ratings = course_factory.create(title="Popular Course")
+
+    offering = course_offering_factory(course=course_with_ratings)
+    rating_factory.create_batch(5, course_offering=offering)
+
+    # Manually update aggregates
+    stats = rating_repository().get_aggregated_course_stats(course_with_ratings)
+    course_service().update_course_aggregates(course_with_ratings, stats)
+
+    course_with_ratings.refresh_from_db()
+    course_no_ratings.refresh_from_db()
+
+    # Act
+    url = f"{analytics_url}?ratings_count_min=1"
+    response = token_client.get(url)
+
+    # Assert
+    data = response.json()
+    assert response.status_code == 200
+    assert len(data) == 1
+    assert data[0]["id"] == str(course_with_ratings.id)
+    assert data[0]["ratings_count"] >= 1
+
+    # Act (no filter)
+    response_all = token_client.get(analytics_url)
+
+    # Assert
+    data_all = response_all.json()
+    assert response_all.status_code == 200
+    assert len(data_all) == 2

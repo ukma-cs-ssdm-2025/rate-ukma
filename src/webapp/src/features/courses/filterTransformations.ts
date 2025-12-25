@@ -1,57 +1,38 @@
-import type { CoursesListSemesterTerm } from "@/lib/api/generated";
+import type { CoursesListParams } from "@/lib/api/generated";
+import type { CourseFiltersParamsState } from "./courseFiltersParams";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
-import type { FilterState } from "./filterSchema";
-
-export type CourseApiFilters = {
-	name?: string;
-	faculty?: string;
-	department?: string;
-	instructor?: string;
-	typeKind?: string;
-	speciality?: string;
-	semester_term?: CoursesListSemesterTerm;
-	semester_year?: string;
-	avg_difficulty_min?: number;
-	avg_difficulty_max?: number;
-	avg_usefulness_min?: number;
-	avg_usefulness_max?: number;
-};
 
 export function transformFiltersToApiParams(
-	filters: FilterState,
-): CourseApiFilters {
-	const isDifficultyModified =
-		filters.difficultyRange[0] !== DIFFICULTY_RANGE[0] ||
-		filters.difficultyRange[1] !== DIFFICULTY_RANGE[1];
+	filters: CourseFiltersParamsState,
+): Partial<CoursesListParams> {
+	const params: Partial<CoursesListParams> = {};
 
-	const isUsefulnessModified =
-		filters.usefulnessRange[0] !== USEFULNESS_RANGE[0] ||
-		filters.usefulnessRange[1] !== USEFULNESS_RANGE[1];
+	if (filters.q) params.name = filters.q;
+	if (filters.faculty) params.faculty = filters.faculty;
+	if (filters.dept) params.department = filters.dept;
+	if (filters.instructor) params.instructor = filters.instructor;
+	if (filters.term) params.semester_term = filters.term;
+	if (filters.year) params.semester_year = filters.year;
+	if (filters.type) params.type_kind = filters.type;
+	if (filters.spec) params.speciality = filters.spec;
 
-	const params: Record<string, string | number | undefined> = {
-		name: filters.searchQuery,
-		faculty: filters.faculty,
-		department: filters.department,
-		instructor: filters.instructor,
-		typeKind: filters.courseType,
-		speciality: filters.speciality,
-		semester_term: filters.semesterTerm,
-		semester_year: filters.semesterYear || undefined,
-		...(isDifficultyModified && {
-			avg_difficulty_min: filters.difficultyRange[0],
-			avg_difficulty_max: filters.difficultyRange[1],
-		}),
-		...(isUsefulnessModified && {
-			avg_usefulness_min: filters.usefulnessRange[0],
-			avg_usefulness_max: filters.usefulnessRange[1],
-		}),
-	};
+	if (
+		filters.diff[0] !== DIFFICULTY_RANGE[0] ||
+		filters.diff[1] !== DIFFICULTY_RANGE[1]
+	) {
+		params.avg_difficulty_min = filters.diff[0];
+		params.avg_difficulty_max = filters.diff[1];
+	}
 
-	return Object.fromEntries(
-		Object.entries(params).filter(
-			([_, v]) => v !== "" && v !== undefined && !Number.isNaN(v),
-		),
-	) as CourseApiFilters;
+	if (
+		filters.use[0] !== USEFULNESS_RANGE[0] ||
+		filters.use[1] !== USEFULNESS_RANGE[1]
+	) {
+		params.avg_usefulness_min = filters.use[0];
+		params.avg_usefulness_max = filters.use[1];
+	}
+
+	return params;
 }
 
 export function transformSortingToApiParams(

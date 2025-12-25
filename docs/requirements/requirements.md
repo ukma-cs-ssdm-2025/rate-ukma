@@ -135,5 +135,5 @@ The system shall provide administrators with evaluation statistics (counts, filt
 ### NFR-S-003
 
 - **Category**: Security
-- **Description**: User sessions shall expire after 30 minutes of inactivity.
-- **Measurable Metric**: Session timeout = 30 minutes
+- **Description**: User sessions shall expire after 3 hours of inactivity.
+- **Measurable Metric**: Session timeout = 3 hours
