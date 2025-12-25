@@ -271,7 +271,10 @@ function CourseFiltersContent({
 									<SelectTrigger className="w-full" data-testid={testId}>
 										<SelectValue placeholder={placeholder} />
 									</SelectTrigger>
-									<SelectContent className={contentClassName}>
+									<SelectContent
+										className={contentClassName}
+										data-testid={testId ? `${testId}-content` : undefined}
+									>
 										<SelectItem value="all">{placeholder}</SelectItem>
 										{options.map((option) => (
 											<SelectItem key={option.value} value={option.value}>

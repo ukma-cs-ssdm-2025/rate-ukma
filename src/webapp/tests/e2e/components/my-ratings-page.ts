@@ -12,7 +12,7 @@ export class MyRatingsPage extends BasePage {
 		super(page);
 		this.activeLeaveReviewLinks = this.page
 			.getByTestId(testIds.myRatings.list)
-			.getByRole("link", { name: "Залишити відгук" });
+			.getByTestId(testIds.myRatings.leaveReviewLink);
 		this.courseDetailsPagePattern = /\/courses\/[0-9a-fA-F-]{36}$/;
 	}
 
@@ -27,7 +27,7 @@ export class MyRatingsPage extends BasePage {
 
 		await Promise.all([
 			this.page.waitForURL(this.courseDetailsPagePattern, {
-				timeout: TEST_CONFIG.pageLoadTimeout,
+				timeout: TEST_CONFIG.timeoutMs,
 			}),
 			this.clickWithRetry(enabledAction),
 		]);

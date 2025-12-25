@@ -1,15 +1,10 @@
 export const TEST_CONFIG = {
 	baseUrl: process.env.BASE_URL || "http://localhost:3000",
 
-	// Test data
 	testComment: "Test comment for e2e testing",
 
-	// Timeouts
-	elementTimeout: 10000,
-	pageLoadTimeout: 30000,
-	networkIdleTimeout: 5000,
+	timeoutMs: 30_000,
 
-	// Retry config
 	maxRetries: 3,
 	retryDelay: 500,
 } as const;

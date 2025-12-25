@@ -1,12 +1,5 @@
 export { BasePage } from "./base-page";
-export {
-	extractRatingFromText,
-	extractTextSafely,
-	verifyRatingChange,
-	waitForElementWithContext,
-	waitForPageReady,
-	withRetry,
-} from "./common";
+export { waitForPageReady, withRetry } from "./common";
 export { CourseDetailsPage } from "./course-details-page";
 export { CoursesPage } from "./courses-page";
 export { MyRatingsPage } from "./my-ratings-page";

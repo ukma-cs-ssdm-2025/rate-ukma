@@ -27,16 +27,14 @@ export class RatingModal extends BasePage {
 		super(page);
 
 		this.modal = page.getByTestId(testIds.rating.modal);
-		this.modalTitle = this.modal.locator("[data-slot='dialog-title']");
+		this.modalTitle = page.getByTestId(testIds.rating.modalTitle);
 
-		this.difficultySlider = page
-			.getByTestId(testIds.rating.difficultySlider)
-			.getByRole("slider")
-			.first();
-		this.usefulnessSlider = page
-			.getByTestId(testIds.rating.usefulnessSlider)
-			.getByRole("slider")
-			.first();
+		this.difficultySlider = page.getByTestId(
+			`${testIds.rating.difficultySlider}-thumb-0`,
+		);
+		this.usefulnessSlider = page.getByTestId(
+			`${testIds.rating.usefulnessSlider}-thumb-0`,
+		);
 		this.commentTextarea = page.getByTestId(testIds.rating.commentTextarea);
 
 		this.saveButton = page.getByTestId(testIds.rating.submitButton);

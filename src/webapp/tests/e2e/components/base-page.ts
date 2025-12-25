@@ -14,7 +14,7 @@ export class BasePage {
 	 * Wait for page to be fully loaded and ready for interactions
 	 */
 	async waitForPageLoad(
-		timeout: number = TEST_CONFIG.pageLoadTimeout,
+		timeout: number = TEST_CONFIG.timeoutMs,
 	): Promise<void> {
 		await this.page.waitForLoadState("domcontentloaded", { timeout });
 		await this.page.waitForLoadState("load", { timeout });
@@ -22,7 +22,7 @@ export class BasePage {
 
 	async waitForElement(
 		locator: Locator,
-		timeout: number = TEST_CONFIG.elementTimeout,
+		timeout: number = TEST_CONFIG.timeoutMs,
 	): Promise<void> {
 		await expect(locator).toBeVisible({ timeout });
 	}
@@ -31,15 +31,20 @@ export class BasePage {
 		locator: Locator,
 		maxRetries: number = TEST_CONFIG.maxRetries,
 	): Promise<void> {
+		let lastError: Error | undefined;
 		for (let i = 0; i < maxRetries; i++) {
 			try {
-				await locator.click();
+				await locator.click({ timeout: TEST_CONFIG.timeoutMs });
 				return;
 			} catch (error) {
-				if (i === maxRetries - 1) throw error;
-				await this.page.waitForTimeout(TEST_CONFIG.retryDelay);
+				lastError = error as Error;
+				await locator.waitFor({
+					state: "visible",
+					timeout: TEST_CONFIG.retryDelay,
+				});
 			}
 		}
+		throw lastError ?? new Error("Click failed after retries");
 	}
 
 	async fillWithRetry(
@@ -47,15 +52,20 @@ export class BasePage {
 		text: string,
 		maxRetries: number = TEST_CONFIG.maxRetries,
 	): Promise<void> {
+		let lastError: Error | undefined;
 		for (let i = 0; i < maxRetries; i++) {
 			try {
-				await locator.fill(text);
+				await locator.fill(text, { timeout: TEST_CONFIG.timeoutMs });
 				return;
 			} catch (error) {
-				if (i === maxRetries - 1) throw error;
-				await this.page.waitForTimeout(TEST_CONFIG.retryDelay);
+				lastError = error as Error;
+				await locator.waitFor({
+					state: "visible",
+					timeout: TEST_CONFIG.retryDelay,
+				});
 			}
 		}
+		throw lastError ?? new Error("Fill failed after retries");
 	}
 
 	async getTextContent(locator: Locator): Promise<string> {
@@ -65,15 +75,5 @@ export class BasePage {
 			throw new Error(`No text content found for locator: ${locator}`);
 		}
 		return text;
-	}
-
-	// (e.g., "Складність: 3/5" -> 3)
-	extractRatingValue(text: string, label: string): number {
-		const match = text.replace(`${label}: `, "").split("/")[0];
-		const value = Number(match);
-		if (Number.isNaN(value)) {
-			throw new Error(`Could not extract numeric value from: ${text}`);
-		}
-		return value;
 	}
 }

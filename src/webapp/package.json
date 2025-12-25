@@ -22,7 +22,8 @@
 		"postinstall": "pnpm run generate-api",
 		"security:audit": "pnpm audit --audit-level high",
 		"security:update": "pnpm up --interactive",
-		"test:e2e": "playwright test"
+		"test:e2e": "dotenv -e ../.env -- playwright test",
+		"test:e2e:ui": "dotenv -e ../.env -- cross-env HEADLESS=false playwright test"
 	},
 	"dependencies": {
 		"@faker-js/faker": "^10.1.0",
@@ -101,6 +102,8 @@
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^5.1.1",
 		"axios-mock-adapter": "^2.1.0",
+		"cross-env": "^10.1.0",
+		"dotenv-cli": "^11.0.0",
 		"jsdom": "^27.2.0",
 		"orval": "^7.18.0",
 		"shadcn": "^3.5.1",

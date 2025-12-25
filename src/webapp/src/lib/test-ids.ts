@@ -98,6 +98,10 @@ export const testIds = {
 		table: "courses-table",
 		tableRow: "courses-table-row",
 		tableTitleLink: "courses-table-title-link",
+		difficultySortButtonDesktop: "courses-difficulty-sort-button-desktop",
+		difficultySortButtonMobile: "courses-difficulty-sort-button-mobile",
+		usefulnessSortButtonDesktop: "courses-usefulness-sort-button-desktop",
+		usefulnessSortButtonMobile: "courses-usefulness-sort-button-mobile",
 		scatterPlot: "courses-scatter-plot",
 		scatterPlotFullscreenButton: "courses-scatter-plot-fullscreen-button",
 		emptyState: "courses-empty-state",
@@ -136,6 +140,7 @@ export const testIds = {
 	// Rating modal and form
 	rating: {
 		modal: "rating-modal",
+		modalTitle: "rating-modal-title",
 		form: "rating-form",
 		difficultySlider: "rating-difficulty-slider",
 		usefulnessSlider: "rating-usefulness-slider",
@@ -158,6 +163,7 @@ export const testIds = {
 		header: "my-ratings-header",
 		list: "my-ratings-list",
 		card: "my-ratings-card",
+		leaveReviewLink: "my-ratings-leave-review-link",
 		editButton: "my-ratings-edit-button",
 		deleteButton: "my-ratings-delete-button",
 		emptyState: "my-ratings-empty-state",

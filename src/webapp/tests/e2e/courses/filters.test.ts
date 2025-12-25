@@ -1,7 +1,9 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { CoursesPage } from "./components";
+import { CoursesPage, TEST_CONFIG } from "../components";
+import { TEST_ACADEMIC_YEARS, TEST_QUERIES } from "../fixtures/courses";
+import { getSearchParam } from "../helpers/url-assertions";
 
 test.describe("Courses filters", () => {
 	test("reset clears active filters (search query)", async ({ page }) => {
@@ -59,6 +61,172 @@ test.describe("Courses filters", () => {
 			await coursesPage.closeFiltersDrawer();
 			await coursesPage.waitForTableReady();
 		});
+	});
+
+	test("year filter supports selecting old academic year option", async ({
+		page,
+	}) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const panel = page.getByTestId(testIds.filters.panel);
+		await expect(panel).toBeVisible();
+
+		const trigger = panel.getByTestId(testIds.filters.yearSelect);
+		await trigger.scrollIntoViewIfNeeded();
+
+		await page.keyboard.press("Escape");
+		await clickWithRetries(trigger);
+
+		const content = await openRadixSelectContent(
+			page,
+			testIds.filters.yearSelect,
+		);
+
+		let selectedYear: string | undefined;
+		for (const candidate of TEST_ACADEMIC_YEARS.oldYearCandidates) {
+			const options = content.locator("[data-slot='select-item']", {
+				hasText: candidate,
+			});
+			if ((await options.count()) === 0) {
+				continue;
+			}
+
+			selectedYear = candidate;
+			const waitForYearRequest = waitForCoursesApiParam(
+				page,
+				(params) => params.get("semester_year") === candidate,
+			);
+			await clickWithRetries(options.first());
+			await expect
+				.poll(() => getSearchParam(page, "year"), {
+					timeout: TEST_CONFIG.timeoutMs,
+				})
+				.toBe(candidate);
+			await waitForYearRequest;
+			break;
+		}
+
+		if (!selectedYear) {
+			await page.keyboard.press("Escape");
+			test.skip(true, "Old academic year option is not available");
+		}
+
+		await expect(panel.getByTestId(testIds.filters.resetButton)).toBeVisible();
+	});
+
+	test("changing faculty clears department and speciality params", async ({
+		page,
+	}) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const panel = page.getByTestId(testIds.filters.panel);
+		await expect(panel).toBeVisible();
+
+		await selectFacultyWithDepartmentsAndSpecialities({ page, scope: panel });
+		await selectSecondComboboxOption({
+			page,
+			scope: panel,
+			triggerTestId: testIds.filters.departmentSelect,
+			uiParamKey: "dept",
+		});
+		await selectSecondComboboxOption({
+			page,
+			scope: panel,
+			triggerTestId: testIds.filters.specialitySelect,
+			uiParamKey: "spec",
+		});
+
+		const initialFaculty = getSearchParam(page, "faculty");
+		expect(initialFaculty).not.toBe("");
+		expect(getSearchParam(page, "dept")).not.toBe("");
+		expect(getSearchParam(page, "spec")).not.toBe("");
+
+		const trigger = panel.getByTestId(testIds.filters.facultySelect);
+		await trigger.scrollIntoViewIfNeeded();
+		await page.keyboard.press("Escape");
+		await clickWithRetries(trigger);
+
+		const list = await openComboboxList(page, testIds.filters.facultySelect);
+		const items = list.locator("[data-slot='command-item']");
+		const count = await items.count();
+		if (count < 3) {
+			await page.keyboard.press("Escape");
+			test.skip(true, "Not enough faculty options to test cascading reset");
+		}
+
+		await clickWithRetries(items.nth(2));
+		await expect
+			.poll(() => getSearchParam(page, "faculty"), {
+				timeout: TEST_CONFIG.timeoutMs,
+			})
+			.not.toBe(initialFaculty);
+
+		await expect
+			.poll(() => getSearchParam(page, "dept"), {
+				timeout: TEST_CONFIG.timeoutMs,
+			})
+			.toBe("");
+		await expect
+			.poll(() => getSearchParam(page, "spec"), {
+				timeout: TEST_CONFIG.timeoutMs,
+			})
+			.toBe("");
+	});
+
+	test("active filters persist on page reload", async ({ page }) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const panel = page.getByTestId(testIds.filters.panel);
+		await expect(panel).toBeVisible();
+
+		await coursesPage.searchByTitle(TEST_QUERIES.common);
+		await nudgeRangeFilter({
+			page,
+			scope: panel,
+			sliderTestId: testIds.filters.difficultySlider,
+			uiParamKey: "diff",
+		});
+
+		const urlBefore = page.url();
+		await page.reload();
+		await coursesPage.waitForTableReady();
+
+		expect(page.url()).toBe(urlBefore);
+		await expect(page.getByTestId(testIds.courses.searchInput)).toHaveValue(
+			TEST_QUERIES.common,
+		);
+		expect(getSearchParam(page, "diff")).not.toBe("");
+	});
+
+	test("search and filters combine in courses API request", async ({
+		page,
+	}) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const panel = page.getByTestId(testIds.filters.panel);
+		await expect(panel).toBeVisible();
+
+		await coursesPage.searchByTitle(TEST_QUERIES.common);
+
+		const waitForCombinedRequest = waitForCoursesApiParam(page, (params) => {
+			return (
+				params.get("name") === TEST_QUERIES.common &&
+				(params.has("avg_difficulty_min") || params.has("avg_difficulty_max"))
+			);
+		});
+
+		await nudgeRangeFilter({
+			page,
+			scope: panel,
+			sliderTestId: testIds.filters.difficultySlider,
+			uiParamKey: "diff",
+		});
+
+		await waitForCombinedRequest;
 	});
 });
 
@@ -167,37 +335,18 @@ async function resetFilters({
 }): Promise<void> {
 	await clickWithRetries(scope.getByTestId(testIds.filters.resetButton));
 
+	const pollTimeout = { timeout: TEST_CONFIG.timeoutMs };
+	await expect.poll(() => getSearchParam(page, "q"), pollTimeout).toBe("");
+	await expect.poll(() => getSearchParam(page, "diff"), pollTimeout).toBe("");
+	await expect.poll(() => getSearchParam(page, "use"), pollTimeout).toBe("");
+	await expect.poll(() => getSearchParam(page, "term"), pollTimeout).toBe("");
+	await expect.poll(() => getSearchParam(page, "year"), pollTimeout).toBe("");
+	await expect.poll(() => getSearchParam(page, "type"), pollTimeout).toBe("");
 	await expect
-		.poll(() => getSearchParam(page, "q"), { timeout: 30_000 })
+		.poll(() => getSearchParam(page, "faculty"), pollTimeout)
 		.toBe("");
-	await expect
-		.poll(() => getSearchParam(page, "diff"), { timeout: 30_000 })
-		.toBe("");
-	await expect
-		.poll(() => getSearchParam(page, "use"), { timeout: 30_000 })
-		.toBe("");
-	await expect
-		.poll(() => getSearchParam(page, "term"), { timeout: 30_000 })
-		.toBe("");
-	await expect
-		.poll(() => getSearchParam(page, "year"), { timeout: 30_000 })
-		.toBe("");
-	await expect
-		.poll(() => getSearchParam(page, "type"), { timeout: 30_000 })
-		.toBe("");
-	await expect
-		.poll(() => getSearchParam(page, "faculty"), { timeout: 30_000 })
-		.toBe("");
-	await expect
-		.poll(() => getSearchParam(page, "dept"), { timeout: 30_000 })
-		.toBe("");
-	await expect
-		.poll(() => getSearchParam(page, "spec"), { timeout: 30_000 })
-		.toBe("");
-}
-
-function getSearchParam(page: Page, key: string): string {
-	return new URL(page.url()).searchParams.get(key) ?? "";
+	await expect.poll(() => getSearchParam(page, "dept"), pollTimeout).toBe("");
+	await expect.poll(() => getSearchParam(page, "spec"), pollTimeout).toBe("");
 }
 
 async function clickWithRetries(
@@ -232,33 +381,26 @@ function waitForCoursesApiParam(
 					return false;
 				}
 			},
-			{ timeout: 30_000 },
+			{ timeout: TEST_CONFIG.timeoutMs },
 		)
 		.then(() => undefined);
 }
 
 async function openRadixSelectContent(
 	page: Page,
-	trigger: Locator,
+	triggerTestId: string,
 ): Promise<Locator> {
-	const overlayId = await trigger.getAttribute("aria-controls");
-	const content = overlayId
-		? page.locator(`#${overlayId}`)
-		: page.locator("[data-slot='select-content']:visible").last();
-	await expect(content).toBeVisible({ timeout: 30_000 });
+	const content = page.getByTestId(`${triggerTestId}-content`);
+	await expect(content).toBeVisible();
 	return content;
 }
 
 async function openComboboxList(
 	page: Page,
-	trigger: Locator,
+	triggerTestId: string,
 ): Promise<Locator> {
-	const overlayId = await trigger.getAttribute("aria-controls");
-	const content = overlayId
-		? page.locator(`#${overlayId}`)
-		: page.locator("[data-slot='popover-content']:visible").last();
-	const list = content.locator("[data-slot='command-list']");
-	await expect(list).toBeVisible({ timeout: 30_000 });
+	const list = page.getByTestId(`${triggerTestId}-list`);
+	await expect(list).toBeVisible();
 	return list;
 }
 
@@ -279,7 +421,7 @@ async function selectSecondRadixSelectOption({
 	await page.keyboard.press("Escape");
 	await clickWithRetries(trigger);
 
-	const content = await openRadixSelectContent(page, trigger);
+	const content = await openRadixSelectContent(page, triggerTestId);
 	const items = content.locator("[data-slot='select-item']");
 	const count = await items.count();
 	if (count < 2) {
@@ -292,7 +434,9 @@ async function selectSecondRadixSelectOption({
 	await clickWithRetries(items.nth(1));
 
 	await expect
-		.poll(() => getSearchParam(page, uiParamKey), { timeout: 30_000 })
+		.poll(() => getSearchParam(page, uiParamKey), {
+			timeout: TEST_CONFIG.timeoutMs,
+		})
 		.not.toBe("");
 }
 
@@ -311,7 +455,7 @@ async function selectFacultyWithDepartmentsAndSpecialities({
 		await page.keyboard.press("Escape");
 		await clickWithRetries(trigger);
 
-		const list = await openComboboxList(page, trigger);
+		const list = await openComboboxList(page, triggerTestId);
 		const items = list.locator("[data-slot='command-item']");
 		const count = await items.count();
 		if (count < 2) {
@@ -329,7 +473,9 @@ async function selectFacultyWithDepartmentsAndSpecialities({
 		await items.nth(optionIndex).click();
 
 		await expect
-			.poll(() => getSearchParam(page, "faculty"), { timeout: 30_000 })
+			.poll(() => getSearchParam(page, "faculty"), {
+				timeout: TEST_CONFIG.timeoutMs,
+			})
 			.not.toBe("");
 		await waitFaculty;
 
@@ -369,7 +515,7 @@ async function getComboboxOptionsCount({
 	await page.keyboard.press("Escape");
 	await clickWithRetries(trigger);
 
-	const list = await openComboboxList(page, trigger);
+	const list = await openComboboxList(page, triggerTestId);
 	const count = await list.locator("[data-slot='command-item']").count();
 
 	await page.keyboard.press("Escape");
@@ -395,7 +541,7 @@ async function selectSecondComboboxOption({
 	await page.keyboard.press("Escape");
 	await clickWithRetries(trigger);
 
-	const list = await openComboboxList(page, trigger);
+	const list = await openComboboxList(page, triggerTestId);
 	const items = list.locator("[data-slot='command-item']");
 	const count = await items.count();
 	if (count < 2) {
@@ -408,7 +554,9 @@ async function selectSecondComboboxOption({
 	await clickWithRetries(items.nth(1));
 
 	await expect
-		.poll(() => getSearchParam(page, uiParamKey), { timeout: 30_000 })
+		.poll(() => getSearchParam(page, uiParamKey), {
+			timeout: TEST_CONFIG.timeoutMs,
+		})
 		.not.toBe("");
 }
 
@@ -426,23 +574,16 @@ async function nudgeRangeFilter({
 	const slider = scope.getByTestId(sliderTestId);
 	await slider.scrollIntoViewIfNeeded();
 
-	const handles = slider.getByRole("slider");
-	const count = await handles.count();
-	if (count === 0) {
-		throw new Error(`No slider handles found for ${sliderTestId}`);
-	}
-
 	const box = await slider.boundingBox();
 	if (!box) {
 		throw new Error(`Could not get bounding box for ${sliderTestId}`);
 	}
 
-	// Use a pointer interaction to trigger Slider "commit".
 	await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2);
 
 	await expect
 		.poll(() => getSearchParam(page, uiParamKey), {
-			timeout: 30_000,
+			timeout: TEST_CONFIG.timeoutMs,
 		})
 		.not.toBe("");
 }
