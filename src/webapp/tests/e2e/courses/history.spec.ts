@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { getSearchParam } from "../shared/url-assertions";
-import { TEST_QUERIES } from "./fixtures/courses";
 import { CoursesPage } from "./courses.page";
+import { TEST_QUERIES } from "./fixtures/courses";
+import { getSearchParam } from "../shared/url-assertions";
 
 test.describe("Courses navigation", () => {
 	test("browser back preserves courses filters", async ({ page }) => {

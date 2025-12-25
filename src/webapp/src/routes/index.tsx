@@ -15,7 +15,7 @@ import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
-function CoursesRoute() {
+export function CoursesRoute() {
 	const [params, setParams] = useCourseFiltersParams();
 
 	const apiFilters: CoursesListParams = {

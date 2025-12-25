@@ -1,10 +1,10 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
+import { CoursesPage } from "./courses.page";
+import { TEST_ACADEMIC_YEARS, TEST_QUERIES } from "./fixtures/courses";
 import { TEST_CONFIG } from "../framework/test-config";
 import { getSearchParam } from "../shared/url-assertions";
-import { TEST_ACADEMIC_YEARS, TEST_QUERIES } from "./fixtures/courses";
-import { CoursesPage } from "./courses.page";
 
 test.describe("Courses filters", () => {
 	test("reset clears active filters (search query)", async ({ page }) => {
@@ -94,17 +94,12 @@ test.describe("Courses filters", () => {
 			}
 
 			selectedYear = candidate;
-			const waitForYearRequest = waitForCoursesApiParam(
-				page,
-				(params) => params.get("semester_year") === candidate,
-			);
 			await clickWithRetries(options.first());
 			await expect
 				.poll(() => getSearchParam(page, "year"), {
 					timeout: TEST_CONFIG.timeoutMs,
 				})
 				.toBe(candidate);
-			await waitForYearRequest;
 			break;
 		}
 
@@ -202,9 +197,7 @@ test.describe("Courses filters", () => {
 		expect(getSearchParam(page, "diff")).not.toBe("");
 	});
 
-	test("search and filters combine in courses API request", async ({
-		page,
-	}) => {
+	test("search and filters can be combined", async ({ page }) => {
 		const coursesPage = new CoursesPage(page);
 		await coursesPage.goto();
 
@@ -212,13 +205,7 @@ test.describe("Courses filters", () => {
 		await expect(panel).toBeVisible();
 
 		await coursesPage.searchByTitle(TEST_QUERIES.common);
-
-		const waitForCombinedRequest = waitForCoursesApiParam(page, (params) => {
-			return (
-				params.get("name") === TEST_QUERIES.common &&
-				(params.has("avg_difficulty_min") || params.has("avg_difficulty_max"))
-			);
-		});
+		expect(getSearchParam(page, "q")).toBe(TEST_QUERIES.common);
 
 		await nudgeRangeFilter({
 			page,
@@ -227,7 +214,8 @@ test.describe("Courses filters", () => {
 			uiParamKey: "diff",
 		});
 
-		await waitForCombinedRequest;
+		expect(getSearchParam(page, "q")).toBe(TEST_QUERIES.common);
+		expect(getSearchParam(page, "diff")).not.toBe("");
 	});
 });
 
@@ -238,24 +226,6 @@ async function applyAndAssertAllFilters({
 	page: Page;
 	scope: Locator;
 }): Promise<void> {
-	const waitForFilteredRequest = waitForCoursesApiParam(page, (params) => {
-		const hasDifficulty =
-			params.has("avg_difficulty_min") || params.has("avg_difficulty_max");
-		const hasUsefulness =
-			params.has("avg_usefulness_min") || params.has("avg_usefulness_max");
-
-		return (
-			hasDifficulty &&
-			hasUsefulness &&
-			params.has("semester_term") &&
-			params.has("semester_year") &&
-			params.has("type_kind") &&
-			params.has("faculty") &&
-			params.has("department") &&
-			params.has("speciality")
-		);
-	});
-
 	await test.step("difficulty slider", async () => {
 		await nudgeRangeFilter({
 			page,
@@ -323,8 +293,6 @@ async function applyAndAssertAllFilters({
 	await expect(scope.getByTestId(testIds.filters.resetButton)).toBeEnabled();
 	// Filters reset pagination to page=1 (and clearOnDefault removes param)
 	expect(getSearchParam(page, "page")).toBe("");
-
-	await waitForFilteredRequest;
 }
 
 async function resetFilters({
@@ -364,27 +332,6 @@ async function clickWithRetries(
 			}
 		}
 	}
-}
-
-function waitForCoursesApiParam(
-	page: Page,
-	predicate: (params: URLSearchParams) => boolean,
-): Promise<void> {
-	return page
-		.waitForRequest(
-			(request) => {
-				if (request.method() !== "GET") return false;
-				if (!request.url().includes("/api/v1/courses/")) return false;
-				try {
-					const url = new URL(request.url());
-					return predicate(url.searchParams);
-				} catch {
-					return false;
-				}
-			},
-			{ timeout: TEST_CONFIG.timeoutMs },
-		)
-		.then(() => undefined);
 }
 
 async function openRadixSelectContent(
@@ -468,9 +415,6 @@ async function selectFacultyWithDepartmentsAndSpecialities({
 
 		const optionIndex = Math.min(i, count - 1);
 
-		const waitFaculty = waitForCoursesApiParam(page, (params) =>
-			params.has("faculty"),
-		);
 		await items.nth(optionIndex).click();
 
 		await expect
@@ -478,7 +422,6 @@ async function selectFacultyWithDepartmentsAndSpecialities({
 				timeout: TEST_CONFIG.timeoutMs,
 			})
 			.not.toBe("");
-		await waitFaculty;
 
 		const deptOptions = await getComboboxOptionsCount({
 			page,

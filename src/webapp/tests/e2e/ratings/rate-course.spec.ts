@@ -1,10 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Locator, test } from "@playwright/test";
 
+import { MyRatingsPage } from "./my-ratings.page";
 import { CourseDetailsPage } from "../courses/course-details.page";
 import { waitForPageReady } from "../framework/common";
 import { createTestRatingData } from "../framework/test-config";
 import { RatingModal } from "../shared/rating-modal.component";
-import { MyRatingsPage } from "./my-ratings.page";
 
 test.describe("Rating modal functionality", () => {
 	let coursePage: CourseDetailsPage;
@@ -23,37 +23,61 @@ test.describe("Rating modal functionality", () => {
 	});
 
 	test("rating modal submission and deletion afterwards", async () => {
-		expect(await coursePage.isRateButtonVisible()).toBe(true);
-		await coursePage.clickRateButton();
-		expect(await ratingModal.isVisible()).toBe(true);
-		expect(await ratingModal.isTitleVisible()).toBe(true);
+		let createdRating = false;
+		let comment = "";
+		let reviewCard: Locator | undefined;
+		let mainError: unknown;
 
-		const testData = createTestRatingData();
+		try {
+			expect(await coursePage.isRateButtonVisible()).toBe(true);
+			await coursePage.clickRateButton();
+			expect(await ratingModal.isVisible()).toBe(true);
+			expect(await ratingModal.isTitleVisible()).toBe(true);
 
-		// Set difficulty and usefulness
-		const initialDifficulty = await ratingModal.getCurrentDifficultyValue();
-		const initialUsefulness = await ratingModal.getCurrentUsefulnessValue();
+			comment = `e2e:${test.info().title}:${String(Date.now())}`;
+			const testData = createTestRatingData({ comment });
 
-		const targetDifficulty = Math.min(initialDifficulty + 1, 5);
-		const targetUsefulness = Math.min(initialUsefulness + 1, 5);
+			// Set difficulty and usefulness
+			const initialDifficulty = await ratingModal.getCurrentDifficultyValue();
+			const initialUsefulness = await ratingModal.getCurrentUsefulnessValue();
 
-		await ratingModal.setDifficultyRating(targetDifficulty);
-		await ratingModal.setUsefulnessRating(targetUsefulness);
+			const targetDifficulty = Math.min(initialDifficulty + 1, 5);
+			const targetUsefulness = Math.min(initialUsefulness + 1, 5);
 
-		// Set comment
-		await ratingModal.setComment(testData.comment);
+			await ratingModal.setDifficultyRating(targetDifficulty);
+			await ratingModal.setUsefulnessRating(targetUsefulness);
 
-		// Submit
-		await ratingModal.submitRating();
-		await ratingModal.waitForHidden();
+			// Set comment
+			await ratingModal.setComment(testData.comment);
 
-		// Verify review appears on page
-		const reviewCard = await coursePage.findReviewCardByText(testData.comment);
-		await expect(reviewCard).toBeVisible();
+			// Submit
+			await ratingModal.submitRating();
+			await ratingModal.waitForHidden();
+			createdRating = true;
 
-		// Clean up: deleting the rating using the delete button on the user's rating card
-		await coursePage.deleteUserRating();
+			// Verify review appears on page
+			reviewCard = await coursePage.findReviewCardByText(testData.comment);
+			await expect(reviewCard).toBeVisible();
+		} catch (error) {
+			mainError = error;
+		}
 
-		await expect(reviewCard).toBeHidden();
+		if (createdRating) {
+			try {
+				await coursePage.deleteUserRating();
+				if (reviewCard) {
+					await expect(reviewCard).toBeHidden();
+				}
+			} catch (cleanupError) {
+				if (!mainError) {
+					throw cleanupError;
+				}
+				console.warn("Failed to cleanup rating created by test", cleanupError);
+			}
+		}
+
+		if (mainError) {
+			throw mainError;
+		}
 	});
 });
