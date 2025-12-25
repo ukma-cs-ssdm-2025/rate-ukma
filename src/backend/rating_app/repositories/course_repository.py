@@ -261,6 +261,15 @@ class CourseRepository(IRepository[CourseDTO]):
             if speciality is None:
                 continue
 
+            type_kind = course_speciality.type_kind
+            if not type_kind:
+                logger.warning(
+                    "course_speciality_missing_type_kind",
+                    course_speciality_id=str(course_speciality.id),
+                    speciality_id=str(speciality.id),
+                )
+                continue
+
             faculty_obj = speciality.faculty
             faculty_id = str(faculty_obj.id) if faculty_obj else ""
             faculty_name = faculty_obj.name if faculty_obj else ""
@@ -272,7 +281,7 @@ class CourseRepository(IRepository[CourseDTO]):
                     faculty_id=faculty_id,
                     faculty_name=faculty_name,
                     speciality_alias=speciality.alias,
-                    type_kind=course_speciality.type_kind,
+                    type_kind=type_kind,
                 )
             )
         return specialities

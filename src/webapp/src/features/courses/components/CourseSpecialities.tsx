@@ -30,9 +30,11 @@ export function CourseSpecialities({
 								{item.speciality_title ?? "—"}
 							</p>
 						</div>
-						<Badge variant={getTypeKindVariant(item.type_kind)}>
-							{getTypeKindLabel(item.type_kind)}
-						</Badge>
+						{item.type_kind && (
+							<Badge variant={getTypeKindVariant(item.type_kind)}>
+								{getTypeKindLabel(item.type_kind)}
+							</Badge>
+						)}
 					</div>
 				))}
 			</div>
