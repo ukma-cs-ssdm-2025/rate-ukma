@@ -11,6 +11,10 @@ from rating_app.application_schemas.course import (
 )
 from rating_app.application_schemas.pagination import PaginationMetadata
 from rating_app.application_schemas.rating import AggregatedCourseRatingStats
+from rating_app.exception.course_exceptions import (
+    CourseNotFoundError,
+    InvalidCourseIdentifierError,
+)
 from rating_app.models.choices import CourseTypeKind
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.services.department_service import DepartmentService
@@ -74,7 +78,8 @@ class CourseService:
         try:
             course_dto = self.course_repository.get_by_id(course_id)
             return self.course_repository.update(course_dto, **update_data)
-        except Exception:
+        except (CourseNotFoundError, InvalidCourseIdentifierError) as exc:
+            logger.error("error_updating_course", course_id=course_id, error=str(exc))
             return None
 
     def update_course_aggregates(
@@ -91,8 +96,8 @@ class CourseService:
         try:
             course_dto = self.course_repository.get_by_id(course_id)
             self.course_repository.delete(course_dto)
-        except Exception:
-            pass
+        except (CourseNotFoundError, InvalidCourseIdentifierError) as exc:
+            logger.error("error_deleting_course", course_id=course_id, error=str(exc))
 
     @rcached(ttl=86400)  # 24 hours - filter options rarely change
     def get_filter_options(self) -> CourseFilterOptions:

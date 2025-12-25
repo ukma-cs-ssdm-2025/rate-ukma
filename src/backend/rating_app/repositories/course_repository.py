@@ -17,6 +17,10 @@ from rating_app.exception.course_exceptions import (
     CourseNotFoundError,
     InvalidCourseIdentifierError,
 )
+from rating_app.exception.department_exceptions import (
+    DepartmentNotFoundError,
+    InvalidDepartmentIdentifierError,
+)
 from rating_app.models import Course, CourseOffering, Department
 from rating_app.models.choices import CourseStatus, SemesterTerm
 from rating_app.repositories.protocol import IRepository
@@ -73,7 +77,7 @@ class CourseRepository(IRepository[CourseDTO]):
         status: str = CourseStatus.PLANNED,
         description: str | None = None,
     ) -> tuple[CourseDTO, bool]:
-        department = Department.objects.get(id=department_id)
+        department = self._get_department_by_id(department_id)
         course, created = Course.objects.get_or_create(
             title=title,
             department=department,
@@ -93,7 +97,7 @@ class CourseRepository(IRepository[CourseDTO]):
         # we can`t effectively overload the method with different parameters,
         # so we need to create a new method
         # injector sets ORM M2M relations, so it needs an ORM model to be returned
-        department = Department.objects.get(id=department_id)
+        department = self._get_department_by_id(department_id)
         return Course.objects.get_or_create(
             title=title,
             department=department,
@@ -102,14 +106,14 @@ class CourseRepository(IRepository[CourseDTO]):
         )
 
     def update(self, course_dto: CourseDTO, **course_data) -> CourseDTO:
-        course_orm = Course.objects.get(id=course_dto.id)
+        course_orm = self._get_course_by_id(course_dto.id)
         for field, value in course_data.items():
             setattr(course_orm, field, value)
         course_orm.save()
         return self._map_to_domain_model(course_orm)
 
     def delete(self, course_dto: CourseDTO) -> None:
-        course_orm = Course.objects.get(id=course_dto.id)
+        course_orm = self._get_course_by_id(course_dto.id)
         course_orm.delete()
 
     def _filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
@@ -301,3 +305,25 @@ class CourseRepository(IRepository[CourseDTO]):
                 )
             )
         return specialities
+
+    def _get_department_by_id(self, department_id: str) -> Department:
+        try:
+            return Department.objects.get(id=department_id)
+        except Department.DoesNotExist as exc:
+            logger.warning("department_not_found", department_id=department_id, error=str(exc))
+            raise DepartmentNotFoundError(department_id) from exc
+        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
+            logger.warning(
+                "invalid_department_identifier", department_id=department_id, error=str(exc)
+            )
+            raise InvalidDepartmentIdentifierError(department_id) from exc
+
+    def _get_course_by_id(self, course_id: str) -> Course:
+        try:
+            return Course.objects.get(id=course_id)
+        except Course.DoesNotExist as exc:
+            logger.warning("course_not_found", course_id=course_id, error=str(exc))
+            raise CourseNotFoundError(course_id) from exc
+        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
+            logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
+            raise InvalidCourseIdentifierError(course_id) from exc
