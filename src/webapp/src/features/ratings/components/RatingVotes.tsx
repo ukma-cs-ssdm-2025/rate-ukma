@@ -10,12 +10,71 @@ import {
 	useCoursesRatingsVotesDestroy,
 } from "../hooks/useVoteMutations";
 
+type VoteType = "UPVOTE" | "DOWNVOTE";
+
 interface RatingVotesProps {
 	ratingId: string;
 	initialUpvotes?: number;
 	initialDownvotes?: number;
-	initialUserVote?: "UPVOTE" | "DOWNVOTE" | null;
+	initialUserVote?: VoteType | null;
 	readOnly?: boolean;
+}
+
+interface VoteProps {
+	readonly type: VoteType;
+	readonly count: number;
+	readonly active: boolean;
+	readonly onClick?: () => void;
+	readonly asButton?: boolean;
+}
+
+function Vote({
+	type,
+	count,
+	active,
+	onClick,
+	asButton = false,
+}: Readonly<VoteProps>) {
+	const Icon = type === "UPVOTE" ? ArrowBigUp : ArrowBigDown;
+	if (asButton) {
+		return (
+			<Button
+				variant="ghost"
+				size="sm"
+				onClick={onClick}
+				className={cn(
+					"h-8 px-2 gap-1.5 transition-all duration-200",
+					"hover:bg-[#0076BB]/10 hover:text-[#0076BB]",
+					active
+						? "text-[#0076BB] bg-[#0076BB]/10 ring-1 ring-inset ring-[#0076BB]/20"
+						: "text-muted-foreground",
+				)}
+				aria-label={type === "UPVOTE" ? "За" : "Проти"}
+			>
+				<Icon className={cn("h-5 w-5", active && "fill-current")} />
+				<span className="text-xs font-bold">{count}</span>
+			</Button>
+		);
+	}
+
+	return (
+		<div className="flex items-center gap-1.5 transition-colors">
+			<Icon
+				className={cn(
+					"h-5 w-5",
+					active ? "fill-current text-[#0076BB]" : "text-muted-foreground/40",
+				)}
+			/>
+			<span
+				className={cn(
+					"text-xs font-bold",
+					active ? "text-[#0076BB]" : "text-muted-foreground",
+				)}
+			>
+				{count}
+			</span>
+		</div>
+	);
 }
 
 export function RatingVotes({
@@ -26,11 +85,9 @@ export function RatingVotes({
 	readOnly = false,
 }: Readonly<RatingVotesProps>) {
 	// The "optimistic" vote state - updates immediately on click
-	const [userVote, setUserVote] = useState<"UPVOTE" | "DOWNVOTE" | null>(
-		initialUserVote,
-	);
+	const [userVote, setUserVote] = useState<VoteType | null>(initialUserVote);
 	// The "authority" vote state - what is actually on the server
-	const [serverVote, setServerVote] = useState<"UPVOTE" | "DOWNVOTE" | null>(
+	const [serverVote, setServerVote] = useState<VoteType | null>(
 		initialUserVote,
 	);
 
@@ -84,68 +141,13 @@ export function RatingVotes({
 		return () => clearTimeout(timer);
 	}, [userVote, serverVote, ratingId, createVote, deleteVote]);
 
-	const toggleVote = (target: "UPVOTE" | "DOWNVOTE") => {
+	const toggleVote = (target: VoteType) => {
 		if (readOnly) return;
 		setUserVote((prev) => (prev === target ? null : target));
 	};
 
 	const upActive = userVote === "UPVOTE";
 	const downActive = userVote === "DOWNVOTE";
-
-	function Vote({
-		type,
-		count,
-		active,
-		onClick,
-		asButton = false,
-	}: {
-		type: "UPVOTE" | "DOWNVOTE";
-		count: number;
-		active: boolean;
-		onClick?: () => void;
-		asButton?: boolean;
-	}) {
-		const Icon = type === "UPVOTE" ? ArrowBigUp : ArrowBigDown;
-		if (asButton) {
-			return (
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={onClick}
-					className={cn(
-						"h-8 px-2 gap-1.5 transition-all duration-200",
-						"hover:bg-[#0076BB]/10 hover:text-[#0076BB]",
-						active
-							? "text-[#0076BB] bg-[#0076BB]/10 ring-1 ring-inset ring-[#0076BB]/20"
-							: "text-muted-foreground",
-					)}
-					aria-label={type === "UPVOTE" ? "За" : "Проти"}
-				>
-					<Icon className={cn("h-5 w-5", active && "fill-current")} />
-					<span className="text-xs font-bold">{count}</span>
-				</Button>
-			);
-		}
-
-		return (
-			<div className="flex items-center gap-1.5 transition-colors">
-				<Icon
-					className={cn(
-						"h-5 w-5",
-						active ? "fill-current text-[#0076BB]" : "text-muted-foreground/40",
-					)}
-				/>
-				<span
-					className={cn(
-						"text-xs font-bold",
-						active ? "text-[#0076BB]" : "text-muted-foreground",
-					)}
-				>
-					{count}
-				</span>
-			</div>
-		);
-	}
 
 	if (readOnly) {
 		return (
