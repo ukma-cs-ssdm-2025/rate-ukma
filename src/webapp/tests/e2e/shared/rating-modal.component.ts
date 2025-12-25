@@ -2,7 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { BasePage } from "./base-page";
+import { BasePage } from "../framework/base-page";
 
 export interface RatingData {
 	difficulty: number;

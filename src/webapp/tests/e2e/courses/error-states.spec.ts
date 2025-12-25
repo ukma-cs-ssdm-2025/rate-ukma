@@ -1,14 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { CoursesPage, TEST_CONFIG } from "../components";
+import { TEST_CONFIG } from "../framework/test-config";
+import { getSearchParam } from "../shared/url-assertions";
 import {
 	mockCoursesListEmpty,
 	mockCoursesListError,
 	restoreCoursesListApi,
-} from "../fixtures/api-mocks";
-import { TEST_QUERIES } from "../fixtures/courses";
-import { getSearchParam } from "../helpers/url-assertions";
+} from "./fixtures/api-mocks";
+import { TEST_QUERIES } from "./fixtures/courses";
+import { CoursesPage } from "./courses.page";
 
 test.describe("Courses error states", () => {
 	test("shows error state on courses API 500", async ({ page }) => {

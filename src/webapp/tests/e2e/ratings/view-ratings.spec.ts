@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-import { CoursesPage } from "../components";
-import { CourseDetailsPage } from "../components/course-details-page";
+import { CourseDetailsPage } from "../courses/course-details.page";
+import { CoursesPage } from "../courses/courses.page";
 
 test.describe("Ratings are displayed", () => {
 	// TBD: this test suite components will be adjusted after ratings count filter sorting is implemented

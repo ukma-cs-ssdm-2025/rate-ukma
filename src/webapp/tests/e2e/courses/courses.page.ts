@@ -1,9 +1,9 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { BasePage } from "./base-page";
-import { withRetry } from "./common";
-import { TEST_CONFIG } from "./test-config";
+import { BasePage } from "../framework/base-page";
+import { withRetry } from "../framework/common";
+import { TEST_CONFIG } from "../framework/test-config";
 
 export class CoursesPage extends BasePage {
 	// Main

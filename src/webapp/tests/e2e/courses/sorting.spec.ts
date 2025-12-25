@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-import { CoursesPage } from "../components";
-import { TEST_QUERIES } from "../fixtures/courses";
-import { getSearchParam } from "../helpers/url-assertions";
+import { getSearchParam } from "../shared/url-assertions";
+import { TEST_QUERIES } from "./fixtures/courses";
+import { CoursesPage } from "./courses.page";
 
 test.describe("Courses sorting", () => {
 	test("difficulty sort cycles asc → desc → cleared", async ({ page }) => {
