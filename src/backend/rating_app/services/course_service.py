@@ -47,12 +47,12 @@ class CourseService:
         self.semester_service = semester_service
 
     @rcached(ttl=86400)  # 24 hours - list of courses rarely changes
-    def list_courses(self) -> list[CourseDTO]:
-        return self.course_repository.get_all()
+    def list_courses(self, prefetch_related: bool = True) -> list[CourseDTO]:
+        return self.course_repository.get_all(prefetch_related=prefetch_related)
 
     @rcached(ttl=300)
-    def get_course(self, course_id: str) -> CourseDTO:
-        return self.course_repository.get_by_id(course_id)
+    def get_course(self, course_id: str, prefetch_related: bool = True) -> CourseDTO:
+        return self.course_repository.get_by_id(course_id, prefetch_related=prefetch_related)
 
     @rcached(ttl=300)
     def filter_courses(

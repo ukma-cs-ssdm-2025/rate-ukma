@@ -29,44 +29,17 @@ logger = structlog.get_logger(__name__)
 
 
 class CourseRepository(IRepository[CourseDTO]):
-    def get_all(self) -> list[CourseDTO]:
-        courses = (
-            Course.objects.select_related("department__faculty")
-            .prefetch_related(
-                Prefetch(
-                    "offerings",
-                    queryset=CourseOffering.objects.select_related("semester").prefetch_related(
-                        "instructors"
-                    ),
-                ),
-                "course_specialities__speciality",
-            )
-            .all()
-        )
+    def get_all(self, prefetch_related: bool = True) -> list[CourseDTO]:
+        courses = self._get_all_prefetch_related() if prefetch_related else self._get_all_shallow()
         return [self._map_to_domain_model(course) for course in courses]
 
-    def get_by_id(self, course_id: str) -> CourseDTO:
-        try:
-            course = (
-                Course.objects.select_related("department__faculty")
-                .prefetch_related(
-                    Prefetch(
-                        "offerings",
-                        queryset=CourseOffering.objects.select_related("semester").prefetch_related(
-                            "instructors"
-                        ),
-                    ),
-                    "course_specialities__speciality",
-                )
-                .get(id=course_id)
-            )
-            return self._map_to_domain_model(course)
-        except Course.DoesNotExist as exc:
-            logger.info("course_not_found", course_id=course_id)
-            raise CourseNotFoundError(course_id) from exc
-        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
-            logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
-            raise InvalidCourseIdentifierError(course_id) from exc
+    def get_by_id(self, course_id: str, prefetch_related: bool = True) -> CourseDTO:
+        course = (
+            self._get_by_id_prefetch_related(course_id)
+            if prefetch_related
+            else self._get_by_id_shallow(course_id)
+        )
+        return self._map_to_domain_model(course)
 
     def filter(self, filters: CourseFilterCriteria) -> list[CourseDTO]:
         qs = self._filter_qs(filters)
@@ -114,14 +87,14 @@ class CourseRepository(IRepository[CourseDTO]):
         )
 
     def update(self, course_dto: CourseDTO, **course_data) -> CourseDTO:
-        course_orm = self._get_course_by_id(course_dto.id)
+        course_orm = self._get_by_id_shallow(course_dto.id)
         for field, value in course_data.items():
             setattr(course_orm, field, value)
         course_orm.save()
         return self._map_to_domain_model(course_orm)
 
     def delete(self, course_dto: CourseDTO) -> None:
-        course_orm = self._get_course_by_id(course_dto.id)
+        course_orm = self._get_by_id_shallow(course_dto.id)
         course_orm.delete()
 
     def _filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
@@ -134,19 +107,7 @@ class CourseRepository(IRepository[CourseDTO]):
         return courses
 
     def _build_base_queryset(self) -> QuerySet[Course]:
-        return (
-            Course.objects.select_related("department__faculty")
-            .prefetch_related(
-                Prefetch(
-                    "offerings",
-                    queryset=CourseOffering.objects.select_related("semester").prefetch_related(
-                        "instructors"
-                    ),
-                ),
-                "course_specialities__speciality",
-            )
-            .all()
-        )
+        return self._get_all_prefetch_related()
 
     def _apply_basic_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteria
@@ -328,9 +289,49 @@ class CourseRepository(IRepository[CourseDTO]):
             )
             raise InvalidDepartmentIdentifierError(department_id) from exc
 
-    def _get_course_by_id(self, course_id: str) -> Course:
+    def _get_all_shallow(self) -> QuerySet[Course]:
+        return Course.objects.select_related("department__faculty").all()
+
+    def _get_all_prefetch_related(self) -> QuerySet[Course]:
+        return (
+            Course.objects.select_related("department__faculty")
+            .prefetch_related(
+                Prefetch(
+                    "offerings",
+                    queryset=CourseOffering.objects.select_related("semester").prefetch_related(
+                        "instructors"
+                    ),
+                ),
+                "course_specialities__speciality",
+            )
+            .all()
+        )
+
+    def _get_by_id_shallow(self, course_id: str) -> Course:
         try:
-            return Course.objects.get(id=course_id)
+            return Course.objects.select_related("department__faculty").get(id=course_id)
+        except Course.DoesNotExist as exc:
+            logger.warning("course_not_found", course_id=course_id, error=str(exc))
+            raise CourseNotFoundError(course_id) from exc
+        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
+            logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
+            raise InvalidCourseIdentifierError(course_id) from exc
+
+    def _get_by_id_prefetch_related(self, course_id: str) -> Course:
+        try:
+            return (
+                Course.objects.select_related("department__faculty")
+                .prefetch_related(
+                    Prefetch(
+                        "offerings",
+                        queryset=CourseOffering.objects.select_related("semester").prefetch_related(
+                            "instructors"
+                        ),
+                    ),
+                    "course_specialities__speciality",
+                )
+                .get(id=course_id)
+            )
         except Course.DoesNotExist as exc:
             logger.warning("course_not_found", course_id=course_id, error=str(exc))
             raise CourseNotFoundError(course_id) from exc

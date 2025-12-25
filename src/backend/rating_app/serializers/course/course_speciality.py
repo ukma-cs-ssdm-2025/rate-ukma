@@ -22,4 +22,4 @@ class CourseSpecialityInlineSerializer(serializers.Serializer):
     )
     faculty_name = serializers.CharField(max_length=255, read_only=True)
     faculty_id = serializers.UUIDField(read_only=True)
-    type_kind = serializers.ChoiceField(choices=CourseTypeKind.choices)
+    type_kind = serializers.ChoiceField(choices=CourseTypeKind.choices, read_only=True)

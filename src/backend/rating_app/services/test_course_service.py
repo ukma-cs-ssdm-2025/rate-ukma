@@ -83,7 +83,7 @@ def test_get_course_returns_course_by_id(service, course_repo):
     result = service.get_course(course_id)
 
     assert result == expected_course
-    course_repo.get_by_id.assert_called_once_with(course_id)
+    course_repo.get_by_id.assert_called_once_with(course_id, prefetch_related=True)
 
 
 def test_filter_courses_returns_paginated_result_when_paginate_true(

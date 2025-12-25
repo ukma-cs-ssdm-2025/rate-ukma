@@ -165,10 +165,7 @@ def test_analytics_single_course_no_n_plus_1(
     # Act & Assert: Retrieving single course should use select_related for department/faculty
     # Expected queries:
     # 1. Main query with select_related(department__faculty) and annotations
-    # 2. Prefetch offerings with semester details
-    # 3. Prefetch course_specialities
-    # 4. Prefetch instructors for offerings
-    with django_assert_num_queries(4):
+    with django_assert_num_queries(1):
         response = token_client.get(url)
 
     # Verify response

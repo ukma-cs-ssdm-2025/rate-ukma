@@ -21,7 +21,7 @@ export function CourseSpecialities({
 			<div className="grid gap-2 sm:grid-cols-2">
 				{specialities.map((item, index) => (
 					<div
-						key={`${item.speciality_id ?? item.speciality_title ?? index}-${item.type_kind}-${index}`}
+						key={`${item.speciality_title}-${item.type_kind}-${index}`}
 						className="flex items-center justify-between py-3 px-4 rounded-lg border border-border/50 bg-card/50"
 					>
 						<div className="flex items-center gap-2">

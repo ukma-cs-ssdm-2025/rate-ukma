@@ -64,7 +64,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
-        course = self.course_service.get_course(str(params.course_id))
+        course = self.course_service.get_course(str(params.course_id), prefetch_related=False)
 
         serialized = self.serializer_class(course).data
         return Response(serialized, status=status.HTTP_200_OK)
