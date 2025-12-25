@@ -125,7 +125,7 @@ CourseOffering  "1" -- "*" Rating
 class Vote {
   +id : UUID [1]
   +type : VoteType
-  {unique} (user, rating)
+  {unique} (student, rating)
 }
 
 Student "1" -- "*" Vote
@@ -189,7 +189,7 @@ enum InstructorRole {
 }
 
 enum VoteType {
-  POSITIVE
-  NEGATIVE
+  UPVOTE
+  DOWNVOTE
 }
 @enduml
