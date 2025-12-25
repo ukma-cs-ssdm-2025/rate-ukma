@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/Dialog";
 import { toast } from "@/components/ui/Toaster";
 import {
+	getCoursesListQueryKey,
 	getCoursesRatingsListQueryKey,
 	getCoursesRetrieveQueryKey,
 	getStudentsMeCoursesRetrieveQueryKey,
@@ -65,6 +66,9 @@ export function RatingModal({
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getCoursesRetrieveQueryKey(courseId),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getCoursesListQueryKey(),
 			}),
 		]);
 	};

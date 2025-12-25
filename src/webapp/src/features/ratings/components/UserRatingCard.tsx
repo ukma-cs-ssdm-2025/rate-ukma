@@ -7,17 +7,20 @@ import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { RatingComment } from "./RatingComment";
 import { RatingStats } from "./RatingStats";
+import { RatingVotes } from "./RatingVotes";
 
 interface UserRatingCardProps {
 	readonly rating: InlineRating;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
+	readonly readOnly?: boolean;
 }
 
 export function UserRatingCard({
 	rating,
 	onEdit,
 	onDelete,
+	readOnly = false,
 }: UserRatingCardProps) {
 	const { user } = useAuth();
 
@@ -34,6 +37,11 @@ export function UserRatingCard({
 		return "Студент";
 	};
 	const displayName = getUserDisplayName();
+
+	// Use values from rating if available, otherwise use defaults for placeholder
+	const upvotes = (rating as any).upvotes ?? 0;
+	const downvotes = (rating as any).downvotes ?? 0;
+	const viewerVote = (rating as any).viewer_vote ?? null;
 
 	return (
 		<article
@@ -86,6 +94,14 @@ export function UserRatingCard({
 			<RatingComment
 				comment={rating.comment}
 				emptyMessage="Ви не залишили коментар."
+			/>
+
+			<RatingVotes
+				ratingId={rating.id ?? ""}
+				initialUpvotes={upvotes}
+				initialDownvotes={downvotes}
+				initialUserVote={viewerVote}
+				readOnly={readOnly}
 			/>
 		</article>
 	);

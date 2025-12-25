@@ -3,15 +3,25 @@ import type { RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingComment } from "./RatingComment";
 import { RatingStats } from "./RatingStats";
+import { RatingVotes } from "./RatingVotes";
 
 interface RatingCardProps {
 	rating: RatingRead;
+	readOnly?: boolean;
 }
 
-export function RatingCard({ rating }: Readonly<RatingCardProps>) {
+export function RatingCard({
+	rating,
+	readOnly = false,
+}: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
 		? "Анонімний відгук"
 		: rating.student_name || "Студент";
+
+	// Use values from rating if available, otherwise use defaults for placeholder
+	const upvotes = rating.upvotes ?? 0;
+	const downvotes = rating.downvotes ?? 0;
+	const viewerVote = rating.viewer_vote ?? null;
 
 	return (
 		<article
@@ -35,6 +45,14 @@ export function RatingCard({ rating }: Readonly<RatingCardProps>) {
 			</div>
 
 			<RatingComment comment={rating.comment} />
+
+			<RatingVotes
+				ratingId={rating.id ?? ""}
+				initialUpvotes={upvotes}
+				initialDownvotes={downvotes}
+				initialUserVote={viewerVote}
+				readOnly={readOnly}
+			/>
 		</article>
 	);
 }
