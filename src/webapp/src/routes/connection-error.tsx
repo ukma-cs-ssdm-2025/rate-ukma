@@ -67,6 +67,11 @@ function ConnectionErrorPage() {
 				globalThis.location.replace(getSafeRedirectTarget(from));
 				return true;
 			} catch (error) {
+				if (axios.isAxiosError(error) && error.response?.status === 401) {
+					redirectToLogin(from);
+					return true;
+				}
+
 				if (!silent) {
 					const message = getReconnectErrorMessage(error, skipOfflineCheck);
 					if (message) {
@@ -208,6 +213,14 @@ const getReconnectErrorMessage = (
 	}
 
 	return "Не вдалося встановити з'єднання. Спробуйте пізніше.";
+};
+
+const redirectToLogin = (from?: string) => {
+	const redirectTarget = getSafeRedirectTarget(from);
+	const loginUrl = new URL("/login", globalThis.location.origin);
+	loginUrl.searchParams.set("redirect", redirectTarget);
+
+	globalThis.location.replace(loginUrl.toString());
 };
 
 const getSafeRedirectTarget = (from?: string) => {

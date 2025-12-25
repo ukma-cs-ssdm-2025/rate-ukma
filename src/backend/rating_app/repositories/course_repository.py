@@ -163,6 +163,8 @@ class CourseRepository(IRepository[Course]):
             courses = courses.filter(avg_usefulness__gte=filters.avg_usefulness_min)
         if filters.avg_usefulness_max is not None:
             courses = courses.filter(avg_usefulness__lte=filters.avg_usefulness_max)
+        if filters.ratings_count_min is not None:
+            courses = courses.filter(ratings_count__gte=filters.ratings_count_min)
         return courses
 
     def _apply_sorting(

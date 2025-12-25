@@ -1,10 +1,17 @@
 import type { PropsWithChildren } from "react";
-import { createContext, useCallback, useMemo, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
 import { env } from "@/env";
+import { setSessionExpiryListener } from "./sessionExpiry";
 import {
 	useAuthLoginCreate,
 	useAuthLogoutCreate,
@@ -24,6 +31,8 @@ export interface AuthUser {
 export interface AuthState {
 	status: AuthStatus;
 	user: AuthUser | null;
+	sessionExpired: boolean;
+	isStudent: boolean;
 }
 
 export interface AuthContextValue extends AuthState {
@@ -40,6 +49,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const navigate = useNavigate();
 	const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
+	const [sessionExpired, setSessionExpired] = useState(false);
 
 	// Lazy auth query - only run when explicitly requested
 	const sessionQuery = useAuthSessionRetrieve({
@@ -79,19 +89,39 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
 	const authState = useMemo((): AuthState => {
 		if (!hasCheckedAuth) {
-			return { status: "loading", user: null };
+			return {
+				status: "loading",
+				user: null,
+				sessionExpired: false,
+				isStudent: false,
+			};
 		}
 
 		if (sessionQuery.isLoading || sessionQuery.isFetching) {
-			return { status: "loading", user: null };
+			return {
+				status: "loading",
+				user: null,
+				sessionExpired: false,
+				isStudent: false,
+			};
 		}
 
 		if (sessionQuery.error) {
-			return { status: "unauthenticated", user: null };
+			return {
+				status: "unauthenticated",
+				user: null,
+				sessionExpired,
+				isStudent: false,
+			};
 		}
 
 		if (!sessionQuery.data?.is_authenticated) {
-			return { status: "unauthenticated", user: null };
+			return {
+				status: "unauthenticated",
+				user: null,
+				sessionExpired,
+				isStudent: false,
+			};
 		}
 
 		const userData = sessionQuery.data?.user;
@@ -106,6 +136,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 						patronymic: userData.patronymic,
 					}
 				: null,
+			sessionExpired: false,
+			isStudent: sessionQuery.data.is_student,
 		};
 	}, [
 		hasCheckedAuth,
@@ -113,6 +145,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		sessionQuery.isFetching,
 		sessionQuery.error,
 		sessionQuery.data,
+		sessionExpired,
 	]);
 
 	const loginWithMicrosoft = useCallback((redirect?: string) => {
@@ -128,6 +161,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const loginWithDjango = useCallback(
 		async (username: string, password: string) => {
 			await loginMutation.mutateAsync({ data: { username, password } });
+			setSessionExpired(false);
 		},
 		[loginMutation],
 	);
@@ -145,6 +179,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		} finally {
 			setHasCheckedAuth(false);
 			setIsLoggingOut(false);
+			setSessionExpired(false);
 		}
 	}, [logoutMutation, navigate, queryClient, sessionQuery.queryKey]);
 
@@ -153,6 +188,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			setHasCheckedAuth(true);
 		}
 	}, [hasCheckedAuth, isLoggingOut]);
+
+	// Listen for session expiration events from apiClient
+	useEffect(() => {
+		const handleSessionExpired = () => {
+			setSessionExpired(true);
+			// Invalidate the session query to trigger re-evaluation of auth state
+			queryClient.setQueryData(sessionQuery.queryKey, undefined);
+			queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
+		};
+
+		setSessionExpiryListener(handleSessionExpired);
+
+		return () => {
+			setSessionExpiryListener(null);
+		};
+	}, [queryClient, sessionQuery.queryKey]);
 
 	const value = useMemo(
 		() => ({

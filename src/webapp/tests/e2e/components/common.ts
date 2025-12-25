@@ -12,8 +12,8 @@ export async function waitForPageReady(page: Page): Promise<void> {
 
 export async function withRetry<T>(
 	operation: () => Promise<T>,
-	maxRetries = TEST_CONFIG.maxRetries,
-	delay = TEST_CONFIG.retryDelay,
+	maxRetries: number = TEST_CONFIG.maxRetries,
+	delay: number = TEST_CONFIG.retryDelay,
 ): Promise<T> {
 	let lastError: Error = new Error("No attempts made");
 
@@ -38,7 +38,7 @@ export async function waitForElementWithContext(
 	page: Page,
 	locator: string,
 	context: string,
-	timeout = TEST_CONFIG.elementTimeout,
+	timeout: number = TEST_CONFIG.elementTimeout,
 ): Promise<void> {
 	try {
 		await expect(page.locator(locator)).toBeVisible({ timeout });

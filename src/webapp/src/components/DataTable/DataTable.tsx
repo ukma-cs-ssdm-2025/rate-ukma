@@ -1,4 +1,9 @@
-import type { ComponentProps, CSSProperties, ReactNode } from "react";
+import type {
+	ComponentProps,
+	CSSProperties,
+	MouseEvent,
+	ReactNode,
+} from "react";
 
 import {
 	type Column,
@@ -16,6 +21,24 @@ import {
 	TableRow,
 } from "@/components/ui/Table";
 import { cn } from "@/lib/utils";
+
+const ROW_CLICK_IGNORE_SELECTOR =
+	'a,button,input,select,textarea,label,[role="button"],[role="link"],[contenteditable],[data-row-click-ignore="true"]';
+
+function isModifiedClick(event: MouseEvent): boolean {
+	return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+}
+
+function hasActiveTextSelection(): boolean {
+	const selection = globalThis.getSelection?.();
+	return Boolean(selection?.type === "Range" && selection.toString().trim());
+}
+
+function shouldIgnoreRowClickTarget(target: EventTarget | null): boolean {
+	return target instanceof HTMLElement
+		? Boolean(target.closest(ROW_CLICK_IGNORE_SELECTOR))
+		: false;
+}
 
 declare module "@tanstack/react-table" {
 	// biome-ignore lint: Required by TanStack Table interface signature
@@ -77,9 +100,10 @@ function getAlignmentClass<TData, TValue>(
 interface DataTableProps<TData> extends ComponentProps<"div"> {
 	table: TanstackTable<TData>;
 	actionBar?: ReactNode;
-	onRowClick?: (row: TData) => void;
 	totalRows?: number;
 	serverPageCount?: number;
+	emptyStateMessage: string;
+	onRowClick?: (row: TData) => void;
 	isRowHighlighted?: (row: TData) => boolean;
 }
 
@@ -88,9 +112,10 @@ export function DataTable<TData>({
 	actionBar,
 	children,
 	className,
-	onRowClick,
 	totalRows,
 	serverPageCount,
+	emptyStateMessage,
+	onRowClick,
 	isRowHighlighted,
 	...props
 }: Readonly<DataTableProps<TData>>) {
@@ -139,7 +164,14 @@ export function DataTable<TData>({
 											highlighted &&
 												"bg-primary/5 border-l-2 border-l-primary hover:bg-primary/10",
 										)}
-										onClick={() => onRowClick?.(row.original)}
+										onClick={(event) => {
+											if (!onRowClick) return;
+											if (isModifiedClick(event)) return;
+											if (hasActiveTextSelection()) return;
+											if (shouldIgnoreRowClickTarget(event.target)) return;
+
+											onRowClick(row.original);
+										}}
 									>
 										{row.getVisibleCells().map((cell) => (
 											<TableCell
@@ -166,7 +198,7 @@ export function DataTable<TData>({
 									colSpan={table.getAllColumns().length}
 									className="h-24 text-center"
 								>
-									No results.
+									{emptyStateMessage}
 								</TableCell>
 							</TableRow>
 						)}

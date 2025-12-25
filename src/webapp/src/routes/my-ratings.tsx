@@ -8,14 +8,21 @@ import { MyRatingCard } from "@/features/ratings/components/MyRatingCard";
 import { MyRatingsEmptyState } from "@/features/ratings/components/MyRatingsEmptyState";
 import { MyRatingsErrorState } from "@/features/ratings/components/MyRatingsErrorState";
 import { MyRatingsHeader } from "@/features/ratings/components/MyRatingsHeader";
+import { MyRatingsNotStudentState } from "@/features/ratings/components/MyRatingsNotStudentState";
 import { MyRatingsSkeleton } from "@/features/ratings/components/MyRatingsSkeleton";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
-import { withAuth } from "@/lib/auth";
+import { useAuth, withAuth } from "@/lib/auth";
 
 function MyRatings() {
+	const { isStudent } = useAuth();
+
 	const { data, isLoading, isFetching, error, refetch } =
-		useStudentsMeGradesRetrieve();
+		useStudentsMeGradesRetrieve({
+			query: {
+				enabled: isStudent,
+			},
+		});
 
 	const ratings = useMemo<StudentRatingsDetailed[]>(() => {
 		if (!data) {
@@ -38,7 +45,9 @@ function MyRatings() {
 
 	let content: ReactNode;
 
-	if (isLoading) {
+	if (!isStudent) {
+		content = <MyRatingsNotStudentState />;
+	} else if (isLoading) {
 		content = <MyRatingsSkeleton />;
 	} else if (error) {
 		content = (

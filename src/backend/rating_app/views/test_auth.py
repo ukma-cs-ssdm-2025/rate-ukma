@@ -99,3 +99,42 @@ def test_session_returns_unauthorized_for_anonymous(api_client):
     response = api_client.get("/api/v1/auth/session/")
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_session_returns_is_student_true_for_student_user(
+    api_client, user_factory, student_factory
+):
+    # Arrange
+    user = user_factory(email="student@ukma.edu.ua")
+    student_factory(user=user)
+    api_client.force_authenticate(user=user)
+
+    # Act
+    response = api_client.get("/api/v1/auth/session/")
+
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["is_authenticated"] is True
+    assert data["is_student"] is True
+    assert data["user"]["email"] == user.email
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_session_returns_is_student_false_for_non_student_user(api_client, user_factory):
+    # Arrange
+    user = user_factory(email="instructor@ukma.edu.ua")
+    api_client.force_authenticate(user=user)
+
+    # Act
+    response = api_client.get("/api/v1/auth/session/")
+
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["is_authenticated"] is True
+    assert data["is_student"] is False
+    assert data["user"]["email"] == user.email

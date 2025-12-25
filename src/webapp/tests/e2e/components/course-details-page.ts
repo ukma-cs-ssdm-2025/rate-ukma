@@ -2,6 +2,8 @@ import type { Locator, Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 import { BasePage } from "./base-page";
+import { withRetry } from "./common";
+import { TEST_CONFIG } from "./test-config";
 
 export class CourseDetailsPage extends BasePage {
 	// Main
@@ -22,6 +24,7 @@ export class CourseDetailsPage extends BasePage {
 	// Empty state
 	private readonly noReviewsMessage: Locator;
 	private readonly insufficientDataMessages: Locator;
+	private readonly courseDetailsUrlPattern: RegExp;
 
 	constructor(page: Page) {
 		super(page);
@@ -60,6 +63,8 @@ export class CourseDetailsPage extends BasePage {
 			.filter({
 				hasText: /Недостатньо даних/,
 			});
+
+		this.courseDetailsUrlPattern = /\/courses\/[0-9a-fA-F-]{36}$/;
 	}
 
 	async goto(courseId: string): Promise<void> {
@@ -70,7 +75,20 @@ export class CourseDetailsPage extends BasePage {
 
 	async isPageLoaded(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.pageTitle, 15000);
+			await withRetry(
+				async () => {
+					await this.page.waitForURL(this.courseDetailsUrlPattern, {
+						timeout: TEST_CONFIG.pageLoadTimeout,
+					});
+					await this.waitForPageLoad(TEST_CONFIG.pageLoadTimeout);
+					await this.waitForElement(
+						this.pageTitle,
+						TEST_CONFIG.pageLoadTimeout,
+					);
+				},
+				TEST_CONFIG.maxRetries,
+				TEST_CONFIG.retryDelay,
+			);
 			return true;
 		} catch {
 			return false;
@@ -135,9 +153,15 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async waitForRatingElements(): Promise<void> {
-		await this.waitForElement(this.reviewsSection, 10000);
-		await this.waitForElement(this.reviewsCountStat, 10000);
-		await this.waitForElement(this.reviewCards.first(), 10000);
+		await this.waitForElement(this.reviewsSection, TEST_CONFIG.pageLoadTimeout);
+		await this.waitForElement(
+			this.reviewsCountStat,
+			TEST_CONFIG.pageLoadTimeout,
+		);
+		await this.waitForElement(
+			this.reviewCards.first(),
+			TEST_CONFIG.pageLoadTimeout,
+		);
 	}
 
 	async isNoReviewsMessageVisible(): Promise<boolean> {
@@ -169,5 +193,20 @@ export class CourseDetailsPage extends BasePage {
 		await this.clickWithRetry(this.userRatingDeleteButton);
 		await this.waitForElement(this.deleteConfirmButton);
 		await this.clickWithRetry(this.deleteConfirmButton);
+	}
+
+	async waitForReviewsData(minReviews = 1): Promise<void> {
+		await this.waitForRatingElements();
+
+		await withRetry(async () => {
+			const reviewCardsCount = await this.getReviewCardsCount();
+			const reviewStatsCount = await this.getReviewsCount();
+
+			if (reviewCardsCount < minReviews || reviewStatsCount < minReviews) {
+				throw new Error(
+					`Waiting for reviews to load (cards: ${reviewCardsCount}, stats: ${reviewStatsCount})`,
+				);
+			}
+		}, TEST_CONFIG.maxRetries + 2);
 	}
 }

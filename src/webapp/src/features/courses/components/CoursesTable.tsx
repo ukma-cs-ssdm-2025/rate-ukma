@@ -1,14 +1,12 @@
 import {
 	type ComponentProps,
 	useCallback,
-	useDeferredValue,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	type ColumnDef,
@@ -25,7 +23,6 @@ import {
 	Loader2,
 	Maximize2,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
@@ -42,6 +39,7 @@ import {
 	useCoursesFilterOptionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
+import { useAuth } from "@/lib/auth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
@@ -50,19 +48,18 @@ import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
-import { CoursesEmptyState } from "./CoursesEmptyState";
 import { CoursesScatterPlot } from "./CoursesScatterPlot";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import {
-	DEFAULT_FILTERS,
-	type FilterState,
-	filterSchema,
-} from "../filterSchema";
+	type CourseFiltersParamsSetter,
+	type CourseFiltersParamsState,
+	courseFiltersStateToSearchParams,
+	DEFAULT_COURSE_FILTERS_PARAMS,
+} from "../courseFiltersParams";
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
 } from "../filterTransformations";
-import { filtersToSearchParams } from "../urlSync";
 
 interface PaginationInfo {
 	page: number;
@@ -127,10 +124,9 @@ function ScatterPlotPreviewCard({
 interface CoursesTableProps {
 	data: CourseList[];
 	isLoading: boolean;
-	onFiltersChange?: (filters: Record<string, unknown>) => void;
-	filtersKey: string;
+	params: CourseFiltersParamsState;
+	setParams: CourseFiltersParamsSetter;
 	pagination?: PaginationInfo;
-	initialFilters?: FilterState;
 }
 
 const SCATTER_COLLAPSE_STORAGE_KEY = "courses:scatter-open";
@@ -147,7 +143,7 @@ const columns: ColumnDef<CourseList>[] = [
 			const course = row.original;
 			const courseId = course.id;
 			return (
-				<span className="whitespace-normal break-words">
+				<span className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words">
 					{courseId ? (
 						<Link
 							to="/courses/$courseId"
@@ -161,7 +157,7 @@ const columns: ColumnDef<CourseList>[] = [
 						<span className="font-semibold text-sm md:text-base">
 							{course.title}
 						</span>
-					)}{" "}
+					)}
 					<CourseSpecialityBadges specialities={course.course_specialities} />
 				</span>
 			);
@@ -308,18 +304,22 @@ function DebouncedInput({
 export function CoursesTable({
 	data,
 	isLoading,
-	onFiltersChange,
-	filtersKey,
+	params,
+	setParams,
 	pagination: serverPagination,
-	initialFilters = DEFAULT_FILTERS,
 }: Readonly<CoursesTableProps>) {
 	const navigate = useNavigate({ from: "/" });
+	const { isStudent } = useAuth();
 
 	const [sorting, setSorting] = useState<SortingState>([]);
-	const [pagination, setPagination] = useState<PaginationState>({
-		pageIndex: serverPagination ? serverPagination.page - 1 : 0,
-		pageSize: serverPagination ? serverPagination.pageSize : 20,
-	});
+
+	const pagination = useMemo<PaginationState>(
+		() => ({
+			pageIndex: Math.max(0, params.page - 1),
+			pageSize: params.size,
+		}),
+		[params.page, params.size],
+	);
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
 	const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -332,7 +332,11 @@ export function CoursesTable({
 	const hasInitializedRef = useRef(false);
 	const fullscreenTimeoutRef = useRef<number | null>(null);
 
-	const { data: studentCourses } = useStudentsMeCoursesRetrieve();
+	const { data: studentCourses } = useStudentsMeCoursesRetrieve({
+		query: {
+			enabled: isStudent,
+		},
+	});
 
 	const attendedCourseIds = useMemo(() => {
 		if (!studentCourses) return new Set<string>();
@@ -350,6 +354,17 @@ export function CoursesTable({
 		[attendedCourseIds],
 	);
 
+	const handleRowClick = useCallback(
+		(course: CourseList) => {
+			if (!course.id) return;
+			navigate({
+				to: "/courses/$courseId",
+				params: { courseId: course.id },
+			});
+		},
+		[navigate],
+	);
+
 	const clearFullscreenTimeout = useCallback(() => {
 		const timeoutId = fullscreenTimeoutRef.current;
 		if (timeoutId === null) return;
@@ -358,22 +373,9 @@ export function CoursesTable({
 		fullscreenTimeoutRef.current = null;
 	}, []);
 
-	const form = useForm({
-		defaultValues: initialFilters,
-		resolver: zodResolver(filterSchema),
-		mode: "onChange",
-	});
-
-	const filters = form.watch();
-	const deferredFilters = useDeferredValue(filters);
-
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
-
-	useEffect(() => {
-		form.reset(initialFilters);
-	}, [form, initialFilters]);
 
 	useEffect(() => {
 		localStorageAdapter.setItem(
@@ -382,23 +384,18 @@ export function CoursesTable({
 		);
 	}, [isScatterPlotOpen]);
 
-	// Only initialize scatter plot state once on mount, don't reset on viewport changes
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only run once on mount
 	useEffect(() => {
 		if (hasInitializedRef.current) return;
 		hasInitializedRef.current = true;
 
-		if (!isDesktop) {
-			setIsScatterPlotOpen(true);
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+		if (!isDesktop) setIsScatterPlotOpen(true);
+	}, [isDesktop]);
 
 	const openExploreWithAnimation = useCallback(() => {
 		const runNavigation = () =>
 			navigate({
 				to: "/explore",
-				search: filtersToSearchParams(deferredFilters),
+				search: courseFiltersStateToSearchParams(params),
 			});
 
 		setIsScatterPlotOpen(true);
@@ -414,7 +411,7 @@ export function CoursesTable({
 			runNavigation,
 			FULLSCREEN_TRANSITION_DELAY_MS,
 		);
-	}, [clearFullscreenTimeout, deferredFilters, navigate]);
+	}, [clearFullscreenTimeout, navigate, params]);
 
 	useEffect(
 		() => () => {
@@ -430,23 +427,14 @@ export function CoursesTable({
 	}, [sorting]);
 
 	const apiFilters = useMemo(
-		() => transformFiltersToApiParams(deferredFilters),
-		[deferredFilters],
+		() => transformFiltersToApiParams(params),
+		[params],
 	);
 
 	const combinedFilters = useMemo(
 		() => ({ ...apiSorting, ...apiFilters }),
 		[apiSorting, apiFilters],
 	);
-
-	useEffect(() => {
-		if (serverPagination) {
-			setPagination({
-				pageIndex: serverPagination.page - 1,
-				pageSize: serverPagination.pageSize,
-			});
-		}
-	}, [serverPagination]);
 
 	const table = useReactTable({
 		data,
@@ -458,15 +446,12 @@ export function CoursesTable({
 			const newPagination =
 				typeof updater === "function" ? updater(pagination) : updater;
 
-			setPagination(newPagination);
-
-			if (onFiltersChange) {
-				onFiltersChange({
-					...combinedFilters,
-					page: newPagination.pageIndex + 1,
-					page_size: newPagination.pageSize,
-				});
-			}
+			const nextSize = newPagination.pageSize;
+			const nextPage = newPagination.pageIndex + 1;
+			setParams({
+				size: nextSize,
+				page: nextSize !== params.size ? 1 : nextPage,
+			});
 		},
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
@@ -477,71 +462,9 @@ export function CoursesTable({
 		pageCount: serverPagination ? serverPagination.totalPages : -1,
 	});
 
-	useEffect(() => {
-		if (filtersKey === undefined) {
-			return;
-		}
-
-		setPagination((previous) =>
-			previous.pageIndex === 0 ? previous : { ...previous, pageIndex: 0 },
-		);
-	}, [filtersKey]);
-
-	const previousFiltersRef = useRef<Record<string, unknown>>({});
-	const urlSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-	useEffect(() => {
-		if (urlSyncTimeoutRef.current) {
-			clearTimeout(urlSyncTimeoutRef.current);
-		}
-
-		urlSyncTimeoutRef.current = setTimeout(() => {
-			const searchParams = filtersToSearchParams(deferredFilters);
-			navigate({
-				search: searchParams,
-				replace: true,
-			});
-		}, 500);
-
-		return () => {
-			if (urlSyncTimeoutRef.current) {
-				clearTimeout(urlSyncTimeoutRef.current);
-			}
-		};
-	}, [deferredFilters, navigate]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: pagination is intentionally excluded to prevent circular updates
-	useEffect(() => {
-		const hasFiltersChanged =
-			JSON.stringify(combinedFilters) !==
-			JSON.stringify(previousFiltersRef.current);
-
-		if (hasFiltersChanged) {
-			if (pagination.pageIndex !== 0) {
-				setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-			}
-
-			const timeout = setTimeout(() => {
-				previousFiltersRef.current = combinedFilters;
-
-				const filtersWithPagination = {
-					...combinedFilters,
-					page: 1,
-					page_size: pagination.pageSize,
-				};
-
-				onFiltersChange?.(filtersWithPagination);
-			}, 500);
-
-			return () => clearTimeout(timeout);
-		}
-
-		return undefined;
-	}, [combinedFilters, onFiltersChange]);
-
 	const handleResetFilters = useCallback(() => {
-		form.reset(DEFAULT_FILTERS);
-	}, [form]);
+		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
+	}, [setParams]);
 
 	const toggleFiltersDrawer = useCallback(() => {
 		setIsFiltersDrawerOpen((prev) => !prev);
@@ -557,14 +480,10 @@ export function CoursesTable({
 
 	const isInitialLoading = !hasResolvedFirstFetch && isLoading;
 	const isPanelLoading = isInitialLoading || isFilterOptionsLoading;
-	const isEmptyState = !isLoading && data.length === 0;
 
 	const renderTableContent = () => {
 		if (isInitialLoading) {
 			return <DataTableSkeleton columnCount={4} withViewOptions={false} />;
-		}
-		if (isEmptyState) {
-			return <CoursesEmptyState />;
 		}
 		return (
 			<DataTable
@@ -572,6 +491,8 @@ export function CoursesTable({
 				totalRows={serverPagination?.total}
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}
+				onRowClick={handleRowClick}
+				emptyStateMessage="Курсів не знайдено за вашим запитом"
 				data-testid={testIds.courses.table}
 			/>
 		);
@@ -586,12 +507,10 @@ export function CoursesTable({
 							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 z-10 text-muted-foreground" />
 							<DebouncedInput
 								placeholder="Пошук курсів за назвою..."
-								value={filters.searchQuery as string}
-								onChange={(value) =>
-									form.setValue("searchQuery", value as string, {
-										shouldDirty: true,
-									})
-								}
+								value={params.q}
+								onChange={(value) => {
+									setParams({ q: String(value), page: 1 });
+								}}
 								className="pl-10 h-12 text-base"
 								disabled={isInitialLoading}
 								isLoading={isLoading}
@@ -654,7 +573,8 @@ export function CoursesTable({
 
 				<div className="hidden lg:block w-80 shrink-0">
 					<CourseFiltersPanel
-						form={form}
+						params={params}
+						setParams={setParams}
 						filterOptions={filterOptions}
 						onReset={handleResetFilters}
 						isLoading={isPanelLoading}
@@ -680,7 +600,8 @@ export function CoursesTable({
 				closeButtonLabel="Закрити фільтри"
 			>
 				<CourseFiltersDrawer
-					form={form}
+					params={params}
+					setParams={setParams}
 					filterOptions={filterOptions}
 					onReset={handleResetFilters}
 					isLoading={isPanelLoading}

@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, cast
@@ -123,11 +124,14 @@ class RatingService(IObservable[Rating]):
         if rating_exists:
             raise DuplicateRatingException()
 
+        params.comment = self._normalize_comment(params.comment)
+
         rating = self.rating_repository.create(params)
         self.notify(rating)
         return rating
 
     def update_rating(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams):
+        update_data.comment = self._normalize_comment(update_data.comment)
         updated_rating = self.rating_repository.update(rating, update_data)
         self.notify(updated_rating)
         return updated_rating
@@ -232,3 +236,20 @@ class RatingService(IObservable[Rating]):
             page_size=ratings_count,
             total_pages=1,
         )
+
+    @staticmethod
+    def _normalize_comment(comment: str | None) -> str | None:
+        if not comment or comment == "":
+            return comment
+
+        # normalize line breaks
+        comment = comment.replace("\r\n", "\n").replace("\r", "\n")
+
+        # collapse 4+ newlines into exactly 3
+        comment = re.sub(r"\n{4,}", "\n\n\n", comment)
+
+        # strip trailing spaces on each line
+        lines = [line.rstrip() for line in comment.split("\n")]
+        comment = "\n".join(lines).strip()
+
+        return comment
