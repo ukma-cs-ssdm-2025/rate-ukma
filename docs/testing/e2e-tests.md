@@ -4,7 +4,7 @@
 
 Playwright E2E tests exist to validate critical user journeys in a browser with production-like behavior.
 
-In this project we do **not** have a seeded database for E2E, so tests must be written to tolerate real, changing data.
+In this project we do **not** have a seeded database for E2E for now, since seeding adds too much complexity. Tests must be written to tolerate real, changing data.
 
 ## What belongs in E2E
 
