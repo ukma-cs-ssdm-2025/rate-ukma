@@ -1,15 +1,14 @@
-import type { Locator, Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { BasePage } from "../framework/base-page";
-import { TEST_CONFIG } from "../framework/test-config";
 
-export class MyRatingsPage extends BasePage {
+export class MyRatingsPage {
+	private readonly page: Page;
 	private readonly activeLeaveReviewLinks: Locator;
 	private readonly courseDetailsPagePattern: RegExp;
 
 	constructor(page: Page) {
-		super(page);
+		this.page = page;
 		this.activeLeaveReviewLinks = this.page
 			.getByTestId(testIds.myRatings.list)
 			.getByTestId(testIds.myRatings.leaveReviewLink);
@@ -17,21 +16,16 @@ export class MyRatingsPage extends BasePage {
 	}
 
 	async goto(): Promise<void> {
-		await this.page.goto(`${TEST_CONFIG.baseUrl}/my-ratings`);
-		await this.waitForPageLoad();
+		await this.page.goto("/my-ratings");
 	}
 
 	async openFirstCourseToRate(): Promise<void> {
 		const enabledAction = this.activeLeaveReviewLinks.first();
-		await this.waitForElement(enabledAction);
+		await expect(enabledAction).toBeVisible();
 
 		await Promise.all([
-			this.page.waitForURL(this.courseDetailsPagePattern, {
-				timeout: TEST_CONFIG.timeoutMs,
-			}),
-			this.clickWithRetry(enabledAction),
+			this.page.waitForURL(this.courseDetailsPagePattern),
+			enabledAction.click(),
 		]);
-
-		await this.waitForPageLoad();
 	}
 }

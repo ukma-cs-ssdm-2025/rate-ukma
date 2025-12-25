@@ -36,13 +36,14 @@ test.describe("Courses navigation", () => {
 		expect(getSearchParam(page, "q")).toBe(TEST_QUERIES.common);
 
 		const nextButton = page.getByTestId(testIds.common.paginationNext);
-		if (await nextButton.isDisabled()) {
-			test.skip(true, "Pagination is not available (single page of results)");
-		}
+		const canPaginate = !(await nextButton.isDisabled());
 
-		await coursesPage.goToNextPage();
-		const urlPage2 = page.url();
-		expect(getSearchParam(page, "page")).toBe("2");
+		let urlPage2 = "";
+		if (canPaginate) {
+			await coursesPage.goToNextPage();
+			urlPage2 = page.url();
+			expect(getSearchParam(page, "page")).toBe("2");
+		}
 
 		await page.goBack();
 		await coursesPage.waitForTableReady();
@@ -59,9 +60,11 @@ test.describe("Courses navigation", () => {
 			TEST_QUERIES.common,
 		);
 
-		await page.goForward();
-		await coursesPage.waitForTableReady();
-		expect(page.url()).toBe(urlPage2);
-		expect(getSearchParam(page, "page")).toBe("2");
+		if (canPaginate) {
+			await page.goForward();
+			await coursesPage.waitForTableReady();
+			expect(page.url()).toBe(urlPage2);
+			expect(getSearchParam(page, "page")).toBe("2");
+		}
 	});
 });

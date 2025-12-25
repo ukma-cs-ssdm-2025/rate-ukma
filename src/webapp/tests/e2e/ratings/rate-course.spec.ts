@@ -1,8 +1,8 @@
 import { expect, type Locator, test } from "@playwright/test";
 
+import { testIds } from "@/lib/test-ids";
 import { MyRatingsPage } from "./my-ratings.page";
 import { CourseDetailsPage } from "../courses/course-details.page";
-import { waitForPageReady } from "../framework/common";
 import { createTestRatingData } from "../framework/test-config";
 import { RatingModal } from "../shared/rating-modal.component";
 
@@ -19,10 +19,12 @@ test.describe("Rating modal functionality", () => {
 		await myRatingsPage.goto();
 		await myRatingsPage.openFirstCourseToRate();
 
-		await waitForPageReady(page);
+		await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();
 	});
 
-	test("rating modal submission and deletion afterwards", async () => {
+	test("rating modal submission and deletion afterwards @smoke", async ({
+		page,
+	}) => {
 		let createdRating = false;
 		let comment = "";
 		let reviewCard: Locator | undefined;
@@ -31,8 +33,8 @@ test.describe("Rating modal functionality", () => {
 		try {
 			expect(await coursePage.isRateButtonVisible()).toBe(true);
 			await coursePage.clickRateButton();
-			expect(await ratingModal.isVisible()).toBe(true);
-			expect(await ratingModal.isTitleVisible()).toBe(true);
+			await expect(page.getByTestId(testIds.rating.modal)).toBeVisible();
+			await expect(page.getByTestId(testIds.rating.modalTitle)).toBeVisible();
 
 			comment = `e2e:${test.info().title}:${String(Date.now())}`;
 			const testData = createTestRatingData({ comment });

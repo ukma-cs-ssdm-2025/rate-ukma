@@ -3,7 +3,6 @@ import { expect, test } from "@playwright/test";
 import { testIds } from "@/lib/test-ids";
 import { CoursesPage } from "./courses.page";
 import { TEST_QUERIES } from "./fixtures/courses";
-import { TEST_CONFIG } from "../framework/test-config";
 import { getSearchParam } from "../shared/url-assertions";
 
 test.describe("Courses integration", () => {
@@ -29,20 +28,12 @@ test.describe("Courses integration", () => {
 			}
 
 			await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2);
-			await expect
-				.poll(() => getSearchParam(page, "diff"), {
-					timeout: TEST_CONFIG.timeoutMs,
-				})
-				.not.toBe("");
+			await expect.poll(() => getSearchParam(page, "diff")).not.toBe("");
 		});
 
 		await test.step("sort by usefulness", async () => {
 			await coursesPage.sortByUsefulness();
-			await expect
-				.poll(() => getSearchParam(page, "useOrder"), {
-					timeout: TEST_CONFIG.timeoutMs,
-				})
-				.toBe("desc");
+			await expect.poll(() => getSearchParam(page, "useOrder")).toBe("desc");
 		});
 
 		await test.step("paginate", async () => {

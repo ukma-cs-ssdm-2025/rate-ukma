@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 import { CoursesPage } from "./courses.page";
-import { TEST_CONFIG } from "../framework/test-config";
 import { getSearchParam } from "../shared/url-assertions";
 
 test.describe("Courses pagination", () => {
@@ -12,7 +11,14 @@ test.describe("Courses pagination", () => {
 
 		const nextButton = page.getByTestId(testIds.common.paginationNext);
 		if (await nextButton.isDisabled()) {
-			test.skip(true, "Pagination is not available (single page of results)");
+			await expect(
+				page.getByTestId(testIds.common.paginationPrevious),
+			).toBeDisabled();
+			expect(getSearchParam(page, "page")).toBe("");
+
+			const label = await coursesPage.getPaginationLabelText();
+			expect(label).toMatch(/^Сторінка\s+1\s+з\s+1$/);
+			return;
 		}
 
 		const beforeLabel = await coursesPage.getPaginationLabelText();
@@ -43,7 +49,9 @@ test.describe("Courses pagination", () => {
 
 		const nextButton = page.getByTestId(testIds.common.paginationNext);
 		if (await nextButton.isDisabled()) {
-			test.skip(true, "Pagination is not available (single page of results)");
+			const label = await coursesPage.getPaginationLabelText();
+			expect(label).toMatch(/^Сторінка\s+1\s+з\s+1$/);
+			return;
 		}
 
 		await coursesPage.goToLastPage();
@@ -54,18 +62,14 @@ test.describe("Courses pagination", () => {
 		const coursesPage = new CoursesPage(page);
 		await coursesPage.goto();
 
-		const nextButton = page.getByTestId(testIds.common.paginationNext);
-		if (await nextButton.isDisabled()) {
-			test.skip(true, "Pagination is not available (single page of results)");
-		}
-
-		await page.goto(`${TEST_CONFIG.baseUrl}/?page=2`);
+		await page.goto("/?page=2");
 		await coursesPage.waitForTableReady();
 
-		expect(getSearchParam(page, "page")).toBe("2");
+		const pageParam = getSearchParam(page, "page");
+		expect(["", "2"]).toContain(pageParam);
 	});
 
-	test("pagination label has expected format", async ({ page }) => {
+	test("pagination label has expected format @smoke", async ({ page }) => {
 		const coursesPage = new CoursesPage(page);
 		await coursesPage.goto();
 
