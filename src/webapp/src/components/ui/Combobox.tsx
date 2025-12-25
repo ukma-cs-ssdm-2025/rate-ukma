@@ -91,10 +91,11 @@ function Combobox({
 					"w-(--radix-popover-trigger-width) p-0 h-fit",
 					contentClassName,
 				)}
+				data-testid={testId ? `${testId}-content` : undefined}
 			>
 				<Command className="overflow-hidden rounded-md border-0">
 					<CommandInput placeholder={searchPlaceholder} />
-					<CommandList>
+					<CommandList data-testid={testId ? `${testId}-list` : undefined}>
 						<CommandEmpty>{emptyText}</CommandEmpty>
 						<CommandGroup>
 							{options.map((option) => (

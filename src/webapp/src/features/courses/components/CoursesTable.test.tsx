@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { testIds } from "@/lib/test-ids";
 import {
 	createMockCourse,
 	createMockFilterOptions,
@@ -633,5 +634,75 @@ describe("Course Row Navigation", () => {
 
 		expect(mockNavigate).not.toHaveBeenCalled();
 		getSelectionSpy.mockRestore();
+	});
+});
+
+describe("Sorting", () => {
+	it("should sort by difficulty ascending on first click", async () => {
+		const user = userEvent.setup();
+		const setParams = vi.fn();
+		const pagination = {
+			page: 3,
+			pageSize: 10,
+			total: 100,
+			totalPages: 10,
+		};
+		const courses = Array.from({ length: 10 }, () => createMockCourse());
+
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				data={courses}
+				pagination={pagination}
+				params={{ ...defaultParams, page: 3 }}
+				setParams={setParams}
+			/>,
+		);
+
+		const sortButton = screen.getByTestId(
+			testIds.courses.difficultySortButtonDesktop,
+		);
+
+		await user.click(sortButton);
+
+		expect(setParams).toHaveBeenCalledWith({
+			diffOrder: "asc",
+			useOrder: null,
+			page: 1,
+		});
+	});
+
+	it("should sort by usefulness descending on first click", async () => {
+		const user = userEvent.setup();
+		const setParams = vi.fn();
+		const pagination = {
+			page: 2,
+			pageSize: 10,
+			total: 100,
+			totalPages: 10,
+		};
+		const courses = Array.from({ length: 10 }, () => createMockCourse());
+
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				data={courses}
+				pagination={pagination}
+				params={{ ...defaultParams, page: 2 }}
+				setParams={setParams}
+			/>,
+		);
+
+		const sortButton = screen.getByTestId(
+			testIds.courses.usefulnessSortButtonDesktop,
+		);
+
+		await user.click(sortButton);
+
+		expect(setParams).toHaveBeenCalledWith({
+			diffOrder: null,
+			useOrder: "desc",
+			page: 1,
+		});
 	});
 });

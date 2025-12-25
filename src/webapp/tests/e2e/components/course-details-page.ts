@@ -17,7 +17,6 @@ export class CourseDetailsPage extends BasePage {
 	// Reviews section
 	private readonly reviewsSection: Locator;
 	private readonly reviewCards: Locator;
-	private readonly userRatingCard: Locator;
 	private readonly userRatingDeleteButton: Locator;
 	private readonly deleteConfirmButton: Locator;
 
@@ -45,12 +44,7 @@ export class CourseDetailsPage extends BasePage {
 
 		this.reviewCards = page.getByTestId(testIds.courseDetails.reviewCard);
 
-		this.userRatingCard = page.locator("article").filter({
-			hasText: "Ваша оцінка",
-		});
-		this.userRatingDeleteButton = this.userRatingCard.getByTestId(
-			testIds.rating.deleteButton,
-		);
+		this.userRatingDeleteButton = page.getByTestId(testIds.rating.deleteButton);
 		this.deleteConfirmButton = page.getByTestId(
 			testIds.deleteDialog.confirmButton,
 		);
@@ -72,15 +66,11 @@ export class CourseDetailsPage extends BasePage {
 		await this.waitForPageLoad();
 	}
 
-	async waitForTitle(
-		timeout: number = TEST_CONFIG.pageLoadTimeout,
-	): Promise<void> {
+	async waitForTitle(timeout: number = TEST_CONFIG.timeoutMs): Promise<void> {
 		await this.waitForElement(this.pageTitle, timeout);
 	}
 
-	async waitForStats(
-		timeout: number = TEST_CONFIG.pageLoadTimeout,
-	): Promise<void> {
+	async waitForStats(timeout: number = TEST_CONFIG.timeoutMs): Promise<void> {
 		await this.waitForElement(this.statsCardsContainer, timeout);
 		await this.waitForElement(this.reviewsCountStat, timeout);
 	}
@@ -90,13 +80,10 @@ export class CourseDetailsPage extends BasePage {
 			await withRetry(
 				async () => {
 					await this.page.waitForURL(this.courseDetailsUrlPattern, {
-						timeout: TEST_CONFIG.pageLoadTimeout,
+						timeout: TEST_CONFIG.timeoutMs,
 					});
-					await this.waitForPageLoad(TEST_CONFIG.pageLoadTimeout);
-					await this.waitForElement(
-						this.pageTitle,
-						TEST_CONFIG.pageLoadTimeout,
-					);
+					await this.waitForPageLoad(TEST_CONFIG.timeoutMs);
+					await this.waitForElement(this.pageTitle, TEST_CONFIG.timeoutMs);
 				},
 				TEST_CONFIG.maxRetries,
 				TEST_CONFIG.retryDelay,
@@ -109,7 +96,7 @@ export class CourseDetailsPage extends BasePage {
 
 	async isRateButtonVisible(): Promise<boolean> {
 		try {
-			await this.waitForElement(this.rateButton, 15000);
+			await this.waitForElement(this.rateButton, TEST_CONFIG.timeoutMs);
 			return true;
 		} catch {
 			return false;
@@ -165,15 +152,9 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async waitForRatingElements(): Promise<void> {
-		await this.waitForElement(this.reviewsSection, TEST_CONFIG.pageLoadTimeout);
-		await this.waitForElement(
-			this.reviewsCountStat,
-			TEST_CONFIG.pageLoadTimeout,
-		);
-		await this.waitForElement(
-			this.reviewCards.first(),
-			TEST_CONFIG.pageLoadTimeout,
-		);
+		await this.waitForElement(this.reviewsSection, TEST_CONFIG.timeoutMs);
+		await this.waitForElement(this.reviewsCountStat, TEST_CONFIG.timeoutMs);
+		await this.waitForElement(this.reviewCards.first(), TEST_CONFIG.timeoutMs);
 	}
 
 	async isNoReviewsMessageVisible(): Promise<boolean> {

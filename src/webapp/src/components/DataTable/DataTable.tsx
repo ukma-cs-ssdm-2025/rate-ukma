@@ -103,6 +103,7 @@ interface DataTableProps<TData> extends ComponentProps<"div"> {
 	totalRows?: number;
 	serverPageCount?: number;
 	emptyStateMessage: string;
+	emptyStateTestId?: string;
 	onRowClick?: (row: TData) => void;
 	isRowHighlighted?: (row: TData) => boolean;
 }
@@ -115,10 +116,15 @@ export function DataTable<TData>({
 	totalRows,
 	serverPageCount,
 	emptyStateMessage,
+	emptyStateTestId,
 	onRowClick,
 	isRowHighlighted,
 	...props
 }: Readonly<DataTableProps<TData>>) {
+	const tableTestId =
+		typeof props["data-testid"] === "string" ? props["data-testid"] : undefined;
+	const rowTestId = tableTestId ? `${tableTestId}-row` : undefined;
+
 	return (
 		<div
 			className={cn("flex w-full flex-col gap-2.5 overflow-auto", className)}
@@ -157,6 +163,7 @@ export function DataTable<TData>({
 								return (
 									<TableRow
 										key={row.id}
+										data-testid={rowTestId}
 										data-state={row.getIsSelected() && "selected"}
 										data-highlighted={highlighted ? true : undefined}
 										data-clickable={onRowClick ? true : undefined}
@@ -194,6 +201,7 @@ export function DataTable<TData>({
 								<TableCell
 									colSpan={table.getAllColumns().length}
 									className="h-24 text-center"
+									data-testid={emptyStateTestId}
 								>
 									{emptyStateMessage}
 								</TableCell>
