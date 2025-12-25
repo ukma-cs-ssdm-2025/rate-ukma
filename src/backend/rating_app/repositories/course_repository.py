@@ -14,6 +14,7 @@ from rating_app.application_schemas.course import (
     CourseSpeciality,
 )
 from rating_app.exception.course_exceptions import (
+    CourseMissingDepartmentOrFacultyError,
     CourseNotFoundError,
     InvalidCourseIdentifierError,
 )
@@ -220,11 +221,20 @@ class CourseRepository(IRepository[CourseDTO]):
 
     def _map_to_domain_model(self, model: Course) -> CourseDTO:
         department = model.department
+        faculty = department.faculty if department else None
+
+        if not department or not faculty:
+            logger.warning(
+                "course_missing_department_or_faculty",
+                course_id=str(model.id),
+            )
+            raise CourseMissingDepartmentOrFacultyError(str(model.id))
+
         department_id = str(department.id)
-        faculty_obj = department.faculty if department else None
-        faculty_id = str(faculty_obj.id) if faculty_obj else ""
-        faculty_name = faculty_obj.name if faculty_obj else ""
-        faculty_custom_abbreviation = faculty_obj.custom_abbreviation if faculty_obj else None
+        department_name = department.name
+        faculty_id = str(faculty.id)
+        faculty_name = faculty.name
+        faculty_custom_abbreviation = faculty.custom_abbreviation
         status = model.status
         status = CourseStatus(status) if status in CourseStatus.values else CourseStatus.PLANNED
         specialities = self._prefetched_course_specialities_to_domain_models(model)
@@ -235,7 +245,7 @@ class CourseRepository(IRepository[CourseDTO]):
             description=model.description,
             status=status,
             department=department_id,
-            department_name=department.name if department else "",
+            department_name=department_name,
             faculty=faculty_id,
             faculty_name=faculty_name,
             faculty_custom_abbreviation=faculty_custom_abbreviation,
