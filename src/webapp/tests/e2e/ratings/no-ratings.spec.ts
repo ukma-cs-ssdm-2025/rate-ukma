@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-import { TEST_CONFIG } from "../framework/test-config";
 import { CourseDetailsPage } from "../courses/course-details.page";
 import { CoursesPage } from "../courses/courses.page";
+import { TEST_CONFIG } from "../framework/test-config";
 
 test.describe("No ratings are displayed correctly", () => {
 	let coursesPage: CoursesPage;
