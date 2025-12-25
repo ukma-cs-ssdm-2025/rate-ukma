@@ -190,10 +190,13 @@ describe("Search Filter", () => {
 		);
 		await user.type(searchInput, "Database");
 
-		await new Promise((resolve) => setTimeout(resolve, 350));
-
-		expect(defaultSetParams).toHaveBeenCalledWith(
-			expect.objectContaining({ q: "Database", page: 1 }),
+		await waitFor(
+			() => {
+				expect(defaultSetParams).toHaveBeenCalledWith(
+					expect.objectContaining({ q: "Database", page: 1 }),
+				);
+			},
+			{ timeout: 2000 },
 		);
 	});
 
@@ -288,10 +291,13 @@ describe("Pagination", () => {
 		);
 		await user.type(searchInput, "Test");
 
-		await new Promise((resolve) => setTimeout(resolve, 350));
-
-		expect(setParams).toHaveBeenCalledWith(
-			expect.objectContaining({ q: "Test", page: 1 }),
+		await waitFor(
+			() => {
+				expect(setParams).toHaveBeenCalledWith(
+					expect.objectContaining({ q: "Test", page: 1 }),
+				);
+			},
+			{ timeout: 2000 },
 		);
 	});
 });

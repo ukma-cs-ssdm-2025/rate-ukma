@@ -1,11 +1,9 @@
-import type { Locator, Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { BasePage } from "../framework/base-page";
-import { withRetry } from "../framework/common";
-import { TEST_CONFIG } from "../framework/test-config";
 
-export class CourseDetailsPage extends BasePage {
+export class CourseDetailsPage {
+	private readonly page: Page;
 	// Main
 	private readonly pageTitle: Locator;
 	private readonly rateButton: Locator;
@@ -26,7 +24,7 @@ export class CourseDetailsPage extends BasePage {
 	private readonly courseDetailsUrlPattern: RegExp;
 
 	constructor(page: Page) {
-		super(page);
+		this.page = page;
 
 		this.pageTitle = page.getByTestId(testIds.courseDetails.title);
 		this.rateButton = page.getByTestId(testIds.courseDetails.rateButton);
@@ -62,144 +60,96 @@ export class CourseDetailsPage extends BasePage {
 	}
 
 	async goto(courseId: string): Promise<void> {
-		await this.page.goto(`${TEST_CONFIG.baseUrl}/courses/${courseId}`);
-		await this.waitForPageLoad();
-	}
-
-	async waitForTitle(timeout: number = TEST_CONFIG.timeoutMs): Promise<void> {
-		await this.waitForElement(this.pageTitle, timeout);
-	}
-
-	async waitForStats(timeout: number = TEST_CONFIG.timeoutMs): Promise<void> {
-		await this.waitForElement(this.statsCardsContainer, timeout);
-		await this.waitForElement(this.reviewsCountStat, timeout);
+		await this.page.goto(`/courses/${courseId}`);
 	}
 
 	async isPageLoaded(): Promise<boolean> {
-		try {
-			await withRetry(
-				async () => {
-					await this.page.waitForURL(this.courseDetailsUrlPattern, {
-						timeout: TEST_CONFIG.timeoutMs,
-					});
-					await this.waitForPageLoad(TEST_CONFIG.timeoutMs);
-					await this.waitForElement(this.pageTitle, TEST_CONFIG.timeoutMs);
-				},
-				TEST_CONFIG.maxRetries,
-				TEST_CONFIG.retryDelay,
-			);
-			return true;
-		} catch {
-			return false;
-		}
+		let loaded = false;
+		await expect
+			.poll(async () => {
+				const urlOk = this.courseDetailsUrlPattern.test(this.page.url());
+				const titleVisible = await this.pageTitle.isVisible();
+				loaded = urlOk && titleVisible;
+				return loaded;
+			})
+			.toBe(true);
+		return loaded;
 	}
 
 	async isRateButtonVisible(): Promise<boolean> {
-		try {
-			await this.waitForElement(this.rateButton, TEST_CONFIG.timeoutMs);
-			return true;
-		} catch {
-			return false;
-		}
+		return await this.rateButton.isVisible();
 	}
 
 	async clickRateButton(): Promise<void> {
-		await this.waitForElement(this.rateButton);
-		await this.clickWithRetry(this.rateButton);
+		await expect(this.rateButton).toBeVisible();
+		await this.rateButton.click();
 	}
 
 	async hasStatsData(): Promise<boolean> {
-		await this.waitForElement(this.statsCardsContainer);
-		try {
-			const spans = this.statsCardsContainer.locator("span");
+		await expect(this.statsCardsContainer).toBeVisible();
 
-			const values = await spans.evaluateAll((nodes) => {
-				return nodes
-					.map((n) => n.textContent?.trim() ?? "")
-					.map((t) => Number(t))
-					.filter((n) => !Number.isNaN(n));
-			});
+		const spans = this.statsCardsContainer.locator("span");
+		const texts = await spans.allTextContents();
+		const values = texts
+			.map((t) => Number(t.trim()))
+			.filter((n) => !Number.isNaN(n));
 
-			// 1 ≤ n ≤ 5
-			const ratings = values.filter((n) => n >= 1 && n <= 5);
+		// 1 ≤ n ≤ 5
+		const ratings = values.filter((n) => n >= 1 && n <= 5);
 
-			return ratings.length >= 2;
-		} catch {
-			return false;
-		}
+		return ratings.length >= 2;
 	}
 
 	async getReviewsCount(): Promise<number> {
 		const countElement = this.reviewsCountStat.locator("span").filter({
 			hasText: /\d+/,
 		});
-		const countText = await this.getTextContent(countElement);
+		const countText = (await countElement.textContent())?.trim() ?? "";
 		const match = countText.match(/\d+/);
 		return match ? Number(match[0]) : 0;
 	}
 
 	async isReviewsSectionVisible(): Promise<boolean> {
-		try {
-			await this.waitForElement(this.reviewsSection);
-			return true;
-		} catch {
-			return false;
-		}
+		return await this.reviewsSection.isVisible();
 	}
 
 	async getReviewCardsCount(): Promise<number> {
 		return await this.reviewCards.count();
 	}
 
-	async waitForRatingElements(): Promise<void> {
-		await this.waitForElement(this.reviewsSection, TEST_CONFIG.timeoutMs);
-		await this.waitForElement(this.reviewsCountStat, TEST_CONFIG.timeoutMs);
-		await this.waitForElement(this.reviewCards.first(), TEST_CONFIG.timeoutMs);
-	}
-
 	async isNoReviewsMessageVisible(): Promise<boolean> {
-		try {
-			await this.waitForElement(this.noReviewsMessage, 3000);
-			return true;
-		} catch {
-			return false;
-		}
+		return await this.noReviewsMessage.isVisible();
 	}
 
 	async getInsufficientDataMessagesCount(): Promise<number> {
-		try {
-			await this.waitForElement(this.statsCardsContainer);
-			return await this.insufficientDataMessages.count();
-		} catch {
+		if (!(await this.statsCardsContainer.isVisible())) {
 			return 0;
 		}
+		return await this.insufficientDataMessages.count();
 	}
 
 	async findReviewCardByText(text: string): Promise<Locator> {
 		const reviewCard = this.reviewCards.filter({ hasText: text });
-		await this.waitForElement(reviewCard);
+		await expect(reviewCard).toBeVisible();
 		return reviewCard;
 	}
 
 	async deleteUserRating(): Promise<void> {
-		await this.waitForElement(this.userRatingDeleteButton);
-		await this.clickWithRetry(this.userRatingDeleteButton);
-		await this.waitForElement(this.deleteConfirmButton);
-		await this.clickWithRetry(this.deleteConfirmButton);
+		await expect(this.userRatingDeleteButton).toBeVisible();
+		await this.userRatingDeleteButton.click();
+		await expect(this.deleteConfirmButton).toBeVisible();
+		await this.deleteConfirmButton.click();
 	}
 
 	async waitForReviewsData(minReviews = 1): Promise<void> {
-		await this.waitForRatingElements();
+		await expect(this.reviewsSection).toBeVisible();
+		await expect(this.reviewsCountStat).toBeVisible();
 
-		await withRetry(async () => {
-			const reviewCardsCount = await this.getReviewCardsCount();
-			const reviewStatsCount = await this.getReviewsCount();
-
-			if (reviewCardsCount < minReviews || reviewStatsCount < minReviews) {
-				throw new Error(
-					`Waiting for reviews to load (cards: ${reviewCardsCount}, stats: ${reviewStatsCount})`,
-				);
-			}
-		}, TEST_CONFIG.maxRetries + 2);
+		await expect
+			.poll(async () => await this.getReviewCardsCount())
+			.toBeGreaterThanOrEqual(minReviews);
+		await expect
+			.poll(async () => await this.getReviewsCount())
+			.toBeGreaterThanOrEqual(minReviews);
 	}
 }

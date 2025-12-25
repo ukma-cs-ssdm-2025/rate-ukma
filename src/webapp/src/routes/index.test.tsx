@@ -60,7 +60,7 @@ describe("CoursesRoute", () => {
 			isFetching: false,
 			isError: true,
 			refetch,
-		});
+		} as unknown as ReturnType<typeof useCoursesList>);
 
 		render(<CoursesRoute />);
 
@@ -89,7 +89,7 @@ describe("CoursesRoute", () => {
 			isFetching: false,
 			isError: false,
 			refetch: vi.fn(),
-		});
+		} as unknown as ReturnType<typeof useCoursesList>);
 
 		render(<CoursesRoute />);
 

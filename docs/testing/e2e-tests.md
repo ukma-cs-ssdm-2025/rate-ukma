@@ -24,12 +24,21 @@ In this project we do **not** have a seeded database for E2E for now, since seed
 - Avoid hard assertions about exact counts or specific records existing.
   - Prefer: “query param updated”, “UI didn’t crash”, “either results or empty state is shown”.
 - Generate unique test artifacts when writing data (e.g. unique comment text) and always attempt cleanup.
-- If a test requires a precondition that may not exist in real data, prefer making the test self-contained (create the thing), otherwise `test.skip` with a clear reason.
+- If a test requires a precondition that may not exist in real data, prefer making the test self-contained (create the thing).
+- If a precondition cannot be created reliably, write assertions that handle both cases (avoid conditional skips in the main suite).
 
 ## Selector rules
 
-- Prefer stable `data-testid` selectors via `src/webapp/src/lib/test-ids.ts`.
-- Avoid brittle selectors (DOM structure, Radix internal attributes, localized text matching when possible).
+**Selector priority** (prefer top → bottom)
+
+1. In-app elements: `page.getByTestId(testIds.<feature>.<key>)` using `src/webapp/src/lib/test-ids.ts`
+2. Generic/external flows (Microsoft login, dialogs): `page.getByRole(...)`
+3. `getByText(...)` only if the text is stable and intentional
+
+Avoid brittle selectors:
+- DOM structure and CSS classes
+- Radix internal attributes
+- Localized text matching when it’s not the behavior under test
 
 ## Test structure
 
@@ -46,6 +55,14 @@ Playwright projects:
 
 - `login` – performs Microsoft login and writes `playwright/.auth/microsoft.json`
 - `chromium-auth` – runs authenticated tests using the stored session state
+
+## Writing new E2E tests (short)
+
+- Place specs in `src/webapp/tests/e2e/<feature>/` and name them `*.spec.ts`.
+- Prefer existing page objects/components before adding new helpers.
+- Use stable selectors (`testIds`) and assert behavior (URL/search params, user-visible state) over implementation details.
+- Avoid conditional skips; write assertions that are valid across real, changing data.
+- If a test creates data (e.g. rating), generate a unique marker and attempt cleanup.
 
 ## Running E2E tests locally
 
@@ -77,6 +94,18 @@ pnpm -C src/webapp test:e2e -- --headed
 
 # run only authenticated project
 pnpm -C src/webapp test:e2e -- --project=chromium-auth
+```
+
+### Running subsets (tags)
+
+We tag Playwright tests by including tags like `@smoke` in the test title.
+
+```bash
+# run smoke tests only
+pnpm -C src/webapp test:e2e -- --grep @smoke
+
+# exclude known-flaky tests (if we ever add @flaky)
+pnpm -C src/webapp test:e2e -- --grep-invert @flaky
 ```
 
 ## When to add Vitest tests instead

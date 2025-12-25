@@ -98,6 +98,7 @@ function getAlignmentClass<TData, TValue>(
 }
 
 interface DataTableProps<TData> extends ComponentProps<"div"> {
+	"data-testid"?: string;
 	table: TanstackTable<TData>;
 	actionBar?: ReactNode;
 	totalRows?: number;
@@ -119,15 +120,15 @@ export function DataTable<TData>({
 	emptyStateTestId,
 	onRowClick,
 	isRowHighlighted,
+	"data-testid": tableTestId,
 	...props
 }: Readonly<DataTableProps<TData>>) {
-	const tableTestId =
-		typeof props["data-testid"] === "string" ? props["data-testid"] : undefined;
 	const rowTestId = tableTestId ? `${tableTestId}-row` : undefined;
 
 	return (
 		<div
 			className={cn("flex w-full flex-col gap-2.5 overflow-auto", className)}
+			data-testid={tableTestId}
 			{...props}
 		>
 			{children}

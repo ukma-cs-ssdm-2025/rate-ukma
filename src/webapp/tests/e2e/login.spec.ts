@@ -21,7 +21,7 @@ test.describe("Microsoft Login Page", () => {
 		await expect(page).toHaveURL(BASE_URL_PATTERN);
 	});
 
-	test("login with Microsoft account", async ({ page, context }) => {
+	test("login with Microsoft account @smoke", async ({ page, context }) => {
 		if (!CORPORATE_EMAIL || !CORPORATE_PASSWORD) {
 			throw new Error("CORPORATE_EMAIL and CORPORATE_PASSWORD must be set");
 		}
@@ -29,37 +29,47 @@ test.describe("Microsoft Login Page", () => {
 		await page.getByTestId(testIds.login.microsoftButton).click();
 
 		// input email
-		await page.waitForURL(MICROSOFT_LOGIN_PAGE_PATTERN, { timeout: 30000 });
-		await page.waitForSelector('input[type="email"]', { timeout: 20000 });
+		await page.waitForURL(MICROSOFT_LOGIN_PAGE_PATTERN);
+		await page.waitForSelector('input[type="email"]');
 		await page.fill('input[type="email"]', CORPORATE_EMAIL);
 		await page.getByRole("button", { name: "Next" }).click();
 
 		// input password
-		await page.waitForSelector('input[type="password"]', { timeout: 20000 });
+		await page.waitForSelector('input[type="password"]');
 		await page.fill('input[type="password"]', CORPORATE_PASSWORD);
 		await page.getByRole("button", { name: "Sign in" }).click();
 
 		// optional "Stay signed in?" prompt
 		await maybeConfirmStaySignedIn(page);
 
-		await page.waitForURL(BASE_URL_PATTERN, {
-			timeout: 60000,
-			waitUntil: "load",
-		});
+		await page.waitForURL(BASE_URL_PATTERN, { waitUntil: "load" });
 
-		await expect(page.getByTestId(testIds.courses.table)).toBeVisible({
-			timeout: 30000,
-		});
+		await expect(page.getByTestId(testIds.courses.table)).toBeVisible();
 
 		const filtersPanel = page.getByTestId(testIds.filters.panel);
 		const filtersDrawerTrigger = page.getByTestId(
 			testIds.filters.drawerTrigger,
 		);
 
-		try {
-			await expect(filtersPanel).toBeVisible({ timeout: 5000 });
-		} catch {
-			await expect(filtersDrawerTrigger).toBeVisible({ timeout: 30000 });
+		let filtersUi = "";
+		await expect
+			.poll(async () => {
+				if (await filtersPanel.isVisible()) {
+					filtersUi = "desktop";
+					return filtersUi;
+				}
+				if (await filtersDrawerTrigger.isVisible()) {
+					filtersUi = "mobile";
+					return filtersUi;
+				}
+				return "";
+			})
+			.not.toBe("");
+
+		if (filtersUi === "desktop") {
+			await expect(filtersPanel).toBeVisible();
+		} else {
+			await expect(filtersDrawerTrigger).toBeVisible();
 		}
 
 		await context.storageState({ path: "playwright/.auth/microsoft.json" });
@@ -71,18 +81,14 @@ function escapeRegExp(value: string): string {
 }
 
 async function maybeConfirmStaySignedIn(page: Page): Promise<void> {
-	const yesButton = page.getByRole("button", { name: "Yes" });
-	const noButton = page.getByRole("button", { name: "No" });
+	const yesButton = page.getByRole("button", { name: "Yes" }).first();
+	if (await yesButton.isVisible()) {
+		await yesButton.click();
+		return;
+	}
 
-	try {
-		if (await yesButton.isVisible({ timeout: 3000 })) {
-			await yesButton.click();
-			return;
-		}
-		if (await noButton.isVisible({ timeout: 1000 })) {
-			await noButton.click();
-		}
-	} catch {
-		// prompt not shown
+	const noButton = page.getByRole("button", { name: "No" }).first();
+	if (await noButton.isVisible()) {
+		await noButton.click();
 	}
 }

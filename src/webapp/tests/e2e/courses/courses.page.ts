@@ -1,11 +1,10 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { BasePage } from "../framework/base-page";
-import { withRetry } from "../framework/common";
-import { TEST_CONFIG } from "../framework/test-config";
 
-export class CoursesPage extends BasePage {
+export class CoursesPage {
+	private readonly page: Page;
+
 	// Main
 	private readonly coursesTable: Locator;
 	private readonly courseTitleLinks: Locator;
@@ -31,7 +30,7 @@ export class CoursesPage extends BasePage {
 	private readonly courseDetailsPagePattern: RegExp;
 
 	constructor(page: Page) {
-		super(page);
+		this.page = page;
 
 		this.coursesTable = page.getByTestId(testIds.courses.table);
 		this.courseTitleLinks = this.coursesTable.getByTestId(
@@ -63,35 +62,33 @@ export class CoursesPage extends BasePage {
 	}
 
 	async goto(): Promise<void> {
-		await this.page.goto(TEST_CONFIG.baseUrl);
-		await this.waitForPageLoad();
+		await this.page.goto("/");
 
-		const outcome = await expect
-			.poll(
-				async () => {
-					if (this.page.url().includes("/connection-error")) {
-						return "connection-error";
-					}
+		let outcome = "";
+		await expect
+			.poll(async () => {
+				if (this.page.url().includes("/connection-error")) {
+					outcome = "connection-error";
+					return outcome;
+				}
 
-					const hasErrorState = await this.page
-						.getByTestId(testIds.courses.errorState)
-						.isVisible()
-						.catch(() => false);
-					if (hasErrorState) {
-						return "error";
-					}
+				const hasErrorState = await this.page
+					.getByTestId(testIds.courses.errorState)
+					.isVisible();
+				if (hasErrorState) {
+					outcome = "error";
+					return outcome;
+				}
 
-					const hasTable = await this.coursesTable
-						.isVisible()
-						.catch(() => false);
-					if (hasTable) {
-						return "table";
-					}
+				const hasTable = await this.coursesTable.isVisible();
+				if (hasTable) {
+					outcome = "table";
+					return outcome;
+				}
 
-					return "";
-				},
-				{ timeout: TEST_CONFIG.timeoutMs },
-			)
+				outcome = "";
+				return outcome;
+			})
 			.not.toBe("");
 
 		if (outcome === "table") {
@@ -100,33 +97,29 @@ export class CoursesPage extends BasePage {
 	}
 
 	async gotoWithSearchParams(params: Record<string, string>): Promise<void> {
-		const url = new URL(TEST_CONFIG.baseUrl);
-		url.search = new URLSearchParams(params).toString();
-		await this.page.goto(url.toString());
-		await this.waitForPageLoad();
+		const search = new URLSearchParams(params).toString();
+		await this.page.goto(search ? `/?${search}` : "/");
 		await this.waitForTableReady();
 	}
 
 	async clearSearch(): Promise<void> {
-		await this.waitForElement(this.searchInput, TEST_CONFIG.timeoutMs);
-		await this.fillWithRetry(this.searchInput, "");
+		await expect(this.searchInput).toBeVisible();
+		await this.searchInput.fill("");
 
 		await expect
-			.poll(async () => new URL(this.page.url()).searchParams.get("q") ?? "", {
-				timeout: TEST_CONFIG.timeoutMs,
-			})
+			.poll(async () => new URL(this.page.url()).searchParams.get("q") ?? "")
 			.toBe("");
 
 		await this.waitForCoursesToRender();
 	}
 
 	async sortByDifficulty(): Promise<void> {
-		await this.clickWithRetry(this.difficultySortButton);
+		await this.difficultySortButton.click();
 		await this.waitForCoursesToRender();
 	}
 
 	async sortByUsefulness(): Promise<void> {
-		await this.clickWithRetry(this.usefulnessSortButton);
+		await this.usefulnessSortButton.click();
 		await this.waitForCoursesToRender();
 	}
 
@@ -158,12 +151,7 @@ export class CoursesPage extends BasePage {
 	}
 
 	async isPageLoaded(): Promise<boolean> {
-		try {
-			await this.waitForElement(this.coursesTable, TEST_CONFIG.timeoutMs);
-			return true;
-		} catch {
-			return false;
-		}
+		return await this.coursesTable.isVisible();
 	}
 
 	async getFirstCourseCard(): Promise<Locator> {
@@ -173,23 +161,17 @@ export class CoursesPage extends BasePage {
 
 	async clickFirstCourseCard(): Promise<void> {
 		const firstCourseCard = await this.getFirstCourseCard();
-		await withRetry(async () => {
-			await this.waitForElement(firstCourseCard, TEST_CONFIG.timeoutMs);
+		await expect(firstCourseCard).toBeVisible();
 
-			await Promise.all([
-				this.page.waitForURL(this.courseDetailsPagePattern, {
-					timeout: TEST_CONFIG.timeoutMs,
-				}),
-				this.clickWithRetry(firstCourseCard),
-			]);
-		}, TEST_CONFIG.maxRetries + 2);
-
-		await this.waitForPageLoad();
+		await Promise.all([
+			this.page.waitForURL(this.courseDetailsPagePattern),
+			firstCourseCard.click(),
+		]);
 	}
 
 	async getFirstCourseCardTitle(): Promise<string> {
 		const firstCourseCard = await this.getFirstCourseCard();
-		await this.waitForElement(firstCourseCard);
+		await expect(firstCourseCard).toBeVisible();
 		const title = await firstCourseCard.textContent();
 		if (!title) {
 			throw new Error("Course title not found");
@@ -206,7 +188,7 @@ export class CoursesPage extends BasePage {
 
 	async waitForTableReady(): Promise<void> {
 		await this.waitForCoursesToRender();
-		await this.waitForElement(this.paginationLabel, TEST_CONFIG.timeoutMs);
+		await expect(this.paginationLabel).toBeVisible();
 	}
 
 	async getCourseCount(): Promise<number> {
@@ -221,13 +203,11 @@ export class CoursesPage extends BasePage {
 	}
 
 	async searchByTitle(query: string): Promise<void> {
-		await this.waitForElement(this.searchInput, TEST_CONFIG.timeoutMs);
-		await this.fillWithRetry(this.searchInput, query);
+		await expect(this.searchInput).toBeVisible();
+		await this.searchInput.fill(query);
 
 		await expect
-			.poll(async () => new URL(this.page.url()).searchParams.get("q") ?? "", {
-				timeout: TEST_CONFIG.timeoutMs,
-			})
+			.poll(async () => new URL(this.page.url()).searchParams.get("q") ?? "")
 			.toBe(query);
 
 		await this.waitForCoursesToRender();
@@ -235,81 +215,56 @@ export class CoursesPage extends BasePage {
 
 	async resetFilters(): Promise<void> {
 		await this.ensureFiltersResetButtonVisible();
-		await this.clickWithRetry(this.filtersResetButton);
+		await this.filtersResetButton.click();
 
 		await expect
-			.poll(async () => new URL(this.page.url()).searchParams.get("q") ?? "", {
-				timeout: TEST_CONFIG.timeoutMs,
-			})
+			.poll(async () => new URL(this.page.url()).searchParams.get("q") ?? "")
 			.toBe("");
 
 		await this.waitForCoursesToRender();
 	}
 
 	async openFiltersDrawer(): Promise<void> {
-		await this.clickWithRetry(this.filtersDrawerTrigger);
-		await this.waitForElement(this.filtersDrawer, TEST_CONFIG.timeoutMs);
+		await this.filtersDrawerTrigger.click();
+		await expect(this.filtersDrawer).toBeVisible();
 	}
 
 	async closeFiltersDrawer(): Promise<void> {
-		await this.waitForElement(
-			this.filtersDrawerCloseButton,
-			TEST_CONFIG.timeoutMs,
-		);
-		await this.clickWithRetry(this.filtersDrawerCloseButton);
-		await this.filtersDrawer.waitFor({ state: "hidden" });
+		await expect(this.filtersDrawerCloseButton).toBeVisible();
+		await this.filtersDrawerCloseButton.click();
+		await expect(this.filtersDrawer).toBeHidden();
 	}
 
 	async openCourseByIndex(index: number): Promise<void> {
 		await this.waitForCoursesToRender();
 
-		await withRetry(async () => {
-			const row = this.coursesTable
-				.getByTestId(testIds.courses.tableRow)
-				.nth(index);
-			const courseLink = row.getByTestId(testIds.courses.tableTitleLink);
+		const row = this.coursesTable
+			.getByTestId(testIds.courses.tableRow)
+			.nth(index);
+		const courseLink = row.getByTestId(testIds.courses.tableTitleLink);
+		await expect(courseLink).toBeVisible();
 
-			await expect(courseLink).toBeVisible({
-				timeout: TEST_CONFIG.timeoutMs,
-			});
-
-			await Promise.all([
-				this.page.waitForURL(this.courseDetailsPagePattern, {
-					timeout: TEST_CONFIG.timeoutMs,
-				}),
-				this.clickWithRetry(courseLink),
-			]);
-		}, TEST_CONFIG.maxRetries + 2);
-
-		await this.waitForPageLoad();
+		await Promise.all([
+			this.page.waitForURL(this.courseDetailsPagePattern),
+			courseLink.click(),
+		]);
 	}
 
 	async openLastCourseOnPage(): Promise<void> {
 		await this.waitForCoursesToRender();
 
-		await withRetry(async () => {
-			const row = this.coursesTable
-				.getByTestId(testIds.courses.tableRow)
-				.last();
-			const courseLink = row.getByTestId(testIds.courses.tableTitleLink);
+		const row = this.coursesTable.getByTestId(testIds.courses.tableRow).last();
+		const courseLink = row.getByTestId(testIds.courses.tableTitleLink);
+		await expect(courseLink).toBeVisible();
 
-			await expect(courseLink).toBeVisible({
-				timeout: TEST_CONFIG.timeoutMs,
-			});
-
-			await Promise.all([
-				this.page.waitForURL(this.courseDetailsPagePattern, {
-					timeout: TEST_CONFIG.timeoutMs,
-				}),
-				this.clickWithRetry(courseLink),
-			]);
-		}, TEST_CONFIG.maxRetries + 2);
-
-		await this.waitForPageLoad();
+		await Promise.all([
+			this.page.waitForURL(this.courseDetailsPagePattern),
+			courseLink.click(),
+		]);
 	}
 
 	async goToLastPage(): Promise<void> {
-		await this.waitForElement(this.paginationLabel, TEST_CONFIG.timeoutMs);
+		await expect(this.paginationLabel).toBeVisible();
 
 		if (!(await this.paginationLastButton.isVisible())) {
 			throw new Error(
@@ -327,34 +282,25 @@ export class CoursesPage extends BasePage {
 			throw new Error(`Invalid total pages: ${String(match[2])}`);
 		}
 
-		const waitForLastPageResponse = this.page.waitForResponse(
-			(response) => {
-				if (response.request().method() !== "GET") return false;
-				if (!response.url().includes("/api/v1/courses/")) return false;
-				try {
-					const url = new URL(response.url());
-					return url.searchParams.get("page") === String(totalPages);
-				} catch {
-					return false;
-				}
-			},
-			{ timeout: TEST_CONFIG.timeoutMs },
-		);
-
-		await this.clickWithRetry(this.paginationLastButton);
-
-		await expect(this.paginationNextButton).toBeDisabled({
-			timeout: TEST_CONFIG.timeoutMs,
+		const waitForLastPageResponse = this.page.waitForResponse((response) => {
+			if (response.request().method() !== "GET") return false;
+			if (!response.url().includes("/api/v1/courses/")) return false;
+			try {
+				const url = new URL(response.url());
+				return url.searchParams.get("page") === String(totalPages);
+			} catch (error) {
+				void error;
+				return false;
+			}
 		});
-		await expect(this.paginationLabel).not.toHaveText(before, {
-			timeout: TEST_CONFIG.timeoutMs,
-		});
+
+		await this.paginationLastButton.click();
+
+		await expect(this.paginationNextButton).toBeDisabled();
+		await expect(this.paginationLabel).not.toHaveText(before);
 
 		await expect
-			.poll(
-				async () => new URL(this.page.url()).searchParams.get("page") ?? "",
-				{ timeout: TEST_CONFIG.timeoutMs },
-			)
+			.poll(async () => new URL(this.page.url()).searchParams.get("page") ?? "")
 			.toBe(String(totalPages));
 
 		await waitForLastPageResponse;
@@ -362,51 +308,34 @@ export class CoursesPage extends BasePage {
 	}
 
 	async getPaginationLabelText(): Promise<string> {
-		await this.waitForElement(this.paginationLabel, TEST_CONFIG.timeoutMs);
+		await expect(this.paginationLabel).toBeVisible();
 		return (await this.paginationLabel.textContent())?.trim() ?? "";
 	}
 
 	async goToNextPage(): Promise<void> {
-		await this.waitForElement(this.paginationNextButton, TEST_CONFIG.timeoutMs);
+		await expect(this.paginationNextButton).toBeVisible();
 		const before = await this.getPaginationLabelText();
-		await this.clickWithRetry(this.paginationNextButton);
-		await expect(this.paginationLabel).not.toHaveText(before, {
-			timeout: TEST_CONFIG.timeoutMs,
-		});
+		await this.paginationNextButton.click();
+		await expect(this.paginationLabel).not.toHaveText(before);
 		await this.waitForCoursesToRender();
 	}
 
 	async goToPreviousPage(): Promise<void> {
-		await this.waitForElement(
-			this.paginationPreviousButton,
-			TEST_CONFIG.timeoutMs,
-		);
+		await expect(this.paginationPreviousButton).toBeVisible();
 		const before = await this.getPaginationLabelText();
-		await this.clickWithRetry(this.paginationPreviousButton);
-		await expect(this.paginationLabel).not.toHaveText(before, {
-			timeout: TEST_CONFIG.timeoutMs,
-		});
+		await this.paginationPreviousButton.click();
+		await expect(this.paginationLabel).not.toHaveText(before);
 		await this.waitForCoursesToRender();
 	}
 
 	private async ensureFiltersResetButtonVisible(): Promise<void> {
-		try {
-			await this.filtersResetButton.waitFor({
-				state: "visible",
-				timeout: 2000,
-			});
+		if (await this.filtersResetButton.isVisible()) {
 			return;
-		} catch {
-			// ignore
 		}
 
-		// If the desktop panel isn't available, reset button lives in the drawer.
 		if (await this.filtersDrawerTrigger.isVisible()) {
 			await this.openFiltersDrawer();
-			await this.filtersResetButton.waitFor({
-				state: "visible",
-				timeout: TEST_CONFIG.timeoutMs,
-			});
+			await expect(this.filtersResetButton).toBeVisible();
 			return;
 		}
 
@@ -414,23 +343,26 @@ export class CoursesPage extends BasePage {
 	}
 
 	private async waitForCoursesToRender(): Promise<void> {
-		await this.waitForElement(this.coursesTable, TEST_CONFIG.timeoutMs);
+		await expect(this.coursesTable).toBeVisible();
 
-		await withRetry(async () => {
-			const isEmpty = await this.page
-				.getByTestId(testIds.courses.emptyState)
-				.isVisible()
-				.catch(() => false);
-			if (isEmpty) {
-				return;
-			}
+		await expect
+			.poll(async () => {
+				const isEmpty = await this.page
+					.getByTestId(testIds.courses.emptyState)
+					.isVisible();
+				if (isEmpty) {
+					return "empty";
+				}
 
-			const rowCount = await this.coursesTable
-				.getByTestId(testIds.courses.tableRow)
-				.count();
-			if (rowCount === 0) {
-				throw new Error("Courses table has not finished rendering");
-			}
-		}, TEST_CONFIG.maxRetries + 2);
+				const rowCount = await this.coursesTable
+					.getByTestId(testIds.courses.tableRow)
+					.count();
+				if (rowCount > 0) {
+					return "rows";
+				}
+
+				return "";
+			})
+			.not.toBe("");
 	}
 }

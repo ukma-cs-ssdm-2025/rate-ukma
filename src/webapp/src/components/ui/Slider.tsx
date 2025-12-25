@@ -5,6 +5,7 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 import { cn } from "@/lib/utils";
 
 type SliderProps = React.ComponentProps<typeof SliderPrimitive.Root> & {
+	"data-testid"?: string;
 	thumbTestIdPrefix?: string;
 };
 
@@ -14,6 +15,7 @@ function Slider({
 	value,
 	min = 0,
 	max = 100,
+	"data-testid": rootTestId,
 	thumbTestIdPrefix,
 	...props
 }: SliderProps) {
@@ -27,13 +29,12 @@ function Slider({
 		return [min, max];
 	}, [value, defaultValue, min, max]);
 
-	const rootTestId =
-		typeof props["data-testid"] === "string" ? props["data-testid"] : undefined;
 	const thumbPrefix = thumbTestIdPrefix ?? rootTestId;
 
 	return (
 		<SliderPrimitive.Root
 			data-slot="slider"
+			data-testid={rootTestId}
 			defaultValue={defaultValue}
 			value={value}
 			min={min}

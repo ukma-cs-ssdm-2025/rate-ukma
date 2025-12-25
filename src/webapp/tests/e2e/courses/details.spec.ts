@@ -14,11 +14,11 @@ test.describe("Course Page", () => {
 		await coursesPage.goto();
 	});
 
-	test("courses page is loaded", async () => {
+	test("courses page is loaded @smoke", async () => {
 		expect(await coursesPage.isPageLoaded()).toBe(true);
 	});
 
-	test("navigates from courses page to course details page", async () => {
+	test("navigates from courses page to course details page @smoke", async () => {
 		await coursesPage.clickFirstCourseCard();
 		expect(await courseDetailsPage.isPageLoaded()).toBe(true);
 	});

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { testIds } from "@/lib/test-ids";
 import { CourseDetailsPage } from "../courses/course-details.page";
 import { CoursesPage } from "../courses/courses.page";
 
@@ -15,7 +16,7 @@ test.describe("Ratings are displayed", () => {
 
 		await coursesPage.goto();
 		await coursesPage.navigateToFirstCourseDetailsPage();
-		await courseDetailsPage.waitForPageLoad();
+		await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();
 	});
 
 	test("displays reviews list and stats when course has reviews", async () => {
