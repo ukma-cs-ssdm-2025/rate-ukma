@@ -50,7 +50,7 @@ class RatingViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="List ratings for a course",
         description="List all ratings for a specific course with filters and pagination. "
-        "Use exclude_current_user=true to exclude the authenticated user's rating from results.",
+        "Use separate_current_user=true to separate the authenticated user's rating from results.",
         parameters=[
             *to_openapi((RatingPaginationParams, OpenApiParameter.QUERY)),
             *to_openapi((RatingCourseFilterParams, OpenApiParameter.PATH)),
@@ -64,16 +64,18 @@ class RatingViewSet(viewsets.ViewSet):
 
         try:
             query_params = request.query_params.dict()
-            exclude_current_user = (
-                query_params.pop("exclude_current_user", "false").lower() == "true"
+            separate_current_user = (
+                query_params.pop("separate_current_user", "false").lower() == "true"
             )
 
             filter_data = {**query_params, "course_id": course_id}
 
-            if exclude_current_user and request.user.is_authenticated:
+            if request.user.is_authenticated:
                 try:
                     student = self.student_service.get_student_by_user_id(request.user.id)
-                    filter_data["exclude_student_id"] = str(student.id)
+                    filter_data["viewer_id"] = str(student.id)
+                    if separate_current_user:
+                        filter_data["separate_current_user"] = str(student.id)
                 except StudentNotFoundError:
                     pass
 
@@ -82,13 +84,16 @@ class RatingViewSet(viewsets.ViewSet):
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
-        ratings = self.rating_service.filter_ratings(filters)
+        result = self.rating_service.filter_ratings(filters)
 
         payload = RatingListResponseSerializer(
             {
-                "items": ratings.items,
-                "filters": ratings.applied_filters,
-                **ratings.pagination.model_dump(),
+                "items": {
+                    "ratings": result.items.ratings,
+                    "user_ratings": result.items.user_ratings,
+                },
+                "filters": result.applied_filters,
+                **result.pagination.model_dump(),
             },
         )
 

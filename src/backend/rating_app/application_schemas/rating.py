@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from dataclasses import dataclass
 from decimal import Decimal
@@ -15,7 +16,7 @@ from rating_app.constants import (
     MIN_PAGE_SIZE,
     MIN_RATING_VALUE,
 )
-from rating_app.models.rating import IRating
+from rating_app.models.choices import RatingVoteType
 
 from .pagination import PaginationMetadata
 
@@ -40,6 +41,16 @@ class RatingRetrieveParams(BaseModel):
     rating_id: uuid.UUID = Field(description="Unique identifier of rating")
 
 
+class StudentCourseRatingsParams(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    student_id: uuid.UUID = Field(description="Unique identifier of rating")
+    course_id: uuid.UUID = Field(description="Unique identifier of a course")
+
+
 class RatingPaginationParams(BaseModel):
     model_config = {
         "alias_generator": to_snake,
@@ -56,9 +67,9 @@ class RatingPaginationParams(BaseModel):
         ge=MIN_PAGE_SIZE,
         description=f"Items per page (default: {DEFAULT_PAGE_SIZE})",
     )
-    exclude_current_user: bool = Field(
+    separate_current_user: bool = Field(
         default=False,
-        description="Exclude the current user's rating from the list",
+        description="Separate the current user's rating from the list",
     )
 
 
@@ -77,9 +88,13 @@ class RatingFilterCriteria(BaseModel):
         ge=MIN_PAGE_SIZE,
     )
     course_id: uuid.UUID | None = Field(default=None)
-    exclude_student_id: uuid.UUID | None = Field(
+    separate_current_user: uuid.UUID | None = Field(
         default=None,
-        description="Exclude ratings from this student ID",
+        description="Separate ratings from this student ID",
+    )
+    viewer_id: uuid.UUID | None = Field(
+        default=None,
+        description="ID of the user viewing the ratings (for vote status)",
     )
 
 
@@ -88,6 +103,40 @@ def strip_string(value: str | None) -> str | None:
         return None
     stripped = value.strip()
     return stripped if stripped else None
+
+
+class RatingRead(BaseModel):
+    model_config = {
+        "from_attributes": True,
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    id: uuid.UUID
+    course_offering_id: uuid.UUID
+    student_id: uuid.UUID | None
+    student_name: str | None
+    course_offering: uuid.UUID
+    course: uuid.UUID
+    difficulty: int
+    usefulness: int
+    comment: str | None
+    is_anonymous: bool
+    created_at: datetime.datetime
+
+    upvotes: int
+    downvotes: int
+    viewer_vote: RatingVoteType | None
+
+
+class RatingListResponse(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    ratings: list[RatingRead]
+    user_ratings: list[RatingRead] | None = None
 
 
 # API request schema (student is set automatically from authenticated user)
@@ -161,7 +210,7 @@ class RatingPatchParams(BaseModel):
 # is constructed internally
 @dataclass(frozen=True)
 class RatingSearchResult:
-    items: list[IRating]
+    items: RatingListResponse
     pagination: PaginationMetadata
     applied_filters: dict[str, Any]
 

@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 
-from .choices import RatingFeedbackType
+from .choices import RatingVoteType
 from .rating import Rating
 from .student import Student
 
@@ -13,7 +13,7 @@ class RatingVote(models.Model):
     rating = models.ForeignKey(Rating, on_delete=models.CASCADE, related_name="rating_vote")
     type = models.CharField(
         max_length=10,
-        choices=RatingFeedbackType.choices,
+        choices=RatingVoteType.choices,
     )
 
     class Meta:

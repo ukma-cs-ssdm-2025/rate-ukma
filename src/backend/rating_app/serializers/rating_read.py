@@ -3,6 +3,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from rating_app.models import Rating
+from rating_app.models.choices import RatingVoteType
 
 
 class RatingReadSerializer(serializers.ModelSerializer):
@@ -11,11 +12,16 @@ class RatingReadSerializer(serializers.ModelSerializer):
     Returns null for student_id and student_name when is_anonymous is True.
     """
 
-    student_id = serializers.SerializerMethodField(read_only=True, required=False)
-    student_name = serializers.SerializerMethodField(read_only=True, required=False)
+    student_id = serializers.SerializerMethodField(read_only=True, required=False, source="*")
+    student_name = serializers.CharField(read_only=True, required=False)
     comment = serializers.CharField(required=False, allow_null=True, read_only=True)
     course = serializers.UUIDField(source="course_offering.course_id", read_only=True)
     course_offering = serializers.UUIDField(source="course_offering_id", read_only=True)
+    upvotes = serializers.IntegerField(read_only=True)
+    downvotes = serializers.IntegerField(read_only=True)
+    viewer_vote = serializers.ChoiceField(
+        choices=RatingVoteType.choices, allow_null=True, read_only=True
+    )
 
     class Meta:
         model = Rating
@@ -30,22 +36,20 @@ class RatingReadSerializer(serializers.ModelSerializer):
             "comment",
             "is_anonymous",
             "created_at",
+            "upvotes",
+            "downvotes",
+            "viewer_vote",
         ]
         read_only_fields = fields
 
     @extend_schema_field(serializers.UUIDField(allow_null=True))
     def get_student_id(self, obj):
-        """Return student ID only if not anonymous."""
-        if obj.is_anonymous:
-            return None
-        return obj.student_id
+        if isinstance(obj, str | bytes):
+            return obj
 
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_student_name(self, obj):
-        """Return student name only if not anonymous."""
+        if not hasattr(obj, "is_anonymous"):
+            return None
+
         if obj.is_anonymous:
             return None
-        parts = [obj.student.last_name, obj.student.first_name]
-        if obj.student.patronymic:
-            parts.append(obj.student.patronymic)
-        return " ".join(parts)
+        return getattr(obj, "student_id", None)

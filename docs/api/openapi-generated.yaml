@@ -834,8 +834,8 @@ paths:
     get:
       operationId: courses_ratings_list
       description: List all ratings for a specific course with filters and pagination.
-        Use exclude_current_user=true to exclude the authenticated user's rating from
-        results.
+        Use separate_current_user=true to separate the authenticated user's rating
+        from results.
       summary: List ratings for a course
       parameters:
       - in: path
@@ -846,11 +846,6 @@ paths:
         description: Unique identifier of rating course
         required: true
       - in: query
-        name: exclude_current_user
-        schema:
-          type: boolean
-        description: Exclude the current user's rating from the list
-      - in: query
         name: page
         schema:
           type: integer
@@ -860,6 +855,11 @@ paths:
         schema:
           type: integer
         description: 'Items per page (default: 10)'
+      - in: query
+        name: separate_current_user
+        schema:
+          type: boolean
+        description: Separate the current user's rating from the list
       tags:
       - ratings
       security:
@@ -1443,6 +1443,57 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/ratings/{rating_id}/votes/:
+    post:
+      operationId: ratings_votes_create
+      summary: Vote on a rating
+      parameters:
+      - in: path
+        name: rating_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - votes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingVoteCreateSchema'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RatingVoteCreateSchema'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RatingVoteCreateSchema'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingVoteRead'
+          description: ''
+    delete:
+      operationId: ratings_votes_destroy
+      summary: Remove vote from a rating
+      parameters:
+      - in: path
+        name: rating_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - votes
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/students/me/courses/:
     get:
       operationId: students_me_courses_retrieve
@@ -2023,6 +2074,20 @@ components:
         is_anonymous:
           type: boolean
           readOnly: true
+    InlineRatingsItems:
+      type: object
+      properties:
+        ratings:
+          type: array
+          items:
+            $ref: '#/components/schemas/RatingRead'
+        user_ratings:
+          type: array
+          items:
+            $ref: '#/components/schemas/RatingRead'
+          nullable: true
+      required:
+      - ratings
     InlineSemester:
       type: object
       properties:
@@ -2149,9 +2214,7 @@ components:
       type: object
       properties:
         items:
-          type: array
-          items:
-            $ref: '#/components/schemas/RatingRead'
+          $ref: '#/components/schemas/InlineRatingsItems'
         filters:
           type: object
           additionalProperties: {}
@@ -2222,7 +2285,6 @@ components:
           readOnly: true
         student_name:
           type: string
-          nullable: true
           readOnly: true
         course_offering:
           type: string
@@ -2249,6 +2311,60 @@ components:
           type: string
           format: date-time
           readOnly: true
+        upvotes:
+          type: integer
+          readOnly: true
+        downvotes:
+          type: integer
+          readOnly: true
+        viewer_vote:
+          allOf:
+          - $ref: '#/components/schemas/ViewerVoteEnum'
+          readOnly: true
+          nullable: true
+    RatingVoteCreateSchema:
+      properties:
+        rating_id:
+          description: The unique identifier of the rating
+          title: Rating Id
+          type: string
+        student_id:
+          description: The unique identifier of the student
+          title: Student Id
+          type: string
+        vote_type:
+          $ref: '#/components/schemas/RatingVoteType'
+          description: The type of the vote
+      required:
+      - rating_id
+      - student_id
+      - vote_type
+      title: RatingVoteCreateSchema
+      type: object
+    RatingVoteRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        student:
+          type: string
+          format: uuid
+          readOnly: true
+        rating:
+          type: string
+          format: uuid
+          readOnly: true
+        vote_type:
+          type: string
+          readOnly: true
+    RatingVoteType:
+      enum:
+      - UPVOTE
+      - DOWNVOTE
+      title: RatingVoteType
+      type: string
     SemesterTermOption:
       type: object
       properties:
@@ -2384,6 +2500,14 @@ components:
         * `COMPULSORY` - Compulsory
         * `ELECTIVE` - Elective
         * `PROF_ORIENTED` - ProfOriented
+    ViewerVoteEnum:
+      enum:
+      - UPVOTE
+      - DOWNVOTE
+      type: string
+      description: |-
+        * `UPVOTE` - Upvote
+        * `DOWNVOTE` - Downvote
   securitySchemes:
     cookieAuth:
       type: apiKey

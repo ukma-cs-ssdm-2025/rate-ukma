@@ -12,6 +12,7 @@ from rating_app.tests.factories import (
     EnrollmentFactory,
     InstructorFactory,
     RatingFactory,
+    RatingVoteFactory,
     SemesterFactory,
     StudentFactory,
 )
@@ -137,6 +138,11 @@ def enrollment_factory():
 @pytest.fixture
 def semester_factory():
     return SemesterFactory
+
+
+@pytest.fixture
+def vote_factory():
+    return RatingVoteFactory
 
 
 # Cache mocking fixtures

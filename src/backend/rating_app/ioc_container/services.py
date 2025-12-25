@@ -12,6 +12,7 @@ from rating_app.ioc_container.repositories import (
     student_repository,
     student_stats_repository,
     user_repository,
+    vote_repository,
 )
 from rating_app.services import (
     CourseOfferingService,
@@ -19,6 +20,7 @@ from rating_app.services import (
     DepartmentService,
     FacultyService,
     InstructorService,
+    RatingFeedbackService,
     RatingService,
     SemesterService,
     SpecialityService,
@@ -70,6 +72,7 @@ def rating_service() -> RatingService:
         enrollment_repository=enrollment_repository(),
         course_offering_service=course_offering_service(),
         semester_service=semester_service(),
+        rating_vote_repository=vote_repository(),
         paginator=paginator(),
     )
 
@@ -104,6 +107,17 @@ def course_offering_service() -> CourseOfferingService:
 
 
 @once
+def vote_service() -> RatingFeedbackService:
+    return RatingFeedbackService(
+        vote_repository=vote_repository(),
+        student_repository=student_repository(),
+        enrollment_repositroy=enrollment_repository(),
+        rating_repository=rating_repository(),
+        course_offering_repository=course_offering_repository(),
+    )
+
+
+@once
 def paginator() -> QuerysetPaginator:
     return QuerysetPaginator()
 
@@ -122,4 +136,5 @@ __all__ = [
     "faculty_service",
     "department_service",
     "speciality_service",
+    "vote_service",
 ]

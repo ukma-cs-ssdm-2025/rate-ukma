@@ -169,3 +169,8 @@ R_COURSE_OFFERING = {
     200: OpenApiResponse(CourseOfferingSerializer, "OK"),
     **common_errors(include_404=True),
 }
+
+R_VOTE_LIST = {
+    200: OpenApiResponse(description="Vote listed successfully"),
+    **common_errors(include_404=True),
+}

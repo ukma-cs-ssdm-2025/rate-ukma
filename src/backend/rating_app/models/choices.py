@@ -58,6 +58,6 @@ class AcademicTitle(models.TextChoices):
     PROFESSOR = "PROFESSOR", "Professor"
 
 
-class RatingFeedbackType(models.TextChoices):
+class RatingVoteType(models.TextChoices):
     UPVOTE = "UPVOTE", "Upvote"
     DOWNVOTE = "DOWNVOTE", "Downvote"
