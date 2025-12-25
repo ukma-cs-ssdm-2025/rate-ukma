@@ -321,7 +321,7 @@ class CourseRepository(IRepository[CourseDTO]):
                         "instructors"
                     ),
                 ),
-                "course_specialities__speciality",
+                "course_specialities__speciality__faculty",
             )
             .all()
         )
@@ -347,7 +347,7 @@ class CourseRepository(IRepository[CourseDTO]):
                             "instructors"
                         ),
                     ),
-                    "course_specialities__speciality",
+                    "course_specialities__speciality__faculty",
                 )
                 .get(id=course_id)
             )

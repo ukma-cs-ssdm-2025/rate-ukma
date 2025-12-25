@@ -69,19 +69,6 @@ class CourseService:
             applied_filters=filters.model_dump(by_alias=True),
         )
 
-    # -- admin functions --
-    def create_course(self, **course_data) -> CourseDTO:
-        course, _ = self.course_repository.get_or_create(**course_data)
-        return course
-
-    def update_course(self, course_id: str, **update_data) -> CourseDTO | None:
-        try:
-            course_dto = self.course_repository.get_by_id(course_id)
-            return self.course_repository.update(course_dto, **update_data)
-        except (CourseNotFoundError, InvalidCourseIdentifierError) as exc:
-            logger.error("error_updating_course", course_id=course_id, error=str(exc))
-            return None
-
     def update_course_aggregates(
         self, course: CourseDTO, aggregates: AggregatedCourseRatingStats
     ) -> None:
@@ -91,13 +78,6 @@ class CourseService:
             avg_usefulness=aggregates.avg_usefulness,
             ratings_count=aggregates.ratings_count,
         )
-
-    def delete_course(self, course_id: str) -> None:
-        try:
-            course_dto = self.course_repository.get_by_id(course_id)
-            self.course_repository.delete(course_dto)
-        except (CourseNotFoundError, InvalidCourseIdentifierError) as exc:
-            logger.error("error_deleting_course", course_id=course_id, error=str(exc))
 
     @rcached(ttl=86400)  # 24 hours - filter options rarely change
     def get_filter_options(self) -> CourseFilterOptions:
@@ -132,6 +112,27 @@ class CourseService:
                 for value, label in CourseTypeKind.choices
             ],
         )
+
+    # -- admin functions --
+    # TODO: invalidate cache for courses
+    def create_course(self, **course_data) -> CourseDTO:
+        course, _ = self.course_repository.get_or_create(**course_data)
+        return course
+
+    def update_course(self, course_id: str, **update_data) -> CourseDTO | None:
+        try:
+            course_dto = self.course_repository.get_by_id(course_id)
+            return self.course_repository.update(course_dto, **update_data)
+        except (CourseNotFoundError, InvalidCourseIdentifierError) as exc:
+            logger.error("error_updating_course", course_id=course_id, error=str(exc))
+            return None
+
+    def delete_course(self, course_id: str) -> None:
+        try:
+            course_dto = self.course_repository.get_by_id(course_id)
+            self.course_repository.delete(course_dto)
+        except (CourseNotFoundError, InvalidCourseIdentifierError) as exc:
+            logger.error("error_deleting_course", course_id=course_id, error=str(exc))
 
     def _empty_pagination_metadata(self, courses_count: int) -> PaginationMetadata:
         return PaginationMetadata(
