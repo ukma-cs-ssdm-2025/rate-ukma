@@ -1,8 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { BasePage } from "./base-page";
-import { TEST_CONFIG } from "./test-config";
+import { BasePage } from "../framework/base-page";
+import { TEST_CONFIG } from "../framework/test-config";
 
 export class MyRatingsPage extends BasePage {
 	private readonly activeLeaveReviewLinks: Locator;

@@ -1,12 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import {
-	CourseDetailsPage,
-	createTestRatingData,
-	MyRatingsPage,
-	RatingModal,
-	waitForPageReady,
-} from "../components";
+import { CourseDetailsPage } from "../courses/course-details.page";
+import { waitForPageReady } from "../framework/common";
+import { createTestRatingData } from "../framework/test-config";
+import { RatingModal } from "../shared/rating-modal.component";
+import { MyRatingsPage } from "./my-ratings.page";
 
 test.describe("Rating modal functionality", () => {
 	let coursePage: CourseDetailsPage;
