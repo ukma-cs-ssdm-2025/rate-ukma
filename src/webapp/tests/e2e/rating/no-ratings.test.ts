@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { CourseDetailsPage } from "../components/course-details-page";
-import { CoursesPage } from "../components/courses-page";
+import { CourseDetailsPage, CoursesPage, TEST_CONFIG } from "../components";
 
 test.describe("No ratings are displayed correctly", () => {
 	let coursesPage: CoursesPage;
@@ -15,8 +14,8 @@ test.describe("No ratings are displayed correctly", () => {
 		await coursesPage.goToLastPage();
 		await coursesPage.openLastCourseOnPage();
 
-		await coursePage.waitForTitle(15000);
-		await coursePage.waitForStats(15000);
+		await coursePage.waitForTitle(TEST_CONFIG.timeoutMs);
+		await coursePage.waitForStats(TEST_CONFIG.timeoutMs);
 	});
 
 	test("shows 'no reviews yet' message when course has no ratings", async () => {
