@@ -47,7 +47,7 @@ class StudentCourseRatingsParams(BaseModel):
         "populate_by_name": True,
     }
 
-    student_id: uuid.UUID = Field(description="Unique identifier of rating")
+    student_id: uuid.UUID = Field(description="Unique identifier of the student")
     course_id: uuid.UUID = Field(description="Unique identifier of a course")
 
 

@@ -15,13 +15,13 @@ class RatingFeedbackService:
         self,
         vote_repository: RatingVoteRepository,
         student_repository: StudentRepository,
-        enrollment_repositroy: EnrollmentRepository,
+        enrollment_repository: EnrollmentRepository,
         course_offering_repository: CourseOfferingRepository,
         rating_repository: RatingRepository,
     ):
         self.vote_repository = vote_repository
         self.student_repository = student_repository
-        self.enrollement_repository = enrollment_repositroy
+        self.enrollment_repository = enrollment_repository
         self.course_offering_repository = course_offering_repository
         self.rating_repository = rating_repository
 
@@ -52,11 +52,16 @@ class RatingFeedbackService:
     def get_votes_by_rating_id(self, rating_id: str) -> list[RatingVote]:
         return self.vote_repository.get_by_rating_id(rating_id)
 
+    def get_vote_for_student(self, student_id: str, rating_id: str) -> RatingVote | None:
+        return self.vote_repository.get_vote_by_student_and_rating(
+            student_id=student_id, rating_id=rating_id
+        )
+
     def update_vote(self, vote: RatingVote, **kwargs) -> RatingVote:
         return self.vote_repository.update(vote, **kwargs)
 
     def _can_vote(self, rating_id: str, student_id: str) -> bool:
         rating = self.rating_repository.get_by_id(rating_id)
-        return self.enrollement_repository.is_student_enrolled(
+        return self.enrollment_repository.is_student_enrolled(
             offering_id=str(rating.course_offering.id), student_id=student_id
         )

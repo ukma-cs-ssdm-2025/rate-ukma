@@ -9,8 +9,14 @@ import { RatingComment } from "./RatingComment";
 import { RatingStats } from "./RatingStats";
 import { RatingVotes } from "./RatingVotes";
 
+interface ExtendedRating extends InlineRating {
+	upvotes?: number;
+	downvotes?: number;
+	viewer_vote?: "UPVOTE" | "DOWNVOTE" | null;
+}
+
 interface UserRatingCardProps {
-	readonly rating: InlineRating;
+	readonly rating: ExtendedRating;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
 	readonly readOnly?: boolean;
@@ -39,9 +45,9 @@ export function UserRatingCard({
 	const displayName = getUserDisplayName();
 
 	// Use values from rating if available, otherwise use defaults for placeholder
-	const upvotes = (rating as any).upvotes ?? 0;
-	const downvotes = (rating as any).downvotes ?? 0;
-	const viewerVote = (rating as any).viewer_vote ?? null;
+	const upvotes = rating.upvotes ?? 0;
+	const downvotes = rating.downvotes ?? 0;
+	const viewerVote = rating.viewer_vote ?? null;
 
 	return (
 		<article
@@ -96,13 +102,15 @@ export function UserRatingCard({
 				emptyMessage="Ви не залишили коментар."
 			/>
 
-			<RatingVotes
-				ratingId={rating.id ?? ""}
-				initialUpvotes={upvotes}
-				initialDownvotes={downvotes}
-				initialUserVote={viewerVote}
-				readOnly={readOnly}
-			/>
+			{rating.id && (
+				<RatingVotes
+					ratingId={rating.id}
+					initialUpvotes={upvotes}
+					initialDownvotes={downvotes}
+					initialUserVote={viewerVote}
+					readOnly={readOnly}
+				/>
+			)}
 		</article>
 	);
 }

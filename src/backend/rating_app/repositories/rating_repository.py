@@ -38,17 +38,14 @@ class RatingRepository(IRepository[Rating]):
             raise RatingNotFoundError() from err
 
     def get_by_student_id_course_id(self, student_id: str, course_id: str) -> QuerySet[Rating]:
-        try:
-            return Rating.objects.select_related(
-                "course_offering__course",
-                "course_offering__semester",
-                "student",
-            ).filter(
-                student_id=student_id,
-                course_offering__course_id=course_id,
-            )
-        except Rating.DoesNotExist as err:
-            raise RatingNotFoundError() from err
+        return Rating.objects.select_related(
+            "course_offering__course",
+            "course_offering__semester",
+            "student",
+        ).filter(
+            student_id=student_id,
+            course_offering__course_id=course_id,
+        )
 
     def get_or_create(self, create_params: RatingCreateParams) -> tuple[Rating, bool]:
         return Rating.objects.get_or_create(

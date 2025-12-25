@@ -56,7 +56,7 @@ class RatingVoteViewSet(viewsets.ViewSet):
     def destroy(self, request, student: Student, rating_id=None):
         assert self.vote_service is not None
 
-        vote = self.vote_service.vote_repository.get_vote_by_student_and_rating(
+        vote = self.vote_service.get_vote_for_student(
             student_id=str(student.id),
             rating_id=rating_id,
         )
