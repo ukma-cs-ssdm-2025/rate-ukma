@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
-import { CoursesPage, TEST_CONFIG } from "../components";
-import { getSearchParam } from "../helpers/url-assertions";
+import { TEST_CONFIG } from "../framework/test-config";
+import { getSearchParam } from "../shared/url-assertions";
+import { CoursesPage } from "./courses.page";
 
 test.describe("Courses pagination", () => {
 	test("navigates to next and previous pages", async ({ page }) => {

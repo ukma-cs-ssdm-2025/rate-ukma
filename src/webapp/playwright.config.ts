@@ -5,7 +5,7 @@ const timeoutMs = 30_000;
 
 const authenticatedProject = {
 	dependencies: ["login"],
-	testIgnore: "**/login.test.ts",
+	testIgnore: "**/login.spec.ts",
 	use: {
 		storageState: "playwright/.auth/microsoft.json",
 	},
@@ -33,7 +33,7 @@ export default defineConfig({
 	projects: [
 		{
 			name: "login",
-			testMatch: "**/login.test.ts",
+			testMatch: "**/login.spec.ts",
 			use: { ...devices["Desktop Chrome"] },
 		},
 		{

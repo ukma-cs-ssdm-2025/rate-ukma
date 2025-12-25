@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-import { CourseDetailsPage, CoursesPage } from "../components";
+import { CourseDetailsPage } from "./course-details.page";
+import { CoursesPage } from "./courses.page";
 
 test.describe("Course Page", () => {
 	let coursesPage: CoursesPage;
