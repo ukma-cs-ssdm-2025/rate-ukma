@@ -22,6 +22,9 @@ from rating_app.serializers.course_offering import (
 )
 
 NOT_FOUND = "Not found"
+BAD_REQUEST = "Bad request"
+UNAUTHORIZED = "Unauthorized"
+FORBIDDEN = "Forbidden"
 INVALID_VALUE = "Invalid value"
 
 RATING_NOT_FOUND_MSG = "Rating not found"
@@ -76,11 +79,11 @@ EX_409 = OpenApiExample(
 def common_errors(include_400=True, include_401=True, include_403=True, include_404=False):
     errors = {}
     if include_400:
-        errors[400] = OpenApiResponse(Err, "Bad request", [EX_400])
+        errors[400] = OpenApiResponse(Err, BAD_REQUEST, [EX_400])
     if include_401:
-        errors[401] = OpenApiResponse(Err, "Unauthorized", [EX_401])
+        errors[401] = OpenApiResponse(Err, UNAUTHORIZED, [EX_401])
     if include_403:
-        errors[403] = OpenApiResponse(Err, "Forbidden", [EX_403])
+        errors[403] = OpenApiResponse(Err, FORBIDDEN, [EX_403])
     if include_404:
         errors[404] = OpenApiResponse(Err, NOT_FOUND, [EX_404])
     return errors
@@ -128,7 +131,7 @@ R_REDIRECT = {
 
 R_OAUTH = {
     **R_REDIRECT,
-    400: OpenApiResponse(Err, "Bad request", [EX_400]),
+    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
     404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
 }
 
@@ -139,12 +142,12 @@ R_LOGIN = {
 
 R_LOGOUT = {
     **R_OAUTH,
-    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }
 
 R_SESSION = {
     200: OpenApiResponse(SessionSerializer, "Session state"),
-    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }
 
 R_CSRF_TOKEN = {
@@ -187,13 +190,13 @@ R_VOTE_LIST = {
 
 R_VOTE_CREATE = {
     201: RatingVoteReadSerializer,
-    400: OpenApiResponse(Err, "Bad request", [EX_400_VOTE]),
-    403: OpenApiResponse(Err, "Forbidden", [EX_403]),
+    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400_VOTE]),
+    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
     404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
 }
 
 R_VOTE_DELETE = {
     204: OpenApiResponse(description="Deleted"),
-    400: OpenApiResponse(Err, "Bad request", [EX_400]),
+    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
     404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
 }
