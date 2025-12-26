@@ -29,7 +29,12 @@ class CacheKeyContextProvider(IProvider[[Callable, tuple, dict], str]):
         return f"{func_name}:{params_str}"
 
     def _parse_args(self, args: tuple) -> dict[str, Any]:
-        return {f"arg_{i}": self._normalize_value(arg) for i, arg in enumerate(args)}
+        parsed: dict[str, Any] = {}
+        for i, arg in enumerate(args):
+            normalized = self._normalize_value(arg)
+            if normalized is not None:
+                parsed[f"arg_{i}"] = normalized
+        return parsed
 
     def _parse_kwargs(self, kwargs: dict) -> dict[str, Any]:
         params_dict: dict[str, Any] = {}
@@ -121,9 +126,7 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
         else:
             return f"{func_name}:{path_with_query}"
 
-    def serialize(
-        self, value: Response, value_type: type[Response] | None = None
-    ) -> JSON_Serializable:
+    def serialize(self, value: Response, value_type: type[Response]) -> JSON_Serializable:
         if isinstance(value.data, dict):
             return {"_wrapped": False, **value.data}
         return {"_wrapped": True, "data": value.data}
