@@ -12,8 +12,8 @@ class RatingReadSerializer(serializers.ModelSerializer):
     Returns null for student_id and student_name when is_anonymous is True.
     """
 
-    student_id = serializers.SerializerMethodField(read_only=True, required=False, source="*")
-    student_name = serializers.CharField(read_only=True, required=False)
+    student_id = serializers.SerializerMethodField(read_only=True, required=False)
+    student_name = serializers.SerializerMethodField(read_only=True, required=False)
     comment = serializers.CharField(required=False, allow_null=True, read_only=True)
     course = serializers.UUIDField(source="course_offering.course_id", read_only=True)
     course_offering = serializers.UUIDField(source="course_offering_id", read_only=True)
@@ -47,9 +47,24 @@ class RatingReadSerializer(serializers.ModelSerializer):
         if isinstance(obj, str | bytes):
             return obj
 
-        if not hasattr(obj, "is_anonymous"):
+        if getattr(obj, "is_anonymous", False):
             return None
 
-        if obj.is_anonymous:
-            return None
+        # Try to get from student_id attribute (Model FK or Pydantic field)
         return getattr(obj, "student_id", None)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_student_name(self, obj):
+        if getattr(obj, "is_anonymous", False):
+            return None
+
+        # Try to get from pre-calculated attribute (Pydantic RatingRead)
+        if hasattr(obj, "student_name"):
+            return obj.student_name
+
+        # Try to calculate from student relation (Rating Model)
+        student = getattr(obj, "student", None)
+        if student:
+            return f"{student.last_name} {student.first_name}"
+
+        return None

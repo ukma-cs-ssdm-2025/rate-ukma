@@ -6,13 +6,13 @@ import structlog
 
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
 from rating_app.exception.vote_exceptions import VoteAlreadyExistsException
-from rating_app.models import Rating, RatingVote
+from rating_app.models import RatingVote
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
 
 
-class RatingVoteRepository(IRepository[Rating]):
+class RatingVoteRepository(IRepository[RatingVote]):
     def get_count_by_rating_id(self, rating_id: str) -> int:
         return (
             RatingVote.objects.select_related("student", "rating")

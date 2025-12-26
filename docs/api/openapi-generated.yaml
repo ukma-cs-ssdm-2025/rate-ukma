@@ -2295,6 +2295,7 @@ components:
           readOnly: true
         student_name:
           type: string
+          nullable: true
           readOnly: true
         course_offering:
           type: string
