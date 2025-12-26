@@ -1456,7 +1456,9 @@ paths:
   /api/v1/ratings/{rating_id}/votes/:
     post:
       operationId: ratings_votes_create
-      summary: Vote on a rating
+      description: Create or update a vote on a rating. Only students enrolled in
+        the course can vote. Each student can have at most one vote per rating.
+      summary: Create or update a vote on a rating
       parameters:
       - in: path
         name: rating_id
@@ -1487,9 +1489,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/RatingVoteRead'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      vote_type:
+                      - Must be either UPVOTE or DOWNVOTE.
+                  summary: Validation error
+          description: Bad request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
     delete:
       operationId: ratings_votes_destroy
-      summary: Remove vote from a rating
+      description: Remove the authenticated student's vote from a rating.
+      summary: Remove the authenticated student's vote from a rating
       parameters:
       - in: path
         name: rating_id
@@ -1503,7 +1544,34 @@ paths:
       - tokenAuth: []
       responses:
         '204':
-          description: No response body
+          description: Deleted
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/students/me/courses/:
     get:
       operationId: students_me_courses_retrieve

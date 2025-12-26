@@ -9,6 +9,7 @@ from rating_app.serializers import (
     InstructorSerializer,
     RatingListResponseSerializer,
     RatingReadSerializer,
+    RatingVoteReadSerializer,
     StudentRatingsDetailedSerializer,
     StudentRatingsLightSerializer,
 )
@@ -32,6 +33,15 @@ EX_400 = OpenApiExample(
         "detail": "Validation failed",
         "status": 400,
         "fields": {"difficulty": [f"Must be between {MIN_RATING_VALUE} and {MAX_RATING_VALUE}."]},
+    },
+    status_codes=["400"],
+)
+EX_400_VOTE = OpenApiExample(
+    "Validation error",
+    value={
+        "detail": "Validation failed",
+        "status": 400,
+        "fields": {"vote_type": ["Must be either UPVOTE or DOWNVOTE."]},
     },
     status_codes=["400"],
 )
@@ -173,4 +183,17 @@ R_COURSE_OFFERING = {
 R_VOTE_LIST = {
     200: OpenApiResponse(description="Vote listed successfully"),
     **common_errors(include_404=True),
+}
+
+R_VOTE_CREATE = {
+    201: RatingVoteReadSerializer,
+    400: OpenApiResponse(Err, "Bad request", [EX_400_VOTE]),
+    403: OpenApiResponse(Err, "Forbidden", [EX_403]),
+    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
+}
+
+R_VOTE_DELETE = {
+    204: OpenApiResponse(description="Deleted"),
+    400: OpenApiResponse(Err, "Bad request", [EX_400]),
+    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
 }

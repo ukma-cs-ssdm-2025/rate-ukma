@@ -12,6 +12,7 @@ from rating_app.models import Student
 from rating_app.serializers import RatingVoteReadSerializer
 from rating_app.services import RatingFeedbackService, RatingService, StudentService
 from rating_app.views.decorators import require_student
+from rating_app.views.responses import R_VOTE_CREATE, R_VOTE_DELETE
 
 logger = structlog.get_logger(__name__)
 
@@ -27,9 +28,13 @@ class RatingVoteViewSet(viewsets.ViewSet):
     cache_manager: ICacheManager | None = None
 
     @extend_schema(
-        summary="Vote on a rating",
+        summary="Create or update a vote on a rating",
+        description=(
+            "Create or update a vote on a rating. Only students enrolled in the course can vote. "
+            "Each student can have at most one vote per rating."
+        ),
         request=RatingVoteCreateSchema,
-        responses={201: RatingVoteReadSerializer},
+        responses=R_VOTE_CREATE,
     )
     @require_student
     def create(self, request, student: Student, rating_id=None):
@@ -50,7 +55,9 @@ class RatingVoteViewSet(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        summary="Remove vote from a rating",
+        summary="Remove the authenticated student's vote from a rating",
+        description="Remove the authenticated student's vote from a rating.",
+        responses=R_VOTE_DELETE,
     )
     @require_student
     def destroy(self, request, student: Student, rating_id=None):

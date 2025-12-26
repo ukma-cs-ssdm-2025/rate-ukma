@@ -1,12 +1,14 @@
 from typing import Any
 
 from django.db import IntegrityError
+from django.db.models import Count, Q
 
 import structlog
 
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
 from rating_app.exception.vote_exceptions import VoteAlreadyExistsException
 from rating_app.models import RatingVote
+from rating_app.models.choices import RatingVoteType
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
@@ -20,10 +22,34 @@ class RatingVoteRepository(IRepository[RatingVote]):
             .count()
         )
 
+    def get_vote_counts_by_rating_ids(self, rating_ids: list[str]) -> dict[str, dict[str, int]]:
+        qs = (
+            RatingVote.objects.filter(rating_id__in=rating_ids)
+            .values("rating_id")
+            .annotate(
+                upvotes=Count("id", filter=Q(type=RatingVoteType.UPVOTE.value)),
+                downvotes=Count("id", filter=Q(type=RatingVoteType.DOWNVOTE.value)),
+            )
+        )
+
+        out: dict[str, dict[str, int]] = {}
+        for row in qs:
+            rid = str(row["rating_id"])
+            out[rid] = {"upvotes": row["upvotes"], "downvotes": row["downvotes"]}
+        return out
+
     def get_by_rating_id(self, rating_id: str) -> list[RatingVote]:
         return list(
             RatingVote.objects.select_related("student", "rating").filter(rating_id=rating_id)
         )
+
+    def get_viewer_votes_by_rating_ids(
+        self, student_id: str, rating_ids: list[str]
+    ) -> dict[str, str]:
+        qs = RatingVote.objects.filter(student_id=student_id, rating_id__in=rating_ids).values_list(
+            "rating_id", "type"
+        )
+        return {str(rid): vote_type for rid, vote_type in qs}
 
     def create_vote(self, params: RatingVoteCreateSchema) -> RatingVote:
         try:
@@ -32,9 +58,6 @@ class RatingVoteRepository(IRepository[RatingVote]):
             )
         except IntegrityError as err:
             raise VoteAlreadyExistsException() from err
-
-    def delete_vote(self, vote: RatingVote) -> None:
-        RatingVote.objects.filter(student=vote.student, rating=vote.rating).delete()
 
     def count_votes_of_type(self, rating_id: str, vote_type: str) -> int:
         return RatingVote.objects.filter(rating_id=rating_id, type=vote_type).count()
@@ -63,6 +86,9 @@ class RatingVoteRepository(IRepository[RatingVote]):
         obj.save()
         return obj
 
-    def delete(self, vote: RatingVote) -> bool:
-        deleted, _ = RatingVote.objects.filter(pk=vote.pk).delete()
-        return deleted > 0
+    def delete(self, obj: RatingVote) -> bool:
+        try:
+            obj.delete()
+            return True
+        except Exception:
+            return False

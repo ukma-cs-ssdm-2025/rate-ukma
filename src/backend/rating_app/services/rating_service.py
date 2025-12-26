@@ -25,7 +25,6 @@ from rating_app.exception.rating_exceptions import (
     RatingPeriodNotStarted,
 )
 from rating_app.models import Course, Rating, Semester
-from rating_app.models.choices import RatingVoteType
 from rating_app.repositories import EnrollmentRepository, RatingRepository, RatingVoteRepository
 from rating_app.services.course_offering_service import CourseOfferingService
 from rating_app.services.paginator import QuerysetPaginator
@@ -190,42 +189,44 @@ class RatingService(IObservable[Rating]):
     def _attach_votes_to_ratings(
         self, ratings: list[Rating], viewer_id: Any | None
     ) -> list[RatingRead]:
-        results = []
-        for rating in ratings:
-            upvote_count = self.rating_vote_repository.count_votes_of_type(
-                rating.id, vote_type=RatingVoteType.UPVOTE.value
-            )
-            downvote_count = self.rating_vote_repository.count_votes_of_type(
-                rating.id, vote_type=RatingVoteType.DOWNVOTE.value
-            )
-            student_vote = None
-            if viewer_id is not None:
-                vote = self.rating_vote_repository.get_vote_by_student_and_rating(
-                    student_id=str(viewer_id),
-                    rating_id=str(rating.id),
-                )
-                if vote is not None:
-                    student_vote = vote.type
+        rating_ids = [str(r.id) for r in ratings]
 
-            extended_rating = RatingRead(
-                id=rating.id,
-                course_offering_id=rating.course_offering.id,
-                difficulty=rating.difficulty,
-                usefulness=rating.usefulness,
-                comment=rating.comment,
-                created_at=rating.created_at,
-                is_anonymous=rating.is_anonymous,
-                student_id=rating.student.id,
-                student_name=f"{rating.student.last_name} {rating.student.first_name}"
-                if not rating.is_anonymous
-                else None,
-                course_offering=rating.course_offering.id,
-                course=rating.course_offering.course_id,
-                upvotes=upvote_count,
-                downvotes=downvote_count,
-                viewer_vote=student_vote,
+        counts = self.rating_vote_repository.get_vote_counts_by_rating_ids(rating_ids)
+        viewer_votes = (
+            self.rating_vote_repository.get_viewer_votes_by_rating_ids(str(viewer_id), rating_ids)
+            if viewer_id is not None
+            else {}
+        )
+
+        results: list[RatingRead] = []
+        for rating in ratings:
+            rid = str(rating.id)
+            up = counts.get(rid, {}).get("upvotes", 0)
+            down = counts.get(rid, {}).get("downvotes", 0)
+            student_vote = viewer_votes.get(rid)
+
+            results.append(
+                RatingRead(
+                    id=rating.id,
+                    course_offering_id=rating.course_offering.id,
+                    difficulty=rating.difficulty,
+                    usefulness=rating.usefulness,
+                    comment=rating.comment,
+                    created_at=rating.created_at,
+                    is_anonymous=rating.is_anonymous,
+                    student_id=rating.student.id,
+                    student_name=(
+                        f"{rating.student.last_name} {rating.student.first_name}"
+                        if not rating.is_anonymous
+                        else None
+                    ),
+                    course_offering=rating.course_offering.id,
+                    course=rating.course_offering.course_id,
+                    upvotes=up,
+                    downvotes=down,
+                    viewer_vote=student_vote,
+                )
             )
-            results.append(RatingRead.model_validate(extended_rating))
 
         return results
 

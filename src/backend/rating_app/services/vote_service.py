@@ -47,7 +47,7 @@ class RatingFeedbackService:
             raise VoteOnUnenrolledCourseException(
                 "A student must be enrolled in the course to delete a vote on its rating"
             )
-        self.vote_repository.delete_vote(vote)
+        self.vote_repository.delete(vote)
 
     def get_votes_by_rating_id(self, rating_id: str) -> list[RatingVote]:
         return self.vote_repository.get_by_rating_id(rating_id)
