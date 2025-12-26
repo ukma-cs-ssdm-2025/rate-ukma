@@ -10,7 +10,7 @@ repos:
     hooks:
       - id: generate-openapi-schema
         name: Generate OpenAPI schema
-        entry: bash -c "cd src/backend && uv run python manage.py spectacular --file ../../docs/api/openapi-generated.yaml"
+        entry: bash -lc "cd src/backend && uv run python manage.py spectacular --file ../../docs/api/openapi-generated.yaml"
         language: system
         pass_filenames: false
       - id: webapp-biome-check

@@ -2,47 +2,105 @@ from typing import Any
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Prefetch, Q, QuerySet
 
 import structlog
 
-from rating_app.application_schemas.course import CourseFilterCriteria
+from rateukma.protocols import IProcessor
+from rating_app.application_schemas.course import (
+    Course as CourseDTO,
+)
+from rating_app.application_schemas.course import (
+    CourseFilterCriteria,
+)
 from rating_app.exception.course_exceptions import (
     CourseNotFoundError,
     InvalidCourseIdentifierError,
 )
-from rating_app.models import Course, Department
+from rating_app.exception.department_exceptions import (
+    DepartmentNotFoundError,
+    InvalidDepartmentIdentifierError,
+)
+from rating_app.models import Course, CourseOffering, Department
 from rating_app.models.choices import CourseStatus, SemesterTerm
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
 
-logger = structlog.get_logger()
 
+class CourseRepository(IRepository[CourseDTO]):
+    def __init__(self, mapper: IProcessor[[Course], CourseDTO]):
+        self._mapper = mapper
 
-class CourseRepository(IRepository[Course]):
-    def get_all(self) -> list[Course]:
-        return list(
-            Course.objects.select_related("department__faculty")
-            .prefetch_related("offerings__semester", "course_specialities__speciality")
-            .all()
+    def get_all(self, prefetch_related: bool = True) -> list[CourseDTO]:
+        courses = self._get_all_prefetch_related() if prefetch_related else self._get_all_shallow()
+        return [self._mapper.process(course) for course in courses]
+
+    def get_by_id(self, course_id: str, prefetch_related: bool = True) -> CourseDTO:
+        course = (
+            self._get_by_id_prefetch_related(course_id)
+            if prefetch_related
+            else self._get_by_id_shallow(course_id)
+        )
+        return self._mapper.process(course)
+
+    def filter(self, filters: CourseFilterCriteria) -> list[CourseDTO]:
+        qs = self._filter_qs(filters)
+        return self._map_to_domain_models(list(qs))
+
+    def filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
+        # filter() method can`t be overloaded with different parameters,
+        # so we need a separate method for Paginator to use
+        return self._filter_qs(filters)
+
+    def get_or_create(
+        self,
+        *,
+        title: str,
+        department_id: str,
+        status: str = CourseStatus.PLANNED,
+        description: str | None = None,
+    ) -> tuple[CourseDTO, bool]:
+        department = self._get_department_by_id(department_id)
+        course, created = Course.objects.get_or_create(
+            title=title,
+            department=department,
+            status=status,
+            description=description,
+        )
+        return self._mapper.process(course), created
+
+    def get_or_create_model(
+        self,
+        *,
+        title: str,
+        department_id: str,
+        status: str = CourseStatus.PLANNED,
+        description: str | None = None,
+    ) -> tuple[Course, bool]:
+        # we can`t effectively overload the method with different parameters,
+        # so we need to create a new method
+        # injector sets ORM M2M relations, so it needs an ORM model to be returned
+        department = self._get_department_by_id(department_id)
+        return Course.objects.get_or_create(
+            title=title,
+            department=department,
+            status=status,
+            description=description,
         )
 
-    def get_by_id(self, course_id: str) -> Course:
-        try:
-            return (
-                Course.objects.select_related("department__faculty")
-                .prefetch_related("offerings__semester", "course_specialities__speciality")
-                .get(id=course_id)
-            )
-        except Course.DoesNotExist as exc:
-            logger.info("course_not_found", course_id=course_id)
-            raise CourseNotFoundError(course_id) from exc
-        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
-            logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
-            raise InvalidCourseIdentifierError(course_id) from exc
+    def update(self, course_dto: CourseDTO, **course_data) -> CourseDTO:
+        course_orm = self._get_by_id_shallow(course_dto.id)
+        for field, value in course_data.items():
+            setattr(course_orm, field, value)
+        course_orm.save()
+        return self._mapper.process(course_orm)
 
-    def filter(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
+    def delete(self, course_dto: CourseDTO) -> None:
+        course_orm = self._get_by_id_shallow(course_dto.id)
+        course_orm.delete()
+
+    def _filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
         courses = self._build_base_queryset()
         courses = self._apply_basic_filters(courses, filters)
         courses = self._apply_speciality_filters(courses, filters)
@@ -51,40 +109,8 @@ class CourseRepository(IRepository[Course]):
         courses = courses.distinct()
         return courses
 
-    def get_or_create(
-        self,
-        *,
-        title: str,
-        department: Department,
-        status: str = CourseStatus.PLANNED,
-        description: str | None = None,
-    ) -> tuple[Course, bool]:
-        return Course.objects.get_or_create(
-            title=title,
-            department=department,
-            status=status,
-            description=description,
-        )
-
-    def update(self, course: Course, **course_data) -> Course:
-        for field, value in course_data.items():
-            setattr(course, field, value)
-        course.save()
-        return course
-
-    def delete(self, course: Course) -> None:
-        course.delete()
-
     def _build_base_queryset(self) -> QuerySet[Course]:
-        return (
-            Course.objects.select_related("department__faculty")
-            .prefetch_related(
-                "course_specialities__speciality",
-                "offerings__semester",
-                "offerings__instructors",
-            )
-            .all()
-        )
+        return self._get_all_prefetch_related()
 
     def _apply_basic_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteria
@@ -191,3 +217,68 @@ class CourseRepository(IRepository[Course]):
             else:
                 order_by_fields.append(field.desc(nulls_last=True))
         return order_by_fields
+
+    def _map_to_domain_models(self, models: list[Course]) -> list[CourseDTO]:
+        return [self._mapper.process(model) for model in models]
+
+    def _get_department_by_id(self, department_id: str) -> Department:
+        try:
+            return Department.objects.get(id=department_id)
+        except Department.DoesNotExist as exc:
+            logger.warning("department_not_found", department_id=department_id, error=str(exc))
+            raise DepartmentNotFoundError(department_id) from exc
+        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
+            logger.warning(
+                "invalid_department_identifier", department_id=department_id, error=str(exc)
+            )
+            raise InvalidDepartmentIdentifierError(department_id) from exc
+
+    def _get_all_shallow(self) -> QuerySet[Course]:
+        return Course.objects.select_related("department__faculty").all()
+
+    def _get_all_prefetch_related(self) -> QuerySet[Course]:
+        return (
+            Course.objects.select_related("department__faculty")
+            .prefetch_related(
+                Prefetch(
+                    "offerings",
+                    queryset=CourseOffering.objects.select_related("semester").prefetch_related(
+                        "instructors"
+                    ),
+                ),
+                "course_specialities__speciality__faculty",
+            )
+            .all()
+        )
+
+    def _get_by_id_shallow(self, course_id: str) -> Course:
+        try:
+            return Course.objects.select_related("department__faculty").get(id=course_id)
+        except Course.DoesNotExist as exc:
+            logger.warning("course_not_found", course_id=course_id, error=str(exc))
+            raise CourseNotFoundError(course_id) from exc
+        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
+            logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
+            raise InvalidCourseIdentifierError(course_id) from exc
+
+    def _get_by_id_prefetch_related(self, course_id: str) -> Course:
+        try:
+            return (
+                Course.objects.select_related("department__faculty")
+                .prefetch_related(
+                    Prefetch(
+                        "offerings",
+                        queryset=CourseOffering.objects.select_related("semester").prefetch_related(
+                            "instructors"
+                        ),
+                    ),
+                    "course_specialities__speciality__faculty",
+                )
+                .get(id=course_id)
+            )
+        except Course.DoesNotExist as exc:
+            logger.warning("course_not_found", course_id=course_id, error=str(exc))
+            raise CourseNotFoundError(course_id) from exc
+        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
+            logger.warning("invalid_course_identifier", course_id=course_id, error=str(exc))
+            raise InvalidCourseIdentifierError(course_id) from exc

@@ -1,17 +1,15 @@
 from django.conf import settings
 from rest_framework.response import Response
 
-from pydantic import BaseModel
 from redis import Redis
 
 from ..caching.cache_manager import ICacheManager, RedisCacheManager
 from ..ioc.decorators import once
 from .types_extensions import (
-    BaseModelCacheTypeExtension,
+    CacheKeyContextProvider,
     CacheTypeExtensionRegistry,
-    DataclassCacheTypeExtension,
     DRFResponseCacheTypeExtension,
-    PrimitiveCacheTypeExtension,
+    TypeAdapterCacheExtension,
 )
 
 
@@ -36,16 +34,17 @@ def redis_cache_manager() -> ICacheManager:
 
 
 @once
+def cache_key_context_provider() -> CacheKeyContextProvider:
+    return CacheKeyContextProvider()
+
+
+@once
 def cache_type_extension_registry() -> CacheTypeExtensionRegistry:
     registry = CacheTypeExtensionRegistry(
-        extensions={
-            Response: DRFResponseCacheTypeExtension(),
-            BaseModel: BaseModelCacheTypeExtension(),
-            "dataclass": DataclassCacheTypeExtension(),
-            "primitive": PrimitiveCacheTypeExtension(),
+        custom_extensions={
+            Response: DRFResponseCacheTypeExtension(cache_key_context_provider()),
         },
+        generic_extension=TypeAdapterCacheExtension(cache_key_context_provider()),
     )
-
-    # dataclasses and primitive types are handled by the registry
 
     return registry

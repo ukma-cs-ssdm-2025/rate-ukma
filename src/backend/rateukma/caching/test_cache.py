@@ -15,10 +15,9 @@ from rateukma.caching.decorators import (
     rcached,
 )
 from rateukma.caching.types_extensions import (
-    BaseModelCacheTypeExtension,
-    DataclassCacheTypeExtension,
+    CacheKeyContextProvider,
     DRFResponseCacheTypeExtension,
-    PrimitiveCacheTypeExtension,
+    TypeAdapterCacheExtension,
 )
 
 
@@ -42,7 +41,12 @@ def cache_manager(mock_redis_client) -> ICacheManager:
     )
 
 
-@pytest.mark.usefixtures("cache_manager", "mock_redis_client")
+@pytest.fixture
+def cache_key_context_provider() -> CacheKeyContextProvider:
+    return CacheKeyContextProvider()
+
+
+@pytest.mark.usefixtures("cache_manager", "mock_redis_client", "cache_key_context_provider")
 @pytest.mark.integration
 class TestCachePrimitives:
     @pytest.mark.parametrize(
@@ -56,12 +60,12 @@ class TestCachePrimitives:
             ({"key": "value"}, dict),
         ],
     )
-    def test_cache_primitives(self, primitive_value, type):
+    def test_cache_primitives(self, primitive_value, type, cache_key_context_provider):
         # Arrange
-        ext = PrimitiveCacheTypeExtension()
+        ext = TypeAdapterCacheExtension(cache_key_context_provider)
 
         # Act and Assert - serialize
-        result = ext.serialize(primitive_value)
+        result = ext.serialize(primitive_value, type)
         assert result == primitive_value
 
         # Act and Assert - deserialize
@@ -78,13 +82,13 @@ class TestCacheDataclasses:
         value: int
         active: bool = True
 
-    def test_cache_dataclasses(self):
+    def test_cache_dataclasses(self, cache_key_context_provider):
         # Arrange
         test_data = self._TestData(name="test", value=42, active=False)
-        ext = DataclassCacheTypeExtension()
+        ext = TypeAdapterCacheExtension(cache_key_context_provider)
 
         # Act and Assert - serialize
-        result = ext.serialize(test_data)
+        result = ext.serialize(test_data, self._TestData)
         expected = asdict(test_data)
         assert result == expected
 
@@ -113,9 +117,9 @@ class TestCacheDRFResponses:
             (Response(["item1", "item2"]), {"_wrapped": True, "data": ["item1", "item2"]}),
         ],
     )
-    def test_cache_drf_responses(self, response, expected_result):
+    def test_cache_drf_responses(self, response, expected_result, cache_key_context_provider):
         # Arrange
-        ext = DRFResponseCacheTypeExtension()
+        ext = DRFResponseCacheTypeExtension(cache_key_context_provider)
 
         mock_request = Mock(spec=Request)
         mock_request.method = "GET"
@@ -123,7 +127,7 @@ class TestCacheDRFResponses:
         mock_request.query_params = {"param": "value"}
 
         # Act and Assert - serialize
-        result = ext.serialize(response)
+        result = ext.serialize(response, Response)
         assert result == expected_result
 
         # Act and Assert - deserialize
@@ -147,13 +151,13 @@ class TestCacheBaseModels:
         count: int
         optional: str = "default"
 
-    def test_cache_base_models(self):
+    def test_cache_base_models(self, cache_key_context_provider):
         # Arrange
-        ext = BaseModelCacheTypeExtension()
+        ext = TypeAdapterCacheExtension(cache_key_context_provider)
         instance = self._TestModel(name="test model", count=100, optional="custom")
 
         # Act and Assert - serialize
-        result = ext.serialize(instance)
+        result = ext.serialize(instance, self._TestModel)
         expected = instance.model_dump()
         assert result == expected
 
@@ -184,8 +188,9 @@ class TestRCachedComponents:
         ],
     )
     def test_rcached_decorator_with_primitives(
-        self, cache_manager, mock_redis_client, primitive_value, expected_type
+        self, cache_manager, mock_redis_client, primitive_value, expected_type, settings
     ):
+        settings.ENABLE_CACHE = True
         with patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager):
             # Arrange
             @rcached(ttl=60, return_type=expected_type)
@@ -208,9 +213,9 @@ class TestRCachedComponents:
             result2 = get_primitive()
             assert result2 == primitive_value
 
-    def test_cache_key_generation(self):
+    def test_cache_key_generation(self, cache_key_context_provider):
         # Arrange
-        ext = PrimitiveCacheTypeExtension()
+        ext = TypeAdapterCacheExtension(cache_key_context_provider)
         kwargs = {"param": "value"}
         args1 = (1,)
         args2 = (2,)

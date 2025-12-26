@@ -155,9 +155,9 @@ class CourseDbInjector(IDbInjector):
         course_key = (course_data.title, department.name)
         course = self._course_cache.get(course_key)
         if not course:
-            course, _ = self.course_repository.get_or_create(
+            course, _ = self.course_repository.get_or_create_model(
                 title=course_data.title,
-                department=department,
+                department_id=department.id,
                 status=course_data.status.value,
                 description=course_data.description,
             )
