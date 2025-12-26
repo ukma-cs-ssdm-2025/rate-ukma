@@ -6,6 +6,7 @@ from redis import Redis
 from ..caching.cache_manager import ICacheManager, RedisCacheManager
 from ..ioc.decorators import once
 from .types_extensions import (
+    CacheKeyContextProvider,
     CacheTypeExtensionRegistry,
     DRFResponseCacheTypeExtension,
     TypeAdapterCacheExtension,
@@ -33,12 +34,17 @@ def redis_cache_manager() -> ICacheManager:
 
 
 @once
+def cache_key_context_provider() -> CacheKeyContextProvider:
+    return CacheKeyContextProvider()
+
+
+@once
 def cache_type_extension_registry() -> CacheTypeExtensionRegistry:
     registry = CacheTypeExtensionRegistry(
         custom_extensions={
-            Response: DRFResponseCacheTypeExtension(),
+            Response: DRFResponseCacheTypeExtension(cache_key_context_provider()),
         },
-        generic_extension=TypeAdapterCacheExtension(),
+        generic_extension=TypeAdapterCacheExtension(cache_key_context_provider()),
     )
 
     return registry

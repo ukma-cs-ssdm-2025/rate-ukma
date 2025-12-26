@@ -11,10 +11,6 @@ from rating_app.application_schemas.course import (
 )
 from rating_app.application_schemas.pagination import PaginationMetadata
 from rating_app.application_schemas.rating import AggregatedCourseRatingStats
-from rating_app.exception.course_exceptions import (
-    CourseNotFoundError,
-    InvalidCourseIdentifierError,
-)
 from rating_app.models.choices import CourseTypeKind
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.services.department_service import DepartmentService
@@ -112,27 +108,6 @@ class CourseService:
                 for value, label in CourseTypeKind.choices
             ],
         )
-
-    # -- admin functions --
-    # TODO: invalidate cache for courses
-    def create_course(self, **course_data) -> CourseDTO:
-        course, _ = self.course_repository.get_or_create(**course_data)
-        return course
-
-    def update_course(self, course_id: str, **update_data) -> CourseDTO | None:
-        try:
-            course_dto = self.course_repository.get_by_id(course_id)
-            return self.course_repository.update(course_dto, **update_data)
-        except (CourseNotFoundError, InvalidCourseIdentifierError) as exc:
-            logger.error("error_updating_course", course_id=course_id, error=str(exc))
-            return None
-
-    def delete_course(self, course_id: str) -> None:
-        try:
-            course_dto = self.course_repository.get_by_id(course_id)
-            self.course_repository.delete(course_dto)
-        except (CourseNotFoundError, InvalidCourseIdentifierError) as exc:
-            logger.error("error_deleting_course", course_id=course_id, error=str(exc))
 
     def _empty_pagination_metadata(self, courses_count: int) -> PaginationMetadata:
         return PaginationMetadata(

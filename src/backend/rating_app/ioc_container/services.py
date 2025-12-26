@@ -1,6 +1,7 @@
 from rateukma.caching.instances import redis_cache_manager
 from rateukma.ioc.decorators import once
 from rating_app.ioc_container.repositories import (
+    course_mapper,
     course_offering_repository,
     course_repository,
     department_repository,
@@ -58,6 +59,7 @@ def pagination_course_adapter() -> PaginationCourseAdapter:
     return PaginationCourseAdapter(
         course_repository=course_repository(),
         paginator=paginator(),
+        mapper=course_mapper(),
     )
 
 

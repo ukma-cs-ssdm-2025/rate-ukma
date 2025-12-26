@@ -53,7 +53,7 @@ def rcached[**P, RT](
 
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> RT:
-            if settings.CACHE_DISABLED:
+            if not settings.ENABLE_CACHE:
                 return func(*args, **kwargs)
 
             cache_manager = redis_cache_manager()

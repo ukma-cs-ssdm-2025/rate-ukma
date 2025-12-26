@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from rating_app.application_schemas.course import CourseFilterCriteria
-from rating_app.exception.course_exceptions import CourseNotFoundError
 from rating_app.services.course_service import CourseService
 
 
@@ -132,78 +131,6 @@ def test_filter_courses_uses_custom_page_size(service, pagination_course_adapter
     # Assert
     assert result == mock_search_result
     pagination_course_adapter.paginate.assert_called_once_with(filters)
-
-
-def test_create_course_returns_created_course(service, course_repo):
-    # Arrange
-    course_data = {"title": "Test Course", "description": "Description"}
-    expected_course = MagicMock()
-    course_repo.get_or_create.return_value = (expected_course, True)
-
-    # Act
-    result = service.create_course(**course_data)
-
-    # Assert
-    assert result == expected_course
-    course_repo.get_or_create.assert_called_once_with(**course_data)
-
-
-def test_create_course_returns_existing_course_when_already_exists(service, course_repo):
-    # Arrange
-    course_data = {"title": "Existing Course"}
-    existing_course = MagicMock()
-    course_repo.get_or_create.return_value = (existing_course, False)
-
-    # Act
-    result = service.create_course(**course_data)
-
-    # Assert
-    assert result == existing_course
-
-
-def test_update_course_updates_and_returns_course(service, course_repo):
-    # Arrange
-    course_id = "course-123"
-    update_data = {"title": "Updated Title"}
-    existing_course = MagicMock()
-    updated_course = MagicMock()
-    course_repo.get_by_id.return_value = existing_course
-    course_repo.update.return_value = updated_course
-
-    # Act
-    result = service.update_course(course_id, **update_data)
-
-    # Assert
-    assert result == updated_course
-    course_repo.get_by_id.assert_called_once_with(course_id)
-    course_repo.update.assert_called_once_with(existing_course, **update_data)
-
-
-def test_update_course_returns_none_when_course_not_found(service, course_repo):
-    # Arrange
-    course_id = "nonexistent"
-    course_repo.get_by_id.side_effect = CourseNotFoundError(course_id)
-
-    # Act
-    result = service.update_course(course_id, title="New Title")
-
-    # Assert
-    assert result is None
-    course_repo.update.assert_not_called()
-
-
-def test_delete_course_deletes_course_by_id(service, course_repo):
-    # Arrange
-    course_id = "course-123"
-    course = MagicMock()
-    course_repo.get_by_id.return_value = course
-
-    # Act
-    service.delete_course(course_id)
-
-    # Assert
-    course_repo.get_by_id.assert_called_once_with(course_id)
-    course_repo.delete.assert_called_once_with(course)
 
 
 def test_get_filter_options_aggregates_options_from_all_services(

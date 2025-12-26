@@ -3,13 +3,6 @@ from rest_framework import serializers
 from rating_app.models.choices import CourseTypeKind
 
 
-class SpecialityWithKindPayload(serializers.Serializer):
-    """Payload serializer for creating/updating course speciality associations (write-only)."""
-
-    speciality = serializers.UUIDField()
-    type_kind = serializers.ChoiceField(choices=CourseTypeKind.choices)
-
-
 class CourseSpecialityInlineSerializer(serializers.Serializer):
     """Inline serializer for course speciality"""
 

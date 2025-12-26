@@ -6,15 +6,14 @@ from django.db.models import F, Prefetch, Q, QuerySet
 
 import structlog
 
+from rateukma.protocols import IProcessor
 from rating_app.application_schemas.course import (
     Course as CourseDTO,
 )
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
-    CourseSpeciality,
 )
 from rating_app.exception.course_exceptions import (
-    CourseMissingDepartmentOrFacultyError,
     CourseNotFoundError,
     InvalidCourseIdentifierError,
 )
@@ -30,9 +29,12 @@ logger = structlog.get_logger(__name__)
 
 
 class CourseRepository(IRepository[CourseDTO]):
+    def __init__(self, mapper: IProcessor[[Course], CourseDTO]):
+        self._mapper = mapper
+
     def get_all(self, prefetch_related: bool = True) -> list[CourseDTO]:
         courses = self._get_all_prefetch_related() if prefetch_related else self._get_all_shallow()
-        return [self._map_to_domain_model(course) for course in courses]
+        return [self._mapper.process(course) for course in courses]
 
     def get_by_id(self, course_id: str, prefetch_related: bool = True) -> CourseDTO:
         course = (
@@ -40,11 +42,11 @@ class CourseRepository(IRepository[CourseDTO]):
             if prefetch_related
             else self._get_by_id_shallow(course_id)
         )
-        return self._map_to_domain_model(course)
+        return self._mapper.process(course)
 
     def filter(self, filters: CourseFilterCriteria) -> list[CourseDTO]:
         qs = self._filter_qs(filters)
-        return self.map_to_domain_models(list(qs))
+        return self._map_to_domain_models(list(qs))
 
     def filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
         # filter() method can`t be overloaded with different parameters,
@@ -66,7 +68,7 @@ class CourseRepository(IRepository[CourseDTO]):
             status=status,
             description=description,
         )
-        return self._map_to_domain_model(course), created
+        return self._mapper.process(course), created
 
     def get_or_create_model(
         self,
@@ -92,7 +94,7 @@ class CourseRepository(IRepository[CourseDTO]):
         for field, value in course_data.items():
             setattr(course_orm, field, value)
         course_orm.save()
-        return self._map_to_domain_model(course_orm)
+        return self._mapper.process(course_orm)
 
     def delete(self, course_dto: CourseDTO) -> None:
         course_orm = self._get_by_id_shallow(course_dto.id)
@@ -216,93 +218,8 @@ class CourseRepository(IRepository[CourseDTO]):
                 order_by_fields.append(field.desc(nulls_last=True))
         return order_by_fields
 
-    def map_to_domain_models(self, models: list[Course]) -> list[CourseDTO]:
-        return [self._map_to_domain_model(model) for model in models]
-
-    def _map_to_domain_model(self, model: Course) -> CourseDTO:
-        department = model.department
-        faculty = department.faculty if department else None
-
-        if not department or not faculty:
-            logger.warning(
-                "course_missing_department_or_faculty",
-                course_id=str(model.id),
-            )
-            raise CourseMissingDepartmentOrFacultyError(str(model.id))
-
-        department_id = str(department.id)
-        department_name = department.name
-        faculty_id = str(faculty.id)
-        faculty_name = faculty.name
-        faculty_custom_abbreviation = faculty.custom_abbreviation
-        status = model.status
-        status = CourseStatus(status) if status in CourseStatus.values else CourseStatus.PLANNED
-        specialities = self._prefetched_course_specialities_to_domain_models(model)
-
-        course = CourseDTO(
-            id=str(model.id),
-            title=model.title,
-            description=model.description,
-            status=status,
-            department=department_id,
-            department_name=department_name,
-            faculty=faculty_id,
-            faculty_name=faculty_name,
-            faculty_custom_abbreviation=faculty_custom_abbreviation,
-            specialities=specialities,
-            avg_difficulty=model.avg_difficulty,
-            avg_usefulness=model.avg_usefulness,
-            ratings_count=model.ratings_count,
-        )
-        return course
-
-    def _prefetched_course_specialities_to_domain_models(
-        self, model: Course
-    ) -> list[CourseSpeciality]:
-        prefetched_course_specialities = getattr(model, "_prefetched_objects_cache", {}).get(
-            "course_specialities"
-        )
-        specialities: list[CourseSpeciality] = []
-
-        if prefetched_course_specialities is None:
-            return specialities
-
-        for course_speciality in prefetched_course_specialities:
-            speciality = getattr(course_speciality, "speciality", None)
-            if speciality is None:
-                logger.warning(
-                    "course_speciality_missing_speciality",
-                    course_speciality_id=str(course_speciality.id),
-                )
-                continue
-
-            type_kind = course_speciality.type_kind
-            if not type_kind:
-                type_kind = None
-
-            faculty_obj = speciality.faculty
-            if faculty_obj is None:
-                logger.warning(
-                    "course_speciality_missing_faculty",
-                    course_speciality_id=str(course_speciality.id),
-                    speciality_id=str(speciality.id),
-                )
-                continue
-            faculty_id = str(faculty_obj.id)
-            faculty_name = faculty_obj.name
-
-            specialities.append(
-                CourseSpeciality(
-                    speciality_id=str(speciality.id),
-                    speciality_title=speciality.name,
-                    faculty_id=faculty_id,
-                    faculty_name=faculty_name,
-                    speciality_alias=speciality.alias,
-                    type_kind=type_kind,
-                )
-            )
-
-        return specialities
+    def _map_to_domain_models(self, models: list[Course]) -> list[CourseDTO]:
+        return [self._mapper.process(model) for model in models]
 
     def _get_department_by_id(self, department_id: str) -> Department:
         try:

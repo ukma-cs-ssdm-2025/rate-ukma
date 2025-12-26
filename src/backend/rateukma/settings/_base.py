@@ -150,7 +150,7 @@ CACHES = {
         "TIMEOUT": 300,  # default TTL
     },
 }
-CACHE_DISABLED = False
+ENABLE_CACHE = True
 
 
 # TODO: Redis session configuration (optional, will uncomment on demand later)

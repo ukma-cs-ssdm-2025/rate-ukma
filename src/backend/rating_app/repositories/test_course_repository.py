@@ -3,6 +3,7 @@ import pytest
 from rating_app.application_schemas.course import CourseFilterCriteria
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories.course_repository import CourseRepository
+from rating_app.repositories.to_domain_mappers import CourseMapper
 from rating_app.tests.factories import (
     CourseFactory,
     CourseInstructorFactory,
@@ -14,7 +15,7 @@ from rating_app.tests.factories import (
 
 @pytest.fixture
 def repo():
-    return CourseRepository()
+    return CourseRepository(mapper=CourseMapper())
 
 
 @pytest.mark.django_db

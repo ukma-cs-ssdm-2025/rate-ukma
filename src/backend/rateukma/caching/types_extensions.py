@@ -8,45 +8,51 @@ from rest_framework.response import Response
 
 from pydantic import BaseModel, TypeAdapter
 
+from ..protocols.generic import IProvider
 from .cache_manager import CacheJsonDataEncoder, JSON_Serializable
 
 V = TypeVar("V")
 JSONValue = JSON_Serializable
 
 
-# TODO: cleanup and simplify
-def _make_cache_key_from_context(func: Callable, args: tuple, kwargs: dict) -> str:
-    func_name = f"{func.__module__}.{func.__qualname__}"
+class CacheKeyContextProvider(IProvider[[Callable, tuple, dict], str]):
+    def provide(self, func: Callable, args: tuple, kwargs: dict) -> str:
+        return self._make_cache_key_from_context(func, args, kwargs)
 
-    params_dict = {}
+    def _make_cache_key_from_context(self, func: Callable, args: tuple, kwargs: dict) -> str:
+        func_name = f"{func.__module__}.{func.__qualname__}"
 
-    for i, arg in enumerate(args):
-        # skip self/cls and common instance patterns to avoid unstable repr
-        if isinstance(arg, BaseModel):
-            params_dict[f"arg_{i}"] = arg.model_dump(mode="python", by_alias=True)
-            continue
-        if is_dataclass(arg) and not isinstance(arg, type):
-            params_dict[f"arg_{i}"] = asdict(arg)
-            continue
-        if hasattr(arg, "__dict__") and not isinstance(
-            arg, (str | int | float | bool | list | dict | tuple)
+        params_dict = self._parse_args(args)
+        params_dict.update(self._parse_kwargs(kwargs))
+
+        params_str = json.dumps(params_dict, sort_keys=True, cls=CacheJsonDataEncoder)
+        return f"{func_name}:{params_str}"
+
+    def _parse_args(self, args: tuple) -> dict[str, Any]:
+        return {f"arg_{i}": self._normalize_value(arg) for i, arg in enumerate(args)}
+
+    def _parse_kwargs(self, kwargs: dict) -> dict[str, Any]:
+        params_dict: dict[str, Any] = {}
+        for key, val in kwargs.items():
+            if key in {"self", "cls", "request"}:
+                continue
+            normalized = self._normalize_value(val)
+            if normalized is not None:
+                params_dict[key] = normalized
+        return params_dict
+
+    def _normalize_value(self, value: Any) -> Any:
+        # serialize function parameters to JSON
+        if isinstance(value, BaseModel):
+            return value.model_dump(mode="python", by_alias=True)
+        if is_dataclass(value) and not isinstance(value, type):
+            return asdict(value)
+        # skip objects with complex state to avoid unstable repr
+        if hasattr(value, "__dict__") and not isinstance(
+            value, (str | int | float | bool | list | dict | tuple)
         ):
-            continue
-        params_dict[f"arg_{i}"] = repr(arg)
-
-    for k, v in kwargs.items():
-        if k in ("self", "cls", "request"):
-            continue
-        if isinstance(v, BaseModel):
-            params_dict[k] = v.model_dump(mode="python", by_alias=True)
-            continue
-        if is_dataclass(v) and not isinstance(v, type):
-            params_dict[k] = asdict(v)
-            continue
-        params_dict[k] = repr(v)
-
-    params_str = json.dumps(params_dict, sort_keys=True, cls=CacheJsonDataEncoder)
-    return f"{func_name}:{params_str}"
+            return None
+        return repr(value)
 
 
 class ICacheTypeExtension[V](Protocol):
@@ -61,8 +67,11 @@ class ICacheTypeExtension[V](Protocol):
 
 
 class TypeAdapterCacheExtension(ICacheTypeExtension[Any]):
+    def __init__(self, cache_key_provider: CacheKeyContextProvider):
+        self._cache_key_provider = cache_key_provider
+
     def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
-        return _make_cache_key_from_context(func, args, kwargs)
+        return self._cache_key_provider.provide(func, args, kwargs)
 
     def serialize(self, value: Any, value_type: type[Any]) -> JSONValue:
         adapter = self._adapter_for(value_type)
@@ -77,6 +86,9 @@ class TypeAdapterCacheExtension(ICacheTypeExtension[Any]):
 
 
 class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
+    def __init__(self, cache_key_provider: CacheKeyContextProvider):
+        self._cache_key_provider = cache_key_provider
+
     def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
         request = None
         request_index = None
@@ -89,7 +101,7 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
         func_name = f"{func.__module__}.{func.__qualname__}"
 
         if request is None:
-            return _make_cache_key_from_context(func, args, kwargs)
+            return self._cache_key_provider.provide(func, args, kwargs)
 
         query_string = "&".join(f"{k}={v}" for k, v in sorted(request.query_params.items()))
         path_with_query = (
@@ -103,7 +115,7 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
             filtered_args = args[:request_index] + args[request_index + 1 :]
 
         if filtered_args or kwargs:
-            params_key = _make_cache_key_from_context(func, filtered_args, kwargs)
+            params_key = self._cache_key_provider.provide(func, filtered_args, kwargs)
             params_part = params_key[len(func_name) + 1 :]
             return f"{func_name}:{path_with_query}:{params_part}"
         else:
