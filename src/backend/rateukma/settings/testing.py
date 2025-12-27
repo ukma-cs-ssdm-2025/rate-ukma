@@ -16,7 +16,3 @@ PASSWORD_HASHERS = [
 
 AUTH_PASSWORD_VALIDATORS = []
 DEBUG = False
-
-# Remove compression middleware during tests to avoid dependency issues
-# and unnecessary processing overhead.
-MIDDLEWARE = [m for m in MIDDLEWARE if "CompressionMiddleware" not in m]  # noqa: F405
