@@ -49,12 +49,13 @@ def repo_mocks():
     tracker = MagicMock()
     student_service = MagicMock()
 
-    faculty = SimpleNamespace(name=faker.company())
-    department = SimpleNamespace(name=faker.catch_phrase())
+    faculty = SimpleNamespace(name=faker.company(), id=1)
+    department = SimpleNamespace(name=faker.catch_phrase(), id=2)
     course = Mock()
+    course.id = 3
     course.specialities = Mock()
     course.specialities.add = Mock()
-    semester = SimpleNamespace()
+    semester = SimpleNamespace(year=2024, term="FALL")
     course_offering = SimpleNamespace()
     speciality = SimpleNamespace(name=faker.word())
     instructor = SimpleNamespace()
@@ -62,7 +63,7 @@ def repo_mocks():
 
     faculty_repo.get_or_create.return_value = (faculty, True)
     dept_repo.get_or_create.return_value = (department, True)
-    course_repo.get_or_create.return_value = (course, True)
+    course_repo.get_or_create_model.return_value = (course, True)
     semester_repo.get_or_create.return_value = (semester, True)
     offering_repo.get_or_upsert.return_value = (course_offering, True)
     speciality_repo.get_by_name.return_value = speciality
@@ -271,7 +272,7 @@ def create_mock_offering(
 @pytest.mark.django_db
 def test_injector_basic_flow_calls_repos_and_tracker(injector, repo_mocks):
     # Arrange
-    repo_mocks.course_repo.get_or_create.return_value = (repo_mocks.course, True)
+    repo_mocks.course_repo.get_or_create_model.return_value = (repo_mocks.course, True)
     models = [create_mock_course(title="Intro to Testing", department="CS", faculty="FAMCS")]
 
     # Act
@@ -282,7 +283,7 @@ def test_injector_basic_flow_calls_repos_and_tracker(injector, repo_mocks):
     repo_mocks.tracker.increment.assert_called_once()
     repo_mocks.faculty_repo.get_or_create.assert_called_once_with(name="FAMCS")
     repo_mocks.dept_repo.get_or_create.assert_called_once()
-    repo_mocks.course_repo.get_or_create.assert_called_once()
+    repo_mocks.course_repo.get_or_create_model.assert_called_once()
     repo_mocks.tracker.complete.assert_called_once()
 
 

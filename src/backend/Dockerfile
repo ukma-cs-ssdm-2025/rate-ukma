@@ -1,5 +1,6 @@
 FROM python:3.12-slim AS base
 ENV PYTHONUNBUFFERED=1
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /app
 
 RUN set -eux; \
@@ -25,10 +26,10 @@ COPY . .
 FROM base AS final
 WORKDIR /app
 
-COPY --from=builder /app/.venv ./.venv
+COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app/ .
 
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PATH="/opt/venv/bin:$PATH"
 
 EXPOSE 8000
 

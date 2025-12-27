@@ -14,3 +14,8 @@ class InvalidCourseIdentifierError(ValidationError):
 class InvalidCourseOfferingIdentifierError(ValidationError):
     default_detail = "Course offering id is not a valid identifier."
     default_code = "invalid_course_offering_identifier"
+
+
+class CourseMissingDepartmentOrFacultyError(ValidationError):
+    default_detail = "Course is missing department or faculty."
+    default_code = "course_missing_department_or_faculty"

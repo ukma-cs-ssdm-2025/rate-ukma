@@ -1,5 +1,6 @@
+import decimal
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -11,8 +12,7 @@ from ..constants import (
     MIN_DIFFICULTY_VALUE,
     MIN_USEFULNESS_VALUE,
 )
-from ..models.choices import CourseTypeKind, SemesterTerm
-from ..models.course import ICourse
+from ..models.choices import CourseStatus, CourseTypeKind, SemesterTerm
 from .pagination import PaginationMetadata
 
 AvgOrder = Literal["asc", "desc"]
@@ -108,10 +108,37 @@ class CourseFilterCriteria(BaseModel):
         return value
 
 
+@dataclass(frozen=True)
+class CourseSpeciality:
+    speciality_id: str
+    speciality_title: str
+    faculty_id: str
+    faculty_name: str
+    speciality_alias: str | None
+    type_kind: CourseTypeKind | None
+
+
+@dataclass(frozen=True)
+class Course:
+    id: str
+    title: str
+    description: str
+    status: CourseStatus
+    department: str
+    department_name: str
+    faculty: str
+    faculty_name: str
+    faculty_custom_abbreviation: str | None = None
+    specialities: list[CourseSpeciality] = field(default_factory=list)
+    avg_difficulty: decimal.Decimal | None = None
+    avg_usefulness: decimal.Decimal | None = None
+    ratings_count: int | None = 0
+
+
 # is constructed internally
 @dataclass(frozen=True)
 class CourseSearchResult:
-    items: list[ICourse]
+    items: list[Course]
     pagination: PaginationMetadata
     applied_filters: dict[str, Any]
 
