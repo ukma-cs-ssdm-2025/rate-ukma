@@ -351,3 +351,58 @@ def test_course_retrieve_invalid_uuid_format(token_client):
 
     # Assert
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_elective_business_rule(
+    token_client, course_factory, course_speciality_factory, speciality_factory
+):
+    # Arrange
+    spec = speciality_factory.create()
+    diff_spec = speciality_factory.create()
+
+    # 1. Compulsory course
+    compulsory_course = course_factory.create(title="Compulsory")
+    course_speciality_factory.create(
+        course=compulsory_course, speciality=spec, type_kind="COMPULSORY"
+    )
+
+    # 2. Prof oriented course
+    prof_oriented_course = course_factory.create(title="Prof Oriented")
+    course_speciality_factory.create(
+        course=prof_oriented_course, speciality=spec, type_kind="PROF_ORIENTED"
+    )
+
+    # 3. Elective course
+    elective_course = course_factory.create(title="Elective")
+    course_speciality_factory.create(course=elective_course, speciality=spec, type_kind="ELECTIVE")
+
+    # 4. Prof oriented course for different speciality
+    prof_oriented_course = course_factory.create(title="Prof Oriented for diff spec")
+    course_speciality_factory.create(
+        course=prof_oriented_course, speciality=diff_spec, type_kind="PROF_ORIENTED"
+    )
+
+    # 5. Elective course for different speciality
+    elective_course = course_factory.create(title="Elective for diff spec")
+    course_speciality_factory.create(
+        course=elective_course, speciality=diff_spec, type_kind="ELECTIVE"
+    )
+
+    url = f"/api/v1/courses/?speciality={spec.id}&type_kind=ELECTIVE"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    returned_titles = {item["title"] for item in data["items"]}
+
+    assert "Elective" in returned_titles
+    assert "Elective for diff spec" in returned_titles
+    assert "Prof Oriented for diff spec" in returned_titles
+    assert "Compulsory" not in returned_titles
+    assert "Prof Oriented" not in returned_titles
+    assert len(returned_titles) == 3

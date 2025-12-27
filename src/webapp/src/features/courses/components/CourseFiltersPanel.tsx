@@ -15,6 +15,11 @@ import {
 	SelectValue,
 } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import type {
 	CoursesListSemesterTerm,
 	CoursesListTypeKind,
@@ -176,13 +181,19 @@ function CourseFiltersContent({
 				setWithPageReset({ year: value });
 				return;
 			case "faculty":
-				setParams({ faculty: value, dept: "", spec: "", page: 1 });
+				setParams({
+					faculty: value,
+					dept: "",
+					spec: "",
+					type: null,
+					page: 1,
+				});
 				return;
 			case "dept":
 				setWithPageReset({ dept: value });
 				return;
 			case "spec":
-				setWithPageReset({ spec: value });
+				setWithPageReset({ spec: value, type: null });
 				return;
 			case "instructor":
 				setWithPageReset({ instructor: value });
@@ -216,45 +227,65 @@ function CourseFiltersContent({
 					options,
 					contentClassName,
 					useCombobox,
+					disabled,
+					tooltip,
 				}) => {
 					const currentValue = getSelectValue(key);
+					const isDisabled = options.length === 0 || disabled;
+					const cursorClass =
+						isDisabled && tooltip ? "disabled:cursor-default" : undefined;
+
+					const control = useCombobox ? (
+						<Combobox
+							options={options}
+							value={currentValue}
+							onValueChange={(nextValue) => {
+								handleSelectChange(key, nextValue);
+							}}
+							placeholder={placeholder}
+							searchPlaceholder="Пошук..."
+							emptyText="Нічого не знайдено."
+							disabled={isDisabled}
+							contentClassName={contentClassName}
+							className={cursorClass}
+						/>
+					) : (
+						<Select
+							value={currentValue || "all"}
+							onValueChange={(nextValue) => {
+								const newValue = nextValue === "all" ? "" : nextValue;
+								handleSelectChange(key, newValue);
+							}}
+							disabled={isDisabled}
+						>
+							<SelectTrigger className={cn("w-full", cursorClass)}>
+								<SelectValue placeholder={placeholder} />
+							</SelectTrigger>
+							<SelectContent className={contentClassName}>
+								<SelectItem value="all">{placeholder}</SelectItem>
+								{options.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					);
+
 					return (
 						<div key={key} className="space-y-3">
 							<Label className="text-sm font-medium">{label}</Label>
-							{useCombobox ? (
-								<Combobox
-									options={options}
-									value={currentValue}
-									onValueChange={(nextValue) => {
-										handleSelectChange(key, nextValue);
-									}}
-									placeholder={placeholder}
-									searchPlaceholder="Пошук..."
-									emptyText="Нічого не знайдено."
-									disabled={options.length === 0}
-									contentClassName={contentClassName}
-								/>
+							{tooltip ? (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<div className="w-full">{control}</div>
+									</TooltipTrigger>
+									<TooltipContent>
+										<p>{tooltip}</p>
+									</TooltipContent>
+								</Tooltip>
 							) : (
-								<Select
-									value={currentValue || "all"}
-									onValueChange={(nextValue) => {
-										const newValue = nextValue === "all" ? "" : nextValue;
-										handleSelectChange(key, newValue);
-									}}
-									disabled={options.length === 0}
-								>
-									<SelectTrigger className="w-full">
-										<SelectValue placeholder={placeholder} />
-									</SelectTrigger>
-									<SelectContent className={contentClassName}>
-										<SelectItem value="all">{placeholder}</SelectItem>
-										{options.map((option) => (
-											<SelectItem key={option.value} value={option.value}>
-												{option.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+								control
 							)}
 						</div>
 					);
