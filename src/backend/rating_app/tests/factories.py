@@ -17,6 +17,7 @@ from rating_app.models import (
     Faculty,
     Instructor,
     Rating,
+    RatingVote,
     Semester,
     Speciality,
     Student,
@@ -28,6 +29,7 @@ from rating_app.models.choices import (
     CourseTypeKind,
     EducationLevel,
     InstructorRole,
+    RatingVoteType,
     SemesterTerm,
 )
 
@@ -169,3 +171,12 @@ class RatingFactory(DjangoModelFactory):
     @factory.lazy_attribute
     def comment(self):
         return faker.sentence() if random.random() < 0.5 else ""
+
+
+class RatingVoteFactory(DjangoModelFactory):
+    class Meta:
+        model = RatingVote
+
+    student = factory.SubFactory(StudentFactory)
+    rating = factory.SubFactory(RatingFactory)
+    type = RatingVoteType.UPVOTE

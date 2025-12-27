@@ -11,6 +11,7 @@ from ..views import (
     CourseViewSet,
     InstructorViewSet,
     RatingViewSet,
+    RatingVoteViewSet,
     StudentStatisticsViewSet,
 )
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
@@ -20,6 +21,7 @@ from .services import (
     instructor_service,
     rating_service,
     student_service,
+    vote_service,
 )
 
 
@@ -63,6 +65,17 @@ def course_rating_detail_view():
         {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"},
         rating_service=rating_service(),
         student_service=student_service(),
+    )
+
+
+@once
+def course_rating_votes_view():
+    return RatingVoteViewSet.as_view(
+        {"post": "create", "delete": "destroy"},
+        vote_service=vote_service(),
+        rating_service=rating_service(),
+        student_service=student_service(),
+        cache_manager=redis_cache_manager(),
     )
 
 
@@ -194,6 +207,11 @@ def rest_urlpatterns() -> list:
             "courses/<str:course_id>/ratings/<str:rating_id>/",
             course_rating_detail_view(),
             name="course-rating-detail",
+        ),
+        path(
+            "ratings/<str:rating_id>/votes/",
+            course_rating_votes_view(),
+            name="course-rating-votes",
         ),
         path(
             "students/me/courses/",

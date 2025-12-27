@@ -10,6 +10,7 @@ from rating_app.models import (
     Faculty,
     Instructor,
     Rating,
+    RatingVote,
     Semester,
     Speciality,
     Student,
@@ -231,3 +232,26 @@ class SemesterAdmin(VersionAdmin):
     @admin.display(description="Course Offerings")
     def course_offerings_count(self, obj):
         return obj.course_offerings.count()
+
+
+@admin.register(RatingVote)
+class RatingVoteAdmin(VersionAdmin):
+    list_display = (
+        "id",
+        "student",
+        "rating",
+        "type",
+    )
+    search_fields = (
+        "student__last_name",
+        "student__first_name",
+        "rating__course_offering__course__title",
+    )
+    ordering = ("rating__course_offering__course__title",)
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("student", "rating", "rating__course_offering")
+        )

@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { RatingRead } from "@/lib/api/generated";
 import { useCoursesRatingsList } from "@/lib/api/generated";
 
-interface UseInfiniteScrollRatingsReturn {
+export interface UseInfiniteScrollRatingsReturn {
 	allRatings: RatingRead[];
+	userRating: RatingRead | undefined;
 	hasMoreRatings: boolean;
 	isLoading: boolean;
 	loaderRef: RefObject<HTMLDivElement | null>;
@@ -14,7 +15,7 @@ interface UseInfiniteScrollRatingsReturn {
 
 interface UseInfiniteScrollRatingsOptions {
 	pageSize?: number;
-	excludeCurrentUser?: boolean;
+	separateCurrentUser?: boolean;
 }
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -23,17 +24,18 @@ export function useInfiniteScrollRatings(
 	courseId: string,
 	options: UseInfiniteScrollRatingsOptions = {},
 ): UseInfiniteScrollRatingsReturn {
-	const { pageSize = DEFAULT_PAGE_SIZE, excludeCurrentUser = false } = options;
+	const { pageSize = DEFAULT_PAGE_SIZE, separateCurrentUser = false } = options;
 
 	const [ratingsPage, setRatingsPage] = useState(1);
 	const [allRatings, setAllRatings] = useState<RatingRead[]>([]);
+	const [userRating, setUserRating] = useState<RatingRead | undefined>();
 
 	const { data: ratings, isLoading: isRatingsLoading } = useCoursesRatingsList(
 		courseId,
 		{
 			page: ratingsPage,
 			page_size: pageSize,
-			exclude_current_user: excludeCurrentUser,
+			separate_current_user: separateCurrentUser,
 		},
 	);
 
@@ -46,19 +48,26 @@ export function useInfiniteScrollRatings(
 
 	useEffect(() => {
 		if (ratings?.items) {
+			const ratingsList = ratings.items.ratings;
+			const currentUserRatings = ratings.items.user_ratings;
+
+			if (currentUserRatings && currentUserRatings.length > 0) {
+				setUserRating(currentUserRatings[0]);
+			}
+
 			setAllRatings((prev) => {
 				if (ratingsPage === 1) {
-					return ratings.items;
+					return ratingsList;
 				}
 				const existingIds = new Set(prev.map((r) => r.id));
-				const newItems = ratings.items.filter((r) => !existingIds.has(r.id));
+				const newItems = ratingsList.filter((r) => !existingIds.has(r.id));
 				return [...prev, ...newItems];
 			});
 		}
 	}, [ratings, ratingsPage]);
 
 	useEffect(() => {
-		if (!hasMoreRatings || allRatings.length === 0) {
+		if (!hasMoreRatings || (allRatings.length === 0 && !userRating)) {
 			return;
 		}
 
@@ -86,10 +95,11 @@ export function useInfiniteScrollRatings(
 			observer.unobserve(currentLoader);
 			observer.disconnect();
 		};
-	}, [hasMoreRatings, allRatings.length, isRatingsLoading]);
+	}, [hasMoreRatings, allRatings.length, isRatingsLoading, userRating]);
 
 	return {
 		allRatings,
+		userRating,
 		hasMoreRatings,
 		isLoading: isRatingsLoading,
 		loaderRef,

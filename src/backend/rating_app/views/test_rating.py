@@ -25,7 +25,7 @@ def test_ratings_list(token_client, course_factory, course_offering_factory, rat
 
     assert response.status_code == 200
     assert data["total"] == num_ratings
-    assert len(data["items"]) == num_ratings
+    assert len(data["items"]["ratings"]) == num_ratings
 
 
 @pytest.mark.django_db
@@ -53,7 +53,7 @@ def test_ratings_list_pagination(
     assert data["total"] == total_ratings
     assert data["page"] == 2
     assert data["page_size"] == 5
-    assert len(data["items"]) == 5
+    assert len(data["items"]["ratings"]) == 5
 
 
 @pytest.mark.django_db
@@ -540,7 +540,8 @@ def test_ratings_list_empty_for_course_with_no_ratings(
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 0
-    assert len(data["items"]) == 0
+    assert len(data["items"]["ratings"]) == 0
+    assert data["items"]["user_ratings"] is None
 
 
 @pytest.mark.django_db
@@ -613,7 +614,7 @@ def test_create_rating_before_midterm(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_ratings_list_exclude_current_user(
+def test_ratings_list_separate_current_user_false_flag(
     token_client,
     course_factory,
     course_offering_factory,
@@ -626,9 +627,7 @@ def test_ratings_list_exclude_current_user(
 
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
-    my_rating = rating_factory(
-        course_offering=offering, student=student, difficulty=3, usefulness=4
-    )
+    rating_factory(course_offering=offering, student=student, difficulty=3, usefulness=4)
 
     rating_factory.create_batch(3, course_offering=offering)
 
@@ -637,11 +636,36 @@ def test_ratings_list_exclude_current_user(
     data = response.json()
     assert response.status_code == 200
     assert data["total"] == 4
+    assert len(data["items"]["ratings"]) == 4
+    assert data["items"]["user_ratings"] is None
 
-    url_with_exclude = f"/api/v1/courses/{course.id}/ratings/?exclude_current_user=true"
-    response = token_client.get(url_with_exclude)
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_list_separate_current_user_true_flag(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    rating_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    student = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=student)
+    user_rating = rating_factory(
+        course_offering=offering, student=student, difficulty=3, usefulness=4
+    )
+
+    rating_factory.create_batch(3, course_offering=offering)
+
+    url_with_separate = f"/api/v1/courses/{course.id}/ratings/?separate_current_user=true"
+    response = token_client.get(url_with_separate)
     data = response.json()
     assert response.status_code == 200
-    assert data["total"] == 3
-    rating_ids = [r["id"] for r in data["items"]]
-    assert str(my_rating.id) not in rating_ids
+    assert data["total"] == 4
+    assert len(data["items"]["ratings"]) == 3
+    assert len(data["items"]["user_ratings"]) == 1
+    assert data["items"]["user_ratings"][0]["id"] == str(user_rating.id)

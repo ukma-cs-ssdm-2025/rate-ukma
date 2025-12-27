@@ -32,6 +32,7 @@ Instructor --|> Person
 class Faculty {
   +id   : UUID [1]
   +name : string [1]
+  +custom_abbreviation: string [1]
 }
 
 class Department {
@@ -43,6 +44,7 @@ Department "*" -- "1" Faculty
 class Speciality {
   +id   : UUID [1]
   +name : string [1]
+  +alias : string [1]
 }
 Speciality "*" -- "1" Faculty
 
@@ -120,6 +122,15 @@ class Rating {
 Student "1" -- "*" Rating
 CourseOffering  "1" -- "*" Rating
 
+class Vote {
+  +id : UUID [1]
+  +type : VoteType
+  {unique} (student, rating)
+}
+
+Student "1" -- "*" Vote
+Rating "1" -- "*" Vote
+
 enum EducationLevel {
   Bachelor
   Master
@@ -177,4 +188,8 @@ enum InstructorRole {
   PracticumInstructor
 }
 
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
 @enduml

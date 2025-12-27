@@ -12,6 +12,7 @@ from .student_repository import StudentRepository
 from .student_stats_repository import StudentStatisticsRepository
 from .to_domain_mappers import CourseMapper
 from .user_repository import UserRepository
+from .vote_repository import RatingVoteRepository
 
 __all__ = [
     "CourseRepository",
@@ -28,4 +29,5 @@ __all__ = [
     "EnrollmentRepository",
     "StudentStatisticsRepository",
     "UserRepository",
+    "RatingVoteRepository",
 ]
