@@ -2,6 +2,7 @@ from rateukma.ioc.decorators import once
 
 from ..repositories import (
     CourseInstructorRepository,
+    CourseMapper,
     CourseOfferingRepository,
     CourseRepository,
     DepartmentRepository,
@@ -19,8 +20,13 @@ from ..repositories import (
 
 
 @once
+def course_mapper() -> CourseMapper:
+    return CourseMapper()
+
+
+@once
 def course_repository() -> CourseRepository:
-    return CourseRepository()
+    return CourseRepository(mapper=course_mapper())
 
 
 @once

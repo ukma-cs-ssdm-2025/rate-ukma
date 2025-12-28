@@ -85,10 +85,10 @@ function CourseDetailsRoute() {
 				<div className="space-y-6">
 					<div className="flex items-center justify-between">
 						<CourseDetailsHeader
-							title={course.title}
-							status={course.status}
-							specialities={course.course_specialities}
-							departmentName={course.department_name}
+							title={course.title ?? ""}
+							status={course.status ?? ""}
+							specialities={course.specialities ?? []}
+							departmentName={course.department_name ?? ""}
 						/>
 
 						<CourseOfferingsDropdown

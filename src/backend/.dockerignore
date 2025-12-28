@@ -1,0 +1,12 @@
+# Virtual envs and local env files
+.env
+.venv
+
+# Python artifacts
+**/__pycache__/
+**/*.pyc
+
+# Test and lint caches
+.pytest_cache
+.ruff_cache
+.uv_cache

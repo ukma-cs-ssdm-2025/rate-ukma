@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -150,7 +151,7 @@ class RedisCacheManager(ICacheManager):
 
 class CacheJsonDataEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, UUID):
+        if isinstance(obj, UUID | Decimal):
             return str(obj)
         if isinstance(obj, (datetime | date)):
             return obj.isoformat()

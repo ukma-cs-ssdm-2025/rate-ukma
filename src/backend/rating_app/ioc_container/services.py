@@ -1,5 +1,7 @@
+from rateukma.caching.instances import redis_cache_manager
 from rateukma.ioc.decorators import once
 from rating_app.ioc_container.repositories import (
+    course_mapper,
     course_offering_repository,
     course_repository,
     department_repository,
@@ -29,6 +31,8 @@ from rating_app.services import (
 from rating_app.services.domain_event_listeners.aggregates_update import (
     CourseModelAggregatesUpdateObserver,
 )
+from rating_app.services.domain_event_listeners.cache_invalidator import CacheInvalidator
+from rating_app.services.pagination_course_adapter import PaginationCourseAdapter
 from rating_app.services.paginator import QuerysetPaginator
 
 
@@ -53,10 +57,19 @@ def semester_service() -> SemesterService:
 
 
 @once
-def course_service() -> CourseService:
-    return CourseService(
+def pagination_course_adapter() -> PaginationCourseAdapter:
+    return PaginationCourseAdapter(
         course_repository=course_repository(),
         paginator=paginator(),
+        mapper=course_mapper(),
+    )
+
+
+@once
+def course_service() -> CourseService:
+    return CourseService(
+        pagination_course_adapter=pagination_course_adapter(),
+        course_repository=course_repository(),
         instructor_service=instructor_service(),
         faculty_service=faculty_service(),
         department_service=department_service(),
@@ -83,6 +96,11 @@ def course_model_aggregates_update_observer() -> CourseModelAggregatesUpdateObse
         course_service=course_service(),
         rating_service=rating_service(),
     )
+
+
+@once
+def cache_invalidator() -> CacheInvalidator:
+    return CacheInvalidator(cache_manager=redis_cache_manager())
 
 
 @once
@@ -124,6 +142,7 @@ def paginator() -> QuerysetPaginator:
 
 def register_observers() -> None:
     rating_service().add_observer(course_model_aggregates_update_observer())
+    rating_service().add_observer(cache_invalidator())
 
 
 __all__ = [

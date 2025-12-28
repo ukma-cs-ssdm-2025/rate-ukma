@@ -1720,62 +1720,21 @@ components:
       - csrf_token
     CourseAnalytics:
       type: object
+      description: Serializer for course analytics
       properties:
         id:
           type: string
-          readOnly: true
-        avg_usefulness:
-          type: number
-          format: double
-          readOnly: true
-        avg_difficulty:
-          type: number
-          format: double
-          readOnly: true
-        ratings_count:
-          type: integer
           readOnly: true
         name:
           type: string
           readOnly: true
-        faculty_name:
-          type: string
-          nullable: true
-          readOnly: true
-    CourseDetail:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        title:
-          type: string
           maxLength: 255
-        description:
-          type: string
-        status:
-          $ref: '#/components/schemas/StatusEnum'
-        department:
-          type: string
-          format: uuid
-        department_name:
-          type: string
-          readOnly: true
-        faculty_name:
-          type: string
-          readOnly: true
-        course_specialities:
-          type: array
-          items:
-            $ref: '#/components/schemas/CourseSpecialityInline'
-          readOnly: true
-        avg_difficulty:
+        avg_usefulness:
           type: number
           format: double
           readOnly: true
           nullable: true
-        avg_usefulness:
+        avg_difficulty:
           type: number
           format: double
           readOnly: true
@@ -1783,30 +1742,29 @@ components:
         ratings_count:
           type: integer
           readOnly: true
-        specialities_with_kind:
-          type: array
-          items:
-            $ref: '#/components/schemas/SpecialityWithKindPayload'
-          writeOnly: true
-      required:
-      - department
-      - status
-      - title
-    CourseList:
+          default: 0
+        faculty_name:
+          type: string
+          readOnly: true
+    CourseDetail:
       type: object
-      description: Lighter serializer for listing courses.
+      description: Read-only serializer for course details
       properties:
         id:
           type: string
-          format: uuid
           readOnly: true
         title:
           type: string
+          readOnly: true
           maxLength: 255
         description:
           type: string
+          readOnly: true
+          nullable: true
         status:
-          $ref: '#/components/schemas/StatusEnum'
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
         department:
           type: string
           format: uuid
@@ -1814,7 +1772,7 @@ components:
         department_name:
           type: string
           readOnly: true
-        faculty_id:
+        faculty:
           type: string
           format: uuid
           readOnly: true
@@ -1824,6 +1782,13 @@ components:
         faculty_custom_abbreviation:
           type: string
           readOnly: true
+          nullable: true
+          maxLength: 255
+        specialities:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseSpecialityInline'
+          readOnly: true
         avg_difficulty:
           type: number
           format: double
@@ -1837,14 +1802,64 @@ components:
         ratings_count:
           type: integer
           readOnly: true
-        course_specialities:
+          default: 0
+    CourseList:
+      type: object
+      description: Serializer for course list responses
+      properties:
+        id:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+          maxLength: 255
+        description:
+          type: string
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        department:
+          type: string
+          format: uuid
+          readOnly: true
+        department_name:
+          type: string
+          readOnly: true
+        faculty:
+          type: string
+          format: uuid
+          readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
+        faculty_custom_abbreviation:
+          type: string
+          readOnly: true
+          nullable: true
+          maxLength: 255
+        avg_difficulty:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        avg_usefulness:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        ratings_count:
+          type: integer
+          readOnly: true
+          default: 0
+        specialities:
           type: array
           items:
             $ref: '#/components/schemas/CourseSpecialityInline'
           readOnly: true
-      required:
-      - status
-      - title
     CourseListResponse:
       type: object
       description: Schema for GET /api/v1/courses response envelope.
@@ -1962,8 +1977,7 @@ components:
       - course_offerings
     CourseSpecialityInline:
       type: object
-      description: Inline serializer for displaying course specialities with type
-        kind.
+      description: Inline serializer for course speciality
       properties:
         speciality_id:
           type: string
@@ -1972,20 +1986,23 @@ components:
         speciality_title:
           type: string
           readOnly: true
-        type_kind:
-          $ref: '#/components/schemas/TypeKindEnum'
+          maxLength: 255
         speciality_alias:
           type: string
           readOnly: true
+          maxLength: 255
+        faculty_name:
+          type: string
+          readOnly: true
+          maxLength: 255
         faculty_id:
           type: string
           format: uuid
           readOnly: true
-        faculty_name:
-          type: string
+        type_kind:
+          allOf:
+          - $ref: '#/components/schemas/TypeKindEnum'
           readOnly: true
-      required:
-      - type_kind
     CourseTypeOption:
       type: object
       properties:
@@ -2510,19 +2527,6 @@ components:
       required:
       - id
       - name
-    SpecialityWithKindPayload:
-      type: object
-      description: Payload serializer for creating/updating course speciality associations
-        (write-only).
-      properties:
-        speciality:
-          type: string
-          format: uuid
-        type_kind:
-          $ref: '#/components/schemas/TypeKindEnum'
-      required:
-      - speciality
-      - type_kind
     StatusEnum:
       enum:
       - PLANNED

@@ -6,7 +6,6 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
-from rateukma.caching.cache_manager import ICacheManager
 from rateukma.caching.decorators import rcached
 from rating_app.application_schemas.rating import (
     RatingCourseFilterParams,
@@ -45,7 +44,6 @@ class RatingViewSet(viewsets.ViewSet):
 
     rating_service: RatingService | None = None
     student_service: StudentService | None = None
-    cache_manager: ICacheManager | None = None
 
     @extend_schema(
         summary="List ratings for a course",
@@ -112,7 +110,6 @@ class RatingViewSet(viewsets.ViewSet):
     @require_student
     def create(self, request, student: Student, course_id=None) -> Response:
         assert self.rating_service is not None
-        assert self.cache_manager is not None
         # course_id is not used, will be potentially removed after using a different endpoint
 
         logger.info(
@@ -140,8 +137,6 @@ class RatingViewSet(viewsets.ViewSet):
         )
 
         rating = self.rating_service.create_rating(rating_params)
-
-        self._invalidate_caches_after_rating_change(student)
 
         logger.info(
             "rating_created",
@@ -182,7 +177,6 @@ class RatingViewSet(viewsets.ViewSet):
     @require_rating_ownership
     def update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
-        assert self.cache_manager is not None
 
         try:
             update_params = RatingPutParams.model_validate(request.data)
@@ -190,8 +184,6 @@ class RatingViewSet(viewsets.ViewSet):
             raise ValidationError(detail=e.errors()) from e
 
         rating = self.rating_service.update_rating(rating, update_params)
-
-        self._invalidate_caches_after_rating_change(student)
 
         logger.info("rating_updated", rating_id=rating.id)
         response_serializer = RatingReadSerializer(rating)
@@ -206,7 +198,6 @@ class RatingViewSet(viewsets.ViewSet):
     @require_rating_ownership
     def partial_update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
-        assert self.cache_manager is not None
 
         try:
             update_params = RatingPatchParams.model_validate(request.data)
@@ -216,8 +207,6 @@ class RatingViewSet(viewsets.ViewSet):
         rating = self.rating_service.update_rating(rating, update_params)
 
         response_serializer = RatingReadSerializer(rating)
-
-        self._invalidate_caches_after_rating_change(student)
 
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -229,19 +218,7 @@ class RatingViewSet(viewsets.ViewSet):
     @require_rating_ownership
     def destroy(self, request, rating: Rating, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
-        assert self.cache_manager is not None
 
         self.rating_service.delete_rating(rating.id)
 
-        self._invalidate_caches_after_rating_change(student)
-
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def _invalidate_caches_after_rating_change(self, student: Student) -> None:
-        assert self.cache_manager is not None
-
-        self.cache_manager.invalidate_pattern(f"*{str(student.id)}*")
-        self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
-        self.cache_manager.invalidate_pattern("*AnalyticsViewSet.list*")
-        self.cache_manager.invalidate_pattern("*CourseViewSet.retrieve*")
-        self.cache_manager.invalidate_pattern("*CourseViewSet.list*")
