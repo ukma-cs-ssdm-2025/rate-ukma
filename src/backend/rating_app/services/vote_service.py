@@ -1,5 +1,8 @@
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
-from rating_app.exception.vote_exceptions import VoteOnUnenrolledCourseException
+from rating_app.exception.vote_exceptions import (
+    DeleteVoteOnUnenrolledCourseException,
+    VoteOnUnenrolledCourseException,
+)
 from rating_app.models import RatingVote
 from rating_app.repositories import (
     CourseOfferingRepository,
@@ -43,11 +46,23 @@ class RatingFeedbackService:
         return self.vote_repository.create_vote(params)
 
     def delete_vote(self, student_id: str, vote: RatingVote) -> None:
-        if not self._can_vote(vote.rating.id, student_id):
-            raise VoteOnUnenrolledCourseException(
+        if not self._can_vote(str(vote.rating.id), student_id):
+            raise DeleteVoteOnUnenrolledCourseException(
                 "A student must be enrolled in the course to delete a vote on its rating"
             )
         self.vote_repository.delete(vote)
+
+    def delete_vote_by_student(self, student_id: str, rating_id: str) -> None:
+        if not self._can_vote(rating_id, student_id):
+            raise DeleteVoteOnUnenrolledCourseException(
+                "A student must be enrolled in the course to delete a vote on its rating"
+            )
+
+        vote = self.vote_repository.get_vote_by_student_and_rating(
+            student_id=student_id, rating_id=rating_id
+        )
+        if vote:
+            self.vote_repository.delete(vote)
 
     def get_votes_by_rating_id(self, rating_id: str) -> list[RatingVote]:
         return self.vote_repository.get_by_rating_id(rating_id)

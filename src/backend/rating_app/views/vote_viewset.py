@@ -60,17 +60,14 @@ class RatingVoteViewSet(viewsets.ViewSet):
         responses=R_VOTE_DELETE,
     )
     @require_student
-    def destroy(self, request, student: Student, rating_id=None):
+    def destroy(self, request, student: Student, rating_id: str):
         assert self.vote_service is not None
 
-        vote = self.vote_service.get_vote_for_student(
+        self.vote_service.delete_vote_by_student(
             student_id=str(student.id),
             rating_id=rating_id,
         )
-
-        if vote:
-            self.vote_service.delete_vote(str(student.id), vote)
-            self._invalidate_caches()
+        self._invalidate_caches()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

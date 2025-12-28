@@ -86,9 +86,5 @@ class RatingVoteRepository(IRepository[RatingVote]):
         obj.save()
         return obj
 
-    def delete(self, obj: RatingVote) -> bool:
-        try:
-            obj.delete()
-            return True
-        except Exception:
-            return False
+    def delete(self, obj: RatingVote):
+        obj.delete()

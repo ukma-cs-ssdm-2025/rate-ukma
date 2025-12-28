@@ -25,6 +25,7 @@ from rating_app.exception.rating_exceptions import (
     RatingPeriodNotStarted,
 )
 from rating_app.models import Course, Rating, Semester
+from rating_app.models.choices import RatingVoteType
 from rating_app.repositories import EnrollmentRepository, RatingRepository, RatingVoteRepository
 from rating_app.services.course_offering_service import CourseOfferingService
 from rating_app.services.paginator import QuerysetPaginator
@@ -214,17 +215,17 @@ class RatingService(IObservable[Rating]):
                     comment=rating.comment,
                     created_at=rating.created_at,
                     is_anonymous=rating.is_anonymous,
-                    student_id=rating.student.id,
+                    student_id=rating.student.id if not rating.is_anonymous else None,
                     student_name=(
                         f"{rating.student.last_name} {rating.student.first_name}"
                         if not rating.is_anonymous
                         else None
                     ),
                     course_offering=rating.course_offering.id,
-                    course=rating.course_offering.course_id,
+                    course=rating.course_offering.course.id,
                     upvotes=up,
                     downvotes=down,
-                    viewer_vote=student_vote,
+                    viewer_vote=RatingVoteType(student_vote) if student_vote else None,
                 )
             )
 
