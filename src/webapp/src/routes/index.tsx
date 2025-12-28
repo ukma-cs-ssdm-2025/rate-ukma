@@ -18,7 +18,6 @@ import { withAuth } from "@/lib/auth";
 function CoursesRoute() {
 	const [params, setParams] = useCourseFiltersParams();
 
-	// Convert nuqs params directly to API params
 	const apiFilters: CoursesListParams = {
 		page: params.page,
 		page_size: params.size,

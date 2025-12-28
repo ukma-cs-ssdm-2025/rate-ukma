@@ -324,7 +324,6 @@ export function CoursesTable({
 	const navigate = useNavigate({ from: "/" });
 	const { isStudent } = useAuth();
 
-	// Derive sorting state from URL params
 	const sorting = useMemo<SortingState>(() => {
 		const sortState: SortingState = [];
 
@@ -345,20 +344,28 @@ export function CoursesTable({
 		return sortState;
 	}, [params.diffOrder, params.useOrder]);
 
-	// Handle sorting changes by updating URL params
 	const handleSortingChange = useCallback(
 		(updater: SortingState | ((old: SortingState) => SortingState)) => {
 			const newSorting =
 				typeof updater === "function" ? updater(sorting) : updater;
 
-			// Extract difficulty and usefulness sorting from the new state
 			const diffSort = newSorting.find((s) => s.id === "avg_difficulty");
 			const useSort = newSorting.find((s) => s.id === "avg_usefulness");
 
+			let diffOrder: "asc" | "desc" | null = null;
+			if (diffSort) {
+				diffOrder = diffSort.desc ? "desc" : "asc";
+			}
+
+			let useOrder: "asc" | "desc" | null = null;
+			if (useSort) {
+				useOrder = useSort.desc ? "desc" : "asc";
+			}
+
 			setParams({
-				diffOrder: diffSort ? (diffSort.desc ? "desc" : "asc") : null,
-				useOrder: useSort ? (useSort.desc ? "desc" : "asc") : null,
-				page: 1, // Reset to first page when sorting changes
+				diffOrder,
+				useOrder,
+				page: 1,
 			});
 		},
 		[sorting, setParams],

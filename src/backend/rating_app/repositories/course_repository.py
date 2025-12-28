@@ -205,15 +205,10 @@ class CourseRepository(IRepository[CourseDTO]):
     def _build_order_by_fields(self, filters: CourseFilterCriteria) -> list[Any]:
         order_by_fields = []
 
-        # When sorting by difficulty or usefulness, ensure courses with no ratings appear last
-        # by first sorting by whether ratings_count > 0
-        # Use Case(When(...)) to create a boolean expression for sorting
+        # When sorting by average metrics, keep unrated courses last.
         has_ordering = filters.avg_difficulty_order or filters.avg_usefulness_order
 
         if has_ordering:
-            # First, sort by whether the course has ratings
-            # Courses with ratings_count > 0 get value 1, others get 0
-            # Sorting by this descending puts courses with ratings first
             has_ratings = Case(
                 When(ratings_count__gt=0, then=Value(1)),
                 default=Value(0),

@@ -24,28 +24,27 @@ export function CourseColumnHeader<TData, TValue>({
 		}
 
 		const isMultiSort = event.shiftKey;
+		const isInitialAsc = initialSortDirection === "asc";
 
-		// Cycle based on initial direction:
-		// If initialSortDirection is "asc": unsorted → asc → desc → unsorted
-		// If initialSortDirection is "desc": unsorted → desc → asc → unsorted
+		if (sortState === false) {
+			column.toggleSorting(!isInitialAsc, isMultiSort);
+			return;
+		}
 
-		if (initialSortDirection === "asc") {
-			// Standard cycle: asc → desc → unsorted
-			if (sortState === "asc") {
-				column.toggleSorting(true, isMultiSort); // Switch to desc
-			} else if (sortState === "desc") {
-				column.clearSorting(); // Clear
+		if (sortState === "asc") {
+			if (isInitialAsc) {
+				column.toggleSorting(true, isMultiSort);
 			} else {
-				column.toggleSorting(false, isMultiSort); // Start with asc
+				column.clearSorting();
 			}
-		} else {
-			// Reverse cycle: desc → asc → unsorted
-			if (sortState === "desc") {
-				column.toggleSorting(false, isMultiSort); // Switch to asc
-			} else if (sortState === "asc") {
-				column.clearSorting(); // Clear
+			return;
+		}
+
+		if (sortState === "desc") {
+			if (isInitialAsc) {
+				column.clearSorting();
 			} else {
-				column.toggleSorting(true, isMultiSort); // Start with desc
+				column.toggleSorting(false, isMultiSort);
 			}
 		}
 	};
@@ -57,17 +56,26 @@ export function CourseColumnHeader<TData, TValue>({
 	};
 
 	const getSortHintText = () => {
-		if (initialSortDirection === "asc") {
-			// Standard cycle: asc → desc → unsorted
-			if (sortState === "asc") return "Сортувати за спаданням";
-			if (sortState === "desc") return "Скинути сортування";
-			return "Сортувати за зростанням";
-		} else {
-			// Reverse cycle: desc → asc → unsorted
-			if (sortState === "desc") return "Сортувати за зростанням";
-			if (sortState === "asc") return "Скинути сортування";
+		const isInitialAsc = initialSortDirection === "asc";
+
+		if (sortState === false) {
+			if (isInitialAsc) {
+				return "Сортувати за зростанням";
+			}
 			return "Сортувати за спаданням";
 		}
+
+		if (sortState === "asc") {
+			if (isInitialAsc) {
+				return "Сортувати за спаданням";
+			}
+			return "Скинути сортування";
+		}
+
+		if (isInitialAsc) {
+			return "Скинути сортування";
+		}
+		return "Сортувати за зростанням";
 	};
 
 	const Icon = getSortIcon();
