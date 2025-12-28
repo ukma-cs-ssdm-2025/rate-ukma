@@ -39,7 +39,6 @@ test.describe("Rating modal functionality", () => {
 			comment = `e2e:${test.info().title}:${String(Date.now())}`;
 			const testData = createTestRatingData({ comment });
 
-			// Set difficulty and usefulness
 			const initialDifficulty = await ratingModal.getCurrentDifficultyValue();
 			const initialUsefulness = await ratingModal.getCurrentUsefulnessValue();
 
@@ -49,15 +48,12 @@ test.describe("Rating modal functionality", () => {
 			await ratingModal.setDifficultyRating(targetDifficulty);
 			await ratingModal.setUsefulnessRating(targetUsefulness);
 
-			// Set comment
 			await ratingModal.setComment(testData.comment);
 
-			// Submit
 			await ratingModal.submitRating();
 			await ratingModal.waitForHidden();
 			createdRating = true;
 
-			// Verify review appears on page
 			reviewCard = await coursePage.findReviewCardByText(testData.comment);
 			await expect(reviewCard).toBeVisible();
 		} catch (error) {

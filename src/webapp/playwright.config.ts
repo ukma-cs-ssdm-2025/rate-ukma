@@ -5,7 +5,7 @@ const timeoutMs = 30_000;
 
 const authenticatedProject = {
 	dependencies: ["login"],
-	testIgnore: "**/login.spec.ts",
+	testIgnore: ["**/login.spec.ts", "**/logout.spec.ts"],
 	use: {
 		storageState: "playwright/.auth/microsoft.json",
 	},
@@ -40,6 +40,15 @@ export default defineConfig({
 			name: "chromium-auth",
 			...authenticatedProject,
 			use: { ...authenticatedProject.use, ...devices["Desktop Chrome"] },
+		},
+		{
+			name: "chromium-auth-logout",
+			dependencies: ["chromium-auth"],
+			testMatch: "**/logout.spec.ts",
+			use: {
+				...authenticatedProject.use,
+				...devices["Desktop Chrome"],
+			},
 		},
 	],
 	reporter: isCI ? [["html"], ["github"]] : "line",

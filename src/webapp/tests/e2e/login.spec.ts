@@ -2,30 +2,33 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
+import { getPathname, getSearchParam } from "./shared/url-assertions";
 
-const BASE_URL = (process.env.BASE_URL || "http://localhost:3000")
-	.trim()
-	.replace(/\/+$/, "");
-
-const APP_URL_PATTERN = new RegExp(
-	`^${escapeRegExp(BASE_URL)}\\/?(\\?.*)?$`,
-);
-const LOGIN_URL_PATTERN = new RegExp(
-	`^${escapeRegExp(BASE_URL)}\\/login\\/?(\\?.*)?$`,
-);
 const MICROSOFT_LOGIN_PAGE_PATTERN = /.*login.microsoftonline.com.*/;
 
 const CORPORATE_EMAIL = process.env.CORPORATE_EMAIL ?? "";
 const CORPORATE_PASSWORD = process.env.CORPORATE_PASSWORD ?? "";
 
+test.describe("Auth Gate", () => {
+	test("unauthenticated user is redirected from / to login", async ({
+		page,
+	}) => {
+		await page.goto("/");
+		await expect(page.getByTestId(testIds.login.microsoftButton)).toBeVisible();
+
+		expect(getPathname(page)).toBe("/login");
+		expect(getSearchParam(page, "redirect")).toBe("/");
+	});
+});
+
 test.describe("Microsoft Login Page", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto(`${BASE_URL}/login`);
+		await page.goto("/login");
 		await expect(page.getByTestId(testIds.login.microsoftButton)).toBeVisible();
 	});
 
 	test("page is loaded", async ({ page }) => {
-		await expect(page).toHaveURL(LOGIN_URL_PATTERN);
+		expect(getPathname(page)).toBe("/login");
 	});
 
 	test("login with Microsoft account @smoke", async ({ page, context }) => {
@@ -35,21 +38,16 @@ test.describe("Microsoft Login Page", () => {
 
 		await page.getByTestId(testIds.login.microsoftButton).click();
 
-		// input email
 		await page.waitForURL(MICROSOFT_LOGIN_PAGE_PATTERN);
 		await page.waitForSelector('input[type="email"]');
 		await page.fill('input[type="email"]', CORPORATE_EMAIL);
 		await page.getByRole("button", { name: "Next" }).click();
 
-		// input password
 		await page.waitForSelector('input[type="password"]');
 		await page.fill('input[type="password"]', CORPORATE_PASSWORD);
 		await page.getByRole("button", { name: "Sign in" }).click();
 
-		// optional "Stay signed in?" prompt
-		await maybeConfirmStaySignedIn(page);
-
-		await page.waitForURL(APP_URL_PATTERN, { waitUntil: "load" });
+		await handleStaySignedInPrompt(page);
 
 		await expect(page.getByTestId(testIds.courses.table)).toBeVisible();
 
@@ -83,11 +81,7 @@ test.describe("Microsoft Login Page", () => {
 	});
 });
 
-function escapeRegExp(value: string): string {
-	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-async function maybeConfirmStaySignedIn(page: Page): Promise<void> {
+async function handleStaySignedInPrompt(page: Page): Promise<void> {
 	const yesButton = page.getByRole("button", { name: "Yes" }).first();
 	if (await yesButton.isVisible()) {
 		await yesButton.click();

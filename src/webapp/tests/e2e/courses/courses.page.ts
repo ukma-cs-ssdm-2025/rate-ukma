@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
+import { getSearchParam } from "../shared/url-assertions";
 
 export class CoursesPage {
 	private readonly page: Page;
@@ -106,9 +107,7 @@ export class CoursesPage {
 		await expect(this.searchInput).toBeVisible();
 		await this.searchInput.fill("");
 
-		await expect
-			.poll(async () => new URL(this.page.url()).searchParams.get("q") ?? "")
-			.toBe("");
+		await expect.poll(() => getSearchParam(this.page, "q")).toBe("");
 
 		await this.waitForCoursesToRender();
 	}
@@ -206,9 +205,7 @@ export class CoursesPage {
 		await expect(this.searchInput).toBeVisible();
 		await this.searchInput.fill(query);
 
-		await expect
-			.poll(async () => new URL(this.page.url()).searchParams.get("q") ?? "")
-			.toBe(query);
+		await expect.poll(() => getSearchParam(this.page, "q")).toBe(query);
 
 		await this.waitForCoursesToRender();
 	}
@@ -217,9 +214,7 @@ export class CoursesPage {
 		await this.ensureFiltersResetButtonVisible();
 		await this.filtersResetButton.click();
 
-		await expect
-			.poll(async () => new URL(this.page.url()).searchParams.get("q") ?? "")
-			.toBe("");
+		await expect.poll(() => getSearchParam(this.page, "q")).toBe("");
 
 		await this.waitForCoursesToRender();
 	}
@@ -288,8 +283,7 @@ export class CoursesPage {
 			try {
 				const url = new URL(response.url());
 				return url.searchParams.get("page") === String(totalPages);
-			} catch (error) {
-				void error;
+			} catch {
 				return false;
 			}
 		});
@@ -300,7 +294,7 @@ export class CoursesPage {
 		await expect(this.paginationLabel).not.toHaveText(before);
 
 		await expect
-			.poll(async () => new URL(this.page.url()).searchParams.get("page") ?? "")
+			.poll(() => getSearchParam(this.page, "page"))
 			.toBe(String(totalPages));
 
 		await waitForLastPageResponse;
