@@ -1,7 +1,16 @@
 import { expect, type Page } from "@playwright/test";
 
+export function normalizePathname(pathname: string): string {
+	const normalized = pathname.replace(/\/+$/, "");
+	return normalized === "" ? "/" : normalized;
+}
+
 export function getUrlSearchParams(page: Page): URLSearchParams {
 	return new URL(page.url()).searchParams;
+}
+
+export function getPathname(page: Page): string {
+	return normalizePathname(new URL(page.url()).pathname);
 }
 
 export function getSearchParam(page: Page, key: string): string {

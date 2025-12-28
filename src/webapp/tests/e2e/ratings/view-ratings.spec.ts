@@ -5,8 +5,6 @@ import { CourseDetailsPage } from "../courses/course-details.page";
 import { CoursesPage } from "../courses/courses.page";
 
 test.describe("Ratings are displayed", () => {
-	// TBD: this test suite components will be adjusted after ratings count filter sorting is implemented
-
 	let courseDetailsPage: CourseDetailsPage;
 	let coursesPage: CoursesPage;
 

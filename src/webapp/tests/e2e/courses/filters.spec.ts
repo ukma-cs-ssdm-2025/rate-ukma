@@ -283,7 +283,6 @@ async function applyAndAssertAllFilters({
 
 	await expect(scope.getByTestId(testIds.filters.resetButton)).toBeVisible();
 	await expect(scope.getByTestId(testIds.filters.resetButton)).toBeEnabled();
-	// Filters reset pagination to page=1 (and clearOnDefault removes param)
 	expect(getSearchParam(page, "page")).toBe("");
 }
 

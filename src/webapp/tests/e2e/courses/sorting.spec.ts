@@ -13,7 +13,6 @@ test.describe("Courses sorting", () => {
 
 		await coursesPage.sortByDifficulty();
 		await expect.poll(() => getSearchParam(page, "diffOrder")).toBe("asc");
-		// Sorting resets pagination to page=1, which is removed from URL.
 		expect(getSearchParam(page, "page")).toBe("");
 
 		await coursesPage.sortByDifficulty();

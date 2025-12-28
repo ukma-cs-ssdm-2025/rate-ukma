@@ -200,19 +200,39 @@ function CourseFiltersContent({
 		}
 	};
 
+	const rangeFilterTestIdByKey = {
+		diff: testIds.filters.difficultySlider,
+		use: testIds.filters.usefulnessSlider,
+	} as const;
+
+	const selectFilterTestIdByKey = {
+		term: testIds.filters.termSelect,
+		year: testIds.filters.yearSelect,
+		faculty: testIds.filters.facultySelect,
+		dept: testIds.filters.departmentSelect,
+		spec: testIds.filters.specialitySelect,
+		type: testIds.filters.typeSelect,
+	} as const;
+
+	const getRangeFilterTestId = (key: string): string | undefined => {
+		return key in rangeFilterTestIdByKey
+			? rangeFilterTestIdByKey[key as keyof typeof rangeFilterTestIdByKey]
+			: undefined;
+	};
+
+	const getSelectFilterTestId = (key: string): string | undefined => {
+		return key in selectFilterTestIdByKey
+			? selectFilterTestIdByKey[key as keyof typeof selectFilterTestIdByKey]
+			: undefined;
+	};
+
 	return (
 		<div className="space-y-6">
 			{data.rangeFilters.map(({ key, ...filter }) => (
 				<FilterSlider
 					key={key}
 					{...filter}
-					testId={
-						key === "diff"
-							? testIds.filters.difficultySlider
-							: key === "use"
-								? testIds.filters.usefulnessSlider
-								: undefined
-					}
+					testId={getRangeFilterTestId(key)}
 					value={params[key]}
 					onValueChange={(next) => handleRangeChange(key, next)}
 				/>
@@ -228,20 +248,7 @@ function CourseFiltersContent({
 					useCombobox,
 				}) => {
 					const currentValue = getSelectValue(key);
-					const testId =
-						key === "term"
-							? testIds.filters.termSelect
-							: key === "year"
-								? testIds.filters.yearSelect
-								: key === "faculty"
-									? testIds.filters.facultySelect
-									: key === "dept"
-										? testIds.filters.departmentSelect
-										: key === "spec"
-											? testIds.filters.specialitySelect
-											: key === "type"
-												? testIds.filters.typeSelect
-												: undefined;
+					const testId = getSelectFilterTestId(key);
 					return (
 						<div key={key} className="space-y-3">
 							<Label className="text-sm font-medium">{label}</Label>

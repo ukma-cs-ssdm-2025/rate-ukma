@@ -52,7 +52,6 @@ test.describe("Courses search", () => {
 		);
 		expect(getSearchParam(page, "q")).toBe(query);
 
-		// Either results exist or the empty state is shown (but the UI must not crash).
 		const courseCount = await coursesPage.getCourseCount();
 		if (courseCount === 0) {
 			await expect(page.getByTestId(testIds.courses.emptyState)).toBeVisible();
@@ -68,7 +67,6 @@ test.describe("Courses search", () => {
 		expect(["", "2"]).toContain(getSearchParam(page, "page"));
 
 		await coursesPage.searchByTitle(TEST_QUERIES.common);
-		// page=1 is cleared from URL by default.
 		expect(getSearchParam(page, "page")).toBe("");
 	});
 });

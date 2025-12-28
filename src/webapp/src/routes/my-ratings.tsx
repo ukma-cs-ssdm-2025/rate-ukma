@@ -198,14 +198,20 @@ function groupRatingsByYearAndSemester(
 			});
 		}
 
-		const seasonKey =
-			yearValue != null ? (seasonRaw ?? "no-semester") : "no-semester";
-		const seasonLabel =
-			yearValue != null
-				? seasonRaw
-					? getSemesterTermDisplay(seasonRaw, "Невідомий семестр")
-					: "Семестр не вказано"
+		let seasonKey = "no-semester";
+		let seasonLabel = "Без семестра";
+		let seasonDescription = "Невідомий рік";
+
+		if (yearValue != null) {
+			seasonKey = seasonRaw ?? "no-semester";
+			seasonLabel = seasonRaw
+				? getSemesterTermDisplay(seasonRaw, "Невідомий семестр")
+				: "Семестр не вказано";
+			seasonDescription = seasonRaw
+				? `Семестр ${seasonLabel.toLowerCase()}`
 				: "Без семестра";
+		}
+
 		const seasonOrder = TERM_ORDER[seasonRaw ?? ""] ?? 99;
 
 		const yearEntry = years.get(yearKey);
@@ -214,12 +220,7 @@ function groupRatingsByYearAndSemester(
 				yearEntry.seasons.set(seasonKey, {
 					key: `${yearKey}-${seasonKey}`,
 					label: seasonLabel,
-					description:
-						yearValue != null && seasonRaw
-							? `Семестр ${seasonLabel.toLowerCase()}`
-							: yearValue != null
-								? "Без семестра"
-								: "Невідомий рік",
+					description: seasonDescription,
 					items: [],
 					order: seasonOrder,
 					ratedCount: 0,
