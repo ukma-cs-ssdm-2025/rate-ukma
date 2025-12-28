@@ -6,7 +6,13 @@ import { testIds } from "@/lib/test-ids";
 const BASE_URL = (process.env.BASE_URL || "http://localhost:3000")
 	.trim()
 	.replace(/\/+$/, "");
-const BASE_URL_PATTERN = new RegExp(`^${escapeRegExp(BASE_URL)}\\/?$`);
+
+const APP_URL_PATTERN = new RegExp(
+	`^${escapeRegExp(BASE_URL)}\\/?(\\?.*)?$`,
+);
+const LOGIN_URL_PATTERN = new RegExp(
+	`^${escapeRegExp(BASE_URL)}\\/login\\/?(\\?.*)?$`,
+);
 const MICROSOFT_LOGIN_PAGE_PATTERN = /.*login.microsoftonline.com.*/;
 
 const CORPORATE_EMAIL = process.env.CORPORATE_EMAIL ?? "";
@@ -14,11 +20,12 @@ const CORPORATE_PASSWORD = process.env.CORPORATE_PASSWORD ?? "";
 
 test.describe("Microsoft Login Page", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto(BASE_URL);
+		await page.goto(`${BASE_URL}/login`);
+		await expect(page.getByTestId(testIds.login.microsoftButton)).toBeVisible();
 	});
 
 	test("page is loaded", async ({ page }) => {
-		await expect(page).toHaveURL(BASE_URL_PATTERN);
+		await expect(page).toHaveURL(LOGIN_URL_PATTERN);
 	});
 
 	test("login with Microsoft account @smoke", async ({ page, context }) => {
@@ -42,7 +49,7 @@ test.describe("Microsoft Login Page", () => {
 		// optional "Stay signed in?" prompt
 		await maybeConfirmStaySignedIn(page);
 
-		await page.waitForURL(BASE_URL_PATTERN, { waitUntil: "load" });
+		await page.waitForURL(APP_URL_PATTERN, { waitUntil: "load" });
 
 		await expect(page.getByTestId(testIds.courses.table)).toBeVisible();
 
