@@ -71,7 +71,7 @@ export function Drawer({
 	return (
 		<dialog
 			open
-			className="fixed inset-0 z-[9999] m-0 h-full w-full overflow-hidden"
+			className="fixed inset-0 z-50 m-0 h-full w-full overflow-hidden"
 			onClose={(event) => {
 				event.preventDefault();
 				close();
