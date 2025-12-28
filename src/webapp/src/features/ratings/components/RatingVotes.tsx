@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import type { RatingVoteCreateSchema } from "@/lib/api/generated";
+import type { RatingVoteCreateRequest } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import {
 	useCoursesRatingsVotesCreate,
@@ -119,7 +119,7 @@ export function RatingVotes({
 				if (userVote === null) {
 					await deleteVote.mutateAsync({ ratingId });
 				} else {
-					const voteData: RatingVoteCreateSchema = {
+					const voteData: RatingVoteCreateRequest = {
 						vote_type: userVote,
 					};
 					await createVote.mutateAsync({
