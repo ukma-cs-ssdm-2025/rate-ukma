@@ -14,8 +14,6 @@ def test_create_vote_upvote(token_client, rating_factory, student_factory, enrol
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
         "vote_type": RatingVoteType.UPVOTE,
-        "rating_id": str(rating.id),
-        "student_id": "",  # Backend overwrites this
     }
 
     response = token_client.post(url, data=payload, format="json")
@@ -36,8 +34,6 @@ def test_create_vote_downvote(token_client, rating_factory, student_factory, enr
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
         "vote_type": RatingVoteType.DOWNVOTE,
-        "rating_id": str(rating.id),
-        "student_id": "",
     }
 
     response = token_client.post(url, data=payload, format="json")
@@ -61,8 +57,6 @@ def test_create_vote_toggle(
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
         "vote_type": RatingVoteType.DOWNVOTE,
-        "rating_id": str(rating.id),
-        "student_id": str(student.id),
     }
 
     response = token_client.post(url, data=payload, format="json")
@@ -98,8 +92,6 @@ def test_create_vote_not_enrolled_fails(token_client, rating_factory, student_fa
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
         "vote_type": RatingVoteType.UPVOTE,
-        "rating_id": str(rating.id),
-        "student_id": "",
     }
 
     response = token_client.post(url, data=payload, format="json")
@@ -117,8 +109,6 @@ def test_create_vote_not_student_fails(token_client, rating_factory):
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
         "vote_type": RatingVoteType.UPVOTE,
-        "rating_id": str(rating.id),
-        "student_id": "",
     }
 
     response = token_client.post(url, data=payload, format="json")
@@ -138,7 +128,7 @@ def test_create_vote_invalid_type_fails(
     enrollment_factory(offering=offering, student=student)
 
     url = f"/api/v1/ratings/{rating.id}/votes/"
-    payload = {"vote_type": "INVALID_TYPE", "rating_id": str(rating.id), "student_id": ""}
+    payload = {"vote_type": "INVALID_TYPE"}
 
     response = token_client.post(url, data=payload, format="json")
 

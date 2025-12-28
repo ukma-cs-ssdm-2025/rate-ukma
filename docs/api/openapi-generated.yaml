@@ -1471,13 +1471,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RatingVoteCreateSchema'
+              $ref: '#/components/schemas/RatingVoteCreateRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/RatingVoteCreateSchema'
+              $ref: '#/components/schemas/RatingVoteCreateRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RatingVoteCreateSchema'
+              $ref: '#/components/schemas/RatingVoteCreateRequest'
         required: true
       security:
       - cookieAuth: []
@@ -2418,24 +2418,14 @@ components:
           - $ref: '#/components/schemas/ViewerVoteEnum'
           readOnly: true
           nullable: true
-    RatingVoteCreateSchema:
+    RatingVoteCreateRequest:
       properties:
-        rating_id:
-          description: The unique identifier of the rating
-          title: Rating Id
-          type: string
-        student_id:
-          description: The unique identifier of the student
-          title: Student Id
-          type: string
         vote_type:
           $ref: '#/components/schemas/RatingVoteType'
           description: The type of the vote
       required:
-      - rating_id
-      - student_id
       - vote_type
-      title: RatingVoteCreateSchema
+      title: RatingVoteCreateRequest
       type: object
     RatingVoteRead:
       type: object

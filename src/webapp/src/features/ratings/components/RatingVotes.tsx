@@ -121,8 +121,6 @@ export function RatingVotes({
 				} else {
 					const voteData: RatingVoteCreateSchema = {
 						vote_type: userVote,
-						rating_id: ratingId,
-						student_id: "", // Backend overwrites this
 					};
 					await createVote.mutateAsync({
 						ratingId,

@@ -2,7 +2,7 @@ import { Pencil, Star, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/features/courses/courseFormatting";
-import type { InlineRating } from "@/lib/api/generated";
+import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { RatingComment } from "./RatingComment";
@@ -16,7 +16,7 @@ interface ExtendedRating extends InlineRating {
 }
 
 interface UserRatingCardProps {
-	readonly rating: ExtendedRating;
+	readonly rating: RatingRead | ExtendedRating;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
 	readonly readOnly?: boolean;

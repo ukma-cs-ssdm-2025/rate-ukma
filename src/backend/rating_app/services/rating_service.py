@@ -74,7 +74,7 @@ class RatingService(IObservable[Rating]):
         paginate: bool = True,
     ) -> RatingSearchResult:
         user_ratings = []
-        if filters.separate_current_user is not None:
+        if filters.separate_current_user is not None and filters.page == 1:  # only fetch once
             user_ratings = self.rating_repository.get_by_student_id_course_id(
                 student_id=str(filters.separate_current_user),
                 course_id=str(filters.course_id),
@@ -97,7 +97,7 @@ class RatingService(IObservable[Rating]):
         return RatingSearchResult(
             items=RatingListResponse(
                 ratings=items,
-                user_ratings=user_ratings if filters.separate_current_user is not None else None,
+                user_ratings=user_ratings,
             ),
             pagination=self._empty_pagination_metadata(total_count),
             applied_filters=applied_filters,

@@ -110,7 +110,7 @@ export function MyRatingCard({
 							initialUpvotes={(rating as any).upvotes ?? 0}
 							initialDownvotes={(rating as any).downvotes ?? 0}
 							initialUserVote={(rating as any).viewer_vote ?? null}
-							readOnly={!course.can_rate}
+							readOnly={false}
 						/>
 					</div>
 				)}

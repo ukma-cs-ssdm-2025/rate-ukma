@@ -7,7 +7,10 @@ from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError as ModelValidationError
 
 from rateukma.caching.cache_manager import ICacheManager
-from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
+from rating_app.application_schemas.rating_vote import (
+    RatingVoteCreateRequest,
+    RatingVoteCreateSchema,
+)
 from rating_app.models import Student
 from rating_app.serializers import RatingVoteReadSerializer
 from rating_app.services import RatingFeedbackService, RatingService, StudentService
@@ -20,11 +23,15 @@ logger = structlog.get_logger(__name__)
 @extend_schema(tags=["votes"])
 class RatingVoteViewSet(viewsets.ViewSet):
     lookup_url_kwarg = "rating_id"
+
     serializer_class = RatingVoteReadSerializer
 
     vote_service: RatingFeedbackService | None = None
+
     student_service: StudentService | None = None
+
     rating_service: RatingService | None = None
+
     cache_manager: ICacheManager | None = None
 
     @extend_schema(
@@ -33,17 +40,23 @@ class RatingVoteViewSet(viewsets.ViewSet):
             "Create or update a vote on a rating. Only students enrolled in the course can vote. "
             "Each student can have at most one vote per rating."
         ),
-        request=RatingVoteCreateSchema,
+        request=RatingVoteCreateRequest,
         responses=R_VOTE_CREATE,
     )
     @require_student
     def create(self, request, student: Student, rating_id=None):
         assert self.vote_service is not None
+
         assert self.rating_service is not None
 
         try:
-            data = {**request.data, "student_id": str(student.id), "rating_id": rating_id}
-            schema = RatingVoteCreateSchema.model_validate(data)
+            payload = RatingVoteCreateRequest.model_validate(request.data)
+            schema = RatingVoteCreateSchema(
+                vote_type=payload.vote_type,
+                student_id=str(student.id),
+                rating_id=rating_id,
+            )
+
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
@@ -52,6 +65,7 @@ class RatingVoteViewSet(viewsets.ViewSet):
         self._invalidate_caches()
 
         serializer = RatingVoteReadSerializer(vote)
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
@@ -67,6 +81,7 @@ class RatingVoteViewSet(viewsets.ViewSet):
             student_id=str(student.id),
             rating_id=rating_id,
         )
+
         self._invalidate_caches()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -74,4 +89,5 @@ class RatingVoteViewSet(viewsets.ViewSet):
     def _invalidate_caches(self):
         if self.cache_manager:
             self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
+
             logger.info("votes_cache_invalidated")

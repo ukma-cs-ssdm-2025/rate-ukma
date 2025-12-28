@@ -45,13 +45,6 @@ class RatingFeedbackService:
 
         return self.vote_repository.create_vote(params)
 
-    def delete_vote(self, student_id: str, vote: RatingVote) -> None:
-        if not self._can_vote(str(vote.rating.id), student_id):
-            raise DeleteVoteOnUnenrolledCourseException(
-                "A student must be enrolled in the course to delete a vote on its rating"
-            )
-        self.vote_repository.delete(vote)
-
     def delete_vote_by_student(self, student_id: str, rating_id: str) -> None:
         if not self._can_vote(rating_id, student_id):
             raise DeleteVoteOnUnenrolledCourseException(

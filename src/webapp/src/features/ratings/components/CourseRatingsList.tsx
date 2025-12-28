@@ -16,7 +16,7 @@ const SKELETON_KEYS = Array.from(
 
 interface CourseRatingsListProps {
 	courseId: string;
-	userRating?: InlineRating | null;
+	userRating?: InlineRating | RatingRead | null;
 	onEditUserRating?: () => void;
 	onDeleteUserRating?: () => void;
 	canVote?: boolean;
@@ -81,15 +81,24 @@ function RatingsContent({
 
 export function CourseRatingsList({
 	courseId,
-	userRating,
+	userRating: userRatingProp,
 	onEditUserRating,
 	onDeleteUserRating,
 	canVote = true,
 }: Readonly<CourseRatingsListProps>) {
-	const separateCurrentUser = !!userRating;
+	const separateCurrentUser = !!userRatingProp;
 
-	const { allRatings, hasMoreRatings, isLoading, loaderRef, totalRatings } =
-		useInfiniteScrollRatings(courseId, { separateCurrentUser });
+	const {
+		allRatings,
+		hasMoreRatings,
+		isLoading,
+		loaderRef,
+		totalRatings,
+		userRating: userRatingFromApi,
+	} = useInfiniteScrollRatings(courseId, { separateCurrentUser });
+
+	// Prefer user rating from API (has vote data) over prop (from different endpoint)
+	const userRating = userRatingFromApi ?? userRatingProp;
 
 	const showSkeleton = isLoading && allRatings.length === 0;
 
