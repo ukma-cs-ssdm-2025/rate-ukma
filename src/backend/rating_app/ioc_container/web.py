@@ -75,7 +75,6 @@ def course_rating_votes_view():
         vote_service=vote_service(),
         rating_service=rating_service(),
         student_service=student_service(),
-        cache_manager=redis_cache_manager(),
     )
 
 
