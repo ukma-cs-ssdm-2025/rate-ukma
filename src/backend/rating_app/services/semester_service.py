@@ -179,8 +179,6 @@ class SemesterService(IFilterable):
         Format: "start_year–end_year" (e.g., "2024–2025")
         """
         return [
-            SemesterFilterOption(
-                value=f"{start_year}–{end_year}", label=f"{start_year}–{end_year}"
-            )
+            SemesterFilterOption(value=f"{start_year}–{end_year}", label=f"{start_year}–{end_year}")
             for start_year, end_year in sorted(academic_years, reverse=True)
         ]

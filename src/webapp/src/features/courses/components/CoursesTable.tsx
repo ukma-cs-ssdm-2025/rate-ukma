@@ -56,10 +56,7 @@ import {
 	DEFAULT_COURSE_FILTERS_PARAMS,
 } from "../courseFiltersParams";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
-import {
-	transformFiltersToApiParams,
-	transformSortingToApiParams,
-} from "../filterTransformations";
+import { transformFiltersToApiParams } from "../filterTransformations";
 
 interface PaginationInfo {
 	page: number;
@@ -203,10 +200,18 @@ const columns: ColumnDef<CourseList>[] = [
 		header: ({ column }) => (
 			<>
 				<div className="md:hidden">
-					<CourseColumnHeader column={column} title="Склад." />
+					<CourseColumnHeader
+						column={column}
+						title="Склад."
+						initialSortDirection="asc"
+					/>
 				</div>
 				<div className="hidden md:block">
-					<CourseColumnHeader column={column} title="Складність" />
+					<CourseColumnHeader
+						column={column}
+						title="Складність"
+						initialSortDirection="asc"
+					/>
 				</div>
 			</>
 		),
@@ -232,10 +237,18 @@ const columns: ColumnDef<CourseList>[] = [
 		header: ({ column }) => (
 			<>
 				<div className="md:hidden">
-					<CourseColumnHeader column={column} title="Корисн." />
+					<CourseColumnHeader
+						column={column}
+						title="Корисн."
+						initialSortDirection="desc"
+					/>
 				</div>
 				<div className="hidden md:block">
-					<CourseColumnHeader column={column} title="Корисність" />
+					<CourseColumnHeader
+						column={column}
+						title="Корисність"
+						initialSortDirection="desc"
+					/>
 				</div>
 			</>
 		),
@@ -311,7 +324,52 @@ export function CoursesTable({
 	const navigate = useNavigate({ from: "/" });
 	const { isStudent } = useAuth();
 
-	const [sorting, setSorting] = useState<SortingState>([]);
+	const sorting = useMemo<SortingState>(() => {
+		const sortState: SortingState = [];
+
+		if (params.diffOrder) {
+			sortState.push({
+				id: "avg_difficulty",
+				desc: params.diffOrder === "desc",
+			});
+		}
+
+		if (params.useOrder) {
+			sortState.push({
+				id: "avg_usefulness",
+				desc: params.useOrder === "desc",
+			});
+		}
+
+		return sortState;
+	}, [params.diffOrder, params.useOrder]);
+
+	const handleSortingChange = useCallback(
+		(updater: SortingState | ((old: SortingState) => SortingState)) => {
+			const newSorting =
+				typeof updater === "function" ? updater(sorting) : updater;
+
+			const diffSort = newSorting.find((s) => s.id === "avg_difficulty");
+			const useSort = newSorting.find((s) => s.id === "avg_usefulness");
+
+			let diffOrder: "asc" | "desc" | null = null;
+			if (diffSort) {
+				diffOrder = diffSort.desc ? "desc" : "asc";
+			}
+
+			let useOrder: "asc" | "desc" | null = null;
+			if (useSort) {
+				useOrder = useSort.desc ? "desc" : "asc";
+			}
+
+			setParams({
+				diffOrder,
+				useOrder,
+				page: 1,
+			});
+		},
+		[sorting, setParams],
+	);
 
 	const pagination = useMemo<PaginationState>(
 		() => ({
@@ -420,20 +478,9 @@ export function CoursesTable({
 		[clearFullscreenTimeout],
 	);
 
-	const apiSorting = useMemo(() => {
-		if (sorting.length === 0) return {};
-		const firstSort = sorting[0];
-		return transformSortingToApiParams(firstSort.id, firstSort.desc);
-	}, [sorting]);
-
 	const apiFilters = useMemo(
 		() => transformFiltersToApiParams(params),
 		[params],
-	);
-
-	const combinedFilters = useMemo(
-		() => ({ ...apiSorting, ...apiFilters }),
-		[apiSorting, apiFilters],
 	);
 
 	const table = useReactTable({
@@ -441,7 +488,7 @@ export function CoursesTable({
 		columns,
 		manualSorting: true,
 		manualPagination: true,
-		onSortingChange: setSorting,
+		onSortingChange: handleSortingChange,
 		onPaginationChange: (updater) => {
 			const newPagination =
 				typeof updater === "function" ? updater(pagination) : updater;
@@ -552,7 +599,7 @@ export function CoursesTable({
 							</div>
 							<CollapsibleContent>
 								<ScatterPlotPreviewCard
-									filters={combinedFilters}
+									filters={apiFilters}
 									showHeader={false}
 									heightClass="h-[350px]"
 								/>
@@ -560,7 +607,7 @@ export function CoursesTable({
 						</Collapsible>
 					) : (
 						<ScatterPlotPreviewCard
-							filters={combinedFilters}
+							filters={apiFilters}
 							onOpenFullscreen={openExploreWithAnimation}
 							heightClass="h-[260px]"
 							title="Карта курсів"

@@ -18,7 +18,6 @@ import { withAuth } from "@/lib/auth";
 function CoursesRoute() {
 	const [params, setParams] = useCourseFiltersParams();
 
-	// Convert nuqs params directly to API params
 	const apiFilters: CoursesListParams = {
 		page: params.page,
 		page_size: params.size,
@@ -38,6 +37,8 @@ function CoursesRoute() {
 		semester_year: params.year || undefined,
 		type_kind: params.type ?? undefined,
 		speciality: params.spec || undefined,
+		avg_difficulty_order: params.diffOrder ?? undefined,
+		avg_usefulness_order: params.useOrder ?? undefined,
 	};
 
 	const { data, isFetching, isError, refetch } = useCoursesList(apiFilters, {

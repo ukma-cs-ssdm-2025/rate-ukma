@@ -23,6 +23,9 @@ const VALID_TYPE_KINDS: readonly CoursesListTypeKind[] = [
 	"PROF_ORIENTED",
 ];
 
+type SortOrder = "asc" | "desc";
+const VALID_SORT_ORDERS: readonly SortOrder[] = ["asc", "desc"];
+
 function createRangeParser(bounds: [number, number]) {
 	const [minBound, maxBound] = bounds;
 
@@ -70,6 +73,12 @@ export const courseFiltersParams = {
 	spec: parseAsString.withDefault(""),
 	page: parseAsInteger.withDefault(1),
 	size: parseAsInteger.withDefault(10),
+	diffOrder: parseAsStringEnum<SortOrder>(
+		VALID_SORT_ORDERS as unknown as SortOrder[],
+	),
+	useOrder: parseAsStringEnum<SortOrder>(
+		VALID_SORT_ORDERS as unknown as SortOrder[],
+	),
 };
 
 export function useCourseFiltersParams() {
@@ -101,6 +110,8 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	spec: "",
 	page: 1,
 	size: 10,
+	diffOrder: null,
+	useOrder: null,
 };
 
 export function courseFiltersStateToSearchParams(
@@ -130,6 +141,8 @@ export function courseFiltersStateToSearchParams(
 	if (state.spec) params.spec = state.spec;
 	if (state.page !== 1) params.page = state.page;
 	if (state.size !== 10) params.size = state.size;
+	if (state.diffOrder) params.diffOrder = state.diffOrder;
+	if (state.useOrder) params.useOrder = state.useOrder;
 
 	return params;
 }
