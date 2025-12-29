@@ -90,6 +90,7 @@ class TypeAdapterCacheExtension(ICacheTypeExtension[Any]):
         return TypeAdapter(value_type)
 
 
+# TODO: prevent caching non-2xx responses
 class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
     def __init__(self, cache_key_provider: CacheKeyContextProvider):
         self._cache_key_provider = cache_key_provider
