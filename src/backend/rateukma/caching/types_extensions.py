@@ -128,18 +128,36 @@ class DRFResponseCacheTypeExtension(ICacheTypeExtension[Response]):
 
     def serialize(self, value: Response, value_type: type[Response]) -> JSON_Serializable:
         if isinstance(value.data, dict):
-            return {"_wrapped": False, **value.data}
-        return {"_wrapped": True, "data": value.data}
+            return {
+                "_wrapped": False,
+                **value.data,
+                "status_code": value.status_code,
+                "headers": value.headers,
+            }
+        return {
+            "_wrapped": True,
+            "data": value.data,
+            "status_code": value.status_code,
+            "headers": value.headers,
+        }
 
     def deserialize(self, data: JSON_Serializable, value_type: type[Response]) -> Response:
         if not isinstance(data, dict):
             raise TypeError(f"Expected dict for Response deserialization, got {type(data)}")
 
-        if data.get("_wrapped"):
-            return Response(data=data["data"])
+        response_headers = data["headers"]
+        response_status = data["status_code"]
+        is_wrapped = data.get("_wrapped")
 
-        data.pop("_wrapped", None)
-        return Response(data=data)
+        if is_wrapped:
+            return Response(data=data["data"], status=response_status, headers=response_headers)
+
+        payload = {
+            key: value
+            for key, value in data.items()
+            if key not in {"_wrapped", "status_code", "headers"}
+        }
+        return Response(data=payload, status=response_status, headers=response_headers)
 
 
 class CacheTypeExtensionRegistry:

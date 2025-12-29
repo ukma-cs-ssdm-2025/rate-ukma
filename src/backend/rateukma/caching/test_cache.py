@@ -111,10 +111,27 @@ class TestCacheDRFResponses:
         "response, expected_result",
         [
             (
-                Response({"data": "test", "status": "ok"}),
-                {"_wrapped": False, "data": "test", "status": "ok"},
+                Response(
+                    {"data": "test"}, status=200, headers={"Content-Type": "application/json"}
+                ),
+                {
+                    "_wrapped": False,
+                    "data": "test",
+                    "status_code": 200,
+                    "headers": {"Content-Type": "application/json"},
+                },
             ),
-            (Response(["item1", "item2"]), {"_wrapped": True, "data": ["item1", "item2"]}),
+            (
+                Response(
+                    ["item1", "item2"], status=200, headers={"Content-Type": "application/json"}
+                ),
+                {
+                    "_wrapped": True,
+                    "data": ["item1", "item2"],
+                    "status_code": 200,
+                    "headers": {"Content-Type": "application/json"},
+                },
+            ),
         ],
     )
     def test_cache_drf_responses(self, response, expected_result, cache_key_context_provider):
@@ -125,6 +142,7 @@ class TestCacheDRFResponses:
         mock_request.method = "GET"
         mock_request.path = "/api/test"
         mock_request.query_params = {"param": "value"}
+        mock_request.headers = {"Content-Type": "application/json"}
 
         # Act and Assert - serialize
         result = ext.serialize(response, Response)
@@ -134,6 +152,8 @@ class TestCacheDRFResponses:
         deserialized = ext.deserialize(result, Response)
         assert isinstance(deserialized, Response)
         assert deserialized.data == response.data
+        assert deserialized.status_code == response.status_code
+        assert deserialized.headers == response.headers
 
         # Act and Assert - get cache key
         cache_key = ext.get_cache_key(lambda: None, (mock_request,), {})
