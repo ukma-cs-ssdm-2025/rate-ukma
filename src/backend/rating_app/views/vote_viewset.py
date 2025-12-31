@@ -62,8 +62,6 @@ class RatingVoteViewSet(viewsets.ViewSet):
 
         vote = self.vote_service.create(schema)
 
-        self._invalidate_caches()
-
         serializer = RatingVoteReadSerializer(vote)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -82,12 +80,4 @@ class RatingVoteViewSet(viewsets.ViewSet):
             rating_id=rating_id,
         )
 
-        self._invalidate_caches()
-
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def _invalidate_caches(self):
-        if self.cache_manager:
-            self.cache_manager.invalidate_pattern("*RatingViewSet.list*")
-
-            logger.info("votes_cache_invalidated")

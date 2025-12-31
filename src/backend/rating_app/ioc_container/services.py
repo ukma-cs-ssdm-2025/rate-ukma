@@ -31,7 +31,10 @@ from rating_app.services import (
 from rating_app.services.domain_event_listeners.aggregates_update import (
     CourseModelAggregatesUpdateObserver,
 )
-from rating_app.services.domain_event_listeners.cache_invalidator import CacheInvalidator
+from rating_app.services.domain_event_listeners.cache_invalidator import (
+    RatingCacheInvalidator,
+    RatingVoteCacheInvalidator,
+)
 from rating_app.services.pagination_course_adapter import PaginationCourseAdapter
 from rating_app.services.paginator import QuerysetPaginator
 
@@ -99,8 +102,8 @@ def course_model_aggregates_update_observer() -> CourseModelAggregatesUpdateObse
 
 
 @once
-def cache_invalidator() -> CacheInvalidator:
-    return CacheInvalidator(cache_manager=redis_cache_manager())
+def cache_invalidator() -> RatingCacheInvalidator:
+    return RatingCacheInvalidator(cache_manager=redis_cache_manager())
 
 
 @once
@@ -136,6 +139,11 @@ def vote_service() -> RatingFeedbackService:
 
 
 @once
+def rating_vote_cache_invalidator() -> RatingVoteCacheInvalidator:
+    return RatingVoteCacheInvalidator(cache_manager=redis_cache_manager())
+
+
+@once
 def paginator() -> QuerysetPaginator:
     return QuerysetPaginator()
 
@@ -143,6 +151,7 @@ def paginator() -> QuerysetPaginator:
 def register_observers() -> None:
     rating_service().add_observer(course_model_aggregates_update_observer())
     rating_service().add_observer(cache_invalidator())
+    vote_service().add_observer(rating_vote_cache_invalidator())
 
 
 __all__ = [

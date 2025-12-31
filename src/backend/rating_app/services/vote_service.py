@@ -1,3 +1,5 @@
+from rateukma.protocols import implements
+from rateukma.protocols.generic import IEventListener, IObservable
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
 from rating_app.exception.vote_exceptions import (
     DeleteVoteOnUnenrolledCourseException,
@@ -13,7 +15,7 @@ from rating_app.repositories import (
 )
 
 
-class RatingFeedbackService:
+class RatingFeedbackService(IObservable[RatingVote]):
     def __init__(
         self,
         vote_repository: RatingVoteRepository,
@@ -27,6 +29,16 @@ class RatingFeedbackService:
         self.enrollment_repository = enrollment_repository
         self.course_offering_repository = course_offering_repository
         self.rating_repository = rating_repository
+        self._listeners: list[IEventListener[RatingVote]] = []
+
+    @implements
+    def notify(self, event: RatingVote, *args, **kwargs) -> None:
+        for listener in self._listeners:
+            listener.on_event(event, *args, **kwargs)
+
+    @implements
+    def add_observer(self, listener: IEventListener[RatingVote]) -> None:
+        self._listeners.append(listener)
 
     def create(self, params: RatingVoteCreateSchema) -> RatingVote:
         if not self._can_vote(params.rating_id, params.student_id):
@@ -41,9 +53,13 @@ class RatingFeedbackService:
         if existing:
             if existing.type == params.vote_type:
                 return existing
-            return self.vote_repository.update(existing, type=params.vote_type)
+            updated = self.vote_repository.update(existing, type=params.vote_type)
+            self.notify(updated)
+            return updated
 
-        return self.vote_repository.create_vote(params)
+        vote = self.vote_repository.create_vote(params)
+        self.notify(vote)
+        return vote
 
     def delete_vote_by_student(self, student_id: str, rating_id: str) -> None:
         if not self._can_vote(rating_id, student_id):
@@ -56,6 +72,7 @@ class RatingFeedbackService:
         )
         if vote:
             self.vote_repository.delete(vote)
+            self.notify(vote)
 
     def get_votes_by_rating_id(self, rating_id: str) -> list[RatingVote]:
         return self.vote_repository.get_by_rating_id(rating_id)
@@ -66,7 +83,9 @@ class RatingFeedbackService:
         )
 
     def update_vote(self, vote: RatingVote, **kwargs) -> RatingVote:
-        return self.vote_repository.update(vote, **kwargs)
+        updated = self.vote_repository.update(vote, **kwargs)
+        self.notify(updated)
+        return updated
 
     def _can_vote(self, rating_id: str, student_id: str) -> bool:
         rating = self.rating_repository.get_by_id(rating_id)
