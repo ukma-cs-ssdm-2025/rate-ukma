@@ -2,7 +2,7 @@ from typing import Any, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError
-from django.db.models import F, Prefetch, Q, QuerySet
+from django.db.models import Case, F, IntegerField, Prefetch, Q, QuerySet, Value, When
 
 import structlog
 
@@ -228,24 +228,32 @@ class CourseRepository(IRepository[CourseDTO]):
     ) -> QuerySet[Course]:
         order_by_fields = self._build_order_by_fields(filters)
 
+        courses = courses.annotate(
+            has_ratings=Case(
+                When(ratings_count__gt=0, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        )
+
         if order_by_fields:
-            return courses.order_by(*order_by_fields, "title")
-        return courses.order_by("-ratings_count", "title")
+            return courses.order_by("-has_ratings", *order_by_fields, "title")
+        return courses.order_by("-has_ratings", "-ratings_count", "title")
 
     def _build_order_by_fields(self, filters: CourseFilterCriteria) -> list[Any]:
         order_by_fields = []
         if filters.avg_difficulty_order:
             field = F("avg_difficulty")
             if filters.avg_difficulty_order == "asc":
-                order_by_fields.append(field.asc(nulls_last=True))
+                order_by_fields.append(field.asc())
             else:
-                order_by_fields.append(field.desc(nulls_last=True))
+                order_by_fields.append(field.desc())
         if filters.avg_usefulness_order:
             field = F("avg_usefulness")
             if filters.avg_usefulness_order == "asc":
-                order_by_fields.append(field.asc(nulls_last=True))
+                order_by_fields.append(field.asc())
             else:
-                order_by_fields.append(field.desc(nulls_last=True))
+                order_by_fields.append(field.desc())
         return order_by_fields
 
     def _map_to_domain_models(self, models: list[Course]) -> list[CourseDTO]:
