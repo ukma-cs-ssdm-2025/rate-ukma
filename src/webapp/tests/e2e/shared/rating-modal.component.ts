@@ -48,7 +48,7 @@ export class RatingModal {
 		}
 		const value = Number(raw);
 		if (Number.isNaN(value)) {
-			throw new Error(`Slider aria-valuenow is not a number: ${raw}`);
+			throw new TypeError(`Slider aria-valuenow is not a number: ${raw}`);
 		}
 		return value;
 	}

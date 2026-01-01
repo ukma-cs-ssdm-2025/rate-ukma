@@ -62,11 +62,20 @@ test.describe("Courses pagination", () => {
 		const coursesPage = new CoursesPage(page);
 		await coursesPage.goto();
 
+		const totalPages = await coursesPage.getTotalPagesNumber();
+		if (totalPages < 2) {
+			test.skip(
+				true,
+				"Skipped: Not enough pages to test direct navigation to page 2.",
+			);
+			return;
+		}
+
 		await page.goto("/?page=2");
 		await coursesPage.waitForTableReady();
 
 		const pageParam = getSearchParam(page, "page");
-		expect(["", "2"]).toContain(pageParam);
+		expect(pageParam).toBe("2");
 	});
 
 	test("pagination label has expected format @smoke", async ({ page }) => {
