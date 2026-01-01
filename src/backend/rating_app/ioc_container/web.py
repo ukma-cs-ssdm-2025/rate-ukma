@@ -71,7 +71,7 @@ def course_rating_detail_view():
 @once
 def course_rating_votes_view():
     return RatingVoteViewSet.as_view(
-        {"post": "create", "delete": "destroy"},
+        {"put": "upsert", "delete": "destroy"},
         vote_service=vote_service(),
         rating_service=rating_service(),
         student_service=student_service(),

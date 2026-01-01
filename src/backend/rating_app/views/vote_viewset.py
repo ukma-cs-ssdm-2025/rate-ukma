@@ -15,7 +15,7 @@ from rating_app.models import Student
 from rating_app.serializers import RatingVoteReadSerializer
 from rating_app.services import RatingFeedbackService, RatingService, StudentService
 from rating_app.views.decorators import require_student
-from rating_app.views.responses import R_VOTE_CREATE, R_VOTE_DELETE
+from rating_app.views.responses import R_VOTE_DELETE, R_VOTE_UPSERT
 
 logger = structlog.get_logger(__name__)
 
@@ -41,10 +41,10 @@ class RatingVoteViewSet(viewsets.ViewSet):
             "Each student can have at most one vote per rating."
         ),
         request=RatingVoteCreateRequest,
-        responses=R_VOTE_CREATE,
+        responses=R_VOTE_UPSERT,
     )
     @require_student
-    def create(self, request, student: Student, rating_id=None):
+    def upsert(self, request, student: Student, rating_id: str) -> Response:
         assert self.vote_service is not None
 
         assert self.rating_service is not None
@@ -60,11 +60,11 @@ class RatingVoteViewSet(viewsets.ViewSet):
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
-        vote = self.vote_service.create(schema)
+        vote = self.vote_service.upsert(schema)
 
         serializer = RatingVoteReadSerializer(vote)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="Remove the authenticated student's vote from a rating",
@@ -72,7 +72,7 @@ class RatingVoteViewSet(viewsets.ViewSet):
         responses=R_VOTE_DELETE,
     )
     @require_student
-    def destroy(self, request, student: Student, rating_id: str):
+    def destroy(self, request, student: Student, rating_id: str) -> Response:
         assert self.vote_service is not None
 
         self.vote_service.delete_vote_by_student(

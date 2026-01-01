@@ -40,7 +40,7 @@ class RatingFeedbackService(IObservable[RatingVote]):
     def add_observer(self, listener: IEventListener[RatingVote]) -> None:
         self._listeners.append(listener)
 
-    def create(self, params: RatingVoteCreateSchema) -> RatingVote:
+    def upsert(self, params: RatingVoteCreateSchema) -> RatingVote:
         if not self._can_vote(params.rating_id, params.student_id):
             raise VoteOnUnenrolledCourseException(
                 "A student must be enrolled in the course to vote on its rating"
@@ -50,14 +50,15 @@ class RatingFeedbackService(IObservable[RatingVote]):
             student_id=params.student_id, rating_id=params.rating_id
         )
 
-        if existing:
-            if existing.type == params.vote_type:
-                return existing
-            updated = self.vote_repository.update(existing, type=params.vote_type)
-            self.notify(updated)
-            return updated
+        if existing and existing.type == params.vote_type:
+            return existing
 
-        vote = self.vote_repository.create_vote(params)
+        vote = (
+            self.vote_repository.update(existing, type=params.vote_type)
+            if existing
+            else self.vote_repository.create_vote(params)
+        )
+
         self.notify(vote)
         return vote
 
@@ -81,11 +82,6 @@ class RatingFeedbackService(IObservable[RatingVote]):
         return self.vote_repository.get_vote_by_student_and_rating(
             student_id=student_id, rating_id=rating_id
         )
-
-    def update_vote(self, vote: RatingVote, **kwargs) -> RatingVote:
-        updated = self.vote_repository.update(vote, **kwargs)
-        self.notify(updated)
-        return updated
 
     def _can_vote(self, rating_id: str, student_id: str) -> bool:
         rating = self.rating_repository.get_by_id(rating_id)

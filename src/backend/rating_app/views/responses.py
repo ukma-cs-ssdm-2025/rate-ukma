@@ -188,7 +188,7 @@ R_VOTE_LIST = {
     **common_errors(include_404=True),
 }
 
-R_VOTE_CREATE = {
+R_VOTE_UPSERT = {
     201: RatingVoteReadSerializer,
     400: OpenApiResponse(Err, BAD_REQUEST, [EX_400_VOTE]),
     403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),

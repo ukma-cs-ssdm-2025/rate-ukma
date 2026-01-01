@@ -1454,8 +1454,8 @@ paths:
                   summary: Not found
           description: Not found
   /api/v1/ratings/{rating_id}/votes/:
-    post:
-      operationId: ratings_votes_create
+    put:
+      operationId: ratings_votes_update
       description: Create or update a vote on a rating. Only students enrolled in
         the course can vote. Each student can have at most one vote per rating.
       summary: Create or update a vote on a rating
