@@ -61,11 +61,11 @@ export function Drawer({
 	}
 
 	return (
-		<div
-			role="dialog"
+		<dialog
+			open
 			aria-modal="true"
 			aria-label={ariaLabel}
-			className="fixed inset-0 z-50 m-0 h-full w-full overflow-hidden"
+			className="fixed inset-0 z-50 m-0 h-full w-full overflow-hidden border-none bg-transparent p-0 backdrop:bg-transparent"
 			data-testid={testId}
 		>
 			<button
@@ -90,6 +90,6 @@ export function Drawer({
 			>
 				{children}
 			</aside>
-		</div>
+		</dialog>
 	);
 }
