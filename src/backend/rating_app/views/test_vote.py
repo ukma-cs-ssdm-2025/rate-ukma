@@ -16,9 +16,9 @@ def test_create_vote_upvote(token_client, rating_factory, student_factory, enrol
         "vote_type": RatingVoteType.UPVOTE,
     }
 
-    response = token_client.post(url, data=payload, format="json")
+    response = token_client.put(url, data=payload, format="json")
 
-    assert response.status_code == 201
+    assert response.status_code == 200
     assert response.json()["vote_type"] == RatingVoteType.UPVOTE
     assert response.json()["rating"] == str(rating.id)
 
@@ -36,9 +36,9 @@ def test_create_vote_downvote(token_client, rating_factory, student_factory, enr
         "vote_type": RatingVoteType.DOWNVOTE,
     }
 
-    response = token_client.post(url, data=payload, format="json")
+    response = token_client.put(url, data=payload, format="json")
 
-    assert response.status_code == 201
+    assert response.status_code == 200
     assert response.json()["vote_type"] == RatingVoteType.DOWNVOTE
 
 
@@ -59,9 +59,9 @@ def test_create_vote_toggle(
         "vote_type": RatingVoteType.DOWNVOTE,
     }
 
-    response = token_client.post(url, data=payload, format="json")
+    response = token_client.put(url, data=payload, format="json")
 
-    assert response.status_code == 201
+    assert response.status_code == 200
     assert response.json()["vote_type"] == RatingVoteType.DOWNVOTE
 
 
@@ -94,7 +94,7 @@ def test_create_vote_not_enrolled_fails(token_client, rating_factory, student_fa
         "vote_type": RatingVoteType.UPVOTE,
     }
 
-    response = token_client.post(url, data=payload, format="json")
+    response = token_client.put(url, data=payload, format="json")
 
     assert response.status_code == 403
     assert "must be enrolled" in response.json()["detail"]
@@ -111,7 +111,7 @@ def test_create_vote_not_student_fails(token_client, rating_factory):
         "vote_type": RatingVoteType.UPVOTE,
     }
 
-    response = token_client.post(url, data=payload, format="json")
+    response = token_client.put(url, data=payload, format="json")
 
     assert response.status_code == 403
     assert "Only students can perform this action" in response.json()["detail"]
@@ -130,6 +130,6 @@ def test_create_vote_invalid_type_fails(
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {"vote_type": "INVALID_TYPE"}
 
-    response = token_client.post(url, data=payload, format="json")
+    response = token_client.put(url, data=payload, format="json")
 
     assert response.status_code == 400
