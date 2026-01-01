@@ -137,14 +137,15 @@ export class CoursesPage {
 		totalPages: number;
 	}> {
 		const label = await this.getPaginationLabelText();
-		const match = label.match(/^Сторінка\s+(\d+)\s+з\s+(\d+)$/);
+		const regex = /^Сторінка\s+(\d+)\s+з\s+(\d+)$/;
+		const match = regex.exec(label);
 		if (!match) {
-			throw new Error(`Unexpected pagination label: ${label}`);
+			throw new TypeError(`Unexpected pagination label: ${label}`);
 		}
 		const currentPage = Number(match[1]);
 		const totalPages = Number(match[2]);
 		if (!Number.isFinite(currentPage) || !Number.isFinite(totalPages)) {
-			throw new Error(`Invalid pagination label: ${label}`);
+			throw new TypeError(`Invalid pagination label: ${label}`);
 		}
 		return { currentPage, totalPages };
 	}
@@ -268,13 +269,14 @@ export class CoursesPage {
 		}
 
 		const before = await this.getPaginationLabelText();
-		const match = before.match(/\s(\d+)\s+з\s+(\d+)$/);
+		const regex = /\s(\d+)\s+з\s+(\d+)$/;
+		const match = regex.exec(before);
 		if (!match) {
-			throw new Error(`Unexpected pagination label: ${before}`);
+			throw new TypeError(`Unexpected pagination label: ${before}`);
 		}
 		const totalPages = Number(match[2]);
 		if (!Number.isFinite(totalPages) || totalPages < 1) {
-			throw new Error(`Invalid total pages: ${String(match[2])}`);
+			throw new TypeError(`Invalid total pages: ${String(match[2])}`);
 		}
 
 		const waitForLastPageResponse = this.page.waitForResponse((response) => {

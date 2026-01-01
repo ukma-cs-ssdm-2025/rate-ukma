@@ -78,7 +78,7 @@ export function getCommonPinningStyles<TData>({
 		right: isPinned === "right" ? `${column.getAfter("right")}px` : undefined,
 		opacity: isPinned ? 0.97 : 1,
 		position: isPinned ? "sticky" : "relative",
-		backgroundColor: isPinned ? "inherit" : undefined,
+		backgroundColor: isPinned ? "var(--background)" : undefined,
 		width: column.getSize(),
 		zIndex: isPinned ? 1 : 0,
 	};
