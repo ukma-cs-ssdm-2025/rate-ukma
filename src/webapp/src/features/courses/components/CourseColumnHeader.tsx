@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/Button";
 interface CourseColumnHeaderProps<TData, TValue> {
 	column: Column<TData, TValue>;
 	title: string;
+	initialSortDirection?: "asc" | "desc";
 }
 
 export function CourseColumnHeader<TData, TValue>({
 	column,
 	title,
+	initialSortDirection = "asc",
 }: Readonly<CourseColumnHeaderProps<TData, TValue>>) {
 	const sortState = column.getIsSorted() as false | "asc" | "desc";
 
@@ -22,13 +24,28 @@ export function CourseColumnHeader<TData, TValue>({
 		}
 
 		const isMultiSort = event.shiftKey;
+		const isInitialAsc = initialSortDirection === "asc";
+
+		if (sortState === false) {
+			column.toggleSorting(!isInitialAsc, isMultiSort);
+			return;
+		}
 
 		if (sortState === "asc") {
-			column.toggleSorting(true, isMultiSort);
-		} else if (sortState === "desc") {
-			column.clearSorting();
-		} else {
-			column.toggleSorting(false, isMultiSort);
+			if (isInitialAsc) {
+				column.toggleSorting(true, isMultiSort);
+			} else {
+				column.clearSorting();
+			}
+			return;
+		}
+
+		if (sortState === "desc") {
+			if (isInitialAsc) {
+				column.clearSorting();
+			} else {
+				column.toggleSorting(false, isMultiSort);
+			}
 		}
 	};
 
@@ -39,8 +56,25 @@ export function CourseColumnHeader<TData, TValue>({
 	};
 
 	const getSortHintText = () => {
-		if (sortState === "asc") return "Сортувати за спаданням";
-		if (sortState === "desc") return "Скинути сортування";
+		const isInitialAsc = initialSortDirection === "asc";
+
+		if (sortState === false) {
+			if (isInitialAsc) {
+				return "Сортувати за зростанням";
+			}
+			return "Сортувати за спаданням";
+		}
+
+		if (sortState === "asc") {
+			if (isInitialAsc) {
+				return "Сортувати за спаданням";
+			}
+			return "Скинути сортування";
+		}
+
+		if (isInitialAsc) {
+			return "Скинути сортування";
+		}
 		return "Сортувати за зростанням";
 	};
 

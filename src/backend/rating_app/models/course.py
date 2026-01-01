@@ -1,31 +1,10 @@
 import uuid
-from typing import Any, Protocol, runtime_checkable
 
 from django.db import models
 
 from .choices import CourseStatus
 from .department import Department
 from .speciality import Speciality
-
-
-# placed near the model for clarity
-@runtime_checkable
-class ICourse(Protocol):
-    id: uuid.UUID
-    title: str
-    description: str
-    status: CourseStatus
-    department_id: uuid.UUID
-    department_name: str
-    faculty_name: str
-    specialities: list[dict[str, Any]]  # TODO: checks if this is correct
-
-    @property
-    def avg_difficulty(self) -> float | None: ...
-    @property
-    def avg_usefulness(self) -> float | None: ...
-    @property
-    def ratings_count(self) -> int | None: ...
 
 
 class Course(models.Model):

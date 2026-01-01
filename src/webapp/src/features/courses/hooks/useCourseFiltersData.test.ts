@@ -1,11 +1,27 @@
 import { renderHook } from "@testing-library/react";
-import { useForm } from "react-hook-form";
 import { describe, expect, it } from "vitest";
 
 import { createMockFilterOptions } from "@/test-utils/factories";
 import { useCourseFiltersData } from "./useCourseFiltersData";
-import type { FilterState } from "../filterSchema";
-import { DEFAULT_FILTERS } from "../filterSchema";
+import type { CourseFiltersParamsState } from "../courseFiltersParams";
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+
+const DEFAULT_PARAMS: CourseFiltersParamsState = {
+	q: "",
+	diff: DIFFICULTY_RANGE,
+	use: USEFULNESS_RANGE,
+	faculty: "",
+	dept: "",
+	instructor: "",
+	term: null,
+	year: "",
+	type: null,
+	spec: "",
+	page: 1,
+	size: 10,
+	diffOrder: null,
+	useOrder: null,
+};
 
 // Shared mock data
 const MOCK_FACULTIES = {
@@ -66,28 +82,26 @@ const MOCK_SEMESTER_TERMS = {
 } as const;
 
 const MOCK_SEMESTER_YEARS = {
-	Y2024: { value: "2024", label: "2024" },
-	Y2025: { value: "2025", label: "2025" },
+	Y2024: { value: "2024", label: "2024-2025" },
+	Y2025: { value: "2025", label: "2025-2026" },
 } as const;
 
 const MOCK_COURSE_TYPES = {
-	MANDATORY: { value: "MANDATORY", label: "Обов'язковий" },
+	COMPULSORY: { value: "COMPULSORY", label: "Обов'язковий" },
 } as const;
 
 /**
- * Helper to render useCourseFiltersData hook with form
+ * Helper to render useCourseFiltersData hook with params
  */
 function renderFiltersHook(
-	defaultValues: Partial<FilterState> = {},
+	paramsOverrides: Partial<CourseFiltersParamsState> = {},
 	filterOptions?: ReturnType<typeof createMockFilterOptions>,
 ) {
-	const { result: formResult } = renderHook(() =>
-		useForm({ defaultValues: { ...DEFAULT_FILTERS, ...defaultValues } }),
-	);
+	const params = { ...DEFAULT_PARAMS, ...paramsOverrides };
 
 	return renderHook(() =>
 		useCourseFiltersData({
-			form: formResult.current,
+			params,
 			filterOptions: filterOptions ?? createMockFilterOptions(),
 		}),
 	);
@@ -97,15 +111,13 @@ function renderFiltersHook(
  * Helper to render hook with explicitly undefined filter options
  */
 function renderFiltersHookWithoutOptions(
-	defaultValues: Partial<FilterState> = {},
+	paramsOverrides: Partial<CourseFiltersParamsState> = {},
 ) {
-	const { result: formResult } = renderHook(() =>
-		useForm({ defaultValues: { ...DEFAULT_FILTERS, ...defaultValues } }),
-	);
+	const params = { ...DEFAULT_PARAMS, ...paramsOverrides };
 
 	return renderHook(() =>
 		useCourseFiltersData({
-			form: formResult.current,
+			params,
 			filterOptions: undefined,
 		}),
 	);
@@ -119,21 +131,21 @@ describe("useCourseFiltersData", () => {
 
 			// Assert
 			expect(result.current.rangeFilters).toHaveLength(2);
-			expect(result.current.rangeFilters[0].key).toBe("difficultyRange");
+			expect(result.current.rangeFilters[0].key).toBe("diff");
 			expect(result.current.rangeFilters[0].label).toBe("Складність");
-			expect(result.current.rangeFilters[1].key).toBe("usefulnessRange");
+			expect(result.current.rangeFilters[1].key).toBe("use");
 			expect(result.current.rangeFilters[1].label).toBe("Корисність");
 		});
 
 		it("should include current filter values in range configs", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				difficultyRange: [2, 4] as [number, number],
+				diff: [2, 4] as [number, number],
 			});
 
 			// Assert
 			const difficultyFilter = result.current.rangeFilters.find(
-				(f) => f.key === "difficultyRange",
+				(f) => f.key === "diff",
 			);
 			expect(difficultyFilter?.value).toEqual([2, 4]);
 		});
@@ -144,7 +156,7 @@ describe("useCourseFiltersData", () => {
 
 			// Assert
 			const difficultyFilter = result.current.rangeFilters.find(
-				(f) => f.key === "difficultyRange",
+				(f) => f.key === "diff",
 			);
 			expect(difficultyFilter?.range).toEqual([1, 5]);
 		});
@@ -155,12 +167,12 @@ describe("useCourseFiltersData", () => {
 
 			// Assert
 			const difficultyFilter = result.current.rangeFilters.find(
-				(f) => f.key === "difficultyRange",
+				(f) => f.key === "diff",
 			);
 			expect(difficultyFilter?.captions).toEqual(["Легко", "Складно"]);
 
 			const usefulnessFilter = result.current.rangeFilters.find(
-				(f) => f.key === "usefulnessRange",
+				(f) => f.key === "use",
 			);
 			expect(usefulnessFilter?.captions).toEqual(["Низька", "Висока"]);
 		});
@@ -175,12 +187,12 @@ describe("useCourseFiltersData", () => {
 			expect(result.current.selectFilters).toHaveLength(6);
 			const filterKeys = result.current.selectFilters.map((f) => f.key);
 			expect(filterKeys).toEqual([
-				"semesterTerm",
-				"semesterYear",
+				"term",
+				"year",
 				"faculty",
-				"department",
-				"speciality",
-				"courseType",
+				"dept",
+				"spec",
+				"type",
 				// "instructor", // Disabled
 			]);
 		});
@@ -264,7 +276,7 @@ describe("useCourseFiltersData", () => {
 
 			// Assert
 			const departmentFilter = result.current.selectFilters.find(
-				(f) => f.key === "department",
+				(f) => f.key === "dept",
 			);
 			expect(departmentFilter?.options).toHaveLength(4); // 1 All + 3 departments
 		});
@@ -295,7 +307,7 @@ describe("useCourseFiltersData", () => {
 
 			// Assert
 			const departmentFilter = result.current.selectFilters.find(
-				(f) => f.key === "department",
+				(f) => f.key === "dept",
 			);
 			expect(departmentFilter?.options).toHaveLength(3); // Includes 'All' option
 			expect(departmentFilter?.options.map((o) => o.value)).toEqual([
@@ -323,7 +335,7 @@ describe("useCourseFiltersData", () => {
 
 			// Assert
 			const departmentFilter = result.current.selectFilters.find(
-				(f) => f.key === "department",
+				(f) => f.key === "dept",
 			);
 			expect(departmentFilter?.options[1].label).toBe(
 				"Кафедра мультимедійних систем",
@@ -348,7 +360,7 @@ describe("useCourseFiltersData", () => {
 
 			// Assert
 			const departmentFilter = result.current.selectFilters.find(
-				(f) => f.key === "department",
+				(f) => f.key === "dept",
 			);
 			// Without faculty selected, labels include 'All' option at index 0
 			expect(departmentFilter?.options[1].label).toBe(
@@ -369,7 +381,7 @@ describe("useCourseFiltersData", () => {
 
 		it("should show badge for search query", () => {
 			// Act
-			const { result } = renderFiltersHook({ searchQuery: "React" });
+			const { result } = renderFiltersHook({ q: "React" });
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
@@ -382,20 +394,20 @@ describe("useCourseFiltersData", () => {
 		it("should show badge for modified difficulty range", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				difficultyRange: [2, 4] as [number, number],
+				diff: [2, 4] as [number, number],
 			});
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "difficulty",
-				label: "Складність: 2-4",
+				label: "2-4 складність",
 			});
 		});
 
 		it("should not show badge for default difficulty range", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				difficultyRange: [1, 5] as [number, number],
+				diff: [1, 5] as [number, number],
 			});
 
 			// Assert
@@ -408,13 +420,13 @@ describe("useCourseFiltersData", () => {
 		it("should show badge for modified usefulness range", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				usefulnessRange: [3, 5] as [number, number],
+				use: [3, 5] as [number, number],
 			});
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "usefulness",
-				label: "Корисність: 3-5",
+				label: "3-5 корисність",
 			});
 		});
 
@@ -430,7 +442,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "faculty",
-				label: "Факультет: ФІ · Факультет інформатики",
+				label: "ФІ",
 			});
 		});
 
@@ -446,15 +458,12 @@ describe("useCourseFiltersData", () => {
 					},
 				],
 			}); // Act
-			const { result } = renderFiltersHook(
-				{ department: "dept-1" },
-				filterOptions,
-			);
+			const { result } = renderFiltersHook({ dept: "dept-1" }, filterOptions);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "department",
-				label: "Кафедра: Кафедра мультимедійних систем",
+				label: "Кафедра мультимедійних систем",
 			});
 		});
 
@@ -473,7 +482,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "instructor",
-				label: "Викладач: Іван Іванович",
+				label: "Іван Іванович",
 			});
 		});
 
@@ -486,14 +495,14 @@ describe("useCourseFiltersData", () => {
 
 			// Act
 			const { result } = renderFiltersHook(
-				{ semesterYear: "2024", semesterTerm: "FALL" },
+				{ year: "2024", term: "FALL" },
 				filterOptions,
 			);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "semester",
-				label: "Семестр: 2024 Осінь",
+				label: "2024-2025 Осінь",
 			});
 		});
 
@@ -504,15 +513,12 @@ describe("useCourseFiltersData", () => {
 			});
 
 			// Act
-			const { result } = renderFiltersHook(
-				{ semesterTerm: "SPRING" },
-				filterOptions,
-			);
+			const { result } = renderFiltersHook({ term: "SPRING" }, filterOptions);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "semesterTerm",
-				label: "Період: Весна",
+				label: "Весна",
 			});
 		});
 
@@ -523,34 +529,31 @@ describe("useCourseFiltersData", () => {
 			});
 
 			// Act
-			const { result } = renderFiltersHook(
-				{ semesterYear: "2025" },
-				filterOptions,
-			);
+			const { result } = renderFiltersHook({ year: "2025" }, filterOptions);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "semesterYear",
-				label: "Навчальний рік: 2025",
+				label: "2025-2026",
 			});
 		});
 
 		it("should show badge for selected course type", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
-				course_types: [MOCK_COURSE_TYPES.MANDATORY],
+				course_types: [MOCK_COURSE_TYPES.COMPULSORY],
 			});
 
 			// Act
 			const { result } = renderFiltersHook(
-				{ courseType: "MANDATORY" },
+				{ type: "COMPULSORY" },
 				filterOptions,
 			);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "courseType",
-				label: "Тип курсу: Обов'язковий",
+				label: "Обов'язковий",
 			});
 		});
 
@@ -566,15 +569,12 @@ describe("useCourseFiltersData", () => {
 					},
 				],
 			}); // Act
-			const { result } = renderFiltersHook(
-				{ speciality: "spec-1" },
-				filterOptions,
-			);
+			const { result } = renderFiltersHook({ spec: "spec-1" }, filterOptions);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({
 				key: "speciality",
-				label: "Спеціальність: Інженерія програмного забезпечення",
+				label: "Інженерія програмного забезпечення",
 			});
 		});
 
@@ -587,9 +587,9 @@ describe("useCourseFiltersData", () => {
 			// Act
 			const { result } = renderFiltersHook(
 				{
-					searchQuery: "Database",
+					q: "Database",
 					faculty: "fac-1",
-					difficultyRange: [2, 4] as [number, number],
+					diff: [2, 4] as [number, number],
 				},
 				filterOptions,
 			);

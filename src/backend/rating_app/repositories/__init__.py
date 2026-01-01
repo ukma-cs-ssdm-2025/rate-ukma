@@ -10,10 +10,12 @@ from .semester_repository import SemesterRepository
 from .speciality_repository import SpecialityRepository
 from .student_repository import StudentRepository
 from .student_stats_repository import StudentStatisticsRepository
+from .to_domain_mappers import CourseMapper
 from .user_repository import UserRepository
 
 __all__ = [
     "CourseRepository",
+    "CourseMapper",
     "InstructorRepository",
     "FacultyRepository",
     "DepartmentRepository",
@@ -22,7 +24,6 @@ __all__ = [
     "StudentRepository",
     "CourseOfferingRepository",
     "CourseInstructorRepository",
-    "CourseRepository",
     "RatingRepository",
     "EnrollmentRepository",
     "StudentStatisticsRepository",

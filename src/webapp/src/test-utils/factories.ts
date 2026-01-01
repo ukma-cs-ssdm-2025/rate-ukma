@@ -41,6 +41,7 @@ export function createMockCourse(overrides?: Partial<CourseList>): CourseList {
 			fractionDigits: 2,
 		}),
 		ratings_count: faker.number.int({ min: 0, max: 150 }),
+		specialities: [],
 		...overrides,
 	};
 }
@@ -132,7 +133,7 @@ export function createMockCourseType(
 	overrides?: Partial<CourseTypeOption>,
 ): CourseTypeOption {
 	const courseTypes = [
-		{ value: "MANDATORY", label: "Обов'язковий" },
+		{ value: "COMPULSORY", label: "Обов'язковий" },
 		{ value: "ELECTIVE", label: "Вибірковий" },
 		{ value: "FREE_CHOICE", label: "Вільного вибору" },
 	] as const;
@@ -211,7 +212,7 @@ export function createMockFilterOptions(
 			createMockSemesterYear({ value: "2025", label: "2025" }),
 		],
 		course_types: [
-			createMockCourseType({ value: "MANDATORY", label: "Обов'язковий" }),
+			createMockCourseType({ value: "COMPULSORY", label: "Обов'язковий" }),
 			createMockCourseType({ value: "ELECTIVE", label: "Вибірковий" }),
 		],
 		...overrides,

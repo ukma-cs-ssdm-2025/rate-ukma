@@ -1,11 +1,28 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useForm } from "react-hook-form";
 import { describe, expect, it, vi } from "vitest";
 
 import { createMockFilterOptions } from "@/test-utils/factories";
 import { CourseFiltersPanel } from "./CourseFiltersPanel";
-import { DEFAULT_FILTERS } from "../filterSchema";
+import type { CourseFiltersParamsState } from "../courseFiltersParams";
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+
+const DEFAULT_PARAMS: CourseFiltersParamsState = {
+	q: "",
+	diff: DIFFICULTY_RANGE,
+	use: USEFULNESS_RANGE,
+	faculty: "",
+	dept: "",
+	instructor: "",
+	term: null,
+	year: "",
+	type: null,
+	spec: "",
+	page: 1,
+	size: 10,
+	diffOrder: null,
+	useOrder: null,
+};
 
 function assertElement(
 	element: Element | null | undefined,
@@ -17,26 +34,24 @@ function assertElement(
 	return element as HTMLElement;
 }
 
-// Default mock functions
-const defaultOnReset = vi.fn(function () {
-	// Default no-op implementation
-});
+const defaultOnReset = vi.fn();
+const defaultSetParams = vi.fn();
 
-// Helper component to render CourseFiltersPanel with form
 function TestWrapper({
 	onReset = defaultOnReset,
 	filterOptions = createMockFilterOptions(),
-	initialValues = DEFAULT_FILTERS,
+	initialParams = DEFAULT_PARAMS,
+	setParams = defaultSetParams,
 }: Readonly<{
 	onReset?: () => void;
 	filterOptions?: ReturnType<typeof createMockFilterOptions>;
-	initialValues?: typeof DEFAULT_FILTERS;
+	initialParams?: CourseFiltersParamsState;
+	setParams?: (updates: Partial<CourseFiltersParamsState>) => void;
 }>) {
-	const form = useForm({ defaultValues: initialValues });
-
 	return (
 		<CourseFiltersPanel
-			form={form}
+			params={initialParams}
+			setParams={setParams}
 			filterOptions={filterOptions}
 			onReset={onReset}
 		/>
@@ -54,25 +69,18 @@ describe("CourseFiltersPanel", () => {
 		});
 
 		it("should render skeleton when loading", () => {
-			// Arrange
-			// Wrap in a component to avoid hook call outside component
-			function TestComponent() {
-				const form = useForm({ defaultValues: DEFAULT_FILTERS });
-				return (
-					<CourseFiltersPanel
-						form={form}
-						filterOptions={undefined}
-						onReset={vi.fn()}
-						isLoading={true}
-					/>
-				);
-			}
-
 			// Act
-			render(<TestComponent />);
+			render(
+				<CourseFiltersPanel
+					params={DEFAULT_PARAMS}
+					setParams={vi.fn()}
+					filterOptions={undefined}
+					onReset={vi.fn()}
+					isLoading={true}
+				/>,
+			);
 
 			// Assert
-			// Skeleton should be rendered (title should not be visible)
 			expect(screen.queryByText("Фільтри")).not.toBeInTheDocument();
 		});
 
@@ -105,9 +113,9 @@ describe("CourseFiltersPanel", () => {
 			// Arrange & Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
-						difficultyRange: [2.5, 4.5],
+					initialParams={{
+						...DEFAULT_PARAMS,
+						diff: [2.5, 4.5],
 					}}
 				/>,
 			);
@@ -120,9 +128,9 @@ describe("CourseFiltersPanel", () => {
 			// Arrange & Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
-						usefulnessRange: [3, 5],
+					initialParams={{
+						...DEFAULT_PARAMS,
+						use: [3, 5],
 					}}
 				/>,
 			);
@@ -225,7 +233,7 @@ describe("CourseFiltersPanel", () => {
 	describe("Active Filter Badges", () => {
 		it("should not show active filters section when no filters applied", () => {
 			// Arrange & Act
-			render(<TestWrapper initialValues={DEFAULT_FILTERS} />);
+			render(<TestWrapper initialParams={DEFAULT_PARAMS} />);
 
 			// Assert
 			expect(screen.queryByText("Активні фільтри:")).not.toBeInTheDocument();
@@ -235,9 +243,9 @@ describe("CourseFiltersPanel", () => {
 			// Arrange & Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
-						searchQuery: "React",
+					initialParams={{
+						...DEFAULT_PARAMS,
+						q: "React",
 					}}
 				/>,
 			);
@@ -251,31 +259,31 @@ describe("CourseFiltersPanel", () => {
 			// Arrange & Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
-						difficultyRange: [2, 4],
+					initialParams={{
+						...DEFAULT_PARAMS,
+						diff: [2, 4],
 					}}
 				/>,
 			);
 
 			// Assert
 			expect(screen.getByText("Активні фільтри:")).toBeInTheDocument();
-			expect(screen.getByText("Складність: 2-4")).toBeInTheDocument();
+			expect(screen.getByText("2-4 складність")).toBeInTheDocument();
 		});
 
 		it("should show badge for modified usefulness range", () => {
 			// Arrange & Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
-						usefulnessRange: [3.5, 5],
+					initialParams={{
+						...DEFAULT_PARAMS,
+						use: [3.5, 5],
 					}}
 				/>,
 			);
 
 			// Assert
-			expect(screen.getByText("Корисність: 3.5-5")).toBeInTheDocument();
+			expect(screen.getByText("3.5-5 корисність")).toBeInTheDocument();
 		});
 
 		it("should show badge for selected faculty", () => {
@@ -292,8 +300,8 @@ describe("CourseFiltersPanel", () => {
 			}); // Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
+					initialParams={{
+						...DEFAULT_PARAMS,
 						faculty: "faculty-1",
 					}}
 					filterOptions={filterOptions}
@@ -301,9 +309,7 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(
-				screen.getByText("Факультет: ФІ · Факультет інформатики"),
-			).toBeInTheDocument();
+			expect(screen.getByText("ФІ")).toBeInTheDocument();
 		});
 
 		it("should show badge for selected instructor", () => {
@@ -315,8 +321,8 @@ describe("CourseFiltersPanel", () => {
 			// Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
+					initialParams={{
+						...DEFAULT_PARAMS,
 						instructor: "inst-1",
 					}}
 					filterOptions={filterOptions}
@@ -324,7 +330,7 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByText("Викладач: Іван Петрович")).toBeInTheDocument();
+			expect(screen.getByText("Іван Петрович")).toBeInTheDocument();
 		});
 
 		it("should show multiple badges when multiple filters applied", () => {
@@ -341,23 +347,21 @@ describe("CourseFiltersPanel", () => {
 			}); // Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
-						searchQuery: "Database",
+					initialParams={{
+						...DEFAULT_PARAMS,
+						q: "Database",
 						faculty: "faculty-1",
-						difficultyRange: [2, 4],
+						diff: [2, 4],
 					}}
 					filterOptions={filterOptions}
 				/>,
 			);
 
 			// Assert
-			const badgesSection = assertElement(
-				screen.getByText("Активні фільтри:").parentElement,
-				"Badges section not found",
-			);
-			const badges = within(badgesSection).getAllByText(/:/);
-			expect(badges.length).toBeGreaterThanOrEqual(3);
+			expect(screen.getByText("Активні фільтри:")).toBeInTheDocument();
+			expect(screen.getByText("Пошук: Database")).toBeInTheDocument();
+			expect(screen.getByText("ФІ")).toBeInTheDocument();
+			expect(screen.getByText("2-4 складність")).toBeInTheDocument();
 		});
 	});
 
@@ -366,9 +370,9 @@ describe("CourseFiltersPanel", () => {
 			// Arrange & Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
-						searchQuery: "Test",
+					initialParams={{
+						...DEFAULT_PARAMS,
+						q: "Test",
 					}}
 				/>,
 			);
@@ -381,7 +385,7 @@ describe("CourseFiltersPanel", () => {
 
 		it("should not show reset button when no filters are active", () => {
 			// Arrange & Act
-			render(<TestWrapper initialValues={DEFAULT_FILTERS} />);
+			render(<TestWrapper initialParams={DEFAULT_PARAMS} />);
 
 			// Assert
 			expect(
@@ -395,9 +399,9 @@ describe("CourseFiltersPanel", () => {
 			const onReset = vi.fn();
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
-						searchQuery: "Test",
+					initialParams={{
+						...DEFAULT_PARAMS,
+						q: "Test",
 					}}
 					onReset={onReset}
 				/>,
@@ -490,8 +494,8 @@ describe("CourseFiltersPanel", () => {
 			// Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
+					initialParams={{
+						...DEFAULT_PARAMS,
 						faculty: "fac-1",
 					}}
 					filterOptions={filterOptions}
@@ -539,9 +543,9 @@ describe("CourseFiltersPanel", () => {
 			// Arrange & Act
 			render(
 				<TestWrapper
-					initialValues={{
-						...DEFAULT_FILTERS,
-						searchQuery: "Test",
+					initialParams={{
+						...DEFAULT_PARAMS,
+						q: "Test",
 					}}
 				/>,
 			);
