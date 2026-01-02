@@ -2,11 +2,10 @@ from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener, IObservable
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
 from rating_app.exception.vote_exceptions import (
-    DeleteVoteOnUnenrolledCourseException,
     VoteOnOwnRatingException,
     VoteOnUnenrolledCourseException,
 )
-from rating_app.models import RatingVote
+from rating_app.models import Rating, RatingVote
 from rating_app.repositories import (
     CourseOfferingRepository,
     EnrollmentRepository,
@@ -42,13 +41,9 @@ class RatingFeedbackService(IObservable[RatingVote]):
         self._listeners.append(listener)
 
     def upsert(self, params: RatingVoteCreateSchema) -> tuple[RatingVote, bool]:
-        if not self._can_vote(params.rating_id, params.student_id):
-            raise VoteOnUnenrolledCourseException(
-                "A student must be enrolled in the course to vote on its rating"
-            )
+        rating = self.rating_repository.get_by_id(params.rating_id)
 
-        if params.student_id == str(self.rating_repository.get_by_id(params.rating_id).student.id):
-            raise VoteOnOwnRatingException("Students cannot vote on their own rating")
+        self._assert_student_can_vote_on_rating(rating, params.student_id)
 
         existing = self.vote_repository.get_vote_by_student_and_rating(
             student_id=params.student_id, rating_id=params.rating_id
@@ -67,11 +62,6 @@ class RatingFeedbackService(IObservable[RatingVote]):
         return vote, not existing
 
     def delete_vote_by_student(self, student_id: str, rating_id: str) -> None:
-        if not self._can_vote(rating_id, student_id):
-            raise DeleteVoteOnUnenrolledCourseException(
-                "A student must be enrolled in the course to delete a vote on its rating"
-            )
-
         vote = self.vote_repository.get_vote_by_student_and_rating(
             student_id=student_id, rating_id=rating_id
         )
@@ -87,8 +77,19 @@ class RatingFeedbackService(IObservable[RatingVote]):
             student_id=student_id, rating_id=rating_id
         )
 
-    def _can_vote(self, rating_id: str, student_id: str) -> bool:
-        rating = self.rating_repository.get_by_id(rating_id)
+    def _is_enrolled_in_the_rating_course(self, rating: Rating, student_id: str) -> bool:
         return self.enrollment_repository.is_student_enrolled(
             offering_id=str(rating.course_offering.id), student_id=student_id
         )
+
+    def _owns_rating(self, rating: Rating, student_id: str) -> bool:
+        return str(rating.student.id) == student_id
+
+    def _assert_student_can_vote_on_rating(self, rating: Rating, student_id: str) -> None:
+        if not self._is_enrolled_in_the_rating_course(rating, student_id):
+            raise VoteOnUnenrolledCourseException(
+                "A student must be enrolled in the course to vote on its rating"
+            )
+
+        if self._owns_rating(rating, student_id):
+            raise VoteOnOwnRatingException("Students cannot vote on their own rating")
