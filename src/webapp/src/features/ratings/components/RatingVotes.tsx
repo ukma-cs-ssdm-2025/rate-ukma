@@ -124,6 +124,8 @@ export function RatingVotes({
 	useEffect(() => {
 		if (userVote === serverVote) return;
 
+		let isMounted = true;
+
 		const timer = setTimeout(async () => {
 			try {
 				if (userVote === null) {
@@ -137,16 +139,24 @@ export function RatingVotes({
 						data: voteData,
 					});
 				}
-				// Sync authority state on success
-				setServerVote(userVote);
+				// Sync authority state on success only if still mounted
+				if (isMounted) {
+					setServerVote(userVote);
+				}
 			} catch (error) {
-				console.error("Failed to sync vote with server:", error);
-				// Revert optimistic state on error
-				setUserVote(serverVote);
+				// Only handle error if still mounted
+				if (isMounted) {
+					console.error("Failed to sync vote with server:", error);
+					// Revert optimistic state on error
+					setUserVote(serverVote);
+				}
 			}
 		}, 500); // 500ms debounce
 
-		return () => clearTimeout(timer);
+		return () => {
+			clearTimeout(timer);
+			isMounted = false;
+		};
 	}, [userVote, serverVote, ratingId]);
 
 	const toggleVote = (target: VoteType) => {
