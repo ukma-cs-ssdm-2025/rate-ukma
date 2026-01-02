@@ -101,14 +101,16 @@ export function UserRatingCard({
 				emptyMessage="Ви не залишили коментар."
 			/>
 
-			<RatingVotes
-				ratingId={rating.id ?? ""}
-				initialUpvotes={upvotes}
-				initialDownvotes={downvotes}
-				initialUserVote={viewerVote}
-				readOnly={true}
-				disabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
-			/>
+			{rating.id && (
+				<RatingVotes
+					ratingId={rating.id}
+					initialUpvotes={upvotes}
+					initialDownvotes={downvotes}
+					initialUserVote={viewerVote}
+					readOnly={true}
+					disabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
+				/>
+			)}
 		</article>
 	);
 }

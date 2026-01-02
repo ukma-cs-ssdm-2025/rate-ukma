@@ -48,14 +48,16 @@ export function RatingCard({
 
 			<RatingComment comment={rating.comment} />
 
-			<RatingVotes
-				ratingId={rating.id ?? ""}
-				initialUpvotes={upvotes}
-				initialDownvotes={downvotes}
-				initialUserVote={viewerVote}
-				readOnly={readOnly}
-				disabledMessage={disabledMessage}
-			/>
+			{rating.id && (
+				<RatingVotes
+					ratingId={rating.id}
+					initialUpvotes={upvotes}
+					initialDownvotes={downvotes}
+					initialUserVote={viewerVote}
+					readOnly={readOnly}
+					disabledMessage={disabledMessage}
+				/>
+			)}
 		</article>
 	);
 }
