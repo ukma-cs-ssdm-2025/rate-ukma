@@ -204,6 +204,7 @@ const columns: ColumnDef<CourseList>[] = [
 						column={column}
 						title="Склад."
 						initialSortDirection="asc"
+						testId={testIds.courses.difficultySortButtonMobile}
 					/>
 				</div>
 				<div className="hidden md:block">
@@ -211,6 +212,7 @@ const columns: ColumnDef<CourseList>[] = [
 						column={column}
 						title="Складність"
 						initialSortDirection="asc"
+						testId={testIds.courses.difficultySortButtonDesktop}
 					/>
 				</div>
 			</>
@@ -241,6 +243,7 @@ const columns: ColumnDef<CourseList>[] = [
 						column={column}
 						title="Корисн."
 						initialSortDirection="desc"
+						testId={testIds.courses.usefulnessSortButtonMobile}
 					/>
 				</div>
 				<div className="hidden md:block">
@@ -248,6 +251,7 @@ const columns: ColumnDef<CourseList>[] = [
 						column={column}
 						title="Корисність"
 						initialSortDirection="desc"
+						testId={testIds.courses.usefulnessSortButtonDesktop}
 					/>
 				</div>
 			</>
@@ -540,6 +544,7 @@ export function CoursesTable({
 				isRowHighlighted={isRowHighlighted}
 				onRowClick={handleRowClick}
 				emptyStateMessage="Курсів не знайдено за вашим запитом"
+				emptyStateTestId={testIds.courses.emptyState}
 				data-testid={testIds.courses.table}
 			/>
 		);

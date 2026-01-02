@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { testIds } from "@/lib/test-ids";
 
 interface MyRatingsErrorStateProps {
 	onRetry: () => void;
@@ -13,7 +14,10 @@ export function MyRatingsErrorState({
 	isRetrying,
 }: Readonly<MyRatingsErrorStateProps>) {
 	return (
-		<div className="py-16 text-center">
+		<div
+			className="py-16 text-center"
+			data-testid={testIds.myRatings.errorState}
+		>
 			<div className="mx-auto max-w-sm space-y-4">
 				<div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10">
 					<AlertTriangle className="h-10 w-10 text-destructive" />

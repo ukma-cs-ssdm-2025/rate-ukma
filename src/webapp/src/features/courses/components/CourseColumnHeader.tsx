@@ -9,12 +9,14 @@ interface CourseColumnHeaderProps<TData, TValue> {
 	column: Column<TData, TValue>;
 	title: string;
 	initialSortDirection?: "asc" | "desc";
+	testId?: string;
 }
 
 export function CourseColumnHeader<TData, TValue>({
 	column,
 	title,
 	initialSortDirection = "asc",
+	testId,
 }: Readonly<CourseColumnHeaderProps<TData, TValue>>) {
 	const sortState = column.getIsSorted() as false | "asc" | "desc";
 
@@ -91,6 +93,7 @@ export function CourseColumnHeader<TData, TValue>({
 			disabled={!column.getCanSort()}
 			title={sortHintText}
 			aria-label={sortHintText}
+			data-testid={testId}
 		>
 			<span>{title}</span>
 			{column.getCanSort() ? <Icon className="h-4 w-4" /> : null}

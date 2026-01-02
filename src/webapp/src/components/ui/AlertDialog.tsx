@@ -1,159 +1,127 @@
-import { useEffect, useState } from "react";
+import type * as React from "react";
+
+import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 
-interface AlertDialogProps {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	children: React.ReactNode;
+function AlertDialog({
+	...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
+	return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
 }
 
-export function AlertDialog({
-	open,
-	onOpenChange,
-	children,
-}: Readonly<AlertDialogProps>) {
-	const [isMounted, setIsMounted] = useState(open);
-
-	useEffect(() => {
-		if (open) {
-			setIsMounted(true);
-			document.body.style.overflow = "hidden";
-			return () => {
-				document.body.style.overflow = "";
-			};
-		}
-		const timer = setTimeout(() => setIsMounted(false), 200);
-		document.body.style.overflow = "";
-		return () => {
-			clearTimeout(timer);
-			document.body.style.overflow = "";
-		};
-	}, [open]);
-
-	useEffect(() => {
-		const handleEscape = (event: KeyboardEvent) => {
-			if (event.key === "Escape" && open) {
-				onOpenChange(false);
-			}
-		};
-
-		document.addEventListener("keydown", handleEscape);
-		return () => document.removeEventListener("keydown", handleEscape);
-	}, [open, onOpenChange]);
-
-	if (!isMounted) return null;
-
+function AlertDialogTrigger({
+	...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
 	return (
-		<div
-			className={cn(
-				"fixed inset-0 z-50 flex items-center justify-center",
-				"transition-opacity duration-200 ease-in-out",
-				open ? "opacity-100" : "opacity-0 pointer-events-none",
-			)}
-		>
-			{/* Backdrop */}
-			<button
-				type="button"
-				tabIndex={-1}
-				aria-label="Close dialog"
-				className="fixed inset-0 bg-black/50 transition-opacity duration-200"
-				onClick={() => onOpenChange(false)}
-			/>
-			{/* Content */}
-			{children}
-		</div>
+		<AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />
 	);
 }
 
-interface AlertDialogContentProps {
-	children: React.ReactNode;
-	className?: string;
+function AlertDialogPortal({
+	...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
+	return (
+		<AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
+	);
 }
 
-export function AlertDialogContent({
-	children,
+function AlertDialogOverlay({
 	className,
-}: Readonly<AlertDialogContentProps>) {
+	...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
 	return (
-		<div
-			role="dialog"
-			aria-modal="true"
+		<AlertDialogPrimitive.Overlay
+			data-slot="alert-dialog-overlay"
 			className={cn(
-				"relative z-50 w-full max-w-md rounded-lg bg-background p-6 shadow-lg",
-				"transform transition-all duration-200 ease-out",
-				"scale-100 opacity-100",
+				"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
 				className,
 			)}
-		>
-			{children}
-		</div>
+			{...props}
+		/>
 	);
 }
 
-interface AlertDialogHeaderProps {
-	children: React.ReactNode;
-}
-
-export function AlertDialogHeader({
-	children,
-}: Readonly<AlertDialogHeaderProps>) {
-	return <div className="mb-4 space-y-2">{children}</div>;
-}
-
-interface AlertDialogTitleProps {
-	children: React.ReactNode;
-}
-
-export function AlertDialogTitle({
-	children,
-}: Readonly<AlertDialogTitleProps>) {
-	return (
-		<h2 className="text-lg font-semibold leading-none tracking-tight">
-			{children}
-		</h2>
-	);
-}
-
-interface AlertDialogDescriptionProps {
-	children: React.ReactNode;
-}
-
-export function AlertDialogDescription({
-	children,
-}: Readonly<AlertDialogDescriptionProps>) {
-	return <p className="text-sm text-muted-foreground">{children}</p>;
-}
-
-interface AlertDialogFooterProps {
-	children: React.ReactNode;
-}
-
-export function AlertDialogFooter({
-	children,
-}: Readonly<AlertDialogFooterProps>) {
-	return (
-		<div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-			{children}
-		</div>
-	);
-}
-
-interface AlertDialogActionProps {
-	children: React.ReactNode;
-	onClick?: () => void;
-	className?: string;
-}
-
-export function AlertDialogAction({
-	children,
-	onClick,
+function AlertDialogContent({
 	className,
-}: Readonly<AlertDialogActionProps>) {
+	...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
 	return (
-		<button
-			type="button"
-			onClick={onClick}
+		<AlertDialogPortal>
+			<AlertDialogOverlay />
+			<AlertDialogPrimitive.Content
+				data-slot="alert-dialog-content"
+				className={cn(
+					"bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+					className,
+				)}
+				{...props}
+			/>
+		</AlertDialogPortal>
+	);
+}
+
+function AlertDialogHeader({
+	className,
+	...props
+}: React.ComponentProps<"div">) {
+	return (
+		<div
+			data-slot="alert-dialog-header"
+			className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+			{...props}
+		/>
+	);
+}
+
+function AlertDialogFooter({
+	className,
+	...props
+}: React.ComponentProps<"div">) {
+	return (
+		<div
+			data-slot="alert-dialog-footer"
+			className={cn(
+				"flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+				className,
+			)}
+			{...props}
+		/>
+	);
+}
+
+function AlertDialogTitle({
+	className,
+	...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
+	return (
+		<AlertDialogPrimitive.Title
+			data-slot="alert-dialog-title"
+			className={cn("text-lg font-semibold", className)}
+			{...props}
+		/>
+	);
+}
+
+function AlertDialogDescription({
+	className,
+	...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Description>) {
+	return (
+		<AlertDialogPrimitive.Description
+			data-slot="alert-dialog-description"
+			className={cn("text-muted-foreground text-sm", className)}
+			{...props}
+		/>
+	);
+}
+
+function AlertDialogAction({
+	className,
+	...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
+	return (
+		<AlertDialogPrimitive.Action
 			className={cn(
 				"inline-flex h-10 items-center justify-center rounded-md px-4 py-2",
 				"bg-primary text-primary-foreground font-medium",
@@ -162,25 +130,17 @@ export function AlertDialogAction({
 				"disabled:pointer-events-none disabled:opacity-50",
 				className,
 			)}
-		>
-			{children}
-		</button>
+			{...props}
+		/>
 	);
 }
 
-interface AlertDialogCancelProps {
-	children: React.ReactNode;
-	onClick?: () => void;
-}
-
-export function AlertDialogCancel({
-	children,
-	onClick,
-}: Readonly<AlertDialogCancelProps>) {
+function AlertDialogCancel({
+	className,
+	...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
 	return (
-		<button
-			type="button"
-			onClick={onClick}
+		<AlertDialogPrimitive.Cancel
 			className={cn(
 				"inline-flex h-10 items-center justify-center rounded-md px-4 py-2",
 				"border border-input bg-background font-medium",
@@ -188,9 +148,23 @@ export function AlertDialogCancel({
 				"focus-visible:outline-none focus-visible:ring-2",
 				"focus-visible:ring-ring focus-visible:ring-offset-2",
 				"disabled:pointer-events-none disabled:opacity-50",
+				className,
 			)}
-		>
-			{children}
-		</button>
+			{...props}
+		/>
 	);
 }
+
+export {
+	AlertDialog,
+	AlertDialogPortal,
+	AlertDialogOverlay,
+	AlertDialogTrigger,
+	AlertDialogContent,
+	AlertDialogHeader,
+	AlertDialogFooter,
+	AlertDialogTitle,
+	AlertDialogDescription,
+	AlertDialogAction,
+	AlertDialogCancel,
+};
