@@ -135,7 +135,6 @@ export function CourseRatingsList({
 					rating={userRating}
 					onEdit={onEditUserRating}
 					onDelete={onDeleteUserRating}
-					readOnly={!canVote}
 				/>
 			)}
 
