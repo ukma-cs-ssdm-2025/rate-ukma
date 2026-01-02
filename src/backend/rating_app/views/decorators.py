@@ -105,10 +105,10 @@ def require_student(func):
 
 def with_optional_student(func):
     """
-    Decorator that inject student's context if student is authenticated.
+    Decorator that injects student's context if student is authenticated.
 
     Usage:
-        @inject_student_context
+        @with_optional_student
         def create(self, request, student=None, **kwargs):
             # if student is authenticated, student will be passed
             pass
