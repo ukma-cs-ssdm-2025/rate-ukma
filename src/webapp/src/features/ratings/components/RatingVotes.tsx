@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { toast } from "@/components/ui/Toaster";
 import type { RatingVoteCreateRequest } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import {
@@ -147,6 +148,7 @@ export function RatingVotes({
 				// Only handle error if still mounted
 				if (isMounted) {
 					console.error("Failed to sync vote with server:", error);
+					toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
 					// Revert optimistic state on error
 					setUserVote(serverVote);
 				}
