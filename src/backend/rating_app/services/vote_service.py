@@ -3,6 +3,7 @@ from rateukma.protocols.generic import IEventListener, IObservable
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
 from rating_app.exception.vote_exceptions import (
     DeleteVoteOnUnenrolledCourseException,
+    VoteOnOwnRatingException,
     VoteOnUnenrolledCourseException,
 )
 from rating_app.models import RatingVote
@@ -45,6 +46,9 @@ class RatingFeedbackService(IObservable[RatingVote]):
             raise VoteOnUnenrolledCourseException(
                 "A student must be enrolled in the course to vote on its rating"
             )
+
+        if params.student_id == str(self.rating_repository.get_by_id(params.rating_id).student.id):
+            raise VoteOnOwnRatingException("Students cannot vote on their own rating")
 
         existing = self.vote_repository.get_vote_by_student_and_rating(
             student_id=params.student_id, rating_id=params.rating_id

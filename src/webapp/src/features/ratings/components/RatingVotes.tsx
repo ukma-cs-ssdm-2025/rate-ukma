@@ -58,7 +58,7 @@ function Vote({
 	}
 
 	return (
-		<div className="flex items-center gap-1.5 transition-colors">
+		<div className="flex items-center gap-1.5 h-8 px-2 transition-colors">
 			<Icon
 				className={cn(
 					"h-5 w-5",
@@ -149,7 +149,7 @@ export function RatingVotes({
 
 	if (readOnly) {
 		return (
-			<div className="flex items-center gap-4 mt-3 justify-end">
+			<div className="flex items-center gap-1 mt-3 justify-end">
 				<Vote type="UPVOTE" count={upvotes} active={upActive} />
 				<Vote type="DOWNVOTE" count={downvotes} active={downActive} />
 			</div>

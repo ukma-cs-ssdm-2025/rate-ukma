@@ -19,14 +19,12 @@ interface UserRatingCardProps {
 	readonly rating: RatingRead | ExtendedRating;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
-	readonly readOnly?: boolean;
 }
 
 export function UserRatingCard({
 	rating,
 	onEdit,
 	onDelete,
-	readOnly = false,
 }: UserRatingCardProps) {
 	const { user } = useAuth();
 
@@ -102,15 +100,13 @@ export function UserRatingCard({
 				emptyMessage="Ви не залишили коментар."
 			/>
 
-			{rating.id && (
-				<RatingVotes
-					ratingId={rating.id}
-					initialUpvotes={upvotes}
-					initialDownvotes={downvotes}
-					initialUserVote={viewerVote}
-					readOnly={readOnly}
-				/>
-			)}
+			<RatingVotes
+				ratingId={rating.id ?? ""}
+				initialUpvotes={upvotes}
+				initialDownvotes={downvotes}
+				initialUserVote={viewerVote}
+				readOnly={true}
+			/>
 		</article>
 	);
 }
