@@ -17,7 +17,6 @@ from rating_app.application_schemas.rating import (
     RatingPutParams,
     RatingRetrieveParams,
 )
-from rating_app.exception.student_exceptions import StudentNotFoundError
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.models import Rating, Student
 from rating_app.serializers import (
@@ -25,7 +24,11 @@ from rating_app.serializers import (
     RatingReadSerializer,
 )
 from rating_app.services import RatingService, StudentService
-from rating_app.views.decorators import require_rating_ownership, require_student
+from rating_app.views.decorators import (
+    require_rating_ownership,
+    require_student,
+    with_optional_student,
+)
 from rating_app.views.responses import (
     R_NO_CONTENT,
     R_RATING,
@@ -56,9 +59,9 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_LIST,
     )
     @rcached(ttl=300)
-    def list(self, request, course_id=None) -> Response:
+    @with_optional_student
+    def list(self, request, course_id=None, student=None) -> Response:
         assert self.rating_service is not None
-        assert self.student_service is not None
 
         try:
             query_params = RatingPaginationParams(**request.query_params.dict())
@@ -68,16 +71,13 @@ class RatingViewSet(viewsets.ViewSet):
                 "course_id": course_id,
             }
 
-            if request.user.is_authenticated:
-                try:
-                    student = self.student_service.get_student_by_user_id(request.user.id)
-                    filter_data["viewer_id"] = str(student.id)
-                    if query_params.separate_current_user:
-                        filter_data["separate_current_user"] = str(student.id)
-                except StudentNotFoundError:
-                    pass
+            if student:
+                filter_data["viewer_id"] = str(student.id)
+                if query_params.separate_current_user:
+                    filter_data["separate_current_user"] = str(student.id)
 
             filters = RatingFilterCriteria.model_validate(filter_data)
+
         except ModelValidationError as e:
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
