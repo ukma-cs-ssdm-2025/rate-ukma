@@ -18,7 +18,7 @@ def test_create_vote_upvote(token_client, rating_factory, student_factory, enrol
 
     response = token_client.put(url, data=payload, format="json")
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["vote_type"] == RatingVoteType.UPVOTE
     assert response.json()["rating"] == str(rating.id)
 
@@ -38,7 +38,7 @@ def test_create_vote_downvote(token_client, rating_factory, student_factory, enr
 
     response = token_client.put(url, data=payload, format="json")
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["vote_type"] == RatingVoteType.DOWNVOTE
 
 
