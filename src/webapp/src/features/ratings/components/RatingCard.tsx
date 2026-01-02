@@ -8,11 +8,13 @@ import { RatingVotes } from "./RatingVotes";
 interface RatingCardProps {
 	rating: RatingRead;
 	readOnly?: boolean;
+	disabledMessage?: string;
 }
 
 export function RatingCard({
 	rating,
 	readOnly = false,
+	disabledMessage,
 }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
 		? "Анонімний відгук"
@@ -52,6 +54,7 @@ export function RatingCard({
 				initialDownvotes={downvotes}
 				initialUserVote={viewerVote}
 				readOnly={readOnly}
+				disabledMessage={disabledMessage}
 			/>
 		</article>
 	);

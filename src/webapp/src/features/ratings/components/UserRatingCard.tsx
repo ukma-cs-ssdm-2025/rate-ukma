@@ -2,6 +2,7 @@ import { Pencil, Star, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/features/courses/courseFormatting";
+import { CANNOT_VOTE_OWN_RATING_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
@@ -107,7 +108,8 @@ export function UserRatingCard({
 				initialUpvotes={upvotes}
 				initialDownvotes={downvotes}
 				initialUserVote={viewerVote}
-				readOnly={readOnly}
+				readOnly={true}
+				disabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
 			/>
 		</article>
 	);

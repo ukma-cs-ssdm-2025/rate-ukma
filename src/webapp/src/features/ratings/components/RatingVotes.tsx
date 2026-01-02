@@ -4,6 +4,11 @@ import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toaster";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import type { RatingVoteCreateRequest } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import {
@@ -19,6 +24,7 @@ interface RatingVotesProps {
 	initialDownvotes?: number;
 	initialUserVote?: VoteType | null;
 	readOnly?: boolean;
+	disabledMessage?: string;
 }
 
 interface VoteProps {
@@ -84,6 +90,7 @@ export function RatingVotes({
 	initialDownvotes = 0,
 	initialUserVote = null,
 	readOnly = false,
+	disabledMessage,
 }: Readonly<RatingVotesProps>) {
 	// The "optimistic" vote state - updates immediately on click
 	const [userVote, setUserVote] = useState<VoteType | null>(initialUserVote);
@@ -170,6 +177,28 @@ export function RatingVotes({
 	const downActive = userVote === "DOWNVOTE";
 
 	if (readOnly) {
+		if (disabledMessage) {
+			return (
+				<div className="flex items-center gap-1 mt-3 justify-end">
+					<Tooltip delayDuration={0}>
+						<TooltipTrigger>
+							<Vote type="UPVOTE" count={upvotes} active={upActive} />
+						</TooltipTrigger>
+						<TooltipContent side="top" sideOffset={4}>
+							<p>{disabledMessage}</p>
+						</TooltipContent>
+					</Tooltip>
+					<Tooltip delayDuration={0}>
+						<TooltipTrigger>
+							<Vote type="DOWNVOTE" count={downvotes} active={downActive} />
+						</TooltipTrigger>
+						<TooltipContent side="top" sideOffset={4}>
+							<p>{disabledMessage}</p>
+						</TooltipContent>
+					</Tooltip>
+				</div>
+			);
+		}
 		return (
 			<div className="flex items-center gap-1 mt-3 justify-end">
 				<Vote type="UPVOTE" count={upvotes} active={upActive} />

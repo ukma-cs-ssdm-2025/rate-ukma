@@ -6,6 +6,7 @@ import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCard } from "./RatingCard";
 import { UserRatingCard } from "./UserRatingCard";
+import { CANNOT_VOTE_WITHOUT_ATTENDING_TEXT } from "../definitions/ratingDefinitions";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
 
 const SKELETON_RATINGS_COUNT = 3;
@@ -56,7 +57,14 @@ function RatingsContent({
 	return (
 		<div className="divide-y divide-border/30">
 			{allRatings.map((rating) => (
-				<RatingCard key={rating.id} rating={rating} readOnly={!canVote} />
+				<RatingCard
+					key={rating.id}
+					rating={rating}
+					readOnly={!canVote}
+					disabledMessage={
+						!canVote ? CANNOT_VOTE_WITHOUT_ATTENDING_TEXT : undefined
+					}
+				/>
 			))}
 
 			{hasMoreRatings && (
