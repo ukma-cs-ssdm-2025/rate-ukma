@@ -40,7 +40,7 @@ class RatingFeedbackService(IObservable[RatingVote]):
     def add_observer(self, listener: IEventListener[RatingVote]) -> None:
         self._listeners.append(listener)
 
-    def upsert(self, params: RatingVoteCreateSchema) -> RatingVote:
+    def upsert(self, params: RatingVoteCreateSchema) -> tuple[RatingVote, bool]:
         if not self._can_vote(params.rating_id, params.student_id):
             raise VoteOnUnenrolledCourseException(
                 "A student must be enrolled in the course to vote on its rating"
@@ -51,7 +51,7 @@ class RatingFeedbackService(IObservable[RatingVote]):
         )
 
         if existing and existing.type == params.vote_type:
-            return existing
+            return existing, False
 
         vote = (
             self.vote_repository.update(existing, type=params.vote_type)
@@ -60,7 +60,7 @@ class RatingFeedbackService(IObservable[RatingVote]):
         )
 
         self.notify(vote)
-        return vote
+        return vote, not existing
 
     def delete_vote_by_student(self, student_id: str, rating_id: str) -> None:
         if not self._can_vote(rating_id, student_id):

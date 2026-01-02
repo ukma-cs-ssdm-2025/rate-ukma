@@ -6,7 +6,6 @@ import structlog
 from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError as ModelValidationError
 
-from rateukma.caching.cache_manager import ICacheManager
 from rating_app.application_schemas.rating_vote import (
     RatingVoteCreateRequest,
     RatingVoteCreateSchema,
@@ -31,8 +30,6 @@ class RatingVoteViewSet(viewsets.ViewSet):
     student_service: StudentService | None = None
 
     rating_service: RatingService | None = None
-
-    cache_manager: ICacheManager | None = None
 
     @extend_schema(
         summary="Create or update a vote on a rating",
@@ -60,11 +57,11 @@ class RatingVoteViewSet(viewsets.ViewSet):
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
-        vote = self.vote_service.upsert(schema)
-
+        vote, created = self.vote_service.upsert(schema)
         serializer = RatingVoteReadSerializer(vote)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(serializer.data, status=response_status)
 
     @extend_schema(
         summary="Remove the authenticated student's vote from a rating",

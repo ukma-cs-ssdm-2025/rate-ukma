@@ -1483,12 +1483,18 @@ paths:
       - cookieAuth: []
       - tokenAuth: []
       responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingVoteRead'
+          description: Vote updated successfully
         '201':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RatingVoteRead'
-          description: ''
+          description: Vote created successfully
         '400':
           content:
             application/json:

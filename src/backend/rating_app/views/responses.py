@@ -189,7 +189,8 @@ R_VOTE_LIST = {
 }
 
 R_VOTE_UPSERT = {
-    201: RatingVoteReadSerializer,
+    200: OpenApiResponse(RatingVoteReadSerializer, "Vote updated successfully"),
+    201: OpenApiResponse(RatingVoteReadSerializer, "Vote created successfully"),
     400: OpenApiResponse(Err, BAD_REQUEST, [EX_400_VOTE]),
     403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
     404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
