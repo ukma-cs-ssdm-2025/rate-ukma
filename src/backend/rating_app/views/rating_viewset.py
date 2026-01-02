@@ -61,18 +61,18 @@ class RatingViewSet(viewsets.ViewSet):
         assert self.student_service is not None
 
         try:
-            query_params = request.query_params.dict()
-            separate_current_user = (
-                query_params.pop("separate_current_user", "false").lower() == "true"
-            )
+            query_params = RatingPaginationParams(**request.query_params.dict())
 
-            filter_data = {**query_params, "course_id": course_id}
+            filter_data = {
+                **query_params.model_dump(exclude={"separate_current_user"}),
+                "course_id": course_id,
+            }
 
             if request.user.is_authenticated:
                 try:
                     student = self.student_service.get_student_by_user_id(request.user.id)
                     filter_data["viewer_id"] = str(student.id)
-                    if separate_current_user:
+                    if query_params.separate_current_user:
                         filter_data["separate_current_user"] = str(student.id)
                 except StudentNotFoundError:
                     pass
