@@ -1510,6 +1510,17 @@ paths:
                       - Must be either UPVOTE or DOWNVOTE.
                   summary: Validation error
           description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
         '403':
           content:
             application/json:
@@ -1566,6 +1577,28 @@ paths:
                       - Must be between 1 and 5.
                   summary: Validation error
           description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
         '404':
           content:
             application/json:

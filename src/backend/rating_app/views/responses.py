@@ -192,6 +192,7 @@ R_VOTE_UPSERT = {
     200: OpenApiResponse(RatingVoteReadSerializer, "Vote updated successfully"),
     201: OpenApiResponse(RatingVoteReadSerializer, "Vote created successfully"),
     400: OpenApiResponse(Err, BAD_REQUEST, [EX_400_VOTE]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
     403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
     404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
 }
@@ -199,5 +200,7 @@ R_VOTE_UPSERT = {
 R_VOTE_DELETE = {
     204: OpenApiResponse(description="Deleted"),
     400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
     404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
 }
