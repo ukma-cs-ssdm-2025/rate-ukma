@@ -62,7 +62,7 @@ function RatingsContent({
 					rating={rating}
 					readOnly={!canVote}
 					disabledMessage={
-						!canVote ? CANNOT_VOTE_WITHOUT_ATTENDING_TEXT : undefined
+						canVote ? undefined : CANNOT_VOTE_WITHOUT_ATTENDING_TEXT
 					}
 				/>
 			))}
