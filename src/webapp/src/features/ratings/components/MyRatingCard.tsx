@@ -12,7 +12,6 @@ import { RatingCardHeader } from "./MyRatingCard/RatingCardHeader";
 import { RatingCommentDisplay } from "./MyRatingCard/RatingCommentDisplay";
 import { RatingMetric } from "./MyRatingCard/RatingMetric";
 import { RatingModal } from "./RatingModal";
-import { RatingVotes } from "./RatingVotes";
 
 interface MyRatingCardProps {
 	course: StudentRatingsDetailed;
@@ -102,18 +101,6 @@ export function MyRatingCard({
 					courseId={courseId}
 					canRate={course.can_rate ?? true}
 				/>
-
-				{hasRating && rating?.id && (
-					<div className="pt-2 flex justify-end">
-						<RatingVotes
-							ratingId={rating.id}
-							initialUpvotes={(rating as any).upvotes ?? 0}
-							initialDownvotes={(rating as any).downvotes ?? 0}
-							initialUserVote={(rating as any).viewer_vote ?? null}
-							readOnly={false}
-						/>
-					</div>
-				)}
 			</CardContent>
 
 			{courseId && offeringId && (
