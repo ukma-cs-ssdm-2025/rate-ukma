@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 
@@ -94,6 +94,16 @@ export function RatingVotes({
 	const createVote = useCoursesRatingsVotesCreate();
 	const deleteVote = useCoursesRatingsVotesDestroy();
 
+	// Store stable references to mutation functions
+	const createVoteRef = useRef(createVote.mutateAsync);
+	const deleteVoteRef = useRef(deleteVote.mutateAsync);
+
+	// Keep refs updated
+	useEffect(() => {
+		createVoteRef.current = createVote.mutateAsync;
+		deleteVoteRef.current = deleteVote.mutateAsync;
+	}, [createVote.mutateAsync, deleteVote.mutateAsync]);
+
 	// Derived counts based on initial props and optimistic userVote
 	const upvotes =
 		initialUpvotes +
@@ -117,12 +127,12 @@ export function RatingVotes({
 		const timer = setTimeout(async () => {
 			try {
 				if (userVote === null) {
-					await deleteVote.mutateAsync({ ratingId });
+					await deleteVoteRef.current({ ratingId });
 				} else {
 					const voteData: RatingVoteCreateRequest = {
 						vote_type: userVote,
 					};
-					await createVote.mutateAsync({
+					await createVoteRef.current({
 						ratingId,
 						data: voteData,
 					});
@@ -137,7 +147,7 @@ export function RatingVotes({
 		}, 500); // 500ms debounce
 
 		return () => clearTimeout(timer);
-	}, [userVote, serverVote, ratingId, createVote, deleteVote]);
+	}, [userVote, serverVote, ratingId]);
 
 	const toggleVote = (target: VoteType) => {
 		if (readOnly) return;
