@@ -125,6 +125,7 @@ function CourseDetailsRoute() {
 					userRating={userRating}
 					onEditUserRating={() => setIsRatingModalOpen(true)}
 					onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
+					canVote={hasAttendedCourse}
 				/>
 			</div>
 

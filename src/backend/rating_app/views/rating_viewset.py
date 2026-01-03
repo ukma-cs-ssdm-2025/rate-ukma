@@ -12,12 +12,11 @@ from rating_app.application_schemas.rating import (
     RatingCreateParams,
     RatingCreateRequest,
     RatingFilterCriteria,
-    RatingPaginationParams,
+    RatingListQueryParams,
     RatingPatchParams,
     RatingPutParams,
     RatingRetrieveParams,
 )
-from rating_app.exception.student_exceptions import StudentNotFoundError
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.models import Rating, Student
 from rating_app.serializers import (
@@ -25,7 +24,11 @@ from rating_app.serializers import (
     RatingReadSerializer,
 )
 from rating_app.services import RatingService, StudentService
-from rating_app.views.decorators import require_rating_ownership, require_student
+from rating_app.views.decorators import (
+    require_rating_ownership,
+    require_student,
+    with_optional_student,
+)
 from rating_app.views.responses import (
     R_NO_CONTENT,
     R_RATING,
@@ -48,45 +51,47 @@ class RatingViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="List ratings for a course",
         description="List all ratings for a specific course with filters and pagination. "
-        "Use exclude_current_user=true to exclude the authenticated user's rating from results.",
+        "Use separate_current_user=true to separate the authenticated user's rating from results.",
         parameters=[
-            *to_openapi((RatingPaginationParams, OpenApiParameter.QUERY)),
+            *to_openapi((RatingListQueryParams, OpenApiParameter.QUERY)),
             *to_openapi((RatingCourseFilterParams, OpenApiParameter.PATH)),
         ],
         responses=R_RATING_LIST,
     )
     @rcached(ttl=300)
-    def list(self, request, course_id=None) -> Response:
+    @with_optional_student
+    def list(self, request, course_id=None, student=None) -> Response:
         assert self.rating_service is not None
-        assert self.student_service is not None
 
         try:
-            query_params = request.query_params.dict()
-            exclude_current_user = (
-                query_params.pop("exclude_current_user", "false").lower() == "true"
-            )
+            query_params = RatingListQueryParams(**request.query_params.dict())
 
-            filter_data = {**query_params, "course_id": course_id}
+            filter_data = {
+                **query_params.model_dump(exclude={"separate_current_user"}),
+                "course_id": course_id,
+            }
 
-            if exclude_current_user and request.user.is_authenticated:
-                try:
-                    student = self.student_service.get_student_by_user_id(request.user.id)
-                    filter_data["exclude_student_id"] = str(student.id)
-                except StudentNotFoundError:
-                    pass
+            if student:
+                filter_data["viewer_id"] = str(student.id)
+                if query_params.separate_current_user:
+                    filter_data["separate_current_user"] = str(student.id)
 
             filters = RatingFilterCriteria.model_validate(filter_data)
+
         except ModelValidationError as e:
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
-        ratings = self.rating_service.filter_ratings(filters)
+        result = self.rating_service.filter_ratings(filters)
 
         payload = RatingListResponseSerializer(
             {
-                "items": ratings.items,
-                "filters": ratings.applied_filters,
-                **ratings.pagination.model_dump(),
+                "items": {
+                    "ratings": result.items.ratings,
+                    "user_ratings": result.items.user_ratings,
+                },
+                "filters": result.applied_filters,
+                **result.pagination.model_dump(),
             },
         )
 

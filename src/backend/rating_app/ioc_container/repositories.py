@@ -10,6 +10,7 @@ from ..repositories import (
     FacultyRepository,
     InstructorRepository,
     RatingRepository,
+    RatingVoteRepository,
     SemesterRepository,
     SpecialityRepository,
     StudentRepository,
@@ -86,3 +87,8 @@ def student_stats_repository() -> StudentStatisticsRepository:
 @once
 def user_repository() -> UserRepository:
     return UserRepository()
+
+
+@once
+def vote_repository() -> RatingVoteRepository:
+    return RatingVoteRepository()

@@ -101,3 +101,31 @@ def require_student(func):
         return func(self, request, *args, **kwargs)
 
     return wrapper
+
+
+def with_optional_student(func):
+    """
+    Decorator that injects student's context if student is authenticated.
+
+    Usage:
+        @with_optional_student
+        def create(self, request, student=None, **kwargs):
+            # if student is authenticated, student will be passed
+            pass
+    """
+
+    @wraps(func)
+    def wrapper(self, request, *args, **kwargs):
+        assert self.student_service is not None
+
+        student = None
+
+        if request.user.is_authenticated:
+            try:
+                student = self.student_service.get_student_by_user_id(request.user.id)
+                kwargs["student"] = student
+            except StudentNotFoundError:
+                pass
+        return func(self, request, *args, **kwargs)
+
+    return wrapper

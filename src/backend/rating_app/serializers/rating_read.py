@@ -3,6 +3,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from rating_app.models import Rating
+from rating_app.models.choices import RatingVoteType
 
 
 class RatingReadSerializer(serializers.ModelSerializer):
@@ -16,6 +17,11 @@ class RatingReadSerializer(serializers.ModelSerializer):
     comment = serializers.CharField(required=False, allow_null=True, read_only=True)
     course = serializers.UUIDField(source="course_offering.course_id", read_only=True)
     course_offering = serializers.UUIDField(source="course_offering_id", read_only=True)
+    upvotes = serializers.IntegerField(read_only=True)
+    downvotes = serializers.IntegerField(read_only=True)
+    viewer_vote = serializers.ChoiceField(
+        choices=RatingVoteType.choices, allow_null=True, read_only=True
+    )
 
     class Meta:
         model = Rating
@@ -30,22 +36,35 @@ class RatingReadSerializer(serializers.ModelSerializer):
             "comment",
             "is_anonymous",
             "created_at",
+            "upvotes",
+            "downvotes",
+            "viewer_vote",
         ]
         read_only_fields = fields
 
     @extend_schema_field(serializers.UUIDField(allow_null=True))
     def get_student_id(self, obj):
-        """Return student ID only if not anonymous."""
-        if obj.is_anonymous:
+        if isinstance(obj, str | bytes):
+            return obj
+
+        if getattr(obj, "is_anonymous", False):
             return None
-        return obj.student_id
+
+        # Try to get from student_id attribute (Model FK or Pydantic field)
+        return getattr(obj, "student_id", None)
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_student_name(self, obj):
-        """Return student name only if not anonymous."""
-        if obj.is_anonymous:
+        if getattr(obj, "is_anonymous", False):
             return None
-        parts = [obj.student.last_name, obj.student.first_name]
-        if obj.student.patronymic:
-            parts.append(obj.student.patronymic)
-        return " ".join(parts)
+
+        # Try to get from pre-calculated attribute (Pydantic RatingRead)
+        if hasattr(obj, "student_name"):
+            return obj.student_name
+
+        # Try to calculate from student relation (Rating Model)
+        student = getattr(obj, "student", None)
+        if student:
+            return f"{student.last_name} {student.first_name}"
+
+        return None

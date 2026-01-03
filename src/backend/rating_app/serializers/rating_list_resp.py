@@ -3,8 +3,13 @@ from rest_framework import serializers
 from rating_app.serializers.rating_read import RatingReadSerializer
 
 
+class InlineRatingsItems(serializers.Serializer):
+    ratings = RatingReadSerializer(many=True)
+    user_ratings = RatingReadSerializer(many=True, allow_null=True, required=False)
+
+
 class RatingListResponseSerializer(serializers.Serializer):
-    items = RatingReadSerializer(many=True)
+    items = InlineRatingsItems()
     filters = serializers.DictField()
     page = serializers.IntegerField()
     page_size = serializers.IntegerField()

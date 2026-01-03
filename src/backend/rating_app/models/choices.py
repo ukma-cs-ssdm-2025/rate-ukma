@@ -56,3 +56,8 @@ class AcademicTitle(models.TextChoices):
     SENIOR_LECTURER = "SENIOR_LECTURER", "SeniorLecturer"
     ASSOCIATE_PROF = "ASSOCIATE_PROF", "AssociateProfessor"
     PROFESSOR = "PROFESSOR", "Professor"
+
+
+class RatingVoteType(models.TextChoices):
+    UPVOTE = "UPVOTE", "Upvote"
+    DOWNVOTE = "DOWNVOTE", "Downvote"

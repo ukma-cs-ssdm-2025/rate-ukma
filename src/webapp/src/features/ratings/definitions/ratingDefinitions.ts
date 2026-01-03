@@ -16,3 +16,9 @@ export const usefulnessDescriptions = {
 
 export const CANNOT_RATE_TOOLTIP_TEXT =
 	"Оцінювання стане доступним з середини семестру курсу";
+
+export const CANNOT_VOTE_OWN_RATING_TEXT =
+	"Ви не можете додавати реакцію на власний відгук";
+
+export const CANNOT_VOTE_WITHOUT_ATTENDING_TEXT =
+	"Ви не можете додавати реакцію на відгук з курсу, який не прослуховували";

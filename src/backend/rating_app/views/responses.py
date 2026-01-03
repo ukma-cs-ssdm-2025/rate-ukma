@@ -9,6 +9,7 @@ from rating_app.serializers import (
     InstructorSerializer,
     RatingListResponseSerializer,
     RatingReadSerializer,
+    RatingVoteReadSerializer,
     StudentRatingsDetailedSerializer,
     StudentRatingsLightSerializer,
 )
@@ -21,6 +22,9 @@ from rating_app.serializers.course_offering import (
 )
 
 NOT_FOUND = "Not found"
+BAD_REQUEST = "Bad request"
+UNAUTHORIZED = "Unauthorized"
+FORBIDDEN = "Forbidden"
 INVALID_VALUE = "Invalid value"
 
 RATING_NOT_FOUND_MSG = "Rating not found"
@@ -32,6 +36,15 @@ EX_400 = OpenApiExample(
         "detail": "Validation failed",
         "status": 400,
         "fields": {"difficulty": [f"Must be between {MIN_RATING_VALUE} and {MAX_RATING_VALUE}."]},
+    },
+    status_codes=["400"],
+)
+EX_400_VOTE = OpenApiExample(
+    "Validation error",
+    value={
+        "detail": "Validation failed",
+        "status": 400,
+        "fields": {"vote_type": ["Must be either UPVOTE or DOWNVOTE."]},
     },
     status_codes=["400"],
 )
@@ -66,11 +79,11 @@ EX_409 = OpenApiExample(
 def common_errors(include_400=True, include_401=True, include_403=True, include_404=False):
     errors = {}
     if include_400:
-        errors[400] = OpenApiResponse(Err, "Bad request", [EX_400])
+        errors[400] = OpenApiResponse(Err, BAD_REQUEST, [EX_400])
     if include_401:
-        errors[401] = OpenApiResponse(Err, "Unauthorized", [EX_401])
+        errors[401] = OpenApiResponse(Err, UNAUTHORIZED, [EX_401])
     if include_403:
-        errors[403] = OpenApiResponse(Err, "Forbidden", [EX_403])
+        errors[403] = OpenApiResponse(Err, FORBIDDEN, [EX_403])
     if include_404:
         errors[404] = OpenApiResponse(Err, NOT_FOUND, [EX_404])
     return errors
@@ -118,7 +131,7 @@ R_REDIRECT = {
 
 R_OAUTH = {
     **R_REDIRECT,
-    400: OpenApiResponse(Err, "Bad request", [EX_400]),
+    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
     404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
 }
 
@@ -129,12 +142,12 @@ R_LOGIN = {
 
 R_LOGOUT = {
     **R_OAUTH,
-    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }
 
 R_SESSION = {
     200: OpenApiResponse(SessionSerializer, "Session state"),
-    401: OpenApiResponse(Err, "Unauthorized", [EX_401]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }
 
 R_CSRF_TOKEN = {
@@ -168,4 +181,26 @@ R_COURSE_OFFERING_LIST = {
 R_COURSE_OFFERING = {
     200: OpenApiResponse(CourseOfferingSerializer, "OK"),
     **common_errors(include_404=True),
+}
+
+R_VOTE_LIST = {
+    200: OpenApiResponse(description="Vote listed successfully"),
+    **common_errors(include_404=True),
+}
+
+R_VOTE_UPSERT = {
+    200: OpenApiResponse(RatingVoteReadSerializer, "Vote updated successfully"),
+    201: OpenApiResponse(RatingVoteReadSerializer, "Vote created successfully"),
+    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400_VOTE]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
+    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
+}
+
+R_VOTE_DELETE = {
+    204: OpenApiResponse(description="Deleted"),
+    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+    403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
+    404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
 }

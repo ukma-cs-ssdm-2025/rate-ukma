@@ -6,6 +6,7 @@ import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCard } from "./RatingCard";
 import { UserRatingCard } from "./UserRatingCard";
+import { CANNOT_VOTE_WITHOUT_ATTENDING_TEXT } from "../definitions/ratingDefinitions";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
 
 const SKELETON_RATINGS_COUNT = 3;
@@ -16,9 +17,10 @@ const SKELETON_KEYS = Array.from(
 
 interface CourseRatingsListProps {
 	courseId: string;
-	userRating?: InlineRating | null;
+	userRating?: InlineRating | RatingRead | null;
 	onEditUserRating?: () => void;
 	onDeleteUserRating?: () => void;
+	canVote?: boolean;
 }
 
 interface RatingsContentProps {
@@ -27,6 +29,7 @@ interface RatingsContentProps {
 	isLoading: boolean;
 	loaderRef: React.RefObject<HTMLDivElement | null>;
 	hasUserRating: boolean;
+	canVote?: boolean;
 }
 
 function RatingsContent({
@@ -35,6 +38,7 @@ function RatingsContent({
 	isLoading,
 	loaderRef,
 	hasUserRating,
+	canVote = true,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0) {
 		if (hasUserRating) {
@@ -53,7 +57,14 @@ function RatingsContent({
 	return (
 		<div className="divide-y divide-border/30">
 			{allRatings.map((rating) => (
-				<RatingCard key={rating.id} rating={rating} />
+				<RatingCard
+					key={rating.id}
+					rating={rating}
+					readOnly={!canVote}
+					disabledMessage={
+						canVote ? undefined : CANNOT_VOTE_WITHOUT_ATTENDING_TEXT
+					}
+				/>
 			))}
 
 			{hasMoreRatings && (
@@ -78,18 +89,31 @@ function RatingsContent({
 
 export function CourseRatingsList({
 	courseId,
-	userRating,
+	userRating: userRatingProp,
 	onEditUserRating,
 	onDeleteUserRating,
+	canVote = true,
 }: Readonly<CourseRatingsListProps>) {
-	const excludeCurrentUser = !!userRating;
+	const separateCurrentUser = !!userRatingProp;
 
-	const { allRatings, hasMoreRatings, isLoading, loaderRef, totalRatings } =
-		useInfiniteScrollRatings(courseId, { excludeCurrentUser });
+	const {
+		allRatings,
+		hasMoreRatings,
+		isLoading,
+		loaderRef,
+		totalRatings,
+		userRating: userRatingFromApi,
+	} = useInfiniteScrollRatings(courseId, { separateCurrentUser });
+
+	// Prefer user rating from API (has vote data) over prop (from different endpoint)
+	const userRating = userRatingFromApi ?? userRatingProp;
 
 	const showSkeleton = isLoading && allRatings.length === 0;
 
-	const displayCount = (totalRatings ?? 0) + (userRating ? 1 : 0);
+	// Total from backend already reflects the number of items
+	// including non-current user ratings and current user rating (if any)
+	// when separate_current_user is true.
+	const displayCount = totalRatings ?? 0;
 
 	return (
 		<div
@@ -123,6 +147,7 @@ export function CourseRatingsList({
 					isLoading={isLoading}
 					loaderRef={loaderRef}
 					hasUserRating={!!userRating}
+					canVote={canVote}
 				/>
 			)}
 		</div>

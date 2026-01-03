@@ -2,14 +2,22 @@ import { Pencil, Star, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/features/courses/courseFormatting";
-import type { InlineRating } from "@/lib/api/generated";
+import { CANNOT_VOTE_OWN_RATING_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
+import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { RatingComment } from "./RatingComment";
 import { RatingStats } from "./RatingStats";
+import { RatingVotes } from "./RatingVotes";
+
+interface ExtendedRating extends InlineRating {
+	upvotes?: number;
+	downvotes?: number;
+	viewer_vote?: "UPVOTE" | "DOWNVOTE" | null;
+}
 
 interface UserRatingCardProps {
-	readonly rating: InlineRating;
+	readonly rating: RatingRead | ExtendedRating;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
 }
@@ -34,6 +42,11 @@ export function UserRatingCard({
 		return "Студент";
 	};
 	const displayName = getUserDisplayName();
+
+	// Use values from rating if available, otherwise use defaults for placeholder
+	const upvotes = rating.upvotes ?? 0;
+	const downvotes = rating.downvotes ?? 0;
+	const viewerVote = rating.viewer_vote ?? null;
 
 	return (
 		<article
@@ -87,6 +100,17 @@ export function UserRatingCard({
 				comment={rating.comment}
 				emptyMessage="Ви не залишили коментар."
 			/>
+
+			{rating.id && (
+				<RatingVotes
+					ratingId={rating.id}
+					initialUpvotes={upvotes}
+					initialDownvotes={downvotes}
+					initialUserVote={viewerVote}
+					readOnly={true}
+					disabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
+				/>
+			)}
 		</article>
 	);
 }
