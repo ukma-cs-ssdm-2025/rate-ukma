@@ -248,3 +248,51 @@ def test_social_adapter_save_user_links_user_to_student(
     # Assert
     assert result is mock_user
     mock_service_instance.link_user_to_student.assert_called_once_with(mock_user)
+
+
+def test_on_authentication_error_logs_and_redirects(
+    social_adapter: MicrosoftSocialAccountAdapter,
+    http_request: MagicMock,
+    settings,
+):
+    # Arrange
+    settings.LOGIN_ERROR_URL = "/login-error"
+    mock_provider = MagicMock()
+    mock_provider.id = "microsoft"
+    test_error = "token_expired"
+    test_exception = ValueError("Invalid token")
+
+    # Act & Assert
+    with pytest.raises(ImmediateHttpResponse) as exc:
+        social_adapter.on_authentication_error(
+            request=http_request,
+            provider=mock_provider,
+            error=test_error,
+            exception=test_exception,
+            extra_context={"some": "context"},
+        )
+
+    assert exc.value.response.url == "/login-error?technical=1"
+
+
+def test_on_authentication_error_handles_none_exception(
+    social_adapter: MicrosoftSocialAccountAdapter,
+    http_request: MagicMock,
+    settings,
+):
+    # Arrange
+    settings.LOGIN_ERROR_URL = "/login-error"
+    mock_provider = MagicMock()
+    mock_provider.id = "microsoft"
+    test_error = "network_error"
+
+    # Act & Assert
+    with pytest.raises(ImmediateHttpResponse) as exc:
+        social_adapter.on_authentication_error(
+            request=http_request,
+            provider=mock_provider,
+            error=test_error,
+            exception=None,
+        )
+
+    assert exc.value.response.url == "/login-error?technical=1"
