@@ -1,3 +1,5 @@
+from typing import override
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
@@ -10,6 +12,7 @@ from allauth.account.utils import user_email
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialLogin
+from allauth.socialaccount.providers.base import Provider
 
 from rating_app.ioc_container.services import student_service
 
@@ -40,6 +43,23 @@ class StudentLinkingMixin:
 class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAdapter):
     ALLOWED_DOMAINS = ["ukma.edu.ua"]
 
+    @override
+    def on_authentication_error(
+        self,
+        request: HttpRequest,
+        provider: Provider,
+        error=None,
+        exception=None,
+        extra_context=None,
+    ) -> None:
+        logger.error(
+            "microsoft_oauth_authentication_error",
+            error=error or "unknown_error",
+            exception=str(exception) if exception else "unknown_exception",
+        )
+        raise ImmediateHttpResponse(redirect(f"{settings.LOGIN_ERROR_URL}?technical=1"))
+
+    @override
     def populate_user(self, request: HttpRequest, sociallogin: SocialLogin, data: dict) -> User:
         user = super().populate_user(request, sociallogin, data)
         user.username = user.email
@@ -47,6 +67,7 @@ class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAda
         logger.info("microsoft_oauth_authentication_received", email=user.email)
         return user
 
+    @override
     def pre_social_login(self, request: HttpRequest, sociallogin: SocialLogin):
         email = user_email(sociallogin.user)
         if not email:
@@ -89,11 +110,14 @@ class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAda
 
 
 class MicrosoftAccountAdapter(StudentLinkingMixin, DefaultAccountAdapter):
+    @override
     def is_open_for_signup(self, request: HttpRequest) -> bool:
         return settings.ACCOUNT_ALLOW_REGISTRATION
 
+    @override
     def get_login_redirect_url(self, request: HttpRequest) -> str:
         return settings.LOGIN_REDIRECT_URL
 
+    @override
     def get_logout_redirect_url(self, request: HttpRequest) -> str:
         return settings.ACCOUNT_LOGOUT_REDIRECT_URL
