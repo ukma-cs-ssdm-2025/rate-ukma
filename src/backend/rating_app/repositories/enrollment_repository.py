@@ -44,3 +44,10 @@ class EnrollmentRepository:
             offering_id=offering_id,
             status__in=[EnrollmentStatus.ENROLLED, EnrollmentStatus.FORCED],
         ).exists()
+
+    def is_student_enrolled_in_course(self, student_id: str, course_id: str) -> bool:
+        return Enrollment.objects.filter(
+            student_id=student_id,
+            offering__course_id=course_id,
+            status__in=[EnrollmentStatus.ENROLLED, EnrollmentStatus.FORCED],
+        ).exists()

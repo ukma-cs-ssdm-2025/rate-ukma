@@ -78,8 +78,8 @@ class RatingFeedbackService(IObservable[RatingVote]):
         )
 
     def _is_enrolled_in_the_rating_course(self, rating: Rating, student_id: str) -> bool:
-        return self.enrollment_repository.is_student_enrolled(
-            offering_id=str(rating.course_offering.id), student_id=student_id
+        return self.enrollment_repository.is_student_enrolled_in_course(
+            student_id=student_id, course_id=str(rating.course_offering.course.id)
         )
 
     def _owns_rating(self, rating: Rating, student_id: str) -> bool:
