@@ -12,7 +12,7 @@ from rating_app.application_schemas.rating import (
     RatingCreateParams,
     RatingCreateRequest,
     RatingFilterCriteria,
-    RatingPaginationParams,
+    RatingListQueryParams,
     RatingPatchParams,
     RatingPutParams,
     RatingRetrieveParams,
@@ -53,7 +53,7 @@ class RatingViewSet(viewsets.ViewSet):
         description="List all ratings for a specific course with filters and pagination. "
         "Use separate_current_user=true to separate the authenticated user's rating from results.",
         parameters=[
-            *to_openapi((RatingPaginationParams, OpenApiParameter.QUERY)),
+            *to_openapi((RatingListQueryParams, OpenApiParameter.QUERY)),
             *to_openapi((RatingCourseFilterParams, OpenApiParameter.PATH)),
         ],
         responses=R_RATING_LIST,
@@ -64,7 +64,7 @@ class RatingViewSet(viewsets.ViewSet):
         assert self.rating_service is not None
 
         try:
-            query_params = RatingPaginationParams(**request.query_params.dict())
+            query_params = RatingListQueryParams(**request.query_params.dict())
 
             filter_data = {
                 **query_params.model_dump(exclude={"separate_current_user"}),

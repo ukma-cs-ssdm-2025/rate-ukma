@@ -51,7 +51,7 @@ class StudentCourseRatingsParams(BaseModel):
     course_id: uuid.UUID = Field(description="Unique identifier of a course")
 
 
-class RatingPaginationParams(BaseModel):
+class RatingListQueryParams(BaseModel):
     model_config = {
         "alias_generator": to_snake,
         "populate_by_name": True,
