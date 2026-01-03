@@ -68,7 +68,6 @@ def test_create_vote_different_enrollment(
     response = token_client.put(url, data=payload, format="json")
 
     assert response.status_code == 201
-    print(response.json())
     assert response.json()["vote_type"] == RatingVoteType.UPVOTE
     assert response.json()["rating"] == str(rating.id)
 
