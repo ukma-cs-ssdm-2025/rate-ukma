@@ -27,8 +27,17 @@ export function useInfiniteScrollRatings(
 	const { pageSize = DEFAULT_PAGE_SIZE, separateCurrentUser = false } = options;
 
 	const [ratingsPage, setRatingsPage] = useState(1);
+	const [lastCourseId, setLastCourseId] = useState(courseId);
 	const [allRatings, setAllRatings] = useState<RatingRead[]>([]);
 	const [userRating, setUserRating] = useState<RatingRead | undefined>();
+
+	// Reset pagination and state when courseId changes (during render)
+	if (courseId !== lastCourseId) {
+		setRatingsPage(1);
+		setAllRatings([]);
+		setUserRating(undefined);
+		setLastCourseId(courseId);
+	}
 
 	const { data: ratings, isLoading: isRatingsLoading } = useCoursesRatingsList(
 		courseId,
@@ -53,10 +62,13 @@ export function useInfiniteScrollRatings(
 
 			if (currentUserRatings && currentUserRatings.length > 0) {
 				setUserRating(currentUserRatings[0]);
+			} else if (ratingsPage === 1) {
+				setUserRating(undefined);
 			}
 
 			setAllRatings((prev) => {
 				if (ratingsPage === 1) {
+					// Always replace when on page 1 (initial load or after reset)
 					return ratingsList;
 				}
 				const existingIds = new Set(prev.map((r) => r.id));
