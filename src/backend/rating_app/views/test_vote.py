@@ -44,6 +44,37 @@ def test_create_vote_downvote(token_client, rating_factory, student_factory, enr
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_create_vote_different_enrollment(
+    token_client,
+    rating_factory,
+    student_factory,
+    enrollment_factory,
+    course_offering_factory,
+    course_factory,
+):
+    course = course_factory()
+    course_offering_1 = course_offering_factory(course=course)
+    course_offering_2 = course_offering_factory(course=course)
+
+    enrollment_factory(offering=course_offering_1, student=student_factory(user=token_client.user))
+
+    rating = rating_factory(course_offering=course_offering_2)
+
+    url = f"/api/v1/ratings/{rating.id}/votes/"
+    payload = {
+        "vote_type": RatingVoteType.UPVOTE,
+    }
+
+    response = token_client.put(url, data=payload, format="json")
+
+    assert response.status_code == 201
+    print(response.json())
+    assert response.json()["vote_type"] == RatingVoteType.UPVOTE
+    assert response.json()["rating"] == str(rating.id)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_create_vote_toggle(
     token_client, rating_factory, student_factory, enrollment_factory, vote_factory
 ):
