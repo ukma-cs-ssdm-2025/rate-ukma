@@ -4,9 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       version-tag:
-        description: "Version tag to deploy"
-        required: true
+        description: "Version tag to deploy. Defaults to latest project semantic version."
+        required: false
         type: string
+        default: ""
   push:
     branches:
       - main
@@ -18,12 +19,13 @@ jobs:
   changes-filter:
     uses: ./.github/workflows/changes-filter.yml
     with:
-      base: ${{ github.event.before }}
+      base: ${{ github.event.before || github.event.repository.default_branch }}
       ref: ${{ github.sha }}
       force_all_changed: ${{ inputs.version-tag != '' }}
 
   version:
     needs: changes-filter
+    if: github.ref_name == github.event.repository.default_branch
     with:
       code_changed: >-
         ${{ inputs.version-tag == '' &&
@@ -66,18 +68,18 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      version_tag: ${{ needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
 
   release-needed:
     needs: [version]
-    if: inputs.version-tag == ''
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-24.04
     outputs:
       release_needed: ${{ steps.check.outputs.release_needed }}
     env:
-      VERSION_TAG: ${{ needs.version.outputs.version_tag }}
+      VERSION_TAG: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
     steps:
       - uses: actions/checkout@v5
 
@@ -97,7 +99,9 @@ jobs:
 
   deploy-staging:
     needs: [version, build]
-    if: always() && needs.build.result != 'failure'
+    if: |
+      always() &&
+      needs.build.result != 'failure'
     uses: ./.github/workflows/deploy-staging.yml
     with:
       deployment_ref: ${{ github.sha }}
@@ -112,8 +116,12 @@ jobs:
 
   release:
     needs: [version, deploy-staging, release-needed]
-    if: always() && needs.release-needed.result != 'failure' && needs.release-needed.outputs.release_needed == 'true'
+    if: |
+      github.ref_name == github.event.repository.default_branch &&
+      always() &&
+      needs.release-needed.result == 'success' &&
+      needs.release-needed.outputs.release_needed == 'true'
     uses: ./.github/workflows/release.yml
     with:
-      version_tag: ${{ needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
       pre-release: true

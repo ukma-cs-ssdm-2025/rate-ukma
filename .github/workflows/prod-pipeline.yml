@@ -13,12 +13,12 @@ on:
         type: string
 
 jobs:
-  get-staging-version:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+  get-staging-released-version:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-24.04
     outputs:
       version_tag: ${{ steps.get_version.outputs.version_tag }}
-      skip_deployment: ${{ steps.get_version.outputs.skip_deployment }}
+      release_not_found: ${{ steps.get_version.outputs.release_not_found }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -41,7 +41,7 @@ jobs:
             if [[ -z "$VERSION_TAG" ]]; then
               echo "No version tag found for commit $COMMIT_SHA"
               echo "Staging build ran without creating a new version, skipping deployment"
-              echo "skip_deployment=true" >> "$GITHUB_OUTPUT"
+              echo "release_not_found=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             echo "Staging version: $VERSION_TAG"
@@ -49,15 +49,15 @@ jobs:
 
           if ! gh release view "$VERSION_TAG" >/dev/null 2>&1; then
             echo "Release $VERSION_TAG not found"
-            echo "skip_deployment=true" >> "$GITHUB_OUTPUT"
+            echo "release_not_found=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
-          echo "skip_deployment=false" >> "$GITHUB_OUTPUT"
+          echo "release_not_found=false" >> "$GITHUB_OUTPUT"
 
   get-latest-live-tag:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-24.04
     outputs:
       latest_live_tag: ${{ steps.get_latest.outputs.latest_live_tag }}
@@ -85,12 +85,12 @@ jobs:
           fi
 
   deploy-live:
-    if: needs.get-staging-version.outputs.skip_deployment != 'true'
+    if: needs.get-staging-released-version.result == 'success' && needs.get-staging-released-version.outputs.release_not_found != 'true'
     uses: ./.github/workflows/deploy-live.yml
-    needs: [get-staging-version]
+    needs: [get-staging-released-version]
     with:
-      deployment_ref: ${{ needs.get-staging-version.outputs.version_tag }}
-      version_tag: ${{ needs.get-staging-version.outputs.version_tag }}
+      deployment_ref: ${{ needs.get-staging-released-version.outputs.version_tag }}
+      version_tag: ${{ needs.get-staging-released-version.outputs.version_tag }}
     secrets:
       SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
       SSH_USER: ${{ secrets.LIVE_SSH_USER }}
@@ -100,14 +100,14 @@ jobs:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
   update_pre_releases:
-    if: needs.get-staging-version.outputs.skip_deployment != 'true'
-    needs: [get-latest-live-tag, get-staging-version, deploy-live]
+    if: needs.get-staging-released-version.result == 'success' && needs.get-staging-released-version.outputs.release_not_found != 'true'
+    needs: [get-latest-live-tag, get-staging-released-version, deploy-live]
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
         with:
-          ref: ${{ needs.get-staging-version.outputs.version_tag }}
+          ref: ${{ needs.get-staging-released-version.outputs.version_tag }}
           fetch-depth: 0
 
       - name: Fetch Tags
@@ -119,7 +119,7 @@ jobs:
         id: get_releases
         env:
           PREV_LIVE_TAG: ${{ needs.get-latest-live-tag.outputs.latest_live_tag }}
-          VERSION_TAG: "${{ needs.get-staging-version.outputs.version_tag }}"
+          VERSION_TAG: "${{ needs.get-staging-released-version.outputs.version_tag }}"
           LIVE_TAG_PREFIX: "live-"
         run: |
           LAST_TAG=${PREV_LIVE_TAG#$LIVE_TAG_PREFIX}
@@ -166,8 +166,8 @@ jobs:
           done
 
   push_live_tag:
-    if: needs.get-staging-version.outputs.skip_deployment != 'true'
-    needs: [get-staging-version, update_pre_releases]
+    if: needs.get-staging-released-version.outputs.release_not_found != 'true'
+    needs: [get-staging-released-version, update_pre_releases]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -175,13 +175,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v5
         with:
-          ref: ${{ needs.get-staging-version.outputs.version_tag }}
+          ref: ${{ needs.get-staging-released-version.outputs.version_tag }}
           fetch-depth: 0
 
       - name: Push Live Version Tag
         id: push_live_tag
         env:
-          LIVE_VERSION_TAG: "live-${{ needs.get-staging-version.outputs.version_tag }}"
+          LIVE_VERSION_TAG: "live-${{ needs.get-staging-released-version.outputs.version_tag }}"
         run: |
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           git config user.name "github-actions[bot]"
