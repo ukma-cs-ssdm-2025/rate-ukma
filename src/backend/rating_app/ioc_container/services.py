@@ -36,6 +36,7 @@ from rating_app.services.domain_event_listeners.cache_invalidator import (
     RatingVoteCacheInvalidator,
 )
 from rating_app.services.pagination_course_adapter import PaginationCourseAdapter
+from rating_app.services.pagination_rating_adapter import PaginationRatingAdapter
 from rating_app.services.paginator import QuerysetPaginator
 
 
@@ -88,8 +89,7 @@ def rating_service() -> RatingService:
         enrollment_repository=enrollment_repository(),
         course_offering_service=course_offering_service(),
         semester_service=semester_service(),
-        rating_vote_repository=vote_repository(),
-        paginator=paginator(),
+        pagination_rating_adapter=pagination_rating_adapter(),
     )
 
 
@@ -102,7 +102,7 @@ def course_model_aggregates_update_observer() -> CourseModelAggregatesUpdateObse
 
 
 @once
-def cache_invalidator() -> RatingCacheInvalidator:
+def rating_cache_invalidator() -> RatingCacheInvalidator:
     return RatingCacheInvalidator(cache_manager=redis_cache_manager())
 
 
@@ -148,9 +148,21 @@ def paginator() -> QuerysetPaginator:
     return QuerysetPaginator()
 
 
+@once
+def pagination_rating_adapter() -> PaginationRatingAdapter:
+    from rating_app.ioc_container.repositories import rating_mapper
+
+    return PaginationRatingAdapter(
+        rating_repository=rating_repository(),
+        rating_vote_repository=vote_repository(),
+        paginator=paginator(),
+        mapper=rating_mapper(),
+    )
+
+
 def register_observers() -> None:
     rating_service().add_observer(course_model_aggregates_update_observer())
-    rating_service().add_observer(cache_invalidator())
+    rating_service().add_observer(rating_cache_invalidator())
     vote_service().add_observer(rating_vote_cache_invalidator())
 
 

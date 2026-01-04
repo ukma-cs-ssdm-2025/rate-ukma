@@ -7,6 +7,7 @@ from django.db.models import Avg, Count, QuerySet
 import structlog
 
 from rateukma.protocols import IProcessor
+from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.application_schemas.rating import (
     AggregatedCourseRatingStats,
     RatingCreateParams,
@@ -18,7 +19,7 @@ from rating_app.application_schemas.rating import (
     Rating as RatingDTO,
 )
 from rating_app.exception.rating_exceptions import DuplicateRatingException, RatingNotFoundError
-from rating_app.models import Course, Rating
+from rating_app.models import Rating
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
@@ -74,8 +75,8 @@ class RatingRepository(IRepository[Rating]):
         )
         return self._map_to_domain_model(rating), created
 
-    def get_aggregated_course_stats(self, course: Course) -> AggregatedCourseRatingStats:
-        aggregates = Rating.objects.filter(course_offering__course=course).aggregate(
+    def get_aggregated_course_stats(self, course: CourseDTO) -> AggregatedCourseRatingStats:
+        aggregates = Rating.objects.filter(course_offering__course=str(course.id)).aggregate(
             avg_difficulty=Avg("difficulty"),
             avg_usefulness=Avg("usefulness"),
             ratings_count=Count("id", distinct=True),
@@ -92,16 +93,14 @@ class RatingRepository(IRepository[Rating]):
             course_offering_id=course_offering_id,
         ).exists()
 
+    def filter_qs(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
+        return self._filter(criteria)
+
     def filter(
         self,
         criteria: RatingFilterCriteria,
     ) -> list[RatingDTO]:
-        ratings = self._build_base_queryset()
-        ratings = self._apply_filters(ratings, criteria).order_by("-created_at")
-
-        if criteria.separate_current_user is not None:
-            ratings = ratings.exclude(student_id=str(criteria.separate_current_user))
-
+        ratings = self._filter(criteria)
         return self._map_to_domain_models(ratings)
 
     def create(self, create_params: RatingCreateParams) -> RatingDTO:
@@ -119,7 +118,10 @@ class RatingRepository(IRepository[Rating]):
 
         return self._map_to_domain_model(rating)
 
-    def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> RatingDTO:
+    def update(
+        self, rating: RatingDTO, update_data: RatingPutParams | RatingPatchParams
+    ) -> RatingDTO:
+        rating_model = self._get_by_id_shallow(str(rating.id))
         is_patch = isinstance(update_data, RatingPatchParams)
         update_data_map = update_data.model_dump(exclude_unset=is_patch)
 
@@ -128,10 +130,10 @@ class RatingRepository(IRepository[Rating]):
             update_data_map["comment"] = ""
 
         for attr, value in update_data_map.items():
-            setattr(rating, attr, value)
+            setattr(rating_model, attr, value)
 
         try:
-            rating.save()
+            rating_model.save()
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
@@ -142,16 +144,25 @@ class RatingRepository(IRepository[Rating]):
             updated_fields=list(update_data_map.keys()),
         )
 
-        return self._map_to_domain_model(rating)
+        return self._map_to_domain_model(rating_model)
 
-    def delete(self, rating: RatingDTO) -> None:
-        rating_model = self._get_by_id_shallow(str(rating.id))
+    def delete(self, rating_id: str) -> None:
+        rating_model = self._get_by_id_shallow(rating_id)
         rating_model.delete()
         logger.info(
             "rating_deleted",
-            rating_id=rating.id,
+            rating_id=rating_id,
             student_id=str(rating_model.student.id),
         )
+
+    def _filter(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
+        ratings = self._build_base_queryset()
+        ratings = self._apply_filters(ratings, criteria).order_by("-created_at")
+
+        if criteria.separate_current_user is not None:
+            ratings = ratings.exclude(student_id=str(criteria.separate_current_user))
+
+        return ratings
 
     def _map_to_domain_models(self, models: QuerySet[Rating]) -> list[RatingDTO]:
         return [self._map_to_domain_model(model) for model in models]
