@@ -3,9 +3,11 @@ import structlog
 from rateukma.protocols import IProcessor, implements
 from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.application_schemas.course import CourseSpeciality
+from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.exception.course_exceptions import CourseMissingDepartmentOrFacultyError
 from rating_app.models import Course
-from rating_app.models.choices import CourseStatus, CourseTypeKind
+from rating_app.models.choices import CourseStatus, CourseTypeKind, RatingVoteType
+from rating_app.models.rating import Rating as RatingModel
 
 logger = structlog.get_logger(__name__)
 
@@ -102,3 +104,37 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
             )
 
         return specialities
+
+
+class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
+    @implements
+    def process(
+        self,
+        model: RatingModel,
+        upvotes: int = 0,
+        downvotes: int = 0,
+        viewer_vote: RatingVoteType | None = None,
+    ) -> RatingDTO:
+        student_id = model.student.id if not model.is_anonymous else None
+        student_name = (
+            f"{model.student.last_name} {model.student.first_name}"
+            if not model.is_anonymous
+            else None
+        )
+
+        return RatingDTO(
+            id=model.id,
+            course_offering_id=model.course_offering.id,
+            student_id=student_id,
+            student_name=student_name,
+            course_offering=model.course_offering.id,
+            course=model.course_offering.course.id,
+            difficulty=model.difficulty,
+            usefulness=model.usefulness,
+            comment=model.comment if model.comment else None,
+            is_anonymous=model.is_anonymous,
+            created_at=model.created_at,
+            upvotes=upvotes,
+            downvotes=downvotes,
+            viewer_vote=viewer_vote,
+        )

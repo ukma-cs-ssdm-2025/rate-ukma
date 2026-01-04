@@ -105,7 +105,7 @@ def strip_string(value: str | None) -> str | None:
     return stripped if stripped else None
 
 
-class RatingRead(BaseModel):
+class Rating(BaseModel):
     model_config = {
         "from_attributes": True,
         "alias_generator": to_snake,
@@ -129,14 +129,14 @@ class RatingRead(BaseModel):
     viewer_vote: RatingVoteType | None
 
 
-class RatingListResponse(BaseModel):
+class RatingsWithUserList(BaseModel):
     model_config = {
         "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
-    ratings: list[RatingRead]
-    user_ratings: list[RatingRead] | None = None
+    ratings: list[Rating]
+    user_ratings: list[Rating] | None = None
 
 
 # API request schema (student is set automatically from authenticated user)
@@ -207,10 +207,9 @@ class RatingPatchParams(BaseModel):
     )
 
 
-# is constructed internally
 @dataclass(frozen=True)
 class RatingSearchResult:
-    items: RatingListResponse
+    items: RatingsWithUserList
     pagination: PaginationMetadata
     applied_filters: dict[str, Any]
 

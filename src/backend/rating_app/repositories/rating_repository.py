@@ -1,14 +1,21 @@
+from decimal import Decimal
+from typing import Any
+
 from django.db import IntegrityError
 from django.db.models import Avg, Count, QuerySet
 
 import structlog
 
+from rateukma.protocols import IProcessor
 from rating_app.application_schemas.rating import (
     AggregatedCourseRatingStats,
     RatingCreateParams,
     RatingFilterCriteria,
     RatingPatchParams,
     RatingPutParams,
+)
+from rating_app.application_schemas.rating import (
+    Rating as RatingDTO,
 )
 from rating_app.exception.rating_exceptions import DuplicateRatingException, RatingNotFoundError
 from rating_app.models import Course, Rating
@@ -18,18 +25,21 @@ logger = structlog.get_logger(__name__)
 
 
 class RatingRepository(IRepository[Rating]):
-    def get_all(self) -> list[Rating]:
-        return list(
-            Rating.objects.select_related(
-                "course_offering__course",
-                "course_offering__semester",
-                "student",
-            ).all()
-        )
+    def __init__(self, mapper: IProcessor[[Rating], RatingDTO]):
+        self.mapper = mapper
 
-    def get_by_id(self, rating_id: str) -> Rating:
+    def get_all(self) -> list[RatingDTO]:
+        ratings = Rating.objects.select_related(
+            "course_offering__course",
+            "course_offering__semester",
+            "student",
+        ).all()
+
+        return self._map_to_domain_models(ratings)
+
+    def get_by_id(self, rating_id: str) -> RatingDTO:
         try:
-            return Rating.objects.select_related(
+            rating = Rating.objects.select_related(
                 "course_offering__course",
                 "course_offering__semester",
                 "student",
@@ -37,8 +47,10 @@ class RatingRepository(IRepository[Rating]):
         except Rating.DoesNotExist as err:
             raise RatingNotFoundError() from err
 
-    def get_by_student_id_course_id(self, student_id: str, course_id: str) -> QuerySet[Rating]:
-        return Rating.objects.select_related(
+        return self._map_to_domain_model(rating)
+
+    def get_by_student_id_course_id(self, student_id: str, course_id: str) -> list[RatingDTO]:
+        ratings = Rating.objects.select_related(
             "course_offering__course",
             "course_offering__semester",
             "student",
@@ -47,8 +59,10 @@ class RatingRepository(IRepository[Rating]):
             course_offering__course_id=course_id,
         )
 
-    def get_or_create(self, create_params: RatingCreateParams) -> tuple[Rating, bool]:
-        return Rating.objects.get_or_create(
+        return self._map_to_domain_models(ratings)
+
+    def get_or_create(self, create_params: RatingCreateParams) -> tuple[RatingDTO, bool]:
+        rating, created = Rating.objects.get_or_create(
             student_id=str(create_params.student),
             course_offering_id=str(create_params.course_offering),
             defaults={
@@ -58,6 +72,7 @@ class RatingRepository(IRepository[Rating]):
                 "is_anonymous": create_params.is_anonymous,
             },
         )
+        return self._map_to_domain_model(rating), created
 
     def get_aggregated_course_stats(self, course: Course) -> AggregatedCourseRatingStats:
         aggregates = Rating.objects.filter(course_offering__course=course).aggregate(
@@ -66,9 +81,9 @@ class RatingRepository(IRepository[Rating]):
             ratings_count=Count("id", distinct=True),
         )
         return AggregatedCourseRatingStats(
-            avg_difficulty=aggregates["avg_difficulty"] or 0,
-            avg_usefulness=aggregates["avg_usefulness"] or 0,
-            ratings_count=aggregates["ratings_count"] or 0,
+            avg_difficulty=aggregates.get("avg_difficulty", Decimal(0)),
+            avg_usefulness=aggregates.get("avg_usefulness", Decimal(0)),
+            ratings_count=aggregates.get("ratings_count", 0),
         )
 
     def exists(self, student_id: str, course_offering_id: str) -> bool:
@@ -80,33 +95,18 @@ class RatingRepository(IRepository[Rating]):
     def filter(
         self,
         criteria: RatingFilterCriteria,
-    ) -> QuerySet[Rating]:
-        # find a cleaner way to do this
-        filters = criteria.model_dump(
-            exclude_none=True, exclude={"page", "page_size", "separate_current_user", "viewer_id"}
-        )
-
-        if "course_id" in filters:
-            filters["course_offering__course_id"] = filters.pop("course_id")
-
-        ratings = (
-            Rating.objects.select_related(
-                "course_offering__course",
-                "course_offering__semester",
-                "student",
-            )
-            .filter(**filters)
-            .order_by("-created_at")
-        )
+    ) -> list[RatingDTO]:
+        ratings = self._build_base_queryset()
+        ratings = self._apply_filters(ratings, criteria).order_by("-created_at")
 
         if criteria.separate_current_user is not None:
             ratings = ratings.exclude(student_id=str(criteria.separate_current_user))
 
-        return ratings
+        return self._map_to_domain_models(ratings)
 
-    def create(self, create_params: RatingCreateParams) -> Rating:
+    def create(self, create_params: RatingCreateParams) -> RatingDTO:
         try:
-            return Rating.objects.create(
+            rating = Rating.objects.create(
                 student_id=str(create_params.student),
                 course_offering_id=str(create_params.course_offering),
                 difficulty=create_params.difficulty,
@@ -117,11 +117,14 @@ class RatingRepository(IRepository[Rating]):
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
-    def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> Rating:
+        return self._map_to_domain_model(rating)
+
+    def update(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams) -> RatingDTO:
         is_patch = isinstance(update_data, RatingPatchParams)
         update_data_map = update_data.model_dump(exclude_unset=is_patch)
 
-        if "comment" in update_data_map and update_data_map["comment"] is None:
+        # TODO: find a cleaner way to do this validation
+        if update_data_map.get("comment") is None:
             update_data_map["comment"] = ""
 
         for attr, value in update_data_map.items():
@@ -139,12 +142,48 @@ class RatingRepository(IRepository[Rating]):
             updated_fields=list(update_data_map.keys()),
         )
 
-        return rating
+        return self._map_to_domain_model(rating)
 
-    def delete(self, rating: Rating) -> None:
-        rating.delete()
+    def delete(self, rating: RatingDTO) -> None:
+        rating_model = self._get_by_id_shallow(str(rating.id))
+        rating_model.delete()
         logger.info(
             "rating_deleted",
             rating_id=rating.id,
-            student_id=str(rating.student.id),  # type: ignore
+            student_id=str(rating_model.student.id),
         )
+
+    def _map_to_domain_models(self, models: QuerySet[Rating]) -> list[RatingDTO]:
+        return [self._map_to_domain_model(model) for model in models]
+
+    def _map_to_domain_model(self, model: Rating) -> RatingDTO:
+        return self.mapper.process(model)
+
+    def _build_query_filters(self, criteria: RatingFilterCriteria) -> dict[str, Any]:
+        field_mapping = {
+            "course_id": "course_offering__course_id",
+        }
+        query_filters = {}
+        criteria_dict = criteria.model_dump(
+            exclude_none=True, exclude={"page", "page_size", "separate_current_user", "viewer_id"}
+        )
+        for field_name, value in criteria_dict.items():
+            orm_field_name = field_mapping.get(field_name, field_name)
+            query_filters[orm_field_name] = value
+        return query_filters
+
+    def _build_base_queryset(self) -> QuerySet[Rating]:
+        return Rating.objects.select_related(
+            "course_offering__course",
+            "course_offering__semester",
+            "student",
+        )
+
+    def _apply_filters(
+        self, queryset: QuerySet[Rating], criteria: RatingFilterCriteria
+    ) -> QuerySet[Rating]:
+        query_filters = self._build_query_filters(criteria)
+        return queryset.filter(**query_filters)
+
+    def _get_by_id_shallow(self, rating_id: str) -> Rating:
+        return Rating.objects.get(pk=rating_id)

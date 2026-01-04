@@ -9,6 +9,7 @@ from ..repositories import (
     EnrollmentRepository,
     FacultyRepository,
     InstructorRepository,
+    RatingMapper,
     RatingRepository,
     RatingVoteRepository,
     SemesterRepository,
@@ -22,6 +23,11 @@ from ..repositories import (
 @once
 def course_mapper() -> CourseMapper:
     return CourseMapper()
+
+
+@once
+def rating_mapper() -> RatingMapper:
+    return RatingMapper()
 
 
 @once
@@ -76,7 +82,7 @@ def enrollment_repository() -> EnrollmentRepository:
 
 @once
 def rating_repository() -> RatingRepository:
-    return RatingRepository()
+    return RatingRepository(mapper=rating_mapper())
 
 
 @once
