@@ -26,3 +26,5 @@ class CourseSpeciality(models.Model):
 
     class Meta:
         unique_together = ("course", "speciality")
+        verbose_name = "Course speciality"
+        verbose_name_plural = "Course specialities"
