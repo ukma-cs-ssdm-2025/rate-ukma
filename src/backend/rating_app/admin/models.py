@@ -175,7 +175,7 @@ class StudentAdmin(VersionAdmin):
         "first_name",
         "patronymic",
         "speciality",
-        "overall_rated_courses",
+        "ratings_count",
         "education_level",
     )
     list_select_related = ("speciality", "user")
