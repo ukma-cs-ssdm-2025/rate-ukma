@@ -8,6 +8,7 @@ from rating_app.ioc_container.repositories import (
     enrollment_repository,
     faculty_repository,
     instructor_repository,
+    rating_mapper,
     rating_repository,
     semester_repository,
     speciality_repository,
@@ -150,11 +151,7 @@ def paginator() -> QuerysetPaginator:
 
 @once
 def pagination_rating_adapter() -> PaginationRatingAdapter:
-    from rating_app.ioc_container.repositories import rating_mapper
-
     return PaginationRatingAdapter(
-        rating_repository=rating_repository(),
-        rating_vote_repository=vote_repository(),
         paginator=paginator(),
         mapper=rating_mapper(),
     )

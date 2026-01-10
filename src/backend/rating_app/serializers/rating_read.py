@@ -58,11 +58,12 @@ class RatingReadSerializer(serializers.ModelSerializer):
         if getattr(obj, "is_anonymous", False):
             return None
 
-        # Try to get from pre-calculated attribute (Pydantic RatingRead)
+        # Try to get from pre-calculated attribute (domain model)
         if hasattr(obj, "student_name"):
             return obj.student_name
 
-        # Try to calculate from student relation (Rating Model)
+        #! TODO: remove coupling with ORM model
+        # Try to calculate from student relation (ORM model)
         student = getattr(obj, "student", None)
         if student:
             return f"{student.last_name} {student.first_name}"

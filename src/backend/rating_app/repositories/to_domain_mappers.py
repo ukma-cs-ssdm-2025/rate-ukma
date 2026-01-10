@@ -106,14 +106,16 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
         return specialities
 
 
-class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
+ViewerId = str
+
+
+# TODO: test theory: viewer ID is not needed for the mapper
+class RatingMapper(IProcessor[[RatingModel, ViewerId | None], RatingDTO]):
     @implements
     def process(
         self,
         model: RatingModel,
-        upvotes: int = 0,
-        downvotes: int = 0,
-        viewer_vote: RatingVoteType | None = None,
+        viewer_id: ViewerId | None = None,
     ) -> RatingDTO:
         student_id = model.student.id if not model.is_anonymous else None
         student_name = (
@@ -121,6 +123,23 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             if not model.is_anonymous
             else None
         )
+
+        # Compute vote counts from prefetched rating_vote
+        upvotes = 0
+        downvotes = 0
+        viewer_vote = None
+
+        if hasattr(model, "rating_vote"):
+            votes = model.rating_vote.all()
+            for vote in votes:
+                if vote.type == RatingVoteType.UPVOTE.value:
+                    upvotes += 1
+                elif vote.type == RatingVoteType.DOWNVOTE.value:
+                    downvotes += 1
+
+                # Check if this is the viewer's vote
+                if viewer_id and str(vote.student.id) == str(viewer_id):
+                    viewer_vote = RatingVoteType(vote.type)
 
         return RatingDTO(
             id=model.id,

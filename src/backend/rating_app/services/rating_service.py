@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener, IObservable
@@ -72,32 +73,23 @@ class RatingService(IObservable[RatingDTO]):
     ) -> RatingSearchResult:
         user_ratings = []
         if filters.separate_current_user is not None and filters.page == 1:  # only fetch once
-            user_ratings_orm = self.rating_repository.get_by_student_id_course_id(
-                student_id=str(filters.separate_current_user),
+            user_ratings = self.rating_repository.get_by_student_id_course_id(
+                student_id=str(filters.viewer_id),
                 course_id=str(filters.course_id),
-            )
-            user_ratings = self.pagination_rating_adapter.map_ratings_with_votes(
-                list(user_ratings_orm), filters.viewer_id
             )
 
         ratings = self.rating_repository.filter(filters)
-
         if paginate:
             return self._paginated_result(ratings, filters, user_ratings)
-
-        items = self.pagination_rating_adapter.map_ratings_with_votes(
-            list(ratings), filters.viewer_id
-        )
 
         applied_filters = filters.model_dump(
             by_alias=True, exclude={"page", "page_size"}, exclude_none=True
         )
-
-        total_count = len(items) + (len(user_ratings) if user_ratings else 0)
+        total_count = len(ratings) + (len(user_ratings) if user_ratings else 0)
 
         return RatingSearchResult(
             items=RatingsWithUserList(
-                ratings=items,
+                ratings=ratings,
                 user_ratings=user_ratings,
             ),
             pagination=self._empty_pagination_metadata(total_count),
@@ -160,9 +152,7 @@ class RatingService(IObservable[RatingDTO]):
         criteria: RatingFilterCriteria,
         user_ratings: list[RatingDTO] | None = None,
     ) -> RatingSearchResult:
-        return self.pagination_rating_adapter.paginate_with_user_ratings(
-            ratings, criteria, user_ratings
-        )
+        return self.pagination_rating_adapter.paginate(ratings, criteria, user_ratings)
 
     def _empty_pagination_metadata(self, ratings_count: int) -> PaginationMetadata:
         return PaginationMetadata(
@@ -188,3 +178,6 @@ class RatingService(IObservable[RatingDTO]):
         comment = "\n".join(lines).strip()
 
         return comment
+
+    def _format_applied_filters(self, filters: RatingFilterCriteria) -> dict[str, Any]:
+        return filters.model_dump(by_alias=True, exclude={"page", "page_size"}, exclude_none=True)

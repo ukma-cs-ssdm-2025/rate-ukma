@@ -21,12 +21,13 @@ from rating_app.application_schemas.rating import (
 from rating_app.exception.rating_exceptions import DuplicateRatingException, RatingNotFoundError
 from rating_app.models import Rating
 from rating_app.repositories.protocol import IRepository
+from rating_app.repositories.to_domain_mappers import ViewerId
 
 logger = structlog.get_logger(__name__)
 
 
 class RatingRepository(IRepository[Rating]):
-    def __init__(self, mapper: IProcessor[[Rating], RatingDTO]):
+    def __init__(self, mapper: IProcessor[[Rating, ViewerId | None], RatingDTO]):
         self.mapper = mapper
 
     def get_all(self) -> list[RatingDTO]:
@@ -93,6 +94,9 @@ class RatingRepository(IRepository[Rating]):
             course_offering_id=course_offering_id,
         ).exists()
 
+    def exclude_user_qs(self, queryset: QuerySet[Rating], user_id: str) -> QuerySet[Rating]:
+        return queryset.exclude(student_id=user_id)
+
     def filter_qs(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
         return self._filter(criteria)
 
@@ -101,6 +105,8 @@ class RatingRepository(IRepository[Rating]):
         criteria: RatingFilterCriteria,
     ) -> list[RatingDTO]:
         ratings = self._filter(criteria)
+        if criteria.separate_current_user is not None:
+            ratings = self.exclude_user_qs(ratings, str(criteria.separate_current_user))
         return self._map_to_domain_models(ratings)
 
     def create(self, create_params: RatingCreateParams) -> RatingDTO:
@@ -119,7 +125,9 @@ class RatingRepository(IRepository[Rating]):
         return self._map_to_domain_model(rating)
 
     def update(
-        self, rating: RatingDTO, update_data: RatingPutParams | RatingPatchParams
+        self,
+        rating: RatingDTO,
+        update_data: RatingPutParams | RatingPatchParams,
     ) -> RatingDTO:
         rating_model = self._get_by_id_shallow(str(rating.id))
         is_patch = isinstance(update_data, RatingPatchParams)
@@ -140,7 +148,7 @@ class RatingRepository(IRepository[Rating]):
         logger.info(
             "rating_partially_updated",
             rating_id=rating.id,
-            student_id=str(rating.student.id),  # type: ignore
+            student_id=str(rating.student_id) if rating.student_id else None,
             updated_fields=list(update_data_map.keys()),
         )
 
@@ -148,11 +156,12 @@ class RatingRepository(IRepository[Rating]):
 
     def delete(self, rating_id: str) -> None:
         rating_model = self._get_by_id_shallow(rating_id)
+        student_id = str(rating_model.student.id) if rating_model.student else None
         rating_model.delete()
         logger.info(
             "rating_deleted",
             rating_id=rating_id,
-            student_id=str(rating_model.student.id),
+            student_id=student_id,
         )
 
     def _filter(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
@@ -164,11 +173,13 @@ class RatingRepository(IRepository[Rating]):
 
         return ratings
 
-    def _map_to_domain_models(self, models: QuerySet[Rating]) -> list[RatingDTO]:
-        return [self._map_to_domain_model(model) for model in models]
+    def _map_to_domain_models(
+        self, models: QuerySet[Rating], viewer_id: str | None = None
+    ) -> list[RatingDTO]:
+        return [self._map_to_domain_model(model, viewer_id) for model in models]
 
-    def _map_to_domain_model(self, model: Rating) -> RatingDTO:
-        return self.mapper.process(model)
+    def _map_to_domain_model(self, model: Rating, viewer_id: str | None = None) -> RatingDTO:
+        return self.mapper.process(model, viewer_id)
 
     def _build_query_filters(self, criteria: RatingFilterCriteria) -> dict[str, Any]:
         field_mapping = {
@@ -188,7 +199,7 @@ class RatingRepository(IRepository[Rating]):
             "course_offering__course",
             "course_offering__semester",
             "student",
-        )
+        ).prefetch_related("rating_vote")
 
     def _apply_filters(
         self, queryset: QuerySet[Rating], criteria: RatingFilterCriteria

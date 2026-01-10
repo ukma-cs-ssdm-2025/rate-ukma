@@ -43,6 +43,7 @@ class RatingFeedbackService(IObservable[RatingVote]):
     def upsert(self, params: RatingVoteCreateSchema) -> tuple[RatingVote, bool]:
         rating = self.rating_repository.get_by_id(params.rating_id)
 
+        # TODO: needs to be updated to use the RatingDTO
         self._assert_student_can_vote_on_rating(rating, params.student_id)
 
         existing = self.vote_repository.get_vote_by_student_and_rating(

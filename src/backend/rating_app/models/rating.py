@@ -4,11 +4,17 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
+from rating_app.models import RatingVote
+
 from .course_offering import CourseOffering
 from .student import Student
 
+# TODO: rename to rating_voteS
+
 
 class Rating(models.Model):
+    rating_vote: models.Manager["RatingVote"]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="ratings")
     course_offering = models.ForeignKey(

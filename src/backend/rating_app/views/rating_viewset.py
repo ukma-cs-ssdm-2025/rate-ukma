@@ -74,8 +74,6 @@ class RatingViewSet(viewsets.ViewSet):
 
             if student:
                 filter_data["viewer_id"] = str(student.id)
-                if query_params.separate_current_user:
-                    filter_data["separate_current_user"] = str(student.id)
 
             filters = RatingFilterCriteria.model_validate(filter_data)
 

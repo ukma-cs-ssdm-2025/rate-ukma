@@ -7,8 +7,8 @@ from rating_app.serializers import (
     CourseListResponseSerializer,
     FilterOptionsSerializer,
     InstructorSerializer,
-    RatingListResponseSerializer,
     RatingReadSerializer,
+    RatingsWithUserListSerializer,
     RatingVoteReadSerializer,
     StudentRatingsDetailedSerializer,
     StudentRatingsLightSerializer,
@@ -105,7 +105,7 @@ R_FILTER_OPTIONS = {
 }
 
 R_RATING_LIST = {
-    200: OpenApiResponse(forced_singular_serializer(RatingListResponseSerializer), "OK"),
+    200: OpenApiResponse(forced_singular_serializer(RatingsWithUserListSerializer), "OK"),
     **common_errors(include_404=True),
 }
 

@@ -88,13 +88,13 @@ class RatingFilterCriteria(BaseModel):
         ge=MIN_PAGE_SIZE,
     )
     course_id: uuid.UUID | None = Field(default=None)
-    separate_current_user: uuid.UUID | None = Field(
-        default=None,
-        description="Separate ratings from this student ID",
+    separate_current_user: bool | None = Field(
+        default=False,
+        description="Separate ratings from current user ones",
     )
     viewer_id: uuid.UUID | None = Field(
         default=None,
-        description="ID of the user viewing the ratings (for vote status)",
+        description="ID of the user requesting the ratings",
     )
 
 
