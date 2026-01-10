@@ -1,10 +1,13 @@
 from django.contrib import admin
+from django.db.models import Count, Q
 
 from reversion.admin import VersionAdmin
 
 from rating_app.models import (
     Course,
+    CourseInstructor,
     CourseOffering,
+    CourseSpeciality,
     Department,
     Enrollment,
     Faculty,
@@ -15,11 +18,13 @@ from rating_app.models import (
     Speciality,
     Student,
 )
+from rating_app.models.choices import RatingVoteType
 
 
 @admin.register(Course)
 class CourseAdmin(VersionAdmin):
     list_display = (
+        "id",
         "title",
         "department",
         "status",
@@ -38,7 +43,7 @@ class CourseAdmin(VersionAdmin):
 
 @admin.register(Faculty)
 class FacultyAdmin(VersionAdmin):
-    list_display = ("name", "custom_abbreviation", "departments_count", "specialities_count")
+    list_display = ("id", "name", "custom_abbreviation", "departments_count", "specialities_count")
     search_fields = ("name", "custom_abbreviation")
     ordering = ("name",)
 
@@ -56,7 +61,7 @@ class FacultyAdmin(VersionAdmin):
 
 @admin.register(Department)
 class DepartmentAdmin(VersionAdmin):
-    list_display = ("name", "faculty", "courses_count")
+    list_display = ("id", "name", "faculty", "courses_count")
     list_select_related = ("faculty",)
     list_filter = ("faculty",)
     search_fields = ("name", "faculty__name")
@@ -72,7 +77,7 @@ class DepartmentAdmin(VersionAdmin):
 
 @admin.register(Speciality)
 class SpecialityAdmin(VersionAdmin):
-    list_display = ("name", "faculty", "alias", "courses_count")
+    list_display = ("id", "name", "faculty", "alias", "courses_count")
     list_select_related = ("faculty",)
     list_filter = ("faculty",)
     search_fields = ("name", "faculty__name")
@@ -89,6 +94,7 @@ class SpecialityAdmin(VersionAdmin):
 @admin.register(CourseOffering)
 class CourseOfferingAdmin(VersionAdmin):
     list_display = (
+        "id",
         "course",
         "semester",
         "credits",
@@ -144,7 +150,7 @@ class InstructorAdmin(VersionAdmin):
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(VersionAdmin):
-    list_display = ("student", "offering", "enrolled_at")
+    list_display = ("id", "student", "offering", "status", "enrolled_at")
     list_select_related = ("student", "offering", "offering__course")
     list_filter = ("offering__course__department", "status", "enrolled_at")
     search_fields = (
@@ -164,13 +170,13 @@ class EnrollmentAdmin(VersionAdmin):
 @admin.register(Student)
 class StudentAdmin(VersionAdmin):
     list_display = (
+        "id",
         "last_name",
         "first_name",
         "patronymic",
-        "education_level",
         "speciality",
-        "overall_rated_courses",
-        "rated_courses_this_sem",
+        "ratings_count",
+        "education_level",
     )
     list_select_related = ("speciality", "user")
     list_filter = ("education_level", "speciality__faculty")
@@ -178,18 +184,33 @@ class StudentAdmin(VersionAdmin):
     ordering = ("last_name", "first_name")
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("speciality", "user")
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("speciality", "user")
+            .annotate(
+                _overall_rated_courses=Count("ratings__course_offering__course", distinct=True),
+            )
+        )
+
+    @admin.display(description="Ratings", ordering="_overall_rated_courses")
+    def ratings_count(self, obj):
+        return obj._overall_rated_courses
 
 
 @admin.register(Rating)
 class RatingAdmin(VersionAdmin):
     list_display = (
+        "id",
         "course_offering",
         "student",
         "difficulty",
         "usefulness",
+        "comment",
         "is_anonymous",
         "created_at",
+        "upvotes_count",
+        "downvotes_count",
     )
     list_select_related = ("student", "course_offering", "course_offering__course")
     list_filter = (
@@ -208,7 +229,7 @@ class RatingAdmin(VersionAdmin):
     readonly_fields = ("created_at",)
 
     def get_queryset(self, request):
-        return (
+        qs = (
             super()
             .get_queryset(request)
             .select_related(
@@ -217,7 +238,28 @@ class RatingAdmin(VersionAdmin):
                 "course_offering__course",
                 "course_offering__course__department",
             )
+            .annotate(
+                _upvotes=Count(
+                    "rating_vote",
+                    filter=Q(rating_vote__type=RatingVoteType.UPVOTE),
+                    distinct=True,
+                ),
+                _downvotes=Count(
+                    "rating_vote",
+                    filter=Q(rating_vote__type=RatingVoteType.DOWNVOTE),
+                    distinct=True,
+                ),
+            )
         )
+        return qs
+
+    @admin.display(description="Upvotes", ordering="_upvotes")
+    def upvotes_count(self, obj):
+        return obj._upvotes
+
+    @admin.display(description="Downvotes", ordering="_downvotes")
+    def downvotes_count(self, obj):
+        return obj._downvotes
 
 
 @admin.register(Semester)
@@ -254,4 +296,53 @@ class RatingVoteAdmin(VersionAdmin):
             super()
             .get_queryset(request)
             .select_related("student", "rating", "rating__course_offering")
+        )
+
+
+@admin.register(CourseInstructor)
+class CourseInstructorAdmin(VersionAdmin):
+    list_display = (
+        "id",
+        "instructor",
+        "course_offering",
+        "role",
+    )
+    list_select_related = ("instructor", "course_offering", "course_offering__course")
+    list_filter = ("role", "course_offering__semester")
+    search_fields = (
+        "instructor__last_name",
+        "instructor__first_name",
+        "course_offering__course__title",
+    )
+    ordering = ("course_offering__course__title", "instructor__last_name")
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("instructor", "course_offering", "course_offering__course")
+        )
+
+
+@admin.register(CourseSpeciality)
+class CourseSpecialityAdmin(VersionAdmin):
+    list_display = (
+        "id",
+        "course",
+        "speciality",
+        "type_kind",
+    )
+    list_select_related = ("course", "speciality", "speciality__faculty")
+    list_filter = ("type_kind", "speciality__faculty")
+    search_fields = (
+        "course__title",
+        "speciality__name",
+    )
+    ordering = ("course__title", "speciality__name")
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("course", "speciality", "speciality__faculty")
         )
