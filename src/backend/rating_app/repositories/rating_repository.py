@@ -118,20 +118,17 @@ class RatingRepository(IRepository[Rating]):
         criteria: RatingFilterCriteria,
         pagination: PaginationFilters | None = None,
     ) -> PaginationResult[RatingDTO] | list[RatingDTO]:
-        queryset = self._filter(criteria)
+        qs = self._filter(criteria)
 
         if pagination is not None:
-            result = self.paginator.process(
-                queryset,
-                filters=pagination,
-            )
+            result = self.paginator.process(qs, pagination)
             dtos = [self.mapper.process(model) for model in result.page_objects]
             return PaginationResult(
                 page_objects=dtos,
                 metadata=result.metadata,
             )
 
-        return self._map_to_domain_models(queryset)
+        return self._map_to_domain_models(qs)
 
     def create(self, create_params: RatingCreateParams) -> RatingDTO:
         try:
