@@ -57,13 +57,14 @@ def require_rating_ownership(func):
         except RatingNotFoundError as exc:
             raise NotFound(detail=str(exc)) from exc
 
-        if rating.student_id != student.id:
+        is_owner: bool = self.rating_service.check_rating_ownership(rating_id, student.id)
+        if not is_owner:
             logger.warning(
                 "permission_denied",
                 action=func.__name__,
                 rating_id=rating_id,
                 student_id=student.id,
-                rating_owner_id=rating.student_id,
+                is_anonymous=rating.is_anonymous,
             )
             raise PermissionDenied(detail="You do not have permission to modify this rating.")
 

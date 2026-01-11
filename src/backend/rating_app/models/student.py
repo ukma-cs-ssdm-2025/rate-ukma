@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 class Student(Person):
     ratings: Manager[Rating]
-    rating_votes: Manager[RatingVote]
+    rating_vote: Manager[RatingVote]
 
     education_level = models.CharField(
         max_length=16,

@@ -1,12 +1,8 @@
-from typing import TypeVar
-
-from pydantic.dataclasses import dataclass
+from dataclasses import dataclass
 
 from rateukma.protocols import IProcessor, implements
 from rating_app.application_schemas.pagination import PaginationMetadata
-from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
-
-T = TypeVar("T")
+from rating_app.constants import DEFAULT_PAGE_SIZE
 
 
 @dataclass
@@ -21,7 +17,7 @@ class PaginationResult[T]:
     metadata: PaginationMetadata
 
 
-class GenericPaginator(IProcessor[[list[T], PaginationFilters | None], PaginationResult[T]]):
+class GenericPaginator[T](IProcessor[[list[T], PaginationFilters | None], PaginationResult[T]]):
     @implements
     def process(
         self, domain_models: list[T], filters: PaginationFilters | None = None
@@ -29,8 +25,11 @@ class GenericPaginator(IProcessor[[list[T], PaginationFilters | None], Paginatio
         if filters is None:
             filters = PaginationFilters()
 
-        page_size = filters.page_size or DEFAULT_COURSE_PAGE_SIZE
+        page_size = filters.page_size or DEFAULT_PAGE_SIZE
         page = filters.page or 1
+        if page < 1:
+            raise ValueError(f"Page must be >= 1, got {page}")
+
         total = len(domain_models)
 
         page_objects = self._get_page_objects(domain_models, page, page_size)

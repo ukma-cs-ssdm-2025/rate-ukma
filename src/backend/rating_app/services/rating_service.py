@@ -69,6 +69,12 @@ class RatingService(IObservable[RatingDTO]):
     def get_rating(self, rating_id: str) -> RatingDTO:
         return self.rating_repository.get_by_id(rating_id)
 
+    def check_rating_ownership(self, rating_id: str, student_id: str) -> bool:
+        author_id = self.rating_repository.get_student_id_by_rating_id(rating_id)
+        if author_id is None:
+            return False
+        return author_id == student_id
+
     def get_aggregated_course_stats(self, course: CourseDTO) -> AggregatedCourseRatingStats:
         return self.rating_repository.get_aggregated_course_stats(course)
 

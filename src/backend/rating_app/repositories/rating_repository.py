@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Any
 
-from django.db import IntegrityError
+from django.db import DataError, IntegrityError
 from django.db.models import Avg, Count, Q, QuerySet
 
 import structlog
@@ -18,7 +18,11 @@ from rating_app.application_schemas.rating import (
 from rating_app.application_schemas.rating import (
     Rating as RatingDTO,
 )
-from rating_app.exception.rating_exceptions import DuplicateRatingException, RatingNotFoundError
+from rating_app.exception.rating_exceptions import (
+    DuplicateRatingException,
+    InvalidRatingIdentifierError,
+    RatingNotFoundError,
+)
 from rating_app.models import Rating
 from rating_app.models.choices import RatingVoteType
 from rating_app.repositories.protocol import IRepository
@@ -48,6 +52,13 @@ class RatingRepository(IRepository[Rating]):
             course_offering__course_id=course_id,
         )
         return self._map_to_domain_models(ratings)
+
+    def get_student_id_by_rating_id(self, rating_id: str) -> str | None:
+        try:
+            rating = Rating.objects.only("student").get(pk=rating_id)
+            return str(rating.student.id)
+        except Rating.DoesNotExist:
+            return None
 
     def get_or_create(self, create_params: RatingCreateParams) -> tuple[RatingDTO, bool]:
         rating, created = Rating.objects.get_or_create(
@@ -193,4 +204,11 @@ class RatingRepository(IRepository[Rating]):
         return queryset.filter(**query_filters)
 
     def _get_by_id_shallow(self, rating_id: str) -> Rating:
-        return Rating.objects.get(pk=rating_id)
+        try:
+            return Rating.objects.get(pk=rating_id)
+        except Rating.DoesNotExist as exc:
+            logger.warning("rating_not_found", rating_id=rating_id, error=str(exc))
+            raise RatingNotFoundError(rating_id) from exc
+        except (ValueError, TypeError, DataError) as exc:
+            logger.warning("invalid_rating_identifier", rating_id=rating_id, error=str(exc))
+            raise InvalidRatingIdentifierError(rating_id) from exc
