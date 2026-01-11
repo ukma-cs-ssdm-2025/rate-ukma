@@ -156,20 +156,8 @@ class RatingCreateRequest(BaseModel):
 
 
 # Internal schema used by service layer (includes student)
-class RatingCreateParams(BaseModel):
-    model_config = {
-        "alias_generator": to_snake,
-        "populate_by_name": True,
-    }
-
-    course_offering: uuid.UUID = Field(description="UUID of the course offering being rated")
+class RatingCreateParams(RatingCreateRequest):
     student: uuid.UUID = Field(description="UUID of the student creating the rating")
-    difficulty: RatingValue = Field()
-    usefulness: RatingValue = Field()
-    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
-        default=None
-    )
-    is_anonymous: bool = Field(default=False)
 
 
 class RatingPutParams(BaseModel):

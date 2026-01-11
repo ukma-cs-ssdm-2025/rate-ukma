@@ -107,21 +107,11 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_CREATE,
     )
     @require_student
-    def create(self, request, student: Student, course_id=None) -> Response:
+    def create(self, request, student: Student) -> Response:
         assert self.rating_service is not None
-        # course_id is not used, will be potentially removed after using a different endpoint
-
-        logger.info(
-            "rating_create_attempt",
-            student_id=str(student.id),
-            request_data=request.data,
-            course_id=course_id,
-        )
 
         try:
-            # Validate the request body without student field
             request_params = RatingCreateRequest.model_validate(request.data)
-            # Build internal params with student from authenticated user
             rating_params = RatingCreateParams.model_validate(
                 {**request_params.model_dump(), "student": student.id}
             )
@@ -129,14 +119,7 @@ class RatingViewSet(viewsets.ViewSet):
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
-        logger.info(
-            "rating_params_validated",
-            student_id=str(rating_params.student),
-            offering_id=str(rating_params.course_offering),
-        )
-
         rating = self.rating_service.create_rating(rating_params)
-
         logger.info(
             "rating_created",
             rating_id=str(rating.id),

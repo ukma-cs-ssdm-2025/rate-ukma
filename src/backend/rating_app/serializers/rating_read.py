@@ -1,62 +1,26 @@
 from rest_framework import serializers
 
-from drf_spectacular.utils import extend_schema_field
-
-from rating_app.models import Rating
 from rating_app.models.choices import RatingVoteType
 
 
-class RatingReadSerializer(serializers.ModelSerializer):
+class RatingReadSerializer(serializers.Serializer):
     """
-    Serializer for reading Rating with privacy protection.
-    Returns null for student_id and student_name when is_anonymous is True.
+    Serializer for reading RatingDTO.
+    Privacy protection (nulling student_id/student_name for anonymous) is handled internally.
     """
 
-    student_id = serializers.SerializerMethodField(read_only=True, required=False)
-    student_name = serializers.SerializerMethodField(read_only=True, required=False)
-    comment = serializers.CharField(required=False, allow_null=True, read_only=True)
-    course = serializers.UUIDField(source="course_offering.course_id", read_only=True)
-    course_offering = serializers.UUIDField(source="course_offering_id", read_only=True)
+    id = serializers.UUIDField(read_only=True)
+    student_id = serializers.UUIDField(read_only=True, allow_null=True)
+    student_name = serializers.CharField(read_only=True, allow_null=True)
+    course_offering = serializers.UUIDField(read_only=True)
+    course = serializers.UUIDField(read_only=True)
+    difficulty = serializers.IntegerField(read_only=True)
+    usefulness = serializers.IntegerField(read_only=True)
+    comment = serializers.CharField(read_only=True, allow_null=True)
+    is_anonymous = serializers.BooleanField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
     upvotes = serializers.IntegerField(read_only=True)
     downvotes = serializers.IntegerField(read_only=True)
-    viewer_vote = serializers.ChoiceField(choices=RatingVoteType.choices, read_only=True)
-
-    class Meta:
-        model = Rating
-        fields = [
-            "id",
-            "student_id",
-            "student_name",
-            "course_offering",
-            "course",
-            "difficulty",
-            "usefulness",
-            "comment",
-            "is_anonymous",
-            "created_at",
-            "upvotes",
-            "downvotes",
-            "viewer_vote",
-        ]
-        read_only_fields = fields
-
-    @extend_schema_field(serializers.UUIDField(allow_null=True))
-    def get_student_id(self, obj):
-        if isinstance(obj, str | bytes):
-            return obj
-
-        if getattr(obj, "is_anonymous", False):
-            return None
-
-        # Try to get from student_id attribute (Model FK or Pydantic field)
-        return getattr(obj, "student_id", None)
-
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_student_name(self, obj):
-        if getattr(obj, "is_anonymous", False):
-            return None
-
-        if hasattr(obj, "student_name"):
-            return obj.student_name
-
-        return None
+    viewer_vote = serializers.ChoiceField(
+        choices=RatingVoteType.choices, read_only=True, allow_null=True
+    )

@@ -2372,8 +2372,8 @@ components:
     RatingRead:
       type: object
       description: |-
-        Serializer for reading Rating with privacy protection.
-        Returns null for student_id and student_name when is_anonymous is True.
+        Serializer for reading RatingDTO.
+        Privacy protection (nulling student_id/student_name for anonymous) is handled internally.
       properties:
         id:
           type: string
@@ -2382,12 +2382,12 @@ components:
         student_id:
           type: string
           format: uuid
-          nullable: true
           readOnly: true
+          nullable: true
         student_name:
           type: string
-          nullable: true
           readOnly: true
+          nullable: true
         course_offering:
           type: string
           format: uuid
@@ -2423,6 +2423,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/RatingVoteType'
           readOnly: true
+          nullable: true
     RatingVoteCreateRequest:
       properties:
         vote_type:
