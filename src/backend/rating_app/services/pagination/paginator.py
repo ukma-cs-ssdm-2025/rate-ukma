@@ -54,4 +54,6 @@ class GenericPaginator(IProcessor[[list[T], PaginationFilters | None], Paginatio
         return domain_models[start_idx:end_idx]
 
     def _calculate_total_pages(self, total: int, page_size: int) -> int:
+        if page_size == 0:
+            return 0
         return (total + page_size - 1) // page_size
