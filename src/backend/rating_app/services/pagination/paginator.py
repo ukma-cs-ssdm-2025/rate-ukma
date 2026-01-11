@@ -1,12 +1,12 @@
-# TODO: add static typing for domain_models
-
-from typing import Any
+from typing import TypeVar
 
 from pydantic.dataclasses import dataclass
 
 from rateukma.protocols import IProcessor, implements
 from rating_app.application_schemas.pagination import PaginationMetadata
 from rating_app.constants import DEFAULT_COURSE_PAGE_SIZE
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -16,16 +16,16 @@ class PaginationFilters:
 
 
 @dataclass
-class PaginationResult:
-    page_objects: list[Any]
+class PaginationResult[T]:
+    page_objects: list[T]
     metadata: PaginationMetadata
 
 
-class DomainModelPaginator(IProcessor[[list[Any], PaginationFilters | None], PaginationResult]):
+class GenericPaginator(IProcessor[[list[T], PaginationFilters | None], PaginationResult[T]]):
     @implements
     def process(
-        self, domain_models: list[Any], filters: PaginationFilters | None = None
-    ) -> PaginationResult:
+        self, domain_models: list[T], filters: PaginationFilters | None = None
+    ) -> PaginationResult[T]:
         if filters is None:
             filters = PaginationFilters()
 
@@ -48,7 +48,7 @@ class DomainModelPaginator(IProcessor[[list[Any], PaginationFilters | None], Pag
             metadata=metadata,
         )
 
-    def _get_page_objects(self, domain_models: list[Any], page: int, page_size: int) -> list[Any]:
+    def _get_page_objects(self, domain_models: list[T], page: int, page_size: int) -> list[T]:
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
         return domain_models[start_idx:end_idx]

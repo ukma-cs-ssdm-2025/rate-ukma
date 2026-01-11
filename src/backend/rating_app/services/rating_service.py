@@ -1,6 +1,5 @@
 import re
 from datetime import datetime
-from decimal import Decimal
 from typing import Any
 
 import structlog
@@ -31,7 +30,7 @@ from rating_app.models.choices import RatingVoteType
 from rating_app.repositories import EnrollmentRepository, RatingRepository, RatingVoteRepository
 from rating_app.services.course_offering_service import CourseOfferingService
 from rating_app.services.pagination.paginator import (
-    DomainModelPaginator,
+    GenericPaginator,
     PaginationFilters,
     PaginationResult,
 )
@@ -47,7 +46,7 @@ class RatingService(IObservable[RatingDTO]):
         enrollment_repository: EnrollmentRepository,
         course_offering_service: CourseOfferingService,
         semester_service: SemesterService,
-        paginator: DomainModelPaginator,
+        paginator: GenericPaginator[RatingDTO],
         vote_repository: RatingVoteRepository,
     ):
         self.rating_repository = rating_repository
@@ -69,10 +68,6 @@ class RatingService(IObservable[RatingDTO]):
 
     def get_rating(self, rating_id: str) -> RatingDTO:
         return self.rating_repository.get_by_id(rating_id)
-
-    # TODO: this method does not belong to the rating service (?)
-    def get_avg_difficulty(self, course: CourseDTO) -> Decimal | None:
-        return course.avg_difficulty
 
     def get_aggregated_course_stats(self, course: CourseDTO) -> AggregatedCourseRatingStats:
         return self.rating_repository.get_aggregated_course_stats(course)
@@ -174,7 +169,7 @@ class RatingService(IObservable[RatingDTO]):
         self,
         ratings: list[RatingDTO],
         criteria: RatingFilterCriteria,
-    ) -> PaginationResult:
+    ) -> PaginationResult[RatingDTO]:
         pagination_filters = PaginationFilters(page=criteria.page, page_size=criteria.page_size)
         pagination_result = self.paginator.process(ratings, pagination_filters)
         return pagination_result

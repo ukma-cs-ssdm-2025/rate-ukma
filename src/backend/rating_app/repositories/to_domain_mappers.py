@@ -6,7 +6,7 @@ from rating_app.application_schemas.course import CourseSpeciality
 from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.exception.course_exceptions import CourseMissingDepartmentOrFacultyError
 from rating_app.models import Course
-from rating_app.models.choices import CourseStatus, CourseTypeKind, RatingVoteType
+from rating_app.models.choices import CourseStatus, CourseTypeKind
 from rating_app.models.rating import Rating as RatingModel
 
 logger = structlog.get_logger(__name__)
@@ -116,7 +116,9 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             else None
         )
 
-        upvotes, downvotes = self._count_votes(model)
+        # annotated fields from ORM queryset
+        upvotes = getattr(model, "upvotes_count", 0)
+        downvotes = getattr(model, "downvotes_count", 0)
 
         return RatingDTO(
             id=model.id,
@@ -134,13 +136,3 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             downvotes=downvotes,
             viewer_vote=None,  # set by service layer based on viewer context
         )
-
-    def _count_votes(self, model: RatingModel) -> tuple[int, int]:
-        upvotes = 0
-        downvotes = 0
-
-        # no additional queries if prefetch_related was used
-        upvotes = model.rating_vote.filter(type=RatingVoteType.UPVOTE).count()
-        downvotes = model.rating_vote.filter(type=RatingVoteType.DOWNVOTE).count()
-
-        return upvotes, downvotes

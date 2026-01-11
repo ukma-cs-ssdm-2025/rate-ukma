@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Any
 
 from django.db import IntegrityError
-from django.db.models import Avg, Count, QuerySet
+from django.db.models import Avg, Count, Q, QuerySet
 
 import structlog
 
@@ -20,6 +20,7 @@ from rating_app.application_schemas.rating import (
 )
 from rating_app.exception.rating_exceptions import DuplicateRatingException, RatingNotFoundError
 from rating_app.models import Rating
+from rating_app.models.choices import RatingVoteType
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
@@ -178,7 +179,12 @@ class RatingRepository(IRepository[Rating]):
             "course_offering__course",
             "course_offering__semester",
             "student",
-        ).prefetch_related("rating_vote")  # TODO: will be renamed to rating_votes
+        ).annotate(
+            upvotes_count=Count("rating_vote", filter=Q(rating_vote__type=RatingVoteType.UPVOTE)),
+            downvotes_count=Count(
+                "rating_vote", filter=Q(rating_vote__type=RatingVoteType.DOWNVOTE)
+            ),
+        )
 
     def _apply_filters(
         self, queryset: QuerySet[Rating], criteria: RatingFilterCriteria
