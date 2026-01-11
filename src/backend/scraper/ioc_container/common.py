@@ -1,3 +1,4 @@
+from rateukma.caching.instances import redis_cache_manager
 from rating_app.ioc_container.repositories import (
     course_instructor_repository,
     course_offering_repository,
@@ -36,6 +37,7 @@ def course_db_injector() -> CourseDbInjector:
         enrollment_repository(),
         injection_progress_tracker(),
         student_service(),
+        redis_cache_manager(),
     )
 
 

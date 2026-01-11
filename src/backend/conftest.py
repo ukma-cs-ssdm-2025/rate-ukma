@@ -4,6 +4,7 @@ from rest_framework.test import APIClient
 import pytest
 from faker import Faker
 
+from rateukma.caching.cache_manager import InMemoryCacheManager
 from rating_app.tests.factories import (
     CourseFactory,
     CourseInstructorFactory,
@@ -145,29 +146,14 @@ def vote_factory():
     return RatingVoteFactory
 
 
-# Cache mocking fixtures
-class FakeCacheManager:
-    def __init__(self):
-        self.store = {}
-
-    def get(self, key):
-        return self.store.get(key)
-
-    def set(self, key, value, ttl=None):
-        self.store[key] = value
-
-    def invalidate_pattern(self, pattern):
-        keys_to_remove = [k for k in self.store.keys() if pattern.replace("*", "") in k]
-        for key in keys_to_remove:
-            del self.store[key]
-        return len(keys_to_remove)
-
-
 @pytest.fixture(autouse=True)
-def fake_cache(monkeypatch):
-    fake = FakeCacheManager()
+def mock_cache_manager(monkeypatch):
+    cache = InMemoryCacheManager()
 
-    monkeypatch.setattr("rateukma.caching.decorators.redis_cache_manager", lambda: fake)
-    monkeypatch.setattr("rateukma.caching.instances.redis_cache_manager", lambda: fake)
+    monkeypatch.setattr("rateukma.caching.decorators.redis_cache_manager", lambda: cache)
+    monkeypatch.setattr("rateukma.caching.instances.redis_cache_manager", lambda: cache)
+    monkeypatch.setattr("rating_app.ioc_container.services.redis_cache_manager", lambda: cache)
 
-    yield fake
+    yield cache
+
+    cache.clear()
