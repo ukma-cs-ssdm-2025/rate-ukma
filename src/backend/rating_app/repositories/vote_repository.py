@@ -27,8 +27,8 @@ class RatingVoteRepository(IRepository[RatingVote]):
             RatingVote.objects.filter(rating_id__in=rating_ids)
             .values("rating_id")
             .annotate(
-                upvotes=Count("id", filter=Q(type=RatingVoteType.UPVOTE.value)),
-                downvotes=Count("id", filter=Q(type=RatingVoteType.DOWNVOTE.value)),
+                upvotes=Count("id", filter=Q(type=RatingVoteType.UPVOTE)),
+                downvotes=Count("id", filter=Q(type=RatingVoteType.DOWNVOTE)),
             )
         )
 
@@ -45,7 +45,7 @@ class RatingVoteRepository(IRepository[RatingVote]):
 
     def get_viewer_votes_by_rating_ids(
         self, student_id: str, rating_ids: list[str]
-    ) -> dict[str, str]:
+    ) -> dict[str, int]:
         qs = RatingVote.objects.filter(student_id=student_id, rating_id__in=rating_ids).values_list(
             "rating_id", "type"
         )

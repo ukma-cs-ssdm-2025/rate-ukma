@@ -139,11 +139,8 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
         upvotes = 0
         downvotes = 0
 
-        # no additional query if prefetch_related was used
-        for vote in model.rating_vote.all():
-            if vote.type == RatingVoteType.UPVOTE.value:
-                upvotes += 1
-            elif vote.type == RatingVoteType.DOWNVOTE.value:
-                downvotes += 1
+        # no additional queries if prefetch_related was used
+        upvotes = model.rating_vote.filter(type=RatingVoteType.UPVOTE).count()
+        downvotes = model.rating_vote.filter(type=RatingVoteType.DOWNVOTE).count()
 
         return upvotes, downvotes

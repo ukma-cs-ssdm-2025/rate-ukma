@@ -1,5 +1,5 @@
 import { formatDate } from "@/features/courses/courseFormatting";
-import type { RatingRead } from "@/lib/api/generated";
+import type { RatingRead, RatingVoteType } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingComment } from "./RatingComment";
 import { RatingStats } from "./RatingStats";
@@ -23,7 +23,7 @@ export function RatingCard({
 	// Use values from rating if available, otherwise use defaults for placeholder
 	const upvotes = rating.upvotes ?? 0;
 	const downvotes = rating.downvotes ?? 0;
-	const viewerVote = rating.viewer_vote ?? null;
+	const viewerVote = rating.viewer_vote as RatingVoteType | null;
 
 	return (
 		<article

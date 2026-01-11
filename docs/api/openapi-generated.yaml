@@ -880,7 +880,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RatingListResponse'
+                $ref: '#/components/schemas/RatingsWithUserList'
           description: OK
         '400':
           content:
@@ -2344,39 +2344,6 @@ components:
       - usefulness
       title: RatingCreateRequest
       type: object
-    RatingListResponse:
-      type: object
-      properties:
-        items:
-          $ref: '#/components/schemas/InlineRatingsItems'
-        filters:
-          type: object
-          additionalProperties: {}
-        page:
-          type: integer
-        page_size:
-          type: integer
-        total:
-          type: integer
-        total_pages:
-          type: integer
-        next_page:
-          type: integer
-          minimum: 1
-          nullable: true
-        previous_page:
-          type: integer
-          minimum: 1
-          nullable: true
-      required:
-      - filters
-      - items
-      - next_page
-      - page
-      - page_size
-      - previous_page
-      - total
-      - total_pages
     RatingPutParams:
       properties:
         difficulty:
@@ -2454,9 +2421,8 @@ components:
           readOnly: true
         viewer_vote:
           allOf:
-          - $ref: '#/components/schemas/ViewerVoteEnum'
+          - $ref: '#/components/schemas/RatingVoteType'
           readOnly: true
-          nullable: true
     RatingVoteCreateRequest:
       properties:
         vote_type:
@@ -2482,14 +2448,48 @@ components:
           format: uuid
           readOnly: true
         vote_type:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/RatingVoteType'
           readOnly: true
     RatingVoteType:
       enum:
-      - UPVOTE
-      - DOWNVOTE
+      - -1
+      - 1
       title: RatingVoteType
-      type: string
+      type: integer
+    RatingsWithUserList:
+      type: object
+      properties:
+        items:
+          $ref: '#/components/schemas/InlineRatingsItems'
+        filters:
+          type: object
+          additionalProperties: {}
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - filters
+      - items
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - total
+      - total_pages
     SemesterTermOption:
       type: object
       properties:
@@ -2615,14 +2615,6 @@ components:
         * `COMPULSORY` - Compulsory
         * `ELECTIVE` - Elective
         * `PROF_ORIENTED` - ProfOriented
-    ViewerVoteEnum:
-      enum:
-      - UPVOTE
-      - DOWNVOTE
-      type: string
-      description: |-
-        * `UPVOTE` - Upvote
-        * `DOWNVOTE` - Downvote
   securitySchemes:
     cookieAuth:
       type: apiKey

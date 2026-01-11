@@ -19,9 +19,7 @@ class RatingReadSerializer(serializers.ModelSerializer):
     course_offering = serializers.UUIDField(source="course_offering_id", read_only=True)
     upvotes = serializers.IntegerField(read_only=True)
     downvotes = serializers.IntegerField(read_only=True)
-    viewer_vote = serializers.ChoiceField(
-        choices=RatingVoteType.choices, allow_null=True, read_only=True
-    )
+    viewer_vote = serializers.ChoiceField(choices=RatingVoteType.choices, read_only=True)
 
     class Meta:
         model = Rating
@@ -58,14 +56,7 @@ class RatingReadSerializer(serializers.ModelSerializer):
         if getattr(obj, "is_anonymous", False):
             return None
 
-        # Try to get from pre-calculated attribute (domain model)
         if hasattr(obj, "student_name"):
             return obj.student_name
-
-        #! TODO: remove coupling with ORM model
-        # Try to calculate from student relation (ORM model)
-        student = getattr(obj, "student", None)
-        if student:
-            return f"{student.last_name} {student.first_name}"
 
         return None
