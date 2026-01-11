@@ -8,7 +8,6 @@ from rating_app.ioc_container.repositories import (
     enrollment_repository,
     faculty_repository,
     instructor_repository,
-    rating_mapper,
     rating_repository,
     semester_repository,
     speciality_repository,
@@ -36,9 +35,19 @@ from rating_app.services.domain_event_listeners.cache_invalidator import (
     RatingCacheInvalidator,
     RatingVoteCacheInvalidator,
 )
+from rating_app.services.pagination.paginator import DomainModelPaginator
 from rating_app.services.pagination_course_adapter import PaginationCourseAdapter
-from rating_app.services.pagination_rating_adapter import PaginationRatingAdapter
 from rating_app.services.paginator import QuerysetPaginator
+
+
+@once
+def domain_model_paginator() -> DomainModelPaginator:
+    return DomainModelPaginator()
+
+
+@once
+def paginator() -> QuerysetPaginator:
+    return QuerysetPaginator()
 
 
 @once
@@ -90,7 +99,8 @@ def rating_service() -> RatingService:
         enrollment_repository=enrollment_repository(),
         course_offering_service=course_offering_service(),
         semester_service=semester_service(),
-        pagination_rating_adapter=pagination_rating_adapter(),
+        paginator=domain_model_paginator(),
+        vote_repository=vote_repository(),
     )
 
 
@@ -132,29 +142,14 @@ def course_offering_service() -> CourseOfferingService:
 def vote_service() -> RatingFeedbackService:
     return RatingFeedbackService(
         vote_repository=vote_repository(),
-        student_repository=student_repository(),
         enrollment_repository=enrollment_repository(),
         rating_repository=rating_repository(),
-        course_offering_repository=course_offering_repository(),
     )
 
 
 @once
 def rating_vote_cache_invalidator() -> RatingVoteCacheInvalidator:
     return RatingVoteCacheInvalidator(cache_manager=redis_cache_manager())
-
-
-@once
-def paginator() -> QuerysetPaginator:
-    return QuerysetPaginator()
-
-
-@once
-def pagination_rating_adapter() -> PaginationRatingAdapter:
-    return PaginationRatingAdapter(
-        paginator=paginator(),
-        mapper=rating_mapper(),
-    )
 
 
 def register_observers() -> None:

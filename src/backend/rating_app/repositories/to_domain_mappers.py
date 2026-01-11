@@ -106,17 +106,9 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
         return specialities
 
 
-ViewerId = str
-
-
-# TODO: test theory: viewer ID is not needed for the mapper
-class RatingMapper(IProcessor[[RatingModel, ViewerId | None], RatingDTO]):
+class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
     @implements
-    def process(
-        self,
-        model: RatingModel,
-        viewer_id: ViewerId | None = None,
-    ) -> RatingDTO:
+    def process(self, model: RatingModel) -> RatingDTO:
         student_id = model.student.id if not model.is_anonymous else None
         student_name = (
             f"{model.student.last_name} {model.student.first_name}"
@@ -124,22 +116,7 @@ class RatingMapper(IProcessor[[RatingModel, ViewerId | None], RatingDTO]):
             else None
         )
 
-        # Compute vote counts from prefetched rating_vote
-        upvotes = 0
-        downvotes = 0
-        viewer_vote = None
-
-        if hasattr(model, "rating_vote"):
-            votes = model.rating_vote.all()
-            for vote in votes:
-                if vote.type == RatingVoteType.UPVOTE.value:
-                    upvotes += 1
-                elif vote.type == RatingVoteType.DOWNVOTE.value:
-                    downvotes += 1
-
-                # Check if this is the viewer's vote
-                if viewer_id and str(vote.student.id) == str(viewer_id):
-                    viewer_vote = RatingVoteType(vote.type)
+        upvotes, downvotes = self._count_votes(model)
 
         return RatingDTO(
             id=model.id,
@@ -155,5 +132,18 @@ class RatingMapper(IProcessor[[RatingModel, ViewerId | None], RatingDTO]):
             created_at=model.created_at,
             upvotes=upvotes,
             downvotes=downvotes,
-            viewer_vote=viewer_vote,
+            viewer_vote=None,  # set by service layer based on viewer context
         )
+
+    def _count_votes(self, model: RatingModel) -> tuple[int, int]:
+        upvotes = 0
+        downvotes = 0
+
+        # no additional query if prefetch_related was used
+        for vote in model.rating_vote.all():
+            if vote.type == RatingVoteType.UPVOTE.value:
+                upvotes += 1
+            elif vote.type == RatingVoteType.DOWNVOTE.value:
+                downvotes += 1
+
+        return upvotes, downvotes

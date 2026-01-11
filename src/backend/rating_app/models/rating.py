@@ -1,19 +1,22 @@
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
-
-from rating_app.models import RatingVote
+from django.db.models.manager import Manager
 
 from .course_offering import CourseOffering
 from .student import Student
 
-# TODO: rename to rating_voteS
+if TYPE_CHECKING:
+    from .rating_vote import RatingVote
 
 
 class Rating(models.Model):
-    rating_vote: models.Manager["RatingVote"]
+    rating_vote: Manager[RatingVote]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="ratings")
