@@ -4,6 +4,7 @@ from typing import Any
 
 import structlog
 
+from rateukma.caching.decorators import rcached
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener, IObservable
 from rating_app.application_schemas.course import Course as CourseDTO
@@ -71,6 +72,7 @@ class RatingService(IObservable[RatingDTO]):
     def get_aggregated_course_stats(self, course: CourseDTO) -> AggregatedCourseRatingStats:
         return self.rating_repository.get_aggregated_course_stats(course)
 
+    @rcached(ttl=300)
     def filter_ratings(
         self,
         filters: RatingFilterCriteria,
