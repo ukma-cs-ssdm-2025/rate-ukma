@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from django.apps import apps
 from django.conf import settings
 from django.db import models
 from django.db.models.manager import Manager
@@ -13,12 +14,11 @@ from .person import Person
 if TYPE_CHECKING:
     from .rating import Rating
     from .rating_vote import RatingVote
-    from .semester import Semester
 
 
 class Student(Person):
     ratings: Manager[Rating]
-    rating_vote: Manager[RatingVote]
+    rating_votes: Manager[RatingVote]
 
     education_level = models.CharField(
         max_length=16,
@@ -75,7 +75,8 @@ class Student(Person):
         )
 
     def _rating_qs(self):
-        return Rating.objects.filter(student=self)
+        return self.ratings.all()
 
     def _latest_semester(self):
+        Semester = apps.get_model("rating_app", "Semester")
         return Semester.objects.order_by("-year", "-term").first()
