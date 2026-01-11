@@ -1,4 +1,5 @@
 from rateukma.ioc.decorators import once
+from rating_app.pagination import GenericQuerysetPaginator
 
 from ..repositories import (
     CourseInstructorRepository,
@@ -82,7 +83,10 @@ def enrollment_repository() -> EnrollmentRepository:
 
 @once
 def rating_repository() -> RatingRepository:
-    return RatingRepository(mapper=rating_mapper())
+    return RatingRepository(
+        mapper=rating_mapper(),
+        paginator=GenericQuerysetPaginator(),
+    )
 
 
 @once

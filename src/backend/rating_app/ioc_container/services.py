@@ -1,6 +1,5 @@
 from rateukma.caching.instances import redis_cache_manager
 from rateukma.ioc.decorators import once
-from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.ioc_container.repositories import (
     course_mapper,
     course_offering_repository,
@@ -36,7 +35,6 @@ from rating_app.services.domain_event_listeners.cache_invalidator import (
     RatingCacheInvalidator,
     RatingVoteCacheInvalidator,
 )
-from rating_app.services.pagination.paginator import GenericPaginator
 from rating_app.services.pagination_course_adapter import PaginationCourseAdapter
 from rating_app.services.paginator import QuerysetPaginator
 
@@ -90,14 +88,11 @@ def course_service() -> CourseService:
 
 @once
 def rating_service() -> RatingService:
-    paginator = GenericPaginator[RatingDTO]()
-
     return RatingService(
         rating_repository=rating_repository(),
         enrollment_repository=enrollment_repository(),
         course_offering_service=course_offering_service(),
         semester_service=semester_service(),
-        paginator=paginator,
         vote_repository=vote_repository(),
     )
 

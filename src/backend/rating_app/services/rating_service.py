@@ -7,7 +7,7 @@ import structlog
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener, IObservable
 from rating_app.application_schemas.course import Course as CourseDTO
-from rating_app.application_schemas.pagination import PaginationMetadata
+from rating_app.application_schemas.pagination import PaginationFilters, PaginationMetadata
 from rating_app.application_schemas.rating import (
     AggregatedCourseRatingStats,
     RatingCreateParams,
@@ -29,11 +29,6 @@ from rating_app.models import Semester
 from rating_app.models.choices import RatingVoteType
 from rating_app.repositories import EnrollmentRepository, RatingRepository, RatingVoteRepository
 from rating_app.services.course_offering_service import CourseOfferingService
-from rating_app.services.pagination.paginator import (
-    GenericPaginator,
-    PaginationFilters,
-    PaginationResult,
-)
 from rating_app.services.semester_service import SemesterService
 
 logger = structlog.get_logger(__name__)
@@ -46,14 +41,12 @@ class RatingService(IObservable[RatingDTO]):
         enrollment_repository: EnrollmentRepository,
         course_offering_service: CourseOfferingService,
         semester_service: SemesterService,
-        paginator: GenericPaginator[RatingDTO],
         vote_repository: RatingVoteRepository,
     ):
         self.rating_repository = rating_repository
         self.enrollment_repository = enrollment_repository
         self.course_offering_service = course_offering_service
         self.semester_service = semester_service
-        self.paginator = paginator
         self.vote_repository = vote_repository
         self._listeners: list[IEventListener[RatingDTO]] = []
 
@@ -83,27 +76,26 @@ class RatingService(IObservable[RatingDTO]):
         filters: RatingFilterCriteria,
         paginate: bool = True,
     ) -> RatingSearchResult:
-        # TODO: refactor with cleaner code
+        # TODO: refactor to have cleaner logic
+
         user_ratings: list[RatingDTO] | None = None
-        if filters.separate_current_user and filters.page == 1:  # only fetch once
+        if filters.separate_current_user and filters.page == 1:
             user_ratings = self.rating_repository.get_by_student_id_course_id(
                 student_id=str(filters.viewer_id),
                 course_id=str(filters.course_id),
             )
 
-        # exclusion of user ratings happens here with filters passed
-        ratings = self.rating_repository.filter(filters)
-        applied_filters = filters.model_dump(
-            by_alias=True, exclude={"page", "page_size"}, exclude_none=True
-        )
-
         if paginate:
-            pagination_result = self._paginate(ratings, filters)
+            pagination_filters = PaginationFilters(
+                page=filters.page,
+                page_size=filters.page_size,
+            )
+            pagination_result = self.rating_repository.filter(filters, pagination_filters)
             ratings = pagination_result.page_objects
             metadata = pagination_result.metadata
         else:
-            total_count = len(ratings)
-            metadata = self._empty_pagination_metadata(total_count)
+            ratings = self.rating_repository.filter(filters)
+            metadata = self._create_single_page_metadata(len(ratings))
 
         if user_ratings:
             metadata = metadata.model_copy(update={"total": metadata.total + len(user_ratings)})
@@ -112,6 +104,8 @@ class RatingService(IObservable[RatingDTO]):
             all_ratings = ratings + (user_ratings or [])
             self._enrich_with_viewer_votes(all_ratings, str(filters.viewer_id))
 
+        applied_filters = self._format_applied_filters(filters)
+
         return RatingSearchResult(
             items=RatingsWithUserList(
                 ratings=ratings,
@@ -119,6 +113,14 @@ class RatingService(IObservable[RatingDTO]):
             ),
             pagination=metadata,
             applied_filters=applied_filters,
+        )
+
+    def _create_single_page_metadata(self, total: int) -> PaginationMetadata:
+        return PaginationMetadata(
+            page=1,
+            page_size=total,
+            total=total,
+            total_pages=1,
         )
 
     def create_rating(self, params: RatingCreateParams) -> RatingDTO:
@@ -171,23 +173,6 @@ class RatingService(IObservable[RatingDTO]):
             semester, current_semester
         ) or self.semester_service.is_midpoint(semester, current_date)
 
-    def _paginate(
-        self,
-        ratings: list[RatingDTO],
-        criteria: RatingFilterCriteria,
-    ) -> PaginationResult[RatingDTO]:
-        pagination_filters = PaginationFilters(page=criteria.page, page_size=criteria.page_size)
-        pagination_result = self.paginator.process(ratings, pagination_filters)
-        return pagination_result
-
-    def _empty_pagination_metadata(self, ratings_count: int) -> PaginationMetadata:
-        return PaginationMetadata(
-            total=ratings_count,
-            page=1,
-            page_size=ratings_count,
-            total_pages=1,
-        )
-
     @staticmethod
     def _normalize_comment(comment: str | None) -> str | None:
         if not comment or comment == "":
@@ -205,9 +190,6 @@ class RatingService(IObservable[RatingDTO]):
 
         return comment
 
-    def _format_applied_filters(self, filters: RatingFilterCriteria) -> dict[str, Any]:
-        return filters.model_dump(by_alias=True, exclude={"page", "page_size"}, exclude_none=True)
-
     def _enrich_with_viewer_votes(self, ratings: list[RatingDTO], viewer_id: str) -> None:
         if not ratings:
             return
@@ -221,3 +203,6 @@ class RatingService(IObservable[RatingDTO]):
             vote_type = viewer_votes.get(str(rating.id))
             if vote_type:
                 rating.viewer_vote = RatingVoteType(vote_type)
+
+    def _format_applied_filters(self, filters: RatingFilterCriteria) -> dict[str, Any]:
+        return filters.model_dump(by_alias=True, exclude={"page", "page_size"}, exclude_none=True)

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any
+from typing import Any, overload
 
 from django.db import DataError, IntegrityError
 from django.db.models import Avg, Count, Q, QuerySet
@@ -8,6 +8,7 @@ import structlog
 
 from rateukma.protocols import IProcessor
 from rating_app.application_schemas.course import Course as CourseDTO
+from rating_app.application_schemas.pagination import PaginationFilters, PaginationResult
 from rating_app.application_schemas.rating import (
     AggregatedCourseRatingStats,
     RatingCreateParams,
@@ -25,14 +26,20 @@ from rating_app.exception.rating_exceptions import (
 )
 from rating_app.models import Rating
 from rating_app.models.choices import RatingVoteType
+from rating_app.pagination import GenericQuerysetPaginator
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
 
 
 class RatingRepository(IRepository[Rating]):
-    def __init__(self, mapper: IProcessor[[Rating], RatingDTO]):
+    def __init__(
+        self,
+        mapper: IProcessor[[Rating], RatingDTO],
+        paginator: GenericQuerysetPaginator[Rating],
+    ):
         self.mapper = mapper
+        self.paginator = paginator
 
     def get_all(self) -> list[RatingDTO]:
         ratings = self._build_base_queryset().all()
@@ -93,15 +100,38 @@ class RatingRepository(IRepository[Rating]):
             course_offering_id=course_offering_id,
         ).exists()
 
-    def filter_qs(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
-        return self._filter(criteria)
+    @overload
+    def filter(
+        self,
+        criteria: RatingFilterCriteria,
+        pagination: PaginationFilters,
+    ) -> PaginationResult[RatingDTO]: ...
+
+    @overload
+    def filter(
+        self,
+        criteria: RatingFilterCriteria,
+    ) -> list[RatingDTO]: ...
 
     def filter(
         self,
         criteria: RatingFilterCriteria,
-    ) -> list[RatingDTO]:
-        ratings = self._filter(criteria)
-        return self._map_to_domain_models(ratings)
+        pagination: PaginationFilters | None = None,
+    ) -> PaginationResult[RatingDTO] | list[RatingDTO]:
+        queryset = self._filter(criteria)
+
+        if pagination is not None:
+            result = self.paginator.process(
+                queryset,
+                filters=pagination,
+            )
+            dtos = [self.mapper.process(model) for model in result.page_objects]
+            return PaginationResult(
+                page_objects=dtos,
+                metadata=result.metadata,
+            )
+
+        return self._map_to_domain_models(queryset)
 
     def create(self, create_params: RatingCreateParams) -> RatingDTO:
         try:
@@ -148,7 +178,6 @@ class RatingRepository(IRepository[Rating]):
             updated_fields=list(update_data_map.keys()),
         )
 
-        # Refetch with prefetching to get votes and related fields for mapper
         rating_model = self._build_base_queryset().get(pk=rating_model.pk)
         return self._map_to_domain_model(rating_model)
 
