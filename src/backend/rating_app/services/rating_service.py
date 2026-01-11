@@ -82,8 +82,9 @@ class RatingService(IObservable[RatingDTO]):
         filters: RatingFilterCriteria,
         paginate: bool = True,
     ) -> RatingSearchResult:
-        user_ratings: list[RatingDTO] = []
-        if filters.separate_current_user is not None and filters.page == 1:  # only fetch once
+        # TODO: refactor with cleaner code
+        user_ratings: list[RatingDTO] | None = None
+        if filters.separate_current_user and filters.page == 1:  # only fetch once
             user_ratings = self.rating_repository.get_by_student_id_course_id(
                 student_id=str(filters.viewer_id),
                 course_id=str(filters.course_id),
@@ -100,11 +101,14 @@ class RatingService(IObservable[RatingDTO]):
             ratings = pagination_result.page_objects
             metadata = pagination_result.metadata
         else:
-            total_count = len(ratings) + len(user_ratings)
+            total_count = len(ratings)
             metadata = self._empty_pagination_metadata(total_count)
 
+        if user_ratings:
+            metadata = metadata.model_copy(update={"total": metadata.total + len(user_ratings)})
+
         if filters.viewer_id:
-            all_ratings = ratings + user_ratings
+            all_ratings = ratings + (user_ratings or [])
             self._enrich_with_viewer_votes(all_ratings, str(filters.viewer_id))
 
         return RatingSearchResult(

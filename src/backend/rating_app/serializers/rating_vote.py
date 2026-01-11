@@ -6,7 +6,9 @@ from ..models import RatingVote
 
 
 class RatingVoteReadSerializer(serializers.ModelSerializer):
-    vote_type = serializers.ChoiceField(choices=RatingVoteType.choices, read_only=True)
+    vote_type = serializers.ChoiceField(
+        choices=RatingVoteType.choices, source="type", read_only=True
+    )
 
     class Meta:
         model = RatingVote

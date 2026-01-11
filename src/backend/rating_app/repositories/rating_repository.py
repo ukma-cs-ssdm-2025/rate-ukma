@@ -70,9 +70,9 @@ class RatingRepository(IRepository[Rating]):
             ratings_count=Count("id", distinct=True),
         )
         return AggregatedCourseRatingStats(
-            avg_difficulty=aggregates.get("avg_difficulty", Decimal(0)),
-            avg_usefulness=aggregates.get("avg_usefulness", Decimal(0)),
-            ratings_count=aggregates.get("ratings_count", 0),
+            avg_difficulty=aggregates.get("avg_difficulty") or Decimal(0),
+            avg_usefulness=aggregates.get("avg_usefulness") or Decimal(0),
+            ratings_count=aggregates.get("ratings_count") or 0,
         )
 
     def exists(self, student_id: str, course_offering_id: str) -> bool:
@@ -142,19 +142,14 @@ class RatingRepository(IRepository[Rating]):
 
     def delete(self, rating_id: str) -> None:
         rating_model = self._get_by_id_shallow(rating_id)
-        student_id = str(rating_model.student.id) if rating_model.student else None
         rating_model.delete()
-        logger.info(
-            "rating_deleted",
-            rating_id=rating_id,
-            student_id=student_id,
-        )
+        logger.info("rating_deleted", rating_id=rating_id)
 
     def _filter(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
         ratings = self._build_base_queryset()
         ratings = self._apply_filters(ratings, criteria).order_by("-created_at")
 
-        if criteria.separate_current_user is not None:
+        if criteria.separate_current_user:
             ratings = ratings.exclude(student_id=str(criteria.viewer_id))
 
         return ratings

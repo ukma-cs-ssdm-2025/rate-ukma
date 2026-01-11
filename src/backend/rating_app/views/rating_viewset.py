@@ -63,12 +63,11 @@ class RatingViewSet(viewsets.ViewSet):
     @with_optional_student
     def list(self, request, course_id=None, student=None) -> Response:
         assert self.rating_service is not None
-
         try:
             query_params = RatingListQueryParams(**request.query_params.dict())
 
             filter_data = {
-                **query_params.model_dump(exclude={"separate_current_user"}),
+                **query_params.model_dump(),
                 "course_id": course_id,
             }
 
@@ -107,8 +106,9 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING_CREATE,
     )
     @require_student
-    def create(self, request, student: Student) -> Response:
+    def create(self, request, student: Student, course_id=None) -> Response:
         assert self.rating_service is not None
+        # course_id is not used, will be potentially removed after using a different endpoint
 
         try:
             request_params = RatingCreateRequest.model_validate(request.data)

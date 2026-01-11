@@ -160,3 +160,46 @@ class CacheJsonDataEncoder(json.JSONEncoder):
         if hasattr(obj, "__dict__"):
             return repr(obj)
         return super().default(obj)
+
+
+class InMemoryCacheManager(ICacheManager):
+    """
+    In-memory cache implementation for testing and development.
+    Implements the same interface as RedisCacheManager.
+    """
+
+    def __init__(self):
+        self._store: dict[str, JSON_Serializable] = {}
+
+    def get(self, key: str) -> JSON_Serializable | None:
+        return self._store.get(key)
+
+    def set(self, key: str, value: JSON_Serializable, ttl: int | None = None) -> bool:
+        self._store[key] = value
+        return True
+
+    def invalidate(self, key: str) -> bool:
+        if key in self._store:
+            del self._store[key]
+            return True
+        return False
+
+    def invalidate_pattern(self, pattern: str) -> int:
+        pattern_base = pattern.replace("*", "")
+        keys_to_remove = [k for k in self._store if pattern_base in k]
+        for key in keys_to_remove:
+            del self._store[key]
+        return len(keys_to_remove)
+
+    def get_stats(self) -> dict[str, Any]:
+        return {
+            "hits": 0,
+            "misses": 0,
+            "hit_rate": 0.0,
+            "used_memory": "N/A",
+            "connected_clients": 0,
+            "total_keys": len(self._store),
+        }
+
+    def clear(self) -> None:
+        self._store.clear()
