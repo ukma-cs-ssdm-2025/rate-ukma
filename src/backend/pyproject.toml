@@ -4,6 +4,13 @@ version = "0.1.0"
 description = "Rate NaUKMA Courses"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+authors = [
+    { name = "Anastasiia Aleksieienko" },
+    { name = "Kateryna Bratiuk" },
+    { name = "Andrii Valenia" },
+    { name = "Milana Horalevych" },
+]
 
 dependencies = [
     # Core
