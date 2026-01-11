@@ -1,6 +1,8 @@
 {
 	"name": "rate-ukma-webapp",
 	"private": true,
+	"license": "GPL-3.0-or-later",
+	"author": "Anastasiia Aleksieienko, Kateryna Bratiuk, Andrii Valenia, Milana Horalevych",
 	"type": "module",
 	"packageManager": "pnpm@9.15.9",
 	"engines": {
