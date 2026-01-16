@@ -5,6 +5,7 @@ from typing import Any, cast
 
 from django.db.models import QuerySet
 
+from rateukma.caching.decorators import rcached
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener, IObservable
 from rating_app.application_schemas.pagination import PaginationMetadata
@@ -68,6 +69,7 @@ class RatingService(IObservable[Rating]):
     def get_aggregated_course_stats(self, course: Course) -> AggregatedCourseRatingStats:
         return self.rating_repository.get_aggregated_course_stats(course)
 
+    @rcached(ttl=300)
     def filter_ratings(
         self,
         filters: RatingFilterCriteria,

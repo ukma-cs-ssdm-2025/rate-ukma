@@ -6,7 +6,6 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
-from rateukma.caching.decorators import rcached
 from rating_app.application_schemas.rating import (
     RatingCourseFilterParams,
     RatingCreateParams,
@@ -58,7 +57,6 @@ class RatingViewSet(viewsets.ViewSet):
         ],
         responses=R_RATING_LIST,
     )
-    @rcached(ttl=300)
     @with_optional_student
     def list(self, request, course_id=None, student=None) -> Response:
         assert self.rating_service is not None
