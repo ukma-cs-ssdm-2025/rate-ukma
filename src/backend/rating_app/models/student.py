@@ -1,13 +1,25 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.apps import apps
 from django.conf import settings
 from django.db import models
+from django.db.models.manager import Manager
 
 from rating_app.models.choices import EducationLevel
 
 from .person import Person
 
+if TYPE_CHECKING:
+    from .rating import Rating
+    from .rating_vote import RatingVote
+
 
 class Student(Person):
+    ratings: Manager[Rating]
+    rating_vote: Manager[RatingVote]
+
     education_level = models.CharField(
         max_length=16,
         choices=EducationLevel.choices,
@@ -36,14 +48,6 @@ class Student(Person):
     class Meta(Person.Meta):
         abstract = False
 
-    def _rating_qs(self):
-        Rating = apps.get_model("rating_app", "Rating")
-        return Rating.objects.filter(student=self)
-
-    def _latest_semester(self):
-        Semester = apps.get_model("rating_app", "Semester")
-        return Semester.objects.order_by("-year", "-term").first()
-
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.education_level})"
 
@@ -69,3 +73,10 @@ class Student(Person):
             .distinct()
             .count()
         )
+
+    def _rating_qs(self):
+        return self.ratings.all()
+
+    def _latest_semester(self):
+        Semester = apps.get_model("rating_app", "Semester")
+        return Semester.objects.order_by("-year", "-term").first()

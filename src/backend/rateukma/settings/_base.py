@@ -153,7 +153,7 @@ CACHES = {
 ENABLE_CACHE = True
 
 
-# TODO: Redis session configuration (optional, will uncomment on demand later)
+# ? Redis session configuration (optional, will uncomment on demand later)
 # SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 # SESSION_CACHE_ALIAS = "default"
 
@@ -242,6 +242,7 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": "/api/v1/",
     "COMPONENT_NO_READ_ONLY_REQUIRED": True,
     "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
+    "ENUM_NAME_OVERRIDES": {},
 }
 
 

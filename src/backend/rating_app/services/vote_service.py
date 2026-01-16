@@ -1,17 +1,17 @@
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener, IObservable
+from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
 from rating_app.exception.vote_exceptions import (
     VoteOnOwnRatingException,
     VoteOnUnenrolledCourseException,
 )
-from rating_app.models import Rating, RatingVote
+from rating_app.models import RatingVote
 from rating_app.repositories import (
-    CourseOfferingRepository,
     EnrollmentRepository,
     RatingRepository,
+    RatingVoteMapper,
     RatingVoteRepository,
-    StudentRepository,
 )
 
 
@@ -19,16 +19,14 @@ class RatingFeedbackService(IObservable[RatingVote]):
     def __init__(
         self,
         vote_repository: RatingVoteRepository,
-        student_repository: StudentRepository,
         enrollment_repository: EnrollmentRepository,
-        course_offering_repository: CourseOfferingRepository,
         rating_repository: RatingRepository,
+        vote_mapper: RatingVoteMapper,
     ):
         self.vote_repository = vote_repository
-        self.student_repository = student_repository
         self.enrollment_repository = enrollment_repository
-        self.course_offering_repository = course_offering_repository
         self.rating_repository = rating_repository
+        self.vote_mapper = vote_mapper
         self._listeners: list[IEventListener[RatingVote]] = []
 
     @implements
@@ -42,18 +40,18 @@ class RatingFeedbackService(IObservable[RatingVote]):
 
     def upsert(self, params: RatingVoteCreateSchema) -> tuple[RatingVote, bool]:
         rating = self.rating_repository.get_by_id(params.rating_id)
-
         self._assert_student_can_vote_on_rating(rating, params.student_id)
 
         existing = self.vote_repository.get_vote_by_student_and_rating(
             student_id=params.student_id, rating_id=params.rating_id
         )
 
-        if existing and existing.type == params.vote_type:
+        db_vote_type = self.vote_mapper.to_db(params.vote_type)
+        if existing and existing.type == db_vote_type:
             return existing, False
 
         vote = (
-            self.vote_repository.update(existing, type=params.vote_type)
+            self.vote_repository.update(existing, type=db_vote_type)
             if existing
             else self.vote_repository.create_vote(params)
         )
@@ -77,15 +75,17 @@ class RatingFeedbackService(IObservable[RatingVote]):
             student_id=student_id, rating_id=rating_id
         )
 
-    def _is_enrolled_in_the_rating_course(self, rating: Rating, student_id: str) -> bool:
+    def _is_enrolled_in_the_rating_course(self, rating: RatingDTO, student_id: str) -> bool:
         return self.enrollment_repository.is_student_enrolled_in_course(
-            student_id=student_id, course_id=str(rating.course_offering.course.id)
+            student_id=student_id, course_id=str(rating.course)
         )
 
-    def _owns_rating(self, rating: Rating, student_id: str) -> bool:
-        return str(rating.student.id) == student_id
+    def _owns_rating(self, rating: RatingDTO, student_id: str) -> bool:
+        if rating.student_id is None:
+            return False
+        return str(rating.student_id) == student_id
 
-    def _assert_student_can_vote_on_rating(self, rating: Rating, student_id: str) -> None:
+    def _assert_student_can_vote_on_rating(self, rating: RatingDTO, student_id: str) -> None:
         if not self._is_enrolled_in_the_rating_course(rating, student_id):
             raise VoteOnUnenrolledCourseException(
                 "A student must be enrolled in the course to vote on its rating"

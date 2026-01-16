@@ -1,10 +1,7 @@
 import threading
 from collections.abc import Callable
 from functools import wraps
-from typing import ParamSpec, TypeVar, cast
-
-_P = ParamSpec("_P")
-_RT = TypeVar("_RT", covariant=True)
+from typing import TypeGuard
 
 
 class NotSetType:
@@ -14,7 +11,11 @@ class NotSetType:
 NOT_SET = NotSetType()
 
 
-def once(func: Callable[_P, _RT]) -> Callable[_P, _RT]:
+def _is_set[RT](value: RT | NotSetType) -> TypeGuard[RT]:
+    return value is not NOT_SET
+
+
+def once[**P, RT](func: Callable[P, RT]) -> Callable[P, RT]:
     """
     Decorator that ensures a function is called only once. The result is cached and
     returned on subsequent calls. It is thread-safe.
@@ -28,17 +29,17 @@ def once(func: Callable[_P, _RT]) -> Callable[_P, _RT]:
     Returns:
         Callable[_P, _RT]: The decorated function.
     """
-    result: _RT | NotSetType = NOT_SET
+    result: RT | NotSetType = NOT_SET
     called = False
     _lock = threading.RLock()
 
     @wraps(func)
-    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _RT:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> RT:
         nonlocal result, called
 
         with _lock:
-            if result is not NOT_SET:
-                return cast(_RT, result)
+            if _is_set(result):
+                return result
 
             if called:
                 raise RuntimeError(

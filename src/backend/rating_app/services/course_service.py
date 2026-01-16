@@ -12,11 +12,11 @@ from rating_app.application_schemas.course import (
 from rating_app.application_schemas.pagination import PaginationMetadata
 from rating_app.application_schemas.rating import AggregatedCourseRatingStats
 from rating_app.models.choices import CourseTypeKind
+from rating_app.pagination import PaginationFilters
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.services.department_service import DepartmentService
 from rating_app.services.faculty_service import FacultyService
 from rating_app.services.instructor_service import InstructorService
-from rating_app.services.pagination_course_adapter import PaginationCourseAdapter
 from rating_app.services.semester_service import SemesterService
 from rating_app.services.speciality_service import SpecialityService
 
@@ -26,7 +26,6 @@ logger = structlog.get_logger(__name__)
 class CourseService:
     def __init__(
         self,
-        pagination_course_adapter: PaginationCourseAdapter,
         course_repository: CourseRepository,
         instructor_service: InstructorService,
         faculty_service: FacultyService,
@@ -34,7 +33,6 @@ class CourseService:
         speciality_service: SpecialityService,
         semester_service: SemesterService,
     ):
-        self.pagination_course_adapter = pagination_course_adapter
         self.course_repository = course_repository
         self.instructor_service = instructor_service
         self.faculty_service = faculty_service
@@ -55,13 +53,20 @@ class CourseService:
         self, filters: CourseFilterCriteria, paginate: bool = True
     ) -> CourseSearchResult:
         if paginate:
-            return self.pagination_course_adapter.paginate(filters)
-
-        courses = self.course_repository.filter(filters)
+            pagination_filters = PaginationFilters(
+                page=filters.page,
+                page_size=filters.page_size,
+            )
+            pagination_result = self.course_repository.filter(filters, pagination_filters)
+            courses = pagination_result.page_objects
+            metadata = pagination_result.metadata
+        else:
+            courses = self.course_repository.filter(filters)
+            metadata = self._create_single_page_metadata(len(courses))
 
         return CourseSearchResult(
             items=courses,
-            pagination=self._empty_pagination_metadata(len(courses)),
+            pagination=metadata,
             applied_filters=filters.model_dump(by_alias=True),
         )
 
@@ -109,10 +114,10 @@ class CourseService:
             ],
         )
 
-    def _empty_pagination_metadata(self, courses_count: int) -> PaginationMetadata:
+    def _create_single_page_metadata(self, total: int) -> PaginationMetadata:
         return PaginationMetadata(
             page=1,
-            page_size=courses_count,
-            total=courses_count,
+            page_size=total,
+            total=total,
             total_pages=1,
         )

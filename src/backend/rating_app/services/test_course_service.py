@@ -37,13 +37,6 @@ def semester_service():
 
 
 @pytest.fixture
-def pagination_course_adapter():
-    mock_adapter = MagicMock()
-    mock_adapter.paginate.return_value = MagicMock()
-    return mock_adapter
-
-
-@pytest.fixture
 def service(
     course_repo,
     instructor_service,
@@ -51,10 +44,8 @@ def service(
     department_service,
     speciality_service,
     semester_service,
-    pagination_course_adapter,
 ):
     return CourseService(
-        pagination_course_adapter=pagination_course_adapter,
         course_repository=course_repo,
         instructor_service=instructor_service,
         faculty_service=faculty_service,
@@ -86,19 +77,24 @@ def test_get_course_returns_course_by_id(service, course_repo):
 
 
 def test_filter_courses_returns_paginated_result_when_paginate_true(
-    service, pagination_course_adapter
+    service,
+    course_repo,
 ):
     # Arrange
     filters = CourseFilterCriteria()
-    mock_search_result = MagicMock()
-    pagination_course_adapter.paginate.return_value = mock_search_result
+    mock_courses = [MagicMock(), MagicMock(), MagicMock()]
+    mock_pagination_result = MagicMock()
+    mock_pagination_result.page_objects = mock_courses
+    mock_pagination_result.metadata = MagicMock(page=1, page_size=10, total=3, total_pages=1)
+    course_repo.filter.return_value = mock_pagination_result
 
     # Act
     result = service.filter_courses(filters, paginate=True)
 
     # Assert
-    assert result == mock_search_result
-    pagination_course_adapter.paginate.assert_called_once_with(filters)
+    assert len(result.items) == len(mock_courses)
+    assert result.pagination.page == 1
+    course_repo.filter.assert_called_once()
 
 
 def test_filter_courses_returns_all_items_when_paginate_false(service, course_repo):
@@ -119,18 +115,24 @@ def test_filter_courses_returns_all_items_when_paginate_false(service, course_re
     course_repo.filter.assert_called_once_with(filters)
 
 
-def test_filter_courses_uses_custom_page_size(service, pagination_course_adapter):
+def test_filter_courses_uses_custom_page_size(service, course_repo):
     # Arrange
     filters = CourseFilterCriteria(page=2, page_size=25)
-    mock_search_result = MagicMock()
-    pagination_course_adapter.paginate.return_value = mock_search_result
+    mock_courses = [MagicMock() for _ in range(25)]
+    mock_pagination_result = MagicMock()
+    mock_pagination_result.page_objects = mock_courses
+    mock_pagination_result.metadata = MagicMock(page=2, page_size=25, total=50, total_pages=2)
+    course_repo.filter.return_value = mock_pagination_result
 
     # Act
     result = service.filter_courses(filters, paginate=True)
 
     # Assert
-    assert result == mock_search_result
-    pagination_course_adapter.paginate.assert_called_once_with(filters)
+    assert len(result.items) == len(mock_courses)
+    assert result.items == mock_courses
+    assert result.applied_filters["page"] == 2
+    assert result.applied_filters["page_size"] == 25
+    course_repo.filter.assert_called_once()
 
 
 def test_get_filter_options_aggregates_options_from_all_services(

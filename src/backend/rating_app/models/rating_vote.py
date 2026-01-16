@@ -11,15 +11,18 @@ class RatingVote(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="rating_vote")
     rating = models.ForeignKey(Rating, on_delete=models.CASCADE, related_name="rating_vote")
-    type = models.CharField(
-        max_length=10,
-        choices=RatingVoteType.choices,
-    )
+    type = models.SmallIntegerField(choices=RatingVoteType.choices)
 
     class Meta:
         unique_together = ("student", "rating")
         verbose_name = "Rating Vote"
         verbose_name_plural = "Rating Votes"
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(type__in=[RatingVoteType.UPVOTE, RatingVoteType.DOWNVOTE]),
+                name="rating_vote_type_valid",
+            ),
+        ]
 
     def __str__(self):
         return (

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError
@@ -23,14 +23,18 @@ from rating_app.exception.department_exceptions import (
 )
 from rating_app.models import Course, CourseOffering, Department
 from rating_app.models.choices import CourseStatus, SemesterTerm
+from rating_app.pagination import GenericQuerysetPaginator, PaginationFilters, PaginationResult
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
 
 
 class CourseRepository(IRepository[CourseDTO]):
-    def __init__(self, mapper: IProcessor[[Course], CourseDTO]):
+    def __init__(
+        self, mapper: IProcessor[[Course], CourseDTO], paginator: GenericQuerysetPaginator[Course]
+    ):
         self._mapper = mapper
+        self._paginator = paginator
 
     def get_all(self, prefetch_related: bool = True) -> list[CourseDTO]:
         courses = self._get_all_prefetch_related() if prefetch_related else self._get_all_shallow()
@@ -44,14 +48,40 @@ class CourseRepository(IRepository[CourseDTO]):
         )
         return self._mapper.process(course)
 
-    def filter(self, filters: CourseFilterCriteria) -> list[CourseDTO]:
-        qs = self._filter_qs(filters)
+    @overload
+    def filter(
+        self,
+        criteria: CourseFilterCriteria,
+        pagination: PaginationFilters,
+    ) -> PaginationResult[CourseDTO]: ...
+
+    @overload
+    def filter(
+        self,
+        criteria: CourseFilterCriteria,
+    ) -> list[CourseDTO]: ...
+
+    def filter(
+        self,
+        criteria: CourseFilterCriteria,
+        pagination: PaginationFilters | None = None,
+    ) -> PaginationResult[CourseDTO] | list[CourseDTO]:
+        qs = self._filter(criteria)
+
+        if pagination is not None:
+            result = self._paginator.process(qs, pagination)
+            dtos = [self._mapper.process(model) for model in result.page_objects]
+            return PaginationResult(
+                page_objects=dtos,
+                metadata=result.metadata,
+            )
+
         return self._map_to_domain_models(list(qs))
 
     def filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
         # filter() method can`t be overloaded with different parameters,
         # so we need a separate method for Paginator to use
-        return self._filter_qs(filters)
+        return self._filter(filters)
 
     def get_or_create(
         self,
@@ -100,7 +130,7 @@ class CourseRepository(IRepository[CourseDTO]):
         course_orm = self._get_by_id_shallow(course_dto.id)
         course_orm.delete()
 
-    def _filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
+    def _filter(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
         courses = self._build_base_queryset()
         courses = self._apply_basic_filters(courses, filters)
         courses = self._apply_speciality_filters(courses, filters)

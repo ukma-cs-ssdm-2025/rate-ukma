@@ -1,4 +1,6 @@
 from rateukma.ioc.decorators import once
+from rating_app.models import Course
+from rating_app.pagination import GenericQuerysetPaginator
 
 from ..repositories import (
     CourseInstructorRepository,
@@ -9,7 +11,9 @@ from ..repositories import (
     EnrollmentRepository,
     FacultyRepository,
     InstructorRepository,
+    RatingMapper,
     RatingRepository,
+    RatingVoteMapper,
     RatingVoteRepository,
     SemesterRepository,
     SpecialityRepository,
@@ -25,8 +29,19 @@ def course_mapper() -> CourseMapper:
 
 
 @once
+def rating_mapper() -> RatingMapper:
+    return RatingMapper()
+
+
+@once
+def rating_vote_mapper() -> RatingVoteMapper:
+    return RatingVoteMapper()
+
+
+@once
 def course_repository() -> CourseRepository:
-    return CourseRepository(mapper=course_mapper())
+    paginator = GenericQuerysetPaginator[Course]()
+    return CourseRepository(mapper=course_mapper(), paginator=paginator)
 
 
 @once
@@ -76,7 +91,10 @@ def enrollment_repository() -> EnrollmentRepository:
 
 @once
 def rating_repository() -> RatingRepository:
-    return RatingRepository()
+    return RatingRepository(
+        mapper=rating_mapper(),
+        paginator=GenericQuerysetPaginator(),
+    )
 
 
 @once
@@ -91,4 +109,4 @@ def user_repository() -> UserRepository:
 
 @once
 def vote_repository() -> RatingVoteRepository:
-    return RatingVoteRepository()
+    return RatingVoteRepository(vote_mapper=rating_vote_mapper())
