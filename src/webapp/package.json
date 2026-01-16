@@ -1,6 +1,8 @@
 {
 	"name": "rate-ukma-webapp",
 	"private": true,
+	"license": "GPL-3.0-or-later",
+	"author": "Anastasiia Aleksieienko, Kateryna Bratiuk, Andrii Valenia, Milana Horalevych",
 	"type": "module",
 	"packageManager": "pnpm@9.15.9",
 	"engines": {
@@ -100,7 +102,7 @@
 		"@vitejs/plugin-react": "^5.1.1",
 		"axios-mock-adapter": "^2.1.0",
 		"jsdom": "^27.2.0",
-		"orval": "^7.17.0",
+		"orval": "^7.18.0",
 		"shadcn": "^3.5.1",
 		"typescript": "^5.9.3",
 		"vite": "^7.2.4",
@@ -109,7 +111,7 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"@modelcontextprotocol/sdk@<1.24.0": ">=1.24.0",
+			"@modelcontextprotocol/sdk@<1.25.2": ">=1.25.2",
 			"parse5": "^7.2.1",
 			"qs": "6.14.1"
 		}
