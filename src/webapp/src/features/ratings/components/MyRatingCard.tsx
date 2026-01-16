@@ -7,6 +7,7 @@ import {
 	getUsefulnessTone,
 } from "@/features/courses/courseFormatting";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
+import { testIds } from "@/lib/test-ids";
 import { DeleteRatingDialog } from "./DeleteRatingDialog";
 import { RatingCardHeader } from "./MyRatingCard/RatingCardHeader";
 import { RatingCommentDisplay } from "./MyRatingCard/RatingCommentDisplay";
@@ -55,7 +56,10 @@ export function MyRatingCard({
 	};
 
 	return (
-		<Card className="border border-border/70 bg-background/80 transition-shadow duration-300 hover:shadow-xl">
+		<Card
+			className="border border-border/70 bg-background/80 transition-shadow duration-300 hover:shadow-xl"
+			data-testid={testIds.myRatings.card}
+		>
 			<RatingCardHeader
 				courseTitle={course.course_title}
 				courseCode={course.course_code ?? undefined}

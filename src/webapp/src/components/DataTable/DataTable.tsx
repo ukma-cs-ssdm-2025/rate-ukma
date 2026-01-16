@@ -78,7 +78,7 @@ export function getCommonPinningStyles<TData>({
 		right: isPinned === "right" ? `${column.getAfter("right")}px` : undefined,
 		opacity: isPinned ? 0.97 : 1,
 		position: isPinned ? "sticky" : "relative",
-		background: "var(--background)",
+		backgroundColor: isPinned ? "var(--background)" : undefined,
 		width: column.getSize(),
 		zIndex: isPinned ? 1 : 0,
 	};
@@ -98,11 +98,13 @@ function getAlignmentClass<TData, TValue>(
 }
 
 interface DataTableProps<TData> extends ComponentProps<"div"> {
+	"data-testid"?: string;
 	table: TanstackTable<TData>;
 	actionBar?: ReactNode;
 	totalRows?: number;
 	serverPageCount?: number;
 	emptyStateMessage: string;
+	emptyStateTestId?: string;
 	onRowClick?: (row: TData) => void;
 	isRowHighlighted?: (row: TData) => boolean;
 }
@@ -115,13 +117,18 @@ export function DataTable<TData>({
 	totalRows,
 	serverPageCount,
 	emptyStateMessage,
+	emptyStateTestId,
 	onRowClick,
 	isRowHighlighted,
+	"data-testid": tableTestId,
 	...props
 }: Readonly<DataTableProps<TData>>) {
+	const rowTestId = tableTestId ? `${tableTestId}-row` : undefined;
+
 	return (
 		<div
 			className={cn("flex w-full flex-col gap-2.5 overflow-auto", className)}
+			data-testid={tableTestId}
 			{...props}
 		>
 			{children}
@@ -157,13 +164,11 @@ export function DataTable<TData>({
 								return (
 									<TableRow
 										key={row.id}
+										data-testid={rowTestId}
 										data-state={row.getIsSelected() && "selected"}
 										data-highlighted={highlighted ? true : undefined}
-										className={cn(
-											onRowClick && "group cursor-pointer",
-											highlighted &&
-												"bg-primary/5 border-l-2 border-l-primary hover:bg-primary/10",
-										)}
+										data-clickable={onRowClick ? true : undefined}
+										className={cn(onRowClick && "group")}
 										onClick={(event) => {
 											if (!onRowClick) return;
 											if (isModifiedClick(event)) return;
@@ -197,6 +202,7 @@ export function DataTable<TData>({
 								<TableCell
 									colSpan={table.getAllColumns().length}
 									className="h-24 text-center"
+									data-testid={emptyStateTestId}
 								>
 									{emptyStateMessage}
 								</TableCell>

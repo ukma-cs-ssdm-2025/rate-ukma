@@ -1,0 +1,489 @@
+import { expect, type Locator, type Page, test } from "@playwright/test";
+
+import { testIds } from "@/lib/test-ids";
+import { CoursesPage } from "./courses.page";
+import { TEST_ACADEMIC_YEARS, TEST_QUERIES } from "./fixtures/courses";
+import { getSearchParam } from "../shared/url-assertions";
+
+test.describe("Courses filters", () => {
+	test("reset clears active filters (search query) @smoke", async ({
+		page,
+	}) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const query = "Методи розробки програмних систем";
+		await coursesPage.searchByTitle(query);
+
+		await expect(page.getByTestId(testIds.filters.resetButton)).toBeVisible();
+		await coursesPage.resetFilters();
+
+		await expect(page.getByTestId(testIds.courses.searchInput)).toHaveValue("");
+		expect(getSearchParam(page, "q")).toBe("");
+	});
+
+	test("desktop: filters update courses API requests", async ({ page }) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const panel = page.getByTestId(testIds.filters.panel);
+		await expect(panel).toBeVisible();
+
+		await applyAndAssertAllFilters({ page, scope: panel });
+
+		await resetFilters({ page, scope: panel });
+		await coursesPage.waitForTableReady();
+	});
+
+	test.describe("mobile drawer", () => {
+		test.use({ viewport: { width: 390, height: 844 } });
+
+		test("opens and closes filters drawer", async ({ page }) => {
+			const coursesPage = new CoursesPage(page);
+			await coursesPage.goto();
+
+			await coursesPage.openFiltersDrawer();
+			await expect(page.getByTestId(testIds.filters.drawer)).toBeVisible();
+
+			await coursesPage.closeFiltersDrawer();
+			await expect(page.getByTestId(testIds.filters.drawer)).toBeHidden();
+		});
+
+		test("mobile: filters update courses API requests", async ({ page }) => {
+			const coursesPage = new CoursesPage(page);
+			await coursesPage.goto();
+
+			await coursesPage.openFiltersDrawer();
+			const drawer = page.getByTestId(testIds.filters.drawer);
+			await expect(drawer).toBeVisible();
+
+			await applyAndAssertAllFilters({ page, scope: drawer });
+			await resetFilters({ page, scope: drawer });
+
+			await coursesPage.closeFiltersDrawer();
+			await coursesPage.waitForTableReady();
+		});
+	});
+
+	test("year filter supports selecting old academic year option", async ({
+		page,
+	}) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const panel = page.getByTestId(testIds.filters.panel);
+		await expect(panel).toBeVisible();
+
+		const trigger = panel.getByTestId(testIds.filters.yearSelect);
+		await trigger.scrollIntoViewIfNeeded();
+
+		await page.keyboard.press("Escape");
+		await trigger.click();
+
+		const content = await openRadixSelectContent(
+			page,
+			testIds.filters.yearSelect,
+		);
+
+		const items = content.locator("[data-slot='select-item']");
+
+		let selectedYear: string | undefined;
+		for (const candidate of TEST_ACADEMIC_YEARS.oldYearCandidates) {
+			const options = items.filter({ hasText: candidate });
+			if ((await options.count()) === 0) {
+				continue;
+			}
+
+			selectedYear = candidate;
+			await options.first().click();
+			await expect.poll(() => getSearchParam(page, "year")).toBe(candidate);
+			break;
+		}
+
+		if (!selectedYear) {
+			const count = await items.count();
+			if (count === 0) {
+				throw new Error("Year select has no options");
+			}
+			await (count >= 2 ? items.nth(1) : items.first()).click();
+			await expect.poll(() => getSearchParam(page, "year")).not.toBe("");
+		}
+
+		await expect(panel.getByTestId(testIds.filters.resetButton)).toBeVisible();
+	});
+
+	test("changing faculty clears department and speciality params", async ({
+		page,
+	}) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const panel = page.getByTestId(testIds.filters.panel);
+		await expect(panel).toBeVisible();
+
+		await selectFacultyWithDepartmentsAndSpecialities({ page, scope: panel });
+		await selectSecondComboboxOption({
+			page,
+			scope: panel,
+			triggerTestId: testIds.filters.departmentSelect,
+			uiParamKey: "dept",
+		});
+		await selectSecondComboboxOption({
+			page,
+			scope: panel,
+			triggerTestId: testIds.filters.specialitySelect,
+			uiParamKey: "spec",
+		});
+
+		const initialFaculty = getSearchParam(page, "faculty");
+		expect(initialFaculty).not.toBe("");
+		expect(getSearchParam(page, "dept")).not.toBe("");
+		expect(getSearchParam(page, "spec")).not.toBe("");
+
+		const trigger = panel.getByTestId(testIds.filters.facultySelect);
+		await trigger.scrollIntoViewIfNeeded();
+		await page.keyboard.press("Escape");
+		await trigger.click();
+
+		const list = await openComboboxList(page, testIds.filters.facultySelect);
+		const items = list.locator("[data-slot='command-item']");
+		const count = await items.count();
+		if (count < 2) {
+			await page.keyboard.press("Escape");
+			throw new Error("Not enough faculty options to test cascading reset");
+		}
+
+		const nextFacultyIndex = count >= 3 ? 2 : 1;
+		await items.nth(nextFacultyIndex).click();
+		await expect
+			.poll(() => getSearchParam(page, "faculty"))
+			.not.toBe(initialFaculty);
+
+		await expect.poll(() => getSearchParam(page, "dept")).toBe("");
+		await expect.poll(() => getSearchParam(page, "spec")).toBe("");
+	});
+
+	test("active filters persist on page reload", async ({ page }) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const panel = page.getByTestId(testIds.filters.panel);
+		await expect(panel).toBeVisible();
+
+		await coursesPage.searchByTitle(TEST_QUERIES.common);
+		await nudgeRangeFilter({
+			page,
+			scope: panel,
+			sliderTestId: testIds.filters.difficultySlider,
+			uiParamKey: "diff",
+		});
+
+		const urlBefore = page.url();
+		await page.reload();
+		await coursesPage.waitForTableReady();
+
+		expect(page.url()).toBe(urlBefore);
+		await expect(page.getByTestId(testIds.courses.searchInput)).toHaveValue(
+			TEST_QUERIES.common,
+		);
+		expect(getSearchParam(page, "diff")).not.toBe("");
+	});
+
+	test("search and filters can be combined", async ({ page }) => {
+		const coursesPage = new CoursesPage(page);
+		await coursesPage.goto();
+
+		const panel = page.getByTestId(testIds.filters.panel);
+		await expect(panel).toBeVisible();
+
+		await coursesPage.searchByTitle(TEST_QUERIES.common);
+		expect(getSearchParam(page, "q")).toBe(TEST_QUERIES.common);
+
+		await nudgeRangeFilter({
+			page,
+			scope: panel,
+			sliderTestId: testIds.filters.difficultySlider,
+			uiParamKey: "diff",
+		});
+
+		expect(getSearchParam(page, "q")).toBe(TEST_QUERIES.common);
+		expect(getSearchParam(page, "diff")).not.toBe("");
+	});
+});
+
+async function applyAndAssertAllFilters({
+	page,
+	scope,
+}: {
+	page: Page;
+	scope: Locator;
+}): Promise<void> {
+	await test.step("difficulty slider", async () => {
+		await nudgeRangeFilter({
+			page,
+			scope,
+			sliderTestId: testIds.filters.difficultySlider,
+			uiParamKey: "diff",
+		});
+	});
+
+	await test.step("usefulness slider", async () => {
+		await nudgeRangeFilter({
+			page,
+			scope,
+			sliderTestId: testIds.filters.usefulnessSlider,
+			uiParamKey: "use",
+		});
+	});
+
+	await test.step("semester term", async () => {
+		await selectSecondRadixSelectOption({
+			page,
+			scope,
+			triggerTestId: testIds.filters.termSelect,
+			uiParamKey: "term",
+		});
+	});
+
+	await test.step("semester year", async () => {
+		await selectSecondRadixSelectOption({
+			page,
+			scope,
+			triggerTestId: testIds.filters.yearSelect,
+			uiParamKey: "year",
+		});
+	});
+
+	await test.step("course type", async () => {
+		await selectSecondRadixSelectOption({
+			page,
+			scope,
+			triggerTestId: testIds.filters.typeSelect,
+			uiParamKey: "type",
+		});
+	});
+
+	await test.step("faculty/department/speciality", async () => {
+		await selectFacultyWithDepartmentsAndSpecialities({ page, scope });
+
+		await selectSecondComboboxOption({
+			page,
+			scope,
+			triggerTestId: testIds.filters.departmentSelect,
+			uiParamKey: "dept",
+		});
+
+		await selectSecondComboboxOption({
+			page,
+			scope,
+			triggerTestId: testIds.filters.specialitySelect,
+			uiParamKey: "spec",
+		});
+	});
+
+	await expect(scope.getByTestId(testIds.filters.resetButton)).toBeVisible();
+	await expect(scope.getByTestId(testIds.filters.resetButton)).toBeEnabled();
+	expect(getSearchParam(page, "page")).toBe("");
+}
+
+async function resetFilters({
+	page,
+	scope,
+}: {
+	page: Page;
+	scope: Locator;
+}): Promise<void> {
+	await scope.getByTestId(testIds.filters.resetButton).click();
+
+	await expect.poll(() => getSearchParam(page, "q")).toBe("");
+	await expect.poll(() => getSearchParam(page, "diff")).toBe("");
+	await expect.poll(() => getSearchParam(page, "use")).toBe("");
+	await expect.poll(() => getSearchParam(page, "term")).toBe("");
+	await expect.poll(() => getSearchParam(page, "year")).toBe("");
+	await expect.poll(() => getSearchParam(page, "type")).toBe("");
+	await expect.poll(() => getSearchParam(page, "faculty")).toBe("");
+	await expect.poll(() => getSearchParam(page, "dept")).toBe("");
+	await expect.poll(() => getSearchParam(page, "spec")).toBe("");
+}
+
+async function openRadixSelectContent(
+	page: Page,
+	triggerTestId: string,
+): Promise<Locator> {
+	const content = page.getByTestId(`${triggerTestId}-content`);
+	await expect(content).toBeVisible();
+	return content;
+}
+
+async function openComboboxList(
+	page: Page,
+	triggerTestId: string,
+): Promise<Locator> {
+	const list = page.getByTestId(`${triggerTestId}-list`);
+	await expect(list).toBeVisible();
+	return list;
+}
+
+async function selectSecondRadixSelectOption({
+	page,
+	scope,
+	triggerTestId,
+	uiParamKey,
+}: {
+	page: Page;
+	scope: Locator;
+	triggerTestId: string;
+	uiParamKey: string;
+}): Promise<void> {
+	const trigger = scope.getByTestId(triggerTestId);
+	await trigger.scrollIntoViewIfNeeded();
+
+	await page.keyboard.press("Escape");
+	await trigger.click();
+
+	const content = await openRadixSelectContent(page, triggerTestId);
+	const items = content.locator("[data-slot='select-item']");
+	const count = await items.count();
+	if (count < 2) {
+		await page.keyboard.press("Escape");
+		throw new Error(
+			`Expected at least 2 select options for ${triggerTestId} but got ${String(count)}`,
+		);
+	}
+
+	await items.nth(1).click();
+
+	await expect.poll(() => getSearchParam(page, uiParamKey)).not.toBe("");
+}
+
+async function selectFacultyWithDepartmentsAndSpecialities({
+	page,
+	scope,
+}: {
+	page: Page;
+	scope: Locator;
+}): Promise<void> {
+	const triggerTestId = testIds.filters.facultySelect;
+	const trigger = scope.getByTestId(triggerTestId);
+	await trigger.scrollIntoViewIfNeeded();
+
+	for (let i = 1; i < 12; i++) {
+		await page.keyboard.press("Escape");
+		await trigger.click();
+
+		const list = await openComboboxList(page, triggerTestId);
+		const items = list.locator("[data-slot='command-item']");
+		const count = await items.count();
+		if (count < 2) {
+			await page.keyboard.press("Escape");
+			throw new Error(
+				`Expected at least 2 faculty options for ${triggerTestId} but got ${String(count)}`,
+			);
+		}
+
+		const optionIndex = Math.min(i, count - 1);
+
+		await items.nth(optionIndex).click();
+
+		await expect.poll(() => getSearchParam(page, "faculty")).not.toBe("");
+
+		const deptOptions = await getComboboxOptionsCount({
+			page,
+			scope,
+			triggerTestId: testIds.filters.departmentSelect,
+		});
+		const specOptions = await getComboboxOptionsCount({
+			page,
+			scope,
+			triggerTestId: testIds.filters.specialitySelect,
+		});
+
+		if (deptOptions >= 2 && specOptions >= 2) {
+			return;
+		}
+	}
+
+	throw new Error(
+		"Could not find a faculty with at least one department and speciality option",
+	);
+}
+
+async function getComboboxOptionsCount({
+	page,
+	scope,
+	triggerTestId,
+}: {
+	page: Page;
+	scope: Locator;
+	triggerTestId: string;
+}): Promise<number> {
+	const trigger = scope.getByTestId(triggerTestId);
+	await trigger.scrollIntoViewIfNeeded();
+
+	await page.keyboard.press("Escape");
+	await trigger.click();
+
+	const list = await openComboboxList(page, triggerTestId);
+	const count = await list.locator("[data-slot='command-item']").count();
+
+	await page.keyboard.press("Escape");
+	await expect(list).toBeHidden();
+
+	return count;
+}
+
+async function selectSecondComboboxOption({
+	page,
+	scope,
+	triggerTestId,
+	uiParamKey,
+}: {
+	page: Page;
+	scope: Locator;
+	triggerTestId: string;
+	uiParamKey: string;
+}): Promise<void> {
+	const trigger = scope.getByTestId(triggerTestId);
+	await trigger.scrollIntoViewIfNeeded();
+
+	await page.keyboard.press("Escape");
+	await trigger.click();
+
+	const list = await openComboboxList(page, triggerTestId);
+	const items = list.locator("[data-slot='command-item']");
+	const count = await items.count();
+	if (count < 2) {
+		await page.keyboard.press("Escape");
+		throw new Error(
+			`Expected at least 2 combobox options for ${triggerTestId} but got ${String(count)}`,
+		);
+	}
+
+	await items.nth(1).click();
+
+	await expect.poll(() => getSearchParam(page, uiParamKey)).not.toBe("");
+}
+
+async function nudgeRangeFilter({
+	page,
+	scope,
+	sliderTestId,
+	uiParamKey,
+}: {
+	page: Page;
+	scope: Locator;
+	sliderTestId: string;
+	uiParamKey: string;
+}): Promise<void> {
+	const slider = scope.getByTestId(sliderTestId);
+	await slider.scrollIntoViewIfNeeded();
+
+	const box = await slider.boundingBox();
+	if (!box) {
+		throw new Error(`Could not get bounding box for ${sliderTestId}`);
+	}
+
+	await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2);
+
+	await expect.poll(() => getSearchParam(page, uiParamKey)).not.toBe("");
+}

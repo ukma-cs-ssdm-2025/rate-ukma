@@ -2,6 +2,21 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+const tableRowBaseClassName =
+	"border-b transition-colors duration-200 ease-out data-[state=selected]:bg-muted";
+const tableRowClickableClassName =
+	"data-[clickable=true]:cursor-pointer data-[clickable=true]:hover:bg-muted/50";
+const tableRowClickableHighlightedHoverClassName =
+	"data-[clickable=true]:data-[highlighted=true]:hover:bg-primary/10";
+const tableRowHighlightedIndicatorBaseClassName =
+	"data-[highlighted=true]:[&>td:first-child]:relative data-[highlighted=true]:[&>td:first-child]:before:content-[''] data-[highlighted=true]:[&>td:first-child]:before:absolute data-[highlighted=true]:[&>td:first-child]:before:inset-y-0 data-[highlighted=true]:[&>td:first-child]:before:left-0";
+const tableRowHighlightedIndicatorStyleClassName =
+	"data-[highlighted=true]:[&>td:first-child]:before:w-[4px] data-[highlighted=true]:[&>td:first-child]:before:bg-primary data-[highlighted=true]:[&>td:first-child]:before:rounded-r-sm";
+const tableRowHighlightedIndicatorAnimClassName =
+	"data-[highlighted=true]:[&>td:first-child]:before:origin-left data-[highlighted=true]:[&>td:first-child]:before:scale-x-[0.75] data-[highlighted=true]:[&>td:first-child]:before:transition-transform data-[highlighted=true]:[&>td:first-child]:before:duration-200 data-[highlighted=true]:[&>td:first-child]:before:ease-out";
+const tableRowClickableHighlightedIndicatorHoverAnimClassName =
+	"data-[clickable=true]:data-[highlighted=true]:hover:[&>td:first-child]:before:scale-x-100";
+
 function Table({ className, ...props }: React.ComponentProps<"table">) {
 	return (
 		<div
@@ -58,7 +73,13 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
 		<tr
 			data-slot="table-row"
 			className={cn(
-				"hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
+				tableRowBaseClassName,
+				tableRowClickableClassName,
+				tableRowClickableHighlightedHoverClassName,
+				tableRowHighlightedIndicatorBaseClassName,
+				tableRowHighlightedIndicatorStyleClassName,
+				tableRowHighlightedIndicatorAnimClassName,
+				tableRowClickableHighlightedIndicatorHoverAnimClassName,
 				className,
 			)}
 			{...props}

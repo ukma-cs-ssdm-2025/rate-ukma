@@ -11,7 +11,9 @@
 			"**",
 			"!src/routeTree.gen.ts",
 			"!src/lib/api/generated/**/*",
-			"!playwright-report/**/*"
+			"!playwright-report/**/*",
+			"!playwright/.auth/**/*",
+			"!test-results/**/*"
 		]
 	},
 	"formatter": {

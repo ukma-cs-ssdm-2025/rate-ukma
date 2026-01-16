@@ -1,11 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { CoursesPage } from "../components";
-import { CourseDetailsPage } from "../components/course-details-page";
+import { testIds } from "@/lib/test-ids";
+import { CourseDetailsPage } from "../courses/course-details.page";
+import { CoursesPage } from "../courses/courses.page";
 
 test.describe("Ratings are displayed", () => {
-	// TBD: this test suite components will be adjusted after ratings count filter sorting is implemented
-
 	let courseDetailsPage: CourseDetailsPage;
 	let coursesPage: CoursesPage;
 
@@ -14,12 +13,8 @@ test.describe("Ratings are displayed", () => {
 		courseDetailsPage = new CourseDetailsPage(page);
 
 		await coursesPage.goto();
-		await page.waitForLoadState("networkidle");
-
 		await coursesPage.navigateToFirstCourseDetailsPage();
-		await page.waitForLoadState("networkidle");
-
-		await courseDetailsPage.waitForPageLoad();
+		await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();
 	});
 
 	test("displays reviews list and stats when course has reviews", async () => {
