@@ -16,7 +16,7 @@ from rating_app.constants import (
     MIN_PAGE_SIZE,
     MIN_RATING_VALUE,
 )
-from rating_app.models.choices import RatingVoteType
+from rating_app.models.choices import RatingVoteStrType
 
 from .pagination import PaginationMetadata
 
@@ -126,7 +126,7 @@ class Rating(BaseModel):
 
     upvotes: int
     downvotes: int
-    viewer_vote: RatingVoteType | None
+    viewer_vote: RatingVoteStrType | None
 
 
 class RatingsWithUserList(BaseModel):

@@ -10,6 +10,7 @@ from rating_app.models import RatingVote
 from rating_app.repositories import (
     EnrollmentRepository,
     RatingRepository,
+    RatingVoteMapper,
     RatingVoteRepository,
 )
 
@@ -20,10 +21,12 @@ class RatingFeedbackService(IObservable[RatingVote]):
         vote_repository: RatingVoteRepository,
         enrollment_repository: EnrollmentRepository,
         rating_repository: RatingRepository,
+        vote_mapper: RatingVoteMapper,
     ):
         self.vote_repository = vote_repository
         self.enrollment_repository = enrollment_repository
         self.rating_repository = rating_repository
+        self.vote_mapper = vote_mapper
         self._listeners: list[IEventListener[RatingVote]] = []
 
     @implements
@@ -43,11 +46,12 @@ class RatingFeedbackService(IObservable[RatingVote]):
             student_id=params.student_id, rating_id=params.rating_id
         )
 
-        if existing and existing.type == params.vote_type:
+        db_vote_type = self.vote_mapper.to_db(params.vote_type)
+        if existing and existing.type == db_vote_type:
             return existing, False
 
         vote = (
-            self.vote_repository.update(existing, type=params.vote_type)
+            self.vote_repository.update(existing, type=db_vote_type)
             if existing
             else self.vote_repository.create_vote(params)
         )

@@ -2421,13 +2421,13 @@ components:
           readOnly: true
         viewer_vote:
           allOf:
-          - $ref: '#/components/schemas/RatingVoteType'
+          - $ref: '#/components/schemas/ViewerVoteEnum'
           readOnly: true
           nullable: true
     RatingVoteCreateRequest:
       properties:
         vote_type:
-          $ref: '#/components/schemas/RatingVoteType'
+          $ref: '#/components/schemas/RatingVoteStrType'
           description: The type of the vote
       required:
       - vote_type
@@ -2449,15 +2449,15 @@ components:
           format: uuid
           readOnly: true
         vote_type:
-          allOf:
-          - $ref: '#/components/schemas/RatingVoteType'
+          type: string
+          nullable: true
           readOnly: true
-    RatingVoteType:
+    RatingVoteStrType:
       enum:
-      - -1
-      - 1
-      title: RatingVoteType
-      type: integer
+      - DOWNVOTE
+      - UPVOTE
+      title: RatingVoteStrType
+      type: string
     RatingsWithUserList:
       type: object
       properties:
@@ -2616,6 +2616,14 @@ components:
         * `COMPULSORY` - Compulsory
         * `ELECTIVE` - Elective
         * `PROF_ORIENTED` - ProfOriented
+    ViewerVoteEnum:
+      enum:
+      - DOWNVOTE
+      - UPVOTE
+      type: string
+      description: |-
+        * `DOWNVOTE` - Downvote
+        * `UPVOTE` - Upvote
   securitySchemes:
     cookieAuth:
       type: apiKey

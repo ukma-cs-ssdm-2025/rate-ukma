@@ -13,6 +13,7 @@ from ..repositories import (
     InstructorRepository,
     RatingMapper,
     RatingRepository,
+    RatingVoteMapper,
     RatingVoteRepository,
     SemesterRepository,
     SpecialityRepository,
@@ -30,6 +31,11 @@ def course_mapper() -> CourseMapper:
 @once
 def rating_mapper() -> RatingMapper:
     return RatingMapper()
+
+
+@once
+def rating_vote_mapper() -> RatingVoteMapper:
+    return RatingVoteMapper()
 
 
 @once
@@ -103,4 +109,4 @@ def user_repository() -> UserRepository:
 
 @once
 def vote_repository() -> RatingVoteRepository:
-    return RatingVoteRepository()
+    return RatingVoteRepository(vote_mapper=rating_vote_mapper())

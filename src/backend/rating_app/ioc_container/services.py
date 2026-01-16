@@ -8,6 +8,7 @@ from rating_app.ioc_container.repositories import (
     faculty_repository,
     instructor_repository,
     rating_repository,
+    rating_vote_mapper,
     semester_repository,
     speciality_repository,
     student_repository,
@@ -76,6 +77,7 @@ def rating_service() -> RatingService:
         course_offering_service=course_offering_service(),
         semester_service=semester_service(),
         vote_repository=vote_repository(),
+        vote_mapper=rating_vote_mapper(),
     )
 
 
@@ -119,6 +121,7 @@ def vote_service() -> RatingFeedbackService:
         vote_repository=vote_repository(),
         enrollment_repository=enrollment_repository(),
         rating_repository=rating_repository(),
+        vote_mapper=rating_vote_mapper(),
     )
 
 

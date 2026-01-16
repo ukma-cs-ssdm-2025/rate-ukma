@@ -61,3 +61,8 @@ class AcademicTitle(models.TextChoices):
 class RatingVoteType(models.IntegerChoices):
     DOWNVOTE = -1, "Downvote"
     UPVOTE = 1, "Upvote"
+
+
+class RatingVoteStrType(models.TextChoices):
+    DOWNVOTE = "DOWNVOTE", "Downvote"
+    UPVOTE = "UPVOTE", "Upvote"

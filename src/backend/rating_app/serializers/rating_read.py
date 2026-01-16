@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from rating_app.models.choices import RatingVoteType
+from rating_app.models.choices import RatingVoteStrType
 
 
 class RatingReadSerializer(serializers.Serializer):
@@ -22,5 +22,5 @@ class RatingReadSerializer(serializers.Serializer):
     upvotes = serializers.IntegerField(read_only=True)
     downvotes = serializers.IntegerField(read_only=True)
     viewer_vote = serializers.ChoiceField(
-        choices=RatingVoteType.choices, read_only=True, allow_null=True
+        choices=RatingVoteStrType.choices, read_only=True, allow_null=True
     )

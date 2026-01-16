@@ -10,11 +10,15 @@ from rating_app.exception.vote_exceptions import VoteAlreadyExistsException
 from rating_app.models import RatingVote
 from rating_app.models.choices import RatingVoteType
 from rating_app.repositories.protocol import IRepository
+from rating_app.repositories.to_domain_mappers import RatingVoteMapper
 
 logger = structlog.get_logger(__name__)
 
 
 class RatingVoteRepository(IRepository[RatingVote]):
+    def __init__(self, vote_mapper: RatingVoteMapper):
+        self.vote_mapper = vote_mapper
+
     def get_count_by_rating_id(self, rating_id: str) -> int:
         return (
             RatingVote.objects.select_related("student", "rating")
@@ -53,8 +57,9 @@ class RatingVoteRepository(IRepository[RatingVote]):
 
     def create_vote(self, params: RatingVoteCreateSchema) -> RatingVote:
         try:
+            db_vote_type = self.vote_mapper.to_db(params.vote_type)
             return RatingVote.objects.create(
-                type=params.vote_type, student_id=params.student_id, rating_id=params.rating_id
+                type=db_vote_type, student_id=params.student_id, rating_id=params.rating_id
             )
         except IntegrityError as err:
             raise VoteAlreadyExistsException() from err

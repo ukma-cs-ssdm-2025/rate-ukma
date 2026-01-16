@@ -9,7 +9,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import { RatingVoteType } from "@/lib/api/generated";
+import { RatingVoteStrType } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import {
 	useCoursesRatingsVotesCreate,
@@ -20,7 +20,7 @@ interface RatingVotesProps {
 	ratingId: string;
 	initialUpvotes?: number;
 	initialDownvotes?: number;
-	initialUserVote?: RatingVoteType | null;
+	initialUserVote?: RatingVoteStrType | null;
 	readOnly?: boolean;
 	disabledMessage?: string;
 }
@@ -91,11 +91,11 @@ export function RatingVotes({
 	disabledMessage,
 }: Readonly<RatingVotesProps>) {
 	// The "optimistic" vote state - updates immediately on click
-	const [userVote, setUserVote] = useState<RatingVoteType | null>(
+	const [userVote, setUserVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
 	);
 	// The "authority" vote state - what is actually on the server
-	const [serverVote, setServerVote] = useState<RatingVoteType | null>(
+	const [serverVote, setServerVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
 	);
 
@@ -113,16 +113,14 @@ export function RatingVotes({
 	}, [createVote.mutateAsync, deleteVote.mutateAsync]);
 
 	// Derived counts based on initial props and optimistic userVote
-	// TODO: use RatingVoteType.UPVOTE and RatingVoteType.DOWNVOTE
-	// TODO: instead of RatingVoteType.NUMBER_1 and RatingVoteType.NUMBER_MINUS_1
 	const upvotes =
 		initialUpvotes +
-		(initialUserVote === RatingVoteType.NUMBER_1 ? -1 : 0) +
-		(userVote === RatingVoteType.NUMBER_1 ? 1 : 0);
+		(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
+		(userVote === RatingVoteStrType.UPVOTE ? 1 : 0);
 	const downvotes =
 		initialDownvotes +
-		(initialUserVote === RatingVoteType.NUMBER_MINUS_1 ? -1 : 0) +
-		(userVote === RatingVoteType.NUMBER_MINUS_1 ? 1 : 0);
+		(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
+		(userVote === RatingVoteStrType.DOWNVOTE ? 1 : 0);
 
 	// Sync local state with props if they change (e.g. after a re-fetch from elsewhere)
 	useEffect(() => {
@@ -167,13 +165,13 @@ export function RatingVotes({
 		};
 	}, [userVote, serverVote, ratingId]);
 
-	const toggleVote = (target: RatingVoteType) => {
+	const toggleVote = (target: RatingVoteStrType) => {
 		if (readOnly) return;
 		setUserVote((prev) => (prev === target ? null : target));
 	};
 
-	const upActive = userVote === RatingVoteType.NUMBER_1;
-	const downActive = userVote === RatingVoteType.NUMBER_MINUS_1;
+	const upActive = userVote === RatingVoteStrType.UPVOTE;
+	const downActive = userVote === RatingVoteStrType.DOWNVOTE;
 
 	if (readOnly) {
 		if (disabledMessage) {
@@ -212,7 +210,7 @@ export function RatingVotes({
 				isUpvote
 				count={upvotes}
 				active={upActive}
-				onClick={() => toggleVote(RatingVoteType.NUMBER_1)}
+				onClick={() => toggleVote(RatingVoteStrType.UPVOTE)}
 				asButton
 			/>
 
@@ -220,7 +218,7 @@ export function RatingVotes({
 				isUpvote={false}
 				count={downvotes}
 				active={downActive}
-				onClick={() => toggleVote(RatingVoteType.NUMBER_MINUS_1)}
+				onClick={() => toggleVote(RatingVoteStrType.DOWNVOTE)}
 				asButton
 			/>
 		</div>

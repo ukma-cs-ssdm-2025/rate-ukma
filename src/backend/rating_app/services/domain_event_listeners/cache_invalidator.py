@@ -28,6 +28,4 @@ class RatingVoteCacheInvalidator(IEventListener[RatingVote]):
 
     @implements
     def on_event(self, event: RatingVote, *args, **kwargs) -> None:
-        course_id = str(event.rating.course_offering.course.id)
-        pattern = f"*/courses/{course_id}/ratings*"
-        self.cache_manager.invalidate_pattern(pattern)
+        self.cache_manager.invalidate_pattern("*filter_ratings*")

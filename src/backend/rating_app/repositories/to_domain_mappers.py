@@ -6,7 +6,7 @@ from rating_app.application_schemas.course import CourseSpeciality
 from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.exception.course_exceptions import CourseMissingDepartmentOrFacultyError
 from rating_app.models import Course
-from rating_app.models.choices import CourseStatus, CourseTypeKind
+from rating_app.models.choices import CourseStatus, CourseTypeKind, RatingVoteStrType, RatingVoteType
 from rating_app.models.rating import Rating as RatingModel
 
 logger = structlog.get_logger(__name__)
@@ -136,3 +136,30 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             downvotes=downvotes,
             viewer_vote=None,  # set by service layer based on viewer context
         )
+
+
+class RatingVoteMapper:
+    _db_to_domain: dict[int, RatingVoteStrType] = {
+        RatingVoteType.UPVOTE: RatingVoteStrType.UPVOTE,
+        RatingVoteType.DOWNVOTE: RatingVoteStrType.DOWNVOTE,
+    }
+
+    _domain_to_db: dict[str, RatingVoteType] = {
+        RatingVoteStrType.UPVOTE: RatingVoteType.UPVOTE,
+        RatingVoteStrType.DOWNVOTE: RatingVoteType.DOWNVOTE,
+    }
+
+    # exposing static methods for serializer
+    @classmethod
+    def to_domain(cls, db_value: RatingVoteType | int | None) -> RatingVoteStrType | None:
+        if db_value is None:
+            return None
+        value = db_value.value if isinstance(db_value, RatingVoteType) else db_value
+        return cls._db_to_domain.get(value)
+
+    @classmethod
+    def to_db(cls, domain_value: RatingVoteStrType | str | None) -> RatingVoteType | None:
+        if domain_value is None:
+            return None
+        value = domain_value.value if isinstance(domain_value, RatingVoteStrType) else domain_value
+        return cls._domain_to_db.get(value)

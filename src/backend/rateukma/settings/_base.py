@@ -242,9 +242,7 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": "/api/v1/",
     "COMPONENT_NO_READ_ONLY_REQUIRED": True,
     "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
-    "ENUM_NAME_OVERRIDES": {
-        "RatingVoteType": "rating_app.models.choices.RatingVoteType",
-    },
+    "ENUM_NAME_OVERRIDES": {},
 }
 
 

@@ -27,8 +27,12 @@ from rating_app.exception.rating_exceptions import (
     RatingPeriodNotStarted,
 )
 from rating_app.models import Semester
-from rating_app.models.choices import RatingVoteType
-from rating_app.repositories import EnrollmentRepository, RatingRepository, RatingVoteRepository
+from rating_app.repositories import (
+    EnrollmentRepository,
+    RatingRepository,
+    RatingVoteMapper,
+    RatingVoteRepository,
+)
 from rating_app.services.course_offering_service import CourseOfferingService
 from rating_app.services.semester_service import SemesterService
 
@@ -43,12 +47,14 @@ class RatingService(IObservable[RatingDTO]):
         course_offering_service: CourseOfferingService,
         semester_service: SemesterService,
         vote_repository: RatingVoteRepository,
+        vote_mapper: RatingVoteMapper,
     ):
         self.rating_repository = rating_repository
         self.enrollment_repository = enrollment_repository
         self.course_offering_service = course_offering_service
         self.semester_service = semester_service
         self.vote_repository = vote_repository
+        self.vote_mapper = vote_mapper
         self._listeners: list[IEventListener[RatingDTO]] = []
 
     @implements
@@ -204,7 +210,7 @@ class RatingService(IObservable[RatingDTO]):
         for rating in ratings:
             vote_type = viewer_votes.get(str(rating.id))
             if vote_type:
-                rating.viewer_vote = RatingVoteType(vote_type)
+                rating.viewer_vote = self.vote_mapper.to_domain(vote_type)
 
     def _format_applied_filters(self, filters: RatingFilterCriteria) -> dict[str, Any]:
         return filters.model_dump(by_alias=True, exclude={"page", "page_size"}, exclude_none=True)
