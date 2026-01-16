@@ -6,6 +6,12 @@ from django.db import transaction
 import structlog
 from pydantic import BaseModel
 
+from rateukma.caching.cache_manager import ICacheManager
+from rateukma.caching.patterns import (
+    COURSE_PATTERN,
+    FILTER_OPTIONS_PATTERN,
+    RATINGS_PATTERN,
+)
 from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IOperation
 from rating_app.models import (
@@ -70,6 +76,7 @@ class CourseDbInjector(IDbInjector):
         enrollment_repository: EnrollmentRepository,
         injection_progress_tracker: InjectionProgressTracker,
         student_service: StudentService,
+        cache_manager: ICacheManager,
     ):
         self.course_repository = course_repository
         self.department_repository = department_repository
@@ -83,6 +90,7 @@ class CourseDbInjector(IDbInjector):
         self.enrollment_repository = enrollment_repository
         self.tracker = injection_progress_tracker
         self.student_service = student_service
+        self.cache_manager = cache_manager
 
         self._faculty_cache: dict[str, Faculty] = {}
         self._department_cache: dict[tuple[str, str], Department] = {}
@@ -105,6 +113,7 @@ class CourseDbInjector(IDbInjector):
             raise e
 
         self.tracker.complete()
+        self._invalidate_cache()
 
     def reset_state(self) -> None:
         self._reset_caches()
@@ -114,6 +123,17 @@ class CourseDbInjector(IDbInjector):
         self._batch_number = batch_number
         if hasattr(self.tracker, "set_batch_number"):
             self.tracker.set_batch_number(batch_number)
+
+    def _invalidate_cache(self) -> None:
+        patterns = [
+            COURSE_PATTERN,
+            RATINGS_PATTERN,
+            FILTER_OPTIONS_PATTERN,
+        ]
+        for pattern in patterns:
+            self.cache_manager.invalidate_pattern(pattern)
+
+        logger.info("cache_invalidated_after_ingestion", patterns=patterns)
 
     def _reset_caches(self) -> None:
         self._faculty_cache.clear()

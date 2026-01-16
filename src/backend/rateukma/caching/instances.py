@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from redis import Redis
 
-from ..caching.cache_manager import ICacheManager, RedisCacheManager
+from ..caching.cache_manager import ICacheManager, InMemoryCacheManager, RedisCacheManager
 from ..ioc.decorators import once
 from .types_extensions import (
     CacheKeyContextProvider,
@@ -15,6 +15,9 @@ from .types_extensions import (
 
 @once
 def redis_cache_manager() -> ICacheManager:
+    if not settings.ENABLE_CACHE:
+        return InMemoryCacheManager()
+
     redis_client: Redis = Redis(
         host=settings.REDIS_HOST,
         port=settings.REDIS_PORT,

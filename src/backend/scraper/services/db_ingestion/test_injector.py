@@ -48,7 +48,7 @@ def repo_mocks():
     enrollment_repo = MagicMock()
     tracker = MagicMock()
     student_service = MagicMock()
-
+    cache_manager = MagicMock()
     faculty = SimpleNamespace(name=faker.company(), id=1)
     department = SimpleNamespace(name=faker.catch_phrase(), id=2)
     course = Mock()
@@ -91,6 +91,7 @@ def repo_mocks():
         speciality=speciality,
         instructor=instructor,
         student=student,
+        cache_manager=cache_manager,
     )
 
 
@@ -109,6 +110,7 @@ def injector(repo_mocks) -> CourseDbInjector:
         repo_mocks.enrollment_repo,
         repo_mocks.tracker,
         repo_mocks.student_service,
+        repo_mocks.cache_manager,
     )
 
 
@@ -369,3 +371,32 @@ def test_injector_handles_empty_education_level(injector, repo_mocks):
     repo_mocks.student_repo.get_or_create.assert_called_once()
     call_args = repo_mocks.student_repo.get_or_create.call_args
     assert call_args[1]["education_level"] == ""
+
+
+@pytest.mark.django_db
+def test_injector_invalidates_cache_after_successful_execution(injector, repo_mocks):
+    # Arrange
+    models = create_mock_payload()
+
+    # Act
+    injector.execute(models)
+
+    # Assert
+    assert repo_mocks.cache_manager.invalidate_pattern.call_count == 3
+    repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*course*")
+    repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*ratings*")
+    repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*get_filter_options*")
+
+
+@pytest.mark.django_db
+def test_injector_does_not_invalidate_cache_on_exception(injector, repo_mocks):
+    # Arrange
+    repo_mocks.faculty_repo.get_or_create.side_effect = RuntimeError("error")
+    models = [create_mock_course(title="Invalid Course")]
+
+    # Act
+    with pytest.raises(RuntimeError):
+        injector.execute(models)
+
+    # Assert
+    repo_mocks.cache_manager.invalidate_pattern.assert_not_called()
