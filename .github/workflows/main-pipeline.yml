@@ -101,7 +101,7 @@ jobs:
     needs: [version, build]
     if: |
       always() &&
-      needs.build.result != 'failure'
+      needs.build.result == 'success'
     uses: ./.github/workflows/deploy-staging.yml
     with:
       deployment_ref: ${{ github.sha }}
