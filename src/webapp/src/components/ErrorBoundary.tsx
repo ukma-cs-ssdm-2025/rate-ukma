@@ -1,13 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ErrorBoundary as ReactErrorBoundary } from "react-error-boundary";
+import {
+	ErrorBoundary as ReactErrorBoundary,
+	type FallbackProps,
+} from "react-error-boundary";
 
 import { Button } from "./ui/Button";
 
-function ErrorFallback({
-	resetErrorBoundary,
-}: Readonly<{
-	resetErrorBoundary: () => void;
-}>) {
+function ErrorFallback({ resetErrorBoundary }: Readonly<FallbackProps>) {
 	const navigate = useNavigate();
 
 	const handleRetry = () => {
@@ -48,10 +47,7 @@ function ErrorFallback({
 
 interface ErrorBoundaryProps {
 	children: React.ReactNode;
-	fallback?: React.ComponentType<{
-		error: Error;
-		resetErrorBoundary: () => void;
-	}>;
+	fallback?: React.ComponentType<FallbackProps>;
 	onError?: (
 		error: Error,
 		info: { componentStack: string | null | undefined },
@@ -68,7 +64,8 @@ export function ErrorBoundary({
 			FallbackComponent={fallback}
 			onError={(error, info) => {
 				console.error("Error caught by ErrorBoundary:", error, info);
-				onError?.(error, { componentStack: info.componentStack || null });
+				const err = error instanceof Error ? error : new Error(String(error));
+				onError?.(err, { componentStack: info.componentStack || null });
 			}}
 		>
 			{children}

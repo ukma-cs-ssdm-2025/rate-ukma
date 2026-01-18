@@ -6,7 +6,7 @@ import { CANNOT_VOTE_OWN_RATING_TEXT } from "@/features/ratings/definitions/rati
 import type {
 	InlineRating,
 	RatingRead,
-	RatingVoteType,
+	RatingVoteStrType,
 } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
@@ -17,7 +17,7 @@ import { RatingVotes } from "./RatingVotes";
 interface ExtendedRating extends InlineRating {
 	upvotes?: number;
 	downvotes?: number;
-	viewer_vote?: RatingVoteType | null;
+	viewer_vote?: RatingVoteStrType | null;
 }
 
 interface UserRatingCardProps {
