@@ -3,6 +3,20 @@
 from django.db import migrations, models
 
 
+def convert_vote_types_to_int(apps, schema_editor):
+    RatingVote = apps.get_model("rating_app", "RatingVote")
+    db_alias = schema_editor.connection.alias
+    RatingVote.objects.using(db_alias).filter(type="UPVOTE").update(type="1")
+    RatingVote.objects.using(db_alias).filter(type="DOWNVOTE").update(type="-1")
+
+
+def convert_vote_types_to_str(apps, schema_editor):
+    RatingVote = apps.get_model("rating_app", "RatingVote")
+    db_alias = schema_editor.connection.alias
+    RatingVote.objects.using(db_alias).filter(type="1").update(type="UPVOTE")
+    RatingVote.objects.using(db_alias).filter(type="-1").update(type="DOWNVOTE")
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -14,6 +28,7 @@ class Migration(migrations.Migration):
             name='coursespeciality',
             options={'verbose_name': 'Course speciality', 'verbose_name_plural': 'Course specialities'},
         ),
+        migrations.RunPython(convert_vote_types_to_int, convert_vote_types_to_str),
         migrations.AlterField(
             model_name='ratingvote',
             name='type',
