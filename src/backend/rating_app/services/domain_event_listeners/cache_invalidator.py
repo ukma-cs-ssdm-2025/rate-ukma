@@ -2,7 +2,6 @@ from rateukma.caching.cache_manager import ICacheManager
 from rateukma.caching.patterns import (
     COURSE_PATTERN,
     RATINGS_PATTERN,
-    course_ratings_pattern,
     student_pattern,
 )
 from rateukma.protocols import implements
@@ -20,7 +19,7 @@ class RatingCacheInvalidator(IEventListener[RatingDTO]):
     @implements
     def on_event(self, event: RatingDTO, *args, **kwargs) -> None:
         patterns = {
-            student_pattern(str(event.student.id)),
+            student_pattern(str(event.student_id)),
             RATINGS_PATTERN,
             COURSE_PATTERN,
         }
@@ -34,5 +33,4 @@ class RatingVoteCacheInvalidator(IEventListener[RatingVote]):
 
     @implements
     def on_event(self, event: RatingVote, *args, **kwargs) -> None:
-        course_id = str(event.rating.course_offering.course.id)
-        self.cache_manager.invalidate_pattern(course_ratings_pattern(course_id))
+        self.cache_manager.invalidate_pattern(RATINGS_PATTERN)
