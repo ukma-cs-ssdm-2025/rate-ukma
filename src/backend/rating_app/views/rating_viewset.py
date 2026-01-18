@@ -6,7 +6,7 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
-from rateukma.caching.decorators import rcached
+from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.application_schemas.rating import (
     RatingCourseFilterParams,
     RatingCreateParams,
@@ -18,10 +18,10 @@ from rating_app.application_schemas.rating import (
     RatingRetrieveParams,
 )
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
-from rating_app.models import Rating, Student
+from rating_app.models import Student
 from rating_app.serializers import (
-    RatingListResponseSerializer,
     RatingReadSerializer,
+    RatingsWithUserListSerializer,
 )
 from rating_app.services import RatingService, StudentService
 from rating_app.views.decorators import (
@@ -58,7 +58,6 @@ class RatingViewSet(viewsets.ViewSet):
         ],
         responses=R_RATING_LIST,
     )
-    @rcached(ttl=300)
     @with_optional_student
     def list(self, request, course_id=None, student=None) -> Response:
         assert self.rating_service is not None
@@ -67,14 +66,12 @@ class RatingViewSet(viewsets.ViewSet):
             query_params = RatingListQueryParams(**request.query_params.dict())
 
             filter_data = {
-                **query_params.model_dump(exclude={"separate_current_user"}),
+                **query_params.model_dump(),
                 "course_id": course_id,
             }
 
             if student:
                 filter_data["viewer_id"] = str(student.id)
-                if query_params.separate_current_user:
-                    filter_data["separate_current_user"] = str(student.id)
 
             filters = RatingFilterCriteria.model_validate(filter_data)
 
@@ -84,7 +81,7 @@ class RatingViewSet(viewsets.ViewSet):
 
         result = self.rating_service.filter_ratings(filters)
 
-        payload = RatingListResponseSerializer(
+        payload = RatingsWithUserListSerializer(
             {
                 "items": {
                     "ratings": result.items.ratings,
@@ -112,17 +109,8 @@ class RatingViewSet(viewsets.ViewSet):
         assert self.rating_service is not None
         # course_id is not used, will be potentially removed after using a different endpoint
 
-        logger.info(
-            "rating_create_attempt",
-            student_id=str(student.id),
-            request_data=request.data,
-            course_id=course_id,
-        )
-
         try:
-            # Validate the request body without student field
             request_params = RatingCreateRequest.model_validate(request.data)
-            # Build internal params with student from authenticated user
             rating_params = RatingCreateParams.model_validate(
                 {**request_params.model_dump(), "student": student.id}
             )
@@ -130,14 +118,7 @@ class RatingViewSet(viewsets.ViewSet):
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
-        logger.info(
-            "rating_params_validated",
-            student_id=str(rating_params.student),
-            offering_id=str(rating_params.course_offering),
-        )
-
         rating = self.rating_service.create_rating(rating_params)
-
         logger.info(
             "rating_created",
             rating_id=str(rating.id),
@@ -163,7 +144,7 @@ class RatingViewSet(viewsets.ViewSet):
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
-        rating = self.rating_service.get_rating(params.rating_id)
+        rating = self.rating_service.get_rating(str(params.rating_id))
 
         serializer = RatingReadSerializer(rating)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -175,7 +156,7 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING,
     )
     @require_rating_ownership
-    def update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
+    def update(self, request, rating: RatingDTO, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
 
         try:
@@ -196,7 +177,7 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_RATING,
     )
     @require_rating_ownership
-    def partial_update(self, request, rating: Rating, student: Student, **kwargs) -> Response:
+    def partial_update(self, request, rating: RatingDTO, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
 
         try:
@@ -216,9 +197,9 @@ class RatingViewSet(viewsets.ViewSet):
         responses=R_NO_CONTENT,
     )
     @require_rating_ownership
-    def destroy(self, request, rating: Rating, student: Student, **kwargs) -> Response:
+    def destroy(self, request, rating: RatingDTO, student: Student, **kwargs) -> Response:
         assert self.rating_service is not None
 
-        self.rating_service.delete_rating(rating.id)
+        self.rating_service.delete_rating(rating)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

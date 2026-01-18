@@ -26,9 +26,7 @@ class RatingVoteViewSet(viewsets.ViewSet):
     serializer_class = RatingVoteReadSerializer
 
     vote_service: RatingFeedbackService | None = None
-
     student_service: StudentService | None = None
-
     rating_service: RatingService | None = None
 
     @extend_schema(

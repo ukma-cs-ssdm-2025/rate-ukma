@@ -9,26 +9,24 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import type { RatingVoteCreateRequest } from "@/lib/api/generated";
+import { RatingVoteStrType } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import {
 	useCoursesRatingsVotesCreate,
 	useCoursesRatingsVotesDestroy,
 } from "../hooks/useVoteMutations";
 
-type VoteType = "UPVOTE" | "DOWNVOTE";
-
 interface RatingVotesProps {
 	ratingId: string;
 	initialUpvotes?: number;
 	initialDownvotes?: number;
-	initialUserVote?: VoteType | null;
+	initialUserVote?: RatingVoteStrType | null;
 	readOnly?: boolean;
 	disabledMessage?: string;
 }
 
 interface VoteProps {
-	readonly type: VoteType;
+	readonly isUpvote: boolean;
 	readonly count: number;
 	readonly active: boolean;
 	readonly onClick?: () => void;
@@ -36,13 +34,13 @@ interface VoteProps {
 }
 
 function Vote({
-	type,
+	isUpvote,
 	count,
 	active,
 	onClick,
 	asButton = false,
 }: Readonly<VoteProps>) {
-	const Icon = type === "UPVOTE" ? ArrowBigUp : ArrowBigDown;
+	const Icon = isUpvote ? ArrowBigUp : ArrowBigDown;
 	if (asButton) {
 		return (
 			<Button
@@ -56,7 +54,7 @@ function Vote({
 						? "text-[#0076BB] bg-[#0076BB]/10 ring-1 ring-inset ring-[#0076BB]/20"
 						: "text-muted-foreground",
 				)}
-				aria-label={type === "UPVOTE" ? "За" : "Проти"}
+				aria-label={isUpvote ? "За" : "Проти"}
 			>
 				<Icon className={cn("h-5 w-5", active && "fill-current")} />
 				<span className="text-xs font-bold">{count}</span>
@@ -93,9 +91,11 @@ export function RatingVotes({
 	disabledMessage,
 }: Readonly<RatingVotesProps>) {
 	// The "optimistic" vote state - updates immediately on click
-	const [userVote, setUserVote] = useState<VoteType | null>(initialUserVote);
+	const [userVote, setUserVote] = useState<RatingVoteStrType | null>(
+		initialUserVote,
+	);
 	// The "authority" vote state - what is actually on the server
-	const [serverVote, setServerVote] = useState<VoteType | null>(
+	const [serverVote, setServerVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
 	);
 
@@ -115,12 +115,12 @@ export function RatingVotes({
 	// Derived counts based on initial props and optimistic userVote
 	const upvotes =
 		initialUpvotes +
-		(initialUserVote === "UPVOTE" ? -1 : 0) +
-		(userVote === "UPVOTE" ? 1 : 0);
+		(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
+		(userVote === RatingVoteStrType.UPVOTE ? 1 : 0);
 	const downvotes =
 		initialDownvotes +
-		(initialUserVote === "DOWNVOTE" ? -1 : 0) +
-		(userVote === "DOWNVOTE" ? 1 : 0);
+		(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
+		(userVote === RatingVoteStrType.DOWNVOTE ? 1 : 0);
 
 	// Sync local state with props if they change (e.g. after a re-fetch from elsewhere)
 	useEffect(() => {
@@ -139,12 +139,9 @@ export function RatingVotes({
 				if (userVote === null) {
 					await deleteVoteRef.current({ ratingId });
 				} else {
-					const voteData: RatingVoteCreateRequest = {
-						vote_type: userVote,
-					};
 					await createVoteRef.current({
 						ratingId,
-						data: voteData,
+						data: { vote_type: userVote },
 					});
 				}
 				// Sync authority state on success only if still mounted
@@ -168,13 +165,13 @@ export function RatingVotes({
 		};
 	}, [userVote, serverVote, ratingId]);
 
-	const toggleVote = (target: VoteType) => {
+	const toggleVote = (target: RatingVoteStrType) => {
 		if (readOnly) return;
 		setUserVote((prev) => (prev === target ? null : target));
 	};
 
-	const upActive = userVote === "UPVOTE";
-	const downActive = userVote === "DOWNVOTE";
+	const upActive = userVote === RatingVoteStrType.UPVOTE;
+	const downActive = userVote === RatingVoteStrType.DOWNVOTE;
 
 	if (readOnly) {
 		if (disabledMessage) {
@@ -182,7 +179,7 @@ export function RatingVotes({
 				<div className="flex items-center gap-1 mt-3 justify-end">
 					<Tooltip delayDuration={0}>
 						<TooltipTrigger>
-							<Vote type="UPVOTE" count={upvotes} active={upActive} />
+							<Vote isUpvote count={upvotes} active={upActive} />
 						</TooltipTrigger>
 						<TooltipContent side="top" sideOffset={4}>
 							<p>{disabledMessage}</p>
@@ -190,7 +187,7 @@ export function RatingVotes({
 					</Tooltip>
 					<Tooltip delayDuration={0}>
 						<TooltipTrigger>
-							<Vote type="DOWNVOTE" count={downvotes} active={downActive} />
+							<Vote isUpvote={false} count={downvotes} active={downActive} />
 						</TooltipTrigger>
 						<TooltipContent side="top" sideOffset={4}>
 							<p>{disabledMessage}</p>
@@ -201,8 +198,8 @@ export function RatingVotes({
 		}
 		return (
 			<div className="flex items-center gap-1 mt-3 justify-end">
-				<Vote type="UPVOTE" count={upvotes} active={upActive} />
-				<Vote type="DOWNVOTE" count={downvotes} active={downActive} />
+				<Vote isUpvote count={upvotes} active={upActive} />
+				<Vote isUpvote={false} count={downvotes} active={downActive} />
 			</div>
 		);
 	}
@@ -210,18 +207,18 @@ export function RatingVotes({
 	return (
 		<div className="flex items-center gap-1 mt-3 justify-end">
 			<Vote
-				type="UPVOTE"
+				isUpvote
 				count={upvotes}
 				active={upActive}
-				onClick={() => toggleVote("UPVOTE")}
+				onClick={() => toggleVote(RatingVoteStrType.UPVOTE)}
 				asButton
 			/>
 
 			<Vote
-				type="DOWNVOTE"
+				isUpvote={false}
 				count={downvotes}
 				active={downActive}
-				onClick={() => toggleVote("DOWNVOTE")}
+				onClick={() => toggleVote(RatingVoteStrType.DOWNVOTE)}
 				asButton
 			/>
 		</div>

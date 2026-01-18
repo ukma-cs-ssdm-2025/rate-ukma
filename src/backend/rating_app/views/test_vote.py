@@ -1,6 +1,6 @@
 import pytest
 
-from rating_app.models.choices import RatingVoteType
+from rating_app.models.choices import RatingVoteStrType, RatingVoteType
 
 
 @pytest.mark.django_db
@@ -13,13 +13,13 @@ def test_create_vote_upvote(token_client, rating_factory, student_factory, enrol
 
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
-        "vote_type": RatingVoteType.UPVOTE,
+        "vote_type": RatingVoteStrType.UPVOTE,
     }
 
     response = token_client.put(url, data=payload, format="json")
 
     assert response.status_code == 201
-    assert response.json()["vote_type"] == RatingVoteType.UPVOTE
+    assert response.json()["vote_type"] == RatingVoteStrType.UPVOTE
     assert response.json()["rating"] == str(rating.id)
 
 
@@ -33,13 +33,13 @@ def test_create_vote_downvote(token_client, rating_factory, student_factory, enr
 
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
-        "vote_type": RatingVoteType.DOWNVOTE,
+        "vote_type": RatingVoteStrType.DOWNVOTE,
     }
 
     response = token_client.put(url, data=payload, format="json")
 
     assert response.status_code == 201
-    assert response.json()["vote_type"] == RatingVoteType.DOWNVOTE
+    assert response.json()["vote_type"] == RatingVoteStrType.DOWNVOTE
 
 
 @pytest.mark.django_db
@@ -62,13 +62,13 @@ def test_create_vote_different_enrollment(
 
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
-        "vote_type": RatingVoteType.UPVOTE,
+        "vote_type": RatingVoteStrType.UPVOTE,
     }
 
     response = token_client.put(url, data=payload, format="json")
 
     assert response.status_code == 201
-    assert response.json()["vote_type"] == RatingVoteType.UPVOTE
+    assert response.json()["vote_type"] == RatingVoteStrType.UPVOTE
     assert response.json()["rating"] == str(rating.id)
 
 
@@ -86,13 +86,13 @@ def test_create_vote_toggle(
 
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
-        "vote_type": RatingVoteType.DOWNVOTE,
+        "vote_type": RatingVoteStrType.DOWNVOTE,
     }
 
     response = token_client.put(url, data=payload, format="json")
 
     assert response.status_code == 200
-    assert response.json()["vote_type"] == RatingVoteType.DOWNVOTE
+    assert response.json()["vote_type"] == RatingVoteStrType.DOWNVOTE
 
 
 @pytest.mark.django_db
@@ -121,7 +121,7 @@ def test_create_vote_not_enrolled_fails(token_client, rating_factory, student_fa
 
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
-        "vote_type": RatingVoteType.UPVOTE,
+        "vote_type": RatingVoteStrType.UPVOTE,
     }
 
     response = token_client.put(url, data=payload, format="json")
@@ -138,7 +138,7 @@ def test_create_vote_not_student_fails(token_client, rating_factory):
 
     url = f"/api/v1/ratings/{rating.id}/votes/"
     payload = {
-        "vote_type": RatingVoteType.UPVOTE,
+        "vote_type": RatingVoteStrType.UPVOTE,
     }
 
     response = token_client.put(url, data=payload, format="json")

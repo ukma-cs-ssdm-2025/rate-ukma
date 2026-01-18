@@ -74,6 +74,7 @@ def test_create_rating(
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)  # must be enrolled
 
+
     url = f"/api/v1/courses/{course.id}/ratings/"
     payload = {
         "course_offering": str(offering.id),

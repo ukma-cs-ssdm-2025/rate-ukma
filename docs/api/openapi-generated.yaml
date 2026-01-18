@@ -880,7 +880,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RatingListResponse'
+                $ref: '#/components/schemas/RatingsWithUserList'
           description: OK
         '400':
           content:
@@ -2344,39 +2344,6 @@ components:
       - usefulness
       title: RatingCreateRequest
       type: object
-    RatingListResponse:
-      type: object
-      properties:
-        items:
-          $ref: '#/components/schemas/InlineRatingsItems'
-        filters:
-          type: object
-          additionalProperties: {}
-        page:
-          type: integer
-        page_size:
-          type: integer
-        total:
-          type: integer
-        total_pages:
-          type: integer
-        next_page:
-          type: integer
-          minimum: 1
-          nullable: true
-        previous_page:
-          type: integer
-          minimum: 1
-          nullable: true
-      required:
-      - filters
-      - items
-      - next_page
-      - page
-      - page_size
-      - previous_page
-      - total
-      - total_pages
     RatingPutParams:
       properties:
         difficulty:
@@ -2405,8 +2372,8 @@ components:
     RatingRead:
       type: object
       description: |-
-        Serializer for reading Rating with privacy protection.
-        Returns null for student_id and student_name when is_anonymous is True.
+        Serializer for reading RatingDTO.
+        Privacy protection (nulling student_id/student_name for anonymous) is handled internally.
       properties:
         id:
           type: string
@@ -2415,12 +2382,12 @@ components:
         student_id:
           type: string
           format: uuid
-          nullable: true
           readOnly: true
+          nullable: true
         student_name:
           type: string
-          nullable: true
           readOnly: true
+          nullable: true
         course_offering:
           type: string
           format: uuid
@@ -2460,7 +2427,7 @@ components:
     RatingVoteCreateRequest:
       properties:
         vote_type:
-          $ref: '#/components/schemas/RatingVoteType'
+          $ref: '#/components/schemas/RatingVoteStrType'
           description: The type of the vote
       required:
       - vote_type
@@ -2483,13 +2450,47 @@ components:
           readOnly: true
         vote_type:
           type: string
+          nullable: true
           readOnly: true
-    RatingVoteType:
+    RatingVoteStrType:
       enum:
-      - UPVOTE
       - DOWNVOTE
-      title: RatingVoteType
+      - UPVOTE
+      title: RatingVoteStrType
       type: string
+    RatingsWithUserList:
+      type: object
+      properties:
+        items:
+          $ref: '#/components/schemas/InlineRatingsItems'
+        filters:
+          type: object
+          additionalProperties: {}
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - filters
+      - items
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - total
+      - total_pages
     SemesterTermOption:
       type: object
       properties:
@@ -2617,12 +2618,12 @@ components:
         * `PROF_ORIENTED` - ProfOriented
     ViewerVoteEnum:
       enum:
-      - UPVOTE
       - DOWNVOTE
+      - UPVOTE
       type: string
       description: |-
-        * `UPVOTE` - Upvote
         * `DOWNVOTE` - Downvote
+        * `UPVOTE` - Upvote
   securitySchemes:
     cookieAuth:
       type: apiKey

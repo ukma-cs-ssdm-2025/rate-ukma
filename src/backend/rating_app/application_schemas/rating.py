@@ -16,7 +16,7 @@ from rating_app.constants import (
     MIN_PAGE_SIZE,
     MIN_RATING_VALUE,
 )
-from rating_app.models.choices import RatingVoteType
+from rating_app.models.choices import RatingVoteStrType
 
 from .pagination import PaginationMetadata
 
@@ -88,13 +88,13 @@ class RatingFilterCriteria(BaseModel):
         ge=MIN_PAGE_SIZE,
     )
     course_id: uuid.UUID | None = Field(default=None)
-    separate_current_user: uuid.UUID | None = Field(
-        default=None,
-        description="Separate ratings from this student ID",
+    separate_current_user: bool | None = Field(
+        default=False,
+        description="Separate ratings from current user ones",
     )
     viewer_id: uuid.UUID | None = Field(
         default=None,
-        description="ID of the user viewing the ratings (for vote status)",
+        description="ID of the user requesting the ratings",
     )
 
 
@@ -105,7 +105,7 @@ def strip_string(value: str | None) -> str | None:
     return stripped if stripped else None
 
 
-class RatingRead(BaseModel):
+class Rating(BaseModel):
     model_config = {
         "from_attributes": True,
         "alias_generator": to_snake,
@@ -126,17 +126,17 @@ class RatingRead(BaseModel):
 
     upvotes: int
     downvotes: int
-    viewer_vote: RatingVoteType | None
+    viewer_vote: RatingVoteStrType | None
 
 
-class RatingListResponse(BaseModel):
+class RatingsWithUserList(BaseModel):
     model_config = {
         "alias_generator": to_snake,
         "populate_by_name": True,
     }
 
-    ratings: list[RatingRead]
-    user_ratings: list[RatingRead] | None = None
+    ratings: list[Rating]
+    user_ratings: list[Rating] | None = None
 
 
 # API request schema (student is set automatically from authenticated user)
@@ -156,20 +156,8 @@ class RatingCreateRequest(BaseModel):
 
 
 # Internal schema used by service layer (includes student)
-class RatingCreateParams(BaseModel):
-    model_config = {
-        "alias_generator": to_snake,
-        "populate_by_name": True,
-    }
-
-    course_offering: uuid.UUID = Field(description="UUID of the course offering being rated")
+class RatingCreateParams(RatingCreateRequest):
     student: uuid.UUID = Field(description="UUID of the student creating the rating")
-    difficulty: RatingValue = Field()
-    usefulness: RatingValue = Field()
-    comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
-        default=None
-    )
-    is_anonymous: bool = Field(default=False)
 
 
 class RatingPutParams(BaseModel):
@@ -207,10 +195,9 @@ class RatingPatchParams(BaseModel):
     )
 
 
-# is constructed internally
 @dataclass(frozen=True)
 class RatingSearchResult:
-    items: RatingListResponse
+    items: RatingsWithUserList
     pagination: PaginationMetadata
     applied_filters: dict[str, Any]
 

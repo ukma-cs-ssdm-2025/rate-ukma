@@ -10,11 +10,15 @@ from rating_app.exception.vote_exceptions import VoteAlreadyExistsException
 from rating_app.models import RatingVote
 from rating_app.models.choices import RatingVoteType
 from rating_app.repositories.protocol import IRepository
+from rating_app.repositories.to_domain_mappers import RatingVoteMapper
 
 logger = structlog.get_logger(__name__)
 
 
 class RatingVoteRepository(IRepository[RatingVote]):
+    def __init__(self, vote_mapper: RatingVoteMapper):
+        self.vote_mapper = vote_mapper
+
     def get_count_by_rating_id(self, rating_id: str) -> int:
         return (
             RatingVote.objects.select_related("student", "rating")
@@ -27,8 +31,8 @@ class RatingVoteRepository(IRepository[RatingVote]):
             RatingVote.objects.filter(rating_id__in=rating_ids)
             .values("rating_id")
             .annotate(
-                upvotes=Count("id", filter=Q(type=RatingVoteType.UPVOTE.value)),
-                downvotes=Count("id", filter=Q(type=RatingVoteType.DOWNVOTE.value)),
+                upvotes=Count("id", filter=Q(type=RatingVoteType.UPVOTE)),
+                downvotes=Count("id", filter=Q(type=RatingVoteType.DOWNVOTE)),
             )
         )
 
@@ -45,7 +49,7 @@ class RatingVoteRepository(IRepository[RatingVote]):
 
     def get_viewer_votes_by_rating_ids(
         self, student_id: str, rating_ids: list[str]
-    ) -> dict[str, str]:
+    ) -> dict[str, int]:
         qs = RatingVote.objects.filter(student_id=student_id, rating_id__in=rating_ids).values_list(
             "rating_id", "type"
         )
@@ -53,8 +57,9 @@ class RatingVoteRepository(IRepository[RatingVote]):
 
     def create_vote(self, params: RatingVoteCreateSchema) -> RatingVote:
         try:
+            db_vote_type = self.vote_mapper.to_db(params.vote_type)
             return RatingVote.objects.create(
-                type=params.vote_type, student_id=params.student_id, rating_id=params.rating_id
+                type=db_vote_type, student_id=params.student_id, rating_id=params.rating_id
             )
         except IntegrityError as err:
             raise VoteAlreadyExistsException() from err

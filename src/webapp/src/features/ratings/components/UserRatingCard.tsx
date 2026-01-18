@@ -3,7 +3,11 @@ import { Pencil, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/features/courses/courseFormatting";
 import { CANNOT_VOTE_OWN_RATING_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
-import type { InlineRating, RatingRead } from "@/lib/api/generated";
+import type {
+	InlineRating,
+	RatingRead,
+	RatingVoteType,
+} from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { RatingComment } from "./RatingComment";
@@ -13,7 +17,7 @@ import { RatingVotes } from "./RatingVotes";
 interface ExtendedRating extends InlineRating {
 	upvotes?: number;
 	downvotes?: number;
-	viewer_vote?: "UPVOTE" | "DOWNVOTE" | null;
+	viewer_vote?: RatingVoteType | null;
 }
 
 interface UserRatingCardProps {

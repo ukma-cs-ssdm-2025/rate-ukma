@@ -1,28 +1,23 @@
-import datetime
+from __future__ import annotations
+
 import uuid
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
+from django.db.models.manager import Manager
 
 from .course_offering import CourseOffering
 from .student import Student
 
-
-@runtime_checkable
-class IRating(Protocol):
-    id: uuid.UUID
-    course_offering_id: uuid.UUID
-    difficulty: int
-    usefulness: int
-    comment: str
-    created_at: datetime.datetime
-    is_anonymous: bool
-    student_id: uuid.UUID
+if TYPE_CHECKING:
+    from .rating_vote import RatingVote
 
 
 class Rating(models.Model):
+    rating_vote: Manager[RatingVote]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="ratings")
     course_offering = models.ForeignKey(

@@ -8,7 +8,7 @@ class InlineRatingsItems(serializers.Serializer):
     user_ratings = RatingReadSerializer(many=True, allow_null=True, required=False)
 
 
-class RatingListResponseSerializer(serializers.Serializer):
+class RatingsWithUserListSerializer(serializers.Serializer):
     items = InlineRatingsItems()
     filters = serializers.DictField()
     page = serializers.IntegerField()

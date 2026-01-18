@@ -1,109 +1,137 @@
 import re
 from datetime import datetime
-from decimal import Decimal
-from typing import Any, cast
+from typing import Any
 
-from django.db.models import QuerySet
+import structlog
 
+from rateukma.caching.decorators import rcached
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener, IObservable
-from rating_app.application_schemas.pagination import PaginationMetadata
+from rating_app.application_schemas.course import Course as CourseDTO
+from rating_app.application_schemas.pagination import PaginationFilters, PaginationMetadata
 from rating_app.application_schemas.rating import (
     AggregatedCourseRatingStats,
     RatingCreateParams,
     RatingFilterCriteria,
-    RatingListResponse,
     RatingPatchParams,
     RatingPutParams,
-    RatingRead,
     RatingSearchResult,
+    RatingsWithUserList,
 )
-from rating_app.constants import DEFAULT_PAGE_SIZE
+from rating_app.application_schemas.rating import (
+    Rating as RatingDTO,
+)
 from rating_app.exception.rating_exceptions import (
     DuplicateRatingException,
     NotEnrolledException,
     RatingPeriodNotStarted,
 )
-from rating_app.models import Course, Rating, Semester
-from rating_app.models.choices import RatingVoteType
-from rating_app.repositories import EnrollmentRepository, RatingRepository, RatingVoteRepository
+from rating_app.models import Semester
+from rating_app.repositories import (
+    EnrollmentRepository,
+    RatingRepository,
+    RatingVoteMapper,
+    RatingVoteRepository,
+)
 from rating_app.services.course_offering_service import CourseOfferingService
-from rating_app.services.paginator import QuerysetPaginator
 from rating_app.services.semester_service import SemesterService
 
+logger = structlog.get_logger(__name__)
 
-class RatingService(IObservable[Rating]):
+
+class RatingService(IObservable[RatingDTO]):
     def __init__(
         self,
         rating_repository: RatingRepository,
         enrollment_repository: EnrollmentRepository,
         course_offering_service: CourseOfferingService,
         semester_service: SemesterService,
-        rating_vote_repository: RatingVoteRepository,
-        paginator: QuerysetPaginator,
+        vote_repository: RatingVoteRepository,
+        vote_mapper: RatingVoteMapper,
     ):
         self.rating_repository = rating_repository
         self.enrollment_repository = enrollment_repository
         self.course_offering_service = course_offering_service
         self.semester_service = semester_service
-        self.rating_vote_repository = rating_vote_repository
-        self.paginator = paginator
-        self._listeners: list[IEventListener[Rating]] = []
+        self.vote_repository = vote_repository
+        self.vote_mapper = vote_mapper
+        self._listeners: list[IEventListener[RatingDTO]] = []
 
     @implements
-    def notify(self, event: Rating, *args, **kwargs) -> None:
+    def notify(self, event: RatingDTO, *args, **kwargs) -> None:
         for listener in self._listeners:
             listener.on_event(event, *args, **kwargs)
 
     @implements
-    def add_observer(self, listener: IEventListener[Rating]) -> None:
+    def add_observer(self, listener: IEventListener[RatingDTO]) -> None:
         self._listeners.append(listener)
 
-    def get_rating(self, rating_id):
+    def get_rating(self, rating_id: str) -> RatingDTO:
         return self.rating_repository.get_by_id(rating_id)
 
-    def get_avg_difficulty(self, course: Course) -> Decimal:
-        return cast(Decimal, course.avg_difficulty)
+    def check_rating_ownership(self, rating_id: str, student_id: str) -> bool:
+        author_id = self.rating_repository.get_student_id_by_rating_id(rating_id)
+        if author_id is None:
+            return False
+        return author_id == student_id
 
-    def get_aggregated_course_stats(self, course: Course) -> AggregatedCourseRatingStats:
+    def get_aggregated_course_stats(self, course: CourseDTO) -> AggregatedCourseRatingStats:
         return self.rating_repository.get_aggregated_course_stats(course)
 
+    @rcached(ttl=300)
     def filter_ratings(
         self,
         filters: RatingFilterCriteria,
         paginate: bool = True,
     ) -> RatingSearchResult:
-        user_ratings = []
-        if filters.separate_current_user is not None and filters.page == 1:  # only fetch once
+        # TODO: refactor to have cleaner logic
+
+        user_ratings: list[RatingDTO] | None = None
+        if filters.separate_current_user and filters.page == 1:
             user_ratings = self.rating_repository.get_by_student_id_course_id(
-                student_id=str(filters.separate_current_user),
+                student_id=str(filters.viewer_id),
                 course_id=str(filters.course_id),
             )
-            user_ratings = self._attach_votes_to_ratings(list(user_ratings), filters.viewer_id)
-
-        ratings = self.rating_repository.filter(filters)
 
         if paginate:
-            return self._paginated_result(ratings, filters, user_ratings)
+            pagination_filters = PaginationFilters(
+                page=filters.page,
+                page_size=filters.page_size,
+            )
+            pagination_result = self.rating_repository.filter(filters, pagination_filters)
+            ratings = pagination_result.page_objects
+            metadata = pagination_result.metadata
+        else:
+            ratings = self.rating_repository.filter(filters)
+            metadata = self._create_single_page_metadata(len(ratings))
 
-        items = self._attach_votes_to_ratings(list(ratings), filters.viewer_id)
+        if user_ratings:
+            metadata = metadata.model_copy(update={"total": metadata.total + len(user_ratings)})
 
-        applied_filters = filters.model_dump(
-            by_alias=True, exclude={"page", "page_size"}, exclude_none=True
-        )
+        if filters.viewer_id:
+            all_ratings = ratings + (user_ratings or [])
+            self._enrich_with_viewer_votes(all_ratings, str(filters.viewer_id))
 
-        total_count = len(items) + (len(user_ratings) if user_ratings else 0)
+        applied_filters = self._format_applied_filters(filters)
 
         return RatingSearchResult(
-            items=RatingListResponse(
-                ratings=items,
+            items=RatingsWithUserList(
+                ratings=ratings,
                 user_ratings=user_ratings,
             ),
-            pagination=self._empty_pagination_metadata(total_count),
+            pagination=metadata,
             applied_filters=applied_filters,
         )
 
-    def create_rating(self, params: RatingCreateParams) -> Rating:
+    def _create_single_page_metadata(self, total: int) -> PaginationMetadata:
+        return PaginationMetadata(
+            page=1,
+            page_size=total,
+            total=total,
+            total_pages=1,
+        )
+
+    def create_rating(self, params: RatingCreateParams) -> RatingDTO:
         student_id = str(params.student)
         offering_id = str(params.course_offering)
 
@@ -130,15 +158,16 @@ class RatingService(IObservable[Rating]):
         self.notify(rating)
         return rating
 
-    def update_rating(self, rating: Rating, update_data: RatingPutParams | RatingPatchParams):
+    def update_rating(
+        self, rating: RatingDTO, update_data: RatingPutParams | RatingPatchParams
+    ) -> RatingDTO:
         update_data.comment = self._normalize_comment(update_data.comment)
         updated_rating = self.rating_repository.update(rating, update_data)
         self.notify(updated_rating)
         return updated_rating
 
-    def delete_rating(self, rating_id):
-        rating = self.rating_repository.get_by_id(rating_id)
-        self.rating_repository.delete(rating)
+    def delete_rating(self, rating: RatingDTO) -> None:
+        self.rating_repository.delete(str(rating.id))
         self.notify(rating)
 
     def is_semester_open_for_rating(
@@ -151,93 +180,6 @@ class RatingService(IObservable[Rating]):
         return self.semester_service.is_past_semester(
             semester, current_semester
         ) or self.semester_service.is_midpoint(semester, current_date)
-
-    def _paginated_result(
-        self,
-        ratings: QuerySet[Rating],
-        criteria: RatingFilterCriteria,
-        user_ratings: list[RatingRead] | None = None,
-    ) -> RatingSearchResult:
-        page_size = criteria.page_size or DEFAULT_PAGE_SIZE
-        obj_list, metadata = self.paginator.process(ratings, criteria.page, page_size)
-
-        items = self._attach_votes_to_ratings(obj_list, criteria.viewer_id)
-
-        applied_filters = criteria.model_dump(
-            by_alias=True, exclude={"page", "page_size"}, exclude_none=True
-        )
-        # if current user's ratings are separated, include them in totals
-        if user_ratings:
-            added = len(user_ratings)
-            if added:
-                new_total = metadata.total + added
-                new_total_pages = (new_total + metadata.page_size - 1) // metadata.page_size
-                metadata = PaginationMetadata(
-                    page=metadata.page,
-                    page_size=metadata.page_size,
-                    total=new_total,
-                    total_pages=new_total_pages,
-                )
-        return RatingSearchResult(
-            items=RatingListResponse(
-                ratings=items,
-                user_ratings=user_ratings if criteria.separate_current_user is not None else None,
-            ),
-            pagination=metadata,
-            applied_filters=applied_filters,
-        )
-
-    def _attach_votes_to_ratings(
-        self, ratings: list[Rating], viewer_id: Any | None
-    ) -> list[RatingRead]:
-        rating_ids = [str(r.id) for r in ratings]
-
-        counts = self.rating_vote_repository.get_vote_counts_by_rating_ids(rating_ids)
-        viewer_votes = (
-            self.rating_vote_repository.get_viewer_votes_by_rating_ids(str(viewer_id), rating_ids)
-            if viewer_id is not None
-            else {}
-        )
-
-        results: list[RatingRead] = []
-        for rating in ratings:
-            rid = str(rating.id)
-            up = counts.get(rid, {}).get("upvotes", 0)
-            down = counts.get(rid, {}).get("downvotes", 0)
-            student_vote = viewer_votes.get(rid)
-
-            results.append(
-                RatingRead(
-                    id=rating.id,
-                    course_offering_id=rating.course_offering.id,
-                    difficulty=rating.difficulty,
-                    usefulness=rating.usefulness,
-                    comment=rating.comment,
-                    created_at=rating.created_at,
-                    is_anonymous=rating.is_anonymous,
-                    student_id=rating.student.id if not rating.is_anonymous else None,
-                    student_name=(
-                        f"{rating.student.last_name} {rating.student.first_name}"
-                        if not rating.is_anonymous
-                        else None
-                    ),
-                    course_offering=rating.course_offering.id,
-                    course=rating.course_offering.course.id,
-                    upvotes=up,
-                    downvotes=down,
-                    viewer_vote=RatingVoteType(student_vote) if student_vote else None,
-                )
-            )
-
-        return results
-
-    def _empty_pagination_metadata(self, ratings_count: int) -> PaginationMetadata:
-        return PaginationMetadata(
-            total=ratings_count,
-            page=1,
-            page_size=ratings_count,
-            total_pages=1,
-        )
 
     @staticmethod
     def _normalize_comment(comment: str | None) -> str | None:
@@ -255,3 +197,20 @@ class RatingService(IObservable[Rating]):
         comment = "\n".join(lines).strip()
 
         return comment
+
+    def _enrich_with_viewer_votes(self, ratings: list[RatingDTO], viewer_id: str) -> None:
+        if not ratings:
+            return
+
+        rating_ids = [str(r.id) for r in ratings]
+        viewer_votes = self.vote_repository.get_viewer_votes_by_rating_ids(
+            student_id=viewer_id, rating_ids=rating_ids
+        )
+
+        for rating in ratings:
+            vote_type = viewer_votes.get(str(rating.id))
+            if vote_type:
+                rating.viewer_vote = self.vote_mapper.to_domain(vote_type)
+
+    def _format_applied_filters(self, filters: RatingFilterCriteria) -> dict[str, Any]:
+        return filters.model_dump(by_alias=True, exclude={"page", "page_size"}, exclude_none=True)
