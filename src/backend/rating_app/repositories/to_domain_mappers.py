@@ -3,10 +3,19 @@ import structlog
 from rateukma.protocols import IProcessor, implements
 from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.application_schemas.course import CourseSpeciality
+from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
+from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.exception.course_exceptions import CourseMissingDepartmentOrFacultyError
 from rating_app.models import Course
-from rating_app.models.choices import CourseStatus, CourseTypeKind, RatingVoteStrType, RatingVoteType
+from rating_app.models.choices import (
+    CourseStatus,
+    CourseTypeKind,
+    RatingVoteStrType,
+    RatingVoteType,
+)
+from rating_app.models.course_offering import CourseOffering as CourseOfferingModel
+from rating_app.models.instructor import Instructor as InstructorModel
 from rating_app.models.rating import Rating as RatingModel
 
 logger = structlog.get_logger(__name__)
@@ -163,3 +172,53 @@ class RatingVoteMapper:
             return None
         value = domain_value.value if isinstance(domain_value, RatingVoteStrType) else domain_value
         return cls._domain_to_db.get(value)
+
+
+class InstructorMapper(IProcessor[[InstructorModel], InstructorDTO]):
+    @implements
+    def process(self, model: InstructorModel) -> InstructorDTO:
+        return InstructorDTO(
+            id=model.id,
+            first_name=model.first_name,
+            patronymic=model.patronymic,
+            last_name=model.last_name,
+            academic_degree=model.academic_degree,
+            academic_title=model.academic_title,
+        )
+
+
+class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO]):
+    def __init__(self, instructor_mapper: InstructorMapper | None = None):
+        self._instructor_mapper = instructor_mapper or InstructorMapper()
+
+    @implements
+    def process(self, model: CourseOfferingModel) -> CourseOfferingDTO:
+        instructors = self._map_instructors(model)
+
+        return CourseOfferingDTO(
+            id=model.id,
+            code=model.code,
+            course_id=model.course_id,  # type: ignore TODO: resolve type checker issue - prefetched field
+            semester_id=model.semester_id,  # type: ignore TODO: resolve type checker issue - prefetched field
+            credits=model.credits,
+            weekly_hours=model.weekly_hours,
+            exam_type=model.exam_type,
+            lecture_count=model.lecture_count,
+            practice_count=model.practice_count,
+            practice_type=model.practice_type,
+            max_students=model.max_students,
+            max_groups=model.max_groups,
+            group_size_min=model.group_size_min,
+            group_size_max=model.group_size_max,
+            instructors=instructors,
+        )
+
+    def _map_instructors(self, model: CourseOfferingModel) -> list[InstructorDTO]:
+        prefetched_instructors = getattr(model, "_prefetched_objects_cache", {}).get("instructors")
+
+        if prefetched_instructors is None:
+            return []
+
+        return [
+            self._instructor_mapper.process(instructor) for instructor in prefetched_instructors
+        ]

@@ -1,16 +1,24 @@
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
 
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.db import models
-from django.db.models import Q
+from django.db.models import Manager, Q
 
 from .choices import EnrollmentStatus, ExamType, PracticeType
 from .course import Course
 from .instructor import Instructor
 from .semester import Semester
 
+if TYPE_CHECKING:
+    from .enrollment import Enrollment as EnrollmentType
+
 
 class CourseOffering(models.Model):
+    enrollments: Manager[EnrollmentType]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code = models.CharField(
         max_length=6,
