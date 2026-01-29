@@ -23,8 +23,8 @@ export function initSentry() {
 		tracesSampleRate: 1,
 
 		// Capture all sessions for replay
-		replaysSessionSampleRate: 1,
-		replaysOnErrorSampleRate: 1,
+		replaysSessionSampleRate: 0.2,
+		replaysOnErrorSampleRate: 0.2,
 
 		// Setting this option to true will send default PII data to Sentry
 		// (e.g., IP addresses, user agents)
