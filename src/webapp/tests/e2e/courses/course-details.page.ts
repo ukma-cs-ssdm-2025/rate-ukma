@@ -117,8 +117,8 @@ export class CourseDetailsPage {
 		return await this.reviewCards.count();
 	}
 
-	async isNoReviewsMessageVisible(): Promise<boolean> {
-		return await this.noReviewsMessage.isVisible();
+	async expectNoReviewsMessageVisible(): Promise<void> {
+		await expect(this.noReviewsMessage).toBeVisible();
 	}
 
 	async getInsufficientDataMessagesCount(): Promise<number> {

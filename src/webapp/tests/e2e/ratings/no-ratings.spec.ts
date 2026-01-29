@@ -40,7 +40,7 @@ test.describe("No ratings are displayed correctly", () => {
 		);
 
 		expect(await coursePage.getReviewsCount()).toBe(0);
-		expect(await coursePage.isNoReviewsMessageVisible()).toBe(true);
+		await coursePage.expectNoReviewsMessageVisible();
 	});
 
 	test("shows aggregated stats are not meaningful when course has no ratings", async () => {
