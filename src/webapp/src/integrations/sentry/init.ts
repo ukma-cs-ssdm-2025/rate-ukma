@@ -22,7 +22,7 @@ export function initSentry() {
 		// Capture all transactions for performance monitoring (low traffic allows 100%)
 		tracesSampleRate: 1,
 
-		// Capture all sessions for replay
+		// Sample 20% of sessions for replay (cost optimization)
 		replaysSessionSampleRate: 0.2,
 		replaysOnErrorSampleRate: 0.2,
 
