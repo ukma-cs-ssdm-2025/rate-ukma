@@ -15,6 +15,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/Popover";
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { cn } from "@/lib/utils";
 
 interface ComboboxOption {
@@ -32,6 +33,7 @@ interface ComboboxProps {
 	readonly disabled?: boolean;
 	readonly className?: string;
 	readonly contentClassName?: string;
+	readonly "data-testid"?: string;
 }
 
 function Combobox({
@@ -44,6 +46,7 @@ function Combobox({
 	disabled = false,
 	className,
 	contentClassName,
+	"data-testid": testId,
 }: ComboboxProps) {
 	const [open, setOpen] = React.useState(false);
 
@@ -52,16 +55,13 @@ function Combobox({
 		[options, value],
 	);
 
-	// Disable page scrolling when combobox is open
 	React.useEffect(() => {
-		if (open) {
-			document.body.style.overflow = "hidden";
-		} else {
-			document.body.style.overflow = "";
+		if (!open) {
+			return;
 		}
-		return () => {
-			document.body.style.overflow = "";
-		};
+
+		const unlockScroll = lockBodyScroll();
+		return () => unlockScroll();
 	}, [open]);
 
 	return (
@@ -78,6 +78,7 @@ function Combobox({
 					)}
 					disabled={disabled}
 					data-placeholder={!selectedOption ? "" : undefined}
+					data-testid={testId}
 				>
 					<span className="truncate">
 						{selectedOption ? selectedOption.label : placeholder}
@@ -90,10 +91,11 @@ function Combobox({
 					"w-(--radix-popover-trigger-width) p-0 h-fit",
 					contentClassName,
 				)}
+				data-testid={testId ? `${testId}-content` : undefined}
 			>
 				<Command className="overflow-hidden rounded-md border-0">
 					<CommandInput placeholder={searchPlaceholder} />
-					<CommandList>
+					<CommandList data-testid={testId ? `${testId}-list` : undefined}>
 						<CommandEmpty>{emptyText}</CommandEmpty>
 						<CommandGroup>
 							{options.map((option) => (

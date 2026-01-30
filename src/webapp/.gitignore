@@ -8,3 +8,7 @@ count.txt
 .nitro
 .tanstack
 .pnpm-store
+
+playwright/.auth
+playwright-report
+test-results

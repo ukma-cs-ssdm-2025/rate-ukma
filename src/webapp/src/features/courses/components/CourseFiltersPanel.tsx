@@ -62,12 +62,14 @@ function FilterSlider({
 	value,
 	range,
 	captions,
+	testId,
 	onValueChange,
 }: Readonly<{
 	label: string;
 	value: [number, number];
 	range: [number, number];
 	captions: [string, string];
+	testId?: string;
 	onValueChange: (value: [number, number]) => void;
 }>) {
 	const [localValue, setLocalValue] = useState(value);
@@ -89,6 +91,7 @@ function FilterSlider({
 				value={localValue}
 				onValueChange={(val) => setLocalValue(val as [number, number])}
 				onValueCommit={(val) => onValueChange(val as [number, number])}
+				data-testid={testId}
 				className="w-full"
 			/>
 			<div className="flex justify-between text-xs text-muted-foreground">
@@ -197,12 +200,39 @@ function CourseFiltersContent({
 		}
 	};
 
+	const rangeFilterTestIdByKey = {
+		diff: testIds.filters.difficultySlider,
+		use: testIds.filters.usefulnessSlider,
+	} as const;
+
+	const selectFilterTestIdByKey = {
+		term: testIds.filters.termSelect,
+		year: testIds.filters.yearSelect,
+		faculty: testIds.filters.facultySelect,
+		dept: testIds.filters.departmentSelect,
+		spec: testIds.filters.specialitySelect,
+		type: testIds.filters.typeSelect,
+	} as const;
+
+	const getRangeFilterTestId = (key: string): string | undefined => {
+		return key in rangeFilterTestIdByKey
+			? rangeFilterTestIdByKey[key as keyof typeof rangeFilterTestIdByKey]
+			: undefined;
+	};
+
+	const getSelectFilterTestId = (key: string): string | undefined => {
+		return key in selectFilterTestIdByKey
+			? selectFilterTestIdByKey[key as keyof typeof selectFilterTestIdByKey]
+			: undefined;
+	};
+
 	return (
 		<div className="space-y-6">
 			{data.rangeFilters.map(({ key, ...filter }) => (
 				<FilterSlider
 					key={key}
 					{...filter}
+					testId={getRangeFilterTestId(key)}
 					value={params[key]}
 					onValueChange={(next) => handleRangeChange(key, next)}
 				/>
@@ -218,6 +248,7 @@ function CourseFiltersContent({
 					useCombobox,
 				}) => {
 					const currentValue = getSelectValue(key);
+					const testId = getSelectFilterTestId(key);
 					return (
 						<div key={key} className="space-y-3">
 							<Label className="text-sm font-medium">{label}</Label>
@@ -233,6 +264,7 @@ function CourseFiltersContent({
 									emptyText="Нічого не знайдено."
 									disabled={options.length === 0}
 									contentClassName={contentClassName}
+									data-testid={testId}
 								/>
 							) : (
 								<Select
@@ -243,10 +275,13 @@ function CourseFiltersContent({
 									}}
 									disabled={options.length === 0}
 								>
-									<SelectTrigger className="w-full">
+									<SelectTrigger className="w-full" data-testid={testId}>
 										<SelectValue placeholder={placeholder} />
 									</SelectTrigger>
-									<SelectContent className={contentClassName}>
+									<SelectContent
+										className={contentClassName}
+										data-testid={testId ? `${testId}-content` : undefined}
+									>
 										<SelectItem value="all">{placeholder}</SelectItem>
 										{options.map((option) => (
 											<SelectItem key={option.value} value={option.value}>
