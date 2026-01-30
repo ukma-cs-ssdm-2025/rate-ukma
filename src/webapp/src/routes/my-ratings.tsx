@@ -77,13 +77,11 @@ function MyRatings() {
 	);
 
 	const isAllExpanded = useMemo(() => {
-		const totalKeys = groupedRatings.reduce(
-			(acc, year) => acc + year.seasons.length,
-			0,
+		const currentKeys = groupedRatings.flatMap((year) =>
+			year.seasons.map((s) => s.key),
 		);
-		if (totalKeys === 0) return false;
-		const openKeys = Object.values(collapsedState).filter(Boolean).length;
-		return openKeys === totalKeys;
+		if (currentKeys.length === 0) return false;
+		return currentKeys.every((key) => collapsedState[key]);
 	}, [groupedRatings, collapsedState]);
 
 	const handleToggleExpandAll = useCallback(() => {

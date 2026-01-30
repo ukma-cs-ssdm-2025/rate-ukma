@@ -81,6 +81,10 @@ export function MyRatingsHeader({
 										size="sm"
 										className="h-8 px-2 rounded-md hover:bg-transparent text-muted-foreground hover:text-foreground"
 										onClick={onToggleExpandAll}
+										aria-label={
+											isAllExpanded ? "Згорнути все" : "Розгорнути все"
+										}
+										aria-pressed={isAllExpanded}
 									>
 										{isAllExpanded ? (
 											<ListCollapse className="size-4" />

@@ -17,9 +17,10 @@ export function CircularProgress({
 	trackClassName,
 	progressClassName,
 }: Readonly<CircularProgressProps>) {
+	const clampedValue = Math.min(100, Math.max(0, value));
 	const radius = (size - strokeWidth) / 2;
 	const circumference = 2 * Math.PI * radius;
-	const offset = circumference - (value / 100) * circumference;
+	const offset = circumference - (clampedValue / 100) * circumference;
 
 	return (
 		<svg
