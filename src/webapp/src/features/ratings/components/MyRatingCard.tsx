@@ -1,17 +1,23 @@
 import { useState } from "react";
 
-import { Card, CardContent } from "@/components/ui/Card";
+import { Link } from "@tanstack/react-router";
+import { Pencil, Star, Trash2 } from "lucide-react";
+
+import { Button } from "@/components/ui/Button";
 import {
-	formatDate,
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
+import {
 	getDifficultyTone,
 	getUsefulnessTone,
 } from "@/features/courses/courseFormatting";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import { DeleteRatingDialog } from "./DeleteRatingDialog";
-import { RatingCardHeader } from "./MyRatingCard/RatingCardHeader";
-import { RatingCommentDisplay } from "./MyRatingCard/RatingCommentDisplay";
-import { RatingMetric } from "./MyRatingCard/RatingMetric";
 import { RatingModal } from "./RatingModal";
 
 interface MyRatingCardProps {
@@ -26,96 +32,160 @@ export function MyRatingCard({
 	const courseId = course.course_id;
 	const offeringId = course.course_offering_id;
 	const rating = course.rated ?? null;
-	const disableActions = false;
+	const canRate = course.can_rate ?? true;
 
-	const difficultyValue =
-		typeof rating?.difficulty === "number" ? rating.difficulty.toFixed(1) : "—";
-	const usefulnessValue =
-		typeof rating?.usefulness === "number" ? rating.usefulness.toFixed(1) : "—";
-	const comment = rating?.comment?.trim();
 	const hasRating = Boolean(rating);
 	const canModify = Boolean(hasRating && rating?.id && courseId);
 
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-	const onDeleteSuccess = () => {
-		onRatingChanged();
-	};
-
-	const handleEditClick = () => {
-		setShowRatingModal(true);
-	};
-
-	const handleRatingModalClose = () => {
-		setShowRatingModal(false);
-	};
-
-	const handleRatingSuccess = () => {
-		onRatingChanged();
-	};
-
 	return (
-		<Card
-			className="border border-border/70 bg-background/80 transition-shadow duration-300 hover:shadow-xl"
+		<div
+			className={cn(
+				"group flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border px-4 py-3 transition-all",
+				hasRating
+					? "border-border/50 bg-card hover:border-border"
+					: canRate
+						? "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]"
+						: "border-dashed border-border/70 bg-muted/30 opacity-80",
+			)}
 			data-testid={testIds.myRatings.card}
 		>
-			<RatingCardHeader
-				courseTitle={course.course_title}
-				courseCode={course.course_code ?? undefined}
-				courseId={courseId}
-				canModify={canModify}
-				isEditing={showRatingModal}
-				disableActions={disableActions}
-				onEditToggle={handleEditClick}
-				onDelete={() => setShowDeleteDialog(true)}
-			/>
-			<CardContent className="space-y-4 border-t border-dashed border-border pt-3">
-				{hasRating ? (
-					<div className="flex flex-wrap items-center gap-3">
-						<RatingMetric
-							label="Складність"
-							value={difficultyValue}
-							valueClassName={getDifficultyTone(rating?.difficulty)}
-						/>
-						<RatingMetric
-							label="Корисність"
-							value={usefulnessValue}
-							valueClassName={getUsefulnessTone(rating?.usefulness)}
-						/>
-						<div className="flex items-baseline gap-2">
-							<span className="text-xs text-muted-foreground/90">•</span>
-							<span className="text-xs text-muted-foreground/90 leading-none relative top-[2px]">
-								{rating?.created_at ? `${formatDate(rating.created_at)}` : "—"}
-							</span>
-						</div>
-						<div className="flex items-baseline gap-2">
-							<span className="text-xs text-muted-foreground/90">•</span>
-							<span className="text-xs text-muted-foreground/90 leading-none relative top-[2px]">
-								Відгук залишено:{" "}
-								{rating?.is_anonymous ? "Анонімно" : "Не анонімно"}
-							</span>
-						</div>
-					</div>
-				) : null}
+			<div className="flex-1 min-w-0">
+				<div className="flex items-center gap-2">
+					{courseId ? (
+						<Link
+							to="/courses/$courseId"
+							params={{ courseId }}
+							className="font-medium text-foreground hover:underline decoration-dotted underline-offset-4 truncate"
+						>
+							{course.course_title ?? "Курс"}
+						</Link>
+					) : (
+						<span className="font-medium text-foreground truncate">
+							{course.course_title ?? "Курс"}
+						</span>
+					)}
+					{course.course_code && (
+						<span className="text-xs text-muted-foreground shrink-0">
+							{course.course_code}
+						</span>
+					)}
+				</div>
+			</div>
 
-				<RatingCommentDisplay
-					comment={comment}
-					hasRating={hasRating}
-					courseId={courseId}
-					canRate={course.can_rate ?? true}
-				/>
-			</CardContent>
+			{hasRating && rating ? (
+				<div className="hidden sm:flex items-center gap-4 text-sm shrink-0">
+					<div className="flex items-center gap-1.5">
+						<span className="text-xs text-muted-foreground">Складність</span>
+						<span
+							className={cn(
+								"font-semibold",
+								getDifficultyTone(rating.difficulty),
+							)}
+						>
+							{rating.difficulty?.toFixed(1) ?? "—"}
+						</span>
+					</div>
+					<div className="flex items-center gap-1.5">
+						<span className="text-xs text-muted-foreground">Корисність</span>
+						<span
+							className={cn(
+								"font-semibold",
+								getUsefulnessTone(rating.usefulness),
+							)}
+						>
+							{rating.usefulness?.toFixed(1) ?? "—"}
+						</span>
+					</div>
+				</div>
+			) : null}
+
+			<div className="flex items-center gap-1 shrink-0">
+				{canModify ? (
+					<>
+						<Button
+							size="sm"
+							variant="ghost"
+							onClick={() => setShowRatingModal(true)}
+							aria-label="Редагувати оцінку"
+							className="size-8 p-0"
+						>
+							<Pencil className="size-3.5" />
+						</Button>
+						<Button
+							size="sm"
+							variant="ghost"
+							onClick={() => setShowDeleteDialog(true)}
+							aria-label="Видалити оцінку"
+							className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+						>
+							<Trash2 className="size-3.5" />
+						</Button>
+					</>
+				) : !hasRating && courseId ? (
+					canRate ? (
+						offeringId ? (
+							<Button
+								variant="default"
+								size="sm"
+								className="h-8 px-4 shadow-sm"
+								onClick={() => setShowRatingModal(true)}
+								data-testid={testIds.myRatings.leaveReviewLink}
+							>
+								<Star className="size-3.5 mr-1.5 fill-current" />
+								Оцінити
+							</Button>
+						) : (
+							<Button
+								variant="default"
+								size="sm"
+								className="h-8 px-4 shadow-sm"
+								asChild
+							>
+								<Link
+									to="/courses/$courseId"
+									params={{ courseId }}
+									search={{ openRating: true }}
+									data-testid={testIds.myRatings.leaveReviewLink}
+								>
+									<Star className="size-3.5 mr-1.5 fill-current" />
+									Оцінити
+								</Link>
+							</Button>
+						)
+					) : (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span>
+									<Button
+										variant="secondary"
+										size="sm"
+										disabled
+										className="opacity-50 cursor-not-allowed"
+									>
+										Оцінити
+									</Button>
+								</span>
+							</TooltipTrigger>
+							<TooltipContent>
+								<p>{CANNOT_RATE_TOOLTIP_TEXT}</p>
+							</TooltipContent>
+						</Tooltip>
+					)
+				) : null}
+			</div>
 
 			{courseId && offeringId && (
 				<RatingModal
 					isOpen={showRatingModal}
-					onClose={handleRatingModalClose}
+					onClose={() => setShowRatingModal(false)}
 					courseId={courseId}
 					offeringId={offeringId}
 					courseName={course.course_title}
 					existingRating={rating}
-					onSuccess={handleRatingSuccess}
+					onSuccess={onRatingChanged}
 				/>
 			)}
 
@@ -125,9 +195,9 @@ export function MyRatingCard({
 					ratingId={rating.id}
 					open={showDeleteDialog}
 					onOpenChange={setShowDeleteDialog}
-					onSuccess={onDeleteSuccess}
+					onSuccess={onRatingChanged}
 				/>
 			)}
-		</Card>
+		</div>
 	);
 }
