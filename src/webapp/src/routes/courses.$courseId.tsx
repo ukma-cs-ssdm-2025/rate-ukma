@@ -112,7 +112,7 @@ function CourseDetailsRoute() {
 				{hasAttendedCourse && selectedOffering && !ratedOffering && (
 					<div className="flex justify-center">
 						<RatingButton
-							canRate={selectedOffering.can_rate ?? true}
+							canRate={Boolean(selectedOffering.can_rate)}
 							onClick={() => setIsRatingModalOpen(true)}
 						>
 							Оцінити цей курс
