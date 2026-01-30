@@ -97,12 +97,12 @@ export function MyRatingsHeader({
 
 						<div className="flex items-center rounded-lg border bg-muted/30 p-1">
 							{filters.map(({ value, label }) => {
-								const count =
-									value === "all"
-										? totalCourses
-										: value === "rated"
-											? ratedCourses
-											: unratedCount;
+								const countByFilter: Record<RatingFilter, number> = {
+									all: totalCourses,
+									rated: ratedCourses,
+									unrated: unratedCount,
+								};
+								const count = countByFilter[value];
 								return (
 									<Button
 										key={value}

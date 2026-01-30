@@ -25,6 +25,16 @@ interface MyRatingCardProps {
 	onRatingChanged: () => undefined | Promise<unknown>;
 }
 
+function getCardClassName(hasRating: boolean, canRate: boolean): string {
+	if (hasRating) {
+		return "border-border/50 bg-card hover:border-border";
+	}
+	if (canRate) {
+		return "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
+	}
+	return "border-dashed border-border/70 bg-muted/30 opacity-80";
+}
+
 export function MyRatingCard({
 	course,
 	onRatingChanged,
@@ -44,11 +54,7 @@ export function MyRatingCard({
 		<div
 			className={cn(
 				"group flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border px-4 py-3 transition-all",
-				hasRating
-					? "border-border/50 bg-card hover:border-border"
-					: canRate
-						? "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]"
-						: "border-dashed border-border/70 bg-muted/30 opacity-80",
+				getCardClassName(hasRating, canRate),
 			)}
 			data-testid={testIds.myRatings.card}
 		>
@@ -103,78 +109,15 @@ export function MyRatingCard({
 			) : null}
 
 			<div className="flex items-center gap-1 shrink-0">
-				{canModify ? (
-					<>
-						<Button
-							size="sm"
-							variant="ghost"
-							onClick={() => setShowRatingModal(true)}
-							aria-label="Редагувати оцінку"
-							className="size-8 p-0"
-						>
-							<Pencil className="size-3.5" />
-						</Button>
-						<Button
-							size="sm"
-							variant="ghost"
-							onClick={() => setShowDeleteDialog(true)}
-							aria-label="Видалити оцінку"
-							className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-						>
-							<Trash2 className="size-3.5" />
-						</Button>
-					</>
-				) : !hasRating && courseId ? (
-					canRate ? (
-						offeringId ? (
-							<Button
-								variant="default"
-								size="sm"
-								className="h-8 px-4 shadow-sm"
-								onClick={() => setShowRatingModal(true)}
-								data-testid={testIds.myRatings.leaveReviewLink}
-							>
-								<Star className="size-3.5 mr-1.5 fill-current" />
-								Оцінити
-							</Button>
-						) : (
-							<Button
-								variant="default"
-								size="sm"
-								className="h-8 px-4 shadow-sm"
-								asChild
-							>
-								<Link
-									to="/courses/$courseId"
-									params={{ courseId }}
-									search={{ openRating: true }}
-									data-testid={testIds.myRatings.leaveReviewLink}
-								>
-									<Star className="size-3.5 mr-1.5 fill-current" />
-									Оцінити
-								</Link>
-							</Button>
-						)
-					) : (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<span>
-									<Button
-										variant="secondary"
-										size="sm"
-										disabled
-										className="opacity-50 cursor-not-allowed"
-									>
-										Оцінити
-									</Button>
-								</span>
-							</TooltipTrigger>
-							<TooltipContent>
-								<p>{CANNOT_RATE_TOOLTIP_TEXT}</p>
-							</TooltipContent>
-						</Tooltip>
-					)
-				) : null}
+				<CardActions
+					canModify={canModify}
+					hasRating={hasRating}
+					courseId={courseId}
+					offeringId={offeringId}
+					canRate={canRate}
+					onEdit={() => setShowRatingModal(true)}
+					onDelete={() => setShowDeleteDialog(true)}
+				/>
 			</div>
 
 			{courseId && offeringId && (
@@ -199,5 +142,105 @@ export function MyRatingCard({
 				/>
 			)}
 		</div>
+	);
+}
+
+interface CardActionsProps {
+	canModify: boolean;
+	hasRating: boolean;
+	courseId: string | undefined;
+	offeringId: string | undefined;
+	canRate: boolean;
+	onEdit: () => void;
+	onDelete: () => void;
+}
+
+function CardActions({
+	canModify,
+	hasRating,
+	courseId,
+	offeringId,
+	canRate,
+	onEdit,
+	onDelete,
+}: Readonly<CardActionsProps>) {
+	if (canModify) {
+		return (
+			<>
+				<Button
+					size="sm"
+					variant="ghost"
+					onClick={onEdit}
+					aria-label="Редагувати оцінку"
+					className="size-8 p-0"
+				>
+					<Pencil className="size-3.5" />
+				</Button>
+				<Button
+					size="sm"
+					variant="ghost"
+					onClick={onDelete}
+					aria-label="Видалити оцінку"
+					className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+				>
+					<Trash2 className="size-3.5" />
+				</Button>
+			</>
+		);
+	}
+
+	if (hasRating || !courseId) {
+		return null;
+	}
+
+	if (!canRate) {
+		return (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<span>
+						<Button
+							variant="secondary"
+							size="sm"
+							disabled
+							className="opacity-50 cursor-not-allowed"
+						>
+							Оцінити
+						</Button>
+					</span>
+				</TooltipTrigger>
+				<TooltipContent>
+					<p>{CANNOT_RATE_TOOLTIP_TEXT}</p>
+				</TooltipContent>
+			</Tooltip>
+		);
+	}
+
+	if (offeringId) {
+		return (
+			<Button
+				variant="default"
+				size="sm"
+				className="h-8 px-4 shadow-sm"
+				onClick={onEdit}
+				data-testid={testIds.myRatings.leaveReviewLink}
+			>
+				<Star className="size-3.5 mr-1.5 fill-current" />
+				Оцінити
+			</Button>
+		);
+	}
+
+	return (
+		<Button variant="default" size="sm" className="h-8 px-4 shadow-sm" asChild>
+			<Link
+				to="/courses/$courseId"
+				params={{ courseId }}
+				search={{ openRating: true }}
+				data-testid={testIds.myRatings.leaveReviewLink}
+			>
+				<Star className="size-3.5 mr-1.5 fill-current" />
+				Оцінити
+			</Link>
+		</Button>
 	);
 }
