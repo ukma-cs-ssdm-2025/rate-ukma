@@ -173,6 +173,7 @@ function CardActions({
 					onClick={onEdit}
 					aria-label="Редагувати оцінку"
 					className="size-8 p-0"
+					data-testid={testIds.myRatings.editButton}
 				>
 					<Pencil className="size-3.5" />
 				</Button>
@@ -182,6 +183,7 @@ function CardActions({
 					onClick={onDelete}
 					aria-label="Видалити оцінку"
 					className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+					data-testid={testIds.myRatings.deleteButton}
 				>
 					<Trash2 className="size-3.5" />
 				</Button>
