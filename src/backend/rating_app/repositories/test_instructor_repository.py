@@ -1,13 +1,14 @@
 import pytest
 
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
+from rating_app.ioc_container.repositories import instructor_mapper
 from rating_app.models.choices import AcademicDegree, AcademicTitle
 from rating_app.repositories.instructor_repository import InstructorRepository
 
 
 @pytest.fixture
 def repo():
-    return InstructorRepository()
+    return InstructorRepository(instructor_mapper())
 
 
 @pytest.mark.django_db

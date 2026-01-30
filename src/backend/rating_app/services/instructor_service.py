@@ -1,6 +1,6 @@
 from typing import Any
 
-from rating_app.models import Instructor
+from rating_app.application_schemas.instructor import Instructor
 from rating_app.repositories import InstructorRepository
 from rating_app.services.protocols import IFilterable
 

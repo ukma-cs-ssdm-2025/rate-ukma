@@ -32,7 +32,7 @@ from rating_app.repositories.protocol import IRepository
 logger = structlog.get_logger(__name__)
 
 
-class RatingRepository(IRepository[Rating]):
+class RatingRepository(IRepository[RatingDTO]):
     def __init__(
         self,
         mapper: IProcessor[[Rating], RatingDTO],
@@ -45,9 +45,9 @@ class RatingRepository(IRepository[Rating]):
         ratings = self._build_base_queryset().all()
         return self._map_to_domain_models(ratings)
 
-    def get_by_id(self, rating_id: str) -> RatingDTO:
+    def get_by_id(self, id: str) -> RatingDTO:
         try:
-            rating = self._build_base_queryset().get(pk=rating_id)
+            rating = self._build_base_queryset().get(pk=id)
         except Rating.DoesNotExist as err:
             raise RatingNotFoundError() from err
 
@@ -149,10 +149,10 @@ class RatingRepository(IRepository[Rating]):
 
     def update(
         self,
-        rating: RatingDTO,
+        obj: RatingDTO,
         update_data: RatingPutParams | RatingPatchParams,
     ) -> RatingDTO:
-        rating_model = self._get_by_id_shallow(str(rating.id))
+        rating_model = self._get_by_id_shallow(str(obj.id))
         is_patch = isinstance(update_data, RatingPatchParams)
         update_data_map = update_data.model_dump(exclude_unset=is_patch)
 
@@ -170,18 +170,18 @@ class RatingRepository(IRepository[Rating]):
 
         logger.info(
             "rating_partially_updated",
-            rating_id=rating.id,
-            student_id=str(rating.student_id) if rating.student_id else None,
+            rating_id=obj.id,
+            student_id=str(obj.student_id) if obj.student_id else None,
             updated_fields=list(update_data_map.keys()),
         )
 
         rating_model = self._build_base_queryset().get(pk=rating_model.pk)
         return self._map_to_domain_model(rating_model)
 
-    def delete(self, rating_id: str) -> None:
-        rating_model = self._get_by_id_shallow(rating_id)
+    def delete(self, id: str) -> None:
+        rating_model = self._get_by_id_shallow(id)
         rating_model.delete()
-        logger.info("rating_deleted", rating_id=rating_id)
+        logger.info("rating_deleted", rating_id=id)
 
     def _filter(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
         ratings = self._build_base_queryset()
