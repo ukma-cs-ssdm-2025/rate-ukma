@@ -42,7 +42,7 @@ export function MyRatingCard({
 	const courseId = course.course_id;
 	const offeringId = course.course_offering_id;
 	const rating = course.rated ?? null;
-	const canRate = course.can_rate ?? true;
+	const canRate = Boolean(course.can_rate);
 
 	const hasRating = Boolean(rating);
 	const canModify = Boolean(hasRating && rating?.id && courseId);
