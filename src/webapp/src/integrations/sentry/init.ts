@@ -22,8 +22,9 @@ export function initSentry() {
 		// Capture all transactions for performance monitoring (low traffic allows 100%)
 		tracesSampleRate: 1,
 
-		// Capture all sessions for replay
-		replaysSessionSampleRate: 1,
+		// Sample 20% of sessions for replay (cost optimization)
+		replaysSessionSampleRate: 0.2,
+		// Capture all error sessions for debugging
 		replaysOnErrorSampleRate: 1,
 
 		// Setting this option to true will send default PII data to Sentry
