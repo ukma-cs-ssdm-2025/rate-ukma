@@ -42,18 +42,20 @@ export function useInfiniteScrollRatings(
 	const [allRatings, setAllRatings] = useState<RatingRead[]>([]);
 	const [userRating, setUserRating] = useState<RatingRead | undefined>();
 
-	// Reset pagination and state when courseId or sorting changes (during render)
-	const sortOptionsChanged =
-		lastSortOptions.timeOrder !== timeOrder ||
-		lastSortOptions.popularityOrder !== popularityOrder;
+	// Reset pagination and state when courseId or sorting changes
+	useEffect(() => {
+		const sortOptionsChanged =
+			lastSortOptions.timeOrder !== timeOrder ||
+			lastSortOptions.popularityOrder !== popularityOrder;
 
-	if (courseId !== lastCourseId || sortOptionsChanged) {
-		setRatingsPage(1);
-		setAllRatings([]);
-		setUserRating(undefined);
-		setLastCourseId(courseId);
-		setLastSortOptions({ timeOrder, popularityOrder });
-	}
+		if (courseId !== lastCourseId || sortOptionsChanged) {
+			setRatingsPage(1);
+			setAllRatings([]);
+			setUserRating(undefined);
+			setLastCourseId(courseId);
+			setLastSortOptions({ timeOrder, popularityOrder });
+		}
+	}, [courseId, timeOrder, popularityOrder, lastCourseId, lastSortOptions]);
 
 	const { data: ratings, isLoading: isRatingsLoading } = useCoursesRatingsList(
 		courseId,
