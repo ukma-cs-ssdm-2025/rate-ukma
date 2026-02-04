@@ -10,6 +10,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
+import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 
 interface RatingCommentDisplayProps {
@@ -40,7 +41,11 @@ export function RatingCommentDisplay({
 			if (canRate) {
 				ratingAction = (
 					<Button variant="default" size="sm" asChild>
-						<Link to="/courses/$courseId" params={{ courseId }}>
+						<Link
+							to="/courses/$courseId"
+							params={{ courseId }}
+							data-testid={testIds.myRatings.leaveReviewLink}
+						>
 							<Star className="h-3.5 w-3.5" />
 							<span className="ml-1">Залишити відгук</span>
 						</Link>

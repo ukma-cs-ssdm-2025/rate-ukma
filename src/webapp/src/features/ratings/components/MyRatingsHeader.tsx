@@ -1,3 +1,5 @@
+import { testIds } from "@/lib/test-ids";
+
 interface MyRatingsHeaderProps {
 	totalCourses: number;
 	ratedCourses: number;
@@ -10,7 +12,10 @@ export function MyRatingsHeader({
 	isLoading,
 }: Readonly<MyRatingsHeaderProps>) {
 	return (
-		<div className="text-center max-w-2xl mx-auto space-y-2">
+		<div
+			className="text-center max-w-2xl mx-auto space-y-2"
+			data-testid={testIds.myRatings.header}
+		>
 			<h1 className="text-4xl font-bold tracking-tight">Мої оцінки</h1>
 			<p className="text-muted-foreground text-lg">
 				Переглядайте оцінки курсів, які ви прослухали, та повертайтеся до них,
