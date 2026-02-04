@@ -16,6 +16,8 @@ export interface UseInfiniteScrollRatingsReturn {
 interface UseInfiniteScrollRatingsOptions {
 	pageSize?: number;
 	separateCurrentUser?: boolean;
+	timeOrder?: "asc" | "desc";
+	popularityOrder?: "asc" | "desc";
 }
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -24,19 +26,33 @@ export function useInfiniteScrollRatings(
 	courseId: string,
 	options: UseInfiniteScrollRatingsOptions = {},
 ): UseInfiniteScrollRatingsReturn {
-	const { pageSize = DEFAULT_PAGE_SIZE, separateCurrentUser = false } = options;
+	const {
+		pageSize = DEFAULT_PAGE_SIZE,
+		separateCurrentUser = false,
+		timeOrder,
+		popularityOrder,
+	} = options;
 
 	const [ratingsPage, setRatingsPage] = useState(1);
 	const [lastCourseId, setLastCourseId] = useState(courseId);
+	const [lastSortOptions, setLastSortOptions] = useState({
+		timeOrder,
+		popularityOrder,
+	});
 	const [allRatings, setAllRatings] = useState<RatingRead[]>([]);
 	const [userRating, setUserRating] = useState<RatingRead | undefined>();
 
-	// Reset pagination and state when courseId changes (during render)
-	if (courseId !== lastCourseId) {
+	// Reset pagination and state when courseId or sorting changes (during render)
+	const sortOptionsChanged =
+		lastSortOptions.timeOrder !== timeOrder ||
+		lastSortOptions.popularityOrder !== popularityOrder;
+
+	if (courseId !== lastCourseId || sortOptionsChanged) {
 		setRatingsPage(1);
 		setAllRatings([]);
 		setUserRating(undefined);
 		setLastCourseId(courseId);
+		setLastSortOptions({ timeOrder, popularityOrder });
 	}
 
 	const { data: ratings, isLoading: isRatingsLoading } = useCoursesRatingsList(
@@ -45,6 +61,8 @@ export function useInfiniteScrollRatings(
 			page: ratingsPage,
 			page_size: pageSize,
 			separate_current_user: separateCurrentUser,
+			time_order: timeOrder,
+			popularity_order: popularityOrder,
 		},
 	);
 
