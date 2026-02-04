@@ -108,9 +108,7 @@ export function CourseRatingsList({
 			case "oldest":
 				return { timeOrder: "asc" as const, popularityOrder: undefined };
 			case "most-popular":
-				return { popularityOrder: "desc" as const, timeOrder: undefined };
-			case "least-popular":
-				return { popularityOrder: "asc" as const, timeOrder: undefined };
+				return { popularityOrder: true, timeOrder: undefined };
 		}
 	};
 

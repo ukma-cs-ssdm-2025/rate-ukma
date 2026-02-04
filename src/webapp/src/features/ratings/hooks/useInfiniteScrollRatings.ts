@@ -17,7 +17,7 @@ interface UseInfiniteScrollRatingsOptions {
 	pageSize?: number;
 	separateCurrentUser?: boolean;
 	timeOrder?: "asc" | "desc";
-	popularityOrder?: "asc" | "desc";
+	popularityOrder?: boolean;
 }
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -62,7 +62,7 @@ export function useInfiniteScrollRatings(
 			page_size: pageSize,
 			separate_current_user: separateCurrentUser,
 			time_order: timeOrder,
-			popularity_order: popularityOrder,
+			order_by_popularity: popularityOrder,
 		},
 	);
 
