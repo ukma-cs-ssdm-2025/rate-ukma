@@ -856,6 +856,11 @@ paths:
         description: Unique identifier of rating course
         required: true
       - in: query
+        name: order_by_popularity
+        schema:
+          type: boolean
+        description: Order ratings by popularity (Wilson score)
+      - in: query
         name: page
         schema:
           type: integer
@@ -870,6 +875,14 @@ paths:
         schema:
           type: boolean
         description: Separate the current user's rating from the list
+      - in: query
+        name: time_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: Order ratings by creation time
       tags:
       - ratings
       security:

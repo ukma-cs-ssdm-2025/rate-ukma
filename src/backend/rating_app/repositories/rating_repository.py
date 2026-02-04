@@ -27,6 +27,7 @@ from rating_app.exception.rating_exceptions import (
 from rating_app.models import Rating
 from rating_app.models.choices import RatingVoteType
 from rating_app.pagination import GenericQuerysetPaginator
+from rating_app.queries.rating_popularity import WilsonPopularityAnnotator
 from rating_app.repositories.protocol import IRepository
 
 logger = structlog.get_logger(__name__)
@@ -37,9 +38,11 @@ class RatingRepository(IRepository[Rating]):
         self,
         mapper: IProcessor[[Rating], RatingDTO],
         paginator: GenericQuerysetPaginator[Rating],
+        popularity_annotator: WilsonPopularityAnnotator,
     ):
         self.mapper = mapper
         self.paginator = paginator
+        self.popularity_annotator = popularity_annotator
 
     def get_all(self) -> list[RatingDTO]:
         ratings = self._build_base_queryset().all()
@@ -185,7 +188,8 @@ class RatingRepository(IRepository[Rating]):
 
     def _filter(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
         ratings = self._build_base_queryset()
-        ratings = self._apply_filters(ratings, criteria).order_by("-created_at")
+        ratings = self._apply_filters(ratings, criteria)
+        ratings = self._apply_ordering(ratings, criteria)
 
         if criteria.separate_current_user:
             ratings = ratings.exclude(student_id=str(criteria.viewer_id))
@@ -204,7 +208,15 @@ class RatingRepository(IRepository[Rating]):
         }
         query_filters = {}
         criteria_dict = criteria.model_dump(
-            exclude_none=True, exclude={"page", "page_size", "separate_current_user", "viewer_id"}
+            exclude_none=True,
+            exclude={
+                "page",
+                "page_size",
+                "separate_current_user",
+                "viewer_id",
+                "time_order",
+                "popularity_order",
+            },
         )
         for field_name, value in criteria_dict.items():
             orm_field_name = field_mapping.get(field_name, field_name)
@@ -228,6 +240,30 @@ class RatingRepository(IRepository[Rating]):
     ) -> QuerySet[Rating]:
         query_filters = self._build_query_filters(criteria)
         return queryset.filter(**query_filters)
+
+    def _apply_ordering(
+        self, queryset: QuerySet[Rating], criteria: RatingFilterCriteria
+    ) -> QuerySet[Rating]:
+        if criteria.popularity_order:
+            qs = self.popularity_annotator.apply(queryset)
+            return self._apply_popularity_ordering(qs, "desc")
+
+        if criteria.time_order:
+            return self._apply_time_ordering(queryset, criteria.time_order)
+
+        # Default to popularity ordering
+        qs = self.popularity_annotator.apply(queryset)
+        return self._apply_popularity_ordering(qs, "desc")
+
+    def _apply_popularity_ordering(
+        self, queryset: QuerySet[Rating], order: str
+    ) -> QuerySet[Rating]:
+        prefix = "" if order == "asc" else "-"
+        return queryset.order_by(f"{prefix}popularity_score")
+
+    def _apply_time_ordering(self, queryset: QuerySet[Rating], order: str) -> QuerySet[Rating]:
+        prefix = "" if order == "asc" else "-"
+        return queryset.order_by(f"{prefix}created_at")
 
     def _get_by_id_shallow(self, rating_id: str) -> Rating:
         try:
