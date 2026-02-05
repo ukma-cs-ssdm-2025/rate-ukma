@@ -53,12 +53,35 @@ pnpm start
 ### Testing
 
 ```bash
+# Unit tests
 # Local
 pnpm test
 
 # Docker
 docker exec -it <frontend_container_name> pnpm test
+
+# E2E tests (headless mode)
+# Local (requires .env file with CORPORATE_EMAIL and CORPORATE_PASSWORD)
+pnpm test:e2e
+
+# E2E tests (interactive mode - opens browser)
+pnpm test:e2e:ui
+
+# Docker
+docker exec -it <frontend_container_name> pnpm test:e2e
 ```
+
+#### E2E Test Setup
+
+E2E tests require Microsoft authentication credentials. Make sure the `src/.env` file contains:
+
+```bash
+CORPORATE_EMAIL=your-ukma-email@ukma.edu.ua
+CORPORATE_PASSWORD=your-password
+BASE_URL=http://localhost:3000  # optional, defaults to http://localhost:3000
+```
+
+Copy from `src/.env.sample` if you haven't set up your `.env` file yet.
 
 ### Code Quality
 

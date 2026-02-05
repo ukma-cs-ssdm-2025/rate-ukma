@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/lib/auth";
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { testIds } from "@/lib/test-ids";
 import { HeaderNav } from "./HeaderNav";
 import { MobileMenu } from "./MobileMenu";
@@ -24,21 +25,22 @@ export default function Header() {
 			return;
 		}
 
+		if (!isMobileMenuOpen) {
+			return;
+		}
+
+		const unlockScroll = lockBodyScroll();
+
 		const handleEscape = (event: KeyboardEvent) => {
 			if (event.key === "Escape") {
 				setIsMobileMenuOpen(false);
 			}
 		};
 
-		if (isMobileMenuOpen) {
-			document.body.style.overflow = "hidden";
-			document.addEventListener("keydown", handleEscape);
-		} else {
-			document.body.style.overflow = "";
-		}
+		document.addEventListener("keydown", handleEscape);
 
 		return () => {
-			document.body.style.overflow = "";
+			unlockScroll();
 			document.removeEventListener("keydown", handleEscape);
 		};
 	}, [isMobileMenuOpen]);

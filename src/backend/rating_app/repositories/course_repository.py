@@ -228,36 +228,32 @@ class CourseRepository(IRepository[CourseDTO]):
     ) -> QuerySet[Course]:
         order_by_fields = self._build_order_by_fields(filters)
 
-        if order_by_fields:
-            return courses.order_by(*order_by_fields, "title")
-        return courses.order_by("-ratings_count", "title")
-
-    def _build_order_by_fields(self, filters: CourseFilterCriteria) -> list[Any]:
-        order_by_fields = []
-
-        # When sorting by average metrics, keep unrated courses last.
-        has_ordering = filters.avg_difficulty_order or filters.avg_usefulness_order
-
-        if has_ordering:
-            has_ratings = Case(
+        courses = courses.annotate(
+            has_ratings=Case(
                 When(ratings_count__gt=0, then=Value(1)),
                 default=Value(0),
                 output_field=IntegerField(),
             )
-            order_by_fields.append(has_ratings.desc())
+        )
 
+        if order_by_fields:
+            return courses.order_by("-has_ratings", *order_by_fields, "title")
+        return courses.order_by("-has_ratings", "-ratings_count", "title")
+
+    def _build_order_by_fields(self, filters: CourseFilterCriteria) -> list[Any]:
+        order_by_fields = []
         if filters.avg_difficulty_order:
             field = F("avg_difficulty")
             if filters.avg_difficulty_order == "asc":
-                order_by_fields.append(field.asc(nulls_last=True))
+                order_by_fields.append(field.asc())
             else:
-                order_by_fields.append(field.desc(nulls_last=True))
+                order_by_fields.append(field.desc())
         if filters.avg_usefulness_order:
             field = F("avg_usefulness")
             if filters.avg_usefulness_order == "asc":
-                order_by_fields.append(field.asc(nulls_last=True))
+                order_by_fields.append(field.asc())
             else:
-                order_by_fields.append(field.desc(nulls_last=True))
+                order_by_fields.append(field.desc())
         return order_by_fields
 
     def _map_to_domain_models(self, models: list[Course]) -> list[CourseDTO]:

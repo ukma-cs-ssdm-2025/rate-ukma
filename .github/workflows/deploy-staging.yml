@@ -46,6 +46,7 @@ jobs:
         with:
           environment: staging
           release: ${{ inputs.version_tag }}
+          ignore_missing: true
 
       - name: Create Sentry release for Backend
         uses: getsentry/action-release@v3
@@ -56,6 +57,7 @@ jobs:
         with:
           environment: staging
           release: ${{ inputs.version_tag }}
+          ignore_missing: true
 
   deploy:
     needs: create-sentry-releases

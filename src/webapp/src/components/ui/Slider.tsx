@@ -4,14 +4,21 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 
 import { cn } from "@/lib/utils";
 
+type SliderProps = React.ComponentProps<typeof SliderPrimitive.Root> & {
+	"data-testid"?: string;
+	thumbTestIdPrefix?: string;
+};
+
 function Slider({
 	className,
 	defaultValue,
 	value,
 	min = 0,
 	max = 100,
+	"data-testid": rootTestId,
+	thumbTestIdPrefix,
 	...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+}: SliderProps) {
 	const _values = React.useMemo(() => {
 		if (Array.isArray(value)) {
 			return value;
@@ -22,9 +29,12 @@ function Slider({
 		return [min, max];
 	}, [value, defaultValue, min, max]);
 
+	const thumbPrefix = thumbTestIdPrefix ?? rootTestId;
+
 	return (
 		<SliderPrimitive.Root
 			data-slot="slider"
+			data-testid={rootTestId}
 			defaultValue={defaultValue}
 			value={value}
 			min={min}
@@ -52,6 +62,9 @@ function Slider({
 				<SliderPrimitive.Thumb
 					data-slot="slider-thumb"
 					key={`slider-thumb-${String(index)}`}
+					data-testid={
+						thumbPrefix ? `${thumbPrefix}-thumb-${String(index)}` : undefined
+					}
 					className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
 				/>
 			))}

@@ -13,6 +13,7 @@ import { MyRatingsSkeleton } from "@/features/ratings/components/MyRatingsSkelet
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
 import { useAuth, withAuth } from "@/lib/auth";
+import { testIds } from "@/lib/test-ids";
 
 function MyRatings() {
 	const { isStudent } = useAuth();
@@ -57,7 +58,7 @@ function MyRatings() {
 		content = <MyRatingsEmptyState />;
 	} else {
 		content = (
-			<div className="space-y-8">
+			<div className="space-y-8" data-testid={testIds.myRatings.list}>
 				{groupedRatings.map((yearGroup) => (
 					<div key={yearGroup.key} className="space-y-4">
 						<div className="border-l-3 border-primary pl-4">
@@ -197,14 +198,20 @@ function groupRatingsByYearAndSemester(
 			});
 		}
 
-		const seasonKey =
-			yearValue != null ? (seasonRaw ?? "no-semester") : "no-semester";
-		const seasonLabel =
-			yearValue != null
-				? seasonRaw
-					? getSemesterTermDisplay(seasonRaw, "Невідомий семестр")
-					: "Семестр не вказано"
+		let seasonKey = "no-semester";
+		let seasonLabel = "Без семестра";
+		let seasonDescription = "Невідомий рік";
+
+		if (yearValue != null) {
+			seasonKey = seasonRaw ?? "no-semester";
+			seasonLabel = seasonRaw
+				? getSemesterTermDisplay(seasonRaw, "Невідомий семестр")
+				: "Семестр не вказано";
+			seasonDescription = seasonRaw
+				? `Семестр ${seasonLabel.toLowerCase()}`
 				: "Без семестра";
+		}
+
 		const seasonOrder = TERM_ORDER[seasonRaw ?? ""] ?? 99;
 
 		const yearEntry = years.get(yearKey);
@@ -213,12 +220,7 @@ function groupRatingsByYearAndSemester(
 				yearEntry.seasons.set(seasonKey, {
 					key: `${yearKey}-${seasonKey}`,
 					label: seasonLabel,
-					description:
-						yearValue != null && seasonRaw
-							? `Семестр ${seasonLabel.toLowerCase()}`
-							: yearValue != null
-								? "Без семестра"
-								: "Невідомий рік",
+					description: seasonDescription,
 					items: [],
 					order: seasonOrder,
 					ratedCount: 0,
