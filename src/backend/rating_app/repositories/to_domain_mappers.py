@@ -210,9 +210,7 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
         course = getattr(model, "course", None)
         semester = getattr(model, "semester", None)
 
-        practice_type = (
-            PracticeType(model.practice_type) if model.practice_type else None
-        )
+        practice_type = PracticeType(model.practice_type) if model.practice_type else None
 
         return CourseOfferingDTO(
             id=model.id,

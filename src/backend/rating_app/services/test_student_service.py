@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.ioc_container.services import student_service
 from rating_app.models import Student
 from rating_app.repositories.to_domain_mappers import StudentMapper
