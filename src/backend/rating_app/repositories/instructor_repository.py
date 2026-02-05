@@ -2,7 +2,7 @@ from typing import Literal, overload
 
 from django.db.models import QuerySet
 
-from rating_app.application_schemas.instructor import Instructor
+from rating_app.application_schemas.instructor import Instructor, InstructorInput
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.models import Instructor as InstructorModel
 from rating_app.repositories.protocol import IDomainOrmRepository
@@ -24,7 +24,7 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     @overload
     def get_or_create(
         self,
-        data: Instructor,
+        data: InstructorInput | Instructor,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[Instructor, bool]: ...
@@ -32,14 +32,14 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     @overload
     def get_or_create(
         self,
-        data: Instructor,
+        data: InstructorInput | Instructor,
         *,
         return_model: Literal[True],
     ) -> tuple[InstructorModel, bool]: ...
 
     def get_or_create(
         self,
-        data: Instructor,
+        data: InstructorInput | Instructor,
         *,
         return_model: bool = False,
     ) -> tuple[Instructor, bool] | tuple[InstructorModel, bool]:
@@ -59,7 +59,7 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     @overload
     def get_or_upsert(
         self,
-        data: Instructor,
+        data: InstructorInput | Instructor,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[Instructor, bool]: ...
@@ -67,14 +67,14 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     @overload
     def get_or_upsert(
         self,
-        data: Instructor,
+        data: InstructorInput | Instructor,
         *,
         return_model: Literal[True],
     ) -> tuple[InstructorModel, bool]: ...
 
     def get_or_upsert(
         self,
-        data: Instructor,
+        data: InstructorInput | Instructor,
         *,
         return_model: bool = False,
     ) -> tuple[Instructor, bool] | tuple[InstructorModel, bool]:

@@ -12,6 +12,7 @@ from rating_app.application_schemas.course import (
 )
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
+    CourseInput,
 )
 from rating_app.exception.course_exceptions import (
     CourseNotFoundError,
@@ -87,7 +88,7 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
     @overload
     def get_or_create(
         self,
-        data: CourseDTO,
+        data: CourseInput | CourseDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[CourseDTO, bool]: ...
@@ -95,14 +96,14 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
     @overload
     def get_or_create(
         self,
-        data: CourseDTO,
+        data: CourseInput | CourseDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Course, bool]: ...
 
     def get_or_create(
         self,
-        data: CourseDTO,
+        data: CourseInput | CourseDTO,
         *,
         return_model: bool = False,
     ) -> tuple[CourseDTO, bool] | tuple[Course, bool]:
@@ -123,7 +124,7 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
     @overload
     def get_or_upsert(
         self,
-        data: CourseDTO,
+        data: CourseInput | CourseDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[CourseDTO, bool]: ...
@@ -131,14 +132,14 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
     @overload
     def get_or_upsert(
         self,
-        data: CourseDTO,
+        data: CourseInput | CourseDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Course, bool]: ...
 
     def get_or_upsert(
         self,
-        data: CourseDTO,
+        data: CourseInput | CourseDTO,
         *,
         return_model: bool = False,
     ) -> tuple[CourseDTO, bool] | tuple[Course, bool]:

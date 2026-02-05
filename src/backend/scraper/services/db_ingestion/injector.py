@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from decimal import Decimal
 from typing import TypeVar
-from uuid import uuid4
 
 from django.db import transaction
 
@@ -16,14 +15,15 @@ from rateukma.caching.patterns import (
 )
 from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IOperation
-from rating_app.application_schemas.course import Course as CourseDTO
-from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
-from rating_app.application_schemas.department import Department as DepartmentDTO
-from rating_app.application_schemas.faculty import Faculty as FacultyDTO
-from rating_app.application_schemas.instructor import Instructor as InstructorDTO
-from rating_app.application_schemas.semester import Semester as SemesterDTO
-from rating_app.application_schemas.speciality import Speciality as SpecialityDTO
+from rating_app.application_schemas.course import CourseInput
+from rating_app.application_schemas.course_offering import CourseOfferingInput
+from rating_app.application_schemas.department import DepartmentInput
+from rating_app.application_schemas.faculty import FacultyInput
+from rating_app.application_schemas.instructor import InstructorInput
+from rating_app.application_schemas.semester import SemesterInput
+from rating_app.application_schemas.speciality import SpecialityInput
 from rating_app.application_schemas.student import Student as StudentDTO
+from rating_app.application_schemas.student import StudentInput
 from rating_app.models import (
     Course,
     CourseOffering,
@@ -168,8 +168,7 @@ class CourseDbInjector(IDbInjector):
         if cached:
             return cached
 
-        faculty_dto = FacultyDTO(
-            id=uuid4(),  # placeholder
+        faculty_dto = FacultyInput(
             name=faculty_name,
         )
         faculty, _ = self.faculty_repository.get_or_create(
@@ -183,8 +182,7 @@ class CourseDbInjector(IDbInjector):
         department_key = (course_data.department, faculty.name)
         department = self._department_cache.get(department_key)
         if not department:
-            department_dto = DepartmentDTO(
-                id=uuid4(),  # placeholder
+            department_dto = DepartmentInput(
                 name=course_data.department,
                 faculty_id=faculty.id,
             )
@@ -197,8 +195,7 @@ class CourseDbInjector(IDbInjector):
         course_key = (course_data.title, department.name)
         course = self._course_cache.get(course_key)
         if not course:
-            course_dto = CourseDTO(
-                id=str(uuid4()),
+            course_dto = CourseInput(
                 title=course_data.title,
                 description=course_data.description or "",
                 status=CourseStatus(course_data.status.value),
@@ -223,16 +220,14 @@ class CourseDbInjector(IDbInjector):
         for spec_data in course_data.specialities:
             speciality_dto = self.speciality_repository.get_by_name(name=spec_data.name)
             if not speciality_dto:
-                speciality_faculty_dto = FacultyDTO(
-                    id=uuid4(),  # placeholder
+                speciality_faculty_dto = FacultyInput(
                     name=spec_data.faculty,
                 )
                 speciality_faculty, _ = self.faculty_repository.get_or_create(
                     speciality_faculty_dto,
                     return_model=True,
                 )
-                speciality_dto_new = SpecialityDTO(
-                    id=uuid4(),  # placeholder
+                speciality_dto_new = SpecialityInput(
                     name=spec_data.name,
                     faculty_id=speciality_faculty.id,
                 )
@@ -267,8 +262,7 @@ class CourseDbInjector(IDbInjector):
         semester_key = (offering_data.semester.year, offering_data.semester.term.value)
         semester = self._semester_cache.get(semester_key)
         if not semester:
-            semester_dto = SemesterDTO(
-                id=uuid4(),  # placeholder
+            semester_dto = SemesterInput(
                 year=offering_data.semester.year,
                 term=offering_data.semester.term.value,
             )
@@ -278,17 +272,16 @@ class CourseDbInjector(IDbInjector):
             )
             self._semester_cache[semester_key] = semester
 
-        offering_dto = CourseOfferingDTO(
-            id=uuid4(),  # will be ignored/overwritten by update_or_create
+        offering_dto = CourseOfferingInput(
             code=offering_data.code,
             course_id=course.id,
             semester_id=semester.id,
+            credits=Decimal(offering_data.credits),
+            weekly_hours=offering_data.weekly_hours,
             exam_type=ExamType(offering_data.exam_type.value),
             practice_type=PracticeType(offering_data.practice_type.value)
             if offering_data.practice_type
             else None,
-            credits=Decimal(offering_data.credits),
-            weekly_hours=offering_data.weekly_hours,
             lecture_count=offering_data.lecture_count,
             practice_count=offering_data.practice_count,
             max_students=offering_data.max_students,
@@ -327,11 +320,10 @@ class CourseDbInjector(IDbInjector):
         if cached:
             return cached
 
-        instructor_dto = InstructorDTO(
-            id=uuid4(),  # will be overwritten by get_or_create
+        instructor_dto = InstructorInput(
             first_name=instructor_data.first_name,
-            last_name=instructor_data.last_name,
             patronymic=instructor_data.patronymic or "",
+            last_name=instructor_data.last_name,
             academic_degree=instructor_data.academic_degree.value
             if instructor_data.academic_degree
             else "",
@@ -385,8 +377,7 @@ class CourseDbInjector(IDbInjector):
         if cached:
             return cached
 
-        student_dto = StudentDTO(
-            id=uuid4(),  # placeholder
+        student_input = StudentInput(
             first_name=student_data.first_name,
             last_name=student_data.last_name,
             patronymic=student_data.patronymic or "",
@@ -395,7 +386,7 @@ class CourseDbInjector(IDbInjector):
             email=student_data.email or "",
         )
         student, created = self.student_repository.get_or_create(
-            student_dto,
+            student_input,
             return_model=True,
         )
 
@@ -433,8 +424,7 @@ class CourseDbInjector(IDbInjector):
             self._speciality_cache[speciality_name] = None
             return None
 
-        speciality_dto_new = SpecialityDTO(
-            id=uuid4(),  # placeholder
+        speciality_dto_new = SpecialityInput(
             name=speciality_name,
             faculty_id=faculty.id,
         )

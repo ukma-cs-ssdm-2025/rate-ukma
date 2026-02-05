@@ -8,6 +8,7 @@ from django.db.models.query import QuerySet
 import structlog
 
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
+from rating_app.application_schemas.course_offering import CourseOfferingInput
 from rating_app.exception.course_exceptions import (
     CourseOfferingNotFoundError,
     InvalidCourseOfferingIdentifierError,
@@ -38,7 +39,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
     @overload
     def get_or_create(
         self,
-        data: CourseOfferingDTO,
+        data: CourseOfferingInput | CourseOfferingDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[CourseOfferingDTO, bool]: ...
@@ -46,14 +47,14 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
     @overload
     def get_or_create(
         self,
-        data: CourseOfferingDTO,
+        data: CourseOfferingInput | CourseOfferingDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[CourseOffering, bool]: ...
 
     def get_or_create(
         self,
-        data: CourseOfferingDTO,
+        data: CourseOfferingInput | CourseOfferingDTO,
         *,
         return_model: bool = False,
     ) -> tuple[CourseOfferingDTO, bool] | tuple[CourseOffering, bool]:
@@ -69,7 +70,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
     @overload
     def get_or_upsert(
         self,
-        data: CourseOfferingDTO,
+        data: CourseOfferingInput | CourseOfferingDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[CourseOfferingDTO, bool]: ...
@@ -77,14 +78,14 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
     @overload
     def get_or_upsert(
         self,
-        data: CourseOfferingDTO,
+        data: CourseOfferingInput | CourseOfferingDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[CourseOffering, bool]: ...
 
     def get_or_upsert(
         self,
-        data: CourseOfferingDTO,
+        data: CourseOfferingInput | CourseOfferingDTO,
         *,
         return_model: bool = False,
     ) -> tuple[CourseOfferingDTO, bool] | tuple[CourseOffering, bool]:
@@ -97,7 +98,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
             return model, created
         return self._map_to_domain_model(model), created
 
-    def create(self, data: CourseOfferingDTO) -> CourseOfferingDTO:
+    def create(self, data: CourseOfferingInput | CourseOfferingDTO) -> CourseOfferingDTO:
         model = CourseOffering.objects.create(
             code=data.code,
             course_id=data.course_id,
@@ -130,7 +131,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
         # not used in filtering yet, returns all
         return self.get_all()
 
-    def _build_defaults(self, data: CourseOfferingDTO) -> dict:
+    def _build_defaults(self, data: CourseOfferingInput | CourseOfferingDTO) -> dict:
         return {
             "course_id": data.course_id,
             "semester_id": data.semester_id,

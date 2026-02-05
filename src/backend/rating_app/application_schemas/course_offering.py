@@ -29,6 +29,23 @@ class CourseOfferingRetrieveParams(BaseModel):
 
 
 @dataclass(frozen=True)
+class CourseOfferingInput:
+    code: str
+    course_id: uuid.UUID
+    semester_id: uuid.UUID
+    credits: Decimal
+    weekly_hours: int
+    exam_type: ExamType
+    lecture_count: int | None = None
+    practice_count: int | None = None
+    practice_type: PracticeType | None = None
+    max_students: int | None = None
+    max_groups: int | None = None
+    group_size_min: int | None = None
+    group_size_max: int | None = None
+
+
+@dataclass(frozen=True)
 class CourseOffering:
     id: uuid.UUID
     code: str
@@ -45,7 +62,6 @@ class CourseOffering:
     group_size_min: int | None = None
     group_size_max: int | None = None
     instructors: list[Instructor] = field(default_factory=list)
-    # Display fields (populated by mapper)
     course_title: str | None = None
     semester_year: int | None = None
     semester_term: str | None = None

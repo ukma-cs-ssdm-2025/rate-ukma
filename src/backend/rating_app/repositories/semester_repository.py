@@ -7,6 +7,7 @@ from django.db.models import QuerySet
 import structlog
 
 from rating_app.application_schemas.semester import Semester as SemesterDTO
+from rating_app.application_schemas.semester import SemesterInput
 from rating_app.exception.semester_exception import (
     InvalidSemesterIdentifierError,
     SemesterNotFoundError,
@@ -42,7 +43,7 @@ class SemesterRepository(IDomainOrmRepository[SemesterDTO, Semester]):
     @overload
     def get_or_create(
         self,
-        data: SemesterDTO,
+        data: SemesterInput | SemesterDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[SemesterDTO, bool]: ...
@@ -50,14 +51,14 @@ class SemesterRepository(IDomainOrmRepository[SemesterDTO, Semester]):
     @overload
     def get_or_create(
         self,
-        data: SemesterDTO,
+        data: SemesterInput | SemesterDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Semester, bool]: ...
 
     def get_or_create(
         self,
-        data: SemesterDTO,
+        data: SemesterInput | SemesterDTO,
         *,
         return_model: bool = False,
     ) -> tuple[SemesterDTO, bool] | tuple[Semester, bool]:
@@ -73,7 +74,7 @@ class SemesterRepository(IDomainOrmRepository[SemesterDTO, Semester]):
     @overload
     def get_or_upsert(
         self,
-        data: SemesterDTO,
+        data: SemesterInput | SemesterDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[SemesterDTO, bool]: ...
@@ -81,14 +82,14 @@ class SemesterRepository(IDomainOrmRepository[SemesterDTO, Semester]):
     @overload
     def get_or_upsert(
         self,
-        data: SemesterDTO,
+        data: SemesterInput | SemesterDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Semester, bool]: ...
 
     def get_or_upsert(
         self,
-        data: SemesterDTO,
+        data: SemesterInput | SemesterDTO,
         *,
         return_model: bool = False,
     ) -> tuple[SemesterDTO, bool] | tuple[Semester, bool]:

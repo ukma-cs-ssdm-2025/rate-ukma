@@ -7,6 +7,7 @@ from django.db.models import QuerySet
 import structlog
 
 from rating_app.application_schemas.speciality import Speciality as SpecialityDTO
+from rating_app.application_schemas.speciality import SpecialityInput
 from rating_app.exception.speciality_exceptions import (
     InvalidSpecialityIdentifierError,
     SpecialityNotFoundError,
@@ -39,7 +40,7 @@ class SpecialityRepository(IDomainOrmRepository[SpecialityDTO, Speciality]):
     @overload
     def get_or_create(
         self,
-        data: SpecialityDTO,
+        data: SpecialityInput | SpecialityDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[SpecialityDTO, bool]: ...
@@ -47,14 +48,14 @@ class SpecialityRepository(IDomainOrmRepository[SpecialityDTO, Speciality]):
     @overload
     def get_or_create(
         self,
-        data: SpecialityDTO,
+        data: SpecialityInput | SpecialityDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Speciality, bool]: ...
 
     def get_or_create(
         self,
-        data: SpecialityDTO,
+        data: SpecialityInput | SpecialityDTO,
         *,
         return_model: bool = False,
     ) -> tuple[SpecialityDTO, bool] | tuple[Speciality, bool]:
@@ -71,7 +72,7 @@ class SpecialityRepository(IDomainOrmRepository[SpecialityDTO, Speciality]):
     @overload
     def get_or_upsert(
         self,
-        data: SpecialityDTO,
+        data: SpecialityInput | SpecialityDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[SpecialityDTO, bool]: ...
@@ -79,14 +80,14 @@ class SpecialityRepository(IDomainOrmRepository[SpecialityDTO, Speciality]):
     @overload
     def get_or_upsert(
         self,
-        data: SpecialityDTO,
+        data: SpecialityInput | SpecialityDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Speciality, bool]: ...
 
     def get_or_upsert(
         self,
-        data: SpecialityDTO,
+        data: SpecialityInput | SpecialityDTO,
         *,
         return_model: bool = False,
     ) -> tuple[SpecialityDTO, bool] | tuple[Speciality, bool]:
@@ -115,7 +116,7 @@ class SpecialityRepository(IDomainOrmRepository[SpecialityDTO, Speciality]):
         # not used in filtering yet, returns all
         return self.get_all()
 
-    def _build_defaults(self, data: SpecialityDTO) -> dict:
+    def _build_defaults(self, data: SpecialityInput | SpecialityDTO) -> dict:
         return {
             "alias": data.alias or "",
         }

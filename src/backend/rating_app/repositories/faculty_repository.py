@@ -7,6 +7,7 @@ from django.db.models import QuerySet
 import structlog
 
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
+from rating_app.application_schemas.faculty import FacultyInput
 from rating_app.exception.faculty_exceptions import (
     FacultyNotFoundError,
     InvalidFacultyIdentifierError,
@@ -37,7 +38,7 @@ class FacultyRepository(IDomainOrmRepository[FacultyDTO, Faculty]):
     @overload
     def get_or_create(
         self,
-        data: FacultyDTO,
+        data: FacultyInput | FacultyDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[FacultyDTO, bool]: ...
@@ -45,14 +46,14 @@ class FacultyRepository(IDomainOrmRepository[FacultyDTO, Faculty]):
     @overload
     def get_or_create(
         self,
-        data: FacultyDTO,
+        data: FacultyInput | FacultyDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Faculty, bool]: ...
 
     def get_or_create(
         self,
-        data: FacultyDTO,
+        data: FacultyInput | FacultyDTO,
         *,
         return_model: bool = False,
     ) -> tuple[FacultyDTO, bool] | tuple[Faculty, bool]:
@@ -68,7 +69,7 @@ class FacultyRepository(IDomainOrmRepository[FacultyDTO, Faculty]):
     @overload
     def get_or_upsert(
         self,
-        data: FacultyDTO,
+        data: FacultyInput | FacultyDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[FacultyDTO, bool]: ...
@@ -76,14 +77,14 @@ class FacultyRepository(IDomainOrmRepository[FacultyDTO, Faculty]):
     @overload
     def get_or_upsert(
         self,
-        data: FacultyDTO,
+        data: FacultyInput | FacultyDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Faculty, bool]: ...
 
     def get_or_upsert(
         self,
-        data: FacultyDTO,
+        data: FacultyInput | FacultyDTO,
         *,
         return_model: bool = False,
     ) -> tuple[FacultyDTO, bool] | tuple[Faculty, bool]:
@@ -111,7 +112,7 @@ class FacultyRepository(IDomainOrmRepository[FacultyDTO, Faculty]):
         # not used in filtering yet, returns all
         return self.get_all()
 
-    def _build_defaults(self, data: FacultyDTO) -> dict:
+    def _build_defaults(self, data: FacultyInput | FacultyDTO) -> dict:
         return {
             "custom_abbreviation": data.custom_abbreviation,
         }

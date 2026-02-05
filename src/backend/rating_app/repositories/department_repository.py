@@ -7,6 +7,7 @@ from django.db.models import QuerySet
 import structlog
 
 from rating_app.application_schemas.department import Department as DepartmentDTO
+from rating_app.application_schemas.department import DepartmentInput
 from rating_app.exception.department_exceptions import (
     DepartmentNotFoundError,
     InvalidDepartmentIdentifierError,
@@ -33,7 +34,7 @@ class DepartmentRepository(IDomainOrmRepository[DepartmentDTO, Department]):
     @overload
     def get_or_create(
         self,
-        data: DepartmentDTO,
+        data: DepartmentInput | DepartmentDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[DepartmentDTO, bool]: ...
@@ -41,14 +42,14 @@ class DepartmentRepository(IDomainOrmRepository[DepartmentDTO, Department]):
     @overload
     def get_or_create(
         self,
-        data: DepartmentDTO,
+        data: DepartmentInput | DepartmentDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Department, bool]: ...
 
     def get_or_create(
         self,
-        data: DepartmentDTO,
+        data: DepartmentInput | DepartmentDTO,
         *,
         return_model: bool = False,
     ) -> tuple[DepartmentDTO, bool] | tuple[Department, bool]:
@@ -64,7 +65,7 @@ class DepartmentRepository(IDomainOrmRepository[DepartmentDTO, Department]):
     @overload
     def get_or_upsert(
         self,
-        data: DepartmentDTO,
+        data: DepartmentInput | DepartmentDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[DepartmentDTO, bool]: ...
@@ -72,14 +73,14 @@ class DepartmentRepository(IDomainOrmRepository[DepartmentDTO, Department]):
     @overload
     def get_or_upsert(
         self,
-        data: DepartmentDTO,
+        data: DepartmentInput | DepartmentDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Department, bool]: ...
 
     def get_or_upsert(
         self,
-        data: DepartmentDTO,
+        data: DepartmentInput | DepartmentDTO,
         *,
         return_model: bool = False,
     ) -> tuple[DepartmentDTO, bool] | tuple[Department, bool]:

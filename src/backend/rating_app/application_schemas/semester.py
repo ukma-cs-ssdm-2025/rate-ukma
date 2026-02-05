@@ -5,6 +5,12 @@ from rating_app.models.choices import SemesterTerm
 
 
 @dataclass(frozen=True)
+class SemesterInput:
+    year: int
+    term: SemesterTerm | str
+
+
+@dataclass(frozen=True)
 class Semester:
     id: uuid.UUID
     year: int

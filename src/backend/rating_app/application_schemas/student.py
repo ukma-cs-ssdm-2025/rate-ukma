@@ -5,6 +5,16 @@ from rating_app.models.choices import EducationLevel
 
 
 @dataclass(frozen=True)
+class StudentInput:
+    first_name: str
+    last_name: str
+    patronymic: str | None
+    education_level: EducationLevel | str
+    speciality_id: uuid.UUID
+    email: str | None = None
+
+
+@dataclass(frozen=True)
 class Student:
     id: uuid.UUID
     first_name: str

@@ -8,6 +8,7 @@ from django.db.models import QuerySet
 import structlog
 
 from rating_app.application_schemas.student import Student as StudentDTO
+from rating_app.application_schemas.student import StudentInput
 from rating_app.exception.student_exceptions import (
     InvalidStudentIdentifierError,
     StudentNotFoundError,
@@ -47,7 +48,7 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
     @overload
     def get_or_create(
         self,
-        data: StudentDTO,
+        data: StudentInput | StudentDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[StudentDTO, bool]: ...
@@ -55,14 +56,14 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
     @overload
     def get_or_create(
         self,
-        data: StudentDTO,
+        data: StudentInput | StudentDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Student, bool]: ...
 
     def get_or_create(
         self,
-        data: StudentDTO,
+        data: StudentInput | StudentDTO,
         *,
         return_model: bool = False,
     ) -> tuple[StudentDTO, bool] | tuple[Student, bool]:
@@ -86,7 +87,7 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
     @overload
     def get_or_upsert(
         self,
-        data: StudentDTO,
+        data: StudentInput | StudentDTO,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[StudentDTO, bool]: ...
@@ -94,14 +95,14 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
     @overload
     def get_or_upsert(
         self,
-        data: StudentDTO,
+        data: StudentInput | StudentDTO,
         *,
         return_model: Literal[True],
     ) -> tuple[Student, bool]: ...
 
     def get_or_upsert(
         self,
-        data: StudentDTO,
+        data: StudentInput | StudentDTO,
         *,
         return_model: bool = False,
     ) -> tuple[StudentDTO, bool] | tuple[Student, bool]:
@@ -140,7 +141,7 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
         model.save(update_fields=["user"])
         return self._map_to_domain_model(model)
 
-    def _build_defaults(self, data: StudentDTO) -> dict:
+    def _build_defaults(self, data: StudentInput | StudentDTO) -> dict:
         return {
             "email": data.email or "",
         }

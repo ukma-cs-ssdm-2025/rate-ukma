@@ -115,6 +115,17 @@ class CourseSpeciality:
 
 
 @dataclass(frozen=True)
+class CourseInput:
+    title: str
+    description: str
+    status: CourseStatus
+    department: str
+    department_name: str
+    faculty: str
+    faculty_name: str
+
+
+@dataclass(frozen=True)
 class Course:
     id: str
     title: str
