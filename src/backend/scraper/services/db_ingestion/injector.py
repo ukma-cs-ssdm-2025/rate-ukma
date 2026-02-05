@@ -17,7 +17,11 @@ from rateukma.caching.patterns import (
 from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IOperation
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
+from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
+from rating_app.application_schemas.semester import Semester as SemesterDTO
+from rating_app.application_schemas.speciality import Speciality as SpecialityDTO
+from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.models import (
     Course,
     CourseOffering,
@@ -170,9 +174,14 @@ class CourseDbInjector(IDbInjector):
         department_key = (course_data.department, faculty.name)
         department = self._department_cache.get(department_key)
         if not department:
-            department, _ = self.department_repository.get_or_create(
+            department_dto = DepartmentDTO(
+                id=uuid4(),  # placeholder
                 name=course_data.department,
-                faculty=faculty,
+                faculty_id=faculty.id,
+            )
+            department, _ = self.department_repository.get_or_create(
+                department_dto,
+                return_model=True,
             )
             self._department_cache[department_key] = department
 
@@ -195,16 +204,27 @@ class CourseDbInjector(IDbInjector):
         course_data: DeduplicatedCourse,
     ) -> None:
         for spec_data in course_data.specialities:
-            speciality = self.speciality_repository.get_by_name(name=spec_data.name)
-            if not speciality:
+            speciality_dto = self.speciality_repository.get_by_name(name=spec_data.name)
+            if not speciality_dto:
                 speciality_faculty, _ = self.faculty_repository.get_or_create(
                     name=spec_data.faculty
                 )
-                speciality = self.speciality_repository.create(
+                speciality_dto_new = SpecialityDTO(
+                    id=uuid4(),  # placeholder
                     name=spec_data.name,
-                    faculty=speciality_faculty,
+                    faculty_id=speciality_faculty.id,
+                )
+                speciality, _ = self.speciality_repository.get_or_create(
+                    speciality_dto_new,
+                    return_model=True,
                 )
                 self._speciality_cache[spec_data.name] = speciality
+            else:
+                # Get ORM model from cache or fetch it
+                speciality = self._speciality_cache.get(spec_data.name)
+                if not speciality:
+                    speciality = Speciality.objects.get(id=speciality_dto.id)
+                    self._speciality_cache[spec_data.name] = speciality
             course.specialities.add(speciality)  # type: ignore
 
     def _process_offerings(
@@ -225,9 +245,14 @@ class CourseDbInjector(IDbInjector):
         semester_key = (offering_data.semester.year, offering_data.semester.term.value)
         semester = self._semester_cache.get(semester_key)
         if not semester:
-            semester, _ = self.semester_repository.get_or_create(
+            semester_dto = SemesterDTO(
+                id=uuid4(),  # placeholder
                 year=offering_data.semester.year,
                 term=offering_data.semester.term.value,
+            )
+            semester, _ = self.semester_repository.get_or_create(
+                semester_dto,
+                return_model=True,
             )
             self._semester_cache[semester_key] = semester
 
@@ -336,17 +361,33 @@ class CourseDbInjector(IDbInjector):
         if cached:
             return cached
 
-        student, created = self.student_repository.get_or_create(
+        student_dto = StudentDTO(
+            id=uuid4(),  # placeholder
             first_name=student_data.first_name,
             last_name=student_data.last_name,
             patronymic=student_data.patronymic or "",
             education_level=education_level,
-            speciality=student_speciality,
+            speciality_id=student_speciality.id,
             email=student_data.email or "",
+        )
+        student, created = self.student_repository.get_or_create(
+            student_dto,
+            return_model=True,
         )
 
         if created or (student_data.email and not student.user):
-            self.student_service.link_student_to_user(student)
+            # Convert ORM model back to DTO for service
+            student_dto_for_link = StudentDTO(
+                id=student.id,
+                first_name=student.first_name,
+                last_name=student.last_name,
+                patronymic=student.patronymic or None,
+                education_level=student.education_level,
+                speciality_id=student.speciality_id,
+                email=student.email or None,
+                user_id=student.user_id,
+            )
+            self.student_service.link_student_to_user(student_dto_for_link)
 
         self._student_cache[key] = student
         return student
@@ -356,8 +397,10 @@ class CourseDbInjector(IDbInjector):
         if cached is not None:
             return cached
 
-        speciality = self.speciality_repository.get_by_name(name=speciality_name)
-        if speciality:
+        speciality_dto = self.speciality_repository.get_by_name(name=speciality_name)
+        if speciality_dto:
+            # Fetch ORM model for M2M operations
+            speciality = Speciality.objects.get(id=speciality_dto.id)
             self._speciality_cache[speciality_name] = speciality
             return speciality
 
@@ -366,9 +409,14 @@ class CourseDbInjector(IDbInjector):
             self._speciality_cache[speciality_name] = None
             return None
 
-        speciality, _ = self.speciality_repository.get_or_create(
+        speciality_dto_new = SpecialityDTO(
+            id=uuid4(),  # placeholder
             name=speciality_name,
-            faculty=faculty,
+            faculty_id=faculty.id,
+        )
+        speciality, _ = self.speciality_repository.get_or_create(
+            speciality_dto_new,
+            return_model=True,
         )
         self._speciality_cache[speciality_name] = speciality
         return speciality

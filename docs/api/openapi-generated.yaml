@@ -1948,20 +1948,20 @@ components:
           readOnly: true
         course_title:
           type: string
-          nullable: true
           readOnly: true
+          nullable: true
         semester_id:
           type: string
           format: uuid
           readOnly: true
         semester_year:
           type: integer
-          nullable: true
           readOnly: true
+          nullable: true
         semester_term:
           type: string
-          nullable: true
           readOnly: true
+          nullable: true
         code:
           type: string
           readOnly: true
@@ -1973,10 +1973,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/PracticeTypeEnum'
           readOnly: true
+          nullable: true
         credits:
           type: string
           format: decimal
-          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+          pattern: ^-?\d{0,3}(?:\.\d{0,1})?$
           readOnly: true
         weekly_hours:
           type: integer

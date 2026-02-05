@@ -4,19 +4,31 @@ from rateukma.protocols import IProcessor, implements
 from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.application_schemas.course import CourseSpeciality
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
+from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.application_schemas.rating import Rating as RatingDTO
+from rating_app.application_schemas.semester import Semester as SemesterDTO
+from rating_app.application_schemas.speciality import Speciality as SpecialityDTO
+from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.exception.course_exceptions import CourseMissingDepartmentOrFacultyError
 from rating_app.models import Course
 from rating_app.models.choices import (
     CourseStatus,
     CourseTypeKind,
+    EducationLevel,
+    ExamType,
+    PracticeType,
     RatingVoteStrType,
     RatingVoteType,
+    SemesterTerm,
 )
 from rating_app.models.course_offering import CourseOffering as CourseOfferingModel
+from rating_app.models.department import Department as DepartmentModel
 from rating_app.models.instructor import Instructor as InstructorModel
 from rating_app.models.rating import Rating as RatingModel
+from rating_app.models.semester import Semester as SemesterModel
+from rating_app.models.speciality import Speciality as SpecialityModel
+from rating_app.models.student import Student as StudentModel
 
 logger = structlog.get_logger(__name__)
 
@@ -198,6 +210,10 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
         course = getattr(model, "course", None)
         semester = getattr(model, "semester", None)
 
+        practice_type = (
+            PracticeType(model.practice_type) if model.practice_type else None
+        )
+
         return CourseOfferingDTO(
             id=model.id,
             code=model.code,
@@ -205,10 +221,10 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
             semester_id=model.semester_id,  # type: ignore TODO: resolve type checker issue - prefetched field
             credits=model.credits,
             weekly_hours=model.weekly_hours,
-            exam_type=model.exam_type,
+            exam_type=ExamType(model.exam_type),
             lecture_count=model.lecture_count,
             practice_count=model.practice_count,
-            practice_type=model.practice_type,
+            practice_type=practice_type,
             max_students=model.max_students,
             max_groups=model.max_groups,
             group_size_min=model.group_size_min,
@@ -228,3 +244,70 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
         return [
             self._instructor_mapper.process(instructor) for instructor in prefetched_instructors
         ]
+
+
+class StudentMapper(IProcessor[[StudentModel], StudentDTO]):
+    @implements
+    def process(self, model: StudentModel) -> StudentDTO:
+        speciality = getattr(model, "speciality", None)
+        speciality_name = speciality.name if speciality else None
+
+        education_level = model.education_level
+        if education_level and education_level in EducationLevel.values:
+            education_level = EducationLevel(education_level)
+
+        return StudentDTO(
+            id=model.id,
+            first_name=model.first_name,
+            last_name=model.last_name,
+            patronymic=model.patronymic or None,
+            education_level=education_level,
+            speciality_id=model.speciality_id,
+            email=model.email or None,
+            user_id=model.user_id,
+            speciality_name=speciality_name,
+        )
+
+
+class DepartmentMapper(IProcessor[[DepartmentModel], DepartmentDTO]):
+    @implements
+    def process(self, model: DepartmentModel) -> DepartmentDTO:
+        faculty = getattr(model, "faculty", None)
+        faculty_name = faculty.name if faculty else None
+
+        return DepartmentDTO(
+            id=model.id,
+            name=model.name,
+            faculty_id=model.faculty_id,
+            faculty_name=faculty_name,
+        )
+
+
+class SemesterMapper(IProcessor[[SemesterModel], SemesterDTO]):
+    @implements
+    def process(self, model: SemesterModel) -> SemesterDTO:
+        term = model.term
+        if term and term in SemesterTerm.values:
+            term = SemesterTerm(term)
+
+        return SemesterDTO(
+            id=model.id,
+            year=model.year,
+            term=term,
+            label=model.label,
+        )
+
+
+class SpecialityMapper(IProcessor[[SpecialityModel], SpecialityDTO]):
+    @implements
+    def process(self, model: SpecialityModel) -> SpecialityDTO:
+        faculty = getattr(model, "faculty", None)
+        faculty_name = faculty.name if faculty else None
+
+        return SpecialityDTO(
+            id=model.id,
+            name=model.name,
+            faculty_id=model.faculty_id,
+            alias=model.alias or None,
+            faculty_name=faculty_name,
+        )

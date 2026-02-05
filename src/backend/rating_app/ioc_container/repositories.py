@@ -1,7 +1,14 @@
 from rateukma.ioc.decorators import once
 from rating_app.models import Course
 from rating_app.pagination import GenericQuerysetPaginator
-from rating_app.repositories.to_domain_mappers import CourseOfferingMapper, InstructorMapper
+from rating_app.repositories.to_domain_mappers import (
+    CourseOfferingMapper,
+    DepartmentMapper,
+    InstructorMapper,
+    SemesterMapper,
+    SpecialityMapper,
+    StudentMapper,
+)
 
 from ..repositories import (
     CourseInstructorRepository,
@@ -50,6 +57,26 @@ def course_offering_mapper() -> CourseOfferingMapper:
 
 
 @once
+def student_mapper() -> StudentMapper:
+    return StudentMapper()
+
+
+@once
+def department_mapper() -> DepartmentMapper:
+    return DepartmentMapper()
+
+
+@once
+def semester_mapper() -> SemesterMapper:
+    return SemesterMapper()
+
+
+@once
+def speciality_mapper() -> SpecialityMapper:
+    return SpecialityMapper()
+
+
+@once
 def course_repository() -> CourseRepository:
     paginator = GenericQuerysetPaginator[Course]()
     return CourseRepository(mapper=course_mapper(), paginator=paginator)
@@ -57,7 +84,7 @@ def course_repository() -> CourseRepository:
 
 @once
 def department_repository() -> DepartmentRepository:
-    return DepartmentRepository()
+    return DepartmentRepository(mapper=department_mapper())
 
 
 @once
@@ -67,22 +94,22 @@ def faculty_repository() -> FacultyRepository:
 
 @once
 def semester_repository() -> SemesterRepository:
-    return SemesterRepository()
+    return SemesterRepository(mapper=semester_mapper())
 
 
 @once
 def speciality_repository() -> SpecialityRepository:
-    return SpecialityRepository()
+    return SpecialityRepository(mapper=speciality_mapper())
 
 
 @once
 def instructor_repository() -> InstructorRepository:
-    return InstructorRepository(instructor_mapper())
+    return InstructorRepository(mapper=instructor_mapper())
 
 
 @once
 def student_repository() -> StudentRepository:
-    return StudentRepository()
+    return StudentRepository(mapper=student_mapper())
 
 
 @once

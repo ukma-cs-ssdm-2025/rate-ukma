@@ -14,8 +14,8 @@ class SpecialityService(IFilterable):
             {
                 "id": speciality.id,
                 "name": speciality.name,
-                "faculty_id": speciality.faculty.id if speciality.faculty else None,
-                "faculty_name": speciality.faculty.name if speciality.faculty else None,
+                "faculty_id": speciality.faculty_id,
+                "faculty_name": speciality.faculty_name,
             }
             for speciality in specialities
         ]

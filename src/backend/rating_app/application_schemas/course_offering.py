@@ -36,10 +36,10 @@ class CourseOffering:
     semester_id: uuid.UUID
     credits: Decimal
     weekly_hours: int
-    exam_type: ExamType | str
+    exam_type: ExamType
     lecture_count: int | None = None
     practice_count: int | None = None
-    practice_type: PracticeType | str = ""
+    practice_type: PracticeType | None = None
     max_students: int | None = None
     max_groups: int | None = None
     group_size_min: int | None = None

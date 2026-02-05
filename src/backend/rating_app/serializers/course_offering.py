@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from rating_app.models.choices import ExamType, PracticeType
+
 
 class CourseOfferingSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
@@ -9,8 +11,10 @@ class CourseOfferingSerializer(serializers.Serializer):
     semester_year = serializers.IntegerField(read_only=True, allow_null=True)
     semester_term = serializers.CharField(read_only=True, allow_null=True)
     code = serializers.CharField(read_only=True)
-    exam_type = serializers.CharField(read_only=True)
-    practice_type = serializers.CharField(read_only=True, allow_blank=True)
+    exam_type = serializers.ChoiceField(choices=ExamType.choices, read_only=True)
+    practice_type = serializers.ChoiceField(
+        choices=PracticeType.choices, read_only=True, allow_null=True
+    )
     credits = serializers.DecimalField(max_digits=4, decimal_places=1, read_only=True)
     weekly_hours = serializers.IntegerField(read_only=True)
     lecture_count = serializers.IntegerField(read_only=True, allow_null=True)

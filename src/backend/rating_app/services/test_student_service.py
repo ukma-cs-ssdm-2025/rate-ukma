@@ -3,8 +3,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.ioc_container.services import student_service
 from rating_app.models import Student
+from rating_app.repositories.to_domain_mappers import StudentMapper
 from rating_app.services.student_service import StudentService
 from rating_app.tests.factories import SpecialityFactory, StudentFactory
 from scraper.ioc_container.common import course_db_injector
@@ -61,7 +63,7 @@ def service(student_stats_repo, student_repo, user_repo, semester_service, ratin
 class TestLinkStudentToUser:
     def test_returns_false_when_student_has_no_email(self, service):
         # Arrange
-        student = SimpleNamespace(email="", user=None)
+        student = SimpleNamespace(email="", user_id=None)
 
         # Act
         result = service.link_student_to_user(student)
@@ -71,7 +73,7 @@ class TestLinkStudentToUser:
 
     def test_returns_false_when_student_already_has_user(self, service):
         # Arrange
-        student = SimpleNamespace(email="test@ukma.edu.ua", user=MagicMock())
+        student = SimpleNamespace(email="test@ukma.edu.ua", user_id=1)
 
         # Act
         result = service.link_student_to_user(student)
@@ -81,7 +83,7 @@ class TestLinkStudentToUser:
 
     def test_returns_false_when_no_user_with_email(self, service, user_repo):
         # Arrange
-        student = SimpleNamespace(email="test@ukma.edu.ua", user=None, id="student-id")
+        student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="student-id")
         user_repo.get_by_email.return_value = None
 
         # Act
@@ -93,7 +95,7 @@ class TestLinkStudentToUser:
 
     def test_returns_false_when_user_already_linked_to_another_student(self, service, user_repo):
         # Arrange
-        student = SimpleNamespace(email="test@ukma.edu.ua", user=None, id="new-student")
+        student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="new-student")
         existing_user = SimpleNamespace(
             id=1,
             email="test@ukma.edu.ua",
@@ -109,7 +111,7 @@ class TestLinkStudentToUser:
 
     def test_links_student_to_user_successfully(self, service, user_repo, student_repo):
         # Arrange
-        student = SimpleNamespace(email="test@ukma.edu.ua", user=None, id="student-id")
+        student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="student-id")
         user = SimpleNamespace(id=1, email="test@ukma.edu.ua", student_profile=None)
         user_repo.get_by_email.return_value = user
 
@@ -118,7 +120,7 @@ class TestLinkStudentToUser:
 
         # Assert
         assert result is True
-        student_repo.link_to_user.assert_called_once_with(student, user)
+        student_repo.link_to_user.assert_called_once_with("student-id", user)
 
 
 class TestLinkUserToStudent:
@@ -161,7 +163,7 @@ class TestLinkUserToStudent:
     def test_links_user_to_student_successfully(self, service, student_repo):
         # Arrange
         user = SimpleNamespace(email="test@ukma.edu.ua", id=1, student_profile=None)
-        student = SimpleNamespace(id="student-id", email="test@ukma.edu.ua", user=None)
+        student = SimpleNamespace(id="student-id", email="test@ukma.edu.ua", user_id=None)
         student_repo.get_by_email.return_value = student
 
         # Act
@@ -169,10 +171,15 @@ class TestLinkUserToStudent:
 
         # Assert
         assert result is True
-        student_repo.link_to_user.assert_called_once_with(student, user)
+        student_repo.link_to_user.assert_called_once_with("student-id", user)
 
 
 # Integration tests exercising real services/DB
+
+
+@pytest.fixture
+def student_mapper():
+    return StudentMapper()
 
 
 @pytest.mark.django_db
@@ -301,14 +308,17 @@ def test_service_does_not_link_when_user_already_has_student(user_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_service_links_student_to_existing_user(user_factory):
+def test_service_links_student_to_existing_user(user_factory, student_mapper):
     email = "newstudent@ukma.edu.ua"
     user = user_factory(email=email)
-    student = StudentFactory(email=email, user=None)
+    student_model = StudentFactory(email=email, user=None)
+
+    # Convert ORM model to DTO for service
+    student_dto = student_mapper.process(student_model)
 
     service = student_service()
-    result = service.link_student_to_user(student)
+    result = service.link_student_to_user(student_dto)
 
     assert result is True
-    student.refresh_from_db()
-    assert student.user == user
+    student_model.refresh_from_db()
+    assert student_model.user == user
