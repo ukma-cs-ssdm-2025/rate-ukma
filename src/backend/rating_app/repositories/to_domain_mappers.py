@@ -195,6 +195,9 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
     def process(self, model: CourseOfferingModel) -> CourseOfferingDTO:
         instructors = self._map_instructors(model)
 
+        course = getattr(model, "course", None)
+        semester = getattr(model, "semester", None)
+
         return CourseOfferingDTO(
             id=model.id,
             code=model.code,
@@ -211,6 +214,9 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
             group_size_min=model.group_size_min,
             group_size_max=model.group_size_max,
             instructors=instructors,
+            course_title=course.title if course else None,
+            semester_year=semester.year if semester else None,
+            semester_term=semester.label if semester else None,
         )
 
     def _map_instructors(self, model: CourseOfferingModel) -> list[InstructorDTO]:

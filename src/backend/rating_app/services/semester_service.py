@@ -43,6 +43,9 @@ class SemesterService(IFilterable):
     def __init__(self, semester_repository: SemesterRepository):
         self.semester_repository = semester_repository
 
+    def get_by_id(self, semester_id: str) -> Semester:
+        return self.semester_repository.get_by_id(semester_id)
+
     def get_semesters(self):
         return self.semester_repository.get_all()
 

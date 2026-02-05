@@ -1,5 +1,7 @@
 from collections.abc import Sequence
+from decimal import Decimal
 from typing import TypeVar
+from uuid import uuid4
 
 from django.db import transaction
 
@@ -14,6 +16,8 @@ from rateukma.caching.patterns import (
 )
 from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IOperation
+from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
+from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.models import (
     Course,
     CourseOffering,
@@ -227,13 +231,14 @@ class CourseDbInjector(IDbInjector):
             )
             self._semester_cache[semester_key] = semester
 
-        course_offering, _ = self.course_offering_repository.get_or_upsert(
-            course=course,
-            semester=semester,
+        offering_dto = CourseOfferingDTO(
+            id=uuid4(),  # placeholder, will be ignored/overwritten by update_or_create
             code=offering_data.code,
+            course_id=course.id,
+            semester_id=semester.id,
             exam_type=offering_data.exam_type.value,
             practice_type=offering_data.practice_type.value if offering_data.practice_type else "",
-            credits=offering_data.credits,
+            credits=Decimal(offering_data.credits),
             weekly_hours=offering_data.weekly_hours,
             lecture_count=offering_data.lecture_count,
             practice_count=offering_data.practice_count,
@@ -241,6 +246,10 @@ class CourseDbInjector(IDbInjector):
             max_groups=offering_data.max_groups,
             group_size_min=offering_data.group_size_min,
             group_size_max=offering_data.group_size_max,
+        )
+        course_offering, _ = self.course_offering_repository.get_or_upsert(
+            offering_dto,
+            return_model=True,
         )
         return course_offering
 
@@ -269,7 +278,8 @@ class CourseDbInjector(IDbInjector):
         if cached:
             return cached
 
-        instructor, _ = self.instructor_repository.get_or_create(
+        instructor_dto = InstructorDTO(
+            id=uuid4(),  # will be overwritten by get_or_create
             first_name=instructor_data.first_name,
             last_name=instructor_data.last_name,
             patronymic=instructor_data.patronymic or "",
@@ -279,6 +289,10 @@ class CourseDbInjector(IDbInjector):
             academic_title=instructor_data.academic_title.value
             if instructor_data.academic_title
             else "",
+        )
+        instructor, _ = self.instructor_repository.get_or_create(
+            instructor_dto,
+            return_model=True,
         )
         self._instructor_cache[key] = instructor
         return instructor

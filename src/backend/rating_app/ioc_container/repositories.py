@@ -87,7 +87,7 @@ def student_repository() -> StudentRepository:
 
 @once
 def course_offering_repository() -> CourseOfferingRepository:
-    return CourseOfferingRepository()
+    return CourseOfferingRepository(mapper=course_offering_mapper())
 
 
 @once

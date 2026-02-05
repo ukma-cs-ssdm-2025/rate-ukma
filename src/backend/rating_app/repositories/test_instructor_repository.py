@@ -1,5 +1,8 @@
+from uuid import uuid4
+
 import pytest
 
+from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.ioc_container.repositories import instructor_mapper
 from rating_app.models.choices import AcademicDegree, AcademicTitle
@@ -23,15 +26,35 @@ def test_get_by_id_raises_custom_exception_when_not_found(repo):
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_get_or_create_handles_empty_patronymic(repo):
-    data = {
-        "first_name": "Jane",
-        "last_name": "Smith",
-        "patronymic": "",
-        "academic_degree": AcademicDegree.PHD,
-        "academic_title": AcademicTitle.ASSISTANT,
-    }
+    data = InstructorDTO(
+        id=uuid4(),
+        first_name="Jane",
+        last_name="Smith",
+        patronymic="",
+        academic_degree=AcademicDegree.PHD,
+        academic_title=AcademicTitle.ASSISTANT,
+    )
 
-    instructor, created = repo.get_or_create(**data)
+    instructor, created = repo.get_or_create(data)
 
     assert created is True
     assert instructor.patronymic == ""
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_or_create_with_return_model_returns_orm_model(repo):
+    data = InstructorDTO(
+        id=uuid4(),
+        first_name="John",
+        last_name="Doe",
+        patronymic="Michael",
+        academic_degree=AcademicDegree.PHD,
+        academic_title=AcademicTitle.PROFESSOR,
+    )
+
+    instructor, created = repo.get_or_create(data, return_model=True)
+
+    assert created is True
+    # Verify it's an ORM model (has save method)
+    assert hasattr(instructor, "save")

@@ -16,6 +16,11 @@ class InvalidCourseOfferingIdentifierError(ValidationError):
     default_code = "invalid_course_offering_identifier"
 
 
+class CourseOfferingNotFoundError(NotFound):
+    default_detail = "Course offering not found"
+    default_code = "course_offering_not_found"
+
+
 class CourseMissingDepartmentOrFacultyError(ValidationError):
     default_detail = "Course is missing department or faculty."
     default_code = "course_missing_department_or_faculty"

@@ -45,3 +45,7 @@ class CourseOffering:
     group_size_min: int | None = None
     group_size_max: int | None = None
     instructors: list[Instructor] = field(default_factory=list)
+    # Display fields (populated by mapper)
+    course_title: str | None = None
+    semester_year: int | None = None
+    semester_term: str | None = None
