@@ -1,4 +1,4 @@
-from typing import Any, overload
+from typing import Any, Literal, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError
@@ -22,14 +22,14 @@ from rating_app.exception.department_exceptions import (
     InvalidDepartmentIdentifierError,
 )
 from rating_app.models import Course, CourseOffering, Department
-from rating_app.models.choices import CourseStatus, SemesterTerm
+from rating_app.models.choices import SemesterTerm
 from rating_app.pagination import GenericQuerysetPaginator, PaginationFilters, PaginationResult
-from rating_app.repositories.protocol import IRepository
+from rating_app.repositories.protocol import IPaginatedRepository
 
 logger = structlog.get_logger(__name__)
 
 
-class CourseRepository(IRepository[CourseDTO]):
+class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCriteria, CourseDTO]):
     def __init__(
         self, mapper: IProcessor[[Course], CourseDTO], paginator: GenericQuerysetPaginator[Course]
     ):
@@ -40,11 +40,11 @@ class CourseRepository(IRepository[CourseDTO]):
         courses = self._get_all_prefetch_related() if prefetch_related else self._get_all_shallow()
         return [self._mapper.process(course) for course in courses]
 
-    def get_by_id(self, course_id: str, prefetch_related: bool = True) -> CourseDTO:
+    def get_by_id(self, id: str, prefetch_related: bool = True) -> CourseDTO:
         course = (
-            self._get_by_id_prefetch_related(course_id)
+            self._get_by_id_prefetch_related(id)
             if prefetch_related
-            else self._get_by_id_shallow(course_id)
+            else self._get_by_id_shallow(id)
         )
         return self._mapper.process(course)
 
@@ -59,6 +59,7 @@ class CourseRepository(IRepository[CourseDTO]):
     def filter(
         self,
         criteria: CourseFilterCriteria,
+        pagination: None = ...,
     ) -> list[CourseDTO]: ...
 
     def filter(
@@ -83,51 +84,87 @@ class CourseRepository(IRepository[CourseDTO]):
         # so we need a separate method for Paginator to use
         return self._filter(filters)
 
+    @overload
     def get_or_create(
         self,
+        data: CourseDTO,
         *,
-        title: str,
-        department_id: str,
-        status: str = CourseStatus.PLANNED,
-        description: str | None = None,
-    ) -> tuple[CourseDTO, bool]:
-        department = self._get_department_by_id(department_id)
+        return_model: Literal[False] = ...,
+    ) -> tuple[CourseDTO, bool]: ...
+
+    @overload
+    def get_or_create(
+        self,
+        data: CourseDTO,
+        *,
+        return_model: Literal[True],
+    ) -> tuple[Course, bool]: ...
+
+    def get_or_create(
+        self,
+        data: CourseDTO,
+        *,
+        return_model: bool = False,
+    ) -> tuple[CourseDTO, bool] | tuple[Course, bool]:
+        department = self._get_department_by_id(data.department)
         course, created = Course.objects.get_or_create(
-            title=title,
+            title=data.title,
             department=department,
-            status=status,
-            description=description,
+            defaults={
+                "status": data.status,
+                "description": data.description,
+            },
         )
+
+        if return_model:
+            return course, created
         return self._mapper.process(course), created
 
-    def get_or_create_model(
+    @overload
+    def get_or_upsert(
         self,
+        data: CourseDTO,
         *,
-        title: str,
-        department_id: str,
-        status: str = CourseStatus.PLANNED,
-        description: str | None = None,
-    ) -> tuple[Course, bool]:
-        # we can`t effectively overload the method with different parameters,
-        # so we need to create a new method
-        # injector sets ORM M2M relations, so it needs an ORM model to be returned
-        department = self._get_department_by_id(department_id)
-        return Course.objects.get_or_create(
-            title=title,
+        return_model: Literal[False] = ...,
+    ) -> tuple[CourseDTO, bool]: ...
+
+    @overload
+    def get_or_upsert(
+        self,
+        data: CourseDTO,
+        *,
+        return_model: Literal[True],
+    ) -> tuple[Course, bool]: ...
+
+    def get_or_upsert(
+        self,
+        data: CourseDTO,
+        *,
+        return_model: bool = False,
+    ) -> tuple[CourseDTO, bool] | tuple[Course, bool]:
+        department = self._get_department_by_id(data.department)
+        course, created = Course.objects.update_or_create(
+            title=data.title,
             department=department,
-            status=status,
-            description=description,
+            defaults={
+                "status": data.status,
+                "description": data.description,
+            },
         )
 
-    def update(self, course_dto: CourseDTO, **course_data) -> CourseDTO:
-        course_orm = self._get_by_id_shallow(course_dto.id)
+        if return_model:
+            return course, created
+        return self._mapper.process(course), created
+
+    def update(self, obj: CourseDTO, **course_data: object) -> CourseDTO:
+        course_orm = self._get_by_id_shallow(obj.id)
         for field, value in course_data.items():
             setattr(course_orm, field, value)
         course_orm.save()
         return self._mapper.process(course_orm)
 
-    def delete(self, course_dto: CourseDTO) -> None:
-        course_orm = self._get_by_id_shallow(course_dto.id)
+    def delete(self, id: str) -> None:
+        course_orm = self._get_by_id_shallow(id)
         course_orm.delete()
 
     def _filter(self, filters: CourseFilterCriteria) -> QuerySet[Course]:

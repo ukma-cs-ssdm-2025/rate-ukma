@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any, overload
+from typing import Any, Literal, overload
 
 from django.db import DataError, IntegrityError
 from django.db.models import Avg, Count, Q, QuerySet
@@ -27,12 +27,14 @@ from rating_app.exception.rating_exceptions import (
 from rating_app.models import Rating
 from rating_app.models.choices import RatingVoteType
 from rating_app.pagination import GenericQuerysetPaginator
-from rating_app.repositories.protocol import IRepository
+from rating_app.repositories.protocol import IPaginatedRepository
 
 logger = structlog.get_logger(__name__)
 
 
-class RatingRepository(IRepository[RatingDTO]):
+class RatingRepository(
+    IPaginatedRepository[RatingDTO, Rating, RatingFilterCriteria, RatingCreateParams]
+):
     def __init__(
         self,
         mapper: IProcessor[[Rating], RatingDTO],
@@ -67,19 +69,82 @@ class RatingRepository(IRepository[RatingDTO]):
         except Rating.DoesNotExist:
             return None
 
-    def get_or_create(self, create_params: RatingCreateParams) -> tuple[RatingDTO, bool]:
+    @overload
+    def get_or_create(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: Literal[False] = ...,
+    ) -> tuple[RatingDTO, bool]: ...
+
+    @overload
+    def get_or_create(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: Literal[True],
+    ) -> tuple[Rating, bool]: ...
+
+    def get_or_create(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: bool = False,
+    ) -> tuple[RatingDTO, bool] | tuple[Rating, bool]:
         rating, created = Rating.objects.get_or_create(
-            student_id=str(create_params.student),
-            course_offering_id=str(create_params.course_offering),
+            student_id=str(data.student),
+            course_offering_id=str(data.course_offering),
             defaults={
-                "difficulty": create_params.difficulty,
-                "usefulness": create_params.usefulness,
-                "comment": create_params.comment,
-                "is_anonymous": create_params.is_anonymous,
+                "difficulty": data.difficulty,
+                "usefulness": data.usefulness,
+                "comment": data.comment,
+                "is_anonymous": data.is_anonymous,
             },
         )
         # Refetch with prefetching to get votes (for existing ratings) and related fields
         rating = self._build_base_queryset().get(pk=rating.pk)
+
+        if return_model:
+            return rating, created
+        return self._map_to_domain_model(rating), created
+
+    @overload
+    def get_or_upsert(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: Literal[False] = ...,
+    ) -> tuple[RatingDTO, bool]: ...
+
+    @overload
+    def get_or_upsert(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: Literal[True],
+    ) -> tuple[Rating, bool]: ...
+
+    def get_or_upsert(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: bool = False,
+    ) -> tuple[RatingDTO, bool] | tuple[Rating, bool]:
+        rating, created = Rating.objects.update_or_create(
+            student_id=str(data.student),
+            course_offering_id=str(data.course_offering),
+            defaults={
+                "difficulty": data.difficulty,
+                "usefulness": data.usefulness,
+                "comment": data.comment,
+                "is_anonymous": data.is_anonymous,
+            },
+        )
+        # Refetch with prefetching to get related fields
+        rating = self._build_base_queryset().get(pk=rating.pk)
+
+        if return_model:
+            return rating, created
         return self._map_to_domain_model(rating), created
 
     def get_aggregated_course_stats(self, course: CourseDTO) -> AggregatedCourseRatingStats:
@@ -111,6 +176,7 @@ class RatingRepository(IRepository[RatingDTO]):
     def filter(
         self,
         criteria: RatingFilterCriteria,
+        pagination: None = ...,
     ) -> list[RatingDTO]: ...
 
     def filter(

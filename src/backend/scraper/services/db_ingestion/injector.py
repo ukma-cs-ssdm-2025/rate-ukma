@@ -16,6 +16,7 @@ from rateukma.caching.patterns import (
 )
 from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IOperation
+from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
 from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
@@ -33,7 +34,7 @@ from rating_app.models import (
     Speciality,
     Student,
 )
-from rating_app.models.choices import EducationLevel
+from rating_app.models.choices import CourseStatus, EducationLevel, ExamType, PracticeType
 from rating_app.repositories import (
     CourseInstructorRepository,
     CourseOfferingRepository,
@@ -196,11 +197,19 @@ class CourseDbInjector(IDbInjector):
         course_key = (course_data.title, department.name)
         course = self._course_cache.get(course_key)
         if not course:
-            course, _ = self.course_repository.get_or_create_model(
+            course_dto = CourseDTO(
+                id=str(uuid4()),
                 title=course_data.title,
-                department_id=department.id,
-                status=course_data.status.value,
-                description=course_data.description,
+                description=course_data.description or "",
+                status=CourseStatus(course_data.status.value),
+                department=str(department.id),
+                department_name=department.name,
+                faculty=str(faculty.id),
+                faculty_name=faculty.name,
+            )
+            course, _ = self.course_repository.get_or_create(
+                course_dto,
+                return_model=True,
             )
             self._course_cache[course_key] = course
 
@@ -270,12 +279,14 @@ class CourseDbInjector(IDbInjector):
             self._semester_cache[semester_key] = semester
 
         offering_dto = CourseOfferingDTO(
-            id=uuid4(),  # placeholder, will be ignored/overwritten by update_or_create
+            id=uuid4(),  # will be ignored/overwritten by update_or_create
             code=offering_data.code,
             course_id=course.id,
             semester_id=semester.id,
-            exam_type=offering_data.exam_type.value,
-            practice_type=offering_data.practice_type.value if offering_data.practice_type else "",
+            exam_type=ExamType(offering_data.exam_type.value),
+            practice_type=PracticeType(offering_data.practice_type.value)
+            if offering_data.practice_type
+            else None,
             credits=Decimal(offering_data.credits),
             weekly_hours=offering_data.weekly_hours,
             lecture_count=offering_data.lecture_count,
@@ -396,9 +407,9 @@ class CourseDbInjector(IDbInjector):
                 last_name=student.last_name,
                 patronymic=student.patronymic or None,
                 education_level=student.education_level,
-                speciality_id=student.speciality_id,
+                speciality_id=student_speciality.id,
                 email=student.email or None,
-                user_id=student.user_id,
+                user_id=student.user.id if student.user else None,
             )
             self.student_service.link_student_to_user(student_dto_for_link)
 
