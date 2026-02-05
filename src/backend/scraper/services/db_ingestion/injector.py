@@ -18,6 +18,7 @@ from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IOperation
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
 from rating_app.application_schemas.department import Department as DepartmentDTO
+from rating_app.application_schemas.faculty import Faculty as FacultyDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.application_schemas.semester import Semester as SemesterDTO
 from rating_app.application_schemas.speciality import Speciality as SpecialityDTO
@@ -166,7 +167,14 @@ class CourseDbInjector(IDbInjector):
         if cached:
             return cached
 
-        faculty, _ = self.faculty_repository.get_or_create(name=faculty_name)
+        faculty_dto = FacultyDTO(
+            id=uuid4(),  # placeholder
+            name=faculty_name,
+        )
+        faculty, _ = self.faculty_repository.get_or_create(
+            faculty_dto,
+            return_model=True,
+        )
         self._faculty_cache[faculty_name] = faculty
         return faculty
 
@@ -206,8 +214,13 @@ class CourseDbInjector(IDbInjector):
         for spec_data in course_data.specialities:
             speciality_dto = self.speciality_repository.get_by_name(name=spec_data.name)
             if not speciality_dto:
+                speciality_faculty_dto = FacultyDTO(
+                    id=uuid4(),  # placeholder
+                    name=spec_data.faculty,
+                )
                 speciality_faculty, _ = self.faculty_repository.get_or_create(
-                    name=spec_data.faculty
+                    speciality_faculty_dto,
+                    return_model=True,
                 )
                 speciality_dto_new = SpecialityDTO(
                     id=uuid4(),  # placeholder

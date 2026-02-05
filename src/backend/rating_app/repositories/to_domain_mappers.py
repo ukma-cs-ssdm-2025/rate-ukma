@@ -5,8 +5,10 @@ from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.application_schemas.course import CourseSpeciality
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
 from rating_app.application_schemas.department import Department as DepartmentDTO
+from rating_app.application_schemas.faculty import Faculty as FacultyDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.application_schemas.rating import Rating as RatingDTO
+from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
 from rating_app.application_schemas.semester import Semester as SemesterDTO
 from rating_app.application_schemas.speciality import Speciality as SpecialityDTO
 from rating_app.application_schemas.student import Student as StudentDTO
@@ -24,8 +26,10 @@ from rating_app.models.choices import (
 )
 from rating_app.models.course_offering import CourseOffering as CourseOfferingModel
 from rating_app.models.department import Department as DepartmentModel
+from rating_app.models.faculty import Faculty as FacultyModel
 from rating_app.models.instructor import Instructor as InstructorModel
 from rating_app.models.rating import Rating as RatingModel
+from rating_app.models.rating_vote import RatingVote as RatingVoteModel
 from rating_app.models.semester import Semester as SemesterModel
 from rating_app.models.speciality import Speciality as SpecialityModel
 from rating_app.models.student import Student as StudentModel
@@ -308,4 +312,25 @@ class SpecialityMapper(IProcessor[[SpecialityModel], SpecialityDTO]):
             faculty_id=model.faculty_id,
             alias=model.alias or None,
             faculty_name=faculty_name,
+        )
+
+
+class FacultyMapper(IProcessor[[FacultyModel], FacultyDTO]):
+    @implements
+    def process(self, model: FacultyModel) -> FacultyDTO:
+        return FacultyDTO(
+            id=model.id,
+            name=model.name,
+            custom_abbreviation=model.custom_abbreviation,
+        )
+
+
+class RatingVoteModelMapper(IProcessor[[RatingVoteModel], RatingVoteDTO]):
+    @implements
+    def process(self, model: RatingVoteModel) -> RatingVoteDTO:
+        return RatingVoteDTO(
+            id=model.id,
+            student_id=model.student_id,
+            rating_id=model.rating_id,
+            vote_type=model.type,
         )

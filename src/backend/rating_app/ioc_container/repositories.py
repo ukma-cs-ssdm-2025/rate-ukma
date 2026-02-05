@@ -4,7 +4,9 @@ from rating_app.pagination import GenericQuerysetPaginator
 from rating_app.repositories.to_domain_mappers import (
     CourseOfferingMapper,
     DepartmentMapper,
+    FacultyMapper,
     InstructorMapper,
+    RatingVoteModelMapper,
     SemesterMapper,
     SpecialityMapper,
     StudentMapper,
@@ -77,6 +79,16 @@ def speciality_mapper() -> SpecialityMapper:
 
 
 @once
+def faculty_mapper() -> FacultyMapper:
+    return FacultyMapper()
+
+
+@once
+def rating_vote_model_mapper() -> RatingVoteModelMapper:
+    return RatingVoteModelMapper()
+
+
+@once
 def course_repository() -> CourseRepository:
     paginator = GenericQuerysetPaginator[Course]()
     return CourseRepository(mapper=course_mapper(), paginator=paginator)
@@ -89,7 +101,7 @@ def department_repository() -> DepartmentRepository:
 
 @once
 def faculty_repository() -> FacultyRepository:
-    return FacultyRepository()
+    return FacultyRepository(mapper=faculty_mapper())
 
 
 @once
@@ -147,4 +159,7 @@ def user_repository() -> UserRepository:
 
 @once
 def vote_repository() -> RatingVoteRepository:
-    return RatingVoteRepository(vote_mapper=rating_vote_mapper())
+    return RatingVoteRepository(
+        vote_mapper=rating_vote_mapper(),
+        model_mapper=rating_vote_model_mapper(),
+    )

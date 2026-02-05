@@ -302,7 +302,12 @@ def test_injector_basic_flow_calls_repos_and_tracker(injector, repo_mocks):
     # Assert
     repo_mocks.tracker.start.assert_called_once_with(1)
     repo_mocks.tracker.increment.assert_called_once()
-    repo_mocks.faculty_repo.get_or_create.assert_called_once_with(name="FAMCS")
+    # Faculty repo now uses DTO-based API with return_model=True
+    repo_mocks.faculty_repo.get_or_create.assert_called_once()
+    call_args = repo_mocks.faculty_repo.get_or_create.call_args
+    faculty_dto = call_args[0][0]  # First positional arg is the DTO
+    assert faculty_dto.name == "FAMCS"
+    assert call_args[1].get("return_model") is True
     repo_mocks.dept_repo.get_or_create.assert_called_once()
     repo_mocks.course_repo.get_or_create_model.assert_called_once()
     repo_mocks.tracker.complete.assert_called_once()
