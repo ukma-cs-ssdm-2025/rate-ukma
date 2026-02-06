@@ -98,6 +98,8 @@ export function RatingVotes({
 	const [serverVote, setServerVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
 	);
+	// Track when we last updated the server to ignore stale props
+	const [lastServerUpdateTime, setLastServerUpdateTime] = useState<number>(0);
 
 	const createVote = useCoursesRatingsVotesCreate();
 	const deleteVote = useCoursesRatingsVotesDestroy();
@@ -122,15 +124,39 @@ export function RatingVotes({
 		(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
 		(userVote === RatingVoteStrType.DOWNVOTE ? 1 : 0);
 
-	// Sync local state with props if they change (e.g. after a re-fetch from elsewhere)
+	// Sync local state with props only when there's no pending operation
+	// This prevents stale cached data from overwriting in-flight votes
 	useEffect(() => {
-		setUserVote(initialUserVote);
-		setServerVote(initialUserVote);
-	}, [initialUserVote]);
+		const hasPendingOperation = userVote !== serverVote;
+		const timeSinceLastUpdate = Date.now() - lastServerUpdateTime;
+		const inGracePeriod = timeSinceLastUpdate < 2000; // 2 second grace period
+
+		// Ignore prop updates during pending operations
+		if (hasPendingOperation) {
+			return;
+		}
+
+		// Ignore prop updates shortly after we updated the server (stale cached data)
+		if (inGracePeriod) {
+			return;
+		}
+
+		// No pending operation and grace period expired - sync with props if they changed
+		if (initialUserVote !== serverVote) {
+			setUserVote(initialUserVote);
+			setServerVote(initialUserVote);
+		}
+	}, [initialUserVote, userVote, serverVote, lastServerUpdateTime]);
 
 	// Debounced sync effect
 	useEffect(() => {
 		if (userVote === serverVote) return;
+
+		console.log("[RatingVotes] Starting debounced API call:", {
+			ratingId,
+			userVote,
+			serverVote,
+		});
 
 		let isMounted = true;
 
@@ -147,6 +173,7 @@ export function RatingVotes({
 				// Sync authority state on success only if still mounted
 				if (isMounted) {
 					setServerVote(userVote);
+					setLastServerUpdateTime(Date.now());
 				}
 			} catch (error) {
 				// Only handle error if still mounted
