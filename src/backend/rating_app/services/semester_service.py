@@ -49,8 +49,8 @@ class SemesterService(IFilterable):
     def get_semesters(self) -> list[Semester]:
         return self.semester_repository.get_all()
 
-    def get_filter_options(self) -> list[dict[str, Any]]:
-        return [self._build_filter_options().to_dict()]
+    def get_filter_options(self) -> dict[str, Any]:
+        return self._build_filter_options().to_dict()
 
     def get_current(self) -> Semester:
         now = datetime.now()

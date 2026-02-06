@@ -99,7 +99,6 @@ class TestLinkStudentToUser:
             id=1,
             pk=1,
             email="test@ukma.edu.ua",
-            get_username="test@ukma.edu.ua",
             student_profile=SimpleNamespace(id="existing-student"),
         )
         user_repo.get_by_email.return_value = existing_user

@@ -79,7 +79,7 @@ class StudentService:
             logger.warning(
                 "user_already_linked_to_student",
                 user_id=user.pk,
-                user_email=user.get_username,
+                user_email=user.email,
                 existing_student_id=str(existing_student.id),
                 new_student_id=str(student.id),
             )

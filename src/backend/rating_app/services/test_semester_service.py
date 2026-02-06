@@ -32,7 +32,7 @@ def test_get_filter_options_returns_empty_lists_when_no_semesters(service, semes
 
     result = service.get_filter_options()
 
-    assert result == [{"terms": [], "years": []}]
+    assert result == {"terms": [], "years": []}
 
 
 def test_get_filter_options_orders_terms_by_priority_spring_summer_fall(service, semester_repo):
@@ -44,7 +44,7 @@ def test_get_filter_options_orders_terms_by_priority_spring_summer_fall(service,
 
     result = service.get_filter_options()
 
-    term_values = [t["value"] for t in result[0]["terms"]]
+    term_values = [t["value"] for t in result["terms"]]
     assert term_values == ["SPRING", "SUMMER", "FALL"]
 
 
@@ -57,7 +57,7 @@ def test_get_filter_options_orders_years_descending(service, semester_repo):
 
     result = service.get_filter_options()
 
-    year_values = [y["value"] for y in result[0]["years"]]
+    year_values = [y["value"] for y in result["years"]]
     assert year_values == ["2024–2025", "2023–2024", "2022–2023"]
 
 
@@ -68,9 +68,9 @@ def test_get_filter_options_includes_term_labels(service, semester_repo):
 
     result = service.get_filter_options()
 
-    assert len(result[0]["terms"]) == 1
-    assert result[0]["terms"][0]["value"] == "SPRING"
-    assert result[0]["terms"][0]["label"] == "Spring"
+    assert len(result["terms"]) == 1
+    assert result["terms"][0]["value"] == "SPRING"
+    assert result["terms"][0]["label"] == "Spring"
 
 
 def test_get_filter_options_deduplicates_terms_across_years(service, semester_repo):
@@ -82,8 +82,8 @@ def test_get_filter_options_deduplicates_terms_across_years(service, semester_re
 
     result = service.get_filter_options()
 
-    assert len(result[0]["terms"]) == 1
-    assert result[0]["terms"][0]["value"] == "FALL"
+    assert len(result["terms"]) == 1
+    assert result["terms"][0]["value"] == "FALL"
 
 
 def test_get_filter_options_includes_all_unique_academic_years(service, semester_repo):
@@ -96,7 +96,7 @@ def test_get_filter_options_includes_all_unique_academic_years(service, semester
     result = service.get_filter_options()
 
     # Fall 2024 -> 2024-2025, Spring 2024 -> 2023-2024, Fall 2023 -> 2023-2024
-    year_values = [y["value"] for y in result[0]["years"]]
+    year_values = [y["value"] for y in result["years"]]
     assert year_values == ["2024–2025", "2023–2024"]
 
 
@@ -110,9 +110,9 @@ def test_get_filter_options_handles_semesters_with_missing_attributes(service, s
     result = service.get_filter_options()
 
     # Only Fall 2024 should produce a valid academic year (2024-2025)
-    year_values = [y["value"] for y in result[0]["years"]]
+    year_values = [y["value"] for y in result["years"]]
     assert "2024–2025" in year_values
-    assert len(result[0]["terms"]) >= 1
+    assert len(result["terms"]) >= 1
 
 
 def test_get_filter_options_handles_unknown_term_values(service, semester_repo):
@@ -122,6 +122,6 @@ def test_get_filter_options_handles_unknown_term_values(service, semester_repo):
 
     result = service.get_filter_options()
 
-    assert len(result[0]["terms"]) == 1
-    assert result[0]["terms"][0]["value"] == "UNKNOWN_TERM"
-    assert result[0]["terms"][0]["label"] == "Unknown_Term"
+    assert len(result["terms"]) == 1
+    assert result["terms"][0]["value"] == "UNKNOWN_TERM"
+    assert result["terms"][0]["label"] == "Unknown_Term"
