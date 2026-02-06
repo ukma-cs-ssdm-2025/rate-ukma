@@ -1,15 +1,24 @@
 from typing import Literal, overload
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import DataError
 from django.db.models import QuerySet
+
+import structlog
 
 from rating_app.application_schemas.course_instructor import (
     CourseInstructor as CourseInstructorDTO,
 )
 from rating_app.application_schemas.course_instructor import CourseInstructorInput
-from rating_app.exception.course_instructor_exceptions import CourseInstructorNotFoundError
+from rating_app.exception.course_instructor_exceptions import (
+    CourseInstructorNotFoundError,
+    InvalidCourseInstructorIdentifierError,
+)
 from rating_app.models import CourseInstructor
 from rating_app.repositories.protocol import IDomainOrmRepository
 from rating_app.repositories.to_domain_mappers import CourseInstructorMapper
+
+logger = structlog.get_logger(__name__)
 
 
 class CourseInstructorRepository(IDomainOrmRepository[CourseInstructorDTO, CourseInstructor]):
@@ -105,8 +114,14 @@ class CourseInstructorRepository(IDomainOrmRepository[CourseInstructorDTO, Cours
     def _get_by_id(self, id: str) -> CourseInstructor:
         try:
             return self._build_base_queryset().get(id=id)
-        except CourseInstructor.DoesNotExist as e:
-            raise CourseInstructorNotFoundError() from e
+        except CourseInstructor.DoesNotExist as exc:
+            logger.warning("course_instructor_not_found", course_instructor_id=id, error=str(exc))
+            raise CourseInstructorNotFoundError() from exc
+        except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
+            logger.warning(
+                "invalid_course_instructor_identifier", course_instructor_id=id, error=str(exc)
+            )
+            raise InvalidCourseInstructorIdentifierError() from exc
 
     def _build_base_queryset(self) -> QuerySet[CourseInstructor]:
         return CourseInstructor.objects.select_related("instructor", "course_offering")

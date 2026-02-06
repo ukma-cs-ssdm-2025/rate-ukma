@@ -24,7 +24,6 @@ from rating_app.application_schemas.faculty import FacultyInput
 from rating_app.application_schemas.instructor import InstructorInput
 from rating_app.application_schemas.semester import SemesterInput
 from rating_app.application_schemas.speciality import SpecialityInput
-from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.application_schemas.student import StudentInput
 from rating_app.models import (
     Course,
@@ -49,6 +48,7 @@ from rating_app.repositories import (
     SpecialityRepository,
     StudentRepository,
 )
+from rating_app.repositories.to_domain_mappers import StudentMapper
 from rating_app.services import StudentService
 from scraper.services.db_ingestion.progress_tracker import InjectionProgressTracker
 
@@ -89,6 +89,7 @@ class CourseDbInjector(IDbInjector):
         injection_progress_tracker: InjectionProgressTracker,
         student_service: StudentService,
         cache_manager: ICacheManager,
+        student_mapper: StudentMapper,
     ):
         self.course_repository = course_repository
         self.department_repository = department_repository
@@ -97,6 +98,7 @@ class CourseDbInjector(IDbInjector):
         self.speciality_repository = speciality_repository
         self.instructor_repository = instructor_repository
         self.student_repository = student_repository
+        self.student_mapper = student_mapper
         self.course_offering_repository = course_offering_repository
         self.course_instructor_repository = course_instructor_repository
         self.enrollment_repository = enrollment_repository
@@ -278,7 +280,7 @@ class CourseDbInjector(IDbInjector):
             code=offering_data.code,
             course_id=course.id,
             semester_id=semester.id,
-            credits=Decimal(offering_data.credits),
+            credits=Decimal(str(offering_data.credits)),
             weekly_hours=offering_data.weekly_hours,
             exam_type=ExamType(offering_data.exam_type.value),
             practice_type=PracticeType(offering_data.practice_type.value)
@@ -395,18 +397,8 @@ class CourseDbInjector(IDbInjector):
         )
 
         if created or (student_data.email and not student.user):
-            # Convert ORM model back to DTO for service
-            student_dto_for_link = StudentDTO(
-                id=student.id,
-                first_name=student.first_name,
-                last_name=student.last_name,
-                patronymic=student.patronymic or None,
-                education_level=student.education_level,
-                speciality_id=student_speciality.id,
-                email=student.email or None,
-                user_id=student.user.id if student.user else None,
-            )
-            self.student_service.link_student_to_user(student_dto_for_link)
+            student_dto = self.student_mapper.process(student)
+            self.student_service.link_student_to_user(student_dto)
 
         self._student_cache[key] = student
         return student

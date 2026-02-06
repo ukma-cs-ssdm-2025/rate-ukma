@@ -220,7 +220,16 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
         course = getattr(model, "course", None)
         semester = getattr(model, "semester", None)
 
-        practice_type = PracticeType(model.practice_type) if model.practice_type else None
+        exam_type = (
+            ExamType(model.exam_type)
+            if model.exam_type and model.exam_type in ExamType.values
+            else ExamType.EXAM
+        )
+        practice_type = (
+            PracticeType(model.practice_type)
+            if model.practice_type and model.practice_type in PracticeType.values
+            else None
+        )
 
         return CourseOfferingDTO(
             id=model.id,
@@ -229,7 +238,7 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
             semester_id=model.semester_id,  # type: ignore TODO: resolve type checker issue - prefetched field
             credits=model.credits,
             weekly_hours=model.weekly_hours,
-            exam_type=ExamType(model.exam_type),
+            exam_type=exam_type,
             lecture_count=model.lecture_count,
             practice_count=model.practice_count,
             practice_type=practice_type,

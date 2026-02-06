@@ -159,7 +159,8 @@ class RatingVoteRepository(IDomainOrmRepository[RatingVoteDTO, RatingVote]):
             raise VoteAlreadyExistsException() from err
 
     def count_votes_of_type(self, rating_id: str, vote_type: str) -> int:
-        return RatingVote.objects.filter(rating_id=rating_id, type=vote_type).count()
+        db_vote_type = self.vote_mapper.to_db(vote_type)
+        return RatingVote.objects.filter(rating_id=rating_id, type=db_vote_type).count()
 
     def get_vote_by_student_and_rating(
         self, student_id: str, rating_id: str
