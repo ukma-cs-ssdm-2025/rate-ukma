@@ -1,4 +1,4 @@
-from typing import Literal, overload
+from typing import Literal, cast, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError, IntegrityError
@@ -64,11 +64,10 @@ class RatingVoteRepository(IDomainOrmRepository[RatingVoteDTO, RatingVote]):
         *,
         return_model: bool = False,
     ) -> tuple[RatingVoteDTO, bool] | tuple[RatingVote, bool]:
-        db_vote_type = self.vote_mapper.to_db(data.vote_type)
         model, created = RatingVote.objects.get_or_create(
             student_id=data.student_id,
             rating_id=data.rating_id,
-            defaults={"type": db_vote_type},
+            defaults={"type": data.vote_type},
         )
 
         if return_model:
@@ -97,11 +96,10 @@ class RatingVoteRepository(IDomainOrmRepository[RatingVoteDTO, RatingVote]):
         *,
         return_model: bool = False,
     ) -> tuple[RatingVoteDTO, bool] | tuple[RatingVote, bool]:
-        db_vote_type = self.vote_mapper.to_db(data.vote_type)
         model, created = RatingVote.objects.update_or_create(
             student_id=data.student_id,
             rating_id=data.rating_id,
-            defaults={"type": db_vote_type},
+            defaults={"type": data.vote_type},
         )
 
         if return_model:
@@ -110,8 +108,12 @@ class RatingVoteRepository(IDomainOrmRepository[RatingVoteDTO, RatingVote]):
 
     def update(self, obj: RatingVoteDTO, **kwargs: object) -> RatingVoteDTO:
         model = self._get_by_id(str(obj.id))
+        if "type" in kwargs and not isinstance(kwargs["type"], RatingVoteType):
+            kwargs["type"] = self.vote_mapper.to_db(cast(str, kwargs["type"]))
+
         for key, value in kwargs.items():
             setattr(model, key, value)
+
         model.save()
         return self._map_to_domain_model(model)
 
@@ -197,7 +199,7 @@ class RatingVoteRepository(IDomainOrmRepository[RatingVoteDTO, RatingVote]):
             raise InvalidRatingVoteIdentifierError() from exc
 
     def _build_base_queryset(self) -> QuerySet[RatingVote]:
-        return RatingVote.objects.select_related("student", "rating")
+        return RatingVote.objects.all()
 
     def _map_to_domain_models(self, qs: QuerySet[RatingVote]) -> list[RatingVoteDTO]:
         return [self._map_to_domain_model(model) for model in qs]
