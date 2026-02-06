@@ -58,6 +58,7 @@ def repo_mocks():
     tracker = MagicMock()
     student_service = MagicMock()
     cache_manager = MagicMock()
+    student_mapper = MagicMock()
     faculty = SimpleNamespace(name=faker.company(), id=1)
     department = SimpleNamespace(name=faker.catch_phrase(), id=2)
     course = Mock()
@@ -111,6 +112,7 @@ def repo_mocks():
         instructor=instructor,
         student=student,
         cache_manager=cache_manager,
+        student_mapper=student_mapper,
     )
 
 
@@ -130,6 +132,7 @@ def injector(repo_mocks) -> CourseDbInjector:
         repo_mocks.tracker,
         repo_mocks.student_service,
         repo_mocks.cache_manager,
+        repo_mocks.student_mapper,
     )
 
 

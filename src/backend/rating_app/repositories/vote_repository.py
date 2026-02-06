@@ -8,7 +8,11 @@ import structlog
 
 from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
-from rating_app.exception.vote_exceptions import VoteAlreadyExistsException
+from rating_app.exception.vote_exceptions import (
+    InvalidRatingVoteIdentifierError,
+    RatingVoteNotFoundError,
+    VoteAlreadyExistsException,
+)
 from rating_app.models import RatingVote
 from rating_app.models.choices import RatingVoteType
 from rating_app.repositories.protocol import IDomainOrmRepository
@@ -187,10 +191,10 @@ class RatingVoteRepository(IDomainOrmRepository[RatingVoteDTO, RatingVote]):
             return self._build_base_queryset().get(pk=id)
         except RatingVote.DoesNotExist as exc:
             logger.warning("rating_vote_not_found", vote_id=id, error=str(exc))
-            raise
+            raise RatingVoteNotFoundError() from exc
         except (ValueError, TypeError, DjangoValidationError, DataError) as exc:
             logger.warning("invalid_rating_vote_identifier", vote_id=id, error=str(exc))
-            raise
+            raise InvalidRatingVoteIdentifierError() from exc
 
     def _build_base_queryset(self) -> QuerySet[RatingVote]:
         return RatingVote.objects.select_related("student", "rating")
