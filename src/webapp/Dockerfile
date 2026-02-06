@@ -50,6 +50,6 @@ RUN --mount=type=secret,id=sentry_auth_token,required=false \
     pnpm build
 
 # Production stage - minimal Alpine to handle file operations
-FROM alpine:3.19 AS production
+FROM alpine:3.23.3 AS production
 COPY --from=builder /app/dist /dist
 CMD ["cp", "-r", "/dist/.", "/static/"]
