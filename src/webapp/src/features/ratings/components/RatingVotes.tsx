@@ -152,12 +152,6 @@ export function RatingVotes({
 	useEffect(() => {
 		if (userVote === serverVote) return;
 
-		console.log("[RatingVotes] Starting debounced API call:", {
-			ratingId,
-			userVote,
-			serverVote,
-		});
-
 		let isMounted = true;
 
 		const timer = setTimeout(async () => {
