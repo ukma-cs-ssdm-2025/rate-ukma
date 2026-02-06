@@ -1,6 +1,7 @@
 from rateukma.ioc.decorators import once
 from rating_app.models import Course
 from rating_app.pagination import GenericQuerysetPaginator
+from rating_app.queries.rating_popularity import WilsonPopularityAnnotator
 from rating_app.repositories.to_domain_mappers import (
     CourseInstructorMapper,
     CourseOfferingMapper,
@@ -156,6 +157,7 @@ def rating_repository() -> RatingRepository:
     return RatingRepository(
         mapper=rating_mapper(),
         paginator=GenericQuerysetPaginator(),
+        popularity_annotator=WilsonPopularityAnnotator(),
     )
 
 
