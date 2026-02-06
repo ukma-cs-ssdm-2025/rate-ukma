@@ -97,15 +97,10 @@ def test_filter_prefetches_instructors(django_assert_num_queries, repo):
     for _ in range(3):
         CourseOfferingFactory(semester=semester, instructors=[InstructorFactory()])
 
-    # Act
-    qs = repo.filter_qs(CourseFilterCriteria())
-
     # Assert
     # 1) base courses + prefetches
     # 2) offerings
     # 3) instructors
     # 4) specialities
     with django_assert_num_queries(4):
-        for course in qs:
-            for offering in course.offerings.all():
-                list(offering.instructors.all())
+        repo.filter(CourseFilterCriteria())

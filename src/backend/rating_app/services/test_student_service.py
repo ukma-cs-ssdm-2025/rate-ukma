@@ -97,6 +97,7 @@ class TestLinkStudentToUser:
         student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="new-student")
         existing_user = SimpleNamespace(
             id=1,
+            pk=1,
             email="test@ukma.edu.ua",
             student_profile=SimpleNamespace(id="existing-student"),
         )
@@ -111,7 +112,7 @@ class TestLinkStudentToUser:
     def test_links_student_to_user_successfully(self, service, user_repo, student_repo):
         # Arrange
         student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="student-id")
-        user = SimpleNamespace(id=1, email="test@ukma.edu.ua", student_profile=None)
+        user = SimpleNamespace(id=1, pk=1, email="test@ukma.edu.ua", student_profile=None)
         user_repo.get_by_email.return_value = user
 
         # Act
