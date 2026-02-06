@@ -65,7 +65,8 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
 
         if return_model:
             return model, created
-        return self._map_to_domain_model(model), created
+        full_model = self._build_base_queryset().get(pk=model.pk)
+        return self._map_to_domain_model(full_model), created
 
     @overload
     def get_or_upsert(
@@ -96,7 +97,8 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
 
         if return_model:
             return model, created
-        return self._map_to_domain_model(model), created
+        full_model = self._build_base_queryset().get(pk=model.pk)
+        return self._map_to_domain_model(full_model), created
 
     def create(self, data: CourseOfferingInput | CourseOfferingDTO) -> CourseOfferingDTO:
         model = CourseOffering.objects.create(

@@ -2,8 +2,10 @@ from typing import Any
 
 from django.db.models import Prefetch, Q
 
+from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.exception.student_exceptions import StudentNotFoundError
 from rating_app.models import CourseOffering, Rating, Student
+from rating_app.repositories.to_domain_mappers import StudentMapper
 
 
 class StudentStatisticsRepository:
@@ -11,11 +13,15 @@ class StudentStatisticsRepository:
     Get student specific statistics (specifically on courses/offerings rated).
     """
 
-    def get_student_by_user_id(self, user_id: str):
+    def __init__(self, mapper: StudentMapper) -> None:
+        self._mapper = mapper
+
+    def get_student_by_user_id(self, user_id: str) -> StudentDTO:
         try:
-            return Student.objects.get(user_id=user_id)
+            model = Student.objects.select_related("speciality").get(user_id=user_id)
         except Student.DoesNotExist as err:
             raise StudentNotFoundError() from err
+        return self._mapper.process(model)
 
     def get_rating_stats(self, student_id: str) -> list[dict[str, Any]]:
         """
@@ -23,13 +29,19 @@ class StudentStatisticsRepository:
         Each record is an attended course with its offerings
         (those that student was enrolled in).
         """
+        student_ratings = Prefetch(
+            "ratings",
+            queryset=Rating.objects.filter(student_id=student_id),
+            to_attr="student_ratings_list",
+        )
+
         offerings_qs = (
             CourseOffering.objects.filter(
                 Q(enrollments__student_id=student_id)
                 & (Q(enrollments__status="ENROLLED") | Q(enrollments__status="FORCED"))
             )
             .select_related("course", "semester")
-            .prefetch_related("ratings", "enrollments")
+            .prefetch_related(student_ratings)
             .distinct()
         )
 
@@ -38,7 +50,8 @@ class StudentStatisticsRepository:
         for offering in offerings_qs:
             course_id = str(offering.course.id)
 
-            rating_obj = offering.ratings.filter(student_id=student_id).first()  # type: ignore[attr-defined]
+            student_ratings_list: list[Rating] = getattr(offering, "student_ratings_list", [])
+            rating_obj = student_ratings_list[0] if student_ratings_list else None
             rated = None
             if rating_obj:
                 rated = {
@@ -90,7 +103,8 @@ class StudentStatisticsRepository:
 
         result = []
         for offering in offerings_qs:
-            rating_obj = offering.student_ratings_list[0] if offering.student_ratings_list else None
+            student_ratings_list: list[Rating] = getattr(offering, "student_ratings_list", [])
+            rating_obj = student_ratings_list[0] if student_ratings_list else None
             rated = None
             if rating_obj:
                 rated = {

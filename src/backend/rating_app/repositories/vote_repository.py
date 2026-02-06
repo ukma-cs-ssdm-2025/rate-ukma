@@ -60,10 +60,11 @@ class RatingVoteRepository(IDomainOrmRepository[RatingVoteDTO, RatingVote]):
         *,
         return_model: bool = False,
     ) -> tuple[RatingVoteDTO, bool] | tuple[RatingVote, bool]:
+        db_vote_type = self.vote_mapper.to_db(data.vote_type)
         model, created = RatingVote.objects.get_or_create(
             student_id=data.student_id,
             rating_id=data.rating_id,
-            defaults={"type": data.vote_type},
+            defaults={"type": db_vote_type},
         )
 
         if return_model:
@@ -92,10 +93,11 @@ class RatingVoteRepository(IDomainOrmRepository[RatingVoteDTO, RatingVote]):
         *,
         return_model: bool = False,
     ) -> tuple[RatingVoteDTO, bool] | tuple[RatingVote, bool]:
+        db_vote_type = self.vote_mapper.to_db(data.vote_type)
         model, created = RatingVote.objects.update_or_create(
             student_id=data.student_id,
             rating_id=data.rating_id,
-            defaults={"type": data.vote_type},
+            defaults={"type": db_vote_type},
         )
 
         if return_model:

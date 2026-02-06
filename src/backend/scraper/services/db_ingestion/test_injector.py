@@ -65,9 +65,9 @@ def repo_mocks():
     course.specialities = Mock()
     course.specialities.add = Mock()
     semester = SimpleNamespace(year=2024, term="FALL", id=faker.uuid4())
-    course_offering = SimpleNamespace()
+    course_offering = SimpleNamespace(id=uuid4())
     speciality = SimpleNamespace(name=faker.word(), id=faker.uuid4())
-    instructor = SimpleNamespace()
+    instructor = SimpleNamespace(id=uuid4())
     student = SimpleNamespace(
         id=faker.uuid4(),
         email="",

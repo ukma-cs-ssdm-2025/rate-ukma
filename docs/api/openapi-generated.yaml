@@ -2006,6 +2006,11 @@ components:
           type: integer
           readOnly: true
           nullable: true
+        instructors:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstructorDTO'
+          readOnly: true
     CourseOfferingListResponse:
       type: object
       properties:
@@ -2255,6 +2260,31 @@ components:
       required:
       - first_name
       - last_name
+    InstructorDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+        patronymic:
+          type: string
+          readOnly: true
+          nullable: true
+        last_name:
+          type: string
+          readOnly: true
+        academic_degree:
+          allOf:
+          - $ref: '#/components/schemas/AcademicDegreeEnum'
+          readOnly: true
+        academic_title:
+          allOf:
+          - $ref: '#/components/schemas/AcademicTitleEnum'
+          readOnly: true
     InstructorOption:
       type: object
       properties:

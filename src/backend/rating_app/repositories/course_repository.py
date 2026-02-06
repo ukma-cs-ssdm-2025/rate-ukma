@@ -158,7 +158,7 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
         return self._mapper.process(course), created
 
     def update(self, obj: CourseDTO, **course_data: object) -> CourseDTO:
-        course_orm = self._get_by_id_shallow(obj.id)
+        course_orm = self._get_by_id_shallow(str(obj.id))
         for field, value in course_data.items():
             setattr(course_orm, field, value)
         course_orm.save()

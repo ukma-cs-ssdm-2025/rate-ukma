@@ -3,8 +3,10 @@ import structlog
 from rateukma.protocols import IProcessor, implements
 from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.application_schemas.course import CourseSpeciality
+from rating_app.application_schemas.course_instructor import CourseInstructor as CourseInstructorDTO
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
 from rating_app.application_schemas.department import Department as DepartmentDTO
+from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDTO
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.application_schemas.rating import Rating as RatingDTO
@@ -18,14 +20,18 @@ from rating_app.models.choices import (
     CourseStatus,
     CourseTypeKind,
     EducationLevel,
+    EnrollmentStatus,
     ExamType,
+    InstructorRole,
     PracticeType,
     RatingVoteStrType,
     RatingVoteType,
     SemesterTerm,
 )
+from rating_app.models.course_instructor import CourseInstructor as CourseInstructorModel
 from rating_app.models.course_offering import CourseOffering as CourseOfferingModel
 from rating_app.models.department import Department as DepartmentModel
+from rating_app.models.enrollment import Enrollment as EnrollmentModel
 from rating_app.models.faculty import Faculty as FacultyModel
 from rating_app.models.instructor import Instructor as InstructorModel
 from rating_app.models.rating import Rating as RatingModel
@@ -333,4 +339,35 @@ class RatingVoteModelMapper(IProcessor[[RatingVoteModel], RatingVoteDTO]):
             student_id=model.student_id,
             rating_id=model.rating_id,
             vote_type=model.type,
+        )
+
+
+class CourseInstructorMapper(IProcessor[[CourseInstructorModel], CourseInstructorDTO]):
+    @implements
+    def process(self, model: CourseInstructorModel) -> CourseInstructorDTO:
+        role = model.role
+        if role and role in InstructorRole.values:
+            role = InstructorRole(role)
+
+        return CourseInstructorDTO(
+            id=model.id,
+            instructor_id=model.instructor_id,
+            course_offering_id=model.course_offering_id,
+            role=role,
+        )
+
+
+class EnrollmentMapper(IProcessor[[EnrollmentModel], EnrollmentDTO]):
+    @implements
+    def process(self, model: EnrollmentModel) -> EnrollmentDTO:
+        status = model.status
+        if status and status in EnrollmentStatus.values:
+            status = EnrollmentStatus(status)
+
+        return EnrollmentDTO(
+            id=model.id,
+            student_id=model.student_id,
+            offering_id=model.offering_id,
+            status=status,
+            enrolled_at=model.enrolled_at,
         )

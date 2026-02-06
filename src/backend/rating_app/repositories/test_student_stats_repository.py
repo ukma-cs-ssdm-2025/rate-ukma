@@ -2,6 +2,7 @@ import pytest
 
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories.student_stats_repository import StudentStatisticsRepository
+from rating_app.repositories.to_domain_mappers import StudentMapper
 from rating_app.tests.factories import (
     CourseFactory,
     CourseOfferingFactory,
@@ -14,7 +15,7 @@ from rating_app.tests.factories import (
 
 @pytest.fixture
 def repo():
-    return StudentStatisticsRepository()
+    return StudentStatisticsRepository(mapper=StudentMapper())
 
 
 # Tests for get_by_student method

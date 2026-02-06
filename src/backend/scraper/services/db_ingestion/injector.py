@@ -16,8 +16,10 @@ from rateukma.caching.patterns import (
 from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IOperation
 from rating_app.application_schemas.course import CourseInput
+from rating_app.application_schemas.course_instructor import CourseInstructorInput
 from rating_app.application_schemas.course_offering import CourseOfferingInput
 from rating_app.application_schemas.department import DepartmentInput
+from rating_app.application_schemas.enrollment import EnrollmentInput
 from rating_app.application_schemas.faculty import FacultyInput
 from rating_app.application_schemas.instructor import InstructorInput
 from rating_app.application_schemas.semester import SemesterInput
@@ -302,11 +304,12 @@ class CourseDbInjector(IDbInjector):
     ) -> None:
         for instructor_data in instructors_data:
             instructor = self._create_instructor(instructor_data.instructor)
-            self.course_instructor_repository.get_or_create(
-                instructor=instructor,
-                course_offering=course_offering,
+            ci_input = CourseInstructorInput(
+                instructor_id=instructor.id,
+                course_offering_id=course_offering.id,
                 role=instructor_data.role.value,
             )
+            self.course_instructor_repository.get_or_create(ci_input)
 
     def _create_instructor(self, instructor_data: DeduplicatedInstructor) -> Instructor:
         key = (
@@ -348,11 +351,12 @@ class CourseDbInjector(IDbInjector):
             if not student:
                 continue
 
-            self.enrollment_repository.get_or_upsert(
-                student=student,
-                offering=course_offering,
+            enrollment_input = EnrollmentInput(
+                student_id=student.id,
+                offering_id=course_offering.id,
                 status=enrollment_data.status.value,
             )
+            self.enrollment_repository.get_or_upsert(enrollment_input)
 
     def _create_student(self, student_data: DeduplicatedStudent) -> Student | None:
         if not student_data.speciality:
