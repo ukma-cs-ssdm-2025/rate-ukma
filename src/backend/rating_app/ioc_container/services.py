@@ -127,7 +127,10 @@ def vote_service() -> RatingFeedbackService:
 
 @once
 def rating_vote_cache_invalidator() -> RatingVoteCacheInvalidator:
-    return RatingVoteCacheInvalidator(cache_manager=redis_cache_manager())
+    return RatingVoteCacheInvalidator(
+        cache_manager=redis_cache_manager(),
+        rating_repository=rating_repository(),
+    )
 
 
 def register_observers() -> None:
