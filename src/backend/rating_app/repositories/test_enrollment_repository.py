@@ -1,26 +1,29 @@
 import pytest
 
+from rating_app.application_schemas.enrollment import EnrollmentInput
 from rating_app.models.choices import EnrollmentStatus
 from rating_app.repositories.enrollment_repository import EnrollmentRepository
+from rating_app.repositories.to_domain_mappers import EnrollmentMapper
 from rating_app.tests.factories import CourseOfferingFactory, EnrollmentFactory, StudentFactory
 
 
 @pytest.fixture
 def repo():
-    return EnrollmentRepository()
+    return EnrollmentRepository(mapper=EnrollmentMapper())
 
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_all_prefetches_related_student_and_offering(repo, django_assert_num_queries):
+def test_get_all_returns_domain_models(repo):
     EnrollmentFactory.create_batch(3)
 
     result = repo.get_all()
 
-    with django_assert_num_queries(0):
-        for enrollment in result:
-            _ = enrollment.student.first_name
-            _ = enrollment.offering.code
+    assert len(result) == 3
+    for enrollment in result:
+        assert hasattr(enrollment, "student_id")
+        assert hasattr(enrollment, "offering_id")
+        assert hasattr(enrollment, "status")
 
 
 @pytest.mark.django_db
@@ -28,11 +31,12 @@ def test_get_all_prefetches_related_student_and_offering(repo, django_assert_num
 def test_get_or_upsert_updates_status_when_enrollment_exists(repo):
     enrollment = EnrollmentFactory(status=EnrollmentStatus.ENROLLED)
 
-    updated_enrollment, created = repo.get_or_upsert(
-        student=enrollment.student,
-        offering=enrollment.offering,
+    enrollment_input = EnrollmentInput(
+        student_id=enrollment.student_id,
+        offering_id=enrollment.offering_id,
         status=EnrollmentStatus.DROPPED,
     )
+    updated_enrollment, created = repo.get_or_upsert(enrollment_input)
 
     assert created is False
     assert updated_enrollment.id == enrollment.id

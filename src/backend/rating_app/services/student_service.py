@@ -4,7 +4,8 @@ from typing import Any
 import structlog
 
 from rateukma.caching.decorators import rcached
-from rating_app.models import Semester, Student
+from rating_app.application_schemas.student import Student as StudentDTO
+from rating_app.models import Semester
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
 from rating_app.services.rating_service import RatingService
 from rating_app.services.semester_service import SemesterService
@@ -62,11 +63,11 @@ class StudentService:
             )
         return result
 
-    def link_student_to_user(self, student: Student) -> bool:
+    def link_student_to_user(self, student: StudentDTO) -> bool:
         if not student.email:
             return False
 
-        if student.user is not None:
+        if student.user_id is not None:
             return False
 
         user = self.user_repository.get_by_email(str(student.email))
@@ -84,7 +85,7 @@ class StudentService:
             )
             return False
 
-        self.student_repository.link_to_user(student, user)
+        self.student_repository.link_to_user(str(student.id), user)
         logger.info(
             "student_linked_to_user",
             student_id=str(student.id),
@@ -104,7 +105,7 @@ class StudentService:
         if not student:
             return False
 
-        self.student_repository.link_to_user(student, user)
+        self.student_repository.link_to_user(str(student.id), user)
         logger.info(
             "user_linked_to_student",
             user_id=user.id,

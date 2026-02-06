@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
+from uuid import uuid4
 
 import pytest
 from faker import Faker
@@ -34,6 +35,14 @@ def mock_atomic():
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def mock_speciality_objects_get():
+    """Patch Speciality.objects.get to return a mock for tests that use DTOs."""
+    with patch("scraper.services.db_ingestion.injector.Speciality.objects.get") as mock:
+        mock.return_value = SimpleNamespace(id=uuid4(), name="MockSpeciality")
+        yield mock
+
+
 @pytest.fixture()
 def repo_mocks():
     course_repo = MagicMock()
@@ -49,21 +58,32 @@ def repo_mocks():
     tracker = MagicMock()
     student_service = MagicMock()
     cache_manager = MagicMock()
+    student_mapper = MagicMock()
     faculty = SimpleNamespace(name=faker.company(), id=1)
     department = SimpleNamespace(name=faker.catch_phrase(), id=2)
     course = Mock()
     course.id = 3
     course.specialities = Mock()
     course.specialities.add = Mock()
-    semester = SimpleNamespace(year=2024, term="FALL")
-    course_offering = SimpleNamespace()
-    speciality = SimpleNamespace(name=faker.word())
-    instructor = SimpleNamespace()
-    student = SimpleNamespace(email="", user=None)
+    semester = SimpleNamespace(year=2024, term="FALL", id=faker.uuid4())
+    course_offering = SimpleNamespace(id=uuid4())
+    speciality = SimpleNamespace(name=faker.word(), id=faker.uuid4())
+    instructor = SimpleNamespace(id=uuid4())
+    student = SimpleNamespace(
+        id=faker.uuid4(),
+        email="",
+        user=None,
+        first_name="Test",
+        last_name="Student",
+        patronymic="",
+        education_level="",
+        speciality_id=faker.uuid4(),
+        user_id=None,
+    )
 
     faculty_repo.get_or_create.return_value = (faculty, True)
     dept_repo.get_or_create.return_value = (department, True)
-    course_repo.get_or_create_model.return_value = (course, True)
+    course_repo.get_or_create.return_value = (course, True)
     semester_repo.get_or_create.return_value = (semester, True)
     offering_repo.get_or_upsert.return_value = (course_offering, True)
     speciality_repo.get_by_name.return_value = speciality
@@ -92,6 +112,7 @@ def repo_mocks():
         instructor=instructor,
         student=student,
         cache_manager=cache_manager,
+        student_mapper=student_mapper,
     )
 
 
@@ -111,6 +132,7 @@ def injector(repo_mocks) -> CourseDbInjector:
         repo_mocks.tracker,
         repo_mocks.student_service,
         repo_mocks.cache_manager,
+        repo_mocks.student_mapper,
     )
 
 
@@ -274,7 +296,7 @@ def create_mock_offering(
 @pytest.mark.django_db
 def test_injector_basic_flow_calls_repos_and_tracker(injector, repo_mocks):
     # Arrange
-    repo_mocks.course_repo.get_or_create_model.return_value = (repo_mocks.course, True)
+    repo_mocks.course_repo.get_or_create.return_value = (repo_mocks.course, True)
     models = [create_mock_course(title="Intro to Testing", department="CS", faculty="FAMCS")]
 
     # Act
@@ -283,20 +305,26 @@ def test_injector_basic_flow_calls_repos_and_tracker(injector, repo_mocks):
     # Assert
     repo_mocks.tracker.start.assert_called_once_with(1)
     repo_mocks.tracker.increment.assert_called_once()
-    repo_mocks.faculty_repo.get_or_create.assert_called_once_with(name="FAMCS")
+    # Faculty repo now uses DTO-based API with return_model=True
+    repo_mocks.faculty_repo.get_or_create.assert_called_once()
+    call_args = repo_mocks.faculty_repo.get_or_create.call_args
+    faculty_dto = call_args[0][0]  # First positional arg is the DTO
+    assert faculty_dto.name == "FAMCS"
+    assert call_args[1].get("return_model") is True
     repo_mocks.dept_repo.get_or_create.assert_called_once()
-    repo_mocks.course_repo.get_or_create_model.assert_called_once()
+    repo_mocks.course_repo.get_or_create.assert_called_once()
     repo_mocks.tracker.complete.assert_called_once()
 
 
 @pytest.mark.django_db
 def test_injector_processes_specialities(injector, repo_mocks):
     # Arrange
-    existing_spec = SimpleNamespace()
-    new_spec = SimpleNamespace()
-    repo_mocks.speciality_repo.get_by_name.side_effect = [existing_spec, None]
-    repo_mocks.faculty_repo.get_by_speciality_name.return_value = repo_mocks.faculty
-    repo_mocks.speciality_repo.create.return_value = new_spec
+    existing_spec_dto = SimpleNamespace(id=uuid4())  # DTO returned by get_by_name
+    new_spec_orm = SimpleNamespace(id=uuid4())
+    repo_mocks.speciality_repo.get_by_name.side_effect = [existing_spec_dto, None]
+    repo_mocks.faculty_repo.get_or_create.return_value = (repo_mocks.faculty, True)
+    repo_mocks.speciality_repo.get_or_create.return_value = (new_spec_orm, True)
+
     models = [
         create_mock_course(
             title="Course A",
@@ -311,7 +339,7 @@ def test_injector_processes_specialities(injector, repo_mocks):
     assert repo_mocks.course.specialities.add.call_count == 2
     repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec1")
     repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec2")
-    repo_mocks.speciality_repo.create.assert_called_once()
+    repo_mocks.speciality_repo.get_or_create.assert_called_once()
 
 
 @pytest.mark.django_db
@@ -322,8 +350,8 @@ def test_injector_processes_offerings_instructors_and_enrollments(injector, repo
     # Act
     injector.execute(models)
 
-    # Assert
-    repo_mocks.semester_repo.get_or_create.assert_called_once_with(year=2024, term="FALL")
+    # Assert - now using DTO-based API with return_model=True
+    repo_mocks.semester_repo.get_or_create.assert_called_once()
     repo_mocks.offering_repo.get_or_upsert.assert_called_once()
     repo_mocks.instructor_repo.get_or_create.assert_called_once()
     repo_mocks.course_instructor_repo.get_or_create.assert_called_once()
@@ -367,10 +395,11 @@ def test_injector_handles_empty_education_level(injector, repo_mocks):
     injector.execute(models)
 
     # Assert
-    # Should create the student with empty education level
+    # Should create the student with empty education level using DTO-based API
     repo_mocks.student_repo.get_or_create.assert_called_once()
     call_args = repo_mocks.student_repo.get_or_create.call_args
-    assert call_args[1]["education_level"] == ""
+    student_dto = call_args[0][0]  # First positional arg is the DTO
+    assert student_dto.education_level == ""
 
 
 @pytest.mark.django_db

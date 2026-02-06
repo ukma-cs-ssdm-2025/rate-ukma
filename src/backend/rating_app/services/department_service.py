@@ -14,11 +14,9 @@ class DepartmentService(IFilterable):
             {
                 "id": department.id,
                 "name": department.name,
-                "faculty_id": department.faculty.id if department.faculty else None,  # type: ignore
-                "faculty_name": department.faculty.name if department.faculty else None,  # type: ignore
-                "faculty_custom_abbreviation": department.faculty.custom_abbreviation
-                if department.faculty
-                else None,
+                "faculty_id": department.faculty_id,
+                "faculty_name": department.faculty_name,
+                "faculty_custom_abbreviation": None,  # TODO: add to DepartmentDTO if needed
             }
             for department in departments
         ]

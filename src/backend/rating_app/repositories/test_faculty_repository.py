@@ -1,12 +1,13 @@
 import pytest
 
 from rating_app.repositories.faculty_repository import FacultyRepository
+from rating_app.repositories.to_domain_mappers import FacultyMapper
 from rating_app.tests.factories import FacultyFactory, SpecialityFactory
 
 
 @pytest.fixture
 def repo():
-    return FacultyRepository()
+    return FacultyRepository(mapper=FacultyMapper())
 
 
 @pytest.mark.django_db

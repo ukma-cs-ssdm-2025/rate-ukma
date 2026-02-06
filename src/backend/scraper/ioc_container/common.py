@@ -9,6 +9,7 @@ from rating_app.ioc_container.repositories import (
     instructor_repository,
     semester_repository,
     speciality_repository,
+    student_mapper,
     student_repository,
 )
 from rating_app.ioc_container.services import student_service
@@ -38,6 +39,7 @@ def course_db_injector() -> CourseDbInjector:
         injection_progress_tracker(),
         student_service(),
         redis_cache_manager(),
+        student_mapper(),
     )
 
 

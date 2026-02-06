@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
-from rating_app.exception.semester_exception import SemesterDoesNotExistError
-from rating_app.models import Semester
+from rating_app.application_schemas.semester import Semester as SemesterDTO
+from rating_app.exception.semester_exception import SemesterDoesNotExistError, SemesterNotFoundError
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories import SemesterRepository
 from rating_app.services.protocols import IFilterable
@@ -43,13 +43,16 @@ class SemesterService(IFilterable):
     def __init__(self, semester_repository: SemesterRepository):
         self.semester_repository = semester_repository
 
-    def get_semesters(self):
+    def get_by_id(self, semester_id: str) -> SemesterDTO:
+        return self.semester_repository.get_by_id(semester_id)
+
+    def get_semesters(self) -> list[SemesterDTO]:
         return self.semester_repository.get_all()
 
     def get_filter_options(self) -> dict[str, Any]:
         return self._build_filter_options().to_dict()
 
-    def get_current(self) -> Semester:
+    def get_current(self) -> SemesterDTO:
         now = datetime.now()
         month = now.month
         if month >= 9:
@@ -63,14 +66,14 @@ class SemesterService(IFilterable):
 
         try:
             return self.semester_repository.get_by_year_and_term(year=year, term=term)
-        except Semester.DoesNotExist as exc:
+        except SemesterNotFoundError as exc:
             raise SemesterDoesNotExistError(
                 f"Current semester ({now.year} {now.strftime('%B')})"
             ) from exc
 
     def is_midpoint(
         self,
-        current_semester: Semester | None = None,
+        current_semester: SemesterDTO | None = None,
         current_date: datetime | None = None,
     ) -> bool:
         if current_date is None:
@@ -88,7 +91,7 @@ class SemesterService(IFilterable):
         return today >= midpoint_date
 
     def is_past_semester(
-        self, semester_to_check: Semester, current_semester: Semester | None = None
+        self, semester_to_check: SemesterDTO, current_semester: SemesterDTO | None = None
     ) -> bool:
         if not current_semester:
             current_semester = self.get_current()

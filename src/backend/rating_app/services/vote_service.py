@@ -1,12 +1,12 @@
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener, IObservable
 from rating_app.application_schemas.rating import Rating as RatingDTO
+from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
 from rating_app.exception.vote_exceptions import (
     VoteOnOwnRatingException,
     VoteOnUnenrolledCourseException,
 )
-from rating_app.models import RatingVote
 from rating_app.repositories import (
     EnrollmentRepository,
     RatingRepository,
@@ -15,7 +15,7 @@ from rating_app.repositories import (
 )
 
 
-class RatingFeedbackService(IObservable[RatingVote]):
+class RatingFeedbackService(IObservable[RatingVoteDTO]):
     def __init__(
         self,
         vote_repository: RatingVoteRepository,
@@ -27,18 +27,18 @@ class RatingFeedbackService(IObservable[RatingVote]):
         self.enrollment_repository = enrollment_repository
         self.rating_repository = rating_repository
         self.vote_mapper = vote_mapper
-        self._listeners: list[IEventListener[RatingVote]] = []
+        self._listeners: list[IEventListener[RatingVoteDTO]] = []
 
     @implements
-    def notify(self, event: RatingVote, *args, **kwargs) -> None:
+    def notify(self, event: RatingVoteDTO, *args, **kwargs) -> None:
         for listener in self._listeners:
             listener.on_event(event, *args, **kwargs)
 
     @implements
-    def add_observer(self, listener: IEventListener[RatingVote]) -> None:
+    def add_observer(self, listener: IEventListener[RatingVoteDTO]) -> None:
         self._listeners.append(listener)
 
-    def upsert(self, params: RatingVoteCreateSchema) -> tuple[RatingVote, bool]:
+    def upsert(self, params: RatingVoteCreateSchema) -> tuple[RatingVoteDTO, bool]:
         rating = self.rating_repository.get_by_id(params.rating_id)
         self._assert_student_can_vote_on_rating(rating, params.student_id)
 
@@ -47,7 +47,7 @@ class RatingFeedbackService(IObservable[RatingVote]):
         )
 
         db_vote_type = self.vote_mapper.to_db(params.vote_type)
-        if existing and existing.type == db_vote_type:
+        if existing and existing.vote_type == db_vote_type:
             return existing, False
 
         vote = (
@@ -64,13 +64,13 @@ class RatingFeedbackService(IObservable[RatingVote]):
             student_id=student_id, rating_id=rating_id
         )
         if vote:
-            self.vote_repository.delete(vote)
+            self.vote_repository.delete(str(vote.id))
             self.notify(vote)
 
-    def get_votes_by_rating_id(self, rating_id: str) -> list[RatingVote]:
+    def get_votes_by_rating_id(self, rating_id: str) -> list[RatingVoteDTO]:
         return self.vote_repository.get_by_rating_id(rating_id)
 
-    def get_vote_for_student(self, student_id: str, rating_id: str) -> RatingVote | None:
+    def get_vote_for_student(self, student_id: str, rating_id: str) -> RatingVoteDTO | None:
         return self.vote_repository.get_vote_by_student_and_rating(
             student_id=student_id, rating_id=rating_id
         )

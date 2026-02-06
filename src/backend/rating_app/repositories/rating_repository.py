@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any, overload
+from typing import Any, Literal, overload
 
 from django.db import DataError, IntegrityError
 from django.db.models import Avg, Count, Q, QuerySet
@@ -28,12 +28,14 @@ from rating_app.models import Rating
 from rating_app.models.choices import RatingVoteType
 from rating_app.pagination import GenericQuerysetPaginator
 from rating_app.queries.rating_popularity import WilsonPopularityAnnotator
-from rating_app.repositories.protocol import IRepository
+from rating_app.repositories.protocol import IPaginatedRepository
 
 logger = structlog.get_logger(__name__)
 
 
-class RatingRepository(IRepository[Rating]):
+class RatingRepository(
+    IPaginatedRepository[RatingDTO, Rating, RatingFilterCriteria, RatingCreateParams]
+):
     def __init__(
         self,
         mapper: IProcessor[[Rating], RatingDTO],
@@ -48,9 +50,9 @@ class RatingRepository(IRepository[Rating]):
         ratings = self._build_base_queryset().all()
         return self._map_to_domain_models(ratings)
 
-    def get_by_id(self, rating_id: str) -> RatingDTO:
+    def get_by_id(self, id: str) -> RatingDTO:
         try:
-            rating = self._build_base_queryset().get(pk=rating_id)
+            rating = self._build_base_queryset().get(pk=id)
         except Rating.DoesNotExist as err:
             raise RatingNotFoundError() from err
 
@@ -70,19 +72,82 @@ class RatingRepository(IRepository[Rating]):
         except Rating.DoesNotExist:
             return None
 
-    def get_or_create(self, create_params: RatingCreateParams) -> tuple[RatingDTO, bool]:
+    @overload
+    def get_or_create(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: Literal[False] = ...,
+    ) -> tuple[RatingDTO, bool]: ...
+
+    @overload
+    def get_or_create(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: Literal[True],
+    ) -> tuple[Rating, bool]: ...
+
+    def get_or_create(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: bool = False,
+    ) -> tuple[RatingDTO, bool] | tuple[Rating, bool]:
         rating, created = Rating.objects.get_or_create(
-            student_id=str(create_params.student),
-            course_offering_id=str(create_params.course_offering),
+            student_id=str(data.student),
+            course_offering_id=str(data.course_offering),
             defaults={
-                "difficulty": create_params.difficulty,
-                "usefulness": create_params.usefulness,
-                "comment": create_params.comment,
-                "is_anonymous": create_params.is_anonymous,
+                "difficulty": data.difficulty,
+                "usefulness": data.usefulness,
+                "comment": data.comment,
+                "is_anonymous": data.is_anonymous,
             },
         )
         # Refetch with prefetching to get votes (for existing ratings) and related fields
         rating = self._build_base_queryset().get(pk=rating.pk)
+
+        if return_model:
+            return rating, created
+        return self._map_to_domain_model(rating), created
+
+    @overload
+    def get_or_upsert(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: Literal[False] = ...,
+    ) -> tuple[RatingDTO, bool]: ...
+
+    @overload
+    def get_or_upsert(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: Literal[True],
+    ) -> tuple[Rating, bool]: ...
+
+    def get_or_upsert(
+        self,
+        data: RatingCreateParams,
+        *,
+        return_model: bool = False,
+    ) -> tuple[RatingDTO, bool] | tuple[Rating, bool]:
+        rating, created = Rating.objects.update_or_create(
+            student_id=str(data.student),
+            course_offering_id=str(data.course_offering),
+            defaults={
+                "difficulty": data.difficulty,
+                "usefulness": data.usefulness,
+                "comment": data.comment,
+                "is_anonymous": data.is_anonymous,
+            },
+        )
+        # Refetch with prefetching to get related fields
+        rating = self._build_base_queryset().get(pk=rating.pk)
+
+        if return_model:
+            return rating, created
         return self._map_to_domain_model(rating), created
 
     def get_aggregated_course_stats(self, course: CourseDTO) -> AggregatedCourseRatingStats:
@@ -114,6 +179,7 @@ class RatingRepository(IRepository[Rating]):
     def filter(
         self,
         criteria: RatingFilterCriteria,
+        pagination: None = ...,
     ) -> list[RatingDTO]: ...
 
     def filter(
@@ -152,10 +218,10 @@ class RatingRepository(IRepository[Rating]):
 
     def update(
         self,
-        rating: RatingDTO,
+        obj: RatingDTO,
         update_data: RatingPutParams | RatingPatchParams,
     ) -> RatingDTO:
-        rating_model = self._get_by_id_shallow(str(rating.id))
+        rating_model = self._get_by_id_shallow(str(obj.id))
         is_patch = isinstance(update_data, RatingPatchParams)
         update_data_map = update_data.model_dump(exclude_unset=is_patch)
 
@@ -173,18 +239,18 @@ class RatingRepository(IRepository[Rating]):
 
         logger.info(
             "rating_partially_updated",
-            rating_id=rating.id,
-            student_id=str(rating.student_id) if rating.student_id else None,
+            rating_id=obj.id,
+            student_id=str(obj.student_id) if obj.student_id else None,
             updated_fields=list(update_data_map.keys()),
         )
 
         rating_model = self._build_base_queryset().get(pk=rating_model.pk)
         return self._map_to_domain_model(rating_model)
 
-    def delete(self, rating_id: str) -> None:
-        rating_model = self._get_by_id_shallow(rating_id)
+    def delete(self, id: str) -> None:
+        rating_model = self._get_by_id_shallow(id)
         rating_model.delete()
-        logger.info("rating_deleted", rating_id=rating_id)
+        logger.info("rating_deleted", rating_id=id)
 
     def _filter(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
         ratings = self._build_base_queryset()

@@ -1961,20 +1961,20 @@ components:
           readOnly: true
         course_title:
           type: string
-          nullable: true
           readOnly: true
+          nullable: true
         semester_id:
           type: string
           format: uuid
           readOnly: true
         semester_year:
           type: integer
-          nullable: true
           readOnly: true
+          nullable: true
         semester_term:
           type: string
-          nullable: true
           readOnly: true
+          nullable: true
         code:
           type: string
           readOnly: true
@@ -1986,10 +1986,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/PracticeTypeEnum'
           readOnly: true
+          nullable: true
         credits:
           type: string
           format: decimal
-          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+          pattern: ^-?\d{0,3}(?:\.\d{0,1})?$
           readOnly: true
         weekly_hours:
           type: integer
@@ -2018,6 +2019,11 @@ components:
           type: integer
           readOnly: true
           nullable: true
+        instructors:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstructorDTO'
+          readOnly: true
     CourseOfferingListResponse:
       type: object
       properties:
@@ -2267,6 +2273,31 @@ components:
       required:
       - first_name
       - last_name
+    InstructorDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+        patronymic:
+          type: string
+          readOnly: true
+          nullable: true
+        last_name:
+          type: string
+          readOnly: true
+        academic_degree:
+          allOf:
+          - $ref: '#/components/schemas/AcademicDegreeEnum'
+          readOnly: true
+        academic_title:
+          allOf:
+          - $ref: '#/components/schemas/AcademicTitleEnum'
+          readOnly: true
     InstructorOption:
       type: object
       properties:

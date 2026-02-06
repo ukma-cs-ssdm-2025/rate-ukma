@@ -1,4 +1,4 @@
-from rating_app.models import CourseOffering
+from rating_app.application_schemas.course_offering import CourseOffering
 from rating_app.repositories import CourseOfferingRepository
 
 

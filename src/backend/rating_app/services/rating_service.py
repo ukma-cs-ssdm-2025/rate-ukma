@@ -143,7 +143,8 @@ class RatingService(IObservable[RatingDTO]):
             raise NotEnrolledException()
 
         course_offering = self.course_offering_service.get_course_offering(offering_id)
-        if not self.is_semester_open_for_rating(course_offering.semester):
+        semester = self.semester_service.get_by_id(str(course_offering.semester_id))
+        if not self.is_semester_open_for_rating(semester):
             raise RatingPeriodNotStarted()
 
         rating_exists = self.rating_repository.exists(
