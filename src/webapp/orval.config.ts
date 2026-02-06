@@ -13,14 +13,6 @@ export default defineConfig({
 					path: "../apiClient.ts",
 					name: "authorizedFetcher",
 				},
-				operations: {
-					courses_list: {
-						query: {
-							useInfinite: true,
-							useInfiniteQueryParam: "page",
-						},
-					},
-				},
 			},
 			// Do not generate MSW mocks
 			mock: false,

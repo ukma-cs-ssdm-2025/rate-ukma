@@ -2,7 +2,7 @@ import datetime
 import uuid
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, BeforeValidator, Field
 from pydantic.alias_generators import to_snake
@@ -21,6 +21,9 @@ from rating_app.models.choices import RatingVoteStrType
 from .pagination import PaginationMetadata
 
 RatingValue = Annotated[int, Field(ge=MIN_RATING_VALUE, le=MAX_RATING_VALUE)]
+
+OrderOption = Literal["asc", "desc"]
+PopularityOrderOption = Literal["desc"]
 
 
 class RatingCourseFilterParams(BaseModel):
@@ -71,6 +74,14 @@ class RatingListQueryParams(BaseModel):
         default=False,
         description="Separate the current user's rating from the list",
     )
+    time_order: OrderOption | None = Field(
+        default=None,
+        description="Order ratings by creation time",
+    )
+    order_by_popularity: bool = Field(
+        default=False,
+        description="Order ratings by popularity (Wilson score)",
+    )
 
 
 class RatingFilterCriteria(BaseModel):
@@ -95,6 +106,14 @@ class RatingFilterCriteria(BaseModel):
     viewer_id: uuid.UUID | None = Field(
         default=None,
         description="ID of the user requesting the ratings",
+    )
+    time_order: OrderOption | None = Field(
+        default=None,
+        description="Order ratings by creation time",
+    )
+    popularity_order: bool = Field(
+        default=False,
+        description="Order ratings by popularity (Wilson score, most popular first)",
     )
 
 

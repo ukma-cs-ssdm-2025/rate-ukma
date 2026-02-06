@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
-	ErrorBoundary as ReactErrorBoundary,
 	type FallbackProps,
+	ErrorBoundary as ReactErrorBoundary,
 } from "react-error-boundary";
 
 import { Button } from "./ui/Button";

@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { MessageSquare } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -5,6 +7,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCard } from "./RatingCard";
+import { RatingsSortSelect, type SortOption } from "./RatingsSortSelect";
 import { UserRatingCard } from "./UserRatingCard";
 import { CANNOT_VOTE_WITHOUT_ATTENDING_TEXT } from "../definitions/ratingDefinitions";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
@@ -95,6 +98,21 @@ export function CourseRatingsList({
 	canVote = true,
 }: Readonly<CourseRatingsListProps>) {
 	const separateCurrentUser = !!userRatingProp;
+	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
+
+	// Convert sort option to API parameters
+	const getSortParams = (option: SortOption) => {
+		switch (option) {
+			case "newest":
+				return { timeOrder: "desc" as const, popularityOrder: undefined };
+			case "oldest":
+				return { timeOrder: "asc" as const, popularityOrder: undefined };
+			case "most-popular":
+				return { popularityOrder: true, timeOrder: undefined };
+		}
+	};
+
+	const sortParams = getSortParams(sortOption);
 
 	const {
 		allRatings,
@@ -103,7 +121,10 @@ export function CourseRatingsList({
 		loaderRef,
 		totalRatings,
 		userRating: userRatingFromApi,
-	} = useInfiniteScrollRatings(courseId, { separateCurrentUser });
+	} = useInfiniteScrollRatings(courseId, {
+		separateCurrentUser,
+		...sortParams,
+	});
 
 	// Prefer user rating from API (has vote data) over prop (from different endpoint)
 	const userRating = userRatingFromApi ?? userRatingProp;
@@ -120,13 +141,18 @@ export function CourseRatingsList({
 			className="space-y-4"
 			data-testid={testIds.courseDetails.reviewsSection}
 		>
-			<div className="flex items-center gap-2">
-				<MessageSquare className="h-5 w-5" />
-				<h2 className="text-xl font-semibold">Відгуки студентів</h2>
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex items-center gap-2">
+					<MessageSquare className="h-5 w-5" />
+					<h2 className="text-xl font-semibold">Відгуки студентів</h2>
+					{displayCount > 0 && (
+						<span className="text-sm text-muted-foreground">
+							({displayCount})
+						</span>
+					)}
+				</div>
 				{displayCount > 0 && (
-					<span className="text-sm text-muted-foreground">
-						({displayCount})
-					</span>
+					<RatingsSortSelect value={sortOption} onValueChange={setSortOption} />
 				)}
 			</div>
 
