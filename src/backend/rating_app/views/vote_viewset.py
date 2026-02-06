@@ -12,7 +12,7 @@ from rating_app.application_schemas.rating_vote import (
 )
 from rating_app.models import Student
 from rating_app.serializers import RatingVoteReadSerializer
-from rating_app.services import RatingFeedbackService, RatingService, StudentService
+from rating_app.services import RatingService, RatingVoteService, StudentService
 from rating_app.views.decorators import require_student
 from rating_app.views.responses import R_VOTE_DELETE, R_VOTE_UPSERT
 
@@ -25,7 +25,7 @@ class RatingVoteViewSet(viewsets.ViewSet):
 
     serializer_class = RatingVoteReadSerializer
 
-    vote_service: RatingFeedbackService | None = None
+    vote_service: RatingVoteService | None = None
     student_service: StudentService | None = None
     rating_service: RatingService | None = None
 

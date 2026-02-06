@@ -7,7 +7,7 @@ from .rating_service import RatingService
 from .semester_service import SemesterService
 from .speciality_service import SpecialityService
 from .student_service import StudentService
-from .vote_service import RatingFeedbackService
+from .vote_service import RatingVoteService
 
 __all__ = [
     "CourseService",
@@ -19,5 +19,5 @@ __all__ = [
     "SpecialityService",
     "SemesterService",
     "CourseOfferingService",
-    "RatingFeedbackService",
+    "RatingVoteService",
 ]

@@ -15,7 +15,7 @@ from rating_app.repositories import (
 )
 
 
-class RatingFeedbackService(IObservable[RatingVoteDTO]):
+class RatingVoteService(IObservable[RatingVoteDTO]):
     def __init__(
         self,
         vote_repository: RatingVoteRepository,

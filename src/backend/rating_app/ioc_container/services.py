@@ -22,8 +22,8 @@ from rating_app.services import (
     DepartmentService,
     FacultyService,
     InstructorService,
-    RatingFeedbackService,
     RatingService,
+    RatingVoteService,
     SemesterService,
     SpecialityService,
     StudentService,
@@ -116,8 +116,8 @@ def course_offering_service() -> CourseOfferingService:
 
 
 @once
-def vote_service() -> RatingFeedbackService:
-    return RatingFeedbackService(
+def vote_service() -> RatingVoteService:
+    return RatingVoteService(
         vote_repository=vote_repository(),
         enrollment_repository=enrollment_repository(),
         rating_repository=rating_repository(),
