@@ -4,8 +4,8 @@ from typing import Any
 import structlog
 
 from rateukma.caching.decorators import rcached
+from rating_app.application_schemas.semester import SemesterInput
 from rating_app.application_schemas.student import Student as StudentDTO
-from rating_app.models import Semester
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
 from rating_app.services.rating_service import RatingService
 from rating_app.services.semester_service import SemesterService
@@ -38,7 +38,7 @@ class StudentService:
         now = datetime.now()
         for course in courses:
             for offering in course["offerings"]:
-                course_semester = Semester(
+                course_semester = SemesterInput(
                     year=offering["year"],
                     term=offering["season"],
                 )
@@ -55,7 +55,7 @@ class StudentService:
         current_semester = self.semester_service.get_current()
         now = datetime.now()
         for course in result:
-            course_semester = Semester(
+            course_semester = SemesterInput(
                 year=course["semester"]["year"], term=course["semester"]["season"]
             )
             course["can_rate"] = self.rating_service.is_semester_open_for_rating(
@@ -78,8 +78,8 @@ class StudentService:
         if existing_student is not None:
             logger.warning(
                 "user_already_linked_to_student",
-                user_id=user.id,
-                user_email=user.email,
+                user_id=user.pk,
+                user_email=user.get_username,
                 existing_student_id=str(existing_student.id),
                 new_student_id=str(student.id),
             )
@@ -89,7 +89,7 @@ class StudentService:
         logger.info(
             "student_linked_to_user",
             student_id=str(student.id),
-            user_id=user.id,
+            user_id=user.pk,
             email=student.email,
         )
         return True

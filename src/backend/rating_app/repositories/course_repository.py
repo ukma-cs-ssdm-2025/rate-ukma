@@ -80,11 +80,6 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
 
         return self._map_to_domain_models(list(qs))
 
-    def filter_qs(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
-        # filter() method can`t be overloaded with different parameters,
-        # so we need a separate method for Paginator to use
-        return self._filter(filters)
-
     @overload
     def get_or_create(
         self,

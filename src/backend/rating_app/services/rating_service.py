@@ -21,12 +21,15 @@ from rating_app.application_schemas.rating import (
 from rating_app.application_schemas.rating import (
     Rating as RatingDTO,
 )
+from rating_app.application_schemas.semester import (
+    Semester,
+    SemesterInput,
+)
 from rating_app.exception.rating_exceptions import (
     DuplicateRatingException,
     NotEnrolledException,
     RatingPeriodNotStarted,
 )
-from rating_app.models import Semester
 from rating_app.repositories import (
     EnrollmentRepository,
     RatingRepository,
@@ -63,8 +66,8 @@ class RatingService(IObservable[RatingDTO]):
             listener.on_event(event, *args, **kwargs)
 
     @implements
-    def add_observer(self, listener: IEventListener[RatingDTO]) -> None:
-        self._listeners.append(listener)
+    def add_observer(self, observer: IEventListener[RatingDTO]) -> None:
+        self._listeners.append(observer)
 
     def get_rating(self, rating_id: str) -> RatingDTO:
         return self.rating_repository.get_by_id(rating_id)
@@ -173,9 +176,9 @@ class RatingService(IObservable[RatingDTO]):
 
     def is_semester_open_for_rating(
         self,
-        semester: Semester,
+        semester: Semester | SemesterInput,
         *,
-        current_semester: Semester | None = None,
+        current_semester: Semester | SemesterInput | None = None,
         current_date: datetime | None = None,
     ) -> bool:
         return self.semester_service.is_past_semester(

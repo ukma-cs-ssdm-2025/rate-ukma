@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
-from rating_app.application_schemas.semester import Semester as SemesterDTO
+from rating_app.application_schemas.semester import Semester, SemesterInput
 from rating_app.exception.semester_exception import SemesterDoesNotExistError, SemesterNotFoundError
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories import SemesterRepository
@@ -43,16 +43,16 @@ class SemesterService(IFilterable):
     def __init__(self, semester_repository: SemesterRepository):
         self.semester_repository = semester_repository
 
-    def get_by_id(self, semester_id: str) -> SemesterDTO:
+    def get_by_id(self, semester_id: str) -> Semester:
         return self.semester_repository.get_by_id(semester_id)
 
-    def get_semesters(self) -> list[SemesterDTO]:
+    def get_semesters(self) -> list[Semester]:
         return self.semester_repository.get_all()
 
-    def get_filter_options(self) -> dict[str, Any]:
-        return self._build_filter_options().to_dict()
+    def get_filter_options(self) -> list[dict[str, Any]]:
+        return [self._build_filter_options().to_dict()]
 
-    def get_current(self) -> SemesterDTO:
+    def get_current(self) -> Semester:
         now = datetime.now()
         month = now.month
         if month >= 9:
@@ -73,7 +73,7 @@ class SemesterService(IFilterable):
 
     def is_midpoint(
         self,
-        current_semester: SemesterDTO | None = None,
+        current_semester: Semester | SemesterInput | None = None,
         current_date: datetime | None = None,
     ) -> bool:
         if current_date is None:
@@ -91,7 +91,9 @@ class SemesterService(IFilterable):
         return today >= midpoint_date
 
     def is_past_semester(
-        self, semester_to_check: SemesterDTO, current_semester: SemesterDTO | None = None
+        self,
+        semester_to_check: Semester | SemesterInput,
+        current_semester: Semester | SemesterInput | None = None,
     ) -> bool:
         if not current_semester:
             current_semester = self.get_current()
@@ -115,12 +117,11 @@ class SemesterService(IFilterable):
 
     def _sort_semesters(self, semesters):
         semester_term_order = {value: index for index, value in enumerate(SemesterTerm.values)}
-
         return sorted(
             semesters,
             key=lambda semester: (
                 getattr(semester, "year", 0) or 0,
-                semester_term_order.get(getattr(semester, "term", None), -1),
+                semester_term_order.get(semester.term, -1),
             ),
             reverse=True,
         )
