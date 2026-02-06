@@ -118,6 +118,7 @@ export function CourseRatingsList({
 		allRatings,
 		hasMoreRatings,
 		isLoading,
+		isRefetching,
 		loaderRef,
 		totalRatings,
 		userRating: userRatingFromApi,
@@ -129,7 +130,7 @@ export function CourseRatingsList({
 	// Prefer user rating from API (has vote data) over prop (from different endpoint)
 	const userRating = userRatingFromApi ?? userRatingProp;
 
-	const showSkeleton = isLoading && allRatings.length === 0;
+	const showSkeleton = (isLoading && allRatings.length === 0) || isRefetching;
 
 	// Total from backend already reflects the number of items
 	// including non-current user ratings and current user rating (if any)
