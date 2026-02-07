@@ -113,7 +113,11 @@ export function useInfiniteScrollRatings(
 		const observer = new IntersectionObserver(
 			(entries) => {
 				const target = entries[0];
-				if (target.isIntersecting && !isRatingsLoading) {
+				if (
+					target.isIntersecting &&
+					!isRatingsLoading &&
+					!isRatingsRefetching
+				) {
 					setRatingsPage((prev) => prev + 1);
 				}
 			},
@@ -129,7 +133,13 @@ export function useInfiniteScrollRatings(
 			observer.unobserve(currentLoader);
 			observer.disconnect();
 		};
-	}, [hasMoreRatings, allRatings.length, isRatingsLoading, userRating]);
+	}, [
+		hasMoreRatings,
+		allRatings.length,
+		isRatingsLoading,
+		isRatingsRefetching,
+		userRating,
+	]);
 
 	return {
 		allRatings,
