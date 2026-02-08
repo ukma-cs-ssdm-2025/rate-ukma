@@ -189,9 +189,20 @@ export function RatingVotes({
 			return;
 		}
 
-		// Ignore prop updates shortly after we updated the server (stale cached data)
+		// If in grace period, schedule a re-check after the remaining time
 		if (inGracePeriod) {
-			return;
+			const remaining = 2000 - timeSinceLastUpdate;
+			const graceTimer = setTimeout(() => {
+				// Re-check sync after grace period expires
+				if (initialUserVote !== serverVote) {
+					setUserVote(initialUserVote);
+					setServerVote(initialUserVote);
+				}
+			}, remaining);
+
+			return () => {
+				clearTimeout(graceTimer);
+			};
 		}
 
 		// No pending operation and grace period expired - sync with props if they changed
