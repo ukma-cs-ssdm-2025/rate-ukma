@@ -27,16 +27,16 @@ class RatingVoteService(IObservable[RatingVoteDTO]):
         self.enrollment_repository = enrollment_repository
         self.rating_repository = rating_repository
         self.vote_mapper = vote_mapper
-        self._listeners: list[IEventListener[RatingVoteDTO]] = []
+        self._observers: list[IEventListener[RatingVoteDTO]] = []
 
     @implements
     def notify(self, event: RatingVoteDTO, *args, **kwargs) -> None:
-        for listener in self._listeners:
-            listener.on_event(event, *args, **kwargs)
+        for observer in self._observers:
+            observer.on_event(event, *args, **kwargs)
 
     @implements
-    def add_observer(self, listener: IEventListener[RatingVoteDTO]) -> None:
-        self._listeners.append(listener)
+    def add_observer(self, observer: IEventListener[RatingVoteDTO]) -> None:
+        self._observers.append(observer)
 
     def upsert(self, params: RatingVoteCreateSchema) -> tuple[RatingVoteDTO, bool]:
         rating = self.rating_repository.get_by_id(params.rating_id)
