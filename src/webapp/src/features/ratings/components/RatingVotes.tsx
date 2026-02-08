@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
+import { useDebouncedCallback } from "use-debounce";
 
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toaster";
@@ -106,13 +107,9 @@ export function RatingVotes({
 	const createVote = useCoursesRatingsVotesCreate();
 	const deleteVote = useCoursesRatingsVotesDestroy();
 
-	// Store stable references to mutation functions
-	const createVoteRef = useRef(createVote.mutateAsync);
-	const deleteVoteRef = useRef(deleteVote.mutateAsync);
-	const pendingTimerRef = useRef<NodeJS.Timeout | null>(null);
+	// Store stable references
 	const previousSortKeyRef = useRef(sortKey);
 	const isMountedRef = useRef(true);
-	const isFlushingRef = useRef(false);
 
 	// Track component mount status
 	useEffect(() => {
@@ -122,11 +119,34 @@ export function RatingVotes({
 		};
 	}, []);
 
-	// Keep refs updated
-	useEffect(() => {
-		createVoteRef.current = createVote.mutateAsync;
-		deleteVoteRef.current = deleteVote.mutateAsync;
-	}, [createVote.mutateAsync, deleteVote.mutateAsync]);
+	// Debounced function to sync votes with server
+	const debouncedSyncVote = useDebouncedCallback(
+		async (voteToSync: RatingVoteStrType | null) => {
+			if (!isMountedRef.current) return;
+
+			try {
+				if (voteToSync === null) {
+					await deleteVote.mutateAsync({ ratingId });
+				} else {
+					await createVote.mutateAsync({
+						ratingId,
+						data: { vote_type: voteToSync },
+					});
+				}
+				if (isMountedRef.current) {
+					setServerVote(voteToSync);
+					setLastServerUpdateTime(Date.now());
+				}
+			} catch (error) {
+				if (isMountedRef.current) {
+					console.error("Failed to sync vote with server:", error);
+					toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
+					setUserVote(serverVote);
+				}
+			}
+		},
+		500, // 500ms debounce
+	);
 
 	// Flush pending votes immediately when sort changes
 	useEffect(() => {
@@ -134,38 +154,11 @@ export function RatingVotes({
 			previousSortKeyRef.current = sortKey;
 
 			// If there's a pending vote, flush it immediately
-			if (userVote !== serverVote && pendingTimerRef.current) {
-				clearTimeout(pendingTimerRef.current);
-				pendingTimerRef.current = null;
-
-				(async () => {
-					isFlushingRef.current = true;
-					try {
-						if (userVote === null) {
-							await deleteVoteRef.current({ ratingId });
-						} else {
-							await createVoteRef.current({
-								ratingId,
-								data: { vote_type: userVote },
-							});
-						}
-						if (isMountedRef.current) {
-							setServerVote(userVote);
-							setLastServerUpdateTime(Date.now());
-						}
-					} catch (error) {
-						console.error("Failed to flush vote on sort change:", error);
-						if (isMountedRef.current) {
-							toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
-							setUserVote(serverVote);
-						}
-					} finally {
-						isFlushingRef.current = false;
-					}
-				})();
+			if (userVote !== serverVote) {
+				debouncedSyncVote.flush();
 			}
 		}
-	}, [sortKey, userVote, serverVote, ratingId]);
+	}, [sortKey, userVote, serverVote, debouncedSyncVote]);
 
 	// Derived counts based on initial props and optimistic userVote
 	const upvotes =
@@ -212,58 +205,19 @@ export function RatingVotes({
 		}
 	}, [initialUserVote, userVote, serverVote, lastServerUpdateTime]);
 
-	// Debounced sync effect
+	// Trigger debounced sync when userVote changes
 	useEffect(() => {
-		if (userVote === serverVote) {
-			pendingTimerRef.current = null;
-			return;
+		if (userVote !== serverVote) {
+			debouncedSyncVote(userVote);
 		}
+	}, [userVote, serverVote, debouncedSyncVote]);
 
-		// Don't schedule a new debounce timer if a flush is in progress
-		if (isFlushingRef.current) {
-			return;
-		}
-
-		let isMounted = true;
-
-		const timer = setTimeout(async () => {
-			try {
-				if (userVote === null) {
-					await deleteVoteRef.current({ ratingId });
-				} else {
-					await createVoteRef.current({
-						ratingId,
-						data: { vote_type: userVote },
-					});
-				}
-				// Sync authority state on success only if still mounted
-				if (isMounted) {
-					setServerVote(userVote);
-					setLastServerUpdateTime(Date.now());
-					pendingTimerRef.current = null;
-				}
-			} catch (error) {
-				// Only handle error if still mounted
-				if (isMounted) {
-					console.error("Failed to sync vote with server:", error);
-					toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
-					// Revert optimistic state on error
-					setUserVote(serverVote);
-					pendingTimerRef.current = null;
-				}
-			}
-		}, 500); // 500ms debounce
-
-		pendingTimerRef.current = timer;
-
+	// Cancel pending debounced calls on unmount
+	useEffect(() => {
 		return () => {
-			if (pendingTimerRef.current === timer) {
-				clearTimeout(timer);
-				pendingTimerRef.current = null;
-			}
-			isMounted = false;
+			debouncedSyncVote.cancel();
 		};
-	}, [userVote, serverVote, ratingId]);
+	}, [debouncedSyncVote]);
 
 	const toggleVote = (target: RatingVoteStrType) => {
 		if (readOnly) return;
