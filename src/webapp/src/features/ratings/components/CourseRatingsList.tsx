@@ -33,6 +33,7 @@ interface RatingsContentProps {
 	loaderRef: React.RefObject<HTMLDivElement | null>;
 	hasUserRating: boolean;
 	canVote?: boolean;
+	sortKey: string;
 }
 
 function RatingsContent({
@@ -42,6 +43,7 @@ function RatingsContent({
 	loaderRef,
 	hasUserRating,
 	canVote = true,
+	sortKey,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0) {
 		if (hasUserRating) {
@@ -67,6 +69,7 @@ function RatingsContent({
 					disabledMessage={
 						canVote ? undefined : CANNOT_VOTE_WITHOUT_ATTENDING_TEXT
 					}
+					sortKey={sortKey}
 				/>
 			))}
 
@@ -130,7 +133,7 @@ export function CourseRatingsList({
 	// Prefer user rating from API (has vote data) over prop (from different endpoint)
 	const userRating = userRatingFromApi ?? userRatingProp;
 
-	const showSkeleton = (isLoading && allRatings.length === 0) || isRefetching;
+	const showSkeleton = isLoading && allRatings.length === 0;
 
 	// Total from backend already reflects the number of items
 	// including non-current user ratings and current user rating (if any)
@@ -175,6 +178,7 @@ export function CourseRatingsList({
 					loaderRef={loaderRef}
 					hasUserRating={!!userRating}
 					canVote={canVote}
+					sortKey={sortOption}
 				/>
 			)}
 		</div>

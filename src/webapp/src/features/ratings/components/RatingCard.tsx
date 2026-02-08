@@ -9,12 +9,14 @@ interface RatingCardProps {
 	rating: RatingRead;
 	readOnly?: boolean;
 	disabledMessage?: string;
+	sortKey?: string;
 }
 
 export function RatingCard({
 	rating,
 	readOnly = false,
 	disabledMessage,
+	sortKey,
 }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
 		? "Анонімний відгук"

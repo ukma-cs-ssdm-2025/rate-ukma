@@ -23,6 +23,7 @@ interface RatingVotesProps {
 	initialUserVote?: RatingVoteStrType | null;
 	readOnly?: boolean;
 	disabledMessage?: string;
+	sortKey?: string;
 }
 
 interface VoteProps {
@@ -89,6 +90,7 @@ export function RatingVotes({
 	initialUserVote = null,
 	readOnly = false,
 	disabledMessage,
+	sortKey,
 }: Readonly<RatingVotesProps>) {
 	// The "optimistic" vote state - updates immediately on click
 	const [userVote, setUserVote] = useState<RatingVoteStrType | null>(
@@ -107,12 +109,46 @@ export function RatingVotes({
 	// Store stable references to mutation functions
 	const createVoteRef = useRef(createVote.mutateAsync);
 	const deleteVoteRef = useRef(deleteVote.mutateAsync);
+	const pendingTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const previousSortKeyRef = useRef(sortKey);
 
 	// Keep refs updated
 	useEffect(() => {
 		createVoteRef.current = createVote.mutateAsync;
 		deleteVoteRef.current = deleteVote.mutateAsync;
 	}, [createVote.mutateAsync, deleteVote.mutateAsync]);
+
+	// Flush pending votes immediately when sort changes
+	useEffect(() => {
+		if (sortKey !== previousSortKeyRef.current) {
+			previousSortKeyRef.current = sortKey;
+
+			// If there's a pending vote, flush it immediately
+			if (userVote !== serverVote && pendingTimerRef.current) {
+				clearTimeout(pendingTimerRef.current);
+				pendingTimerRef.current = null;
+
+				(async () => {
+					try {
+						if (userVote === null) {
+							await deleteVoteRef.current({ ratingId });
+						} else {
+							await createVoteRef.current({
+								ratingId,
+								data: { vote_type: userVote },
+							});
+						}
+						setServerVote(userVote);
+						setLastServerUpdateTime(Date.now());
+					} catch (error) {
+						console.error("Failed to flush vote on sort change:", error);
+						toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
+						setUserVote(serverVote);
+					}
+				})();
+			}
+		}
+	}, [sortKey, userVote, serverVote, ratingId]);
 
 	// Derived counts based on initial props and optimistic userVote
 	const upvotes =
@@ -150,7 +186,10 @@ export function RatingVotes({
 
 	// Debounced sync effect
 	useEffect(() => {
-		if (userVote === serverVote) return;
+		if (userVote === serverVote) {
+			pendingTimerRef.current = null;
+			return;
+		}
 
 		let isMounted = true;
 
@@ -168,6 +207,7 @@ export function RatingVotes({
 				if (isMounted) {
 					setServerVote(userVote);
 					setLastServerUpdateTime(Date.now());
+					pendingTimerRef.current = null;
 				}
 			} catch (error) {
 				// Only handle error if still mounted
@@ -176,12 +216,18 @@ export function RatingVotes({
 					toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
 					// Revert optimistic state on error
 					setUserVote(serverVote);
+					pendingTimerRef.current = null;
 				}
 			}
 		}, 500); // 500ms debounce
 
+		pendingTimerRef.current = timer;
+
 		return () => {
-			clearTimeout(timer);
+			if (pendingTimerRef.current === timer) {
+				clearTimeout(timer);
+				pendingTimerRef.current = null;
+			}
 			isMounted = false;
 		};
 	}, [userVote, serverVote, ratingId]);
