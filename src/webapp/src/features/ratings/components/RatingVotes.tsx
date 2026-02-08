@@ -150,13 +150,15 @@ export function RatingVotes({
 
 	// Flush pending votes immediately when sort changes
 	useEffect(() => {
-		if (sortKey !== previousSortKeyRef.current) {
-			previousSortKeyRef.current = sortKey;
+		if (sortKey === previousSortKeyRef.current) {
+			return;
+		}
 
-			// If there's a pending vote, flush it immediately
-			if (userVote !== serverVote) {
-				debouncedSyncVote.flush();
-			}
+		previousSortKeyRef.current = sortKey;
+
+		// If there's a pending vote, flush it immediately
+		if (userVote !== serverVote) {
+			debouncedSyncVote.flush();
 		}
 	}, [sortKey, userVote, serverVote, debouncedSyncVote]);
 
