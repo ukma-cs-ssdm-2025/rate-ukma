@@ -121,7 +121,6 @@ export function CourseRatingsList({
 		allRatings,
 		hasMoreRatings,
 		isLoading,
-		isRefetching,
 		loaderRef,
 		totalRatings,
 		userRating: userRatingFromApi,

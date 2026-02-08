@@ -58,6 +58,7 @@ export function RatingCard({
 					initialUserVote={viewerVote}
 					readOnly={readOnly}
 					disabledMessage={disabledMessage}
+					sortKey={sortKey}
 				/>
 			)}
 		</article>
