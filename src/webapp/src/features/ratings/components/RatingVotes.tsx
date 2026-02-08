@@ -111,6 +111,16 @@ export function RatingVotes({
 	const deleteVoteRef = useRef(deleteVote.mutateAsync);
 	const pendingTimerRef = useRef<NodeJS.Timeout | null>(null);
 	const previousSortKeyRef = useRef(sortKey);
+	const isMountedRef = useRef(true);
+	const isFlushingRef = useRef(false);
+
+	// Track component mount status
+	useEffect(() => {
+		isMountedRef.current = true;
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
 
 	// Keep refs updated
 	useEffect(() => {
@@ -129,6 +139,7 @@ export function RatingVotes({
 				pendingTimerRef.current = null;
 
 				(async () => {
+					isFlushingRef.current = true;
 					try {
 						if (userVote === null) {
 							await deleteVoteRef.current({ ratingId });
@@ -138,12 +149,18 @@ export function RatingVotes({
 								data: { vote_type: userVote },
 							});
 						}
-						setServerVote(userVote);
-						setLastServerUpdateTime(Date.now());
+						if (isMountedRef.current) {
+							setServerVote(userVote);
+							setLastServerUpdateTime(Date.now());
+						}
 					} catch (error) {
 						console.error("Failed to flush vote on sort change:", error);
-						toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
-						setUserVote(serverVote);
+						if (isMountedRef.current) {
+							toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
+							setUserVote(serverVote);
+						}
+					} finally {
+						isFlushingRef.current = false;
 					}
 				})();
 			}
@@ -188,6 +205,11 @@ export function RatingVotes({
 	useEffect(() => {
 		if (userVote === serverVote) {
 			pendingTimerRef.current = null;
+			return;
+		}
+
+		// Don't schedule a new debounce timer if a flush is in progress
+		if (isFlushingRef.current) {
 			return;
 		}
 

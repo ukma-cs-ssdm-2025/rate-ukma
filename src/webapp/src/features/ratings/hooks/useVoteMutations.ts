@@ -11,8 +11,7 @@ export function useCoursesRatingsVotesCreate() {
 	return useRatingsVotesUpdate({
 		mutation: {
 			onSuccess: (_data) => {
-				// Mark all rating list queries as stale without refetching
-				// They will fetch fresh data when user changes filters
+				// Invalidate and refetch all rating list queries
 				queryClient.invalidateQueries({
 					predicate: (query) => {
 						const queryKey = query.queryKey;
@@ -23,7 +22,6 @@ export function useCoursesRatingsVotesCreate() {
 							queryKey[0].includes("/ratings/")
 						);
 					},
-					refetchType: "none", // Don't refetch, just mark as stale
 				});
 			},
 		},
@@ -36,7 +34,8 @@ export function useCoursesRatingsVotesDestroy() {
 	return useRatingsVotesDestroy({
 		mutation: {
 			onSuccess: () => {
-				// Mark all rating list queries as stale without refetching
+				// Invalidate and refetch all rating list queries
+				// This ensures pagination queries fetch fresh data from backend
 				queryClient.invalidateQueries({
 					predicate: (query) => {
 						const queryKey = query.queryKey;
@@ -46,7 +45,6 @@ export function useCoursesRatingsVotesDestroy() {
 							queryKey[0].includes("/ratings/")
 						);
 					},
-					refetchType: "none", // Don't refetch, just mark as stale
 				});
 			},
 		},
