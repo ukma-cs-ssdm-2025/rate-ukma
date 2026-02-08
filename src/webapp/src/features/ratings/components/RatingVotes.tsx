@@ -148,6 +148,15 @@ export function RatingVotes({
 		500, // 500ms debounce
 	);
 
+	// Trigger debounced sync when userVote changes
+	// NOTE: This effect must run before the sortKey flush effect below
+	// to ensure flush() always has a scheduled debounce to execute
+	useEffect(() => {
+		if (userVote !== serverVote) {
+			debouncedSyncVote(userVote);
+		}
+	}, [userVote, serverVote, debouncedSyncVote]);
+
 	// Flush pending votes immediately when sort changes
 	useEffect(() => {
 		if (sortKey === previousSortKeyRef.current) {
@@ -206,13 +215,6 @@ export function RatingVotes({
 			setServerVote(initialUserVote);
 		}
 	}, [initialUserVote, userVote, serverVote, lastServerUpdateTime]);
-
-	// Trigger debounced sync when userVote changes
-	useEffect(() => {
-		if (userVote !== serverVote) {
-			debouncedSyncVote(userVote);
-		}
-	}, [userVote, serverVote, debouncedSyncVote]);
 
 	// Cancel pending debounced calls on unmount
 	useEffect(() => {
