@@ -216,10 +216,10 @@ export function RatingVotes({
 		}
 	}, [initialUserVote, userVote, serverVote, lastServerUpdateTime]);
 
-	// Cancel pending debounced calls on unmount
+	// Flush pending votes on unmount to avoid losing user input
 	useEffect(() => {
 		return () => {
-			debouncedSyncVote.cancel();
+			debouncedSyncVote.flush();
 		};
 	}, [debouncedSyncVote]);
 
