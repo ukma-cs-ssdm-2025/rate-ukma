@@ -30,9 +30,9 @@ export class MyRatingsPage {
 		await expect(rateableCard).toBeVisible();
 
 		// Navigate via the course title link — leaveReviewLink opens an inline modal
-		const courseLink = rateableCard
-			.locator('a[href*="/courses/"]')
-			.first();
+		const courseLink = rateableCard.getByTestId(
+			testIds.myRatings.courseTitleLink,
+		);
 
 		await Promise.all([
 			this.page.waitForURL(this.courseDetailsPagePattern),
@@ -41,9 +41,9 @@ export class MyRatingsPage {
 	}
 
 	private async expandAllSections(): Promise<void> {
-		const closedTriggers = this.list.locator(
-			'button[data-state="closed"]',
-		);
+		const closedTriggers = this.list
+			.getByTestId(testIds.myRatings.semesterTrigger)
+			.and(this.page.locator('[data-state="closed"]'));
 		let count = await closedTriggers.count();
 		while (count > 0) {
 			await closedTriggers.first().click();

@@ -20,6 +20,7 @@ import {
 	isFutureSemester,
 } from "@/features/courses/courseFormatting";
 import type { SemesterGroup } from "@/features/ratings/groupRatings";
+import { testIds } from "@/lib/test-ids";
 import { MyRatingCard } from "./MyRatingCard";
 
 interface MyRatingsSemesterSectionProps {
@@ -68,7 +69,10 @@ export function MyRatingsSemesterSection({
 
 	return (
 		<Collapsible open={isOpen} onOpenChange={onToggle}>
-			<CollapsibleTrigger className="group flex items-center justify-between py-2 w-full hover:bg-muted/50 rounded-md transition-colors cursor-pointer text-left px-1">
+			<CollapsibleTrigger
+				className="group flex items-center justify-between py-2 w-full hover:bg-muted/50 rounded-md transition-colors cursor-pointer text-left px-1"
+				data-testid={testIds.myRatings.semesterTrigger}
+			>
 				<div className="flex items-center gap-2 min-w-0">
 					{isOpen ? (
 						<ChevronDown className="size-4 text-muted-foreground shrink-0" />

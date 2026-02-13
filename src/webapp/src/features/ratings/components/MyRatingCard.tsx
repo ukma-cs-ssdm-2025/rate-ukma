@@ -65,6 +65,7 @@ export function MyRatingCard({
 							to="/courses/$courseId"
 							params={{ courseId }}
 							className="font-medium text-foreground hover:underline decoration-dotted underline-offset-4 truncate"
+							data-testid={testIds.myRatings.courseTitleLink}
 						>
 							{course.course_title ?? "Курс"}
 						</Link>
