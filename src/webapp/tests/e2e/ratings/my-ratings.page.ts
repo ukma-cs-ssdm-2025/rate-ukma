@@ -4,14 +4,12 @@ import { testIds } from "@/lib/test-ids";
 
 export class MyRatingsPage {
 	private readonly page: Page;
-	private readonly activeLeaveReviewLinks: Locator;
+	private readonly list: Locator;
 	private readonly courseDetailsPagePattern: RegExp;
 
 	constructor(page: Page) {
 		this.page = page;
-		this.activeLeaveReviewLinks = this.page
-			.getByTestId(testIds.myRatings.list)
-			.getByTestId(testIds.myRatings.leaveReviewLink);
+		this.list = this.page.getByTestId(testIds.myRatings.list);
 		this.courseDetailsPagePattern = /\/courses\/[0-9a-fA-F-]{36}$/;
 	}
 
@@ -20,12 +18,36 @@ export class MyRatingsPage {
 	}
 
 	async openFirstCourseToRate(): Promise<void> {
-		const enabledAction = this.activeLeaveReviewLinks.first();
-		await expect(enabledAction).toBeVisible();
+		await expect(this.list).toBeVisible();
+		await this.expandAllSections();
+
+		const rateableCard = this.list
+			.getByTestId(testIds.myRatings.card)
+			.filter({
+				has: this.page.getByTestId(testIds.myRatings.leaveReviewLink),
+			})
+			.first();
+		await expect(rateableCard).toBeVisible();
+
+		// Navigate via the course title link — leaveReviewLink opens an inline modal
+		const courseLink = rateableCard
+			.locator('a[href*="/courses/"]')
+			.first();
 
 		await Promise.all([
 			this.page.waitForURL(this.courseDetailsPagePattern),
-			enabledAction.click(),
+			courseLink.click(),
 		]);
+	}
+
+	private async expandAllSections(): Promise<void> {
+		const closedTriggers = this.list.locator(
+			'button[data-state="closed"]',
+		);
+		let count = await closedTriggers.count();
+		while (count > 0) {
+			await closedTriggers.first().click();
+			count = await closedTriggers.count();
+		}
 	}
 }
