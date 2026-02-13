@@ -99,21 +99,23 @@ function updateRatingInCache(
 	) {
 		const items = dataObj.items as Record<string, unknown>;
 
+		const updatedItems = { ...items };
+
 		// Update in main ratings list
 		if (Array.isArray(items.ratings)) {
-			items.ratings = items.ratings.map((rating: RatingRead) =>
+			updatedItems.ratings = items.ratings.map((rating: RatingRead) =>
 				updateRatingVote(rating, ratingId, newVote),
 			);
 		}
 
 		// Update in user ratings list
 		if (Array.isArray(items.user_ratings)) {
-			items.user_ratings = items.user_ratings.map((rating: RatingRead) =>
+			updatedItems.user_ratings = items.user_ratings.map((rating: RatingRead) =>
 				updateRatingVote(rating, ratingId, newVote),
 			);
 		}
 
-		return { ...dataObj, items };
+		return { ...dataObj, items: updatedItems };
 	}
 
 	// Handle array of ratings
