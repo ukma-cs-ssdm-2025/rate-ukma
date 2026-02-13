@@ -7,10 +7,9 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
+import type { RatingFilter } from "@/features/ratings/groupRatings";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
-
-export type RatingFilter = "all" | "unrated" | "rated";
 
 interface MyRatingsHeaderProps {
 	totalCourses: number;

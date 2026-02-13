@@ -19,7 +19,7 @@ import {
 	isCurrentSemester,
 	isFutureSemester,
 } from "@/features/courses/courseFormatting";
-import type { SemesterGroup } from "@/features/ratings/types";
+import type { SemesterGroup } from "@/features/ratings/groupRatings";
 import { MyRatingCard } from "./MyRatingCard";
 
 interface MyRatingsSemesterSectionProps {
@@ -144,7 +144,7 @@ function SemesterBadges({
 							</Badge>
 						</TooltipTrigger>
 						<TooltipContent side="top" className="text-[11px] px-2 py-1">
-							Твої оцінки допоможуть іншим студентам обрати цей курс
+							Твої оцінки допоможуть іншим студентам зробити кращий вибір
 						</TooltipContent>
 					</Tooltip>
 				)}

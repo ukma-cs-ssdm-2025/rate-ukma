@@ -1,7 +1,29 @@
-import type { RatingFilter } from "@/features/ratings/components/MyRatingsHeader";
 import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
-import type { SemesterGroup, YearGroup } from "./types";
+
+export type RatingFilter = "all" | "unrated" | "rated";
+
+export interface SemesterGroup {
+	key: string;
+	label: string;
+	description: string;
+	items: StudentRatingsDetailed[];
+	order: number;
+	ratedCount: number;
+	totalCount: number;
+	unratedRateableCount: number;
+	year?: number;
+	seasonRaw?: string;
+}
+
+export interface YearGroup {
+	key: string;
+	label: string;
+	seasons: SemesterGroup[];
+	year?: number;
+	total: number;
+	ratedCount: number;
+}
 
 const TERM_ORDER: Record<string, number> = {
 	FALL: 1,

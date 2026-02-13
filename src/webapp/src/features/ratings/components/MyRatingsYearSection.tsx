@@ -1,4 +1,4 @@
-import type { YearGroup } from "@/features/ratings/types";
+import type { YearGroup } from "@/features/ratings/groupRatings";
 import { MyRatingsSemesterSection } from "./MyRatingsSemesterSection";
 
 interface MyRatingsYearSectionProps {

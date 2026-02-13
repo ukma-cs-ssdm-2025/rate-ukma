@@ -3,16 +3,16 @@ import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
-import { groupRatingsByYearAndSemester } from "@/features/ratings/groupRatings";
 import { MyRatingsEmptyState } from "@/features/ratings/components/MyRatingsEmptyState";
 import { MyRatingsErrorState } from "@/features/ratings/components/MyRatingsErrorState";
-import {
-	MyRatingsHeader,
-	type RatingFilter,
-} from "@/features/ratings/components/MyRatingsHeader";
+import { MyRatingsHeader } from "@/features/ratings/components/MyRatingsHeader";
 import { MyRatingsNotStudentState } from "@/features/ratings/components/MyRatingsNotStudentState";
 import { MyRatingsSkeleton } from "@/features/ratings/components/MyRatingsSkeleton";
 import { MyRatingsYearSection } from "@/features/ratings/components/MyRatingsYearSection";
+import {
+	groupRatingsByYearAndSemester,
+	type RatingFilter,
+} from "@/features/ratings/groupRatings";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
 import { useAuth, withAuth } from "@/lib/auth";
@@ -20,6 +20,32 @@ import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 
 const COLLAPSIBLE_STATE_KEY = "my-ratings-collapsible-state";
+const COLLAPSIBLE_STATE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+interface StoredWithTimestamp<T> {
+	data: T;
+	storedAt: number;
+}
+
+function getCollapsibleState(): Record<string, boolean> {
+	const stored = localStorageAdapter.getItem<
+		StoredWithTimestamp<Record<string, boolean>>
+	>(COLLAPSIBLE_STATE_KEY);
+	if (!stored) return {};
+	if (Date.now() - stored.storedAt > COLLAPSIBLE_STATE_TTL_MS) {
+		localStorageAdapter.removeItem(COLLAPSIBLE_STATE_KEY);
+		return {};
+	}
+	return stored.data;
+}
+
+function saveCollapsibleState(state: Record<string, boolean>): void {
+	const value: StoredWithTimestamp<Record<string, boolean>> = {
+		data: state,
+		storedAt: Date.now(),
+	};
+	localStorageAdapter.setItem(COLLAPSIBLE_STATE_KEY, value);
+}
 
 function MyRatings() {
 	const { isStudent } = useAuth();
@@ -50,14 +76,13 @@ function MyRatings() {
 		[ratings, filter],
 	);
 
-	const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
-		() => localStorageAdapter.getItem(COLLAPSIBLE_STATE_KEY) ?? {},
-	);
+	const [collapsedState, setCollapsedState] =
+		useState<Record<string, boolean>>(getCollapsibleState);
 
 	const updateCollapsedState = useCallback((key: string, isOpen: boolean) => {
 		setCollapsedState((prev) => {
 			const next = { ...prev, [key]: isOpen };
-			localStorageAdapter.setItem(COLLAPSIBLE_STATE_KEY, next);
+			saveCollapsibleState(next);
 			return next;
 		});
 	}, []);
@@ -71,7 +96,7 @@ function MyRatings() {
 				}
 			}
 			setCollapsedState(next);
-			localStorageAdapter.setItem(COLLAPSIBLE_STATE_KEY, next);
+			saveCollapsibleState(next);
 		},
 		[groupedRatings],
 	);
