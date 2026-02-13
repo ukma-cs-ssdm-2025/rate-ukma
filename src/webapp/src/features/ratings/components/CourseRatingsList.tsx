@@ -33,6 +33,7 @@ interface RatingsContentProps {
 	loaderRef: React.RefObject<HTMLDivElement | null>;
 	hasUserRating: boolean;
 	canVote?: boolean;
+	courseId: string;
 }
 
 function RatingsContent({
@@ -42,6 +43,7 @@ function RatingsContent({
 	loaderRef,
 	hasUserRating,
 	canVote = true,
+	courseId,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0) {
 		if (hasUserRating) {
@@ -63,6 +65,7 @@ function RatingsContent({
 				<RatingCard
 					key={rating.id}
 					rating={rating}
+					courseId={courseId}
 					readOnly={!canVote}
 					disabledMessage={
 						canVote ? undefined : CANNOT_VOTE_WITHOUT_ATTENDING_TEXT
@@ -117,7 +120,7 @@ export function CourseRatingsList({
 	const {
 		allRatings,
 		hasMoreRatings,
-		isLoading,
+		isFetching,
 		loaderRef,
 		totalRatings,
 		userRating: userRatingFromApi,
@@ -129,7 +132,7 @@ export function CourseRatingsList({
 	// Prefer user rating from API (has vote data) over prop (from different endpoint)
 	const userRating = userRatingFromApi ?? userRatingProp;
 
-	const showSkeleton = isLoading && allRatings.length === 0;
+	const showSkeleton = isFetching;
 
 	// Total from backend already reflects the number of items
 	// including non-current user ratings and current user rating (if any)
@@ -170,10 +173,11 @@ export function CourseRatingsList({
 				<RatingsContent
 					allRatings={allRatings}
 					hasMoreRatings={hasMoreRatings}
-					isLoading={isLoading}
+					isLoading={isFetching}
 					loaderRef={loaderRef}
 					hasUserRating={!!userRating}
 					canVote={canVote}
+					courseId={courseId}
 				/>
 			)}
 		</div>

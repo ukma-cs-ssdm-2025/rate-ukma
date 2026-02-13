@@ -57,16 +57,17 @@ export function useInfiniteScrollRatings(
 		}
 	}, [courseId, timeOrder, popularityOrder, lastCourseId, lastSortOptions]);
 
-	const { data: ratings, isLoading: isRatingsLoading } = useCoursesRatingsList(
-		courseId,
-		{
-			page: ratingsPage,
-			page_size: pageSize,
-			separate_current_user: separateCurrentUser,
-			time_order: timeOrder,
-			order_by_popularity: popularityOrder,
-		},
-	);
+	const {
+		data: ratings,
+		isLoading: isRatingsLoading,
+		isFetching: isFetchingRatings,
+	} = useCoursesRatingsList(courseId, {
+		page: ratingsPage,
+		page_size: pageSize,
+		separate_current_user: separateCurrentUser,
+		time_order: timeOrder,
+		order_by_popularity: popularityOrder,
+	});
 
 	const loaderRef = useRef<HTMLDivElement | null>(null);
 
@@ -134,6 +135,7 @@ export function useInfiniteScrollRatings(
 		userRating,
 		hasMoreRatings,
 		isLoading: isRatingsLoading,
+		isFetching: isFetchingRatings,
 		loaderRef,
 		totalRatings: ratings?.total,
 	};

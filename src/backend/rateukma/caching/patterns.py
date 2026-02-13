@@ -6,7 +6,7 @@ FILTER_OPTIONS_PATTERN = "*get_filter_options*"
 
 
 def course_ratings_pattern(course_id: str) -> str:
-    return f"*/courses/{course_id}/ratings*"
+    return f"*filter_ratings*{course_id}*"
 
 
 def student_pattern(student_id: str) -> str:
