@@ -163,6 +163,8 @@ export const testIds = {
 		header: "my-ratings-header",
 		list: "my-ratings-list",
 		card: "my-ratings-card",
+		courseTitleLink: "my-ratings-course-title-link",
+		semesterTrigger: "my-ratings-semester-trigger",
 		leaveReviewLink: "my-ratings-leave-review-link",
 		editButton: "my-ratings-edit-button",
 		deleteButton: "my-ratings-delete-button",

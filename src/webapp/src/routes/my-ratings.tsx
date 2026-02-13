@@ -1,22 +1,55 @@
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
-import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
-import { MyRatingCard } from "@/features/ratings/components/MyRatingCard";
 import { MyRatingsEmptyState } from "@/features/ratings/components/MyRatingsEmptyState";
 import { MyRatingsErrorState } from "@/features/ratings/components/MyRatingsErrorState";
 import { MyRatingsHeader } from "@/features/ratings/components/MyRatingsHeader";
 import { MyRatingsNotStudentState } from "@/features/ratings/components/MyRatingsNotStudentState";
 import { MyRatingsSkeleton } from "@/features/ratings/components/MyRatingsSkeleton";
+import { MyRatingsYearSection } from "@/features/ratings/components/MyRatingsYearSection";
+import {
+	groupRatingsByYearAndSemester,
+	type RatingFilter,
+} from "@/features/ratings/groupRatings";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
 import { useAuth, withAuth } from "@/lib/auth";
+import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
+
+const COLLAPSIBLE_STATE_KEY = "my-ratings-collapsible-state";
+const COLLAPSIBLE_STATE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+interface StoredWithTimestamp<T> {
+	data: T;
+	storedAt: number;
+}
+
+function getCollapsibleState(): Record<string, boolean> {
+	const stored = localStorageAdapter.getItem<
+		StoredWithTimestamp<Record<string, boolean>>
+	>(COLLAPSIBLE_STATE_KEY);
+	if (!stored) return {};
+	if (Date.now() - stored.storedAt > COLLAPSIBLE_STATE_TTL_MS) {
+		localStorageAdapter.removeItem(COLLAPSIBLE_STATE_KEY);
+		return {};
+	}
+	return stored.data;
+}
+
+function saveCollapsibleState(state: Record<string, boolean>): void {
+	const value: StoredWithTimestamp<Record<string, boolean>> = {
+		data: state,
+		storedAt: Date.now(),
+	};
+	localStorageAdapter.setItem(COLLAPSIBLE_STATE_KEY, value);
+}
 
 function MyRatings() {
 	const { isStudent } = useAuth();
+	const [filter, setFilter] = useState<RatingFilter>("all");
 
 	const { data, isLoading, isFetching, error, refetch } =
 		useStudentsMeGradesRetrieve({
@@ -26,9 +59,7 @@ function MyRatings() {
 		});
 
 	const ratings = useMemo<StudentRatingsDetailed[]>(() => {
-		if (!data) {
-			return [];
-		}
+		if (!data) return [];
 		return Array.isArray(data) ? data : [data];
 	}, [data]);
 
@@ -39,75 +70,73 @@ function MyRatings() {
 
 	const totalCourses = ratings.length;
 	const isRefetching = isFetching && !isLoading;
+
 	const groupedRatings = useMemo(
-		() => groupRatingsByYearAndSemester(ratings),
-		[ratings],
+		() => groupRatingsByYearAndSemester(ratings, filter),
+		[ratings, filter],
 	);
 
-	let content: ReactNode;
+	const [collapsedState, setCollapsedState] =
+		useState<Record<string, boolean>>(getCollapsibleState);
 
-	if (!isStudent) {
-		content = <MyRatingsNotStudentState />;
-	} else if (isLoading) {
-		content = <MyRatingsSkeleton />;
-	} else if (error) {
-		content = (
-			<MyRatingsErrorState onRetry={refetch} isRetrying={isRefetching} />
-		);
-	} else if (totalCourses === 0) {
-		content = <MyRatingsEmptyState />;
-	} else {
-		content = (
-			<div className="space-y-8" data-testid={testIds.myRatings.list}>
-				{groupedRatings.map((yearGroup) => (
-					<div key={yearGroup.key} className="space-y-4">
-						<div className="border-l-3 border-primary pl-4">
-							<h2 className="text-xl font-semibold text-foreground">
-								{yearGroup.label}
-							</h2>
-							<p className="text-sm text-muted-foreground">
-								Оцінено: {yearGroup.ratedCount} / {yearGroup.total}
-							</p>
-						</div>
+	const updateCollapsedState = useCallback((key: string, isOpen: boolean) => {
+		setCollapsedState((prev) => {
+			const next = { ...prev, [key]: isOpen };
+			saveCollapsibleState(next);
+			return next;
+		});
+	}, []);
 
-						{yearGroup.seasons.map((seasonGroup) => (
-							<div key={seasonGroup.key} className="space-y-3">
-								<div className="flex items-center gap-3 px-4 py-2">
-									<span className="text-lg font-semibold text-foreground">
-										{seasonGroup.label}
-									</span>
-									<span className="text-xs text-muted-foreground/70">
-										{seasonGroup.ratedCount} / {seasonGroup.items.length}
-									</span>
-								</div>
-								<div className="space-y-3">
-									{seasonGroup.items.map((course, index) => (
-										<MyRatingCard
-											key={
-												course.course_offering_id ??
-												course.course_id ??
-												`${seasonGroup.key}-${index}`
-											}
-											course={course}
-											onRatingChanged={refetch}
-										/>
-									))}
-								</div>
-							</div>
-						))}
-					</div>
-				))}
-			</div>
+	const toggleAll = useCallback(
+		(open: boolean) => {
+			const next: Record<string, boolean> = {};
+			for (const yearGroup of groupedRatings) {
+				for (const season of yearGroup.seasons) {
+					next[season.key] = open;
+				}
+			}
+			setCollapsedState(next);
+			saveCollapsibleState(next);
+		},
+		[groupedRatings],
+	);
+
+	const isAllExpanded = useMemo(() => {
+		const currentKeys = groupedRatings.flatMap((year) =>
+			year.seasons.map((s) => s.key),
 		);
-	}
+		if (currentKeys.length === 0) return false;
+		return currentKeys.every((key) => collapsedState[key]);
+	}, [groupedRatings, collapsedState]);
+
+	const handleToggleExpandAll = useCallback(() => {
+		toggleAll(!isAllExpanded);
+	}, [toggleAll, isAllExpanded]);
+
+	const content = resolveContent({
+		isStudent,
+		isLoading,
+		error,
+		totalCourses,
+		isRefetching,
+		refetch,
+		filter,
+		groupedRatings,
+		collapsedState,
+		updateCollapsedState,
+	});
 
 	return (
 		<Layout>
-			<div className="space-y-8">
+			<div className="space-y-6">
 				<MyRatingsHeader
 					totalCourses={totalCourses}
 					ratedCourses={ratedCourses}
 					isLoading={isLoading}
+					filter={filter}
+					onFilterChange={setFilter}
+					isAllExpanded={isAllExpanded}
+					onToggleExpandAll={handleToggleExpandAll}
 				/>
 				{content}
 			</div>
@@ -119,158 +148,62 @@ export const Route = createFileRoute("/my-ratings")({
 	component: withAuth(MyRatings),
 });
 
-interface SemesterGroup {
-	key: string;
-	label: string;
-	description: string;
-	items: StudentRatingsDetailed[];
-	order: number;
-	ratedCount: number;
-}
-
-interface YearGroup {
-	key: string;
-	label: string;
-	seasons: SemesterGroup[];
-	year?: number;
-	total: number;
-	ratedCount: number;
-}
-
-const TERM_ORDER: Record<string, number> = {
-	SUMMER: 1,
-	SPRING: 2,
-	FALL: 3,
-};
-
-function getAcademicYear(
-	year: number,
-	season: string | undefined,
-): { academicYearStart: number; academicYearLabel: string } {
-	const academicYearStart = season?.toUpperCase() === "FALL" ? year : year - 1;
-	const academicYearLabel = `${academicYearStart} – ${academicYearStart + 1}`;
-
-	return { academicYearStart, academicYearLabel };
-}
-
-function groupRatingsByYearAndSemester(
-	items: StudentRatingsDetailed[],
-): YearGroup[] {
-	type YearAccumulator = {
-		key: string;
-		label: string;
-		year?: number;
-		seasons: Map<string, SemesterGroup>;
-	};
-
-	const years = new Map<string, YearAccumulator>();
-
-	for (const course of items) {
-		const yearValue =
-			typeof course.semester?.year === "number"
-				? course.semester?.year
-				: undefined;
-		const seasonRaw = course.semester?.season?.toUpperCase();
-
-		let yearKey: string;
-		let yearLabel: string;
-		let academicYearStart: number | undefined;
-
-		if (yearValue == null) {
-			yearKey = "unknown";
-			yearLabel = "Без року";
-		} else {
-			const { academicYearStart: ayStart, academicYearLabel } = getAcademicYear(
-				yearValue,
-				seasonRaw,
-			);
-			academicYearStart = ayStart;
-			yearKey = String(ayStart);
-			yearLabel = academicYearLabel;
-		}
-
-		if (!years.has(yearKey)) {
-			years.set(yearKey, {
-				key: yearKey,
-				label: yearLabel,
-				year: academicYearStart,
-				seasons: new Map(),
-			});
-		}
-
-		let seasonKey = "no-semester";
-		let seasonLabel = "Без семестра";
-		let seasonDescription = "Невідомий рік";
-
-		if (yearValue != null) {
-			seasonKey = seasonRaw ?? "no-semester";
-			seasonLabel = seasonRaw
-				? getSemesterTermDisplay(seasonRaw, "Невідомий семестр")
-				: "Семестр не вказано";
-			seasonDescription = seasonRaw
-				? `Семестр ${seasonLabel.toLowerCase()}`
-				: "Без семестра";
-		}
-
-		const seasonOrder = TERM_ORDER[seasonRaw ?? ""] ?? 99;
-
-		const yearEntry = years.get(yearKey);
-		if (yearEntry) {
-			if (!yearEntry.seasons.has(seasonKey)) {
-				yearEntry.seasons.set(seasonKey, {
-					key: `${yearKey}-${seasonKey}`,
-					label: seasonLabel,
-					description: seasonDescription,
-					items: [],
-					order: seasonOrder,
-					ratedCount: 0,
-				});
-			}
-
-			const season = yearEntry.seasons.get(seasonKey);
-			if (season) {
-				season.items.push(course);
-				if (course.rated) {
-					season.ratedCount++;
-				}
-			}
-		}
+function resolveContent({
+	isStudent,
+	isLoading,
+	error,
+	totalCourses,
+	isRefetching,
+	refetch,
+	filter,
+	groupedRatings,
+	collapsedState,
+	updateCollapsedState,
+}: {
+	isStudent: boolean;
+	isLoading: boolean;
+	error: unknown;
+	totalCourses: number;
+	isRefetching: boolean;
+	refetch: () => undefined | Promise<unknown>;
+	filter: RatingFilter;
+	groupedRatings: ReturnType<typeof groupRatingsByYearAndSemester>;
+	collapsedState: Record<string, boolean>;
+	updateCollapsedState: (key: string, isOpen: boolean) => void;
+}): ReactNode {
+	if (!isStudent) {
+		return <MyRatingsNotStudentState />;
 	}
-	const yearGroups: YearGroup[] = Array.from(years.values()).map(
-		({ seasons, ...rest }) => {
-			const seasonsArray = Array.from(seasons.values()).sort((a, b) => {
-				return a.order - b.order || a.label.localeCompare(b.label);
-			});
-
-			const total = seasonsArray.reduce(
-				(sum, season) => sum + season.items.length,
-				0,
-			);
-
-			const ratedCount = seasonsArray.reduce(
-				(sum, season) => sum + season.ratedCount,
-				0,
-			);
-
-			return {
-				...rest,
-				seasons: seasonsArray,
-				total,
-				ratedCount,
-			};
-		},
+	if (isLoading) {
+		return <MyRatingsSkeleton />;
+	}
+	if (error) {
+		return <MyRatingsErrorState onRetry={refetch} isRetrying={isRefetching} />;
+	}
+	if (totalCourses === 0) {
+		return <MyRatingsEmptyState />;
+	}
+	if (groupedRatings.length === 0 && filter !== "all") {
+		return (
+			<div className="text-center py-12">
+				<p className="text-muted-foreground">
+					{filter === "unrated" && "Всі курси оцінено! 🎉"}
+					{filter === "rated" && "Ви ще не оцінили жодного курсу"}
+				</p>
+			</div>
+		);
+	}
+	return (
+		<div className="space-y-8" data-testid={testIds.myRatings.list}>
+			{groupedRatings.map((yearGroup) => (
+				<MyRatingsYearSection
+					key={yearGroup.key}
+					yearGroup={yearGroup}
+					onRatingChanged={refetch}
+					collapsedState={collapsedState}
+					onToggle={updateCollapsedState}
+				/>
+			))}
+		</div>
 	);
-
-	return yearGroups.sort((a, b) => {
-		if (a.year != null && b.year != null) {
-			return b.year - a.year;
-		}
-		if (a.year != null) {
-			return -1;
-		}
-		if (b.year != null) {
-			return 1;
-		}
-		return a.label.localeCompare(b.label);
-	});
 }
