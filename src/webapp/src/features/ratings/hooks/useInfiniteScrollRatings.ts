@@ -1,6 +1,8 @@
 import type { RefObject } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import type { RatingRead } from "@/lib/api/generated";
 import { useCoursesRatingsList } from "@/lib/api/generated";
 
@@ -43,7 +45,10 @@ export function useInfiniteScrollRatings(
 	const [allRatings, setAllRatings] = useState<RatingRead[]>([]);
 	const [userRating, setUserRating] = useState<RatingRead | undefined>();
 
+	const queryClient = useQueryClient();
+
 	// Reset pagination and state when courseId or sorting changes
+	// Also invalidate cache to get fresh data with proper server-side sorting
 	useEffect(() => {
 		const sortOptionsChanged =
 			lastSortOptions.timeOrder !== timeOrder ||
@@ -55,8 +60,31 @@ export function useInfiniteScrollRatings(
 			setUserRating(undefined);
 			setLastCourseId(courseId);
 			setLastSortOptions({ timeOrder, popularityOrder });
+
+			// Invalidate ratings cache to force refetch with new sort order
+			// This ensures proper server-side sorting after vote count changes
+			if (sortOptionsChanged) {
+				queryClient.invalidateQueries({
+					predicate: (query) => {
+						const key = query.queryKey;
+						return (
+							Array.isArray(key) &&
+							typeof key[0] === "string" &&
+							key[0].includes("/ratings/") &&
+							key[0].includes(courseId)
+						);
+					},
+				});
+			}
 		}
-	}, [courseId, timeOrder, popularityOrder, lastCourseId, lastSortOptions]);
+	}, [
+		courseId,
+		timeOrder,
+		popularityOrder,
+		lastCourseId,
+		lastSortOptions,
+		queryClient,
+	]);
 
 	const {
 		data: ratings,

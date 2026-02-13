@@ -17,6 +17,25 @@ import {
 	useCoursesRatingsVotesDestroy,
 } from "../hooks/useVoteMutations";
 
+/**
+ * RatingVotes - Optimistic Updates with Cache Synchronization
+ *
+ * This component uses fully optimistic updates with React Query cache updates.
+ * Vote state is maintained independently per rating and never overwritten by props.
+ *
+ * Key mechanisms:
+ * 1. Initial State Lock: Props are only used on mount/ratingId change
+ * 2. Cache Updates: React Query cache is updated on vote success
+ * 3. Request Sequence: Ignores out-of-order API responses
+ * 4. Sort Key Flushing: Syncs pending votes on filter/sort changes
+ *
+ * How it works:
+ * - Vote on Rating A → Updates local state + React Query cache
+ * - Change filter to "popularity" → Fresh fetch, cache has updated vote
+ * - Change filter back → Cache returns updated data with your vote ✓
+ * - No refetches needed, no stale data issues
+ */
+
 interface RatingVotesProps {
 	ratingId: string;
 	initialUpvotes?: number;
@@ -93,6 +112,14 @@ export function RatingVotes({
 	disabledMessage,
 	sortKey,
 }: Readonly<RatingVotesProps>) {
+	// Store initial values - these are the source of truth from server on mount
+	const initialValuesRef = useRef({
+		ratingId,
+		upvotes: initialUpvotes,
+		downvotes: initialDownvotes,
+		userVote: initialUserVote,
+	});
+
 	// The "optimistic" vote state - updates immediately on click
 	const [userVote, setUserVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
@@ -101,8 +128,6 @@ export function RatingVotes({
 	const [serverVote, setServerVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
 	);
-	// Track when we last updated the server to ignore stale props
-	const [lastServerUpdateTime, setLastServerUpdateTime] = useState<number>(0);
 
 	const createVote = useCoursesRatingsVotesCreate();
 	const deleteVote = useCoursesRatingsVotesDestroy();
@@ -110,19 +135,40 @@ export function RatingVotes({
 	// Store stable references
 	const previousSortKeyRef = useRef(sortKey);
 	const isMountedRef = useRef(true);
+	// Track request sequence to ignore out-of-order responses
+	const requestSequenceRef = useRef(0);
+	const lastCompletedSequenceRef = useRef(0);
 
-	// Track component mount status
+	// Track component mount status and reset state when ratingId changes
 	useEffect(() => {
 		isMountedRef.current = true;
+
+		// Reset state when viewing a different rating
+		if (initialValuesRef.current.ratingId !== ratingId) {
+			initialValuesRef.current = {
+				ratingId,
+				upvotes: initialUpvotes,
+				downvotes: initialDownvotes,
+				userVote: initialUserVote,
+			};
+			setUserVote(initialUserVote);
+			setServerVote(initialUserVote);
+			requestSequenceRef.current = 0;
+			lastCompletedSequenceRef.current = 0;
+		}
+
 		return () => {
 			isMountedRef.current = false;
 		};
-	}, []);
+	}, [ratingId, initialUpvotes, initialDownvotes, initialUserVote]);
 
 	// Debounced function to sync votes with server
 	const debouncedSyncVote = useDebouncedCallback(
 		async (voteToSync: RatingVoteStrType | null) => {
 			if (!isMountedRef.current) return;
+
+			// Assign a sequence number to this request
+			const currentSequence = ++requestSequenceRef.current;
 
 			try {
 				if (voteToSync === null) {
@@ -133,12 +179,22 @@ export function RatingVotes({
 						data: { vote_type: voteToSync },
 					});
 				}
-				if (isMountedRef.current) {
+
+				// Only update state if this is still the latest request
+				if (
+					isMountedRef.current &&
+					currentSequence >= lastCompletedSequenceRef.current
+				) {
+					lastCompletedSequenceRef.current = currentSequence;
 					setServerVote(voteToSync);
-					setLastServerUpdateTime(Date.now());
 				}
+				// Note: Cache is updated automatically by mutation's onSuccess
 			} catch (error) {
-				if (isMountedRef.current) {
+				// Only rollback if this is the latest request
+				if (
+					isMountedRef.current &&
+					currentSequence >= lastCompletedSequenceRef.current
+				) {
 					console.error("Failed to sync vote with server:", error);
 					toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
 					setUserVote(serverVote);
@@ -171,50 +227,21 @@ export function RatingVotes({
 		}
 	}, [sortKey, userVote, serverVote, debouncedSyncVote]);
 
-	// Derived counts based on initial props and optimistic userVote
+	// Derived counts based on initial values and optimistic userVote
+	// Use initial values from mount, not current props (which may be stale cached data)
+	const {
+		upvotes: baseUpvotes,
+		downvotes: baseDownvotes,
+		userVote: baseUserVote,
+	} = initialValuesRef.current;
 	const upvotes =
-		initialUpvotes +
-		(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
+		baseUpvotes +
+		(baseUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
 		(userVote === RatingVoteStrType.UPVOTE ? 1 : 0);
 	const downvotes =
-		initialDownvotes +
-		(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
+		baseDownvotes +
+		(baseUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
 		(userVote === RatingVoteStrType.DOWNVOTE ? 1 : 0);
-
-	// Sync local state with props only when there's no pending operation
-	// This prevents stale cached data from overwriting in-flight votes
-	useEffect(() => {
-		const hasPendingOperation = userVote !== serverVote;
-		const timeSinceLastUpdate = Date.now() - lastServerUpdateTime;
-		const inGracePeriod = timeSinceLastUpdate < 2000; // 2 second grace period
-
-		// Ignore prop updates during pending operations
-		if (hasPendingOperation) {
-			return;
-		}
-
-		// If in grace period, schedule a re-check after the remaining time
-		if (inGracePeriod) {
-			const remaining = 2000 - timeSinceLastUpdate;
-			const graceTimer = setTimeout(() => {
-				// Re-check sync after grace period expires
-				if (initialUserVote !== serverVote) {
-					setUserVote(initialUserVote);
-					setServerVote(initialUserVote);
-				}
-			}, remaining);
-
-			return () => {
-				clearTimeout(graceTimer);
-			};
-		}
-
-		// No pending operation and grace period expired - sync with props if they changed
-		if (initialUserVote !== serverVote) {
-			setUserVote(initialUserVote);
-			setServerVote(initialUserVote);
-		}
-	}, [initialUserVote, userVote, serverVote, lastServerUpdateTime]);
 
 	// Flush pending votes on unmount to avoid losing user input
 	useEffect(() => {
