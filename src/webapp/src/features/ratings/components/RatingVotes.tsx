@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
@@ -9,7 +10,10 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import { RatingVoteStrType } from "@/lib/api/generated";
+import {
+	getCoursesRatingsListQueryKey,
+	RatingVoteStrType,
+} from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import {
 	useCoursesRatingsVotesCreate,
@@ -18,6 +22,7 @@ import {
 
 interface RatingVotesProps {
 	ratingId: string;
+	courseId?: string;
 	initialUpvotes?: number;
 	initialDownvotes?: number;
 	initialUserVote?: RatingVoteStrType | null;
@@ -84,12 +89,14 @@ function Vote({
 
 export function RatingVotes({
 	ratingId,
+	courseId,
 	initialUpvotes = 0,
 	initialDownvotes = 0,
 	initialUserVote = null,
 	readOnly = false,
 	disabledMessage,
 }: Readonly<RatingVotesProps>) {
+	const queryClient = useQueryClient();
 	// The "optimistic" vote state - updates immediately on click
 	const [userVote, setUserVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
@@ -147,6 +154,12 @@ export function RatingVotes({
 				// Sync authority state on success only if still mounted
 				if (isMounted) {
 					setServerVote(userVote);
+					if (courseId) {
+						queryClient.invalidateQueries({
+							queryKey: getCoursesRatingsListQueryKey(courseId),
+							refetchType: "none",
+						});
+					}
 				}
 			} catch (error) {
 				// Only handle error if still mounted
@@ -163,7 +176,7 @@ export function RatingVotes({
 			clearTimeout(timer);
 			isMounted = false;
 		};
-	}, [userVote, serverVote, ratingId]);
+	}, [userVote, serverVote, ratingId, courseId, queryClient]);
 
 	const toggleVote = (target: RatingVoteStrType) => {
 		if (readOnly) return;
