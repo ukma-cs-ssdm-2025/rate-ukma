@@ -139,11 +139,16 @@ export function RatingVotes({
 	const requestSequenceRef = useRef(0);
 	const lastCompletedSequenceRef = useRef(0);
 
-	// Track component mount status and reset state when ratingId changes
+	// Track component mount/unmount status
 	useEffect(() => {
 		isMountedRef.current = true;
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
 
-		// Reset state when viewing a different rating
+	// Reset state when viewing a different rating
+	useEffect(() => {
 		if (initialValuesRef.current.ratingId !== ratingId) {
 			initialValuesRef.current = {
 				ratingId,
@@ -156,10 +161,6 @@ export function RatingVotes({
 			requestSequenceRef.current = 0;
 			lastCompletedSequenceRef.current = 0;
 		}
-
-		return () => {
-			isMountedRef.current = false;
-		};
 	}, [ratingId, initialUpvotes, initialDownvotes, initialUserVote]);
 
 	// Debounced function to sync votes with server
