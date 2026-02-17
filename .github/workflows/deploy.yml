@@ -1,9 +1,13 @@
 ---
-name: Deploy Staging
+name: Deploy
 
 on:
   workflow_call:
     inputs:
+      environment:
+        description: "Environment to deploy to (staging or live)"
+        required: true
+        type: string
       deployment_ref:
         description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
         required: false
@@ -14,6 +18,10 @@ on:
         required: false
         type: string
         default: "latest"
+      test_url:
+        description: "URL to run e2e tests against after deployment"
+        required: true
+        type: string
     secrets:
       SSH_HOST:
         required: true
@@ -40,7 +48,7 @@ jobs:
       - name: Create Sentry releases
         uses: ./.github/actions/sentry-release
         with:
-          environment: staging
+          environment: ${{ inputs.environment }}
           version_tag: ${{ inputs.version_tag }}
           sentry_auth_token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           sentry_org: ${{ vars.SENTRY_ORG }}
@@ -52,10 +60,10 @@ jobs:
     uses: ./.github/workflows/deploy-script.yml
     with:
       version_tag: ${{ inputs.version_tag }}
-      environment: staging
-      archive_name: "rate-ukma-staging-${{ inputs.deployment_ref || github.sha }}.tar.gz"
+      environment: ${{ inputs.environment }}
+      archive_name: "rate-ukma-${{ inputs.environment }}-${{ inputs.deployment_ref || github.sha }}.tar.gz"
       deployment_ref: ${{ inputs.deployment_ref }}
-      test_url: ${{ vars.STAGING_URL }}
+      test_url: ${{ inputs.test_url }}
       run_e2e_tests: true
     secrets:
       SSH_HOST: ${{ secrets.SSH_HOST }}
