@@ -37,27 +37,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create Sentry release for Frontend
-        uses: getsentry/action-release@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_FRONTEND }}
+      - name: Create Sentry releases
+        uses: ./.github/actions/sentry-release
         with:
           environment: staging
-          release: ${{ inputs.version_tag }}
-          ignore_missing: true
-
-      - name: Create Sentry release for Backend
-        uses: getsentry/action-release@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_BACKEND }}
-        with:
-          environment: staging
-          release: ${{ inputs.version_tag }}
-          ignore_missing: true
+          version_tag: ${{ inputs.version_tag }}
+          sentry_auth_token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          sentry_org: ${{ vars.SENTRY_ORG }}
+          sentry_project_frontend: ${{ vars.SENTRY_PROJECT_FRONTEND }}
+          sentry_project_backend: ${{ vars.SENTRY_PROJECT_BACKEND }}
 
   deploy:
     needs: create-sentry-releases
