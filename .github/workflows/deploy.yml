@@ -116,7 +116,7 @@ jobs:
           tar -czf "$ARCHIVE_NAME" src/ docs/api/openapi-generated.yaml
 
       - name: Upload archive and deploy script to server
-        uses: appleboy/scp-action@v1.0.0
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -125,7 +125,7 @@ jobs:
           target: ${{ env.REMOTE_TMP_DEPLOY_DIR }}/
 
       - name: Deploy to server
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           BACKEND_IMAGE_TAG: ${{ steps.find-tags.outputs.backend_tag }}
           WEBAPP_IMAGE_TAG: ${{ steps.find-tags.outputs.webapp_tag }}
@@ -157,7 +157,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Run warmup backend command
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
