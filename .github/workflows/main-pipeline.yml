@@ -65,7 +65,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
 
@@ -76,7 +76,7 @@ jobs:
     outputs:
       release_needed: ${{ steps.check.outputs.release_needed }}
     env:
-      VERSION_TAG: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
+      VERSION_TAG: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
     steps:
       - uses: actions/checkout@v5
 
@@ -101,7 +101,7 @@ jobs:
     with:
       environment: staging
       deployment_ref: ${{ github.sha }}
-      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       test_url: ${{ vars.STAGING_URL }}
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
@@ -120,5 +120,5 @@ jobs:
       needs.release-needed.outputs.release_needed == 'true' }}
     uses: ./.github/workflows/release.yml
     with:
-      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       pre-release: true

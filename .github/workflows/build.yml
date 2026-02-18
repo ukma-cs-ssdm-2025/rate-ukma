@@ -67,7 +67,7 @@ jobs:
         run: docker compose --profile prod build --build-arg BACKEND_IMAGE_TAG=${BACKEND_IMAGE_TAG} backend
 
       - name: Push backend image
-        if: inputs.version_tag && github.ref_name == github.event.repository.default_branch
+        if: inputs.version_tag
         env:
           BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
@@ -137,7 +137,7 @@ jobs:
             ..
 
       - name: Push ${{ matrix.environment }} webapp
-        if: inputs.version_tag && github.ref_name == github.event.repository.default_branch
+        if: inputs.version_tag
         env:
           WEBAPP_IMAGE_TAG: ${{ matrix.environment }}-${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
