@@ -1,0 +1,48 @@
+---
+name: Create Sentry Releases
+description: Creates Sentry releases for frontend and backend projects.
+
+inputs:
+  environment:
+    description: "Sentry environment (e.g., staging, live)"
+    required: true
+  version_tag:
+    description: "Version tag for the release"
+    required: true
+  sentry_auth_token:
+    description: "Sentry authentication token"
+    required: true
+  sentry_org:
+    description: "Sentry organization slug"
+    required: true
+  sentry_project_frontend:
+    description: "Sentry frontend project slug"
+    required: true
+  sentry_project_backend:
+    description: "Sentry backend project slug"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create Sentry release for Frontend
+      uses: getsentry/action-release@v3
+      env:
+        SENTRY_AUTH_TOKEN: ${{ inputs.sentry_auth_token }}
+        SENTRY_ORG: ${{ inputs.sentry_org }}
+        SENTRY_PROJECT: ${{ inputs.sentry_project_frontend }}
+      with:
+        environment: ${{ inputs.environment }}
+        release: ${{ inputs.version_tag }}
+        ignore_missing: true
+
+    - name: Create Sentry release for Backend
+      uses: getsentry/action-release@v3
+      env:
+        SENTRY_AUTH_TOKEN: ${{ inputs.sentry_auth_token }}
+        SENTRY_ORG: ${{ inputs.sentry_org }}
+        SENTRY_PROJECT: ${{ inputs.sentry_project_backend }}
+      with:
+        environment: ${{ inputs.environment }}
+        release: ${{ inputs.version_tag }}
+        ignore_missing: true

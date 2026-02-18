@@ -41,8 +41,8 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.BRANCH }}
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v7
+      - name: Setup Python & uv
+        uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -114,29 +114,10 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.BRANCH }}
 
-      - name: Extract Node version from package.json
-        id: versions
-        working-directory: ${{ env.WEBAPP_DIR }}
-        run: |
-          NODE_VERSION=$(jq -r '.engines.node' package.json | sed 's/>=//')
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          package_json_file: ${{ env.WEBAPP_DIR }}/package.json
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ steps.versions.outputs.node-version }}
-          cache: "pnpm"
-          cache-dependency-path: ${{ env.WEBAPP_DIR }}/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: ${{ env.WEBAPP_DIR }}
-        run: pnpm install --frozen-lockfile
+          working-directory: ${{ env.WEBAPP_DIR }}
 
       - name: Run frontend unit tests
         working-directory: ${{ env.WEBAPP_DIR }}

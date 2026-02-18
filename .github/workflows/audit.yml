@@ -37,32 +37,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Extract Node version from package.json
-        id: versions
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: |
-          NODE_VERSION=$(jq -r '.engines.node // ""' package.json)
-          if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" = "null" ]; then
-            NODE_VERSION="lts/*"
-          fi
-          echo "node-version=$NODE_VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          package_json_file: ${{ env.FRONTEND_DIR }}/package.json
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ steps.versions.outputs.node-version }}
-          cache: "pnpm"
-          cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: pnpm install --frozen-lockfile
+          working-directory: ${{ env.FRONTEND_DIR }}
 
       - name: pnpm audit high severity
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -91,11 +69,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+      - name: Setup Python & uv
+        uses: ./.github/actions/setup-python-uv
         with:
-          enable-cache: true
-          cache-dependency-glob: "${{ env.BACKEND_DIR }}/**/pyproject.toml"
+          working-directory: ${{ env.BACKEND_DIR }}
 
       - name: Install dependencies
         working-directory: ${{ env.BACKEND_DIR }}

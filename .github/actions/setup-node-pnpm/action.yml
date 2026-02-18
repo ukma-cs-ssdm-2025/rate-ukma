@@ -1,0 +1,43 @@
+---
+name: Setup Node.js & pnpm
+description: Extracts Node version from package.json, sets up pnpm and Node.js with caching, and installs dependencies.
+
+inputs:
+  working-directory:
+    description: "Directory containing package.json"
+    required: false
+    default: "src/webapp"
+
+runs:
+  using: composite
+  steps:
+    - name: Extract Node version from package.json
+      id: versions
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        NODE_VERSION=$(jq -r '.engines.node // ""' package.json)
+        if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" = "null" ]; then
+          NODE_VERSION="lts/*"
+        else
+          NODE_VERSION=$(echo "$NODE_VERSION" | sed 's/>=//')
+        fi
+        echo "node-version=$NODE_VERSION" >> "$GITHUB_OUTPUT"
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        package_json_file: ${{ inputs.working-directory }}/package.json
+        run_install: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ steps.versions.outputs.node-version }}
+        cache: "pnpm"
+        cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+
+    - name: Install dependencies
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: pnpm install --frozen-lockfile

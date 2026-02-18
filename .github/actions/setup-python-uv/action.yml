@@ -1,0 +1,23 @@
+---
+name: Setup Python & uv
+description: Sets up uv with Python version and caching enabled.
+
+inputs:
+  python-version:
+    description: "Python version to use"
+    required: false
+    default: "3.12"
+  working-directory:
+    description: "Directory containing pyproject.toml"
+    required: false
+    default: "src/backend"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ inputs.python-version }}
+        enable-cache: true
+        cache-dependency-glob: "${{ inputs.working-directory }}/**/pyproject.toml"
