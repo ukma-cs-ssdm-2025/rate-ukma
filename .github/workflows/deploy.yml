@@ -4,24 +4,28 @@ name: Deploy
 on:
   workflow_call:
     inputs:
-      environment:
-        description: "Environment to deploy to (staging or live)"
+      version_tag:
         required: true
         type: string
+        description: "The version tag to deploy (will find best matching image)"
+      environment:
+        required: true
+        type: string
+        description: "Environment to deploy to (staging or live)"
       deployment_ref:
         description: "Commit SHA, Tag, or Branch to checkout. Defaults to the workflow run commit."
         required: false
         type: string
         default: ""
-      version_tag:
-        description: "Version tag to use for the deployment"
-        required: false
-        type: string
-        default: "latest"
       test_url:
         description: "URL to run e2e tests against after deployment"
-        required: true
+        required: false
         type: string
+      run_e2e_tests:
+        description: "Whether to run e2e tests after deployment"
+        required: false
+        type: boolean
+        default: false
     secrets:
       SSH_HOST:
         required: true
@@ -35,6 +39,19 @@ on:
         required: true
       SENTRY_AUTH_TOKEN:
         required: true
+
+env:
+  PROJECT_DIR: /opt/rateukma
+  PROJECT_SOURCE_CODE: /opt/rateukma/src
+  REMOTE_TMP_DEPLOY_DIR: /tmp/deploy
+  REMOTE_BACKUP_CODE_DIR: /tmp/deploy/src-backup
+  STATIC_ROOT: /opt/rateukma/static
+  ARCHIVE_NAME: "rate-ukma-${{ inputs.environment }}-${{ inputs.deployment_ref || github.sha }}.tar.gz"
+  MAX_ATTEMPTS: 6
+  SERVICES_HEALTHCHECK_TIMEOUT: 10
+
+concurrency:
+  group: deploy-${{ github.workflow }} # main-pipeline or prod-pipeline
 
 jobs:
   create-sentry-releases:
@@ -57,17 +74,116 @@ jobs:
 
   deploy:
     needs: create-sentry-releases
-    uses: ./.github/workflows/deploy-script.yml
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.deployment_ref || github.sha }}
+
+      - name: Find latest available image tags
+        id: find-tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_VERSION: ${{ inputs.version_tag }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          ORG: ${{ github.repository_owner }}
+        run: |
+          if [ "$ENVIRONMENT" = "staging" ]; then
+            WEBAPP_PREFIX="staging-"
+          elif [ "$ENVIRONMENT" = "live" ]; then
+            WEBAPP_PREFIX="live-"
+          else
+            echo "Unknown environment: $ENVIRONMENT" >&2
+            exit 1
+          fi
+
+          BACKEND_TAG=$(bash scripts/ci/find-image-tags.sh "rate-ukma/backend" "$TARGET_VERSION" "")
+          WEBAPP_TAG=$(bash scripts/ci/find-image-tags.sh "rate-ukma/webapp" "$TARGET_VERSION" "$WEBAPP_PREFIX")
+
+          echo "backend_tag=$BACKEND_TAG" >> "$GITHUB_OUTPUT"
+          echo "webapp_tag=$WEBAPP_TAG" >> "$GITHUB_OUTPUT"
+
+          echo "### Selected Image Tags" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Backend**: \`$BACKEND_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Webapp**: \`$WEBAPP_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create deployment archive
+        run: |
+          tar -czf ${{ env.ARCHIVE_NAME }} src/ docs/api/openapi-generated.yaml
+
+      - name: Upload archive and deploy script to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "${{ env.ARCHIVE_NAME }},scripts/ci/deploy.sh"
+          target: ${{ env.REMOTE_TMP_DEPLOY_DIR }}/
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        env:
+          BACKEND_IMAGE_TAG: ${{ steps.find-tags.outputs.backend_tag }}
+          WEBAPP_IMAGE_TAG: ${{ steps.find-tags.outputs.webapp_tag }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: "30m"
+          envs: BACKEND_IMAGE_TAG,WEBAPP_IMAGE_TAG,ENVIRONMENT
+          script: |
+            export PROJECT_DIR="${{ env.PROJECT_DIR }}"
+            export SOURCE_CODE="${{ env.PROJECT_SOURCE_CODE }}"
+            export TMP_DIR="${{ env.REMOTE_TMP_DEPLOY_DIR }}"
+            export BACKUP_DIR="${{ env.REMOTE_BACKUP_CODE_DIR }}"
+            export STATIC_ROOT="${{ env.STATIC_ROOT }}"
+            export ARCHIVE="${{ env.ARCHIVE_NAME }}"
+            export MAX_ATTEMPTS="${{ env.MAX_ATTEMPTS }}"
+            export HEALTHCHECK_TIMEOUT="${{ env.SERVICES_HEALTHCHECK_TIMEOUT }}"
+            export SSH_USER="${{ secrets.SSH_USER }}"
+            export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+            export GITHUB_ACTOR="${{ github.actor }}"
+
+            chmod +x "$TMP_DIR/scripts/ci/deploy.sh"
+            exec "$TMP_DIR/scripts/ci/deploy.sh"
+
+  warmup:
+    needs: deploy
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run warmup backend command
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: "30m"
+          script: |
+            backend_container=$(docker ps --format "{{.Names}}" | grep backend)
+            if [ -z "$backend_container" ]; then
+              echo "Backend running container is not found"
+              exit 1
+            fi
+
+            if ! docker exec $backend_container uv run python manage.py warmup; then
+              echo "Warmup failed"
+              exit 1
+            fi
+
+            echo "Warmup completed"
+
+  e2e-test:
+    if: inputs.run_e2e_tests && inputs.test_url != ''
+    needs: warmup
+    uses: ./.github/workflows/e2e-test.yml
     with:
-      version_tag: ${{ inputs.version_tag }}
-      environment: ${{ inputs.environment }}
-      archive_name: "rate-ukma-${{ inputs.environment }}-${{ inputs.deployment_ref || github.sha }}.tar.gz"
-      deployment_ref: ${{ inputs.deployment_ref }}
       test_url: ${{ inputs.test_url }}
-      run_e2e_tests: true
+      deployment_ref: ${{ inputs.deployment_ref }}
     secrets:
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      SSH_KEY: ${{ secrets.SSH_KEY }}
       CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}

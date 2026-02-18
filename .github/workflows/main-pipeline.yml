@@ -58,9 +58,9 @@ jobs:
 
   build:
     needs: [version, test, openapi-validation, audit, changes-filter]
-    # Run unless a dependency failed or workflow was cancelled.
+    # Run unless a dependency failed or workflow was cancelled
     # Needed because 'version' is skipped on non-main branches, which would
-    # otherwise cause all downstream jobs to be skipped too.
+    # otherwise cause all downstream jobs to be skipped too
     if: ${{ !failure() && !cancelled() }}
     uses: ./.github/workflows/build.yml
     secrets: inherit
