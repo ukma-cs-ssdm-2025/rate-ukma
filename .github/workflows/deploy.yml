@@ -46,7 +46,7 @@ env:
   REMOTE_TMP_DEPLOY_DIR: /tmp/deploy
   REMOTE_BACKUP_CODE_DIR: /tmp/deploy/src-backup
   STATIC_ROOT: /opt/rateukma/static
-  ARCHIVE_NAME: "rate-ukma-${{ inputs.environment }}-${{ inputs.deployment_ref || github.sha }}.tar.gz"
+  ARCHIVE_NAME: "" # set dynamically in deploy job after sanitizing ref
   MAX_ATTEMPTS: 6
   SERVICES_HEALTHCHECK_TIMEOUT: 10
 
@@ -83,6 +83,12 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.deployment_ref || github.sha }}
+
+      - name: Set archive name
+        run: |
+          REF="${{ inputs.deployment_ref || github.sha }}"
+          SAFE_REF="${REF//\//-}"
+          echo "ARCHIVE_NAME=rate-ukma-${{ inputs.environment }}-${SAFE_REF}.tar.gz" >> "$GITHUB_ENV"
 
       - name: Find latest available image tags
         id: find-tags
