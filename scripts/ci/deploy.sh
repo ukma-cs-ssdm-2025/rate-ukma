@@ -68,7 +68,7 @@ stop_services() {
 
 deploy_new_version() {
   echo "Cleaning project directory..."
-  rm -rf "$SOURCE_CODE"/*
+  rm -rf "${SOURCE_CODE:?}"/*
 
   echo "Extracting new version..."
   cd "$PROJECT_DIR"
@@ -129,7 +129,9 @@ cleanup_on_success() {
   echo "Cleaning up old Docker resources (older than 7 days)..."
   sudo docker image prune -a -f --filter "until=168h"
   sudo docker container prune -f --filter "until=168h"
-  sudo docker network prune -f
+  COMPOSE_PROJECT="$(basename "$SOURCE_CODE")"
+  sudo docker network ls --filter "label=com.docker.compose.project=$COMPOSE_PROJECT" --format '{{.ID}}' \
+    | xargs -r sudo docker network rm 2>/dev/null || true
 
   echo "Reclaimed space:"
   sudo docker system df
@@ -141,7 +143,7 @@ rollback() {
   sudo docker compose --profile prod down || true
 
   echo "Restoring previous version from $BACKUP_DIR"
-  rm -rf "$SOURCE_CODE"/*
+  rm -rf "${SOURCE_CODE:?}"/*
   cp -r "$BACKUP_DIR/src/"* "$SOURCE_CODE/"
 
   cd "$SOURCE_CODE"

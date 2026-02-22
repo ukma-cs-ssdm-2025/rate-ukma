@@ -164,13 +164,13 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           command_timeout: "30m"
           script: |
-            backend_container=$(docker ps --format "{{.Names}}" | grep backend)
+            backend_container=$(sudo docker ps --format "{{.Names}}" | grep backend | head -n1)
             if [ -z "$backend_container" ]; then
               echo "Backend running container is not found"
               exit 1
             fi
 
-            if ! docker exec $backend_container uv run python manage.py warmup; then
+            if ! sudo docker exec "$backend_container" uv run python manage.py warmup; then
               echo "Warmup failed"
               exit 1
             fi

@@ -103,6 +103,7 @@ jobs:
       deployment_ref: ${{ github.sha }}
       version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       test_url: ${{ vars.STAGING_URL }}
+      run_e2e_tests: true
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
