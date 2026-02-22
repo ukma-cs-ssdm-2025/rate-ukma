@@ -110,6 +110,21 @@ jobs:
           BACKEND_TAG=$(bash scripts/ci/find-image-tags.sh "rate-ukma/backend" "$TARGET_VERSION" "")
           WEBAPP_TAG=$(bash scripts/ci/find-image-tags.sh "rate-ukma/webapp" "$TARGET_VERSION" "$WEBAPP_PREFIX")
 
+          MISSING=""
+          if [ -z "$BACKEND_TAG" ]; then
+            echo "::error::Backend image tag not found for version '$TARGET_VERSION'"
+            MISSING="Backend"
+          fi
+          if [ -z "$WEBAPP_TAG" ]; then
+            echo "::error::Webapp image tag not found for version '$TARGET_VERSION'"
+            MISSING="${MISSING:+$MISSING, }Webapp"
+          fi
+          if [ -n "$MISSING" ]; then
+            echo "### Deployment failed" >> "$GITHUB_STEP_SUMMARY"
+            echo "Missing image tags for version \`$TARGET_VERSION\`: **$MISSING**" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
           echo "backend_tag=$BACKEND_TAG" >> "$GITHUB_OUTPUT"
           echo "webapp_tag=$WEBAPP_TAG" >> "$GITHUB_OUTPUT"
 
