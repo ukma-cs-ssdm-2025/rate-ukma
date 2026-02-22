@@ -121,7 +121,7 @@ export function MyRatingCard({
 				/>
 			</div>
 
-			{courseId && offeringId && (
+			{courseId && (offeringId || canModify) && (
 				<RatingModal
 					isOpen={showRatingModal}
 					onClose={() => setShowRatingModal(false)}

@@ -32,7 +32,7 @@ interface RatingModalProps {
 	readonly isOpen: boolean;
 	readonly onClose: () => void;
 	readonly courseId: string;
-	readonly offeringId: string;
+	readonly offeringId?: string;
 	readonly courseName?: string;
 	readonly existingRating?: ExistingRating | null;
 	readonly onSuccess?: () => void;
@@ -90,7 +90,7 @@ export function RatingModal({
 				await createMutation.mutateAsync({
 					courseId: courseId,
 					data: {
-						course_offering: offeringId,
+						course_offering: offeringId!,
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment || undefined,
