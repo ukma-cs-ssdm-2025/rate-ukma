@@ -9,6 +9,7 @@ export interface UseInfiniteScrollRatingsReturn {
 	userRating: RatingRead | undefined;
 	hasMoreRatings: boolean;
 	isLoading: boolean;
+	isFetching: boolean;
 	loaderRef: RefObject<HTMLDivElement | null>;
 	totalRatings: number | undefined;
 }

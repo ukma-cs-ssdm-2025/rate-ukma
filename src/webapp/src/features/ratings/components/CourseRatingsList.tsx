@@ -132,8 +132,6 @@ export function CourseRatingsList({
 	// Prefer user rating from API (has vote data) over prop (from different endpoint)
 	const userRating = userRatingFromApi ?? userRatingProp;
 
-	const showSkeleton = isFetching;
-
 	// Total from backend already reflects the number of items
 	// including non-current user ratings and current user rating (if any)
 	// when separate_current_user is true.
@@ -167,7 +165,7 @@ export function CourseRatingsList({
 				/>
 			)}
 
-			{showSkeleton ? (
+			{isFetching ? (
 				<CourseRatingsListSkeleton />
 			) : (
 				<RatingsContent
