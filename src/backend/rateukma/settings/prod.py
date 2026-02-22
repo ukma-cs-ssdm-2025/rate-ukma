@@ -1,3 +1,5 @@
+from django.core.exceptions import DisallowedHost
+
 import sentry_sdk
 
 from ._base import *  # noqa: F403
@@ -28,4 +30,8 @@ if SENTRY_DSN:
         # Set profile_lifecycle to "trace" to automatically
         # run the profiler on when there is an active transaction
         profile_lifecycle="trace",
+        # DisallowedHost is triggered by internet bots sending a raw bind-address
+        # (e.g. Host: 0.0.0.0) or invalid Host headers. Django already rejects
+        # these with HTTP 400 — there is nothing actionable for us to fix.
+        ignore_errors=[DisallowedHost],
     )

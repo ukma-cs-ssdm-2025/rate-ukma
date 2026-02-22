@@ -85,7 +85,14 @@ const logErrorToSentry = (error: unknown) => {
 	const status = error.response?.status;
 	const url = error.config?.url;
 
-	Sentry.captureException(error, {
+	// 401 on the session probe is an expected "not authenticated" state — skip to avoid noise
+	if (status === 401 && url?.includes(AUTH_SESSION_ENDPOINT_SUBSTRING)) {
+		return;
+	}
+
+	// Capture a plain Error (not the raw AxiosError) to prevent sending PII/large
+	// payloads from config.data (request body) and response.data to Sentry.
+	Sentry.captureException(new Error(error.message), {
 		level: "error",
 		tags: {
 			httpMethod: method,
