@@ -85,7 +85,7 @@ jobs:
           fi
 
   deploy-live:
-    if: needs.get-staging-released-version.outputs.release_not_found != 'true'
+    if: needs.get-staging-released-version.result == 'success' && needs.get-staging-released-version.outputs.release_not_found != 'true'
     uses: ./.github/workflows/deploy.yml
     needs: [get-staging-released-version]
     with:
@@ -103,7 +103,7 @@ jobs:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
   update_pre_releases:
-    if: needs.get-staging-released-version.outputs.release_not_found != 'true'
+    if: needs.get-staging-released-version.result == 'success' && needs.get-staging-released-version.outputs.release_not_found != 'true'
     needs: [get-latest-live-tag, get-staging-released-version, deploy-live]
     runs-on: ubuntu-24.04
     steps:
@@ -169,7 +169,7 @@ jobs:
           done
 
   push_live_tag:
-    if: needs.get-staging-released-version.outputs.release_not_found != 'true'
+    if: needs.get-staging-released-version.result == 'success' && needs.get-staging-released-version.outputs.release_not_found != 'true'
     needs: [get-staging-released-version, update_pre_releases]
     runs-on: ubuntu-24.04
     permissions:

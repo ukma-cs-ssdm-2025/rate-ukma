@@ -85,10 +85,12 @@ jobs:
           ref: ${{ inputs.deployment_ref || github.sha }}
 
       - name: Set archive name
+        env:
+          REF: ${{ inputs.deployment_ref || github.sha }}
+          ENVIRONMENT: ${{ inputs.environment }}
         run: |
-          REF="${{ inputs.deployment_ref || github.sha }}"
           SAFE_REF="${REF//\//-}"
-          echo "ARCHIVE_NAME=rate-ukma-${{ inputs.environment }}-${SAFE_REF}.tar.gz" >> "$GITHUB_ENV"
+          echo "ARCHIVE_NAME=rate-ukma-${ENVIRONMENT}-${SAFE_REF}.tar.gz" >> "$GITHUB_ENV"
 
       - name: Find latest available image tags
         id: find-tags
