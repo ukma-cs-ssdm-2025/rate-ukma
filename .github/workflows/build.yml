@@ -67,7 +67,7 @@ jobs:
         run: docker compose --profile prod build --build-arg BACKEND_IMAGE_TAG=${BACKEND_IMAGE_TAG} backend
 
       - name: Push backend image
-        if: inputs.version_tag && github.ref_name == github.event.repository.default_branch
+        if: inputs.version_tag
         env:
           BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
@@ -76,6 +76,13 @@ jobs:
   build-webapp:
     if: inputs.webapp_changed == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - environment: staging
+            api_url_var: STAGING_URL
+          - environment: live
+            api_url_var: LIVE_URL
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -88,7 +95,7 @@ jobs:
       - name: Login to GitHub Container Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: docker login ghcr.io -u ${{ github.actor }} -p $GITHUB_TOKEN
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Copy default .env file
         working-directory: ${{ env.SOURCE_CODE_DIR }}
@@ -104,16 +111,16 @@ jobs:
           echo "webapp_image=${WEBAPP_IMAGE}" >> $GITHUB_OUTPUT
           echo "Webapp image: $WEBAPP_IMAGE"
 
-      - name: Build staging webapp
+      - name: Build ${{ matrix.environment }} webapp
         env:
           DOCKER_BUILDKIT: 1
-          VITE_API_BASE_URL: ${{ vars.STAGING_URL }}
+          VITE_API_BASE_URL: ${{ vars[matrix.api_url_var] }}
           VITE_SENTRY_DSN_FRONTEND: ${{ vars.SENTRY_DSN_FRONTEND }}
-          VITE_ENVIRONMENT: staging
+          VITE_ENVIRONMENT: ${{ matrix.environment }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          WEBAPP_IMAGE_TAG: staging-${{ inputs.version_tag || 'dry-run-version' }}
+          WEBAPP_IMAGE_TAG: ${{ matrix.environment }}-${{ inputs.version_tag || 'dry-run-version' }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Building webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
@@ -129,44 +136,10 @@ jobs:
             -t ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG} \
             ..
 
-      - name: Push staging webapp
-        if: inputs.version_tag && github.ref_name == github.event.repository.default_branch
+      - name: Push ${{ matrix.environment }} webapp
+        if: inputs.version_tag
         env:
-          WEBAPP_IMAGE_TAG: staging-${{ inputs.version_tag }}
-        working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: |
-          echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
-          docker push ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}
-
-      - name: Build live webapp
-        env:
-          DOCKER_BUILDKIT: 1
-          VITE_API_BASE_URL: ${{ vars.LIVE_URL }}
-          VITE_SENTRY_DSN_FRONTEND: ${{ vars.SENTRY_DSN_FRONTEND }}
-          VITE_ENVIRONMENT: live
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          WEBAPP_IMAGE_TAG: live-${{ inputs.version_tag || 'dry-run-version' }}
-        working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: |
-          echo "Building webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"
-          docker build \
-            --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
-            --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
-            --build-arg VITE_SENTRY_DSN_FRONTEND=${VITE_SENTRY_DSN_FRONTEND} \
-            --build-arg VITE_ENVIRONMENT=${VITE_ENVIRONMENT} \
-            --build-arg SENTRY_ORG=${SENTRY_ORG} \
-            --build-arg SENTRY_PROJECT_FRONTEND=${SENTRY_PROJECT_FRONTEND} \
-            --target production \
-            -f webapp/Dockerfile \
-            -t ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG} \
-            ..
-
-      - name: Push live webapp
-        if: inputs.version_tag && github.ref_name == github.event.repository.default_branch
-        env:
-          WEBAPP_IMAGE_TAG: live-${{ inputs.version_tag }}
+          WEBAPP_IMAGE_TAG: ${{ matrix.environment }}-${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: |
           echo "Pushing webapp image: ${{ steps.extract_name.outputs.webapp_image }}:${WEBAPP_IMAGE_TAG}"

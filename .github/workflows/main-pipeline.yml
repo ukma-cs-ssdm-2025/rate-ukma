@@ -58,17 +58,14 @@ jobs:
 
   build:
     needs: [version, test, openapi-validation, audit, changes-filter]
-    if: |
-      always() &&
-      needs.version.result != 'failure' &&
-      needs.test.result != 'failure' &&
-      needs.openapi-validation.result != 'failure' &&
-      needs.audit.result != 'failure' &&
-      needs.changes-filter.result != 'failure'
+    # Run unless a dependency failed or workflow was cancelled
+    # Needed because 'version' is skipped on non-main branches, which would
+    # otherwise cause all downstream jobs to be skipped too
+    if: ${{ !failure() && !cancelled() }}
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
 
@@ -79,7 +76,7 @@ jobs:
     outputs:
       release_needed: ${{ steps.check.outputs.release_needed }}
     env:
-      VERSION_TAG: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
+      VERSION_TAG: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
     steps:
       - uses: actions/checkout@v5
 
@@ -99,13 +96,14 @@ jobs:
 
   deploy-staging:
     needs: [version, build]
-    if: |
-      always() &&
-      needs.build.result == 'success'
-    uses: ./.github/workflows/deploy-staging.yml
+    if: ${{ !failure() && !cancelled() && needs.build.result == 'success' }}
+    uses: ./.github/workflows/deploy.yml
     with:
+      environment: staging
       deployment_ref: ${{ github.sha }}
-      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
+      test_url: ${{ vars.STAGING_URL }}
+      run_e2e_tests: true
     secrets:
       SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
       SSH_USER: ${{ secrets.STAGING_SSH_USER }}
@@ -116,12 +114,12 @@ jobs:
 
   release:
     needs: [version, deploy-staging, release-needed]
-    if: |
+    if: >-
+      ${{ !failure() && !cancelled() &&
       github.ref_name == github.event.repository.default_branch &&
-      always() &&
       needs.release-needed.result == 'success' &&
-      needs.release-needed.outputs.release_needed == 'true'
+      needs.release-needed.outputs.release_needed == 'true' }}
     uses: ./.github/workflows/release.yml
     with:
-      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag }}
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       pre-release: true
