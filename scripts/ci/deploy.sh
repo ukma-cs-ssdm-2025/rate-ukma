@@ -68,7 +68,7 @@ stop_services() {
 
 deploy_new_version() {
   echo "Cleaning project directory..."
-  rm -rf "${SOURCE_CODE:?}"/*
+  sudo rm -rf "${SOURCE_CODE:?}"/*
 
   echo "Extracting new version..."
   cd "$PROJECT_DIR"
@@ -143,7 +143,7 @@ rollback() {
   sudo docker compose --profile prod down || true
 
   echo "Restoring previous version from $BACKUP_DIR"
-  rm -rf "${SOURCE_CODE:?}"/*
+  sudo rm -rf "${SOURCE_CODE:?}"/*
   cp -r "$BACKUP_DIR/src/"* "$SOURCE_CODE/"
 
   cd "$SOURCE_CODE"
