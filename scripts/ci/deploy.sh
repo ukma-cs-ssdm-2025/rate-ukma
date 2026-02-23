@@ -52,8 +52,13 @@ backup_current_version() {
 
   echo "Previous WEBAPP_IMAGE_TAG: $PREV_WEBAPP_TAG"
   echo "Previous BACKEND_IMAGE_TAG: $PREV_BACKEND_TAG"
-  echo "PREV_WEBAPP_TAG=$PREV_WEBAPP_TAG" > "$TMP_DIR/prev_tags.env"
-  echo "PREV_BACKEND_TAG=$PREV_BACKEND_TAG" >> "$TMP_DIR/prev_tags.env"
+
+  if [ -n "$PREV_WEBAPP_TAG" ] && [ -n "$PREV_BACKEND_TAG" ]; then
+    echo "PREV_WEBAPP_TAG=$PREV_WEBAPP_TAG" > "$TMP_DIR/prev_tags.env"
+    echo "PREV_BACKEND_TAG=$PREV_BACKEND_TAG" >> "$TMP_DIR/prev_tags.env"
+  else
+    echo "Warning: Could not capture both previous image tags, rollback to previous version will not be available"
+  fi
 }
 
 stop_services() {
@@ -107,13 +112,14 @@ health_check() {
   while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
     echo "Health check attempt $attempt/$MAX_ATTEMPTS..."
 
-    RUNNING_SERVICES=$(sudo docker compose ps --status=running --format json | jq -s 'length')
+    # services that are running or exited successfully (e.g. one-shot build containers)
+    HEALTHY_SERVICES=$(sudo docker compose ps --format json | jq -s '[.[] | select(.State == "running" or (.State == "exited" and .ExitCode == 0))] | length')
 
-    if [ "$RUNNING_SERVICES" -eq "$EXPECTED_SERVICES" ] && [ -f "$STATIC_ROOT/index.html" ]; then
+    if [ "$HEALTHY_SERVICES" -eq "$EXPECTED_SERVICES" ] && [ -f "$STATIC_ROOT/index.html" ]; then
       return 0
     fi
 
-    echo "Services not ready yet ($RUNNING_SERVICES/$EXPECTED_SERVICES running), waiting..."
+    echo "Services not ready yet ($HEALTHY_SERVICES/$EXPECTED_SERVICES healthy), waiting..."
     sleep "$HEALTHCHECK_TIMEOUT"
     attempt=$((attempt + 1))
   done
@@ -151,14 +157,14 @@ rollback() {
   if [ -f "$TMP_DIR/prev_tags.env" ]; then
     echo "Loading previous image tags..."
     source "$TMP_DIR/prev_tags.env"
-    echo "Rolling back to WEBAPP: $PREV_WEBAPP_TAG, BACKEND: $PREV_BACKEND_TAG"
+  fi
 
+  if [ -n "$PREV_WEBAPP_TAG" ] && [ -n "$PREV_BACKEND_TAG" ]; then
+    echo "Rolling back to WEBAPP: $PREV_WEBAPP_TAG, BACKEND: $PREV_BACKEND_TAG"
     compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" "pull"
     compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" "up -d"
   else
-    echo "Warning: Previous tags not found. Attempting basic rollback..."
-    sudo docker compose --profile prod pull
-    sudo docker compose --profile prod up -d
+    echo "Warning: Previous image tags not available. Cannot rollback to a previous version."
   fi
 
   echo "Rollback completed. Deployment failed."
