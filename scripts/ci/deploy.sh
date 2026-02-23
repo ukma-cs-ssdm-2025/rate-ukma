@@ -113,13 +113,15 @@ health_check() {
     echo "Health check attempt $attempt/$MAX_ATTEMPTS..."
 
     # services that are running or exited successfully (e.g. one-shot build containers)
-    HEALTHY_SERVICES=$(sudo docker compose ps --format json | jq -s '[.[] | select(.State == "running" or (.State == "exited" and .ExitCode == 0))] | length')
+    ALL_SERVICES_JSON=$(sudo docker compose ps -a --format json | jq -s '.')
+    HEALTHY_SERVICES=$(echo "$ALL_SERVICES_JSON" | jq '[.[] | select(.State == "running" or (.State == "exited" and .ExitCode == 0))] | length')
 
     if [ "$HEALTHY_SERVICES" -eq "$EXPECTED_SERVICES" ] && [ -f "$STATIC_ROOT/index.html" ]; then
       return 0
     fi
 
     echo "Services not ready yet ($HEALTHY_SERVICES/$EXPECTED_SERVICES healthy), waiting..."
+    echo "$ALL_SERVICES_JSON" | jq -r '.[] | select(.State != "running" and (.State != "exited" or .ExitCode != 0)) | "  UNHEALTHY: \(.Service) state=\(.State) exit_code=\(.ExitCode)"'
     sleep "$HEALTHCHECK_TIMEOUT"
     attempt=$((attempt + 1))
   done
