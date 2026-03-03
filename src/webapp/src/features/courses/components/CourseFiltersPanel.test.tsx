@@ -202,7 +202,7 @@ describe("CourseFiltersPanel", () => {
 			const termLabel = screen.getByText("Семестровий період");
 			expect(termLabel).toBeInTheDocument();
 
-			const toggleGroup = screen.getByTestId(testIds.filters.termSelect);
+			const toggleGroup = screen.getByTestId(testIds.filters.termToggle);
 			expect(toggleGroup).toBeInTheDocument();
 			expect(toggleGroup).toHaveAttribute("role", "group");
 
@@ -540,7 +540,7 @@ describe("CourseFiltersPanel", () => {
 			expect(selects).toHaveLength(5);
 
 			// Term filter uses a toggle group
-			const termToggle = screen.getByTestId(testIds.filters.termSelect);
+			const termToggle = screen.getByTestId(testIds.filters.termToggle);
 			expect(termToggle).toHaveAttribute("role", "group");
 		});
 

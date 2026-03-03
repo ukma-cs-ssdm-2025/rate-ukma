@@ -118,7 +118,7 @@ export const testIds = {
 		resetButton: "filters-reset-button",
 		difficultySlider: "filters-difficulty-slider",
 		usefulnessSlider: "filters-usefulness-slider",
-		termSelect: "filters-term-select",
+		termToggle: "filters-term-toggle",
 		yearSelect: "filters-year-select",
 		facultySelect: "filters-faculty-select",
 		departmentSelect: "filters-department-select",

@@ -240,7 +240,7 @@ async function applyAndAssertAllFilters({
 		await clickToggleGroupItem({
 			page,
 			scope,
-			groupTestId: testIds.filters.termSelect,
+			groupTestId: testIds.filters.termToggle,
 			uiParamKey: "term",
 		});
 	});

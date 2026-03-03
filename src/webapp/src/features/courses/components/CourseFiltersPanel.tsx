@@ -211,7 +211,6 @@ function CourseFiltersContent({
 	} as const;
 
 	const selectFilterTestIdByKey = {
-		term: testIds.filters.termSelect,
 		year: testIds.filters.yearSelect,
 		faculty: testIds.filters.facultySelect,
 		dept: testIds.filters.departmentSelect,
@@ -252,7 +251,7 @@ function CourseFiltersContent({
 						value={data.semesterTermToggle.selected}
 						onValueChange={handleTermToggle}
 						className="flex w-full"
-						data-testid={testIds.filters.termSelect}
+						data-testid={testIds.filters.termToggle}
 					>
 						{data.semesterTermToggle.options.map((option) => (
 							<ToggleGroupItem
