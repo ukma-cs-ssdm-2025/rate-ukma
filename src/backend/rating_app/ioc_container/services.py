@@ -121,6 +121,9 @@ def vote_service() -> RatingFeedbackService:
         vote_repository=vote_repository(),
         enrollment_repository=enrollment_repository(),
         rating_repository=rating_repository(),
+        rating_service=rating_service(),
+        course_offering_service=course_offering_service(),
+        semester_service=semester_service(),
         vote_mapper=rating_vote_mapper(),
     )
 
