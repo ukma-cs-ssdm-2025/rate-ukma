@@ -87,10 +87,16 @@ export function RatingModal({
 					},
 				});
 			} else {
+				if (!offeringId) {
+					toast.error(
+						"Не вдалося створити оцінку: відсутній ідентифікатор курсу",
+					);
+					return;
+				}
 				await createMutation.mutateAsync({
 					courseId: courseId,
 					data: {
-						course_offering: offeringId!,
+						course_offering: offeringId,
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment || undefined,
