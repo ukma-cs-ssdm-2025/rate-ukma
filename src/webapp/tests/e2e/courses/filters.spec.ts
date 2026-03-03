@@ -237,10 +237,10 @@ async function applyAndAssertAllFilters({
 	});
 
 	await test.step("semester term", async () => {
-		await selectSecondRadixSelectOption({
+		await clickToggleGroupItem({
 			page,
 			scope,
-			triggerTestId: testIds.filters.termSelect,
+			groupTestId: testIds.filters.termSelect,
 			uiParamKey: "term",
 		});
 	});
@@ -484,6 +484,33 @@ async function nudgeRangeFilter({
 	}
 
 	await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2);
+
+	await expect.poll(() => getSearchParam(page, uiParamKey)).not.toBe("");
+}
+
+async function clickToggleGroupItem({
+	page,
+	scope,
+	groupTestId,
+	uiParamKey,
+}: {
+	page: Page;
+	scope: Locator;
+	groupTestId: string;
+	uiParamKey: string;
+}): Promise<void> {
+	const group = scope.getByTestId(groupTestId);
+	await group.scrollIntoViewIfNeeded();
+
+	const items = group.locator("[data-slot='toggle-group-item']");
+	const count = await items.count();
+	if (count === 0) {
+		throw new Error(
+			`Expected at least 1 toggle item for ${groupTestId} but got 0`,
+		);
+	}
+
+	await items.first().click();
 
 	await expect.poll(() => getSearchParam(page, uiParamKey)).not.toBe("");
 }
