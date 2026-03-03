@@ -11,28 +11,50 @@ from .test_rating import (
 )
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
-@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
-def test_create_vote_upvote(
+@pytest.fixture
+def default_semester(semester_factory):
+    """Create a default semester for testing."""
+    return semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+
+
+@pytest.fixture
+def enrolled_student_setup(
     token_client,
     rating_factory,
     student_factory,
     enrollment_factory,
-    semester_factory,
+    default_semester,
 ):
-    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
-    rating = rating_factory(course_offering__semester=semester)
+    rating = rating_factory(course_offering__semester=default_semester)
     offering = rating.course_offering
     student = student_factory(user=token_client.user)
-    enrollment_factory(offering=offering, student=student)  # must be enrolled to vote
+    enrollment_factory(offering=offering, student=student)
 
-    url = f"/api/v1/ratings/{rating.id}/votes/"
-    payload = {
-        "vote_type": RatingVoteStrType.UPVOTE,
+    return {
+        "rating": rating,
+        "student": student,
+        "offering": offering,
     }
 
-    response = token_client.put(url, data=payload, format="json")
+
+def make_vote_url(rating_id):
+    """Helper to generate vote URL."""
+    return f"/api/v1/ratings/{rating_id}/votes/"
+
+
+def make_vote_request(client, rating_id, vote_type):
+    """Helper to make a vote PUT request."""
+    url = make_vote_url(rating_id)
+    payload = {"vote_type": vote_type}
+    return client.put(url, data=payload, format="json")
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_create_vote_upvote(token_client, enrolled_student_setup):
+    rating = enrolled_student_setup["rating"]
+    response = make_vote_request(token_client, rating.id, RatingVoteStrType.UPVOTE)
 
     assert response.status_code == 201
     assert response.json()["vote_type"] == RatingVoteStrType.UPVOTE
@@ -42,25 +64,9 @@ def test_create_vote_upvote(
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
-def test_create_vote_downvote(
-    token_client,
-    rating_factory,
-    student_factory,
-    enrollment_factory,
-    semester_factory,
-):
-    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
-    rating = rating_factory(course_offering__semester=semester)
-    offering = rating.course_offering
-    student = student_factory(user=token_client.user)
-    enrollment_factory(offering=offering, student=student)
-
-    url = f"/api/v1/ratings/{rating.id}/votes/"
-    payload = {
-        "vote_type": RatingVoteStrType.DOWNVOTE,
-    }
-
-    response = token_client.put(url, data=payload, format="json")
+def test_create_vote_downvote(token_client, enrolled_student_setup):
+    rating = enrolled_student_setup["rating"]
+    response = make_vote_request(token_client, rating.id, RatingVoteStrType.DOWNVOTE)
 
     assert response.status_code == 201
     assert response.json()["vote_type"] == RatingVoteStrType.DOWNVOTE
@@ -102,28 +108,13 @@ def test_create_vote_different_enrollment(
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
-def test_create_vote_toggle(
-    token_client,
-    rating_factory,
-    student_factory,
-    enrollment_factory,
-    vote_factory,
-    semester_factory,
-):
-    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+def test_create_vote_toggle(token_client, enrolled_student_setup, vote_factory):
+    rating = enrolled_student_setup["rating"]
+    student = enrolled_student_setup["student"]
     # Setup: Existing UPVOTE
-    rating = rating_factory(course_offering__semester=semester)
-    offering = rating.course_offering
-    student = student_factory(user=token_client.user)
-    enrollment_factory(offering=offering, student=student)
     vote_factory(rating=rating, student=student, type=RatingVoteType.UPVOTE)
 
-    url = f"/api/v1/ratings/{rating.id}/votes/"
-    payload = {
-        "vote_type": RatingVoteStrType.DOWNVOTE,
-    }
-
-    response = token_client.put(url, data=payload, format="json")
+    response = make_vote_request(token_client, rating.id, RatingVoteStrType.DOWNVOTE)
 
     assert response.status_code == 200
     assert response.json()["vote_type"] == RatingVoteStrType.DOWNVOTE
@@ -132,22 +123,12 @@ def test_create_vote_toggle(
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
-def test_delete_vote(
-    token_client,
-    rating_factory,
-    student_factory,
-    enrollment_factory,
-    vote_factory,
-    semester_factory,
-):
-    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
-    rating = rating_factory(course_offering__semester=semester)
-    offering = rating.course_offering
-    student = student_factory(user=token_client.user)
-    enrollment_factory(offering=offering, student=student)
+def test_delete_vote(token_client, enrolled_student_setup, vote_factory):
+    rating = enrolled_student_setup["rating"]
+    student = enrolled_student_setup["student"]
     vote_factory(rating=rating, student=student, type=RatingVoteType.UPVOTE)
 
-    url = f"/api/v1/ratings/{rating.id}/votes/"
+    url = make_vote_url(rating.id)
     response = token_client.delete(url)
 
     assert response.status_code == 204
@@ -160,19 +141,13 @@ def test_create_vote_not_enrolled_fails(
     token_client,
     rating_factory,
     student_factory,
-    semester_factory,
+    default_semester,
 ):
-    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
-    rating = rating_factory(course_offering__semester=semester)
+    rating = rating_factory(course_offering__semester=default_semester)
     # Student exists but is NOT enrolled in the course associated with the rating
     student_factory(user=token_client.user)
 
-    url = f"/api/v1/ratings/{rating.id}/votes/"
-    payload = {
-        "vote_type": RatingVoteStrType.UPVOTE,
-    }
-
-    response = token_client.put(url, data=payload, format="json")
+    response = make_vote_request(token_client, rating.id, RatingVoteStrType.UPVOTE)
 
     assert response.status_code == 403
     assert "must be enrolled" in response.json()["detail"]
@@ -181,21 +156,11 @@ def test_create_vote_not_enrolled_fails(
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
-def test_create_vote_not_student_fails(
-    token_client,
-    rating_factory,
-    semester_factory,
-):
-    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
-    rating = rating_factory(course_offering__semester=semester)
+def test_create_vote_not_student_fails(token_client, rating_factory, default_semester):
+    rating = rating_factory(course_offering__semester=default_semester)
     # User is logged in but has no Student profile
 
-    url = f"/api/v1/ratings/{rating.id}/votes/"
-    payload = {
-        "vote_type": RatingVoteStrType.UPVOTE,
-    }
-
-    response = token_client.put(url, data=payload, format="json")
+    response = make_vote_request(token_client, rating.id, RatingVoteStrType.UPVOTE)
 
     assert response.status_code == 403
     assert "Only students can perform this action" in response.json()["detail"]
@@ -204,20 +169,9 @@ def test_create_vote_not_student_fails(
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
-def test_create_vote_invalid_type_fails(
-    token_client,
-    rating_factory,
-    student_factory,
-    enrollment_factory,
-    semester_factory,
-):
-    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
-    rating = rating_factory(course_offering__semester=semester)
-    offering = rating.course_offering
-    student = student_factory(user=token_client.user)
-    enrollment_factory(offering=offering, student=student)
-
-    url = f"/api/v1/ratings/{rating.id}/votes/"
+def test_create_vote_invalid_type_fails(token_client, enrolled_student_setup):
+    rating = enrolled_student_setup["rating"]
+    url = make_vote_url(rating.id)
     payload = {"vote_type": "INVALID_TYPE"}
 
     response = token_client.put(url, data=payload, format="json")
@@ -232,24 +186,18 @@ def test_create_vote_before_midterm_fails(
     token_client,
     rating_factory,
     student_factory,
-    semester_factory,
     course_factory,
     course_offering_factory,
     enrollment_factory,
+    default_semester,
 ):
-    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
     course = course_factory()
-    offering = course_offering_factory(course=course, semester=semester)
+    offering = course_offering_factory(course=course, semester=default_semester)
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
     rating = rating_factory(course_offering=offering)
 
-    url = f"/api/v1/ratings/{rating.id}/votes/"
-    payload = {
-        "vote_type": RatingVoteStrType.UPVOTE,
-    }
-
-    response = token_client.put(url, data=payload, format="json")
+    response = make_vote_request(token_client, rating.id, RatingVoteStrType.UPVOTE)
 
     assert response.status_code == 403
     assert "half of the semester has passed" in response.json()["detail"]
@@ -262,24 +210,18 @@ def test_create_vote_after_midterm_succeeds(
     token_client,
     rating_factory,
     student_factory,
-    semester_factory,
     course_factory,
     course_offering_factory,
     enrollment_factory,
+    default_semester,
 ):
-    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
     course = course_factory()
-    offering = course_offering_factory(course=course, semester=semester)
+    offering = course_offering_factory(course=course, semester=default_semester)
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
     rating = rating_factory(course_offering=offering)
 
-    url = f"/api/v1/ratings/{rating.id}/votes/"
-    payload = {
-        "vote_type": RatingVoteStrType.UPVOTE,
-    }
-
-    response = token_client.put(url, data=payload, format="json")
+    response = make_vote_request(token_client, rating.id, RatingVoteStrType.UPVOTE)
 
     assert response.status_code == 201
     assert response.json()["vote_type"] == RatingVoteStrType.UPVOTE
@@ -307,12 +249,7 @@ def test_create_vote_on_past_semester_succeeds(
     enrollment_factory(offering=offering, student=student)
     rating = rating_factory(course_offering=offering)
 
-    url = f"/api/v1/ratings/{rating.id}/votes/"
-    payload = {
-        "vote_type": RatingVoteStrType.DOWNVOTE,
-    }
-
-    response = token_client.put(url, data=payload, format="json")
+    response = make_vote_request(token_client, rating.id, RatingVoteStrType.DOWNVOTE)
 
     assert response.status_code == 201
     assert response.json()["vote_type"] == RatingVoteStrType.DOWNVOTE
