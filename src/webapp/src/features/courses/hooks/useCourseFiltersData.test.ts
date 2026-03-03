@@ -186,15 +186,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.selectFilters).toHaveLength(5);
 			const filterKeys = result.current.selectFilters.map((f) => f.key);
-			expect(filterKeys).toEqual([
-				"year",
-				"faculty",
-				"dept",
-				"spec",
-				"type",
-				// "term" is now a ToggleGroup, not a select
-				// "instructor", // Disabled
-			]);
+			expect(filterKeys).toEqual(["year", "faculty", "dept", "spec", "type"]);
 		});
 
 		it("should map filter options to select options", () => {
@@ -503,6 +495,25 @@ describe("useCourseFiltersData", () => {
 			expect(result.current.activeBadges).toContainEqual({
 				key: "semester",
 				label: "2024-2025 Осінь",
+			});
+		});
+
+		it("should show combined term badge when multiple terms selected", () => {
+			// Arrange
+			const filterOptions = createMockFilterOptions({
+				semester_terms: [MOCK_SEMESTER_TERMS.FALL, MOCK_SEMESTER_TERMS.SPRING],
+			});
+
+			// Act
+			const { result } = renderFiltersHook(
+				{ term: ["FALL", "SPRING"] },
+				filterOptions,
+			);
+
+			// Assert
+			expect(result.current.activeBadges).toContainEqual({
+				key: "semesterTerm",
+				label: "Осінь, Весна",
 			});
 		});
 

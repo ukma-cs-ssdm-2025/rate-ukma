@@ -535,11 +535,9 @@ describe("CourseFiltersPanel", () => {
 			render(<TestWrapper />);
 
 			// Assert
-			// Radix Select uses combobox role (term is now a ToggleGroup, not a select)
 			const selects = screen.getAllByRole("combobox");
 			expect(selects).toHaveLength(5);
 
-			// Term filter uses a toggle group
 			const termToggle = screen.getByTestId(testIds.filters.termToggle);
 			expect(termToggle).toHaveAttribute("role", "group");
 		});

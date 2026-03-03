@@ -11,6 +11,8 @@ import {
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
 
+const SEMESTER_TERM_ORDER = ["FALL", "SPRING", "SUMMER"];
+
 export function areFiltersActive(params: CourseFiltersParamsState): boolean {
 	return (
 		params.q !== "" ||
@@ -168,8 +170,6 @@ export function useCourseFiltersData({
 			captions: ["Низька", "Висока"],
 		},
 	];
-
-	const SEMESTER_TERM_ORDER = ["FALL", "SPRING", "SUMMER"];
 
 	const semesterTermToggleOptions = React.useMemo(
 		() =>
