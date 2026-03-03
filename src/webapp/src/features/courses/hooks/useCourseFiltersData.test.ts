@@ -184,15 +184,15 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook();
 
 			// Assert
-			expect(result.current.selectFilters).toHaveLength(6);
+			expect(result.current.selectFilters).toHaveLength(5);
 			const filterKeys = result.current.selectFilters.map((f) => f.key);
 			expect(filterKeys).toEqual([
-				"term",
 				"year",
 				"faculty",
 				"dept",
 				"spec",
 				"type",
+				// "term" is now a ToggleGroup, not a select
 				// "instructor", // Disabled
 			]);
 		});

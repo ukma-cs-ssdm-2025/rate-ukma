@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { testIds } from "@/lib/test-ids";
 import { createMockFilterOptions } from "@/test-utils/factories";
 import { CourseFiltersPanel } from "./CourseFiltersPanel";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
@@ -185,7 +186,7 @@ describe("CourseFiltersPanel", () => {
 			expect(facultySelect).not.toBeDisabled();
 		});
 
-		it("should render semester term select with options", () => {
+		it("should render semester term toggle group with options", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
 				semester_terms: [
@@ -198,16 +199,17 @@ describe("CourseFiltersPanel", () => {
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
-			// Verify semester term select is rendered
 			const termLabel = screen.getByText("Семестровий період");
 			expect(termLabel).toBeInTheDocument();
-			const selectContainer = assertElement(
-				termLabel.closest(".space-y-3"),
-				"Semester term select container not found",
-			);
-			const termSelect = within(selectContainer).getByRole("combobox");
-			expect(termSelect).toBeInTheDocument();
-			expect(termSelect).not.toBeDisabled();
+
+			const toggleGroup = screen.getByTestId(testIds.filters.termSelect);
+			expect(toggleGroup).toBeInTheDocument();
+			expect(toggleGroup).toHaveAttribute("role", "group");
+
+			const toggleButtons = within(toggleGroup).getAllByRole("button");
+			expect(toggleButtons).toHaveLength(2);
+			expect(toggleButtons[0]).toHaveTextContent("Осінь");
+			expect(toggleButtons[1]).toHaveTextContent("Весна");
 		});
 
 		it("should disable select when no options available", () => {
@@ -533,10 +535,13 @@ describe("CourseFiltersPanel", () => {
 			render(<TestWrapper />);
 
 			// Assert
-			// Radix Select uses combobox role
+			// Radix Select uses combobox role (term is now a ToggleGroup, not a select)
 			const selects = screen.getAllByRole("combobox");
-			// There are 6 select filters (instructor is disabled)
-			expect(selects).toHaveLength(6);
+			expect(selects).toHaveLength(5);
+
+			// Term filter uses a toggle group
+			const termToggle = screen.getByTestId(testIds.filters.termSelect);
+			expect(termToggle).toHaveAttribute("role", "group");
 		});
 
 		it("should have reset button with proper text", () => {
