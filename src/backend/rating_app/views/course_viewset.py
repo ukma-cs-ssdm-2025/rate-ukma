@@ -41,7 +41,11 @@ class CourseViewSet(viewsets.ViewSet):
         assert self.course_service is not None
 
         try:
-            filters = CourseFilterCriteria.model_validate(request.query_params.dict())
+            raw_params = request.query_params.dict()
+            semester_terms = request.query_params.getlist("semester_terms")
+            if semester_terms:
+                raw_params["semester_terms"] = semester_terms
+            filters = CourseFilterCriteria.model_validate(raw_params)
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 

@@ -108,9 +108,8 @@ def test_filter_by_name(token_client, course_factory):
 def test_filter_by_semester(token_client, course_factory):
     # Arrange
     semester_year = "2024–2025"
-    semester_term = "FALL"
     course_factory.create()
-    url = f"/api/v1/courses/?semester_year={semester_year}&semester_term={semester_term}"
+    url = f"/api/v1/courses/?semester_year={semester_year}&semester_terms=FALL"
 
     # Act
     response = token_client.get(url)
@@ -154,7 +153,7 @@ def test_sorting_params(token_client, course_factory):
 def test_invalid_semester_term(course_factory, token_client):
     # Arrange
     course_factory.create_batch(3)
-    url = "/api/v1/courses/?semester_term=INVALID_TERM"
+    url = "/api/v1/courses/?semester_terms=INVALID_TERM"
 
     # Act
     response = token_client.get(url)
@@ -242,7 +241,7 @@ def test_filter_by_multiple_parameters(
 
     url = (
         f"/api/v1/courses/?department={department_id}&faculty={faculty_id}"
-        f"&semester_year=2024–2025&semester_term=FALL"
+        f"&semester_year=2024–2025&semester_terms=FALL"
     )
 
     response = token_client.get(url)

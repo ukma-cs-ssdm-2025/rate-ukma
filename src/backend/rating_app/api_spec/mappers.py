@@ -35,10 +35,26 @@ class PydanticToOpenApiRequestMapper(
 
             openapi_type: OpenApiTypes | None = None
             enum: list[str] | None = None
+            many = False
 
             field_type = self._get_field_type(field_schema, definitions)
 
-            openapi_type = self._get_openapi_type(field_type)
+            if field_type == "array":
+                many = True
+                items_schema = self._get_array_items_schema(field_schema, definitions)
+                if items_schema is None:
+                    logger.warning(
+                        "unknown_array_items_skipped",
+                        field_name=field_name,
+                    )
+                    continue
+                items_type = self._get_field_type(items_schema, definitions)
+                openapi_type = self._get_openapi_type(items_type)
+                enum = self._get_enum(items_schema, definitions)
+            else:
+                openapi_type = self._get_openapi_type(field_type)
+                enum = self._get_enum(field_schema, definitions)
+
             if openapi_type is None:
                 logger.warning(
                     "unknown_field_type_skipped",
@@ -47,12 +63,11 @@ class PydanticToOpenApiRequestMapper(
                 )
                 continue
 
-            enum = self._get_enum(field_schema, definitions)
             description = field_info.get("description", "")
             required = field_name in required_fields
 
             param = self._build_param(
-                param_name, openapi_type, description, required, enum, location
+                param_name, openapi_type, description, required, enum, location, many
             )
 
             params.append(param)
@@ -127,6 +142,25 @@ class PydanticToOpenApiRequestMapper(
             case _:
                 return None
 
+    def _get_array_items_schema(
+        self, field_schema: dict[str, Any], definitions: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        # Direct array: {"type": "array", "items": {...}}
+        items = field_schema.get("items")
+        if items is not None:
+            ref = items.get("$ref")
+            if ref and ref.startswith("#/$defs/"):
+                def_name = ref.replace("#/$defs/", "")
+                return definitions.get(def_name)
+            return items
+
+        # Optional array in anyOf: {"anyOf": [{"type": "array", "items": {...}}, ...]}
+        for union_type in field_schema.get("anyOf", []):
+            if union_type.get("type") == "array":
+                return self._get_array_items_schema(union_type, definitions)
+
+        return None
+
     def _get_enum(
         self, field_schema: dict[str, Any], definitions: dict[str, Any]
     ) -> list[str] | None:
@@ -172,6 +206,7 @@ class PydanticToOpenApiRequestMapper(
         required: bool,
         enum: list[str] | None,
         location: Location = OpenApiParameter.QUERY,
+        many: bool = False,
     ) -> OpenApiParameter:
         return OpenApiParameter(
             name=param_name,
@@ -180,4 +215,5 @@ class PydanticToOpenApiRequestMapper(
             description=description,
             required=required,
             enum=enum,
+            many=many,
         )

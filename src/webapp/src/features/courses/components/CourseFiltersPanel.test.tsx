@@ -14,7 +14,7 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	faculty: "",
 	dept: "",
 	instructor: "",
-	term: null,
+	term: [],
 	year: "",
 	type: null,
 	spec: "",

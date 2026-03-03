@@ -59,7 +59,7 @@ def test_filter_by_semester_limits_to_matching_courses(repo):
     result = repo.filter(
         CourseFilterCriteriaInternal(
             semester_year="2024–2025",
-            semester_term=fall_semester.term,
+            semester_terms=[fall_semester.term],
         )
     )
 

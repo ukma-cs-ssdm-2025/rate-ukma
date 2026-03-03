@@ -15,13 +15,14 @@ import {
 	SelectValue,
 } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import type {
-	CoursesListSemesterTerm,
+	CoursesListSemesterTermsItem,
 	CoursesListTypeKind,
 	FilterOptions,
 } from "@/lib/api/generated";
@@ -154,10 +155,14 @@ function CourseFiltersContent({
 		setWithPageReset({ use: value });
 	};
 
+	const handleTermToggle = (values: string[]) => {
+		setWithPageReset({
+			term: values as CoursesListSemesterTermsItem[],
+		});
+	};
+
 	const getSelectValue = (key: string): string => {
 		switch (key) {
-			case "term":
-				return params.term ?? "";
 			case "year":
 				return params.year;
 			case "faculty":
@@ -175,11 +180,6 @@ function CourseFiltersContent({
 
 	const handleSelectChange = (key: string, value: string) => {
 		switch (key) {
-			case "term":
-				setWithPageReset({
-					term: (value || null) as CoursesListSemesterTerm | null,
-				});
-				return;
 			case "year":
 				setWithPageReset({ year: value });
 				return;
@@ -242,6 +242,30 @@ function CourseFiltersContent({
 					onValueChange={(next) => handleRangeChange(key, next)}
 				/>
 			))}
+
+			{data.semesterTermToggle.options.length > 0 && (
+				<div className="space-y-3">
+					<Label className="text-sm font-medium">Семестровий період</Label>
+					<ToggleGroup
+						type="multiple"
+						variant="outline"
+						value={data.semesterTermToggle.selected}
+						onValueChange={handleTermToggle}
+						className="flex w-full"
+						data-testid={testIds.filters.termSelect}
+					>
+						{data.semesterTermToggle.options.map((option) => (
+							<ToggleGroupItem
+								key={option.value}
+								value={option.value}
+								className="flex-1 text-xs"
+							>
+								{option.label}
+							</ToggleGroupItem>
+						))}
+					</ToggleGroup>
+				</div>
+			)}
 
 			{data.selectFilters.map(
 				({

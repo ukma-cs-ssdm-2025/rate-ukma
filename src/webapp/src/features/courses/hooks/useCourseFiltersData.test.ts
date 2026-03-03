@@ -13,7 +13,7 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	faculty: "",
 	dept: "",
 	instructor: "",
-	term: null,
+	term: [],
 	year: "",
 	type: null,
 	spec: "",
@@ -495,7 +495,7 @@ describe("useCourseFiltersData", () => {
 
 			// Act
 			const { result } = renderFiltersHook(
-				{ year: "2024", term: "FALL" },
+				{ year: "2024", term: ["FALL"] },
 				filterOptions,
 			);
 
@@ -513,7 +513,7 @@ describe("useCourseFiltersData", () => {
 			});
 
 			// Act
-			const { result } = renderFiltersHook({ term: "SPRING" }, filterOptions);
+			const { result } = renderFiltersHook({ term: ["SPRING"] }, filterOptions);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({

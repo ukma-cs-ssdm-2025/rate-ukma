@@ -14,7 +14,7 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	faculty: "",
 	dept: "",
 	instructor: "",
-	term: null,
+	term: [],
 	year: "",
 	type: null,
 	spec: "",
@@ -147,11 +147,11 @@ describe("filterTransformations", () => {
 			});
 		});
 
-		it("should include semester term when provided", () => {
+		it("should include semester terms when provided", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_PARAMS,
-				term: "FALL" as const,
+				term: ["FALL" as const],
 			};
 
 			// Act
@@ -159,7 +159,7 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).toEqual({
-				semester_term: "FALL",
+				semester_terms: ["FALL"],
 			});
 		});
 
@@ -296,7 +296,7 @@ describe("filterTransformations", () => {
 				faculty: "faculty-1",
 				dept: "dept-2",
 				instructor: "instructor-3",
-				term: "SPRING" as const,
+				term: ["SPRING" as const],
 				year: "2024–2025",
 				type: "ELECTIVE" as const,
 				spec: "spec-4",
@@ -313,7 +313,7 @@ describe("filterTransformations", () => {
 				faculty: "faculty-1",
 				department: "dept-2",
 				instructor: "instructor-3",
-				semester_term: "SPRING",
+				semester_terms: ["SPRING"],
 				semester_year: "2024–2025",
 				type_kind: "ELECTIVE",
 				speciality: "spec-4",
