@@ -5,6 +5,7 @@ from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteD
 from rating_app.application_schemas.rating_vote import RatingVoteCreateSchema
 from rating_app.exception.vote_exceptions import (
     VoteOnOwnRatingException,
+    VoteOnRatingBeforeMidterm,
     VoteOnUnenrolledCourseException,
 )
 from rating_app.repositories import (
@@ -13,6 +14,7 @@ from rating_app.repositories import (
     RatingVoteMapper,
     RatingVoteRepository,
 )
+from rating_app.services import CourseOfferingService, RatingService, SemesterService
 
 
 class RatingFeedbackService(IObservable[RatingVoteDTO]):
@@ -21,11 +23,17 @@ class RatingFeedbackService(IObservable[RatingVoteDTO]):
         vote_repository: RatingVoteRepository,
         enrollment_repository: EnrollmentRepository,
         rating_repository: RatingRepository,
+        rating_service: RatingService,
+        course_offering_service: CourseOfferingService,
+        semester_service: SemesterService,
         vote_mapper: RatingVoteMapper,
     ):
         self.vote_repository = vote_repository
         self.enrollment_repository = enrollment_repository
         self.rating_repository = rating_repository
+        self.rating_service = rating_service
+        self.course_offering_service = course_offering_service
+        self.semester_service = semester_service
         self.vote_mapper = vote_mapper
         self._listeners: list[IEventListener[RatingVoteDTO]] = []
 
@@ -35,8 +43,8 @@ class RatingFeedbackService(IObservable[RatingVoteDTO]):
             listener.on_event(event, *args, **kwargs)
 
     @implements
-    def add_observer(self, listener: IEventListener[RatingVoteDTO]) -> None:
-        self._listeners.append(listener)
+    def add_observer(self, observer: IEventListener[RatingVoteDTO]) -> None:
+        self._listeners.append(observer)
 
     def upsert(self, params: RatingVoteCreateSchema) -> tuple[RatingVoteDTO, bool]:
         rating = self.rating_repository.get_by_id(params.rating_id)
@@ -86,6 +94,13 @@ class RatingFeedbackService(IObservable[RatingVoteDTO]):
         return str(rating.student_id) == student_id
 
     def _assert_student_can_vote_on_rating(self, rating: RatingDTO, student_id: str) -> None:
+        course_offering = self.course_offering_service.get_course_offering(
+            str(rating.course_offering_id)
+        )
+        semester = self.semester_service.get_by_id(str(course_offering.semester_id))
+        if not self.rating_service.is_semester_open_for_rating(semester):
+            raise VoteOnRatingBeforeMidterm()
+
         if not self._is_enrolled_in_the_rating_course(rating, student_id):
             raise VoteOnUnenrolledCourseException(
                 "A student must be enrolled in the course to vote on its rating"

@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.exceptions import APIException, NotFound, ValidationError
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 
 class VoteAlreadyExistsException(APIException):
@@ -34,3 +34,10 @@ class RatingVoteNotFoundError(NotFound):
 class InvalidRatingVoteIdentifierError(ValidationError):
     default_detail = "Rating vote id is not a valid identifier."
     default_code = "invalid_rating_vote_identifier"
+
+
+class VoteOnRatingBeforeMidterm(PermissionDenied):
+    default_detail = (
+        "You cannot vote on ratings for this course until at least half of the semester has passed."
+    )
+    default_code = "vote_period_not_started"

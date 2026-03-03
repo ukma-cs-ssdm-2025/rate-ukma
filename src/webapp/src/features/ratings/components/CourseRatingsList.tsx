@@ -9,7 +9,10 @@ import { testIds } from "@/lib/test-ids";
 import { RatingCard } from "./RatingCard";
 import { RatingsSortSelect, type SortOption } from "./RatingsSortSelect";
 import { UserRatingCard } from "./UserRatingCard";
-import { CANNOT_VOTE_WITHOUT_ATTENDING_TEXT } from "../definitions/ratingDefinitions";
+import {
+	CANNOT_VOTE_BEFORE_MIDTERM_TEXT,
+	CANNOT_VOTE_WITHOUT_ATTENDING_TEXT,
+} from "../definitions/ratingDefinitions";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
 
 const SKELETON_RATINGS_COUNT = 3;
@@ -24,6 +27,8 @@ interface CourseRatingsListProps {
 	onEditUserRating?: () => void;
 	onDeleteUserRating?: () => void;
 	canVote?: boolean;
+	hasAttended?: boolean;
+	canRate?: boolean;
 }
 
 interface RatingsContentProps {
@@ -33,6 +38,7 @@ interface RatingsContentProps {
 	loaderRef: React.RefObject<HTMLDivElement | null>;
 	hasUserRating: boolean;
 	canVote?: boolean;
+	disabledMessage?: string;
 }
 
 function RatingsContent({
@@ -42,6 +48,7 @@ function RatingsContent({
 	loaderRef,
 	hasUserRating,
 	canVote = true,
+	disabledMessage,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0) {
 		if (hasUserRating) {
@@ -64,9 +71,7 @@ function RatingsContent({
 					key={rating.id}
 					rating={rating}
 					readOnly={!canVote}
-					disabledMessage={
-						canVote ? undefined : CANNOT_VOTE_WITHOUT_ATTENDING_TEXT
-					}
+					disabledMessage={disabledMessage}
 				/>
 			))}
 
@@ -96,11 +101,21 @@ export function CourseRatingsList({
 	onEditUserRating,
 	onDeleteUserRating,
 	canVote = true,
+	hasAttended = true,
+	canRate = true,
 }: Readonly<CourseRatingsListProps>) {
 	const separateCurrentUser = !!userRatingProp;
 	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
 
-	// Convert sort option to API parameters
+	const getDisabledMessage = () => {
+		if (canVote) return undefined;
+		if (!hasAttended) return CANNOT_VOTE_WITHOUT_ATTENDING_TEXT;
+		if (!canRate) return CANNOT_VOTE_BEFORE_MIDTERM_TEXT;
+		return undefined;
+	};
+
+	const disabledMessage = getDisabledMessage();
+
 	const getSortParams = (option: SortOption) => {
 		switch (option) {
 			case "newest":
@@ -174,6 +189,7 @@ export function CourseRatingsList({
 					loaderRef={loaderRef}
 					hasUserRating={!!userRating}
 					canVote={canVote}
+					disabledMessage={disabledMessage}
 				/>
 			)}
 		</div>

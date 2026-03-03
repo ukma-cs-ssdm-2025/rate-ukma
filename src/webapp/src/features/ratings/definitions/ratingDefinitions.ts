@@ -22,3 +22,6 @@ export const CANNOT_VOTE_OWN_RATING_TEXT =
 
 export const CANNOT_VOTE_WITHOUT_ATTENDING_TEXT =
 	"Ви не можете додавати реакцію на відгук з курсу, який не прослуховували";
+
+export const CANNOT_VOTE_BEFORE_MIDTERM_TEXT =
+	"Реакції будуть доступні після середини семестру курсу.";
