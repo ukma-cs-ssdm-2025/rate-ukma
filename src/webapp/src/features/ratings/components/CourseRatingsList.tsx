@@ -34,7 +34,7 @@ interface CourseRatingsListProps {
 interface RatingsContentProps {
 	allRatings: RatingRead[];
 	hasMoreRatings: boolean;
-	isLoading: boolean;
+	isLoadingMore: boolean;
 	loaderRef: React.RefObject<HTMLDivElement | null>;
 	hasUserRating: boolean;
 	canVote?: boolean;
@@ -45,7 +45,7 @@ interface RatingsContentProps {
 function RatingsContent({
 	allRatings,
 	hasMoreRatings,
-	isLoading,
+	isLoadingMore,
 	loaderRef,
 	hasUserRating,
 	canVote = true,
@@ -84,7 +84,7 @@ function RatingsContent({
 					className="flex justify-center py-4 min-h-[60px]"
 					data-testid={testIds.common.infiniteScrollLoader}
 				>
-					{isLoading ? (
+					{isLoadingMore ? (
 						<div className="flex items-center gap-2 text-muted-foreground">
 							<Spinner className="h-4 w-4" />
 							<span className="text-xs">Завантаження...</span>
@@ -135,7 +135,8 @@ export function CourseRatingsList({
 	const {
 		allRatings,
 		hasMoreRatings,
-		isFetching,
+		isLoading,
+		isFetchingNextPage,
 		loaderRef,
 		totalRatings,
 		userRating: userRatingFromApi,
@@ -180,13 +181,13 @@ export function CourseRatingsList({
 				/>
 			)}
 
-			{isFetching ? (
+			{isLoading ? (
 				<CourseRatingsListSkeleton />
 			) : (
 				<RatingsContent
 					allRatings={allRatings}
 					hasMoreRatings={hasMoreRatings}
-					isLoading={isFetching}
+					isLoadingMore={isFetchingNextPage}
 					loaderRef={loaderRef}
 					hasUserRating={!!userRating}
 					canVote={canVote}
