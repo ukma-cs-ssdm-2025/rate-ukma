@@ -286,7 +286,7 @@ class CourseDbInjector(IDbInjector):
                     speciality=spec_data.name,
                 )
                 continue
-            type_kind = spec_data.type_kind.value if spec_data.type_kind else ""
+            type_kind = spec_data.type_kind.value if spec_data.type_kind else None
             CourseOfferingSpeciality.objects.update_or_create(
                 offering=offering,
                 speciality=speciality,

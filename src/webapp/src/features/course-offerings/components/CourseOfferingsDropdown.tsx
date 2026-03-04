@@ -18,21 +18,31 @@ interface CourseOfferingsDropdownProps {
 	courseOfferings: CourseOffering[];
 }
 
+const UNKNOWN_YEAR = "unknown";
+
 function groupByYear(
 	offerings: CourseOffering[],
-): { year: number; offerings: CourseOffering[] }[] {
-	const map = new Map<number, CourseOffering[]>();
+): { year: number | null; label: string; offerings: CourseOffering[] }[] {
+	const map = new Map<number | typeof UNKNOWN_YEAR, CourseOffering[]>();
 
 	for (const offering of offerings) {
-		const year = offering.semester_year ?? 0;
-		const group = map.get(year) ?? [];
+		const key = offering.semester_year ?? UNKNOWN_YEAR;
+		const group = map.get(key) ?? [];
 		group.push(offering);
-		map.set(year, group);
+		map.set(key, group);
 	}
 
 	return Array.from(map.entries())
-		.sort(([a], [b]) => b - a)
-		.map(([year, items]) => ({ year, offerings: items }));
+		.sort(([a], [b]) => {
+			if (a === UNKNOWN_YEAR) return 1;
+			if (b === UNKNOWN_YEAR) return -1;
+			return (b as number) - (a as number);
+		})
+		.map(([key, items]) => ({
+			year: key === UNKNOWN_YEAR ? null : (key as number),
+			label: key === UNKNOWN_YEAR ? "Невідомий рік" : String(key),
+			offerings: items,
+		}));
 }
 
 export function CourseOfferingsDropdown({
@@ -57,16 +67,16 @@ export function CourseOfferingsDropdown({
 				</DialogHeader>
 
 				<div className="overflow-y-auto flex-1 -mx-6 px-6">
-					{groups.map(({ year, offerings }) => (
-						<div key={year} className="mb-5 last:mb-0">
+					{groups.map(({ label, offerings }) => (
+						<div key={label} className="mb-5 last:mb-0">
 							<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-								{year}
+								{label}
 							</p>
 							<div className="space-y-1">
 								{offerings.map((offering) => (
 									<a
 										key={offering.id}
-										href={`${BASE_EXTERNAL_URL}${offering.code}`}
+										href={`${BASE_EXTERNAL_URL}${encodeURIComponent(offering.code ?? "")}`}
 										target="_blank"
 										rel="noopener noreferrer"
 										className="flex items-center justify-between gap-4 rounded-md px-3 py-2.5 text-sm hover:bg-accent transition-colors"

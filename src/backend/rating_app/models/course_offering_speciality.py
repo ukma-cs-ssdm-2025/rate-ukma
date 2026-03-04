@@ -31,7 +31,8 @@ class CourseOfferingSpeciality(models.Model):
         max_length=16,
         choices=CourseTypeKind.choices,
         blank=True,
-        default="",
+        null=True,
+        default=None,
     )
 
     class Meta:
