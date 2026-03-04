@@ -3,7 +3,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic.alias_generators import to_snake
 
 from ..constants import (
@@ -89,6 +89,12 @@ class CourseFilterCriteria(BaseModel):
     page: int | None = Field(default=1, ge=1, description="Page number")
     page_size: int | None = Field(default=None, ge=1, description="Items per page")
 
+    @model_validator(mode="after")
+    def validate_type_kind_requires_speciality(self):
+        if self.type_kind and not self.speciality:
+            raise ValueError("speciality is required when type_kind is provided")
+        return self
+
     @field_validator("semester_term", mode="before")
     @classmethod
     def normalize_semester_term(cls, value):
@@ -102,6 +108,17 @@ class CourseFilterCriteria(BaseModel):
         if isinstance(value, str):
             return value.lower()
         return value
+
+
+# Internal schema for service/repository layer
+class CourseFilterCriteriaInternal(CourseFilterCriteria):
+    """Internal filter criteria with service-layer-only fields."""
+
+    exclude_type_kinds: list[CourseTypeKind] | None = Field(
+        default=None,
+        description="Exclude courses with these type "
+        "kinds for the given speciality (internal use only)",
+    )
 
 
 @dataclass(frozen=True)

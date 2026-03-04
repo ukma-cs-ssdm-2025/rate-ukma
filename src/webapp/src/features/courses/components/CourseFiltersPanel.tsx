@@ -15,6 +15,11 @@ import {
 	SelectValue,
 } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import type {
 	CoursesListSemesterTerm,
 	CoursesListTypeKind,
@@ -179,13 +184,13 @@ function CourseFiltersContent({
 				setWithPageReset({ year: value });
 				return;
 			case "faculty":
-				setParams({ faculty: value, dept: "", spec: "", page: 1 });
+				setParams({ faculty: value, dept: "", spec: "", type: null, page: 1 });
 				return;
 			case "dept":
 				setWithPageReset({ dept: value });
 				return;
 			case "spec":
-				setWithPageReset({ spec: value });
+				setWithPageReset({ spec: value, type: value ? params.type : null });
 				return;
 			case "instructor":
 				setWithPageReset({ instructor: value });
@@ -246,50 +251,67 @@ function CourseFiltersContent({
 					options,
 					contentClassName,
 					useCombobox,
+					disabled,
+					disabledMessage,
 				}) => {
 					const currentValue = getSelectValue(key);
 					const testId = getSelectFilterTestId(key);
+					const isDisabled = disabled || options.length === 0;
+
+					const selectElement = useCombobox ? (
+						<Combobox
+							options={options}
+							value={currentValue}
+							onValueChange={(nextValue) => {
+								handleSelectChange(key, nextValue);
+							}}
+							placeholder={placeholder}
+							searchPlaceholder="Пошук..."
+							emptyText="Нічого не знайдено."
+							disabled={isDisabled}
+							contentClassName={contentClassName}
+							data-testid={testId}
+						/>
+					) : (
+						<Select
+							value={currentValue || "all"}
+							onValueChange={(nextValue) => {
+								const newValue = nextValue === "all" ? "" : nextValue;
+								handleSelectChange(key, newValue);
+							}}
+							disabled={isDisabled}
+						>
+							<SelectTrigger className="w-full" data-testid={testId}>
+								<SelectValue placeholder={placeholder} />
+							</SelectTrigger>
+							<SelectContent
+								className={contentClassName}
+								data-testid={testId ? `${testId}-content` : undefined}
+							>
+								<SelectItem value="all">{placeholder}</SelectItem>
+								{options.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					);
+
 					return (
 						<div key={key} className="space-y-3">
 							<Label className="text-sm font-medium">{label}</Label>
-							{useCombobox ? (
-								<Combobox
-									options={options}
-									value={currentValue}
-									onValueChange={(nextValue) => {
-										handleSelectChange(key, nextValue);
-									}}
-									placeholder={placeholder}
-									searchPlaceholder="Пошук..."
-									emptyText="Нічого не знайдено."
-									disabled={options.length === 0}
-									contentClassName={contentClassName}
-									data-testid={testId}
-								/>
+							{isDisabled && disabledMessage ? (
+								<Tooltip delayDuration={0}>
+									<TooltipTrigger asChild>
+										<div>{selectElement}</div>
+									</TooltipTrigger>
+									<TooltipContent side="top" sideOffset={4}>
+										<p>{disabledMessage}</p>
+									</TooltipContent>
+								</Tooltip>
 							) : (
-								<Select
-									value={currentValue || "all"}
-									onValueChange={(nextValue) => {
-										const newValue = nextValue === "all" ? "" : nextValue;
-										handleSelectChange(key, newValue);
-									}}
-									disabled={options.length === 0}
-								>
-									<SelectTrigger className="w-full" data-testid={testId}>
-										<SelectValue placeholder={placeholder} />
-									</SelectTrigger>
-									<SelectContent
-										className={contentClassName}
-										data-testid={testId ? `${testId}-content` : undefined}
-									>
-										<SelectItem value="all">{placeholder}</SelectItem>
-										{options.map((option) => (
-											<SelectItem key={option.value} value={option.value}>
-												{option.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+								selectElement
 							)}
 						</div>
 					);
@@ -300,7 +322,6 @@ function CourseFiltersContent({
 		</div>
 	);
 }
-
 function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
 	return (
 		<button

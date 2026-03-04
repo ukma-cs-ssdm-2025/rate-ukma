@@ -64,6 +64,20 @@ function Combobox({
 		return () => unlockScroll();
 	}, [open]);
 
+	const customFilter = React.useCallback((value: string, search: string) => {
+		const normalizeText = (text: string) =>
+			text
+				.toLowerCase()
+				.replaceAll("`", "'")
+				.replaceAll("'", "'")
+				.replaceAll("'", "'");
+
+		const normalizedValue = normalizeText(value);
+		const normalizedSearch = normalizeText(search);
+
+		return normalizedValue.includes(normalizedSearch) ? 1 : 0;
+	}, []);
+
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
@@ -93,7 +107,10 @@ function Combobox({
 				)}
 				data-testid={testId ? `${testId}-content` : undefined}
 			>
-				<Command className="overflow-hidden rounded-md border-0">
+				<Command
+					className="overflow-hidden rounded-md border-0"
+					filter={customFilter}
+				>
 					<CommandInput placeholder={searchPlaceholder} />
 					<CommandList data-testid={testId ? `${testId}-list` : undefined}>
 						<CommandEmpty>{emptyText}</CommandEmpty>

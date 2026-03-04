@@ -11,7 +11,7 @@ from rating_app.application_schemas.course import (
     Course as CourseDTO,
 )
 from rating_app.application_schemas.course import (
-    CourseFilterCriteria,
+    CourseFilterCriteriaInternal,
     CourseInput,
 )
 from rating_app.exception.course_exceptions import (
@@ -30,7 +30,9 @@ from rating_app.repositories.protocol import IPaginatedRepository
 logger = structlog.get_logger(__name__)
 
 
-class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCriteria, CourseDTO]):
+class CourseRepository(
+    IPaginatedRepository[CourseDTO, Course, CourseFilterCriteriaInternal, CourseDTO]
+):
     def __init__(
         self, mapper: IProcessor[[Course], CourseDTO], paginator: GenericQuerysetPaginator[Course]
     ):
@@ -52,20 +54,20 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
     @overload
     def filter(
         self,
-        criteria: CourseFilterCriteria,
+        criteria: CourseFilterCriteriaInternal,
         pagination: PaginationFilters,
     ) -> PaginationResult[CourseDTO]: ...
 
     @overload
     def filter(
         self,
-        criteria: CourseFilterCriteria,
+        criteria: CourseFilterCriteriaInternal,
         pagination: None = ...,
     ) -> list[CourseDTO]: ...
 
     def filter(
         self,
-        criteria: CourseFilterCriteria,
+        criteria: CourseFilterCriteriaInternal,
         pagination: PaginationFilters | None = None,
     ) -> PaginationResult[CourseDTO] | list[CourseDTO]:
         qs = self._filter(criteria)
@@ -163,7 +165,7 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
         course_orm = self._get_by_id_shallow(id)
         course_orm.delete()
 
-    def _filter(self, filters: CourseFilterCriteria) -> QuerySet[Course]:
+    def _filter(self, filters: CourseFilterCriteriaInternal) -> QuerySet[Course]:
         courses = self._build_base_queryset()
         courses = self._apply_basic_filters(courses, filters)
         courses = self._apply_speciality_filters(courses, filters)
@@ -176,7 +178,7 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
         return self._get_all_prefetch_related()
 
     def _apply_basic_filters(
-        self, courses: QuerySet[Course], filters: CourseFilterCriteria
+        self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal
     ) -> QuerySet[Course]:
         # TODO: research if reflection can be applied here
 
@@ -232,17 +234,26 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
         except (ValueError, AttributeError):
             return None
 
-    def _apply_speciality_filters(
-        self, courses: QuerySet[Course], filters: CourseFilterCriteria
-    ) -> QuerySet[Course]:
+    def _apply_speciality_filters(self, courses, filters):
         if filters.type_kind:
-            courses = courses.filter(course_specialities__type_kind=filters.type_kind)
-        if filters.speciality:
+            courses = courses.filter(
+                course_specialities__type_kind=filters.type_kind,
+                course_specialities__speciality_id=filters.speciality,
+            )
+
+        if filters.exclude_type_kinds and filters.speciality:
+            courses = courses.exclude(
+                course_specialities__speciality_id=filters.speciality,
+                course_specialities__type_kind__in=filters.exclude_type_kinds,
+            )
+
+        if filters.speciality and not filters.type_kind and not filters.exclude_type_kinds:
             courses = courses.filter(course_specialities__speciality_id=filters.speciality)
+
         return courses
 
     def _apply_range_filters(
-        self, courses: QuerySet[Course], filters: CourseFilterCriteria
+        self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal
     ) -> QuerySet[Course]:
         if filters.avg_difficulty_min is not None:
             courses = courses.filter(avg_difficulty__gte=filters.avg_difficulty_min)
@@ -257,7 +268,7 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
         return courses
 
     def _apply_sorting(
-        self, courses: QuerySet[Course], filters: CourseFilterCriteria
+        self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal
     ) -> QuerySet[Course]:
         order_by_fields = self._build_order_by_fields(filters)
 
@@ -273,7 +284,7 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
             return courses.order_by("-has_ratings", *order_by_fields, "title")
         return courses.order_by("-has_ratings", "-ratings_count", "title")
 
-    def _build_order_by_fields(self, filters: CourseFilterCriteria) -> list[Any]:
+    def _build_order_by_fields(self, filters: CourseFilterCriteriaInternal) -> list[Any]:
         order_by_fields = []
         if filters.avg_difficulty_order:
             field = F("avg_difficulty")

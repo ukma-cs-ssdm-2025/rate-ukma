@@ -1,6 +1,6 @@
 import pytest
 
-from rating_app.application_schemas.course import CourseFilterCriteria
+from rating_app.application_schemas.course import CourseFilterCriteriaInternal
 from rating_app.models import Course
 from rating_app.models.choices import SemesterTerm
 from rating_app.pagination import GenericQuerysetPaginator
@@ -32,7 +32,7 @@ def test_filter_by_instructor_returns_only_assigned_courses(repo):
     # Act
     course_without_instructor = CourseFactory()
     CourseOfferingFactory(course=course_without_instructor)
-    filters = CourseFilterCriteria(instructor=instructor.id)
+    filters = CourseFilterCriteriaInternal(instructor=instructor.id)
     result = repo.filter(filters)
 
     # Assert
@@ -57,7 +57,7 @@ def test_filter_by_semester_limits_to_matching_courses(repo):
 
     # Act - Use academic year format "2024–2025" which includes Fall 2024 and Spring 2025
     result = repo.filter(
-        CourseFilterCriteria(
+        CourseFilterCriteriaInternal(
             semester_year="2024–2025",
             semester_term=fall_semester.term,
         )
@@ -78,7 +78,7 @@ def test_filter_returns_domain_models(repo):
     CourseOfferingFactory(course=course)
 
     # Act
-    result = repo.filter(CourseFilterCriteria())
+    result = repo.filter(CourseFilterCriteriaInternal())
 
     # Assert
     assert len(result) >= 1
@@ -103,4 +103,4 @@ def test_filter_prefetches_instructors(django_assert_num_queries, repo):
     # 3) instructors
     # 4) specialities
     with django_assert_num_queries(4):
-        repo.filter(CourseFilterCriteria())
+        repo.filter(CourseFilterCriteriaInternal())

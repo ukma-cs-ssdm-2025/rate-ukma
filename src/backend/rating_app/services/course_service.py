@@ -6,6 +6,7 @@ from rating_app.application_schemas.course import (
 )
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
+    CourseFilterCriteriaInternal,
     CourseFilterOptions,
     CourseSearchResult,
 )
@@ -52,16 +53,18 @@ class CourseService:
     def filter_courses(
         self, filters: CourseFilterCriteria, paginate: bool = True
     ) -> CourseSearchResult:
+        processed_filters = self._preprocess_filters(filters)
+
         if paginate:
             pagination_filters = PaginationFilters(
-                page=filters.page,
-                page_size=filters.page_size,
+                page=processed_filters.page,
+                page_size=processed_filters.page_size,
             )
-            pagination_result = self.course_repository.filter(filters, pagination_filters)
+            pagination_result = self.course_repository.filter(processed_filters, pagination_filters)
             courses = pagination_result.page_objects
             metadata = pagination_result.metadata
         else:
-            courses = self.course_repository.filter(filters)
+            courses = self.course_repository.filter(processed_filters)
             metadata = self._create_single_page_metadata(len(courses))
 
         return CourseSearchResult(
@@ -69,6 +72,25 @@ class CourseService:
             pagination=metadata,
             applied_filters=filters.model_dump(by_alias=True),
         )
+
+    def _preprocess_filters(self, filters: CourseFilterCriteria) -> CourseFilterCriteriaInternal:
+        """
+        Apply business rules to transform filter criteria.
+
+        Business Rule 1: ELECTIVE courses are either explicitly marked ELECTIVE or
+        those that are NOT marked as COMPULSORY or PROF_ORIENTED for a given speciality.
+        """
+        if filters.type_kind == CourseTypeKind.ELECTIVE:
+            return CourseFilterCriteriaInternal(
+                **filters.model_dump(exclude={"type_kind"}),
+                type_kind=None,
+                exclude_type_kinds=[
+                    CourseTypeKind.COMPULSORY,
+                    CourseTypeKind.PROF_ORIENTED,
+                ],
+            )
+
+        return CourseFilterCriteriaInternal(**filters.model_dump())
 
     def update_course_aggregates(
         self, course: CourseDTO, aggregates: AggregatedCourseRatingStats
