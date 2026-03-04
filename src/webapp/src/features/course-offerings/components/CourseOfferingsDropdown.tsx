@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 
 import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpecialityBadges";
+import { getSemesterDisplay } from "@/features/courses/courseFormatting";
 import type { CourseOffering } from "@/lib/api/generated";
 
 const BASE_EXTERNAL_URL = "https://my.ukma.edu.ua/course/";
@@ -84,7 +85,13 @@ export function CourseOfferingsDropdown({
 							>
 								<div className="flex flex-col gap-1 min-w-0">
 									<span className="font-medium">
-										{offering.semester_term} {offering.semester_year}
+										{offering.semester_year != null &&
+										offering.semester_term != null
+											? getSemesterDisplay(
+													offering.semester_year,
+													offering.semester_term,
+												)
+											: offering.semester_term}
 									</span>
 									{offering.specialities &&
 										offering.specialities.length > 0 && (
