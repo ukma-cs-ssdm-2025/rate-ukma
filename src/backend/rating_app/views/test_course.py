@@ -307,10 +307,112 @@ def test_course_retrieve_with_ratings(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_by_type_kind(token_client, course_factory, course_speciality_factory):
+def test_course_is_elective_for_speciality_if_no_explicit_type_assigned(
+    token_client,
+    course_factory,
+    speciality_factory,
+    course_speciality_factory,
+):
     # Arrange
     course = course_factory()
-    course_speciality_factory(course=course, type_kind="COMPULSORY")
+    speciality_1 = speciality_factory()
+    speciality_2 = speciality_factory()
+
+    course_speciality_factory(
+        course=course,
+        speciality=speciality_1,
+        type_kind="COMPULSORY",
+    )
+
+    url = f"/api/v1/courses/?type_kind=ELECTIVE&speciality={speciality_2.id}"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+
+    data = response.json()
+    print(data)
+    assert len(data["items"]) == 1
+    assert data["items"][0]["id"] == str(course.id)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_course_is_elective_for_speciality_if_no_type_assigned(
+    token_client,
+    course_factory,
+    speciality_factory,
+    course_speciality_factory,
+):
+    # Arrange
+    course = course_factory()
+    speciality = speciality_factory()
+
+    url = f"/api/v1/courses/?type_kind=ELECTIVE&speciality={speciality.id}"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+
+    data = response.json()
+    print(data)
+    assert len(data["items"]) == 1
+    assert data["items"][0]["id"] == str(course.id)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_elective_type_kind(
+    token_client,
+    course_factory,
+    speciality_factory,
+    course_speciality_factory,
+):
+    # Arrange
+    course = course_factory()
+    speciality = speciality_factory()
+
+    course_speciality_factory(
+        course=course,
+        speciality=speciality,
+        type_kind="ELECTIVE",
+    )
+
+    url = f"/api/v1/courses/?type_kind=ELECTIVE&speciality={speciality.id}"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+
+    data = response.json()
+    print(data)
+    assert len(data["items"]) == 1
+    assert data["items"][0]["id"] == str(course.id)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_type_kind_without_speciality_fails(
+    token_client,
+    course_factory,
+    speciality_factory,
+    course_speciality_factory,
+):
+    # Arrange
+    course = course_factory()
+    speciality = speciality_factory()
+
+    course_speciality_factory(
+        course=course,
+        speciality=speciality,
+        type_kind="ELECTIVE",
+    )
 
     url = "/api/v1/courses/?type_kind=COMPULSORY"
 
@@ -318,7 +420,43 @@ def test_filter_by_type_kind(token_client, course_factory, course_speciality_fac
     response = token_client.get(url)
 
     # Assert
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_speciality_without_type_kind(
+    token_client,
+    course_factory,
+    speciality_factory,
+    course_speciality_factory,
+):
+    # Arrange
+    course_1 = course_factory()
+    course_2 = course_factory()
+    speciality = speciality_factory()
+
+    course_speciality_factory(
+        course=course_1,
+        speciality=speciality,
+        type_kind="ELECTIVE",
+    )
+    course_speciality_factory(
+        course=course_2,
+        speciality=speciality,
+        type_kind="COMPULSORY",
+    )
+
+    url = f"/api/v1/courses/?speciality={speciality.id}"
+
+    # Act
+    response = token_client.get(url)
+
+    data = response.json()
+
+    # Assert
     assert response.status_code == 200
+    assert len(data["items"]) == 2
 
 
 @pytest.mark.django_db

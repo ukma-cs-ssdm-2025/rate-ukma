@@ -15,6 +15,7 @@ from rating_app.tests.factories import (
     RatingFactory,
     RatingVoteFactory,
     SemesterFactory,
+    SpecialityFactory,
     StudentFactory,
 )
 
@@ -109,6 +110,11 @@ def course_offering_factory():
 @pytest.fixture
 def course_speciality_factory():
     return CourseSpecialityFactory
+
+
+@pytest.fixture
+def speciality_factory():
+    return SpecialityFactory
 
 
 @pytest.fixture
