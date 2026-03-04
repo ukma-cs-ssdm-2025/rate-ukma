@@ -33,7 +33,6 @@ class Command(BaseCommand):
         parser.add_argument(
             "--no-resume", action="store_true", help="Disable resume mode (process all IDs)"
         )
-        parser.add_argument("--devtools", action="store_true", help="Open DevTools")
         parser.add_argument(
             "--slowmo", type=int, default=None, help="Slow down actions in ms (e.g. 250)"
         )
@@ -55,7 +54,6 @@ class Command(BaseCommand):
             state_path=settings.SCRAPER_STATE_DIR / "storage_state.json",
             headless=settings.SCRAPER_HEADLESS,
             slowmo=slowmo,
-            devtools=options["devtools"],
         )(self._fetch_with_context)
 
         logger.info(

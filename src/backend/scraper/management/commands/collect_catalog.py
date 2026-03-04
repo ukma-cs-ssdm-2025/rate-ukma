@@ -41,7 +41,6 @@ class Command(BaseCommand):
             action="store_true",
             help="Show browser window",
         )
-        parser.add_argument("--devtools", action="store_true", help="Open DevTools")
         parser.add_argument(
             "--slowmo", type=int, default=None, help="Slow down actions in ms (e.g. 250)"
         )
@@ -54,7 +53,6 @@ class Command(BaseCommand):
         end_page = options["end_page"]
         out_path = Path(options["out"])
         interactive = options["interactive"]
-        devtools = options["devtools"]
         slowmo = options["slowmo"] or settings.SCRAPER_SLOWMO
         custom_url = options.get("url")
 
@@ -64,7 +62,7 @@ class Command(BaseCommand):
             catalog_url = custom_url
             logger.info("using_custom_catalog_url", url=catalog_url)
         else:
-            filtered_url = await FilterService().load_filtered_url()
+            filtered_url = FilterService().load_filtered_url()
             if filtered_url:
                 catalog_url = filtered_url
                 logger.info("using_filtered_catalog_url", url=catalog_url)
@@ -79,7 +77,6 @@ class Command(BaseCommand):
             state_path=settings.SCRAPER_STATE_DIR / "storage_state.json",
             headless=not interactive,
             slowmo=slowmo,
-            devtools=devtools,
         )(self._collect_with_context)
 
         logger.info(

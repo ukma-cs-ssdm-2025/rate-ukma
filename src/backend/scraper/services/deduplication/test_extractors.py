@@ -1,7 +1,7 @@
 import pytest
 
 from scraper.models import ParsedCourseDetails
-from scraper.models.deduplicated import PracticeType
+from scraper.models.deduplicated import EnrollmentStatus, PracticeType
 from scraper.services.deduplication.base import DataValidationError
 from scraper.services.deduplication.extractors import (
     CourseLimitsExtractor,
@@ -189,12 +189,40 @@ def test_student_extractor_success(sample_course):
     assert student1.first_name == "Олександр"
     assert student1.patronymic == "Петрович"
     assert student1.index == "1"
+    assert result[0].status == EnrollmentStatus.ENROLLED
 
     student2 = result[1].student
     assert student2.last_name == "Коваленко"
     assert student2.first_name == "Марія"
     assert student2.patronymic == "Сергіївна"
     assert student2.index == "2"
+    assert result[1].status == EnrollmentStatus.DROPPED
+
+
+@pytest.mark.parametrize(
+    ("raw_status", "expected"),
+    [
+        ("записано", EnrollmentStatus.ENROLLED),
+        ("не навчається", EnrollmentStatus.ENROLLED),
+        ("виписано", EnrollmentStatus.DROPPED),
+        ("примусово", EnrollmentStatus.FORCED),
+        ("невідомо", EnrollmentStatus.ENROLLED),
+        ("", EnrollmentStatus.ENROLLED),
+    ],
+)
+def test_student_extractor_status_mapping(raw_status, expected):
+    extractor = StudentExtractor()
+    course = ParsedCourseDetails(
+        url="https://my.ukma.edu.ua/course/1",
+        title="Test",
+        id="1",
+        academic_year="2025–2026",
+        semesters=["Семестр 1"],
+        students=[{"index": "1", "name": "Тест Тест Тест", "status": raw_status}],
+    )
+    result = extractor.extract(course)
+    assert len(result) == 1
+    assert result[0].status == expected
 
 
 def test_student_extractor_empty_students():

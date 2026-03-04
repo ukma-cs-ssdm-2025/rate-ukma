@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 import structlog
 
@@ -219,7 +219,7 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
             if student:
                 enrollment = DeduplicatedEnrollment(
                     student=student,
-                    status=self._determine_enrollment_status(),
+                    status=self._determine_enrollment_status(student_row.status),
                 )
                 enrollments.append(enrollment)
 
@@ -271,8 +271,17 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
 
         return student
 
-    def _determine_enrollment_status(self) -> EnrollmentStatus:
-        return EnrollmentStatus.ENROLLED
+    _STATUS_MAP: ClassVar[dict[str, EnrollmentStatus]] = {
+        "записано": EnrollmentStatus.ENROLLED,
+        # "не навчається" means already graduated/completed — not dropped
+        "не навчається": EnrollmentStatus.ENROLLED,
+        "виписано": EnrollmentStatus.DROPPED,
+        "примусово": EnrollmentStatus.FORCED,
+    }
+
+    def _determine_enrollment_status(self, raw_status: str) -> EnrollmentStatus:
+        normalized = raw_status.strip().lower()
+        return self._STATUS_MAP.get(normalized, EnrollmentStatus.ENROLLED)
 
 
 class SpecialtyExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSpeciality]]):
