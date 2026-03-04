@@ -67,7 +67,7 @@ def repo_mocks():
     course.specialities = Mock()
     course.specialities.add = Mock()
     semester = SimpleNamespace(year=2024, term="FALL", id=faker.uuid4())
-    course_offering = SimpleNamespace(id=uuid4())
+    course_offering = SimpleNamespace(id=uuid4(), code="ABC123")
     speciality = SimpleNamespace(name=faker.word(), id=faker.uuid4())
     instructor = SimpleNamespace(id=uuid4())
     student = SimpleNamespace(
@@ -279,6 +279,7 @@ def create_mock_offering(
     group_size_max: int | None = 15,
     instructors: list[DeduplicatedCourseInstructor] | None = None,
     enrollments: list[DeduplicatedEnrollment] | None = None,
+    specialities: list[DeduplicatedSpeciality] | None = None,
 ) -> DeduplicatedCourseOffering:
     return DeduplicatedCourseOffering(
         code=code,
@@ -295,6 +296,7 @@ def create_mock_offering(
         group_size_max=group_size_max,
         instructors=instructors or [],
         enrollments=enrollments or [],
+        specialities=specialities or [],
     )
 
 
@@ -468,3 +470,66 @@ def test_injector_does_not_invalidate_cache_on_exception(injector, repo_mocks):
 
     # Assert
     repo_mocks.cache_manager.invalidate_pattern.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_injector_processes_offering_specialities(injector, repo_mocks):
+    # Arrange — course-level speciality populates the cache; offering references same name
+    repo_mocks.speciality_repo.get_by_name.return_value = SimpleNamespace(id=uuid4())
+
+    models = [
+        create_mock_course(
+            title="Course F",
+            specialities=[create_mock_spec("Spec1", "Fac", type_kind=CourseTypeKind.COMPULSORY)],
+            offerings=[
+                create_mock_offering(
+                    code="OFF001",
+                    specialities=[create_mock_spec("Spec1", "Fac", type_kind=CourseTypeKind.COMPULSORY)],
+                )
+            ],
+        )
+    ]
+
+    with (
+        patch("scraper.services.db_ingestion.injector.CourseSpeciality.objects") as mock_cs,
+        patch("scraper.services.db_ingestion.injector.CourseOfferingSpeciality.objects") as mock_cos,
+    ):
+        mock_cs.update_or_create.return_value = (MagicMock(), True)
+        mock_cos.update_or_create.return_value = (MagicMock(), True)
+
+        injector.execute(models)
+
+        assert mock_cos.update_or_create.call_count == 1
+        call_kwargs = mock_cos.update_or_create.call_args.kwargs
+        assert call_kwargs["offering"] == repo_mocks.course_offering
+        assert call_kwargs["defaults"]["type_kind"] == "COMPULSORY"
+
+
+@pytest.mark.django_db
+def test_injector_skips_offering_speciality_when_not_in_cache(injector, repo_mocks):
+    # Arrange — offering references a speciality not processed at course level → not in cache
+    repo_mocks.speciality_repo.get_by_name.return_value = None
+
+    models = [
+        create_mock_course(
+            title="Course G",
+            specialities=[],
+            offerings=[
+                create_mock_offering(
+                    code="OFF002",
+                    specialities=[
+                        create_mock_spec("UnknownSpec", "Fac", type_kind=CourseTypeKind.COMPULSORY)
+                    ],
+                )
+            ],
+        )
+    ]
+
+    with patch(
+        "scraper.services.db_ingestion.injector.CourseOfferingSpeciality.objects"
+    ) as mock_cos:
+        mock_cos.update_or_create.return_value = (MagicMock(), True)
+
+        injector.execute(models)
+
+        mock_cos.update_or_create.assert_not_called()

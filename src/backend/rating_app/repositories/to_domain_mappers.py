@@ -5,6 +5,7 @@ from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.application_schemas.course import CourseSpeciality
 from rating_app.application_schemas.course_instructor import CourseInstructor as CourseInstructorDTO
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
+from rating_app.application_schemas.course_offering import CourseOfferingSpeciality as CourseOfferingSpecialityDTO
 from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDTO
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
@@ -216,6 +217,7 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
     @implements
     def process(self, model: CourseOfferingModel) -> CourseOfferingDTO:
         instructors = self._map_instructors(model)
+        specialities = self._map_offering_specialities(model)
 
         course = getattr(model, "course", None)
         semester = getattr(model, "semester", None)
@@ -247,6 +249,7 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
             group_size_min=model.group_size_min,
             group_size_max=model.group_size_max,
             instructors=instructors,
+            specialities=specialities,
             course_title=course.title if course else None,
             semester_year=semester.year if semester else None,
             semester_term=semester.label if semester else None,
@@ -261,6 +264,42 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
         return [
             self._instructor_mapper.process(instructor) for instructor in prefetched_instructors
         ]
+
+    def _map_offering_specialities(
+        self, model: CourseOfferingModel
+    ) -> list[CourseOfferingSpecialityDTO]:
+        prefetched = getattr(model, "_prefetched_objects_cache", {}).get(
+            "course_offering_specialities"
+        )
+        if prefetched is None:
+            return []
+
+        result: list[CourseOfferingSpecialityDTO] = []
+        for cos in prefetched:
+            speciality = getattr(cos, "speciality", None)
+            if speciality is None:
+                continue
+            faculty_obj = getattr(speciality, "faculty", None)
+            if faculty_obj is None:
+                continue
+            type_kind_raw = cos.type_kind
+            type_kind: CourseTypeKind | None = None
+            if type_kind_raw:
+                try:
+                    type_kind = CourseTypeKind(type_kind_raw)
+                except ValueError:
+                    pass
+            result.append(
+                CourseOfferingSpecialityDTO(
+                    speciality_id=speciality.id,
+                    speciality_title=speciality.name,
+                    faculty_id=faculty_obj.id,
+                    faculty_name=faculty_obj.name,
+                    speciality_alias=speciality.alias,
+                    type_kind=type_kind,
+                )
+            )
+        return result
 
 
 class StudentMapper(IProcessor[[StudentModel], StudentDTO]):

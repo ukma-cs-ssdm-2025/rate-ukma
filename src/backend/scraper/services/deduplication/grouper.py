@@ -228,6 +228,8 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
 
             limits = self.extractors["limits"].extract(course)
 
+            course_specialities = self.extractors["specialities"].extract(course)
+
             for semester in semesters:
                 offering = DeduplicatedCourseOffering(
                     code=self.extractors["code"].extract(course),
@@ -242,6 +244,7 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
                     max_groups=limits["max_groups"],
                     group_size_min=limits["group_size_min"],
                     group_size_max=limits["group_size_max"],
+                    specialities=course_specialities,
                 )
                 offerings.append(offering)
 

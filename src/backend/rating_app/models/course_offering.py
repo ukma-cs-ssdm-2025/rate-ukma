@@ -44,6 +44,12 @@ class CourseOffering(models.Model):
     instructors = models.ManyToManyField(
         Instructor, through="CourseInstructor", related_name="course_offerings"
     )
+    specialities = models.ManyToManyField(
+        "Speciality",
+        through="CourseOfferingSpeciality",
+        related_name="course_offerings",
+        blank=True,
+    )
 
     class Meta:
         ordering = ["-semester__year", "-semester__term", "course__title"]

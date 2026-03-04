@@ -7,6 +7,7 @@ from rating_app.models import (
     Course,
     CourseInstructor,
     CourseOffering,
+    CourseOfferingSpeciality,
     CourseSpeciality,
     Department,
     Enrollment,
@@ -324,6 +325,7 @@ class CourseInstructorAdmin(VersionAdmin):
         )
 
 
+# TODO(#511): Remove CourseSpecialityAdmin once CourseSpeciality is dropped.
 @admin.register(CourseSpeciality)
 class CourseSpecialityAdmin(VersionAdmin):
     list_display = (
@@ -345,4 +347,28 @@ class CourseSpecialityAdmin(VersionAdmin):
             super()
             .get_queryset(request)
             .select_related("course", "speciality", "speciality__faculty")
+        )
+
+
+@admin.register(CourseOfferingSpeciality)
+class CourseOfferingSpecialityAdmin(VersionAdmin):
+    list_display = (
+        "id",
+        "offering",
+        "speciality",
+        "type_kind",
+    )
+    list_select_related = ("offering__course", "speciality", "speciality__faculty")
+    list_filter = ("type_kind", "speciality__faculty")
+    search_fields = (
+        "offering__course__title",
+        "speciality__name",
+    )
+    ordering = ("offering__course__title", "speciality__name")
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("offering__course", "speciality", "speciality__faculty")
         )

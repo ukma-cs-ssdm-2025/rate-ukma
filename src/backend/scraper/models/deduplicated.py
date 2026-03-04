@@ -118,6 +118,7 @@ class DeduplicatedCourseOffering(BaseModel):
     group_size_max: int | None = None
     instructors: list[DeduplicatedCourseInstructor] = []
     enrollments: list[DeduplicatedEnrollment] = []
+    specialities: list[DeduplicatedSpeciality] = []
 
 
 class DeduplicatedCourse(BaseModel):

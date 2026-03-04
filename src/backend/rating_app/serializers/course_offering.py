@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from rating_app.models.choices import AcademicDegree, AcademicTitle, ExamType, PracticeType
+from rating_app.models.choices import AcademicDegree, AcademicTitle, CourseTypeKind, ExamType, PracticeType
 
 
 class InstructorDTOSerializer(serializers.Serializer):
@@ -13,6 +13,17 @@ class InstructorDTOSerializer(serializers.Serializer):
     )
     academic_title = serializers.ChoiceField(
         choices=AcademicTitle.choices, read_only=True, allow_blank=True
+    )
+
+
+class CourseOfferingSpecialitySerializer(serializers.Serializer):
+    speciality_id = serializers.UUIDField(read_only=True)
+    speciality_title = serializers.CharField(read_only=True)
+    speciality_alias = serializers.CharField(read_only=True, allow_null=True)
+    faculty_id = serializers.UUIDField(read_only=True)
+    faculty_name = serializers.CharField(read_only=True)
+    type_kind = serializers.ChoiceField(
+        choices=CourseTypeKind.choices, read_only=True, allow_null=True
     )
 
 
@@ -37,6 +48,7 @@ class CourseOfferingSerializer(serializers.Serializer):
     group_size_min = serializers.IntegerField(read_only=True, allow_null=True)
     group_size_max = serializers.IntegerField(read_only=True, allow_null=True)
     instructors = InstructorDTOSerializer(many=True, read_only=True)
+    specialities = CourseOfferingSpecialitySerializer(many=True, read_only=True)
 
 
 class CourseOfferingListResponseSerializer(serializers.Serializer):
