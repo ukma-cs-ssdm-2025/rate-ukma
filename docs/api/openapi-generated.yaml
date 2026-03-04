@@ -2028,6 +2028,11 @@ components:
           items:
             $ref: '#/components/schemas/InstructorDTO'
           readOnly: true
+        specialities:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseOfferingSpeciality'
+          readOnly: true
     CourseOfferingListResponse:
       type: object
       properties:
@@ -2037,6 +2042,32 @@ components:
             $ref: '#/components/schemas/CourseOffering'
       required:
       - course_offerings
+    CourseOfferingSpeciality:
+      type: object
+      properties:
+        speciality_id:
+          type: string
+          format: uuid
+          readOnly: true
+        speciality_title:
+          type: string
+          readOnly: true
+        speciality_alias:
+          type: string
+          readOnly: true
+          nullable: true
+        faculty_id:
+          type: string
+          format: uuid
+          readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
+        type_kind:
+          allOf:
+          - $ref: '#/components/schemas/TypeKindEnum'
+          readOnly: true
+          nullable: true
     CourseSpecialityInline:
       type: object
       description: Inline serializer for course speciality
