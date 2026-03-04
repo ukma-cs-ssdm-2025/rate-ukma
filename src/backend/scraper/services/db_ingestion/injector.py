@@ -36,6 +36,7 @@ from rating_app.models import (
     Student,
 )
 from rating_app.models.choices import CourseStatus, EducationLevel, ExamType, PracticeType
+from rating_app.models.course_offering_speciality import CourseOfferingSpeciality
 from rating_app.models.course_speciality import CourseSpeciality
 from rating_app.repositories import (
     CourseInstructorRepository,
@@ -267,8 +268,30 @@ class CourseDbInjector(IDbInjector):
     ) -> None:
         for offering_data in course_data.offerings:
             course_offering = self._create_course_offering(course, offering_data)
+            self._process_offering_specialities(course_offering, offering_data.specialities)
             self._process_instructors_m2m(course_offering, offering_data.instructors)
             self._process_enrollments(course_offering, offering_data.enrollments)
+
+    def _process_offering_specialities(
+        self,
+        offering: CourseOffering,
+        specialities: list,
+    ) -> None:
+        for spec_data in specialities:
+            speciality = self._speciality_cache.get(spec_data.name)
+            if speciality is None:
+                logger.warning(
+                    "injector.offering_speciality_not_in_cache",
+                    offering_code=offering.code,
+                    speciality=spec_data.name,
+                )
+                continue
+            type_kind = spec_data.type_kind.value if spec_data.type_kind else ""
+            CourseOfferingSpeciality.objects.update_or_create(
+                offering=offering,
+                speciality=speciality,
+                defaults={"type_kind": type_kind},
+            )
 
     def _create_course_offering(
         self,

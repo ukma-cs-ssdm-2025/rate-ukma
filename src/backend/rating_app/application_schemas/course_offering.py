@@ -5,9 +5,19 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 from pydantic.alias_generators import to_snake
 
-from rating_app.models.choices import ExamType, PracticeType
+from rating_app.models.choices import CourseTypeKind, ExamType, PracticeType
 
 from .instructor import Instructor
+
+
+@dataclass(frozen=True)
+class CourseOfferingSpeciality:
+    speciality_id: uuid.UUID
+    speciality_title: str
+    faculty_id: uuid.UUID
+    faculty_name: str
+    speciality_alias: str | None
+    type_kind: CourseTypeKind | None
 
 
 class CourseOfferingCourseFilterParams(BaseModel):
@@ -62,6 +72,7 @@ class CourseOffering:
     group_size_min: int | None = None
     group_size_max: int | None = None
     instructors: list[Instructor] = field(default_factory=list)
+    specialities: list[CourseOfferingSpeciality] = field(default_factory=list)
     course_title: str | None = None
     semester_year: int | None = None
     semester_term: str | None = None

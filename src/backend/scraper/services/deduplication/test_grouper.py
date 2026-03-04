@@ -639,3 +639,60 @@ def test_course_grouper_keeps_none_credits_and_hours(course_grouper):
     assert len(result) == 2
     titles = {course.title for course in result}
     assert titles == {"Valid Course", "None Values Course"}
+
+
+def test_course_grouper_propagates_specialities_to_offerings(course_grouper, sample_course):
+    # Arrange — sample_course has one specialty (SPECIALTY_NAME, education level type)
+    courses = [sample_course]
+
+    # Act
+    result = course_grouper.group_course_offerings(courses)
+
+    # Assert
+    assert len(result) == 1
+    grouped = result[0]
+    assert len(grouped.offerings) == 1
+    offering = grouped.offerings[0]
+
+    # Offering must carry the same specialities as the source course
+    assert len(offering.specialities) == len(grouped.specialities)
+    for off_spec, course_spec in zip(offering.specialities, grouped.specialities):
+        assert off_spec.name == course_spec.name
+        assert off_spec.type_kind == course_spec.type_kind
+
+
+def test_course_grouper_each_offering_gets_its_own_specialities(course_grouper):
+    """When two raw courses share title/faculty/specialties, each resulting offering
+    carries the specialities of the raw course it originated from."""
+    from scraper.models import ParsedCourseDetails
+
+    base = {
+        "url": "https://example.com",
+        "title": "Алгебра",
+        "credits": 3.0,
+        "hours": 90,
+        "year": 2,
+        "format": "2024",
+        "status": "Курс відбувся",
+        "faculty": "Факультет природничих наук",
+        "department": "Кафедра математики",
+        "education_level": "Бакалавр",
+        "academic_year": "2024-2025",
+        "semesters": ["семестр 1"],
+        "teachers": "Іваненко А.Б.",
+        "annotation": "",
+        "specialties": [{"specialty": "Математика", "type": "Обов`язкова"}],
+        "limits": {"max_students": 30, "max_groups": 2, "group_size_min": 10, "group_size_max": 20},
+    }
+    course_a = ParsedCourseDetails(**{**base, "id": "100001"})
+    course_b = ParsedCourseDetails(**{**base, "id": "100002", "semesters": ["семестр 2"]})
+
+    result = course_grouper.group_course_offerings([course_a, course_b])
+
+    assert len(result) == 1
+    grouped = result[0]
+    assert len(grouped.offerings) == 2
+
+    for offering in grouped.offerings:
+        assert len(offering.specialities) == 1
+        assert offering.specialities[0].name == "Математика"

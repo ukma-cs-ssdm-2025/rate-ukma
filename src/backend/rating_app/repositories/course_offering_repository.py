@@ -163,7 +163,8 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
 
     def _build_base_queryset(self) -> QuerySet[CourseOffering]:
         return CourseOffering.objects.select_related("course", "semester").prefetch_related(
-            "instructors"
+            "instructors",
+            "course_offering_specialities__speciality__faculty",
         )
 
     def _map_to_domain_models(
