@@ -235,9 +235,9 @@ export function useCourseFiltersData({
 					label: getCourseTypeDisplay(type.value, type.label),
 				})),
 				disabled: !filters.spec,
-				disabledMessage: !filters.spec
-					? "Спочатку оберіть спеціальність"
-					: undefined,
+				disabledMessage: filters.spec
+					? undefined
+					: "Спочатку оберіть спеціальність",
 			},
 			// {
 			// 	key: "instructor",
