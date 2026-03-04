@@ -37,6 +37,12 @@ class EnrollmentStatus(str, Enum):
     FORCED = "FORCED"
 
 
+class CourseTypeKind(str, Enum):
+    COMPULSORY = "COMPULSORY"
+    ELECTIVE = "ELECTIVE"
+    PROF_ORIENTED = "PROF_ORIENTED"
+
+
 class AcademicDegree(str, Enum):
     PHD = "PHD"
     DOCTOR_OF_SCIENCES = "DRSCI"
@@ -83,6 +89,7 @@ class DeduplicatedSpeciality(BaseModel):
     name: str
     faculty: str = ""
     type: EducationLevel | None = None
+    type_kind: CourseTypeKind | None = None
 
 
 class DeduplicatedEnrollment(BaseModel):
