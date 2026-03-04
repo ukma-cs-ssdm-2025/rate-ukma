@@ -73,12 +73,12 @@ def test_browser_manager_create_and_close(tmp_path: Path):
 
             mock_async_playwright.return_value.start = AsyncMock(return_value=playwright)
 
-            browser = await manager.create_browser(headless=False, devtools=True, slowmo=50)
+            browser = await manager.create_browser(headless=False, slowmo=50)
 
             assert browser is mock_browser
             mock_async_playwright.return_value.start.assert_awaited_once()
             playwright.chromium.launch.assert_awaited_once_with(
-                headless=False, devtools=True, slow_mo=50
+                headless=False, slow_mo=50
             )
 
             await manager.close()

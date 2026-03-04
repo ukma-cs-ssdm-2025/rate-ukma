@@ -122,7 +122,6 @@ def with_authenticated_context(
     base_url: str,
     state_path: Path,
     headless: bool = True,
-    devtools: bool = False,
     slowmo: int | None = None,
 ):
     def decorator(func):
@@ -130,7 +129,7 @@ def with_authenticated_context(
         async def wrapper(*args, **kwargs):
             async with async_playwright() as p:
                 browser = await p.chromium.launch(
-                    headless=headless, devtools=devtools, slow_mo=slowmo
+                    headless=headless, slow_mo=slowmo
                 )
 
                 if state_path.exists():
