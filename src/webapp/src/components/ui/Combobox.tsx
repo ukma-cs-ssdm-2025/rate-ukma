@@ -68,9 +68,9 @@ function Combobox({
 		const normalizeText = (text: string) =>
 			text
 				.toLowerCase()
-				.replace(/`/g, "'")
-				.replace(/'/g, "'")
-				.replace(/'/g, "'");
+				.replaceAll("`", "'")
+				.replaceAll("'", "'")
+				.replaceAll("'", "'");
 
 		const normalizedValue = normalizeText(value);
 		const normalizedSearch = normalizeText(search);
