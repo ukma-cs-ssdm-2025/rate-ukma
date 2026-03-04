@@ -36,6 +36,7 @@ from rating_app.models import (
     Student,
 )
 from rating_app.models.choices import CourseStatus, EducationLevel, ExamType, PracticeType
+from rating_app.models.course_speciality import CourseSpeciality
 from rating_app.repositories import (
     CourseInstructorRepository,
     CourseOfferingRepository,
@@ -246,7 +247,18 @@ class CourseDbInjector(IDbInjector):
                 if not speciality:
                     speciality = Speciality.objects.get(id=speciality_dto.id)
                     self._speciality_cache[spec_data.name] = speciality
-            course.specialities.add(speciality)  # type: ignore
+            if spec_data.type_kind is None:
+                logger.warning(
+                    "injector.skipping_speciality_unknown_type_kind",
+                    course_id=course.id,
+                    speciality=spec_data.name,
+                )
+                continue
+            CourseSpeciality.objects.update_or_create(
+                course=course,
+                speciality=speciality,
+                defaults={"type_kind": spec_data.type_kind.value},
+            )
 
     def _process_offerings(
         self,

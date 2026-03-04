@@ -7,6 +7,7 @@ from ...models import ParsedCourseDetails
 from ...models.deduplicated import (
     AcademicDegree,
     CourseStatus,
+    CourseTypeKind,
     DeduplicatedCourseInstructor,
     DeduplicatedEnrollment,
     DeduplicatedInstructor,
@@ -285,6 +286,12 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
 
 
 class SpecialtyExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSpeciality]]):
+    _TYPE_KIND_MAP: ClassVar[dict[str, CourseTypeKind]] = {
+        "обов'язкова": CourseTypeKind.COMPULSORY,
+        "вільного вибору": CourseTypeKind.ELECTIVE,
+        "професійно-орієнтована": CourseTypeKind.PROF_ORIENTED,
+    }
+
     def extract(self, data: ParsedCourseDetails) -> list[DeduplicatedSpeciality]:
         if not data.specialties:
             logger.debug(
@@ -294,6 +301,8 @@ class SpecialtyExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSpecial
                 title=data.title,
             )
             return []
+
+        education_level = self._extract_education_level(data.education_level)
 
         specialities = []
         seen_specialities = set()
@@ -316,36 +325,33 @@ class SpecialtyExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSpecial
                 continue
             seen_specialities.add(key)
 
-            education_level = self._map_education_level_from_type(spec_type)
+            type_kind = self._map_course_type_kind(spec_type)
 
             deduplicated_speciality = DeduplicatedSpeciality(
                 name=name,
                 faculty="",
                 type=education_level,
+                type_kind=type_kind,
             )
             specialities.append(deduplicated_speciality)
 
         return specialities
 
-    def _map_education_level_from_type(self, spec_type: str) -> EducationLevel:
-        if not spec_type:
-            raise DataValidationError("Specialty type is required")
-
-        type_lower = spec_type.lower()
-        type_normalized = type_lower.replace("`", "'")
-
-        if "бакалавр" in type_normalized:
+    def _extract_education_level(self, raw_level: str | None) -> EducationLevel | None:
+        if not raw_level:
+            return None
+        level_lower = raw_level.strip().lower()
+        if "бакалавр" in level_lower:
             return EducationLevel.BACHELOR
-        elif "магістр" in type_normalized:
+        if "магістр" in level_lower:
             return EducationLevel.MASTER
-        elif (
-            "професійно-орієнтована" in type_normalized
-            or "обов'язкова" in type_normalized
-            or "вільного вибору" in type_normalized
-        ):
-            return EducationLevel.BACHELOR
-        else:
-            raise DataValidationError(f"Unrecognized specialty education level: {spec_type}")
+        return None
+
+    def _map_course_type_kind(self, spec_type: str) -> CourseTypeKind | None:
+        if not spec_type:
+            return None
+        normalized = spec_type.strip().lower().replace("`", "'")
+        return self._TYPE_KIND_MAP.get(normalized)
 
 
 class DescriptionExtractor(Extractor[ParsedCourseDetails, str]):

@@ -1,7 +1,7 @@
 import pytest
 
 from scraper.models import ParsedCourseDetails
-from scraper.models.deduplicated import EnrollmentStatus, PracticeType
+from scraper.models.deduplicated import CourseTypeKind, EducationLevel, EnrollmentStatus, PracticeType
 from scraper.services.deduplication.base import DataValidationError
 from scraper.services.deduplication.extractors import (
     CourseLimitsExtractor,
@@ -246,32 +246,24 @@ def test_student_extractor_empty_students():
 
 
 def test_specialty_extractor_success(sample_course):
-    # Arrange
     extractor = SpecialtyExtractor()
-
-    # Act
     result = extractor.extract(sample_course)
 
-    # Assert
-    assert result is not None
     assert len(result) == 1
+    assert result[0].type == EducationLevel.BACHELOR
+    # "Бакалавр" is an education level string, not a course type kind
+    assert result[0].type_kind is None
 
 
 def test_specialty_extractor_multiple_specialties(sample_course_data_dict):
-    # Arrange
     extractor = SpecialtyExtractor()
     course = ParsedCourseDetails(**sample_course_data_dict)
-
-    # Act
     result = extractor.extract(course)
 
-    # Assert
-    assert result is not None
     assert len(result) == 2
 
 
 def test_specialty_extractor_empty_specialties():
-    # Arrange
     extractor = SpecialtyExtractor()
     course_data = {
         "url": "https://my.ukma.edu.ua/course/550001",
@@ -282,32 +274,71 @@ def test_specialty_extractor_empty_specialties():
         "specialties": [],
     }
     course = ParsedCourseDetails(**course_data)
-
-    # Act
-    result = extractor.extract(course)
-
-    # Assert
-    assert result == []
+    assert extractor.extract(course) == []
 
 
-def test_specialty_extractor_unknown_education_level():
-    # Arrange
+def test_specialty_extractor_unknown_type_returns_none_type_kind():
     extractor = SpecialtyExtractor()
     course_data = {
         "url": "https://my.ukma.edu.ua/course/550001",
         "title": "Test Course",
         "id": "550001",
+        "education_level": "Бакалавр",
         "academic_year": "2025–2026",
         "semesters": ["Семестр 1"],
         "specialties": [{"specialty": "Програмна інженерія", "type": "Невідомий рівень"}],
     }
     course = ParsedCourseDetails(**course_data)
+    result = extractor.extract(course)
 
-    # Act & Assert
-    with pytest.raises(
-        DataValidationError, match="Unrecognized specialty education level: Невідомий рівень"
-    ):
-        extractor.extract(course)
+    assert len(result) == 1
+    assert result[0].type == EducationLevel.BACHELOR
+    assert result[0].type_kind is None
+
+
+@pytest.mark.parametrize(
+    ("spec_type", "expected_type_kind"),
+    [
+        ("Обов'язкова", CourseTypeKind.COMPULSORY),
+        ("Обов`язкова", CourseTypeKind.COMPULSORY),
+        ("Вільного вибору", CourseTypeKind.ELECTIVE),
+        ("Професійно-орієнтована", CourseTypeKind.PROF_ORIENTED),
+        ("Бакалавр", None),
+        ("Магістр", None),
+        ("", None),
+    ],
+)
+def test_specialty_extractor_type_kind_mapping(spec_type, expected_type_kind):
+    extractor = SpecialtyExtractor()
+    course = ParsedCourseDetails(
+        url="https://my.ukma.edu.ua/course/1",
+        title="Test",
+        id="1",
+        education_level="Бакалавр",
+        academic_year="2025–2026",
+        semesters=["Семестр 1"],
+        specialties=[{"specialty": "Програмна інженерія", "type": spec_type}],
+    )
+    result = extractor.extract(course)
+    assert len(result) == 1
+    assert result[0].type_kind == expected_type_kind
+
+
+def test_specialty_extractor_education_level_from_course():
+    extractor = SpecialtyExtractor()
+    course = ParsedCourseDetails(
+        url="https://my.ukma.edu.ua/course/1",
+        title="Test",
+        id="1",
+        education_level="Магістр",
+        academic_year="2025–2026",
+        semesters=["Семестр 1"],
+        specialties=[{"specialty": "Інформатика", "type": "Обов'язкова"}],
+    )
+    result = extractor.extract(course)
+    assert len(result) == 1
+    assert result[0].type == EducationLevel.MASTER
+    assert result[0].type_kind == CourseTypeKind.COMPULSORY
 
 
 def test_description_extractor_missing_annotation():

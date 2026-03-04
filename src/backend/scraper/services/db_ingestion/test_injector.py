@@ -7,6 +7,7 @@ from faker import Faker
 
 from scraper.models.deduplicated import (
     CourseStatus,
+    CourseTypeKind,
     DeduplicatedCourse,
     DeduplicatedCourseInstructor,
     DeduplicatedCourseOffering,
@@ -221,8 +222,12 @@ def create_mock_payload() -> list[DeduplicatedCourse]:
     ]
 
 
-def create_mock_spec(name: str, faculty: str) -> DeduplicatedSpeciality:
-    return DeduplicatedSpeciality(name=name, faculty=faculty)
+def create_mock_spec(
+    name: str,
+    faculty: str,
+    type_kind: CourseTypeKind | None = None,
+) -> DeduplicatedSpeciality:
+    return DeduplicatedSpeciality(name=name, faculty=faculty, type_kind=type_kind)
 
 
 def create_mock_instr(
@@ -328,18 +333,31 @@ def test_injector_processes_specialities(injector, repo_mocks):
     models = [
         create_mock_course(
             title="Course A",
-            specialities=[create_mock_spec("Spec1", "Fac"), create_mock_spec("Spec2", "Fac")],
+            specialities=[
+                create_mock_spec("Spec1", "Fac", type_kind=CourseTypeKind.COMPULSORY),
+                create_mock_spec("Spec2", "Fac", type_kind=CourseTypeKind.ELECTIVE),
+            ],
         )
     ]
 
-    # Act
-    injector.execute(models)
+    with patch(
+        "scraper.services.db_ingestion.injector.CourseSpeciality.objects"
+    ) as mock_cs_objects:
+        mock_cs_objects.update_or_create.return_value = (MagicMock(), True)
 
-    # Assert
-    assert repo_mocks.course.specialities.add.call_count == 2
-    repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec1")
-    repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec2")
-    repo_mocks.speciality_repo.get_or_create.assert_called_once()
+        # Act
+        injector.execute(models)
+
+        # Assert
+        assert mock_cs_objects.update_or_create.call_count == 2
+        repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec1")
+        repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec2")
+        repo_mocks.speciality_repo.get_or_create.assert_called_once()
+
+        # Verify type_kind is passed to update_or_create
+        calls = mock_cs_objects.update_or_create.call_args_list
+        assert calls[0].kwargs["defaults"]["type_kind"] == "COMPULSORY"
+        assert calls[1].kwargs["defaults"]["type_kind"] == "ELECTIVE"
 
 
 @pytest.mark.django_db
@@ -415,6 +433,27 @@ def test_injector_invalidates_cache_after_successful_execution(injector, repo_mo
     repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*course*")
     repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*ratings*")
     repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*get_filter_options*")
+
+
+@pytest.mark.django_db
+def test_injector_skips_speciality_when_type_kind_is_none(injector, repo_mocks):
+    # Arrange
+    repo_mocks.speciality_repo.get_by_name.return_value = SimpleNamespace(id=uuid4())
+    models = [
+        create_mock_course(
+            title="Course E",
+            specialities=[create_mock_spec("Spec1", "Fac", type_kind=None)],
+        )
+    ]
+
+    with patch(
+        "scraper.services.db_ingestion.injector.CourseSpeciality.objects"
+    ) as mock_cs_objects:
+        # Act
+        injector.execute(models)
+
+        # Assert — no through-model row created for unknown type_kind
+        mock_cs_objects.update_or_create.assert_not_called()
 
 
 @pytest.mark.django_db
