@@ -114,9 +114,9 @@ def sample_course_data_dict():
             "group_size_max": 15,
         },
         "students": [
-            {"index": "1", "name": STUDENT_NAME_1},
-            {"index": "2", "name": STUDENT_NAME_2},
-            {"index": "3", "name": STUDENT_NAME_3},
+            {"index": "1", "name": STUDENT_NAME_1, "status": "записано"},
+            {"index": "2", "name": STUDENT_NAME_2, "status": "не навчається"},
+            {"index": "3", "name": STUDENT_NAME_3, "status": "виписано"},
         ],
     }
 
@@ -147,8 +147,8 @@ def sample_course():
             "group_size_max": 15,
         },
         "students": [
-            {"index": "1", "name": STUDENT_NAME_1},
-            {"index": "2", "name": STUDENT_NAME_2},
+            {"index": "1", "name": STUDENT_NAME_1, "status": "записано"},
+            {"index": "2", "name": STUDENT_NAME_2, "status": "виписано"},
         ],
     }
     return ParsedCourseDetails(**data)
