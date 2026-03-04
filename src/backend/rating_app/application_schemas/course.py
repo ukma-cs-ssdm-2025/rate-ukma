@@ -44,10 +44,6 @@ class CourseFilterCriteria(BaseModel):
     faculty: uuid.UUID | None = Field(default=None, description="Filter by faculty UUID")
     department: uuid.UUID | None = Field(default=None, description="Filter by department UUID")
     speciality: uuid.UUID | None = Field(default=None, description="Filter by speciality UUID")
-    exclude_type_kinds: list[CourseTypeKind] | None = Field(
-        default=None,
-        description="Exclude courses with these type kinds for the given speciality (internal use)",
-    )
     semester_year: str | None = Field(
         default=None, description="Academic year range (e.g., '2024–2025')"
     )
@@ -112,6 +108,17 @@ class CourseFilterCriteria(BaseModel):
         if isinstance(value, str):
             return value.lower()
         return value
+
+
+# Internal schema for service/repository layer
+class CourseFilterCriteriaInternal(CourseFilterCriteria):
+    """Internal filter criteria with service-layer-only fields."""
+
+    exclude_type_kinds: list[CourseTypeKind] | None = Field(
+        default=None,
+        description="Exclude courses with these type "
+        "kinds for the given speciality (internal use only)",
+    )
 
 
 @dataclass(frozen=True)

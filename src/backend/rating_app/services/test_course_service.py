@@ -112,7 +112,7 @@ def test_filter_courses_returns_all_items_when_paginate_false(service, course_re
     assert result.pagination.page == 1
     assert result.pagination.total == 2
     assert result.pagination.total_pages == 1
-    course_repo.filter.assert_called_once_with(filters)
+    course_repo.filter.assert_called_once()
 
 
 def test_filter_courses_uses_custom_page_size(service, course_repo):

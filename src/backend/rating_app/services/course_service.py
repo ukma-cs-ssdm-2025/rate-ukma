@@ -6,6 +6,7 @@ from rating_app.application_schemas.course import (
 )
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
+    CourseFilterCriteriaInternal,
     CourseFilterOptions,
     CourseSearchResult,
 )
@@ -72,7 +73,7 @@ class CourseService:
             applied_filters=filters.model_dump(by_alias=True),
         )
 
-    def _preprocess_filters(self, filters: CourseFilterCriteria) -> CourseFilterCriteria:
+    def _preprocess_filters(self, filters: CourseFilterCriteria) -> CourseFilterCriteriaInternal:
         """
         Apply business rules to transform filter criteria.
 
@@ -80,17 +81,16 @@ class CourseService:
         those that are NOT marked as COMPULSORY or PROF_ORIENTED for a given speciality.
         """
         if filters.type_kind == CourseTypeKind.ELECTIVE:
-            return filters.model_copy(
-                update={
-                    "type_kind": None,
-                    "exclude_type_kinds": [
-                        CourseTypeKind.COMPULSORY,
-                        CourseTypeKind.PROF_ORIENTED,
-                    ],
-                }
+            return CourseFilterCriteriaInternal(
+                **filters.model_dump(exclude={"type_kind"}),
+                type_kind=None,
+                exclude_type_kinds=[
+                    CourseTypeKind.COMPULSORY,
+                    CourseTypeKind.PROF_ORIENTED,
+                ],
             )
 
-        return filters
+        return CourseFilterCriteriaInternal(**filters.model_dump())
 
     def update_course_aggregates(
         self, course: CourseDTO, aggregates: AggregatedCourseRatingStats
