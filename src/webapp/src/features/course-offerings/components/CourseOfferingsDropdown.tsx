@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 
+import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpecialityBadges";
 import type { CourseOffering } from "@/lib/api/generated";
 
 const BASE_EXTERNAL_URL = "https://my.ukma.edu.ua/course/";
@@ -71,7 +72,7 @@ export function CourseOfferingsDropdown({
 			</button>
 
 			{isOpen && (
-				<div className="absolute right-0 mt-4 w-max max-w-md rounded-md bg-white shadow-lg ring-1 ring-gray-200 focus:outline-none transition-all duration-200 ease-out animate-in fade-in-0 zoom-in-95">
+				<div className="absolute right-0 mt-4 w-max max-w-sm rounded-md bg-white shadow-lg ring-1 ring-gray-200 focus:outline-none transition-all duration-200 ease-out animate-in fade-in-0 zoom-in-95">
 					<div className="py-1">
 						{courseOfferings.map((offering) => (
 							<a
@@ -79,13 +80,20 @@ export function CourseOfferingsDropdown({
 								href={`${BASE_EXTERNAL_URL}${offering.code}`}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+								className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
 							>
-								<span>
-									{offering.course_title} - {offering.semester_term}{" "}
-									{offering.semester_year}
-								</span>
-								<ExternalLink className="ml-3 h-4 w-4 text-gray-500" />
+								<div className="flex flex-col gap-1 min-w-0">
+									<span className="font-medium">
+										{offering.semester_term} {offering.semester_year}
+									</span>
+									{offering.specialities &&
+										offering.specialities.length > 0 && (
+											<CourseSpecialityBadges
+												specialities={offering.specialities}
+											/>
+										)}
+								</div>
+								<ExternalLink className="shrink-0 h-4 w-4 text-gray-500" />
 							</a>
 						))}
 					</div>
