@@ -254,15 +254,6 @@ async function applyAndAssertAllFilters({
 		});
 	});
 
-	await test.step("course type", async () => {
-		await selectSecondRadixSelectOption({
-			page,
-			scope,
-			triggerTestId: testIds.filters.typeSelect,
-			uiParamKey: "type",
-		});
-	});
-
 	await test.step("faculty/department/speciality", async () => {
 		await selectFacultyWithDepartmentsAndSpecialities({ page, scope });
 
@@ -278,6 +269,15 @@ async function applyAndAssertAllFilters({
 			scope,
 			triggerTestId: testIds.filters.specialitySelect,
 			uiParamKey: "spec",
+		});
+	});
+
+	await test.step("course type", async () => {
+		await selectSecondRadixSelectOption({
+			page,
+			scope,
+			triggerTestId: testIds.filters.typeSelect,
+			uiParamKey: "type",
 		});
 	});
 
