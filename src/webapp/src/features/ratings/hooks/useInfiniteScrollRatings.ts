@@ -76,7 +76,7 @@ export function useInfiniteScrollRatings(
 
 		const observer = new IntersectionObserver(
 			(entries) => {
-				if (entries[0].isIntersecting) {
+				if (entries[0].isIntersecting && !isFetchingNextPage && hasNextPage) {
 					void fetchNextPageRef.current();
 				}
 			},
@@ -89,7 +89,7 @@ export function useInfiniteScrollRatings(
 			observer.unobserve(currentLoader);
 			observer.disconnect();
 		};
-	}, [hasNextPage, allRatings.length, userRating]);
+	}, [hasNextPage, allRatings.length, userRating, isFetchingNextPage]);
 
 	return {
 		allRatings,
