@@ -73,7 +73,10 @@ export function CourseOfferingsDropdown({
 									>
 										<div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
 											<span className="font-medium shrink-0">
-												{getSemesterTermDisplay(offering.semester_term ?? "")}
+												{getSemesterTermDisplay(
+													offering.semester_term ?? "",
+													"Невідомий семестр",
+												)}
 											</span>
 											{offering.specialities &&
 												offering.specialities.length > 0 && (
