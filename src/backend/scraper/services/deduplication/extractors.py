@@ -288,7 +288,6 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
 class SpecialtyExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSpeciality]]):
     _TYPE_KIND_MAP: ClassVar[dict[str, CourseTypeKind]] = {
         "обов'язкова": CourseTypeKind.COMPULSORY,
-        "обов`язкова": CourseTypeKind.COMPULSORY,
         "вільного вибору": CourseTypeKind.ELECTIVE,
         "професійно-орієнтована": CourseTypeKind.PROF_ORIENTED,
     }
