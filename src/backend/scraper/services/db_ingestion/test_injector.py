@@ -436,6 +436,27 @@ def test_injector_invalidates_cache_after_successful_execution(injector, repo_mo
 
 
 @pytest.mark.django_db
+def test_injector_skips_speciality_when_type_kind_is_none(injector, repo_mocks):
+    # Arrange
+    repo_mocks.speciality_repo.get_by_name.return_value = SimpleNamespace(id=uuid4())
+    models = [
+        create_mock_course(
+            title="Course E",
+            specialities=[create_mock_spec("Spec1", "Fac", type_kind=None)],
+        )
+    ]
+
+    with patch(
+        "scraper.services.db_ingestion.injector.CourseSpeciality.objects"
+    ) as mock_cs_objects:
+        # Act
+        injector.execute(models)
+
+        # Assert — no through-model row created for unknown type_kind
+        mock_cs_objects.update_or_create.assert_not_called()
+
+
+@pytest.mark.django_db
 def test_injector_does_not_invalidate_cache_on_exception(injector, repo_mocks):
     # Arrange
     repo_mocks.faculty_repo.get_or_create.side_effect = RuntimeError("error")

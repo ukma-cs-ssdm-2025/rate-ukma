@@ -247,11 +247,17 @@ class CourseDbInjector(IDbInjector):
                 if not speciality:
                     speciality = Speciality.objects.get(id=speciality_dto.id)
                     self._speciality_cache[spec_data.name] = speciality
-            type_kind = spec_data.type_kind.value if spec_data.type_kind else ""
+            if spec_data.type_kind is None:
+                logger.warning(
+                    "injector.skipping_speciality_unknown_type_kind",
+                    course_id=course.id,
+                    speciality=spec_data.name,
+                )
+                continue
             CourseSpeciality.objects.update_or_create(
                 course=course,
                 speciality=speciality,
-                defaults={"type_kind": type_kind},
+                defaults={"type_kind": spec_data.type_kind.value},
             )
 
     def _process_offerings(
