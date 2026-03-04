@@ -258,80 +258,60 @@ function CourseFiltersContent({
 					const testId = getSelectFilterTestId(key);
 					const isDisabled = disabled || options.length === 0;
 
+					const selectElement = useCombobox ? (
+						<Combobox
+							options={options}
+							value={currentValue}
+							onValueChange={(nextValue) => {
+								handleSelectChange(key, nextValue);
+							}}
+							placeholder={placeholder}
+							searchPlaceholder="Пошук..."
+							emptyText="Нічого не знайдено."
+							disabled={isDisabled}
+							contentClassName={contentClassName}
+							data-testid={testId}
+						/>
+					) : (
+						<Select
+							value={currentValue || "all"}
+							onValueChange={(nextValue) => {
+								const newValue = nextValue === "all" ? "" : nextValue;
+								handleSelectChange(key, newValue);
+							}}
+							disabled={isDisabled}
+						>
+							<SelectTrigger className="w-full" data-testid={testId}>
+								<SelectValue placeholder={placeholder} />
+							</SelectTrigger>
+							<SelectContent
+								className={contentClassName}
+								data-testid={testId ? `${testId}-content` : undefined}
+							>
+								<SelectItem value="all">{placeholder}</SelectItem>
+								{options.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					);
+
 					return (
 						<div key={key} className="space-y-3">
 							<Label className="text-sm font-medium">{label}</Label>
-							{useCombobox ? (
-								<Combobox
-									options={options}
-									value={currentValue}
-									onValueChange={(nextValue) => {
-										handleSelectChange(key, nextValue);
-									}}
-									placeholder={placeholder}
-									searchPlaceholder="Пошук..."
-									emptyText="Нічого не знайдено."
-									disabled={isDisabled}
-									contentClassName={contentClassName}
-									data-testid={testId}
-								/>
-							) : isDisabled && disabledMessage ? (
+							{isDisabled && disabledMessage ? (
 								<Tooltip delayDuration={0}>
 									<TooltipTrigger asChild>
-										<div>
-											<Select
-												value={currentValue || "all"}
-												onValueChange={(nextValue) => {
-													const newValue = nextValue === "all" ? "" : nextValue;
-													handleSelectChange(key, newValue);
-												}}
-												disabled={isDisabled}
-											>
-												<SelectTrigger className="w-full" data-testid={testId}>
-													<SelectValue placeholder={placeholder} />
-												</SelectTrigger>
-												<SelectContent
-													className={contentClassName}
-													data-testid={testId ? `${testId}-content` : undefined}
-												>
-													<SelectItem value="all">{placeholder}</SelectItem>
-													{options.map((option) => (
-														<SelectItem key={option.value} value={option.value}>
-															{option.label}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</div>
+										<div>{selectElement}</div>
 									</TooltipTrigger>
 									<TooltipContent side="top" sideOffset={4}>
 										<p>{disabledMessage}</p>
 									</TooltipContent>
 								</Tooltip>
 							) : (
-								<Select
-									value={currentValue || "all"}
-									onValueChange={(nextValue) => {
-										const newValue = nextValue === "all" ? "" : nextValue;
-										handleSelectChange(key, newValue);
-									}}
-									disabled={isDisabled}
-								>
-									<SelectTrigger className="w-full" data-testid={testId}>
-										<SelectValue placeholder={placeholder} />
-									</SelectTrigger>
-									<SelectContent
-										className={contentClassName}
-										data-testid={testId ? `${testId}-content` : undefined}
-									>
-										<SelectItem value="all">{placeholder}</SelectItem>
-										{options.map((option) => (
-											<SelectItem key={option.value} value={option.value}>
-												{option.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+								selectElement
 							)}
 						</div>
 					);
