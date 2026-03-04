@@ -9,12 +9,14 @@ interface RatingCardProps {
 	rating: RatingRead;
 	readOnly?: boolean;
 	disabledMessage?: string;
+	index?: number;
 }
 
 export function RatingCard({
 	rating,
 	readOnly = false,
 	disabledMessage,
+	index,
 }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
 		? "Анонімний відгук"
@@ -32,6 +34,9 @@ export function RatingCard({
 		>
 			<div className="flex flex-wrap items-start justify-between gap-3 mb-2">
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">
+					{index !== undefined && (
+						<span className="font-semibold text-foreground/60">#{index}</span>
+					)}
 					<span className="font-medium">{displayName}</span>
 					{rating.created_at && (
 						<>
