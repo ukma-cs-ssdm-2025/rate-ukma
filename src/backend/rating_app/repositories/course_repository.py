@@ -232,13 +232,22 @@ class CourseRepository(IPaginatedRepository[CourseDTO, Course, CourseFilterCrite
         except (ValueError, AttributeError):
             return None
 
-    def _apply_speciality_filters(
-        self, courses: QuerySet[Course], filters: CourseFilterCriteria
-    ) -> QuerySet[Course]:
+    def _apply_speciality_filters(self, courses, filters):
         if filters.type_kind:
-            courses = courses.filter(course_specialities__type_kind=filters.type_kind)
-        if filters.speciality:
+            courses = courses.filter(
+                course_specialities__type_kind=filters.type_kind,
+                course_specialities__speciality_id=filters.speciality,
+            )
+
+        if filters.exclude_type_kinds and filters.speciality:
+            courses = courses.exclude(
+                course_specialities__speciality_id=filters.speciality,
+                course_specialities__type_kind__in=filters.exclude_type_kinds,
+            )
+
+        if filters.speciality and not filters.type_kind and not filters.exclude_type_kinds:
             courses = courses.filter(course_specialities__speciality_id=filters.speciality)
+
         return courses
 
     def _apply_range_filters(

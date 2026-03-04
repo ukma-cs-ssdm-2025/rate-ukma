@@ -3,7 +3,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic.alias_generators import to_snake
 
 from ..constants import (
@@ -44,6 +44,10 @@ class CourseFilterCriteria(BaseModel):
     faculty: uuid.UUID | None = Field(default=None, description="Filter by faculty UUID")
     department: uuid.UUID | None = Field(default=None, description="Filter by department UUID")
     speciality: uuid.UUID | None = Field(default=None, description="Filter by speciality UUID")
+    exclude_type_kinds: list[CourseTypeKind] | None = Field(
+        default=None,
+        description="Exclude courses with these type kinds for the given speciality (internal use)",
+    )
     semester_year: str | None = Field(
         default=None, description="Academic year range (e.g., '2024–2025')"
     )
@@ -88,6 +92,12 @@ class CourseFilterCriteria(BaseModel):
     )
     page: int | None = Field(default=1, ge=1, description="Page number")
     page_size: int | None = Field(default=None, ge=1, description="Items per page")
+
+    @model_validator(mode="after")
+    def validate_type_kind_requires_speciality(self):
+        if self.type_kind and not self.speciality:
+            raise ValueError("speciality is required when type_kind is provided")
+        return self
 
     @field_validator("semester_term", mode="before")
     @classmethod
