@@ -36,7 +36,7 @@ function getCollapsibleState(): Record<string, boolean> {
 		localStorageAdapter.removeItem(COLLAPSIBLE_STATE_KEY);
 		return {};
 	}
-	return stored.data;
+	return stored.data ?? {};
 }
 
 function saveCollapsibleState(state: Record<string, boolean>): void {

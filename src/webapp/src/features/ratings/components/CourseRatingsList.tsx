@@ -34,21 +34,23 @@ interface CourseRatingsListProps {
 interface RatingsContentProps {
 	allRatings: RatingRead[];
 	hasMoreRatings: boolean;
-	isLoading: boolean;
+	isLoadingMore: boolean;
 	loaderRef: React.RefObject<HTMLDivElement | null>;
 	hasUserRating: boolean;
 	canVote?: boolean;
 	disabledMessage?: string;
+	courseId: string;
 }
 
 function RatingsContent({
 	allRatings,
 	hasMoreRatings,
-	isLoading,
+	isLoadingMore,
 	loaderRef,
 	hasUserRating,
 	canVote = true,
 	disabledMessage,
+	courseId,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0) {
 		if (hasUserRating) {
@@ -70,6 +72,7 @@ function RatingsContent({
 				<RatingCard
 					key={rating.id}
 					rating={rating}
+					courseId={courseId}
 					readOnly={!canVote}
 					disabledMessage={disabledMessage}
 				/>
@@ -81,7 +84,7 @@ function RatingsContent({
 					className="flex justify-center py-4 min-h-[60px]"
 					data-testid={testIds.common.infiniteScrollLoader}
 				>
-					{isLoading ? (
+					{isLoadingMore ? (
 						<div className="flex items-center gap-2 text-muted-foreground">
 							<Spinner className="h-4 w-4" />
 							<span className="text-xs">Завантаження...</span>
@@ -133,6 +136,7 @@ export function CourseRatingsList({
 		allRatings,
 		hasMoreRatings,
 		isLoading,
+		isFetchingNextPage,
 		loaderRef,
 		totalRatings,
 		userRating: userRatingFromApi,
@@ -143,8 +147,6 @@ export function CourseRatingsList({
 
 	// Prefer user rating from API (has vote data) over prop (from different endpoint)
 	const userRating = userRatingFromApi ?? userRatingProp;
-
-	const showSkeleton = isLoading && allRatings.length === 0;
 
 	// Total from backend already reflects the number of items
 	// including non-current user ratings and current user rating (if any)
@@ -179,17 +181,18 @@ export function CourseRatingsList({
 				/>
 			)}
 
-			{showSkeleton ? (
+			{isLoading ? (
 				<CourseRatingsListSkeleton />
 			) : (
 				<RatingsContent
 					allRatings={allRatings}
 					hasMoreRatings={hasMoreRatings}
-					isLoading={isLoading}
+					isLoadingMore={isFetchingNextPage}
 					loaderRef={loaderRef}
 					hasUserRating={!!userRating}
 					canVote={canVote}
 					disabledMessage={disabledMessage}
+					courseId={courseId}
 				/>
 			)}
 		</div>

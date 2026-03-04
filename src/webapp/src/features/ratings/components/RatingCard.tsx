@@ -7,6 +7,7 @@ import { RatingVotes } from "./RatingVotes";
 
 interface RatingCardProps {
 	rating: RatingRead;
+	courseId?: string;
 	readOnly?: boolean;
 	disabledMessage?: string;
 	index?: number;
@@ -14,6 +15,7 @@ interface RatingCardProps {
 
 export function RatingCard({
 	rating,
+	courseId,
 	readOnly = false,
 	disabledMessage,
 	index,
@@ -56,6 +58,7 @@ export function RatingCard({
 			{rating.id && (
 				<RatingVotes
 					ratingId={rating.id}
+					courseId={courseId}
 					initialUpvotes={upvotes}
 					initialDownvotes={downvotes}
 					initialUserVote={viewerVote}

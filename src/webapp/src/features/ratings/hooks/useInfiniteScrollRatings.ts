@@ -1,14 +1,20 @@
 import type { RefObject } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 import type { RatingRead } from "@/lib/api/generated";
-import { useCoursesRatingsList } from "@/lib/api/generated";
+import {
+	coursesRatingsList,
+	getCoursesRatingsListQueryKey,
+} from "@/lib/api/generated";
 
 export interface UseInfiniteScrollRatingsReturn {
 	allRatings: RatingRead[];
 	userRating: RatingRead | undefined;
 	hasMoreRatings: boolean;
 	isLoading: boolean;
+	isFetchingNextPage: boolean;
 	loaderRef: RefObject<HTMLDivElement | null>;
 	totalRatings: number | undefined;
 }
@@ -33,73 +39,33 @@ export function useInfiniteScrollRatings(
 		popularityOrder,
 	} = options;
 
-	const [ratingsPage, setRatingsPage] = useState(1);
-	const [lastCourseId, setLastCourseId] = useState(courseId);
-	const [lastSortOptions, setLastSortOptions] = useState({
-		timeOrder,
-		popularityOrder,
-	});
-	const [allRatings, setAllRatings] = useState<RatingRead[]>([]);
-	const [userRating, setUserRating] = useState<RatingRead | undefined>();
+	const params = {
+		page_size: pageSize,
+		separate_current_user: separateCurrentUser,
+		time_order: timeOrder,
+		order_by_popularity: popularityOrder,
+	};
 
-	// Reset pagination and state when courseId or sorting changes
-	useEffect(() => {
-		const sortOptionsChanged =
-			lastSortOptions.timeOrder !== timeOrder ||
-			lastSortOptions.popularityOrder !== popularityOrder;
+	const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+		useInfiniteQuery({
+			queryKey: getCoursesRatingsListQueryKey(courseId, params),
+			queryFn: ({ pageParam }) =>
+				coursesRatingsList(courseId, { ...params, page: pageParam as number }),
+			getNextPageParam: (lastPage) =>
+				lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+			initialPageParam: 1,
+		});
 
-		if (courseId !== lastCourseId || sortOptionsChanged) {
-			setRatingsPage(1);
-			setAllRatings([]);
-			setUserRating(undefined);
-			setLastCourseId(courseId);
-			setLastSortOptions({ timeOrder, popularityOrder });
-		}
-	}, [courseId, timeOrder, popularityOrder, lastCourseId, lastSortOptions]);
-
-	const { data: ratings, isLoading: isRatingsLoading } = useCoursesRatingsList(
-		courseId,
-		{
-			page: ratingsPage,
-			page_size: pageSize,
-			separate_current_user: separateCurrentUser,
-			time_order: timeOrder,
-			order_by_popularity: popularityOrder,
-		},
-	);
+	const allRatings = data?.pages.flatMap((p) => p.items.ratings) ?? [];
+	const userRating = data?.pages[0]?.items.user_ratings?.[0];
+	const totalRatings = data?.pages[0]?.total;
 
 	const loaderRef = useRef<HTMLDivElement | null>(null);
-
-	const hasMoreRatings = useMemo(
-		() => (ratings ? ratingsPage < ratings.total_pages : false),
-		[ratings, ratingsPage],
-	);
+	const fetchNextPageRef = useRef(fetchNextPage);
+	fetchNextPageRef.current = fetchNextPage;
 
 	useEffect(() => {
-		if (ratings?.items) {
-			const ratingsList = ratings.items.ratings;
-			const currentUserRatings = ratings.items.user_ratings;
-
-			if (currentUserRatings && currentUserRatings.length > 0) {
-				setUserRating(currentUserRatings[0]);
-			} else if (ratingsPage === 1) {
-				setUserRating(undefined);
-			}
-
-			setAllRatings((prev) => {
-				if (ratingsPage === 1) {
-					// Always replace when on page 1 (initial load or after reset)
-					return ratingsList;
-				}
-				const existingIds = new Set(prev.map((r) => r.id));
-				const newItems = ratingsList.filter((r) => !existingIds.has(r.id));
-				return [...prev, ...newItems];
-			});
-		}
-	}, [ratings, ratingsPage]);
-
-	useEffect(() => {
-		if (!hasMoreRatings || (allRatings.length === 0 && !userRating)) {
+		if (!hasNextPage || (allRatings.length === 0 && !userRating)) {
 			return;
 		}
 
@@ -110,15 +76,11 @@ export function useInfiniteScrollRatings(
 
 		const observer = new IntersectionObserver(
 			(entries) => {
-				const target = entries[0];
-				if (target.isIntersecting && !isRatingsLoading) {
-					setRatingsPage((prev) => prev + 1);
+				if (entries[0].isIntersecting && !isFetchingNextPage && hasNextPage) {
+					void fetchNextPageRef.current();
 				}
 			},
-			{
-				threshold: 0,
-				rootMargin: "100px",
-			},
+			{ threshold: 0, rootMargin: "100px" },
 		);
 
 		observer.observe(currentLoader);
@@ -127,14 +89,15 @@ export function useInfiniteScrollRatings(
 			observer.unobserve(currentLoader);
 			observer.disconnect();
 		};
-	}, [hasMoreRatings, allRatings.length, isRatingsLoading, userRating]);
+	}, [hasNextPage, allRatings.length, userRating, isFetchingNextPage]);
 
 	return {
 		allRatings,
 		userRating,
-		hasMoreRatings,
-		isLoading: isRatingsLoading,
+		hasMoreRatings: !!hasNextPage,
+		isLoading,
+		isFetchingNextPage,
 		loaderRef,
-		totalRatings: ratings?.total,
+		totalRatings,
 	};
 }
