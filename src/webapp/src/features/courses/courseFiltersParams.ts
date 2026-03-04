@@ -1,5 +1,6 @@
 import {
 	createParser,
+	parseAsArrayOf,
 	parseAsInteger,
 	parseAsString,
 	parseAsStringEnum,
@@ -7,12 +8,12 @@ import {
 } from "nuqs";
 
 import type {
-	CoursesListSemesterTerm,
+	CoursesListSemesterTermsItem,
 	CoursesListTypeKind,
 } from "@/lib/api/generated";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
 
-const VALID_SEMESTER_TERMS: readonly CoursesListSemesterTerm[] = [
+const VALID_SEMESTER_TERMS: readonly CoursesListSemesterTermsItem[] = [
 	"FALL",
 	"SPRING",
 	"SUMMER",
@@ -63,9 +64,11 @@ export const courseFiltersParams = {
 	faculty: parseAsString.withDefault(""),
 	dept: parseAsString.withDefault(""),
 	instructor: parseAsString.withDefault(""),
-	term: parseAsStringEnum<CoursesListSemesterTerm>(
-		VALID_SEMESTER_TERMS as unknown as CoursesListSemesterTerm[],
-	),
+	term: parseAsArrayOf(
+		parseAsStringEnum<CoursesListSemesterTermsItem>(
+			VALID_SEMESTER_TERMS as unknown as CoursesListSemesterTermsItem[],
+		),
+	).withDefault([]),
 	year: parseAsString.withDefault(""),
 	type: parseAsStringEnum<CoursesListTypeKind>(
 		VALID_TYPE_KINDS as unknown as CoursesListTypeKind[],
@@ -104,7 +107,7 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	faculty: "",
 	dept: "",
 	instructor: "",
-	term: null,
+	term: [],
 	year: "",
 	type: null,
 	spec: "",
@@ -135,7 +138,7 @@ export function courseFiltersStateToSearchParams(
 	if (state.faculty) params.faculty = state.faculty;
 	if (state.dept) params.dept = state.dept;
 	if (state.instructor) params.instructor = state.instructor;
-	if (state.term) params.term = state.term;
+	if (state.term.length > 0) params.term = state.term.join(",");
 	if (state.year) params.year = state.year;
 	if (state.type) params.type = state.type;
 	if (state.spec) params.spec = state.spec;

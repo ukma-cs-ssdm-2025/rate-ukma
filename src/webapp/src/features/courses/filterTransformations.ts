@@ -11,7 +11,7 @@ export function transformFiltersToApiParams(
 	if (filters.faculty) params.faculty = filters.faculty;
 	if (filters.dept) params.department = filters.dept;
 	if (filters.instructor) params.instructor = filters.instructor;
-	if (filters.term) params.semester_term = filters.term;
+	if (filters.term.length > 0) params.semester_terms = filters.term;
 	if (filters.year) params.semester_year = filters.year;
 	if (filters.type) params.type_kind = filters.type;
 	if (filters.spec) params.speciality = filters.spec;

@@ -196,8 +196,8 @@ class CourseRepository(
         if filters.semester_year:
             courses = self._apply_academic_year_filter(courses, filters.semester_year)
 
-        if filters.semester_term:
-            q_filters["offerings__semester__term"] = filters.semester_term
+        if filters.semester_terms:
+            q_filters["offerings__semester__term__in"] = filters.semester_terms
 
         if filters.instructor:
             q_filters["offerings__instructors__id"] = filters.instructor

@@ -11,6 +11,8 @@ import {
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
 
+const SEMESTER_TERM_ORDER = ["FALL", "SPRING", "SUMMER"];
+
 export function areFiltersActive(params: CourseFiltersParamsState): boolean {
 	return (
 		params.q !== "" ||
@@ -21,7 +23,7 @@ export function areFiltersActive(params: CourseFiltersParamsState): boolean {
 		params.faculty !== "" ||
 		params.dept !== "" ||
 		params.instructor !== "" ||
-		params.term !== null ||
+		params.term.length > 0 ||
 		params.year !== "" ||
 		params.type !== null ||
 		params.spec !== "" ||
@@ -55,9 +57,15 @@ export type RangeFilterConfig = {
 	captions: [string, string];
 };
 
+export type SemesterTermToggle = {
+	options: Array<{ value: string; label: string }>;
+	selected: string[];
+};
+
 export type CourseFiltersData = {
 	rangeFilters: RangeFilterConfig[];
 	selectFilters: SelectFilterConfig[];
+	semesterTermToggle: SemesterTermToggle;
 	activeBadges: Array<{ key: string; label: string }>;
 	hasActiveFilters: boolean;
 };
@@ -100,8 +108,11 @@ export function useCourseFiltersData({
 		[allDepartments, filters.dept],
 	);
 
-	const selectedSemesterTermOption = React.useMemo(
-		() => semesterTerms.find((option) => option.value === filters.term) ?? null,
+	const selectedSemesterTermOptions = React.useMemo(
+		() =>
+			semesterTerms.filter((option) =>
+				(filters.term as string[]).includes(option.value),
+			),
 		[semesterTerms, filters.term],
 	);
 
@@ -160,18 +171,23 @@ export function useCourseFiltersData({
 		},
 	];
 
-	const selectFilters: SelectFilterConfig[] = React.useMemo(
-		() => [
-			{
-				key: "term",
-				label: "Семестровий період",
-				placeholder: "Усі періоди",
-				value: filters.term ?? "",
-				options: semesterTerms.map((term) => ({
+	const semesterTermToggleOptions = React.useMemo(
+		() =>
+			[...semesterTerms]
+				.sort(
+					(a, b) =>
+						SEMESTER_TERM_ORDER.indexOf(a.value) -
+						SEMESTER_TERM_ORDER.indexOf(b.value),
+				)
+				.map((term) => ({
 					value: term.value,
 					label: getSemesterTermDisplay(term.value, term.label),
 				})),
-			},
+		[semesterTerms],
+	);
+
+	const selectFilters: SelectFilterConfig[] = React.useMemo(
+		() => [
 			{
 				key: "year",
 				label: "Навчальний рік",
@@ -257,9 +273,7 @@ export function useCourseFiltersData({
 			filteredDepartments,
 			filteredSpecialities,
 			// instructors, // unstable backend data - commented out from selectFilters
-			semesterTerms,
 			semesterYears,
-			filters.term,
 			filters.year,
 			filters.faculty,
 			filters.dept,
@@ -296,12 +310,12 @@ export function useCourseFiltersData({
 			});
 		}
 
-		const semesterTermLabel = selectedSemesterTermOption
-			? getSemesterTermDisplay(
-					selectedSemesterTermOption.value,
-					selectedSemesterTermOption.label,
-				)
-			: null;
+		const semesterTermLabel =
+			selectedSemesterTermOptions.length > 0
+				? selectedSemesterTermOptions
+						.map((opt) => getSemesterTermDisplay(opt.value, opt.label))
+						.join(", ")
+				: null;
 
 		if (selectedSemesterYearOption && semesterTermLabel) {
 			badges.push({
@@ -367,7 +381,7 @@ export function useCourseFiltersData({
 		selectedDepartmentOption,
 		selectedFacultyOption,
 		selectedInstructorOption,
-		selectedSemesterTermOption,
+		selectedSemesterTermOptions,
 		selectedSemesterYearOption,
 		selectedSpecialityOption,
 	]);
@@ -375,6 +389,10 @@ export function useCourseFiltersData({
 	return {
 		rangeFilters,
 		selectFilters,
+		semesterTermToggle: {
+			options: semesterTermToggleOptions,
+			selected: filters.term,
+		},
 		activeBadges,
 		hasActiveFilters: areFiltersActive(params),
 	};

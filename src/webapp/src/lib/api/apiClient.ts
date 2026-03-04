@@ -9,6 +9,9 @@ export const authorizedHttpClient = axios.create({
 	withCredentials: true,
 	baseURL: env.VITE_API_BASE_URL,
 	timeout: 60000,
+	paramsSerializer: {
+		indexes: null, // serialize arrays as repeated keys: a=1&a=2 (not a[]=1&a[]=2)
+	},
 });
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);

@@ -91,14 +91,16 @@ paths:
           type: integer
         description: Minimum ratings count (0+)
       - in: query
-        name: semester_term
+        name: semester_terms
         schema:
-          type: string
-          enum:
-          - FALL
-          - SPRING
-          - SUMMER
-        description: Semester term (FALL, SPRING, SUMMER)
+          type: array
+          items:
+            type: string
+            enum:
+            - FALL
+            - SPRING
+            - SUMMER
+        description: Semester terms to filter by (FALL, SPRING, SUMMER)
       - in: query
         name: semester_year
         schema:
@@ -615,14 +617,16 @@ paths:
           type: integer
         description: Minimum ratings count (0+)
       - in: query
-        name: semester_term
+        name: semester_terms
         schema:
-          type: string
-          enum:
-          - FALL
-          - SPRING
-          - SUMMER
-        description: Semester term (FALL, SPRING, SUMMER)
+          type: array
+          items:
+            type: string
+            enum:
+            - FALL
+            - SPRING
+            - SUMMER
+        description: Semester terms to filter by (FALL, SPRING, SUMMER)
       - in: query
         name: semester_year
         schema:

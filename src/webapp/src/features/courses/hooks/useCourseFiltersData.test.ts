@@ -13,7 +13,7 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	faculty: "",
 	dept: "",
 	instructor: "",
-	term: null,
+	term: [],
 	year: "",
 	type: null,
 	spec: "",
@@ -184,17 +184,9 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook();
 
 			// Assert
-			expect(result.current.selectFilters).toHaveLength(6);
+			expect(result.current.selectFilters).toHaveLength(5);
 			const filterKeys = result.current.selectFilters.map((f) => f.key);
-			expect(filterKeys).toEqual([
-				"term",
-				"year",
-				"faculty",
-				"dept",
-				"spec",
-				"type",
-				// "instructor", // Disabled
-			]);
+			expect(filterKeys).toEqual(["year", "faculty", "dept", "spec", "type"]);
 		});
 
 		it("should map filter options to select options", () => {
@@ -495,7 +487,7 @@ describe("useCourseFiltersData", () => {
 
 			// Act
 			const { result } = renderFiltersHook(
-				{ year: "2024", term: "FALL" },
+				{ year: "2024", term: ["FALL"] },
 				filterOptions,
 			);
 
@@ -506,6 +498,25 @@ describe("useCourseFiltersData", () => {
 			});
 		});
 
+		it("should show combined term badge when multiple terms selected", () => {
+			// Arrange
+			const filterOptions = createMockFilterOptions({
+				semester_terms: [MOCK_SEMESTER_TERMS.FALL, MOCK_SEMESTER_TERMS.SPRING],
+			});
+
+			// Act
+			const { result } = renderFiltersHook(
+				{ term: ["FALL", "SPRING"] },
+				filterOptions,
+			);
+
+			// Assert
+			expect(result.current.activeBadges).toContainEqual({
+				key: "semesterTerm",
+				label: "Осінь, Весна",
+			});
+		});
+
 		it("should show separate term badge when only term selected", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
@@ -513,7 +524,7 @@ describe("useCourseFiltersData", () => {
 			});
 
 			// Act
-			const { result } = renderFiltersHook({ term: "SPRING" }, filterOptions);
+			const { result } = renderFiltersHook({ term: ["SPRING"] }, filterOptions);
 
 			// Assert
 			expect(result.current.activeBadges).toContainEqual({

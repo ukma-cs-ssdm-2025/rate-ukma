@@ -47,9 +47,9 @@ class CourseFilterCriteria(BaseModel):
     semester_year: str | None = Field(
         default=None, description="Academic year range (e.g., '2024–2025')"
     )
-    semester_term: SemesterTerm | None = Field(
+    semester_terms: list[SemesterTerm] | None = Field(
         default=None,
-        description="Semester term (FALL, SPRING, SUMMER)",
+        description="Semester terms to filter by (FALL, SPRING, SUMMER)",
     )
     avg_difficulty_min: float | None = Field(
         default=None,
@@ -95,11 +95,13 @@ class CourseFilterCriteria(BaseModel):
             raise ValueError("speciality is required when type_kind is provided")
         return self
 
-    @field_validator("semester_term", mode="before")
+    @field_validator("semester_terms", mode="before")
     @classmethod
-    def normalize_semester_term(cls, value):
+    def normalize_semester_terms(cls, value):
+        if isinstance(value, list):
+            return [v.upper() if isinstance(v, str) else v for v in value]
         if isinstance(value, str):
-            return value.upper()
+            return [value.upper()]
         return value
 
     @field_validator("avg_difficulty_order", "avg_usefulness_order", mode="before")

@@ -56,7 +56,7 @@ function ExploreRoute() {
 			faculty: params.faculty || undefined,
 			department: params.dept || undefined,
 			instructor: params.instructor || undefined,
-			semester_term: params.term ?? undefined,
+			semester_terms: params.term.length > 0 ? params.term : undefined,
 			semester_year: params.year || undefined,
 			type_kind: params.type ?? undefined,
 			speciality: params.spec || undefined,
