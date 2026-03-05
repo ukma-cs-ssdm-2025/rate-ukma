@@ -37,7 +37,6 @@ from rating_app.models import (
 )
 from rating_app.models.choices import CourseStatus, EducationLevel, ExamType, PracticeType
 from rating_app.models.course_offering_speciality import CourseOfferingSpeciality
-from rating_app.models.course_speciality import CourseSpeciality
 from rating_app.repositories import (
     CourseInstructorRepository,
     CourseOfferingRepository,
@@ -255,11 +254,6 @@ class CourseDbInjector(IDbInjector):
                     speciality=spec_data.name,
                 )
                 continue
-            CourseSpeciality.objects.update_or_create(
-                course=course,
-                speciality=speciality,
-                defaults={"type_kind": spec_data.type_kind.value},
-            )
 
     def _process_offerings(
         self,
