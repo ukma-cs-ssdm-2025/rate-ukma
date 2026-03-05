@@ -1843,7 +1843,7 @@ components:
         specialities:
           type: array
           items:
-            $ref: '#/components/schemas/CourseSpecialityInline'
+            $ref: '#/components/schemas/CourseOfferingSpecialityInline'
           readOnly: true
         avg_difficulty:
           type: number
@@ -1914,7 +1914,7 @@ components:
         specialities:
           type: array
           items:
-            $ref: '#/components/schemas/CourseSpecialityInline'
+            $ref: '#/components/schemas/CourseOfferingSpecialityInline'
           readOnly: true
     CourseListResponse:
       type: object
@@ -2068,9 +2068,9 @@ components:
           - $ref: '#/components/schemas/TypeKindEnum'
           readOnly: true
           nullable: true
-    CourseSpecialityInline:
+    CourseOfferingSpecialityInline:
       type: object
-      description: Inline serializer for course speciality
+      description: Inline serializer for course offering speciality
       properties:
         speciality_id:
           type: string
