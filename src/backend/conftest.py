@@ -9,7 +9,7 @@ from rating_app.tests.factories import (
     CourseFactory,
     CourseInstructorFactory,
     CourseOfferingFactory,
-    CourseSpecialityFactory,
+    CourseOfferingSpecialityFactory,
     EnrollmentFactory,
     InstructorFactory,
     RatingFactory,
@@ -108,8 +108,8 @@ def course_offering_factory():
 
 
 @pytest.fixture
-def course_speciality_factory():
-    return CourseSpecialityFactory
+def course_offering_speciality_factory():
+    return CourseOfferingSpecialityFactory
 
 
 @pytest.fixture

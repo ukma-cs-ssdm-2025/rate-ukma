@@ -11,6 +11,7 @@ from rating_app.models import (
     Course,
     CourseInstructor,
     CourseOffering,
+    CourseOfferingSpeciality,
     CourseSpeciality,
     Department,
     Enrollment,
@@ -133,6 +134,15 @@ class CourseSpecialityFactory(DjangoModelFactory):
         model = CourseSpeciality
 
     course = factory.SubFactory(CourseFactory)
+    speciality = factory.SubFactory(SpecialityFactory)
+    type_kind = CourseTypeKind.COMPULSORY
+
+
+class CourseOfferingSpecialityFactory(DjangoModelFactory):
+    class Meta:
+        model = CourseOfferingSpeciality
+
+    offering = factory.SubFactory(CourseOfferingFactory)
     speciality = factory.SubFactory(SpecialityFactory)
     type_kind = CourseTypeKind.COMPULSORY
 

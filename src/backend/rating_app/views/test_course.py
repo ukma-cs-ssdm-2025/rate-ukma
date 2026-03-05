@@ -120,11 +120,17 @@ def test_filter_by_semester(token_client, course_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_by_speciality_and_typekind(token_client, course_factory, course_speciality_factory):
+def test_filter_by_speciality_and_typekind(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    course_offering_speciality_factory,
+):
     # Arrange
     course = course_factory.create()
-    cs = course_speciality_factory.create(course=course, type_kind="COMPULSORY")
-    speciality_id = cs.speciality.id
+    offering = course_offering_factory.create(course=course)
+    cos = course_offering_speciality_factory.create(offering=offering, type_kind="COMPULSORY")
+    speciality_id = cos.speciality.id
     url = f"/api/v1/courses/?speciality={speciality_id}&typeKind=COMPULSORY"
 
     # Act
@@ -309,16 +315,18 @@ def test_course_retrieve_with_ratings(
 def test_course_is_elective_for_speciality_if_no_explicit_type_assigned(
     token_client,
     course_factory,
+    course_offering_factory,
     speciality_factory,
-    course_speciality_factory,
+    course_offering_speciality_factory,
 ):
     # Arrange
     course = course_factory()
+    offering = course_offering_factory(course=course)
     speciality_1 = speciality_factory()
     speciality_2 = speciality_factory()
 
-    course_speciality_factory(
-        course=course,
+    course_offering_speciality_factory(
+        offering=offering,
         speciality=speciality_1,
         type_kind="COMPULSORY",
     )
@@ -342,8 +350,9 @@ def test_course_is_elective_for_speciality_if_no_explicit_type_assigned(
 def test_course_is_elective_for_speciality_if_no_type_assigned(
     token_client,
     course_factory,
+    course_offering_factory,
     speciality_factory,
-    course_speciality_factory,
+    course_offering_speciality_factory,
 ):
     # Arrange
     course = course_factory()
@@ -368,15 +377,17 @@ def test_course_is_elective_for_speciality_if_no_type_assigned(
 def test_filter_by_elective_type_kind(
     token_client,
     course_factory,
+    course_offering_factory,
     speciality_factory,
-    course_speciality_factory,
+    course_offering_speciality_factory,
 ):
     # Arrange
     course = course_factory()
+    offering = course_offering_factory(course=course)
     speciality = speciality_factory()
 
-    course_speciality_factory(
-        course=course,
+    course_offering_speciality_factory(
+        offering=offering,
         speciality=speciality,
         type_kind="ELECTIVE",
     )
@@ -400,15 +411,17 @@ def test_filter_by_elective_type_kind(
 def test_type_kind_without_speciality_fails(
     token_client,
     course_factory,
+    course_offering_factory,
     speciality_factory,
-    course_speciality_factory,
+    course_offering_speciality_factory,
 ):
     # Arrange
     course = course_factory()
+    offering = course_offering_factory(course=course)
     speciality = speciality_factory()
 
-    course_speciality_factory(
-        course=course,
+    course_offering_speciality_factory(
+        offering=offering,
         speciality=speciality,
         type_kind="ELECTIVE",
     )
@@ -427,21 +440,24 @@ def test_type_kind_without_speciality_fails(
 def test_speciality_without_type_kind(
     token_client,
     course_factory,
+    course_offering_factory,
     speciality_factory,
-    course_speciality_factory,
+    course_offering_speciality_factory,
 ):
     # Arrange
     course_1 = course_factory()
     course_2 = course_factory()
+    offering_1 = course_offering_factory(course=course_1)
+    offering_2 = course_offering_factory(course=course_2)
     speciality = speciality_factory()
 
-    course_speciality_factory(
-        course=course_1,
+    course_offering_speciality_factory(
+        offering=offering_1,
         speciality=speciality,
         type_kind="ELECTIVE",
     )
-    course_speciality_factory(
-        course=course_2,
+    course_offering_speciality_factory(
+        offering=offering_2,
         speciality=speciality,
         type_kind="COMPULSORY",
     )
