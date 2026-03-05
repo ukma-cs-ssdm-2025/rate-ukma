@@ -89,9 +89,7 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
     def _map_specialities(self, model: Course) -> list[CourseOfferingSpeciality]:
         specialities: list[CourseOfferingSpeciality] = []
         seen_combinations: set[tuple[str, str | None]] = set()
-
-        # Check if offerings are prefetched
-        if not hasattr(model, "offerings"):
+        if "offerings" not in getattr(model, "_prefetched_objects_cache", {}):
             return specialities
 
         for offering in model.offerings.all():
