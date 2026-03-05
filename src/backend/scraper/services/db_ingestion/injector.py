@@ -253,7 +253,6 @@ class CourseDbInjector(IDbInjector):
                     course_id=course.id,
                     speciality=spec_data.name,
                 )
-                continue
 
     def _process_offerings(
         self,
