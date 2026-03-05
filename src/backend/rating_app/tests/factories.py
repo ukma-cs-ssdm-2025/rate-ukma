@@ -12,7 +12,6 @@ from rating_app.models import (
     CourseInstructor,
     CourseOffering,
     CourseOfferingSpeciality,
-    CourseSpeciality,
     Department,
     Enrollment,
     Faculty,
@@ -127,15 +126,6 @@ class CourseInstructorFactory(DjangoModelFactory):
     instructor = factory.SubFactory(InstructorFactory)
     course_offering = factory.SubFactory(CourseOfferingFactory)
     role = InstructorRole.LECTURE_INSTRUCTOR
-
-
-class CourseSpecialityFactory(DjangoModelFactory):
-    class Meta:
-        model = CourseSpeciality
-
-    course = factory.SubFactory(CourseFactory)
-    speciality = factory.SubFactory(SpecialityFactory)
-    type_kind = CourseTypeKind.COMPULSORY
 
 
 class CourseOfferingSpecialityFactory(DjangoModelFactory):
