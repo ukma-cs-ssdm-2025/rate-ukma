@@ -51,15 +51,15 @@ class CourseFilterCriteria(BaseModel):
         default=None,
         description="Semester terms to filter by (FALL, SPRING, SUMMER)",
     )
-    credits_min: decimal.Decimal | None = Field(
-        default=None,
-        gt=0,
-        description="Minimum ECTS credits for course offering (requires semester_year)",
-    )
     credits_max: decimal.Decimal | None = Field(
         default=None,
         gt=0,
         description="Maximum ECTS credits for course offering (requires semester_year)",
+    )
+    credits_min: decimal.Decimal | None = Field(
+        default=None,
+        gt=0,
+        description="Minimum ECTS credits for course offering (requires semester_year)",
     )
     avg_difficulty_min: float | None = Field(
         default=None,
