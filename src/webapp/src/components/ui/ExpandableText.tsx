@@ -1,4 +1,4 @@
-import { useCallback, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -11,10 +11,20 @@ export function ExpandableText({ children, className }: ExpandableTextProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [isClamped, setIsClamped] = useState(false);
 	const textId = useId();
+	const elRef = useRef<HTMLParagraphElement | null>(null);
 
 	const measureRef = useCallback((el: HTMLParagraphElement | null) => {
+		elRef.current = el;
 		if (el) setIsClamped(el.scrollHeight > el.clientHeight);
 	}, []);
+
+	useEffect(() => {
+		const el = elRef.current;
+		if (el) {
+			setIsClamped(el.scrollHeight > el.clientHeight);
+			setIsExpanded(false);
+		}
+	}, [children]);
 
 	return (
 		<div>

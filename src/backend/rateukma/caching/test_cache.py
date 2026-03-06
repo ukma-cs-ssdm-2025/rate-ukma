@@ -29,7 +29,7 @@ def mock_redis_client():
     client.set.return_value = True
     client.expire.return_value = True
     client.scan.return_value = (0, [])  # cursor=0 (done), keys=[]
-    client.incr.return_value = 2
+    client.incr.return_value = 1
     return client
 
 
