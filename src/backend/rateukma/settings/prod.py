@@ -24,7 +24,6 @@ if SENTRY_DSN:
         send_default_pii=True,
         # Enable logs to be sent to Sentry
         enable_logs=True,
-        # Capture all transactions for now
         traces_sample_rate=0.2,
         profile_session_sample_rate=0.2,
         # Set profile_lifecycle to "trace" to automatically

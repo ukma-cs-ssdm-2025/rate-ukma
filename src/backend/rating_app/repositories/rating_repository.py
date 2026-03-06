@@ -249,7 +249,7 @@ class RatingRepository(
             updated_fields=list(update_data_map.keys()),
         )
 
-        rating_model = self._build_lightweight_queryset().get(pk=rating_model.pk)
+        rating_model = self._build_base_queryset().get(pk=rating_model.pk)
         return self._map_to_domain_model(rating_model)
 
     def delete(self, id: str) -> None:
