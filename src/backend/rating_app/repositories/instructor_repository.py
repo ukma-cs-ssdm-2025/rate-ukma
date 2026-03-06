@@ -13,8 +13,10 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     def __init__(self, mapper: InstructorMapper) -> None:
         self.mapper = mapper
 
-    def get_all(self) -> list[Instructor]:
+    def get_all(self, *, ordered: bool = False) -> list[Instructor]:
         qs = InstructorModel.objects.all()
+        if ordered:
+            qs = qs.order_by("last_name", "first_name")
         return self._map_to_domain_models(qs)
 
     def get_by_id(self, id: str) -> Instructor:

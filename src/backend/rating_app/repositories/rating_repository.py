@@ -107,8 +107,8 @@ class RatingRepository(
                 "is_anonymous": data.is_anonymous,
             },
         )
-        # Refetch with prefetching to get votes (for existing ratings) and related fields
-        rating = self._build_base_queryset().get(pk=rating.pk)
+        # Refetch with related fields for mapper
+        rating = self._build_lightweight_queryset().get(pk=rating.pk)
 
         if return_model:
             return rating, created
@@ -146,8 +146,8 @@ class RatingRepository(
                 "is_anonymous": data.is_anonymous,
             },
         )
-        # Refetch with prefetching to get related fields
-        rating = self._build_base_queryset().get(pk=rating.pk)
+        # Refetch with related fields for mapper
+        rating = self._build_lightweight_queryset().get(pk=rating.pk)
 
         if return_model:
             return rating, created
@@ -215,8 +215,8 @@ class RatingRepository(
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
-        # Refetch with prefetching to get related fields for mapper
-        rating = self._build_base_queryset().get(pk=rating.pk)
+        # Refetch with related fields for mapper
+        rating = self._build_lightweight_queryset().get(pk=rating.pk)
         return self._map_to_domain_model(rating)
 
     def update(
@@ -247,7 +247,7 @@ class RatingRepository(
             updated_fields=list(update_data_map.keys()),
         )
 
-        rating_model = self._build_base_queryset().get(pk=rating_model.pk)
+        rating_model = self._build_lightweight_queryset().get(pk=rating_model.pk)
         return self._map_to_domain_model(rating_model)
 
     def delete(self, id: str) -> None:
@@ -293,15 +293,18 @@ class RatingRepository(
         return query_filters
 
     def _build_base_queryset(self) -> QuerySet[Rating]:
-        return Rating.objects.select_related(
-            "course_offering__course",
-            "course_offering__semester",
-            "student",
-        ).annotate(
+        return self._build_lightweight_queryset().annotate(
             upvotes_count=Count("rating_vote", filter=Q(rating_vote__type=RatingVoteType.UPVOTE)),
             downvotes_count=Count(
                 "rating_vote", filter=Q(rating_vote__type=RatingVoteType.DOWNVOTE)
             ),
+        )
+
+    def _build_lightweight_queryset(self) -> QuerySet[Rating]:
+        return Rating.objects.select_related(
+            "course_offering__course",
+            "course_offering__semester",
+            "student",
         )
 
     def _apply_filters(

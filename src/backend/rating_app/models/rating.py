@@ -34,6 +34,7 @@ class Rating(models.Model):
         indexes = [
             models.Index(fields=["course_offering"]),
             models.Index(fields=["student", "course_offering"]),
+            models.Index(fields=["-created_at"], name="rating_created_at_idx"),
         ]
         constraints = [
             models.CheckConstraint(

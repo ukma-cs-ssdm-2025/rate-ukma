@@ -163,9 +163,13 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
             raise InvalidCourseOfferingIdentifierError() from exc
 
     def _build_base_queryset(self) -> QuerySet[CourseOffering]:
-        return CourseOffering.objects.select_related("course", "semester").prefetch_related(
-            "instructors",
-            "course_offering_specialities__speciality__faculty",
+        return (
+            CourseOffering.objects.select_related("course", "semester")
+            .prefetch_related(
+                "instructors",
+                "course_offering_specialities__speciality__faculty",
+            )
+            .order_by("-semester__year", "-semester__term", "course__title")
         )
 
     def _map_to_domain_models(

@@ -52,7 +52,6 @@ class CourseOffering(models.Model):
     )
 
     class Meta:
-        ordering = ["-semester__year", "-semester__term", "course__title"]
         constraints = [
             models.CheckConstraint(
                 check=Q(credits__gt=0),
