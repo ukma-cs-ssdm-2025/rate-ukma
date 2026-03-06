@@ -131,10 +131,9 @@ def test_analytics_no_n_plus_1_queries(
     # Act & Assert: The number of queries should be constant regardless of course count
     # Expected queries:
     # 1. Main query with select_related(department__faculty) and annotations
-    # 2. Prefetch course_specialities
-    # 3. Prefetch offerings with semester
-    # 4. Prefetch instructors for offerings
-    # No additional queries should occur when accessing department.faculty in serializer
+    # 2. Prefetch offerings with semester
+    # 3. Prefetch instructors for offerings
+    # 4. Prefetch course_offering_specialities with speciality + faculty
     with django_assert_num_queries(4):
         response = token_client.get(analytics_url)
 

@@ -8,6 +8,7 @@ import { CoursesErrorState } from "@/features/courses/components/CoursesErrorSta
 import { CoursesTable } from "@/features/courses/components/CoursesTable";
 import { useCourseFiltersParams } from "@/features/courses/courseFiltersParams";
 import {
+	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
 	USEFULNESS_RANGE,
 } from "@/features/courses/courseFormatting";
@@ -35,6 +36,14 @@ export function CoursesRoute() {
 		instructor: params.instructor || undefined,
 		semester_terms: params.term.length > 0 ? params.term : undefined,
 		semester_year: params.year || undefined,
+		credits_min:
+			params.year && params.credits[0] !== CREDITS_RANGE[0]
+				? params.credits[0]
+				: undefined,
+		credits_max:
+			params.year && params.credits[1] !== CREDITS_RANGE[1]
+				? params.credits[1]
+				: undefined,
 		type_kind: params.type ?? undefined,
 		speciality: params.spec || undefined,
 		avg_difficulty_order: params.diffOrder ?? undefined,

@@ -21,6 +21,7 @@ import {
 	useCourseFiltersParams,
 } from "@/features/courses/courseFiltersParams";
 import {
+	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
 	USEFULNESS_RANGE,
 } from "@/features/courses/courseFormatting";
@@ -42,8 +43,8 @@ function ExploreRoute() {
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
 
-	const apiFilters = useMemo<CoursesListParams>(
-		() => ({
+	const apiFilters = useMemo<CoursesListParams>(() => {
+		return {
 			name: params.q || undefined,
 			avg_difficulty_min:
 				params.diff[0] !== DIFFICULTY_RANGE[0] ? params.diff[0] : undefined,
@@ -58,11 +59,18 @@ function ExploreRoute() {
 			instructor: params.instructor || undefined,
 			semester_terms: params.term.length > 0 ? params.term : undefined,
 			semester_year: params.year || undefined,
+			credits_min:
+				params.year && params.credits[0] !== CREDITS_RANGE[0]
+					? params.credits[0]
+					: undefined,
+			credits_max:
+				params.year && params.credits[1] !== CREDITS_RANGE[1]
+					? params.credits[1]
+					: undefined,
 			type_kind: params.type ?? undefined,
 			speciality: params.spec || undefined,
-		}),
-		[params],
-	);
+		};
+	}, [params]);
 
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 	const [showAllLabels, setShowAllLabels] = useState<boolean>(() => {

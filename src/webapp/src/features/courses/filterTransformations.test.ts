@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { CourseFiltersParamsState } from "./courseFiltersParams";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
+import {
+	CREDITS_RANGE,
+	DIFFICULTY_RANGE,
+	USEFULNESS_RANGE,
+} from "./courseFormatting";
 import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
@@ -16,6 +20,7 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	instructor: "",
 	term: [],
 	year: "",
+	credits: CREDITS_RANGE,
 	type: null,
 	spec: "",
 	page: 1,
@@ -192,6 +197,40 @@ describe("filterTransformations", () => {
 
 			// Assert
 			expect(result).not.toHaveProperty("semester_year");
+		});
+
+		it("should include credits range when both year and credits are provided", () => {
+			// Arrange
+			const filters = {
+				...DEFAULT_PARAMS,
+				year: "2024–2025",
+				credits: [3.5, 4.5] as [number, number],
+			};
+
+			// Act
+			const result = transformFiltersToApiParams(filters);
+
+			// Assert
+			expect(result).toEqual({
+				semester_year: "2024–2025",
+				credits_min: 3.5,
+				credits_max: 4.5,
+			});
+		});
+
+		it("should exclude credits range when year is not selected", () => {
+			// Arrange
+			const filters = {
+				...DEFAULT_PARAMS,
+				credits: [3.5, 4.5] as [number, number],
+			};
+
+			// Act
+			const result = transformFiltersToApiParams(filters);
+
+			// Assert
+			expect(result).not.toHaveProperty("credits_min");
+			expect(result).not.toHaveProperty("credits_max");
 		});
 
 		it("should include difficulty range when modified from default", () => {

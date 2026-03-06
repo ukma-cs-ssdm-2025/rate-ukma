@@ -6,7 +6,11 @@ import { testIds } from "@/lib/test-ids";
 import { createMockFilterOptions } from "@/test-utils/factories";
 import { CourseFiltersPanel } from "./CourseFiltersPanel";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+import {
+	CREDITS_RANGE,
+	DIFFICULTY_RANGE,
+	USEFULNESS_RANGE,
+} from "../courseFormatting";
 
 const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	q: "",
@@ -17,6 +21,7 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	instructor: "",
 	term: [],
 	year: "",
+	credits: CREDITS_RANGE,
 	type: null,
 	spec: "",
 	page: 1,
@@ -94,18 +99,23 @@ describe("CourseFiltersPanel", () => {
 			expect(screen.getByText(/Корисність:/)).toBeInTheDocument();
 		});
 
-		it("should render all select filters", () => {
+		it("should render all filter group headers", () => {
 			// Arrange & Act
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText("Семестровий період")).toBeInTheDocument();
-			expect(screen.getByText("Навчальний рік")).toBeInTheDocument();
-			expect(screen.getByText("Факультет")).toBeInTheDocument();
-			expect(screen.getByText("Кафедра")).toBeInTheDocument();
-			expect(screen.getByText("Спеціальність")).toBeInTheDocument();
-			expect(screen.getByText("Тип курсу")).toBeInTheDocument();
-			// expect(screen.getByText("Викладач")).toBeInTheDocument(); // Disabled
+			expect(screen.getByText("Рейтинг")).toBeInTheDocument();
+			expect(screen.getByText("Семестр")).toBeInTheDocument();
+			expect(screen.getByText("Структура")).toBeInTheDocument();
+		});
+
+		it("should render filter presets", () => {
+			// Arrange & Act
+			render(<TestWrapper />);
+
+			// Assert
+			expect(screen.getByText("Легкі курси")).toBeInTheDocument();
+			expect(screen.getByText("Найкорисніші")).toBeInTheDocument();
 		});
 	});
 
@@ -153,7 +163,7 @@ describe("CourseFiltersPanel", () => {
 	});
 
 	describe("Select Filter Interactions", () => {
-		it("should render faculty select with options", () => {
+		it("should render faculty select with options when structure expanded", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
@@ -170,11 +180,12 @@ describe("CourseFiltersPanel", () => {
 						specialities: [],
 					},
 				],
-			}); // Act
+			});
+
+			// Act — groups are open by default
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
-			// Verify faculty select is rendered
 			const facultyLabel = screen.getByText("Факультет");
 			expect(facultyLabel).toBeInTheDocument();
 			const selectContainer = assertElement(
@@ -186,7 +197,7 @@ describe("CourseFiltersPanel", () => {
 			expect(facultySelect).not.toBeDisabled();
 		});
 
-		it("should render semester term toggle group with options", () => {
+		it("should render semester term toggle group with options when expanded", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
 				semester_terms: [
@@ -195,13 +206,10 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act
+			// Act — groups are open by default
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
-			const termLabel = screen.getByText("Семестровий період");
-			expect(termLabel).toBeInTheDocument();
-
 			const toggleGroup = screen.getByTestId(testIds.filters.termToggle);
 			expect(toggleGroup).toBeInTheDocument();
 			expect(toggleGroup).toHaveAttribute("role", "group");
@@ -212,158 +220,15 @@ describe("CourseFiltersPanel", () => {
 			expect(toggleButtons[1]).toHaveTextContent("Весна");
 		});
 
-		it("should disable select when no options available", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				faculties: [],
-			});
-
-			// Act
-			render(<TestWrapper filterOptions={filterOptions} />);
+		it("should disable credits slider when year is not selected", () => {
+			// Act — semester group is open by default
+			render(<TestWrapper />);
 
 			// Assert
-			const facultyLabel = screen.getByText("Факультет");
-			const selectContainer = assertElement(
-				facultyLabel.closest(".space-y-3"),
-				"Faculty select container not found",
+			expect(screen.getByTestId(testIds.filters.creditsSelect)).toHaveAttribute(
+				"data-disabled",
+				"",
 			);
-			const facultySelect = within(selectContainer).getByRole("combobox");
-			expect(facultySelect).not.toBeDisabled();
-		});
-	});
-
-	describe("Active Filter Badges", () => {
-		it("should not show active filters section when no filters applied", () => {
-			// Arrange & Act
-			render(<TestWrapper initialParams={DEFAULT_PARAMS} />);
-
-			// Assert
-			expect(screen.queryByText("Активні фільтри:")).not.toBeInTheDocument();
-		});
-
-		it("should show active filters section when search query is present", () => {
-			// Arrange & Act
-			render(
-				<TestWrapper
-					initialParams={{
-						...DEFAULT_PARAMS,
-						q: "React",
-					}}
-				/>,
-			);
-
-			// Assert
-			expect(screen.getByText("Активні фільтри:")).toBeInTheDocument();
-			expect(screen.getByText("Пошук: React")).toBeInTheDocument();
-		});
-
-		it("should show badge for modified difficulty range", () => {
-			// Arrange & Act
-			render(
-				<TestWrapper
-					initialParams={{
-						...DEFAULT_PARAMS,
-						diff: [2, 4],
-					}}
-				/>,
-			);
-
-			// Assert
-			expect(screen.getByText("Активні фільтри:")).toBeInTheDocument();
-			expect(screen.getByText("2-4 складність")).toBeInTheDocument();
-		});
-
-		it("should show badge for modified usefulness range", () => {
-			// Arrange & Act
-			render(
-				<TestWrapper
-					initialParams={{
-						...DEFAULT_PARAMS,
-						use: [3.5, 5],
-					}}
-				/>,
-			);
-
-			// Assert
-			expect(screen.getByText("3.5-5 корисність")).toBeInTheDocument();
-		});
-
-		it("should show badge for selected faculty", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				faculties: [
-					{
-						id: "faculty-1",
-						name: "Факультет інформатики",
-						departments: [],
-						specialities: [],
-					},
-				],
-			}); // Act
-			render(
-				<TestWrapper
-					initialParams={{
-						...DEFAULT_PARAMS,
-						faculty: "faculty-1",
-					}}
-					filterOptions={filterOptions}
-				/>,
-			);
-
-			// Assert
-			expect(screen.getByText("ФІ")).toBeInTheDocument();
-		});
-
-		it("should show badge for selected instructor", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				instructors: [{ id: "inst-1", name: "Іван Петрович" }],
-			});
-
-			// Act
-			render(
-				<TestWrapper
-					initialParams={{
-						...DEFAULT_PARAMS,
-						instructor: "inst-1",
-					}}
-					filterOptions={filterOptions}
-				/>,
-			);
-
-			// Assert
-			expect(screen.getByText("Іван Петрович")).toBeInTheDocument();
-		});
-
-		it("should show multiple badges when multiple filters applied", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				faculties: [
-					{
-						id: "faculty-1",
-						name: "Факультет інформатики",
-						departments: [],
-						specialities: [],
-					},
-				],
-			}); // Act
-			render(
-				<TestWrapper
-					initialParams={{
-						...DEFAULT_PARAMS,
-						q: "Database",
-						faculty: "faculty-1",
-						diff: [2, 4],
-					}}
-					filterOptions={filterOptions}
-				/>,
-			);
-
-			// Assert
-			expect(screen.getByText("Активні фільтри:")).toBeInTheDocument();
-			expect(screen.getByText("Пошук: Database")).toBeInTheDocument();
-			expect(screen.getByText("ФІ")).toBeInTheDocument();
-			expect(screen.getByText("2-4 складність")).toBeInTheDocument();
 		});
 	});
 
@@ -419,7 +284,7 @@ describe("CourseFiltersPanel", () => {
 	});
 
 	describe("Department Cascading Logic", () => {
-		it("should render department select when no faculty selected", () => {
+		it("should render department select when structure group expanded", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
@@ -434,78 +299,13 @@ describe("CourseFiltersPanel", () => {
 						],
 						specialities: [],
 					},
-					{
-						id: "fac-2",
-						name: "Факультет економіки",
-						departments: [
-							{
-								id: "dept-2",
-								name: "Кафедра економіки",
-							},
-						],
-						specialities: [],
-					},
 				],
 			});
 
-			// Act
+			// Act — structure group is open by default
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
-			// Verify department select is rendered and not disabled
-			const deptLabel = screen.getByText("Кафедра");
-			expect(deptLabel).toBeInTheDocument();
-			const selectContainer = assertElement(
-				deptLabel.closest(".space-y-3"),
-				"Department select container not found",
-			);
-			const deptSelect = within(selectContainer).getByRole("combobox");
-			expect(deptSelect).toBeInTheDocument();
-			expect(deptSelect).not.toBeDisabled();
-		});
-
-		it("should render department select when faculty is selected", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				faculties: [
-					{
-						id: "fac-1",
-						name: "Факультет інформатики",
-						departments: [
-							{
-								id: "dept-1",
-								name: "Кафедра програмування",
-							},
-						],
-						specialities: [],
-					},
-					{
-						id: "fac-2",
-						name: "Факультет економіки",
-						departments: [
-							{
-								id: "dept-2",
-								name: "Кафедра економіки",
-							},
-						],
-						specialities: [],
-					},
-				],
-			});
-
-			// Act
-			render(
-				<TestWrapper
-					initialParams={{
-						...DEFAULT_PARAMS,
-						faculty: "fac-1",
-					}}
-					filterOptions={filterOptions}
-				/>,
-			);
-
-			// Assert
-			// Verify department select is rendered (filtering logic is tested in hook tests)
 			const deptLabel = screen.getByText("Кафедра");
 			expect(deptLabel).toBeInTheDocument();
 			const selectContainer = assertElement(
@@ -524,22 +324,8 @@ describe("CourseFiltersPanel", () => {
 			render(<TestWrapper />);
 
 			// Assert
-			const difficultyLabel = screen.getByText(/Складність:/);
-			const usefulnessLabel = screen.getByText(/Корисність:/);
-			expect(difficultyLabel).toBeInTheDocument();
-			expect(usefulnessLabel).toBeInTheDocument();
-		});
-
-		it("should have proper roles for select elements", () => {
-			// Arrange & Act
-			render(<TestWrapper />);
-
-			// Assert
-			const selects = screen.getAllByRole("combobox");
-			expect(selects).toHaveLength(5);
-
-			const termToggle = screen.getByTestId(testIds.filters.termToggle);
-			expect(termToggle).toHaveAttribute("role", "group");
+			expect(screen.getByText(/Складність:/)).toBeInTheDocument();
+			expect(screen.getByText(/Корисність:/)).toBeInTheDocument();
 		});
 
 		it("should have reset button with proper text", () => {

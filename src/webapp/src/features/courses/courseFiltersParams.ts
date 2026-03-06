@@ -11,7 +11,11 @@ import type {
 	CoursesListSemesterTermsItem,
 	CoursesListTypeKind,
 } from "@/lib/api/generated";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
+import {
+	CREDITS_RANGE,
+	DIFFICULTY_RANGE,
+	USEFULNESS_RANGE,
+} from "./courseFormatting";
 
 const VALID_SEMESTER_TERMS: readonly CoursesListSemesterTermsItem[] = [
 	"FALL",
@@ -70,6 +74,7 @@ export const courseFiltersParams = {
 		),
 	).withDefault([]),
 	year: parseAsString.withDefault(""),
+	credits: createRangeParser(CREDITS_RANGE),
 	type: parseAsStringEnum<CoursesListTypeKind>(
 		VALID_TYPE_KINDS as unknown as CoursesListTypeKind[],
 	),
@@ -109,6 +114,7 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	instructor: "",
 	term: [],
 	year: "",
+	credits: CREDITS_RANGE,
 	type: null,
 	spec: "",
 	page: 1,
@@ -140,6 +146,13 @@ export function courseFiltersStateToSearchParams(
 	if (state.instructor) params.instructor = state.instructor;
 	if (state.term.length > 0) params.term = state.term.join(",");
 	if (state.year) params.year = state.year;
+	if (
+		state.year &&
+		(state.credits[0] !== CREDITS_RANGE[0] ||
+			state.credits[1] !== CREDITS_RANGE[1])
+	) {
+		params.credits = `${state.credits[0]}-${state.credits[1]}`;
+	}
 	if (state.type) params.type = state.type;
 	if (state.spec) params.spec = state.spec;
 	if (state.page !== 1) params.page = state.page;
