@@ -56,6 +56,8 @@ class RatingRepository(
             rating = self._build_base_queryset().get(pk=id)
         except Rating.DoesNotExist as err:
             raise RatingNotFoundError() from err
+        except (DjangoValidationError, ValueError, TypeError, DataError) as err:
+            raise InvalidRatingIdentifierError(id) from err
 
         return self._map_to_domain_model(rating)
 
@@ -71,7 +73,7 @@ class RatingRepository(
             student_id = Rating.objects.filter(pk=rating_id).values_list(
                 "student_id", flat=True
             ).first()
-        except DjangoValidationError:
+        except (DjangoValidationError, ValueError, TypeError, DataError):
             return None
         return str(student_id) if student_id is not None else None
 

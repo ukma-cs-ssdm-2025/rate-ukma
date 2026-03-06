@@ -124,6 +124,11 @@ class RedisCacheManager(ICacheManager):
         version_key = self._make_version_key(namespace)
         try:
             new_version = int(self.redis_client.incr(version_key))
+            # First INCR on a missing key yields 1, which matches the get_version()
+            # default of 1, so stale cached entries would not be invalidated.
+            # Force a second increment to guarantee the version actually advances.
+            if new_version == 1:
+                new_version = int(self.redis_client.incr(version_key))
             self.redis_client.expire(version_key, 60 * 60 * 24 * 30)
             return new_version
         except RedisError as e:
