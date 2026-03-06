@@ -9,7 +9,6 @@ export interface RatingData {
 }
 
 export class RatingModal {
-	private readonly page: Page;
 	// Modal
 	private readonly modal: Locator;
 
@@ -22,8 +21,6 @@ export class RatingModal {
 	private readonly saveButton: Locator;
 
 	constructor(page: Page) {
-		this.page = page;
-
 		this.modal = page.getByTestId(testIds.rating.modal);
 		this.difficultyStars = page.getByTestId(testIds.rating.difficultySlider);
 		this.usefulnessStars = page.getByTestId(testIds.rating.usefulnessSlider);

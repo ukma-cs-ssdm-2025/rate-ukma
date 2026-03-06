@@ -41,7 +41,8 @@ def fetch_microsoft_avatar(access_token: str) -> ContentFile | None:
             logger.warning("microsoft_avatar_too_large", size=len(photo_bytes))
             return None
 
-        ext = "jpg" if "jpeg" in content_type else content_type.split("/")[-1]
+        mime_type = content_type.split(";")[0].strip()
+        ext = "jpg" if "jpeg" in mime_type else mime_type.split("/")[-1]
         filename = f"{uuid.uuid4().hex}.{ext}"
 
         return ContentFile(photo_bytes, name=filename)

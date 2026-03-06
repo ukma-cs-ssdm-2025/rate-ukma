@@ -85,9 +85,9 @@ function StarRatingInput({
 
 	return (
 		<div data-testid={dataTestId}>
-			<div
-				role="radiogroup"
-				className="flex gap-0.5 select-none touch-none"
+			<fieldset
+				aria-label="Оцінка"
+				className="flex gap-0.5 select-none touch-none border-none p-0 m-0"
 				onMouseLeave={() => {
 					if (!dragging) setHovered(null);
 				}}
@@ -124,7 +124,7 @@ function StarRatingInput({
 						</button>
 					);
 				})}
-			</div>
+			</fieldset>
 			<p className="mt-1.5 text-xs text-muted-foreground min-h-8">
 				{descriptions[displayValue as keyof typeof descriptions] ?? ""}
 			</p>
