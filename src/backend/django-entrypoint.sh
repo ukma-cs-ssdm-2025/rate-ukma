@@ -29,14 +29,16 @@ mkdir -p "${STATIC_ROOT}"
 uv run python manage.py collectstatic --noinput
 
 # available memory in MB
-AVAILABLE_MEMORY=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
-MAX_REQUESTS=$((AVAILABLE_MEMORY * 2 / 1024))
+AVAILABLE_MEMORY_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
+AVAILABLE_MEMORY_MB=$((AVAILABLE_MEMORY_KB / 1024))
+MAX_REQUESTS=$((AVAILABLE_MEMORY_MB * 2))
 
 # optimal number of workers
 CORES=$(nproc)
-MEMORY_PER_WORKER=150
-MAX_WORKERS_BY_MEMORY=$((AVAILABLE_MEMORY / MEMORY_PER_WORKER))
-WORKERS=$((CORES < MAX_WORKERS_BY_MEMORY ? CORES : MAX_WORKERS_BY_MEMORY)) # for bigger instances we can use $((2 * CORES + 1))
+MEMORY_PER_WORKER_MB=150
+MAX_WORKERS_BY_MEMORY=$((AVAILABLE_MEMORY_MB / MEMORY_PER_WORKER_MB))
+WORKERS_BY_CORES=$((2 * CORES + 1))
+WORKERS=$((WORKERS_BY_CORES < MAX_WORKERS_BY_MEMORY ? WORKERS_BY_CORES : MAX_WORKERS_BY_MEMORY))
 WORKERS=$((WORKERS < 1 ? 1 : WORKERS)) # minimum 1 worker
 
 # number of threads
