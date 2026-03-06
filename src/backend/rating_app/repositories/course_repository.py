@@ -191,14 +191,7 @@ class CourseRepository(
         return has_offering_filter or has_speciality_filter
 
     def _build_base_queryset(self) -> QuerySet[Course]:
-        # Omits the offerings prefetch — CourseDTO has no offerings field and
-        # CourseListSerializer does not render offerings. The full prefetch
-        # (including offerings + instructors) is only needed for the detail path
-        # (_get_by_id_prefetch_related).
-        return (
-            Course.objects.select_related("department__faculty")
-            .all()
-        )
+        return self._get_all_prefetch_related()
 
     def _apply_basic_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal

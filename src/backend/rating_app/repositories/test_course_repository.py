@@ -139,7 +139,9 @@ def test_filter_prefetches_instructors(django_assert_num_queries, repo):
         CourseOfferingFactory(semester=semester, instructors=[InstructorFactory()])
 
     # Assert
-    # 1) base courses + speciality prefetch
-    # 2) related faculty records for mapped specialities
-    with django_assert_num_queries(2):
+    # 1) base courses + prefetches
+    # 2) offerings
+    # 3) instructors
+    # 4) course_offering_specialities
+    with django_assert_num_queries(4):
         repo.filter(CourseFilterCriteriaInternal())

@@ -163,9 +163,8 @@ describe("CourseFiltersPanel", () => {
 	});
 
 	describe("Select Filter Interactions", () => {
-		it("should render faculty select with options when structure expanded", async () => {
+		it("should render faculty select with options when structure expanded", () => {
 			// Arrange
-			const user = userEvent.setup();
 			const filterOptions = createMockFilterOptions({
 				faculties: [
 					{
@@ -183,9 +182,8 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act
+			// Act — groups are open by default
 			render(<TestWrapper filterOptions={filterOptions} />);
-			await user.click(screen.getByTestId(testIds.filters.groupStructure));
 
 			// Assert
 			const facultyLabel = screen.getByText("Факультет");
@@ -199,9 +197,8 @@ describe("CourseFiltersPanel", () => {
 			expect(facultySelect).not.toBeDisabled();
 		});
 
-		it("should render semester term toggle group with options when expanded", async () => {
+		it("should render semester term toggle group with options when expanded", () => {
 			// Arrange
-			const user = userEvent.setup();
 			const filterOptions = createMockFilterOptions({
 				semester_terms: [
 					{ value: "FALL", label: "Осінь" },
@@ -209,9 +206,8 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act
+			// Act — groups are open by default
 			render(<TestWrapper filterOptions={filterOptions} />);
-			await user.click(screen.getByTestId(testIds.filters.groupSemester));
 
 			// Assert
 			const toggleGroup = screen.getByTestId(testIds.filters.termToggle);
