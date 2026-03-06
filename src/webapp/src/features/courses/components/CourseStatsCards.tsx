@@ -104,8 +104,11 @@ export function CourseStatsHero({
 	usefulness,
 	ratingsCount,
 }: Readonly<CourseStatsHeroProps>) {
+	// Scores below 1 are not valid on a 1–5 scale; treat as missing
+	const diff = difficulty && difficulty >= 1 ? difficulty : null;
+	const useful = usefulness && usefulness >= 1 ? usefulness : null;
 	const hasRatings = ratingsCount != null && ratingsCount > 0;
-	const hasScores = difficulty != null || usefulness != null;
+	const hasScores = diff != null || useful != null;
 
 	if (!hasRatings && !hasScores) {
 		return null;
@@ -114,19 +117,19 @@ export function CourseStatsHero({
 	const panels = [
 		{
 			title: "Складність",
-			value: difficulty,
+			value: diff,
 			type: "difficulty" as const,
-			formatted: difficulty?.toFixed(1) ?? "—",
-			accent: getDifficultyTone(difficulty),
-			barColor: getBarColor("difficulty", difficulty),
+			formatted: diff?.toFixed(1) ?? "—",
+			accent: getDifficultyTone(diff),
+			barColor: getBarColor("difficulty", diff),
 		},
 		{
 			title: "Корисність",
-			value: usefulness,
+			value: useful,
 			type: "usefulness" as const,
-			formatted: usefulness?.toFixed(1) ?? "—",
-			accent: getUsefulnessTone(usefulness),
-			barColor: getBarColor("usefulness", usefulness),
+			formatted: useful?.toFixed(1) ?? "—",
+			accent: getUsefulnessTone(useful),
+			barColor: getBarColor("usefulness", useful),
 		},
 	];
 

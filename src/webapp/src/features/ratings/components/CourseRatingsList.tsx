@@ -2,11 +2,11 @@ import { useState } from "react";
 
 import { MessageSquare, PenLine } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
+import { RatingButton } from "./RatingButton";
 import { RatingCard } from "./RatingCard";
 import { RatingsSortSelect, type SortOption } from "./RatingsSortSelect";
 import { UserRatingCard } from "./UserRatingCard";
@@ -56,7 +56,10 @@ function EmptyState({
 	onRate?: () => void;
 }>) {
 	return (
-		<div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border/60 bg-muted/30 py-12 px-6 text-center">
+		<div
+			className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border/60 bg-muted/30 py-12 px-6 text-center"
+			data-testid={testIds.courseDetails.noReviewsMessage}
+		>
 			<MessageSquare className="h-10 w-10 text-muted-foreground/40" />
 			<div className="space-y-1">
 				<p className="text-base font-medium text-foreground">
@@ -67,16 +70,15 @@ function EmptyState({
 				</p>
 			</div>
 			{showCta && (
-				<Button
-					size="lg"
+				<RatingButton
+					canRate={canRateButton}
 					onClick={onRate}
-					aria-disabled={!canRateButton}
+					size="lg"
 					className="mt-2"
-					data-testid={testIds.courseDetails.rateButton}
 				>
 					<PenLine className="mr-2 h-4 w-4" />
 					Оцінити цей курс
-				</Button>
+				</RatingButton>
 			)}
 		</div>
 	);
@@ -200,15 +202,10 @@ export function CourseRatingsList({
 				</div>
 				<div className="flex items-center gap-2">
 					{showCta && !hasNoReviews && (
-						<Button
-							size="sm"
-							onClick={onRate}
-							aria-disabled={!canRateButton}
-							data-testid={testIds.courseDetails.rateButton}
-						>
+						<RatingButton canRate={canRateButton} onClick={onRate} size="sm">
 							<PenLine className="mr-1.5 h-3.5 w-3.5" />
 							Оцінити
-						</Button>
+						</RatingButton>
 					)}
 					{displayCount > 0 && (
 						<RatingsSortSelect

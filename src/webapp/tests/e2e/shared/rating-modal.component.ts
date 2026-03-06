@@ -13,9 +13,9 @@ export class RatingModal {
 	// Modal
 	private readonly modal: Locator;
 
-	// Form
-	private readonly difficultySlider: Locator;
-	private readonly usefulnessSlider: Locator;
+	// Form — star rating inputs
+	private readonly difficultyStars: Locator;
+	private readonly usefulnessStars: Locator;
 	private readonly commentTextarea: Locator;
 
 	// Action buttons
@@ -25,12 +25,8 @@ export class RatingModal {
 		this.page = page;
 
 		this.modal = page.getByTestId(testIds.rating.modal);
-		this.difficultySlider = page.getByTestId(
-			`${testIds.rating.difficultySlider}-thumb-0`,
-		);
-		this.usefulnessSlider = page.getByTestId(
-			`${testIds.rating.usefulnessSlider}-thumb-0`,
-		);
+		this.difficultyStars = page.getByTestId(testIds.rating.difficultySlider);
+		this.usefulnessStars = page.getByTestId(testIds.rating.usefulnessSlider);
 		this.commentTextarea = page.getByTestId(testIds.rating.commentTextarea);
 
 		this.saveButton = page.getByTestId(testIds.rating.submitButton);
@@ -40,68 +36,42 @@ export class RatingModal {
 		await this.modal.waitFor({ state: "hidden" });
 	}
 
-	private async getSliderValue(slider: Locator): Promise<number> {
-		await expect(slider).toBeVisible();
-		const raw = await slider.getAttribute("aria-valuenow");
-		if (!raw) {
-			throw new Error("Slider aria-valuenow is missing");
-		}
-		const value = Number(raw);
-		if (Number.isNaN(value)) {
-			throw new TypeError(`Slider aria-valuenow is not a number: ${raw}`);
-		}
-		return value;
+	private async getStarValue(container: Locator): Promise<number> {
+		await expect(container).toBeVisible();
+		const filledStars = container.locator("button:has(svg.fill-primary)");
+		return await filledStars.count();
 	}
 
-	private async setSliderValue(
-		slider: Locator,
+	private async setStarValue(
+		container: Locator,
 		targetValue: number,
 	): Promise<void> {
-		await expect(slider).toBeVisible();
+		await expect(container).toBeVisible();
 
-		const currentValue = await this.getSliderValue(slider);
-		const steps = targetValue - currentValue;
-		if (steps === 0) {
-			return;
-		}
-
-		await slider.focus();
-
-		const direction = steps > 0 ? "ArrowRight" : "ArrowLeft";
-		const stepDelta = steps > 0 ? 1 : -1;
-
-		let expectedValue = currentValue;
-		for (let i = 0; i < Math.abs(steps); i++) {
-			expectedValue += stepDelta;
-			await this.page.keyboard.press(direction);
-			await expect(slider).toHaveAttribute(
-				"aria-valuenow",
-				String(expectedValue),
+		if (targetValue < 1 || targetValue > 5) {
+			throw new RangeError(
+				`Star value must be between 1 and 5, got: ${targetValue}`,
 			);
 		}
 
-		const newValue = await this.getSliderValue(slider);
-		if (newValue !== targetValue) {
-			throw new Error(
-				`Slider value not set correctly. Expected: ${targetValue}, Got: ${newValue}`,
-			);
-		}
+		const starButton = container.locator("button").nth(targetValue - 1);
+		await starButton.click();
 	}
 
 	async getCurrentDifficultyValue(): Promise<number> {
-		return await this.getSliderValue(this.difficultySlider);
+		return await this.getStarValue(this.difficultyStars);
 	}
 
 	async setDifficultyRating(targetValue: number): Promise<void> {
-		await this.setSliderValue(this.difficultySlider, targetValue);
+		await this.setStarValue(this.difficultyStars, targetValue);
 	}
 
 	async getCurrentUsefulnessValue(): Promise<number> {
-		return await this.getSliderValue(this.usefulnessSlider);
+		return await this.getStarValue(this.usefulnessStars);
 	}
 
 	async setUsefulnessRating(targetValue: number): Promise<void> {
-		await this.setSliderValue(this.usefulnessSlider, targetValue);
+		await this.setStarValue(this.usefulnessStars, targetValue);
 	}
 
 	async setComment(comment: string): Promise<void> {
