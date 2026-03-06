@@ -24,7 +24,7 @@ export const CANNOT_VOTE_WITHOUT_ATTENDING_TEXT =
 	"Ви не можете додавати реакцію на відгук з курсу, який не прослуховували";
 
 export const CANNOT_VOTE_BEFORE_MIDTERM_TEXT =
-	"Реакції будуть доступні після середини семестру курсу.";
+	"Реакції стануть доступними з середини семестру курсу";
 
 export const ANONYMOUS_REVIEW_NAME = "Анонімний відгук";
 export const DEFAULT_STUDENT_NAME = "Студент";
