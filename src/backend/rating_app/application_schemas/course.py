@@ -51,16 +51,6 @@ class CourseFilterCriteria(BaseModel):
         default=None,
         description="Semester terms to filter by (FALL, SPRING, SUMMER)",
     )
-    credits_min: decimal.Decimal | None = Field(
-        default=None,
-        gt=0,
-        description="Minimum ECTS credits for course offering (requires semester_year)",
-    )
-    credits_max: decimal.Decimal | None = Field(
-        default=None,
-        gt=0,
-        description="Maximum ECTS credits for course offering (requires semester_year)",
-    )
     avg_difficulty_min: float | None = Field(
         default=None,
         ge=MIN_DIFFICULTY_VALUE,
@@ -103,18 +93,6 @@ class CourseFilterCriteria(BaseModel):
     def validate_type_kind_requires_speciality(self):
         if self.type_kind and not self.speciality:
             raise ValueError("speciality is required when type_kind is provided")
-        return self
-
-    @model_validator(mode="after")
-    def validate_credits_requires_semester_year(self):
-        if (self.credits_min is not None or self.credits_max is not None) and not self.semester_year:
-            raise ValueError("semester_year is required when credits range is provided")
-        if (
-            self.credits_min is not None
-            and self.credits_max is not None
-            and self.credits_min > self.credits_max
-        ):
-            raise ValueError("credits_min cannot be greater than credits_max")
         return self
 
     @field_validator("semester_terms", mode="before")

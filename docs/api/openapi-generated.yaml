@@ -53,12 +53,6 @@ paths:
           - desc
         description: Sort order for usefulness (asc/desc)
       - in: query
-        name: credits
-        schema:
-          type: number
-          format: float
-        description: ECTS credits for course offering (requires semester_year)
-      - in: query
         name: department
         schema:
           type: string
@@ -584,12 +578,6 @@ paths:
           - asc
           - desc
         description: Sort order for usefulness (asc/desc)
-      - in: query
-        name: credits
-        schema:
-          type: number
-          format: float
-        description: ECTS credits for course offering (requires semester_year)
       - in: query
         name: department
         schema:

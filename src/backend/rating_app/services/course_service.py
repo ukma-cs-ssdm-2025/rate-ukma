@@ -1,7 +1,6 @@
 import structlog
 
 from rateukma.caching.decorators import rcached
-from rateukma.caching.instances import redis_cache_manager
 from rating_app.application_schemas.course import (
     Course as CourseDTO,
 )
@@ -102,11 +101,6 @@ class CourseService:
             avg_usefulness=aggregates.avg_usefulness,
             ratings_count=aggregates.ratings_count,
         )
-        # Immediately invalidate the per-course cache so the next read reflects
-        # the updated aggregates. Without this, the RatingCacheInvalidator fires
-        # after us in the same notify() loop, leaving a brief window where a
-        # concurrent request could re-populate the cache with stale data.
-        redis_cache_manager().invalidate_pattern(f"*get_course*{course.id}*")
 
     @rcached(ttl=86400)  # 24 hours - filter options rarely change
     def get_filter_options(self) -> CourseFilterOptions:
