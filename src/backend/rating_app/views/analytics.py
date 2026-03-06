@@ -8,7 +8,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
 from rateukma.caching.decorators import rcached
-from rateukma.caching.patterns import ANALYTICS_LIST_NAMESPACE, course_detail_namespace
+from rateukma.caching.patterns import ANALYTICS_LIST_NAMESPACE, course_analytics_namespace
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
     CourseReadParams,
@@ -26,7 +26,7 @@ to_openapi = pydantic_to_openapi_request_mapper().map
 def _analytics_course_namespace(self, request, course_id=None, *args, **kwargs) -> str | None:
     if course_id is None:
         return None
-    return course_detail_namespace(course_id)
+    return course_analytics_namespace(course_id)
 
 
 @extend_schema(tags=["analytics"])

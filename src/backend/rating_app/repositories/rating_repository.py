@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import Any, Literal, overload
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError, IntegrityError
 from django.db.models import Avg, Count, Q, QuerySet
 
@@ -66,7 +67,12 @@ class RatingRepository(
         return self._map_to_domain_models(ratings)
 
     def get_student_id_by_rating_id(self, rating_id: str) -> str | None:
-        student_id = Rating.objects.filter(pk=rating_id).values_list("student_id", flat=True).first()
+        try:
+            student_id = Rating.objects.filter(pk=rating_id).values_list(
+                "student_id", flat=True
+            ).first()
+        except DjangoValidationError:
+            return None
         return str(student_id) if student_id is not None else None
 
     @overload
@@ -254,7 +260,7 @@ class RatingRepository(
         ratings = self._apply_filters(ratings, criteria)
         ratings = self._apply_ordering(ratings, criteria)
 
-        if criteria.separate_current_user:
+        if criteria.separate_current_user and criteria.viewer_id is not None:
             ratings = ratings.exclude(student_id=str(criteria.viewer_id))
 
         return ratings
@@ -322,7 +328,11 @@ class RatingRepository(
         self, queryset: QuerySet[Rating], order: str
     ) -> QuerySet[Rating]:
         prefix = "" if order == "asc" else "-"
-        return queryset.order_by(f"{prefix}popularity_score", "-created_at", "-id")
+        return queryset.order_by(
+            f"{prefix}popularity_score",
+            f"{prefix}created_at",
+            f"{prefix}id",
+        )
 
     def _apply_time_ordering(self, queryset: QuerySet[Rating], order: str) -> QuerySet[Rating]:
         prefix = "" if order == "asc" else "-"

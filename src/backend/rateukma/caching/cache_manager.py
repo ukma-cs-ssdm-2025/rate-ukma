@@ -123,7 +123,9 @@ class RedisCacheManager(ICacheManager):
     def bump_version(self, namespace: str) -> int:
         version_key = self._make_version_key(namespace)
         try:
-            return int(self.redis_client.incr(version_key))
+            new_version = int(self.redis_client.incr(version_key))
+            self.redis_client.expire(version_key, 60 * 60 * 24 * 30)
+            return new_version
         except RedisError as e:
             self._handle_error("bump_version", e)
             return self.get_version(namespace)

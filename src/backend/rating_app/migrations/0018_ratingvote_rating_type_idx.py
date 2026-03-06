@@ -9,6 +9,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddIndex(
             model_name="ratingvote",
-            index=models.Index(fields=["rating", "type"], name="rating_app__rating__876c50_idx"),
+            index=models.Index(fields=["rating", "type"], name="rating_vote_rating_type_idx"),
         ),
     ]

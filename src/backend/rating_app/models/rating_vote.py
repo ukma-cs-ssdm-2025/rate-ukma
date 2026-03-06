@@ -18,11 +18,11 @@ class RatingVote(models.Model):
         verbose_name = "Rating Vote"
         verbose_name_plural = "Rating Votes"
         indexes = [
-            models.Index(fields=["rating", "type"]),
+            models.Index(fields=["rating", "type"], name="rating_vote_rating_type_idx"),
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(type__in=[RatingVoteType.UPVOTE, RatingVoteType.DOWNVOTE]),
+                condition=models.Q(type__in=[RatingVoteType.UPVOTE, RatingVoteType.DOWNVOTE]),
                 name="rating_vote_type_valid",
             ),
         ]

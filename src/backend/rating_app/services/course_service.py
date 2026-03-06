@@ -6,6 +6,7 @@ from rateukma.caching.patterns import (
     ANALYTICS_LIST_NAMESPACE,
     COURSES_LIST_NAMESPACE,
     FILTER_OPTIONS_NAMESPACE,
+    course_analytics_namespace,
     course_detail_namespace,
 )
 from rating_app.application_schemas.course import (
@@ -129,6 +130,7 @@ class CourseService:
         )
         cache_manager = redis_cache_manager()
         cache_manager.bump_version(course_detail_namespace(str(course.id)))
+        cache_manager.bump_version(course_analytics_namespace(str(course.id)))
         cache_manager.bump_version(COURSES_LIST_NAMESPACE)
         cache_manager.bump_version(ANALYTICS_LIST_NAMESPACE)
 
