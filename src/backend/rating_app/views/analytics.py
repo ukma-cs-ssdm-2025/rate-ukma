@@ -7,6 +7,8 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
+from rateukma.caching.decorators import rcached
+from rateukma.caching.patterns import ANALYTICS_LIST_NAMESPACE, course_detail_namespace
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
     CourseReadParams,
@@ -19,6 +21,12 @@ from rating_app.views.responses import R_ANALYTICS
 
 logger = structlog.get_logger(__name__)
 to_openapi = pydantic_to_openapi_request_mapper().map
+
+
+def _analytics_course_namespace(self, request, course_id=None, *args, **kwargs) -> str | None:
+    if course_id is None:
+        return None
+    return course_detail_namespace(course_id)
 
 
 @extend_schema(tags=["analytics"])
@@ -36,6 +44,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         parameters=to_openapi((CourseFilterCriteria, OpenApiParameter.QUERY)),
         responses=R_ANALYTICS,
     )
+    @rcached(ttl=300, return_type=Response, versioned_by=ANALYTICS_LIST_NAMESPACE)
     def list(self, request: Request, *args, **kwargs) -> Response:
         assert self.course_service is not None
 
@@ -48,7 +57,11 @@ class AnalyticsViewSet(viewsets.ViewSet):
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
-        payload: CourseSearchResult = self.course_service.filter_courses(filters, paginate=False)
+        payload: CourseSearchResult = self.course_service.filter_courses(
+            filters,
+            paginate=False,
+            prefetch_related=False,
+        )
         serialized = self.serializer_class(payload.items, many=True).data
 
         return Response(serialized, status=status.HTTP_200_OK)
@@ -60,6 +73,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         parameters=to_openapi((CourseReadParams, OpenApiParameter.PATH)),
         responses=R_ANALYTICS,
     )
+    @rcached(ttl=300, return_type=Response, versioned_by=_analytics_course_namespace)
     def retrieve(self, request, course_id=None, *args, **kwargs) -> Response:
         assert self.course_service is not None
 

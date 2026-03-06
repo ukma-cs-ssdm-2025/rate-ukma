@@ -100,3 +100,46 @@ def test_get_or_upsert_with_return_model_returns_orm_model(repo):
     assert created is True
     assert hasattr(offering, "course")
     assert offering.course == course
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_create_returns_hydrated_domain_model(repo):
+    course = CourseFactory(title="Algorithms")
+    semester = SemesterFactory(year=2024, term="FALL")
+
+    data = CourseOfferingDTO(
+        id=uuid4(),
+        code="CS1031",
+        course_id=course.id,
+        semester_id=semester.id,
+        exam_type="EXAM",
+        practice_type="PRACTICE",
+        credits=Decimal("3.0"),
+        weekly_hours=2,
+        lecture_count=14,
+        practice_count=14,
+        max_students=30,
+        max_groups=2,
+        group_size_min=10,
+        group_size_max=20,
+    )
+
+    offering = repo.create(data)
+
+    assert offering.course_title == "Algorithms"
+    assert offering.semester_year == 2024
+    assert offering.semester_term == semester.label
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_applies_kwargs(repo):
+    course_one = CourseFactory()
+    course_two = CourseFactory()
+    target = CourseOfferingFactory(course=course_one)
+    CourseOfferingFactory(course=course_two)
+
+    result = repo.filter(course_id=course_one.id)
+
+    assert [offering.id for offering in result] == [target.id]

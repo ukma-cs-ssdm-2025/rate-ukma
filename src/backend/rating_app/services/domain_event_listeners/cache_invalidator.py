@@ -1,9 +1,7 @@
 from rateukma.caching.cache_manager import ICacheManager
 from rateukma.caching.patterns import (
-    COURSE_PATTERN,
-    RATINGS_PATTERN,
-    course_ratings_pattern,
-    student_pattern,
+    course_detail_namespace,
+    course_ratings_namespace,
 )
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener
@@ -20,13 +18,9 @@ class RatingCacheInvalidator(IEventListener[RatingDTO]):
 
     @implements
     def on_event(self, event: RatingDTO, *args, **kwargs) -> None:
-        patterns = {
-            student_pattern(str(event.student_id)),
-            RATINGS_PATTERN,
-            COURSE_PATTERN,
-        }
-        for pattern in patterns:
-            self.cache_manager.invalidate_pattern(pattern)
+        course_id = str(event.course)
+        self.cache_manager.bump_version(course_detail_namespace(course_id))
+        self.cache_manager.bump_version(course_ratings_namespace(course_id))
 
 
 class RatingVoteCacheInvalidator(IEventListener[RatingVoteDTO]):
@@ -38,5 +32,4 @@ class RatingVoteCacheInvalidator(IEventListener[RatingVoteDTO]):
     def on_event(self, event: RatingVoteDTO, *args, **kwargs) -> None:
         rating = self.rating_repository.get_by_id(str(event.rating_id))
         course_id = str(rating.course)
-        pattern = course_ratings_pattern(course_id)
-        self.cache_manager.invalidate_pattern(pattern)
+        self.cache_manager.bump_version(course_ratings_namespace(course_id))

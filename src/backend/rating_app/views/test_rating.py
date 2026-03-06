@@ -673,6 +673,31 @@ def test_ratings_list_separate_current_user_true_flag(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_ratings_list_separate_current_user_unauthenticated_does_not_do_user_split(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    rating_factory.create_batch(3, course_offering=offering)
+
+    client, _user = token_client
+    client.force_authenticate(user=None)
+
+    url = f"/api/v1/courses/{course.id}/ratings/?separate_current_user=true"
+    response = client.get(url)
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data["total"] == 3
+    assert len(data["items"]["ratings"]) == 3
+    assert data["items"]["user_ratings"] is None
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_ratings_sort_by_newest(
     token_client,
     course_factory,

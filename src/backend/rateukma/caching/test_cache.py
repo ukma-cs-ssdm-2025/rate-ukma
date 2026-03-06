@@ -9,7 +9,7 @@ from rest_framework.response import Response
 import pytest
 from pydantic import BaseModel
 
-from rateukma.caching.cache_manager import ICacheManager, RedisCacheManager
+from rateukma.caching.cache_manager import ICacheManager, InMemoryCacheManager, RedisCacheManager
 from rateukma.caching.decorators import (
     invalidate_cache_for,
     rcached,
@@ -28,6 +28,7 @@ def mock_redis_client():
     client.setex.return_value = True
     client.set.return_value = True
     client.scan.return_value = (0, [])  # cursor=0 (done), keys=[]
+    client.incr.return_value = 2
     return client
 
 
@@ -253,6 +254,27 @@ class TestRCachedComponents:
         for key, value in kwargs.items():
             assert f"{key}" in key1
             assert f"{value}" in key1
+
+    def test_rcached_decorator_with_versioned_namespace(
+        self, settings
+    ):
+        settings.ENABLE_CACHE = True
+        cache_manager = InMemoryCacheManager()
+        calls = {"count": 0}
+
+        with patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager):
+            @rcached(ttl=60, return_type=int, versioned_by="courses:list")
+            def get_value():
+                calls["count"] += 1
+                return 42
+
+            assert get_value() == 42
+            assert get_value() == 42
+            assert calls["count"] == 1
+
+            cache_manager.bump_version("courses:list")
+            assert get_value() == 42
+            assert calls["count"] == 2
 
 
 class TestCacheInvalidation:

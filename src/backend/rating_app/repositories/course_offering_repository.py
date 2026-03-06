@@ -116,6 +116,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
             group_size_min=data.group_size_min,
             group_size_max=data.group_size_max,
         )
+        model = self._build_base_queryset().get(pk=model.pk)
         return self._map_to_domain_model(model)
 
     def update(self, obj: CourseOfferingDTO, **offering_data: object) -> CourseOfferingDTO:
@@ -130,8 +131,8 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
         model.delete()
 
     def filter(self, **kwargs: object) -> list[CourseOfferingDTO]:
-        # not used in filtering yet, returns all
-        return self.get_all()
+        qs = self._build_base_queryset().filter(**kwargs)
+        return self._map_to_domain_models(qs)
 
     def _build_defaults(self, data: CourseOfferingInput | CourseOfferingDTO) -> dict:
         return {

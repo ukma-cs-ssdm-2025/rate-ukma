@@ -2,6 +2,12 @@ import structlog
 
 from rateukma.caching.decorators import rcached
 from rateukma.caching.instances import redis_cache_manager
+from rateukma.caching.patterns import (
+    ANALYTICS_LIST_NAMESPACE,
+    COURSES_LIST_NAMESPACE,
+    FILTER_OPTIONS_NAMESPACE,
+    course_detail_namespace,
+)
 from rating_app.application_schemas.course import (
     Course as CourseDTO,
 )
@@ -25,6 +31,14 @@ from rating_app.services.speciality_service import SpecialityService
 logger = structlog.get_logger(__name__)
 
 
+def _course_detail_namespace(
+    _self,
+    course_id: str,
+    prefetch_related: bool = True,
+) -> str:
+    return course_detail_namespace(course_id)
+
+
 class CourseService:
     def __init__(
         self,
@@ -42,17 +56,21 @@ class CourseService:
         self.speciality_service = speciality_service
         self.semester_service = semester_service
 
-    @rcached(ttl=86400)  # 24 hours - list of courses rarely changes
+    @rcached(ttl=86400, versioned_by=COURSES_LIST_NAMESPACE)  # 24 hours - list rarely changes
     def list_courses(self, prefetch_related: bool = True) -> list[CourseDTO]:
         return self.course_repository.get_all(prefetch_related=prefetch_related)
 
-    @rcached(ttl=300)
+    @rcached(ttl=300, versioned_by=_course_detail_namespace)
     def get_course(self, course_id: str, prefetch_related: bool = True) -> CourseDTO:
         return self.course_repository.get_by_id(course_id, prefetch_related=prefetch_related)
 
-    @rcached(ttl=300)
+    @rcached(ttl=300, versioned_by=COURSES_LIST_NAMESPACE)
     def filter_courses(
-        self, filters: CourseFilterCriteria, paginate: bool = True
+        self,
+        filters: CourseFilterCriteria,
+        paginate: bool = True,
+        *,
+        prefetch_related: bool = True,
     ) -> CourseSearchResult:
         processed_filters = self._preprocess_filters(filters)
 
@@ -61,11 +79,18 @@ class CourseService:
                 page=processed_filters.page,
                 page_size=processed_filters.page_size,
             )
-            pagination_result = self.course_repository.filter(processed_filters, pagination_filters)
+            pagination_result = self.course_repository.filter(
+                processed_filters,
+                pagination_filters,
+                prefetch_related=prefetch_related,
+            )
             courses = pagination_result.page_objects
             metadata = pagination_result.metadata
         else:
-            courses = self.course_repository.filter(processed_filters)
+            courses = self.course_repository.filter(
+                processed_filters,
+                prefetch_related=prefetch_related,
+            )
             metadata = self._create_single_page_metadata(len(courses))
 
         return CourseSearchResult(
@@ -102,13 +127,12 @@ class CourseService:
             avg_usefulness=aggregates.avg_usefulness,
             ratings_count=aggregates.ratings_count,
         )
-        # Immediately invalidate the per-course cache so the next read reflects
-        # the updated aggregates. Without this, the RatingCacheInvalidator fires
-        # after us in the same notify() loop, leaving a brief window where a
-        # concurrent request could re-populate the cache with stale data.
-        redis_cache_manager().invalidate_pattern(f"*get_course*{course.id}*")
+        cache_manager = redis_cache_manager()
+        cache_manager.bump_version(course_detail_namespace(str(course.id)))
+        cache_manager.bump_version(COURSES_LIST_NAMESPACE)
+        cache_manager.bump_version(ANALYTICS_LIST_NAMESPACE)
 
-    @rcached(ttl=86400)  # 24 hours - filter options rarely change
+    @rcached(ttl=86400, versioned_by=FILTER_OPTIONS_NAMESPACE)  # 24 hours - options rarely change
     def get_filter_options(self) -> CourseFilterOptions:
         semester_filter_options = self.semester_service.get_filter_options()
 

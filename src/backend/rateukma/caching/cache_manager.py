@@ -28,6 +28,10 @@ class ICacheManager(Protocol):
 
     def invalidate_pattern(self, pattern: str) -> int: ...
 
+    def get_version(self, namespace: str) -> int: ...
+
+    def bump_version(self, namespace: str) -> int: ...
+
     def get_stats(self) -> dict[str, Any]: ...
 
 
@@ -105,6 +109,25 @@ class RedisCacheManager(ICacheManager):
             self._handle_error("invalidate_pattern", e)
             return 0
 
+    def get_version(self, namespace: str) -> int:
+        version_key = self._make_version_key(namespace)
+        try:
+            raw_version = self.redis_client.get(version_key)
+            if raw_version is None:
+                return 1
+            return int(raw_version)
+        except (RedisError, TypeError, ValueError) as e:
+            self._handle_error("get_version", e)
+            return 1
+
+    def bump_version(self, namespace: str) -> int:
+        version_key = self._make_version_key(namespace)
+        try:
+            return int(self.redis_client.incr(version_key))
+        except RedisError as e:
+            self._handle_error("bump_version", e)
+            return self.get_version(namespace)
+
     def get_stats(self) -> dict[str, Any]:
         try:
             info = self.redis_client.info()
@@ -122,6 +145,9 @@ class RedisCacheManager(ICacheManager):
 
     def _make_key(self, key: str) -> str:
         return f"{self.key_prefix}:{key}"
+
+    def _make_version_key(self, namespace: str) -> str:
+        return self._make_key(f"version:{namespace}")
 
     def _serialize(self, value: Any) -> bytes:
         return json.dumps(value, cls=CacheJsonDataEncoder).encode("utf-8")
@@ -170,6 +196,7 @@ class InMemoryCacheManager(ICacheManager):
 
     def __init__(self):
         self._store: dict[str, JSON_Serializable] = {}
+        self._versions: dict[str, int] = {}
 
     def get(self, key: str) -> JSON_Serializable | None:
         return self._store.get(key)
@@ -191,6 +218,14 @@ class InMemoryCacheManager(ICacheManager):
             del self._store[key]
         return len(keys_to_remove)
 
+    def get_version(self, namespace: str) -> int:
+        return self._versions.get(namespace, 1)
+
+    def bump_version(self, namespace: str) -> int:
+        version = self.get_version(namespace) + 1
+        self._versions[namespace] = version
+        return version
+
     def get_stats(self) -> dict[str, Any]:
         return {
             "hits": 0,
@@ -203,3 +238,4 @@ class InMemoryCacheManager(ICacheManager):
 
     def clear(self) -> None:
         self._store.clear()
+        self._versions.clear()

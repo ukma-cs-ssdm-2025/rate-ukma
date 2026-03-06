@@ -7,6 +7,12 @@ import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import ValidationError as ModelValidationError
 
+from rateukma.caching.decorators import rcached
+from rateukma.caching.patterns import (
+    COURSES_LIST_NAMESPACE,
+    FILTER_OPTIONS_NAMESPACE,
+    course_detail_namespace,
+)
 from rating_app.application_schemas.course import (
     CourseFilterCriteria,
     CourseReadParams,
@@ -23,6 +29,12 @@ logger = structlog.get_logger(__name__)
 to_openapi = pydantic_to_openapi_request_mapper().map
 
 
+def _course_response_namespace(self, request, course_id=None, *args, **kwargs) -> str | None:
+    if course_id is None:
+        return None
+    return course_detail_namespace(course_id)
+
+
 @extend_schema(tags=["courses"])
 class CourseViewSet(viewsets.ViewSet):
     lookup_url_kwarg = "course_id"
@@ -37,6 +49,7 @@ class CourseViewSet(viewsets.ViewSet):
         parameters=to_openapi((CourseFilterCriteria, OpenApiParameter.QUERY)),
         responses=R_COURSE_LIST,
     )
+    @rcached(ttl=300, return_type=Response, versioned_by=COURSES_LIST_NAMESPACE)
     def list(self, request, *args, **kwargs) -> Response:
         assert self.course_service is not None
 
@@ -66,6 +79,7 @@ class CourseViewSet(viewsets.ViewSet):
         responses=R_FILTER_OPTIONS,
     )
     @action(detail=False, methods=["get"], url_path="filter-options")
+    @rcached(ttl=86400, return_type=Response, versioned_by=FILTER_OPTIONS_NAMESPACE)
     def filter_options(self, request) -> Response:
         assert self.course_service is not None
 
@@ -80,6 +94,7 @@ class CourseViewSet(viewsets.ViewSet):
         parameters=to_openapi((CourseReadParams, OpenApiParameter.PATH)),
         responses=R_COURSE,
     )
+    @rcached(ttl=300, return_type=Response, versioned_by=_course_response_namespace)
     def retrieve(self, request, course_id=None, *args, **kwargs) -> Response:
         assert self.course_service is not None
 

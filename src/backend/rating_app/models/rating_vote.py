@@ -17,6 +17,9 @@ class RatingVote(models.Model):
         unique_together = ("student", "rating")
         verbose_name = "Rating Vote"
         verbose_name_plural = "Rating Votes"
+        indexes = [
+            models.Index(fields=["rating", "type"]),
+        ]
         constraints = [
             models.CheckConstraint(
                 check=models.Q(type__in=[RatingVoteType.UPVOTE, RatingVoteType.DOWNVOTE]),

@@ -66,11 +66,8 @@ class RatingRepository(
         return self._map_to_domain_models(ratings)
 
     def get_student_id_by_rating_id(self, rating_id: str) -> str | None:
-        try:
-            rating = Rating.objects.only("student").get(pk=rating_id)
-            return str(rating.student.id)
-        except Rating.DoesNotExist:
-            return None
+        student_id = Rating.objects.filter(pk=rating_id).values_list("student_id", flat=True).first()
+        return str(student_id) if student_id is not None else None
 
     @overload
     def get_or_create(
@@ -325,11 +322,11 @@ class RatingRepository(
         self, queryset: QuerySet[Rating], order: str
     ) -> QuerySet[Rating]:
         prefix = "" if order == "asc" else "-"
-        return queryset.order_by(f"{prefix}popularity_score")
+        return queryset.order_by(f"{prefix}popularity_score", "-created_at", "-id")
 
     def _apply_time_ordering(self, queryset: QuerySet[Rating], order: str) -> QuerySet[Rating]:
         prefix = "" if order == "asc" else "-"
-        return queryset.order_by(f"{prefix}created_at")
+        return queryset.order_by(f"{prefix}created_at", f"{prefix}id")
 
     def _get_by_id_shallow(self, rating_id: str) -> Rating:
         try:
