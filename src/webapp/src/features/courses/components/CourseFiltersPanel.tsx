@@ -84,7 +84,13 @@ function InfoHint({ message }: Readonly<{ message: string }>) {
 	return (
 		<Tooltip delayDuration={0}>
 			<TooltipTrigger asChild>
-				<Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+				<button
+					type="button"
+					aria-label={message}
+					className="shrink-0 text-muted-foreground"
+				>
+					<Info className="h-3.5 w-3.5" aria-hidden="true" />
+				</button>
 			</TooltipTrigger>
 			<TooltipContent side="top" sideOffset={4}>
 				<p>{message}</p>
@@ -465,6 +471,8 @@ function CourseFiltersContent({
 					return params.faculty;
 				case "dept":
 					return params.dept;
+				case "instructor":
+					return params.instructor;
 				case "spec":
 					return params.spec;
 				case "type":
@@ -473,7 +481,14 @@ function CourseFiltersContent({
 					return "";
 			}
 		},
-		[params.year, params.faculty, params.dept, params.spec, params.type],
+		[
+			params.year,
+			params.faculty,
+			params.dept,
+			params.instructor,
+			params.spec,
+			params.type,
+		],
 	);
 
 	const handleSelectChange = useCallback(

@@ -280,7 +280,7 @@ class CourseRepository(
                 offerings__course_offering_specialities__speciality_id=filters.speciality
             )
 
-        return courses.distinct()
+        return courses
 
     def _apply_range_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal

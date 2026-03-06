@@ -147,8 +147,9 @@ export function courseFiltersStateToSearchParams(
 	if (state.term.length > 0) params.term = state.term.join(",");
 	if (state.year) params.year = state.year;
 	if (
-		state.credits[0] !== CREDITS_RANGE[0] ||
-		state.credits[1] !== CREDITS_RANGE[1]
+		state.year &&
+		(state.credits[0] !== CREDITS_RANGE[0] ||
+			state.credits[1] !== CREDITS_RANGE[1])
 	) {
 		params.credits = `${state.credits[0]}-${state.credits[1]}`;
 	}
