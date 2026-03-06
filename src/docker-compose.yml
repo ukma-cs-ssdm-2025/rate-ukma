@@ -90,6 +90,7 @@ services:
     environment:
       - STATIC_ROOT=/static
       - MEDIA_ROOT=/media
+      - GUNICORN_WORKERS=${GUNICORN_WORKERS:-}
     volumes:
       - ./backend:/app
       - ${STATIC_ROOT}:/static

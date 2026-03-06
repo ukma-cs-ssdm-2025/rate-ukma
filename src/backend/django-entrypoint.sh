@@ -39,7 +39,12 @@ MEMORY_PER_WORKER_MB=150
 MAX_WORKERS_BY_MEMORY=$((AVAILABLE_MEMORY_MB / MEMORY_PER_WORKER_MB))
 WORKERS_BY_CORES=$((2 * CORES + 1))
 WORKERS=$((WORKERS_BY_CORES < MAX_WORKERS_BY_MEMORY ? WORKERS_BY_CORES : MAX_WORKERS_BY_MEMORY))
-WORKERS=$((WORKERS < 1 ? 1 : WORKERS)) # minimum 1 worker
+WORKERS=$((WORKERS < 1 ? 1 : WORKERS))
+
+# Allow override via environment variable
+if [[ -n "${GUNICORN_WORKERS:-}" ]]; then
+    WORKERS="$GUNICORN_WORKERS"
+fi # minimum 1 worker
 
 # number of threads
 THREADS=2 # for bigger instances we can use 4
