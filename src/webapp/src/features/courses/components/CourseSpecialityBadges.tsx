@@ -17,6 +17,7 @@ interface CourseSpecialityBadgesProps {
 		readonly faculty_id?: string;
 		readonly faculty_name?: string;
 	}> | null;
+	size?: "default" | "sm";
 }
 
 function getSpecialityAlias(
@@ -46,6 +47,7 @@ const MAX_VISIBLE_BADGES = 5;
 
 export function CourseSpecialityBadges({
 	specialities,
+	size = "default",
 }: Readonly<CourseSpecialityBadgesProps>) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const badgesId = useId();
@@ -83,11 +85,13 @@ export function CourseSpecialityBadges({
 							<Badge
 								variant="secondary"
 								className={cn(
-									"font-medium text-xs px-2 py-0.5 cursor-default",
+									"font-medium cursor-default border",
+									size === "sm"
+										? "text-[11px] px-1.5 py-0"
+										: "text-xs px-2 py-0.5",
 									colors.bg,
 									colors.text,
 									colors.border,
-									"border",
 								)}
 							>
 								{abbreviation}
