@@ -36,10 +36,10 @@ def _update_student_avatar(user: User, sociallogin: SocialLogin) -> None:
     if not photo:
         return
 
-    if student.avatar:
-        student.avatar.delete(save=False)
-
+    old_avatar_name = student.avatar.name if student.avatar else None
     student.avatar.save(photo.name, photo, save=True)
+    if old_avatar_name and old_avatar_name != student.avatar.name:
+        student.avatar.storage.delete(old_avatar_name)
     logger.info("student_avatar_updated", user_id=user.id, student_id=str(student.id))
 
 
