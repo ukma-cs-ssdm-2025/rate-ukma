@@ -5,7 +5,12 @@ import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
 } from "../../ratings/definitions/ratingDefinitions";
-import { getDifficultyTone, getUsefulnessTone } from "../courseFormatting";
+import {
+	DIFFICULTY_RANGE,
+	getDifficultyTone,
+	getUsefulnessTone,
+	USEFULNESS_RANGE,
+} from "../courseFormatting";
 
 const SCALE_STEPS = 5;
 const SCALE_KEYS = Array.from({ length: SCALE_STEPS }, (_, i) => `s-${i}`);
@@ -104,8 +109,21 @@ export function CourseStatsHero({
 	usefulness,
 	ratingsCount,
 }: Readonly<CourseStatsHeroProps>) {
+	// Only scores in the valid range are meaningful; treat the rest as missing
+	const diff =
+		difficulty != null &&
+		difficulty >= DIFFICULTY_RANGE[0] &&
+		difficulty <= DIFFICULTY_RANGE[1]
+			? difficulty
+			: null;
+	const useful =
+		usefulness != null &&
+		usefulness >= USEFULNESS_RANGE[0] &&
+		usefulness <= USEFULNESS_RANGE[1]
+			? usefulness
+			: null;
 	const hasRatings = ratingsCount != null && ratingsCount > 0;
-	const hasScores = difficulty != null || usefulness != null;
+	const hasScores = diff != null || useful != null;
 
 	if (!hasRatings && !hasScores) {
 		return null;
@@ -114,19 +132,19 @@ export function CourseStatsHero({
 	const panels = [
 		{
 			title: "Складність",
-			value: difficulty,
+			value: diff,
 			type: "difficulty" as const,
-			formatted: difficulty?.toFixed(1) ?? "—",
-			accent: getDifficultyTone(difficulty),
-			barColor: getBarColor("difficulty", difficulty),
+			formatted: diff?.toFixed(1) ?? "—",
+			accent: getDifficultyTone(diff),
+			barColor: getBarColor("difficulty", diff),
 		},
 		{
 			title: "Корисність",
-			value: usefulness,
+			value: useful,
 			type: "usefulness" as const,
-			formatted: usefulness?.toFixed(1) ?? "—",
-			accent: getUsefulnessTone(usefulness),
-			barColor: getBarColor("usefulness", usefulness),
+			formatted: useful?.toFixed(1) ?? "—",
+			accent: getUsefulnessTone(useful),
+			barColor: getBarColor("usefulness", useful),
 		},
 	];
 

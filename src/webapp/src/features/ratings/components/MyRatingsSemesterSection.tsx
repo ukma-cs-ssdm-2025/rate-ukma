@@ -19,6 +19,7 @@ import {
 	isCurrentSemester,
 	isFutureSemester,
 } from "@/features/courses/courseFormatting";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { SemesterGroup } from "@/features/ratings/groupRatings";
 import { testIds } from "@/lib/test-ids";
 import { MyRatingCard } from "./MyRatingCard";
@@ -178,7 +179,7 @@ function SemesterBadges({
 							</Badge>
 						</TooltipTrigger>
 						<TooltipContent side="top" className="text-[11px] px-2 py-1">
-							Оцінювання стане доступним з середини семестру
+							{CANNOT_RATE_TOOLTIP_TEXT}
 						</TooltipContent>
 					</Tooltip>
 				)}

@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Star } from "lucide-react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -15,9 +16,9 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/Form";
-import { Slider } from "@/components/ui/Slider";
 import { Textarea } from "@/components/ui/Textarea";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
@@ -40,6 +41,104 @@ const ratingSchema = z.object({
 });
 
 export type RatingFormData = z.infer<typeof ratingSchema>;
+
+function StarRatingInput({
+	value,
+	onChange,
+	onBlur,
+	descriptions,
+	"data-testid": dataTestId,
+	...rest
+}: Readonly<{
+	value: number;
+	onChange: (value: number) => void;
+	onBlur?: () => void;
+	descriptions: Record<number, string>;
+	"data-testid"?: string;
+	id?: string;
+	"aria-describedby"?: string;
+	"aria-invalid"?: boolean;
+}>) {
+	const [hovered, setHovered] = React.useState<number | null>(null);
+	const [dragOrigin, setDragOrigin] = React.useState<number | null>(null);
+	const [dragTarget, setDragTarget] = React.useState<number | null>(null);
+	const dragging = dragOrigin !== null;
+	const displayValue = hovered ?? value;
+
+	const handlePointerDown = (star: number) => {
+		setDragOrigin(star);
+		setDragTarget(star);
+		onChange(star);
+	};
+
+	const handlePointerEnter = (star: number) => {
+		setHovered(star);
+		if (dragging) {
+			setDragTarget(star);
+			onChange(star);
+		}
+	};
+
+	React.useEffect(() => {
+		if (!dragging) return;
+		const up = () => {
+			setDragOrigin(null);
+			setDragTarget(null);
+		};
+		globalThis.addEventListener("pointerup", up);
+		return () => globalThis.removeEventListener("pointerup", up);
+	}, [dragging]);
+
+	return (
+		<div data-testid={dataTestId}>
+			<fieldset
+				aria-label="Оцінка"
+				className="flex gap-0.5 select-none touch-none border-none p-0 m-0"
+				onMouseLeave={() => {
+					if (!dragging) setHovered(null);
+				}}
+				onBlur={onBlur}
+				{...rest}
+			>
+				{[1, 2, 3, 4, 5].map((star) => {
+					const isFilled = star <= displayValue;
+					const isPressed =
+						dragging &&
+						dragOrigin !== null &&
+						dragTarget !== null &&
+						star >= Math.min(dragOrigin, dragTarget) &&
+						star <= Math.max(dragOrigin, dragTarget);
+
+					return (
+						<button
+							key={star}
+							type="button"
+							className={cn(
+								"rounded-md p-1 transition-transform duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+								isPressed ? "scale-90" : "hover:scale-110 active:scale-95",
+							)}
+							onPointerDown={() => handlePointerDown(star)}
+							onPointerEnter={() => handlePointerEnter(star)}
+							aria-label={`${star} з 5`}
+						>
+							<Star
+								className={cn(
+									"h-7 w-7 transition-colors duration-100",
+									isFilled
+										? "fill-primary text-primary drop-shadow-sm"
+										: "fill-transparent text-muted-foreground/30",
+								)}
+							/>
+						</button>
+					);
+				})}
+			</fieldset>
+			<p className="mt-1.5 text-xs text-muted-foreground min-h-8">
+				{descriptions[displayValue as keyof typeof descriptions] ?? ""}
+			</p>
+		</div>
+	);
+}
 
 interface RatingFormProps {
 	readonly onSubmit: (data: RatingFormData) => void | Promise<void>;
@@ -79,59 +178,47 @@ export function RatingForm({
 				className="space-y-6"
 				data-testid={testIds.rating.form}
 			>
-				<FormField<RatingFormData, "difficulty">
-					control={form.control}
-					name="difficulty"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Складність: {field.value ?? 3}/5</FormLabel>
-							<FormControl>
-								<Slider
-									value={[field.value ?? 3]}
-									onValueChange={(next) => field.onChange(next[0])}
-									min={1}
-									max={5}
-									step={1}
-									className="w-full"
-									title={
-										difficultyDescriptions[
-											(field.value ?? 3) as keyof typeof difficultyDescriptions
-										]
-									}
-									data-testid={testIds.rating.difficultySlider}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+				<div className="grid grid-cols-2 gap-4">
+					<FormField<RatingFormData, "difficulty">
+						control={form.control}
+						name="difficulty"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Складність</FormLabel>
+								<FormControl>
+									<StarRatingInput
+										value={field.value ?? 3}
+										onChange={field.onChange}
+										onBlur={field.onBlur}
+										descriptions={difficultyDescriptions}
+										data-testid={testIds.rating.difficultySlider}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 
-				<FormField<RatingFormData, "usefulness">
-					control={form.control}
-					name="usefulness"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Корисність: {field.value ?? 3}/5</FormLabel>
-							<FormControl>
-								<Slider
-									value={[field.value ?? 3]}
-									onValueChange={(next) => field.onChange(next[0])}
-									min={1}
-									max={5}
-									step={1}
-									className="w-full"
-									title={
-										usefulnessDescriptions[
-											(field.value ?? 3) as keyof typeof usefulnessDescriptions
-										]
-									}
-									data-testid={testIds.rating.usefulnessSlider}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+					<FormField<RatingFormData, "usefulness">
+						control={form.control}
+						name="usefulness"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Корисність</FormLabel>
+								<FormControl>
+									<StarRatingInput
+										value={field.value ?? 3}
+										onChange={field.onChange}
+										onBlur={field.onBlur}
+										descriptions={usefulnessDescriptions}
+										data-testid={testIds.rating.usefulnessSlider}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+				</div>
 
 				<FormField<RatingFormData, "comment">
 					control={form.control}

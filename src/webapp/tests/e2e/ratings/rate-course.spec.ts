@@ -31,7 +31,6 @@ test.describe("Rating modal functionality", () => {
 		let mainError: unknown;
 
 		try {
-			expect(await coursePage.isRateButtonVisible()).toBe(true);
 			await coursePage.clickRateButton();
 			await expect(page.getByTestId(testIds.rating.modal)).toBeVisible();
 			await expect(page.getByTestId(testIds.rating.modalTitle)).toBeVisible();

@@ -12,6 +12,7 @@ class RatingReadSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     student_id = serializers.UUIDField(read_only=True, allow_null=True)
     student_name = serializers.CharField(read_only=True, allow_null=True)
+    student_avatar_url = serializers.CharField(read_only=True, allow_null=True)
     course_offering = serializers.UUIDField(read_only=True)
     course = serializers.UUIDField(read_only=True)
     difficulty = serializers.IntegerField(read_only=True)

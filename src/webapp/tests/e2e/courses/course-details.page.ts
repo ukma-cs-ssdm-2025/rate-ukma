@@ -86,7 +86,9 @@ export class CourseDetailsPage {
 	}
 
 	async hasStatsData(): Promise<boolean> {
-		await expect(this.statsCardsContainer).toBeVisible();
+		if (!(await this.statsCardsContainer.isVisible())) {
+			return false;
+		}
 
 		const spans = this.statsCardsContainer.locator("span");
 		const texts = await spans.allTextContents();

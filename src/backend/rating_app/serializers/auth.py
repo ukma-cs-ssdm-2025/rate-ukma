@@ -19,6 +19,7 @@ class SessionUserSerializer(serializers.Serializer):
     first_name = serializers.CharField(allow_blank=True, required=False)
     last_name = serializers.CharField(allow_blank=True, required=False)
     patronymic = serializers.CharField(allow_blank=True, required=False)
+    avatar_url = serializers.CharField(allow_null=True, required=False)
 
 
 class SessionSerializer(serializers.Serializer):

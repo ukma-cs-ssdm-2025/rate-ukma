@@ -1,16 +1,16 @@
-import { formatDate } from "@/features/courses/courseFormatting";
 import type { RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { RatingComment } from "./RatingComment";
-import { RatingStats } from "./RatingStats";
-import { RatingVotes } from "./RatingVotes";
+import { RatingCardBody } from "./RatingCardBody";
+import {
+	ANONYMOUS_REVIEW_NAME,
+	DEFAULT_STUDENT_NAME,
+} from "../definitions/ratingDefinitions";
 
 interface RatingCardProps {
 	rating: RatingRead;
 	courseId?: string;
 	readOnly?: boolean;
 	disabledMessage?: string;
-	index?: number;
 }
 
 export function RatingCard({
@@ -18,54 +18,32 @@ export function RatingCard({
 	courseId,
 	readOnly = false,
 	disabledMessage,
-	index,
 }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
-		? "Анонімний відгук"
-		: rating.student_name || "Студент";
-
-	// Use values from rating if available, otherwise use defaults for placeholder
-	const upvotes = rating.upvotes ?? 0;
-	const downvotes = rating.downvotes ?? 0;
-	const viewerVote = rating.viewer_vote ?? null;
+		? ANONYMOUS_REVIEW_NAME
+		: rating.student_name || DEFAULT_STUDENT_NAME;
 
 	return (
 		<article
-			className="py-4 px-4"
+			className="px-4 py-4"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
-			<div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					{index !== undefined && (
-						<span className="font-semibold text-foreground/60">#{index}</span>
-					)}
-					<span className="font-medium">{displayName}</span>
-					{rating.created_at && (
-						<>
-							<span className="text-muted-foreground/40">•</span>
-							<time>{formatDate(rating.created_at)}</time>
-						</>
-					)}
-				</div>
-				<RatingStats
-					difficulty={rating.difficulty}
-					usefulness={rating.usefulness}
-				/>
-			</div>
-
-			<RatingComment comment={rating.comment} />
-
-			{rating.id && (
-				<RatingVotes
-					ratingId={rating.id}
-					courseId={courseId}
-					initialUpvotes={upvotes}
-					initialDownvotes={downvotes}
-					initialUserVote={viewerVote}
-					readOnly={readOnly}
-					disabledMessage={disabledMessage}
-				/>
-			)}
+			<RatingCardBody
+				displayName={displayName}
+				isAnonymous={rating.is_anonymous ?? false}
+				avatarUrl={rating.student_avatar_url}
+				createdAt={rating.created_at}
+				difficulty={rating.difficulty}
+				usefulness={rating.usefulness}
+				comment={rating.comment}
+				ratingId={rating.id}
+				courseId={courseId}
+				upvotes={rating.upvotes ?? 0}
+				downvotes={rating.downvotes ?? 0}
+				viewerVote={rating.viewer_vote ?? null}
+				votesReadOnly={readOnly}
+				votesDisabledMessage={disabledMessage}
+			/>
 		</article>
 	);
 }

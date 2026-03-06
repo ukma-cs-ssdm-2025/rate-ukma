@@ -1,8 +1,11 @@
 import { Pencil, Star, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { formatDate } from "@/features/courses/courseFormatting";
-import { CANNOT_VOTE_OWN_RATING_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
+import {
+	ANONYMOUS_REVIEW_NAME,
+	CANNOT_VOTE_OWN_RATING_TEXT,
+	DEFAULT_STUDENT_NAME,
+} from "@/features/ratings/definitions/ratingDefinitions";
 import type {
 	InlineRating,
 	RatingRead,
@@ -10,9 +13,7 @@ import type {
 } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
-import { RatingComment } from "./RatingComment";
-import { RatingStats } from "./RatingStats";
-import { RatingVotes } from "./RatingVotes";
+import { RatingCardBody } from "./RatingCardBody";
 
 interface ExtendedRating extends InlineRating {
 	upvotes?: number;
@@ -35,7 +36,7 @@ export function UserRatingCard({
 
 	const getUserDisplayName = () => {
 		if (rating.is_anonymous) {
-			return "Анонімний відгук";
+			return ANONYMOUS_REVIEW_NAME;
 		}
 		const parts = [user?.lastName, user?.firstName, user?.patronymic].filter(
 			Boolean,
@@ -43,18 +44,13 @@ export function UserRatingCard({
 		if (parts.length > 0) {
 			return parts.join(" ");
 		}
-		return "Студент";
+		return DEFAULT_STUDENT_NAME;
 	};
 	const displayName = getUserDisplayName();
 
-	// Use values from rating if available, otherwise use defaults for placeholder
-	const upvotes = rating.upvotes ?? 0;
-	const downvotes = rating.downvotes ?? 0;
-	const viewerVote = rating.viewer_vote ?? null;
-
 	return (
 		<article
-			className="py-4 px-4 bg-primary/5 rounded-lg border border-primary/20"
+			className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-4"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
 			<div className="flex items-center justify-between mb-2">
@@ -85,37 +81,22 @@ export function UserRatingCard({
 				</div>
 			</div>
 
-			<div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					<span className="font-medium">{displayName}</span>
-					{rating.created_at && (
-						<>
-							<span className="text-muted-foreground/40">•</span>
-							<time>{formatDate(rating.created_at)}</time>
-						</>
-					)}
-				</div>
-				<RatingStats
-					difficulty={rating.difficulty}
-					usefulness={rating.usefulness}
-				/>
-			</div>
-
-			<RatingComment
+			<RatingCardBody
+				displayName={displayName}
+				isAnonymous={rating.is_anonymous ?? false}
+				avatarUrl={!rating.is_anonymous ? user?.avatarUrl : undefined}
+				createdAt={rating.created_at}
+				difficulty={rating.difficulty}
+				usefulness={rating.usefulness}
 				comment={rating.comment}
-				emptyMessage="Ви не залишили коментар."
+				commentEmptyMessage="Ви не залишили коментар."
+				ratingId={rating.id}
+				upvotes={rating.upvotes ?? 0}
+				downvotes={rating.downvotes ?? 0}
+				viewerVote={rating.viewer_vote ?? null}
+				votesReadOnly={true}
+				votesDisabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
 			/>
-
-			{rating.id && (
-				<RatingVotes
-					ratingId={rating.id}
-					initialUpvotes={upvotes}
-					initialDownvotes={downvotes}
-					initialUserVote={viewerVote}
-					readOnly={true}
-					disabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
-				/>
-			)}
 		</article>
 	);
 }

@@ -154,7 +154,7 @@ class RatingRepository(
         aggregates = Rating.objects.filter(course_offering__course=str(course.id)).aggregate(
             avg_difficulty=Avg("difficulty"),
             avg_usefulness=Avg("usefulness"),
-            ratings_count=Count("id", distinct=True),
+            ratings_count=Count("id"),
         )
         return AggregatedCourseRatingStats(
             avg_difficulty=aggregates.get("avg_difficulty") or Decimal(0),

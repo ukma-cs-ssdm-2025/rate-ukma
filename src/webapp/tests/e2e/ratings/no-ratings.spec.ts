@@ -24,7 +24,7 @@ test.describe("No ratings are displayed correctly", () => {
 
 		await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();
 		await expect(
-			page.getByTestId(testIds.courseDetails.statsCards),
+			page.getByTestId(testIds.courseDetails.reviewsSection),
 		).toBeVisible();
 		await expect(
 			page.getByTestId(testIds.courseDetails.ratingsCountStat),

@@ -14,9 +14,51 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialLogin
 from allauth.socialaccount.providers.base import Provider
 
+from rating_app.auth.microsoft_avatar import fetch_microsoft_avatar
 from rating_app.ioc_container.services import student_service
 
 logger = structlog.get_logger(__name__)
+
+
+def _update_student_avatar(user: User, sociallogin: SocialLogin) -> None:
+    """Fetch the Microsoft profile photo and save it to the student's avatar field."""
+    student = getattr(user, "student_profile", None)
+    if not student:
+        return
+
+    token = getattr(sociallogin, "token", None)
+    access_token = getattr(token, "token", None)
+    if not access_token:
+        logger.debug("avatar_update_skipped_no_token", user_id=user.id)
+        return
+
+    try:
+        photo = fetch_microsoft_avatar(access_token)
+        if not photo:
+            return
+
+        old_avatar_name = student.avatar.name if student.avatar else None
+        student.avatar.save(photo.name, photo, save=True)
+    except Exception:
+        logger.exception(
+            "student_avatar_update_failed",
+            user_id=user.id,
+            student_id=str(student.id),
+        )
+        return
+
+    if old_avatar_name and old_avatar_name != student.avatar.name:
+        try:
+            student.avatar.storage.delete(old_avatar_name)
+        except Exception:
+            logger.warning(
+                "student_avatar_cleanup_failed",
+                user_id=user.id,
+                student_id=str(student.id),
+                avatar_name=old_avatar_name,
+            )
+
+    logger.info("student_avatar_updated", user_id=user.id, student_id=str(student.id))
 
 
 class StudentLinkingMixin:
@@ -37,7 +79,29 @@ class StudentLinkingMixin:
                     email=user.email,
                 )
 
+                # Clear cached reverse relation so student_profile is re-fetched
+                try:
+                    del user.student_profile
+                except AttributeError:
+                    pass
+
+                # Avatar update requires a SocialLogin (with an access token).
+                # DefaultSocialAccountAdapter.save_user passes sociallogin as the
+                # first positional arg, while DefaultAccountAdapter.save_user passes
+                # a User object. Only attempt avatar fetch for the social login path.
+                sociallogin = self._extract_sociallogin(args)
+                if sociallogin:
+                    _update_student_avatar(user, sociallogin)
+
         return user
+
+    @staticmethod
+    def _extract_sociallogin(args: tuple) -> SocialLogin | None:
+        """Return the SocialLogin from positional args if present."""
+        for arg in args:
+            if isinstance(arg, SocialLogin):
+                return arg
+        return None
 
 
 class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAdapter):
@@ -82,6 +146,8 @@ class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAda
             existing_user = user_model.objects.get(email=email)
             sociallogin.connect(request, existing_user)
             logger.info("user_connected", email=email)
+
+            _update_student_avatar(existing_user, sociallogin)
         except user_model.DoesNotExist:
             logger.info("new_user_registration", email=email)
 

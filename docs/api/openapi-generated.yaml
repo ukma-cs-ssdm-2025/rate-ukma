@@ -2491,6 +2491,10 @@ components:
           type: string
           readOnly: true
           nullable: true
+        student_avatar_url:
+          type: string
+          readOnly: true
+          nullable: true
         course_offering:
           type: string
           format: uuid
@@ -2647,6 +2651,9 @@ components:
           type: string
         patronymic:
           type: string
+        avatar_url:
+          type: string
+          nullable: true
       required:
       - id
     SpecialityOption:
