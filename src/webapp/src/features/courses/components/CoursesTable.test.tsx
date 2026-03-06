@@ -11,7 +11,11 @@ import {
 import { renderWithProviders } from "@/test-utils/render";
 import { CoursesTable } from "./CoursesTable";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+import {
+	CREDITS_RANGE,
+	DIFFICULTY_RANGE,
+	USEFULNESS_RANGE,
+} from "../courseFormatting";
 
 // Mock TanStack Router hooks
 const mockNavigate = vi.fn();
@@ -78,6 +82,7 @@ const defaultParams: CourseFiltersParamsState = {
 	instructor: "",
 	term: [],
 	year: "",
+	credits: CREDITS_RANGE,
 	type: null,
 	spec: "",
 	page: 1,
@@ -346,6 +351,7 @@ describe("Reset Filters", () => {
 			instructor: "",
 			term: [],
 			year: "",
+			credits: CREDITS_RANGE,
 			type: null,
 			spec: "",
 			page: 1,

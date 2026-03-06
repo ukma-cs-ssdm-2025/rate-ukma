@@ -1,6 +1,10 @@
 import type { CoursesListParams } from "@/lib/api/generated";
 import type { CourseFiltersParamsState } from "./courseFiltersParams";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "./courseFormatting";
+import {
+	CREDITS_RANGE,
+	DIFFICULTY_RANGE,
+	USEFULNESS_RANGE,
+} from "./courseFormatting";
 
 export function transformFiltersToApiParams(
 	filters: CourseFiltersParamsState,
@@ -13,6 +17,14 @@ export function transformFiltersToApiParams(
 	if (filters.instructor) params.instructor = filters.instructor;
 	if (filters.term.length > 0) params.semester_terms = filters.term;
 	if (filters.year) params.semester_year = filters.year;
+	if (
+		filters.year &&
+		(filters.credits[0] !== CREDITS_RANGE[0] ||
+			filters.credits[1] !== CREDITS_RANGE[1])
+	) {
+		params.credits_min = filters.credits[0];
+		params.credits_max = filters.credits[1];
+	}
 	if (filters.type) params.type_kind = filters.type;
 	if (filters.spec) params.speciality = filters.spec;
 

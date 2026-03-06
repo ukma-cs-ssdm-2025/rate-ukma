@@ -1,10 +1,23 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 
-import { Filter, X } from "lucide-react";
+import {
+	Building2,
+	CalendarDays,
+	ChevronDown,
+	Filter,
+	Info,
+	Star,
+	X,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/Collapsible";
 import { Combobox } from "@/components/ui/Combobox";
 import { Label } from "@/components/ui/Label";
 import {
@@ -26,13 +39,21 @@ import type {
 	CoursesListTypeKind,
 	FilterOptions,
 } from "@/lib/api/generated";
+import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
-import { formatDecimalValue } from "../courseFormatting";
+import { CREDITS_RANGE, formatDecimalValue } from "../courseFormatting";
 import {
 	areFiltersActive,
+	type FilterGroupConfig,
+	type FilterPresetId,
+	getPresetFilters,
+	getPresetResetFilters,
+	type RangeFilterConfig,
+	type SelectFilterConfig,
+	type SemesterTermToggle,
 	useCourseFiltersData,
 } from "../hooks/useCourseFiltersData";
 
@@ -57,10 +78,19 @@ export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
 	readonly className?: string;
 }
 
-interface CourseFiltersContentProps {
-	readonly params: CourseFiltersParamsState;
-	readonly setParams: (updates: Partial<CourseFiltersParamsState>) => void;
-	readonly data: ReturnType<typeof useCourseFiltersData>;
+// --- Primitive filter controls ---
+
+function InfoHint({ message }: Readonly<{ message: string }>) {
+	return (
+		<Tooltip delayDuration={0}>
+			<TooltipTrigger asChild>
+				<Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+			</TooltipTrigger>
+			<TooltipContent side="top" sideOffset={4}>
+				<p>{message}</p>
+			</TooltipContent>
+		</Tooltip>
+	);
 }
 
 function FilterSlider({
@@ -69,6 +99,8 @@ function FilterSlider({
 	range,
 	captions,
 	testId,
+	disabled,
+	disabledMessage,
 	onValueChange,
 }: Readonly<{
 	label: string;
@@ -76,6 +108,8 @@ function FilterSlider({
 	range: [number, number];
 	captions: [string, string];
 	testId?: string;
+	disabled?: boolean;
+	disabledMessage?: string;
 	onValueChange: (value: [number, number]) => void;
 }>) {
 	const [localValue, setLocalValue] = useState(value);
@@ -86,9 +120,10 @@ function FilterSlider({
 
 	return (
 		<div className="space-y-3">
-			<Label className="text-sm font-medium">
+			<Label className="text-sm font-medium inline-flex items-center gap-1.5">
 				{label}: {formatDecimalValue(localValue[0], { fallback: "0" })} -{" "}
 				{formatDecimalValue(localValue[1], { fallback: "0" })}
+				{disabledMessage && <InfoHint message={disabledMessage} />}
 			</Label>
 			<Slider
 				min={range[0]}
@@ -97,6 +132,7 @@ function FilterSlider({
 				value={localValue}
 				onValueChange={(val) => setLocalValue(val as [number, number])}
 				onValueCommit={(val) => onValueChange(val as [number, number])}
+				disabled={disabled}
 				data-testid={testId}
 				className="w-full"
 			/>
@@ -108,165 +144,194 @@ function FilterSlider({
 	);
 }
 
-function ActiveFilters({
-	badges,
+// --- Filter Group ---
+
+const GROUP_ICONS: Record<string, React.ElementType> = {
+	rating: Star,
+	semester: CalendarDays,
+	structure: Building2,
+};
+
+const STORAGE_KEY_FILTER_GROUPS = "filters:open-groups";
+
+function FilterGroup({
+	config,
+	open,
+	onOpenChange,
+	testId,
+	children,
 }: Readonly<{
-	badges: Array<{ key: string; label: string }>;
+	config: FilterGroupConfig;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	testId?: string;
+	children: React.ReactNode;
 }>) {
-	if (badges.length === 0) {
-		return null;
-	}
+	const Icon = GROUP_ICONS[config.id];
 
 	return (
-		<div className="pt-4 border-t space-y-2">
-			<div className="text-xs font-medium text-muted-foreground">
-				Активні фільтри:
-			</div>
-			<div className="flex flex-wrap gap-2">
-				{badges.map((badge) => (
-					<Badge
-						key={badge.key}
-						variant="secondary"
-						className="text-xs whitespace-normal h-auto py-1 break-words"
+		<Collapsible open={open} onOpenChange={onOpenChange}>
+			<CollapsibleTrigger asChild>
+				<button
+					type="button"
+					className="flex w-full items-center justify-between py-2.5 text-sm font-semibold hover:text-foreground/80 transition-colors"
+					data-testid={testId}
+				>
+					<span className="flex items-center gap-2">
+						{Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+						{config.label}
+						{config.activeCount > 0 && (
+							<Badge
+								variant="secondary"
+								className="h-5 min-w-5 px-1.5 text-[10px]"
+							>
+								{config.activeCount}
+							</Badge>
+						)}
+					</span>
+					<ChevronDown
+						className={cn(
+							"h-4 w-4 text-muted-foreground transition-transform duration-200",
+							open && "rotate-180",
+						)}
+					/>
+				</button>
+			</CollapsibleTrigger>
+			<CollapsibleContent className="space-y-4 pt-2 pb-1">
+				{children}
+			</CollapsibleContent>
+		</Collapsible>
+	);
+}
+
+// --- Presets ---
+
+function FilterPresets({
+	presets,
+	activePresetIds,
+	onTogglePreset,
+}: Readonly<{
+	presets: ReturnType<typeof useCourseFiltersData>["presets"];
+	activePresetIds: FilterPresetId[];
+	onTogglePreset: (presetId: FilterPresetId) => void;
+}>) {
+	return (
+		<div
+			className="flex flex-wrap gap-1.5"
+			data-testid={testIds.filters.presetsSection}
+		>
+			{presets.map((preset) => {
+				const isActive = activePresetIds.includes(preset.id);
+				return (
+					<button
+						key={preset.id}
+						type="button"
+						onClick={() => onTogglePreset(preset.id)}
+						className={cn(
+							"inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+							isActive
+								? "border-primary bg-primary/10 text-primary"
+								: "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+						)}
+						data-testid={testIds.filters.presetButton}
 					>
-						{badge.label}
-					</Badge>
-				))}
-			</div>
+						{preset.label}
+					</button>
+				);
+			})}
 		</div>
 	);
 }
 
-function CourseFiltersContent({
+// --- Select/Range rendering helpers ---
+
+const RANGE_FILTER_TEST_IDS: Record<string, string> = {
+	diff: testIds.filters.difficultySlider,
+	use: testIds.filters.usefulnessSlider,
+	credits: testIds.filters.creditsSelect,
+};
+
+const SELECT_FILTER_TEST_IDS: Record<string, string> = {
+	year: testIds.filters.yearSelect,
+	faculty: testIds.filters.facultySelect,
+	dept: testIds.filters.departmentSelect,
+	spec: testIds.filters.specialitySelect,
+	type: testIds.filters.typeSelect,
+};
+
+function RangeFilters({
+	filters,
 	params,
-	setParams,
-	data,
-}: Readonly<CourseFiltersContentProps>) {
-	const setWithPageReset = (updates: Partial<CourseFiltersParamsState>) => {
-		setParams({ ...updates, page: 1 });
-	};
-
-	const handleRangeChange = (key: "diff" | "use", value: [number, number]) => {
-		if (key === "diff") {
-			setWithPageReset({ diff: value });
-			return;
-		}
-
-		setWithPageReset({ use: value });
-	};
-
-	const handleTermToggle = (values: string[]) => {
-		setWithPageReset({
-			term: values as CoursesListSemesterTermsItem[],
-		});
-	};
-
-	const getSelectValue = (key: string): string => {
-		switch (key) {
-			case "year":
-				return params.year;
-			case "faculty":
-				return params.faculty;
-			case "dept":
-				return params.dept;
-			case "spec":
-				return params.spec;
-			case "type":
-				return params.type ?? "";
-			default:
-				return "";
-		}
-	};
-
-	const handleSelectChange = (key: string, value: string) => {
-		switch (key) {
-			case "year":
-				setWithPageReset({ year: value });
-				return;
-			case "faculty":
-				setParams({ faculty: value, dept: "", spec: "", type: null, page: 1 });
-				return;
-			case "dept":
-				setWithPageReset({ dept: value });
-				return;
-			case "spec":
-				setWithPageReset({ spec: value, type: value ? params.type : null });
-				return;
-			case "instructor":
-				setWithPageReset({ instructor: value });
-				return;
-			case "type":
-				setWithPageReset({
-					type: (value || null) as CoursesListTypeKind | null,
-				});
-				return;
-			default:
-				return;
-		}
-	};
-
-	const rangeFilterTestIdByKey = {
-		diff: testIds.filters.difficultySlider,
-		use: testIds.filters.usefulnessSlider,
-	} as const;
-
-	const selectFilterTestIdByKey = {
-		year: testIds.filters.yearSelect,
-		faculty: testIds.filters.facultySelect,
-		dept: testIds.filters.departmentSelect,
-		spec: testIds.filters.specialitySelect,
-		type: testIds.filters.typeSelect,
-	} as const;
-
-	const getRangeFilterTestId = (key: string): string | undefined => {
-		return key in rangeFilterTestIdByKey
-			? rangeFilterTestIdByKey[key as keyof typeof rangeFilterTestIdByKey]
-			: undefined;
-	};
-
-	const getSelectFilterTestId = (key: string): string | undefined => {
-		return key in selectFilterTestIdByKey
-			? selectFilterTestIdByKey[key as keyof typeof selectFilterTestIdByKey]
-			: undefined;
-	};
-
+	onRangeChange,
+}: Readonly<{
+	filters: RangeFilterConfig[];
+	params: CourseFiltersParamsState;
+	onRangeChange: (
+		key: "diff" | "use" | "credits",
+		value: [number, number],
+	) => void;
+}>) {
 	return (
-		<div className="space-y-6">
-			{data.rangeFilters.map(({ key, ...filter }) => (
+		<>
+			{filters.map(({ key, ...filter }) => (
 				<FilterSlider
 					key={key}
 					{...filter}
-					testId={getRangeFilterTestId(key)}
+					testId={RANGE_FILTER_TEST_IDS[key]}
 					value={params[key]}
-					onValueChange={(next) => handleRangeChange(key, next)}
+					onValueChange={(next) => onRangeChange(key, next)}
 				/>
 			))}
+		</>
+	);
+}
 
-			{data.semesterTermToggle.options.length > 0 && (
-				<div className="space-y-3">
-					<Label className="text-sm font-medium">Семестровий період</Label>
-					<ToggleGroup
-						type="multiple"
-						variant="outline"
-						value={data.semesterTermToggle.selected}
-						onValueChange={handleTermToggle}
-						className="flex w-full"
-						data-testid={testIds.filters.termToggle}
+function SemesterTermToggleControl({
+	toggle,
+	onTermToggle,
+}: Readonly<{
+	toggle: SemesterTermToggle;
+	onTermToggle: (values: string[]) => void;
+}>) {
+	if (toggle.options.length === 0) return null;
+
+	return (
+		<div className="space-y-3">
+			<Label className="text-sm font-medium">Семестровий період</Label>
+			<ToggleGroup
+				type="multiple"
+				variant="outline"
+				value={toggle.selected}
+				onValueChange={onTermToggle}
+				className="flex w-full"
+				data-testid={testIds.filters.termToggle}
+			>
+				{toggle.options.map((option) => (
+					<ToggleGroupItem
+						key={option.value}
+						value={option.value}
+						className="flex-1 text-xs"
 					>
-						{data.semesterTermToggle.options.map((option) => (
-							<ToggleGroupItem
-								key={option.value}
-								value={option.value}
-								className="flex-1 text-xs"
-							>
-								{option.label}
-							</ToggleGroupItem>
-						))}
-					</ToggleGroup>
-				</div>
-			)}
+						{option.label}
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+		</div>
+	);
+}
 
-			{data.selectFilters.map(
+function SelectFilters({
+	filters,
+	getSelectValue,
+	onSelectChange,
+}: Readonly<{
+	filters: SelectFilterConfig[];
+	getSelectValue: (key: string) => string;
+	onSelectChange: (key: string, value: string) => void;
+}>) {
+	return (
+		<>
+			{filters.map(
 				({
 					key,
 					label,
@@ -278,7 +343,7 @@ function CourseFiltersContent({
 					disabledMessage,
 				}) => {
 					const currentValue = getSelectValue(key);
-					const testId = getSelectFilterTestId(key);
+					const testId = SELECT_FILTER_TEST_IDS[key];
 					const isDisabled = disabled || options.length === 0;
 
 					const selectElement = useCombobox ? (
@@ -286,7 +351,7 @@ function CourseFiltersContent({
 							options={options}
 							value={currentValue}
 							onValueChange={(nextValue) => {
-								handleSelectChange(key, nextValue);
+								onSelectChange(key, nextValue);
 							}}
 							placeholder={placeholder}
 							searchPlaceholder="Пошук..."
@@ -300,7 +365,7 @@ function CourseFiltersContent({
 							value={currentValue || "all"}
 							onValueChange={(nextValue) => {
 								const newValue = nextValue === "all" ? "" : nextValue;
-								handleSelectChange(key, newValue);
+								onSelectChange(key, newValue);
 							}}
 							disabled={isDisabled}
 						>
@@ -323,28 +388,217 @@ function CourseFiltersContent({
 
 					return (
 						<div key={key} className="space-y-3">
-							<Label className="text-sm font-medium">{label}</Label>
-							{isDisabled && disabledMessage ? (
-								<Tooltip delayDuration={0}>
-									<TooltipTrigger asChild>
-										<div>{selectElement}</div>
-									</TooltipTrigger>
-									<TooltipContent side="top" sideOffset={4}>
-										<p>{disabledMessage}</p>
-									</TooltipContent>
-								</Tooltip>
-							) : (
-								selectElement
-							)}
+							<Label className="text-sm font-medium inline-flex items-center gap-1.5">
+								{label}
+								{disabledMessage && <InfoHint message={disabledMessage} />}
+							</Label>
+							{selectElement}
 						</div>
 					);
 				},
 			)}
+		</>
+	);
+}
 
-			<ActiveFilters badges={data.activeBadges} />
+// --- Main content ---
+
+function CourseFiltersContent({
+	params,
+	setParams,
+	data,
+}: Readonly<{
+	params: CourseFiltersParamsState;
+	setParams: (updates: Partial<CourseFiltersParamsState>) => void;
+	data: ReturnType<typeof useCourseFiltersData>;
+}>) {
+	const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+		const stored = localStorageAdapter.getItem<Record<string, boolean>>(
+			STORAGE_KEY_FILTER_GROUPS,
+		);
+		return stored ?? { rating: true, semester: true, structure: true };
+	});
+
+	const setGroupOpen = useCallback((groupId: string, open: boolean) => {
+		setOpenGroups((prev) => {
+			const next = { ...prev, [groupId]: open };
+			localStorageAdapter.setItem(STORAGE_KEY_FILTER_GROUPS, next);
+			return next;
+		});
+	}, []);
+
+	const setWithPageReset = useCallback(
+		(updates: Partial<CourseFiltersParamsState>) => {
+			setParams({ ...updates, page: 1 });
+		},
+		[setParams],
+	);
+
+	const handleRangeChange = useCallback(
+		(key: "diff" | "use" | "credits", value: [number, number]) => {
+			if (key === "credits") {
+				setWithPageReset({ credits: value });
+			} else if (key === "diff") {
+				setWithPageReset({ diff: value });
+			} else {
+				setWithPageReset({ use: value });
+			}
+		},
+		[setWithPageReset],
+	);
+
+	const handleTermToggle = useCallback(
+		(values: string[]) => {
+			setWithPageReset({
+				term: values as CoursesListSemesterTermsItem[],
+			});
+		},
+		[setWithPageReset],
+	);
+
+	const getSelectValue = useCallback(
+		(key: string): string => {
+			switch (key) {
+				case "year":
+					return params.year;
+				case "faculty":
+					return params.faculty;
+				case "dept":
+					return params.dept;
+				case "spec":
+					return params.spec;
+				case "type":
+					return params.type ?? "";
+				default:
+					return "";
+			}
+		},
+		[params.year, params.faculty, params.dept, params.spec, params.type],
+	);
+
+	const handleSelectChange = useCallback(
+		(key: string, value: string) => {
+			switch (key) {
+				case "year":
+					setWithPageReset({
+						year: value,
+						credits: value ? params.credits : CREDITS_RANGE,
+					});
+					return;
+				case "faculty":
+					setParams({
+						faculty: value,
+						dept: "",
+						spec: "",
+						type: null,
+						page: 1,
+					});
+					return;
+				case "dept":
+					setWithPageReset({ dept: value });
+					return;
+				case "spec":
+					setWithPageReset({
+						spec: value,
+						type: value ? params.type : null,
+					});
+					return;
+				case "instructor":
+					setWithPageReset({ instructor: value });
+					return;
+				case "type":
+					setWithPageReset({
+						type: (value || null) as CoursesListTypeKind | null,
+					});
+					return;
+			}
+		},
+		[setWithPageReset, setParams, params.credits, params.type],
+	);
+
+	const handleTogglePreset = useCallback(
+		(presetId: FilterPresetId) => {
+			const isActive = data.activePresetIds.includes(presetId);
+
+			if (isActive) {
+				setWithPageReset(getPresetResetFilters(presetId));
+			} else {
+				setWithPageReset(getPresetFilters(presetId));
+
+				const preset = data.presets.find((p) => p.id === presetId);
+				if (preset?.expandsGroup) {
+					setGroupOpen(preset.expandsGroup, true);
+				}
+			}
+		},
+		[data.activePresetIds, data.presets, setWithPageReset, setGroupOpen],
+	);
+
+	const { groups } = data;
+
+	return (
+		<div className="space-y-4">
+			<FilterPresets
+				presets={data.presets}
+				activePresetIds={data.activePresetIds}
+				onTogglePreset={handleTogglePreset}
+			/>
+
+			<div className="space-y-1 divide-y">
+				<FilterGroup
+					config={groups.rating.config}
+					open={openGroups.rating}
+					onOpenChange={(open) => setGroupOpen("rating", open)}
+					testId={testIds.filters.groupRating}
+				>
+					<RangeFilters
+						filters={groups.rating.rangeFilters}
+						params={params}
+						onRangeChange={handleRangeChange}
+					/>
+				</FilterGroup>
+
+				<FilterGroup
+					config={groups.semester.config}
+					open={openGroups.semester}
+					onOpenChange={(open) => setGroupOpen("semester", open)}
+					testId={testIds.filters.groupSemester}
+				>
+					<SelectFilters
+						filters={groups.semester.selectFilters}
+						getSelectValue={getSelectValue}
+						onSelectChange={handleSelectChange}
+					/>
+					<SemesterTermToggleControl
+						toggle={groups.semester.semesterTermToggle}
+						onTermToggle={handleTermToggle}
+					/>
+					<RangeFilters
+						filters={groups.semester.rangeFilters}
+						params={params}
+						onRangeChange={handleRangeChange}
+					/>
+				</FilterGroup>
+
+				<FilterGroup
+					config={groups.structure.config}
+					open={openGroups.structure}
+					onOpenChange={(open) => setGroupOpen("structure", open)}
+					testId={testIds.filters.groupStructure}
+				>
+					<SelectFilters
+						filters={groups.structure.selectFilters}
+						getSelectValue={getSelectValue}
+						onSelectChange={handleSelectChange}
+					/>
+				</FilterGroup>
+			</div>
 		</div>
 	);
 }
+
+// --- Reset button ---
+
 function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
 	return (
 		<button
@@ -357,6 +611,8 @@ function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
 		</button>
 	);
 }
+
+// --- Panel variants ---
 
 export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 	onReset,

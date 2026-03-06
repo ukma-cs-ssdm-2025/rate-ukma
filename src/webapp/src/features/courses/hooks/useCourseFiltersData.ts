@@ -3,16 +3,14 @@ import * as React from "react";
 import type { FilterOptions } from "@/lib/api/generated";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
+	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
-	formatDecimalValue,
 	getCourseTypeDisplay,
-	getFacultyAbbreviation,
 	getSemesterTermDisplay,
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
 
 const SEMESTER_TERM_ORDER = ["FALL", "SPRING", "SUMMER"];
-
 export function areFiltersActive(params: CourseFiltersParamsState): boolean {
 	return (
 		params.q !== "" ||
@@ -25,6 +23,8 @@ export function areFiltersActive(params: CourseFiltersParamsState): boolean {
 		params.instructor !== "" ||
 		params.term.length > 0 ||
 		params.year !== "" ||
+		params.credits[0] !== CREDITS_RANGE[0] ||
+		params.credits[1] !== CREDITS_RANGE[1] ||
 		params.type !== null ||
 		params.spec !== "" ||
 		params.page !== 1 ||
@@ -50,11 +50,13 @@ export type SelectFilterConfig = {
 };
 
 export type RangeFilterConfig = {
-	key: "diff" | "use";
+	key: "diff" | "use" | "credits";
 	label: string;
 	value: [number, number];
 	range: [number, number];
 	captions: [string, string];
+	disabled?: boolean;
+	disabledMessage?: string;
 };
 
 export type SemesterTermToggle = {
@@ -62,11 +64,66 @@ export type SemesterTermToggle = {
 	selected: string[];
 };
 
+export type FilterPresetId = "easy" | "most-useful";
+
+export type FilterPreset = {
+	id: FilterPresetId;
+	label: string;
+	expandsGroup?: "rating" | "semester" | "structure";
+};
+
+export const FILTER_PRESETS: readonly FilterPreset[] = [
+	{ id: "easy", label: "Легкі курси", expandsGroup: "rating" },
+	{ id: "most-useful", label: "Найкорисніші", expandsGroup: "rating" },
+];
+
+export function getPresetFilters(
+	presetId: FilterPresetId,
+): Partial<CourseFiltersParamsState> {
+	switch (presetId) {
+		case "easy":
+			return { diff: [DIFFICULTY_RANGE[0], 2.5] };
+		case "most-useful":
+			return { use: [4, USEFULNESS_RANGE[1]] };
+	}
+}
+
+export function getPresetResetFilters(
+	presetId: FilterPresetId,
+): Partial<CourseFiltersParamsState> {
+	switch (presetId) {
+		case "easy":
+			return { diff: DIFFICULTY_RANGE };
+		case "most-useful":
+			return { use: USEFULNESS_RANGE };
+	}
+}
+
+export type FilterGroupConfig = {
+	id: "rating" | "semester" | "structure";
+	label: string;
+	activeCount: number;
+};
+
 export type CourseFiltersData = {
-	rangeFilters: RangeFilterConfig[];
-	selectFilters: SelectFilterConfig[];
-	semesterTermToggle: SemesterTermToggle;
-	activeBadges: Array<{ key: string; label: string }>;
+	groups: {
+		rating: {
+			config: FilterGroupConfig;
+			rangeFilters: RangeFilterConfig[];
+		};
+		semester: {
+			config: FilterGroupConfig;
+			semesterTermToggle: SemesterTermToggle;
+			selectFilters: SelectFilterConfig[];
+			rangeFilters: RangeFilterConfig[];
+		};
+		structure: {
+			config: FilterGroupConfig;
+			selectFilters: SelectFilterConfig[];
+		};
+	};
+	presets: readonly FilterPreset[];
+	activePresetIds: FilterPresetId[];
 	hasActiveFilters: boolean;
 };
 
@@ -81,7 +138,6 @@ export function useCourseFiltersData({
 
 	const {
 		faculties = [],
-		instructors = [],
 		semester_terms: semesterTerms = [],
 		semester_years: semesterYears = [],
 		course_types: courseTypes = [],
@@ -96,44 +152,6 @@ export function useCourseFiltersData({
 	const allSpecialities = React.useMemo(
 		() => faculties.flatMap((faculty) => faculty.specialities || []),
 		[faculties],
-	);
-
-	const selectedFacultyOption = React.useMemo(
-		() => faculties.find((option) => option.id === filters.faculty),
-		[faculties, filters.faculty],
-	);
-
-	const selectedDepartmentOption = React.useMemo(
-		() => allDepartments.find((option) => option.id === filters.dept),
-		[allDepartments, filters.dept],
-	);
-
-	const selectedSemesterTermOptions = React.useMemo(
-		() =>
-			semesterTerms.filter((option) =>
-				(filters.term as string[]).includes(option.value),
-			),
-		[semesterTerms, filters.term],
-	);
-
-	const selectedSemesterYearOption = React.useMemo(
-		() => semesterYears.find((option) => option.value === filters.year) ?? null,
-		[semesterYears, filters.year],
-	);
-
-	const selectedInstructorOption = React.useMemo(
-		() => instructors.find((option) => option.id === filters.instructor),
-		[instructors, filters.instructor],
-	);
-
-	const selectedCourseTypeOption = React.useMemo(
-		() => courseTypes.find((option) => option.value === filters.type),
-		[courseTypes, filters.type],
-	);
-
-	const selectedSpecialityOption = React.useMemo(
-		() => allSpecialities.find((option) => option.id === filters.spec),
-		[allSpecialities, filters.spec],
 	);
 
 	const filteredDepartments = React.useMemo(() => {
@@ -154,7 +172,7 @@ export function useCourseFiltersData({
 		return selectedFaculty?.specialities || [];
 	}, [faculties, filters.faculty, allSpecialities]);
 
-	const rangeFilters: RangeFilterConfig[] = [
+	const ratingRangeFilters: RangeFilterConfig[] = [
 		{
 			key: "diff",
 			label: "Складність",
@@ -168,6 +186,20 @@ export function useCourseFiltersData({
 			value: filters.use,
 			range: USEFULNESS_RANGE,
 			captions: ["Низька", "Висока"],
+		},
+	];
+
+	const semesterRangeFilters: RangeFilterConfig[] = [
+		{
+			key: "credits",
+			label: "Кредити ECTS",
+			value: filters.credits,
+			range: CREDITS_RANGE,
+			captions: ["Менше", "Більше"],
+			disabled: !filters.year,
+			disabledMessage: filters.year
+				? undefined
+				: "Спочатку оберіть навчальний рік",
 		},
 	];
 
@@ -186,7 +218,7 @@ export function useCourseFiltersData({
 		[semesterTerms],
 	);
 
-	const selectFilters: SelectFilterConfig[] = React.useMemo(
+	const semesterSelectFilters: SelectFilterConfig[] = React.useMemo(
 		() => [
 			{
 				key: "year",
@@ -198,6 +230,12 @@ export function useCourseFiltersData({
 					label: year.label ?? year.value,
 				})),
 			},
+		],
+		[semesterYears, filters.year],
+	);
+
+	const structureSelectFilters: SelectFilterConfig[] = React.useMemo(
+		() => [
 			{
 				key: "faculty",
 				label: "Факультет",
@@ -255,145 +293,103 @@ export function useCourseFiltersData({
 					? undefined
 					: "Спочатку оберіть спеціальність",
 			},
-			// {
-			// 	key: "instructor",
-			// 	label: "Викладач",
-			// 	placeholder: "Усі викладачі",
-			// 	value: filters.instructor,
-			// 	options: instructors.map((instructor) => ({
-			// 		value: instructor.id,
-			// 		label: instructor.name,
-			// 	})),
-			// 	contentClassName: "max-h-72",
-			// }, // unstable backend data
 		],
 		[
 			courseTypes,
 			faculties,
 			filteredDepartments,
 			filteredSpecialities,
-			// instructors, // unstable backend data - commented out from selectFilters
-			semesterYears,
-			filters.year,
 			filters.faculty,
 			filters.dept,
 			filters.spec,
 			filters.type,
-			// filters.instructor, // unstable backend data - commented out from selectFilters
 		],
 	);
 
-	const activeBadges = React.useMemo(() => {
-		const badges: Array<{ key: string; label: string }> = [];
-
-		if (filters.q) {
-			badges.push({ key: "search", label: `Пошук: ${filters.q}` });
-		}
-
+	const ratingActiveCount = React.useMemo(() => {
+		let count = 0;
 		if (
 			filters.diff[0] !== DIFFICULTY_RANGE[0] ||
 			filters.diff[1] !== DIFFICULTY_RANGE[1]
-		) {
-			badges.push({
-				key: "difficulty",
-				label: `${formatDecimalValue(filters.diff[0], { fallback: "0" })}-${formatDecimalValue(filters.diff[1], { fallback: "0" })} складність`,
-			});
-		}
-
+		)
+			count++;
 		if (
 			filters.use[0] !== USEFULNESS_RANGE[0] ||
 			filters.use[1] !== USEFULNESS_RANGE[1]
-		) {
-			badges.push({
-				key: "usefulness",
-				label: `${formatDecimalValue(filters.use[0], { fallback: "0" })}-${formatDecimalValue(filters.use[1], { fallback: "0" })} корисність`,
-			});
+		)
+			count++;
+		return count;
+	}, [filters.diff, filters.use]);
+
+	const semesterActiveCount = React.useMemo(() => {
+		let count = 0;
+		if (filters.year) count++;
+		if (filters.term.length > 0) count++;
+		if (
+			filters.credits[0] !== CREDITS_RANGE[0] ||
+			filters.credits[1] !== CREDITS_RANGE[1]
+		)
+			count++;
+		return count;
+	}, [filters.year, filters.term, filters.credits]);
+
+	const structureActiveCount = React.useMemo(() => {
+		let count = 0;
+		if (filters.faculty) count++;
+		if (filters.dept) count++;
+		if (filters.spec) count++;
+		if (filters.type) count++;
+		return count;
+	}, [filters.faculty, filters.dept, filters.spec, filters.type]);
+
+	const activePresetIds = React.useMemo(() => {
+		const ids: FilterPresetId[] = [];
+
+		if (filters.diff[0] === DIFFICULTY_RANGE[0] && filters.diff[1] === 2.5) {
+			ids.push("easy");
 		}
 
-		const semesterTermLabel =
-			selectedSemesterTermOptions.length > 0
-				? selectedSemesterTermOptions
-						.map((opt) => getSemesterTermDisplay(opt.value, opt.label))
-						.join(", ")
-				: null;
-
-		if (selectedSemesterYearOption && semesterTermLabel) {
-			badges.push({
-				key: "semester",
-				label: `${selectedSemesterYearOption.label} ${semesterTermLabel}`,
-			});
-		} else if (semesterTermLabel) {
-			badges.push({
-				key: "semesterTerm",
-				label: semesterTermLabel,
-			});
-		} else if (selectedSemesterYearOption) {
-			badges.push({
-				key: "semesterYear",
-				label: selectedSemesterYearOption.label,
-			});
+		if (filters.use[0] === 4 && filters.use[1] === USEFULNESS_RANGE[1]) {
+			ids.push("most-useful");
 		}
 
-		if (selectedFacultyOption) {
-			badges.push({
-				key: "faculty",
-				label:
-					selectedFacultyOption.custom_abbreviation ||
-					getFacultyAbbreviation(selectedFacultyOption.name),
-			});
-		}
-
-		if (selectedDepartmentOption) {
-			badges.push({
-				key: "department",
-				label: selectedDepartmentOption.name,
-			});
-		}
-
-		if (selectedSpecialityOption) {
-			badges.push({
-				key: "speciality",
-				label: selectedSpecialityOption.name,
-			});
-		}
-
-		if (selectedCourseTypeOption) {
-			badges.push({
-				key: "courseType",
-				label: getCourseTypeDisplay(
-					selectedCourseTypeOption.value,
-					selectedCourseTypeOption.label,
-				),
-			});
-		}
-
-		if (selectedInstructorOption) {
-			badges.push({
-				key: "instructor",
-				label: selectedInstructorOption.name,
-			});
-		}
-
-		return badges;
-	}, [
-		filters,
-		selectedCourseTypeOption,
-		selectedDepartmentOption,
-		selectedFacultyOption,
-		selectedInstructorOption,
-		selectedSemesterTermOptions,
-		selectedSemesterYearOption,
-		selectedSpecialityOption,
-	]);
+		return ids;
+	}, [filters.diff, filters.use]);
 
 	return {
-		rangeFilters,
-		selectFilters,
-		semesterTermToggle: {
-			options: semesterTermToggleOptions,
-			selected: filters.term,
+		groups: {
+			rating: {
+				config: {
+					id: "rating",
+					label: "Рейтинг",
+					activeCount: ratingActiveCount,
+				},
+				rangeFilters: ratingRangeFilters,
+			},
+			semester: {
+				config: {
+					id: "semester",
+					label: "Семестр",
+					activeCount: semesterActiveCount,
+				},
+				semesterTermToggle: {
+					options: semesterTermToggleOptions,
+					selected: filters.term,
+				},
+				selectFilters: semesterSelectFilters,
+				rangeFilters: semesterRangeFilters,
+			},
+			structure: {
+				config: {
+					id: "structure",
+					label: "Структура",
+					activeCount: structureActiveCount,
+				},
+				selectFilters: structureSelectFilters,
+			},
 		},
-		activeBadges,
+		presets: FILTER_PRESETS,
+		activePresetIds,
 		hasActiveFilters: areFiltersActive(params),
 	};
 }

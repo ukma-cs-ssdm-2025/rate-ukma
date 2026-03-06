@@ -53,6 +53,18 @@ paths:
           - desc
         description: Sort order for usefulness (asc/desc)
       - in: query
+        name: credits_min
+        schema:
+          type: number
+          format: float
+        description: Minimum ECTS credits for course offering (requires semester_year)
+      - in: query
+        name: credits_max
+        schema:
+          type: number
+          format: float
+        description: Maximum ECTS credits for course offering (requires semester_year)
+      - in: query
         name: department
         schema:
           type: string
@@ -578,6 +590,18 @@ paths:
           - asc
           - desc
         description: Sort order for usefulness (asc/desc)
+      - in: query
+        name: credits_min
+        schema:
+          type: number
+          format: float
+        description: Minimum ECTS credits for course offering (requires semester_year)
+      - in: query
+        name: credits_max
+        schema:
+          type: number
+          format: float
+        description: Maximum ECTS credits for course offering (requires semester_year)
       - in: query
         name: department
         schema:

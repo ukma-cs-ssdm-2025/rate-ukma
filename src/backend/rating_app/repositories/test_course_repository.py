@@ -72,6 +72,47 @@ def test_filter_by_semester_limits_to_matching_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_filter_by_credits_range_and_semester_year_uses_same_offering(repo):
+    # Arrange
+    target_semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
+    other_semester = SemesterFactory(term=SemesterTerm.FALL, year=2023)
+
+    matching_course = CourseFactory(title="Matching course")
+    CourseOfferingFactory(
+        course=matching_course,
+        semester=target_semester,
+        credits=4.0,
+    )
+
+    mismatched_course = CourseFactory(title="Mismatched course")
+    CourseOfferingFactory(
+        course=mismatched_course,
+        semester=target_semester,
+        credits=3.0,
+    )
+    CourseOfferingFactory(
+        course=mismatched_course,
+        semester=other_semester,
+        credits=4.0,
+    )
+
+    # Act
+    result = repo.filter(
+        CourseFilterCriteriaInternal(
+            semester_year="2024–2025",
+            credits_min=3.5,
+            credits_max=4.5,
+        )
+    )
+
+    # Assert
+    returned_ids = {course.id for course in result}
+    assert returned_ids == {str(matching_course.id)}
+    assert len(result) == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_returns_domain_models(repo):
     # Arrange
     course = CourseFactory()
@@ -98,9 +139,7 @@ def test_filter_prefetches_instructors(django_assert_num_queries, repo):
         CourseOfferingFactory(semester=semester, instructors=[InstructorFactory()])
 
     # Assert
-    # 1) base courses + prefetches
-    # 2) offerings
-    # 3) instructors
-    # 4) specialities
-    with django_assert_num_queries(4):
+    # 1) base courses + speciality prefetch
+    # 2) related faculty records for mapped specialities
+    with django_assert_num_queries(2):
         repo.filter(CourseFilterCriteriaInternal())

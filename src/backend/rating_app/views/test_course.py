@@ -120,6 +120,61 @@ def test_filter_by_semester(token_client, course_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_filter_by_credits_range_requires_semester_year(token_client, course_factory):
+    # Arrange
+    course_factory.create()
+    url = "/api/v1/courses/?credits_min=3.0&credits_max=4.0"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_credits_range_with_semester_year(
+    token_client, course_factory, course_offering_factory, semester_factory
+):
+    # Arrange
+    matching_course = course_factory.create()
+    non_matching_course = course_factory.create()
+
+    target_semester = semester_factory(term="FALL", year=2024)
+    other_semester = semester_factory(term="FALL", year=2023)
+
+    course_offering_factory(
+        course=matching_course,
+        semester=target_semester,
+        credits=4.0,
+    )
+    course_offering_factory(
+        course=non_matching_course,
+        semester=target_semester,
+        credits=3.0,
+    )
+    course_offering_factory(
+        course=non_matching_course,
+        semester=other_semester,
+        credits=4.0,
+    )
+
+    url = "/api/v1/courses/?semester_year=2024–2025&credits_min=3.5&credits_max=4.5"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    returned_ids = {item["id"] for item in data["items"]}
+    assert str(matching_course.id) in returned_ids
+    assert str(non_matching_course.id) not in returned_ids
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_speciality_and_typekind(
     token_client,
     course_factory,

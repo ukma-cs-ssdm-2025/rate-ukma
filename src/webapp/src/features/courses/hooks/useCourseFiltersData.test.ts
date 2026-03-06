@@ -4,7 +4,11 @@ import { describe, expect, it } from "vitest";
 import { createMockFilterOptions } from "@/test-utils/factories";
 import { useCourseFiltersData } from "./useCourseFiltersData";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+import {
+	CREDITS_RANGE,
+	DIFFICULTY_RANGE,
+	USEFULNESS_RANGE,
+} from "../courseFormatting";
 
 const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	q: "",
@@ -15,6 +19,7 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	instructor: "",
 	term: [],
 	year: "",
+	credits: CREDITS_RANGE,
 	type: null,
 	spec: "",
 	page: 1,
@@ -63,33 +68,6 @@ const MOCK_DEPARTMENTS = {
 	},
 } as const;
 
-const MOCK_INSTRUCTORS = {
-	IVAN: { id: "instructor-1", name: "Іван Іванович" },
-} as const;
-
-const MOCK_SPECIALITIES = {
-	SOFTWARE: {
-		id: "spec-1",
-		name: "Інженерія програмного забезпечення",
-		faculty_id: "fac-1",
-		faculty_name: "ФІ",
-	},
-} as const;
-
-const MOCK_SEMESTER_TERMS = {
-	FALL: { value: "FALL", label: "Осінь" },
-	SPRING: { value: "SPRING", label: "Весна" },
-} as const;
-
-const MOCK_SEMESTER_YEARS = {
-	Y2024: { value: "2024", label: "2024-2025" },
-	Y2025: { value: "2025", label: "2025-2026" },
-} as const;
-
-const MOCK_COURSE_TYPES = {
-	COMPULSORY: { value: "COMPULSORY", label: "Обов'язковий" },
-} as const;
-
 /**
  * Helper to render useCourseFiltersData hook with params
  */
@@ -123,18 +101,37 @@ function renderFiltersHookWithoutOptions(
 	);
 }
 
+/** Flatten all range filters from groups for convenience */
+function allRangeFilters(data: ReturnType<typeof useCourseFiltersData>) {
+	return [
+		...data.groups.rating.rangeFilters,
+		...data.groups.semester.rangeFilters,
+	];
+}
+
+/** Flatten all select filters from groups for convenience */
+function allSelectFilters(data: ReturnType<typeof useCourseFiltersData>) {
+	return [
+		...data.groups.semester.selectFilters,
+		...data.groups.structure.selectFilters,
+	];
+}
+
 describe("useCourseFiltersData", () => {
 	describe("Range Filters", () => {
-		it("should return difficulty and usefulness range configurations", () => {
+		it("should return difficulty, usefulness, and credits range configurations", () => {
 			// Act
 			const { result } = renderFiltersHook();
 
 			// Assert
-			expect(result.current.rangeFilters).toHaveLength(2);
-			expect(result.current.rangeFilters[0].key).toBe("diff");
-			expect(result.current.rangeFilters[0].label).toBe("Складність");
-			expect(result.current.rangeFilters[1].key).toBe("use");
-			expect(result.current.rangeFilters[1].label).toBe("Корисність");
+			const ranges = allRangeFilters(result.current);
+			expect(ranges).toHaveLength(3);
+			expect(ranges[0].key).toBe("diff");
+			expect(ranges[0].label).toBe("Складність");
+			expect(ranges[1].key).toBe("use");
+			expect(ranges[1].label).toBe("Корисність");
+			expect(ranges[2].key).toBe("credits");
+			expect(ranges[2].label).toBe("Кредити ECTS");
 		});
 
 		it("should include current filter values in range configs", () => {
@@ -144,9 +141,8 @@ describe("useCourseFiltersData", () => {
 			});
 
 			// Assert
-			const difficultyFilter = result.current.rangeFilters.find(
-				(f) => f.key === "diff",
-			);
+			const ranges = allRangeFilters(result.current);
+			const difficultyFilter = ranges.find((f) => f.key === "diff");
 			expect(difficultyFilter?.value).toEqual([2, 4]);
 		});
 
@@ -155,9 +151,8 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook();
 
 			// Assert
-			const difficultyFilter = result.current.rangeFilters.find(
-				(f) => f.key === "diff",
-			);
+			const ranges = allRangeFilters(result.current);
+			const difficultyFilter = ranges.find((f) => f.key === "diff");
 			expect(difficultyFilter?.range).toEqual([1, 5]);
 		});
 
@@ -166,14 +161,11 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook();
 
 			// Assert
-			const difficultyFilter = result.current.rangeFilters.find(
-				(f) => f.key === "diff",
-			);
+			const ranges = allRangeFilters(result.current);
+			const difficultyFilter = ranges.find((f) => f.key === "diff");
 			expect(difficultyFilter?.captions).toEqual(["Легко", "Складно"]);
 
-			const usefulnessFilter = result.current.rangeFilters.find(
-				(f) => f.key === "use",
-			);
+			const usefulnessFilter = ranges.find((f) => f.key === "use");
 			expect(usefulnessFilter?.captions).toEqual(["Низька", "Висока"]);
 		});
 	});
@@ -184,8 +176,9 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook();
 
 			// Assert
-			expect(result.current.selectFilters).toHaveLength(5);
-			const filterKeys = result.current.selectFilters.map((f) => f.key);
+			const selects = allSelectFilters(result.current);
+			expect(selects).toHaveLength(5);
+			const filterKeys = selects.map((f) => f.key);
 			expect(filterKeys).toEqual(["year", "faculty", "dept", "spec", "type"]);
 		});
 
@@ -199,9 +192,8 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook({}, filterOptions);
 
 			// Assert
-			const facultyFilter = result.current.selectFilters.find(
-				(f) => f.key === "faculty",
-			);
+			const selects = allSelectFilters(result.current);
+			const facultyFilter = selects.find((f) => f.key === "faculty");
 			expect(facultyFilter?.options).toHaveLength(3); // Includes 'All' option
 			expect(facultyFilter?.options[0]).toEqual({
 				value: "",
@@ -218,9 +210,8 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook({ faculty: "fac-1" });
 
 			// Assert
-			const facultyFilter = result.current.selectFilters.find(
-				(f) => f.key === "faculty",
-			);
+			const selects = allSelectFilters(result.current);
+			const facultyFilter = selects.find((f) => f.key === "faculty");
 			expect(facultyFilter?.value).toBe("fac-1");
 		});
 
@@ -229,14 +220,36 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHookWithoutOptions();
 
 			// Assert
-			result.current.selectFilters.forEach((filter) => {
+			const selects = allSelectFilters(result.current);
+			selects.forEach((filter) => {
 				if (filter.useCombobox) {
 					expect(filter.options).toHaveLength(1);
 					expect(filter.options[0].value).toBe("");
-				} else {
-					expect(filter.options).toEqual([]);
+					return;
 				}
+
+				expect(filter.options).toEqual([]);
 			});
+		});
+
+		it("should disable credits filter until year is selected", () => {
+			// Act
+			const { result } = renderFiltersHook({ year: "" });
+
+			// Assert
+			const ranges = allRangeFilters(result.current);
+			const creditsFilter = ranges.find((filter) => filter.key === "credits");
+			expect(creditsFilter?.disabled).toBe(true);
+		});
+
+		it("should enable credits filter when year is selected", () => {
+			// Act
+			const { result } = renderFiltersHook({ year: "2024–2025" });
+
+			// Assert
+			const ranges = allRangeFilters(result.current);
+			const creditsFilter = ranges.find((filter) => filter.key === "credits");
+			expect(creditsFilter?.disabled).toBe(false);
 		});
 	});
 
@@ -267,9 +280,8 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook({}, filterOptions);
 
 			// Assert
-			const departmentFilter = result.current.selectFilters.find(
-				(f) => f.key === "dept",
-			);
+			const selects = allSelectFilters(result.current);
+			const departmentFilter = selects.find((f) => f.key === "dept");
 			expect(departmentFilter?.options).toHaveLength(4); // 1 All + 3 departments
 		});
 		it("should filter departments by selected faculty", () => {
@@ -298,9 +310,8 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook({ faculty: "fac-1" }, filterOptions);
 
 			// Assert
-			const departmentFilter = result.current.selectFilters.find(
-				(f) => f.key === "dept",
-			);
+			const selects = allSelectFilters(result.current);
+			const departmentFilter = selects.find((f) => f.key === "dept");
 			expect(departmentFilter?.options).toHaveLength(3); // Includes 'All' option
 			expect(departmentFilter?.options.map((o) => o.value)).toEqual([
 				"", // 'All' option
@@ -326,9 +337,8 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook({ faculty: "fac-1" }, filterOptions);
 
 			// Assert
-			const departmentFilter = result.current.selectFilters.find(
-				(f) => f.key === "dept",
-			);
+			const selects = allSelectFilters(result.current);
+			const departmentFilter = selects.find((f) => f.key === "dept");
 			expect(departmentFilter?.options[1].label).toBe(
 				"Кафедра мультимедійних систем",
 			);
@@ -351,9 +361,8 @@ describe("useCourseFiltersData", () => {
 			const { result } = renderFiltersHook({}, filterOptions);
 
 			// Assert
-			const departmentFilter = result.current.selectFilters.find(
-				(f) => f.key === "dept",
-			);
+			const selects = allSelectFilters(result.current);
+			const departmentFilter = selects.find((f) => f.key === "dept");
 			// Without faculty selected, labels include 'All' option at index 0
 			expect(departmentFilter?.options[1].label).toBe(
 				"Кафедра мультимедійних систем",
@@ -361,252 +370,89 @@ describe("useCourseFiltersData", () => {
 		});
 	});
 
-	describe("Active Badges", () => {
-		it("should show no badges when using default filters", () => {
+	describe("Filter Groups", () => {
+		it("should group filters into rating, semester, and structure", () => {
 			// Act
 			const { result } = renderFiltersHook();
 
 			// Assert
-			expect(result.current.activeBadges).toHaveLength(0);
-			expect(result.current.hasActiveFilters).toBe(false);
+			expect(result.current.groups.rating.config.id).toBe("rating");
+			expect(result.current.groups.semester.config.id).toBe("semester");
+			expect(result.current.groups.structure.config.id).toBe("structure");
 		});
 
-		it("should show badge for search query", () => {
-			// Act
-			const { result } = renderFiltersHook({ q: "React" });
-
-			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "search",
-				label: "Пошук: React",
-			});
-			expect(result.current.hasActiveFilters).toBe(true);
-		});
-
-		it("should show badge for modified difficulty range", () => {
+		it("should count active rating filters", () => {
 			// Act
 			const { result } = renderFiltersHook({
 				diff: [2, 4] as [number, number],
-			});
-
-			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "difficulty",
-				label: "2-4 складність",
-			});
-		});
-
-		it("should not show badge for default difficulty range", () => {
-			// Act
-			const { result } = renderFiltersHook({
-				diff: [1, 5] as [number, number],
-			});
-
-			// Assert
-			const difficultyBadge = result.current.activeBadges.find(
-				(b) => b.key === "difficulty",
-			);
-			expect(difficultyBadge).toBeUndefined();
-		});
-
-		it("should show badge for modified usefulness range", () => {
-			// Act
-			const { result } = renderFiltersHook({
 				use: [3, 5] as [number, number],
 			});
 
 			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "usefulness",
-				label: "3-5 корисність",
-			});
+			expect(result.current.groups.rating.config.activeCount).toBe(2);
 		});
 
-		it("should show badge for selected faculty", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				faculties: [MOCK_FACULTIES.FI],
-			});
-
+		it("should count active semester filters", () => {
 			// Act
-			const { result } = renderFiltersHook({ faculty: "fac-1" }, filterOptions);
+			const { result } = renderFiltersHook({
+				year: "2024",
+				term: ["FALL"],
+			});
 
 			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "faculty",
-				label: "ФІ",
-			});
+			expect(result.current.groups.semester.config.activeCount).toBe(2);
 		});
 
-		it("should show badge for selected department", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				faculties: [
-					{
-						id: "fac-1",
-						name: "ФІ",
-						departments: [MOCK_DEPARTMENTS.PROGRAMMING],
-						specialities: [],
-					},
-				],
-			}); // Act
-			const { result } = renderFiltersHook({ dept: "dept-1" }, filterOptions);
-
-			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "department",
-				label: "Кафедра мультимедійних систем",
-			});
-		});
-
-		it("should show badge for selected instructor", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				instructors: [MOCK_INSTRUCTORS.IVAN],
-			});
-
+		it("should count active structure filters", () => {
 			// Act
-			const { result } = renderFiltersHook(
-				{ instructor: "instructor-1" },
-				filterOptions,
-			);
+			const { result } = renderFiltersHook({
+				faculty: "fac-1",
+				spec: "spec-1",
+			});
 
 			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "instructor",
-				label: "Іван Іванович",
-			});
+			expect(result.current.groups.structure.config.activeCount).toBe(2);
 		});
+	});
 
-		it("should show combined semester badge when both year and term selected", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				semester_years: [MOCK_SEMESTER_YEARS.Y2024],
-				semester_terms: [MOCK_SEMESTER_TERMS.FALL],
-			});
-
+	describe("Presets", () => {
+		it("should detect active easy preset", () => {
 			// Act
-			const { result } = renderFiltersHook(
-				{ year: "2024", term: ["FALL"] },
-				filterOptions,
-			);
+			const { result } = renderFiltersHook({
+				diff: [1, 2.5] as [number, number],
+			});
 
 			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "semester",
-				label: "2024-2025 Осінь",
-			});
+			expect(result.current.activePresetIds).toContain("easy");
 		});
 
-		it("should show combined term badge when multiple terms selected", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				semester_terms: [MOCK_SEMESTER_TERMS.FALL, MOCK_SEMESTER_TERMS.SPRING],
-			});
-
+		it("should detect active most-useful preset", () => {
 			// Act
-			const { result } = renderFiltersHook(
-				{ term: ["FALL", "SPRING"] },
-				filterOptions,
-			);
+			const { result } = renderFiltersHook({
+				use: [4, 5] as [number, number],
+			});
 
 			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "semesterTerm",
-				label: "Осінь, Весна",
-			});
+			expect(result.current.activePresetIds).toContain("most-useful");
 		});
 
-		it("should show separate term badge when only term selected", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				semester_terms: [MOCK_SEMESTER_TERMS.SPRING],
-			});
-
+		it("should not detect presets when filters don't match", () => {
 			// Act
-			const { result } = renderFiltersHook({ term: ["SPRING"] }, filterOptions);
+			const { result } = renderFiltersHook();
 
 			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "semesterTerm",
-				label: "Весна",
-			});
+			expect(result.current.activePresetIds).toHaveLength(0);
+		});
+	});
+
+	describe("hasActiveFilters", () => {
+		it("should be false when using default filters", () => {
+			const { result } = renderFiltersHook();
+			expect(result.current.hasActiveFilters).toBe(false);
 		});
 
-		it("should show separate year badge when only year selected", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				semester_years: [MOCK_SEMESTER_YEARS.Y2025],
-			});
-
-			// Act
-			const { result } = renderFiltersHook({ year: "2025" }, filterOptions);
-
-			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "semesterYear",
-				label: "2025-2026",
-			});
-		});
-
-		it("should show badge for selected course type", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				course_types: [MOCK_COURSE_TYPES.COMPULSORY],
-			});
-
-			// Act
-			const { result } = renderFiltersHook(
-				{ type: "COMPULSORY" },
-				filterOptions,
-			);
-
-			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "courseType",
-				label: "Обов'язковий",
-			});
-		});
-
-		it("should show badge for selected speciality", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				faculties: [
-					{
-						id: "fac-1",
-						name: "ФІ",
-						departments: [],
-						specialities: [MOCK_SPECIALITIES.SOFTWARE],
-					},
-				],
-			}); // Act
-			const { result } = renderFiltersHook({ spec: "spec-1" }, filterOptions);
-
-			// Assert
-			expect(result.current.activeBadges).toContainEqual({
-				key: "speciality",
-				label: "Інженерія програмного забезпечення",
-			});
-		});
-
-		it("should show multiple badges when multiple filters applied", () => {
-			// Arrange
-			const filterOptions = createMockFilterOptions({
-				faculties: [MOCK_FACULTIES.FI],
-			});
-
-			// Act
-			const { result } = renderFiltersHook(
-				{
-					q: "Database",
-					faculty: "fac-1",
-					diff: [2, 4] as [number, number],
-				},
-				filterOptions,
-			);
-
-			// Assert
-			expect(result.current.activeBadges).toHaveLength(3);
+		it("should be true when any filter is set", () => {
+			const { result } = renderFiltersHook({ q: "React" });
 			expect(result.current.hasActiveFilters).toBe(true);
 		});
 	});
