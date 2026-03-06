@@ -220,13 +220,9 @@ describe("CourseFiltersPanel", () => {
 			expect(toggleButtons[1]).toHaveTextContent("Весна");
 		});
 
-		it("should disable credits slider when year is not selected", async () => {
-			// Arrange
-			const user = userEvent.setup();
-
-			// Act
+		it("should disable credits slider when year is not selected", () => {
+			// Act — semester group is open by default
 			render(<TestWrapper />);
-			await user.click(screen.getByTestId(testIds.filters.groupSemester));
 
 			// Assert
 			expect(screen.getByTestId(testIds.filters.creditsSelect)).toHaveAttribute(
@@ -288,9 +284,8 @@ describe("CourseFiltersPanel", () => {
 	});
 
 	describe("Department Cascading Logic", () => {
-		it("should render department select when structure group expanded", async () => {
+		it("should render department select when structure group expanded", () => {
 			// Arrange
-			const user = userEvent.setup();
 			const filterOptions = createMockFilterOptions({
 				faculties: [
 					{
@@ -307,9 +302,8 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act
+			// Act — structure group is open by default
 			render(<TestWrapper filterOptions={filterOptions} />);
-			await user.click(screen.getByTestId(testIds.filters.groupStructure));
 
 			// Assert
 			const deptLabel = screen.getByText("Кафедра");
