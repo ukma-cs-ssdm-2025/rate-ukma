@@ -56,7 +56,7 @@ export function UserRatingCard({
 
 	return (
 		<article
-			className="rounded-lg border-2 border-primary/30 px-4 py-4"
+			className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-4"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
 			<div className="flex items-center justify-between mb-2">
