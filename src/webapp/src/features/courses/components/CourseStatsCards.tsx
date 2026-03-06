@@ -5,7 +5,12 @@ import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
 } from "../../ratings/definitions/ratingDefinitions";
-import { getDifficultyTone, getUsefulnessTone } from "../courseFormatting";
+import {
+	DIFFICULTY_RANGE,
+	getDifficultyTone,
+	getUsefulnessTone,
+	USEFULNESS_RANGE,
+} from "../courseFormatting";
 
 const SCALE_STEPS = 5;
 const SCALE_KEYS = Array.from({ length: SCALE_STEPS }, (_, i) => `s-${i}`);
@@ -104,11 +109,19 @@ export function CourseStatsHero({
 	usefulness,
 	ratingsCount,
 }: Readonly<CourseStatsHeroProps>) {
-	// Only scores in the valid 1–5 range are meaningful; treat the rest as missing
+	// Only scores in the valid range are meaningful; treat the rest as missing
 	const diff =
-		difficulty && difficulty >= 1 && difficulty <= 5 ? difficulty : null;
+		difficulty != null &&
+		difficulty >= DIFFICULTY_RANGE[0] &&
+		difficulty <= DIFFICULTY_RANGE[1]
+			? difficulty
+			: null;
 	const useful =
-		usefulness && usefulness >= 1 && usefulness <= 5 ? usefulness : null;
+		usefulness != null &&
+		usefulness >= USEFULNESS_RANGE[0] &&
+		usefulness <= USEFULNESS_RANGE[1]
+			? usefulness
+			: null;
 	const hasRatings = ratingsCount != null && ratingsCount > 0;
 	const hasScores = diff != null || useful != null;
 

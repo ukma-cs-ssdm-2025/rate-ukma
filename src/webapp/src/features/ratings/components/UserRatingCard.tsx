@@ -1,7 +1,11 @@
 import { Pencil, Star, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { CANNOT_VOTE_OWN_RATING_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
+import {
+	ANONYMOUS_REVIEW_NAME,
+	CANNOT_VOTE_OWN_RATING_TEXT,
+	DEFAULT_STUDENT_NAME,
+} from "@/features/ratings/definitions/ratingDefinitions";
 import type {
 	InlineRating,
 	RatingRead,
@@ -32,7 +36,7 @@ export function UserRatingCard({
 
 	const getUserDisplayName = () => {
 		if (rating.is_anonymous) {
-			return "Анонімний відгук";
+			return ANONYMOUS_REVIEW_NAME;
 		}
 		const parts = [user?.lastName, user?.firstName, user?.patronymic].filter(
 			Boolean,
@@ -40,7 +44,7 @@ export function UserRatingCard({
 		if (parts.length > 0) {
 			return parts.join(" ");
 		}
-		return "Студент";
+		return DEFAULT_STUDENT_NAME;
 	};
 	const displayName = getUserDisplayName();
 

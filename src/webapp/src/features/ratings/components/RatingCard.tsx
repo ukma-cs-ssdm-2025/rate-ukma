@@ -1,6 +1,10 @@
 import type { RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCardBody } from "./RatingCardBody";
+import {
+	ANONYMOUS_REVIEW_NAME,
+	DEFAULT_STUDENT_NAME,
+} from "../definitions/ratingDefinitions";
 
 interface RatingCardProps {
 	rating: RatingRead;
@@ -16,8 +20,8 @@ export function RatingCard({
 	disabledMessage,
 }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
-		? "Анонімний відгук"
-		: rating.student_name || "Студент";
+		? ANONYMOUS_REVIEW_NAME
+		: rating.student_name || DEFAULT_STUDENT_NAME;
 
 	return (
 		<article
