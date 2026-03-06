@@ -3,6 +3,7 @@ import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
+import { ExpandableText } from "@/components/ui/ExpandableText";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
 	CourseCazYearsSection,
@@ -30,33 +31,10 @@ import {
 import { withAuth } from "@/lib/auth";
 
 function CourseDescription({ text }: Readonly<{ text: string }>) {
-	const [expanded, setExpanded] = React.useState(false);
-	const [clamped, setClamped] = React.useState(false);
-
-	const measureRef = React.useCallback((el: HTMLParagraphElement | null) => {
-		if (el) setClamped(el.scrollHeight > el.clientHeight);
-	}, []);
-
 	return (
-		<div>
-			<p
-				ref={measureRef}
-				className={`text-[15px] leading-relaxed text-muted-foreground ${
-					expanded ? "" : "line-clamp-4"
-				}`}
-			>
-				{text}
-			</p>
-			{clamped && (
-				<button
-					type="button"
-					onClick={() => setExpanded((v) => !v)}
-					className="mt-1.5 rounded-full bg-muted px-3 py-0.5 text-sm text-muted-foreground hover:bg-muted/80 transition-colors"
-				>
-					{expanded ? "Згорнути" : "Читати далі"}
-				</button>
-			)}
-		</div>
+		<ExpandableText className="text-[15px] leading-relaxed text-muted-foreground">
+			{text}
+		</ExpandableText>
 	);
 }
 
