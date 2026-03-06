@@ -32,14 +32,32 @@ def _update_student_avatar(user: User, sociallogin: SocialLogin) -> None:
         logger.debug("avatar_update_skipped_no_token", user_id=user.id)
         return
 
-    photo = fetch_microsoft_avatar(access_token)
-    if not photo:
+    try:
+        photo = fetch_microsoft_avatar(access_token)
+        if not photo:
+            return
+
+        old_avatar_name = student.avatar.name if student.avatar else None
+        student.avatar.save(photo.name, photo, save=True)
+    except Exception:
+        logger.exception(
+            "student_avatar_update_failed",
+            user_id=user.id,
+            student_id=str(student.id),
+        )
         return
 
-    old_avatar_name = student.avatar.name if student.avatar else None
-    student.avatar.save(photo.name, photo, save=True)
     if old_avatar_name and old_avatar_name != student.avatar.name:
-        student.avatar.storage.delete(old_avatar_name)
+        try:
+            student.avatar.storage.delete(old_avatar_name)
+        except Exception:
+            logger.warning(
+                "student_avatar_cleanup_failed",
+                user_id=user.id,
+                student_id=str(student.id),
+                avatar_name=old_avatar_name,
+            )
+
     logger.info("student_avatar_updated", user_id=user.id, student_id=str(student.id))
 
 
