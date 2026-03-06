@@ -1,5 +1,6 @@
 export const DIFFICULTY_RANGE: [number, number] = [1, 5];
 export const USEFULNESS_RANGE: [number, number] = [1, 5];
+export const CREDITS_RANGE: [number, number] = [0.5, 20];
 
 export function formatDecimalValue(
 	value: number | null | undefined,

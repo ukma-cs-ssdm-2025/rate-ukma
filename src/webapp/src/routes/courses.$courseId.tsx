@@ -5,14 +5,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { CourseOfferingsDropdown } from "@/features/course-offerings/components/CourseOfferingsDropdown";
+import {
+	CourseCazYearsSection,
+	getLatestOfferingMeta,
+} from "@/features/course-offerings/components/CourseCazYearsSection";
 import {
 	CourseDetailsHeader,
 	CourseDetailsHeaderSkeleton,
 } from "@/features/courses/components/CourseDetailsHeader";
 import {
-	CourseStatsCards,
-	CourseStatsCardsSkeleton,
+	CourseStatsHero,
+	CourseStatsHeroSkeleton,
 } from "@/features/courses/components/CourseStatsCards";
 import {
 	CourseRatingsList,
@@ -27,6 +30,37 @@ import {
 	useCoursesRetrieve,
 } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
+
+function CourseDescription({ text }: Readonly<{ text: string }>) {
+	const [expanded, setExpanded] = React.useState(false);
+	const [clamped, setClamped] = React.useState(false);
+
+	const measureRef = React.useCallback((el: HTMLParagraphElement | null) => {
+		if (el) setClamped(el.scrollHeight > el.clientHeight);
+	}, []);
+
+	return (
+		<div>
+			<p
+				ref={measureRef}
+				className={`text-[15px] leading-relaxed text-muted-foreground ${
+					expanded ? "" : "line-clamp-4"
+				}`}
+			>
+				{text}
+			</p>
+			{clamped && (
+				<button
+					type="button"
+					onClick={() => setExpanded((v) => !v)}
+					className="mt-1.5 rounded-full bg-muted px-3 py-0.5 text-sm text-muted-foreground hover:bg-muted/80 transition-colors"
+				>
+					{expanded ? "Згорнути" : "Читати далі"}
+				</button>
+			)}
+		</div>
+	);
+}
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
@@ -55,6 +89,12 @@ function CourseDetailsRoute() {
 		isLoading: isUserRatingLoading,
 	} = useUserCourseRating(courseId);
 
+	const offerings = courseOfferings?.course_offerings ?? [];
+	const metaBadges = React.useMemo(
+		() => getLatestOfferingMeta(offerings),
+		[offerings],
+	);
+
 	if (isCourseLoading || isUserRatingLoading || isOfferingsLoading) {
 		return (
 			<Layout>
@@ -82,32 +122,29 @@ function CourseDetailsRoute() {
 	return (
 		<Layout>
 			<div className="space-y-8 pb-12">
-				<div className="space-y-6">
-					<div className="flex items-center justify-between">
-						<CourseDetailsHeader
-							title={course.title ?? ""}
-							status={course.status ?? ""}
-							specialities={course.specialities ?? []}
-							departmentName={course.department_name ?? ""}
-						/>
-
-						<CourseOfferingsDropdown
-							courseOfferings={courseOfferings?.course_offerings ?? []}
-						/>
-					</div>
+				<div className="space-y-4">
+					<CourseDetailsHeader
+						title={course.title ?? ""}
+						specialities={course.specialities ?? []}
+						departmentName={course.department_name ?? ""}
+						offeringBadges={metaBadges}
+						cazButton={
+							offerings.length > 0 ? (
+								<CourseCazYearsSection courseOfferings={offerings} />
+							) : undefined
+						}
+					/>
 
 					{course.description && (
-						<p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
-							{course.description}
-						</p>
+						<CourseDescription text={course.description} />
 					)}
-				</div>
 
-				<CourseStatsCards
-					difficulty={course.avg_difficulty ?? null}
-					usefulness={course.avg_usefulness ?? null}
-					ratingsCount={course.ratings_count ?? null}
-				/>
+					<CourseStatsHero
+						difficulty={course.avg_difficulty ?? null}
+						usefulness={course.avg_usefulness ?? null}
+						ratingsCount={course.ratings_count ?? null}
+					/>
+				</div>
 
 				{hasAttendedCourse && selectedOffering && !ratedOffering && (
 					<div className="flex justify-center">
@@ -162,7 +199,7 @@ function CourseDetailsSkeleton() {
 				<Skeleton className="h-12 w-full max-w-3xl" />
 			</div>
 
-			<CourseStatsCardsSkeleton />
+			<CourseStatsHeroSkeleton />
 
 			<CourseRatingsListSkeleton />
 		</div>

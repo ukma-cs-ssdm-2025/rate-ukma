@@ -171,48 +171,84 @@ class CourseRepository(
         courses = self._apply_speciality_filters(courses, filters)
         courses = self._apply_range_filters(courses, filters)
         courses = self._apply_sorting(courses, filters)
-        courses = courses.distinct()
+        if self._requires_distinct(filters):
+            courses = courses.distinct()
         return courses
 
+    def _requires_distinct(self, filters: CourseFilterCriteriaInternal) -> bool:
+        # distinct() is only needed when a filter joins to a multi-valued relation
+        # (offerings or course_specialities), which can produce duplicate Course rows.
+        has_offering_filter = bool(
+            filters.semester_year
+            or filters.semester_terms
+            or filters.instructor
+            or filters.credits_min is not None
+            or filters.credits_max is not None
+        )
+        has_speciality_filter = bool(
+            filters.type_kind or filters.speciality or filters.exclude_type_kinds
+        )
+        return has_offering_filter or has_speciality_filter
+
     def _build_base_queryset(self) -> QuerySet[Course]:
-        return self._get_all_prefetch_related()
+        # Omits the offerings prefetch — CourseDTO has no offerings field and
+        # CourseListSerializer does not render offerings. The full prefetch
+        # (including offerings + instructors) is only needed for the detail path
+        # (_get_by_id_prefetch_related).
+        return (
+            Course.objects.select_related("department__faculty")
+            .prefetch_related("course_specialities__speciality__faculty")
+            .all()
+        )
 
     def _apply_basic_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal
     ) -> QuerySet[Course]:
         # TODO: research if reflection can be applied here
 
-        q_filters: dict[str, Any] = {}
+        course_filters: dict[str, Any] = {}
+        offering_filters = Q()
 
         if filters.name:
-            q_filters["title__icontains"] = filters.name
+            course_filters["title__icontains"] = filters.name
 
         if filters.faculty:
-            q_filters["department__faculty_id"] = filters.faculty
+            course_filters["department__faculty_id"] = filters.faculty
 
         if filters.department:
-            q_filters["department_id"] = filters.department
+            course_filters["department_id"] = filters.department
 
         if filters.semester_year:
-            courses = self._apply_academic_year_filter(courses, filters.semester_year)
+            academic_year_q = self._build_academic_year_q(filters.semester_year)
+            if academic_year_q is not None:
+                offering_filters &= academic_year_q
 
         if filters.semester_terms:
-            q_filters["offerings__semester__term__in"] = filters.semester_terms
+            offering_filters &= Q(offerings__semester__term__in=filters.semester_terms)
 
         if filters.instructor:
-            q_filters["offerings__instructors__id"] = filters.instructor
+            offering_filters &= Q(offerings__instructors__id=filters.instructor)
 
-        return courses.filter(**q_filters) if q_filters else courses
+        if filters.credits_min is not None:
+            offering_filters &= Q(offerings__credits__gte=filters.credits_min)
 
-    def _apply_academic_year_filter(
-        self, courses: QuerySet[Course], academic_year: str
-    ) -> QuerySet[Course]:
+        if filters.credits_max is not None:
+            offering_filters &= Q(offerings__credits__lte=filters.credits_max)
+
+        if course_filters:
+            courses = courses.filter(**course_filters)
+        if offering_filters.children:
+            courses = courses.filter(offering_filters)
+
+        return courses
+
+    def _build_academic_year_q(self, academic_year: str) -> Q | None:
         parsed = self._parse_academic_year(academic_year)
         if not parsed:
-            return courses
+            return None
 
         start_year, end_year = parsed
-        return courses.filter(
+        return (
             Q(offerings__semester__year=start_year, offerings__semester__term=SemesterTerm.FALL)
             | Q(
                 offerings__semester__year=end_year,

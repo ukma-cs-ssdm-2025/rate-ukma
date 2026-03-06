@@ -56,6 +56,9 @@ async def fetch_details_by_ids(
     resume: bool = True,
 ) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    if not resume and out_path.exists():
+        out_path.write_text("")
+        logger.info("output_file_truncated", path=str(out_path))
     writer = JSONLWriter(out_path)
     done_ids: set[str] = load_existing_ids(out_path) if resume else set()
     wanted = read_ids(ids_file)

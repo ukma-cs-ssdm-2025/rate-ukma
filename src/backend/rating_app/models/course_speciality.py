@@ -28,3 +28,9 @@ class CourseSpeciality(models.Model):
         unique_together = ("course", "speciality")
         verbose_name = "Course speciality"
         verbose_name_plural = "Course specialities"
+        indexes = [
+            models.Index(
+                fields=["speciality", "type_kind"],
+                name="coursespeciality_spec_type_idx",
+            ),
+        ]

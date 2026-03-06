@@ -1,0 +1,250 @@
+import { useMemo, useState } from "react";
+
+import { BookOpen, ChevronDown, ExternalLink } from "lucide-react";
+
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/Dialog";
+import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
+import type { CourseOffering } from "@/lib/api/generated";
+
+const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
+
+const TERM_ORDER: Record<string, number> = {
+	FALL: 0,
+	SPRING: 1,
+	SUMMER: 2,
+};
+
+function formatCredits(credits?: string): string | null {
+	if (!credits) return null;
+	const parsed = Number.parseFloat(credits);
+	if (!Number.isFinite(parsed)) return `${credits} ECTS`;
+	return `${Number.isInteger(parsed) ? parsed.toFixed(0) : parsed.toFixed(1)} ECTS`;
+}
+
+function getAcademicStartYear(offering: CourseOffering): number | null {
+	if (offering.semester_year == null || !offering.semester_term) return null;
+	const term = offering.semester_term.toUpperCase();
+	const year = offering.semester_year;
+	if (term === "FALL") return year;
+	if (term === "SPRING" || term === "SUMMER") return year - 1;
+	return null;
+}
+
+function formatAcademicYearLabel(offering: CourseOffering): string {
+	const startYear = getAcademicStartYear(offering);
+	if (startYear == null) return "—";
+	return `${startYear}–${startYear + 1}`;
+}
+
+function sortOfferings(items: CourseOffering[]): CourseOffering[] {
+	return [...items].sort((a, b) => {
+		const yearA = a.semester_year ?? 0;
+		const yearB = b.semester_year ?? 0;
+		if (yearA !== yearB) return yearB - yearA;
+
+		const termA = TERM_ORDER[(a.semester_term ?? "").toUpperCase()] ?? 99;
+		const termB = TERM_ORDER[(b.semester_term ?? "").toUpperCase()] ?? 99;
+		return termA - termB;
+	});
+}
+
+function getSpecialityLabels(item: CourseOffering): string[] {
+	if (!item.specialities || item.specialities.length === 0) return [];
+	return Array.from(
+		new Set(
+			item.specialities
+				.map((s) => s.speciality_alias ?? s.speciality_title)
+				.filter((v): v is string => Boolean(v?.trim()))
+				.map((v) => v.trim()),
+		),
+	).sort((a, b) => a.localeCompare(b, "uk"));
+}
+
+/**
+ * Returns compact metadata from the most recent offering
+ * for display in the course header.
+ */
+export type OfferingMetaBadge = {
+	label: string;
+	color: string;
+};
+
+function getCreditsColor(credits: number): string {
+	if (credits <= 2)
+		return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800";
+	if (credits <= 3)
+		return "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800";
+	if (credits <= 4)
+		return "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800";
+	if (credits <= 6)
+		return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
+	if (credits <= 8)
+		return "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800";
+	return "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800";
+}
+
+function getSemesterTermColor(term: string): string {
+	switch (term.toUpperCase()) {
+		case "FALL":
+			return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
+		case "SPRING":
+			return "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800";
+		case "SUMMER":
+			return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800";
+		default:
+			return "";
+	}
+}
+
+export function getLatestOfferingMeta(
+	offerings: CourseOffering[],
+): OfferingMetaBadge[] {
+	const sorted = sortOfferings(offerings);
+	const latest = sorted[0];
+	if (!latest) return [];
+
+	const badges: OfferingMetaBadge[] = [];
+
+	// Combined credits + hours badge
+	const creditsStr = formatCredits(latest.credits);
+	const hoursStr =
+		latest.weekly_hours != null ? `${latest.weekly_hours} год` : null;
+	if (creditsStr || hoursStr) {
+		const label = [creditsStr, hoursStr].filter(Boolean).join(" · ");
+		const parsedCredits = latest.credits
+			? Number.parseFloat(latest.credits)
+			: 0;
+		badges.push({
+			label,
+			color: getCreditsColor(parsedCredits),
+		});
+	}
+
+	// Semester
+	if (latest.semester_term) {
+		badges.push({
+			label: getSemesterTermDisplay(latest.semester_term),
+			color: getSemesterTermColor(latest.semester_term),
+		});
+	}
+
+	return badges;
+}
+
+export function CourseCazYearsSection({
+	courseOfferings,
+}: Readonly<{
+	courseOfferings: CourseOffering[];
+}>) {
+	const [open, setOpen] = useState(false);
+
+	const sorted = useMemo(
+		() => sortOfferings(courseOfferings),
+		[courseOfferings],
+	);
+
+	if (!courseOfferings || courseOfferings.length === 0) {
+		return null;
+	}
+
+	return (
+		<>
+			<Button
+				variant="ghost"
+				size="sm"
+				onClick={() => setOpen(true)}
+				className="text-muted-foreground"
+			>
+				<BookOpen className="mr-1.5 h-3.5 w-3.5" />
+				Записи в САЗ ({sorted.length})
+				<ChevronDown className="ml-1 h-3.5 w-3.5" />
+			</Button>
+
+			<Dialog open={open} onOpenChange={setOpen}>
+				<DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>Записи в САЗ</DialogTitle>
+					</DialogHeader>
+
+					<div className="overflow-x-auto">
+						<table className="w-full text-sm">
+							<thead>
+								<tr className="border-b border-border/40 text-left text-xs text-muted-foreground">
+									<th className="pb-2 pr-4 font-medium">Рік</th>
+									<th className="pb-2 pr-4 font-medium">Семестр</th>
+									<th className="pb-2 pr-4 font-medium">Кредити</th>
+									<th className="pb-2 pr-4 font-medium">Спеціальності</th>
+									<th className="pb-2 font-medium">САЗ</th>
+								</tr>
+							</thead>
+							<tbody>
+								{sorted.map((item) => {
+									const credits = formatCredits(item.credits);
+									const specialities = getSpecialityLabels(item);
+
+									return (
+										<tr
+											key={
+												item.id ??
+												`${item.code}-${item.semester_year}-${item.semester_term}`
+											}
+											className="border-b border-border/20 last:border-b-0"
+										>
+											<td className="py-2.5 pr-4 whitespace-nowrap text-foreground">
+												{formatAcademicYearLabel(item)}
+											</td>
+											<td className="py-2.5 pr-4 whitespace-nowrap">
+												{getSemesterTermDisplay(item.semester_term ?? "", "—")}
+											</td>
+											<td className="py-2.5 pr-4 whitespace-nowrap tabular-nums">
+												{credits ?? "—"}
+											</td>
+											<td className="py-2.5 pr-4">
+												{specialities.length > 0 ? (
+													<div className="flex flex-wrap gap-1">
+														{specialities.map((s) => (
+															<Badge
+																key={s}
+																variant="secondary"
+																className="px-1.5 py-0 text-[11px]"
+															>
+																{s}
+															</Badge>
+														))}
+													</div>
+												) : (
+													<span className="text-muted-foreground">—</span>
+												)}
+											</td>
+											<td className="py-2.5">
+												{item.code ? (
+													<a
+														href={`${BASE_CAZ_URL}${encodeURIComponent(item.code)}`}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+													>
+														<ExternalLink className="h-3.5 w-3.5" />
+													</a>
+												) : (
+													<span className="text-muted-foreground">—</span>
+												)}
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+					</div>
+				</DialogContent>
+			</Dialog>
+		</>
+	);
+}
