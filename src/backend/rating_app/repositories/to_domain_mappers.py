@@ -2,10 +2,12 @@ import structlog
 
 from rateukma.protocols import IProcessor, implements
 from rating_app.application_schemas.course import Course as CourseDTO
-from rating_app.application_schemas.course import CourseSpeciality
+from rating_app.application_schemas.course import CourseOfferingSpeciality
 from rating_app.application_schemas.course_instructor import CourseInstructor as CourseInstructorDTO
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
-from rating_app.application_schemas.course_offering import CourseOfferingSpeciality as CourseOfferingSpecialityDTO
+from rating_app.application_schemas.course_offering import (
+    CourseOfferingSpeciality as CourseOfferingSpecialityDTO,
+)
 from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDTO
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
@@ -84,58 +86,86 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
             ratings_count=model.ratings_count,
         )
 
-    def _map_specialities(self, model: Course) -> list[CourseSpeciality]:
-        prefetched_course_specialities = getattr(model, "_prefetched_objects_cache", {}).get(
-            "course_specialities"
-        )
-        specialities: list[CourseSpeciality] = []
-
-        if prefetched_course_specialities is None:
+    def _map_specialities(self, model: Course) -> list[CourseOfferingSpeciality]:
+        specialities: list[CourseOfferingSpeciality] = []
+        seen_combinations: set[tuple[str, str | None]] = set()
+        if "offerings" not in getattr(model, "_prefetched_objects_cache", {}):
             return specialities
 
-        for course_speciality in prefetched_course_specialities:
-            speciality = getattr(course_speciality, "speciality", None)
-            if speciality is None:
-                logger.warning(
-                    "course_speciality_missing_speciality",
-                    course_speciality_id=str(course_speciality.id),
+        for offering in model.offerings.all():
+            for course_offering_speciality in offering.course_offering_specialities.all():
+                self._try_add_speciality(
+                    course_offering_speciality,
+                    specialities,
+                    seen_combinations,
                 )
-                continue
-
-            type_kind_raw = course_speciality.type_kind
-            type_kind: CourseTypeKind | None = None
-            if type_kind_raw:
-                try:
-                    type_kind = CourseTypeKind(type_kind_raw)
-                except ValueError:
-                    logger.warning(
-                        "course_speciality_invalid_type_kind",
-                        course_speciality_id=str(course_speciality.id),
-                        speciality_id=str(speciality.id),
-                        type_kind=str(type_kind_raw),
-                    )
-
-            faculty_obj = speciality.faculty
-            if faculty_obj is None:
-                logger.warning(
-                    "course_speciality_missing_faculty",
-                    course_speciality_id=str(course_speciality.id),
-                    speciality_id=str(speciality.id),
-                )
-                continue
-
-            specialities.append(
-                CourseSpeciality(
-                    speciality_id=str(speciality.id),
-                    speciality_title=speciality.name,
-                    faculty_id=str(faculty_obj.id),
-                    faculty_name=faculty_obj.name,
-                    speciality_alias=speciality.alias,
-                    type_kind=type_kind,
-                )
-            )
 
         return specialities
+
+    def _try_add_speciality(
+        self,
+        course_offering_speciality,
+        specialities: list[CourseOfferingSpeciality],
+        seen_combinations: set[tuple[str, str | None]],
+    ) -> None:
+        speciality = self._validate_speciality(course_offering_speciality)
+        if speciality is None:
+            return
+
+        type_kind = self._parse_type_kind(course_offering_speciality, speciality)
+        faculty_obj = self._validate_faculty(course_offering_speciality, speciality)
+        if faculty_obj is None:
+            return
+
+        key = (str(speciality.id), type_kind.value if type_kind else None)
+        if key in seen_combinations:
+            return
+        seen_combinations.add(key)
+
+        specialities.append(
+            CourseOfferingSpeciality(
+                speciality_id=str(speciality.id),
+                speciality_title=speciality.name,
+                faculty_id=str(faculty_obj.id),
+                faculty_name=faculty_obj.name,
+                speciality_alias=speciality.alias,
+                type_kind=type_kind,
+            )
+        )
+
+    def _validate_speciality(self, course_offering_speciality):
+        speciality = getattr(course_offering_speciality, "speciality", None)
+        if speciality is None:
+            logger.warning(
+                "course_offering_speciality_missing_speciality",
+                course_offering_speciality_id=str(course_offering_speciality.id),
+            )
+        return speciality
+
+    def _parse_type_kind(self, course_offering_speciality, speciality) -> CourseTypeKind | None:
+        type_kind_raw = course_offering_speciality.type_kind
+        type_kind: CourseTypeKind | None = None
+        if type_kind_raw:
+            try:
+                type_kind = CourseTypeKind(type_kind_raw)
+            except ValueError:
+                logger.warning(
+                    "course_offering_speciality_invalid_type_kind",
+                    course_offering_speciality_id=str(course_offering_speciality.id),
+                    speciality_id=str(speciality.id),
+                    type_kind=str(type_kind_raw),
+                )
+        return type_kind
+
+    def _validate_faculty(self, course_offering_speciality, speciality):
+        faculty_obj = speciality.faculty
+        if faculty_obj is None:
+            logger.warning(
+                "course_offering_speciality_missing_faculty",
+                course_offering_speciality_id=str(course_offering_speciality.id),
+                speciality_id=str(speciality.id),
+            )
+        return faculty_obj
 
 
 class RatingMapper(IProcessor[[RatingModel], RatingDTO]):

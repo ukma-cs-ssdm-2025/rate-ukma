@@ -1,7 +1,8 @@
 from rest_framework import serializers
 
 from rating_app.models.choices import CourseStatus
-from rating_app.serializers.course.course_speciality import CourseSpecialityInlineSerializer
+
+from .course_offering_speciality import CourseOfferingSpecialityInlineSerializer
 
 
 class CourseListSerializer(serializers.Serializer):
@@ -23,4 +24,4 @@ class CourseListSerializer(serializers.Serializer):
     avg_difficulty = serializers.FloatField(read_only=True, allow_null=True)
     avg_usefulness = serializers.FloatField(read_only=True, allow_null=True)
     ratings_count = serializers.IntegerField(read_only=True, default=0)
-    specialities = CourseSpecialityInlineSerializer(many=True, read_only=True)
+    specialities = CourseOfferingSpecialityInlineSerializer(many=True, read_only=True)

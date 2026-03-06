@@ -3,8 +3,8 @@ from rest_framework import serializers
 from rating_app.models.choices import CourseTypeKind
 
 
-class CourseSpecialityInlineSerializer(serializers.Serializer):
-    """Inline serializer for course speciality"""
+class CourseOfferingSpecialityInlineSerializer(serializers.Serializer):
+    """Inline serializer for course offering speciality"""
 
     speciality_id = serializers.UUIDField(read_only=True)
     speciality_title = serializers.CharField(max_length=255, read_only=True)

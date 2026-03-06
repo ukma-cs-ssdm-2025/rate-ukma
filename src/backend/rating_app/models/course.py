@@ -4,7 +4,6 @@ from django.db import models
 
 from .choices import CourseStatus
 from .department import Department
-from .speciality import Speciality
 
 
 class Course(models.Model):
@@ -14,9 +13,6 @@ class Course(models.Model):
     status = models.CharField(max_length=16, choices=CourseStatus.choices)
 
     department = models.ForeignKey(Department, on_delete=models.PROTECT, related_name="courses")
-    specialities = models.ManyToManyField(
-        Speciality, through="CourseSpeciality", related_name="courses"
-    )
 
     avg_difficulty = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
     avg_usefulness = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)

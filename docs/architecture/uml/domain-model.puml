@@ -59,14 +59,6 @@ class Course {
 }
 Course "*" -- "1" Department
 
-class CourseSpeciality {
-  +id           : UUID [1]
-  +typeKind         : CourseTypeKind[1]
-  {unique} (course, speciality)
-}
-CourseSpeciality "*" -- "1" Course
-CourseSpeciality "*" -- "1" Speciality
-
 class Semester {
   +id   : UUID [1]
   +year : int [1]
@@ -92,6 +84,15 @@ class CourseOffering {
 }
 Course "1"   -- "*" CourseOffering
 Semester "1" -- "*" CourseOffering
+
+
+class CourseOfferingSpeciality {
+  +id           : UUID [1]
+  +typeKind         : CourseTypeKind[1]
+  {unique} (courseOffering, speciality)
+}
+CourseOfferingSpeciality "*" -- "1" CourseOffering
+CourseOfferingSpeciality "*" -- "1" Speciality
 
 class CourseInstructor {
   +id: UUID [1]

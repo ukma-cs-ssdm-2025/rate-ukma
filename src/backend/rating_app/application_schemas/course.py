@@ -124,7 +124,7 @@ class CourseFilterCriteriaInternal(CourseFilterCriteria):
 
 
 @dataclass(frozen=True)
-class CourseSpeciality:
+class CourseOfferingSpeciality:
     speciality_id: str
     speciality_title: str
     faculty_id: str
@@ -155,7 +155,7 @@ class Course:
     faculty: str
     faculty_name: str
     faculty_custom_abbreviation: str | None = None
-    specialities: list[CourseSpeciality] = field(default_factory=list)
+    specialities: list[CourseOfferingSpeciality] = field(default_factory=list)
     avg_difficulty: decimal.Decimal | None = None
     avg_usefulness: decimal.Decimal | None = None
     ratings_count: int | None = 0

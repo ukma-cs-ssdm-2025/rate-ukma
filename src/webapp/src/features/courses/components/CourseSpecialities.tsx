@@ -1,11 +1,11 @@
 import { GraduationCap } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
-import type { CourseSpecialityInline } from "@/lib/api/generated";
+import type { CourseOfferingSpecialityInline } from "@/lib/api/generated";
 import { getTypeKindLabel, getTypeKindVariant } from "../courseFormatting";
 
 interface CourseSpecialitiesProps {
-	specialities: CourseSpecialityInline[];
+	specialities: CourseOfferingSpecialityInline[];
 }
 
 export function CourseSpecialities({

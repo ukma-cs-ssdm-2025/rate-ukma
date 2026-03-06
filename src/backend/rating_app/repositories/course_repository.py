@@ -237,20 +237,22 @@ class CourseRepository(
     def _apply_speciality_filters(self, courses, filters):
         if filters.type_kind:
             courses = courses.filter(
-                course_specialities__type_kind=filters.type_kind,
-                course_specialities__speciality_id=filters.speciality,
+                offerings__course_offering_specialities__type_kind=filters.type_kind,
+                offerings__course_offering_specialities__speciality_id=filters.speciality,
             )
 
         if filters.exclude_type_kinds and filters.speciality:
             courses = courses.exclude(
-                course_specialities__speciality_id=filters.speciality,
-                course_specialities__type_kind__in=filters.exclude_type_kinds,
+                offerings__course_offering_specialities__speciality_id=filters.speciality,
+                offerings__course_offering_specialities__type_kind__in=filters.exclude_type_kinds,
             )
 
         if filters.speciality and not filters.type_kind and not filters.exclude_type_kinds:
-            courses = courses.filter(course_specialities__speciality_id=filters.speciality)
+            courses = courses.filter(
+                offerings__course_offering_specialities__speciality_id=filters.speciality
+            )
 
-        return courses
+        return courses.distinct()
 
     def _apply_range_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal
@@ -325,10 +327,10 @@ class CourseRepository(
                 Prefetch(
                     "offerings",
                     queryset=CourseOffering.objects.select_related("semester").prefetch_related(
-                        "instructors"
+                        "instructors",
+                        "course_offering_specialities__speciality__faculty",
                     ),
                 ),
-                "course_specialities__speciality__faculty",
             )
             .all()
         )
@@ -351,10 +353,10 @@ class CourseRepository(
                     Prefetch(
                         "offerings",
                         queryset=CourseOffering.objects.select_related("semester").prefetch_related(
-                            "instructors"
+                            "instructors",
+                            "course_offering_specialities__speciality__faculty",
                         ),
                     ),
-                    "course_specialities__speciality__faculty",
                 )
                 .get(id=course_id)
             )

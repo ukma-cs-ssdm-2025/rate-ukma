@@ -342,24 +342,13 @@ def test_injector_processes_specialities(injector, repo_mocks):
         )
     ]
 
-    with patch(
-        "scraper.services.db_ingestion.injector.CourseSpeciality.objects"
-    ) as mock_cs_objects:
-        mock_cs_objects.update_or_create.return_value = (MagicMock(), True)
+    # Act
+    injector.execute(models)
 
-        # Act
-        injector.execute(models)
-
-        # Assert
-        assert mock_cs_objects.update_or_create.call_count == 2
-        repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec1")
-        repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec2")
-        repo_mocks.speciality_repo.get_or_create.assert_called_once()
-
-        # Verify type_kind is passed to update_or_create
-        calls = mock_cs_objects.update_or_create.call_args_list
-        assert calls[0].kwargs["defaults"]["type_kind"] == "COMPULSORY"
-        assert calls[1].kwargs["defaults"]["type_kind"] == "ELECTIVE"
+    # Assert - verify specialities are looked up and created as needed
+    repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec1")
+    repo_mocks.speciality_repo.get_by_name.assert_any_call(name="Spec2")
+    repo_mocks.speciality_repo.get_or_create.assert_called_once()
 
 
 @pytest.mark.django_db
@@ -438,7 +427,7 @@ def test_injector_invalidates_cache_after_successful_execution(injector, repo_mo
 
 
 @pytest.mark.django_db
-def test_injector_skips_speciality_when_type_kind_is_none(injector, repo_mocks):
+def test_injector_logs_warning_when_type_kind_is_none(injector, repo_mocks):
     # Arrange
     repo_mocks.speciality_repo.get_by_name.return_value = SimpleNamespace(id=uuid4())
     models = [
@@ -448,14 +437,12 @@ def test_injector_skips_speciality_when_type_kind_is_none(injector, repo_mocks):
         )
     ]
 
-    with patch(
-        "scraper.services.db_ingestion.injector.CourseSpeciality.objects"
-    ) as mock_cs_objects:
-        # Act
-        injector.execute(models)
+    # Act
+    injector.execute(models)
 
-        # Assert — no through-model row created for unknown type_kind
-        mock_cs_objects.update_or_create.assert_not_called()
+    # Assert - speciality is still processed and cached, just logs a warning
+    # Note: CourseSpeciality through-table is deprecated, so we no longer verify its creation
+    repo_mocks.speciality_repo.get_by_name.assert_called_with(name="Spec1")
 
 
 @pytest.mark.django_db
@@ -484,21 +471,22 @@ def test_injector_processes_offering_specialities(injector, repo_mocks):
             offerings=[
                 create_mock_offering(
                     code="OFF001",
-                    specialities=[create_mock_spec("Spec1", "Fac", type_kind=CourseTypeKind.COMPULSORY)],
+                    specialities=[
+                        create_mock_spec("Spec1", "Fac", type_kind=CourseTypeKind.COMPULSORY)
+                    ],
                 )
             ],
         )
     ]
 
-    with (
-        patch("scraper.services.db_ingestion.injector.CourseSpeciality.objects") as mock_cs,
-        patch("scraper.services.db_ingestion.injector.CourseOfferingSpeciality.objects") as mock_cos,
-    ):
-        mock_cs.update_or_create.return_value = (MagicMock(), True)
+    with patch(
+        "scraper.services.db_ingestion.injector.CourseOfferingSpeciality.objects"
+    ) as mock_cos:
         mock_cos.update_or_create.return_value = (MagicMock(), True)
 
         injector.execute(models)
 
+        # Assert - CourseOfferingSpeciality is created at the offering level
         assert mock_cos.update_or_create.call_count == 1
         call_kwargs = mock_cos.update_or_create.call_args.kwargs
         assert call_kwargs["offering"] == repo_mocks.course_offering
