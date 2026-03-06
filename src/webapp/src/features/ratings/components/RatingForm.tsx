@@ -45,13 +45,19 @@ export type RatingFormData = z.infer<typeof ratingSchema>;
 function StarRatingInput({
 	value,
 	onChange,
+	onBlur,
 	descriptions,
 	"data-testid": dataTestId,
+	...rest
 }: Readonly<{
 	value: number;
 	onChange: (value: number) => void;
+	onBlur?: () => void;
 	descriptions: Record<number, string>;
 	"data-testid"?: string;
+	id?: string;
+	"aria-describedby"?: string;
+	"aria-invalid"?: boolean;
 }>) {
 	const [hovered, setHovered] = React.useState<number | null>(null);
 	const [dragOrigin, setDragOrigin] = React.useState<number | null>(null);
@@ -91,6 +97,8 @@ function StarRatingInput({
 				onMouseLeave={() => {
 					if (!dragging) setHovered(null);
 				}}
+				onBlur={onBlur}
+				{...rest}
 			>
 				{[1, 2, 3, 4, 5].map((star) => {
 					const isFilled = star <= displayValue;
@@ -181,6 +189,7 @@ export function RatingForm({
 									<StarRatingInput
 										value={field.value ?? 3}
 										onChange={field.onChange}
+										onBlur={field.onBlur}
 										descriptions={difficultyDescriptions}
 										data-testid={testIds.rating.difficultySlider}
 									/>
@@ -200,6 +209,7 @@ export function RatingForm({
 									<StarRatingInput
 										value={field.value ?? 3}
 										onChange={field.onChange}
+										onBlur={field.onBlur}
 										descriptions={usefulnessDescriptions}
 										data-testid={testIds.rating.usefulnessSlider}
 									/>

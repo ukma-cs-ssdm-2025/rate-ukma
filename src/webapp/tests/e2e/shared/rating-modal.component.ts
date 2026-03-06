@@ -45,9 +45,9 @@ export class RatingModal {
 	): Promise<void> {
 		await expect(container).toBeVisible();
 
-		if (targetValue < 1 || targetValue > 5) {
+		if (!Number.isInteger(targetValue) || targetValue < 1 || targetValue > 5) {
 			throw new RangeError(
-				`Star value must be between 1 and 5, got: ${targetValue}`,
+				`Star value must be an integer between 1 and 5, got: ${targetValue}`,
 			);
 		}
 

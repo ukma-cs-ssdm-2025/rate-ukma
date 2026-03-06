@@ -67,11 +67,23 @@ class StudentLinkingMixin:
                 except AttributeError:
                     pass
 
-                sociallogin = args[0] if args else None
-                if sociallogin and isinstance(sociallogin, SocialLogin):
+                # Avatar update requires a SocialLogin (with an access token).
+                # DefaultSocialAccountAdapter.save_user passes sociallogin as the
+                # first positional arg, while DefaultAccountAdapter.save_user passes
+                # a User object. Only attempt avatar fetch for the social login path.
+                sociallogin = self._extract_sociallogin(args)
+                if sociallogin:
                     _update_student_avatar(user, sociallogin)
 
         return user
+
+    @staticmethod
+    def _extract_sociallogin(args: tuple) -> SocialLogin | None:
+        """Return the SocialLogin from positional args if present."""
+        for arg in args:
+            if isinstance(arg, SocialLogin):
+                return arg
+        return None
 
 
 class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAdapter):

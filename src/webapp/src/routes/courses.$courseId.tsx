@@ -98,7 +98,7 @@ function CourseDetailsRoute() {
 	if (isCourseError || isOfferingsError || !course || !courseOfferings) {
 		return (
 			<Layout>
-				<div className="py-16 text-center">
+				<div className="py-16 text-center" role="alert">
 					<p className="text-muted-foreground">
 						Не вдалося завантажити інформацію про курс
 					</p>

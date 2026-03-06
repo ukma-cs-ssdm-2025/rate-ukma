@@ -104,9 +104,11 @@ export function CourseStatsHero({
 	usefulness,
 	ratingsCount,
 }: Readonly<CourseStatsHeroProps>) {
-	// Scores below 1 are not valid on a 1–5 scale; treat as missing
-	const diff = difficulty && difficulty >= 1 ? difficulty : null;
-	const useful = usefulness && usefulness >= 1 ? usefulness : null;
+	// Only scores in the valid 1–5 range are meaningful; treat the rest as missing
+	const diff =
+		difficulty && difficulty >= 1 && difficulty <= 5 ? difficulty : null;
+	const useful =
+		usefulness && usefulness >= 1 && usefulness <= 5 ? usefulness : null;
 	const hasRatings = ratingsCount != null && ratingsCount > 0;
 	const hasScores = diff != null || useful != null;
 
