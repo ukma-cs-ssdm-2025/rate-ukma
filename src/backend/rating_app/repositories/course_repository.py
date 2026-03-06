@@ -177,7 +177,7 @@ class CourseRepository(
 
     def _requires_distinct(self, filters: CourseFilterCriteriaInternal) -> bool:
         # distinct() is only needed when a filter joins to a multi-valued relation
-        # (offerings or course_specialities), which can produce duplicate Course rows.
+        # (offerings), which can produce duplicate Course rows.
         has_offering_filter = bool(
             filters.semester_year
             or filters.semester_terms
@@ -197,7 +197,6 @@ class CourseRepository(
         # (_get_by_id_prefetch_related).
         return (
             Course.objects.select_related("department__faculty")
-            .prefetch_related("course_specialities__speciality__faculty")
             .all()
         )
 
