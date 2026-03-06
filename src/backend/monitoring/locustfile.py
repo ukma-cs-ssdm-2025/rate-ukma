@@ -25,7 +25,7 @@ from locust import HttpUser, between, events, task
 
 logger = logging.getLogger(__name__)
 
-SESSION_FILE = Path(__file__).parent / "load_test_sessions.json"
+SESSION_FILE = Path(__file__).parent.parent / "load_test_sessions.json"
 
 _sessions: list[dict] = []
 _session_index = 0
