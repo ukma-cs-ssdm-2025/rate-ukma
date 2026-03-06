@@ -101,10 +101,8 @@ export class CourseDetailsPage {
 	}
 
 	async getReviewsCount(): Promise<number> {
-		const countElement = this.reviewsCountStat.locator("span").filter({
-			hasText: /\d+/,
-		});
-		const countText = (await countElement.textContent())?.trim() ?? "";
+		const countText =
+			(await this.reviewsCountStat.textContent())?.trim() ?? "";
 		const match = countText.match(/\d+/);
 		return match ? Number(match[0]) : 0;
 	}

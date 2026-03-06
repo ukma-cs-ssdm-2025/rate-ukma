@@ -162,11 +162,12 @@ export function CourseRatingsList({
 				<div className="flex items-center gap-2">
 					<MessageSquare className="h-5 w-5" />
 					<h2 className="text-xl font-semibold">Відгуки студентів</h2>
-					{displayCount > 0 && (
-						<span className="text-sm text-muted-foreground">
-							({displayCount})
-						</span>
-					)}
+					<span
+						className="text-sm text-muted-foreground"
+						data-testid={testIds.courseDetails.ratingsCountStat}
+					>
+						({displayCount})
+					</span>
 				</div>
 				{displayCount > 0 && (
 					<RatingsSortSelect value={sortOption} onValueChange={setSortOption} />
