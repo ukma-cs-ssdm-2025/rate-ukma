@@ -1,5 +1,6 @@
 import { Pencil, Star, Trash2 } from "lucide-react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/features/courses/courseFormatting";
 import { CANNOT_VOTE_OWN_RATING_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
@@ -10,9 +11,11 @@ import type {
 } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import { RatingComment } from "./RatingComment";
 import { RatingStats } from "./RatingStats";
 import { RatingVotes } from "./RatingVotes";
+import { getAvatarColor, getInitials } from "./reviewerAvatar";
 
 interface ExtendedRating extends InlineRating {
 	upvotes?: number;
@@ -47,14 +50,13 @@ export function UserRatingCard({
 	};
 	const displayName = getUserDisplayName();
 
-	// Use values from rating if available, otherwise use defaults for placeholder
 	const upvotes = rating.upvotes ?? 0;
 	const downvotes = rating.downvotes ?? 0;
 	const viewerVote = rating.viewer_vote ?? null;
 
 	return (
 		<article
-			className="py-4 px-4 bg-primary/5 rounded-lg border border-primary/20"
+			className="rounded-lg border-2 border-primary/30 px-4 py-4"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
 			<div className="flex items-center justify-between mb-2">
@@ -85,37 +87,57 @@ export function UserRatingCard({
 				</div>
 			</div>
 
-			<div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					<span className="font-medium">{displayName}</span>
-					{rating.created_at && (
-						<>
-							<span className="text-muted-foreground/40">•</span>
-							<time>{formatDate(rating.created_at)}</time>
-						</>
-					)}
+			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+				<div className="flex items-center gap-2.5">
+					<Avatar className="h-8 w-8 shrink-0 text-xs font-semibold">
+						{user?.avatarUrl && !rating.is_anonymous && (
+							<AvatarImage src={user.avatarUrl} alt={displayName} />
+						)}
+						<AvatarFallback
+							className={cn(
+								"text-xs font-semibold",
+								getAvatarColor(displayName),
+							)}
+						>
+							{getInitials(displayName, rating.is_anonymous ?? false)}
+						</AvatarFallback>
+					</Avatar>
+					<div className="flex flex-col">
+						<span className="text-sm font-medium">{displayName}</span>
+						{rating.created_at && (
+							<time className="text-xs text-muted-foreground">
+								{formatDate(rating.created_at)}
+							</time>
+						)}
+					</div>
 				</div>
+
 				<RatingStats
 					difficulty={rating.difficulty}
 					usefulness={rating.usefulness}
 				/>
 			</div>
 
-			<RatingComment
-				comment={rating.comment}
-				emptyMessage="Ви не залишили коментар."
-			/>
-
-			{rating.id && (
-				<RatingVotes
-					ratingId={rating.id}
-					initialUpvotes={upvotes}
-					initialDownvotes={downvotes}
-					initialUserVote={viewerVote}
-					readOnly={true}
-					disabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
+			<div className="mt-3">
+				<RatingComment
+					comment={rating.comment}
+					emptyMessage="Ви не залишили коментар."
 				/>
-			)}
+			</div>
+
+			<div className="mt-3 flex items-center justify-end">
+				{rating.id && (
+					<RatingVotes
+						ratingId={rating.id}
+						initialUpvotes={upvotes}
+						initialDownvotes={downvotes}
+						initialUserVote={viewerVote}
+						readOnly={true}
+						disabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
+						inline
+					/>
+				)}
+			</div>
 		</article>
 	);
 }

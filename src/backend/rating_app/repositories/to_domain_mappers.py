@@ -177,6 +177,11 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             if not model.is_anonymous
             else None
         )
+        student_avatar_url = (
+            model.student.avatar.url
+            if not model.is_anonymous and model.student.avatar
+            else None
+        )
 
         # annotated fields from ORM queryset
         upvotes = getattr(model, "upvotes_count", 0)
@@ -187,6 +192,7 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             course_offering_id=model.course_offering.id,
             student_id=student_id,
             student_name=student_name,
+            student_avatar_url=student_avatar_url,
             course_offering=model.course_offering.id,
             course=model.course_offering.course.id,
             difficulty=model.difficulty,

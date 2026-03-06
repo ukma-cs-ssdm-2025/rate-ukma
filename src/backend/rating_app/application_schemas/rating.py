@@ -135,6 +135,7 @@ class Rating(BaseModel):
     course_offering_id: uuid.UUID
     student_id: uuid.UUID | None
     student_name: str | None
+    student_avatar_url: str | None = None
     course_offering: uuid.UUID
     course: uuid.UUID
     difficulty: int

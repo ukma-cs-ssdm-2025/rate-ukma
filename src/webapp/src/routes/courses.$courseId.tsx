@@ -3,7 +3,6 @@ import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
-import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
 	CourseCazYearsSection,
@@ -22,7 +21,6 @@ import {
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
 import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
-import { RatingButton } from "@/features/ratings/components/RatingButton";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
@@ -89,12 +87,6 @@ function CourseDetailsRoute() {
 		isLoading: isUserRatingLoading,
 	} = useUserCourseRating(courseId);
 
-	const offerings = courseOfferings?.course_offerings ?? [];
-	const metaBadges = React.useMemo(
-		() => getLatestOfferingMeta(offerings),
-		[offerings],
-	);
-
 	if (isCourseLoading || isUserRatingLoading || isOfferingsLoading) {
 		return (
 			<Layout>
@@ -106,28 +98,31 @@ function CourseDetailsRoute() {
 	if (isCourseError || isOfferingsError || !course || !courseOfferings) {
 		return (
 			<Layout>
-				<div className="space-y-6">
-					<Card className="border-destructive">
-						<CardContent className="pt-6">
-							<p className="text-center text-muted-foreground">
-								Не вдалося завантажити інформацію про курс
-							</p>
-						</CardContent>
-					</Card>
+				<div className="py-16 text-center">
+					<p className="text-muted-foreground">
+						Не вдалося завантажити інформацію про курс
+					</p>
 				</div>
 			</Layout>
 		);
 	}
 
+	const offerings = courseOfferings?.course_offerings ?? [];
+	const canShowCta = hasAttendedCourse && selectedOffering && !ratedOffering;
+	const offeringMeta =
+		offerings.length > 0 ? getLatestOfferingMeta(offerings) : null;
+
 	return (
 		<Layout>
-			<div className="space-y-8 pb-12">
-				<div className="space-y-4">
+			<div className="pb-16">
+				{/* Hero zone: title → meta → badges + offering facts → scores */}
+				<div className="space-y-6">
 					<CourseDetailsHeader
 						title={course.title ?? ""}
 						specialities={course.specialities ?? []}
 						departmentName={course.department_name ?? ""}
-						offeringBadges={metaBadges}
+						facultyName={course.faculty_name ?? ""}
+						offeringBadges={offeringMeta ?? undefined}
 						cazButton={
 							offerings.length > 0 ? (
 								<CourseCazYearsSection courseOfferings={offerings} />
@@ -146,26 +141,21 @@ function CourseDetailsRoute() {
 					/>
 				</div>
 
-				{hasAttendedCourse && selectedOffering && !ratedOffering && (
-					<div className="flex justify-center">
-						<RatingButton
-							canRate={Boolean(selectedOffering.can_rate)}
-							onClick={() => setIsRatingModalOpen(true)}
-						>
-							Оцінити цей курс
-						</RatingButton>
-					</div>
-				)}
-
-				<CourseRatingsList
-					courseId={courseId}
-					userRating={userRating}
-					onEditUserRating={() => setIsRatingModalOpen(true)}
-					onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
-					canVote={hasAttendedCourse && Boolean(selectedOffering?.can_rate)}
-					hasAttended={hasAttendedCourse}
-					canRate={Boolean(selectedOffering?.can_rate)}
-				/>
+				{/* Reviews — CTA is anchored here */}
+				<div className="mt-12">
+					<CourseRatingsList
+						courseId={courseId}
+						userRating={userRating}
+						onEditUserRating={() => setIsRatingModalOpen(true)}
+						onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
+						canVote={hasAttendedCourse && Boolean(selectedOffering?.can_rate)}
+						hasAttended={hasAttendedCourse}
+						canRate={Boolean(selectedOffering?.can_rate)}
+						showCta={Boolean(canShowCta)}
+						canRateButton={Boolean(selectedOffering?.can_rate)}
+						onRate={() => setIsRatingModalOpen(true)}
+					/>
+				</div>
 			</div>
 
 			{selectedOffering?.id && attendedCourseId && (
@@ -193,15 +183,15 @@ function CourseDetailsRoute() {
 
 function CourseDetailsSkeleton() {
 	return (
-		<div className="space-y-8 pb-12">
+		<div className="pb-16">
 			<div className="space-y-6">
 				<CourseDetailsHeaderSkeleton />
-				<Skeleton className="h-12 w-full max-w-3xl" />
+				<Skeleton className="h-10 w-full max-w-2xl" />
+				<CourseStatsHeroSkeleton />
 			</div>
-
-			<CourseStatsHeroSkeleton />
-
-			<CourseRatingsListSkeleton />
+			<div className="mt-12">
+				<CourseRatingsListSkeleton />
+			</div>
 		</div>
 	);
 }

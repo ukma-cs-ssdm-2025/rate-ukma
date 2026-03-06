@@ -1,7 +1,8 @@
 import { useState } from "react";
 
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, PenLine } from "lucide-react";
 
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import type { InlineRating, RatingRead } from "@/lib/api/generated";
@@ -29,6 +30,9 @@ interface CourseRatingsListProps {
 	canVote?: boolean;
 	hasAttended?: boolean;
 	canRate?: boolean;
+	showCta?: boolean;
+	canRateButton?: boolean;
+	onRate?: () => void;
 }
 
 interface RatingsContentProps {
@@ -42,6 +46,42 @@ interface RatingsContentProps {
 	courseId: string;
 }
 
+function EmptyState({
+	showCta,
+	canRateButton,
+	onRate,
+}: Readonly<{
+	showCta: boolean;
+	canRateButton: boolean;
+	onRate?: () => void;
+}>) {
+	return (
+		<div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border/60 bg-muted/30 py-12 px-6 text-center">
+			<MessageSquare className="h-10 w-10 text-muted-foreground/40" />
+			<div className="space-y-1">
+				<p className="text-base font-medium text-foreground">
+					Будь першим, хто оцінить цей курс
+				</p>
+				<p className="text-sm text-muted-foreground">
+					Твій відгук допоможе іншим студентам зробити усвідомлений вибір
+				</p>
+			</div>
+			{showCta && (
+				<Button
+					size="lg"
+					onClick={onRate}
+					aria-disabled={!canRateButton}
+					className="mt-2"
+					data-testid={testIds.courseDetails.rateButton}
+				>
+					<PenLine className="mr-2 h-4 w-4" />
+					Оцінити цей курс
+				</Button>
+			)}
+		</div>
+	);
+}
+
 function RatingsContent({
 	allRatings,
 	hasMoreRatings,
@@ -52,18 +92,8 @@ function RatingsContent({
 	disabledMessage,
 	courseId,
 }: Readonly<RatingsContentProps>) {
-	if (allRatings.length === 0) {
-		if (hasUserRating) {
-			return null;
-		}
-		return (
-			<p
-				className="text-center text-sm text-muted-foreground py-8"
-				data-testid={testIds.courseDetails.noReviewsMessage}
-			>
-				Поки що немає відгуків для цього курсу
-			</p>
-		);
+	if (allRatings.length === 0 && hasUserRating) {
+		return null;
 	}
 
 	return (
@@ -106,6 +136,9 @@ export function CourseRatingsList({
 	canVote = true,
 	hasAttended = true,
 	canRate = true,
+	showCta = false,
+	canRateButton = false,
+	onRate,
 }: Readonly<CourseRatingsListProps>) {
 	const separateCurrentUser = !!userRatingProp;
 	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
@@ -145,13 +178,9 @@ export function CourseRatingsList({
 		...sortParams,
 	});
 
-	// Prefer user rating from API (has vote data) over prop (from different endpoint)
 	const userRating = userRatingFromApi ?? userRatingProp;
-
-	// Total from backend already reflects the number of items
-	// including non-current user ratings and current user rating (if any)
-	// when separate_current_user is true.
 	const displayCount = totalRatings ?? 0;
+	const hasNoReviews = displayCount === 0 && !userRating;
 
 	return (
 		<div
@@ -163,15 +192,31 @@ export function CourseRatingsList({
 					<MessageSquare className="h-5 w-5" />
 					<h2 className="text-xl font-semibold">Відгуки студентів</h2>
 					<span
-						className="text-sm text-muted-foreground"
+						className="inline-flex h-5 items-center rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground"
 						data-testid={testIds.courseDetails.ratingsCountStat}
 					>
-						({displayCount})
+						{displayCount}
 					</span>
 				</div>
-				{displayCount > 0 && (
-					<RatingsSortSelect value={sortOption} onValueChange={setSortOption} />
-				)}
+				<div className="flex items-center gap-2">
+					{showCta && !hasNoReviews && (
+						<Button
+							size="sm"
+							onClick={onRate}
+							aria-disabled={!canRateButton}
+							data-testid={testIds.courseDetails.rateButton}
+						>
+							<PenLine className="mr-1.5 h-3.5 w-3.5" />
+							Оцінити
+						</Button>
+					)}
+					{displayCount > 0 && (
+						<RatingsSortSelect
+							value={sortOption}
+							onValueChange={setSortOption}
+						/>
+					)}
+				</div>
 			</div>
 
 			{userRating && onEditUserRating && onDeleteUserRating && (
@@ -184,6 +229,12 @@ export function CourseRatingsList({
 
 			{isLoading ? (
 				<CourseRatingsListSkeleton />
+			) : hasNoReviews ? (
+				<EmptyState
+					showCta={showCta}
+					canRateButton={canRateButton}
+					onRate={onRate}
+				/>
 			) : (
 				<RatingsContent
 					allRatings={allRatings}
@@ -206,9 +257,12 @@ export function CourseRatingsListSkeleton() {
 			{SKELETON_KEYS.map((key) => (
 				<div key={key} className="py-4 space-y-2">
 					<div className="flex items-center justify-between gap-3">
-						<div className="flex items-center gap-2">
-							<Skeleton className="h-3 w-24" />
-							<Skeleton className="h-3 w-20" />
+						<div className="flex items-center gap-2.5">
+							<Skeleton className="h-8 w-8 rounded-full" />
+							<div className="space-y-1">
+								<Skeleton className="h-3.5 w-24" />
+								<Skeleton className="h-3 w-20" />
+							</div>
 						</div>
 						<Skeleton className="h-3 w-40" />
 					</div>

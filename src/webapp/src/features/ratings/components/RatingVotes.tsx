@@ -28,6 +28,7 @@ interface RatingVotesProps {
 	initialUserVote?: RatingVoteStrType | null;
 	readOnly?: boolean;
 	disabledMessage?: string;
+	inline?: boolean;
 }
 
 interface VoteProps {
@@ -95,6 +96,7 @@ export function RatingVotes({
 	initialUserVote = null,
 	readOnly = false,
 	disabledMessage,
+	inline = false,
 }: Readonly<RatingVotesProps>) {
 	const queryClient = useQueryClient();
 	// The "optimistic" vote state - updates immediately on click
@@ -186,10 +188,14 @@ export function RatingVotes({
 	const upActive = userVote === RatingVoteStrType.UPVOTE;
 	const downActive = userVote === RatingVoteStrType.DOWNVOTE;
 
+	const wrapperClass = inline
+		? "flex items-center gap-1"
+		: "flex items-center gap-1 mt-3 justify-end";
+
 	if (readOnly) {
 		if (disabledMessage) {
 			return (
-				<div className="flex items-center gap-1 mt-3 justify-end">
+				<div className={wrapperClass}>
 					<Tooltip delayDuration={0}>
 						<TooltipTrigger>
 							<Vote isUpvote count={upvotes} active={upActive} />
@@ -210,7 +216,7 @@ export function RatingVotes({
 			);
 		}
 		return (
-			<div className="flex items-center gap-1 mt-3 justify-end">
+			<div className={wrapperClass}>
 				<Vote isUpvote count={upvotes} active={upActive} />
 				<Vote isUpvote={false} count={downvotes} active={downActive} />
 			</div>
@@ -218,7 +224,7 @@ export function RatingVotes({
 	}
 
 	return (
-		<div className="flex items-center gap-1 mt-3 justify-end">
+		<div className={wrapperClass}>
 			<Vote
 				isUpvote
 				count={upvotes}

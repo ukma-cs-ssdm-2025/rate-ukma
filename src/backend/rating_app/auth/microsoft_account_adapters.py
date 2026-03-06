@@ -14,9 +14,33 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialLogin
 from allauth.socialaccount.providers.base import Provider
 
+from rating_app.auth.microsoft_avatar import fetch_microsoft_avatar
 from rating_app.ioc_container.services import student_service
 
 logger = structlog.get_logger(__name__)
+
+
+def _update_student_avatar(user: User, sociallogin: SocialLogin) -> None:
+    """Fetch the Microsoft profile photo and save it to the student's avatar field."""
+    student = getattr(user, "student_profile", None)
+    if not student:
+        return
+
+    token = getattr(sociallogin, "token", None)
+    access_token = getattr(token, "token", None)
+    if not access_token:
+        logger.debug("avatar_update_skipped_no_token", user_id=user.id)
+        return
+
+    photo = fetch_microsoft_avatar(access_token)
+    if not photo:
+        return
+
+    if student.avatar:
+        student.avatar.delete(save=False)
+
+    student.avatar.save(photo.name, photo, save=True)
+    logger.info("student_avatar_updated", user_id=user.id, student_id=str(student.id))
 
 
 class StudentLinkingMixin:
@@ -36,6 +60,16 @@ class StudentLinkingMixin:
                     user_id=user.id,
                     email=user.email,
                 )
+
+                # Clear cached reverse relation so student_profile is re-fetched
+                try:
+                    del user.student_profile
+                except AttributeError:
+                    pass
+
+                sociallogin = args[0] if args else None
+                if sociallogin and isinstance(sociallogin, SocialLogin):
+                    _update_student_avatar(user, sociallogin)
 
         return user
 
@@ -82,6 +116,8 @@ class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAda
             existing_user = user_model.objects.get(email=email)
             sociallogin.connect(request, existing_user)
             logger.info("user_connected", email=email)
+
+            _update_student_avatar(existing_user, sociallogin)
         except user_model.DoesNotExist:
             logger.info("new_user_registration", email=email)
 

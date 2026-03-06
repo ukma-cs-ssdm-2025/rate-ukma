@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { Link } from "@tanstack/react-router";
-import { Pencil, Star, Trash2 } from "lucide-react";
+import { Pencil, PenLine, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -207,6 +207,7 @@ function CardActions({
 							disabled
 							className="opacity-50 cursor-not-allowed"
 						>
+							<PenLine className="size-3.5 mr-1.5" />
 							Оцінити
 						</Button>
 					</span>
@@ -227,7 +228,7 @@ function CardActions({
 				onClick={onEdit}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
-				<Star className="size-3.5 mr-1.5 fill-current" />
+				<PenLine className="size-3.5 mr-1.5" />
 				Оцінити
 			</Button>
 		);
@@ -241,7 +242,7 @@ function CardActions({
 				search={{ openRating: true }}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
-				<Star className="size-3.5 mr-1.5 fill-current" />
+				<PenLine className="size-3.5 mr-1.5" />
 				Оцінити
 			</Link>
 		</Button>

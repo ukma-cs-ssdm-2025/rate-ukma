@@ -150,10 +150,16 @@ def session(request):
         first_name = student_profile.first_name
         last_name = student_profile.last_name
         patronymic = student_profile.patronymic or ""
+        avatar_url = (
+            request.build_absolute_uri(student_profile.avatar.url)
+            if student_profile.avatar
+            else None
+        )
     else:
         first_name = user.first_name
         last_name = user.last_name
         patronymic = ""
+        avatar_url = None
 
     data = {
         "is_authenticated": True,
@@ -163,6 +169,7 @@ def session(request):
             "first_name": first_name,
             "last_name": last_name,
             "patronymic": patronymic,
+            "avatar_url": avatar_url,
         },
         "expires_at": _get_session_expiry(request),
         "is_student": bool(student_profile),
