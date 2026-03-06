@@ -56,7 +56,7 @@ export function getUsefulnessTone(value?: number | null): string {
 const COURSE_TYPE_LABELS: Record<string, string> = {
 	COMPULSORY: "Обов'язковий",
 	ELECTIVE: "Вибірковий",
-	PROF_ORIENTED: "Професійно орієнтований",
+	PROF_ORIENTED: "Професійно-орієнтований",
 };
 
 const SEMESTER_TERM_LABELS: Record<string, string> = {

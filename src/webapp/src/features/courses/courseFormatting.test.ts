@@ -143,7 +143,7 @@ describe("courseFormatting", () => {
 		it.each([
 			["COMPULSORY", "Обов'язковий"],
 			["ELECTIVE", "Вибірковий"],
-			["PROF_ORIENTED", "Професійно орієнтований"],
+			["PROF_ORIENTED", "Професійно-орієнтований"],
 		])("should return Ukrainian label for %s type", (type, expected) => {
 			expect(getCourseTypeDisplay(type)).toBe(expected);
 		});
