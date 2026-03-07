@@ -1,6 +1,7 @@
 import pytest
 from freezegun import freeze_time
 
+from rateukma.caching.patterns import student_ratings_namespace
 from rating_app.models.choices import SemesterTerm
 from rating_app.tests.factories import (
     CourseFactory,
@@ -392,3 +393,78 @@ def test_get_courses_stats_rated_course_still_shows_can_rate(token_client):
     offering_data = data[0]["offerings"][0]
     assert offering_data["can_rate"] is True
     assert offering_data["rated"] is not None
+
+
+# ---------------------------------------------------------------------------
+# Caching behaviour
+# ---------------------------------------------------------------------------
+
+
+@freeze_time(DEFAULT_MID_TERM_DATE)
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_student_courses_response_is_cached_between_calls(token_client, mock_cache_manager):
+    """Second call returns the cached result without hitting the DB again."""
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title="Cached Course")
+    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+
+    course_id = str(course.id)
+
+    response1 = token_client.get("/api/v1/students/me/courses/")
+    assert response1.status_code == 200
+    assert response1.json()[0]["id"] == course_id
+
+    # Remove the course from the DB to prove the second response is cached
+    course.delete()
+
+    response2 = token_client.get("/api/v1/students/me/courses/")
+    assert response2.status_code == 200
+    assert response2.json()[0]["id"] == course_id  # stale data — still cached
+
+
+@freeze_time(DEFAULT_MID_TERM_DATE)
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_student_courses_cache_is_busted_after_version_bump(token_client, mock_cache_manager):
+    """
+    Bumping the student ratings namespace invalidates the cached response, so
+    the next request reflects the new DB state. This is the contract that
+    RatingCacheInvalidator.on_event() must uphold when a rating is created or
+    deleted.
+    """
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title="Bust Me")
+    semester = SemesterFactory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+
+    # Warm the cache: offering not yet rated
+    response1 = token_client.get("/api/v1/students/me/courses/")
+    assert response1.status_code == 200
+    assert response1.json()[0]["offerings"][0]["rated"] is None
+
+    # Simulate a rating being created in DB (no HTTP round-trip needed here)
+    RatingFactory(
+        student=student,
+        course_offering=offering,
+        difficulty=3,
+        usefulness=4,
+        comment="Late rating",
+    )
+
+    # Without cache bust the stale cached response would still show rated=None
+    stale = token_client.get("/api/v1/students/me/courses/")
+    assert stale.json()[0]["offerings"][0]["rated"] is None
+
+    # Bump the namespace — this is what RatingCacheInvalidator does on rating events
+    mock_cache_manager.bump_version(student_ratings_namespace(str(student.id)))
+
+    # Now the endpoint must return fresh data
+    fresh = token_client.get("/api/v1/students/me/courses/")
+    assert fresh.status_code == 200
+    offering_data = fresh.json()[0]["offerings"][0]
+    assert offering_data["rated"] is not None
+    assert offering_data["rated"]["comment"] == "Late rating"
