@@ -4,6 +4,7 @@ from typing import Any
 import structlog
 
 from rateukma.caching.decorators import rcached
+from rateukma.caching.patterns import student_ratings_namespace
 from rating_app.application_schemas.semester import SemesterInput
 from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
@@ -31,7 +32,7 @@ class StudentService:
     def get_student_by_user_id(self, user_id: str):
         return self.student_stats_repository.get_student_by_user_id(user_id=user_id)
 
-    @rcached(ttl=3600)  # 1 hour - student grades/enrollments change infrequently
+    @rcached(ttl=3600, versioned_by=lambda self, student_id: student_ratings_namespace(student_id))
     def get_ratings(self, student_id: str) -> list[dict[str, Any]]:
         courses = self.student_stats_repository.get_rating_stats(student_id=student_id)
         current_semester = self.semester_service.get_current()
@@ -49,7 +50,7 @@ class StudentService:
 
         return courses
 
-    @rcached(ttl=3600)  # 1 hour - student grades/enrollments change infrequently
+    @rcached(ttl=3600, versioned_by=lambda self, student_id: student_ratings_namespace(student_id))
     def get_ratings_detail(self, student_id: str) -> list[dict[str, Any]]:
         result = self.student_stats_repository.get_detailed_rating_stats(student_id=student_id)
         current_semester = self.semester_service.get_current()

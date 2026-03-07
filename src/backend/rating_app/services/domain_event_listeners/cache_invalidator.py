@@ -3,6 +3,7 @@ from rateukma.caching.patterns import (
     course_analytics_namespace,
     course_detail_namespace,
     course_ratings_namespace,
+    student_ratings_namespace,
 )
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener
@@ -23,6 +24,8 @@ class RatingCacheInvalidator(IEventListener[RatingDTO]):
         self.cache_manager.bump_version(course_detail_namespace(course_id))
         self.cache_manager.bump_version(course_analytics_namespace(course_id))
         self.cache_manager.bump_version(course_ratings_namespace(course_id))
+        if event.student_id is not None:
+            self.cache_manager.bump_version(student_ratings_namespace(str(event.student_id)))
 
 
 class RatingVoteCacheInvalidator(IEventListener[RatingVoteDTO]):

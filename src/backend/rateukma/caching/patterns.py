@@ -27,3 +27,7 @@ def course_analytics_namespace(course_id: str) -> str:
 
 def course_ratings_namespace(course_id: str) -> str:
     return f"ratings:course:{course_id}"
+
+
+def student_ratings_namespace(student_id: str) -> str:
+    return f"ratings:student:{student_id}"
