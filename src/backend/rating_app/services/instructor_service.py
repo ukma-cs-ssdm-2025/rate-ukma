@@ -13,7 +13,7 @@ class InstructorService(IFilterable):
         return self.instructor_repository.get_by_id(instructor_id)
 
     def get_filter_options(self) -> list[dict[str, Any]]:
-        instructors = self._get_sorted_instructors()
+        instructors = self.instructor_repository.get_all(ordered=True)
         return [
             {
                 "id": instructor.id,
@@ -22,12 +22,3 @@ class InstructorService(IFilterable):
             }
             for instructor in instructors
         ]
-
-    def _get_sorted_instructors(self):
-        return sorted(
-            self.instructor_repository.get_all(),
-            key=lambda instructor: (
-                str(instructor.last_name or "").lower(),
-                str(instructor.first_name or "").lower(),
-            ),
-        )

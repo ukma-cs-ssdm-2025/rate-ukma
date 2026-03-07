@@ -37,6 +37,9 @@ class CourseOfferingSpeciality(models.Model):
 
     class Meta:
         unique_together = ("offering", "speciality")
+        indexes = [
+            models.Index(fields=["speciality", "type_kind"], name="cos_spec_type_idx"),
+        ]
         verbose_name = "Course offering speciality"
         verbose_name_plural = "Course offering specialities"
 

@@ -128,7 +128,7 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
                 speciality_title=speciality.name,
                 faculty_id=str(faculty_obj.id),
                 faculty_name=faculty_obj.name,
-                speciality_alias=speciality.alias,
+                speciality_alias=speciality.alias or None,
                 type_kind=type_kind,
             )
         )
@@ -331,7 +331,7 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
                     speciality_title=speciality.name,
                     faculty_id=faculty_obj.id,
                     faculty_name=faculty_obj.name,
-                    speciality_alias=speciality.alias,
+                    speciality_alias=speciality.alias or None,
                     type_kind=type_kind,
                 )
             )

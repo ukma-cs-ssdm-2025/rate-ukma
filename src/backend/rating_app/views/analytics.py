@@ -48,7 +48,11 @@ class AnalyticsViewSet(viewsets.ViewSet):
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
-        payload: CourseSearchResult = self.course_service.filter_courses(filters, paginate=False)
+        payload: CourseSearchResult = self.course_service.filter_courses(
+            filters,
+            paginate=False,
+            prefetch_related=False,
+        )
         serialized = self.serializer_class(payload.items, many=True).data
 
         return Response(serialized, status=status.HTTP_200_OK)

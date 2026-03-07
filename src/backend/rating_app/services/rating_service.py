@@ -5,6 +5,7 @@ from typing import Any
 import structlog
 
 from rateukma.caching.decorators import rcached
+from rateukma.caching.patterns import course_ratings_namespace
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener, IObservable
 from rating_app.application_schemas.course import Course as CourseDTO
@@ -40,6 +41,16 @@ from rating_app.services.course_offering_service import CourseOfferingService
 from rating_app.services.semester_service import SemesterService
 
 logger = structlog.get_logger(__name__)
+
+
+def _ratings_course_namespace(
+    _self,
+    filters: RatingFilterCriteria,
+    paginate: bool = True,
+) -> str | None:
+    if filters.course_id is None:
+        return None
+    return course_ratings_namespace(str(filters.course_id))
 
 
 class RatingService(IObservable[RatingDTO]):
@@ -81,7 +92,7 @@ class RatingService(IObservable[RatingDTO]):
     def get_aggregated_course_stats(self, course: CourseDTO) -> AggregatedCourseRatingStats:
         return self.rating_repository.get_aggregated_course_stats(course)
 
-    @rcached(ttl=300)
+    @rcached(ttl=300, versioned_by=_ratings_course_namespace)
     def filter_ratings(
         self,
         filters: RatingFilterCriteria,
@@ -90,7 +101,7 @@ class RatingService(IObservable[RatingDTO]):
         # TODO: refactor to have cleaner logic
 
         user_ratings: list[RatingDTO] | None = None
-        if filters.separate_current_user and filters.page == 1:
+        if filters.separate_current_user and filters.page == 1 and filters.viewer_id:
             user_ratings = self.rating_repository.get_by_student_id_course_id(
                 student_id=str(filters.viewer_id),
                 course_id=str(filters.course_id),

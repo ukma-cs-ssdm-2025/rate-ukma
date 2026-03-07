@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import Any, Literal, overload
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError, IntegrityError
 from django.db.models import Avg, Count, Q, QuerySet
 
@@ -55,6 +56,8 @@ class RatingRepository(
             rating = self._build_base_queryset().get(pk=id)
         except Rating.DoesNotExist as err:
             raise RatingNotFoundError() from err
+        except (DjangoValidationError, ValueError, TypeError, DataError) as err:
+            raise InvalidRatingIdentifierError(id) from err
 
         return self._map_to_domain_model(rating)
 
@@ -67,10 +70,12 @@ class RatingRepository(
 
     def get_student_id_by_rating_id(self, rating_id: str) -> str | None:
         try:
-            rating = Rating.objects.only("student").get(pk=rating_id)
-            return str(rating.student.id)
-        except Rating.DoesNotExist:
+            student_id = Rating.objects.filter(pk=rating_id).values_list(
+                "student_id", flat=True
+            ).first()
+        except (DjangoValidationError, ValueError, TypeError, DataError):
             return None
+        return str(student_id) if student_id is not None else None
 
     @overload
     def get_or_create(
@@ -104,8 +109,8 @@ class RatingRepository(
                 "is_anonymous": data.is_anonymous,
             },
         )
-        # Refetch with prefetching to get votes (for existing ratings) and related fields
-        rating = self._build_base_queryset().get(pk=rating.pk)
+        # Refetch with related fields for mapper
+        rating = self._build_lightweight_queryset().get(pk=rating.pk)
 
         if return_model:
             return rating, created
@@ -143,8 +148,8 @@ class RatingRepository(
                 "is_anonymous": data.is_anonymous,
             },
         )
-        # Refetch with prefetching to get related fields
-        rating = self._build_base_queryset().get(pk=rating.pk)
+        # Refetch with related fields for mapper
+        rating = self._build_lightweight_queryset().get(pk=rating.pk)
 
         if return_model:
             return rating, created
@@ -212,8 +217,8 @@ class RatingRepository(
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
-        # Refetch with prefetching to get related fields for mapper
-        rating = self._build_base_queryset().get(pk=rating.pk)
+        # Refetch with related fields for mapper
+        rating = self._build_lightweight_queryset().get(pk=rating.pk)
         return self._map_to_domain_model(rating)
 
     def update(
@@ -257,7 +262,7 @@ class RatingRepository(
         ratings = self._apply_filters(ratings, criteria)
         ratings = self._apply_ordering(ratings, criteria)
 
-        if criteria.separate_current_user:
+        if criteria.separate_current_user and criteria.viewer_id is not None:
             ratings = ratings.exclude(student_id=str(criteria.viewer_id))
 
         return ratings
@@ -290,15 +295,18 @@ class RatingRepository(
         return query_filters
 
     def _build_base_queryset(self) -> QuerySet[Rating]:
-        return Rating.objects.select_related(
-            "course_offering__course",
-            "course_offering__semester",
-            "student",
-        ).annotate(
+        return self._build_lightweight_queryset().annotate(
             upvotes_count=Count("rating_vote", filter=Q(rating_vote__type=RatingVoteType.UPVOTE)),
             downvotes_count=Count(
                 "rating_vote", filter=Q(rating_vote__type=RatingVoteType.DOWNVOTE)
             ),
+        )
+
+    def _build_lightweight_queryset(self) -> QuerySet[Rating]:
+        return Rating.objects.select_related(
+            "course_offering__course",
+            "course_offering__semester",
+            "student",
         )
 
     def _apply_filters(
@@ -325,11 +333,15 @@ class RatingRepository(
         self, queryset: QuerySet[Rating], order: str
     ) -> QuerySet[Rating]:
         prefix = "" if order == "asc" else "-"
-        return queryset.order_by(f"{prefix}popularity_score")
+        return queryset.order_by(
+            f"{prefix}popularity_score",
+            f"{prefix}created_at",
+            f"{prefix}id",
+        )
 
     def _apply_time_ordering(self, queryset: QuerySet[Rating], order: str) -> QuerySet[Rating]:
         prefix = "" if order == "asc" else "-"
-        return queryset.order_by(f"{prefix}created_at")
+        return queryset.order_by(f"{prefix}created_at", f"{prefix}id")
 
     def _get_by_id_shallow(self, rating_id: str) -> Rating:
         try:

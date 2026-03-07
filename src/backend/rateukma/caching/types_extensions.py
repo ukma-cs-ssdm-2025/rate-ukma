@@ -74,6 +74,7 @@ class ICacheTypeExtension[V](Protocol):
 class TypeAdapterCacheExtension(ICacheTypeExtension[Any]):
     def __init__(self, cache_key_provider: CacheKeyContextProvider):
         self._cache_key_provider = cache_key_provider
+        self._adapter_cache: dict[type, TypeAdapter[Any]] = {}
 
     def get_cache_key(self, func: Callable, args: tuple, kwargs: dict) -> str:
         return self._cache_key_provider.provide(func, args, kwargs)
@@ -87,7 +88,11 @@ class TypeAdapterCacheExtension(ICacheTypeExtension[Any]):
         return adapter.validate_python(data)
 
     def _adapter_for(self, value_type: type[Any]) -> TypeAdapter[Any]:
-        return TypeAdapter(value_type)
+        adapter = self._adapter_cache.get(value_type)
+        if adapter is None:
+            adapter = TypeAdapter(value_type)
+            self._adapter_cache[value_type] = adapter
+        return adapter
 
 
 # TODO: prevent caching non-2xx responses

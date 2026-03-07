@@ -2,7 +2,18 @@ from typing import Any, Literal, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError
-from django.db.models import Case, F, IntegerField, Prefetch, Q, QuerySet, Value, When
+from django.db.models import (
+    Case,
+    Exists,
+    F,
+    IntegerField,
+    OuterRef,
+    Prefetch,
+    Q,
+    QuerySet,
+    Value,
+    When,
+)
 
 import structlog
 
@@ -22,7 +33,7 @@ from rating_app.exception.department_exceptions import (
     DepartmentNotFoundError,
     InvalidDepartmentIdentifierError,
 )
-from rating_app.models import Course, CourseOffering, Department
+from rating_app.models import Course, CourseOffering, CourseOfferingSpeciality, Department
 from rating_app.models.choices import SemesterTerm
 from rating_app.pagination import GenericQuerysetPaginator, PaginationFilters, PaginationResult
 from rating_app.repositories.protocol import IPaginatedRepository
@@ -69,8 +80,10 @@ class CourseRepository(
         self,
         criteria: CourseFilterCriteriaInternal,
         pagination: PaginationFilters | None = None,
+        *,
+        prefetch_related: bool = True,
     ) -> PaginationResult[CourseDTO] | list[CourseDTO]:
-        qs = self._filter(criteria)
+        qs = self._filter(criteria, prefetch_related=prefetch_related)
 
         if pagination is not None:
             result = self._paginator.process(qs, pagination)
@@ -165,33 +178,20 @@ class CourseRepository(
         course_orm = self._get_by_id_shallow(id)
         course_orm.delete()
 
-    def _filter(self, filters: CourseFilterCriteriaInternal) -> QuerySet[Course]:
-        courses = self._build_base_queryset()
+    def _filter(
+        self, filters: CourseFilterCriteriaInternal, *, prefetch_related: bool = True
+    ) -> QuerySet[Course]:
+        courses = self._build_base_queryset(prefetch_related=prefetch_related)
         courses = self._apply_basic_filters(courses, filters)
         courses = self._apply_speciality_filters(courses, filters)
         courses = self._apply_range_filters(courses, filters)
         courses = self._apply_sorting(courses, filters)
-        if self._requires_distinct(filters):
-            courses = courses.distinct()
         return courses
 
-    def _requires_distinct(self, filters: CourseFilterCriteriaInternal) -> bool:
-        # distinct() is only needed when a filter joins to a multi-valued relation
-        # (offerings), which can produce duplicate Course rows.
-        has_offering_filter = bool(
-            filters.semester_year
-            or filters.semester_terms
-            or filters.instructor
-            or filters.credits_min is not None
-            or filters.credits_max is not None
-        )
-        has_speciality_filter = bool(
-            filters.type_kind or filters.speciality or filters.exclude_type_kinds
-        )
-        return has_offering_filter or has_speciality_filter
-
-    def _build_base_queryset(self) -> QuerySet[Course]:
-        return self._get_all_prefetch_related()
+    def _build_base_queryset(self, *, prefetch_related: bool = True) -> QuerySet[Course]:
+        if prefetch_related:
+            return self._get_all_prefetch_related()
+        return self._get_all_shallow()
 
     def _apply_basic_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal
@@ -199,7 +199,7 @@ class CourseRepository(
         # TODO: research if reflection can be applied here
 
         course_filters: dict[str, Any] = {}
-        offering_filters = Q()
+        offering_query = self._build_offering_filter_queryset(filters)
 
         if filters.name:
             course_filters["title__icontains"] = filters.name
@@ -210,29 +210,45 @@ class CourseRepository(
         if filters.department:
             course_filters["department_id"] = filters.department
 
+        if course_filters:
+            courses = courses.filter(**course_filters)
+        if offering_query is not None:
+            courses = courses.filter(Exists(offering_query))
+
+        return courses
+
+    def _build_offering_filter_queryset(
+        self, filters: CourseFilterCriteriaInternal
+    ) -> QuerySet[CourseOffering] | None:
+        offering_query = CourseOffering.objects.filter(course_id=OuterRef("pk"))
+        has_offering_filter = False
+
         if filters.semester_year:
             academic_year_q = self._build_academic_year_q(filters.semester_year)
             if academic_year_q is not None:
-                offering_filters &= academic_year_q
+                offering_query = offering_query.filter(academic_year_q)
+                has_offering_filter = True
 
         if filters.semester_terms:
-            offering_filters &= Q(offerings__semester__term__in=filters.semester_terms)
+            offering_query = offering_query.filter(semester__term__in=filters.semester_terms)
+            has_offering_filter = True
 
         if filters.instructor:
-            offering_filters &= Q(offerings__instructors__id=filters.instructor)
+            offering_query = offering_query.filter(instructors__id=filters.instructor)
+            has_offering_filter = True
 
         if filters.credits_min is not None:
-            offering_filters &= Q(offerings__credits__gte=filters.credits_min)
+            offering_query = offering_query.filter(credits__gte=filters.credits_min)
+            has_offering_filter = True
 
         if filters.credits_max is not None:
-            offering_filters &= Q(offerings__credits__lte=filters.credits_max)
+            offering_query = offering_query.filter(credits__lte=filters.credits_max)
+            has_offering_filter = True
 
-        if course_filters:
-            courses = courses.filter(**course_filters)
-        if offering_filters.children:
-            courses = courses.filter(offering_filters)
+        if not has_offering_filter:
+            return None
 
-        return courses
+        return offering_query
 
     def _build_academic_year_q(self, academic_year: str) -> Q | None:
         parsed = self._parse_academic_year(academic_year)
@@ -241,10 +257,10 @@ class CourseRepository(
 
         start_year, end_year = parsed
         return (
-            Q(offerings__semester__year=start_year, offerings__semester__term=SemesterTerm.FALL)
+            Q(semester__year=start_year, semester__term=SemesterTerm.FALL)
             | Q(
-                offerings__semester__year=end_year,
-                offerings__semester__term__in=[SemesterTerm.SPRING, SemesterTerm.SUMMER],
+                semester__year=end_year,
+                semester__term__in=[SemesterTerm.SPRING, SemesterTerm.SUMMER],
             )
         )
 
@@ -265,19 +281,34 @@ class CourseRepository(
     def _apply_speciality_filters(self, courses, filters):
         if filters.type_kind:
             courses = courses.filter(
-                offerings__course_offering_specialities__type_kind=filters.type_kind,
-                offerings__course_offering_specialities__speciality_id=filters.speciality,
+                Exists(
+                    CourseOfferingSpeciality.objects.filter(
+                        offering__course_id=OuterRef("pk"),
+                        speciality_id=filters.speciality,
+                        type_kind=filters.type_kind,
+                    )
+                )
             )
 
         if filters.exclude_type_kinds and filters.speciality:
             courses = courses.exclude(
-                offerings__course_offering_specialities__speciality_id=filters.speciality,
-                offerings__course_offering_specialities__type_kind__in=filters.exclude_type_kinds,
+                Exists(
+                    CourseOfferingSpeciality.objects.filter(
+                        offering__course_id=OuterRef("pk"),
+                        speciality_id=filters.speciality,
+                        type_kind__in=filters.exclude_type_kinds,
+                    )
+                )
             )
 
         if filters.speciality and not filters.type_kind and not filters.exclude_type_kinds:
             courses = courses.filter(
-                offerings__course_offering_specialities__speciality_id=filters.speciality
+                Exists(
+                    CourseOfferingSpeciality.objects.filter(
+                        offering__course_id=OuterRef("pk"),
+                        speciality_id=filters.speciality,
+                    )
+                )
             )
 
         return courses
@@ -354,9 +385,13 @@ class CourseRepository(
             .prefetch_related(
                 Prefetch(
                     "offerings",
-                    queryset=CourseOffering.objects.select_related("semester").prefetch_related(
-                        "instructors",
-                        "course_offering_specialities__speciality__faculty",
+                    queryset=CourseOffering.objects.prefetch_related(
+                        Prefetch(
+                            "course_offering_specialities",
+                            queryset=CourseOfferingSpeciality.objects.select_related(
+                                "speciality__faculty"
+                            ),
+                        ),
                     ),
                 ),
             )
@@ -380,9 +415,13 @@ class CourseRepository(
                 .prefetch_related(
                     Prefetch(
                         "offerings",
-                        queryset=CourseOffering.objects.select_related("semester").prefetch_related(
-                            "instructors",
-                            "course_offering_specialities__speciality__faculty",
+                        queryset=CourseOffering.objects.prefetch_related(
+                            Prefetch(
+                                "course_offering_specialities",
+                                queryset=CourseOfferingSpeciality.objects.select_related(
+                                    "speciality__faculty"
+                                ),
+                            ),
                         ),
                     ),
                 )

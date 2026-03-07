@@ -17,3 +17,6 @@ PASSWORD_HASHERS = [
 AUTH_PASSWORD_VALIDATORS = []
 DEBUG = False
 ENABLE_CACHE = False
+
+# Use DB sessions in tests since the cache backend is disabled
+SESSION_ENGINE = "django.contrib.sessions.backends.db"

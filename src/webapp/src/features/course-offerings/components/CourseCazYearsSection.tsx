@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 
 import { BookOpen, ChevronDown, ExternalLink } from "lucide-react";
 
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
 	Dialog,
@@ -10,6 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/Dialog";
+import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpecialityBadges";
 import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
 import type { CourseOffering } from "@/lib/api/generated";
 
@@ -53,18 +53,6 @@ function sortOfferings(items: CourseOffering[]): CourseOffering[] {
 		const termB = TERM_ORDER[(b.semester_term ?? "").toUpperCase()] ?? 99;
 		return termA - termB;
 	});
-}
-
-function getSpecialityLabels(item: CourseOffering): string[] {
-	if (!item.specialities || item.specialities.length === 0) return [];
-	return Array.from(
-		new Set(
-			item.specialities
-				.map((s) => s.speciality_alias ?? s.speciality_title)
-				.filter((v): v is string => Boolean(v?.trim()))
-				.map((v) => v.trim()),
-		),
-	).sort((a, b) => a.localeCompare(b, "uk"));
 }
 
 /**
@@ -187,7 +175,6 @@ export function CourseCazYearsSection({
 							<tbody>
 								{sorted.map((item) => {
 									const credits = formatCredits(item.credits);
-									const specialities = getSpecialityLabels(item);
 
 									return (
 										<tr
@@ -207,18 +194,11 @@ export function CourseCazYearsSection({
 												{credits ?? "—"}
 											</td>
 											<td className="py-2.5 pr-4">
-												{specialities.length > 0 ? (
-													<div className="flex flex-wrap gap-1">
-														{specialities.map((s) => (
-															<Badge
-																key={s}
-																variant="secondary"
-																className="px-1.5 py-0 text-[11px]"
-															>
-																{s}
-															</Badge>
-														))}
-													</div>
+												{item.specialities && item.specialities.length > 0 ? (
+													<CourseSpecialityBadges
+														specialities={item.specialities}
+														size="sm"
+													/>
 												) : (
 													<span className="text-muted-foreground">—</span>
 												)}

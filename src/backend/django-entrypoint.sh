@@ -61,7 +61,7 @@ GUNICORN_ARGS=(
     --access-logfile -
     --max-requests "$MAX_REQUESTS"
     --max-requests-jitter "$((MAX_REQUESTS / 10))"
-    --keep-alive 5
+    --keep-alive 65
 )
 
 # environment-specific settings

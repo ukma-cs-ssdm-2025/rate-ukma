@@ -19,8 +19,8 @@ export function initSentry() {
 		// Enable logs to be sent to Sentry
 		enableLogs: true,
 
-		// Capture all transactions for performance monitoring (low traffic allows 100%)
-		tracesSampleRate: 1,
+		// Sample 20% of transactions for performance monitoring
+		tracesSampleRate: 0.2,
 
 		// Sample 20% of sessions for replay (cost optimization)
 		replaysSessionSampleRate: 0.2,

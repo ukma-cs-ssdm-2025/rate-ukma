@@ -118,6 +118,7 @@ DATABASES = {
         "HOST": config("POSTGRES_HOST"),
         "PORT": config("POSTGRES_PORT"),
         "CONN_MAX_AGE": 600,  # Persistent connections for 10 minutes
+        "CONN_HEALTH_CHECKS": True,
         "OPTIONS": {
             "connect_timeout": 10,
         },
@@ -153,9 +154,9 @@ CACHES = {
 ENABLE_CACHE = True
 
 
-# ? Redis session configuration (optional, will uncomment on demand later)
-# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-# SESSION_CACHE_ALIAS = "default"
+# Use Redis for session storage to avoid DB writes on every request
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
 
 # Session timeout configuration
 SESSION_COOKIE_AGE = 10800  # 3 hours

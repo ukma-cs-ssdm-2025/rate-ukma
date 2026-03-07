@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from functools import wraps
-from typing import ParamSpec, TypeVar, get_type_hints
+from typing import Any, ParamSpec, TypeVar, get_type_hints
 
 import structlog
 
@@ -16,6 +16,7 @@ def rcached[**P, RT](
     ttl: int | None = None,
     key: str | None = None,
     return_type: type[RT] | None = None,
+    versioned_by: str | list[str] | Callable[..., str | list[str] | None] | None = None,
 ) -> Callable[[Callable[P, RT]], Callable[P, RT]]:
     """
     Decorator that caches the result of a function in Redis.
@@ -64,6 +65,11 @@ def rcached[**P, RT](
             # try to get cached data
             ext = extension_registry.get_extension(cached_value_type)
             cache_key = key or ext.get_cache_key(func, args, kwargs)
+            cache_key = _build_versioned_cache_key(
+                cache_manager,
+                cache_key,
+                _resolve_version_namespaces(versioned_by, args, kwargs),
+            )
             cached_data = cache_manager.get(cache_key)
 
             # deserialize it and return
@@ -80,6 +86,32 @@ def rcached[**P, RT](
         return wrapper
 
     return decorator
+
+
+def _resolve_version_namespaces(
+    versioned_by: str | list[str] | Callable[..., str | list[str] | None] | None,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+) -> list[str]:
+    if versioned_by is None:
+        return []
+
+    namespaces = versioned_by(*args, **kwargs) if callable(versioned_by) else versioned_by
+    if namespaces is None:
+        return []
+    if isinstance(namespaces, str):
+        return [namespaces]
+    return list(namespaces)
+
+
+def _build_versioned_cache_key(cache_manager, cache_key: str, namespaces: list[str]) -> str:
+    if not namespaces:
+        return cache_key
+
+    version_suffix = "|".join(
+        f"{namespace}={cache_manager.get_version(namespace)}" for namespace in sorted(namespaces)
+    )
+    return f"{cache_key}:v:{version_suffix}"
 
 
 def invalidate_cache_for(

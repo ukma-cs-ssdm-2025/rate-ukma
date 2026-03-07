@@ -132,16 +132,17 @@ def test_filter_returns_domain_models(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_prefetches_instructors(django_assert_num_queries, repo):
+def test_filter_prefetches_only_relations_needed_for_course_mapping(
+    django_assert_num_queries, repo
+):
     # Arrange
     semester = SemesterFactory()
     for _ in range(3):
         CourseOfferingFactory(semester=semester, instructors=[InstructorFactory()])
 
     # Assert
-    # 1) base courses + prefetches
+    # 1) base courses + department/faculty
     # 2) offerings
-    # 3) instructors
-    # 4) course_offering_specialities
-    with django_assert_num_queries(4):
+    # 3) course_offering_specialities joined with speciality + faculty
+    with django_assert_num_queries(3):
         repo.filter(CourseFilterCriteriaInternal())
