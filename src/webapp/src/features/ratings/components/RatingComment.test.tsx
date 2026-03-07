@@ -25,6 +25,10 @@ describe("RatingComment", () => {
 					"scrollHeight",
 					originalScrollHeightDescriptor,
 				);
+			} else {
+				// scrollHeight was not an own property before we patched it;
+				// delete the mock so the prototype chain lookup is restored.
+				Reflect.deleteProperty(HTMLElement.prototype, "scrollHeight");
 			}
 		});
 

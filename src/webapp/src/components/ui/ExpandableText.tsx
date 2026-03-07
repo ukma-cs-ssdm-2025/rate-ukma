@@ -18,17 +18,17 @@ export function ExpandableText({ children, className }: ExpandableTextProps) {
 		if (el) setIsClamped(el.scrollHeight > el.clientHeight);
 	}, []);
 
+	// When content changes, collapse so the clamped layout is applied before measuring.
 	useLayoutEffect(() => {
-		const el = elRef.current;
-		if (!el) return;
-		// Force clamped state on the element before measuring so we always
-		// read scrollHeight in the collapsed layout, even if currently expanded.
-		el.classList.add("line-clamp-4");
-		const clamped = el.scrollHeight > el.clientHeight;
-		el.classList.remove("line-clamp-4");
-		setIsClamped(clamped);
 		setIsExpanded(false);
 	}, [children]);
+
+	// Remeasure clamping after every transition back to the collapsed state.
+	useLayoutEffect(() => {
+		if (isExpanded) return;
+		const el = elRef.current;
+		if (el) setIsClamped(el.scrollHeight > el.clientHeight);
+	}, [isExpanded, children]);
 
 	return (
 		<div>
