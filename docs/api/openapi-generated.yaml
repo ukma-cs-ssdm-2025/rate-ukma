@@ -2474,9 +2474,8 @@ components:
       type: object
     RatingRead:
       type: object
-      description: |-
-        Serializer for reading RatingDTO.
-        Privacy protection (nulling student_id/student_name for anonymous) is handled internally.
+      description: Serializer for reading RatingDTO. Nulls identity fields for anonymous
+        ratings.
       properties:
         id:
           type: string

@@ -4,10 +4,9 @@ from rating_app.models.choices import RatingVoteStrType
 
 
 class RatingReadSerializer(serializers.Serializer):
-    """
-    Serializer for reading RatingDTO.
-    Privacy protection (nulling student_id/student_name for anonymous) is handled internally.
-    """
+    """Serializer for reading RatingDTO. Nulls identity fields for anonymous ratings."""
+
+    _ANONYMOUS_HIDDEN_FIELDS = ("student_id", "student_name", "student_avatar_url")
 
     id = serializers.UUIDField(read_only=True)
     student_id = serializers.UUIDField(read_only=True, allow_null=True)
@@ -25,3 +24,10 @@ class RatingReadSerializer(serializers.Serializer):
     viewer_vote = serializers.ChoiceField(
         choices=RatingVoteStrType.choices, read_only=True, allow_null=True
     )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get("is_anonymous"):
+            for field in self._ANONYMOUS_HIDDEN_FIELDS:
+                data[field] = None
+        return data

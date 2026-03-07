@@ -171,17 +171,9 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
 class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
     @implements
     def process(self, model: RatingModel) -> RatingDTO:
-        student_id = model.student.id if not model.is_anonymous else None
-        student_name = (
-            f"{model.student.last_name} {model.student.first_name}"
-            if not model.is_anonymous
-            else None
-        )
-        student_avatar_url = (
-            model.student.avatar.url
-            if not model.is_anonymous and model.student.avatar
-            else None
-        )
+        student_id = model.student.id
+        student_name = f"{model.student.last_name} {model.student.first_name}"
+        student_avatar_url = model.student.avatar.url if model.student.avatar else None
 
         # annotated fields from ORM queryset
         upvotes = getattr(model, "upvotes_count", 0)
