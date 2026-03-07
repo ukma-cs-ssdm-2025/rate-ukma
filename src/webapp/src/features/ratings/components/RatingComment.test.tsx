@@ -4,6 +4,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RatingComment } from "./RatingComment";
 
+const originalScrollHeightDescriptor = Object.getOwnPropertyDescriptor(
+	HTMLElement.prototype,
+	"scrollHeight",
+);
+
 describe("RatingComment", () => {
 	describe("when text overflows the clamp", () => {
 		beforeEach(() => {
@@ -14,10 +19,13 @@ describe("RatingComment", () => {
 		});
 
 		afterEach(() => {
-			Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
-				configurable: true,
-				value: 0,
-			});
+			if (originalScrollHeightDescriptor) {
+				Object.defineProperty(
+					HTMLElement.prototype,
+					"scrollHeight",
+					originalScrollHeightDescriptor,
+				);
+			}
 		});
 
 		it("shows expand and collapse controls for long comments", async () => {

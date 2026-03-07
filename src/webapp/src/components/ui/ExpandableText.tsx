@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -18,12 +18,16 @@ export function ExpandableText({ children, className }: ExpandableTextProps) {
 		if (el) setIsClamped(el.scrollHeight > el.clientHeight);
 	}, []);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const el = elRef.current;
-		if (el) {
-			setIsClamped(el.scrollHeight > el.clientHeight);
-			setIsExpanded(false);
-		}
+		if (!el) return;
+		// Force clamped state on the element before measuring so we always
+		// read scrollHeight in the collapsed layout, even if currently expanded.
+		el.classList.add("line-clamp-4");
+		const clamped = el.scrollHeight > el.clientHeight;
+		el.classList.remove("line-clamp-4");
+		setIsClamped(clamped);
+		setIsExpanded(false);
 	}, [children]);
 
 	return (
