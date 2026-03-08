@@ -11,6 +11,9 @@ logger = structlog.get_logger(__name__)
 
 
 class CourseLoader(DeduplicationComponent[Path, list[ParsedCourseDetails]]):
+    def __init__(self, *, skip_invalid_courses: bool = False):
+        self.skip_invalid_courses = skip_invalid_courses
+
     def process(self, data: Path) -> list[ParsedCourseDetails]:
         if not data.exists():
             logger.error("file_not_found", path=str(data))
@@ -18,18 +21,19 @@ class CourseLoader(DeduplicationComponent[Path, list[ParsedCourseDetails]]):
 
         courses = []
         count = 0
+        skipped_count = 0
         with data.open("r", encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
                 if not line:
                     continue
                 try:
-                    data = json.loads(line)
-                    if not isinstance(data, dict):
+                    payload = json.loads(line)
+                    if not isinstance(payload, dict):
                         raise DataValidationError(
-                            f"Expected JSON object at line {line_num}, got {type(data).__name__}"
+                            f"Expected JSON object at line {line_num}, got {type(payload).__name__}"
                         )
-                    course = ParsedCourseDetails(**data)
+                    course = ParsedCourseDetails(**payload)
                     self._validate_basic_structure(course)
                     courses.append(course)
                     count += 1
@@ -40,13 +44,27 @@ class CourseLoader(DeduplicationComponent[Path, list[ParsedCourseDetails]]):
                     logger.warning("pydantic_validation_error", line_num=line_num, error=str(e))
                     raise DataValidationError(f"Validation error at line {line_num}: {e}") from e
                 except DataValidationError as e:
+                    if self.skip_invalid_courses:
+                        skipped_count += 1
+                        logger.warning(
+                            "course_data_validation_skipped",
+                            line_num=line_num,
+                            error=str(e),
+                        )
+                        continue
+
                     logger.error("course_data_validation_failed", line_num=line_num, error=str(e))
                     raise
                 except Exception as e:
                     logger.error("unexpected_parsing_error", line_num=line_num, error=str(e))
                     raise DataValidationError(f"Unexpected error at line {line_num}: {e}") from e
 
-        logger.info("courses_loaded_successfully", total=count, input_path=str(data))
+        logger.info(
+            "courses_loaded_successfully",
+            total=count,
+            skipped=skipped_count,
+            input_path=str(data),
+        )
         return courses
 
     def _validate_basic_structure(self, course: ParsedCourseDetails) -> None:

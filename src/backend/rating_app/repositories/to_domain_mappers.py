@@ -67,6 +67,9 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
 
         status = model.status
         status = CourseStatus(status) if status in CourseStatus.values else CourseStatus.PLANNED
+        education_level = model.education_level
+        if education_level and education_level in EducationLevel.values:
+            education_level = EducationLevel(education_level)
 
         specialities = self._map_specialities(model)
 
@@ -75,6 +78,7 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
             title=model.title,
             description=model.description,
             status=status,
+            education_level=education_level,
             department=department_id,
             department_name=department_name,
             faculty=faculty_id,
@@ -269,6 +273,8 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
             credits=model.credits,
             weekly_hours=model.weekly_hours,
             exam_type=exam_type,
+            total_hours=model.total_hours,
+            study_year=model.study_year,
             lecture_count=model.lecture_count,
             practice_count=model.practice_count,
             practice_type=practice_type,
@@ -350,6 +356,7 @@ class StudentMapper(IProcessor[[StudentModel], StudentDTO]):
             email=model.email or None,
             user_id=model.user_id,
             speciality_name=speciality_name,
+            program_start_academic_year_start=model.program_start_academic_year_start,
         )
 
 

@@ -1,8 +1,9 @@
 import pytest
 
+from rating_app.application_schemas.course import CourseInput
 from rating_app.application_schemas.course import CourseFilterCriteriaInternal
 from rating_app.models import Course
-from rating_app.models.choices import SemesterTerm
+from rating_app.models.choices import CourseStatus, EducationLevel, SemesterTerm
 from rating_app.pagination import GenericQuerysetPaginator
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.repositories.to_domain_mappers import CourseMapper
@@ -146,3 +147,68 @@ def test_filter_prefetches_only_relations_needed_for_course_mapping(
     # 3) course_offering_specialities joined with speciality + faculty
     with django_assert_num_queries(3):
         repo.filter(CourseFilterCriteriaInternal())
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_or_create_keeps_bachelor_and_master_courses_separate(repo):
+    department = CourseFactory().department
+
+    bachelor_input = CourseInput(
+        title="Data Science",
+        description="Bachelor version",
+        status=CourseStatus.ACTIVE,
+        education_level=EducationLevel.BACHELOR,
+        department=str(department.id),
+        department_name=department.name,
+        faculty=str(department.faculty_id),
+        faculty_name=department.faculty.name,
+    )
+    master_input = CourseInput(
+        title="Data Science",
+        description="Master version",
+        status=CourseStatus.ACTIVE,
+        education_level=EducationLevel.MASTER,
+        department=str(department.id),
+        department_name=department.name,
+        faculty=str(department.faculty_id),
+        faculty_name=department.faculty.name,
+    )
+
+    bachelor_course, bachelor_created = repo.get_or_create(bachelor_input)
+    master_course, master_created = repo.get_or_create(master_input)
+
+    assert bachelor_created is True
+    assert master_created is True
+    assert bachelor_course.id != master_course.id
+    assert bachelor_course.education_level == EducationLevel.BACHELOR
+    assert master_course.education_level == EducationLevel.MASTER
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_or_upsert_reuses_legacy_blank_level_course(repo):
+    legacy_course = CourseFactory(
+        title="Data Science",
+        education_level="",
+    )
+    department = legacy_course.department
+
+    bachelor_input = CourseInput(
+        title="Data Science",
+        description="Bachelor version",
+        status=CourseStatus.ACTIVE,
+        education_level=EducationLevel.BACHELOR,
+        department=str(department.id),
+        department_name=department.name,
+        faculty=str(department.faculty_id),
+        faculty_name=department.faculty.name,
+    )
+
+    course, created = repo.get_or_upsert(bachelor_input)
+
+    legacy_course.refresh_from_db()
+    assert created is False
+    assert course.id == str(legacy_course.id)
+    assert course.education_level == EducationLevel.BACHELOR
+    assert legacy_course.education_level == EducationLevel.BACHELOR

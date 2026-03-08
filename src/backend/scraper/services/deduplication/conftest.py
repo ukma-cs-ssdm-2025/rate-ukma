@@ -267,6 +267,19 @@ def temp_missing_id_file(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
+def temp_missing_title_file(tmp_path: Path) -> Path:
+    course_data_missing_title = {
+        "url": COURSE_URL,
+        "id": "550099",
+        "title": "",
+        "academic_year": ACADEMIC_YEAR,
+        "semesters": [SEMESTER],
+    }
+    file_path = tmp_path / "missing_title.jsonl"
+    return create_temp_jsonl_file([course_data_missing_title], file_path)
+
+
+@pytest.fixture
 def course_loader():
     return CourseLoader()
 

@@ -109,7 +109,7 @@ class CourseDbInjector(IDbInjector):
 
         self._faculty_cache: dict[str, Faculty] = {}
         self._department_cache: dict[tuple[str, str], Department] = {}
-        self._course_cache: dict[tuple[str, str], Course] = {}
+        self._course_cache: dict[tuple[str, str, str], Course] = {}
         self._speciality_cache: dict[str, Speciality | None] = {}
         self._semester_cache: dict[tuple[int, str], Semester] = {}
         self._instructor_cache: dict[tuple[str, str, str, str, str], Instructor] = {}
@@ -197,13 +197,15 @@ class CourseDbInjector(IDbInjector):
             )
             self._department_cache[department_key] = department
 
-        course_key = (course_data.title, department.name)
+        course_level = course_data.education_level.value if course_data.education_level else ""
+        course_key = (course_data.title, department.name, course_level)
         course = self._course_cache.get(course_key)
         if not course:
             course_dto = CourseInput(
                 title=course_data.title,
                 description=course_data.description or "",
                 status=CourseStatus(course_data.status.value),
+                education_level=course_data.education_level,
                 department=str(department.id),
                 department_name=department.name,
                 faculty=str(faculty.id),
@@ -311,6 +313,7 @@ class CourseDbInjector(IDbInjector):
             credits=Decimal(str(offering_data.credits)),
             weekly_hours=offering_data.weekly_hours,
             exam_type=ExamType(offering_data.exam_type.value),
+            study_year=offering_data.study_year,
             practice_type=PracticeType(offering_data.practice_type.value)
             if offering_data.practice_type
             else None,
@@ -401,11 +404,15 @@ class CourseDbInjector(IDbInjector):
             education_level = EducationLevel(student_data.education_level)
 
         key = (
-            student_data.first_name,
-            student_data.last_name,
-            student_data.patronymic or "",
-            str(education_level),
-            student_speciality.name,
+            ("email", student_data.email.lower())
+            if student_data.email
+            else (
+                student_data.first_name,
+                student_data.last_name,
+                student_data.patronymic or "",
+                str(education_level),
+                student_speciality.name,
+            )
         )
         cached = self._student_cache.get(key)
         if cached:
@@ -418,8 +425,9 @@ class CourseDbInjector(IDbInjector):
             education_level=education_level,
             speciality_id=student_speciality.id,
             email=student_data.email or "",
+            program_start_academic_year_start=student_data.program_start_academic_year_start,
         )
-        student, created = self.student_repository.get_or_create(
+        student, created = self.student_repository.get_or_upsert(
             student_input,
             return_model=True,
         )

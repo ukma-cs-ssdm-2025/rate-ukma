@@ -69,6 +69,7 @@ class DeduplicatedStudent(BaseModel):
     email: str = ""
     speciality: str = ""
     education_level: EducationLevel | None = None
+    program_start_academic_year_start: int | None = None
     group: str = ""
 
 
@@ -83,6 +84,7 @@ class DeduplicatedInstructor(BaseModel):
 class DeduplicatedSemester(BaseModel):
     year: int
     term: SemesterTerm
+    source_label: str | None = None
 
 
 class DeduplicatedSpeciality(BaseModel):
@@ -108,6 +110,7 @@ class DeduplicatedCourseOffering(BaseModel):
     semester: DeduplicatedSemester
     credits: float
     weekly_hours: int
+    study_year: int | None = None
     lecture_count: int | None = None
     practice_count: int | None = None
     practice_type: PracticeType | None = None
