@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
+from rating_app.models import CourseOfferingTerm
 from rating_app.repositories.course_offering_repository import CourseOfferingRepository
 from rating_app.repositories.to_domain_mappers import CourseOfferingMapper, InstructorMapper
 from rating_app.tests.factories import CourseFactory, CourseOfferingFactory, SemesterFactory
@@ -78,7 +79,7 @@ def test_get_or_upsert_updates_existing_offering_when_code_matches(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_upsert_creates_new_offering_for_same_code_in_other_semester(repo):
+def test_get_or_upsert_updates_existing_offering_when_same_code_targets_other_semester(repo):
     course = CourseFactory()
     fall_semester = SemesterFactory(year=2025, term="FALL")
     spring_semester = SemesterFactory(year=2026, term="SPRING")
@@ -108,8 +109,8 @@ def test_get_or_upsert_creates_new_offering_for_same_code_in_other_semester(repo
 
     offering, created = repo.get_or_upsert(data)
 
-    assert created is True
-    assert offering.id != existing.id
+    assert created is False
+    assert offering.id == existing.id
     assert offering.code == existing.code
     assert offering.semester_id == spring_semester.id
 
@@ -190,3 +191,38 @@ def test_filter_applies_kwargs(repo):
     result = repo.filter(course_id=course_one.id)
 
     assert [offering.id for offering in result] == [target.id]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_by_id_includes_prefetched_terms(repo):
+    course = CourseFactory()
+    offering = CourseOfferingFactory(course=course)
+    fall = SemesterFactory(year=2025, term="FALL")
+    spring = SemesterFactory(year=2026, term="SPRING")
+
+    CourseOfferingTerm.objects.create(
+        offering=offering,
+        semester=fall,
+        credits=Decimal("4.0"),
+        weekly_hours=3,
+        lecture_count=28,
+        practice_count=14,
+        practice_type="SEMINAR",
+        exam_type="EXAM",
+    )
+    CourseOfferingTerm.objects.create(
+        offering=offering,
+        semester=spring,
+        credits=Decimal("4.0"),
+        weekly_hours=2,
+        lecture_count=20,
+        practice_count=10,
+        practice_type="PRACTICE",
+        exam_type="CREDIT",
+    )
+
+    result = repo.get_by_id(str(offering.id))
+
+    assert len(result.terms) == 2
+    assert {term.semester_term for term in result.terms} == {fall.label, spring.label}

@@ -11,6 +11,7 @@ from rating_app.models import (
     Course,
     CourseInstructor,
     CourseOffering,
+    CourseOfferingTerm,
     CourseOfferingSpeciality,
     Department,
     Enrollment,
@@ -128,6 +129,20 @@ class CourseInstructorFactory(DjangoModelFactory):
     instructor = factory.SubFactory(InstructorFactory)
     course_offering = factory.SubFactory(CourseOfferingFactory)
     role = InstructorRole.LECTURE_INSTRUCTOR
+
+
+class CourseOfferingTermFactory(DjangoModelFactory):
+    class Meta:
+        model = CourseOfferingTerm
+
+    offering = factory.SubFactory(CourseOfferingFactory)
+    semester = factory.SubFactory(SemesterFactory)
+    credits = fuzzy.FuzzyDecimal(1, 6, precision=1)
+    weekly_hours = fuzzy.FuzzyInteger(1, 12)
+    lecture_count = fuzzy.FuzzyInteger(4, 32)
+    practice_count = fuzzy.FuzzyInteger(0, 20)
+    practice_type = ""
+    exam_type = "EXAM"
 
 
 class CourseOfferingSpecialityFactory(DjangoModelFactory):

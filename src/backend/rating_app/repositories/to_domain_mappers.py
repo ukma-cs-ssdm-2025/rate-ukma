@@ -8,6 +8,9 @@ from rating_app.application_schemas.course_offering import CourseOffering as Cou
 from rating_app.application_schemas.course_offering import (
     CourseOfferingSpeciality as CourseOfferingSpecialityDTO,
 )
+from rating_app.application_schemas.course_offering import (
+    CourseOfferingTerm as CourseOfferingTermDTO,
+)
 from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDTO
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
@@ -33,6 +36,7 @@ from rating_app.models.choices import (
 )
 from rating_app.models.course_instructor import CourseInstructor as CourseInstructorModel
 from rating_app.models.course_offering import CourseOffering as CourseOfferingModel
+from rating_app.models.course_offering_term import CourseOfferingTerm as CourseOfferingTermModel
 from rating_app.models.department import Department as DepartmentModel
 from rating_app.models.enrollment import Enrollment as EnrollmentModel
 from rating_app.models.faculty import Faculty as FacultyModel
@@ -250,6 +254,7 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
     def process(self, model: CourseOfferingModel) -> CourseOfferingDTO:
         instructors = self._map_instructors(model)
         specialities = self._map_offering_specialities(model)
+        terms = self._map_terms(model)
 
         course = getattr(model, "course", None)
         semester = getattr(model, "semester", None)
@@ -284,6 +289,7 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
             group_size_max=model.group_size_max,
             instructors=instructors,
             specialities=specialities,
+            terms=terms,
             course_title=course.title if course else None,
             semester_year=semester.year if semester else None,
             semester_term=semester.label if semester else None,
@@ -334,6 +340,45 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
                 )
             )
         return result
+
+    def _map_terms(self, model: CourseOfferingModel) -> list[CourseOfferingTermDTO]:
+        prefetched_terms = getattr(model, "_prefetched_objects_cache", {}).get("terms")
+        if prefetched_terms is None:
+            return []
+
+        result: list[CourseOfferingTermDTO] = []
+        for term in prefetched_terms:
+            result.append(self._map_term(term))
+        return result
+
+    def _map_term(self, model: CourseOfferingTermModel) -> CourseOfferingTermDTO:
+        semester = getattr(model, "semester", None)
+        exam_type = (
+            ExamType(model.exam_type)
+            if model.exam_type and model.exam_type in ExamType.values
+            else ExamType.EXAM
+        )
+        practice_type = (
+            PracticeType(model.practice_type)
+            if model.practice_type and model.practice_type in PracticeType.values
+            else None
+        )
+        total_hours = int(model.credits * 30) if model.credits is not None else None
+
+        return CourseOfferingTermDTO(
+            id=model.id,
+            offering_id=model.offering_id,
+            semester_id=model.semester_id,
+            credits=model.credits,
+            weekly_hours=model.weekly_hours,
+            exam_type=exam_type,
+            total_hours=total_hours,
+            lecture_count=model.lecture_count,
+            practice_count=model.practice_count,
+            practice_type=practice_type,
+            semester_year=semester.year if semester else None,
+            semester_term=semester.label if semester else None,
+        )
 
 
 class StudentMapper(IProcessor[[StudentModel], StudentDTO]):

@@ -22,6 +22,7 @@ class CourseOffering(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code = models.CharField(
         max_length=6,
+        unique=True,
         validators=[MinLengthValidator(6), MaxLengthValidator(6)],
     )
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="offerings")
@@ -56,10 +57,6 @@ class CourseOffering(models.Model):
             models.CheckConstraint(
                 check=Q(credits__gt=0),
                 name="co_credits_gt_0",
-            ),
-            models.UniqueConstraint(
-                fields=["code", "semester"],
-                name="co_code_semester_unique",
             ),
         ]
 
