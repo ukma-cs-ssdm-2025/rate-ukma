@@ -8,7 +8,7 @@ import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
 } from "@/lib/api/generated";
-import { CourseDetailsRoute } from "./courses.$courseId";
+import { Route } from "./courses.$courseId";
 
 vi.mock("@tanstack/react-router", () => ({
 	createFileRoute: () => (options: object) => ({
@@ -79,6 +79,7 @@ vi.mock("@/features/ratings/hooks/useUserCourseRating", () => ({
 describe("CourseDetailsRoute", () => {
 	const defaultTitle =
 		"Rate UKMA - Rate. Review. Discover your best courses at NaUKMA";
+	const CourseDetailsRouteComponent = Route.component as React.ComponentType;
 
 	beforeEach(() => {
 		document.title = defaultTitle;
@@ -118,7 +119,7 @@ describe("CourseDetailsRoute", () => {
 	});
 
 	it("sets the document title to the course title", async () => {
-		render(<CourseDetailsRoute />);
+		render(<CourseDetailsRouteComponent />);
 
 		await waitFor(() => {
 			expect(document.title).toBe("Основи фреймворків | Rate UKMA");
@@ -126,7 +127,7 @@ describe("CourseDetailsRoute", () => {
 	});
 
 	it("restores the default title when the page unmounts", async () => {
-		const { unmount } = render(<CourseDetailsRoute />);
+		const { unmount } = render(<CourseDetailsRouteComponent />);
 
 		await waitFor(() => {
 			expect(document.title).toBe("Основи фреймворків | Rate UKMA");

@@ -40,7 +40,7 @@ function CourseDescription({ text }: Readonly<{ text: string }>) {
 	);
 }
 
-export function CourseDetailsRoute() {
+function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
 	const {
 		data: course,
@@ -67,13 +67,14 @@ export function CourseDetailsRoute() {
 		isLoading: isUserRatingLoading,
 	} = useUserCourseRating(courseId);
 
-	const defaultDocumentTitle = React.useRef(globalThis.document.title);
+	const defaultDocumentTitle = React.useRef(document.title);
 
 	React.useEffect(() => {
 		const fallbackTitle = defaultDocumentTitle.current;
-		document.title = course?.title
-			? `${course.title} | ${APP_TITLE}`
-			: fallbackTitle;
+
+		if (course?.title) {
+			document.title = `${course.title} | ${APP_TITLE}`;
+		}
 
 		return () => {
 			document.title = fallbackTitle;
