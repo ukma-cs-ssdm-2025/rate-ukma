@@ -79,7 +79,11 @@ vi.mock("@/features/ratings/hooks/useUserCourseRating", () => ({
 }));
 
 describe("CourseDetailsRoute", () => {
-	const CourseDetailsRouteComponent = Route.component as React.ComponentType;
+	const CourseDetailsRouteComponent = (
+		Route as unknown as {
+			component: React.ComponentType;
+		}
+	).component;
 	const renderWithMetadata = (showCourse = true) =>
 		render(
 			<HelmetProvider>
