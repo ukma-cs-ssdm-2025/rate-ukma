@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { render, waitFor } from "@testing-library/react";
+import { HelmetProvider } from "react-helmet-async";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
@@ -8,6 +9,7 @@ import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
 } from "@/lib/api/generated";
+import { AppMetadataDefaults, DEFAULT_PAGE_TITLE } from "@/lib/app-metadata";
 import { Route } from "./courses.$courseId";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -77,12 +79,17 @@ vi.mock("@/features/ratings/hooks/useUserCourseRating", () => ({
 }));
 
 describe("CourseDetailsRoute", () => {
-	const defaultTitle =
-		"Rate UKMA - Rate. Review. Discover your best courses at NaUKMA";
 	const CourseDetailsRouteComponent = Route.component as React.ComponentType;
+	const renderWithMetadata = (showCourse = true) =>
+		render(
+			<HelmetProvider>
+				<AppMetadataDefaults />
+				{showCourse ? <CourseDetailsRouteComponent /> : null}
+			</HelmetProvider>,
+		);
 
 	beforeEach(() => {
-		document.title = defaultTitle;
+		document.title = DEFAULT_PAGE_TITLE;
 
 		vi.mocked(useCoursesRetrieve).mockReturnValue({
 			data: {
@@ -119,7 +126,7 @@ describe("CourseDetailsRoute", () => {
 	});
 
 	it("sets the document title to the course title", async () => {
-		render(<CourseDetailsRouteComponent />);
+		renderWithMetadata();
 
 		await waitFor(() => {
 			expect(document.title).toBe("Основи фреймворків | Rate UKMA");
@@ -127,14 +134,18 @@ describe("CourseDetailsRoute", () => {
 	});
 
 	it("restores the default title when the page unmounts", async () => {
-		const { unmount } = render(<CourseDetailsRouteComponent />);
+		const { rerender } = renderWithMetadata();
 
 		await waitFor(() => {
 			expect(document.title).toBe("Основи фреймворків | Rate UKMA");
 		});
 
-		unmount();
+		rerender(
+			<HelmetProvider>
+				<AppMetadataDefaults />
+			</HelmetProvider>,
+		);
 
-		expect(document.title).toBe(defaultTitle);
+		expect(document.title).toBe(DEFAULT_PAGE_TITLE);
 	});
 });
