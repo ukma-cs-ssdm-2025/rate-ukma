@@ -11,6 +11,7 @@ from scraper.models.deduplicated import (
     DeduplicatedCourse,
     DeduplicatedCourseInstructor,
     DeduplicatedCourseOffering,
+    DeduplicatedCourseOfferingTerm,
     DeduplicatedEnrollment,
     DeduplicatedInstructor,
     DeduplicatedSemester,
@@ -41,6 +42,13 @@ def mock_speciality_objects_get():
     """Patch Speciality.objects.get to return a mock for tests that use DTOs."""
     with patch("scraper.services.db_ingestion.injector.Speciality.objects.get") as mock:
         mock.return_value = SimpleNamespace(id=uuid4(), name="MockSpeciality")
+        yield mock
+
+
+@pytest.fixture(autouse=True)
+def mock_offering_term_objects():
+    with patch("scraper.services.db_ingestion.injector.CourseOfferingTerm.objects") as mock:
+        mock.update_or_create.return_value = (MagicMock(), True)
         yield mock
 
 
@@ -281,10 +289,23 @@ def create_mock_offering(
     instructors: list[DeduplicatedCourseInstructor] | None = None,
     enrollments: list[DeduplicatedEnrollment] | None = None,
     specialities: list[DeduplicatedSpeciality] | None = None,
+    terms: list[DeduplicatedCourseOfferingTerm] | None = None,
 ) -> DeduplicatedCourseOffering:
+    semester = DeduplicatedSemester(year=year, term=term)
+    default_terms = [
+        DeduplicatedCourseOfferingTerm(
+            semester=semester,
+            credits=credits,
+            weekly_hours=weekly_hours,
+            lecture_count=lecture_count,
+            practice_count=practice_count,
+            practice_type=practice_type,
+            exam_type=exam_type,
+        )
+    ]
     return DeduplicatedCourseOffering(
         code=code,
-        semester=DeduplicatedSemester(year=year, term=term),
+        semester=semester,
         credits=credits,
         weekly_hours=weekly_hours,
         study_year=study_year,
@@ -299,6 +320,7 @@ def create_mock_offering(
         instructors=instructors or [],
         enrollments=enrollments or [],
         specialities=specialities or [],
+        terms=terms or default_terms,
     )
 
 
@@ -483,6 +505,54 @@ def test_injector_passes_program_start_year_and_term_hours_to_repositories(injec
     student_call = repo_mocks.student_repo.get_or_upsert.call_args
     student_dto = student_call[0][0]
     assert student_dto.program_start_academic_year_start == 2023
+
+
+@pytest.mark.django_db
+def test_injector_persists_course_offering_terms(injector, repo_mocks):
+    models = [
+        create_mock_course(
+            title="Discrete Math",
+            offerings=[
+                create_mock_offering(
+                    code="365146",
+                    year=2027,
+                    term=SemesterTerm.SPRING,
+                    credits=4.0,
+                    weekly_hours=3,
+                    exam_type=ExamType.EXAM,
+                    practice_type=PracticeType.SEMINAR,
+                    instructors=[],
+                    enrollments=[],
+                    specialities=[],
+                    terms=[
+                        DeduplicatedCourseOfferingTerm(
+                            semester=DeduplicatedSemester(year=2026, term=SemesterTerm.FALL),
+                            credits=4.0,
+                            weekly_hours=3,
+                            lecture_count=28,
+                            practice_count=14,
+                            practice_type=PracticeType.SEMINAR,
+                            exam_type=ExamType.EXAM,
+                        ),
+                        DeduplicatedCourseOfferingTerm(
+                            semester=DeduplicatedSemester(year=2027, term=SemesterTerm.SPRING),
+                            credits=4.0,
+                            weekly_hours=3,
+                            lecture_count=28,
+                            practice_count=14,
+                            practice_type=PracticeType.SEMINAR,
+                            exam_type=ExamType.EXAM,
+                        ),
+                    ],
+                )
+            ],
+        )
+    ]
+
+    with patch("scraper.services.db_ingestion.injector.CourseOfferingTerm.objects.update_or_create") as mocked:
+        injector.execute(models)
+
+    assert mocked.call_count == 2
 
 
 @pytest.mark.django_db

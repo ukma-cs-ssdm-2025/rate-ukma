@@ -60,7 +60,6 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
     ) -> tuple[CourseOfferingDTO, bool] | tuple[CourseOffering, bool]:
         model, created = CourseOffering.objects.get_or_create(
             code=data.code,
-            semester_id=data.semester_id,
             defaults=self._build_defaults(data),
         )
 
@@ -93,7 +92,6 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
     ) -> tuple[CourseOfferingDTO, bool] | tuple[CourseOffering, bool]:
         model, created = CourseOffering.objects.update_or_create(
             code=data.code,
-            semester_id=data.semester_id,
             defaults=self._build_defaults(data),
         )
 
@@ -171,6 +169,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
             CourseOffering.objects.select_related("course", "semester")
             .prefetch_related(
                 "instructors",
+                "terms__semester",
                 "course_offering_specialities__speciality__faculty",
             )
             .order_by("-semester__year", "-semester__term", "course__title")

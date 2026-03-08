@@ -28,6 +28,7 @@ from rating_app.application_schemas.student import StudentInput
 from rating_app.models import (
     Course,
     CourseOffering,
+    CourseOfferingTerm,
     Department,
     Faculty,
     Instructor,
@@ -263,6 +264,7 @@ class CourseDbInjector(IDbInjector):
     ) -> None:
         for offering_data in course_data.offerings:
             course_offering = self._create_course_offering(course, offering_data)
+            self._process_offering_terms(course_offering, offering_data.terms)
             self._process_offering_specialities(course_offering, offering_data.specialities)
             self._process_instructors_m2m(course_offering, offering_data.instructors)
             self._process_enrollments(course_offering, offering_data.enrollments)
@@ -329,6 +331,43 @@ class CourseDbInjector(IDbInjector):
             return_model=True,
         )
         return course_offering
+
+    def _process_offering_terms(
+        self,
+        offering: CourseOffering,
+        terms: Sequence,
+    ) -> None:
+        for term_data in terms:
+            semester_key = (term_data.semester.year, term_data.semester.term.value)
+            semester = self._semester_cache.get(semester_key)
+            if not semester:
+                semester_dto = SemesterInput(
+                    year=term_data.semester.year,
+                    term=term_data.semester.term.value,
+                )
+                semester, _ = self.semester_repository.get_or_create(
+                    semester_dto,
+                    return_model=True,
+                )
+                self._semester_cache[semester_key] = semester
+
+            practice_type = (
+                PracticeType(term_data.practice_type.value)
+                if term_data.practice_type
+                else ""
+            )
+            CourseOfferingTerm.objects.update_or_create(
+                offering=offering,
+                semester=semester,
+                defaults={
+                    "credits": Decimal(str(term_data.credits)),
+                    "weekly_hours": term_data.weekly_hours,
+                    "exam_type": ExamType(term_data.exam_type.value),
+                    "lecture_count": term_data.lecture_count,
+                    "practice_count": term_data.practice_count,
+                    "practice_type": practice_type,
+                },
+            )
 
     def _process_instructors_m2m(
         self,

@@ -792,27 +792,30 @@ def test_course_grouper_uses_term_specific_season_details(course_grouper):
 
     assert len(result) == 1
     grouped = result[0]
-    assert len(grouped.offerings) == 2
+    assert len(grouped.offerings) == 1
 
-    offerings_by_term = {offering.semester.term.value: offering for offering in grouped.offerings}
+    offering = grouped.offerings[0]
+    assert offering.semester.term.value == "SPRING"
+    assert offering.study_year == 3
+    assert len(offering.terms) == 2
 
-    fall = offerings_by_term["FALL"]
+    terms_by_term = {term.semester.term.value: term for term in offering.terms}
+
+    fall = terms_by_term["FALL"]
     assert fall.credits == 4.0
     assert fall.weekly_hours == 3
     assert fall.lecture_count == 22
     assert fall.practice_count == 22
     assert fall.practice_type.value == "PRACTICE"
     assert fall.exam_type.value == "EXAM"
-    assert fall.study_year == 3
 
-    spring = offerings_by_term["SPRING"]
+    spring = terms_by_term["SPRING"]
     assert spring.credits == 4.0
     assert spring.weekly_hours == 2
     assert spring.lecture_count == 18
     assert spring.practice_count == 12
     assert spring.practice_type.value == "SEMINAR"
     assert spring.exam_type.value == "CREDIT"
-    assert spring.study_year == 3
 
 
 def test_course_grouper_falls_back_to_course_credits_when_term_credits_are_zero(

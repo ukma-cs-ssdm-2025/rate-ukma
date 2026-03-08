@@ -4,6 +4,7 @@ from ...models import ParsedCourseDetails
 from ...models.deduplicated import (
     DeduplicatedCourse,
     DeduplicatedCourseOffering,
+    DeduplicatedCourseOfferingTerm,
     ExamType,
     PracticeType,
     SemesterTerm,
@@ -231,44 +232,111 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
             limits = self.extractors["limits"].extract(course)
 
             course_specialities = self.extractors["specialities"].extract(course)
-
-            for semester in semesters:
-                offering_details = self._build_offering_details(course, semester)
-                credits = offering_details["credits"]
-
-                if credits is None or credits <= 0:
-                    logger.warning(
-                        "offering_creation_skipped",
-                        reason="invalid_offering_credits",
-                        course_id=course.id,
-                        course_title=course.title,
-                        semester_term=semester.term.value,
-                        semester_year=semester.year,
-                        credits=credits,
-                    )
-                    continue
-
-                offering = DeduplicatedCourseOffering(
-                    code=self.extractors["code"].extract(course),
-                    semester=semester,
-                    credits=credits,
-                    weekly_hours=offering_details["weekly_hours"],
-                    study_year=course.year,
-                    instructors=self.extractors["instructors"].extract(course),
-                    enrollments=self.extractors["enrollments"].extract(course),
-                    exam_type=offering_details["exam_type"],
-                    lecture_count=offering_details["lecture_count"],
-                    practice_count=offering_details["practice_count"],
-                    practice_type=offering_details["practice_type"],
-                    max_students=limits["max_students"],
-                    max_groups=limits["max_groups"],
-                    group_size_min=limits["group_size_min"],
-                    group_size_max=limits["group_size_max"],
-                    specialities=course_specialities,
+            term_details = self._build_term_details(course, semesters)
+            if not term_details:
+                logger.warning(
+                    "offering_creation_skipped",
+                    reason="no_valid_term_details",
+                    course_id=course.id,
+                    course_title=course.title,
                 )
-                offerings.append(offering)
+                continue
+
+            representative_term = self._select_representative_term(term_details)
+            representative_details = representative_term["details"]
+            representative_semester = representative_term["semester"]
+
+            offering = DeduplicatedCourseOffering(
+                code=self.extractors["code"].extract(course),
+                semester=representative_semester,
+                credits=self._resolve_total_offering_credits(course, term_details),
+                weekly_hours=representative_details["weekly_hours"],
+                study_year=course.year,
+                instructors=self.extractors["instructors"].extract(course),
+                enrollments=self.extractors["enrollments"].extract(course),
+                exam_type=representative_details["exam_type"],
+                lecture_count=representative_details["lecture_count"],
+                practice_count=representative_details["practice_count"],
+                practice_type=representative_details["practice_type"],
+                max_students=limits["max_students"],
+                max_groups=limits["max_groups"],
+                group_size_min=limits["group_size_min"],
+                group_size_max=limits["group_size_max"],
+                specialities=course_specialities,
+                terms=[
+                    DeduplicatedCourseOfferingTerm(
+                        semester=item["semester"],
+                        credits=item["details"]["credits"],
+                        weekly_hours=item["details"]["weekly_hours"],
+                        lecture_count=item["details"]["lecture_count"],
+                        practice_count=item["details"]["practice_count"],
+                        practice_type=item["details"]["practice_type"],
+                        exam_type=item["details"]["exam_type"],
+                    )
+                    for item in term_details
+                ],
+            )
+            offerings.append(offering)
 
         return offerings
+
+    def _build_term_details(
+        self,
+        course: ParsedCourseDetails,
+        semesters,
+    ) -> list[dict[str, object]]:
+        term_details: list[dict[str, object]] = []
+        for semester in semesters:
+            offering_details = self._build_offering_details(course, semester)
+            credits = offering_details["credits"]
+
+            if credits is None or credits <= 0:
+                logger.warning(
+                    "offering_term_creation_skipped",
+                    reason="invalid_offering_credits",
+                    course_id=course.id,
+                    course_title=course.title,
+                    semester_term=semester.term.value,
+                    semester_year=semester.year,
+                    credits=credits,
+                )
+                continue
+
+            term_details.append(
+                {
+                    "semester": semester,
+                    "details": offering_details,
+                }
+            )
+
+        return term_details
+
+    def _select_representative_term(self, term_details: list[dict[str, object]]) -> dict[str, object]:
+        return max(
+            term_details,
+            key=lambda item: (
+                item["semester"].year,
+                self._term_rank(item["semester"].term),
+            ),
+        )
+
+    def _term_rank(self, term: SemesterTerm) -> int:
+        return {
+            SemesterTerm.FALL: 1,
+            SemesterTerm.SPRING: 2,
+            SemesterTerm.SUMMER: 3,
+        }.get(term, 0)
+
+    def _resolve_total_offering_credits(
+        self,
+        course: ParsedCourseDetails,
+        term_details: list[dict[str, object]],
+    ) -> float:
+        total_credits = self.extractors["credits"].extract(course)
+        if total_credits and total_credits > 0:
+            return total_credits
+
+        return float(sum(item["details"]["credits"] for item in term_details))
 
     def _validate_course_for_transformation(self, course: ParsedCourseDetails) -> None:
         if not course.academic_year:

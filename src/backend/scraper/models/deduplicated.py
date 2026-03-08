@@ -105,6 +105,16 @@ class DeduplicatedCourseInstructor(BaseModel):
     role: InstructorRole
 
 
+class DeduplicatedCourseOfferingTerm(BaseModel):
+    semester: DeduplicatedSemester
+    credits: float
+    weekly_hours: int
+    lecture_count: int | None = None
+    practice_count: int | None = None
+    practice_type: PracticeType | None = None
+    exam_type: ExamType
+
+
 class DeduplicatedCourseOffering(BaseModel):
     code: str
     semester: DeduplicatedSemester
@@ -122,6 +132,7 @@ class DeduplicatedCourseOffering(BaseModel):
     instructors: list[DeduplicatedCourseInstructor] = []
     enrollments: list[DeduplicatedEnrollment] = []
     specialities: list[DeduplicatedSpeciality] = []
+    terms: list[DeduplicatedCourseOfferingTerm] = []
 
 
 class DeduplicatedCourse(BaseModel):
