@@ -1,4 +1,4 @@
-from typing import Literal, overload
+from typing import ClassVar, Literal, overload
 
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -23,6 +23,8 @@ logger = structlog.get_logger(__name__)
 
 
 class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
+    _duplicate_email_warnings_seen: ClassVar[set[str]] = set()
+
     def __init__(self, mapper: StudentMapper) -> None:
         self._mapper = mapper
 
@@ -106,14 +108,22 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
         *,
         return_model: bool = False,
     ) -> tuple[StudentDTO, bool] | tuple[Student, bool]:
-        model, created = Student.objects.update_or_create(
-            first_name=data.first_name,
-            last_name=data.last_name,
-            patronymic=data.patronymic or "",
-            education_level=data.education_level,
-            speciality_id=data.speciality_id,
-            defaults=self._build_defaults(data),
-        )
+        model = self._find_existing_for_upsert(data)
+        created = model is None
+
+        if model is None:
+            model = Student.objects.create(
+                first_name=data.first_name,
+                last_name=data.last_name,
+                patronymic=data.patronymic or "",
+                education_level=data.education_level,
+                speciality_id=data.speciality_id,
+                **self._build_defaults(data),
+            )
+        else:
+            updated_fields = self._apply_updates(model, data)
+            if updated_fields:
+                model.save(update_fields=updated_fields)
 
         if return_model:
             return model, created
@@ -144,7 +154,77 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
     def _build_defaults(self, data: StudentInput | StudentDTO) -> dict:
         return {
             "email": data.email or "",
+            "program_start_academic_year_start": data.program_start_academic_year_start,
         }
+
+    def _find_existing_for_upsert(self, data: StudentInput | StudentDTO) -> Student | None:
+        if data.email:
+            email_matches = list(self._build_base_queryset().filter(email=data.email))
+            if email_matches:
+                linked_student = next(
+                    (student for student in email_matches if student.user_id is not None),
+                    None,
+                )
+                if len(email_matches) > 1 and data.email not in self._duplicate_email_warnings_seen:
+                    self._duplicate_email_warnings_seen.add(data.email)
+                    logger.warning(
+                        "multiple_students_with_same_email_on_upsert",
+                        email=data.email,
+                        student_ids=[str(student.id) for student in email_matches],
+                    )
+                return linked_student or email_matches[0]
+
+        return (
+            self._build_base_queryset()
+            .filter(
+                first_name=data.first_name,
+                last_name=data.last_name,
+                patronymic=data.patronymic or "",
+                education_level=data.education_level,
+                speciality_id=data.speciality_id,
+            )
+            .first()
+        )
+
+    def _apply_updates(self, model: Student, data: StudentInput | StudentDTO) -> list[str]:
+        updated_fields: list[str] = []
+
+        for field, value in (
+            ("first_name", data.first_name),
+            ("last_name", data.last_name),
+            ("patronymic", data.patronymic or ""),
+            ("education_level", data.education_level),
+            ("speciality_id", data.speciality_id),
+        ):
+            if getattr(model, field) != value:
+                setattr(model, field, value)
+                updated_fields.append(field)
+
+        if data.email and model.email != data.email:
+            model.email = data.email
+            updated_fields.append("email")
+
+        merged_program_start = self._merge_program_start(
+            existing_value=model.program_start_academic_year_start,
+            incoming_value=data.program_start_academic_year_start,
+        )
+        if merged_program_start != model.program_start_academic_year_start:
+            model.program_start_academic_year_start = merged_program_start
+            updated_fields.append("program_start_academic_year_start")
+
+        return updated_fields
+
+    def _merge_program_start(
+        self,
+        *,
+        existing_value: int | None,
+        incoming_value: int | None,
+    ) -> int | None:
+        if existing_value is None:
+            return incoming_value
+        if incoming_value is None:
+            return existing_value
+        return min(existing_value, incoming_value)
 
     def _get_by_id(self, id: str) -> Student:
         try:

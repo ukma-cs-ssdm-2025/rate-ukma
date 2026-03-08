@@ -1845,6 +1845,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/StatusEnum'
           readOnly: true
+        education_level:
+          allOf:
+          - $ref: '#/components/schemas/EducationLevelEnum'
+          readOnly: true
+          nullable: true
         department:
           type: string
           format: uuid
@@ -1902,6 +1907,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/StatusEnum'
           readOnly: true
+        education_level:
+          allOf:
+          - $ref: '#/components/schemas/EducationLevelEnum'
+          readOnly: true
+          nullable: true
         department:
           type: string
           format: uuid
@@ -2023,6 +2033,14 @@ components:
         weekly_hours:
           type: integer
           readOnly: true
+        total_hours:
+          type: integer
+          readOnly: true
+          nullable: true
+        study_year:
+          type: integer
+          readOnly: true
+          nullable: true
         lecture_count:
           type: integer
           readOnly: true
@@ -2141,6 +2159,14 @@ components:
       required:
       - id
       - name
+    EducationLevelEnum:
+      enum:
+      - BACHELOR
+      - MASTER
+      type: string
+      description: |-
+        * `BACHELOR` - Bachelor
+        * `MASTER` - Master
     ErrorEnvelope:
       type: object
       properties:

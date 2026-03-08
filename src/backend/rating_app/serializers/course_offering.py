@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from rating_app.models.choices import AcademicDegree, AcademicTitle, CourseTypeKind, ExamType, PracticeType
+from rating_app.models.choices import (
+    AcademicDegree,
+    AcademicTitle,
+    CourseTypeKind,
+    ExamType,
+    PracticeType,
+)
 
 
 class InstructorDTOSerializer(serializers.Serializer):
@@ -41,6 +47,8 @@ class CourseOfferingSerializer(serializers.Serializer):
     )
     credits = serializers.DecimalField(max_digits=4, decimal_places=1, read_only=True)
     weekly_hours = serializers.IntegerField(read_only=True)
+    total_hours = serializers.IntegerField(read_only=True, allow_null=True)
+    study_year = serializers.IntegerField(read_only=True, allow_null=True)
     lecture_count = serializers.IntegerField(read_only=True, allow_null=True)
     practice_count = serializers.IntegerField(read_only=True, allow_null=True)
     max_students = serializers.IntegerField(read_only=True, allow_null=True)

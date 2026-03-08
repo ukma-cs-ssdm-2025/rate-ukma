@@ -22,7 +22,6 @@ class CourseOffering(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code = models.CharField(
         max_length=6,
-        unique=True,
         validators=[MinLengthValidator(6), MaxLengthValidator(6)],
     )
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="offerings")
@@ -30,6 +29,7 @@ class CourseOffering(models.Model):
 
     credits = models.DecimalField(max_digits=3, decimal_places=1)
     weekly_hours = models.PositiveIntegerField()
+    study_year = models.PositiveIntegerField(null=True, blank=True)
     lecture_count = models.PositiveIntegerField(null=True, blank=True)
     practice_count = models.PositiveIntegerField(null=True, blank=True)
     practice_type = models.CharField(
@@ -56,7 +56,11 @@ class CourseOffering(models.Model):
             models.CheckConstraint(
                 check=Q(credits__gt=0),
                 name="co_credits_gt_0",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["code", "semester"],
+                name="co_code_semester_unique",
+            ),
         ]
 
     def __str__(self):
@@ -77,3 +81,9 @@ class CourseOffering(models.Model):
         if self.max_students is None:
             return None
         return max(self.max_students - self.occupied_seats, 0)
+
+    @property
+    def total_hours(self) -> int | None:
+        if self.credits is None:
+            return None
+        return int(self.credits * 30)

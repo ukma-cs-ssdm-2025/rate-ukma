@@ -56,7 +56,7 @@ def test_course_grouper_handles_invalid_json(
         temp_invalid_json_file.unlink()
 
 
-def test_course_grouper_handles_missing_id(
+def test_course_grouper_skips_invalid_rows(
     course_grouper_service, temp_missing_id_file, mock_jsonl_writer
 ):
     # Arrange
@@ -66,9 +66,12 @@ def test_course_grouper_handles_missing_id(
     with TemporaryDirectory() as temp_dir:
         output_path = Path(temp_dir) / "output.jsonl"
 
-        # Act & Assert
-        with pytest.raises(DataValidationError):
-            course_grouper_service.group_courses(temp_missing_id_file, output_path)
+        # Act
+        course_grouper_service.group_courses(temp_missing_id_file, output_path)
+
+        # Assert
+        mock_jsonl_writer.assert_called_once_with(output_path)
+        assert mock_writer.write.call_count == 0
 
         temp_missing_id_file.unlink()
 

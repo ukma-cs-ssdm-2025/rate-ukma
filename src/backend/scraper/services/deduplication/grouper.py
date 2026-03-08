@@ -4,6 +4,9 @@ from ...models import ParsedCourseDetails
 from ...models.deduplicated import (
     DeduplicatedCourse,
     DeduplicatedCourseOffering,
+    ExamType,
+    PracticeType,
+    SemesterTerm,
 )
 from .base import DataValidationError, DeduplicationComponent
 from .extractors import (
@@ -19,7 +22,6 @@ from .extractors import (
     SpecialtyExtractor,
     StatusExtractor,
     StudentExtractor,
-    WeeklyHoursExtractor,
 )
 
 logger = structlog.get_logger(__name__)
@@ -51,12 +53,13 @@ def _normalize_specialty_for_grouping(specialties) -> str:
     return " | ".join(sorted(specialty_parts))
 
 
-def get_course_grouping_key(course: ParsedCourseDetails) -> tuple[str, str, str]:
+def get_course_grouping_key(course: ParsedCourseDetails) -> tuple[str, str, str, str]:
     title = (course.title or "").strip().lower()
     faculty = (course.faculty or "").strip().lower()
     specialty_info = _normalize_specialty_for_grouping(course.specialties or [])
+    education_level = (course.education_level or "").strip().lower()
 
-    return (title, faculty, specialty_info)
+    return (title, faculty, specialty_info, education_level)
 
 
 class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[DeduplicatedCourse]]):
@@ -72,7 +75,6 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
             "code": RequiredFieldExtractor("id"),
             "semester": SemesterExtractor(),
             "credits": CreditsExtractor(),
-            "weekly_hours": WeeklyHoursExtractor(),
             "instructors": InstructorExtractor(),
             "enrollments": StudentExtractor(),
             "exam_type": ExamTypeExtractor(),
@@ -231,15 +233,33 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
             course_specialities = self.extractors["specialities"].extract(course)
 
             for semester in semesters:
+                offering_details = self._build_offering_details(course, semester)
+                credits = offering_details["credits"]
+
+                if credits is None or credits <= 0:
+                    logger.warning(
+                        "offering_creation_skipped",
+                        reason="invalid_offering_credits",
+                        course_id=course.id,
+                        course_title=course.title,
+                        semester_term=semester.term.value,
+                        semester_year=semester.year,
+                        credits=credits,
+                    )
+                    continue
+
                 offering = DeduplicatedCourseOffering(
                     code=self.extractors["code"].extract(course),
                     semester=semester,
-                    credits=self.extractors["credits"].extract(course),
-                    weekly_hours=self.extractors["weekly_hours"].extract(course),
+                    credits=credits,
+                    weekly_hours=offering_details["weekly_hours"],
+                    study_year=course.year,
                     instructors=self.extractors["instructors"].extract(course),
                     enrollments=self.extractors["enrollments"].extract(course),
-                    exam_type=self.extractors["exam_type"].extract(course),
-                    practice_type=self.extractors["practice_type"].extract(course),
+                    exam_type=offering_details["exam_type"],
+                    lecture_count=offering_details["lecture_count"],
+                    practice_count=offering_details["practice_count"],
+                    practice_type=offering_details["practice_type"],
                     max_students=limits["max_students"],
                     max_groups=limits["max_groups"],
                     group_size_min=limits["group_size_min"],
@@ -253,3 +273,75 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
     def _validate_course_for_transformation(self, course: ParsedCourseDetails) -> None:
         if not course.academic_year:
             raise DataValidationError(f"Course {course.id} missing required academic_year")
+
+    def _build_offering_details(
+        self,
+        course: ParsedCourseDetails,
+        semester,
+    ) -> dict[str, object]:
+        season_info = self._get_season_info(course, semester.term)
+        course_credits = self.extractors["credits"].extract(course)
+        season_credits = season_info.credits if season_info else None
+
+        credits = (
+            season_credits
+            if season_credits is not None and season_credits > 0
+            else course_credits
+        )
+        weekly_hours = (
+            season_info.hours_per_week
+            if season_info and season_info.hours_per_week is not None
+            else 0
+        )
+        exam_type = (
+            self._map_exam_type(season_info.exam_type)
+            if season_info and season_info.exam_type
+            else self.extractors["exam_type"].extract(course)
+        )
+        practice_type = (
+            self._map_practice_type(season_info.practice_type)
+            if season_info and season_info.practice_type
+            else self.extractors["practice_type"].extract(course)
+        )
+
+        return {
+            "credits": credits,
+            "weekly_hours": weekly_hours,
+            "lecture_count": season_info.lecture_hours if season_info else None,
+            "practice_count": season_info.practice_hours if season_info else None,
+            "exam_type": exam_type,
+            "practice_type": practice_type,
+        }
+
+    def _get_season_info(self, course: ParsedCourseDetails, term: SemesterTerm):
+        if not course.season_details:
+            return None
+
+        term_key_map = {
+            SemesterTerm.FALL: "осін",
+            SemesterTerm.SPRING: "вес",
+            SemesterTerm.SUMMER: "літ",
+        }
+        expected_fragment = term_key_map.get(term)
+        if expected_fragment is None:
+            return None
+
+        for season_key, season_info in course.season_details.items():
+            if expected_fragment in season_key.lower():
+                return season_info
+
+        return None
+
+    def _map_exam_type(self, raw_exam_type: str) -> ExamType:
+        normalized = raw_exam_type.strip().lower().replace("`", "'")
+        if "залік" in normalized:
+            return ExamType.CREDIT
+        if "екзам" in normalized or "іспит" in normalized:
+            return ExamType.EXAM
+        return ExamType.EXAM
+
+    def _map_practice_type(self, raw_practice_type: str) -> PracticeType:
+        normalized = raw_practice_type.strip().upper()
+        if normalized == "SEMINAR":
+            return PracticeType.SEMINAR
+        return PracticeType.PRACTICE

@@ -60,6 +60,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
     ) -> tuple[CourseOfferingDTO, bool] | tuple[CourseOffering, bool]:
         model, created = CourseOffering.objects.get_or_create(
             code=data.code,
+            semester_id=data.semester_id,
             defaults=self._build_defaults(data),
         )
 
@@ -92,6 +93,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
     ) -> tuple[CourseOfferingDTO, bool] | tuple[CourseOffering, bool]:
         model, created = CourseOffering.objects.update_or_create(
             code=data.code,
+            semester_id=data.semester_id,
             defaults=self._build_defaults(data),
         )
 
@@ -109,6 +111,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
             practice_type=data.practice_type or "",
             credits=data.credits,
             weekly_hours=data.weekly_hours,
+            study_year=data.study_year,
             lecture_count=data.lecture_count,
             practice_count=data.practice_count,
             max_students=data.max_students,
@@ -142,6 +145,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
             "practice_type": data.practice_type or "",
             "credits": data.credits,
             "weekly_hours": data.weekly_hours,
+            "study_year": data.study_year,
             "lecture_count": data.lecture_count,
             "practice_count": data.practice_count,
             "max_students": data.max_students,

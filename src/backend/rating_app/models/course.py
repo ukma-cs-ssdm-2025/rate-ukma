@@ -1,7 +1,9 @@
 import uuid
 
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 
+from .choices import EducationLevel
 from .choices import CourseStatus
 from .department import Department
 
@@ -11,6 +13,12 @@ class Course(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     status = models.CharField(max_length=16, choices=CourseStatus.choices)
+    education_level = models.CharField(
+        max_length=16,
+        choices=EducationLevel.choices,
+        blank=True,
+        default="",
+    )
 
     department = models.ForeignKey(Department, on_delete=models.PROTECT, related_name="courses")
 
@@ -24,6 +32,11 @@ class Course(models.Model):
             models.Index(fields=["avg_difficulty"], name="course_avg_difficulty_idx"),
             models.Index(fields=["avg_usefulness"], name="course_avg_usefulness_idx"),
             models.Index(fields=["title"], name="course_title_idx"),
+            GinIndex(
+                name="course_title_trgm_idx",
+                fields=["title"],
+                opclasses=["gin_trgm_ops"],
+            ),
         ]
 
     def __str__(self):

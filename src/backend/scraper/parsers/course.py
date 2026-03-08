@@ -253,7 +253,7 @@ class CourseDetailParser(BaseParser):
             elif "сем." in text:
                 details["practice_type"] = "SEMINAR"
                 details["practice_hours"] = ParserUtils.parse_int(text)
-            elif "екзам" in text or "залік" in text:
+            elif "екзам" in text or "іспит" in text or "залік" in text:
                 details["exam_type"] = text
             else:
                 for keyword, parser in season_parsers.items():
