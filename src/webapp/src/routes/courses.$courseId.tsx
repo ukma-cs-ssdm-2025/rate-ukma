@@ -30,6 +30,8 @@ import {
 } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
+const APP_TITLE = "Rate UKMA";
+
 function CourseDescription({ text }: Readonly<{ text: string }>) {
 	return (
 		<ExpandableText className="text-[15px] leading-relaxed text-muted-foreground">
@@ -38,7 +40,7 @@ function CourseDescription({ text }: Readonly<{ text: string }>) {
 	);
 }
 
-function CourseDetailsRoute() {
+export function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
 	const {
 		data: course,
@@ -64,6 +66,19 @@ function CourseDetailsRoute() {
 		attendedCourseId,
 		isLoading: isUserRatingLoading,
 	} = useUserCourseRating(courseId);
+
+	const defaultDocumentTitle = React.useRef(globalThis.document.title);
+
+	React.useEffect(() => {
+		const fallbackTitle = defaultDocumentTitle.current;
+		document.title = course?.title
+			? `${course.title} | ${APP_TITLE}`
+			: fallbackTitle;
+
+		return () => {
+			document.title = fallbackTitle;
+		};
+	}, [course?.title]);
 
 	if (isCourseLoading || isUserRatingLoading || isOfferingsLoading) {
 		return (
