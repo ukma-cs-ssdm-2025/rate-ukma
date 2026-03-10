@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
+import { Helmet } from "react-helmet-async";
 
 import Layout from "@/components/Layout";
 import { ExpandableText } from "@/components/ui/ExpandableText";
@@ -28,6 +29,7 @@ import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
 } from "@/lib/api/generated";
+import { formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
 
 function CourseDescription({ text }: Readonly<{ text: string }>) {
@@ -92,6 +94,11 @@ function CourseDetailsRoute() {
 
 	return (
 		<Layout>
+			{course.title && (
+				<Helmet>
+					<title>{formatPageTitle(course.title)}</title>
+				</Helmet>
+			)}
 			<div className="pb-16">
 				{/* Hero zone: title → meta → badges + offering facts → scores */}
 				<div className="space-y-6">
