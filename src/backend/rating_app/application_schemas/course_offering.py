@@ -46,6 +46,7 @@ class CourseOfferingInput:
     credits: Decimal
     weekly_hours: int
     exam_type: ExamType
+    study_year: int | None = None
     lecture_count: int | None = None
     practice_count: int | None = None
     practice_type: PracticeType | None = None
@@ -53,6 +54,34 @@ class CourseOfferingInput:
     max_groups: int | None = None
     group_size_min: int | None = None
     group_size_max: int | None = None
+
+
+@dataclass(frozen=True)
+class CourseOfferingTermInput:
+    offering_id: uuid.UUID
+    semester_id: uuid.UUID
+    credits: Decimal
+    weekly_hours: int
+    exam_type: ExamType
+    lecture_count: int | None = None
+    practice_count: int | None = None
+    practice_type: PracticeType | None = None
+
+
+@dataclass(frozen=True)
+class CourseOfferingTerm:
+    id: uuid.UUID
+    offering_id: uuid.UUID
+    semester_id: uuid.UUID
+    credits: Decimal
+    weekly_hours: int
+    exam_type: ExamType
+    total_hours: int | None = None
+    lecture_count: int | None = None
+    practice_count: int | None = None
+    practice_type: PracticeType | None = None
+    semester_year: int | None = None
+    semester_term: str | None = None
 
 
 @dataclass(frozen=True)
@@ -64,6 +93,8 @@ class CourseOffering:
     credits: Decimal
     weekly_hours: int
     exam_type: ExamType
+    total_hours: int | None = None
+    study_year: int | None = None
     lecture_count: int | None = None
     practice_count: int | None = None
     practice_type: PracticeType | None = None
@@ -73,6 +104,7 @@ class CourseOffering:
     group_size_max: int | None = None
     instructors: list[Instructor] = field(default_factory=list)
     specialities: list[CourseOfferingSpeciality] = field(default_factory=list)
+    terms: list[CourseOfferingTerm] = field(default_factory=list)
     course_title: str | None = None
     semester_year: int | None = None
     semester_term: str | None = None

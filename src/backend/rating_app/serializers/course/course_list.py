@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from rating_app.models.choices import CourseStatus
+from rating_app.models.choices import CourseStatus, EducationLevel
 
 from .course_offering_speciality import CourseOfferingSpecialityInlineSerializer
 
@@ -14,6 +14,12 @@ class CourseListSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255, read_only=True)
     description = serializers.CharField(allow_null=True, allow_blank=True, read_only=True)
     status = serializers.ChoiceField(choices=CourseStatus.choices, read_only=True)
+    education_level = serializers.ChoiceField(
+        choices=EducationLevel.choices,
+        read_only=True,
+        allow_blank=True,
+        allow_null=True,
+    )
     department = serializers.UUIDField(read_only=True)
     department_name = serializers.CharField(read_only=True)
     faculty = serializers.UUIDField(read_only=True)

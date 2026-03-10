@@ -49,6 +49,11 @@ class Student(Person):
         on_delete=models.PROTECT,
         related_name="students",
     )
+    program_start_academic_year_start = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+    )
 
     class Meta(Person.Meta):
         abstract = False

@@ -88,6 +88,7 @@ def test_get_course_grouping_key_basic():
         "веб-розробка: основи та практики",
         "факультет інформатики",
         "програмна інженерія (професійно-орієнтована)",
+        "",
     )
     assert result == expected
 
@@ -121,6 +122,7 @@ def test_get_course_grouping_key_multiple_specialties():
         "веб-розробка: основи та практики",
         "факультет інформатики",
         "програмна інженерія (професійно-орієнтована) | інформатика (обов'язкова)",
+        "",
     )
     assert result == expected
 
@@ -147,7 +149,7 @@ def test_get_course_grouping_key_empty_fields():
     result = get_course_grouping_key(course)
 
     # Assert
-    expected = ("", "", "")
+    expected = ("", "", "", "")
     assert result == expected
 
 
@@ -235,6 +237,7 @@ def test_get_course_grouping_key_different_credits_still_group():
         "computer science",
         "faculty of informatics",
         "software engineering (професійно-орієнтована)",
+        "",
     )
     assert result1 == expected
 
@@ -696,3 +699,199 @@ def test_course_grouper_each_offering_gets_its_own_specialities(course_grouper):
     for offering in grouped.offerings:
         assert len(offering.specialities) == 1
         assert offering.specialities[0].name == "Математика"
+
+
+def test_course_grouper_keeps_bachelor_and_master_variants_separate(course_grouper):
+    base = {
+        "url": "https://example.com/course",
+        "title": "Історія прикордоння",
+        "credits": 4.0,
+        "hours": 120,
+        "year": 3,
+        "format": "Формат 2015",
+        "status": "рекомендовано",
+        "faculty": "Факультет гуманітарних наук",
+        "department": "Кафедра історії",
+        "academic_year": "2026–2027",
+        "semesters": ["Семестр 6"],
+        "teachers": "Маслійчук В.Л., д.і.н.",
+        "annotation": "",
+        "specialties": [{"specialty": "Історія", "type": "Професійно-орієнтована"}],
+        "limits": {"max_students": 37, "max_groups": 1, "group_size_min": 25, "group_size_max": 37},
+        "season_details": {
+            "Весна": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 24,
+                "practice_hours": 16,
+                "practice_type": "SEMINAR",
+                "exam_type": "залік",
+            }
+        },
+    }
+    bachelor_course = ParsedCourseDetails(
+        **{
+            **base,
+            "id": "363683",
+            "education_level": "Бакалавр",
+        }
+    )
+    master_course = ParsedCourseDetails(
+        **{
+            **base,
+            "id": "463683",
+            "education_level": "Магістр",
+        }
+    )
+
+    result = course_grouper.group_course_offerings([bachelor_course, master_course])
+
+    assert len(result) == 2
+    levels = {grouped.education_level.value for grouped in result}
+    assert levels == {"BACHELOR", "MASTER"}
+
+
+def test_course_grouper_uses_term_specific_season_details(course_grouper):
+    course = ParsedCourseDetails(
+        url="https://example.com/course/340519",
+        title="Методи розробки програмних систем",
+        id="340519",
+        credits=8.0,
+        hours=240,
+        year=3,
+        format="Формат 2015",
+        status="рекомендовано",
+        faculty="Факультет інформатики",
+        department="Кафедра інформатики",
+        education_level="Бакалавр",
+        academic_year="2025–2026",
+        semesters=["Семестр 5", "Семестр 6"],
+        specialties=[{"specialty": "Комп`ютерні науки", "type": "Обов`язкова"}],
+        limits={"max_students": 30, "max_groups": 3, "group_size_min": 9, "group_size_max": 12},
+        season_details={
+            "Осінь": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 22,
+                "practice_hours": 22,
+                "practice_type": "PRACTICE",
+                "exam_type": "екзамен",
+            },
+            "Весна": {
+                "credits": 4.0,
+                "hours_per_week": 2,
+                "lecture_hours": 18,
+                "practice_hours": 12,
+                "practice_type": "SEMINAR",
+                "exam_type": "залік",
+            },
+        },
+    )
+
+    result = course_grouper.group_course_offerings([course])
+
+    assert len(result) == 1
+    grouped = result[0]
+    assert len(grouped.offerings) == 1
+
+    offering = grouped.offerings[0]
+    assert offering.semester.term.value == "SPRING"
+    assert offering.study_year == 3
+    assert len(offering.terms) == 2
+
+    terms_by_term = {term.semester.term.value: term for term in offering.terms}
+
+    fall = terms_by_term["FALL"]
+    assert fall.credits == 4.0
+    assert fall.weekly_hours == 3
+    assert fall.lecture_count == 22
+    assert fall.practice_count == 22
+    assert fall.practice_type.value == "PRACTICE"
+    assert fall.exam_type.value == "EXAM"
+
+    spring = terms_by_term["SPRING"]
+    assert spring.credits == 4.0
+    assert spring.weekly_hours == 2
+    assert spring.lecture_count == 18
+    assert spring.practice_count == 12
+    assert spring.practice_type.value == "SEMINAR"
+    assert spring.exam_type.value == "CREDIT"
+
+
+def test_course_grouper_falls_back_to_course_credits_when_term_credits_are_zero(
+    course_grouper,
+):
+    course = ParsedCourseDetails(
+        url="https://example.com/course/342277",
+        title="Бюджетна система",
+        id="342277",
+        credits=4.0,
+        hours=120,
+        year=3,
+        format="Формат 2015",
+        status="рекомендовано",
+        faculty="Факультет економічних наук",
+        department="Кафедра фінансів",
+        education_level="Бакалавр",
+        academic_year="2025–2026",
+        semesters=["Семестр 6"],
+        specialties=[
+            {"specialty": "Фінанси, банківська справа та страхування", "type": "Обов`язкова"}
+        ],
+        limits={"max_students": 30, "max_groups": 3, "group_size_min": 9, "group_size_max": 12},
+        season_details={
+            "Весна": {
+                "credits": 0.0,
+                "hours_per_week": 1,
+                "lecture_hours": 8,
+                "practice_hours": 6,
+                "practice_type": "SEMINAR",
+                "exam_type": "екзамен",
+            }
+        },
+    )
+
+    result = course_grouper.group_course_offerings([course])
+
+    assert len(result) == 1
+    grouped = result[0]
+    assert len(grouped.offerings) == 1
+
+    spring = grouped.offerings[0]
+    assert spring.credits == 4.0
+    assert spring.weekly_hours == 1
+
+
+def test_course_grouper_treats_ispyt_as_exam(course_grouper):
+    course = ParsedCourseDetails(
+        url="https://example.com/course/365146",
+        title="Дискретна математика",
+        id="365146",
+        credits=8.0,
+        hours=240,
+        year=1,
+        format="Формат 2015",
+        status="рекомендовано",
+        faculty="Факультет інформатики",
+        department="Кафедра математики",
+        education_level="Бакалавр",
+        academic_year="2026–2027",
+        semesters=["Семестр 1", "Семестр 2"],
+        specialties=[{"specialty": "Комп`ютерні науки", "type": "Обов`язкова"}],
+        limits={"max_students": 30, "max_groups": 1, "group_size_min": 25, "group_size_max": 31},
+        season_details={
+            "Осінь": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 28,
+                "practice_hours": 14,
+                "practice_type": "SEMINAR",
+                "exam_type": "іспит",
+            }
+        },
+    )
+
+    result = course_grouper.group_course_offerings([course])
+
+    assert len(result) == 1
+    assert result[0].offerings[0].exam_type.value == "EXAM"

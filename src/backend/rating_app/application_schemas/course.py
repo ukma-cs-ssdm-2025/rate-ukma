@@ -12,7 +12,7 @@ from ..constants import (
     MIN_DIFFICULTY_VALUE,
     MIN_USEFULNESS_VALUE,
 )
-from ..models.choices import CourseStatus, CourseTypeKind, SemesterTerm
+from ..models.choices import CourseStatus, CourseTypeKind, EducationLevel, SemesterTerm
 from .pagination import PaginationMetadata
 
 AvgOrder = Literal["asc", "desc"]
@@ -160,6 +160,7 @@ class CourseInput:
     title: str
     description: str
     status: CourseStatus
+    education_level: EducationLevel | str | None
     department: str
     department_name: str
     faculty: str
@@ -172,6 +173,7 @@ class Course:
     title: str
     description: str
     status: CourseStatus
+    education_level: EducationLevel | str | None
     department: str
     department_name: str
     faculty: str

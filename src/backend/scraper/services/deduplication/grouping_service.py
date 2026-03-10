@@ -15,7 +15,9 @@ logger = structlog.get_logger(__name__)
 class CourseGroupingService:
     def __init__(self):
         self.processing_chain = (
-            ProcessingChain[Path, Path]().add_step(CourseLoader()).add_step(CourseGrouper())
+            ProcessingChain[Path, Path]()
+            .add_step(CourseLoader(skip_invalid_courses=True))
+            .add_step(CourseGrouper())
         )
 
     def group_courses(self, input_path: Path, output_path: Path) -> None:

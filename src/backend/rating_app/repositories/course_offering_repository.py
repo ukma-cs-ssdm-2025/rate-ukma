@@ -109,6 +109,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
             practice_type=data.practice_type or "",
             credits=data.credits,
             weekly_hours=data.weekly_hours,
+            study_year=data.study_year,
             lecture_count=data.lecture_count,
             practice_count=data.practice_count,
             max_students=data.max_students,
@@ -142,6 +143,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
             "practice_type": data.practice_type or "",
             "credits": data.credits,
             "weekly_hours": data.weekly_hours,
+            "study_year": data.study_year,
             "lecture_count": data.lecture_count,
             "practice_count": data.practice_count,
             "max_students": data.max_students,
@@ -167,6 +169,7 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
             CourseOffering.objects.select_related("course", "semester")
             .prefetch_related(
                 "instructors",
+                "terms__semester",
                 "course_offering_specialities__speciality__faculty",
             )
             .order_by("-semester__year", "-semester__term", "course__title")
