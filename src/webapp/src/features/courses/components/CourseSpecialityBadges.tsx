@@ -9,6 +9,7 @@ import {
 import type { TypeKindEnum } from "@/lib/api/generated";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { cn } from "@/lib/utils";
+import { getCourseTypeDisplay } from "../courseFormatting";
 
 interface CourseSpecialityBadgesProps {
 	specialities?: ReadonlyArray<{
@@ -101,12 +102,10 @@ export function CourseSpecialityBadges({
 						</TooltipTrigger>
 						<TooltipContent side="top" className="max-w-xs">
 							<div className="text-center">
-								{speciality.faculty_name && (
-									<div className="text-xs opacity-90 mb-0.5">
-										{speciality.faculty_name}
-									</div>
-								)}
 								<div className="font-medium">{speciality.speciality_title}</div>
+								<div className="font-medium">
+									{getCourseTypeDisplay(speciality.type_kind ?? "", "")}
+								</div>
 							</div>
 						</TooltipContent>
 					</Tooltip>
