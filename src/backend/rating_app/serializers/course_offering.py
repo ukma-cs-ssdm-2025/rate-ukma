@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from rating_app.models.choices import AcademicDegree, AcademicTitle, CourseTypeKind, ExamType, PracticeType
+from rating_app.models.choices import (
+    AcademicDegree,
+    AcademicTitle,
+    CourseTypeKind,
+    ExamType,
+    PracticeType,
+)
 
 
 class InstructorDTOSerializer(serializers.Serializer):
