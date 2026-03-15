@@ -20,6 +20,10 @@ from rating_app.serializers.course_offering import (
     CourseOfferingListResponseSerializer,
     CourseOfferingSerializer,
 )
+from rating_app.serializers.notification import (
+    NotificationGroupSerializer,
+    UnreadCountSerializer,
+)
 
 NOT_FOUND = "Not found"
 BAD_REQUEST = "Bad request"
@@ -203,4 +207,19 @@ R_VOTE_DELETE = {
     401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
     403: OpenApiResponse(Err, FORBIDDEN, [EX_403]),
     404: OpenApiResponse(Err, NOT_FOUND, [EX_404]),
+}
+
+R_NOTIFICATION_LIST = {
+    200: OpenApiResponse(NotificationGroupSerializer(many=True), "OK"),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+}
+
+R_NOTIFICATION_UNREAD_COUNT = {
+    200: OpenApiResponse(UnreadCountSerializer, "OK"),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+}
+
+R_NOTIFICATION_MARK_READ = {
+    204: OpenApiResponse(description="All notifications marked as read"),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }

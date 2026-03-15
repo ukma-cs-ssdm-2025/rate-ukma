@@ -6,6 +6,8 @@ T_DTO = TypeVar("T_DTO")  # Domain model type
 T_ORM = TypeVar("T_ORM", covariant=True)  # ORM model type
 T_Criteria = TypeVar("T_Criteria", contravariant=True)  # Filter criteria type
 T_CreateData = TypeVar("T_CreateData", contravariant=True)  # Create/upsert input type
+T_CursorIn = TypeVar("T_CursorIn", contravariant=True)
+T_CursorOut = TypeVar("T_CursorOut", covariant=True)
 
 
 class IRepository(Protocol[T_DTO]):
@@ -141,3 +143,31 @@ class IPaginatedRepository(Protocol[T_DTO, T_ORM, T_Criteria, T_CreateData]):
     ) -> tuple[T_DTO, bool] | tuple[T_ORM, bool]: ...
 
     def delete(self, id: str) -> None: ...
+
+
+class IAppendOnlyRepository(Protocol[T_DTO, T_CreateData, T_CursorIn]):
+    """
+    Repository for append-only entities with grouped reads (e.g., notifications, audit logs)
+    """
+
+    def create(self, data: T_CreateData) -> T_DTO: ...
+
+    def get_grouped_for_user(
+        self,
+        user_id: int,
+        cursor_value: T_CursorIn,
+        limit: int,
+        offset: int = 0,
+    ) -> list[T_DTO]: ...
+
+    def get_unread_group_count(self, user_id: int, cursor_value: T_CursorIn) -> int: ...
+
+
+class ICursorRepository(Protocol[T_CursorOut]):
+    """
+    Repository for managing per-user read cursors (e.g., notification read pointers)
+    """
+
+    def get_cursor_value(self, user_id: int) -> T_CursorOut: ...
+
+    def advance_cursor(self, user_id: int) -> None: ...

@@ -6,6 +6,7 @@ from .department import Department
 from .enrollment import Enrollment
 from .faculty import Faculty
 from .instructor import Instructor
+from .notification import Notification, NotificationCursor
 from .person import Person
 from .rating import Rating
 from .rating_vote import RatingVote
@@ -28,4 +29,6 @@ __all__ = [
     "Rating",
     "Person",
     "RatingVote",
+    "Notification",
+    "NotificationCursor",
 ]

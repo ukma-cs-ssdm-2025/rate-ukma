@@ -5,6 +5,10 @@ from .department_repository import DepartmentRepository
 from .enrollment_repository import EnrollmentRepository
 from .faculty_repository import FacultyRepository
 from .instructor_repository import InstructorRepository
+from .notification_repository import (
+    NotificationCursorRepository,
+    NotificationRepository,
+)
 from .rating_repository import RatingRepository
 from .semester_repository import SemesterRepository
 from .speciality_repository import SpecialityRepository
@@ -14,6 +18,7 @@ from .to_domain_mappers import (
     CourseMapper,
     CourseOfferingMapper,
     InstructorMapper,
+    NotificationGroupMapper,
     RatingMapper,
     RatingVoteMapper,
 )
@@ -40,4 +45,7 @@ __all__ = [
     "StudentStatisticsRepository",
     "UserRepository",
     "RatingVoteRepository",
+    "NotificationRepository",
+    "NotificationCursorRepository",
+    "NotificationGroupMapper",
 ]
