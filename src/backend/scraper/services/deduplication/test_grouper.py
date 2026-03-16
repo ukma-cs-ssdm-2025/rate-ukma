@@ -1,3 +1,5 @@
+from pytest import approx
+
 from scraper.models import ParsedCourseDetails
 from scraper.models.deduplicated import DeduplicatedCourse
 from scraper.services.deduplication.grouper import (
@@ -802,7 +804,7 @@ def test_course_grouper_uses_term_specific_season_details(course_grouper):
     terms_by_term = {term.semester.term.value: term for term in offering.terms}
 
     fall = terms_by_term["FALL"]
-    assert fall.credits == 4.0
+    assert fall.credits == approx(4.0)
     assert fall.weekly_hours == 3
     assert fall.lecture_count == 22
     assert fall.practice_count == 22
@@ -810,7 +812,7 @@ def test_course_grouper_uses_term_specific_season_details(course_grouper):
     assert fall.exam_type.value == "EXAM"
 
     spring = terms_by_term["SPRING"]
-    assert spring.credits == 4.0
+    assert spring.credits == approx(4.0)
     assert spring.weekly_hours == 2
     assert spring.lecture_count == 18
     assert spring.practice_count == 12
@@ -858,7 +860,7 @@ def test_course_grouper_falls_back_to_course_credits_when_term_credits_are_zero(
     assert len(grouped.offerings) == 1
 
     spring = grouped.offerings[0]
-    assert spring.credits == 4.0
+    assert spring.credits == approx(4.0)
     assert spring.weekly_hours == 1
 
 
