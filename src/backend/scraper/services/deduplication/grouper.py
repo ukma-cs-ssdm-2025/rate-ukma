@@ -23,6 +23,7 @@ from .extractors import (
     SpecialtyExtractor,
     StatusExtractor,
     StudentExtractor,
+    WeeklyHoursExtractor,
 )
 
 logger = structlog.get_logger(__name__)
@@ -81,6 +82,7 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
             "exam_type": ExamTypeExtractor(),
             "practice_type": PracticeTypeExtractor(),
             "limits": CourseLimitsExtractor(),
+            "weekly_hours": WeeklyHoursExtractor(),
         }
 
     def process(self, data: list[ParsedCourseDetails]) -> list[DeduplicatedCourse]:
@@ -359,7 +361,7 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         weekly_hours = (
             season_info.hours_per_week
             if season_info and season_info.hours_per_week is not None
-            else 0
+            else self.extractors["weekly_hours"].extract(course)
         )
         exam_type = (
             self._map_exam_type(season_info.exam_type)

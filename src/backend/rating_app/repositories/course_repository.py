@@ -197,7 +197,7 @@ class CourseRepository(
         ).first()
         created = False
 
-        if course is None and normalized_level:
+        if course is None and normalized_level and update_existing:
             course = Course.objects.filter(
                 title=data.title,
                 department=department,

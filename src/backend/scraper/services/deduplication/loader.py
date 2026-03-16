@@ -51,8 +51,9 @@ class CourseLoader(DeduplicationComponent[Path, list[ParsedCourseDetails]]):
             course = ParsedCourseDetails(**payload)
             self._validate_basic_structure(course)
             return course
-        # skip_invalid_courses only applies to structural validation failures
-        # from _validate_basic_structure, not malformed JSON or schema violations
+        # skip_invalid_courses suppresses any DataValidationError raised in _parse_line
+        # (type checks and _validate_basic_structure). Malformed JSON (JSONDecodeError)
+        # and Pydantic schema violations (ValidationError) always abort.
         except json.JSONDecodeError as e:
             logger.warning("json_decode_error", line_num=line_num, error=str(e))
             raise DataValidationError(f"Invalid JSON at line {line_num}: {e}") from e
