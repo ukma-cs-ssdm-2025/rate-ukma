@@ -213,11 +213,7 @@ class CourseRepository(
                 description=data.description,
             )
             created = True
-        elif created is False and update_existing:
-            course.status = data.status
-            course.description = data.description
-
-        if not created:
+        elif update_existing:
             updated_fields = self._collect_updated_fields(course=course, data=data)
             if updated_fields:
                 course.save(update_fields=updated_fields)

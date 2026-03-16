@@ -1,4 +1,4 @@
-from typing import ClassVar, Literal, overload
+from typing import Literal, overload
 
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -23,10 +23,9 @@ logger = structlog.get_logger(__name__)
 
 
 class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
-    _duplicate_email_warnings_seen: ClassVar[set[str]] = set()
-
     def __init__(self, mapper: StudentMapper) -> None:
         self._mapper = mapper
+        self._duplicate_email_warnings_seen: set[str] = set()
 
     def get_all(self) -> list[StudentDTO]:
         qs = self._build_base_queryset().all()

@@ -187,6 +187,43 @@ def test_get_or_create_keeps_bachelor_and_master_courses_separate(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_get_or_create_does_not_update_existing_course_fields(repo):
+    department = CourseFactory().department
+
+    course_input = CourseInput(
+        title="Data Science",
+        description="Original description",
+        status=CourseStatus.ACTIVE,
+        education_level=EducationLevel.BACHELOR,
+        department=str(department.id),
+        department_name=department.name,
+        faculty=str(department.faculty_id),
+        faculty_name=department.faculty.name,
+    )
+    original, created = repo.get_or_create(course_input)
+    assert created is True
+
+    updated_input = CourseInput(
+        title="Data Science",
+        description="Updated description",
+        status=CourseStatus.FINISHED,
+        education_level=EducationLevel.BACHELOR,
+        department=str(department.id),
+        department_name=department.name,
+        faculty=str(department.faculty_id),
+        faculty_name=department.faculty.name,
+    )
+    found, created = repo.get_or_create(updated_input)
+
+    assert created is False
+    assert found.id == original.id
+    refreshed = Course.objects.get(id=original.id)
+    assert refreshed.description == "Original description"
+    assert refreshed.status == CourseStatus.ACTIVE
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_get_or_upsert_reuses_legacy_blank_level_course(repo):
     legacy_course = CourseFactory(
         title="Data Science",
