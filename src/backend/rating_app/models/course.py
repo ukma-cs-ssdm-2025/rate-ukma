@@ -38,6 +38,12 @@ class Course(models.Model):
                 opclasses=["gin_trgm_ops"],
             ),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["title", "department", "education_level"],
+                name="course_identity_unique",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.id} — {self.title}"

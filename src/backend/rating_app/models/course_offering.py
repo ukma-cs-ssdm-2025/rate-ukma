@@ -80,7 +80,5 @@ class CourseOffering(models.Model):
         return max(self.max_students - self.occupied_seats, 0)
 
     @property
-    def total_hours(self) -> int | None:
-        if self.credits is None:
-            return None
+    def total_hours(self) -> int:
         return int(self.credits * 30)

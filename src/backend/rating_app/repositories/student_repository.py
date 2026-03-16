@@ -158,7 +158,7 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
 
     def _find_existing_for_upsert(self, data: StudentInput | StudentDTO) -> Student | None:
         if data.email:
-            email_matches = list(self._build_base_queryset().filter(email=data.email))
+            email_matches = list(self._build_base_queryset().filter(email=data.email).order_by("id"))
             if email_matches:
                 linked_student = next(
                     (student for student in email_matches if student.user_id is not None),

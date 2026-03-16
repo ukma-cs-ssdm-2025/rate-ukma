@@ -50,7 +50,5 @@ class CourseOfferingTerm(models.Model):
         return f"{self.offering.course.title} @ {self.semester}"
 
     @property
-    def total_hours(self) -> int | None:
-        if self.credits is None:
-            return None
+    def total_hours(self) -> int:
         return int(self.credits * 30)

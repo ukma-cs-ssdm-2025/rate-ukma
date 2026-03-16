@@ -38,7 +38,7 @@ class CourseOfferingRetrieveParams(BaseModel):
     course_offering_id: uuid.UUID = Field(description="Unique identifier of course offering")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class CourseOfferingInput:
     code: str
     course_id: uuid.UUID
@@ -84,7 +84,7 @@ class CourseOfferingTerm:
     semester_term: str | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class CourseOffering:
     id: uuid.UUID
     code: str

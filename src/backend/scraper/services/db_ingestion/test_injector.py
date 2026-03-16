@@ -92,7 +92,7 @@ def repo_mocks():
 
     faculty_repo.get_or_create.return_value = (faculty, True)
     dept_repo.get_or_create.return_value = (department, True)
-    course_repo.get_or_create.return_value = (course, True)
+    course_repo.get_or_upsert.return_value = (course, True)
     semester_repo.get_or_create.return_value = (semester, True)
     offering_repo.get_or_upsert.return_value = (course_offering, True)
     speciality_repo.get_by_name.return_value = speciality
@@ -327,7 +327,7 @@ def create_mock_offering(
 @pytest.mark.django_db
 def test_injector_basic_flow_calls_repos_and_tracker(injector, repo_mocks):
     # Arrange
-    repo_mocks.course_repo.get_or_create.return_value = (repo_mocks.course, True)
+    repo_mocks.course_repo.get_or_upsert.return_value = (repo_mocks.course, True)
     models = [create_mock_course(title="Intro to Testing", department="CS", faculty="FAMCS")]
 
     # Act
@@ -343,8 +343,8 @@ def test_injector_basic_flow_calls_repos_and_tracker(injector, repo_mocks):
     assert faculty_dto.name == "FAMCS"
     assert call_args[1].get("return_model") is True
     repo_mocks.dept_repo.get_or_create.assert_called_once()
-    repo_mocks.course_repo.get_or_create.assert_called_once()
-    course_dto = repo_mocks.course_repo.get_or_create.call_args[0][0]
+    repo_mocks.course_repo.get_or_upsert.assert_called_once()
+    course_dto = repo_mocks.course_repo.get_or_upsert.call_args[0][0]
     assert course_dto.education_level is None
     repo_mocks.tracker.complete.assert_called_once()
 
@@ -365,7 +365,7 @@ def test_injector_passes_course_education_level(injector, repo_mocks):
 
     injector.execute(models)
 
-    course_dto = repo_mocks.course_repo.get_or_create.call_args[0][0]
+    course_dto = repo_mocks.course_repo.get_or_upsert.call_args[0][0]
 
     assert course_dto.education_level == EducationLevel.BACHELOR
 

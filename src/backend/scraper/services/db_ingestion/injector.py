@@ -212,7 +212,7 @@ class CourseDbInjector(IDbInjector):
                 faculty=str(faculty.id),
                 faculty_name=faculty.name,
             )
-            course, _ = self.course_repository.get_or_create(
+            course, _ = self.course_repository.get_or_upsert(
                 course_dto,
                 return_model=True,
             )
@@ -443,7 +443,7 @@ class CourseDbInjector(IDbInjector):
             education_level = EducationLevel(student_data.education_level)
 
         key = (
-            ("email", student_data.email.lower())
+            ("email", student_data.email.lower(), "", "", "")
             if student_data.email
             else (
                 student_data.first_name,

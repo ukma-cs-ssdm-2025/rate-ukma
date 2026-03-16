@@ -64,11 +64,11 @@ def test_course_loader_skips_invalid_courses_when_enabled(
     tmp_path,
 ):
     combined_file = tmp_path / "combined.jsonl"
-    combined_file.write_text(
-        temp_input_file.read_text(encoding="utf-8")
-        + temp_missing_title_file.read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
+    valid_content = temp_input_file.read_text(encoding="utf-8")
+    invalid_content = temp_missing_title_file.read_text(encoding="utf-8")
+    if not valid_content.endswith("\n"):
+        valid_content += "\n"
+    combined_file.write_text(valid_content + invalid_content, encoding="utf-8")
     tolerant_loader = CourseLoader(skip_invalid_courses=True)
 
     result = tolerant_loader.process(combined_file)

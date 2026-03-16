@@ -25,6 +25,20 @@ from .base import DataValidationError, Extractor
 
 logger = structlog.get_logger(__name__)
 
+_BACHELOR_FRAGMENT = "бакалавр"
+_MASTER_FRAGMENT = "магістр"
+
+
+def _parse_education_level(raw_level: str | None) -> EducationLevel | None:
+    if not raw_level:
+        return None
+    level_lower = raw_level.strip().lower()
+    if _BACHELOR_FRAGMENT in level_lower:
+        return EducationLevel.BACHELOR
+    if _MASTER_FRAGMENT in level_lower:
+        return EducationLevel.MASTER
+    return None
+
 
 class SemesterExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSemester]]):
     def extract(self, data: ParsedCourseDetails) -> list[DeduplicatedSemester]:
@@ -287,14 +301,7 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
         return student
 
     def _extract_education_level(self, raw_level: str | None) -> EducationLevel | None:
-        if not raw_level:
-            return None
-        level_lower = raw_level.strip().lower()
-        if "бакалавр" in level_lower:
-            return EducationLevel.BACHELOR
-        if "магістр" in level_lower:
-            return EducationLevel.MASTER
-        return None
+        return _parse_education_level(raw_level)
 
     def _extract_program_start_year(
         self,
@@ -397,14 +404,7 @@ class SpecialtyExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSpecial
         return specialities
 
     def _extract_education_level(self, raw_level: str | None) -> EducationLevel | None:
-        if not raw_level:
-            return None
-        level_lower = raw_level.strip().lower()
-        if "бакалавр" in level_lower:
-            return EducationLevel.BACHELOR
-        if "магістр" in level_lower:
-            return EducationLevel.MASTER
-        return None
+        return _parse_education_level(raw_level)
 
     def _map_course_type_kind(self, spec_type: str) -> CourseTypeKind | None:
         if not spec_type:
@@ -442,9 +442,9 @@ class EducationLevelExtractor(Extractor[ParsedCourseDetails, EducationLevel]):
             raise DataValidationError(f"Course {data.id} missing required education level")
 
         level_lower = level.lower()
-        if "бакалавр" in level_lower:
+        if _BACHELOR_FRAGMENT in level_lower:
             return EducationLevel.BACHELOR
-        elif "магістр" in level_lower:
+        elif _MASTER_FRAGMENT in level_lower:
             return EducationLevel.MASTER
         else:
             raise DataValidationError(f"Course {data.id} has unrecognized education level: {level}")

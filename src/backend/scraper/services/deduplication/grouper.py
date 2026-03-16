@@ -288,9 +288,9 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         term_details: list[dict[str, object]] = []
         for semester in semesters:
             offering_details = self._build_offering_details(course, semester)
-            credits = offering_details["credits"]
+            term_credits = offering_details["credits"]
 
-            if credits is None or credits <= 0:
+            if term_credits is None or term_credits <= 0:
                 logger.warning(
                     "offering_term_creation_skipped",
                     reason="invalid_offering_credits",
@@ -298,7 +298,7 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
                     course_title=course.title,
                     semester_term=semester.term.value,
                     semester_year=semester.year,
-                    credits=credits,
+                    credits=term_credits,
                 )
                 continue
 
@@ -351,7 +351,7 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         course_credits = self.extractors["credits"].extract(course)
         season_credits = season_info.credits if season_info else None
 
-        credits = (
+        resolved_credits = (
             season_credits
             if season_credits is not None and season_credits > 0
             else course_credits
@@ -373,7 +373,7 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         )
 
         return {
-            "credits": credits,
+            "credits": resolved_credits,
             "weekly_hours": weekly_hours,
             "lecture_count": season_info.lecture_hours if season_info else None,
             "practice_count": season_info.practice_hours if season_info else None,
