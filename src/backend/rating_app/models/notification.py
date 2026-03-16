@@ -79,3 +79,27 @@ class NotificationCursor(models.Model):
 
     def __str__(self):
         return f"NotificationCursor(user={self.user_id}, last_read_at={self.last_read_at})"
+
+
+class NotificationGroupRead(models.Model):
+    user_id: int
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notification_group_reads",
+    )
+    group_key = models.CharField(max_length=255)
+    read_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Notification Group Read"
+        verbose_name_plural = "Notification Group Reads"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "group_key"],
+                name="unique_user_group_read",
+            ),
+        ]
+
+    def __str__(self):
+        return f"NotificationGroupRead(user={self.user_id}, group_key={self.group_key})"

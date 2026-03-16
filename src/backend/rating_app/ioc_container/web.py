@@ -181,6 +181,14 @@ def notification_mark_read_view():
 
 
 @once
+def notification_mark_group_read_view():
+    return NotificationViewSet.as_view(
+        {"post": "mark_group_read"},
+        notification_service=notification_service(),
+    )
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -287,6 +295,11 @@ def rest_urlpatterns() -> list:
             "notifications/mark-read/",
             notification_mark_read_view(),
             name="notification-mark-read",
+        ),
+        path(
+            "notifications/mark-group-read/",
+            notification_mark_group_read_view(),
+            name="notification-mark-group-read",
         ),
     ]
 

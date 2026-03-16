@@ -223,3 +223,9 @@ R_NOTIFICATION_MARK_READ = {
     204: OpenApiResponse(description="All notifications marked as read"),
     401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }
+
+R_NOTIFICATION_GROUP_MARK_READ = {
+    204: OpenApiResponse(description="Notification group marked as read"),
+    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+}

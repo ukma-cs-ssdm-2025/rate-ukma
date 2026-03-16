@@ -70,3 +70,6 @@ class NotificationService:
 
     def mark_all_read(self, user_id: int) -> None:
         self._cursor_repository.advance_cursor(user_id)
+
+    def mark_group_read(self, user_id: int, group_key: str) -> None:
+        self._cursor_repository.mark_group_read(user_id, group_key)

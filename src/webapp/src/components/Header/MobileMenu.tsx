@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { LogOut, Moon, Sun, X } from "lucide-react";
+import { Bell, LogOut, Moon, Sun, X } from "lucide-react";
 
 import { Drawer } from "@/components/ui/Drawer";
+import { useUnreadCount } from "@/features/notifications/hooks/useNotifications";
 import type { AuthUser } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import type { NavigationItem, ThemeOption } from "./navigationData";
@@ -113,6 +114,28 @@ function AccountSummary({
 	);
 }
 
+function MobileNotificationRow() {
+	const { data } = useUnreadCount();
+	const count = data?.count ?? 0;
+
+	return (
+		<div
+			className="mb-3 flex items-center justify-between"
+			data-testid={testIds.notifications.mobileRow}
+		>
+			<span className="text-sm text-muted-foreground">Сповіщення</span>
+			<div className="relative">
+				<Bell className="h-5 w-5 text-muted-foreground" />
+				{count > 0 && (
+					<span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+						{count > 99 ? "99+" : count}
+					</span>
+				)}
+			</div>
+		</div>
+	);
+}
+
 export function MobileMenu({
 	isOpen,
 	onClose,
@@ -159,7 +182,10 @@ export function MobileMenu({
 			<div className="mt-auto">
 				<ThemeSwitcher theme={theme} setTheme={setTheme} />
 				{isAuthenticated && (
-					<AccountSummary user={user} onLogout={handleLogout} />
+					<>
+						<MobileNotificationRow />
+						<AccountSummary user={user} onLogout={handleLogout} />
+					</>
 				)}
 			</div>
 		</Drawer>

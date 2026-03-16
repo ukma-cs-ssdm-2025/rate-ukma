@@ -19,11 +19,13 @@ export function ExpandableText({ children, className }: ExpandableTextProps) {
 	}, []);
 
 	// When content changes, collapse so the clamped layout is applied before measuring.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: children triggers re-collapse on content change
 	useLayoutEffect(() => {
 		setIsExpanded(false);
 	}, [children]);
 
 	// Remeasure clamping after every transition back to the collapsed state.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: children triggers re-measure on content change
 	useLayoutEffect(() => {
 		if (isExpanded) return;
 		const el = elRef.current;

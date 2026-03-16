@@ -1498,6 +1498,19 @@ paths:
     get:
       operationId: notifications_list
       summary: List notifications for the authenticated user
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          default: 20
+        description: Number of notification groups to return
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          default: 0
+        description: Number of notification groups to skip
       tags:
       - notifications
       security:
@@ -1523,23 +1536,62 @@ paths:
                     detail: Authentication credentials were not provided
                     status: 401
           description: Unauthorized
-  /api/v1/notifications/mark-read/:
+  /api/v1/notifications/mark-group-read/:
     post:
-      operationId: notifications_mark_read_create
-      summary: Mark all notifications as read
+      operationId: notifications_mark_group_read_create
+      summary: Mark a single notification group as read
       tags:
       - notifications
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NotificationGroup'
+              $ref: '#/components/schemas/MarkGroupRead'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/NotificationGroup'
+              $ref: '#/components/schemas/MarkGroupRead'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/NotificationGroup'
+              $ref: '#/components/schemas/MarkGroupRead'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: Notification group marked as read
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+  /api/v1/notifications/mark-read/:
+    post:
+      operationId: notifications_mark_read_create
+      summary: Mark all notifications as read
+      tags:
+      - notifications
       security:
       - cookieAuth: []
       - tokenAuth: []
@@ -2482,6 +2534,13 @@ components:
       required:
       - password
       - username
+    MarkGroupRead:
+      type: object
+      properties:
+        group_key:
+          type: string
+      required:
+      - group_key
     NotificationGroup:
       type: object
       properties:
@@ -2512,6 +2571,14 @@ components:
           readOnly: true
         message:
           type: string
+          readOnly: true
+        rating_id:
+          type: string
+          nullable: true
+          readOnly: true
+        course_id:
+          type: string
+          nullable: true
           readOnly: true
     PatchedRatingPatchParams:
       properties:

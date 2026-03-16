@@ -4,9 +4,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 import structlog
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from rating_app.serializers.notification import (
+    MarkGroupReadSerializer,
     NotificationGroupSerializer,
     UnreadCountSerializer,
 )
@@ -15,6 +16,7 @@ from rating_app.services.notification_service import (
     NotificationService,
 )
 from rating_app.views.responses import (
+    R_NOTIFICATION_GROUP_MARK_READ,
     R_NOTIFICATION_LIST,
     R_NOTIFICATION_MARK_READ,
     R_NOTIFICATION_UNREAD_COUNT,
@@ -32,6 +34,22 @@ class NotificationViewSet(viewsets.ViewSet):
 
     @extend_schema(
         summary="List notifications for the authenticated user",
+        parameters=[
+            OpenApiParameter(
+                "limit",
+                int,
+                OpenApiParameter.QUERY,
+                description="Number of notification groups to return",
+                default=DEFAULT_NOTIFICATION_PAGE_SIZE,
+            ),
+            OpenApiParameter(
+                "offset",
+                int,
+                OpenApiParameter.QUERY,
+                description="Number of notification groups to skip",
+                default=0,
+            ),
+        ],
         responses=R_NOTIFICATION_LIST,
     )
     def list(self, request) -> Response:
@@ -62,6 +80,7 @@ class NotificationViewSet(viewsets.ViewSet):
 
     @extend_schema(
         summary="Mark all notifications as read",
+        request=None,
         responses=R_NOTIFICATION_MARK_READ,
     )
     @action(detail=False, methods=["post"], url_path="mark-read")
@@ -69,6 +88,24 @@ class NotificationViewSet(viewsets.ViewSet):
         assert self.notification_service is not None
 
         self.notification_service.mark_all_read(request.user.id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @extend_schema(
+        summary="Mark a single notification group as read",
+        request=MarkGroupReadSerializer,
+        responses=R_NOTIFICATION_GROUP_MARK_READ,
+    )
+    @action(detail=False, methods=["post"], url_path="mark-group-read")
+    def mark_group_read(self, request) -> Response:
+        assert self.notification_service is not None
+
+        serializer = MarkGroupReadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        self.notification_service.mark_group_read(
+            user_id=request.user.id,
+            group_key=serializer.validated_data["group_key"],
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def _parse_limit(self, request) -> int:
