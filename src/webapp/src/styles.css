@@ -13,6 +13,23 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+html {
+	scrollbar-gutter: stable;
+}
+
+/*
+ * react-remove-scroll-bar (used by Radix Dialog) adds margin-right to
+ * compensate for the removed scrollbar. With scrollbar-gutter: stable the
+ * browser already reserves that space, so the margin causes a double-offset
+ * layout shift. Override it when the gutter handles compensation natively.
+ * See: https://github.com/radix-ui/primitives/issues/3251
+ */
+@supports (scrollbar-gutter: stable) {
+	html body[data-scroll-locked] {
+		margin-right: 0 !important; /* biome-ignore lint/complexity/noImportantStyles: remove-scroll-bar override */
+	}
+}
+
 code {
 	font-family:
 		source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
