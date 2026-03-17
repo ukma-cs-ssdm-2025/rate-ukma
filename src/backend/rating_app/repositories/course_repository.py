@@ -198,11 +198,17 @@ class CourseRepository(
         created = False
 
         if course is None and normalized_level and update_existing:
-            course = Course.objects.select_for_update().filter(
-                title=data.title,
-                department=department,
-                education_level="",
-            ).first()
+            with transaction.atomic():
+                course = Course.objects.select_for_update().filter(
+                    title=data.title,
+                    department=department,
+                    education_level="",
+                ).first()
+                if course is not None:
+                    updated_fields = self._collect_updated_fields(course=course, data=data)
+                    if updated_fields:
+                        course.save(update_fields=updated_fields)
+                    return course, False
 
         if course is None:
             try:

@@ -322,13 +322,13 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
     def _extract_program_start_year(
         self,
         *,
-        course_year: str | None,
+        course_year: str | int | None,
         academic_year: str | None,
     ) -> int | None:
         if not course_year:
             return None
 
-        course_year_match = re.search(r"(\d+)", course_year)
+        course_year_match = re.search(r"(\d+)", str(course_year))
         if course_year_match is None:
             return None
 

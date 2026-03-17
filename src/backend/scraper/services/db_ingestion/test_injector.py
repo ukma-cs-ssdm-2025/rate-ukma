@@ -320,7 +320,7 @@ def create_mock_offering(
         instructors=instructors or [],
         enrollments=enrollments or [],
         specialities=specialities or [],
-        terms=terms or default_terms,
+        terms=default_terms if terms is None else terms,
     )
 
 
