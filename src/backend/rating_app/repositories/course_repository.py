@@ -198,7 +198,7 @@ class CourseRepository(
         created = False
 
         if course is None and normalized_level and update_existing:
-            course = Course.objects.filter(
+            course = Course.objects.select_for_update().filter(
                 title=data.title,
                 department=department,
                 education_level="",

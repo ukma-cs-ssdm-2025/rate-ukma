@@ -29,6 +29,22 @@ _BACHELOR_FRAGMENT = "бакалавр"
 _MASTER_FRAGMENT = "магістр"
 
 
+def parse_exam_type(raw: str) -> ExamType:
+    normalized = raw.strip().lower().replace("`", "'")
+    if "залік" in normalized:
+        return ExamType.CREDIT
+    if "екзам" in normalized or "іспит" in normalized:
+        return ExamType.EXAM
+    return ExamType.EXAM
+
+
+def parse_practice_type(raw: str) -> PracticeType:
+    normalized = raw.strip().upper()
+    if normalized == "SEMINAR":
+        return PracticeType.SEMINAR
+    return PracticeType.PRACTICE
+
+
 def _parse_education_level(raw_level: str | None) -> EducationLevel | None:
     if not raw_level:
         return None
@@ -465,12 +481,7 @@ class ExamTypeExtractor(Extractor[ParsedCourseDetails, ExamType]):
         format_str = data.format
         if not format_str:
             return ExamType.EXAM
-
-        format_lower = format_str.lower()
-        if "залік" in format_lower:
-            return ExamType.CREDIT
-        else:
-            return ExamType.EXAM
+        return parse_exam_type(format_str)
 
 
 class PracticeTypeExtractor(Extractor[ParsedCourseDetails, PracticeType | None]):
@@ -497,17 +508,12 @@ class PracticeTypeExtractor(Extractor[ParsedCourseDetails, PracticeType | None])
         return PracticeType.PRACTICE
 
     def _map_practice_type(self, practice_type: str) -> PracticeType:
-        practice_type_upper = practice_type.upper().strip()
-
-        if practice_type_upper == "PRACTICE":
-            return PracticeType.PRACTICE
-        elif practice_type_upper == "SEMINAR":
-            return PracticeType.SEMINAR
-        else:
+        result = parse_practice_type(practice_type)
+        if result == PracticeType.PRACTICE and practice_type.strip().upper() not in ("PRACTICE", ""):
             logger.warning(
                 "unknown_practice_type", practice_type=practice_type, defaulting_to="PRACTICE"
             )
-            return PracticeType.PRACTICE
+        return result
 
 
 class CourseLimitsExtractor(Extractor[ParsedCourseDetails, dict[str, int | None]]):

@@ -33,12 +33,24 @@ class CourseLoader(DeduplicationComponent[Path, list[ParsedCourseDetails]]):
                 else:
                     skipped_count += 1
 
-        logger.info(
-            "courses_loaded_successfully",
-            total=len(courses),
-            skipped=skipped_count,
-            input_path=str(data),
-        )
+        if courses:
+            logger.info(
+                "courses_loaded_successfully",
+                total=len(courses),
+                skipped=skipped_count,
+                input_path=str(data),
+            )
+        elif skipped_count > 0:
+            logger.warning(
+                "courses_all_rows_skipped",
+                skipped=skipped_count,
+                input_path=str(data),
+            )
+        else:
+            logger.info(
+                "courses_loaded_empty_file",
+                input_path=str(data),
+            )
         return courses
 
     def _parse_line(self, line: str, line_num: int) -> ParsedCourseDetails | None:

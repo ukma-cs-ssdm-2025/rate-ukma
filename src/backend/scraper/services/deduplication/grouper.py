@@ -5,8 +5,6 @@ from ...models.deduplicated import (
     DeduplicatedCourse,
     DeduplicatedCourseOffering,
     DeduplicatedCourseOfferingTerm,
-    ExamType,
-    PracticeType,
     SemesterTerm,
 )
 from .base import DataValidationError, DeduplicationComponent
@@ -24,6 +22,8 @@ from .extractors import (
     StatusExtractor,
     StudentExtractor,
     WeeklyHoursExtractor,
+    parse_exam_type,
+    parse_practice_type,
 )
 
 logger = structlog.get_logger(__name__)
@@ -97,6 +97,12 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         filtered_out_count = 0
 
         for course in all_courses:
+            # Courses with season_details may have valid per-term credits/hours
+            # even when course-level values are zero — let term resolution decide
+            if course.season_details:
+                valid_courses.append(course)
+                continue
+
             course_credits = course.credits
             course_hours = course.hours
 
@@ -364,12 +370,12 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
             else self.extractors["weekly_hours"].extract(course)
         )
         exam_type = (
-            self._map_exam_type(season_info.exam_type)
+            parse_exam_type(season_info.exam_type)
             if season_info and season_info.exam_type
             else self.extractors["exam_type"].extract(course)
         )
         practice_type = (
-            self._map_practice_type(season_info.practice_type)
+            parse_practice_type(season_info.practice_type)
             if season_info and season_info.practice_type
             else self.extractors["practice_type"].extract(course)
         )
@@ -402,16 +408,3 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
 
         return None
 
-    def _map_exam_type(self, raw_exam_type: str) -> ExamType:
-        normalized = raw_exam_type.strip().lower().replace("`", "'")
-        if "залік" in normalized:
-            return ExamType.CREDIT
-        if "екзам" in normalized or "іспит" in normalized:
-            return ExamType.EXAM
-        return ExamType.EXAM
-
-    def _map_practice_type(self, raw_practice_type: str) -> PracticeType:
-        normalized = raw_practice_type.strip().upper()
-        if normalized == "SEMINAR":
-            return PracticeType.SEMINAR
-        return PracticeType.PRACTICE
