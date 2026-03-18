@@ -4,6 +4,7 @@ import pytest
 
 from scraper.models import ParsedCourseDetails
 from scraper.services.deduplication.base import DataValidationError
+from scraper.services.deduplication.loader import CourseLoader
 
 
 def test_load_courses_success(course_loader, temp_input_file):
@@ -55,3 +56,22 @@ def test_course_loader_returns_parsed_courses(course_loader, temp_input_file):
     assert all(isinstance(course, ParsedCourseDetails) for course in result)
     assert result[0].title == "Веб-розробка: основи та практики"
     assert result[1].title == "Структури даних та алгоритми"
+
+
+def test_course_loader_skips_invalid_courses_when_enabled(
+    temp_input_file,
+    temp_missing_title_file,
+    tmp_path,
+):
+    combined_file = tmp_path / "combined.jsonl"
+    valid_content = temp_input_file.read_text(encoding="utf-8")
+    invalid_content = temp_missing_title_file.read_text(encoding="utf-8")
+    if not valid_content.endswith("\n"):
+        valid_content += "\n"
+    combined_file.write_text(valid_content + invalid_content, encoding="utf-8")
+    tolerant_loader = CourseLoader(skip_invalid_courses=True)
+
+    result = tolerant_loader.process(combined_file)
+
+    assert len(result) == 2
+    assert all(isinstance(course, ParsedCourseDetails) for course in result)

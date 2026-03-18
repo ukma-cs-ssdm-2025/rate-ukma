@@ -28,6 +28,7 @@ from rating_app.application_schemas.student import StudentInput
 from rating_app.models import (
     Course,
     CourseOffering,
+    CourseOfferingTerm,
     Department,
     Faculty,
     Instructor,
@@ -109,7 +110,7 @@ class CourseDbInjector(IDbInjector):
 
         self._faculty_cache: dict[str, Faculty] = {}
         self._department_cache: dict[tuple[str, str], Department] = {}
-        self._course_cache: dict[tuple[str, str], Course] = {}
+        self._course_cache: dict[tuple[str, str, str], Course] = {}
         self._speciality_cache: dict[str, Speciality | None] = {}
         self._semester_cache: dict[tuple[int, str], Semester] = {}
         self._instructor_cache: dict[tuple[str, str, str, str, str], Instructor] = {}
@@ -197,19 +198,21 @@ class CourseDbInjector(IDbInjector):
             )
             self._department_cache[department_key] = department
 
-        course_key = (course_data.title, department.name)
+        course_level = course_data.education_level.value if course_data.education_level else ""
+        course_key = (course_data.title, department.name, course_level)
         course = self._course_cache.get(course_key)
         if not course:
             course_dto = CourseInput(
                 title=course_data.title,
                 description=course_data.description or "",
                 status=CourseStatus(course_data.status.value),
+                education_level=course_data.education_level,
                 department=str(department.id),
                 department_name=department.name,
                 faculty=str(faculty.id),
                 faculty_name=faculty.name,
             )
-            course, _ = self.course_repository.get_or_create(
+            course, _ = self.course_repository.get_or_upsert(
                 course_dto,
                 return_model=True,
             )
@@ -261,6 +264,7 @@ class CourseDbInjector(IDbInjector):
     ) -> None:
         for offering_data in course_data.offerings:
             course_offering = self._create_course_offering(course, offering_data)
+            self._process_offering_terms(course_offering, offering_data.terms)
             self._process_offering_specialities(course_offering, offering_data.specialities)
             self._process_instructors_m2m(course_offering, offering_data.instructors)
             self._process_enrollments(course_offering, offering_data.enrollments)
@@ -311,6 +315,7 @@ class CourseDbInjector(IDbInjector):
             credits=Decimal(str(offering_data.credits)),
             weekly_hours=offering_data.weekly_hours,
             exam_type=ExamType(offering_data.exam_type.value),
+            study_year=offering_data.study_year,
             practice_type=PracticeType(offering_data.practice_type.value)
             if offering_data.practice_type
             else None,
@@ -326,6 +331,43 @@ class CourseDbInjector(IDbInjector):
             return_model=True,
         )
         return course_offering
+
+    def _process_offering_terms(
+        self,
+        offering: CourseOffering,
+        terms: Sequence,
+    ) -> None:
+        for term_data in terms:
+            semester_key = (term_data.semester.year, term_data.semester.term.value)
+            semester = self._semester_cache.get(semester_key)
+            if not semester:
+                semester_dto = SemesterInput(
+                    year=term_data.semester.year,
+                    term=term_data.semester.term.value,
+                )
+                semester, _ = self.semester_repository.get_or_create(
+                    semester_dto,
+                    return_model=True,
+                )
+                self._semester_cache[semester_key] = semester
+
+            practice_type = (
+                PracticeType(term_data.practice_type.value)
+                if term_data.practice_type
+                else ""
+            )
+            CourseOfferingTerm.objects.update_or_create(
+                offering=offering,
+                semester=semester,
+                defaults={
+                    "credits": Decimal(str(term_data.credits)),
+                    "weekly_hours": term_data.weekly_hours,
+                    "exam_type": ExamType(term_data.exam_type.value),
+                    "lecture_count": term_data.lecture_count,
+                    "practice_count": term_data.practice_count,
+                    "practice_type": practice_type,
+                },
+            )
 
     def _process_instructors_m2m(
         self,
@@ -401,11 +443,15 @@ class CourseDbInjector(IDbInjector):
             education_level = EducationLevel(student_data.education_level)
 
         key = (
-            student_data.first_name,
-            student_data.last_name,
-            student_data.patronymic or "",
-            str(education_level),
-            student_speciality.name,
+            ("email", student_data.email.lower(), "", "", "")
+            if student_data.email
+            else (
+                student_data.first_name,
+                student_data.last_name,
+                student_data.patronymic or "",
+                str(education_level),
+                student_speciality.name,
+            )
         )
         cached = self._student_cache.get(key)
         if cached:
@@ -418,8 +464,9 @@ class CourseDbInjector(IDbInjector):
             education_level=education_level,
             speciality_id=student_speciality.id,
             email=student_data.email or "",
+            program_start_academic_year_start=student_data.program_start_academic_year_start,
         )
-        student, created = self.student_repository.get_or_create(
+        student, created = self.student_repository.get_or_upsert(
             student_input,
             return_model=True,
         )

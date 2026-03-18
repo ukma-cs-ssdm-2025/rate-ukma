@@ -1,7 +1,7 @@
 from typing import Any, Literal, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import DataError
+from django.db import DataError, IntegrityError, transaction
 from django.db.models import (
     Case,
     Exists,
@@ -118,13 +118,10 @@ class CourseRepository(
         return_model: bool = False,
     ) -> tuple[CourseDTO, bool] | tuple[Course, bool]:
         department = self._get_department_by_id(data.department)
-        course, created = Course.objects.get_or_create(
-            title=data.title,
+        course, created = self._get_or_create_by_identity(
+            data=data,
             department=department,
-            defaults={
-                "status": data.status,
-                "description": data.description,
-            },
+            update_existing=False,
         )
 
         if return_model:
@@ -154,13 +151,10 @@ class CourseRepository(
         return_model: bool = False,
     ) -> tuple[CourseDTO, bool] | tuple[Course, bool]:
         department = self._get_department_by_id(data.department)
-        course, created = Course.objects.update_or_create(
-            title=data.title,
+        course, created = self._get_or_create_by_identity(
+            data=data,
             department=department,
-            defaults={
-                "status": data.status,
-                "description": data.description,
-            },
+            update_existing=True,
         )
 
         if return_model:
@@ -187,6 +181,80 @@ class CourseRepository(
         courses = self._apply_range_filters(courses, filters)
         courses = self._apply_sorting(courses, filters)
         return courses
+
+    def _get_or_create_by_identity(
+        self,
+        *,
+        data: CourseInput | CourseDTO,
+        department: Department,
+        update_existing: bool,
+    ) -> tuple[Course, bool]:
+        normalized_level = data.education_level or ""
+        course = Course.objects.filter(
+            title=data.title,
+            department=department,
+            education_level=normalized_level,
+        ).first()
+        created = False
+
+        if course is None and normalized_level and update_existing:
+            with transaction.atomic():
+                course = Course.objects.select_for_update().filter(
+                    title=data.title,
+                    department=department,
+                    education_level="",
+                ).first()
+                if course is not None:
+                    updated_fields = self._collect_updated_fields(course=course, data=data)
+                    if updated_fields:
+                        course.save(update_fields=updated_fields)
+                    return course, False
+
+        if course is None:
+            try:
+                with transaction.atomic():
+                    course = Course.objects.create(
+                        title=data.title,
+                        department=department,
+                        education_level=normalized_level,
+                        status=data.status,
+                        description=data.description,
+                    )
+                    created = True
+            except IntegrityError:
+                course = Course.objects.filter(
+                    title=data.title,
+                    department=department,
+                    education_level=normalized_level,
+                ).first()
+                if course is None:
+                    raise
+        elif update_existing:
+            updated_fields = self._collect_updated_fields(course=course, data=data)
+            if updated_fields:
+                course.save(update_fields=updated_fields)
+
+        return course, created
+
+    def _collect_updated_fields(
+        self,
+        *,
+        course: Course,
+        data: CourseInput | CourseDTO,
+    ) -> list[str]:
+        updated_fields: list[str] = []
+
+        normalized_level = data.education_level or ""
+        for field, new_value in (
+            ("education_level", normalized_level),
+            ("status", data.status),
+            ("description", data.description),
+        ):
+            if getattr(course, field) != new_value:
+                setattr(course, field, new_value)
+                updated_fields.append(field)
+
+        return updated_fields
 
     def _build_base_queryset(self, *, prefetch_related: bool = True) -> QuerySet[Course]:
         if prefetch_related:
