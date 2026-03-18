@@ -4,7 +4,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from rating_app.models import Department, Faculty, Speciality
+from rating_app.models import Course, Department, Faculty, Speciality
 
 
 class Command(BaseCommand):
@@ -22,6 +22,24 @@ class Command(BaseCommand):
             action="store_true",
             help="Show what would be done without making changes.",
         )
+
+    def _merge_departments(self, dup, canonical, dry_run):
+        for dept in Department.objects.filter(faculty=dup):
+            canonical_dept = Department.objects.filter(faculty=canonical, name=dept.name).first()
+
+            if canonical_dept is None:
+                self.stdout.write(f'    Reassign department: "{dept.name}"')
+                if not dry_run:
+                    dept.faculty = canonical
+                    dept.save(update_fields=["faculty"])
+            else:
+                course_count = Course.objects.filter(department=dept).count()
+                self.stdout.write(
+                    f'    Merge department: "{dept.name}" ({course_count} courses -> canonical)'
+                )
+                if not dry_run:
+                    Course.objects.filter(department=dept).update(department=canonical_dept)
+                    dept.delete()
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -47,8 +65,10 @@ class Command(BaseCommand):
                 f'  Merge: "{dup.name}" -> "{canonical.name}" '
                 f"({dept_count} departments, {spec_count} specialities)"
             )
+
+            self._merge_departments(dup, canonical, dry_run)
+
             if not dry_run:
-                Department.objects.filter(faculty=dup).update(faculty=canonical)
                 Speciality.objects.filter(faculty=dup).update(faculty=canonical)
                 dup.delete()
 
