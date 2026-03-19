@@ -1,8 +1,13 @@
+import { useState } from "react";
+
 import { Link } from "@tanstack/react-router";
-import { Bell, LogOut, Moon, Sun, X } from "lucide-react";
+import { LogOut, Moon, Sun, X } from "lucide-react";
 
 import { Drawer } from "@/components/ui/Drawer";
-import { useUnreadCount } from "@/features/notifications/hooks/useNotifications";
+import {
+	MobileNotificationPanel,
+	MobileNotificationRow,
+} from "@/features/notifications/components/MobileNotificationPanel";
 import type { AuthUser } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import type { NavigationItem, ThemeOption } from "./navigationData";
@@ -114,28 +119,6 @@ function AccountSummary({
 	);
 }
 
-function MobileNotificationRow() {
-	const { data } = useUnreadCount();
-	const count = data?.count ?? 0;
-
-	return (
-		<div
-			className="mb-3 flex items-center justify-between"
-			data-testid={testIds.notifications.mobileRow}
-		>
-			<span className="text-sm text-muted-foreground">Сповіщення</span>
-			<div className="relative">
-				<Bell className="h-5 w-5 text-muted-foreground" />
-				{count > 0 && (
-					<span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
-						{count > 99 ? "99+" : count}
-					</span>
-				)}
-			</div>
-		</div>
-	);
-}
-
 export function MobileMenu({
 	isOpen,
 	onClose,
@@ -146,8 +129,15 @@ export function MobileMenu({
 	theme,
 	setTheme,
 }: Readonly<MobileMenuProps>) {
+	const [showNotifications, setShowNotifications] = useState(false);
+
 	const handleLogout = () => {
 		logout();
+		onClose();
+	};
+
+	const handleClose = () => {
+		setShowNotifications(false);
 		onClose();
 	};
 
@@ -156,38 +146,52 @@ export function MobileMenu({
 			open={isOpen}
 			onOpenChange={(value) => {
 				if (!value) {
-					onClose();
+					handleClose();
 				}
 			}}
 			ariaLabel="Мобільне меню"
 			closeButtonLabel="Закрити меню"
 			data-testid={testIds.header.mobileMenu}
 		>
-			<div className="flex items-center justify-between">
-				<Logo />
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-9 w-9 rounded-full p-0"
-					onClick={() => onClose()}
-					aria-label="Закрити меню"
-					data-testid={testIds.header.mobileMenuCloseButton}
-				>
-					<X className="h-5 w-5" />
-				</Button>
-			</div>
+			{showNotifications ? (
+				<MobileNotificationPanel
+					onBack={() => setShowNotifications(false)}
+					onNavigate={handleClose}
+				/>
+			) : (
+				<>
+					<div className="flex items-center justify-between">
+						<Logo />
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-9 w-9 rounded-full p-0"
+							onClick={handleClose}
+							aria-label="Закрити меню"
+							data-testid={testIds.header.mobileMenuCloseButton}
+						>
+							<X className="h-5 w-5" />
+						</Button>
+					</div>
 
-			<NavigationLinks navigationItems={navigationItems} onClose={onClose} />
+					<NavigationLinks
+						navigationItems={navigationItems}
+						onClose={handleClose}
+					/>
 
-			<div className="mt-auto">
-				<ThemeSwitcher theme={theme} setTheme={setTheme} />
-				{isAuthenticated && (
-					<>
-						<MobileNotificationRow />
-						<AccountSummary user={user} onLogout={handleLogout} />
-					</>
-				)}
-			</div>
+					<div className="mt-auto">
+						<ThemeSwitcher theme={theme} setTheme={setTheme} />
+						{isAuthenticated && (
+							<>
+								<MobileNotificationRow
+									onOpen={() => setShowNotifications(true)}
+								/>
+								<AccountSummary user={user} onLogout={handleLogout} />
+							</>
+						)}
+					</div>
+				</>
+			)}
 		</Drawer>
 	);
 }

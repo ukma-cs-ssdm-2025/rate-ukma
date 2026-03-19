@@ -1,10 +1,12 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 
+import type { NotificationGroup } from "@/lib/api/generated";
 import {
 	getNotificationsListQueryKey,
 	getNotificationsUnreadCountRetrieveQueryKey,
+	notificationsList,
 	useNotificationsList,
 	useNotificationsMarkGroupReadCreate,
 	useNotificationsMarkReadCreate,
@@ -13,6 +15,7 @@ import {
 import { useAuth } from "@/lib/auth";
 
 const UNREAD_COUNT_POLL_INTERVAL = 30_000;
+const PAGE_SIZE = 20;
 
 export function useUnreadCount() {
 	const { status } = useAuth();
@@ -28,8 +31,53 @@ export function useUnreadCount() {
 }
 
 export function useNotifications() {
-	const { data, isLoading } = useNotificationsList();
-	return { notifications: data ?? [], isLoading };
+	const { data, isLoading, isError, refetch, isRefetching } =
+		useNotificationsList({ limit: PAGE_SIZE, offset: 0 });
+	const [extra, setExtra] = useState<NotificationGroup[]>([]);
+	const [isLoadingMore, setIsLoadingMore] = useState(false);
+	const [hasMore, setHasMore] = useState(true);
+
+	const firstPage = data ?? [];
+	const notifications = [...firstPage, ...extra];
+
+	const queryClient = useQueryClient();
+
+	const loadMore = useCallback(async () => {
+		if (isLoadingMore || !hasMore) return;
+		setIsLoadingMore(true);
+		try {
+			const nextPage = await notificationsList({
+				limit: PAGE_SIZE,
+				offset: notifications.length,
+			});
+			if (nextPage.length < PAGE_SIZE) {
+				setHasMore(false);
+			}
+			setExtra((prev) => [...prev, ...nextPage]);
+		} finally {
+			setIsLoadingMore(false);
+		}
+	}, [isLoadingMore, hasMore, notifications.length]);
+
+	const resetPagination = useCallback(() => {
+		setExtra([]);
+		setHasMore(true);
+		queryClient.invalidateQueries({
+			queryKey: getNotificationsListQueryKey(),
+		});
+	}, [queryClient]);
+
+	return {
+		notifications,
+		isLoading,
+		isError,
+		refetch,
+		isRefetching,
+		loadMore,
+		isLoadingMore,
+		hasMore: hasMore && firstPage.length >= PAGE_SIZE,
+		resetPagination,
+	};
 }
 
 export function useMarkAllRead() {

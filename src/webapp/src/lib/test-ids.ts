@@ -187,7 +187,10 @@ export const testIds = {
 		item: "notifications-item",
 		loading: "notifications-loading",
 		empty: "notifications-empty",
+		error: "notifications-error",
+		loadMore: "notifications-load-more",
 		mobileRow: "notifications-mobile-row",
+		mobilePanel: "notifications-mobile-panel",
 	},
 
 	// Footer

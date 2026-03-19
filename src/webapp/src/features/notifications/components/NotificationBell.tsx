@@ -20,7 +20,17 @@ import {
 export function NotificationBell() {
 	const [open, setOpen] = useState(false);
 	const { data: unreadData } = useUnreadCount();
-	const { notifications, isLoading } = useNotifications();
+	const {
+		notifications,
+		isLoading,
+		isError,
+		refetch,
+		isRefetching,
+		loadMore,
+		isLoadingMore,
+		hasMore,
+		resetPagination,
+	} = useNotifications();
 	const { markAllRead, isPending } = useMarkAllRead();
 	const { markGroupRead } = useMarkGroupRead();
 
@@ -33,6 +43,11 @@ export function NotificationBell() {
 		},
 		[markGroupRead],
 	);
+
+	const handleMarkAllRead = useCallback(() => {
+		markAllRead();
+		resetPagination();
+	}, [markAllRead, resetPagination]);
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -64,7 +79,7 @@ export function NotificationBell() {
 							variant="ghost"
 							size="sm"
 							className="h-auto px-2 py-1 text-xs"
-							onClick={markAllRead}
+							onClick={handleMarkAllRead}
 							disabled={isPending}
 							data-testid={testIds.notifications.markReadButton}
 						>
@@ -77,7 +92,13 @@ export function NotificationBell() {
 					<NotificationList
 						notifications={notifications}
 						isLoading={isLoading}
+						isError={isError}
+						onRetry={() => refetch()}
+						isRetrying={isRefetching}
 						onNotificationClick={handleNotificationClick}
+						hasMore={hasMore}
+						isLoadingMore={isLoadingMore}
+						onLoadMore={loadMore}
 					/>
 				</div>
 			</PopoverContent>

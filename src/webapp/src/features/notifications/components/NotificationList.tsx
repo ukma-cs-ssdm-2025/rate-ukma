@@ -1,6 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, ThumbsDown, ThumbsUp } from "lucide-react";
+import {
+	AlertTriangle,
+	Bell,
+	Loader2,
+	ThumbsDown,
+	ThumbsUp,
+} from "lucide-react";
 
+import { Button } from "@/components/ui/Button";
 import type { NotificationGroup } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
@@ -9,7 +16,13 @@ import { formatRelativeTime } from "../notificationFormatting";
 interface NotificationListProps {
 	notifications: NotificationGroup[];
 	isLoading: boolean;
+	isError?: boolean;
+	onRetry?: () => void;
+	isRetrying?: boolean;
 	onNotificationClick?: (groupKey: string) => void;
+	hasMore?: boolean;
+	isLoadingMore?: boolean;
+	onLoadMore?: () => void;
 }
 
 const EVENT_ICONS: Record<string, typeof ThumbsUp> = {
@@ -20,7 +33,13 @@ const EVENT_ICONS: Record<string, typeof ThumbsUp> = {
 export function NotificationList({
 	notifications,
 	isLoading,
+	isError,
+	onRetry,
+	isRetrying,
 	onNotificationClick,
+	hasMore,
+	isLoadingMore,
+	onLoadMore,
 }: Readonly<NotificationListProps>) {
 	if (isLoading) {
 		return (
@@ -29,6 +48,31 @@ export function NotificationList({
 				data-testid={testIds.notifications.loading}
 			>
 				<span className="text-sm text-muted-foreground">Завантаження...</span>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div
+				className="flex flex-col items-center justify-center gap-2 py-8"
+				data-testid={testIds.notifications.error}
+			>
+				<AlertTriangle className="h-8 w-8 text-destructive/50" />
+				<span className="text-sm text-muted-foreground">
+					Не вдалося завантажити
+				</span>
+				{onRetry && (
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-auto px-2 py-1 text-xs"
+						onClick={onRetry}
+						disabled={isRetrying}
+					>
+						Спробувати знову
+					</Button>
+				)}
 			</div>
 		);
 	}
@@ -46,15 +90,34 @@ export function NotificationList({
 	}
 
 	return (
-		<ul className="flex flex-col" data-testid={testIds.notifications.list}>
-			{notifications.map((notification) => (
-				<NotificationItem
-					key={notification.group_key}
-					notification={notification}
-					onClick={onNotificationClick}
-				/>
-			))}
-		</ul>
+		<div>
+			<ul className="flex flex-col" data-testid={testIds.notifications.list}>
+				{notifications.map((notification) => (
+					<NotificationItem
+						key={notification.group_key}
+						notification={notification}
+						onClick={onNotificationClick}
+					/>
+				))}
+			</ul>
+			{hasMore && (
+				<div className="flex justify-center py-2">
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-auto w-full px-2 py-2 text-xs text-muted-foreground"
+						onClick={onLoadMore}
+						disabled={isLoadingMore}
+						data-testid={testIds.notifications.loadMore}
+					>
+						{isLoadingMore ? (
+							<Loader2 className="mr-1 h-3 w-3 animate-spin" />
+						) : null}
+						Завантажити ще
+					</Button>
+				</div>
+			)}
+		</div>
 	);
 }
 
