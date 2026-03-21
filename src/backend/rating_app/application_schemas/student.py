@@ -21,7 +21,7 @@ class Student:
     first_name: str
     last_name: str
     patronymic: str | None
-    education_level: EducationLevel | str
+    education_level: EducationLevel | None
     speciality_id: uuid.UUID
     email: str | None = None
     user_id: int | None = None

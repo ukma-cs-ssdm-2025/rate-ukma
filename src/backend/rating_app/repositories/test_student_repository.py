@@ -109,6 +109,15 @@ def test_get_or_create_does_not_update_email_when_student_has_email(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_student_mapper_normalizes_empty_education_level_to_none():
+    student = StudentFactory(education_level="")
+    mapper = StudentMapper()
+    result = mapper.process(student)
+    assert result.education_level is None
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_get_or_upsert_prefers_email_match_and_updates_student_fields(repo):
     original_speciality = SpecialityFactory(name="Original Speciality")
     updated_speciality = SpecialityFactory(name="Updated Speciality")

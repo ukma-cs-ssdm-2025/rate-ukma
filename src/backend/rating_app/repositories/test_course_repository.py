@@ -224,6 +224,15 @@ def test_get_or_create_does_not_update_existing_course_fields(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_course_mapper_normalizes_empty_education_level_to_none():
+    course = CourseFactory(education_level="")
+    mapper = CourseMapper()
+    result = mapper.process(course)
+    assert result.education_level is None
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_get_or_upsert_reuses_legacy_blank_level_course(repo):
     legacy_course = CourseFactory(
         title="Data Science",
