@@ -2091,7 +2091,6 @@ components:
           allOf:
           - $ref: '#/components/schemas/TypeKindEnum'
           readOnly: true
-          nullable: true
     CourseOfferingSpecialityInline:
       type: object
       description: Inline serializer for course offering speciality

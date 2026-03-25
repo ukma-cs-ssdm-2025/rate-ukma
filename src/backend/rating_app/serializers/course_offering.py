@@ -28,9 +28,7 @@ class CourseOfferingSpecialitySerializer(serializers.Serializer):
     speciality_alias = serializers.CharField(read_only=True, allow_null=True)
     faculty_id = serializers.UUIDField(read_only=True)
     faculty_name = serializers.CharField(read_only=True)
-    type_kind = serializers.ChoiceField(
-        choices=CourseTypeKind.choices, read_only=True, allow_null=True
-    )
+    type_kind = serializers.ChoiceField(choices=CourseTypeKind.choices, read_only=True)
 
 
 class CourseOfferingSerializer(serializers.Serializer):
