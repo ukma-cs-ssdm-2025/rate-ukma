@@ -30,9 +30,6 @@ class CourseOfferingSpeciality(models.Model):
     type_kind = models.CharField(
         max_length=16,
         choices=CourseTypeKind.choices,
-        blank=True,
-        null=True,
-        default=None,
     )
 
     class Meta:
