@@ -26,6 +26,7 @@ import {
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
 	Collapsible,
@@ -55,7 +56,11 @@ import {
 	courseFiltersStateToSearchParams,
 	DEFAULT_COURSE_FILTERS_PARAMS,
 } from "../courseFiltersParams";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+import {
+	DIFFICULTY_RANGE,
+	getEducationLevelDisplay,
+	USEFULNESS_RANGE,
+} from "../courseFormatting";
 import { transformFiltersToApiParams } from "../filterTransformations";
 
 interface PaginationInfo {
@@ -139,6 +144,9 @@ const columns: ColumnDef<CourseList>[] = [
 		cell: ({ row }) => {
 			const course = row.original;
 			const courseId = course.id;
+			const educationLevelLabel = getEducationLevelDisplay(
+				course.education_level,
+			);
 			return (
 				<span className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words">
 					{courseId ? (
@@ -154,6 +162,14 @@ const columns: ColumnDef<CourseList>[] = [
 						<span className="font-semibold text-sm md:text-base">
 							{course.title}
 						</span>
+					)}
+					{educationLevelLabel && (
+						<Badge
+							variant="outline"
+							className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground"
+						>
+							{educationLevelLabel}
+						</Badge>
 					)}
 					<CourseSpecialityBadges specialities={course.specialities} />
 				</span>

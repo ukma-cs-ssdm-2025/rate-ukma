@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 import { keepPreviousData } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -12,7 +12,7 @@ import {
 	DIFFICULTY_RANGE,
 	USEFULNESS_RANGE,
 } from "@/features/courses/courseFormatting";
-import type { CoursesListParams } from "@/lib/api/generated";
+import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 
@@ -56,6 +56,13 @@ export function CoursesRoute() {
 		},
 	});
 
+	// Client-side education level filter (not yet supported by API)
+	const filteredItems = useMemo((): CourseList[] => {
+		const items = data?.items ?? [];
+		if (!params.eduLevel) return items;
+		return items.filter((course) => course.education_level === params.eduLevel);
+	}, [data?.items, params.eduLevel]);
+
 	const handleRetry = useCallback(() => {
 		refetch();
 	}, [refetch]);
@@ -67,7 +74,7 @@ export function CoursesRoute() {
 					<CoursesErrorState onRetry={handleRetry} />
 				) : (
 					<CoursesTable
-						data={data?.items ?? []}
+						data={filteredItems}
 						isLoading={isFetching}
 						params={params}
 						setParams={setParams}

@@ -10,6 +10,7 @@ import {
 import type {
 	CoursesListSemesterTermsItem,
 	CoursesListTypeKind,
+	EducationLevelEnum,
 } from "@/lib/api/generated";
 import {
 	CREDITS_RANGE,
@@ -26,6 +27,11 @@ const VALID_TYPE_KINDS: readonly CoursesListTypeKind[] = [
 	"COMPULSORY",
 	"ELECTIVE",
 	"PROF_ORIENTED",
+];
+
+const VALID_EDUCATION_LEVELS: readonly EducationLevelEnum[] = [
+	"BACHELOR",
+	"MASTER",
 ];
 
 type SortOrder = "asc" | "desc";
@@ -79,6 +85,9 @@ export const courseFiltersParams = {
 		VALID_TYPE_KINDS as unknown as CoursesListTypeKind[],
 	),
 	spec: parseAsString.withDefault(""),
+	eduLevel: parseAsStringEnum<EducationLevelEnum>(
+		VALID_EDUCATION_LEVELS as unknown as EducationLevelEnum[],
+	),
 	page: parseAsInteger.withDefault(1),
 	size: parseAsInteger.withDefault(10),
 	diffOrder: parseAsStringEnum<SortOrder>(
@@ -117,6 +126,7 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	credits: CREDITS_RANGE,
 	type: null,
 	spec: "",
+	eduLevel: null,
 	page: 1,
 	size: 10,
 	diffOrder: null,
@@ -155,6 +165,7 @@ export function courseFiltersStateToSearchParams(
 	}
 	if (state.type) params.type = state.type;
 	if (state.spec) params.spec = state.spec;
+	if (state.eduLevel) params.eduLevel = state.eduLevel;
 	if (state.page !== 1) params.page = state.page;
 	if (state.size !== 10) params.size = state.size;
 	if (state.diffOrder) params.diffOrder = state.diffOrder;
