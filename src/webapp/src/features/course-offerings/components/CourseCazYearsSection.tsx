@@ -138,17 +138,6 @@ export function getLatestOfferingMeta(
 	return badges;
 }
 
-function formatExamType(examType?: string): string {
-	switch (examType) {
-		case "EXAM":
-			return "Іспит";
-		case "CREDIT":
-			return "Залік";
-		default:
-			return "—";
-	}
-}
-
 function sortTerms(terms: readonly CourseOfferingTerm[]): CourseOfferingTerm[] {
 	return [...terms].sort((a, b) => {
 		const yearA = a.semester_year ?? 0;
@@ -199,11 +188,7 @@ function OfferingTermDetails({
 		<div className="mt-1.5 space-y-1 pl-2 border-l-2 border-border/30">
 			{sorted.map((term) => {
 				const credits = formatCredits(term.credits);
-				const parts = [
-					credits,
-					term.weekly_hours != null ? `${term.weekly_hours} год/тижд` : null,
-					formatExamType(term.exam_type),
-				].filter(Boolean);
+				const parts = [credits].filter(Boolean);
 
 				return (
 					<div
