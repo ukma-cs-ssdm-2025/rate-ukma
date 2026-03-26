@@ -69,7 +69,7 @@ jobs:
 
       - name: Store coverage report
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: |
@@ -97,7 +97,7 @@ jobs:
 
       - name: Commit coverage badge to repo (current branch)
         if: success() && github.ref_name != github.event.repository.default_branch
-        uses: EndBug/add-and-commit@v9.1.4
+        uses: EndBug/add-and-commit@v10
         with:
           add: |
             ${{ env.COVERAGE_BADGE_FILE }}
