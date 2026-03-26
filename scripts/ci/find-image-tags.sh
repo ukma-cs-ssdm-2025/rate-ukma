@@ -31,13 +31,27 @@ if [ -z "$tags" ]; then
   exit 0
 fi
 
+# If the target is not a semver tag (e.g. a commit SHA), look for an exact match
+exact_tag="${TAG_PREFIX}${TARGET_VERSION}"
+if ! echo "$TARGET_VERSION" | grep -qE '^v?[0-9]+\.[0-9]+\.[0-9]+'; then
+  exact=$(echo "$tags" | grep -Fx "$exact_tag" || true)
+  if [ -n "$exact" ]; then
+    echo "Found exact match: $exact" >&2
+    echo "$exact"
+  else
+    echo "Exact tag not found in registry, using as-is: $exact_tag" >&2
+    echo "$exact_tag"
+  fi
+  exit 0
+fi
+
 # Filter tags matching the semver pattern
 pattern="^${TAG_PREFIX}v[0-9]+\.[0-9]+\.[0-9]+"
 filtered=$(echo "$tags" | grep -E "$pattern" || true)
 
 if [ -z "$filtered" ]; then
-  echo "No matching tags found, using default: ${TAG_PREFIX}${TARGET_VERSION}" >&2
-  echo "${TAG_PREFIX}${TARGET_VERSION}"
+  echo "No matching tags found, using default: $exact_tag" >&2
+  echo "$exact_tag"
   exit 0
 fi
 
@@ -59,6 +73,6 @@ if [ -n "$latest" ]; then
   echo "Found: $latest" >&2
   echo "$latest"
 else
-  echo "No suitable version found, using default: ${TAG_PREFIX}${TARGET_VERSION}" >&2
-  echo "${TAG_PREFIX}${TARGET_VERSION}"
+  echo "No suitable version found, using default: $exact_tag" >&2
+  echo "$exact_tag"
 fi
