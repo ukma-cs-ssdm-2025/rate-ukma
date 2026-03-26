@@ -107,7 +107,9 @@ class CourseFilterCriteria(BaseModel):
 
     @model_validator(mode="after")
     def validate_credits_requires_semester_year(self):
-        if (self.credits_min is not None or self.credits_max is not None) and not self.semester_year:
+        if (
+            self.credits_min is not None or self.credits_max is not None
+        ) and not self.semester_year:
             raise ValueError("semester_year is required when credits range is provided")
         if (
             self.credits_min is not None
@@ -152,7 +154,7 @@ class CourseOfferingSpeciality:
     faculty_id: str
     faculty_name: str
     speciality_alias: str | None
-    type_kind: CourseTypeKind | None
+    type_kind: CourseTypeKind
 
 
 @dataclass(frozen=True)

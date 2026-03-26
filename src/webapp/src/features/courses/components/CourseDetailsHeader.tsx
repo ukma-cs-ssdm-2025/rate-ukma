@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { OfferingMetaBadge } from "@/features/course-offerings/components/CourseCazYearsSection";
+import type { TypeKindEnum } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
@@ -13,6 +14,7 @@ interface CourseDetailsHeaderProps {
 		readonly speciality_alias?: string | null;
 		readonly faculty_id?: string;
 		readonly faculty_name?: string;
+		readonly type_kind?: TypeKindEnum;
 	}> | null;
 	departmentName?: string | null;
 	facultyName?: string | null;
