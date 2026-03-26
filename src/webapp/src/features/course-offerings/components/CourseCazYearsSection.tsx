@@ -13,6 +13,7 @@ import {
 import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpecialityBadges";
 import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
 import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
+import { cn } from "@/lib/utils";
 
 const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
 
@@ -116,8 +117,18 @@ export function getLatestOfferingMeta(
 		});
 	}
 
-	// Semester
-	if (latest.semester_term) {
+	// Semester terms
+	const terms = latest.terms ?? [];
+	if (terms.length > 0) {
+		for (const term of sortTerms(terms)) {
+			if (term.semester_term) {
+				badges.push({
+					label: getSemesterTermDisplay(term.semester_term),
+					color: getSemesterTermColor(term.semester_term),
+				});
+			}
+		}
+	} else if (latest.semester_term) {
 		badges.push({
 			label: getSemesterTermDisplay(latest.semester_term),
 			color: getSemesterTermColor(latest.semester_term),
@@ -164,7 +175,11 @@ function OfferingTermsBadges({
 				<Badge
 					key={term.id ?? `${term.semester_year}-${term.semester_term}`}
 					variant="outline"
-					className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground"
+					className={cn(
+						"text-[10px] px-1.5 py-0 font-normal",
+						getSemesterTermColor(term.semester_term ?? "") ||
+							"text-muted-foreground",
+					)}
 				>
 					{getSemesterTermDisplay(term.semester_term ?? "", "—")}
 				</Badge>
@@ -248,7 +263,6 @@ export function CourseCazYearsSection({
 							<thead>
 								<tr className="border-b border-border/40 text-left text-xs text-muted-foreground">
 									<th className="pb-2 pr-4 font-medium">Рік</th>
-									<th className="pb-2 pr-4 font-medium">Семестр</th>
 									<th className="pb-2 pr-4 font-medium">Семестри</th>
 									<th className="pb-2 pr-4 font-medium">Кредити</th>
 									<th className="pb-2 pr-4 font-medium">Спеціальності</th>
@@ -271,9 +285,6 @@ export function CourseCazYearsSection({
 										>
 											<td className="py-2.5 pr-4 whitespace-nowrap text-foreground">
 												{formatAcademicYearLabel(item)}
-											</td>
-											<td className="py-2.5 pr-4 whitespace-nowrap">
-												{getSemesterTermDisplay(item.semester_term ?? "", "—")}
 											</td>
 											<td className="py-2.5 pr-4">
 												{terms.length > 0 ? (

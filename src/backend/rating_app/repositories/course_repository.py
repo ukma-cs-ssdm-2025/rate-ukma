@@ -278,6 +278,9 @@ class CourseRepository(
         if filters.department:
             course_filters["department_id"] = filters.department
 
+        if filters.education_level:
+            course_filters["education_level"] = filters.education_level
+
         if course_filters:
             courses = courses.filter(**course_filters)
         if offering_query is not None:

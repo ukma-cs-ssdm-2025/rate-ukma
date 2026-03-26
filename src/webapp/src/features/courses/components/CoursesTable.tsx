@@ -163,10 +163,10 @@ const columns: ColumnDef<CourseList>[] = [
 							{course.title}
 						</span>
 					)}
-					{educationLevelLabel && (
+					{course.education_level === "MASTER" && educationLevelLabel && (
 						<Badge
 							variant="outline"
-							className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground"
+							className="text-xs px-2 py-0.5 font-medium text-muted-foreground"
 						>
 							{educationLevelLabel}
 						</Badge>
