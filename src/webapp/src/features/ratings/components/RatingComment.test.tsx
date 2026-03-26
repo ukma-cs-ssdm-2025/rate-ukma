@@ -46,9 +46,10 @@ describe("RatingComment", () => {
 
 			await user.click(toggleButton);
 
-			expect(
-				screen.getByRole("button", { name: "Згорнути" }),
-			).toHaveAttribute("aria-expanded", "true");
+			expect(screen.getByRole("button", { name: "Згорнути" })).toHaveAttribute(
+				"aria-expanded",
+				"true",
+			);
 			expect(comment).not.toHaveClass("line-clamp-4");
 		});
 	});
