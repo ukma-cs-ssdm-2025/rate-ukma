@@ -905,6 +905,42 @@ def test_ratings_sort_with_zero_votes_no_division_error(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_ratings_sort_zero_votes_above_negative_score(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    vote_factory,
+    student_factory,
+):
+    """Ratings with zero votes should rank above ratings with only downvotes."""
+    from rating_app.models.choices import RatingVoteType
+
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    # Create zero-vote rating earlier and negative rating later.
+    # If popularity ties, fallback created_at desc would incorrectly put negative first.
+    with freeze_time("2023-10-01 10:00:00"):
+        rating_zero_votes = rating_factory(course_offering=offering)
+    with freeze_time("2023-10-02 10:00:00"):
+        rating_negative = rating_factory(course_offering=offering)
+
+    voter1 = student_factory()
+    vote_factory(rating=rating_negative, student=voter1, type=RatingVoteType.DOWNVOTE)
+
+    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
+    response = token_client.get(url)
+    data = response.json()
+
+    assert response.status_code == 200
+    assert len(data["items"]["ratings"]) == 2
+    assert data["items"]["ratings"][0]["id"] == str(rating_zero_votes.id)
+    assert data["items"]["ratings"][1]["id"] == str(rating_negative.id)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_ratings_sort_with_only_upvotes(
     token_client,
     course_factory,
@@ -1033,3 +1069,122 @@ def test_ratings_sort_mixed_edge_cases(
     # Expected order: only_up > mixed > only_down
     assert data["items"]["ratings"][0]["id"] == str(rating_only_up.id)
     assert data["items"]["ratings"][2]["id"] == str(rating_only_down.id)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_sort_boundary_case_0_10_vs_1_10_vs_0_0(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    vote_factory,
+    student_factory,
+):
+    """Document abrupt boundary behavior between downvote-only and Wilson branches."""
+    from rating_app.models.choices import RatingVoteType
+
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    rating_0_10 = rating_factory(course_offering=offering)
+    rating_1_10 = rating_factory(course_offering=offering)
+    rating_0_0 = rating_factory(course_offering=offering)
+
+    for _ in range(10):
+        voter = student_factory()
+        vote_factory(rating=rating_0_10, student=voter, type=RatingVoteType.DOWNVOTE)
+
+    voter = student_factory()
+    vote_factory(rating=rating_1_10, student=voter, type=RatingVoteType.UPVOTE)
+    for _ in range(10):
+        voter = student_factory()
+        vote_factory(rating=rating_1_10, student=voter, type=RatingVoteType.DOWNVOTE)
+
+    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
+    response = token_client.get(url)
+    data = response.json()
+
+    assert response.status_code == 200
+    ordered_ids = [item["id"] for item in data["items"]["ratings"]]
+    assert ordered_ids.index(str(rating_1_10.id)) < ordered_ids.index(str(rating_0_0.id))
+    assert ordered_ids.index(str(rating_0_0.id)) < ordered_ids.index(str(rating_0_10.id))
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_sort_boundary_case_0_2_vs_1_100_vs_0_0(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    vote_factory,
+    student_factory,
+):
+    """A rating with heavy negatives but at least one upvote can still rank above unrated."""
+    from rating_app.models.choices import RatingVoteType
+
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    rating_0_2 = rating_factory(course_offering=offering)
+    rating_1_100 = rating_factory(course_offering=offering)
+    rating_0_0 = rating_factory(course_offering=offering)
+
+    for _ in range(2):
+        voter = student_factory()
+        vote_factory(rating=rating_0_2, student=voter, type=RatingVoteType.DOWNVOTE)
+
+    voter = student_factory()
+    vote_factory(rating=rating_1_100, student=voter, type=RatingVoteType.UPVOTE)
+    for _ in range(100):
+        voter = student_factory()
+        vote_factory(rating=rating_1_100, student=voter, type=RatingVoteType.DOWNVOTE)
+
+    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
+    response = token_client.get(url)
+    data = response.json()
+
+    assert response.status_code == 200
+    ordered_ids = [item["id"] for item in data["items"]["ratings"]]
+    assert ordered_ids.index(str(rating_1_100.id)) < ordered_ids.index(str(rating_0_0.id))
+    assert ordered_ids.index(str(rating_0_0.id)) < ordered_ids.index(str(rating_0_2.id))
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_sort_boundary_case_0_1_vs_1_5_vs_0_0(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    vote_factory,
+    student_factory,
+):
+    """Small one-upvote mixed rating outranks unrated, unrated outranks downvote-only."""
+    from rating_app.models.choices import RatingVoteType
+
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    rating_0_1 = rating_factory(course_offering=offering)
+    rating_1_5 = rating_factory(course_offering=offering)
+    rating_0_0 = rating_factory(course_offering=offering)
+
+    voter = student_factory()
+    vote_factory(rating=rating_0_1, student=voter, type=RatingVoteType.DOWNVOTE)
+
+    voter = student_factory()
+    vote_factory(rating=rating_1_5, student=voter, type=RatingVoteType.UPVOTE)
+    for _ in range(5):
+        voter = student_factory()
+        vote_factory(rating=rating_1_5, student=voter, type=RatingVoteType.DOWNVOTE)
+
+    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
+    response = token_client.get(url)
+    data = response.json()
+
+    assert response.status_code == 200
+    ordered_ids = [item["id"] for item in data["items"]["ratings"]]
+    assert ordered_ids.index(str(rating_1_5.id)) < ordered_ids.index(str(rating_0_0.id))
+    assert ordered_ids.index(str(rating_0_0.id)) < ordered_ids.index(str(rating_0_1.id))
