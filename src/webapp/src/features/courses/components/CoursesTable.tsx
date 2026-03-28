@@ -26,7 +26,6 @@ import {
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
 	Collapsible,
@@ -56,11 +55,7 @@ import {
 	courseFiltersStateToSearchParams,
 	DEFAULT_COURSE_FILTERS_PARAMS,
 } from "../courseFiltersParams";
-import {
-	DIFFICULTY_RANGE,
-	getEducationLevelDisplay,
-	USEFULNESS_RANGE,
-} from "../courseFormatting";
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import { transformFiltersToApiParams } from "../filterTransformations";
 
 interface PaginationInfo {
@@ -144,9 +139,6 @@ const columns: ColumnDef<CourseList>[] = [
 		cell: ({ row }) => {
 			const course = row.original;
 			const courseId = course.id;
-			const educationLevelLabel = getEducationLevelDisplay(
-				course.education_level,
-			);
 			return (
 				<span className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words">
 					{courseId ? (
@@ -163,13 +155,13 @@ const columns: ColumnDef<CourseList>[] = [
 							{course.title}
 						</span>
 					)}
-					{course.education_level === "MASTER" && educationLevelLabel && (
-						<Badge
-							variant="outline"
-							className="text-xs px-2 py-0.5 font-medium text-muted-foreground"
+					{course.education_level === "MASTER" && (
+						<span
+							className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold leading-none text-primary-foreground"
+							title="Магістр"
 						>
-							{educationLevelLabel}
-						</Badge>
+							М
+						</span>
 					)}
 					<CourseSpecialityBadges specialities={course.specialities} />
 				</span>
