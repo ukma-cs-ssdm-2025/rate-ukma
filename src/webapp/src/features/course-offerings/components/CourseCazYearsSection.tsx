@@ -188,7 +188,15 @@ function OfferingTermDetails({
 		<div className="mt-1.5 space-y-1 pl-2 border-l-2 border-border/30">
 			{sorted.map((term) => {
 				const credits = formatCredits(term.credits);
-				const parts = [credits].filter(Boolean);
+				const weeklyHours =
+					term.weekly_hours != null ? `${term.weekly_hours} год/тиж` : null;
+				const examType =
+					term.exam_type === "EXAM"
+						? "Іспит"
+						: term.exam_type === "CREDIT"
+							? "Залік"
+							: null;
+				const parts = [credits, weeklyHours, examType].filter(Boolean);
 
 				return (
 					<div
