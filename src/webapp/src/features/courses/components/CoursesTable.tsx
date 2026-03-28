@@ -158,7 +158,7 @@ const columns: ColumnDef<CourseList>[] = [
 					)}
 					{course.education_level === EducationLevelEnum.MASTER && (
 						<span
-							className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold leading-none text-primary-foreground"
+							className="inline-flex shrink-0 items-center rounded border px-1 py-px text-[10px] font-medium leading-tight text-muted-foreground"
 							title="Магістр"
 						>
 							М
