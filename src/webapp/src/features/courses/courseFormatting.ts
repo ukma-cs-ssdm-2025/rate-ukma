@@ -53,6 +53,19 @@ export function getUsefulnessTone(value?: number | null): string {
 	return "text-[var(--muted-foreground)]";
 }
 
+const EDUCATION_LEVEL_LABELS: Record<string, string> = {
+	BACHELOR: "Бакалавр",
+	MASTER: "Магістр",
+};
+
+export function getEducationLevelDisplay(
+	level: string | null | undefined,
+	fallback?: string,
+): string {
+	if (!level) return fallback ?? "";
+	return EDUCATION_LEVEL_LABELS[level.toUpperCase()] ?? fallback ?? level;
+}
+
 const COURSE_TYPE_LABELS: Record<string, string> = {
 	COMPULSORY: "Обов'язковий",
 	ELECTIVE: "Вибірковий",

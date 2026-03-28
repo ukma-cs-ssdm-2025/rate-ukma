@@ -104,6 +104,7 @@ function CourseDetailsRoute() {
 				<div className="space-y-6">
 					<CourseDetailsHeader
 						title={course.title ?? ""}
+						educationLevel={course.education_level}
 						specialities={course.specialities ?? []}
 						departmentName={course.department_name ?? ""}
 						facultyName={course.faculty_name ?? ""}

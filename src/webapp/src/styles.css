@@ -26,7 +26,8 @@ html {
  */
 @supports (scrollbar-gutter: stable) {
 	html body[data-scroll-locked] {
-		margin-right: 0 !important; /* biome-ignore lint/complexity/noImportantStyles: remove-scroll-bar override */
+		/* biome-ignore lint/complexity/noImportantStyles: remove-scroll-bar override for radix scroll-lock */
+		margin-right: 0 !important;
 	}
 }
 

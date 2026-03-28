@@ -71,6 +71,14 @@ paths:
           format: uuid
         description: Filter by department UUID
       - in: query
+        name: education_level
+        schema:
+          type: string
+          enum:
+          - BACHELOR
+          - MASTER
+        description: Filter by education level (BACHELOR, MASTER)
+      - in: query
         name: faculty
         schema:
           type: string
@@ -608,6 +616,14 @@ paths:
           type: string
           format: uuid
         description: Filter by department UUID
+      - in: query
+        name: education_level
+        schema:
+          type: string
+          enum:
+          - BACHELOR
+          - MASTER
+        description: Filter by education level (BACHELOR, MASTER)
       - in: query
         name: faculty
         schema:

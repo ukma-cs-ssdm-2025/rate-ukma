@@ -1,13 +1,15 @@
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { OfferingMetaBadge } from "@/features/course-offerings/components/CourseCazYearsSection";
-import type { TypeKindEnum } from "@/lib/api/generated";
+import type { EducationLevelEnum, TypeKindEnum } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
+import { getEducationLevelDisplay } from "../courseFormatting";
 
 interface CourseDetailsHeaderProps {
 	title: string;
+	educationLevel?: EducationLevelEnum | null;
 	specialities?: ReadonlyArray<{
 		readonly speciality_id?: string;
 		readonly speciality_title?: string;
@@ -24,12 +26,14 @@ interface CourseDetailsHeaderProps {
 
 export function CourseDetailsHeader({
 	title,
+	educationLevel,
 	specialities,
 	departmentName,
 	facultyName,
 	offeringBadges,
 	cazButton,
 }: Readonly<CourseDetailsHeaderProps>) {
+	const educationLevelLabel = getEducationLevelDisplay(educationLevel);
 	const metaParts = [facultyName, departmentName].filter(Boolean);
 
 	return (
@@ -44,8 +48,15 @@ export function CourseDetailsHeader({
 				{cazButton}
 			</div>
 
-			{metaParts.length > 0 && (
-				<p className="text-sm text-muted-foreground">{metaParts.join(" · ")}</p>
+			{(metaParts.length > 0 || educationLevelLabel) && (
+				<p className="text-sm text-muted-foreground">
+					{educationLevelLabel && (
+						<span className="mr-2 inline-flex items-center rounded-sm border px-1.5 py-0.5 text-xs font-medium text-muted-foreground align-middle">
+							{educationLevelLabel}
+						</span>
+					)}
+					{metaParts.join(" · ")}
+				</p>
 			)}
 
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-2">

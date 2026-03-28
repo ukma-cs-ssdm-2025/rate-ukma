@@ -37,6 +37,7 @@ import {
 import type {
 	CoursesListSemesterTermsItem,
 	CoursesListTypeKind,
+	EducationLevelEnum,
 	FilterOptions,
 } from "@/lib/api/generated";
 import { localStorageAdapter } from "@/lib/storage";
@@ -47,6 +48,7 @@ import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import { CREDITS_RANGE, formatDecimalValue } from "../courseFormatting";
 import {
 	areFiltersActive,
+	type EducationLevelToggle,
 	type FilterGroupConfig,
 	type FilterPresetId,
 	getPresetFilters,
@@ -326,6 +328,40 @@ function SemesterTermToggleControl({
 	);
 }
 
+function EducationLevelToggleControl({
+	toggle,
+	onToggle,
+}: Readonly<{
+	toggle: EducationLevelToggle;
+	onToggle: (value: string) => void;
+}>) {
+	if (toggle.options.length === 0) return null;
+
+	return (
+		<div className="space-y-3">
+			<Label className="text-sm font-medium">Освітній рівень</Label>
+			<ToggleGroup
+				type="single"
+				variant="outline"
+				value={toggle.selected}
+				onValueChange={onToggle}
+				className="flex w-full"
+				data-testid={testIds.filters.educationLevelToggle}
+			>
+				{toggle.options.map((option) => (
+					<ToggleGroupItem
+						key={option.value}
+						value={option.value}
+						className="flex-1 text-xs"
+					>
+						{option.label}
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+		</div>
+	);
+}
+
 function SelectFilters({
 	filters,
 	getSelectValue,
@@ -531,6 +567,15 @@ function CourseFiltersContent({
 		[setWithPageReset, setParams, params.credits, params.type],
 	);
 
+	const handleEducationLevelToggle = useCallback(
+		(value: string) => {
+			setWithPageReset({
+				eduLevel: (value || null) as EducationLevelEnum | null,
+			});
+		},
+		[setWithPageReset],
+	);
+
 	const handleTogglePreset = useCallback(
 		(presetId: FilterPresetId) => {
 			const isActive = data.activePresetIds.includes(presetId);
@@ -601,6 +646,10 @@ function CourseFiltersContent({
 					onOpenChange={(open) => setGroupOpen("structure", open)}
 					testId={testIds.filters.groupStructure}
 				>
+					<EducationLevelToggleControl
+						toggle={groups.structure.educationLevelToggle}
+						onToggle={handleEducationLevelToggle}
+					/>
 					<SelectFilters
 						filters={groups.structure.selectFilters}
 						getSelectValue={getSelectValue}
