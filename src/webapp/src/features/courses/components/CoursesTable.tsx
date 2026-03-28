@@ -36,6 +36,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import {
+	EducationLevelEnum,
 	useCoursesFilterOptionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
@@ -155,7 +156,7 @@ const columns: ColumnDef<CourseList>[] = [
 							{course.title}
 						</span>
 					)}
-					{course.education_level === "MASTER" && (
+					{course.education_level === EducationLevelEnum.MASTER && (
 						<span
 							className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold leading-none text-primary-foreground"
 							title="Магістр"

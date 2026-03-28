@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import type { FilterOptions } from "@/lib/api/generated";
+import { EducationLevelEnum, type FilterOptions } from "@/lib/api/generated";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
@@ -245,8 +245,8 @@ export function useCourseFiltersData({
 	const educationLevelToggleOptions: EducationLevelToggle = React.useMemo(
 		() => ({
 			options: [
-				{ value: "BACHELOR", label: getEducationLevelDisplay("BACHELOR") },
-				{ value: "MASTER", label: getEducationLevelDisplay("MASTER") },
+				{ value: EducationLevelEnum.BACHELOR, label: getEducationLevelDisplay(EducationLevelEnum.BACHELOR) },
+				{ value: EducationLevelEnum.MASTER, label: getEducationLevelDisplay(EducationLevelEnum.MASTER) },
 			],
 			selected: filters.eduLevel ?? "",
 		}),
