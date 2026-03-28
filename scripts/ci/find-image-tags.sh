@@ -31,7 +31,11 @@ if [ -z "$tags" ]; then
   exit 0
 fi
 
-# If the target is not a semver tag (e.g. a commit SHA), look for an exact match
+# IMPORTANT: Non-semver targets (e.g. commit SHAs from manual feature-branch deploys)
+# must be handled BEFORE the semver filter below. Without this early exit, a SHA like
+# "12c3853c" falls into the semver path where sort -V treats it as a version higher
+# than any real tag (starts with "12..."), causing the script to return the latest
+# semver release image instead of the freshly built SHA-tagged image.
 exact_tag="${TAG_PREFIX}${TARGET_VERSION}"
 if ! echo "$TARGET_VERSION" | grep -qE '^v?[0-9]+\.[0-9]+\.[0-9]+'; then
   exact=$(echo "$tags" | grep -Fx "$exact_tag" || true)
