@@ -40,6 +40,10 @@ def microsoft_login(request):
         user_agent=request.META.get("HTTP_USER_AGENT"),
     )
 
+    post_login_redirect = request.GET.get("redirect", "")
+    if post_login_redirect:
+        request.session["post_login_redirect"] = post_login_redirect
+
     return redirect("/accounts/microsoft/login/")
 
 

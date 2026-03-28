@@ -296,3 +296,100 @@ def test_on_authentication_error_handles_none_exception(
         )
 
     assert exc.value.response.url == "/login-error?technical=1"
+
+
+def test_get_login_redirect_url_returns_login_redirect_url_by_default(
+    account_adapter: MicrosoftAccountAdapter,
+    http_request: MagicMock,
+    settings,
+):
+    # Arrange
+    settings.LOGIN_REDIRECT_URL = "https://rate-ukma.kyiv.ua"
+    http_request.session = {}
+
+    # Act
+    result = account_adapter.get_login_redirect_url(http_request)
+
+    # Assert
+    assert result == "https://rate-ukma.kyiv.ua"
+
+
+def test_get_login_redirect_url_appends_stored_path_to_base_url(
+    account_adapter: MicrosoftAccountAdapter,
+    http_request: MagicMock,
+    settings,
+):
+    # Arrange
+    settings.LOGIN_REDIRECT_URL = "https://rate-ukma.kyiv.ua"
+    http_request.session = {"post_login_redirect": "/courses/123"}
+
+    # Act
+    result = account_adapter.get_login_redirect_url(http_request)
+
+    # Assert
+    assert result == "https://rate-ukma.kyiv.ua/courses/123"
+    assert "post_login_redirect" not in http_request.session
+
+
+def test_get_login_redirect_url_ignores_absolute_redirect_path(
+    account_adapter: MicrosoftAccountAdapter,
+    http_request: MagicMock,
+    settings,
+):
+    # Arrange
+    settings.LOGIN_REDIRECT_URL = "https://rate-ukma.kyiv.ua"
+    http_request.session = {"post_login_redirect": "https://evil.com/steal"}
+
+    # Act
+    result = account_adapter.get_login_redirect_url(http_request)
+
+    # Assert
+    assert result == "https://rate-ukma.kyiv.ua"
+
+
+def test_get_login_redirect_url_ignores_protocol_relative_redirect_path(
+    account_adapter: MicrosoftAccountAdapter,
+    http_request: MagicMock,
+    settings,
+):
+    # Arrange
+    settings.LOGIN_REDIRECT_URL = "https://rate-ukma.kyiv.ua"
+    http_request.session = {"post_login_redirect": "//evil.com/steal"}
+
+    # Act
+    result = account_adapter.get_login_redirect_url(http_request)
+
+    # Assert
+    assert result == "https://rate-ukma.kyiv.ua"
+
+
+def test_get_login_redirect_url_ignores_path_without_leading_slash(
+    account_adapter: MicrosoftAccountAdapter,
+    http_request: MagicMock,
+    settings,
+):
+    # Arrange
+    settings.LOGIN_REDIRECT_URL = "https://rate-ukma.kyiv.ua"
+    http_request.session = {"post_login_redirect": "courses/123"}
+
+    # Act
+    result = account_adapter.get_login_redirect_url(http_request)
+
+    # Assert
+    assert result == "https://rate-ukma.kyiv.ua"
+
+
+def test_get_login_redirect_url_ignores_path_with_backslash(
+    account_adapter: MicrosoftAccountAdapter,
+    http_request: MagicMock,
+    settings,
+):
+    # Arrange
+    settings.LOGIN_REDIRECT_URL = "https://rate-ukma.kyiv.ua"
+    http_request.session = {"post_login_redirect": "/\\evil.com"}
+
+    # Act
+    result = account_adapter.get_login_redirect_url(http_request)
+
+    # Assert
+    assert result == "https://rate-ukma.kyiv.ua"

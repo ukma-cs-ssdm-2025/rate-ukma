@@ -1,4 +1,5 @@
 from typing import override
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -182,7 +183,19 @@ class MicrosoftAccountAdapter(StudentLinkingMixin, DefaultAccountAdapter):
 
     @override
     def get_login_redirect_url(self, request: HttpRequest) -> str:
-        return settings.LOGIN_REDIRECT_URL
+        base_url = settings.LOGIN_REDIRECT_URL
+        post_login_redirect = request.session.pop("post_login_redirect", None)
+        if post_login_redirect:
+            parsed = urlparse(post_login_redirect)
+            is_safe_relative = (
+                not parsed.scheme
+                and not parsed.netloc
+                and post_login_redirect.startswith("/")
+                and "\\" not in post_login_redirect
+            )
+            if is_safe_relative:
+                return base_url.rstrip("/") + post_login_redirect
+        return base_url
 
     @override
     def get_logout_redirect_url(self, request: HttpRequest) -> str:
