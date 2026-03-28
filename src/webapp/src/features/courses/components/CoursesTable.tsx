@@ -28,6 +28,11 @@ import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
 import { Button } from "@/components/ui/Button";
 import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
+import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
@@ -157,12 +162,14 @@ const columns: ColumnDef<CourseList>[] = [
 						</span>
 					)}
 					{course.education_level === EducationLevelEnum.MASTER && (
-						<span
-							className="inline-flex shrink-0 items-center rounded border px-1 py-px text-[10px] font-medium leading-tight text-muted-foreground"
-							title="Магістр"
-						>
-							М
-						</span>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className="inline-flex shrink-0 cursor-default items-center rounded border px-1 py-px text-[10px] font-medium leading-tight text-muted-foreground">
+									М
+								</span>
+							</TooltipTrigger>
+							<TooltipContent side="top">Магістр</TooltipContent>
+						</Tooltip>
 					)}
 					<CourseSpecialityBadges specialities={course.specialities} />
 				</span>
