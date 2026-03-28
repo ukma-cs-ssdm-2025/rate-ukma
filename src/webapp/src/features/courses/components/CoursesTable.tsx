@@ -164,7 +164,7 @@ const columns: ColumnDef<CourseList>[] = [
 					{course.education_level === EducationLevelEnum.MASTER && (
 						<Tooltip>
 							<TooltipTrigger asChild>
-								<span className="inline-flex shrink-0 cursor-default items-center rounded border px-1 py-px text-[10px] font-medium leading-tight text-muted-foreground">
+								<span className="inline-flex shrink-0 cursor-default items-center rounded-sm border px-1 py-px text-[10px] font-medium leading-tight text-muted-foreground">
 									М
 								</span>
 							</TooltipTrigger>

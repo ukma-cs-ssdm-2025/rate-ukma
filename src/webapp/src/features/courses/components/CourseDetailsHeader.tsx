@@ -51,12 +51,9 @@ export function CourseDetailsHeader({
 			{(metaParts.length > 0 || educationLevelLabel) && (
 				<p className="text-sm text-muted-foreground">
 					{educationLevelLabel && (
-						<Badge
-							variant="outline"
-							className="mr-2 px-2 py-0.5 text-xs font-normal text-muted-foreground align-middle"
-						>
+						<span className="mr-2 inline-flex items-center rounded-sm border px-1.5 py-0.5 text-xs font-medium text-muted-foreground align-middle">
 							{educationLevelLabel}
-						</Badge>
+						</span>
 					)}
 					{metaParts.join(" · ")}
 				</p>
