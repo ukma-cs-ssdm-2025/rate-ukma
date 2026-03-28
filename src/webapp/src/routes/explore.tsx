@@ -69,6 +69,7 @@ function ExploreRoute() {
 					: undefined,
 			type_kind: params.type ?? undefined,
 			speciality: params.spec || undefined,
+			education_level: params.eduLevel ?? undefined,
 		};
 	}, [params]);
 
