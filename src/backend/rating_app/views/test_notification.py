@@ -217,6 +217,27 @@ def test_voter_does_not_receive_own_notification(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_toggling_vote_does_not_increment_count(
+    token_client,
+    enrolled_voter_setup,
+):
+    rating = enrolled_voter_setup["rating"]
+
+    _cast_vote(token_client, rating.id, RatingVoteStrType.UPVOTE)
+    _cast_vote(token_client, rating.id, RatingVoteStrType.DOWNVOTE)
+    _cast_vote(token_client, rating.id, RatingVoteStrType.UPVOTE)
+
+    author_client = _make_author_client(rating.student)
+    response = author_client.get(NOTIFICATIONS_URL)
+    notifications = response.json()
+
+    assert len(notifications) == 1
+    assert notifications[0]["count"] == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_notifications_list_with_pagination(token_client):
     response = token_client.get(f"{NOTIFICATIONS_URL}?limit=5&offset=0")
 

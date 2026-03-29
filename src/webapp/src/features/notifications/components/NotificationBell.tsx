@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Bell, Check } from "lucide-react";
 
@@ -48,6 +48,13 @@ export function NotificationBell() {
 		await markAllRead();
 		resetPagination();
 	}, [markAllRead, resetPagination]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: refetch list only when unreadCount changes while popover is open
+	useEffect(() => {
+		if (open) {
+			refetch();
+		}
+	}, [unreadCount]);
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>

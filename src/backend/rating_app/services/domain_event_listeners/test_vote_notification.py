@@ -1,12 +1,14 @@
 import uuid
 from datetime import datetime
 from typing import cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
+from rating_app.application_schemas.student import Student as StudentDTO
+from rating_app.exception.student_exceptions import StudentNotFoundError
 from rating_app.models.choices import NotificationEventType, RatingVoteType
 from rating_app.models.rating_vote import RatingVote as RatingVoteModel
 from rating_app.services.domain_event_listeners.vote_notification import (
@@ -49,6 +51,18 @@ def _make_vote_dto(*, student_id=None, rating_id=None, vote_type=RatingVoteType.
     )
 
 
+def _make_student_dto(student_id: uuid.UUID, user_id: int | None = None) -> StudentDTO:
+    return StudentDTO(
+        id=student_id,
+        first_name="Test",
+        last_name="User",
+        patronymic=None,
+        education_level=None,
+        speciality_id=uuid.uuid4(),
+        user_id=user_id,
+    )
+
+
 RECIPIENT_USER_ID = 42
 ACTOR_USER_ID = 99
 
@@ -63,22 +77,38 @@ class TestVoteNotificationObserver:
         return MagicMock()
 
     @pytest.fixture
-    def observer(self, notification_service, rating_repository):
+    def student_repository(self):
+        return MagicMock()
+
+    @pytest.fixture
+    def observer(self, notification_service, rating_repository, student_repository):
         return VoteNotificationObserver(
             notification_service=notification_service,
             rating_repository=rating_repository,
+            student_repository=student_repository,
         )
 
+    def _setup_student_lookups(self, student_repository, rating_student_id, voter_student_id):
+        """Configure student_repository to return proper DTOs for recipient and actor."""
+
+        def get_by_id(sid):
+            if sid == str(rating_student_id):
+                return _make_student_dto(rating_student_id, user_id=RECIPIENT_USER_ID)
+            if sid == str(voter_student_id):
+                return _make_student_dto(voter_student_id, user_id=ACTOR_USER_ID)
+            raise StudentNotFoundError()
+
+        student_repository.get_by_id.side_effect = get_by_id
+
     def test_creates_notification_on_upvote(
-        self, observer, notification_service, rating_repository
+        self, observer, notification_service, rating_repository, student_repository
     ):
         rating = _make_rating_dto()
         rating_repository.get_by_id.return_value = rating
         vote = _make_vote_dto(rating_id=rating.id, vote_type=RatingVoteType.UPVOTE)
+        self._setup_student_lookups(student_repository, rating.student_id, vote.student_id)
 
-        with patch.object(observer, "_resolve_recipient_user_id", return_value=RECIPIENT_USER_ID):
-            with patch.object(observer, "_resolve_actor_user_id", return_value=ACTOR_USER_ID):
-                observer.on_event(vote)
+        observer.on_event(vote)
 
         notification_service.create_notification.assert_called_once_with(
             recipient_id=RECIPIENT_USER_ID,
@@ -90,15 +120,14 @@ class TestVoteNotificationObserver:
         )
 
     def test_creates_notification_on_downvote(
-        self, observer, notification_service, rating_repository
+        self, observer, notification_service, rating_repository, student_repository
     ):
         rating = _make_rating_dto()
         rating_repository.get_by_id.return_value = rating
         vote = _make_vote_dto(rating_id=rating.id, vote_type=RatingVoteType.DOWNVOTE)
+        self._setup_student_lookups(student_repository, rating.student_id, vote.student_id)
 
-        with patch.object(observer, "_resolve_recipient_user_id", return_value=RECIPIENT_USER_ID):
-            with patch.object(observer, "_resolve_actor_user_id", return_value=ACTOR_USER_ID):
-                observer.on_event(vote)
+        observer.on_event(vote)
 
         notification_service.create_notification.assert_called_once()
         call_kwargs = notification_service.create_notification.call_args.kwargs
@@ -126,27 +155,26 @@ class TestVoteNotificationObserver:
         notification_service.create_notification.assert_not_called()
 
     def test_skips_when_recipient_not_found(
-        self, observer, notification_service, rating_repository
+        self, observer, notification_service, rating_repository, student_repository
     ):
         rating = _make_rating_dto()
         rating_repository.get_by_id.return_value = rating
         vote = _make_vote_dto(rating_id=rating.id)
+        student_repository.get_by_id.side_effect = StudentNotFoundError()
 
-        with patch.object(observer, "_resolve_recipient_user_id", return_value=None):
-            observer.on_event(vote)
+        observer.on_event(vote)
 
         notification_service.create_notification.assert_not_called()
 
     def test_group_key_contains_event_type_and_rating_id(
-        self, observer, notification_service, rating_repository
+        self, observer, notification_service, rating_repository, student_repository
     ):
         rating = _make_rating_dto()
         rating_repository.get_by_id.return_value = rating
         vote = _make_vote_dto(rating_id=rating.id, vote_type=RatingVoteType.UPVOTE)
+        self._setup_student_lookups(student_repository, rating.student_id, vote.student_id)
 
-        with patch.object(observer, "_resolve_recipient_user_id", return_value=RECIPIENT_USER_ID):
-            with patch.object(observer, "_resolve_actor_user_id", return_value=ACTOR_USER_ID):
-                observer.on_event(vote)
+        observer.on_event(vote)
 
         call_kwargs = notification_service.create_notification.call_args.kwargs
         expected_group_key = f"{NotificationEventType.RATING_UPVOTED}:{vote.rating_id}"

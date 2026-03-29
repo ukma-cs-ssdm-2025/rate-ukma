@@ -22,12 +22,11 @@ class NotificationService:
         notification_repository: NotificationRepository,
         cursor_repository: NotificationCursorRepository,
     ) -> None:
-        self._notification_repository = notification_repository
-        self._cursor_repository = cursor_repository
+        self.notification_repository = notification_repository
+        self.cursor_repository = cursor_repository
 
     def create_notification(
         self,
-        *,
         recipient_id: int,
         event_type: str,
         group_key: str,
@@ -45,7 +44,7 @@ class NotificationService:
             object_id=source_id,
             actor_id=actor_id,
         )
-        return self._notification_repository.create(data)
+        return self.notification_repository.create(data)
 
     def get_notifications_for_user(
         self,
@@ -53,8 +52,8 @@ class NotificationService:
         limit: int = DEFAULT_NOTIFICATION_PAGE_SIZE,
         offset: int = 0,
     ) -> list[NotificationGroup]:
-        cursor_value = self._cursor_repository.get_cursor_value(user_id)
-        return self._notification_repository.get_grouped_for_user(
+        cursor_value = self.cursor_repository.get_cursor_value(user_id)
+        return self.notification_repository.get_grouped_for_user(
             user_id=user_id,
             cursor_value=cursor_value,
             limit=limit,
@@ -62,14 +61,26 @@ class NotificationService:
         )
 
     def get_unread_count(self, user_id: int) -> int:
-        cursor_value = self._cursor_repository.get_cursor_value(user_id)
-        return self._notification_repository.get_unread_group_count(
+        cursor_value = self.cursor_repository.get_cursor_value(user_id)
+        return self.notification_repository.get_unread_group_count(
             user_id=user_id,
             cursor_value=cursor_value,
         )
 
     def mark_all_read(self, user_id: int) -> None:
-        self._cursor_repository.advance_cursor(user_id)
+        self.cursor_repository.advance_cursor(user_id)
 
     def mark_group_read(self, user_id: int, group_key: str) -> None:
-        self._cursor_repository.mark_group_read(user_id, group_key)
+        self.cursor_repository.mark_group_read(user_id, group_key)
+
+    def delete_actor_notifications_for_rating(
+        self,
+        recipient_id: int,
+        actor_id: int,
+        rating_id: str,
+    ) -> None:
+        self.notification_repository.delete_by_actor_and_rating(
+            recipient_id=recipient_id,
+            actor_id=actor_id,
+            rating_id=rating_id,
+        )

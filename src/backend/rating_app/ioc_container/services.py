@@ -155,6 +155,7 @@ def vote_notification_observer() -> VoteNotificationObserver:
     return VoteNotificationObserver(
         notification_service=notification_service(),
         rating_repository=rating_repository(),
+        student_repository=student_repository(),
     )
 
 
