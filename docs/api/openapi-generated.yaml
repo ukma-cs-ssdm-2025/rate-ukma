@@ -2637,6 +2637,7 @@ components:
       properties:
         group_key:
           type: string
+          maxLength: 255
       required:
       - group_key
     NotificationGroup:

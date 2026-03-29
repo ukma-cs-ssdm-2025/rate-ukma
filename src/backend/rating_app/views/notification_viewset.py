@@ -110,7 +110,8 @@ class NotificationViewSet(viewsets.ViewSet):
 
     def _parse_limit(self, request) -> int:
         try:
-            return int(request.query_params.get("limit", DEFAULT_NOTIFICATION_PAGE_SIZE))
+            value = int(request.query_params.get("limit", DEFAULT_NOTIFICATION_PAGE_SIZE))
+            return max(1, min(value, DEFAULT_NOTIFICATION_PAGE_SIZE))
         except (ValueError, TypeError):
             return DEFAULT_NOTIFICATION_PAGE_SIZE
 

@@ -172,7 +172,9 @@ function NotificationItem({
 					to="/courses/$courseId"
 					params={{ courseId }}
 					className={itemClass}
-					onClick={() => onClick?.(notification.group_key ?? "")}
+					onClick={() => {
+						if (notification.group_key) onClick?.(notification.group_key);
+					}}
 				>
 					{content}
 				</Link>

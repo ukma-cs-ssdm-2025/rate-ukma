@@ -44,8 +44,8 @@ export function NotificationBell() {
 		[markGroupRead],
 	);
 
-	const handleMarkAllRead = useCallback(() => {
-		markAllRead();
+	const handleMarkAllRead = useCallback(async () => {
+		await markAllRead();
 		resetPagination();
 	}, [markAllRead, resetPagination]);
 

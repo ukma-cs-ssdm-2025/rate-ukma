@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -38,6 +38,13 @@ export function useNotifications() {
 	const [hasMore, setHasMore] = useState(true);
 
 	const firstPage = data ?? [];
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset buffer when server data changes
+	useEffect(() => {
+		setExtra([]);
+		setHasMore(true);
+	}, [data]);
+
 	const notifications = [...firstPage, ...extra];
 
 	const queryClient = useQueryClient();
@@ -82,7 +89,7 @@ export function useNotifications() {
 
 export function useMarkAllRead() {
 	const queryClient = useQueryClient();
-	const { mutate, isPending } = useNotificationsMarkReadCreate({
+	const { mutateAsync, isPending } = useNotificationsMarkReadCreate({
 		mutation: {
 			onSuccess: () => {
 				queryClient.invalidateQueries({
@@ -95,7 +102,7 @@ export function useMarkAllRead() {
 		},
 	});
 
-	const markAllRead = useCallback(() => mutate(), [mutate]);
+	const markAllRead = useCallback(() => mutateAsync(), [mutateAsync]);
 
 	return { markAllRead, isPending };
 }

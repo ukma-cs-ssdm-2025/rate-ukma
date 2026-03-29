@@ -46,8 +46,8 @@ export function MobileNotificationPanel({
 		[markGroupRead, onNavigate],
 	);
 
-	const handleMarkAllRead = useCallback(() => {
-		markAllRead();
+	const handleMarkAllRead = useCallback(async () => {
+		await markAllRead();
 		resetPagination();
 	}, [markAllRead, resetPagination]);
 

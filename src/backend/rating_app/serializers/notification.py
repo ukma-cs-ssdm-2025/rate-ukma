@@ -9,16 +9,15 @@ logger = structlog.get_logger(__name__)
 
 NOTIFICATION_MESSAGE_TEMPLATES = {
     NotificationEventType.RATING_UPVOTED: {
-        "singular": "{actor} upvoted your rating",
-        "plural": "{actor} and {others_count} others upvoted your rating",
+        "singular": "Хтось вподобав ваш відгук",
+        "plural": "{count} людей вподобали ваш відгук",
     },
     NotificationEventType.RATING_DOWNVOTED: {
-        "singular": "{actor} downvoted your rating",
-        "plural": "{actor} and {others_count} others downvoted your rating",
+        "singular": "Хтось не вподобав ваш відгук",
+        "plural": "{count} людей не вподобали ваш відгук",
     },
 }
 
-FALLBACK_ACTOR_NAME = "Someone"
 PLURAL_THRESHOLD = 2
 
 
@@ -39,12 +38,10 @@ class NotificationGroupSerializer(serializers.Serializer):
         if templates is None:
             return str(obj.event_type)
 
-        actor = obj.latest_actor_name or FALLBACK_ACTOR_NAME
-
         if obj.count < PLURAL_THRESHOLD:
-            return templates["singular"].format(actor=actor)
+            return templates["singular"]
 
-        return templates["plural"].format(actor=actor, others_count=obj.count - 1)
+        return templates["plural"].format(count=obj.count)
 
     def get_rating_id(self, obj) -> str | None:
         return _parse_rating_id(obj.group_key)
@@ -94,4 +91,4 @@ class UnreadCountSerializer(serializers.Serializer):
 
 
 class MarkGroupReadSerializer(serializers.Serializer):
-    group_key = serializers.CharField()
+    group_key = serializers.CharField(max_length=255)
