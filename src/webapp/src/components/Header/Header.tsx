@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 
 import { useTheme } from "@/components/ThemeProvider";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useAuth } from "@/lib/auth";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { testIds } from "@/lib/test-ids";
@@ -65,10 +66,16 @@ export default function Header() {
 						/>
 					</div>
 
-					<div className="flex items-center md:space-x-3">
+					<div className="flex items-center gap-4">
 						<div className="hidden md:block">
 							<ModeToggle />
 						</div>
+
+						{isAuthenticated && (
+							<div className="hidden md:block">
+								<NotificationBell />
+							</div>
+						)}
 
 						<div className="md:hidden">
 							<Button

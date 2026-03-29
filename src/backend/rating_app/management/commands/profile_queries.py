@@ -1,9 +1,10 @@
 import json
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from unittest.mock import patch
 
 from django.conf import settings
@@ -113,7 +114,10 @@ class Command(BaseCommand):
             scenarios.append(
                 Scenario(
                     name="courses_complex",
-                    description="Paginated course list with representative semester/credits/structure filters",
+                    description=(
+                        "Paginated course list with representative"
+                        " semester/credits/structure filters"
+                    ),
                     executor=lambda: course_service().filter_courses(
                         course_filters,
                         paginate=True,
@@ -128,7 +132,9 @@ class Command(BaseCommand):
             scenarios.append(
                 Scenario(
                     name="analytics_complex",
-                    description="Analytics list with representative semester/credits/structure filters",
+                    description=(
+                        "Analytics list with representative semester/credits/structure filters"
+                    ),
                     executor=lambda: course_service().filter_courses(
                         course_filters,
                         paginate=False,
@@ -193,7 +199,9 @@ class Command(BaseCommand):
             result["skipped"] = "Representative local data for this scenario was not found"
             return result
 
-        fetch_queryset = queryset if scenario.explain_limit is None else queryset[: scenario.explain_limit]
+        fetch_queryset = (
+            queryset if scenario.explain_limit is None else queryset[: scenario.explain_limit]
+        )
         result["explain"] = {
             "page_fetch": self._explain_queryset(fetch_queryset),
             "count": self._explain_count(queryset),
@@ -289,13 +297,15 @@ class Command(BaseCommand):
             count = result["explain"]["count"]
             self.stdout.write(f"\n{name}")
             self.stdout.write(f"  {result['description']}")
+            cold = runtime["cold"]
+            warm = runtime["warm"]
             self.stdout.write(
-                "  Cold runtime: "
-                f"{runtime['cold']['elapsed_ms']}ms across {runtime['cold']['query_count']} SQL statements"
+                f"  Cold runtime: {cold['elapsed_ms']}ms"
+                f" across {cold['query_count']} SQL statements"
             )
             self.stdout.write(
-                "  Warm runtime: "
-                f"{runtime['warm']['elapsed_ms']}ms across {runtime['warm']['query_count']} SQL statements"
+                f"  Warm runtime: {warm['elapsed_ms']}ms"
+                f" across {warm['query_count']} SQL statements"
             )
             self.stdout.write(
                 f"  Fetch plan: {fetch['execution_time_ms']}ms, top node={fetch['node_type']}"
@@ -327,9 +337,7 @@ class Command(BaseCommand):
         else:
             year = f"{semester.year - 1}–{semester.year}"
 
-        instructor_id = (
-            offering.instructors.order_by("id").values_list("id", flat=True).first()
-        )
+        instructor_id = offering.instructors.order_by("id").values_list("id", flat=True).first()
 
         payload: dict[str, Any] = {
             "faculty": course.department.faculty_id,

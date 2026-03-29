@@ -10,6 +10,7 @@ from ..views import (
     CourseOfferingViewSet,
     CourseViewSet,
     InstructorViewSet,
+    NotificationViewSet,
     RatingViewSet,
     RatingVoteViewSet,
     StudentStatisticsViewSet,
@@ -19,6 +20,7 @@ from .services import (
     course_offering_service,
     course_service,
     instructor_service,
+    notification_service,
     rating_service,
     student_service,
     vote_service,
@@ -155,6 +157,38 @@ def course_offering_detail_view():
 
 
 @once
+def notification_list_view():
+    return NotificationViewSet.as_view(
+        {"get": "list"},
+        notification_service=notification_service(),
+    )
+
+
+@once
+def notification_unread_count_view():
+    return NotificationViewSet.as_view(
+        {"get": "unread_count"},
+        notification_service=notification_service(),
+    )
+
+
+@once
+def notification_mark_read_view():
+    return NotificationViewSet.as_view(
+        {"post": "mark_read"},
+        notification_service=notification_service(),
+    )
+
+
+@once
+def notification_mark_group_read_view():
+    return NotificationViewSet.as_view(
+        {"post": "mark_group_read"},
+        notification_service=notification_service(),
+    )
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -246,6 +280,26 @@ def rest_urlpatterns() -> list:
             "course-offerings/<str:course_offering_id>/",
             course_offering_detail_view(),
             name="course-offering-detail",
+        ),
+        path(
+            "notifications/",
+            notification_list_view(),
+            name="notification-list",
+        ),
+        path(
+            "notifications/unread-count/",
+            notification_unread_count_view(),
+            name="notification-unread-count",
+        ),
+        path(
+            "notifications/mark-read/",
+            notification_mark_read_view(),
+            name="notification-mark-read",
+        ),
+        path(
+            "notifications/mark-group-read/",
+            notification_mark_group_read_view(),
+            name="notification-mark-group-read",
         ),
     ]
 

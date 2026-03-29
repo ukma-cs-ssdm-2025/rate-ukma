@@ -3,6 +3,7 @@ from .course_service import CourseService
 from .department_service import DepartmentService
 from .faculty_service import FacultyService
 from .instructor_service import InstructorService
+from .notification_service import NotificationService
 from .rating_service import RatingService
 from .semester_service import SemesterService
 from .speciality_service import SpecialityService
@@ -20,4 +21,5 @@ __all__ = [
     "SemesterService",
     "CourseOfferingService",
     "RatingFeedbackService",
+    "NotificationService",
 ]

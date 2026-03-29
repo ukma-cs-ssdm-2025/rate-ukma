@@ -2,6 +2,10 @@ from rateukma.ioc.decorators import once
 from rating_app.models import Course
 from rating_app.pagination import GenericQuerysetPaginator
 from rating_app.queries.rating_popularity import WilsonPopularityAnnotator
+from rating_app.repositories.notification_repository import (
+    NotificationCursorRepository,
+    NotificationRepository,
+)
 from rating_app.repositories.to_domain_mappers import (
     CourseInstructorMapper,
     CourseOfferingMapper,
@@ -9,6 +13,7 @@ from rating_app.repositories.to_domain_mappers import (
     EnrollmentMapper,
     FacultyMapper,
     InstructorMapper,
+    NotificationGroupMapper,
     RatingVoteModelMapper,
     SemesterMapper,
     SpecialityMapper,
@@ -177,3 +182,18 @@ def vote_repository() -> RatingVoteRepository:
         vote_mapper=rating_vote_mapper(),
         model_mapper=rating_vote_model_mapper(),
     )
+
+
+@once
+def notification_group_mapper() -> NotificationGroupMapper:
+    return NotificationGroupMapper()
+
+
+@once
+def notification_repository() -> NotificationRepository:
+    return NotificationRepository(mapper=notification_group_mapper())
+
+
+@once
+def notification_cursor_repository() -> NotificationCursorRepository:
+    return NotificationCursorRepository()

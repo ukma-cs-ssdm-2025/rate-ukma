@@ -66,3 +66,8 @@ class RatingVoteType(models.IntegerChoices):
 class RatingVoteStrType(models.TextChoices):
     DOWNVOTE = "DOWNVOTE", "Downvote"
     UPVOTE = "UPVOTE", "Upvote"
+
+
+class NotificationEventType(models.TextChoices):
+    RATING_UPVOTED = "RATING_UPVOTED", "Rating Upvoted"
+    RATING_DOWNVOTED = "RATING_DOWNVOTED", "Rating Downvoted"

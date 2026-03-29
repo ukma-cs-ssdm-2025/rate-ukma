@@ -1,7 +1,13 @@
+import { useState } from "react";
+
 import { Link } from "@tanstack/react-router";
 import { LogOut, Moon, Sun, X } from "lucide-react";
 
 import { Drawer } from "@/components/ui/Drawer";
+import {
+	MobileNotificationPanel,
+	MobileNotificationRow,
+} from "@/features/notifications/components/MobileNotificationPanel";
 import type { AuthUser } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import type { NavigationItem, ThemeOption } from "./navigationData";
@@ -123,8 +129,15 @@ export function MobileMenu({
 	theme,
 	setTheme,
 }: Readonly<MobileMenuProps>) {
+	const [showNotifications, setShowNotifications] = useState(false);
+
 	const handleLogout = () => {
 		logout();
+		onClose();
+	};
+
+	const handleClose = () => {
+		setShowNotifications(false);
 		onClose();
 	};
 
@@ -133,35 +146,52 @@ export function MobileMenu({
 			open={isOpen}
 			onOpenChange={(value) => {
 				if (!value) {
-					onClose();
+					handleClose();
 				}
 			}}
 			ariaLabel="Мобільне меню"
 			closeButtonLabel="Закрити меню"
 			data-testid={testIds.header.mobileMenu}
 		>
-			<div className="flex items-center justify-between">
-				<Logo />
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-9 w-9 rounded-full p-0"
-					onClick={() => onClose()}
-					aria-label="Закрити меню"
-					data-testid={testIds.header.mobileMenuCloseButton}
-				>
-					<X className="h-5 w-5" />
-				</Button>
-			</div>
+			{showNotifications ? (
+				<MobileNotificationPanel
+					onBack={() => setShowNotifications(false)}
+					onNavigate={handleClose}
+				/>
+			) : (
+				<>
+					<div className="flex items-center justify-between">
+						<Logo />
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-9 w-9 rounded-full p-0"
+							onClick={handleClose}
+							aria-label="Закрити меню"
+							data-testid={testIds.header.mobileMenuCloseButton}
+						>
+							<X className="h-5 w-5" />
+						</Button>
+					</div>
 
-			<NavigationLinks navigationItems={navigationItems} onClose={onClose} />
+					<NavigationLinks
+						navigationItems={navigationItems}
+						onClose={handleClose}
+					/>
 
-			<div className="mt-auto">
-				<ThemeSwitcher theme={theme} setTheme={setTheme} />
-				{isAuthenticated && (
-					<AccountSummary user={user} onLogout={handleLogout} />
-				)}
-			</div>
+					<div className="mt-auto">
+						<ThemeSwitcher theme={theme} setTheme={setTheme} />
+						{isAuthenticated && (
+							<>
+								<MobileNotificationRow
+									onOpen={() => setShowNotifications(true)}
+								/>
+								<AccountSummary user={user} onLogout={handleLogout} />
+							</>
+						)}
+					</div>
+				</>
+			)}
 		</Drawer>
 	);
 }

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 class Student(Person):
     ratings: Manager[Rating]
     rating_vote: Manager[RatingVote]
+    user_id: int | None
 
     education_level = models.CharField(
         max_length=16,

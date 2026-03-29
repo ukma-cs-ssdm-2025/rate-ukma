@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import structlog
 
 from rateukma.protocols import IProcessor, implements
@@ -15,6 +17,7 @@ from rating_app.application_schemas.department import Department as DepartmentDT
 from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDTO
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
+from rating_app.application_schemas.notification import NotificationGroup
 from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
 from rating_app.application_schemas.semester import Semester as SemesterDTO
@@ -41,6 +44,7 @@ from rating_app.models.department import Department as DepartmentModel
 from rating_app.models.enrollment import Enrollment as EnrollmentModel
 from rating_app.models.faculty import Faculty as FacultyModel
 from rating_app.models.instructor import Instructor as InstructorModel
+from rating_app.models.notification import Notification as NotificationModel
 from rating_app.models.rating import Rating as RatingModel
 from rating_app.models.rating_vote import RatingVote as RatingVoteModel
 from rating_app.models.semester import Semester as SemesterModel
@@ -504,4 +508,33 @@ class EnrollmentMapper(IProcessor[[EnrollmentModel], EnrollmentDTO]):
             offering_id=model.offering_id,
             status=status,
             enrolled_at=model.enrolled_at,
+        )
+
+
+class NotificationGroupMapper(IProcessor[[NotificationModel], NotificationGroup]):
+    def process(
+        self,
+        model: NotificationModel,
+        *,
+        count: int = 1,
+        latest_created_at: datetime | None = None,
+        is_unread: bool = True,
+    ) -> NotificationGroup:
+        actor = model.actor
+        actor_name = (
+            f"{actor.last_name} {actor.first_name}"
+            if actor and hasattr(actor, "last_name")
+            else None
+        )
+
+        return NotificationGroup(
+            group_key=model.group_key,
+            event_type=model.event_type,
+            latest_notification_id=model.id,
+            latest_actor_id=model.actor_id,
+            latest_actor_name=actor_name,
+            source_object_id=model.object_id,
+            count=count,
+            latest_created_at=latest_created_at or model.created_at,
+            is_unread=is_unread,
         )

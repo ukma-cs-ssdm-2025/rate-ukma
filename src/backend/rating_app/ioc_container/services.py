@@ -7,6 +7,8 @@ from rating_app.ioc_container.repositories import (
     enrollment_repository,
     faculty_repository,
     instructor_repository,
+    notification_cursor_repository,
+    notification_repository,
     rating_repository,
     rating_vote_mapper,
     semester_repository,
@@ -35,6 +37,10 @@ from rating_app.services.domain_event_listeners.cache_invalidator import (
     RatingCacheInvalidator,
     RatingVoteCacheInvalidator,
 )
+from rating_app.services.domain_event_listeners.vote_notification import (
+    VoteNotificationObserver,
+)
+from rating_app.services.notification_service import NotificationService
 
 
 @once
@@ -136,10 +142,28 @@ def rating_vote_cache_invalidator() -> RatingVoteCacheInvalidator:
     )
 
 
+@once
+def notification_service() -> NotificationService:
+    return NotificationService(
+        notification_repository=notification_repository(),
+        cursor_repository=notification_cursor_repository(),
+    )
+
+
+@once
+def vote_notification_observer() -> VoteNotificationObserver:
+    return VoteNotificationObserver(
+        notification_service=notification_service(),
+        rating_repository=rating_repository(),
+        student_repository=student_repository(),
+    )
+
+
 def register_observers() -> None:
     rating_service().add_observer(course_model_aggregates_update_observer())
     rating_service().add_observer(rating_cache_invalidator())
     vote_service().add_observer(rating_vote_cache_invalidator())
+    vote_service().add_observer(vote_notification_observer())
 
 
 __all__ = [
@@ -152,4 +176,5 @@ __all__ = [
     "department_service",
     "speciality_service",
     "vote_service",
+    "notification_service",
 ]

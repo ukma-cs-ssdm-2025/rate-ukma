@@ -245,8 +245,14 @@ export function useCourseFiltersData({
 	const educationLevelToggleOptions: EducationLevelToggle = React.useMemo(
 		() => ({
 			options: [
-				{ value: EducationLevelEnum.BACHELOR, label: getEducationLevelDisplay(EducationLevelEnum.BACHELOR) },
-				{ value: EducationLevelEnum.MASTER, label: getEducationLevelDisplay(EducationLevelEnum.MASTER) },
+				{
+					value: EducationLevelEnum.BACHELOR,
+					label: getEducationLevelDisplay(EducationLevelEnum.BACHELOR),
+				},
+				{
+					value: EducationLevelEnum.MASTER,
+					label: getEducationLevelDisplay(EducationLevelEnum.MASTER),
+				},
 			],
 			selected: filters.eduLevel ?? "",
 		}),

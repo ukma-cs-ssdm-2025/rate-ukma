@@ -1510,6 +1510,148 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      summary: List notifications for the authenticated user
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          default: 20
+        description: Number of notification groups to return
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          default: 0
+        description: Number of notification groups to skip
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationGroup'
+          description: OK
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+  /api/v1/notifications/mark-group-read/:
+    post:
+      operationId: notifications_mark_group_read_create
+      summary: Mark a single notification group as read
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkGroupRead'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MarkGroupRead'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MarkGroupRead'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: Notification group marked as read
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+  /api/v1/notifications/mark-read/:
+    post:
+      operationId: notifications_mark_read_create
+      summary: Mark all notifications as read
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: All notifications marked as read
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+  /api/v1/notifications/unread-count/:
+    get:
+      operationId: notifications_unread_count_retrieve
+      summary: Get unread notification count
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCount'
+          description: OK
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
   /api/v1/ratings/{rating_id}/votes/:
     put:
       operationId: ratings_votes_update
@@ -2255,6 +2397,14 @@ components:
       required:
       - detail
       - status
+    EventTypeEnum:
+      enum:
+      - RATING_UPVOTED
+      - RATING_DOWNVOTED
+      type: string
+      description: |-
+        * `RATING_UPVOTED` - Rating Upvoted
+        * `RATING_DOWNVOTED` - Rating Downvoted
     ExamTypeEnum:
       enum:
       - EXAM
@@ -2482,6 +2632,53 @@ components:
       required:
       - password
       - username
+    MarkGroupRead:
+      type: object
+      properties:
+        group_key:
+          type: string
+          maxLength: 255
+      required:
+      - group_key
+    NotificationGroup:
+      type: object
+      properties:
+        group_key:
+          type: string
+          readOnly: true
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventTypeEnum'
+          readOnly: true
+        latest_notification_id:
+          type: string
+          format: uuid
+          readOnly: true
+        source_object_id:
+          type: string
+          format: uuid
+          readOnly: true
+        count:
+          type: integer
+          readOnly: true
+        latest_created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        is_unread:
+          type: boolean
+          readOnly: true
+        message:
+          type: string
+          readOnly: true
+        rating_id:
+          type: string
+          nullable: true
+          readOnly: true
+        course_id:
+          type: string
+          nullable: true
+          readOnly: true
     PatchedRatingPatchParams:
       properties:
         difficulty:
@@ -2823,6 +3020,12 @@ components:
         * `COMPULSORY` - Compulsory
         * `ELECTIVE` - Elective
         * `PROF_ORIENTED` - ProfOriented
+    UnreadCount:
+      type: object
+      properties:
+        count:
+          type: integer
+          readOnly: true
     ViewerVoteEnum:
       enum:
       - DOWNVOTE

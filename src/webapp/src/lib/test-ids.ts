@@ -179,6 +179,21 @@ export const testIds = {
 		errorState: "my-ratings-error-state",
 	},
 
+	// Notifications
+	notifications: {
+		bellTrigger: "notifications-bell-trigger",
+		panel: "notifications-panel",
+		markReadButton: "notifications-mark-read-button",
+		list: "notifications-list",
+		item: "notifications-item",
+		loading: "notifications-loading",
+		empty: "notifications-empty",
+		error: "notifications-error",
+		loadMore: "notifications-load-more",
+		mobileRow: "notifications-mobile-row",
+		mobilePanel: "notifications-mobile-panel",
+	},
+
 	// Footer
 	footer: {
 		repoLink: "footer-repo-link",
