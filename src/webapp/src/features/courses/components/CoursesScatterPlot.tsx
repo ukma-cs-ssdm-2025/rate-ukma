@@ -78,6 +78,7 @@ function normalizeAnalyticsFilters(
 		avg_difficulty_order,
 		avg_usefulness_order,
 		type_kind,
+		education_level,
 	} = filters;
 
 	return {
@@ -95,6 +96,7 @@ function normalizeAnalyticsFilters(
 		avg_difficulty_order,
 		avg_usefulness_order,
 		type_kind,
+		education_level,
 		ratings_count_min: 1,
 	};
 }

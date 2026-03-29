@@ -1,11 +1,12 @@
 import * as React from "react";
 
-import type { FilterOptions } from "@/lib/api/generated";
+import { EducationLevelEnum, type FilterOptions } from "@/lib/api/generated";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
 	getCourseTypeDisplay,
+	getEducationLevelDisplay,
 	getSemesterTermDisplay,
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
@@ -27,6 +28,7 @@ export function areFiltersActive(params: CourseFiltersParamsState): boolean {
 		params.credits[1] !== CREDITS_RANGE[1] ||
 		params.type !== null ||
 		params.spec !== "" ||
+		params.eduLevel !== null ||
 		params.page !== 1 ||
 		params.size !== 10
 	);
@@ -99,6 +101,11 @@ export function getPresetResetFilters(
 	}
 }
 
+export type EducationLevelToggle = {
+	options: Array<{ value: string; label: string }>;
+	selected: string;
+};
+
 export type FilterGroupConfig = {
 	id: "rating" | "semester" | "structure";
 	label: string;
@@ -119,6 +126,7 @@ export type CourseFiltersData = {
 		};
 		structure: {
 			config: FilterGroupConfig;
+			educationLevelToggle: EducationLevelToggle;
 			selectFilters: SelectFilterConfig[];
 		};
 	};
@@ -234,6 +242,23 @@ export function useCourseFiltersData({
 		[semesterYears, filters.year],
 	);
 
+	const educationLevelToggleOptions: EducationLevelToggle = React.useMemo(
+		() => ({
+			options: [
+				{
+					value: EducationLevelEnum.BACHELOR,
+					label: getEducationLevelDisplay(EducationLevelEnum.BACHELOR),
+				},
+				{
+					value: EducationLevelEnum.MASTER,
+					label: getEducationLevelDisplay(EducationLevelEnum.MASTER),
+				},
+			],
+			selected: filters.eduLevel ?? "",
+		}),
+		[filters.eduLevel],
+	);
+
 	const structureSelectFilters: SelectFilterConfig[] = React.useMemo(
 		() => [
 			{
@@ -339,8 +364,15 @@ export function useCourseFiltersData({
 		if (filters.dept) count++;
 		if (filters.spec) count++;
 		if (filters.type) count++;
+		if (filters.eduLevel) count++;
 		return count;
-	}, [filters.faculty, filters.dept, filters.spec, filters.type]);
+	}, [
+		filters.faculty,
+		filters.dept,
+		filters.spec,
+		filters.type,
+		filters.eduLevel,
+	]);
 
 	const activePresetIds = React.useMemo(() => {
 		const ids: FilterPresetId[] = [];
@@ -385,6 +417,7 @@ export function useCourseFiltersData({
 					label: "Структура",
 					activeCount: structureActiveCount,
 				},
+				educationLevelToggle: educationLevelToggleOptions,
 				selectFilters: structureSelectFilters,
 			},
 		},

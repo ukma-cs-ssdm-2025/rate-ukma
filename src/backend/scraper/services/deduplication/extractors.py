@@ -25,6 +25,36 @@ from .base import DataValidationError, Extractor
 
 logger = structlog.get_logger(__name__)
 
+_BACHELOR_FRAGMENT = "бакалавр"
+_MASTER_FRAGMENT = "магістр"
+
+
+def parse_exam_type(raw: str) -> ExamType:
+    normalized = raw.strip().lower().replace("`", "'")
+    if "залік" in normalized:
+        return ExamType.CREDIT
+    if "екзам" in normalized or "іспит" in normalized:
+        return ExamType.EXAM
+    return ExamType.EXAM
+
+
+def parse_practice_type(raw: str) -> PracticeType:
+    normalized = raw.strip().upper()
+    if normalized == "SEMINAR":
+        return PracticeType.SEMINAR
+    return PracticeType.PRACTICE
+
+
+def _parse_education_level(raw_level: str | None) -> EducationLevel | None:
+    if not raw_level:
+        return None
+    level_lower = raw_level.strip().lower()
+    if _BACHELOR_FRAGMENT in level_lower:
+        return EducationLevel.BACHELOR
+    if _MASTER_FRAGMENT in level_lower:
+        return EducationLevel.MASTER
+    return None
+
 
 class SemesterExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSemester]]):
     def extract(self, data: ParsedCourseDetails) -> list[DeduplicatedSemester]:
@@ -52,7 +82,7 @@ class SemesterExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSemester
                 continue
 
             year = self._extract_year(data.academic_year, sem_label)
-            semesters.append(DeduplicatedSemester(year=year, term=term))
+            semesters.append(DeduplicatedSemester(year=year, term=term, source_label=sem_label))
 
         return semesters
 
@@ -204,6 +234,9 @@ class InstructorExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedCourse
 
 
 class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollment]]):
+    def __init__(self, *, reference_academic_year_start: int | None = None) -> None:
+        self.reference_academic_year_start = reference_academic_year_start
+
     def extract(self, data: ParsedCourseDetails) -> list[DeduplicatedEnrollment]:
         if not data.students:
             logger.debug(
@@ -216,7 +249,7 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
 
         enrollments = []
         for student_row in data.students:
-            student = self._parse_student(student_row)
+            student = self._parse_student(student_row, data)
             if student:
                 enrollment = DeduplicatedEnrollment(
                     student=student,
@@ -226,7 +259,11 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
 
         return enrollments
 
-    def _parse_student(self, student_row: Any) -> DeduplicatedStudent | None:
+    def _parse_student(
+        self,
+        student_row: Any,
+        course_data: ParsedCourseDetails,
+    ) -> DeduplicatedStudent | None:
         if not student_row:
             return None
 
@@ -235,12 +272,14 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
             index = getattr(student_row, "index", None)
             email = getattr(student_row, "email", None)
             specialty = getattr(student_row, "specialty", None)
+            course_year = getattr(student_row, "course", None)
             group = getattr(student_row, "group", None)
         elif isinstance(student_row, dict):
             name = student_row.get("name", "")
             index = student_row.get("index")
             email = student_row.get("email")
             specialty = student_row.get("specialty")
+            course_year = student_row.get("course")
             group = student_row.get("group")
         else:
             logger.warning("invalid_student_data_format", student_data=type(student_row))
@@ -267,10 +306,53 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
             index=index or "",
             email=email or "",
             speciality=specialty or "",
+            education_level=self._extract_education_level(course_data.education_level),
+            program_start_academic_year_start=self._extract_program_start_year(
+                course_year=course_year,
+                academic_year=course_data.academic_year,
+            ),
             group=group or "",
         )
 
         return student
+
+    def _extract_education_level(self, raw_level: str | None) -> EducationLevel | None:
+        return _parse_education_level(raw_level)
+
+    def _extract_program_start_year(
+        self,
+        *,
+        course_year: str | int | None,
+        academic_year: str | None,
+    ) -> int | None:
+        if not course_year:
+            return None
+
+        course_year_match = re.search(r"(\d+)", str(course_year))
+        if course_year_match is None:
+            return None
+
+        numeric_course_year = int(course_year_match.group(1))
+        if numeric_course_year <= 0:
+            return None
+
+        reference_year = self._extract_academic_year_start(academic_year)
+        if reference_year is None:
+            reference_year = self.reference_academic_year_start
+        if reference_year is None:
+            return None
+
+        return reference_year - (numeric_course_year - 1)
+
+    def _extract_academic_year_start(self, academic_year: str | None) -> int | None:
+        if not academic_year:
+            return None
+
+        match = re.search(r"(\d{4})", academic_year)
+        if match is None:
+            return None
+
+        return int(match.group(1))
 
     _STATUS_MAP: ClassVar[dict[str, EnrollmentStatus]] = {
         "записано": EnrollmentStatus.ENROLLED,
@@ -338,14 +420,7 @@ class SpecialtyExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSpecial
         return specialities
 
     def _extract_education_level(self, raw_level: str | None) -> EducationLevel | None:
-        if not raw_level:
-            return None
-        level_lower = raw_level.strip().lower()
-        if "бакалавр" in level_lower:
-            return EducationLevel.BACHELOR
-        if "магістр" in level_lower:
-            return EducationLevel.MASTER
-        return None
+        return _parse_education_level(raw_level)
 
     def _map_course_type_kind(self, spec_type: str) -> CourseTypeKind | None:
         if not spec_type:
@@ -383,9 +458,9 @@ class EducationLevelExtractor(Extractor[ParsedCourseDetails, EducationLevel]):
             raise DataValidationError(f"Course {data.id} missing required education level")
 
         level_lower = level.lower()
-        if "бакалавр" in level_lower:
+        if _BACHELOR_FRAGMENT in level_lower:
             return EducationLevel.BACHELOR
-        elif "магістр" in level_lower:
+        elif _MASTER_FRAGMENT in level_lower:
             return EducationLevel.MASTER
         else:
             raise DataValidationError(f"Course {data.id} has unrecognized education level: {level}")
@@ -406,12 +481,7 @@ class ExamTypeExtractor(Extractor[ParsedCourseDetails, ExamType]):
         format_str = data.format
         if not format_str:
             return ExamType.EXAM
-
-        format_lower = format_str.lower()
-        if "залік" in format_lower:
-            return ExamType.CREDIT
-        else:
-            return ExamType.EXAM
+        return parse_exam_type(format_str)
 
 
 class PracticeTypeExtractor(Extractor[ParsedCourseDetails, PracticeType | None]):
@@ -438,17 +508,12 @@ class PracticeTypeExtractor(Extractor[ParsedCourseDetails, PracticeType | None])
         return PracticeType.PRACTICE
 
     def _map_practice_type(self, practice_type: str) -> PracticeType:
-        practice_type_upper = practice_type.upper().strip()
-
-        if practice_type_upper == "PRACTICE":
-            return PracticeType.PRACTICE
-        elif practice_type_upper == "SEMINAR":
-            return PracticeType.SEMINAR
-        else:
+        result = parse_practice_type(practice_type)
+        if result == PracticeType.PRACTICE and practice_type.strip().upper() not in ("PRACTICE", ""):
             logger.warning(
                 "unknown_practice_type", practice_type=practice_type, defaulting_to="PRACTICE"
             )
-            return PracticeType.PRACTICE
+        return result
 
 
 class CourseLimitsExtractor(Extractor[ParsedCourseDetails, dict[str, int | None]]):

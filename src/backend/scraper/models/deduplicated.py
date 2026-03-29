@@ -69,6 +69,7 @@ class DeduplicatedStudent(BaseModel):
     email: str = ""
     speciality: str = ""
     education_level: EducationLevel | None = None
+    program_start_academic_year_start: int | None = None
     group: str = ""
 
 
@@ -83,6 +84,7 @@ class DeduplicatedInstructor(BaseModel):
 class DeduplicatedSemester(BaseModel):
     year: int
     term: SemesterTerm
+    source_label: str | None = None
 
 
 class DeduplicatedSpeciality(BaseModel):
@@ -103,11 +105,22 @@ class DeduplicatedCourseInstructor(BaseModel):
     role: InstructorRole
 
 
+class DeduplicatedCourseOfferingTerm(BaseModel):
+    semester: DeduplicatedSemester
+    credits: float
+    weekly_hours: int
+    lecture_count: int | None = None
+    practice_count: int | None = None
+    practice_type: PracticeType | None = None
+    exam_type: ExamType
+
+
 class DeduplicatedCourseOffering(BaseModel):
     code: str
     semester: DeduplicatedSemester
     credits: float
     weekly_hours: int
+    study_year: int | None = None
     lecture_count: int | None = None
     practice_count: int | None = None
     practice_type: PracticeType | None = None
@@ -119,6 +132,7 @@ class DeduplicatedCourseOffering(BaseModel):
     instructors: list[DeduplicatedCourseInstructor] = []
     enrollments: list[DeduplicatedEnrollment] = []
     specialities: list[DeduplicatedSpeciality] = []
+    terms: list[DeduplicatedCourseOfferingTerm] = []
 
 
 class DeduplicatedCourse(BaseModel):

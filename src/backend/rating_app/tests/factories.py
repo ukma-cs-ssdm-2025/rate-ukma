@@ -11,6 +11,7 @@ from rating_app.models import (
     Course,
     CourseInstructor,
     CourseOffering,
+    CourseOfferingTerm,
     CourseOfferingSpeciality,
     Department,
     Enrollment,
@@ -66,6 +67,7 @@ class CourseFactory(DjangoModelFactory):
     title = factory.Sequence(lambda n: f"Course {n}")
     description = factory.Faker("sentence")
     status = CourseStatus.ACTIVE
+    education_level = EducationLevel.BACHELOR
     department = factory.SubFactory(DepartmentFactory)
 
 
@@ -98,6 +100,7 @@ class CourseOfferingFactory(DjangoModelFactory):
     semester = factory.SubFactory(SemesterFactory)
     credits = fuzzy.FuzzyDecimal(1, 6, precision=1)
     weekly_hours = fuzzy.FuzzyInteger(1, 12)
+    study_year = fuzzy.FuzzyInteger(1, 6)
     lecture_count = fuzzy.FuzzyInteger(4, 32)
     practice_count = fuzzy.FuzzyInteger(0, 20)
     practice_type = ""
@@ -128,6 +131,20 @@ class CourseInstructorFactory(DjangoModelFactory):
     role = InstructorRole.LECTURE_INSTRUCTOR
 
 
+class CourseOfferingTermFactory(DjangoModelFactory):
+    class Meta:
+        model = CourseOfferingTerm
+
+    offering = factory.SubFactory(CourseOfferingFactory)
+    semester = factory.SubFactory(SemesterFactory)
+    credits = fuzzy.FuzzyDecimal(1, 6, precision=1)
+    weekly_hours = fuzzy.FuzzyInteger(1, 12)
+    lecture_count = fuzzy.FuzzyInteger(4, 32)
+    practice_count = fuzzy.FuzzyInteger(0, 20)
+    practice_type = ""
+    exam_type = "EXAM"
+
+
 class CourseOfferingSpecialityFactory(DjangoModelFactory):
     class Meta:
         model = CourseOfferingSpeciality
@@ -147,6 +164,7 @@ class StudentFactory(DjangoModelFactory):
     education_level = EducationLevel.BACHELOR
     user = None
     speciality = factory.SubFactory(SpecialityFactory)
+    program_start_academic_year_start = fuzzy.FuzzyInteger(2018, 2026)
 
 
 class EnrollmentFactory(DjangoModelFactory):

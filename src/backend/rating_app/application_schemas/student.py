@@ -12,6 +12,7 @@ class StudentInput:
     education_level: EducationLevel | str
     speciality_id: uuid.UUID
     email: str | None = None
+    program_start_academic_year_start: int | None = None
 
 
 @dataclass(frozen=True)
@@ -20,8 +21,9 @@ class Student:
     first_name: str
     last_name: str
     patronymic: str | None
-    education_level: EducationLevel | str
+    education_level: EducationLevel | None
     speciality_id: uuid.UUID
     email: str | None = None
     user_id: int | None = None
     speciality_name: str | None = None
+    program_start_academic_year_start: int | None = None

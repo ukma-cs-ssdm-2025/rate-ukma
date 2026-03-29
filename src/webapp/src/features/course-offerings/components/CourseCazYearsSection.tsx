@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import { BookOpen, ChevronDown, ExternalLink } from "lucide-react";
 
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
 	Dialog,
@@ -11,7 +12,8 @@ import {
 } from "@/components/ui/Dialog";
 import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpecialityBadges";
 import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
-import type { CourseOffering } from "@/lib/api/generated";
+import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
+import { cn } from "@/lib/utils";
 
 const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
 
@@ -115,8 +117,18 @@ export function getLatestOfferingMeta(
 		});
 	}
 
-	// Semester
-	if (latest.semester_term) {
+	// Semester terms
+	const terms = latest.terms ?? [];
+	if (terms.length > 0) {
+		for (const term of sortTerms(terms)) {
+			if (term.semester_term) {
+				badges.push({
+					label: getSemesterTermDisplay(term.semester_term),
+					color: getSemesterTermColor(term.semester_term),
+				});
+			}
+		}
+	} else if (latest.semester_term) {
 		badges.push({
 			label: getSemesterTermDisplay(latest.semester_term),
 			color: getSemesterTermColor(latest.semester_term),
@@ -124,6 +136,76 @@ export function getLatestOfferingMeta(
 	}
 
 	return badges;
+}
+
+function sortTerms(terms: readonly CourseOfferingTerm[]): CourseOfferingTerm[] {
+	return [...terms].sort((a, b) => {
+		const yearA = a.semester_year ?? 0;
+		const yearB = b.semester_year ?? 0;
+		if (yearA !== yearB) return yearA - yearB;
+
+		const termA = TERM_ORDER[(a.semester_term ?? "").toUpperCase()] ?? 99;
+		const termB = TERM_ORDER[(b.semester_term ?? "").toUpperCase()] ?? 99;
+		return termA - termB;
+	});
+}
+
+function OfferingTermsBadges({
+	terms,
+}: Readonly<{ terms: readonly CourseOfferingTerm[] }>) {
+	if (terms.length === 0)
+		return <span className="text-muted-foreground">—</span>;
+
+	const sorted = sortTerms(terms);
+
+	return (
+		<div className="flex flex-wrap gap-1">
+			{sorted.map((term) => (
+				<Badge
+					key={term.id ?? `${term.semester_year}-${term.semester_term}`}
+					variant="outline"
+					className={cn(
+						"text-[10px] px-1.5 py-0 font-normal",
+						getSemesterTermColor(term.semester_term ?? "") ||
+							"text-muted-foreground",
+					)}
+				>
+					{getSemesterTermDisplay(term.semester_term ?? "", "—")}
+				</Badge>
+			))}
+		</div>
+	);
+}
+
+function OfferingTermDetails({
+	terms,
+}: Readonly<{ terms: readonly CourseOfferingTerm[] }>) {
+	if (terms.length <= 1) return null;
+
+	const sorted = sortTerms(terms);
+
+	return (
+		<div className="mt-1.5 space-y-1 pl-2 border-l-2 border-border/30">
+			{sorted.map((term) => {
+				const credits = formatCredits(term.credits);
+				const parts = [credits].filter(Boolean);
+
+				return (
+					<div
+						key={term.id ?? `${term.semester_year}-${term.semester_term}`}
+						className="text-xs text-muted-foreground"
+					>
+						<span className="font-medium text-foreground/80">
+							{getSemesterTermDisplay(term.semester_term ?? "", "—")}
+						</span>
+						{parts.length > 0 && (
+							<span className="ml-1.5">{parts.join(" · ")}</span>
+						)}
+					</div>
+				);
+			})}
+		</div>
+	);
 }
 
 export function CourseCazYearsSection({
@@ -166,7 +248,7 @@ export function CourseCazYearsSection({
 							<thead>
 								<tr className="border-b border-border/40 text-left text-xs text-muted-foreground">
 									<th className="pb-2 pr-4 font-medium">Рік</th>
-									<th className="pb-2 pr-4 font-medium">Семестр</th>
+									<th className="pb-2 pr-4 font-medium">Семестри</th>
 									<th className="pb-2 pr-4 font-medium">Кредити</th>
 									<th className="pb-2 pr-4 font-medium">Спеціальності</th>
 									<th className="pb-2 font-medium">САЗ</th>
@@ -175,6 +257,8 @@ export function CourseCazYearsSection({
 							<tbody>
 								{sorted.map((item) => {
 									const credits = formatCredits(item.credits);
+									const terms = item.terms ?? [];
+									const hasMultipleTerms = terms.length > 1;
 
 									return (
 										<tr
@@ -187,11 +271,18 @@ export function CourseCazYearsSection({
 											<td className="py-2.5 pr-4 whitespace-nowrap text-foreground">
 												{formatAcademicYearLabel(item)}
 											</td>
-											<td className="py-2.5 pr-4 whitespace-nowrap">
-												{getSemesterTermDisplay(item.semester_term ?? "", "—")}
+											<td className="py-2.5 pr-4">
+												{terms.length > 0 ? (
+													<OfferingTermsBadges terms={terms} />
+												) : (
+													<span className="text-muted-foreground">—</span>
+												)}
 											</td>
 											<td className="py-2.5 pr-4 whitespace-nowrap tabular-nums">
 												{credits ?? "—"}
+												{hasMultipleTerms && (
+													<OfferingTermDetails terms={terms} />
+												)}
 											</td>
 											<td className="py-2.5 pr-4">
 												{item.specialities && item.specialities.length > 0 ? (

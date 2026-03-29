@@ -71,6 +71,14 @@ paths:
           format: uuid
         description: Filter by department UUID
       - in: query
+        name: education_level
+        schema:
+          type: string
+          enum:
+          - BACHELOR
+          - MASTER
+        description: Filter by education level (BACHELOR, MASTER)
+      - in: query
         name: faculty
         schema:
           type: string
@@ -608,6 +616,14 @@ paths:
           type: string
           format: uuid
         description: Filter by department UUID
+      - in: query
+        name: education_level
+        schema:
+          type: string
+          enum:
+          - BACHELOR
+          - MASTER
+        description: Filter by education level (BACHELOR, MASTER)
       - in: query
         name: faculty
         schema:
@@ -1987,6 +2003,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/StatusEnum'
           readOnly: true
+        education_level:
+          allOf:
+          - $ref: '#/components/schemas/EducationLevelEnum'
+          readOnly: true
+          nullable: true
         department:
           type: string
           format: uuid
@@ -2044,6 +2065,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/StatusEnum'
           readOnly: true
+        education_level:
+          allOf:
+          - $ref: '#/components/schemas/EducationLevelEnum'
+          readOnly: true
+          nullable: true
         department:
           type: string
           format: uuid
@@ -2165,6 +2191,14 @@ components:
         weekly_hours:
           type: integer
           readOnly: true
+        total_hours:
+          type: integer
+          readOnly: true
+          nullable: true
+        study_year:
+          type: integer
+          readOnly: true
+          nullable: true
         lecture_count:
           type: integer
           readOnly: true
@@ -2198,6 +2232,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CourseOfferingSpeciality'
+          readOnly: true
+        terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseOfferingTerm'
           readOnly: true
     CourseOfferingListResponse:
       type: object
@@ -2233,7 +2272,6 @@ components:
           allOf:
           - $ref: '#/components/schemas/TypeKindEnum'
           readOnly: true
-          nullable: true
     CourseOfferingSpecialityInline:
       type: object
       description: Inline serializer for course offering speciality
@@ -2262,6 +2300,58 @@ components:
           allOf:
           - $ref: '#/components/schemas/TypeKindEnum'
           readOnly: true
+    CourseOfferingTerm:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        offering_id:
+          type: string
+          format: uuid
+          readOnly: true
+        semester_id:
+          type: string
+          format: uuid
+          readOnly: true
+        semester_year:
+          type: integer
+          readOnly: true
+          nullable: true
+        semester_term:
+          type: string
+          readOnly: true
+          nullable: true
+        exam_type:
+          allOf:
+          - $ref: '#/components/schemas/ExamTypeEnum'
+          readOnly: true
+        practice_type:
+          allOf:
+          - $ref: '#/components/schemas/PracticeTypeEnum'
+          readOnly: true
+          nullable: true
+        credits:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,1})?$
+          readOnly: true
+        weekly_hours:
+          type: integer
+          readOnly: true
+        total_hours:
+          type: integer
+          readOnly: true
+          nullable: true
+        lecture_count:
+          type: integer
+          readOnly: true
+          nullable: true
+        practice_count:
+          type: integer
+          readOnly: true
+          nullable: true
     CourseTypeOption:
       type: object
       properties:
@@ -2283,6 +2373,14 @@ components:
       required:
       - id
       - name
+    EducationLevelEnum:
+      enum:
+      - BACHELOR
+      - MASTER
+      type: string
+      description: |-
+        * `BACHELOR` - Bachelor
+        * `MASTER` - Master
     ErrorEnvelope:
       type: object
       properties:

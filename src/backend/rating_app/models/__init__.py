@@ -2,6 +2,7 @@ from .course import Course
 from .course_instructor import CourseInstructor
 from .course_offering import CourseOffering
 from .course_offering_speciality import CourseOfferingSpeciality
+from .course_offering_term import CourseOfferingTerm
 from .department import Department
 from .enrollment import Enrollment
 from .faculty import Faculty
@@ -23,6 +24,7 @@ __all__ = [
     "Instructor",
     "Student",
     "CourseOffering",
+    "CourseOfferingTerm",
     "CourseOfferingSpeciality",
     "CourseInstructor",
     "Enrollment",

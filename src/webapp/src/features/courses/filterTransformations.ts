@@ -27,6 +27,7 @@ export function transformFiltersToApiParams(
 	}
 	if (filters.type) params.type_kind = filters.type;
 	if (filters.spec) params.speciality = filters.spec;
+	if (filters.eduLevel) params.education_level = filters.eduLevel;
 
 	if (
 		filters.diff[0] !== DIFFICULTY_RANGE[0] ||

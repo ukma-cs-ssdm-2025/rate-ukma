@@ -24,6 +24,7 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	credits: CREDITS_RANGE,
 	type: null,
 	spec: "",
+	eduLevel: null,
 	page: 1,
 	size: 10,
 	diffOrder: null,

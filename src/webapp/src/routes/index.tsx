@@ -46,6 +46,7 @@ export function CoursesRoute() {
 				: undefined,
 		type_kind: params.type ?? undefined,
 		speciality: params.spec || undefined,
+		education_level: params.eduLevel ?? undefined,
 		avg_difficulty_order: params.diffOrder ?? undefined,
 		avg_usefulness_order: params.useOrder ?? undefined,
 	};

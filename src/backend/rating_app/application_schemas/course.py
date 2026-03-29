@@ -12,7 +12,7 @@ from ..constants import (
     MIN_DIFFICULTY_VALUE,
     MIN_USEFULNESS_VALUE,
 )
-from ..models.choices import CourseStatus, CourseTypeKind, SemesterTerm
+from ..models.choices import CourseStatus, CourseTypeKind, EducationLevel, SemesterTerm
 from .pagination import PaginationMetadata
 
 AvgOrder = Literal["asc", "desc"]
@@ -44,6 +44,9 @@ class CourseFilterCriteria(BaseModel):
     faculty: uuid.UUID | None = Field(default=None, description="Filter by faculty UUID")
     department: uuid.UUID | None = Field(default=None, description="Filter by department UUID")
     speciality: uuid.UUID | None = Field(default=None, description="Filter by speciality UUID")
+    education_level: EducationLevel | None = Field(
+        default=None, description="Filter by education level (BACHELOR, MASTER)"
+    )
     semester_year: str | None = Field(
         default=None, description="Academic year range (e.g., '2024–2025')"
     )
@@ -107,8 +110,9 @@ class CourseFilterCriteria(BaseModel):
 
     @model_validator(mode="after")
     def validate_credits_requires_semester_year(self):
-        has_credits_range = self.credits_min is not None or self.credits_max is not None
-        if has_credits_range and not self.semester_year:
+        if (
+            self.credits_min is not None or self.credits_max is not None
+        ) and not self.semester_year:
             raise ValueError("semester_year is required when credits range is provided")
         if (
             self.credits_min is not None
@@ -153,7 +157,7 @@ class CourseOfferingSpeciality:
     faculty_id: str
     faculty_name: str
     speciality_alias: str | None
-    type_kind: CourseTypeKind | None
+    type_kind: CourseTypeKind
 
 
 @dataclass(frozen=True)
@@ -161,6 +165,7 @@ class CourseInput:
     title: str
     description: str
     status: CourseStatus
+    education_level: EducationLevel | None
     department: str
     department_name: str
     faculty: str
@@ -173,6 +178,7 @@ class Course:
     title: str
     description: str
     status: CourseStatus
+    education_level: EducationLevel | None
     department: str
     department_name: str
     faculty: str

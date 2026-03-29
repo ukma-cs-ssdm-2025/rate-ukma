@@ -28,9 +28,24 @@ class CourseOfferingSpecialitySerializer(serializers.Serializer):
     speciality_alias = serializers.CharField(read_only=True, allow_null=True)
     faculty_id = serializers.UUIDField(read_only=True)
     faculty_name = serializers.CharField(read_only=True)
-    type_kind = serializers.ChoiceField(
-        choices=CourseTypeKind.choices, read_only=True, allow_null=True
+    type_kind = serializers.ChoiceField(choices=CourseTypeKind.choices, read_only=True)
+
+
+class CourseOfferingTermSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    offering_id = serializers.UUIDField(read_only=True)
+    semester_id = serializers.UUIDField(read_only=True)
+    semester_year = serializers.IntegerField(read_only=True, allow_null=True)
+    semester_term = serializers.CharField(read_only=True, allow_null=True)
+    exam_type = serializers.ChoiceField(choices=ExamType.choices, read_only=True)
+    practice_type = serializers.ChoiceField(
+        choices=PracticeType.choices, read_only=True, allow_null=True
     )
+    credits = serializers.DecimalField(max_digits=4, decimal_places=1, read_only=True)
+    weekly_hours = serializers.IntegerField(read_only=True)
+    total_hours = serializers.IntegerField(read_only=True, allow_null=True)
+    lecture_count = serializers.IntegerField(read_only=True, allow_null=True)
+    practice_count = serializers.IntegerField(read_only=True, allow_null=True)
 
 
 class CourseOfferingSerializer(serializers.Serializer):
@@ -47,6 +62,8 @@ class CourseOfferingSerializer(serializers.Serializer):
     )
     credits = serializers.DecimalField(max_digits=4, decimal_places=1, read_only=True)
     weekly_hours = serializers.IntegerField(read_only=True)
+    total_hours = serializers.IntegerField(read_only=True, allow_null=True)
+    study_year = serializers.IntegerField(read_only=True, allow_null=True)
     lecture_count = serializers.IntegerField(read_only=True, allow_null=True)
     practice_count = serializers.IntegerField(read_only=True, allow_null=True)
     max_students = serializers.IntegerField(read_only=True, allow_null=True)
@@ -55,6 +72,7 @@ class CourseOfferingSerializer(serializers.Serializer):
     group_size_max = serializers.IntegerField(read_only=True, allow_null=True)
     instructors = InstructorDTOSerializer(many=True, read_only=True)
     specialities = CourseOfferingSpecialitySerializer(many=True, read_only=True)
+    terms = CourseOfferingTermSerializer(many=True, read_only=True)
 
 
 class CourseOfferingListResponseSerializer(serializers.Serializer):

@@ -245,6 +245,64 @@ def test_student_extractor_empty_students():
     assert result == []
 
 
+def test_student_extractor_preserves_speciality_email_and_program_start_year():
+    extractor = StudentExtractor(reference_academic_year_start=2025)
+    course = ParsedCourseDetails(
+        url="https://my.ukma.edu.ua/course/1",
+        title="Test",
+        id="1",
+        education_level="Бакалавр",
+        academic_year="2025–2026",
+        semesters=["Семестр 5"],
+        students=[
+            {
+                "index": "1",
+                "name": "Валеня Андрій Іванович",
+                "course": "3",
+                "specialty": "Комп`ютерні науки",
+                "email": "a.valenia@ukma.edu.ua",
+                "status": "записано",
+            }
+        ],
+    )
+
+    result = extractor.extract(course)
+
+    assert len(result) == 1
+    student = result[0].student
+    assert student.speciality == "Комп`ютерні науки"
+    assert student.email == "a.valenia@ukma.edu.ua"
+    assert student.education_level == EducationLevel.BACHELOR
+    assert student.program_start_academic_year_start == 2023
+
+
+def test_student_extractor_uses_course_academic_year_for_historical_offerings():
+    extractor = StudentExtractor(reference_academic_year_start=2025)
+    course = ParsedCourseDetails(
+        url="https://my.ukma.edu.ua/course/2",
+        title="Historical Course",
+        id="2",
+        education_level="Бакалавр",
+        academic_year="2023–2024",
+        semesters=["Семестр 1"],
+        students=[
+            {
+                "index": "1",
+                "name": "Валеня Андрій Іванович",
+                "course": "3",
+                "specialty": "Комп`ютерні науки",
+                "email": "a.valenia@ukma.edu.ua",
+                "status": "записано",
+            }
+        ],
+    )
+
+    result = extractor.extract(course)
+
+    assert len(result) == 1
+    assert result[0].student.program_start_academic_year_start == 2021
+
+
 def test_specialty_extractor_success(sample_course):
     extractor = SpecialtyExtractor()
     result = extractor.extract(sample_course)

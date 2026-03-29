@@ -256,14 +256,19 @@ def temp_invalid_json_file(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def temp_missing_id_file(tmp_path: Path) -> Path:
-    course_data_missing_id = {
-        "url": COURSE_URL,
-        "title": "Test Course",
-        "academic_year": ACADEMIC_YEAR,
-        "semesters": [SEMESTER],
-    }
+    course_data_missing_id = BASE_COURSE_DICT.copy()
+    del course_data_missing_id["id"]
     file_path = tmp_path / "missing_id.jsonl"
     return create_temp_jsonl_file([course_data_missing_id], file_path)
+
+
+@pytest.fixture
+def temp_missing_title_file(tmp_path: Path) -> Path:
+    course_data_missing_title = BASE_COURSE_DICT.copy()
+    course_data_missing_title["id"] = "550099"
+    course_data_missing_title["title"] = ""
+    file_path = tmp_path / "missing_title.jsonl"
+    return create_temp_jsonl_file([course_data_missing_title], file_path)
 
 
 @pytest.fixture

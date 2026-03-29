@@ -34,8 +34,14 @@ import {
 } from "@/components/ui/Collapsible";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import {
+	EducationLevelEnum,
 	useCoursesFilterOptionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
@@ -154,6 +160,16 @@ const columns: ColumnDef<CourseList>[] = [
 						<span className="font-semibold text-sm md:text-base">
 							{course.title}
 						</span>
+					)}
+					{course.education_level === EducationLevelEnum.MASTER && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className="inline-flex shrink-0 cursor-default items-center rounded-sm border px-1 py-px text-[10px] font-medium leading-tight text-muted-foreground">
+									М
+								</span>
+							</TooltipTrigger>
+							<TooltipContent side="top">Магістр</TooltipContent>
+						</Tooltip>
 					)}
 					<CourseSpecialityBadges specialities={course.specialities} />
 				</span>

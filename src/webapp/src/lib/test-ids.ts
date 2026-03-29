@@ -130,6 +130,7 @@ export const testIds = {
 		departmentSelect: "filters-department-select",
 		specialitySelect: "filters-speciality-select",
 		typeSelect: "filters-type-select",
+		educationLevelToggle: "filters-education-level-toggle",
 	},
 
 	// Course details page

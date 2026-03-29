@@ -30,6 +30,7 @@ class CourseOffering(models.Model):
 
     credits = models.DecimalField(max_digits=3, decimal_places=1)
     weekly_hours = models.PositiveIntegerField()
+    study_year = models.PositiveIntegerField(null=True, blank=True)
     lecture_count = models.PositiveIntegerField(null=True, blank=True)
     practice_count = models.PositiveIntegerField(null=True, blank=True)
     practice_type = models.CharField(
@@ -56,7 +57,7 @@ class CourseOffering(models.Model):
             models.CheckConstraint(
                 check=Q(credits__gt=0),
                 name="co_credits_gt_0",
-            )
+            ),
         ]
 
     def __str__(self):
@@ -77,3 +78,7 @@ class CourseOffering(models.Model):
         if self.max_students is None:
             return None
         return max(self.max_students - self.occupied_seats, 0)
+
+    @property
+    def total_hours(self) -> int:
+        return int(self.credits * 30)
