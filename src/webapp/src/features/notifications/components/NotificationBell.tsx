@@ -49,12 +49,12 @@ export function NotificationBell() {
 		resetPagination();
 	}, [markAllRead, resetPagination]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: refetch list only when unreadCount changes while popover is open
+	// biome-ignore lint/correctness/useExhaustiveDependencies: refetch on open or when unreadCount changes while open
 	useEffect(() => {
 		if (open) {
 			refetch();
 		}
-	}, [unreadCount]);
+	}, [open, unreadCount]);
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
