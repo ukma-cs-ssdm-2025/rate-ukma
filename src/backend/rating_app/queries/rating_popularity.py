@@ -27,8 +27,9 @@ class WilsonPopularityAnnotator:
         - Each rating is treated as a Bernoulli process (upvote = success,
         downvote = failure).
         - The Wilson lower bound is computed with a z-score of 1.96 (95% confidence).
-        - The resulting score is in the range [0.0, 1.0].
-        - Ratings with no votes (upvotes + downvotes == 0) are assigned a score of 0.0
+        - Ratings with no votes (upvotes + downvotes == 0) are assigned a score of 0.0.
+        - Ratings with only downvotes are assigned a negative score so they sort
+            below zero-vote ratings.
 
         Formula (lower bound):
             (p + z²/(2n) - z * sqrt(p(1-p)/n + z²/(4n²))) / (1 + z²/n)
@@ -64,6 +65,10 @@ class WilsonPopularityAnnotator:
 
         return queryset.annotate(
             popularity_score=Case(
+                When(
+                    Q(upvotes_count=0) & Q(downvotes_count__gt=0),
+                    then=ExpressionWrapper(-down, output_field=FloatField()),
+                ),
                 When(Q(upvotes_count__gt=0) | Q(downvotes_count__gt=0), then=wilson_lower_bound),
                 default=Value(0.0),
                 output_field=FloatField(),
