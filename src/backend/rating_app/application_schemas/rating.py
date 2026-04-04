@@ -124,6 +124,17 @@ def strip_string(value: str | None) -> str | None:
     return stripped if stripped else None
 
 
+MAX_INSTRUCTOR_LENGTH = 30
+
+
+def strip_instructor(value: str | None) -> str | None:
+    result = strip_string(value)
+    if result is not None and len(result) > MAX_INSTRUCTOR_LENGTH:
+        msg = f"Instructor name must be at most {MAX_INSTRUCTOR_LENGTH} characters"
+        raise ValueError(msg)
+    return result
+
+
 class Rating(BaseModel):
     model_config = {
         "from_attributes": True,
@@ -173,9 +184,8 @@ class RatingCreateRequest(BaseModel):
     comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
         default=None
     )
-    instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+    instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_instructor)] = Field(
         default=None,
-        max_length=30,
         description="Temp. free-text instructor name; will be replaced with a verified dropdown.",
     )
     is_anonymous: bool = Field(default=False)
@@ -197,9 +207,8 @@ class RatingPutParams(BaseModel):
     comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
         default=None
     )
-    instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+    instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_instructor)] = Field(
         default=None,
-        max_length=30,
     )
     is_anonymous: bool = Field(default=False)
 
@@ -220,9 +229,8 @@ class RatingPatchParams(BaseModel):
     comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
         default=None
     )
-    instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+    instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_instructor)] = Field(
         default=None,
-        max_length=30,
     )
     is_anonymous: bool | SkipJsonSchema[None] = Field(
         default=None,

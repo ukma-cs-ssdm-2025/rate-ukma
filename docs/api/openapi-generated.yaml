@@ -2705,7 +2705,6 @@ components:
           type: string
         instructor:
           default: null
-          maxLength: 30
           title: Instructor
           type: string
         is_anonymous:
@@ -2747,7 +2746,6 @@ components:
           default: null
           description: Temp. free-text instructor name; will be replaced with a verified
             dropdown.
-          maxLength: 30
           title: Instructor
           type: string
         is_anonymous:
@@ -2778,7 +2776,6 @@ components:
           type: string
         instructor:
           default: null
-          maxLength: 30
           title: Instructor
           type: string
         is_anonymous:
