@@ -233,11 +233,11 @@ class RatingRepository(
         is_patch = isinstance(update_data, RatingPatchParams)
         update_data_map = update_data.model_dump(exclude_unset=is_patch)
 
-        # TODO: find a cleaner way to do this validation
-        if update_data_map.get("comment") is None:
-            update_data_map["comment"] = ""
-        if update_data_map.get("instructor") is None:
-            update_data_map["instructor"] = ""
+        # normalizing nullable text fields to empty strings for the DB
+        # TODO: consider making DB fields nullable and removing this logic
+        for field in ("comment", "instructor"):
+            if field in update_data_map and update_data_map[field] is None:
+                update_data_map[field] = ""
 
         for attr, value in update_data_map.items():
             setattr(rating_model, attr, value)
