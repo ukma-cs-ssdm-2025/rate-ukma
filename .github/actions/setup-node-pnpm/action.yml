@@ -25,13 +25,13 @@ runs:
         echo "node-version=$NODE_VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Setup pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@v5
       with:
         package_json_file: ${{ inputs.working-directory }}/package.json
         run_install: false
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ steps.versions.outputs.node-version }}
         cache: "pnpm"
