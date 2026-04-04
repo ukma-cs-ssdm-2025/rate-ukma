@@ -17,6 +17,7 @@ class RatingReadSerializer(serializers.Serializer):
     difficulty = serializers.IntegerField(read_only=True)
     usefulness = serializers.IntegerField(read_only=True)
     comment = serializers.CharField(read_only=True, allow_null=True)
+    instructor = serializers.CharField(read_only=True, allow_null=True)
     is_anonymous = serializers.BooleanField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     upvotes = serializers.IntegerField(read_only=True)

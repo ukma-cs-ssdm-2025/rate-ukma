@@ -89,6 +89,7 @@ export function UserRatingCard({
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}
+				instructor={rating.instructor}
 				commentEmptyMessage="Ви не залишили коментар."
 				ratingId={rating.id}
 				upvotes={rating.upvotes ?? 0}

@@ -25,6 +25,7 @@ interface ExistingRating {
 	difficulty?: number;
 	usefulness?: number;
 	comment?: string | null;
+	instructor?: string | null;
 	is_anonymous?: boolean;
 }
 
@@ -83,6 +84,7 @@ export function RatingModal({
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment ?? "",
+						instructor: data.instructor ?? "",
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -100,6 +102,7 @@ export function RatingModal({
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment || undefined,
+						instructor: data.instructor || undefined,
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -122,6 +125,7 @@ export function RatingModal({
 				difficulty: existingRating.difficulty ?? 3,
 				usefulness: existingRating.usefulness ?? 3,
 				comment: existingRating.comment || "",
+				instructor: existingRating.instructor || "",
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
 		: undefined;

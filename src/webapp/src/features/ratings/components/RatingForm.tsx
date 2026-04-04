@@ -16,6 +16,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/Form";
+import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,12 @@ const ratingSchema = z.object({
 		.max(5, "Оцінка корисності повинна бути від 1 до 5"),
 	comment: z
 		.string()
+		.transform((val) => val?.trim() || undefined)
+		.optional(),
+	// TODO: temporary free-text field; will be replaced with a verified instructor dropdown
+	instructor: z
+		.string()
+		.max(30, "Ім'я викладача не може перевищувати 30 символів")
 		.transform((val) => val?.trim() || undefined)
 		.optional(),
 	is_anonymous: z.boolean(),
@@ -161,6 +168,7 @@ export function RatingForm({
 			difficulty: 3,
 			usefulness: 3,
 			comment: "",
+			instructor: "",
 			is_anonymous: false,
 		},
 	});
@@ -220,6 +228,27 @@ export function RatingForm({
 							)}
 						/>
 					</div>
+
+					<FormField<RatingFormData, "instructor">
+						control={form.control}
+						name="instructor"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Викладач (необов'язково)</FormLabel>
+								<FormControl>
+									<Input
+										placeholder="Ім'я викладача"
+										{...field}
+										data-testid={testIds.rating.instructorInput}
+									/>
+								</FormControl>
+								<FormDescription>
+									Вкажіть викладача, який вів курс
+								</FormDescription>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 
 					<FormField<RatingFormData, "comment">
 						control={form.control}

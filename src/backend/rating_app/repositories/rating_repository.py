@@ -70,9 +70,9 @@ class RatingRepository(
 
     def get_student_id_by_rating_id(self, rating_id: str) -> str | None:
         try:
-            student_id = Rating.objects.filter(pk=rating_id).values_list(
-                "student_id", flat=True
-            ).first()
+            student_id = (
+                Rating.objects.filter(pk=rating_id).values_list("student_id", flat=True).first()
+            )
         except (DjangoValidationError, ValueError, TypeError, DataError):
             return None
         return str(student_id) if student_id is not None else None
@@ -106,6 +106,7 @@ class RatingRepository(
                 "difficulty": data.difficulty,
                 "usefulness": data.usefulness,
                 "comment": data.comment,
+                "instructor": data.instructor or "",
                 "is_anonymous": data.is_anonymous,
             },
         )
@@ -145,6 +146,7 @@ class RatingRepository(
                 "difficulty": data.difficulty,
                 "usefulness": data.usefulness,
                 "comment": data.comment,
+                "instructor": data.instructor or "",
                 "is_anonymous": data.is_anonymous,
             },
         )
@@ -212,6 +214,7 @@ class RatingRepository(
                 difficulty=create_params.difficulty,
                 usefulness=create_params.usefulness,
                 comment=create_params.comment or "",
+                instructor=create_params.instructor or "",
                 is_anonymous=create_params.is_anonymous,
             )
         except IntegrityError as err:
@@ -233,6 +236,8 @@ class RatingRepository(
         # TODO: find a cleaner way to do this validation
         if update_data_map.get("comment") is None:
             update_data_map["comment"] = ""
+        if update_data_map.get("instructor") is None:
+            update_data_map["instructor"] = ""
 
         for attr, value in update_data_map.items():
             setattr(rating_model, attr, value)

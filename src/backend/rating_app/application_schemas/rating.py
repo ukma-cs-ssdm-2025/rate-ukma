@@ -141,6 +141,7 @@ class Rating(BaseModel):
     difficulty: int
     usefulness: int
     comment: str | None
+    instructor: str | None = None
     is_anonymous: bool
     created_at: datetime.datetime
 
@@ -172,6 +173,11 @@ class RatingCreateRequest(BaseModel):
     comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
         default=None
     )
+    instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None,
+        max_length=30,
+        description="Temp. free-text instructor name; will be replaced with a verified dropdown.",
+    )
     is_anonymous: bool = Field(default=False)
 
 
@@ -191,6 +197,10 @@ class RatingPutParams(BaseModel):
     comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
         default=None
     )
+    instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None,
+        max_length=30,
+    )
     is_anonymous: bool = Field(default=False)
 
 
@@ -209,6 +219,10 @@ class RatingPatchParams(BaseModel):
     )
     comment: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
         default=None
+    )
+    instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_string)] = Field(
+        default=None,
+        max_length=30,
     )
     is_anonymous: bool | SkipJsonSchema[None] = Field(
         default=None,
