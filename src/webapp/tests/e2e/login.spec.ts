@@ -81,6 +81,52 @@ test.describe("Microsoft Login Page", () => {
 	});
 });
 
+test.describe("Post-login redirect", () => {
+	const PROTECTED_PATH = "/my-ratings";
+
+	test("visiting a protected page sets the redirect param on the login URL", async ({
+		page,
+	}) => {
+		await page.goto(PROTECTED_PATH);
+		await expect(page.getByTestId(testIds.login.microsoftButton)).toBeVisible();
+
+		expect(getPathname(page)).toBe("/login");
+		expect(getSearchParam(page, "redirect")).toBe(PROTECTED_PATH);
+	});
+
+	test("Microsoft login returns to the original destination, not root @smoke", async ({
+		page,
+		context,
+	}) => {
+		if (!CORPORATE_EMAIL || !CORPORATE_PASSWORD) {
+			throw new Error("CORPORATE_EMAIL and CORPORATE_PASSWORD must be set");
+		}
+
+		await page.goto(PROTECTED_PATH);
+		await expect(page.getByTestId(testIds.login.microsoftButton)).toBeVisible();
+		expect(getSearchParam(page, "redirect")).toBe(PROTECTED_PATH);
+
+		await page.getByTestId(testIds.login.microsoftButton).click();
+		await page.waitForURL(MICROSOFT_LOGIN_PAGE_PATTERN);
+		await page.waitForSelector('input[type="email"]');
+		await page.fill('input[type="email"]', CORPORATE_EMAIL);
+		await page.getByRole("button", { name: "Next" }).click();
+		await page.waitForSelector('input[type="password"]');
+		await page.fill('input[type="password"]', CORPORATE_PASSWORD);
+		await page.getByRole("button", { name: "Sign in" }).click();
+		await handleStaySignedInPrompt(page);
+
+		await expect
+			.poll(() => getPathname(page), { timeout: 30_000 })
+			.toBe(PROTECTED_PATH);
+		await expect(
+			page.getByTestId(testIds.myRatings.header),
+		).toBeVisible();
+
+		await context.storageState({ path: "playwright/.auth/microsoft.json" });
+	});
+});
+
 async function handleStaySignedInPrompt(page: Page): Promise<void> {
 	const yesButton = page.getByRole("button", { name: "Yes" }).first();
 	if (await yesButton.isVisible()) {
