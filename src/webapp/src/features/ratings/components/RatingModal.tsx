@@ -101,8 +101,8 @@ export function RatingModal({
 						course_offering: offeringId,
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
-						comment: data.comment || undefined,
-						instructor: data.instructor || undefined,
+						comment: data.comment ?? undefined,
+						instructor: data.instructor ?? undefined,
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -124,8 +124,8 @@ export function RatingModal({
 		? {
 				difficulty: existingRating.difficulty ?? 3,
 				usefulness: existingRating.usefulness ?? 3,
-				comment: existingRating.comment || "",
-				instructor: existingRating.instructor || "",
+				comment: existingRating.comment ?? "",
+				instructor: existingRating.instructor ?? "",
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
 		: undefined;

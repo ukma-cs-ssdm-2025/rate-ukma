@@ -147,6 +147,127 @@ function StarRatingInput({
 	);
 }
 
+function RatingFormFields({
+	control,
+}: Readonly<{
+	control: ReturnType<typeof useForm<RatingFormData>>["control"];
+}>) {
+	return (
+		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+				<FormField<RatingFormData, "difficulty">
+					control={control}
+					name="difficulty"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Складність</FormLabel>
+							<FormControl>
+								<StarRatingInput
+									value={field.value ?? 3}
+									onChange={field.onChange}
+									onBlur={field.onBlur}
+									descriptions={difficultyDescriptions}
+									data-testid={testIds.rating.difficultySlider}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField<RatingFormData, "usefulness">
+					control={control}
+					name="usefulness"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Корисність</FormLabel>
+							<FormControl>
+								<StarRatingInput
+									value={field.value ?? 3}
+									onChange={field.onChange}
+									onBlur={field.onBlur}
+									descriptions={usefulnessDescriptions}
+									data-testid={testIds.rating.usefulnessSlider}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			</div>
+
+			<FormField<RatingFormData, "instructor">
+				control={control}
+				name="instructor"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Викладач (необов'язково)</FormLabel>
+						<FormControl>
+							<Input
+								placeholder="Ім'я викладача"
+								{...field}
+								data-testid={testIds.rating.instructorInput}
+							/>
+						</FormControl>
+						<FormDescription>Вкажіть викладача, який вів курс</FormDescription>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+
+			<FormField<RatingFormData, "comment">
+				control={control}
+				name="comment"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Додаткові коментарі (необов'язково)</FormLabel>
+						<FormControl>
+							<Textarea
+								className="field-sizing-fixed min-h-32 max-h-[40dvh] resize-y overflow-y-auto"
+								placeholder="Поділіться будь-якими думками про цей курс..."
+								rows={6}
+								{...field}
+								data-testid={testIds.rating.commentTextarea}
+							/>
+						</FormControl>
+						<FormDescription>
+							Допоможіть іншим студентам, розказавши про свій досвід
+						</FormDescription>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+
+			<FormField
+				control={control}
+				name="is_anonymous"
+				render={({ field }) => (
+					<FormItem className="space-y-1">
+						<div className="flex items-center gap-2">
+							<FormControl className="flex-none">
+								<Checkbox
+									checked={field.value}
+									onCheckedChange={(checked) =>
+										field.onChange(checked ?? false)
+									}
+									data-testid={testIds.rating.anonymousCheckbox}
+								/>
+							</FormControl>
+							<FormLabel className="m-0 text-sm font-medium">
+								Анонімне повідомлення
+							</FormLabel>
+						</div>
+						<FormDescription className="text-sm">
+							Ваше ім'я не відображатиметься в огляді
+						</FormDescription>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+		</div>
+	);
+}
+
 interface RatingFormProps {
 	readonly onSubmit: (data: RatingFormData) => void | Promise<void>;
 	readonly onCancel: () => void;
@@ -186,120 +307,7 @@ export function RatingForm({
 				className="flex min-h-0 flex-1 flex-col overflow-hidden"
 				data-testid={testIds.rating.form}
 			>
-				<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<FormField<RatingFormData, "difficulty">
-							control={form.control}
-							name="difficulty"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Складність</FormLabel>
-									<FormControl>
-										<StarRatingInput
-											value={field.value ?? 3}
-											onChange={field.onChange}
-											onBlur={field.onBlur}
-											descriptions={difficultyDescriptions}
-											data-testid={testIds.rating.difficultySlider}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField<RatingFormData, "usefulness">
-							control={form.control}
-							name="usefulness"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Корисність</FormLabel>
-									<FormControl>
-										<StarRatingInput
-											value={field.value ?? 3}
-											onChange={field.onChange}
-											onBlur={field.onBlur}
-											descriptions={usefulnessDescriptions}
-											data-testid={testIds.rating.usefulnessSlider}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</div>
-
-					<FormField<RatingFormData, "instructor">
-						control={form.control}
-						name="instructor"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Викладач (необов'язково)</FormLabel>
-								<FormControl>
-									<Input
-										placeholder="Ім'я викладача"
-										{...field}
-										data-testid={testIds.rating.instructorInput}
-									/>
-								</FormControl>
-								<FormDescription>
-									Вкажіть викладача, який вів курс
-								</FormDescription>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-
-					<FormField<RatingFormData, "comment">
-						control={form.control}
-						name="comment"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Додаткові коментарі (необов'язково)</FormLabel>
-								<FormControl>
-									<Textarea
-										className="field-sizing-fixed min-h-32 max-h-[40dvh] resize-y overflow-y-auto"
-										placeholder="Поділіться будь-якими думками про цей курс..."
-										rows={6}
-										{...field}
-										data-testid={testIds.rating.commentTextarea}
-									/>
-								</FormControl>
-								<FormDescription>
-									Допоможіть іншим студентам, розказавши про свій досвід
-								</FormDescription>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-
-					<FormField
-						control={form.control}
-						name="is_anonymous"
-						render={({ field }) => (
-							<FormItem className="space-y-1">
-								<div className="flex items-center gap-2">
-									<FormControl className="flex-none">
-										<Checkbox
-											checked={field.value}
-											onCheckedChange={(checked) =>
-												field.onChange(checked ?? false)
-											}
-											data-testid={testIds.rating.anonymousCheckbox}
-										/>
-									</FormControl>
-									<FormLabel className="m-0 text-sm font-medium">
-										Анонімне повідомлення
-									</FormLabel>
-								</div>
-								<FormDescription className="text-sm">
-									Ваше ім'я не відображатиметься в огляді
-								</FormDescription>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</div>
+				<RatingFormFields control={form.control} />
 
 				<div className="shrink-0 border-t bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
 					<div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

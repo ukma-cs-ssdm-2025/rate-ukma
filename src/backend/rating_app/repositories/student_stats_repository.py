@@ -59,6 +59,7 @@ class StudentStatisticsRepository:
                     "difficulty": rating_obj.difficulty,
                     "usefulness": rating_obj.usefulness,
                     "comment": rating_obj.comment,
+                    "instructor": rating_obj.instructor or None,
                     "created_at": rating_obj.created_at,
                     "is_anonymous": rating_obj.is_anonymous,
                 }
@@ -112,6 +113,7 @@ class StudentStatisticsRepository:
                     "difficulty": rating_obj.difficulty,
                     "usefulness": rating_obj.usefulness,
                     "comment": rating_obj.comment,
+                    "instructor": rating_obj.instructor or None,
                     "created_at": rating_obj.created_at,
                     "is_anonymous": rating_obj.is_anonymous,
                 }
