@@ -2502,6 +2502,9 @@ components:
         comment:
           type: string
           nullable: true
+        instructor:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -2527,6 +2530,10 @@ components:
         comment:
           type: string
           readOnly: true
+        instructor:
+          type: string
+          readOnly: true
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -2697,6 +2704,10 @@ components:
           default: null
           title: Comment
           type: string
+        instructor:
+          default: null
+          title: Instructor
+          type: string
         is_anonymous:
           default: null
           title: Is Anonymous
@@ -2732,6 +2743,12 @@ components:
           default: null
           title: Comment
           type: string
+        instructor:
+          default: null
+          description: Temp. free-text instructor name; will be replaced with a verified
+            dropdown.
+          title: Instructor
+          type: string
         is_anonymous:
           default: false
           title: Is Anonymous
@@ -2757,6 +2774,10 @@ components:
         comment:
           default: null
           title: Comment
+          type: string
+        instructor:
+          default: null
+          title: Instructor
           type: string
         is_anonymous:
           default: false
@@ -2804,6 +2825,10 @@ components:
           type: integer
           readOnly: true
         comment:
+          type: string
+          readOnly: true
+          nullable: true
+        instructor:
           type: string
           readOnly: true
           nullable: true

@@ -152,6 +152,7 @@ export const testIds = {
 		difficultySlider: "rating-difficulty-slider",
 		usefulnessSlider: "rating-usefulness-slider",
 		commentTextarea: "rating-comment-textarea",
+		instructorInput: "rating-instructor-input",
 		anonymousCheckbox: "rating-anonymous-checkbox",
 		submitButton: "rating-submit-button",
 		cancelButton: "rating-cancel-button",

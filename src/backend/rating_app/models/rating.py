@@ -26,6 +26,12 @@ class Rating(models.Model):
     difficulty = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     usefulness = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True, default="")
+    instructor = models.CharField(
+        max_length=30,
+        blank=True,
+        default="",
+        help_text="Temporary free-text field; will be replaced with a verified instructor FK.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     is_anonymous = models.BooleanField(default=False)
 

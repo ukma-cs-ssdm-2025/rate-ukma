@@ -205,6 +205,7 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             difficulty=model.difficulty,
             usefulness=model.usefulness,
             comment=model.comment if model.comment else None,
+            instructor=model.instructor if model.instructor else None,
             is_anonymous=model.is_anonymous,
             created_at=model.created_at,
             upvotes=upvotes,

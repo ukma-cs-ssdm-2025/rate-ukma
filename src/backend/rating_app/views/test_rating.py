@@ -1188,3 +1188,93 @@ def test_ratings_sort_boundary_case_0_1_vs_1_5_vs_0_0(
     ordered_ids = [item["id"] for item in data["items"]["ratings"]]
     assert ordered_ids.index(str(rating_1_5.id)) < ordered_ids.index(str(rating_0_0.id))
     assert ordered_ids.index(str(rating_0_0.id)) < ordered_ids.index(str(rating_0_1.id))
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_create_rating_with_instructor(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    semester_factory,
+):
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+    course = course_factory()
+    offering = course_offering_factory(course=course, semester=semester)
+    student = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=student)
+
+    url = f"/api/v1/courses/{course.id}/ratings/"
+    payload = {
+        "course_offering": str(offering.id),
+        "difficulty": 4,
+        "usefulness": 5,
+        "comment": "Great course!",
+        "instructor": "Іваненко І.І.",
+        "is_anonymous": False,
+    }
+
+    response = token_client.post(url, data=payload, format="json")
+    assert response.status_code == 201, response.data
+    assert response.json()["instructor"] == "Іваненко І.І."
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_patch_rating_instructor(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    rating_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    student = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=student)
+    rating = rating_factory(course_offering=offering, student=student, difficulty=3, usefulness=4)
+
+    url = f"/api/v1/courses/{course.id}/ratings/{rating.id}/"
+    payload = {"instructor": "Петренко П.П."}
+
+    response = token_client.patch(url, data=payload, format="json")
+    assert response.status_code == 200, response.data
+    assert response.json()["instructor"] == "Петренко П.П."
+
+    rating.refresh_from_db()
+    assert rating.instructor == "Петренко П.П."
+    assert rating.difficulty == 3  # unchanged
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_create_rating_instructor_too_long(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    semester_factory,
+):
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+    course = course_factory()
+    offering = course_offering_factory(course=course, semester=semester)
+    student = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=student)
+
+    url = f"/api/v1/courses/{course.id}/ratings/"
+    payload = {
+        "course_offering": str(offering.id),
+        "difficulty": 4,
+        "usefulness": 5,
+        "instructor": "A" * 31,
+        "is_anonymous": False,
+    }
+
+    response = token_client.post(url, data=payload, format="json")
+    assert response.status_code == 400

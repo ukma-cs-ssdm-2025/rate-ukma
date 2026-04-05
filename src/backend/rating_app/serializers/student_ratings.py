@@ -6,6 +6,7 @@ class InlineRatingSerializer(serializers.Serializer):
     difficulty = serializers.IntegerField()
     usefulness = serializers.IntegerField()
     comment = serializers.CharField(allow_blank=True, required=False, allow_null=True)
+    instructor = serializers.CharField(allow_blank=True, required=False, allow_null=True)
     created_at = serializers.DateTimeField(read_only=True)
     is_anonymous = serializers.BooleanField()
 

@@ -1,4 +1,11 @@
+import { Info } from "lucide-react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import { formatDate } from "@/features/courses/courseFormatting";
 import type { RatingVoteStrType } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
@@ -15,6 +22,7 @@ interface RatingCardBodyProps {
 	readonly difficulty: number | undefined;
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
+	readonly instructor?: string | null;
 	readonly commentEmptyMessage?: string;
 	readonly ratingId?: string;
 	readonly courseId?: string;
@@ -33,6 +41,7 @@ export function RatingCardBody({
 	difficulty,
 	usefulness,
 	comment,
+	instructor,
 	commentEmptyMessage,
 	ratingId,
 	courseId,
@@ -71,6 +80,18 @@ export function RatingCardBody({
 
 				<RatingStats difficulty={difficulty} usefulness={usefulness} />
 			</div>
+
+			{instructor && (
+				<p className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
+					<span className="font-medium">Викладач:</span> {instructor}
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Info className="h-3.5 w-3.5 shrink-0 cursor-help text-muted-foreground/60" />
+						</TooltipTrigger>
+						<TooltipContent>Вказано студентом, не перевірено</TooltipContent>
+					</Tooltip>
+				</p>
+			)}
 
 			<div className="mt-3">
 				<RatingComment comment={comment} emptyMessage={commentEmptyMessage} />
