@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Loader2 } from "lucide-react";
 import { PiMicrosoftOutlookLogoFill } from "react-icons/pi";
@@ -18,12 +18,6 @@ export function MicrosoftLoginButton({
 }: Readonly<MicrosoftLoginButtonProps>) {
 	const { loginWithMicrosoft, status } = useAuth();
 	const [isRedirecting, setIsRedirecting] = useState(false);
-
-	useEffect(() => {
-		if (status !== "loading") {
-			setIsRedirecting(false);
-		}
-	}, [status]);
 
 	const handleLoginClick = () => {
 		setIsRedirecting(true);

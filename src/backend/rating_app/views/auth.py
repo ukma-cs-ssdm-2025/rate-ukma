@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import cast
+from urllib.parse import urlencode
 
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as django_login
@@ -40,7 +41,12 @@ def microsoft_login(request):
         user_agent=request.META.get("HTTP_USER_AGENT"),
     )
 
-    return redirect("/accounts/microsoft/login/")
+    post_login_redirect = request.GET.get("redirect", "")
+    login_url = "/accounts/microsoft/login/"
+    if post_login_redirect:
+        login_url += "?" + urlencode({"next": post_login_redirect})
+
+    return redirect(login_url)
 
 
 @extend_schema(

@@ -181,9 +181,5 @@ class MicrosoftAccountAdapter(StudentLinkingMixin, DefaultAccountAdapter):
         return settings.ACCOUNT_ALLOW_REGISTRATION
 
     @override
-    def get_login_redirect_url(self, request: HttpRequest) -> str:
-        return settings.LOGIN_REDIRECT_URL
-
-    @override
     def get_logout_redirect_url(self, request: HttpRequest) -> str:
         return settings.ACCOUNT_LOGOUT_REDIRECT_URL
