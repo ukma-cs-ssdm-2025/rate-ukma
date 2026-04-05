@@ -11,6 +11,7 @@ from django.db.models import (
     Prefetch,
     Q,
     QuerySet,
+    Subquery,
     Value,
     When,
 )
@@ -278,9 +279,6 @@ class CourseRepository(
         if filters.department:
             course_filters["department_id"] = filters.department
 
-        if filters.education_level:
-            course_filters["education_level"] = filters.education_level
-
         if course_filters:
             courses = courses.filter(**course_filters)
         if offering_query is not None:
@@ -447,6 +445,19 @@ class CourseRepository(
             )
             raise InvalidDepartmentIdentifierError(department_id) from exc
 
+    def _latest_year_offerings_queryset(self) -> QuerySet[CourseOffering]:
+        latest_year = Subquery(
+            CourseOffering.objects.filter(course_id=OuterRef("course_id"))
+            .order_by("-semester__year")
+            .values("semester__year")[:1]
+        )
+        return CourseOffering.objects.filter(semester__year=latest_year).prefetch_related(
+            Prefetch(
+                "course_offering_specialities",
+                queryset=CourseOfferingSpeciality.objects.select_related("speciality__faculty"),
+            ),
+        )
+
     def _get_all_shallow(self) -> QuerySet[Course]:
         return Course.objects.select_related("department__faculty").all()
 
@@ -456,14 +467,7 @@ class CourseRepository(
             .prefetch_related(
                 Prefetch(
                     "offerings",
-                    queryset=CourseOffering.objects.prefetch_related(
-                        Prefetch(
-                            "course_offering_specialities",
-                            queryset=CourseOfferingSpeciality.objects.select_related(
-                                "speciality__faculty"
-                            ),
-                        ),
-                    ),
+                    queryset=self._latest_year_offerings_queryset(),
                 ),
             )
             .all()
@@ -486,14 +490,7 @@ class CourseRepository(
                 .prefetch_related(
                     Prefetch(
                         "offerings",
-                        queryset=CourseOffering.objects.prefetch_related(
-                            Prefetch(
-                                "course_offering_specialities",
-                                queryset=CourseOfferingSpeciality.objects.select_related(
-                                    "speciality__faculty"
-                                ),
-                            ),
-                        ),
+                        queryset=self._latest_year_offerings_queryset(),
                     ),
                 )
                 .get(id=course_id)
