@@ -26,6 +26,35 @@ def test_microsoft_login_redirects(mock_redirect, api_client):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_microsoft_login_passes_redirect_as_next_param(api_client):
+    # Arrange
+    url = reverse("microsoft-login")
+    redirect_path = "/courses/123"
+
+    # Act
+    response = api_client.get(url, {"redirect": redirect_path})
+
+    # Assert
+    assert response.status_code == status.HTTP_302_FOUND
+    assert response.url == "/accounts/microsoft/login/?next=%2Fcourses%2F123"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_microsoft_login_without_redirect_omits_next_param(api_client):
+    # Arrange
+    url = reverse("microsoft-login")
+
+    # Act
+    response = api_client.get(url)
+
+    # Assert
+    assert response.status_code == status.HTTP_302_FOUND
+    assert response.url == "/accounts/microsoft/login/"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 @patch("rating_app.views.auth.authenticate")
 @patch("rating_app.views.auth.django_login")
 def test_login_successful(mock_django_login, mock_authenticate, api_client):

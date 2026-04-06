@@ -173,7 +173,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		setIsLoggingOut(true);
 		queryClient.removeQueries({ queryKey: sessionQuery.queryKey });
 
-		navigate({ to: "/login" });
+		navigate({ to: "/login", search: (s) => s });
 		try {
 			await logoutMutation.mutateAsync();
 		} catch (error) {

@@ -113,7 +113,7 @@ function LoginPage() {
 							{message.description}
 						</p>
 					</div>
-					<MicrosoftLoginButton className="w-full gap-2 h-12 text-base font-medium bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200" />
+					<MicrosoftLoginButton className="w-full gap-2 h-12 text-base font-medium bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200" redirectTo={search.redirect} />
 				</>
 			)}
 		</>
