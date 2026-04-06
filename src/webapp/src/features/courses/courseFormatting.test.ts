@@ -179,7 +179,7 @@ describe("courseFormatting", () => {
 	});
 
 	describe("getSemesterDisplay", () => {
-		it("should combine year and term into display string", () => {
+		it("should combine term and year into display string", () => {
 			// Arrange
 			const year = 2024;
 			const term = "FALL";
@@ -188,7 +188,7 @@ describe("courseFormatting", () => {
 			const result = getSemesterDisplay(year, term);
 
 			// Assert
-			expect(result).toBe("2024 Осінь");
+			expect(result).toBe("Осінь 2024");
 		});
 
 		it("should use fallback when term is unknown", () => {
@@ -201,7 +201,7 @@ describe("courseFormatting", () => {
 			const result = getSemesterDisplay(year, unknownTerm, fallback);
 
 			// Assert
-			expect(result).toBe("2024 Невідомо");
+			expect(result).toBe("Невідомо 2024");
 		});
 	});
 

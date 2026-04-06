@@ -95,7 +95,7 @@ class RatingFeedbackService(IObservable[RatingVoteDTO]):
 
     def _assert_student_can_vote_on_rating(self, rating: RatingDTO, student_id: str) -> None:
         course_offering = self.course_offering_service.get_course_offering(
-            str(rating.course_offering_id)
+            str(rating.course_offering)
         )
         semester = self.semester_service.get_by_id(str(course_offering.semester_id))
         if not self.rating_service.is_semester_open_for_rating(semester):

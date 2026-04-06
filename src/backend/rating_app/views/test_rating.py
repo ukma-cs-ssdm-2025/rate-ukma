@@ -333,6 +333,8 @@ def test_retrieve_rating(
 
     assert response.status_code == 200
     data = response.json()
+    assert data["course"] == str(course.id)
+    assert data["course_offering"] == str(offering.id)
     assert data["difficulty"] == 4
     assert data["usefulness"] == 5
     assert data["comment"] == "Test"

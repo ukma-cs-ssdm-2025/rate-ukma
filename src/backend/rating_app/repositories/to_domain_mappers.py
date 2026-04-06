@@ -193,14 +193,16 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
         # annotated fields from ORM queryset
         upvotes = getattr(model, "upvotes_count", 0)
         downvotes = getattr(model, "downvotes_count", 0)
+        term = SemesterTerm(model.course_offering.semester.term)
 
         return RatingDTO(
             id=model.id,
-            course_offering_id=model.course_offering.id,
             student_id=student_id,
             student_name=student_name,
             student_avatar_url=student_avatar_url,
             course_offering=model.course_offering.id,
+            course_offering_term=term,
+            course_offering_year=model.course_offering.semester.year,
             course=model.course_offering.course.id,
             difficulty=model.difficulty,
             usefulness=model.usefulness,

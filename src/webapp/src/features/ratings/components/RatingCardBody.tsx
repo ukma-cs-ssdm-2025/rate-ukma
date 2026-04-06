@@ -19,6 +19,7 @@ interface RatingCardBodyProps {
 	readonly isAnonymous: boolean;
 	readonly avatarUrl?: string | null;
 	readonly createdAt?: string | null;
+	readonly courseOfferingLabel?: string;
 	readonly difficulty: number | undefined;
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
@@ -38,6 +39,7 @@ export function RatingCardBody({
 	isAnonymous,
 	avatarUrl,
 	createdAt,
+	courseOfferingLabel,
 	difficulty,
 	usefulness,
 	comment,
@@ -54,7 +56,7 @@ export function RatingCardBody({
 	return (
 		<>
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-				<div className="flex min-w-0 items-center gap-2.5">
+				<div className="flex min-w-0 items-start gap-2.5">
 					<Avatar className="h-8 w-8 shrink-0 text-xs font-semibold">
 						{avatarUrl && !isAnonymous && (
 							<AvatarImage src={avatarUrl} alt={displayName} />
@@ -68,8 +70,17 @@ export function RatingCardBody({
 							{getInitials(displayName, isAnonymous)}
 						</AvatarFallback>
 					</Avatar>
-					<div className="flex min-w-0 flex-col">
-						<span className="truncate text-sm font-medium">{displayName}</span>
+					<div className="flex min-w-0 flex-col flex-1">
+						<div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+							<span className="min-w-0 truncate text-sm font-medium">
+								{displayName}
+							</span>
+							{courseOfferingLabel && (
+								<span className="shrink-0 text-xs text-muted-foreground">
+									{courseOfferingLabel}
+								</span>
+							)}
+						</div>
 						{createdAt && (
 							<time className="text-xs text-muted-foreground">
 								{formatDate(createdAt)}

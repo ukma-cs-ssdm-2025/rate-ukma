@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from rating_app.models.choices import RatingVoteStrType
+from rating_app.models.choices import RatingVoteStrType, SemesterTerm
 
 
 class RatingReadSerializer(serializers.Serializer):
@@ -12,8 +12,10 @@ class RatingReadSerializer(serializers.Serializer):
     student_id = serializers.UUIDField(read_only=True, allow_null=True)
     student_name = serializers.CharField(read_only=True, allow_null=True)
     student_avatar_url = serializers.CharField(read_only=True, allow_null=True)
-    course_offering = serializers.UUIDField(read_only=True)
     course = serializers.UUIDField(read_only=True)
+    course_offering = serializers.UUIDField(read_only=True)
+    course_offering_term = serializers.ChoiceField(choices=SemesterTerm.choices, read_only=True)
+    course_offering_year = serializers.IntegerField(read_only=True)
     difficulty = serializers.IntegerField(read_only=True)
     usefulness = serializers.IntegerField(read_only=True)
     comment = serializers.CharField(read_only=True, allow_null=True)
