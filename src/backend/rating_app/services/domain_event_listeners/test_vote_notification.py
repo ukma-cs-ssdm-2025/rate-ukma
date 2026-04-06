@@ -9,7 +9,7 @@ from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
 from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.exception.student_exceptions import StudentNotFoundError
-from rating_app.models.choices import NotificationEventType, RatingVoteType
+from rating_app.models.choices import NotificationEventType, RatingVoteType, SemesterTerm
 from rating_app.models.rating_vote import RatingVote as RatingVoteModel
 from rating_app.services.domain_event_listeners.vote_notification import (
     VoteNotificationObserver,
@@ -27,9 +27,10 @@ def _make_rating_dto(
     return RatingDTO(
         id=uuid.uuid4(),
         course_offering_id=uuid.uuid4(),
+        course_offering_term=SemesterTerm.FALL,
+        course_offering_year=2024,
         student_id=resolved_student_id,
         student_name="Rating Author",
-        course_offering=uuid.uuid4(),
         course=course_id or uuid.uuid4(),
         difficulty=3,
         usefulness=4,
