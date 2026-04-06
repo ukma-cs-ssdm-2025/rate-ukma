@@ -1,3 +1,4 @@
+import { getSemesterDisplay } from "@/features/courses/courseFormatting";
 import type { RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCardBody } from "./RatingCardBody";
@@ -22,6 +23,13 @@ export function RatingCard({
 	const displayName = rating.is_anonymous
 		? ANONYMOUS_REVIEW_NAME
 		: rating.student_name || DEFAULT_STUDENT_NAME;
+	const courseOfferingLabel =
+		rating.course_offering_year != null && rating.course_offering_term
+			? getSemesterDisplay(
+					rating.course_offering_year,
+					rating.course_offering_term,
+				)
+			: undefined;
 
 	return (
 		<article
@@ -33,6 +41,7 @@ export function RatingCard({
 				isAnonymous={rating.is_anonymous ?? false}
 				avatarUrl={rating.student_avatar_url}
 				createdAt={rating.created_at}
+				courseOfferingLabel={courseOfferingLabel}
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}

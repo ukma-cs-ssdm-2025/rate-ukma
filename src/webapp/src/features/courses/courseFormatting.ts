@@ -94,7 +94,7 @@ export function getSemesterDisplay(
 	term: string,
 	fallback?: string,
 ): string {
-	return `${year} ${getSemesterTermDisplay(term, fallback)}`;
+	return `${getSemesterTermDisplay(term, fallback)} ${year}`;
 }
 
 export function getStatusLabel(status: string): string {
