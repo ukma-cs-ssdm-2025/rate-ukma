@@ -30,7 +30,7 @@ def _make_rating_dto(*, is_anonymous: bool = False) -> RatingDTO:
     Privacy nulling is a serializer concern, not a domain concern."""
     return RatingDTO(
         id=uuid.uuid4(),
-        course_offering_id=uuid.uuid4(),
+        course_offering=uuid.uuid4(),
         course_offering_term=SemesterTerm.FALL,
         course_offering_year=2024,
         student_id=uuid.uuid4(),

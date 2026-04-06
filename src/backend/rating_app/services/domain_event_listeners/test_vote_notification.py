@@ -26,7 +26,7 @@ def _make_rating_dto(
     )
     return RatingDTO(
         id=uuid.uuid4(),
-        course_offering_id=uuid.uuid4(),
+        course_offering=uuid.uuid4(),
         course_offering_term=SemesterTerm.FALL,
         course_offering_year=2024,
         student_id=resolved_student_id,

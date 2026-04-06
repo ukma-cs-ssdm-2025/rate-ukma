@@ -200,7 +200,7 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             student_id=student_id,
             student_name=student_name,
             student_avatar_url=student_avatar_url,
-            course_offering_id=model.course_offering.id,
+            course_offering=model.course_offering.id,
             course_offering_term=term,
             course_offering_year=model.course_offering.semester.year,
             course=model.course_offering.course.id,
