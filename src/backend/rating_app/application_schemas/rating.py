@@ -16,7 +16,7 @@ from rating_app.constants import (
     MIN_PAGE_SIZE,
     MIN_RATING_VALUE,
 )
-from rating_app.models.choices import RatingVoteStrType
+from rating_app.models.choices import RatingVoteStrType, SemesterTerm
 
 from .pagination import PaginationMetadata
 
@@ -143,11 +143,12 @@ class Rating(BaseModel):
     }
 
     id: uuid.UUID
-    course_offering_id: uuid.UUID
     student_id: uuid.UUID | None
     student_name: str | None
     student_avatar_url: str | None = None
-    course_offering: uuid.UUID
+    course_offering_id: uuid.UUID
+    course_offering_term: SemesterTerm
+    course_offering_year: int
     course: uuid.UUID
     difficulty: int
     usefulness: int

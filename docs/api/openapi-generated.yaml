@@ -2352,6 +2352,16 @@ components:
           type: integer
           readOnly: true
           nullable: true
+    CourseOfferingTermEnum:
+      enum:
+      - FALL
+      - SPRING
+      - SUMMER
+      type: string
+      description: |-
+        * `FALL` - Fall
+        * `SPRING` - Spring
+        * `SUMMER` - Summer
     CourseTypeOption:
       type: object
       properties:
@@ -2810,13 +2820,16 @@ components:
           type: string
           readOnly: true
           nullable: true
-        course_offering:
+        course_offering_id:
           type: string
           format: uuid
           readOnly: true
-        course:
-          type: string
-          format: uuid
+        course_offering_term:
+          allOf:
+          - $ref: '#/components/schemas/CourseOfferingTermEnum'
+          readOnly: true
+        course_offering_year:
+          type: integer
           readOnly: true
         difficulty:
           type: integer
