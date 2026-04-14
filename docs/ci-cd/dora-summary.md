@@ -1,17 +1,15 @@
 # DORA Metrics Report
 
-**Generated:** 2026-04-07 09:23:39
+**Generated:** 2026-04-14 09:30:29
 
 ## Summary
 
 |Metric|Value|Category|
 | --- | --- | --- |
-| Deployment Frequency | 24.46/week | Elite |
-| Lead Time for Changes | 7m 49s | Elite |
-| Change Failure Rate | 12.5% | Elite |
+| Deployment Frequency | 0.00/week | Low |
+| Lead Time for Changes | 0m 0s | Elite |
+| Change Failure Rate | 0.0% | Elite |
 | Time to Restore | 2h 48m | High |
-
-**Total Runs:** 8 | **Successful:** 7 (87.5%) | **Failed:** 1 (12.5%)
 
 ---
 
@@ -21,8 +19,6 @@
 
 ```mermaid
 pie title Workflow Run Outcomes
-    "Success" : 7
-    "Failure" : 1
 ```
 
 ### Lead Time Trend
