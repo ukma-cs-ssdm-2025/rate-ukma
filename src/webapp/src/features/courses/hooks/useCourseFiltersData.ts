@@ -57,6 +57,8 @@ export type RangeFilterConfig = {
 	value: [number, number];
 	range: [number, number];
 	captions: [string, string];
+	step?: number;
+	showInputs?: boolean;
 	disabled?: boolean;
 	disabledMessage?: string;
 };
@@ -204,6 +206,8 @@ export function useCourseFiltersData({
 			value: filters.credits,
 			range: CREDITS_RANGE,
 			captions: ["Менше", "Більше"],
+			step: 0.5,
+			showInputs: true,
 			disabled: !filters.year,
 			disabledMessage: filters.year
 				? undefined

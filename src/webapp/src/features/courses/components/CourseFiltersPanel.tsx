@@ -19,6 +19,7 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/Collapsible";
 import { Combobox } from "@/components/ui/Combobox";
+import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import {
 	Select,
@@ -106,6 +107,8 @@ function FilterSlider({
 	value,
 	range,
 	captions,
+	step = 0.1,
+	showInputs = false,
 	testId,
 	disabled,
 	disabledMessage,
@@ -115,16 +118,57 @@ function FilterSlider({
 	value: [number, number];
 	range: [number, number];
 	captions: [string, string];
+	step?: number;
+	showInputs?: boolean;
 	testId?: string;
 	disabled?: boolean;
 	disabledMessage?: string;
 	onValueChange: (value: [number, number]) => void;
 }>) {
 	const [localValue, setLocalValue] = useState(value);
+	const [inputValue, setInputValue] = useState<[string, string]>([
+		formatDecimalValue(value[0], { fallback: "0" }),
+		formatDecimalValue(value[1], { fallback: "0" }),
+	]);
 
 	useEffect(() => {
 		setLocalValue(value);
+		setInputValue([
+			formatDecimalValue(value[0], { fallback: "0" }),
+			formatDecimalValue(value[1], { fallback: "0" }),
+		]);
 	}, [value]);
+
+	const clampToStep = useCallback(
+		(nextValue: number) => {
+			const [min, max] = range;
+			const clamped = Math.min(Math.max(nextValue, min), max);
+			const stepped = Math.round((clamped - min) / step) * step + min;
+			return Number(stepped.toFixed(2));
+		},
+		[range, step],
+	);
+
+	const commitInputValue = useCallback(
+		(index: 0 | 1) => {
+			const parsed = Number.parseFloat(inputValue[index]);
+			const nextValue = Number.isFinite(parsed)
+				? clampToStep(parsed)
+				: localValue[index];
+			const next: [number, number] =
+				index === 0
+					? [Math.min(nextValue, localValue[1]), localValue[1]]
+					: [localValue[0], Math.max(nextValue, localValue[0])];
+
+			setLocalValue(next);
+			setInputValue([
+				formatDecimalValue(next[0], { fallback: "0" }),
+				formatDecimalValue(next[1], { fallback: "0" }),
+			]);
+			onValueChange(next);
+		},
+		[clampToStep, inputValue, localValue, onValueChange],
+	);
 
 	return (
 		<div className="space-y-3">
@@ -133,12 +177,62 @@ function FilterSlider({
 				{formatDecimalValue(localValue[1], { fallback: "0" })}
 				{disabledMessage && <InfoHint message={disabledMessage} />}
 			</Label>
+			{showInputs && (
+				<div className="flex items-center gap-2">
+					<Input
+						type="number"
+						min={range[0]}
+						max={localValue[1]}
+						step={step}
+						value={inputValue[0]}
+						onChange={(event) =>
+							setInputValue([event.target.value, inputValue[1]])
+						}
+						onBlur={() => commitInputValue(0)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") {
+								event.currentTarget.blur();
+							}
+						}}
+						disabled={disabled}
+						aria-label={`${label} minimum`}
+						className="h-10"
+					/>
+					<span className="text-sm text-muted-foreground">-</span>
+					<Input
+						type="number"
+						min={localValue[0]}
+						max={range[1]}
+						step={step}
+						value={inputValue[1]}
+						onChange={(event) =>
+							setInputValue([inputValue[0], event.target.value])
+						}
+						onBlur={() => commitInputValue(1)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") {
+								event.currentTarget.blur();
+							}
+						}}
+						disabled={disabled}
+						aria-label={`${label} maximum`}
+						className="h-10"
+					/>
+				</div>
+			)}
 			<Slider
 				min={range[0]}
 				max={range[1]}
-				step={0.1}
+				step={step}
 				value={localValue}
-				onValueChange={(val) => setLocalValue(val as [number, number])}
+				onValueChange={(val) => {
+					const next = val as [number, number];
+					setLocalValue(next);
+					setInputValue([
+						formatDecimalValue(next[0], { fallback: "0" }),
+						formatDecimalValue(next[1], { fallback: "0" }),
+					]);
+				}}
 				onValueCommit={(val) => onValueChange(val as [number, number])}
 				disabled={disabled}
 				data-testid={testId}
