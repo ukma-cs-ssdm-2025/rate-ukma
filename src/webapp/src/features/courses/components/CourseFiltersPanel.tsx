@@ -132,11 +132,17 @@ function FilterSlider({
 	]);
 
 	useEffect(() => {
-		setLocalValue(value);
-		setInputValue([
-			formatDecimalValue(value[0], { fallback: "0" }),
-			formatDecimalValue(value[1], { fallback: "0" }),
-		]);
+		setLocalValue((currentValue) => {
+			if (currentValue[0] === value[0] && currentValue[1] === value[1]) {
+				return currentValue;
+			}
+
+			setInputValue([
+				formatDecimalValue(value[0], { fallback: "0" }),
+				formatDecimalValue(value[1], { fallback: "0" }),
+			]);
+			return value;
+		});
 	}, [value]);
 
 	const clampToStep = useCallback(
