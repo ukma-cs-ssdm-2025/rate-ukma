@@ -37,8 +37,13 @@ const VALID_EDUCATION_LEVELS: readonly EducationLevelEnum[] = [
 type SortOrder = "asc" | "desc";
 const VALID_SORT_ORDERS: readonly SortOrder[] = ["asc", "desc"];
 
-function createRangeParser(bounds: [number, number]) {
+function createRangeParser(bounds: [number, number], step?: number) {
 	const [minBound, maxBound] = bounds;
+	const hasValidStep = (value: number) => {
+		if (!step) return true;
+		const stepsFromMin = (value - minBound) / step;
+		return Math.abs(stepsFromMin - Math.round(stepsFromMin)) < 0.000001;
+	};
 
 	return createParser({
 		parse: (value: string): [number, number] | null => {
@@ -52,6 +57,7 @@ function createRangeParser(bounds: [number, number]) {
 			if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
 
 			if (min < minBound || max > maxBound || min > max) return null;
+			if (!hasValidStep(min) || !hasValidStep(max)) return null;
 
 			return [min, max];
 		},
@@ -80,7 +86,7 @@ export const courseFiltersParams = {
 		),
 	).withDefault([]),
 	year: parseAsString.withDefault(""),
-	credits: createRangeParser(CREDITS_RANGE),
+	credits: createRangeParser(CREDITS_RANGE, 0.5),
 	type: parseAsStringEnum<CoursesListTypeKind>(
 		VALID_TYPE_KINDS as unknown as CoursesListTypeKind[],
 	),

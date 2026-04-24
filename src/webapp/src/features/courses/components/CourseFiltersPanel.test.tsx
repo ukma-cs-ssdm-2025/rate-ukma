@@ -161,6 +161,56 @@ describe("CourseFiltersPanel", () => {
 			expect(screen.getByText("Низька")).toBeInTheDocument();
 			expect(screen.getByText("Висока")).toBeInTheDocument();
 		});
+		it("should render credits inputs with half-step increments", () => {
+			// Arrange & Act
+			render(
+				<TestWrapper
+					initialParams={{
+						...DEFAULT_PARAMS,
+						year: "2024",
+						credits: [4, 5.5],
+					}}
+				/>,
+			);
+
+			// Assert
+			expect(screen.getByLabelText(/ECTS minimum/)).toHaveAttribute(
+				"step",
+				"0.5",
+			);
+			expect(screen.getByLabelText(/ECTS maximum/)).toHaveAttribute(
+				"step",
+				"0.5",
+			);
+			expect(screen.getByLabelText(/ECTS minimum/)).toHaveValue(4);
+			expect(screen.getByLabelText(/ECTS maximum/)).toHaveValue(5.5);
+		});
+
+		it("should snap credits input values to valid half-step increments", async () => {
+			// Arrange
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			render(
+				<TestWrapper
+					initialParams={{
+						...DEFAULT_PARAMS,
+						year: "2024",
+						credits: [4, 6],
+					}}
+					setParams={setParams}
+				/>,
+			);
+
+			// Act
+			const minimumInput = screen.getByLabelText(/ECTS minimum/);
+			await user.clear(minimumInput);
+			await user.type(minimumInput, "4.27");
+			await user.tab();
+
+			// Assert
+			expect(setParams).toHaveBeenCalledWith({ credits: [4.5, 6], page: 1 });
+			expect(minimumInput).toHaveValue(4.5);
+		});
 	});
 
 	describe("Select Filter Interactions", () => {
