@@ -93,8 +93,9 @@ export function RatingCardBody({
 			</div>
 
 			{instructor && (
-				<p className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
-					<span className="font-medium">Викладач:</span> {instructor}
+				<p className="mt-2 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+					<span className="shrink-0 font-medium">Викладач:</span>
+					<span className="min-w-0 break-words">{instructor}</span>
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Info className="h-3.5 w-3.5 shrink-0 cursor-help text-muted-foreground/60" />

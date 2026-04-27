@@ -41,7 +41,7 @@ const ratingSchema = z.object({
 	// TODO: temporary free-text field; will be replaced with a verified instructor dropdown
 	instructor: z
 		.string()
-		.max(30, "Ім'я викладача не може перевищувати 30 символів")
+		.max(256, "Ім'я викладача не може перевищувати 256 символів")
 		.transform((val) => val?.trim() || undefined)
 		.optional(),
 	is_anonymous: z.boolean(),
