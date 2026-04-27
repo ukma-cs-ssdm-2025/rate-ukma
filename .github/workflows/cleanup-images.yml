@@ -1,0 +1,44 @@
+---
+name: Cleanup Old Container Images
+
+on:
+  schedule:
+    - cron: "0 3 * * 0" # Weekly on Sunday at 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  packages: write
+
+jobs:
+  cleanup-untagged:
+    name: Cleanup Untagged Images
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        package: [rate-ukma/backend, rate-ukma/webapp]
+    steps:
+      - name: Delete untagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package }}
+          package-type: container
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup-old-tagged:
+    name: Cleanup Old Tagged Images
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        package: [rate-ukma/backend, rate-ukma/webapp]
+    steps:
+      - name: Delete tagged versions older than 30 days
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package }}
+          package-type: container
+          min-versions-to-keep: 5
+          delete-only-untagged-versions: false
+          older-than: 14
+          token: ${{ secrets.GITHUB_TOKEN }}
