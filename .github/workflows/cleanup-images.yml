@@ -27,19 +27,19 @@ jobs:
 
   cleanup-old-tagged:
     name: Cleanup Old Tagged Images
+    needs: cleanup-untagged
     runs-on: ubuntu-24.04
     permissions:
       packages: write
     strategy:
       matrix:
-        package: [rate-ukma/backend, rate-ukma/webapp]
+        package: [backend, webapp]
     steps:
-      - name: Delete tagged versions older than 30 days
-        uses: actions/delete-package-versions@v5
+      - name: Delete tagged versions older than 14 days
+        uses: snok/container-retention-policy@v3
         with:
-          package-name: ${{ matrix.package }}
-          package-type: container
-          min-versions-to-keep: 5
-          delete-only-untagged-versions: false
-          older-than: 14
+          account: rate-ukma
           token: ${{ secrets.GITHUB_TOKEN }}
+          image-names: ${{ matrix.package }}
+          cut-off: 14 days ago UTC
+          keep-at-least: 5
