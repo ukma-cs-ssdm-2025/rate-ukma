@@ -6,13 +6,12 @@ on:
     - cron: "0 3 * * 0" # Weekly on Sunday at 03:00 UTC
   workflow_dispatch:
 
-permissions:
-  packages: write
-
 jobs:
   cleanup-untagged:
     name: Cleanup Untagged Images
     runs-on: ubuntu-24.04
+    permissions:
+      packages: write
     strategy:
       matrix:
         package: [rate-ukma/backend, rate-ukma/webapp]
@@ -29,6 +28,8 @@ jobs:
   cleanup-old-tagged:
     name: Cleanup Old Tagged Images
     runs-on: ubuntu-24.04
+    permissions:
+      packages: write
     strategy:
       matrix:
         package: [rate-ukma/backend, rate-ukma/webapp]
