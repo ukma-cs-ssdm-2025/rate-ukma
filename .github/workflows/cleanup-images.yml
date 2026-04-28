@@ -14,7 +14,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        package: [backend, webapp]
+        package: [rate-ukma/backend, rate-ukma/webapp]
     steps:
       - name: Delete untagged and old tagged versions
         uses: dataaxiom/ghcr-cleanup-action@v1
@@ -22,7 +22,7 @@ jobs:
           token: ${{ secrets.GHCR_PAT }}
           owner: ukma-cs-ssdm-2025
           repository: rate-ukma
-          packages: ${{ matrix.package }}
+          packages: "${{ matrix.package }}"
           keep-n-tagged: 5
           delete-untagged: true
           exclude-tags: latest
