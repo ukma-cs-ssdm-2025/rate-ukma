@@ -41,5 +41,7 @@ jobs:
           account: rate-ukma
           token: ${{ secrets.GITHUB_TOKEN }}
           image-names: ${{ matrix.package }}
-          cut-off: 14 days ago UTC
-          keep-at-least: 5
+          cut-off: 2w
+          image-tags: "!latest" # never delete the 'latest' tag
+          tag-selection: both # both tagged and untagged versions
+          dry-run: false
