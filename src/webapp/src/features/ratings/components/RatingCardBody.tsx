@@ -93,7 +93,7 @@ export function RatingCardBody({
 			</div>
 
 			{instructor && (
-				<p className="mt-2 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+				<p className="mt-2 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
 					<span className="shrink-0 font-medium">Викладач:</span>
 					<span className="min-w-0 break-words">{instructor}</span>
 					<Tooltip>
