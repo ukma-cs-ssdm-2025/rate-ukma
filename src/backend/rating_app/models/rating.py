@@ -27,7 +27,7 @@ class Rating(models.Model):
     usefulness = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True, default="")
     instructor = models.CharField(
-        max_length=30,
+        max_length=256,
         blank=True,
         default="",
         help_text="Temporary free-text field; will be replaced with a verified instructor FK.",
