@@ -3,7 +3,7 @@ name: Cleanup Old Container Images
 
 on:
   schedule:
-    - cron: "0 3 * * 0" # Weekly on Sunday at 03:00 UTC
+    - cron: "0 3 * * 0"
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,8 @@ jobs:
         uses: dataaxiom/ghcr-cleanup-action@v1
         with:
           token: ${{ secrets.GHCR_PAT }}
-          owner: rate-ukma
+          owner: ukma-cs-ssdm-2025
+          repository: rate-ukma
           packages: ${{ matrix.package }}
           keep-n-tagged: 5
           delete-untagged: true
