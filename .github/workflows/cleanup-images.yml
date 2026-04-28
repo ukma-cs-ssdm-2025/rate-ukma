@@ -7,27 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  cleanup-untagged:
-    name: Cleanup Untagged Images
-    runs-on: ubuntu-24.04
-    permissions:
-      packages: write
-    strategy:
-      matrix:
-        package: [rate-ukma/backend, rate-ukma/webapp]
-    steps:
-      - name: Delete untagged versions
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: ${{ matrix.package }}
-          package-type: container
-          min-versions-to-keep: 0
-          delete-only-untagged-versions: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  cleanup-old-tagged:
-    name: Cleanup Old Tagged Images
-    needs: cleanup-untagged
+  cleanup-images:
+    name: Cleanup Images
     runs-on: ubuntu-24.04
     permissions:
       packages: write
@@ -35,13 +16,14 @@ jobs:
       matrix:
         package: [backend, webapp]
     steps:
-      - name: Delete tagged versions older than 14 days
-        uses: snok/container-retention-policy@v3.0.1
+      - name: Delete untagged and old tagged versions
+        uses: dataaxiom/ghcr-cleanup-action@v1
         with:
-          account: rate-ukma
-          token: ${{ secrets.GITHUB_TOKEN }}
-          image-names: ${{ matrix.package }}
-          cut-off: 2w
-          image-tags: "!latest" # never delete the 'latest' tag
-          tag-selection: both # both tagged and untagged versions
+          token: ${{ secrets.GHCR_PAT }}
+          owner: rate-ukma
+          packages: ${{ matrix.package }}
+          keep-n-tagged: 5
+          delete-untagged: true
+          exclude-tags: latest
+          older-than: 14 days
           dry-run: false
