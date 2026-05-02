@@ -275,9 +275,14 @@ class CourseRepository(
         offering_query = self._build_offering_filter_queryset(filters)
 
         if filters.name:
-            title_q = Q(title__icontains=filters.name)
-            code_q = Exists(self._base_offering_subquery().filter(code__icontains=filters.name))
-            courses = courses.filter(title_q | code_q)
+            search_str = filters.name.strip()
+            code_q = Exists(self._base_offering_subquery().filter(code__icontains=search_str))
+
+            if search_str.isdigit():
+                courses = courses.filter(code_q)
+            else:
+                title_q = Q(title__icontains=search_str)
+                courses = courses.filter(title_q | code_q)
 
         if filters.faculty:
             course_filters["department__faculty_id"] = filters.faculty
