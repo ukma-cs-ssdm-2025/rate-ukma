@@ -275,14 +275,7 @@ class CourseRepository(
         offering_query = self._build_offering_filter_queryset(filters)
 
         if filters.name:
-            search_str = filters.name.strip()
-            code_q = Exists(self._base_offering_subquery().filter(code__icontains=search_str))
-
-            if search_str.isdigit():
-                courses = courses.filter(code_q)
-            else:
-                title_q = Q(title__icontains=search_str)
-                courses = courses.filter(title_q | code_q)
+            courses = self._apply_name_filter(courses, filters.name)
 
         if filters.faculty:
             course_filters["department__faculty_id"] = filters.faculty
@@ -333,6 +326,19 @@ class CourseRepository(
             return None
 
         return offering_query
+
+    def _apply_name_filter(self, courses: QuerySet[Course], name: str) -> QuerySet[Course]:
+        search_str = name.strip()
+        if not search_str:
+            return courses
+
+        code_q = Exists(self._base_offering_subquery().filter(code__icontains=search_str))
+
+        if search_str.isdigit():
+            return courses.filter(code_q)
+
+        title_q = Q(title__icontains=search_str)
+        return courses.filter(title_q | code_q)
 
     def _build_academic_year_q(self, academic_year: str) -> Q | None:
         parsed = self._parse_academic_year(academic_year)
