@@ -36,6 +36,14 @@ class CourseOfferingRepository(IDomainOrmRepository[CourseOfferingDTO, CourseOff
         qs = self._build_base_queryset().filter(course_id=course_id)
         return self._map_to_domain_models(qs)
 
+    def get_by_code(self, code: str) -> CourseOfferingDTO:
+        try:
+            model = self._build_base_queryset().get(code=code)
+            return self._map_to_domain_model(model)
+        except CourseOffering.DoesNotExist as exc:
+            logger.warning("course_offering_not_found_by_code", code=code, error=str(exc))
+            raise CourseOfferingNotFoundError() from exc
+
     @overload
     def get_or_create(
         self,

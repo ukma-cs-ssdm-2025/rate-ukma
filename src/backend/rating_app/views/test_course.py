@@ -105,6 +105,23 @@ def test_filter_by_name(token_client, course_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_filter_by_saz_code(token_client, course_factory, course_offering_factory):
+    # Arrange
+    course = course_factory.create()
+    course_offering_factory.create(course=course, code="123456")
+    url = "/api/v1/courses/?name=123456"
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    data = response.json()
+    assert response.status_code == 200
+    assert any(str(course.id) == item["id"] for item in data["items"])
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_semester(token_client, course_factory):
     # Arrange
     semester_year = "2024–2025"

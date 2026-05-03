@@ -200,11 +200,15 @@ class CourseRepository(
 
         if course is None and normalized_level and update_existing:
             with transaction.atomic():
-                course = Course.objects.select_for_update().filter(
-                    title=data.title,
-                    department=department,
-                    education_level="",
-                ).first()
+                course = (
+                    Course.objects.select_for_update()
+                    .filter(
+                        title=data.title,
+                        department=department,
+                        education_level="",
+                    )
+                    .first()
+                )
                 if course is not None:
                     updated_fields = self._collect_updated_fields(course=course, data=data)
                     if updated_fields:
@@ -271,7 +275,7 @@ class CourseRepository(
         offering_query = self._build_offering_filter_queryset(filters)
 
         if filters.name:
-            course_filters["title__icontains"] = filters.name
+            courses = self._apply_name_filter(courses, filters.name)
 
         if filters.faculty:
             course_filters["department__faculty_id"] = filters.faculty
@@ -281,15 +285,19 @@ class CourseRepository(
 
         if course_filters:
             courses = courses.filter(**course_filters)
+
         if offering_query is not None:
             courses = courses.filter(Exists(offering_query))
 
         return courses
 
+    def _base_offering_subquery(self) -> QuerySet[CourseOffering]:
+        return CourseOffering.objects.filter(course_id=OuterRef("pk"))
+
     def _build_offering_filter_queryset(
         self, filters: CourseFilterCriteriaInternal
     ) -> QuerySet[CourseOffering] | None:
-        offering_query = CourseOffering.objects.filter(course_id=OuterRef("pk"))
+        offering_query = self._base_offering_subquery()
         has_offering_filter = False
 
         if filters.semester_year:
@@ -319,18 +327,28 @@ class CourseRepository(
 
         return offering_query
 
+    def _apply_name_filter(self, courses: QuerySet[Course], name: str) -> QuerySet[Course]:
+        search_str = name.strip()
+        if not search_str:
+            return courses
+
+        code_q = Exists(self._base_offering_subquery().filter(code__icontains=search_str))
+
+        if search_str.isdigit():
+            return courses.filter(code_q)
+
+        title_q = Q(title__icontains=search_str)
+        return courses.filter(title_q | code_q)
+
     def _build_academic_year_q(self, academic_year: str) -> Q | None:
         parsed = self._parse_academic_year(academic_year)
         if not parsed:
             return None
 
         start_year, end_year = parsed
-        return (
-            Q(semester__year=start_year, semester__term=SemesterTerm.FALL)
-            | Q(
-                semester__year=end_year,
-                semester__term__in=[SemesterTerm.SPRING, SemesterTerm.SUMMER],
-            )
+        return Q(semester__year=start_year, semester__term=SemesterTerm.FALL) | Q(
+            semester__year=end_year,
+            semester__term__in=[SemesterTerm.SPRING, SemesterTerm.SUMMER],
         )
 
     def _parse_academic_year(self, academic_year: str) -> tuple[int, int] | None:
