@@ -159,6 +159,15 @@ export const testIds = {
 		deleteButton: "rating-delete-button",
 	},
 
+	// Rating comments
+	comments: {
+		toggleButton: "rating-comments-toggle-button",
+		item: "rating-comments-item",
+		textarea: "rating-comments-textarea",
+		anonymousCheckbox: "rating-comments-anonymous-checkbox",
+		submitButton: "rating-comments-submit-button",
+	},
+
 	// Delete confirmation dialog
 	deleteDialog: {
 		root: "delete-dialog",

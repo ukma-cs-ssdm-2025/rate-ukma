@@ -51,6 +51,8 @@ export function RatingCard({
 				upvotes={rating.upvotes ?? 0}
 				downvotes={rating.downvotes ?? 0}
 				viewerVote={rating.viewer_vote ?? null}
+				commentsCount={rating.comments_count ?? 0}
+				commentAuthors={rating.comment_authors ?? []}
 				votesReadOnly={readOnly}
 				votesDisabledMessage={disabledMessage}
 			/>

@@ -119,9 +119,7 @@ test.describe("Post-login redirect", () => {
 		await expect
 			.poll(() => getPathname(page), { timeout: 30_000 })
 			.toBe(PROTECTED_PATH);
-		await expect(
-			page.getByTestId(testIds.myRatings.header),
-		).toBeVisible();
+		await expect(page.getByTestId(testIds.myRatings.header)).toBeVisible();
 
 		await context.storageState({ path: "playwright/.auth/microsoft.json" });
 	});

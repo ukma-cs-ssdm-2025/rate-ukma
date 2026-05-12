@@ -9,6 +9,7 @@ import {
 } from "@/features/ratings/definitions/ratingDefinitions";
 import type {
 	InlineRating,
+	RatingCommentAuthor,
 	RatingRead,
 	RatingVoteStrType,
 } from "@/lib/api/generated";
@@ -20,16 +21,20 @@ interface ExtendedRating extends InlineRating {
 	upvotes?: number;
 	downvotes?: number;
 	viewer_vote?: RatingVoteStrType | null;
+	comments_count?: number;
+	comment_authors?: RatingCommentAuthor[];
 }
 
 interface UserRatingCardProps {
 	readonly rating: RatingRead | ExtendedRating;
+	readonly courseId?: string;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
 }
 
 export function UserRatingCard({
 	rating,
+	courseId,
 	onEdit,
 	onDelete,
 }: UserRatingCardProps) {
@@ -102,9 +107,12 @@ export function UserRatingCard({
 				instructor={rating.instructor}
 				commentEmptyMessage="Ви не залишили коментар."
 				ratingId={rating.id}
+				courseId={courseId}
 				upvotes={rating.upvotes ?? 0}
 				downvotes={rating.downvotes ?? 0}
 				viewerVote={rating.viewer_vote ?? null}
+				commentsCount={rating.comments_count ?? 0}
+				commentAuthors={rating.comment_authors ?? []}
 				votesReadOnly={true}
 				votesDisabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
 			/>
