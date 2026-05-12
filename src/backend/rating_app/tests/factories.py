@@ -2,17 +2,20 @@ from __future__ import annotations
 
 import random
 
+from django.contrib.auth import get_user_model
+
 import factory
 from factory import fuzzy
 from factory.django import DjangoModelFactory
 from faker import Faker
 
 from rating_app.models import (
+    Comment,
     Course,
     CourseInstructor,
     CourseOffering,
-    CourseOfferingTerm,
     CourseOfferingSpeciality,
+    CourseOfferingTerm,
     Department,
     Enrollment,
     Faculty,
@@ -35,6 +38,15 @@ from rating_app.models.choices import (
 )
 
 faker = Faker()
+User = get_user_model()
+
+
+class UserFactory(DjangoModelFactory):
+    class Meta:
+        model = User
+
+    username = factory.Sequence(lambda n: f"user{n}@ukma.edu.ua")
+    email = factory.Sequence(lambda n: f"user{n}@ukma.edu.ua")
 
 
 class FacultyFactory(DjangoModelFactory):
@@ -198,3 +210,14 @@ class RatingVoteFactory(DjangoModelFactory):
     student = factory.SubFactory(StudentFactory)
     rating = factory.SubFactory(RatingFactory)
     type = RatingVoteType.UPVOTE
+
+
+class CommentFactory(DjangoModelFactory):
+    class Meta:
+        model = Comment
+
+    content = factory.Faker("paragraph")
+    rating = factory.SubFactory(RatingFactory)
+    user = factory.SubFactory(UserFactory)
+    parent_comment = None
+    is_anonymous = False

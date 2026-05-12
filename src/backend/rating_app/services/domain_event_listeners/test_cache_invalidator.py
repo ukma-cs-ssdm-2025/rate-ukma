@@ -13,14 +13,19 @@ from unittest.mock import MagicMock
 import pytest
 
 from rateukma.caching.patterns import (
+    comment_replies_namespace,
     course_analytics_namespace,
     course_detail_namespace,
     course_ratings_namespace,
+    rating_comments_namespace,
     student_ratings_namespace,
 )
+from rating_app.application_schemas.comment import CommentDTO
 from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.models.choices import SemesterTerm
+from rating_app.services.comment_events import CommentAction, CommentEvent
 from rating_app.services.domain_event_listeners.cache_invalidator import (
+    CommentCacheInvalidator,
     RatingCacheInvalidator,
 )
 
@@ -44,6 +49,22 @@ def _make_rating_dto(*, is_anonymous: bool = False) -> RatingDTO:
         upvotes=0,
         downvotes=0,
         viewer_vote=None,
+        comments_count=0,
+    )
+
+
+def _make_comment_dto(*, parent_id: uuid.UUID | None = None) -> CommentDTO:
+    return CommentDTO(
+        id=uuid.uuid4(),
+        user_id=1,
+        user_name="Test User",
+        user_avatar_url=None,
+        rating_id=uuid.uuid4(),
+        parent_id=parent_id,
+        content="Helpful comment",
+        is_anonymous=False,
+        created_at=datetime.datetime.now(),
+        replies_count=0,
     )
 
 
@@ -87,4 +108,58 @@ class TestRatingCacheInvalidator:
         event = _make_rating_dto(is_anonymous=True)
         invalidator.on_event(event)
         cache_manager.bump_version.assert_any_call(student_ratings_namespace(str(event.student_id)))
+        assert cache_manager.bump_version.call_count == 4
+
+
+class TestCommentCacheInvalidator:
+    @pytest.fixture
+    def cache_manager(self):
+        return MagicMock()
+
+    @pytest.fixture
+    def rating_repository(self):
+        return MagicMock()
+
+    @pytest.fixture
+    def invalidator(self, cache_manager, rating_repository):
+        return CommentCacheInvalidator(
+            cache_manager=cache_manager,
+            rating_repository=rating_repository,
+        )
+
+    def test_bumps_rating_comments_and_course_ratings_namespaces(
+        self,
+        invalidator,
+        cache_manager,
+        rating_repository,
+    ):
+        course_id = uuid.uuid4()
+        comment = _make_comment_dto()
+        event = CommentEvent(comment=comment, action=CommentAction.CREATED)
+        rating_repository.get_by_id.return_value = MagicMock(course=course_id)
+
+        invalidator.on_event(event)
+
+        cache_manager.bump_version.assert_any_call(
+            rating_comments_namespace(str(comment.rating_id))
+        )
+        cache_manager.bump_version.assert_any_call(comment_replies_namespace(str(comment.id)))
+        cache_manager.bump_version.assert_any_call(course_ratings_namespace(str(course_id)))
+        assert cache_manager.bump_version.call_count == 3
+
+    def test_bumps_parent_replies_namespace_for_reply(
+        self,
+        invalidator,
+        cache_manager,
+        rating_repository,
+    ):
+        parent_id = uuid.uuid4()
+        course_id = uuid.uuid4()
+        comment = _make_comment_dto(parent_id=parent_id)
+        event = CommentEvent(comment=comment, action=CommentAction.CREATED)
+        rating_repository.get_by_id.return_value = MagicMock(course=course_id)
+
+        invalidator.on_event(event)
+
+        cache_manager.bump_version.assert_any_call(comment_replies_namespace(str(parent_id)))
         assert cache_manager.bump_version.call_count == 4

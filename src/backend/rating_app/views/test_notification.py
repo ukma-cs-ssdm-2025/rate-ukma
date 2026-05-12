@@ -1,8 +1,10 @@
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 import pytest
 from freezegun import freeze_time
 
+from rating_app.models import Notification
 from rating_app.models.choices import RatingVoteStrType
 
 from .test_rating import (
@@ -47,9 +49,40 @@ def _cast_vote(client, rating_id, vote_type=RatingVoteStrType.UPVOTE):
     return client.put(url, data={"vote_type": vote_type}, format="json")
 
 
+def _create_comment(client, rating_id, *, is_anonymous=False, content="Comment"):
+    url = f"/api/v1/ratings/{rating_id}/comments/"
+    return client.post(
+        url,
+        data={
+            "content": content,
+            "is_anonymous": is_anonymous,
+            "created_at": timezone.now().isoformat(),
+        },
+        format="json",
+    )
+
+
+def _update_comment(client, comment_id, *, content="Updated comment", is_anonymous=False):
+    url = f"/api/v1/comments/{comment_id}/"
+    return client.patch(
+        url,
+        data={
+            "content": content,
+            "is_anonymous": is_anonymous,
+        },
+        format="json",
+    )
+
+
 def _make_author_client(rating_author):
     client = APIClient()
     client.force_authenticate(user=rating_author.user)
+    return client
+
+
+def _make_client(user):
+    client = APIClient()
+    client.force_authenticate(user=user)
     return client
 
 
@@ -198,6 +231,129 @@ def test_notification_has_message_field(
 
     assert "message" in notification
     assert len(notification["message"]) > 0
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_comment_creates_named_notification_for_rating_author(
+    user_factory,
+    student_factory,
+    rating_factory,
+):
+    author_user = user_factory()
+    author_student = student_factory(user=author_user)
+    rating = rating_factory(student=author_student)
+    commenter_user = user_factory(first_name="Commenter", last_name="Person")
+    commenter_client = _make_client(commenter_user)
+
+    response = _create_comment(commenter_client, rating.id)
+    assert response.status_code == 201
+
+    author_client = _make_author_client(author_student)
+    response = author_client.get(NOTIFICATIONS_URL)
+    notification = response.json()[0]
+
+    assert response.status_code == 200
+    assert notification["event_type"] == "RATING_COMMENT_CREATED"
+    assert notification["count"] == 1
+    assert notification["is_unread"] is True
+    assert notification["message"] == "Person Commenter прокоментував(-ла) ваш відгук"
+    assert notification["rating_id"] == str(rating.id)
+    assert notification["course_id"] == str(rating.course_offering.course_id)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_anonymous_comment_notification_hides_commenter_name(
+    user_factory,
+    student_factory,
+    rating_factory,
+):
+    author_user = user_factory()
+    author_student = student_factory(user=author_user)
+    rating = rating_factory(student=author_student)
+    commenter_user = user_factory(first_name="Hidden", last_name="Person")
+    commenter_client = _make_client(commenter_user)
+
+    response = _create_comment(commenter_client, rating.id, is_anonymous=True)
+    assert response.status_code == 201
+
+    author_client = _make_author_client(author_student)
+    response = author_client.get(NOTIFICATIONS_URL)
+    notification = response.json()[0]
+
+    stored_notification = Notification.objects.get()
+    assert stored_notification.actor_id == commenter_user.id
+    assert "latest_actor_id" not in notification
+    assert notification["message"] == "Хтось прокоментував(-ла) ваш відгук"
+    assert "Hidden" not in notification["message"]
+    assert "Person" not in notification["message"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_rating_author_does_not_receive_notification_for_own_comment(
+    user_factory,
+    student_factory,
+    rating_factory,
+):
+    author_student = student_factory(user=user_factory())
+    rating = rating_factory(student=author_student)
+    author_client = _make_author_client(author_student)
+
+    response = _create_comment(author_client, rating.id)
+    assert response.status_code == 201
+
+    response = author_client.get(NOTIFICATIONS_URL)
+    assert response.json() == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_comment_update_does_not_create_another_notification(
+    user_factory,
+    student_factory,
+    rating_factory,
+):
+    author_student = student_factory(user=user_factory())
+    rating = rating_factory(student=author_student)
+    commenter_client = _make_client(user_factory(first_name="Commenter", last_name="Person"))
+    create_response = _create_comment(commenter_client, rating.id)
+    comment_id = create_response.json()["id"]
+
+    update_response = _update_comment(commenter_client, comment_id)
+    assert update_response.status_code == 200
+
+    author_client = _make_author_client(author_student)
+    response = author_client.get(NOTIFICATIONS_URL)
+    notifications = response.json()
+
+    assert len(notifications) == 1
+    assert notifications[0]["count"] == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_comment_delete_removes_comment_notification(
+    user_factory,
+    student_factory,
+    rating_factory,
+):
+    author_student = student_factory(user=user_factory())
+    rating = rating_factory(student=author_student)
+    commenter_client = _make_client(user_factory(first_name="Commenter", last_name="Person"))
+    create_response = _create_comment(commenter_client, rating.id, is_anonymous=True)
+    comment_id = create_response.json()["id"]
+
+    author_client = _make_author_client(author_student)
+    response = author_client.get(NOTIFICATIONS_URL)
+    assert len(response.json()) == 1
+
+    delete_response = commenter_client.delete(f"/api/v1/comments/{comment_id}/")
+    assert delete_response.status_code == 204
+
+    response = author_client.get(NOTIFICATIONS_URL)
+    assert response.json() == []
 
 
 @pytest.mark.django_db
