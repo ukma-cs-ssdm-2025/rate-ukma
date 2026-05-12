@@ -1,5 +1,5 @@
-from typing import overload
 import re
+from typing import overload
 
 
 class CommentNormalizer:

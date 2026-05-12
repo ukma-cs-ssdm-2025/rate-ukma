@@ -45,7 +45,7 @@ class NotificationRepository(
             self._build_base_queryset(user_id)
             .values("group_key")
             .annotate(
-                count=Count("actor", distinct=True),
+                count=Count("id"),
                 latest_created_at=Max("created_at"),
             )
             .order_by("-latest_created_at")
@@ -159,6 +159,20 @@ class NotificationRepository(
             recipient_id=recipient_id,
             actor_id=actor_id,
             group_key__endswith=f":{rating_id}",
+        ).delete()
+
+    def delete_by_event_source(
+        self,
+        recipient_id: int,
+        event_type: str,
+        content_type_id: int,
+        source_id: str,
+    ) -> None:
+        Notification.objects.filter(
+            recipient_id=recipient_id,
+            event_type=event_type,
+            content_type_id=content_type_id,
+            object_id=source_id,
         ).delete()
 
     def _get_group_reads(self, user_id: int, group_keys: list[str]) -> dict[str, datetime]:

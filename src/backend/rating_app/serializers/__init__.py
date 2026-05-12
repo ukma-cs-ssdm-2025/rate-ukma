@@ -1,4 +1,6 @@
 from .analytics import CourseAnalyticsSerializer
+from .comment_list import CommentListSerializer
+from .comment_read import CommentReadSerializer
 from .course.course_detail import CourseDetailSerializer
 from .course.course_list import CourseListSerializer
 from .course.course_list_resp import CourseListResponseSerializer
@@ -17,6 +19,8 @@ __all__ = [
     "CourseDetailSerializer",
     "CourseListSerializer",
     "RatingReadSerializer",
+    "CommentReadSerializer",
+    "CommentListSerializer",
     "CourseListResponseSerializer",
     "StudentRatingsLightSerializer",
     "StudentRatingsDetailedSerializer",

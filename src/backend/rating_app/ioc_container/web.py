@@ -7,6 +7,7 @@ from rateukma.ioc.decorators import once
 
 from ..views import (
     AnalyticsViewSet,
+    CommentViewset,
     CourseOfferingViewSet,
     CourseViewSet,
     InstructorViewSet,
@@ -17,6 +18,7 @@ from ..views import (
 )
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
 from .services import (
+    comment_service,
     course_offering_service,
     course_service,
     instructor_service,
@@ -77,6 +79,30 @@ def course_rating_votes_view():
         vote_service=vote_service(),
         rating_service=rating_service(),
         student_service=student_service(),
+    )
+
+
+@once
+def comment_create_view():
+    return CommentViewset.as_view(
+        {"get": "list", "post": "create"},
+        comment_service=comment_service(),
+    )
+
+
+@once
+def comment_replies_view():
+    return CommentViewset.as_view(
+        {"get": "list_replies"},
+        comment_service=comment_service(),
+    )
+
+
+@once
+def comment_detail_view():
+    return CommentViewset.as_view(
+        {"put": "update", "patch": "partial_update", "delete": "destroy"},
+        comment_service=comment_service(),
     )
 
 
@@ -245,6 +271,21 @@ def rest_urlpatterns() -> list:
             "ratings/<str:rating_id>/votes/",
             course_rating_votes_view(),
             name="course-rating-votes",
+        ),
+        path(
+            "ratings/<str:rating_id>/comments/",
+            comment_create_view(),
+            name="comment-get",
+        ),
+        path(
+            "comments/<str:comment_id>/replies/",
+            comment_replies_view(),
+            name="comment-replies",
+        ),
+        path(
+            "comments/<str:comment_id>/",
+            comment_detail_view(),
+            name="comment-detail",
         ),
         path(
             "students/me/courses/",

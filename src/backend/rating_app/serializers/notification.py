@@ -16,9 +16,14 @@ NOTIFICATION_MESSAGE_TEMPLATES = {
         "singular": "Хтось не вподобав ваш відгук",
         "plural": "{count} людей не вподобали ваш відгук",
     },
+    NotificationEventType.RATING_COMMENT_CREATED: {
+        "singular": "{actor_name} прокоментував(-ла) ваш відгук",
+        "plural": "{actor_name} та ще {others_count} людей прокоментували ваш відгук",
+    },
 }
 
 PLURAL_THRESHOLD = 2
+UNKNOWN_ACTOR_LABEL = "Хтось"
 
 
 class NotificationGroupSerializer(serializers.Serializer):
@@ -38,10 +43,23 @@ class NotificationGroupSerializer(serializers.Serializer):
         if templates is None:
             return str(obj.event_type)
 
+        if obj.event_type == NotificationEventType.RATING_COMMENT_CREATED:
+            return self._format_comment_message(obj, templates)
+
         if obj.count < PLURAL_THRESHOLD:
             return templates["singular"]
 
         return templates["plural"].format(count=obj.count)
+
+    def _format_comment_message(self, obj, templates: dict[str, str]) -> str:
+        actor_name = obj.latest_actor_name or UNKNOWN_ACTOR_LABEL
+        if obj.count < PLURAL_THRESHOLD:
+            return templates["singular"].format(actor_name=actor_name)
+
+        return templates["plural"].format(
+            actor_name=actor_name,
+            others_count=obj.count - 1,
+        )
 
     def get_rating_id(self, obj) -> str | None:
         return _parse_rating_id(obj.group_key)

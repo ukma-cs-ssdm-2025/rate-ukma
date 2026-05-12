@@ -1,5 +1,5 @@
-from rest_framework import status
-from rest_framework.exceptions import NotFound, ValidationError, NotFound
+from rest_framework.exceptions import NotFound, ValidationError
+
 
 class CommentNotFoundError(NotFound):
     default_detail = "Comment not found"
@@ -14,4 +14,3 @@ class InvalidCommentIdentifierError(ValidationError):
 class RatingNotFoundError(NotFound):
     default_detail = "Rating not found"
     default_code = "rating_not_found"
-

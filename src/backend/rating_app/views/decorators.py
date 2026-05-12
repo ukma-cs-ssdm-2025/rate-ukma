@@ -6,6 +6,10 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 
 import structlog
 
+from rating_app.exception.comment_exception import (
+    CommentNotFoundError,
+    InvalidCommentIdentifierError,
+)
 from rating_app.exception.rating_exceptions import (
     InvalidRatingIdentifierError,
     RatingNotFoundError,
@@ -13,10 +17,6 @@ from rating_app.exception.rating_exceptions import (
 from rating_app.exception.student_exceptions import (
     OnlyStudentActionAllowedError,
     StudentNotFoundError,
-)
-from rating_app.exception.comment_exception import (
-    InvalidCommentIdentifierError,
-    CommentNotFoundError,
 )
 
 logger = structlog.get_logger(__name__)
@@ -79,6 +79,7 @@ def require_rating_ownership(func):
 
     return wrapper
 
+
 def require_comment_ownership(func):
     """
     Decorator that ensures the authenticated user is the owner of the comment.
@@ -103,7 +104,7 @@ def require_comment_ownership(func):
         comment_id = kwargs.get("comment_id")
         if comment_id is None:
             raise ValidationError({"comment_id": "Comment id is required"})
-        
+
         user_id = request.user.id
 
         try:

@@ -3,6 +3,8 @@ from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 
 from rating_app.constants import MAX_RATING_VALUE, MIN_RATING_VALUE
 from rating_app.serializers import (
+    CommentListSerializer,
+    CommentReadSerializer,
     CourseDetailSerializer,
     CourseListResponseSerializer,
     FilterOptionsSerializer,
@@ -121,6 +123,21 @@ R_RATING_CREATE = {
 
 R_RATING = {
     200: RatingReadSerializer,
+    **common_errors(include_404=True),
+}
+
+R_COMMENT_LIST = {
+    200: OpenApiResponse(forced_singular_serializer(CommentListSerializer), "OK"),
+    **common_errors(include_404=True),
+}
+
+R_COMMENT = {
+    200: OpenApiResponse(CommentReadSerializer, "OK"),
+    **common_errors(include_404=True),
+}
+
+R_COMMENT_CREATE = {
+    201: CommentReadSerializer,
     **common_errors(include_404=True),
 }
 
