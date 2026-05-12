@@ -1,16 +1,18 @@
 import pytest
 
-TELEGRAM_UA = "TelegramBot (like TwitterBot)"
-BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0"
+_MINIMAL_INDEX = "<html><head></head><body><div id='app'></div></body></html>"
 
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_bot_request_returns_og_html_with_course_title(api_client, course_factory):
+def test_course_page_returns_og_tags_with_course_title(
+    api_client, course_factory, tmp_path, settings
+):
+    settings.STATIC_ROOT = tmp_path
+    (tmp_path / "index.html").write_text(_MINIMAL_INDEX)
     course = course_factory.create()
-    url = f"/courses/{course.id}/"
 
-    response = api_client.get(url, HTTP_USER_AGENT=TELEGRAM_UA)
+    response = api_client.get(f"/courses/{course.id}/")
 
     assert response.status_code == 200
     assert response["Content-Type"] == "text/html; charset=utf-8"
@@ -21,9 +23,10 @@ def test_bot_request_returns_og_html_with_course_title(api_client, course_factor
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_bot_request_for_nonexistent_course_returns_404(api_client):
-    url = "/courses/00000000-0000-0000-0000-000000000000/"
+def test_course_page_returns_404_for_nonexistent_course(api_client, tmp_path, settings):
+    settings.STATIC_ROOT = tmp_path
+    (tmp_path / "index.html").write_text(_MINIMAL_INDEX)
 
-    response = api_client.get(url, HTTP_USER_AGENT=TELEGRAM_UA)
+    response = api_client.get("/courses/00000000-0000-0000-0000-000000000000/")
 
     assert response.status_code == 404
