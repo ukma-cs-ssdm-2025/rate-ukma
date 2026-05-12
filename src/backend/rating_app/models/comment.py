@@ -3,14 +3,12 @@ import uuid
 from django.conf import settings
 from django.db import models
 
-from . import Rating
-
 
 class Comment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     content = models.TextField()
     rating = models.ForeignKey(
-        Rating,
+        "rating_app.Rating",
         on_delete=models.CASCADE,
         related_name="comments",
     )

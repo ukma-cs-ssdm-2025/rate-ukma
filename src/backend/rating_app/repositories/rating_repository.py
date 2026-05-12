@@ -3,7 +3,7 @@ from typing import Any, Literal, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError, IntegrityError
-from django.db.models import Avg, Count, Q, QuerySet
+from django.db.models import Avg, Count, Prefetch, Q, QuerySet
 
 import structlog
 
@@ -25,7 +25,7 @@ from rating_app.exception.rating_exceptions import (
     InvalidRatingIdentifierError,
     RatingNotFoundError,
 )
-from rating_app.models import Rating
+from rating_app.models import Comment, Rating
 from rating_app.models.choices import RatingVoteType
 from rating_app.pagination import GenericQuerysetPaginator
 from rating_app.queries.rating_popularity import WilsonPopularityAnnotator
@@ -301,10 +301,17 @@ class RatingRepository(
 
     def _build_base_queryset(self) -> QuerySet[Rating]:
         return self._build_lightweight_queryset().annotate(
-            upvotes_count=Count("rating_vote", filter=Q(rating_vote__type=RatingVoteType.UPVOTE)),
-            downvotes_count=Count(
-                "rating_vote", filter=Q(rating_vote__type=RatingVoteType.DOWNVOTE)
+            upvotes_count=Count(
+                "rating_vote",
+                filter=Q(rating_vote__type=RatingVoteType.UPVOTE),
+                distinct=True,
             ),
+            downvotes_count=Count(
+                "rating_vote",
+                filter=Q(rating_vote__type=RatingVoteType.DOWNVOTE),
+                distinct=True,
+            ),
+            comments_count=Count("comments", distinct=True),
         )
 
     def _build_lightweight_queryset(self) -> QuerySet[Rating]:
@@ -312,6 +319,15 @@ class RatingRepository(
             "course_offering__course",
             "course_offering__semester",
             "student",
+        ).prefetch_related(
+            Prefetch(
+                "comments",
+                queryset=Comment.objects.select_related(
+                    "user",
+                    "user__student_profile",
+                ).order_by("created_at", "id"),
+                to_attr="comment_preview_comments",
+            )
         )
 
     def _apply_filters(
