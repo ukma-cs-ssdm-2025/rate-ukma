@@ -29,8 +29,11 @@ class StudentService:
         self.user_repository = user_repository
         self.rating_service = rating_service
 
-    def get_student_by_user_id(self, user_id: str):
+    def get_student_by_user_id(self, user_id: str) -> StudentDTO:
         return self.student_stats_repository.get_student_by_user_id(user_id=user_id)
+
+    def get_by_id(self, student_id: str) -> StudentDTO:
+        return self.student_repository.get_by_id(id=student_id)
 
     @rcached(ttl=3600, versioned_by=lambda self, student_id: student_ratings_namespace(student_id))
     def get_ratings(self, student_id: str) -> list[dict[str, Any]]:

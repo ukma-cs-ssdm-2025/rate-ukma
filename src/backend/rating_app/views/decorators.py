@@ -14,6 +14,10 @@ from rating_app.exception.student_exceptions import (
     OnlyStudentActionAllowedError,
     StudentNotFoundError,
 )
+from rating_app.exception.comment_exception import (
+    InvalidCommentIdentifierError,
+    CommentNotFoundError,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -70,6 +74,56 @@ def require_rating_ownership(func):
 
         kwargs["student"] = student
         kwargs["rating"] = rating
+
+        return func(self, request, *args, **kwargs)
+
+    return wrapper
+
+def require_comment_ownership(func):
+    """
+    Decorator that ensures the authenticated user is the owner of the comment.
+
+    This decorator:
+    1. Validates comment_id parameter exists
+    2. Fetches the authenticated student
+    3. Fetches the comment by ID
+    4. Checks ownership
+
+    Usage:
+        @require_comment_ownership
+        def partial_update(self, request, comment: CommentDTO, **kwargs):
+            # comment is guaranteed to exist and be authorized
+            pass
+    """
+
+    @wraps(func)
+    def wrapper(self, request, *args, **kwargs):
+        assert self.comment_service is not None
+
+        comment_id = kwargs.get("comment_id")
+        if comment_id is None:
+            raise ValidationError({"comment_id": "Comment id is required"})
+        
+        user_id = request.user.id
+
+        try:
+            comment = self.comment_service.get_comment(comment_id)
+        except InvalidCommentIdentifierError as exc:
+            raise ValidationError({"comment_id": "Invalid comment identifier"}) from exc
+        except CommentNotFoundError as exc:
+            raise NotFound(detail=str(exc)) from exc
+
+        is_owner = comment.user_id == user_id
+        if not is_owner:
+            logger.warning(
+                "permission_denied",
+                action=func.__name__,
+                comment_id=comment_id,
+                user_id=user_id,
+            )
+            raise PermissionDenied(detail="You do not have permission to modify this comment.")
+
+        kwargs["comment"] = comment
 
         return func(self, request, *args, **kwargs)
 
