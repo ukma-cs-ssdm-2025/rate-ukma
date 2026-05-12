@@ -29,7 +29,7 @@ import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
 } from "@/lib/api/generated";
-import { formatPageTitle } from "@/lib/app-metadata";
+import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
 
 function CourseDescription({ text }: Readonly<{ text: string }>) {
@@ -97,6 +97,18 @@ function CourseDetailsRoute() {
 			{course.title && (
 				<Helmet>
 					<title>{formatPageTitle(course.title)}</title>
+					<meta property="og:title" content={formatPageTitle(course.title)} />
+					<meta
+						property="og:description"
+						content={buildCourseOgDescription(course)}
+					/>
+					<meta property="og:url" content={window.location.href} />
+					<meta property="og:type" content="website" />
+					<meta name="twitter:title" content={formatPageTitle(course.title)} />
+					<meta
+						name="twitter:description"
+						content={buildCourseOgDescription(course)}
+					/>
 				</Helmet>
 			)}
 			<div className="pb-16">
