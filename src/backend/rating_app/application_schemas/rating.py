@@ -124,7 +124,7 @@ def strip_string(value: str | None) -> str | None:
     return stripped if stripped else None
 
 
-MAX_INSTRUCTOR_LENGTH = 30
+MAX_INSTRUCTOR_LENGTH = 256
 
 
 def strip_instructor(value: str | None) -> str | None:

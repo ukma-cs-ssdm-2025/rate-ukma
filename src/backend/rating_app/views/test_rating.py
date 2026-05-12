@@ -1274,7 +1274,7 @@ def test_create_rating_instructor_too_long(
         "course_offering": str(offering.id),
         "difficulty": 4,
         "usefulness": 5,
-        "instructor": "A" * 31,
+        "instructor": "A" * 257,
         "is_anonymous": False,
     }
 
