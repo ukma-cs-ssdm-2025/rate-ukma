@@ -91,6 +91,7 @@ function CourseDetailsRoute() {
 	const canShowCta = hasAttendedCourse && selectedOffering && !ratedOffering;
 	const offeringMeta =
 		offerings.length > 0 ? getLatestOfferingMeta(offerings) : null;
+	const canonicalUrl = `${window.location.origin + window.location.pathname}`;
 
 	return (
 		<Layout>
@@ -102,7 +103,7 @@ function CourseDetailsRoute() {
 						property="og:description"
 						content={buildCourseOgDescription(course)}
 					/>
-					<meta property="og:url" content={window.location.href} />
+					<meta property="og:url" content={canonicalUrl} />
 					<meta property="og:type" content="website" />
 					<meta name="twitter:title" content={formatPageTitle(course.title)} />
 					<meta

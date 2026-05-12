@@ -41,6 +41,7 @@ from rating_app.services.domain_event_listeners.vote_notification import (
     VoteNotificationObserver,
 )
 from rating_app.services.notification_service import NotificationService
+from rating_app.services.og_service import OgService
 
 
 @once
@@ -73,6 +74,11 @@ def course_service() -> CourseService:
         speciality_service=speciality_service(),
         semester_service=semester_service(),
     )
+
+
+@once
+def og_service() -> OgService:
+    return OgService(course_service=course_service())
 
 
 @once

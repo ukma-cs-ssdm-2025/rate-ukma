@@ -26,6 +26,8 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from rating_app.ioc_container.web import course_og_view
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
@@ -38,6 +40,8 @@ urlpatterns = [
     path("api/v1/", include("rating_app.urls")),
     # django-allauth URLs
     path("accounts/", include("allauth.urls")),
+    # Open Graph views
+    path("courses/<str:course_id>/", course_og_view(), name="course-og"),
 ]
 
 if settings.DEBUG:

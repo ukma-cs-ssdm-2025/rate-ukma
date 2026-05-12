@@ -4,7 +4,7 @@ export const APP_NAME = "Rate UKMA";
 export const DEFAULT_PAGE_TITLE =
 	"Rate UKMA - Rate. Review. Discover your best courses at NaUKMA";
 export const DEFAULT_PAGE_DESCRIPTION =
-	"Rate UKMA is a web platform for NaUKMA students to share course reviews and ratings. Discover your best courses with interactive analytics and anonymous feedback.";
+	"Rate UKMA — платформа для студентів НаУКМА, де можна ділитися відгуками та оцінками курсів. Обирай найкращі курси завдяки інтерактивній аналітиці та анонімним відгукам.";
 
 export function formatPageTitle(title: string) {
 	return `${title} | ${APP_NAME}`;
@@ -20,7 +20,8 @@ export function buildCourseOgDescription(course: {
 	if (course.description) return course.description;
 	const parts: string[] = [];
 	if (course.department_name) parts.push(course.department_name);
-	if (course.ratings_count) parts.push(`${course.ratings_count} відгуків`);
+	if (course.ratings_count != null)
+		parts.push(`${course.ratings_count} відгуків`);
 	if (course.avg_difficulty != null)
 		parts.push(`складність ${course.avg_difficulty.toFixed(1)}/10`);
 	if (course.avg_usefulness != null)
