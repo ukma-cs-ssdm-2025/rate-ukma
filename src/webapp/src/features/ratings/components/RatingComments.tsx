@@ -623,6 +623,36 @@ export function RatingComments({
 		toast.success("Коментар додано");
 	};
 
+	const commentsContent = (() => {
+		if (commentsQuery.isLoading) {
+			return (
+				<div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+					<Spinner className="size-4" />
+					Завантаження коментарів...
+				</div>
+			);
+		}
+
+		if (comments.length > 0) {
+			return (
+				<div className="space-y-4">
+					{comments.map((comment) => (
+						<RatingCommentItem
+							key={comment.id}
+							comment={comment}
+							ratingId={ratingId}
+							courseId={courseId}
+						/>
+					))}
+				</div>
+			);
+		}
+
+		return (
+			<p className="py-2 text-sm text-muted-foreground">Коментарів ще немає.</p>
+		);
+	})();
+
 	return (
 		<div className="min-w-0 w-full">
 			<div className="flex items-start justify-between gap-2">
@@ -652,27 +682,7 @@ export function RatingComments({
 						onSubmit={handleCreate}
 					/>
 
-					{commentsQuery.isLoading ? (
-						<div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-							<Spinner className="size-4" />
-							Завантаження коментарів...
-						</div>
-					) : comments.length > 0 ? (
-						<div className="space-y-4">
-							{comments.map((comment) => (
-								<RatingCommentItem
-									key={comment.id}
-									comment={comment}
-									ratingId={ratingId}
-									courseId={courseId}
-								/>
-							))}
-						</div>
-					) : (
-						<p className="py-2 text-sm text-muted-foreground">
-							Коментарів ще немає.
-						</p>
-					)}
+					{commentsContent}
 
 					{commentsQuery.hasNextPage && (
 						<Button
