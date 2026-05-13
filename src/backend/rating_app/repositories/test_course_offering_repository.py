@@ -226,3 +226,23 @@ def test_get_by_id_includes_prefetched_terms(repo):
 
     assert len(result.terms) == 2
     assert {term.semester_term for term in result.terms} == {fall.label, spring.label}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_by_code_returns_matching_offering(repo):
+    offering = CourseOfferingFactory.create(code="123456")
+
+    result = repo.get_by_code("123456")
+
+    assert result.id == offering.id
+    assert result.code == "123456"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_by_code_raises_when_not_found(repo):
+    from rating_app.exception.course_exceptions import CourseOfferingNotFoundError
+
+    with pytest.raises(CourseOfferingNotFoundError):
+        repo.get_by_code("000000")
