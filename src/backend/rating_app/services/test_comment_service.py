@@ -116,6 +116,18 @@ def test_delete_comment_notifies_deleted_action(service, comment_repository):
     comment_repository.delete.assert_called_once_with(str(comment.id))
 
 
+def test_delete_comment_does_not_notify_when_repository_fails(service, comment_repository):
+    listener = MagicMock()
+    service.add_observer(listener)
+    comment = _make_comment_dto()
+    comment_repository.delete.side_effect = RuntimeError("delete failed")
+
+    with pytest.raises(RuntimeError, match="delete failed"):
+        service.delete_comment(comment)
+
+    listener.on_event.assert_not_called()
+
+
 def test_update_comment_notifies_updated_action(
     service,
     comment_repository,
@@ -134,5 +146,23 @@ def test_update_comment_notifies_updated_action(
     assert result == updated_comment
     assert update_data.content == "Updated content"
     listener.on_event.assert_called_once_with(
-        CommentEvent(comment=comment, action=CommentAction.UPDATED)
+        CommentEvent(comment=updated_comment, action=CommentAction.UPDATED)
     )
+
+
+def test_update_comment_does_not_notify_when_repository_fails(
+    service,
+    comment_repository,
+    comment_normalizer,
+):
+    listener = MagicMock()
+    service.add_observer(listener)
+    comment = _make_comment_dto()
+    update_data = CommentPatchParams(content=" Updated content ")
+    comment_normalizer.normalize_comment.return_value = "Updated content"
+    comment_repository.update.side_effect = RuntimeError("update failed")
+
+    with pytest.raises(RuntimeError, match="update failed"):
+        service.update_comment(comment, update_data)
+
+    listener.on_event.assert_not_called()

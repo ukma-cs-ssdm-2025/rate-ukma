@@ -61,8 +61,8 @@ class CommentService(IObservable[CommentEvent]):
         return self.comment_repository.get_by_id(comment_id)
 
     def delete_comment(self, comment: CommentDTO) -> None:
-        self._notify_comment(comment, CommentAction.DELETED)
         self.comment_repository.delete(str(comment.id))
+        self._notify_comment(comment, CommentAction.DELETED)
 
     def update_comment(
         self,
@@ -72,8 +72,9 @@ class CommentService(IObservable[CommentEvent]):
         if update_data.content is not None:
             update_data.content = self.comment_normalizer.normalize_comment(update_data.content)
 
-        self._notify_comment(comment, CommentAction.UPDATED)
-        return self.comment_repository.update(comment, update_data)
+        updated_comment = self.comment_repository.update(comment, update_data)
+        self._notify_comment(updated_comment, CommentAction.UPDATED)
+        return updated_comment
 
     def _notify_comment(self, comment: CommentDTO, action: CommentAction) -> None:
         self.notify(CommentEvent(comment=comment, action=action))
