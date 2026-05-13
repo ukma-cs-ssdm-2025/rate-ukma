@@ -26,6 +26,15 @@ class CommentFilterParams(BaseModel):
     rating_id: uuid.UUID = Field(description="Unique identifier of a rating")
 
 
+class CommentPathParams(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    comment_id: uuid.UUID = Field(description="Unique identifier of a comment")
+
+
 class CommentReplyFilterParams(BaseModel):
     model_config = {
         "alias_generator": to_snake,

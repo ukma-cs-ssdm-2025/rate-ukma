@@ -487,6 +487,8 @@ paths:
         name: comment_id
         schema:
           type: string
+          format: uuid
+        description: Unique identifier of a comment
         required: true
       tags:
       - comments
@@ -571,6 +573,8 @@ paths:
         name: comment_id
         schema:
           type: string
+          format: uuid
+        description: Unique identifier of a comment
         required: true
       tags:
       - comments
@@ -654,6 +658,8 @@ paths:
         name: comment_id
         schema:
           type: string
+          format: uuid
+        description: Unique identifier of a comment
         required: true
       tags:
       - comments

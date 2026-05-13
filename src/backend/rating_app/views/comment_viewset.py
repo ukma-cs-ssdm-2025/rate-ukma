@@ -14,6 +14,7 @@ from rating_app.application_schemas.comment import (
     CommentFilterParams,
     CommentListQueryParams,
     CommentPatchParams,
+    CommentPathParams,
     CommentPutParams,
     CommentReplyFilterParams,
 )
@@ -145,6 +146,7 @@ class CommentViewset(viewsets.ViewSet):
     @extend_schema(
         summary="Update a comment",
         description="Update an existing comment. Only the owner can update their comment.",
+        parameters=[*to_openapi((CommentPathParams, OpenApiParameter.PATH))],
         request=CommentPutParams,
         responses=R_COMMENT,
     )
@@ -166,6 +168,7 @@ class CommentViewset(viewsets.ViewSet):
         summary="Partially update a comment",
         description="Partially update an existing comment. "
         "Only the owner can update their comment.",
+        parameters=[*to_openapi((CommentPathParams, OpenApiParameter.PATH))],
         request=CommentPatchParams,
         responses=R_COMMENT,
     )
@@ -187,6 +190,7 @@ class CommentViewset(viewsets.ViewSet):
         summary="Delete a comment",
         description="Delete a comment. "
         "Only the owner can delete a comment. Replies are deleted recursively.",
+        parameters=[*to_openapi((CommentPathParams, OpenApiParameter.PATH))],
         responses=R_NO_CONTENT,
     )
     @require_comment_ownership
