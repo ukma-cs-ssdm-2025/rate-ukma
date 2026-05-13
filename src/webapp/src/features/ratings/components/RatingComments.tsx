@@ -484,7 +484,7 @@ function RatingCommentItem({
 							variant="ghost"
 							size="sm"
 							className="h-7 px-2 text-xs text-muted-foreground"
-							onClick={() => void repliesQuery.fetchNextPage()}
+							onClick={() => repliesQuery.fetchNextPage()}
 							disabled={repliesQuery.isFetchingNextPage}
 						>
 							{repliesQuery.isFetchingNextPage && (
@@ -680,7 +680,7 @@ export function RatingComments({
 							variant="outline"
 							size="sm"
 							className="w-full"
-							onClick={() => void commentsQuery.fetchNextPage()}
+							onClick={() => commentsQuery.fetchNextPage()}
 							disabled={commentsQuery.isFetchingNextPage}
 						>
 							{commentsQuery.isFetchingNextPage && (
