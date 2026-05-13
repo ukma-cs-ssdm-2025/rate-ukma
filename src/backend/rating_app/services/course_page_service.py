@@ -44,8 +44,11 @@ class CoursePageService:
         return index_html.replace("</head>", meta_tags + "</head>", 1)
 
     def _build_course_description(self, course: CourseDTO) -> str:
+        description_len_limit: int = 50
+
         if course.description:
-            return course.description
+            suffix = "..." if len(course.description) > description_len_limit else ""
+            return course.description[:description_len_limit] + suffix
 
         parts = [
             course.department_name if course.department_name else None,
