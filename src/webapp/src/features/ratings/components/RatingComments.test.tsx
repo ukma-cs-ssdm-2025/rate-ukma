@@ -5,6 +5,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { CommentRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingComments } from "./RatingComments";
 
@@ -78,7 +79,7 @@ function renderWithQuery(ui: ReactElement) {
 	return render(ui, { wrapper: Wrapper });
 }
 
-function mockCommentList(items: unknown[]) {
+function mockCommentList(items: Partial<CommentRead>[]) {
 	return {
 		items,
 		filters: {},
