@@ -176,7 +176,7 @@ _DEFAULT_DESCRIPTION = (
     "Rate UKMA — платформа для студентів НаУКМА, де можна ділитися відгуками та оцінками курсів."
 )
 
-_DESCRIPTION_LEN_LIMIT = 50
+_DESCRIPTION_LEN_LIMIT = 120
 
 
 @dataclass(frozen=True)
