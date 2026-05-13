@@ -274,6 +274,6 @@ class CommentRepository(
         except Comment.DoesNotExist as exc:
             logger.warning("comment_not_found", comment_id=comment_id, error=str(exc))
             raise CommentNotFoundError(comment_id) from exc
-        except (ValueError, TypeError, DataError) as exc:
+        except (DjangoValidationError, ValueError, TypeError, DataError) as exc:
             logger.warning("invalid_comment_identifier", comment_id=comment_id, error=str(exc))
             raise InvalidCommentIdentifierError(comment_id) from exc
