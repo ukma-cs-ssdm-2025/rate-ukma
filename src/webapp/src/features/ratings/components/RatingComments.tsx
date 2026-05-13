@@ -26,7 +26,6 @@ import {
 	useCommentsPartialUpdate,
 	useRatingsCommentsCreate,
 } from "@/lib/api/generated";
-import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { getAvatarColor, getInitials } from "./reviewerAvatar";
@@ -199,8 +198,7 @@ function CommentForm({
 }
 
 function CommentActions({ comment, onEdit, onDelete }: CommentActionsProps) {
-	const { user } = useAuth();
-	const isOwner = comment.user_id === user?.id;
+	const isOwner = comment.can_manage;
 
 	if (!isOwner) {
 		return null;

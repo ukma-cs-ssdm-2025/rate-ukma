@@ -249,6 +249,7 @@ class CommentRepository(
             exclude={
                 "page",
                 "page_size",
+                "viewer_user_id",
             },
         )
 

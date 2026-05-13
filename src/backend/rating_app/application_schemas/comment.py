@@ -75,6 +75,7 @@ class CommentFilterCriteria(BaseModel):
         default=DEFAULT_PAGE_SIZE,
         ge=MIN_PAGE_SIZE,
     )
+    viewer_user_id: int | None = None
     rating_id: uuid.UUID | None = None
     comment_id: uuid.UUID | None = None
 
@@ -159,6 +160,7 @@ class CommentDTO(BaseModel):
     parent_id: uuid.UUID | None = None
     content: str
     is_anonymous: bool
+    can_manage: bool = False
     created_at: datetime.datetime
 
     replies_count: int

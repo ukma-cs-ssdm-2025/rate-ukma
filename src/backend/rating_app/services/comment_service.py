@@ -55,7 +55,7 @@ class CommentService(IObservable[CommentEvent]):
         params.content = self.comment_normalizer.normalize_comment(params.content)
         comment = self.comment_repository.create(params)
         self._notify_comment(comment, CommentAction.CREATED)
-        return comment
+        return self._with_manage_permission(comment, params.user_id)
 
     def get_comment(self, comment_id: str) -> CommentDTO:
         return self.comment_repository.get_by_id(comment_id)
@@ -74,7 +74,7 @@ class CommentService(IObservable[CommentEvent]):
 
         updated_comment = self.comment_repository.update(comment, update_data)
         self._notify_comment(updated_comment, CommentAction.UPDATED)
-        return updated_comment
+        return self._with_manage_permission(updated_comment, updated_comment.user_id)
 
     def _notify_comment(self, comment: CommentDTO, action: CommentAction) -> None:
         self.notify(CommentEvent(comment=comment, action=action))
@@ -105,6 +105,10 @@ class CommentService(IObservable[CommentEvent]):
             comments = self.comment_repository.filter(filters)
             metadata = self._create_single_page_metadata(len(comments))
 
+        comments = [
+            self._with_manage_permission(comment, filters.viewer_user_id) for comment in comments
+        ]
+
         return CommentSearchResult(
             items=comments,
             pagination=metadata,
@@ -120,4 +124,17 @@ class CommentService(IObservable[CommentEvent]):
         )
 
     def _format_applied_filters(self, filters: CommentFilterCriteria) -> dict[str, Any]:
-        return filters.model_dump(by_alias=True, exclude={"page", "page_size"}, exclude_none=True)
+        return filters.model_dump(
+            by_alias=True,
+            exclude={"page", "page_size", "viewer_user_id"},
+            exclude_none=True,
+        )
+
+    def _with_manage_permission(
+        self,
+        comment: CommentDTO,
+        viewer_user_id: int | None,
+    ) -> CommentDTO:
+        return comment.model_copy(
+            update={"can_manage": viewer_user_id is not None and comment.user_id == viewer_user_id}
+        )

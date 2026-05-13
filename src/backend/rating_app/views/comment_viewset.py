@@ -50,6 +50,7 @@ class CommentViewset(viewsets.ViewSet):
             filter_data = {
                 **query_params.model_dump(),
                 "rating_id": rating_id,
+                "viewer_user_id": request.user.id,
             }
 
             filters = CommentFilterCriteria.model_validate(filter_data)
@@ -88,6 +89,7 @@ class CommentViewset(viewsets.ViewSet):
             filter_data = {
                 **query_params.model_dump(),
                 "comment_id": comment_id,
+                "viewer_user_id": request.user.id,
             }
 
             filters = CommentFilterCriteria.model_validate(filter_data)

@@ -2556,6 +2556,9 @@ components:
         is_anonymous:
           type: boolean
           readOnly: true
+        can_manage:
+          type: boolean
+          readOnly: true
         created_at:
           type: string
           format: date-time

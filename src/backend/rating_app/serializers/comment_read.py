@@ -21,6 +21,7 @@ class CommentReadSerializer(serializers.Serializer):
     user_name = serializers.CharField(read_only=True, allow_null=True)
     user_avatar_url = serializers.CharField(read_only=True, allow_null=True)
     is_anonymous = serializers.BooleanField(read_only=True)
+    can_manage = serializers.BooleanField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     replies_count = serializers.IntegerField(read_only=True)
     reply_authors = CommentAuthorSerializer(many=True, read_only=True)
