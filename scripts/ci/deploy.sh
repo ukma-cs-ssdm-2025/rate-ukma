@@ -135,19 +135,19 @@ apply_nginx_config() {
   local dest="/etc/nginx/sites-available/${SERVER_NAME}"
   local backup="/tmp/nginx-backup-${SERVER_NAME}.conf"
 
-  if [ ! -f "$template" ]; then
+  if [[ ! -f "$template" ]]; then
     echo "Nginx template missing at $template" >&2
     return 1
   fi
 
-  [ -f "$dest" ] && sudo cp "$dest" "$backup"
+  [[ -f "$dest" ]] && sudo cp "$dest" "$backup"
 
   envsubst '${SERVER_NAME}' < "$template" | sudo tee "$dest" > /dev/null
   sudo ln -sf "$dest" "/etc/nginx/sites-enabled/${SERVER_NAME}"
 
   if ! sudo nginx -t; then
     echo "Nginx config test failed. Restoring backup..."
-    if [ -f "$backup" ]; then
+    if [[ -f "$backup" ]]; then
       sudo cp "$backup" "$dest" && sudo nginx -s reload
     else
       sudo rm -f "$dest" "/etc/nginx/sites-enabled/${SERVER_NAME}"
