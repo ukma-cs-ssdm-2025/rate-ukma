@@ -96,7 +96,7 @@ class CommentCreateRequest(BaseModel):
         "populate_by_name": True,
     }
     parent_comment: uuid.UUID | None = None
-    content: str
+    content: str = Field(min_length=1)
     is_anonymous: bool
 
 

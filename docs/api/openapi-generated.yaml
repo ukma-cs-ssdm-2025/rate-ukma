@@ -2462,6 +2462,7 @@ components:
           default: null
           title: Parent Comment
         content:
+          minLength: 1
           title: Content
           type: string
         is_anonymous:
