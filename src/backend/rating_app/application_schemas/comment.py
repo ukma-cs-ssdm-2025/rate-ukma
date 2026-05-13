@@ -95,7 +95,10 @@ class CommentCreateRequest(BaseModel):
         "alias_generator": to_snake,
         "populate_by_name": True,
     }
-    parent_comment: uuid.UUID | None = None
+    parent_comment: uuid.UUID | SkipJsonSchema[None] = Field(
+        default=None,
+        json_schema_extra={"nullable": True},
+    )
     content: str = Field(min_length=1)
     is_anonymous: bool
 
