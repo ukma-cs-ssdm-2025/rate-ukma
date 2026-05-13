@@ -172,6 +172,13 @@ class CourseInput:
     faculty_name: str
 
 
+_DEFAULT_DESCRIPTION = (
+    "Rate UKMA — платформа для студентів НаУКМА, де можна ділитися відгуками та оцінками курсів."
+)
+
+_DESCRIPTION_LEN_LIMIT = 50
+
+
 @dataclass(frozen=True)
 class Course:
     id: str
@@ -188,6 +195,25 @@ class Course:
     avg_difficulty: decimal.Decimal | None = None
     avg_usefulness: decimal.Decimal | None = None
     ratings_count: int | None = 0
+
+    @property
+    def short_description(self) -> str:
+        if self.description:
+            suffix = "..." if len(self.description) > _DESCRIPTION_LEN_LIMIT else ""
+            return self.description[:_DESCRIPTION_LEN_LIMIT] + suffix
+
+        parts = [
+            self.department_name,
+            f"{self.ratings_count} відгуків" if self.ratings_count is not None else None,
+            f"складність {float(self.avg_difficulty):.1f}/10"
+            if self.avg_difficulty is not None
+            else None,
+            f"корисність {float(self.avg_usefulness):.1f}/10"
+            if self.avg_usefulness is not None
+            else None,
+        ]
+
+        return " · ".join(p for p in parts if p) or _DEFAULT_DESCRIPTION
 
 
 # is constructed internally

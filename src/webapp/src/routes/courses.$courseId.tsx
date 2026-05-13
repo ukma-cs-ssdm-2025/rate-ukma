@@ -92,6 +92,7 @@ function CourseDetailsRoute() {
 	const offeringMeta =
 		offerings.length > 0 ? getLatestOfferingMeta(offerings) : null;
 	const canonicalUrl = `${window.location.origin + window.location.pathname}`;
+	const ogDescription = buildCourseOgDescription(course);
 
 	return (
 		<Layout>
@@ -99,17 +100,11 @@ function CourseDetailsRoute() {
 				<Helmet>
 					<title>{formatPageTitle(course.title)}</title>
 					<meta property="og:title" content={formatPageTitle(course.title)} />
-					<meta
-						property="og:description"
-						content={buildCourseOgDescription(course)}
-					/>
+					<meta property="og:description" content={ogDescription} />
 					<meta property="og:url" content={canonicalUrl} />
 					<meta property="og:type" content="website" />
 					<meta name="twitter:title" content={formatPageTitle(course.title)} />
-					<meta
-						name="twitter:description"
-						content={buildCourseOgDescription(course)}
-					/>
+					<meta name="twitter:description" content={ogDescription} />
 				</Helmet>
 			)}
 			<div className="pb-16">

@@ -1,15 +1,11 @@
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import ClassVar
 
 from django.conf import settings
 from django.template.loader import render_to_string
 
-from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.services.course_service import CourseService
-
-_DEFAULT_DESCRIPTION = (
-    "Rate UKMA — платформа для студентів НаУКМА, де можна ділитися відгуками та оцінками курсів."
-)
 
 
 @dataclass(frozen=True)
@@ -26,6 +22,8 @@ class CoursePageService:
     Can be extended for other entity types by adding similar build_*_page_html methods.
     """
 
+    _index_html: ClassVar[str | None] = None
+
     def __init__(self, course_service: CourseService) -> None:
         self._course_service = course_service
 
@@ -34,27 +32,17 @@ class CoursePageService:
 
         context = PageMetaContext(
             title=f"{course.title} | Rate UKMA",
-            description=self._build_course_description(course),
+            description=course.short_description,
             url=canonical_url,
             image_url=image_url,
         )
 
         meta_tags = render_to_string("rating_app/page_meta_tags.html", asdict(context))
-        index_html = (Path(settings.STATIC_ROOT) / "index.html").read_text(encoding="utf-8")
-        return index_html.replace("</head>", meta_tags + "</head>", 1)
+        return self._get_index_html().replace("</head>", meta_tags + "</head>", 1)
 
-    def _build_course_description(self, course: CourseDTO) -> str:
-        description_len_limit: int = 50
-
-        if course.description:
-            suffix = "..." if len(course.description) > description_len_limit else ""
-            return course.description[:description_len_limit] + suffix
-
-        parts = [
-            course.department_name if course.department_name else None,
-            f"{course.ratings_count} відгуків" if course.ratings_count else None,
-            f"складність {float(course.avg_difficulty):.1f}/10" if course.avg_difficulty else None,
-            f"корисність {float(course.avg_usefulness):.1f}/10" if course.avg_usefulness else None,
-        ]
-
-        return " · ".join(p for p in parts if p) or _DEFAULT_DESCRIPTION
+    def _get_index_html(self) -> str:
+        if CoursePageService._index_html is None:
+            CoursePageService._index_html = (Path(settings.STATIC_ROOT) / "index.html").read_text(
+                encoding="utf-8"
+            )
+        return CoursePageService._index_html
