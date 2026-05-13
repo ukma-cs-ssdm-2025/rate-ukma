@@ -16,9 +16,9 @@ import {
 	DEFAULT_STUDENT_NAME,
 } from "@/features/ratings/definitions/ratingDefinitions";
 import type {
+	CommentAuthor,
 	CommentRead,
 	CommentReplyAuthor,
-	RatingCommentAuthor,
 } from "@/lib/api/generated";
 import {
 	commentsRepliesRetrieve,
@@ -43,7 +43,7 @@ interface RatingCommentsProps {
 	readonly ratingId: string;
 	readonly courseId?: string;
 	readonly commentsCount?: number;
-	readonly commentAuthors?: readonly RatingCommentAuthor[];
+	readonly commentAuthors?: readonly CommentAuthor[];
 	readonly trailingContent?: ReactNode;
 }
 
@@ -75,7 +75,7 @@ interface CommentActionsProps {
 	readonly onDelete: () => void;
 }
 
-type CommentPreviewAuthor = CommentReplyAuthor | RatingCommentAuthor;
+type CommentPreviewAuthor = CommentReplyAuthor | CommentAuthor;
 
 function invalidateRatingCommentQueries(
 	queryClient: ReturnType<typeof useQueryClient>,
@@ -305,7 +305,7 @@ function PreviewAuthorAvatar({
 
 function CommentAuthorsPreview({
 	authors,
-}: Readonly<{ authors?: readonly RatingCommentAuthor[] }>) {
+}: Readonly<{ authors?: readonly CommentAuthor[] }>) {
 	const previewAuthors = authors?.slice(0, COMMENT_AUTHOR_PREVIEW_LIMIT) ?? [];
 
 	if (previewAuthors.length === 0) {
@@ -415,7 +415,6 @@ function RatingCommentItem({
 				content: values.content,
 				is_anonymous: values.isAnonymous,
 				parent_comment: commentId,
-				created_at: new Date().toISOString(),
 			},
 		});
 
@@ -613,7 +612,6 @@ export function RatingComments({
 			data: {
 				content: values.content,
 				is_anonymous: values.isAnonymous,
-				created_at: new Date().toISOString(),
 			},
 		});
 

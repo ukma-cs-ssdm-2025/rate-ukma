@@ -8,8 +8,8 @@ import {
 	DEFAULT_STUDENT_NAME,
 } from "@/features/ratings/definitions/ratingDefinitions";
 import type {
+	CommentAuthor,
 	InlineRating,
-	RatingCommentAuthor,
 	RatingRead,
 	RatingVoteStrType,
 } from "@/lib/api/generated";
@@ -22,7 +22,7 @@ interface ExtendedRating extends InlineRating {
 	downvotes?: number;
 	viewer_vote?: RatingVoteStrType | null;
 	comments_count?: number;
-	comment_authors?: RatingCommentAuthor[];
+	comment_authors?: CommentAuthor[];
 }
 
 interface UserRatingCardProps {

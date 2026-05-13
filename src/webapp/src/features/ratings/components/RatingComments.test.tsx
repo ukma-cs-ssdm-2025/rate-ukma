@@ -240,7 +240,6 @@ describe("RatingComments", () => {
 			data: {
 				content: "New comment",
 				is_anonymous: false,
-				created_at: expect.any(String),
 			},
 		});
 	});

@@ -7,10 +7,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import { formatDate } from "@/features/courses/courseFormatting";
-import type {
-	RatingCommentAuthor,
-	RatingVoteStrType,
-} from "@/lib/api/generated";
+import type { CommentAuthor, RatingVoteStrType } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
@@ -35,7 +32,7 @@ interface RatingCardBodyProps {
 	readonly downvotes: number;
 	readonly viewerVote: RatingVoteStrType | null;
 	readonly commentsCount?: number;
-	readonly commentAuthors?: readonly RatingCommentAuthor[];
+	readonly commentAuthors?: readonly CommentAuthor[];
 	readonly votesReadOnly?: boolean;
 	readonly votesDisabledMessage?: string;
 }
