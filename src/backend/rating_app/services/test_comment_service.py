@@ -71,7 +71,7 @@ def test_create_comment_notifies_created_action(
 
     result = service.create_comment(params)
 
-    assert result == comment
+    assert result == comment.model_copy(update={"can_manage": True})
     assert params.content == "Helpful comment"
     listener.on_event.assert_called_once_with(
         CommentEvent(comment=comment, action=CommentAction.CREATED)
@@ -143,7 +143,7 @@ def test_update_comment_notifies_updated_action(
 
     result = service.update_comment(comment, update_data)
 
-    assert result == updated_comment
+    assert result == updated_comment.model_copy(update={"can_manage": True})
     assert update_data.content == "Updated content"
     listener.on_event.assert_called_once_with(
         CommentEvent(comment=updated_comment, action=CommentAction.UPDATED)
