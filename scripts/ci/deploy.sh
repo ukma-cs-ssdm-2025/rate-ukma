@@ -156,7 +156,7 @@ apply_nginx_config() {
   fi
 
   sudo nginx -s reload
-  rm -f "$backup"
+  sudo rm -f "$backup"
   echo "Nginx config applied and reloaded"
 }
 
