@@ -92,8 +92,8 @@ class CommentCreateRequest(BaseModel):
 
 
 class CommentCreateParams(CommentCreateRequest):
-    rating: uuid.UUID
-    user: int = Field(description="ID of the user creating the comment")
+    rating_id: uuid.UUID
+    user_id: int = Field(description="ID of the user creating the comment")
 
 
 class CommentUpsertParams(CommentCreateParams):

@@ -20,8 +20,8 @@ def repo():
 @pytest.mark.django_db
 def test_create_uses_model_default_id(repo, rating_factory, user):
     params = CommentCreateParams(
-        rating=rating_factory().id,
-        user=user.id,
+        rating_id=rating_factory().id,
+        user_id=user.id,
         parent_comment=None,
         content="Original comment",
         is_anonymous=False,
@@ -38,8 +38,8 @@ def test_get_or_create_creates_comment_with_explicit_upsert_id(repo, rating_fact
     comment_id = uuid.uuid4()
     params = CommentUpsertParams(
         id=comment_id,
-        rating=rating_factory().id,
-        user=user.id,
+        rating_id=rating_factory().id,
+        user_id=user.id,
         parent_comment=None,
         content="Original comment",
         is_anonymous=False,
@@ -57,8 +57,8 @@ def test_get_or_upsert_updates_comment_with_param_id(repo, rating_factory, user)
     comment_id = uuid.uuid4()
     params = CommentUpsertParams(
         id=comment_id,
-        rating=rating_factory().id,
-        user=user.id,
+        rating_id=rating_factory().id,
+        user_id=user.id,
         parent_comment=None,
         content="Original comment",
         is_anonymous=False,

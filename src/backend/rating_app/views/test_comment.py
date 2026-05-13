@@ -221,6 +221,35 @@ def test_comment_reply_caches_invalidated_after_reply_create(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_comment_reply_parent_must_belong_to_rating(
+    token_client,
+    rating_factory,
+    comment_factory,
+):
+    target_rating = rating_factory()
+    other_rating = rating_factory()
+    other_rating_parent = comment_factory(rating=other_rating)
+
+    payload = {
+        "content": "Cross-rating reply",
+        "parent_comment": str(other_rating_parent.id),
+        "is_anonymous": False,
+    }
+    response = token_client.post(
+        f"/api/v1/ratings/{target_rating.id}/comments/",
+        payload,
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert not Comment.objects.filter(
+        rating=target_rating,
+        parent_comment=other_rating_parent,
+    ).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_comments_list_cache_invalidated_after_comment_update(
     token_client,
     rating_factory,

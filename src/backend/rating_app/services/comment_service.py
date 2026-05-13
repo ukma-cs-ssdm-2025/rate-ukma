@@ -13,6 +13,7 @@ from rating_app.application_schemas.comment import (
     CommentSearchResult,
 )
 from rating_app.application_schemas.pagination import PaginationFilters, PaginationMetadata
+from rating_app.exception.comment_exception import CommentParentRatingMismatchError
 from rating_app.repositories.comment_repository import CommentRepository
 from rating_app.services.comment_events import CommentAction, CommentEvent
 from rating_app.services.comment_normalizer import CommentNormalizer
@@ -50,6 +51,7 @@ class CommentService(IObservable[CommentEvent]):
         self._listeners.append(observer)
 
     def create_comment(self, params: CommentCreateParams) -> CommentDTO:
+        self._validate_parent_comment_matches_rating(params)
         params.content = self.comment_normalizer.normalize_comment(params.content)
         comment = self.comment_repository.create(params)
         self._notify_comment(comment, CommentAction.CREATED)
@@ -75,6 +77,14 @@ class CommentService(IObservable[CommentEvent]):
 
     def _notify_comment(self, comment: CommentDTO, action: CommentAction) -> None:
         self.notify(CommentEvent(comment=comment, action=action))
+
+    def _validate_parent_comment_matches_rating(self, params: CommentCreateParams) -> None:
+        if params.parent_comment is None:
+            return
+
+        parent = self.comment_repository.get_by_id(str(params.parent_comment))
+        if parent.rating_id != params.rating_id:
+            raise CommentParentRatingMismatchError()
 
     @rcached(ttl=300, versioned_by=_comments_namespace)
     def filter_comments(

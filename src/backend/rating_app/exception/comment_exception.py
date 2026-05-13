@@ -11,6 +11,11 @@ class InvalidCommentIdentifierError(ValidationError):
     default_code = "invalid_comment_identifier"
 
 
+class CommentParentRatingMismatchError(ValidationError):
+    default_detail = "Parent comment must belong to the same rating"
+    default_code = "comment_parent_rating_mismatch"
+
+
 class RatingNotFoundError(NotFound):
     default_detail = "Rating not found"
     default_code = "rating_not_found"

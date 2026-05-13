@@ -9,6 +9,7 @@ from rating_app.application_schemas.comment import (
     CommentDTO,
     CommentPatchParams,
 )
+from rating_app.exception.comment_exception import CommentParentRatingMismatchError
 from rating_app.services.comment_events import CommentAction, CommentEvent
 from rating_app.services.comment_service import CommentService
 
@@ -31,14 +32,18 @@ def service(comment_repository, comment_normalizer):
     )
 
 
-def _make_comment_dto() -> CommentDTO:
+def _make_comment_dto(
+    *,
+    rating_id: uuid.UUID | None = None,
+    parent_id: uuid.UUID | None = None,
+) -> CommentDTO:
     return CommentDTO(
         id=uuid.uuid4(),
         user_id=1,
         user_name="Test User",
         user_avatar_url=None,
-        rating_id=uuid.uuid4(),
-        parent_id=None,
+        rating_id=rating_id or uuid.uuid4(),
+        parent_id=parent_id,
         content="Helpful comment",
         is_anonymous=False,
         created_at=datetime.now(tz=UTC),
@@ -54,8 +59,8 @@ def test_create_comment_notifies_created_action(
     listener = MagicMock()
     service.add_observer(listener)
     params = CommentCreateParams(
-        rating=uuid.uuid4(),
-        user=1,
+        rating_id=uuid.uuid4(),
+        user_id=1,
         parent_comment=None,
         content=" Helpful comment ",
         is_anonymous=False,
@@ -71,6 +76,31 @@ def test_create_comment_notifies_created_action(
     listener.on_event.assert_called_once_with(
         CommentEvent(comment=comment, action=CommentAction.CREATED)
     )
+
+
+def test_create_comment_rejects_parent_from_another_rating(
+    service,
+    comment_repository,
+    comment_normalizer,
+):
+    rating_id = uuid.uuid4()
+    parent_id = uuid.uuid4()
+    parent = _make_comment_dto(rating_id=uuid.uuid4())
+    params = CommentCreateParams(
+        rating_id=rating_id,
+        user_id=1,
+        parent_comment=parent_id,
+        content="Cross-rating reply",
+        is_anonymous=False,
+    )
+    comment_repository.get_by_id.return_value = parent
+
+    with pytest.raises(CommentParentRatingMismatchError):
+        service.create_comment(params)
+
+    comment_repository.get_by_id.assert_called_once_with(str(parent_id))
+    comment_normalizer.normalize_comment.assert_not_called()
+    comment_repository.create.assert_not_called()
 
 
 def test_delete_comment_notifies_deleted_action(service, comment_repository):

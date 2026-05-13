@@ -124,8 +124,8 @@ class CommentViewset(viewsets.ViewSet):
             comment_params = CommentCreateParams.model_validate(
                 {
                     **request_params.model_dump(),
-                    "rating": rating_id,
-                    "user": request.user.id,
+                    "rating_id": rating_id,
+                    "user_id": request.user.id,
                 }
             )
         except ModelValidationError as e:

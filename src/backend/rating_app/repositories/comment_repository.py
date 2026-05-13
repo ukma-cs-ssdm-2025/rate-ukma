@@ -110,9 +110,9 @@ class CommentRepository(
 
     def _build_comment_values(self, data: CommentCreateParams) -> dict[str, Any]:
         return {
-            "user_id": data.user,
+            "user_id": data.user_id,
             "content": data.content,
-            "rating_id": data.rating,
+            "rating_id": data.rating_id,
             "parent_comment_id": data.parent_comment,
             "is_anonymous": data.is_anonymous,
         }
@@ -146,9 +146,9 @@ class CommentRepository(
         create_params: CommentCreateParams,
     ) -> CommentDTO:
         comment = Comment.objects.create(
-            user_id=create_params.user,
+            user_id=create_params.user_id,
             content=create_params.content,
-            rating_id=create_params.rating,
+            rating_id=create_params.rating_id,
             parent_comment_id=create_params.parent_comment,
             is_anonymous=create_params.is_anonymous,
         )
