@@ -207,6 +207,7 @@ def test_multiple_votes_on_same_rating_group_together(
     author_client = _make_author_client(rating.student)
 
     response = author_client.get(NOTIFICATIONS_URL)
+    assert response.status_code == 200
     notifications = response.json()
 
     assert len(notifications) == 1
@@ -227,6 +228,7 @@ def test_notification_has_message_field(
     author_client = _make_author_client(rating.student)
 
     response = author_client.get(NOTIFICATIONS_URL)
+    assert response.status_code == 200
     notification = response.json()[0]
 
     assert "message" in notification
@@ -251,9 +253,9 @@ def test_comment_creates_named_notification_for_rating_author(
 
     author_client = _make_author_client(author_student)
     response = author_client.get(NOTIFICATIONS_URL)
-    notification = response.json()[0]
-
     assert response.status_code == 200
+
+    notification = response.json()[0]
     assert notification["event_type"] == "RATING_COMMENT_CREATED"
     assert notification["count"] == 1
     assert notification["is_unread"] is True
@@ -280,6 +282,8 @@ def test_anonymous_comment_notification_hides_commenter_name(
 
     author_client = _make_author_client(author_student)
     response = author_client.get(NOTIFICATIONS_URL)
+    assert response.status_code == 200
+
     notification = response.json()[0]
 
     stored_notification = Notification.objects.get()
@@ -305,6 +309,7 @@ def test_rating_author_does_not_receive_notification_for_own_comment(
     assert response.status_code == 201
 
     response = author_client.get(NOTIFICATIONS_URL)
+    assert response.status_code == 200
     assert response.json() == []
 
 
@@ -319,6 +324,8 @@ def test_comment_update_does_not_create_another_notification(
     rating = rating_factory(student=author_student)
     commenter_client = _make_client(user_factory(first_name="Commenter", last_name="Person"))
     create_response = _create_comment(commenter_client, rating.id)
+    assert create_response.status_code == 201
+
     comment_id = create_response.json()["id"]
 
     update_response = _update_comment(commenter_client, comment_id)
@@ -326,6 +333,8 @@ def test_comment_update_does_not_create_another_notification(
 
     author_client = _make_author_client(author_student)
     response = author_client.get(NOTIFICATIONS_URL)
+    assert response.status_code == 200
+
     notifications = response.json()
 
     assert len(notifications) == 1
@@ -343,16 +352,20 @@ def test_comment_delete_removes_comment_notification(
     rating = rating_factory(student=author_student)
     commenter_client = _make_client(user_factory(first_name="Commenter", last_name="Person"))
     create_response = _create_comment(commenter_client, rating.id, is_anonymous=True)
+    assert create_response.status_code == 201
+
     comment_id = create_response.json()["id"]
 
     author_client = _make_author_client(author_student)
     response = author_client.get(NOTIFICATIONS_URL)
+    assert response.status_code == 200
     assert len(response.json()) == 1
 
     delete_response = commenter_client.delete(f"/api/v1/comments/{comment_id}/")
     assert delete_response.status_code == 204
 
     response = author_client.get(NOTIFICATIONS_URL)
+    assert response.status_code == 200
     assert response.json() == []
 
 
@@ -386,6 +399,8 @@ def test_toggling_vote_does_not_increment_count(
 
     author_client = _make_author_client(rating.student)
     response = author_client.get(NOTIFICATIONS_URL)
+    assert response.status_code == 200
+
     notifications = response.json()
 
     assert len(notifications) == 1
