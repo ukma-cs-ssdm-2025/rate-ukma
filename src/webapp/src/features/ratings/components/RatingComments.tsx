@@ -15,11 +15,7 @@ import {
 	ANONYMOUS_REVIEW_NAME,
 	DEFAULT_STUDENT_NAME,
 } from "@/features/ratings/definitions/ratingDefinitions";
-import type {
-	CommentAuthor,
-	CommentRead,
-	CommentReplyAuthor,
-} from "@/lib/api/generated";
+import type { CommentAuthor, CommentRead } from "@/lib/api/generated";
 import {
 	commentsRepliesRetrieve,
 	getCommentsRepliesRetrieveQueryKey,
@@ -75,7 +71,7 @@ interface CommentActionsProps {
 	readonly onDelete: () => void;
 }
 
-type CommentPreviewAuthor = CommentReplyAuthor | CommentAuthor;
+type CommentPreviewAuthor = CommentAuthor;
 
 function invalidateRatingCommentQueries(
 	queryClient: ReturnType<typeof useQueryClient>,
