@@ -10,6 +10,7 @@ logger = structlog.get_logger(__name__)
 NOTIFICATION_MESSAGE_TEMPLATES = {
     NotificationEventType.RATING_UPVOTED: {
         "singular": "Хтось вподобав ваш відгук",
+        "plural_one_other": "{actor_name} та ще 1 людина прокоментувала ваш відгук",
         "plural": "{count} людей вподобали ваш відгук",
     },
     NotificationEventType.RATING_DOWNVOTED: {
@@ -56,9 +57,13 @@ class NotificationGroupSerializer(serializers.Serializer):
         if obj.count < PLURAL_THRESHOLD:
             return templates["singular"].format(actor_name=actor_name)
 
+        others_count = obj.count - 1
+        if others_count == 1:
+            return templates["plural_one_other"].format(actor_name=actor_name)
+
         return templates["plural"].format(
             actor_name=actor_name,
-            others_count=obj.count - 1,
+            others_count=others_count,
         )
 
     def get_rating_id(self, obj) -> str | None:
