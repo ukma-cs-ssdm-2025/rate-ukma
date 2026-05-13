@@ -85,18 +85,6 @@ class NotificationService:
             rating_id=rating_id,
         )
 
-    def delete_actor_notifications_for_comment(
-        self,
-        recipient_id: int,
-        actor_id: int,
-        rating_id: str,
-    ) -> None:
-        self.notification_repository.delete_by_actor_and_rating(
-            recipient_id=recipient_id,
-            actor_id=actor_id,
-            rating_id=rating_id,
-        )
-
     def delete_notification_for_event_source(
         self,
         recipient_id: int,
