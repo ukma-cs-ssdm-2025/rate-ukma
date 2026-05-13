@@ -145,7 +145,6 @@ def test_comments_list_cache_invalidated_after_top_level_comment_create(
         "content": "Fresh top-level comment",
         "parent_comment": None,
         "is_anonymous": False,
-        "created_at": timezone.now().isoformat(),
     }
     response = token_client.post(f"/api/v1/ratings/{rating.id}/comments/", payload, format="json")
     assert response.status_code == 201
@@ -174,7 +173,6 @@ def test_comment_create_invalidates_course_ratings_comments_count(
         "content": "Fresh top-level comment",
         "parent_comment": None,
         "is_anonymous": False,
-        "created_at": timezone.now().isoformat(),
     }
     response = token_client.post(f"/api/v1/ratings/{rating.id}/comments/", payload, format="json")
     assert response.status_code == 201
@@ -206,7 +204,6 @@ def test_comment_reply_caches_invalidated_after_reply_create(
         "content": "Fresh reply",
         "parent_comment": str(parent.id),
         "is_anonymous": False,
-        "created_at": timezone.now().isoformat(),
     }
     response = token_client.post(f"/api/v1/ratings/{rating.id}/comments/", payload, format="json")
     assert response.status_code == 201
@@ -287,7 +284,6 @@ def test_comment_create(token_client, rating_factory):
         "content": "This is a useful comment.",
         "parent_comment": None,
         "is_anonymous": False,
-        "created_at": timezone.now().isoformat(),
     }
 
     response = token_client.post(f"/api/v1/ratings/{rating.id}/comments/", payload, format="json")

@@ -2459,14 +2459,9 @@ components:
         is_anonymous:
           title: Is Anonymous
           type: boolean
-        created_at:
-          format: date-time
-          title: Created At
-          type: string
       required:
       - content
       - is_anonymous
-      - created_at
       title: CommentCreateRequest
       type: object
     CommentList:

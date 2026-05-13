@@ -59,7 +59,6 @@ def test_create_comment_notifies_created_action(
         parent_comment=None,
         content=" Helpful comment ",
         is_anonymous=False,
-        created_at=datetime.now(tz=UTC),
     )
     comment = _make_comment_dto()
     comment_normalizer.normalize_comment.return_value = "Helpful comment"

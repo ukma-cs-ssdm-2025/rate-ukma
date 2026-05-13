@@ -114,7 +114,6 @@ class CommentRepository(
             "rating_id": data.rating,
             "parent_comment_id": data.parent_comment,
             "is_anonymous": data.is_anonymous,
-            "created_at": data.created_at,
         }
 
     def _refetch_comment(self, comment_id: str) -> Comment:
@@ -136,8 +135,6 @@ class CommentRepository(
 
         if upsert:
             for field_name, field_value in values.items():
-                if field_name == "created_at":
-                    continue
                 setattr(comment, field_name, field_value)
             comment.save()
 
@@ -153,7 +150,6 @@ class CommentRepository(
             rating_id=create_params.rating,
             parent_comment_id=create_params.parent_comment,
             is_anonymous=create_params.is_anonymous,
-            created_at=create_params.created_at,
         )
 
         # Refetch with related fields for mapper

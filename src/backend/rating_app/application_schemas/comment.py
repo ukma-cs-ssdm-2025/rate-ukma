@@ -89,7 +89,6 @@ class CommentCreateRequest(BaseModel):
     parent_comment: uuid.UUID | SkipJsonSchema[None] = None
     content: str
     is_anonymous: bool
-    created_at: datetime.datetime
 
 
 class CommentCreateParams(CommentCreateRequest):
