@@ -147,7 +147,11 @@ apply_nginx_config() {
 
   if ! sudo nginx -t; then
     echo "Nginx config test failed. Restoring backup..."
-    [ -f "$backup" ] && sudo cp "$backup" "$dest" && sudo nginx -s reload
+    if [ -f "$backup" ]; then
+      sudo cp "$backup" "$dest" && sudo nginx -s reload
+    else
+      sudo rm -f "$dest" "/etc/nginx/sites-enabled/${SERVER_NAME}"
+    fi
     return 1
   fi
 
@@ -158,6 +162,8 @@ apply_nginx_config() {
 
 cleanup_on_success() {
   echo "Services are up and healthy"
+  apply_nginx_config
+
   rm -rf "$BACKUP_DIR"
   rm -f "$TMP_DIR/prev_tags.env"
 
@@ -170,7 +176,6 @@ cleanup_on_success() {
 
   echo "Reclaimed space:"
   sudo docker system df
-  apply_nginx_config
   echo "Deployment successful"
 }
 
