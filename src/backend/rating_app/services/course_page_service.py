@@ -13,16 +13,16 @@ _DEFAULT_DESCRIPTION = (
 
 
 @dataclass(frozen=True)
-class OgCardContext:
+class PageMetaContext:
     title: str
     description: str
     url: str
     image_url: str
 
 
-class OgService:
+class CoursePageService:
     """
-    Generates course pages with OpenGraph metadata injected into the SPA shell.
+    Builds course pages with meta tags injected into the SPA shell.
     Can be extended for other entity types by adding similar build_*_page_html methods.
     """
 
@@ -32,21 +32,18 @@ class OgService:
     def build_course_page_html(self, course_id: str, canonical_url: str, image_url: str) -> str:
         course = self._course_service.get_course(course_id, prefetch_related=False)
 
-        context = OgCardContext(
+        context = PageMetaContext(
             title=f"{course.title} | Rate UKMA",
-            description=self._build_description(course),
+            description=self._build_course_description(course),
             url=canonical_url,
             image_url=image_url,
         )
 
-        template_file = "rating_app/og_tags.html"
-        index_path = Path(settings.STATIC_ROOT) / "index.html"
+        meta_tags = render_to_string("rating_app/page_meta_tags.html", asdict(context))
+        index_html = (Path(settings.STATIC_ROOT) / "index.html").read_text(encoding="utf-8")
+        return index_html.replace("</head>", meta_tags + "</head>", 1)
 
-        og_tags = render_to_string(template_file, asdict(context))
-        index_html = index_path.read_text(encoding="utf-8")
-        return index_html.replace("</head>", og_tags + "</head>", 1)
-
-    def _build_description(self, course: CourseDTO) -> str:
+    def _build_course_description(self, course: CourseDTO) -> str:
         if course.description:
             return course.description
 

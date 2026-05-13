@@ -30,6 +30,7 @@ from rating_app.services import (
     SpecialityService,
     StudentService,
 )
+from rating_app.services.course_page_service import CoursePageService
 from rating_app.services.domain_event_listeners.aggregates_update import (
     CourseModelAggregatesUpdateObserver,
 )
@@ -41,7 +42,6 @@ from rating_app.services.domain_event_listeners.vote_notification import (
     VoteNotificationObserver,
 )
 from rating_app.services.notification_service import NotificationService
-from rating_app.services.og_service import OgService
 
 
 @once
@@ -77,8 +77,8 @@ def course_service() -> CourseService:
 
 
 @once
-def og_service() -> OgService:
-    return OgService(course_service=course_service())
+def course_page_service() -> CoursePageService:
+    return CoursePageService(course_service=course_service())
 
 
 @once

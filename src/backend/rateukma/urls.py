@@ -26,7 +26,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
-from rating_app.ioc_container.web import course_og_view
+from rating_app.ioc_container.web import course_page_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -40,8 +40,8 @@ urlpatterns = [
     path("api/v1/", include("rating_app.urls")),
     # django-allauth URLs
     path("accounts/", include("allauth.urls")),
-    # Open Graph views
-    path("courses/<str:course_id>/", course_og_view(), name="course-og"),
+    # Pages served by Django (with meta tags injected into SPA)
+    path("courses/<str:course_id>/", course_page_view(), name="course-page"),
 ]
 
 if settings.DEBUG:

@@ -4,21 +4,21 @@ from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from rating_app.services.og_service import OgService
+from rating_app.services.course_page_service import CoursePageService
 
 
-class CourseOgView(APIView):
+class CoursePageView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
     renderer_classes = [StaticHTMLRenderer]
 
     # IoC args
-    og_service: OgService | None = None
+    course_page_service: CoursePageService | None = None
 
     def get(self, request: HttpRequest, course_id: str) -> Response:
-        assert self.og_service is not None
+        assert self.course_page_service is not None
 
-        html = self.og_service.build_course_page_html(
+        html = self.course_page_service.build_course_page_html(
             course_id,
             canonical_url=request.build_absolute_uri(),
             image_url=request.build_absolute_uri("/android-chrome-512x512.png"),
