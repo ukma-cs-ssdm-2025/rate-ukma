@@ -457,6 +457,49 @@ function RatingCommentItem({
 		}
 	};
 
+	const repliesContent = (() => {
+		if (repliesQuery.isLoading) {
+			return (
+				<div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+					<Spinner className="size-3.5" />
+					Завантаження відповідей...
+				</div>
+			);
+		}
+
+		if (replies.length > 0) {
+			return (
+				<>
+					{replies.map((reply) => (
+						<RatingCommentItem
+							key={reply.id}
+							comment={reply}
+							ratingId={ratingId}
+							courseId={courseId}
+						/>
+					))}
+					{repliesQuery.hasNextPage && (
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							className="h-7 px-2 text-xs text-muted-foreground"
+							onClick={() => void repliesQuery.fetchNextPage()}
+							disabled={repliesQuery.isFetchingNextPage}
+						>
+							{repliesQuery.isFetchingNextPage && (
+								<Spinner className="size-3.5" />
+							)}
+							Показати ще
+						</Button>
+					)}
+				</>
+			);
+		}
+
+		return null;
+	})();
+
 	return (
 		<div
 			className={cn(
@@ -525,42 +568,7 @@ function RatingCommentItem({
 				</div>
 			)}
 
-			{showReplies && (
-				<div className="ml-9 space-y-3">
-					{repliesQuery.isLoading ? (
-						<div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-							<Spinner className="size-3.5" />
-							Завантаження відповідей...
-						</div>
-					) : replies.length > 0 ? (
-						<>
-							{replies.map((reply) => (
-								<RatingCommentItem
-									key={reply.id}
-									comment={reply}
-									ratingId={ratingId}
-									courseId={courseId}
-								/>
-							))}
-							{repliesQuery.hasNextPage && (
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									className="h-7 px-2 text-xs text-muted-foreground"
-									onClick={() => void repliesQuery.fetchNextPage()}
-									disabled={repliesQuery.isFetchingNextPage}
-								>
-									{repliesQuery.isFetchingNextPage && (
-										<Spinner className="size-3.5" />
-									)}
-									Показати ще
-								</Button>
-							)}
-						</>
-					) : null}
-				</div>
-			)}
+			{showReplies && <div className="ml-9 space-y-3">{repliesContent}</div>}
 		</div>
 	);
 }
