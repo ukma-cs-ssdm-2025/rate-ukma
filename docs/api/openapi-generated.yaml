@@ -2455,10 +2455,12 @@ components:
     CommentCreateRequest:
       properties:
         parent_comment:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
           default: null
-          format: uuid
           title: Parent Comment
-          type: string
         content:
           title: Content
           type: string
