@@ -96,6 +96,10 @@ class CommentCreateParams(CommentCreateRequest):
     user: int = Field(description="ID of the user creating the comment")
 
 
+class CommentUpsertParams(CommentCreateParams):
+    id: uuid.UUID = Field(description="Existing comment ID for idempotent import/upsert flows")
+
+
 class CommentPutParams(BaseModel):
     model_config = {
         "alias_generator": to_snake,

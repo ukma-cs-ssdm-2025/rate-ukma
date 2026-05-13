@@ -13,6 +13,7 @@ from rating_app.application_schemas.comment import (
     CommentFilterCriteria,
     CommentPatchParams,
     CommentPutParams,
+    CommentUpsertParams,
 )
 from rating_app.application_schemas.pagination import PaginationFilters, PaginationResult
 from rating_app.exception.comment_exception import (
@@ -27,7 +28,7 @@ logger = structlog.get_logger(__name__)
 
 
 class CommentRepository(
-    IPaginatedRepository[CommentDTO, Comment, CommentFilterCriteria, CommentCreateParams]
+    IPaginatedRepository[CommentDTO, Comment, CommentFilterCriteria, CommentUpsertParams]
 ):
     def __init__(
         self,
@@ -54,7 +55,7 @@ class CommentRepository(
     @overload
     def get_or_create(
         self,
-        data: CommentCreateParams,
+        data: CommentUpsertParams,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[CommentDTO, bool]: ...
@@ -62,14 +63,14 @@ class CommentRepository(
     @overload
     def get_or_create(
         self,
-        data: CommentCreateParams,
+        data: CommentUpsertParams,
         *,
         return_model: Literal[True],
     ) -> tuple[Comment, bool]: ...
 
     def get_or_create(
         self,
-        data: CommentCreateParams,
+        data: CommentUpsertParams,
         *,
         return_model: bool = False,
     ) -> tuple[CommentDTO, bool] | tuple[Comment, bool]:
@@ -82,7 +83,7 @@ class CommentRepository(
     @overload
     def get_or_upsert(
         self,
-        data: CommentCreateParams,
+        data: CommentUpsertParams,
         *,
         return_model: Literal[False] = ...,
     ) -> tuple[CommentDTO, bool]: ...
@@ -90,14 +91,14 @@ class CommentRepository(
     @overload
     def get_or_upsert(
         self,
-        data: CommentCreateParams,
+        data: CommentUpsertParams,
         *,
         return_model: Literal[True],
     ) -> tuple[Comment, bool]: ...
 
     def get_or_upsert(
         self,
-        data: CommentCreateParams,
+        data: CommentUpsertParams,
         *,
         return_model: bool = False,
     ) -> tuple[CommentDTO, bool] | tuple[Comment, bool]:
@@ -121,7 +122,7 @@ class CommentRepository(
 
     def _save_or_create_comment(
         self,
-        data: CommentCreateParams,
+        data: CommentUpsertParams,
         *,
         upsert: bool,
     ) -> tuple[Comment, bool]:
