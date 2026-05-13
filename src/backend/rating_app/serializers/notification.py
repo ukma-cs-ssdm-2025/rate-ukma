@@ -10,7 +10,6 @@ logger = structlog.get_logger(__name__)
 NOTIFICATION_MESSAGE_TEMPLATES = {
     NotificationEventType.RATING_UPVOTED: {
         "singular": "Хтось вподобав ваш відгук",
-        "plural_one_other": "{actor_name} та ще 1 людина прокоментувала ваш відгук",
         "plural": "{count} людей вподобали ваш відгук",
     },
     NotificationEventType.RATING_DOWNVOTED: {
@@ -19,6 +18,7 @@ NOTIFICATION_MESSAGE_TEMPLATES = {
     },
     NotificationEventType.RATING_COMMENT_CREATED: {
         "singular": "{actor_name} прокоментував(-ла) ваш відгук",
+        "plural_one_other": "{actor_name} та ще 1 людина прокоментувала ваш відгук",
         "plural": "{actor_name} та ще {others_count} людей прокоментували ваш відгук",
     },
 }

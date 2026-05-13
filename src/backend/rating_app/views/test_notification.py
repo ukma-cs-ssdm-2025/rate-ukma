@@ -266,6 +266,35 @@ def test_comment_creates_named_notification_for_rating_author(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_two_comments_use_plural_one_other_message_without_error(
+    user_factory,
+    student_factory,
+    rating_factory,
+):
+    author_user = user_factory()
+    author_student = student_factory(user=author_user)
+    rating = rating_factory(student=author_student)
+
+    first_commenter_client = _make_client(user_factory(first_name="First", last_name="Commenter"))
+    second_commenter_client = _make_client(user_factory(first_name="Second", last_name="Commenter"))
+
+    first_response = _create_comment(first_commenter_client, rating.id)
+    assert first_response.status_code == 201
+
+    second_response = _create_comment(second_commenter_client, rating.id)
+    assert second_response.status_code == 201
+
+    author_client = _make_author_client(author_student)
+    response = author_client.get(NOTIFICATIONS_URL)
+    assert response.status_code == 200
+
+    notification = response.json()[0]
+    assert notification["count"] == 2
+    assert notification["message"] == ("Commenter Second та ще 1 людина прокоментувала ваш відгук")
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_anonymous_comment_notification_hides_commenter_name(
     user_factory,
     student_factory,
