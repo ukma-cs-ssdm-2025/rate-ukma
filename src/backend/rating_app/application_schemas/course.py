@@ -205,10 +205,10 @@ class Course:
         parts = [
             self.department_name,
             f"{self.ratings_count} відгуків" if self.ratings_count is not None else None,
-            f"складність {float(self.avg_difficulty):.1f}/10"
+            f"складність {float(self.avg_difficulty):.1f}/5"
             if self.avg_difficulty is not None
             else None,
-            f"корисність {float(self.avg_usefulness):.1f}/10"
+            f"корисність {float(self.avg_usefulness):.1f}/5"
             if self.avg_usefulness is not None
             else None,
         ]
