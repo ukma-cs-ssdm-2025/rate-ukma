@@ -18,6 +18,7 @@ set -euo pipefail
 : "${GITHUB_ACTOR:?GITHUB_ACTOR is required}"
 : "${WEBAPP_IMAGE_TAG:?WEBAPP_IMAGE_TAG is required}"
 : "${BACKEND_IMAGE_TAG:?BACKEND_IMAGE_TAG is required}"
+: "${SERVER_NAME:?SERVER_NAME is required}"
 
 PREV_WEBAPP_TAG=""
 PREV_BACKEND_TAG=""
@@ -129,8 +130,40 @@ health_check() {
   return 1
 }
 
+apply_nginx_config() {
+  local template="$PROJECT_DIR/infra/nginx/rateukma.conf.template"
+  local dest="/etc/nginx/sites-available/${SERVER_NAME}"
+  local backup="/tmp/nginx-backup-${SERVER_NAME}.conf"
+
+  if [[ ! -f "$template" ]]; then
+    echo "Nginx template missing at $template" >&2
+    return 1
+  fi
+
+  [[ -f "$dest" ]] && sudo cp "$dest" "$backup"
+
+  envsubst '${SERVER_NAME}' < "$template" | sudo tee "$dest" > /dev/null
+  sudo ln -sf "$dest" "/etc/nginx/sites-enabled/${SERVER_NAME}"
+
+  if ! sudo nginx -t; then
+    echo "Nginx config test failed. Restoring backup..."
+    if [[ -f "$backup" ]]; then
+      sudo cp "$backup" "$dest" && sudo nginx -s reload
+    else
+      sudo rm -f "$dest" "/etc/nginx/sites-enabled/${SERVER_NAME}"
+    fi
+    return 1
+  fi
+
+  sudo nginx -s reload
+  sudo rm -f "$backup"
+  echo "Nginx config applied and reloaded"
+}
+
 cleanup_on_success() {
   echo "Services are up and healthy"
+  apply_nginx_config
+
   rm -rf "$BACKUP_DIR"
   rm -f "$TMP_DIR/prev_tags.env"
 
