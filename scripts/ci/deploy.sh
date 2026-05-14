@@ -24,7 +24,7 @@ PREV_WEBAPP_TAG=""
 PREV_BACKEND_TAG=""
 
 compose_cmd() {
-  sudo WEBAPP_IMAGE_TAG="$1" BACKEND_IMAGE_TAG="$2" docker compose --profile prod $3
+  sudo WEBAPP_IMAGE_TAG="$1" BACKEND_IMAGE_TAG="$2" docker compose --profile prod "${@:3}"
 }
 
 setup_permissions() {
@@ -39,7 +39,7 @@ backup_current_version() {
   echo "Creating backup of current version..."
   mkdir -p "$TMP_DIR" "$BACKUP_DIR"
 
-  if [ ! -d "$SOURCE_CODE" ]; then
+  if [[ ! -d "$SOURCE_CODE" ]]; then
     return
   fi
 
@@ -54,7 +54,7 @@ backup_current_version() {
   echo "Previous WEBAPP_IMAGE_TAG: $PREV_WEBAPP_TAG"
   echo "Previous BACKEND_IMAGE_TAG: $PREV_BACKEND_TAG"
 
-  if [ -n "$PREV_WEBAPP_TAG" ] && [ -n "$PREV_BACKEND_TAG" ]; then
+  if [[ -n "$PREV_WEBAPP_TAG" && -n "$PREV_BACKEND_TAG" ]]; then
     echo "PREV_WEBAPP_TAG=$PREV_WEBAPP_TAG" > "$TMP_DIR/prev_tags.env"
     echo "PREV_BACKEND_TAG=$PREV_BACKEND_TAG" >> "$TMP_DIR/prev_tags.env"
   else
@@ -65,8 +65,8 @@ backup_current_version() {
 stop_services() {
   echo "Stopping existing services..."
   cd "$SOURCE_CODE"
-  if [ -n "$PREV_WEBAPP_TAG" ] && [ -n "$PREV_BACKEND_TAG" ]; then
-    compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" "down" || true
+  if [[ -n "$PREV_WEBAPP_TAG" && -n "$PREV_BACKEND_TAG" ]]; then
+    compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" down || true
   else
     sudo docker compose --profile prod down || true
   fi
@@ -97,10 +97,10 @@ deploy_new_version() {
   echo "Using WEBAPP_IMAGE_TAG: $WEBAPP_IMAGE_TAG"
   echo "Using BACKEND_IMAGE_TAG: $BACKEND_IMAGE_TAG"
   cd "$SOURCE_CODE"
-  compose_cmd "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG" "pull"
+  compose_cmd "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG" pull
 
   echo "Starting services..."
-  compose_cmd "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG" "up -d"
+  compose_cmd "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG" up -d
 }
 
 health_check() {
@@ -110,14 +110,14 @@ health_check() {
   EXPECTED_SERVICES=$(sudo docker compose --profile prod config --services | wc -l)
   echo "Expecting $EXPECTED_SERVICES services"
 
-  while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
+  while [[ "$attempt" -le "$MAX_ATTEMPTS" ]]; do
     echo "Health check attempt $attempt/$MAX_ATTEMPTS..."
 
     # services that are running or exited successfully (e.g. one-shot build containers)
     ALL_SERVICES_JSON=$(sudo docker compose ps -a --format json | jq -s '.')
     HEALTHY_SERVICES=$(echo "$ALL_SERVICES_JSON" | jq '[.[] | select(.State == "running" or (.State == "exited" and .ExitCode == 0))] | length')
 
-    if [ "$HEALTHY_SERVICES" -eq "$EXPECTED_SERVICES" ] && [ -f "$STATIC_ROOT/index.html" ]; then
+    if [[ "$HEALTHY_SERVICES" -eq "$EXPECTED_SERVICES" && -f "$STATIC_ROOT/index.html" ]]; then
       return 0
     fi
 
@@ -130,6 +130,11 @@ health_check() {
   return 1
 }
 
+nginx_config_unchanged() {
+  local new_config="$1" dest="$2"
+  [[ -f "$dest" ]] && diff -q <(echo "$new_config") "$dest" > /dev/null 2>&1
+}
+
 apply_nginx_config() {
   local template="$PROJECT_DIR/infra/nginx/rateukma.conf.template"
   local dest="/etc/nginx/sites-available/${SERVER_NAME}"
@@ -140,9 +145,17 @@ apply_nginx_config() {
     return 1
   fi
 
+  local new_config
+  new_config=$(envsubst '${SERVER_NAME}' < "$template")
+
+  if nginx_config_unchanged "$new_config" "$dest"; then
+    echo "Nginx config unchanged, skipping reload"
+    return 0
+  fi
+
   [[ -f "$dest" ]] && sudo cp "$dest" "$backup"
 
-  envsubst '${SERVER_NAME}' < "$template" | sudo tee "$dest" > /dev/null
+  echo "$new_config" | sudo tee "$dest" > /dev/null
   sudo ln -sf "$dest" "/etc/nginx/sites-enabled/${SERVER_NAME}"
 
   if ! sudo nginx -t; then
@@ -189,15 +202,15 @@ rollback() {
 
   cd "$SOURCE_CODE"
 
-  if [ -f "$TMP_DIR/prev_tags.env" ]; then
+  if [[ -f "$TMP_DIR/prev_tags.env" ]]; then
     echo "Loading previous image tags..."
     source "$TMP_DIR/prev_tags.env"
   fi
 
-  if [ -n "$PREV_WEBAPP_TAG" ] && [ -n "$PREV_BACKEND_TAG" ]; then
+  if [[ -n "$PREV_WEBAPP_TAG" && -n "$PREV_BACKEND_TAG" ]]; then
     echo "Rolling back to WEBAPP: $PREV_WEBAPP_TAG, BACKEND: $PREV_BACKEND_TAG"
-    compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" "pull"
-    compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" "up -d"
+    compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" pull
+    compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" up -d
   else
     echo "Warning: Previous image tags not available. Cannot rollback to a previous version."
   fi
