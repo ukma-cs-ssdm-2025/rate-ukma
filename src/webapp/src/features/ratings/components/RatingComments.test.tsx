@@ -230,6 +230,45 @@ describe("RatingComments", () => {
 		expect(screen.getByText("RA")).toBeInTheDocument();
 	});
 
+	it.each([
+		[1, "1 відповідь"],
+		[2, "2 відповіді"],
+		[4, "4 відповіді"],
+		[5, "5 відповідей"],
+		[11, "11 відповідей"],
+		[14, "14 відповідей"],
+		[21, "21 відповідь"],
+		[22, "22 відповіді"],
+		[25, "25 відповідей"],
+	])("formats %i replies as %s", async (repliesCount, expectedText) => {
+		const user = userEvent.setup();
+		apiMocks.ratingsCommentsList.mockResolvedValue(
+			mockCommentList([
+				{
+					id: "comment-1",
+					rating_id: "rating-1",
+					parent_id: null,
+					content: "Useful clarification",
+					user_id: 8,
+					user_name: "Test User",
+					user_avatar_url: null,
+					is_anonymous: false,
+					created_at: "2026-05-11T12:00:00Z",
+					replies_count: repliesCount,
+				},
+			]),
+		);
+
+		renderWithQuery(
+			<RatingComments ratingId="rating-1" commentsCount={repliesCount + 1} />,
+		);
+
+		await user.click(screen.getByTestId(testIds.comments.toggleButton));
+		await screen.findByText("Useful clarification");
+
+		expect(screen.getByText(expectedText)).toBeInTheDocument();
+	});
+
 	it("invalidates top-level comments when a reply is updated", async () => {
 		const user = userEvent.setup();
 		apiMocks.ratingsCommentsList.mockResolvedValue(

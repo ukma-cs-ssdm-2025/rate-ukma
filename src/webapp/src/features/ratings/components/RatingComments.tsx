@@ -106,6 +106,25 @@ function formatCount(value: number | undefined): string {
 	return new Intl.NumberFormat("uk-UA").format(value ?? 0);
 }
 
+function formatReply(value: number): string {
+	const lastDigit = value % 10;
+	const lastTwoDigits = value % 100;
+
+	if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+		return "відповідей";
+	}
+
+	if (lastDigit === 1) {
+		return "відповідь";
+	}
+
+	if (lastDigit >= 2 && lastDigit <= 4) {
+		return "відповіді";
+	}
+
+	return "відповідей";
+}
+
 function CommentForm({
 	placeholder,
 	submitLabel,
@@ -355,7 +374,7 @@ function RepliesPreview({
 				</span>
 			)}
 			<span className="font-semibold text-primary">
-				{formatCount(replyCount)} відповідей
+				{formatCount(replyCount)} {formatReply(replyCount)}
 			</span>
 			{showReplies ? (
 				<ChevronUp className="size-3.5" />
