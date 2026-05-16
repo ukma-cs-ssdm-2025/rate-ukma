@@ -33,6 +33,7 @@ from rating_app.services import (
     SpecialityService,
     StudentService,
 )
+from rating_app.services.course_page_service import CoursePageService
 from rating_app.services.domain_event_listeners.aggregates_update import (
     CourseModelAggregatesUpdateObserver,
 )
@@ -85,6 +86,11 @@ def course_service() -> CourseService:
 @once
 def comment_normalizer() -> CommentNormalizer:
     return CommentNormalizer()
+
+
+@once
+def course_page_service() -> CoursePageService:
+    return CoursePageService(course_service=course_service())
 
 
 @once

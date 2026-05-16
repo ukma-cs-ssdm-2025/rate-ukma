@@ -2402,6 +2402,22 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /courses/{course_id}/:
+    get:
+      operationId: courses_retrieve_2
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - courses
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
 components:
   schemas:
     AcademicDegreeEnum:

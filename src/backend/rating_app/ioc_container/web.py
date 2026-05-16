@@ -17,9 +17,11 @@ from ..views import (
     StudentStatisticsViewSet,
 )
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
+from ..views.course_page_view import CoursePageView
 from .services import (
     comment_service,
     course_offering_service,
+    course_page_service,
     course_service,
     instructor_service,
     notification_service,
@@ -212,6 +214,11 @@ def notification_mark_group_read_view():
         {"post": "mark_group_read"},
         notification_service=notification_service(),
     )
+
+
+@once
+def course_page_view():
+    return CoursePageView.as_view(course_page_service=course_page_service())
 
 
 @once
