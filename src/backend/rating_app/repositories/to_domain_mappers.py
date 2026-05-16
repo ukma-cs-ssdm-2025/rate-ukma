@@ -24,6 +24,7 @@ from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteD
 from rating_app.application_schemas.semester import Semester as SemesterDTO
 from rating_app.application_schemas.speciality import Speciality as SpecialityDTO
 from rating_app.application_schemas.student import Student as StudentDTO
+from rating_app.constants import COMMENT_AUTHOR_PREVIEW_LIMIT
 from rating_app.exception.course_exceptions import CourseMissingDepartmentOrFacultyError
 from rating_app.models import Course
 from rating_app.models.choices import (
@@ -186,7 +187,7 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
 
 
 class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
-    _MAX_COMMENT_AUTHORS = 5
+    _MAX_COMMENT_AUTHORS = COMMENT_AUTHOR_PREVIEW_LIMIT
 
     @implements
     def process(self, model: RatingModel) -> RatingDTO:

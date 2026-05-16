@@ -67,7 +67,7 @@ def test_ratings_list_counts_comments_and_votes_without_join_multiplication(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_ratings_list_includes_first_five_comment_author_avatars(
+def test_ratings_list_includes_last_three_comment_author_avatars(
     token_client,
     course_factory,
     course_offering_factory,
@@ -100,11 +100,11 @@ def test_ratings_list_includes_first_five_comment_author_avatars(
     comment_authors = rating_data["comment_authors"]
 
     assert response.status_code == 200
-    assert len(comment_authors) == 5
-    assert [author["user_id"] for author in comment_authors] == [user.id for user in users[:5]]
+    assert len(comment_authors) == 3
+    assert [author["user_id"] for author in comment_authors] == [user.id for user in users[5:2:-1]]
     assert comment_authors[0] == {
-        "user_id": users[0].id,
-        "user_name": "Commenter User0",
+        "user_id": users[5].id,
+        "user_name": "Commenter User5",
         "user_avatar_url": None,
         "is_anonymous": False,
     }

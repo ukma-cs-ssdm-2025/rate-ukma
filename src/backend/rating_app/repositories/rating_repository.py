@@ -3,7 +3,19 @@ from typing import Any, Literal, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError, IntegrityError
-from django.db.models import Avg, Count, Prefetch, Q, QuerySet
+from django.db.models import (
+    Avg,
+    Case,
+    CharField,
+    Count,
+    Exists,
+    OuterRef,
+    Prefetch,
+    Q,
+    QuerySet,
+    When,
+)
+from django.db.models.functions import Cast
 
 import structlog
 
@@ -20,6 +32,7 @@ from rating_app.application_schemas.rating import (
 from rating_app.application_schemas.rating import (
     Rating as RatingDTO,
 )
+from rating_app.constants import COMMENT_AUTHOR_PREVIEW_LIMIT
 from rating_app.exception.rating_exceptions import (
     DuplicateRatingException,
     InvalidRatingIdentifierError,
@@ -322,12 +335,39 @@ class RatingRepository(
         ).prefetch_related(
             Prefetch(
                 "comments",
-                queryset=Comment.objects.select_related(
-                    "user",
-                    "user__student_profile",
-                ).order_by("created_at", "id"),
+                queryset=self._build_latest_unique_comment_authors_queryset(),
                 to_attr="comment_preview_comments",
             )
+        )
+
+    def _build_latest_unique_comment_authors_queryset(self) -> QuerySet[Comment]:
+        # TODO: Consider moving logic to a higher level
+        # This query mixes persistence details with preview/business rules
+        author_key = self._comment_author_key()
+        newer_same_author_comment = (
+            Comment.objects.annotate(author_key=author_key)
+            .filter(rating_id=OuterRef("rating_id"), author_key=OuterRef("author_key"))
+            .filter(
+                Q(created_at__gt=OuterRef("created_at"))
+                | Q(created_at=OuterRef("created_at"), id__gt=OuterRef("id"))
+            )
+        )
+
+        return (
+            Comment.objects.select_related(
+                "user",
+                "user__student_profile",
+            )
+            .annotate(author_key=author_key)
+            .filter(~Exists(newer_same_author_comment))
+            .order_by("-created_at", "-id")[:COMMENT_AUTHOR_PREVIEW_LIMIT]
+        )
+
+    def _comment_author_key(self):
+        return Case(
+            When(is_anonymous=True, then=Cast("id", CharField())),
+            default=Cast("user_id", CharField()),
+            output_field=CharField(),
         )
 
     def _apply_filters(
