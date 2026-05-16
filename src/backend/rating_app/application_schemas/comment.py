@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic.alias_generators import to_snake
@@ -119,7 +119,7 @@ class CommentPutParams(BaseModel):
         "populate_by_name": True,
     }
 
-    content: str
+    content: str = Field(min_length=1)
     is_anonymous: bool
 
 
@@ -129,7 +129,7 @@ class CommentPatchParams(BaseModel):
         "populate_by_name": True,
     }
 
-    content: str | SkipJsonSchema[None] = None
+    content: Annotated[str, Field(min_length=1)] | SkipJsonSchema[None] = None
     is_anonymous: bool | SkipJsonSchema[None] = None
 
 

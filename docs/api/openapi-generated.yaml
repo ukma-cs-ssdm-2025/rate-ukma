@@ -2510,6 +2510,7 @@ components:
     CommentPutParams:
       properties:
         content:
+          minLength: 1
           title: Content
           type: string
         is_anonymous:
@@ -3317,6 +3318,7 @@ components:
       properties:
         content:
           default: null
+          minLength: 1
           title: Content
           type: string
         is_anonymous:
