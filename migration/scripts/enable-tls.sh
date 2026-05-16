@@ -18,7 +18,6 @@ log "tls" "Obtaining TLS certificate for $SERVER_NAME"
 
 sudo certbot --nginx \
     --non-interactive --agree-tos \
-    --keep-until-expiring \
     -m "$CERTBOT_EMAIL" \
     -d "$SERVER_NAME"
 
