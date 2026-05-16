@@ -27,6 +27,12 @@ on:
         type: boolean
         default: false
     secrets:
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_KEY:
+        required: true
       CORPORATE_EMAIL:
         required: true
       CORPORATE_PASSWORD:
@@ -69,7 +75,6 @@ jobs:
   deploy:
     needs: create-sentry-releases
     runs-on: ubuntu-24.04
-    environment: ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
     permissions:
       contents: read
       packages: read
@@ -173,7 +178,6 @@ jobs:
   warmup:
     needs: deploy
     runs-on: ubuntu-24.04
-    environment: ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
     steps:
       - name: Run warmup backend command
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
