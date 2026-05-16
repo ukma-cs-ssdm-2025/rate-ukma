@@ -160,13 +160,13 @@ describe("RatingComments", () => {
 	});
 
 	it("renders comment preview avatar images for non-anonymous authors", async () => {
-		const originalImage = window.Image;
+		const originalImage = globalThis.Image;
 		class LoadedImage extends EventTarget {
 			complete = true;
 			naturalWidth = 1;
 			src = "";
 		}
-		Object.defineProperty(window, "Image", {
+		Object.defineProperty(globalThis, "Image", {
 			configurable: true,
 			writable: true,
 			value: LoadedImage,
@@ -195,7 +195,7 @@ describe("RatingComments", () => {
 				);
 			});
 		} finally {
-			Object.defineProperty(window, "Image", {
+			Object.defineProperty(globalThis, "Image", {
 				configurable: true,
 				writable: true,
 				value: originalImage,
