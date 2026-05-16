@@ -113,9 +113,13 @@ class NotificationRepository(
             .values("latest_id")
         )
 
-        return Notification.objects.filter(
-            id__in=Subquery(latest_ids),
-        ).select_related("actor")
+        return (
+            Notification.objects.filter(
+                id__in=Subquery(latest_ids),
+            )
+            .select_related("actor")
+            .prefetch_related("source")
+        )
 
     def _build_notification_groups(
         self,
