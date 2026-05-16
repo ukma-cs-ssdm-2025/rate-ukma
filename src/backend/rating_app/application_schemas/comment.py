@@ -165,7 +165,6 @@ class CommentDTO(BaseModel):
     created_at: datetime.datetime
 
     replies_count: int
-    reply_authors: list[CommentAuthor] = Field(default_factory=list)
 
 
 @dataclass(frozen=True)

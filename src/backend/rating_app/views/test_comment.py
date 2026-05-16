@@ -1,7 +1,3 @@
-from datetime import timedelta
-
-from django.utils import timezone
-
 import pytest
 
 from rating_app.models import Comment
@@ -41,54 +37,6 @@ def test_comments_list_includes_replies_count(token_client, rating_factory, comm
     assert response.status_code == 200
     assert data["items"][0]["id"] == str(parent.id)
     assert data["items"][0]["replies_count"] == 2
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_comments_list_includes_reply_author_avatars(
-    token_client,
-    rating_factory,
-    comment_factory,
-    user_factory,
-):
-    rating = rating_factory()
-    parent = comment_factory(rating=rating)
-    first_reply_user = user_factory(first_name="Reply", last_name="Author")
-    second_reply_user = user_factory(first_name="Second", last_name="Author")
-
-    created_at = timezone.now()
-    first_reply = comment_factory(
-        rating=rating,
-        parent_comment=parent,
-        user=first_reply_user,
-    )
-    second_reply = comment_factory(
-        rating=rating,
-        parent_comment=parent,
-        user=second_reply_user,
-    )
-    Comment.objects.filter(pk=first_reply.pk).update(created_at=created_at)
-    Comment.objects.filter(pk=second_reply.pk).update(created_at=created_at + timedelta(seconds=1))
-
-    response = token_client.get(f"/api/v1/ratings/{rating.id}/comments/")
-    data = response.json()
-
-    assert response.status_code == 200
-    reply_authors = data["items"][0]["reply_authors"]
-    assert reply_authors == [
-        {
-            "user_id": first_reply_user.id,
-            "user_name": "Author Reply",
-            "user_avatar_url": None,
-            "is_anonymous": False,
-        },
-        {
-            "user_id": second_reply_user.id,
-            "user_name": "Author Second",
-            "user_avatar_url": None,
-            "is_anonymous": False,
-        },
-    ]
 
 
 @pytest.mark.django_db

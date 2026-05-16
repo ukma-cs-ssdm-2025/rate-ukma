@@ -2583,11 +2583,6 @@ components:
         replies_count:
           type: integer
           readOnly: true
-        reply_authors:
-          type: array
-          items:
-            $ref: '#/components/schemas/CommentAuthor'
-          readOnly: true
     CourseAnalytics:
       type: object
       description: Serializer for course analytics

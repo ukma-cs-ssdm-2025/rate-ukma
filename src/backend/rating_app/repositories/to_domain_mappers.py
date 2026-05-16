@@ -264,8 +264,6 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
 
 
 class CommentMapper(IProcessor[[CommentModel], CommentDTO]):
-    _MAX_REPLY_AUTHORS = 2
-
     @implements
     def process(self, model: CommentModel) -> CommentDTO:
         user_name = f"{model.user.last_name} {model.user.first_name}"
@@ -288,46 +286,6 @@ class CommentMapper(IProcessor[[CommentModel], CommentDTO]):
             is_anonymous=model.is_anonymous,
             created_at=model.created_at,
             replies_count=replies_count,
-            reply_authors=self._map_reply_authors(model),
-        )
-
-    def _map_reply_authors(self, model: CommentModel) -> list[CommentAuthor]:
-        replies = getattr(model, "reply_preview_comments", [])
-        reply_authors: list[CommentAuthor] = []
-        seen_users: set[int | str] = set()
-
-        for reply in replies:
-            seen_key = reply.user_id if not reply.is_anonymous else str(reply.id)
-            if seen_key in seen_users:
-                continue
-            seen_users.add(seen_key)
-
-            reply_authors.append(self._map_reply_author(reply))
-            if len(reply_authors) >= self._MAX_REPLY_AUTHORS:
-                break
-
-        return reply_authors
-
-    def _map_reply_author(self, reply: CommentModel) -> CommentAuthor:
-        if reply.is_anonymous:
-            return CommentAuthor(
-                user_id=None,
-                user_name=None,
-                user_avatar_url=None,
-                is_anonymous=True,
-            )
-
-        student_profile = getattr(reply.user, "student_profile", None)
-        user_avatar_url = (
-            student_profile.avatar.url
-            if student_profile is not None and student_profile.avatar
-            else None
-        )
-        return CommentAuthor(
-            user_id=reply.user.id,
-            user_name=f"{reply.user.last_name} {reply.user.first_name}",
-            user_avatar_url=user_avatar_url,
-            is_anonymous=False,
         )
 
 

@@ -1,13 +1,6 @@
 from rest_framework import serializers
 
 
-class CommentAuthorSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField(read_only=True, allow_null=True)
-    user_name = serializers.CharField(read_only=True, allow_null=True)
-    user_avatar_url = serializers.CharField(read_only=True, allow_null=True)
-    is_anonymous = serializers.BooleanField(read_only=True)
-
-
 class CommentReadSerializer(serializers.Serializer):
     """Serializer for reading CommentDto. Nulls identity fields for anonymous comment."""
 
@@ -24,7 +17,6 @@ class CommentReadSerializer(serializers.Serializer):
     can_manage = serializers.BooleanField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     replies_count = serializers.IntegerField(read_only=True)
-    reply_authors = CommentAuthorSerializer(many=True, read_only=True)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

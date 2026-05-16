@@ -1,7 +1,13 @@
 from rest_framework import serializers
 
 from rating_app.models.choices import RatingVoteStrType, SemesterTerm
-from rating_app.serializers.comment_read import CommentAuthorSerializer
+
+
+class CommentAuthorSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(read_only=True, allow_null=True)
+    user_name = serializers.CharField(read_only=True, allow_null=True)
+    user_avatar_url = serializers.CharField(read_only=True, allow_null=True)
+    is_anonymous = serializers.BooleanField(read_only=True)
 
 
 class RatingReadSerializer(serializers.Serializer):
