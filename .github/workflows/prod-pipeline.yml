@@ -95,9 +95,9 @@ jobs:
       test_url: ${{ vars.LIVE_URL }}
       run_e2e_tests: true
     secrets:
-      SSH_HOST: ${{ secrets.LIVE_SSH_HOST }}
-      SSH_USER: ${{ secrets.LIVE_SSH_USER }}
-      SSH_KEY: ${{ secrets.LIVE_SSH_KEY }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
       CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
