@@ -56,10 +56,12 @@ def test_ratings_list_counts_comments_and_votes_without_join_multiplication(
     vote_factory(rating=rating, student=student_factory(), type=RatingVoteType.DOWNVOTE)
 
     response = token_client.get(f"/api/v1/courses/{course.id}/ratings/")
+
+    assert response.status_code == 200
+
     data = response.json()
     [rating_data] = data["items"]["ratings"]
 
-    assert response.status_code == 200
     assert rating_data["comments_count"] == 2
     assert rating_data["upvotes"] == 1
     assert rating_data["downvotes"] == 1
@@ -95,11 +97,13 @@ def test_ratings_list_includes_last_three_comment_author_avatars(
         )
 
     response = token_client.get(f"/api/v1/courses/{course.id}/ratings/")
+
+    assert response.status_code == 200
+
     data = response.json()
     [rating_data] = data["items"]["ratings"]
     comment_authors = rating_data["comment_authors"]
 
-    assert response.status_code == 200
     assert len(comment_authors) == 3
     assert [author["user_id"] for author in comment_authors] == [user.id for user in users[5:2:-1]]
     assert comment_authors[0] == {
