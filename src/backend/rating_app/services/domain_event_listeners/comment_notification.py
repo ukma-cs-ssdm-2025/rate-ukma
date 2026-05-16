@@ -52,17 +52,25 @@ class CommentNotificationObserver(IEventListener[CommentEvent]):
         if comment.user_id == recipient_user_id:
             return
 
+        # ensure only one notification exists per comment (dedupe duplicate events)
+        self.notification_service.delete_notification_for_event_source(
+            recipient_id=recipient_user_id,
+            event_type=event_type,
+            source_model=CommentModel,
+            source_id=str(comment.id),
+        )
+
         self.notification_service.create_notification(
             recipient_id=recipient_user_id,
             event_type=event_type,
-            group_key=self._build_group_key(event_type, comment.rating_id),
+            group_key=self._build_group_key(event_type, comment.rating_id, comment.id),
             source_model=CommentModel,
             source_id=str(comment.id),
             actor_id=comment.user_id,
         )
 
-    def _build_group_key(self, event_type: NotificationEventType, rating_id) -> str:
-        return f"{event_type.value}:{rating_id}"
+    def _build_group_key(self, event_type: NotificationEventType, rating_id, comment_id) -> str:
+        return f"{event_type.value}:{rating_id}:{comment_id}"
 
     def _get_user_id(self, student_id) -> int | None:
         try:

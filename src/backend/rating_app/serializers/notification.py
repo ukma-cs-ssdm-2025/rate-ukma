@@ -103,8 +103,8 @@ class NotificationGroupSerializer(serializers.Serializer):
 
 
 def _parse_rating_id(group_key: str) -> str | None:
-    parts = group_key.split(":", 1)
-    if len(parts) == 2:  # noqa: PLR2004
+    parts = group_key.split(":")
+    if len(parts) >= 2:  # noqa: PLR2004
         return parts[1]
     return None
 

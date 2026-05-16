@@ -248,8 +248,9 @@ def test_comment_creates_named_notification_for_rating_author(
     commenter_user = user_factory(first_name="Commenter", last_name="Person")
     commenter_client = _make_client(commenter_user)
 
-    response = _create_comment(commenter_client, rating.id)
-    assert response.status_code == 201
+    create_response = _create_comment(commenter_client, rating.id)
+    assert create_response.status_code == 201
+    comment_id = create_response.json()["id"]
 
     author_client = _make_author_client(author_student)
     response = author_client.get(NOTIFICATIONS_URL)
@@ -257,6 +258,7 @@ def test_comment_creates_named_notification_for_rating_author(
 
     notification = response.json()[0]
     assert notification["event_type"] == "RATING_COMMENT_CREATED"
+    assert notification["group_key"] == f"RATING_COMMENT_CREATED:{rating.id}:{comment_id}"
     assert notification["count"] == 1
     assert notification["is_unread"] is True
     assert notification["message"] == "Person Commenter прокоментував(-ла) ваш відгук"
@@ -266,7 +268,7 @@ def test_comment_creates_named_notification_for_rating_author(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_two_comments_use_plural_one_other_message_without_error(
+def test_two_comments_create_separate_notifications(
     user_factory,
     student_factory,
     rating_factory,
@@ -288,9 +290,20 @@ def test_two_comments_use_plural_one_other_message_without_error(
     response = author_client.get(NOTIFICATIONS_URL)
     assert response.status_code == 200
 
-    notification = response.json()[0]
-    assert notification["count"] == 2
-    assert notification["message"] == ("Commenter Second та ще 1 людина прокоментувала ваш відгук")
+    notifications = response.json()
+    assert len(notifications) == 2
+    assert {notification["count"] for notification in notifications} == {1}
+    assert {notification["source_object_id"] for notification in notifications} == {
+        first_response.json()["id"],
+        second_response.json()["id"],
+    }
+
+    # messages should be singular (one notification per comment)
+    messages = {n["message"] for n in notifications}
+    assert messages == {
+        "Commenter First прокоментував(-ла) ваш відгук",
+        "Commenter Second прокоментував(-ла) ваш відгук",
+    }
 
 
 @pytest.mark.django_db
