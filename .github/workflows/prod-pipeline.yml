@@ -88,7 +88,6 @@ jobs:
     if: needs.get-staging-released-version.result == 'success' && needs.get-staging-released-version.outputs.release_not_found != 'true'
     uses: ./.github/workflows/deploy.yml
     needs: [get-staging-released-version]
-    environment: Live
     with:
       environment: live
       deployment_ref: ${{ needs.get-staging-released-version.outputs.version_tag }}
@@ -96,9 +95,6 @@ jobs:
       test_url: ${{ vars.LIVE_URL }}
       run_e2e_tests: true
     secrets:
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      SSH_KEY: ${{ secrets.SSH_KEY }}
       CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
       CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
