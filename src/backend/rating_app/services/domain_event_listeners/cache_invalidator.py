@@ -44,9 +44,8 @@ class RatingVoteCacheInvalidator(IEventListener[RatingVoteDTO]):
 
 
 class CommentCacheInvalidator(IEventListener[CommentEvent]):
-    def __init__(self, cache_manager: ICacheManager, rating_repository: RatingRepository):
+    def __init__(self, cache_manager: ICacheManager):
         self.cache_manager = cache_manager
-        self.rating_repository = rating_repository
 
     @implements
     def on_event(self, event: CommentEvent, *args, **kwargs) -> None:
@@ -56,5 +55,4 @@ class CommentCacheInvalidator(IEventListener[CommentEvent]):
         if comment.parent_id is not None:
             self.cache_manager.bump_version(comment_replies_namespace(str(comment.parent_id)))
 
-        rating = self.rating_repository.get_by_id(str(comment.rating_id))
-        self.cache_manager.bump_version(course_ratings_namespace(str(rating.course)))
+        self.cache_manager.bump_version(course_ratings_namespace(str(comment.course_id)))

@@ -158,6 +158,7 @@ class CommentDTO(BaseModel):
     user_avatar_url: str | None = None
     rating_id: uuid.UUID
     parent_id: uuid.UUID | None = None
+    course_id: uuid.UUID
     content: str
     is_anonymous: bool
     can_manage: bool = False

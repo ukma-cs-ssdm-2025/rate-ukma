@@ -36,6 +36,7 @@ def _make_comment_dto(
     *,
     rating_id: uuid.UUID | None = None,
     parent_id: uuid.UUID | None = None,
+    course_id: uuid.UUID | None = None,
 ) -> CommentDTO:
     return CommentDTO(
         id=uuid.uuid4(),
@@ -44,6 +45,7 @@ def _make_comment_dto(
         user_avatar_url=None,
         rating_id=rating_id or uuid.uuid4(),
         parent_id=parent_id,
+        course_id=course_id or uuid.uuid4(),
         content="Helpful comment",
         is_anonymous=False,
         created_at=datetime.now(tz=UTC),

@@ -222,6 +222,7 @@ class CommentRepository(
             Comment.objects.select_related(
                 "user",
                 "user__student_profile",
+                "rating__course_offering",
             )
             .prefetch_related(
                 Prefetch(

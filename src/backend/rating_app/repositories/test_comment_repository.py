@@ -19,8 +19,9 @@ def repo():
 
 @pytest.mark.django_db
 def test_create_uses_model_default_id(repo, rating_factory, user):
+    rating = rating_factory()
     params = CommentCreateParams(
-        rating_id=rating_factory().id,
+        rating_id=rating.id,
         user_id=user.id,
         parent_comment=None,
         content="Original comment",
@@ -30,6 +31,7 @@ def test_create_uses_model_default_id(repo, rating_factory, user):
     comment = repo.create(params)
 
     assert isinstance(comment.id, uuid.UUID)
+    assert comment.course_id == rating.course_offering.course_id
     assert Comment.objects.filter(id=comment.id, content="Original comment").exists()
 
 

@@ -283,6 +283,7 @@ class CommentMapper(IProcessor[[CommentModel], CommentDTO]):
             user_avatar_url=user_avatar_url,
             rating_id=model.rating.id,
             parent_id=model.parent_comment.id if model.parent_comment is not None else None,
+            course_id=model.rating.course_offering.course_id,
             content=model.content,
             is_anonymous=model.is_anonymous,
             created_at=model.created_at,

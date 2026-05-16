@@ -171,10 +171,7 @@ def rating_vote_cache_invalidator() -> RatingVoteCacheInvalidator:
 
 @once
 def comment_cache_invalidator() -> CommentCacheInvalidator:
-    return CommentCacheInvalidator(
-        cache_manager=redis_cache_manager(),
-        rating_repository=rating_repository(),
-    )
+    return CommentCacheInvalidator(cache_manager=redis_cache_manager())
 
 
 @once

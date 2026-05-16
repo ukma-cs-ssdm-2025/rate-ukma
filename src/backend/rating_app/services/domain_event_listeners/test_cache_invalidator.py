@@ -53,7 +53,11 @@ def _make_rating_dto(*, is_anonymous: bool = False) -> RatingDTO:
     )
 
 
-def _make_comment_dto(*, parent_id: uuid.UUID | None = None) -> CommentDTO:
+def _make_comment_dto(
+    *,
+    parent_id: uuid.UUID | None = None,
+    course_id: uuid.UUID | None = None,
+) -> CommentDTO:
     return CommentDTO(
         id=uuid.uuid4(),
         user_id=1,
@@ -61,6 +65,7 @@ def _make_comment_dto(*, parent_id: uuid.UUID | None = None) -> CommentDTO:
         user_avatar_url=None,
         rating_id=uuid.uuid4(),
         parent_id=parent_id,
+        course_id=course_id or uuid.uuid4(),
         content="Helpful comment",
         is_anonymous=False,
         created_at=datetime.datetime.now(),
@@ -117,26 +122,17 @@ class TestCommentCacheInvalidator:
         return MagicMock()
 
     @pytest.fixture
-    def rating_repository(self):
-        return MagicMock()
-
-    @pytest.fixture
-    def invalidator(self, cache_manager, rating_repository):
-        return CommentCacheInvalidator(
-            cache_manager=cache_manager,
-            rating_repository=rating_repository,
-        )
+    def invalidator(self, cache_manager):
+        return CommentCacheInvalidator(cache_manager=cache_manager)
 
     def test_bumps_rating_comments_and_course_ratings_namespaces(
         self,
         invalidator,
         cache_manager,
-        rating_repository,
     ):
         course_id = uuid.uuid4()
-        comment = _make_comment_dto()
+        comment = _make_comment_dto(course_id=course_id)
         event = CommentEvent(comment=comment, action=CommentAction.CREATED)
-        rating_repository.get_by_id.return_value = MagicMock(course=course_id)
 
         invalidator.on_event(event)
 
@@ -151,13 +147,11 @@ class TestCommentCacheInvalidator:
         self,
         invalidator,
         cache_manager,
-        rating_repository,
     ):
         parent_id = uuid.uuid4()
         course_id = uuid.uuid4()
-        comment = _make_comment_dto(parent_id=parent_id)
+        comment = _make_comment_dto(parent_id=parent_id, course_id=course_id)
         event = CommentEvent(comment=comment, action=CommentAction.CREATED)
-        rating_repository.get_by_id.return_value = MagicMock(course=course_id)
 
         invalidator.on_event(event)
 
