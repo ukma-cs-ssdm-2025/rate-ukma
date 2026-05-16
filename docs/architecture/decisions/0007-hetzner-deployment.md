@@ -53,7 +53,7 @@ We will migrate both environments to **Hetzner Cloud** VMs in the `nbg1` (Nuremb
 3. **Secrets**
    - We formalize the current practice and drop the unimplemented AWS SSM/Secrets Manager plan from ADR-0002 §3.
    - Secrets live as **GitHub Environment secrets** (per `Live` / `Staging` environments), and a single `APP_DOTENV` secret holds the full `.env` content for the server.
-   - On deploy, `APP_DOTENV` is written to `/opt/rateukma/.env` on the VM.
+   - Every deploy (both the production pipeline and the one-shot migration) writes `APP_DOTENV` to `src/.env` on the VM, where `docker compose` reads it. The GitHub secret is the source of truth — the file on the server is treated as derived state and overwritten on each deploy.
    - Trade-off: no central rotation/audit, but a single source of truth that matches who actually has merge access to the deployment workflows.
 
 4. **Network & TLS**

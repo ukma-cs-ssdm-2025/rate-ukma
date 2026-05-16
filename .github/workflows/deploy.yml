@@ -133,13 +133,18 @@ jobs:
         run: |
           tar -czf "$ARCHIVE_NAME" src/ docs/api/openapi-generated.yaml infra/nginx/
 
-      - name: Upload archive and deploy script to server
+      - name: Write env file from APP_DOTENV
+        env:
+          APP_DOTENV: ${{ secrets.APP_DOTENV }}
+        run: printf '%s' "$APP_DOTENV" > .deploy_env
+
+      - name: Upload archive, env file, and deploy script to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: "${{ env.ARCHIVE_NAME }},scripts/ci/deploy.sh"
+          source: "${{ env.ARCHIVE_NAME }},scripts/ci/deploy.sh,.deploy_env"
           target: ${{ env.REMOTE_TMP_DEPLOY_DIR }}/
 
       - name: Deploy to server
