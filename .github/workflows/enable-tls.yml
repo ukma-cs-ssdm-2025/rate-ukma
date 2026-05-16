@@ -1,0 +1,51 @@
+---
+name: Enable TLS on Hetzner
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - live
+      certbot_email:
+        description: "Email for TLS certificate registration"
+        required: true
+        type: string
+      ssh_user:
+        description: "SSH user on the target server"
+        required: false
+        type: string
+        default: root
+
+jobs:
+  enable-tls:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment == 'live' && 'Live' || 'Staging' }}
+
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ inputs.environment == 'live' && secrets.HETZNER_SSH_KEY_LIVE || secrets.HETZNER_SSH_KEY_STAGING }}
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Enable TLS
+        env:
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << REMOTE
+          set -euo pipefail
+          export PROJECT_DIR=/opt/rateukma
+          export SERVER_NAME="${{ inputs.environment == 'live' && 'rateukma.com' || 'staging.rateukma.com' }}"
+          export CERTBOT_EMAIL="${{ inputs.certbot_email }}"
+          bash /opt/rateukma/migration/scripts/enable-tls.sh
+          REMOTE
