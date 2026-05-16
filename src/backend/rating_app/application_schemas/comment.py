@@ -51,7 +51,7 @@ class CommentListQueryParams(BaseModel):
     }
 
     page: int | None = Field(
-        default=MIN_PAGE_NUMBER,
+        default=DEFAULT_PAGE_NUMBER,
         ge=MIN_PAGE_NUMBER,
         description=f"Page number (default: {DEFAULT_PAGE_NUMBER})",
     )
@@ -68,7 +68,7 @@ class CommentFilterCriteria(BaseModel):
         "populate_by_name": True,
     }
     page: int | None = Field(
-        default=MIN_PAGE_NUMBER,
+        default=DEFAULT_PAGE_NUMBER,
         ge=MIN_PAGE_NUMBER,
     )
     page_size: int | None = Field(
