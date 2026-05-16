@@ -32,7 +32,6 @@ import { getAvatarColor, getInitials } from "./reviewerAvatar";
 
 const COMMENTS_PAGE_SIZE = 5;
 const REPLIES_PAGE_SIZE = 5;
-const COMMENT_AUTHOR_PREVIEW_LIMIT = 5;
 
 interface RatingCommentsProps {
 	readonly ratingId: string;
@@ -278,8 +277,8 @@ function PreviewAuthorAvatar({
 	return (
 		<Avatar
 			className={cn(
-				"size-6 shrink-0 border-2 border-background text-[10px] font-semibold",
-				index > 0 && "-ml-2",
+				"size-7 shrink-0 border-2 border-background text-[11px] font-semibold",
+				index > 0 && "-ml-2.5",
 			)}
 		>
 			{showAvatar && (
@@ -289,7 +288,7 @@ function PreviewAuthorAvatar({
 				/>
 			)}
 			<AvatarFallback
-				className={cn("text-[10px] font-semibold", getAvatarColor(authorName))}
+				className={cn("text-[11px] font-semibold", getAvatarColor(authorName))}
 			>
 				{getInitials(authorName, author.is_anonymous ?? false)}
 			</AvatarFallback>
@@ -300,7 +299,7 @@ function PreviewAuthorAvatar({
 function CommentAuthorsPreview({
 	authors,
 }: Readonly<{ authors?: readonly CommentAuthor[] }>) {
-	const previewAuthors = authors?.slice(0, COMMENT_AUTHOR_PREVIEW_LIMIT) ?? [];
+	const previewAuthors = authors?.length ? authors.slice(0, 3).reverse() : [];
 
 	if (previewAuthors.length === 0) {
 		return null;
@@ -580,6 +579,7 @@ export function RatingComments({
 }: RatingCommentsProps) {
 	const queryClient = useQueryClient();
 	const [isExpanded, setIsExpanded] = useState(false);
+	const [isCreating, setIsCreating] = useState(false);
 	const createComment = useRatingsCommentsCreate();
 
 	const commentsQuery = useInfiniteQuery({
@@ -607,6 +607,7 @@ export function RatingComments({
 		loadedCommentsCount,
 		commentsQuery.data?.pages[0]?.total ?? 0,
 	);
+	const hasComments = displayedCount > 0;
 
 	const handleCreate = async (values: CommentFormValues) => {
 		await createComment.mutateAsync({
@@ -618,7 +619,29 @@ export function RatingComments({
 		});
 
 		invalidateRatingCommentQueries(queryClient, ratingId, courseId);
+		setIsCreating(false);
 		toast.success("Коментар додано");
+	};
+
+	const handleToggleComments = () => {
+		setIsExpanded((value) => {
+			if (value) {
+				setIsCreating(false);
+			}
+			return !value;
+		});
+	};
+
+	const handleStartComment = () => {
+		setIsExpanded(true);
+		setIsCreating(true);
+	};
+
+	const handleCancelCreate = () => {
+		setIsCreating(false);
+		if (!hasComments) {
+			setIsExpanded(false);
+		}
 	};
 
 	const commentsContent = (() => {
@@ -654,31 +677,59 @@ export function RatingComments({
 	return (
 		<div className="min-w-0 w-full">
 			<div className="flex items-start justify-between gap-2">
-				<Button
-					type="button"
-					variant="ghost"
-					size="sm"
-					className="h-8 px-0 text-muted-foreground hover:bg-transparent hover:text-primary"
-					onClick={() => setIsExpanded((value) => !value)}
-					aria-expanded={isExpanded}
-					data-testid={testIds.comments.toggleButton}
-				>
-					<CommentAuthorsPreview authors={commentAuthors} />
-					<span className="text-xs font-medium">
-						Коментарі {formatCount(displayedCount)}
-					</span>
-				</Button>
+				<div className="flex flex-wrap items-center gap-2">
+					{hasComments ? (
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							className="h-8 px-0 text-muted-foreground hover:bg-transparent hover:text-primary"
+							onClick={handleToggleComments}
+							aria-expanded={isExpanded}
+							data-testid={testIds.comments.toggleButton}
+						>
+							<CommentAuthorsPreview authors={commentAuthors} />
+							<span className="text-xs font-medium">
+								Коментарі {formatCount(displayedCount)}
+							</span>
+							<span className="flex size-3.5 items-center justify-center">
+								{isExpanded ? (
+									<ChevronUp className="size-3.5" />
+								) : (
+									<ChevronDown className="size-3.5" />
+								)}
+							</span>
+						</Button>
+					) : (
+						<span className="flex h-8 items-center text-xs font-medium text-muted-foreground">
+							Коментарі {formatCount(displayedCount)}
+						</span>
+					)}
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:bg-transparent hover:text-primary"
+						onClick={handleStartComment}
+					>
+						Відповісти
+					</Button>
+				</div>
 				{trailingContent && <div className="shrink-0">{trailingContent}</div>}
 			</div>
 
 			{isExpanded && (
 				<div className="mt-3 w-full space-y-4 rounded-lg border border-border/50 bg-background p-3">
-					<CommentForm
-						placeholder="Напишіть коментар"
-						submitLabel="Коментувати"
-						isSubmitting={createComment.isPending}
-						onSubmit={handleCreate}
-					/>
+					{isCreating && (
+						<CommentForm
+							placeholder="Напишіть коментар"
+							submitLabel="Коментувати"
+							isSubmitting={createComment.isPending}
+							onSubmit={handleCreate}
+							onCancel={handleCancelCreate}
+							autoFocus
+						/>
+					)}
 
 					{commentsContent}
 

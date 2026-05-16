@@ -102,7 +102,7 @@ describe("RatingComments", () => {
 		apiMocks.deleteComment.mockResolvedValue(undefined);
 	});
 
-	it("shows only the first five rating comment avatars in the collapsed button", () => {
+	it("shows the first three rating comment avatars reversed in the collapsed button", () => {
 		renderWithQuery(
 			<RatingComments
 				ratingId="rating-1"
@@ -148,11 +148,11 @@ describe("RatingComments", () => {
 			/>,
 		);
 
-		expect(screen.getByText("AO")).toBeInTheDocument();
-		expect(screen.getByText("BT")).toBeInTheDocument();
-		expect(screen.getByText("CT")).toBeInTheDocument();
-		expect(screen.getByText("DF")).toBeInTheDocument();
-		expect(screen.getByText("EF")).toBeInTheDocument();
+		expect(
+			screen.getAllByText(/^(AO|BT|CT)$/).map((element) => element.textContent),
+		).toEqual(["CT", "BT", "AO"]);
+		expect(screen.queryByText("DF")).not.toBeInTheDocument();
+		expect(screen.queryByText("EF")).not.toBeInTheDocument();
 		expect(screen.queryByText("FS")).not.toBeInTheDocument();
 	});
 
@@ -180,6 +180,9 @@ describe("RatingComments", () => {
 		await user.click(screen.getByTestId(testIds.comments.toggleButton));
 
 		expect(await screen.findByText("Useful clarification")).toBeInTheDocument();
+		expect(
+			screen.queryByTestId(testIds.comments.textarea),
+		).not.toBeInTheDocument();
 		expect(apiMocks.ratingsCommentsList).toHaveBeenCalledWith("rating-1", {
 			page: 1,
 			page_size: 5,
@@ -229,7 +232,7 @@ describe("RatingComments", () => {
 
 		renderWithQuery(<RatingComments ratingId="rating-1" courseId="course-1" />);
 
-		await user.click(screen.getByTestId(testIds.comments.toggleButton));
+		await user.click(screen.getByRole("button", { name: "Відповісти" }));
 		await user.type(
 			await screen.findByTestId(testIds.comments.textarea),
 			"New comment",
