@@ -339,7 +339,6 @@ function RepliesPreview({
 	onToggle: () => void;
 }>) {
 	const replyCount = comment.replies_count ?? 0;
-	const replyAuthors = comment.reply_authors?.slice(0, 2) ?? [];
 
 	if (replyCount === 0) {
 		return null;
@@ -354,17 +353,6 @@ function RepliesPreview({
 			onClick={onToggle}
 			aria-expanded={showReplies}
 		>
-			{replyAuthors.length > 0 && (
-				<span className="flex items-center pl-1" aria-hidden="true">
-					{replyAuthors.map((author, index) => (
-						<PreviewAuthorAvatar
-							key={`${author.user_id ?? "anonymous"}-${index}`}
-							author={author}
-							index={index}
-						/>
-					))}
-				</span>
-			)}
 			<span className="font-semibold text-primary">
 				{formatCount(replyCount)} {formatReply(replyCount)}
 			</span>

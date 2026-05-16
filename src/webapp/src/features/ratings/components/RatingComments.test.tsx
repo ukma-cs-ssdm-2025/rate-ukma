@@ -207,14 +207,6 @@ describe("RatingComments", () => {
 					is_anonymous: false,
 					created_at: "2026-05-11T12:00:00Z",
 					replies_count: 1,
-					reply_authors: [
-						{
-							user_id: 9,
-							user_name: "Reply Author",
-							user_avatar_url: null,
-							is_anonymous: false,
-						},
-					],
 				},
 			]),
 		);
@@ -227,7 +219,6 @@ describe("RatingComments", () => {
 		expect(screen.getByTestId(testIds.comments.toggleButton)).toHaveTextContent(
 			"2",
 		);
-		expect(screen.getByText("RA")).toBeInTheDocument();
 	});
 
 	it.each([
@@ -284,14 +275,6 @@ describe("RatingComments", () => {
 					is_anonymous: false,
 					created_at: "2026-05-11T12:00:00Z",
 					replies_count: 1,
-					reply_authors: [
-						{
-							user_id: 7,
-							user_name: "Reply Author",
-							user_avatar_url: null,
-							is_anonymous: false,
-						},
-					],
 				},
 			]),
 		);
