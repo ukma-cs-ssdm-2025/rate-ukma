@@ -435,6 +435,11 @@ function RatingCommentItem({
 				? getCommentsRepliesRetrieveQueryKey(comment.parent_id)
 				: getRatingsCommentsListQueryKey(ratingId),
 		});
+		if (comment.parent_id) {
+			queryClient.invalidateQueries({
+				queryKey: getRatingsCommentsListQueryKey(ratingId),
+			});
+		}
 		toast.success("Коментар оновлено");
 	};
 

@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -76,7 +76,10 @@ function renderWithQuery(ui: ReactElement) {
 		);
 	}
 
-	return render(ui, { wrapper: Wrapper });
+	return {
+		queryClient,
+		...render(ui, { wrapper: Wrapper }),
+	};
 }
 
 function mockCommentList(items: Partial<CommentRead>[]) {
@@ -225,6 +228,93 @@ describe("RatingComments", () => {
 			"2",
 		);
 		expect(screen.getByText("RA")).toBeInTheDocument();
+	});
+
+	it("invalidates top-level comments when a reply is updated", async () => {
+		const user = userEvent.setup();
+		apiMocks.ratingsCommentsList.mockResolvedValue(
+			mockCommentList([
+				{
+					id: "comment-1",
+					rating_id: "rating-1",
+					parent_id: null,
+					content: "Parent comment",
+					user_id: 8,
+					user_name: "Parent Author",
+					user_avatar_url: null,
+					is_anonymous: false,
+					created_at: "2026-05-11T12:00:00Z",
+					replies_count: 1,
+					reply_authors: [
+						{
+							user_id: 7,
+							user_name: "Reply Author",
+							user_avatar_url: null,
+							is_anonymous: false,
+						},
+					],
+				},
+			]),
+		);
+		apiMocks.commentsRepliesRetrieve.mockResolvedValue(
+			mockCommentList([
+				{
+					id: "reply-1",
+					rating_id: "rating-1",
+					parent_id: "comment-1",
+					content: "Reply body",
+					user_id: 7,
+					user_name: "Reply Author",
+					user_avatar_url: null,
+					is_anonymous: false,
+					can_manage: true,
+					created_at: "2026-05-11T12:05:00Z",
+					replies_count: 0,
+				},
+			]),
+		);
+		const { queryClient } = renderWithQuery(
+			<RatingComments ratingId="rating-1" commentsCount={2} />,
+		);
+		const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+
+		await user.click(screen.getByTestId(testIds.comments.toggleButton));
+		await screen.findByText("Parent comment");
+		await user.click(screen.getByRole("button", { name: /1/ }));
+		const replyItem = (await screen.findByText("Reply body")).closest(
+			`[data-testid="${testIds.comments.item}"]`,
+		);
+		expect(replyItem).not.toBeNull();
+
+		await user.click(
+			within(replyItem as HTMLElement).getAllByRole("button")[0],
+		);
+		await user.clear(
+			within(replyItem as HTMLElement).getByTestId(testIds.comments.textarea),
+		);
+		await user.type(
+			within(replyItem as HTMLElement).getByTestId(testIds.comments.textarea),
+			"Updated reply",
+		);
+		await user.click(
+			within(replyItem as HTMLElement).getByTestId(
+				testIds.comments.submitButton,
+			),
+		);
+
+		expect(apiMocks.updateComment).toHaveBeenCalledWith({
+			commentId: "reply-1",
+			data: {
+				content: "Updated reply",
+				is_anonymous: false,
+			},
+		});
+		expect(invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["comment-replies", "comment-1"],
+		});
+		expect(invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["rating-comments", "rating-1"],
+		});
 	});
 
 	it("creates a top-level comment", async () => {
