@@ -82,9 +82,9 @@ jobs:
       - name: Configure SSH
         env:
           NEW_SSH_KEY: ${{ inputs.environment == 'live' && secrets.HETZNER_SSH_KEY_LIVE || secrets.HETZNER_SSH_KEY_STAGING }}
-          OLD_SSH_KEY: ${{ secrets.SSH_KEY }}
+          OLD_SSH_KEY: ${{ inputs.environment == 'live' && secrets.LIVE_SSH_KEY || secrets.STAGING_SSH_KEY }}
           NEW_SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
-          OLD_SSH_HOST: ${{ secrets.SSH_HOST }}
+          OLD_SSH_HOST: ${{ inputs.environment == 'live' && secrets.LIVE_SSH_HOST || secrets.STAGING_SSH_HOST }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$NEW_SSH_KEY" > ~/.ssh/deploy_key
@@ -150,8 +150,8 @@ jobs:
 
       - name: Dump database from old server
         env:
-          OLD_SSH_HOST: ${{ secrets.SSH_HOST }}
-          OLD_SSH_USER: ${{ secrets.SSH_USER }}
+          OLD_SSH_HOST: ${{ inputs.environment == 'live' && secrets.LIVE_SSH_HOST || secrets.STAGING_SSH_HOST }}
+          OLD_SSH_USER: ${{ inputs.environment == 'live' && secrets.LIVE_SSH_USER || secrets.STAGING_SSH_USER }}
         run: |
           ssh -i ~/.ssh/old_deploy_key "$OLD_SSH_USER@$OLD_SSH_HOST" \
             "sudo docker exec \$(sudo docker ps --format '{{.Names}}' | grep postgres | head -n1) \
