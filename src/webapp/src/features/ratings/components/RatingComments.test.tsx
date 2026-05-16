@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -157,6 +157,50 @@ describe("RatingComments", () => {
 		expect(screen.queryByText("DF")).not.toBeInTheDocument();
 		expect(screen.queryByText("EF")).not.toBeInTheDocument();
 		expect(screen.queryByText("FS")).not.toBeInTheDocument();
+	});
+
+	it("renders comment preview avatar images for non-anonymous authors", async () => {
+		const originalImage = window.Image;
+		class LoadedImage extends EventTarget {
+			complete = true;
+			naturalWidth = 1;
+			src = "";
+		}
+		Object.defineProperty(window, "Image", {
+			configurable: true,
+			writable: true,
+			value: LoadedImage,
+		});
+
+		try {
+			const { container } = renderWithQuery(
+				<RatingComments
+					ratingId="rating-1"
+					commentsCount={1}
+					commentAuthors={[
+						{
+							user_id: 1,
+							user_name: "Bravo Two",
+							user_avatar_url: "/media/avatars/bravo.jpg",
+							is_anonymous: false,
+						},
+					]}
+				/>,
+			);
+
+			await waitFor(() => {
+				expect(container.querySelector('img[alt="Bravo Two"]')).toHaveAttribute(
+					"src",
+					"/media/avatars/bravo.jpg",
+				);
+			});
+		} finally {
+			Object.defineProperty(window, "Image", {
+				configurable: true,
+				writable: true,
+				value: originalImage,
+			});
+		}
 	});
 
 	it("loads top-level comments when expanded", async () => {

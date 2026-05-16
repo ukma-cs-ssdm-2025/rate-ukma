@@ -291,6 +291,7 @@ function PreviewAuthorAvatar({
 	index,
 }: Readonly<{ author: CommentPreviewAuthor; index: number }>) {
 	const authorName = getAuthorName(author);
+	const showAvatar = !author.is_anonymous && author.user_avatar_url;
 	return (
 		<Avatar
 			className={cn(
@@ -298,6 +299,12 @@ function PreviewAuthorAvatar({
 				index > 0 && "-ml-2.5",
 			)}
 		>
+			{showAvatar && (
+				<AvatarImage
+					src={author.user_avatar_url ?? undefined}
+					alt={authorName}
+				/>
+			)}
 			<AvatarFallback
 				className={cn("text-[11px] font-semibold", getAvatarColor(authorName))}
 			>
