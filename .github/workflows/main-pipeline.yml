@@ -98,20 +98,13 @@ jobs:
     needs: [version, build]
     if: ${{ !failure() && !cancelled() && needs.build.result == 'success' }}
     uses: ./.github/workflows/deploy.yml
-    environment: Staging
     with:
       environment: staging
       deployment_ref: ${{ github.sha }}
       version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       test_url: ${{ vars.STAGING_URL }}
       run_e2e_tests: true
-    secrets:
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      SSH_KEY: ${{ secrets.SSH_KEY }}
-      CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
-      CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    secrets: inherit
 
   release:
     needs: [version, deploy-staging, release-needed]
