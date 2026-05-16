@@ -1,0 +1,235 @@
+---
+name: Migrate to Hetzner
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - live
+      version_tag:
+        description: "Version tag to deploy (e.g. v1.6.0)"
+        required: true
+        type: string
+      ssh_user:
+        description: "SSH user on the target server"
+        required: false
+        type: string
+        default: root
+
+env:
+  PROJECT_DIR: /opt/rateukma
+  STATIC_ROOT: /opt/rateukma/static
+  TMP_DIR: /tmp/migrate
+  MAX_ATTEMPTS: 6
+  HEALTHCHECK_TIMEOUT: 10
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment == 'live' && 'Live' || 'Staging' }}
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Find image tags
+        id: find-tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_VERSION: ${{ inputs.version_tag }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          ORG: ${{ github.repository_owner }}
+        run: |
+          if [ "$ENVIRONMENT" = "staging" ]; then
+            WEBAPP_PREFIX="staging-"
+          elif [ "$ENVIRONMENT" = "live" ]; then
+            WEBAPP_PREFIX="live-"
+          else
+            echo "Unknown environment: $ENVIRONMENT" >&2
+            exit 1
+          fi
+
+          BACKEND_TAG=$(bash scripts/ci/find-image-tags.sh "rate-ukma/backend" "$TARGET_VERSION" "")
+          WEBAPP_TAG=$(bash scripts/ci/find-image-tags.sh "rate-ukma/webapp" "$TARGET_VERSION" "$WEBAPP_PREFIX")
+
+          MISSING=""
+          [ -z "$BACKEND_TAG" ] && MISSING="Backend"
+          [ -z "$WEBAPP_TAG" ] && MISSING="${MISSING:+$MISSING, }Webapp"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Image tags not found for version '$TARGET_VERSION': $MISSING"
+            exit 1
+          fi
+
+          echo "backend_tag=$BACKEND_TAG" >> "$GITHUB_OUTPUT"
+          echo "webapp_tag=$WEBAPP_TAG" >> "$GITHUB_OUTPUT"
+          echo "Backend: $BACKEND_TAG | Webapp: $WEBAPP_TAG"
+
+      - name: Create migration archive
+        run: tar -czf migration.tar.gz src/docker-compose.yml infra/nginx/ migration/scripts/
+
+      - name: Write env file
+        env:
+          APP_DOTENV: ${{ secrets.APP_DOTENV }}
+        run: printf '%s' "$APP_DOTENV" > .deploy_env
+
+      - name: Configure SSH
+        env:
+          NEW_SSH_KEY: ${{ inputs.environment == 'live' && secrets.HETZNER_SSH_KEY_LIVE || secrets.HETZNER_SSH_KEY_STAGING }}
+          OLD_SSH_KEY: ${{ inputs.environment == 'live' && secrets.LIVE_SSH_KEY || secrets.STAGING_SSH_KEY }}
+          NEW_SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          OLD_SSH_HOST: ${{ inputs.environment == 'live' && secrets.LIVE_SSH_HOST || secrets.STAGING_SSH_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$NEW_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$OLD_SSH_KEY" > ~/.ssh/old_deploy_key
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/old_deploy_key
+          ssh-keyscan -H "$NEW_SSH_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$OLD_SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload files to new server
+        env:
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" "mkdir -p ${{ env.TMP_DIR }}"
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            migration.tar.gz .deploy_env \
+            "$SSH_USER@$SSH_HOST:${{ env.TMP_DIR }}/"
+
+      - name: Provision new server
+        env:
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << REMOTE
+          set -euo pipefail
+          mkdir -p "${{ env.PROJECT_DIR }}"
+          tar xzf "${{ env.TMP_DIR }}/migration.tar.gz" -C "${{ env.PROJECT_DIR }}"
+          PROJECT_DIR="${{ env.PROJECT_DIR }}" SSH_USER="$SSH_USER" \
+            bash "${{ env.PROJECT_DIR }}/migration/scripts/provision.sh"
+          REMOTE
+
+      - name: Write env files on new server
+        env:
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << REMOTE
+          set -euo pipefail
+          cp "${{ env.TMP_DIR }}/.deploy_env" "${{ env.PROJECT_DIR }}/.env"
+          cp "${{ env.PROJECT_DIR }}/.env" "${{ env.PROJECT_DIR }}/src/.env"
+          REMOTE
+
+      - name: Deploy application
+        env:
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+          BACKEND_IMAGE_TAG: ${{ steps.find-tags.outputs.backend_tag }}
+          WEBAPP_IMAGE_TAG: ${{ steps.find-tags.outputs.webapp_tag }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << REMOTE
+          set -euo pipefail
+          export PROJECT_DIR="${{ env.PROJECT_DIR }}"
+          export STATIC_ROOT="${{ env.STATIC_ROOT }}"
+          export MAX_ATTEMPTS="${{ env.MAX_ATTEMPTS }}"
+          export HEALTHCHECK_TIMEOUT="${{ env.HEALTHCHECK_TIMEOUT }}"
+          export WEBAPP_IMAGE_TAG="$WEBAPP_IMAGE_TAG"
+          export BACKEND_IMAGE_TAG="$BACKEND_IMAGE_TAG"
+          export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          export GITHUB_ACTOR="${{ github.actor }}"
+          bash "${{ env.PROJECT_DIR }}/migration/scripts/deploy.sh"
+          REMOTE
+
+      - name: Dump database from old server
+        env:
+          OLD_SSH_HOST: ${{ inputs.environment == 'live' && secrets.LIVE_SSH_HOST || secrets.STAGING_SSH_HOST }}
+          OLD_SSH_USER: ${{ inputs.environment == 'live' && secrets.LIVE_SSH_USER || secrets.STAGING_SSH_USER }}
+        run: |
+          ssh -i ~/.ssh/old_deploy_key "$OLD_SSH_USER@$OLD_SSH_HOST" \
+            "sudo docker exec \$(sudo docker ps --format '{{.Names}}' | grep postgres | head -n1) \
+             pg_dump -U postgres --clean --if-exists rateukma" \
+            > /tmp/db_dump.sql
+          echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [dump] Dump size: $(wc -c < /tmp/db_dump.sql) bytes"
+
+      - name: Restore database on new server
+        env:
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+        run: |
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            /tmp/db_dump.sql \
+            "$SSH_USER@$SSH_HOST:${{ env.TMP_DIR }}/"
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << REMOTE
+          set -euo pipefail
+          log() { echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [restore] \$1"; }
+          postgres=\$(sudo docker ps --format "{{.Names}}" | grep postgres | head -n1)
+          backend=\$(sudo docker ps --format "{{.Names}}" | grep backend | head -n1)
+          if [ -z "\$postgres" ]; then
+            log "ERROR: postgres container not found"
+            exit 1
+          fi
+          if [ -n "\$backend" ]; then
+            log "Stopping backend to avoid DB conflicts during restore"
+            sudo docker stop "\$backend" 2>/dev/null || true
+          fi
+          log "Restoring dump (drops and recreates all tables)"
+          sudo docker exec -i "\$postgres" psql -U postgres rateukma \
+            < "${{ env.TMP_DIR }}/db_dump.sql"
+          if [ -n "\$backend" ]; then
+            log "Starting backend"
+            sudo docker start "\$backend" 2>/dev/null || true
+          fi
+          log "Done"
+          REMOTE
+
+      - name: Configure nginx (HTTP)
+        env:
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << REMOTE
+          set -euo pipefail
+          export SERVER_NAME="${{ inputs.environment == 'live' && 'rateukma.com' || 'staging.rateukma.com' }}"
+          bash "${{ env.PROJECT_DIR }}/migration/scripts/setup-nginx.sh"
+          REMOTE
+
+  warmup:
+    needs: migrate
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment == 'live' && 'Live' || 'Staging' }}
+
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ inputs.environment == 'live' && secrets.HETZNER_SSH_KEY_LIVE || secrets.HETZNER_SSH_KEY_STAGING }}
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Run warmup
+        env:
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << REMOTE
+          set -euo pipefail
+          backend=\$(sudo docker ps --format "{{.Names}}" | grep backend | head -n1)
+          if [ -z "\$backend" ]; then
+            echo "Backend container not found" >&2
+            exit 1
+          fi
+          sudo docker exec "\$backend" uv run python manage.py warmup
+          echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [warmup] Done"
+          REMOTE

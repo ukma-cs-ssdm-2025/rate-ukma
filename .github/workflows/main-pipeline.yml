@@ -104,13 +104,7 @@ jobs:
       version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       test_url: ${{ vars.STAGING_URL }}
       run_e2e_tests: true
-    secrets:
-      SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-      SSH_USER: ${{ secrets.STAGING_SSH_USER }}
-      SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
-      CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
-      CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    secrets: inherit
 
   release:
     needs: [version, deploy-staging, release-needed]
