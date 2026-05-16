@@ -81,15 +81,19 @@ jobs:
 
       - name: Configure SSH
         env:
-          SSH_KEY: ${{ inputs.environment == 'live' && secrets.HETZNER_SSH_KEY_LIVE || secrets.HETZNER_SSH_KEY_STAGING }}
-          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          NEW_SSH_KEY: ${{ inputs.environment == 'live' && secrets.HETZNER_SSH_KEY_LIVE || secrets.HETZNER_SSH_KEY_STAGING }}
+          OLD_SSH_KEY: ${{ secrets.SSH_KEY }}
+          NEW_SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          OLD_SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          printf '%s\n' "$NEW_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$OLD_SSH_KEY" > ~/.ssh/old_deploy_key
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/old_deploy_key
+          ssh-keyscan -H "$NEW_SSH_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$OLD_SSH_HOST" >> ~/.ssh/known_hosts
 
-      - name: Upload files to server
+      - name: Upload files to new server
         env:
           SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
           SSH_USER: ${{ inputs.ssh_user }}
@@ -100,7 +104,7 @@ jobs:
             migration.tar.gz .deploy_env \
             "$SSH_USER@$SSH_HOST:${{ env.TMP_DIR }}/"
 
-      - name: Provision server
+      - name: Provision new server
         env:
           SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
           SSH_USER: ${{ inputs.ssh_user }}
@@ -113,7 +117,7 @@ jobs:
             bash "${{ env.PROJECT_DIR }}/migration/scripts/provision.sh"
           REMOTE
 
-      - name: Write env files
+      - name: Write env files on new server
         env:
           SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
           SSH_USER: ${{ inputs.ssh_user }}
@@ -142,6 +146,49 @@ jobs:
           export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
           export GITHUB_ACTOR="${{ github.actor }}"
           bash "${{ env.PROJECT_DIR }}/migration/scripts/deploy.sh"
+          REMOTE
+
+      - name: Dump database from old server
+        env:
+          OLD_SSH_HOST: ${{ secrets.SSH_HOST }}
+          OLD_SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh -i ~/.ssh/old_deploy_key "$OLD_SSH_USER@$OLD_SSH_HOST" \
+            "sudo docker exec \$(sudo docker ps --format '{{.Names}}' | grep postgres | head -n1) \
+             pg_dump -U postgres --clean --if-exists rateukma" \
+            > /tmp/db_dump.sql
+          echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [dump] Dump size: $(wc -c < /tmp/db_dump.sql) bytes"
+
+      - name: Restore database on new server
+        env:
+          SSH_HOST: ${{ vars.HETZNER_SERVER_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+        run: |
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            /tmp/db_dump.sql \
+            "$SSH_USER@$SSH_HOST:${{ env.TMP_DIR }}/"
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << REMOTE
+          set -euo pipefail
+          log() { echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [restore] \$1"; }
+          postgres=\$(sudo docker ps --format "{{.Names}}" | grep postgres | head -n1)
+          backend=\$(sudo docker ps --format "{{.Names}}" | grep backend | head -n1)
+          if [ -z "\$postgres" ]; then
+            log "ERROR: postgres container not found"
+            exit 1
+          fi
+          if [ -n "\$backend" ]; then
+            log "Stopping backend to avoid DB conflicts during restore"
+            sudo docker stop "\$backend" 2>/dev/null || true
+          fi
+          log "Restoring dump (drops and recreates all tables)"
+          sudo docker exec -i "\$postgres" psql -U postgres rateukma \
+            < "${{ env.TMP_DIR }}/db_dump.sql"
+          if [ -n "\$backend" ]; then
+            log "Starting backend"
+            sudo docker start "\$backend" 2>/dev/null || true
+          fi
+          log "Done"
           REMOTE
 
       - name: Configure nginx (HTTP)
@@ -184,5 +231,5 @@ jobs:
             exit 1
           fi
           sudo docker exec "\$backend" uv run python manage.py warmup
-          echo "Warmup completed"
+          echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [warmup] Done"
           REMOTE

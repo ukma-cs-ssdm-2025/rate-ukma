@@ -15,7 +15,7 @@ DEST="/etc/nginx/sites-available/$SERVER_NAME"
 [[ -f "$TEMPLATE" ]] || { log "tls" "ERROR: nginx template missing at $TEMPLATE"; exit 1; }
 
 log "tls" "Obtaining TLS certificate for $SERVER_NAME"
-sudo systemctl stop nginx
+sudo systemctl stop nginx 2>/dev/null || true
 sudo certbot certonly --standalone \
     --non-interactive --agree-tos \
     -m "$CERTBOT_EMAIL" \
@@ -24,6 +24,6 @@ sudo certbot certonly --standalone \
 log "tls" "Applying TLS nginx config"
 envsubst '${SERVER_NAME}' < "$TEMPLATE" | sudo tee "$DEST" > /dev/null
 sudo nginx -t
-sudo systemctl start nginx
+sudo systemctl restart nginx
 
 log "tls" "Done — $SERVER_NAME is now serving HTTPS"
