@@ -98,6 +98,7 @@ jobs:
     needs: [version, build]
     if: ${{ !failure() && !cancelled() && needs.build.result == 'success' }}
     uses: ./.github/workflows/deploy.yml
+    environment: Staging
     with:
       environment: staging
       deployment_ref: ${{ github.sha }}
