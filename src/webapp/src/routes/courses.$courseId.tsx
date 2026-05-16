@@ -29,7 +29,7 @@ import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
 } from "@/lib/api/generated";
-import { formatPageTitle } from "@/lib/app-metadata";
+import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
 
 function CourseDescription({ text }: Readonly<{ text: string }>) {
@@ -91,12 +91,20 @@ function CourseDetailsRoute() {
 	const canShowCta = hasAttendedCourse && selectedOffering && !ratedOffering;
 	const offeringMeta =
 		offerings.length > 0 ? getLatestOfferingMeta(offerings) : null;
+	const canonicalUrl = `${window.location.origin + window.location.pathname}`;
+	const ogDescription = buildCourseOgDescription(course);
 
 	return (
 		<Layout>
 			{course.title && (
 				<Helmet>
 					<title>{formatPageTitle(course.title)}</title>
+					<meta property="og:title" content={formatPageTitle(course.title)} />
+					<meta property="og:description" content={ogDescription} />
+					<meta property="og:url" content={canonicalUrl} />
+					<meta property="og:type" content="website" />
+					<meta name="twitter:title" content={formatPageTitle(course.title)} />
+					<meta name="twitter:description" content={ogDescription} />
 				</Helmet>
 			)}
 			<div className="pb-16">

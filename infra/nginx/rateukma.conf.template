@@ -1,0 +1,100 @@
+upstream backend {
+    server 127.0.0.1:8000;
+    keepalive 16;
+}
+
+server {
+    server_name ${SERVER_NAME};
+
+    access_log /var/log/nginx/rateukma_access.log;
+    error_log /var/log/nginx/rateukma_error.log;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_comp_level 5;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+
+    location /api/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /admin/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /static/ {
+        alias /opt/rateukma/static/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location /media/ {
+        alias /opt/rateukma/media/;
+    }
+
+    location /accounts/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location = /index.html {
+        root /opt/rateukma/static;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    location /courses/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        root /opt/rateukma/static;
+        try_files $uri $uri/ /index.html =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/${SERVER_NAME}/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/${SERVER_NAME}/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+server {
+    if ($host = ${SERVER_NAME}) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    server_name ${SERVER_NAME};
+    return 404; # managed by Certbot
+
+
+}

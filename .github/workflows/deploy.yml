@@ -136,7 +136,7 @@ jobs:
 
       - name: Create deployment archive
         run: |
-          tar -czf "$ARCHIVE_NAME" src/ docs/api/openapi-generated.yaml
+          tar -czf "$ARCHIVE_NAME" src/ docs/api/openapi-generated.yaml infra/nginx/
 
       - name: Upload archive and deploy script to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
@@ -152,13 +152,13 @@ jobs:
         env:
           BACKEND_IMAGE_TAG: ${{ steps.find-tags.outputs.backend_tag }}
           WEBAPP_IMAGE_TAG: ${{ steps.find-tags.outputs.webapp_tag }}
-          ENVIRONMENT: ${{ inputs.environment }}
+          SERVER_NAME: ${{ inputs.environment == 'staging' && 'staging.rateukma.com' || 'rateukma.com' }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           command_timeout: "30m"
-          envs: BACKEND_IMAGE_TAG,WEBAPP_IMAGE_TAG,ENVIRONMENT
+          envs: BACKEND_IMAGE_TAG,WEBAPP_IMAGE_TAG,SERVER_NAME
           script: |
             export PROJECT_DIR="${{ env.PROJECT_DIR }}"
             export SOURCE_CODE="${{ env.PROJECT_SOURCE_CODE }}"
