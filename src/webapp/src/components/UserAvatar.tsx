@@ -52,7 +52,10 @@ export function UserAvatar({
 	const showImage = !isAnonymous && Boolean(avatarUrl);
 
 	return (
-		<Avatar className={className} {...rest}>
+		<Avatar
+			className={cn("transform-gpu backface-hidden", className)}
+			{...rest}
+		>
 			{showImage && <AvatarImage src={avatarUrl ?? undefined} alt={name} />}
 			<AvatarFallback className={cn(getAvatarColor(name))}>
 				{getInitials(name, isAnonymous)}
