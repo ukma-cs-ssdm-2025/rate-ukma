@@ -71,7 +71,7 @@ class CommentCacheInvalidator(IEventListener[CommentEvent]):
     def _bump_parent_container_replies_namespace(self, parent_id: str) -> None:
         try:
             parent = self.comment_repository.get_by_id(parent_id)
-        except (CommentNotFoundError, InvalidCommentIdentifierError):
+        except (CommentNotFoundError):
             return
 
         if parent.parent_id is not None:
