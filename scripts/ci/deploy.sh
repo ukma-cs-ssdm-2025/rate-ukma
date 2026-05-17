@@ -84,8 +84,12 @@ deploy_new_version() {
   fi
   rm "$TMP_DIR/$ARCHIVE"
 
-  echo "Copying environment file..."
-  cp "$PROJECT_DIR/.env" "$SOURCE_CODE/.env"
+  echo "Writing environment file from CI secret..."
+  if [[ ! -f "$TMP_DIR/.deploy_env" ]]; then
+    echo "ERROR: $TMP_DIR/.deploy_env not found (APP_DOTENV not uploaded)" >&2
+    return 1
+  fi
+  cp "$TMP_DIR/.deploy_env" "$SOURCE_CODE/.env"
 
   echo "Logging in to GitHub Container Registry..."
   if ! echo "$GITHUB_TOKEN" | sudo docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin; then
