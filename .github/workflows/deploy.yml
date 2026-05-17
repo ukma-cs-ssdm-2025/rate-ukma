@@ -135,6 +135,7 @@ jobs:
 
       - name: Render .env from per-env template
         env:
+          ENVIRONMENT: ${{ inputs.environment }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
@@ -145,14 +146,22 @@ jobs:
           SENTRY_DSN_BACKEND: ${{ secrets.SENTRY_DSN_BACKEND }}
           VITE_SENTRY_DSN_FRONTEND: ${{ secrets.VITE_SENTRY_DSN_FRONTEND }}
         run: |
-          TEMPLATE="infra/deploy/.env.${{ inputs.environment }}"
+          case "$ENVIRONMENT" in
+            staging|live) ;;
+            *)
+              echo "::error::Unsupported environment: $ENVIRONMENT"
+              exit 1
+              ;;
+          esac
+
+          TEMPLATE="infra/deploy/.env.${ENVIRONMENT}"
           if [[ ! -f "$TEMPLATE" ]]; then
             echo "::error::Template $TEMPLATE not found"
             exit 1
           fi
           envsubst < "$TEMPLATE" > .deploy_env
           if grep -nE '\$\{[A-Z0-9_]+\}' .deploy_env; then
-            echo "::error::Unresolved placeholders in rendered .env (see above) — missing secret in ${{ inputs.environment }} environment"
+            echo "::error::Unresolved placeholders in rendered .env (see above) — missing secret in $ENVIRONMENT environment"
             exit 1
           fi
 
