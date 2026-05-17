@@ -396,6 +396,7 @@ class RatingRepository(
         prefix = "" if order == "asc" else "-"
         return queryset.order_by(
             f"{prefix}popularity_score",
+            f"{prefix}comments_count",
             f"{prefix}created_at",
             f"{prefix}id",
         )

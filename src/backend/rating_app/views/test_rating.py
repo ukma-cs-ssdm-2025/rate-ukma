@@ -958,6 +958,42 @@ def test_ratings_default_sort_order(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_ratings_sort_same_popularity_by_comments_count(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    comment_factory,
+):
+    """Ratings with equal popularity score are ordered by comment count first."""
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    with freeze_time("2023-10-01 10:00:00"):
+        rating_with_two_comments = rating_factory(course_offering=offering)
+    with freeze_time("2023-10-02 10:00:00"):
+        rating_with_one_comment = rating_factory(course_offering=offering)
+    with freeze_time("2023-10-03 10:00:00"):
+        rating_without_comments = rating_factory(course_offering=offering)
+
+    comment_factory.create_batch(2, rating=rating_with_two_comments)
+    comment_factory(rating=rating_with_one_comment)
+
+    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
+    response = token_client.get(url)
+    data = response.json()
+
+    assert response.status_code == 200
+    assert [item["id"] for item in data["items"]["ratings"]] == [
+        str(rating_with_two_comments.id),
+        str(rating_with_one_comment.id),
+        str(rating_without_comments.id),
+    ]
+    assert [item["comments_count"] for item in data["items"]["ratings"]] == [2, 1, 0]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_ratings_sort_with_zero_votes_no_division_error(
     token_client,
     course_factory,
