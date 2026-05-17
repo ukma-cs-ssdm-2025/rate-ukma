@@ -3,6 +3,7 @@ import {
 	AlertTriangle,
 	Bell,
 	Loader2,
+	MessageSquare,
 	ThumbsDown,
 	ThumbsUp,
 } from "lucide-react";
@@ -28,6 +29,7 @@ interface NotificationListProps {
 const EVENT_ICONS: Record<string, typeof ThumbsUp> = {
 	RATING_UPVOTED: ThumbsUp,
 	RATING_DOWNVOTED: ThumbsDown,
+	RATING_COMMENT_CREATED: MessageSquare,
 };
 
 export function NotificationList({

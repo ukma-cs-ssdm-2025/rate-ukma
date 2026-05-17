@@ -219,6 +219,7 @@ export function CourseRatingsList({
 			{userRating && onEditUserRating && onDeleteUserRating && (
 				<UserRatingCard
 					rating={userRating}
+					courseId={courseId}
 					onEdit={onEditUserRating}
 					onDelete={onDeleteUserRating}
 				/>

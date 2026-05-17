@@ -29,5 +29,13 @@ def course_ratings_namespace(course_id: str) -> str:
     return f"ratings:course:{course_id}"
 
 
+def rating_comments_namespace(rating_id: str) -> str:
+    return f"comments:rating:{rating_id}"
+
+
+def comment_replies_namespace(comment_id: str) -> str:
+    return f"comments:comment:{comment_id}:replies"
+
+
 def student_ratings_namespace(student_id: str) -> str:
     return f"ratings:student:{student_id}"

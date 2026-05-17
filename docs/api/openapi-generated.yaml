@@ -477,6 +477,316 @@ paths:
                     detail: Authentication credentials were not provided
                     status: 401
           description: Unauthorized
+  /api/v1/comments/{comment_id}/:
+    put:
+      operationId: comments_update
+      description: Update an existing comment. Only the owner can update their comment.
+      summary: Update a comment
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        description: Unique identifier of a comment
+        required: true
+      tags:
+      - comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentPutParams'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentPutParams'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentPutParams'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentRead'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+    patch:
+      operationId: comments_partial_update
+      description: Partially update an existing comment. Only the owner can update
+        their comment.
+      summary: Partially update a comment
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        description: Unique identifier of a comment
+        required: true
+      tags:
+      - comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentPatchParams'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentPatchParams'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentPatchParams'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentRead'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+    delete:
+      operationId: comments_destroy
+      description: Delete a comment. Only the owner can delete a comment. Replies
+        are deleted recursively.
+      summary: Delete a comment
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        description: Unique identifier of a comment
+        required: true
+      tags:
+      - comments
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+  /api/v1/comments/{comment_id}/replies/:
+    get:
+      operationId: comments_replies_retrieve
+      description: List comments for a specific comment with pagination.
+      summary: List replies for a comment
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        description: Unique identifier of a comment
+        required: true
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: 'Page number (default: 1)'
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: 'Items per page (default: 10)'
+      tags:
+      - comments
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentList'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/course-offerings/{course_offering_id}/:
     get:
       operationId: course_offerings_retrieve
@@ -1652,6 +1962,174 @@ paths:
                     detail: Authentication credentials were not provided
                     status: 401
           description: Unauthorized
+  /api/v1/ratings/{rating_id}/comments/:
+    get:
+      operationId: ratings_comments_list
+      description: List comments for a specific rating with pagination.
+      summary: List comments for a rating
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: 'Page number (default: 1)'
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: 'Items per page (default: 10)'
+      - in: path
+        name: rating_id
+        schema:
+          type: string
+          format: uuid
+        description: Unique identifier of a rating
+        required: true
+      tags:
+      - comments
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentList'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+    post:
+      operationId: ratings_comments_create
+      description: Create a new comment for either a rating or reply to another commentThe
+        user is automatically determined from the authenticated user.
+      summary: Create a new comment
+      parameters:
+      - in: path
+        name: rating_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentRead'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/ratings/{rating_id}/votes/:
     put:
       operationId: ratings_votes_update
@@ -1972,6 +2450,139 @@ components:
           maxLength: 64
       required:
       - csrf_token
+    CommentAuthor:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        user_name:
+          type: string
+          readOnly: true
+          nullable: true
+        user_avatar_url:
+          type: string
+          readOnly: true
+          nullable: true
+        is_anonymous:
+          type: boolean
+          readOnly: true
+    CommentCreateRequest:
+      properties:
+        parent_comment:
+          default: null
+          format: uuid
+          nullable: true
+          title: Parent Comment
+          type: string
+        content:
+          minLength: 1
+          title: Content
+          type: string
+        is_anonymous:
+          title: Is Anonymous
+          type: boolean
+      required:
+      - content
+      - is_anonymous
+      title: CommentCreateRequest
+      type: object
+    CommentList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentRead'
+        filters:
+          type: object
+          additionalProperties: {}
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - filters
+      - items
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - total
+      - total_pages
+    CommentPutParams:
+      properties:
+        content:
+          minLength: 1
+          title: Content
+          type: string
+        is_anonymous:
+          title: Is Anonymous
+          type: boolean
+      required:
+      - content
+      - is_anonymous
+      title: CommentPutParams
+      type: object
+    CommentRead:
+      type: object
+      description: Serializer for reading CommentDto. Nulls identity fields for anonymous
+        comment.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        parent_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        rating_id:
+          type: string
+          format: uuid
+          readOnly: true
+        content:
+          type: string
+          readOnly: true
+        user_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        user_name:
+          type: string
+          readOnly: true
+          nullable: true
+        user_avatar_url:
+          type: string
+          readOnly: true
+          nullable: true
+        is_anonymous:
+          type: boolean
+          readOnly: true
+        can_manage:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        replies_count:
+          type: integer
+          readOnly: true
     CourseAnalytics:
       type: object
       description: Serializer for course analytics
@@ -2427,10 +3038,12 @@ components:
       enum:
       - RATING_UPVOTED
       - RATING_DOWNVOTED
+      - RATING_COMMENT_CREATED
       type: string
       description: |-
         * `RATING_UPVOTED` - Rating Upvoted
         * `RATING_DOWNVOTED` - Rating Downvoted
+        * `RATING_COMMENT_CREATED` - Rating Comment Created
     ExamTypeEnum:
       enum:
       - EXAM
@@ -2712,6 +3325,19 @@ components:
           type: string
           nullable: true
           readOnly: true
+    PatchedCommentPatchParams:
+      properties:
+        content:
+          default: null
+          minLength: 1
+          title: Content
+          type: string
+        is_anonymous:
+          default: null
+          title: Is Anonymous
+          type: boolean
+      title: CommentPatchParams
+      type: object
     PatchedRatingPatchParams:
       properties:
         difficulty:
@@ -2883,6 +3509,14 @@ components:
           - $ref: '#/components/schemas/ViewerVoteEnum'
           readOnly: true
           nullable: true
+        comments_count:
+          type: integer
+          readOnly: true
+        comment_authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentAuthor'
+          readOnly: true
     RatingVoteCreateRequest:
       properties:
         vote_type:

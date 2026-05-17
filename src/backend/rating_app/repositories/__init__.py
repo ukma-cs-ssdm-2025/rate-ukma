@@ -1,3 +1,4 @@
+from .comment_repository import CommentRepository
 from .course_instructor_repository import CourseInstructorRepository
 from .course_offering_repository import CourseOfferingRepository
 from .course_repository import CourseRepository
@@ -15,6 +16,7 @@ from .speciality_repository import SpecialityRepository
 from .student_repository import StudentRepository
 from .student_stats_repository import StudentStatisticsRepository
 from .to_domain_mappers import (
+    CommentMapper,
     CourseMapper,
     CourseOfferingMapper,
     InstructorMapper,
@@ -32,6 +34,8 @@ __all__ = [
     "InstructorMapper",
     "RatingMapper",
     "RatingVoteMapper",
+    "CommentRepository",
+    "CommentMapper",
     "InstructorRepository",
     "FacultyRepository",
     "DepartmentRepository",

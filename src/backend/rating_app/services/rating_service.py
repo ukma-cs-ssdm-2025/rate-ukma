@@ -1,4 +1,3 @@
-import re
 from datetime import datetime
 from typing import Any
 
@@ -37,6 +36,7 @@ from rating_app.repositories import (
     RatingVoteMapper,
     RatingVoteRepository,
 )
+from rating_app.services.comment_normalizer import CommentNormalizer
 from rating_app.services.course_offering_service import CourseOfferingService
 from rating_app.services.semester_service import SemesterService
 
@@ -62,6 +62,7 @@ class RatingService(IObservable[RatingDTO]):
         semester_service: SemesterService,
         vote_repository: RatingVoteRepository,
         vote_mapper: RatingVoteMapper,
+        comment_normalizer: CommentNormalizer,
     ):
         self.rating_repository = rating_repository
         self.enrollment_repository = enrollment_repository
@@ -69,6 +70,7 @@ class RatingService(IObservable[RatingDTO]):
         self.semester_service = semester_service
         self.vote_repository = vote_repository
         self.vote_mapper = vote_mapper
+        self.comment_normalizer = comment_normalizer
         self._listeners: list[IEventListener[RatingDTO]] = []
 
     @implements
@@ -167,7 +169,7 @@ class RatingService(IObservable[RatingDTO]):
         if rating_exists:
             raise DuplicateRatingException()
 
-        params.comment = self._normalize_comment(params.comment)
+        params.comment = self.comment_normalizer.normalize_comment(params.comment)
 
         rating = self.rating_repository.create(params)
         self.notify(rating)
@@ -176,7 +178,7 @@ class RatingService(IObservable[RatingDTO]):
     def update_rating(
         self, rating: RatingDTO, update_data: RatingPutParams | RatingPatchParams
     ) -> RatingDTO:
-        update_data.comment = self._normalize_comment(update_data.comment)
+        update_data.comment = self.comment_normalizer.normalize_comment(update_data.comment)
         updated_rating = self.rating_repository.update(rating, update_data)
         self.notify(updated_rating)
         return updated_rating
@@ -195,23 +197,6 @@ class RatingService(IObservable[RatingDTO]):
         return self.semester_service.is_past_semester(
             semester, current_semester
         ) or self.semester_service.is_midpoint(semester, current_date)
-
-    @staticmethod
-    def _normalize_comment(comment: str | None) -> str | None:
-        if not comment or comment == "":
-            return comment
-
-        # normalize line breaks
-        comment = comment.replace("\r\n", "\n").replace("\r", "\n")
-
-        # collapse 4+ newlines into exactly 3
-        comment = re.sub(r"\n{4,}", "\n\n\n", comment)
-
-        # strip trailing spaces on each line
-        lines = [line.rstrip() for line in comment.split("\n")]
-        comment = "\n".join(lines).strip()
-
-        return comment
 
     def _enrich_with_viewer_votes(self, ratings: list[RatingDTO], viewer_id: str) -> None:
         if not ratings:

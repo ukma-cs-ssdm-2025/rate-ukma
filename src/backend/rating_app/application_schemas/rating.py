@@ -8,6 +8,7 @@ from pydantic import BaseModel, BeforeValidator, Field
 from pydantic.alias_generators import to_snake
 from pydantic.json_schema import SkipJsonSchema
 
+from rating_app.application_schemas.comment import CommentAuthor
 from rating_app.constants import (
     DEFAULT_PAGE_NUMBER,
     DEFAULT_PAGE_SIZE,
@@ -160,6 +161,9 @@ class Rating(BaseModel):
     upvotes: int
     downvotes: int
     viewer_vote: RatingVoteStrType | None
+
+    comments_count: int
+    comment_authors: list[CommentAuthor] = Field(default_factory=list)
 
 
 class RatingsWithUserList(BaseModel):

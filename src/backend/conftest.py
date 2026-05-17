@@ -6,6 +6,7 @@ from faker import Faker
 
 from rateukma.caching.cache_manager import InMemoryCacheManager
 from rating_app.tests.factories import (
+    CommentFactory,
     CourseFactory,
     CourseInstructorFactory,
     CourseOfferingFactory,
@@ -152,6 +153,11 @@ def vote_factory():
     return RatingVoteFactory
 
 
+@pytest.fixture
+def comment_factory():
+    return CommentFactory
+
+
 @pytest.fixture(autouse=True)
 def mock_cache_manager(monkeypatch):
     cache = InMemoryCacheManager()
@@ -165,10 +171,12 @@ def mock_cache_manager(monkeypatch):
     # cache instance. Patch their .cache_manager so they use the per-test cache,
     # keeping version bumps and @rcached reads on the same instance.
     from rating_app.ioc_container.services import (
+        comment_cache_invalidator,
         rating_cache_invalidator,
         rating_vote_cache_invalidator,
     )
 
+    monkeypatch.setattr(comment_cache_invalidator(), "cache_manager", cache)
     monkeypatch.setattr(rating_cache_invalidator(), "cache_manager", cache)
     monkeypatch.setattr(rating_vote_cache_invalidator(), "cache_manager", cache)
 

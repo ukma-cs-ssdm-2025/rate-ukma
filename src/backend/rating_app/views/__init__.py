@@ -1,4 +1,5 @@
 from .analytics import AnalyticsViewSet
+from .comment_viewset import CommentViewset
 from .course_offering import CourseOfferingViewSet
 from .course_viewset import CourseViewSet
 from .instructor_viewset import InstructorViewSet
@@ -15,5 +16,6 @@ __all__ = [
     "StudentStatisticsViewSet",
     "CourseOfferingViewSet",
     "RatingVoteViewSet",
+    "CommentViewset",
     "NotificationViewSet",
 ]

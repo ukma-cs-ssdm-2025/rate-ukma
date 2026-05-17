@@ -8,6 +8,7 @@ import {
 	DEFAULT_STUDENT_NAME,
 } from "@/features/ratings/definitions/ratingDefinitions";
 import type {
+	CommentAuthor,
 	InlineRating,
 	RatingRead,
 	RatingVoteStrType,
@@ -20,16 +21,20 @@ interface ExtendedRating extends InlineRating {
 	upvotes?: number;
 	downvotes?: number;
 	viewer_vote?: RatingVoteStrType | null;
+	comments_count?: number;
+	comment_authors?: CommentAuthor[];
 }
 
 interface UserRatingCardProps {
 	readonly rating: RatingRead | ExtendedRating;
+	readonly courseId?: string;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
 }
 
 export function UserRatingCard({
 	rating,
+	courseId,
 	onEdit,
 	onDelete,
 }: UserRatingCardProps) {
@@ -59,7 +64,7 @@ export function UserRatingCard({
 
 	return (
 		<article
-			className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-4"
+			className="rounded-lg border border-primary/20 bg-[var(--user-rating-card-bg)] px-4 py-4 [--user-rating-card-bg:#f2f8fc]"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
 			<div className="flex items-center justify-between mb-2">
@@ -102,9 +107,13 @@ export function UserRatingCard({
 				instructor={rating.instructor}
 				commentEmptyMessage="Ви не залишили коментар."
 				ratingId={rating.id}
+				courseId={courseId}
 				upvotes={rating.upvotes ?? 0}
 				downvotes={rating.downvotes ?? 0}
 				viewerVote={rating.viewer_vote ?? null}
+				commentsCount={rating.comments_count ?? 0}
+				commentAuthors={rating.comment_authors ?? []}
+				commentAvatarSeparatorClassName="before:bg-[var(--user-rating-card-bg)]"
 				votesReadOnly={true}
 				votesDisabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
 			/>

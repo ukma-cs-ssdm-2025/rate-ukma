@@ -1,3 +1,4 @@
+from .comment import Comment
 from .course import Course
 from .course_instructor import CourseInstructor
 from .course_offering import CourseOffering
@@ -29,6 +30,7 @@ __all__ = [
     "CourseInstructor",
     "Enrollment",
     "Rating",
+    "Comment",
     "Person",
     "RatingVote",
     "Notification",

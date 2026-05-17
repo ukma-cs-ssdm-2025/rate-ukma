@@ -7,9 +7,10 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import { formatDate } from "@/features/courses/courseFormatting";
-import type { RatingVoteStrType } from "@/lib/api/generated";
+import type { CommentAuthor, RatingVoteStrType } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import { RatingComment } from "./RatingComment";
+import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
 import { RatingVotes } from "./RatingVotes";
 import { getAvatarColor, getInitials } from "./reviewerAvatar";
@@ -30,6 +31,9 @@ interface RatingCardBodyProps {
 	readonly upvotes: number;
 	readonly downvotes: number;
 	readonly viewerVote: RatingVoteStrType | null;
+	readonly commentsCount?: number;
+	readonly commentAuthors?: readonly CommentAuthor[];
+	readonly commentAvatarSeparatorClassName?: string;
 	readonly votesReadOnly?: boolean;
 	readonly votesDisabledMessage?: string;
 }
@@ -50,6 +54,9 @@ export function RatingCardBody({
 	upvotes,
 	downvotes,
 	viewerVote,
+	commentsCount = 0,
+	commentAuthors = [],
+	commentAvatarSeparatorClassName,
 	votesReadOnly = false,
 	votesDisabledMessage,
 }: RatingCardBodyProps) {
@@ -109,17 +116,26 @@ export function RatingCardBody({
 				<RatingComment comment={comment} emptyMessage={commentEmptyMessage} />
 			</div>
 
-			<div className="mt-3 flex items-center justify-end">
+			<div className="mt-3 flex flex-col gap-3">
 				{ratingId && (
-					<RatingVotes
+					<RatingComments
 						ratingId={ratingId}
 						courseId={courseId}
-						initialUpvotes={upvotes}
-						initialDownvotes={downvotes}
-						initialUserVote={viewerVote}
-						readOnly={votesReadOnly}
-						disabledMessage={votesDisabledMessage}
-						inline
+						commentsCount={commentsCount}
+						commentAuthors={commentAuthors}
+						avatarSeparatorClassName={commentAvatarSeparatorClassName}
+						trailingContent={
+							<RatingVotes
+								ratingId={ratingId}
+								courseId={courseId}
+								initialUpvotes={upvotes}
+								initialDownvotes={downvotes}
+								initialUserVote={viewerVote}
+								readOnly={votesReadOnly}
+								disabledMessage={votesDisabledMessage}
+								inline
+							/>
+						}
 					/>
 				)}
 			</div>

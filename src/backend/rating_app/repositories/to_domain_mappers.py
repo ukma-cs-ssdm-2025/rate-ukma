@@ -3,6 +3,7 @@ from datetime import datetime
 import structlog
 
 from rateukma.protocols import IProcessor, implements
+from rating_app.application_schemas.comment import CommentAuthor, CommentDTO
 from rating_app.application_schemas.course import Course as CourseDTO
 from rating_app.application_schemas.course import CourseOfferingSpeciality
 from rating_app.application_schemas.course_instructor import CourseInstructor as CourseInstructorDTO
@@ -23,6 +24,7 @@ from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteD
 from rating_app.application_schemas.semester import Semester as SemesterDTO
 from rating_app.application_schemas.speciality import Speciality as SpecialityDTO
 from rating_app.application_schemas.student import Student as StudentDTO
+from rating_app.constants import COMMENT_AUTHOR_PREVIEW_LIMIT
 from rating_app.exception.course_exceptions import CourseMissingDepartmentOrFacultyError
 from rating_app.models import Course
 from rating_app.models.choices import (
@@ -37,6 +39,7 @@ from rating_app.models.choices import (
     RatingVoteType,
     SemesterTerm,
 )
+from rating_app.models.comment import Comment as CommentModel
 from rating_app.models.course_instructor import CourseInstructor as CourseInstructorModel
 from rating_app.models.course_offering import CourseOffering as CourseOfferingModel
 from rating_app.models.course_offering_term import CourseOfferingTerm as CourseOfferingTermModel
@@ -184,6 +187,8 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
 
 
 class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
+    _MAX_COMMENT_AUTHORS = COMMENT_AUTHOR_PREVIEW_LIMIT
+
     @implements
     def process(self, model: RatingModel) -> RatingDTO:
         student_id = model.student.id
@@ -193,6 +198,7 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
         # annotated fields from ORM queryset
         upvotes = getattr(model, "upvotes_count", 0)
         downvotes = getattr(model, "downvotes_count", 0)
+        comments_count = getattr(model, "comments_count", 0)
         term = SemesterTerm(model.course_offering.semester.term)
 
         return RatingDTO(
@@ -213,6 +219,73 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             upvotes=upvotes,
             downvotes=downvotes,
             viewer_vote=None,  # set by service layer based on viewer context
+            comments_count=comments_count,
+            comment_authors=self._map_comment_authors(model),
+        )
+
+    def _map_comment_authors(self, model: RatingModel) -> list[CommentAuthor]:
+        comments = getattr(model, "comment_preview_comments", [])
+        comment_authors: list[CommentAuthor] = []
+        seen_users: set[int | str] = set()
+
+        for comment in comments:
+            seen_key = comment.user_id if not comment.is_anonymous else str(comment.id)
+            if seen_key in seen_users:
+                continue
+            seen_users.add(seen_key)
+
+            comment_authors.append(self._map_comment_author(comment))
+            if len(comment_authors) >= self._MAX_COMMENT_AUTHORS:
+                break
+
+        return comment_authors
+
+    def _map_comment_author(self, comment: CommentModel) -> CommentAuthor:
+        if comment.is_anonymous:
+            return CommentAuthor(
+                user_id=None,
+                user_name=None,
+                user_avatar_url=None,
+                is_anonymous=True,
+            )
+
+        student_profile = getattr(comment.user, "student_profile", None)
+        user_avatar_url = (
+            student_profile.avatar.url
+            if student_profile is not None and student_profile.avatar
+            else None
+        )
+        return CommentAuthor(
+            user_id=comment.user.id,
+            user_name=f"{comment.user.last_name} {comment.user.first_name}",
+            user_avatar_url=user_avatar_url,
+            is_anonymous=False,
+        )
+
+
+class CommentMapper(IProcessor[[CommentModel], CommentDTO]):
+    @implements
+    def process(self, model: CommentModel) -> CommentDTO:
+        user_name = f"{model.user.last_name} {model.user.first_name}"
+        student_profile = getattr(model.user, "student_profile", None)
+        replies_count = getattr(model, "replies_count", 0)
+        user_avatar_url = (
+            student_profile.avatar.url
+            if student_profile is not None and student_profile.avatar
+            else None
+        )
+        return CommentDTO(
+            id=model.id,
+            user_id=model.user.id,
+            user_name=user_name,
+            user_avatar_url=user_avatar_url,
+            rating_id=model.rating.id,
+            parent_id=model.parent_comment.id if model.parent_comment is not None else None,
+            course_id=model.rating.course_offering.course_id,
+            content=model.content,
+            is_anonymous=model.is_anonymous,
+            created_at=model.created_at,
+            replies_count=replies_count,
         )
 
 
@@ -524,9 +597,10 @@ class NotificationGroupMapper(IProcessor[[NotificationModel], NotificationGroup]
         is_unread: bool = True,
     ) -> NotificationGroup:
         actor = model.actor
+        is_anonymous_comment = self._is_anonymous_comment(model)
         actor_name = (
             f"{actor.last_name} {actor.first_name}"
-            if actor and hasattr(actor, "last_name")
+            if actor and hasattr(actor, "last_name") and not is_anonymous_comment
             else None
         )
 
@@ -541,3 +615,7 @@ class NotificationGroupMapper(IProcessor[[NotificationModel], NotificationGroup]
             latest_created_at=latest_created_at or model.created_at,
             is_unread=is_unread,
         )
+
+    def _is_anonymous_comment(self, model: NotificationModel) -> bool:
+        source = model.source
+        return isinstance(source, CommentModel) and source.is_anonymous

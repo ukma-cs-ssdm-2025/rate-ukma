@@ -3,6 +3,13 @@ from rest_framework import serializers
 from rating_app.models.choices import RatingVoteStrType, SemesterTerm
 
 
+class CommentAuthorSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(read_only=True, allow_null=True)
+    user_name = serializers.CharField(read_only=True, allow_null=True)
+    user_avatar_url = serializers.CharField(read_only=True, allow_null=True)
+    is_anonymous = serializers.BooleanField(read_only=True)
+
+
 class RatingReadSerializer(serializers.Serializer):
     """Serializer for reading RatingDTO. Nulls identity fields for anonymous ratings."""
 
@@ -27,6 +34,8 @@ class RatingReadSerializer(serializers.Serializer):
     viewer_vote = serializers.ChoiceField(
         choices=RatingVoteStrType.choices, read_only=True, allow_null=True
     )
+    comments_count = serializers.IntegerField(read_only=True)
+    comment_authors = CommentAuthorSerializer(many=True, read_only=True)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

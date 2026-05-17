@@ -20,6 +20,7 @@
 ## 🧩 Features
 
 - Rate courses and leave reviews
+- Vote and comment on reviews
 - Interactive graphs and analytics
 - Search and filter courses by department, professor, or rating
 - Anonymity to protect student privacy and prevent bias

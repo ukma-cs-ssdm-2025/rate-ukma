@@ -1,6 +1,7 @@
 from rateukma.caching.instances import redis_cache_manager
 from rateukma.ioc.decorators import once
 from rating_app.ioc_container.repositories import (
+    comment_repository,
     course_offering_repository,
     course_repository,
     department_repository,
@@ -19,6 +20,8 @@ from rating_app.ioc_container.repositories import (
     vote_repository,
 )
 from rating_app.services import (
+    CommentNormalizer,
+    CommentService,
     CourseOfferingService,
     CourseService,
     DepartmentService,
@@ -35,8 +38,12 @@ from rating_app.services.domain_event_listeners.aggregates_update import (
     CourseModelAggregatesUpdateObserver,
 )
 from rating_app.services.domain_event_listeners.cache_invalidator import (
+    CommentCacheInvalidator,
     RatingCacheInvalidator,
     RatingVoteCacheInvalidator,
+)
+from rating_app.services.domain_event_listeners.comment_notification import (
+    CommentNotificationObserver,
 )
 from rating_app.services.domain_event_listeners.vote_notification import (
     VoteNotificationObserver,
@@ -77,6 +84,11 @@ def course_service() -> CourseService:
 
 
 @once
+def comment_normalizer() -> CommentNormalizer:
+    return CommentNormalizer()
+
+
+@once
 def course_page_service() -> CoursePageService:
     return CoursePageService(course_service=course_service())
 
@@ -90,6 +102,15 @@ def rating_service() -> RatingService:
         semester_service=semester_service(),
         vote_repository=vote_repository(),
         vote_mapper=rating_vote_mapper(),
+        comment_normalizer=comment_normalizer(),
+    )
+
+
+@once
+def comment_service() -> CommentService:
+    return CommentService(
+        comment_repository=comment_repository(),
+        comment_normalizer=comment_normalizer(),
     )
 
 
@@ -149,6 +170,11 @@ def rating_vote_cache_invalidator() -> RatingVoteCacheInvalidator:
 
 
 @once
+def comment_cache_invalidator() -> CommentCacheInvalidator:
+    return CommentCacheInvalidator(cache_manager=redis_cache_manager())
+
+
+@once
 def notification_service() -> NotificationService:
     return NotificationService(
         notification_repository=notification_repository(),
@@ -165,9 +191,20 @@ def vote_notification_observer() -> VoteNotificationObserver:
     )
 
 
+@once
+def comment_notification_observer() -> CommentNotificationObserver:
+    return CommentNotificationObserver(
+        notification_service=notification_service(),
+        rating_repository=rating_repository(),
+        student_repository=student_repository(),
+    )
+
+
 def register_observers() -> None:
     rating_service().add_observer(course_model_aggregates_update_observer())
     rating_service().add_observer(rating_cache_invalidator())
+    comment_service().add_observer(comment_cache_invalidator())
+    comment_service().add_observer(comment_notification_observer())
     vote_service().add_observer(rating_vote_cache_invalidator())
     vote_service().add_observer(vote_notification_observer())
 

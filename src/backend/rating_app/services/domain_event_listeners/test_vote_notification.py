@@ -40,6 +40,7 @@ def _make_rating_dto(
         upvotes=0,
         downvotes=0,
         viewer_vote=None,
+        comments_count=0,
     )
 
 

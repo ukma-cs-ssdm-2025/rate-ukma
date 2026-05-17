@@ -21,6 +21,8 @@ from rating_app.repositories.to_domain_mappers import (
 )
 
 from ..repositories import (
+    CommentMapper,
+    CommentRepository,
     CourseInstructorRepository,
     CourseMapper,
     CourseOfferingRepository,
@@ -54,6 +56,11 @@ def rating_mapper() -> RatingMapper:
 @once
 def rating_vote_mapper() -> RatingVoteMapper:
     return RatingVoteMapper()
+
+
+@once
+def comment_mapper() -> CommentMapper:
+    return CommentMapper()
 
 
 @once
@@ -164,6 +171,11 @@ def rating_repository() -> RatingRepository:
         paginator=GenericQuerysetPaginator(),
         popularity_annotator=WilsonPopularityAnnotator(),
     )
+
+
+@once
+def comment_repository() -> CommentRepository:
+    return CommentRepository(paginator=GenericQuerysetPaginator(), mapper=CommentMapper())
 
 
 @once

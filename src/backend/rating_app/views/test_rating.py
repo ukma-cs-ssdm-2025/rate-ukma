@@ -1,7 +1,12 @@
+from datetime import timedelta
 from decimal import Decimal
+
+from django.utils import timezone
 
 import pytest
 from freezegun import freeze_time
+
+from rating_app.models import Comment
 
 DEFAULT_DATE = "2023-10-25"
 DEFAULT_AFTER_MIDTERM_DATE = "2023-11-25"
@@ -26,6 +31,87 @@ def test_ratings_list(token_client, course_factory, course_offering_factory, rat
     assert response.status_code == 200
     assert data["total"] == num_ratings
     assert len(data["items"]["ratings"]) == num_ratings
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_list_counts_comments_and_votes_without_join_multiplication(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    comment_factory,
+    vote_factory,
+    student_factory,
+):
+    from rating_app.models.choices import RatingVoteType
+
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    rating = rating_factory(course_offering=offering)
+
+    comment = comment_factory(rating=rating)
+    comment_factory(rating=rating, parent_comment=comment)
+    vote_factory(rating=rating, student=student_factory(), type=RatingVoteType.UPVOTE)
+    vote_factory(rating=rating, student=student_factory(), type=RatingVoteType.DOWNVOTE)
+
+    response = token_client.get(f"/api/v1/courses/{course.id}/ratings/")
+
+    assert response.status_code == 200
+
+    data = response.json()
+    [rating_data] = data["items"]["ratings"]
+
+    assert rating_data["comments_count"] == 2
+    assert rating_data["upvotes"] == 1
+    assert rating_data["downvotes"] == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_list_includes_last_three_comment_author_avatars(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    comment_factory,
+    user_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    rating = rating_factory(course_offering=offering)
+    users = [
+        user_factory(
+            first_name=f"User{i}",
+            last_name="Commenter",
+            email=f"commenter{i}@ukma.edu.ua",
+        )
+        for i in range(6)
+    ]
+
+    created_at = timezone.now()
+    for index, user in enumerate(users):
+        comment = comment_factory(rating=rating, user=user)
+        Comment.objects.filter(pk=comment.pk).update(
+            created_at=created_at + timedelta(seconds=index)
+        )
+
+    response = token_client.get(f"/api/v1/courses/{course.id}/ratings/")
+
+    assert response.status_code == 200
+
+    data = response.json()
+    [rating_data] = data["items"]["ratings"]
+    comment_authors = rating_data["comment_authors"]
+
+    assert len(comment_authors) == 3
+    assert [author["user_id"] for author in comment_authors] == [user.id for user in users[5:2:-1]]
+    assert comment_authors[0] == {
+        "user_id": users[5].id,
+        "user_name": "Commenter User5",
+        "user_avatar_url": None,
+        "is_anonymous": False,
+    }
 
 
 @pytest.mark.django_db
@@ -868,6 +954,42 @@ def test_ratings_default_sort_order(
     assert data["items"]["ratings"][0]["id"] == str(rating_2.id)  # 3 upvotes
     assert data["items"]["ratings"][1]["id"] == str(rating_1.id)  # 1 upvote
     assert data["items"]["ratings"][2]["id"] == str(rating_3.id)  # 0 votes
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_sort_same_popularity_by_comments_count(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    comment_factory,
+):
+    """Ratings with equal popularity score are ordered by comment count first."""
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+
+    with freeze_time("2023-10-01 10:00:00"):
+        rating_with_two_comments = rating_factory(course_offering=offering)
+    with freeze_time("2023-10-02 10:00:00"):
+        rating_with_one_comment = rating_factory(course_offering=offering)
+    with freeze_time("2023-10-03 10:00:00"):
+        rating_without_comments = rating_factory(course_offering=offering)
+
+    comment_factory.create_batch(2, rating=rating_with_two_comments)
+    comment_factory(rating=rating_with_one_comment)
+
+    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
+    response = token_client.get(url)
+    data = response.json()
+
+    assert response.status_code == 200
+    assert [item["id"] for item in data["items"]["ratings"]] == [
+        str(rating_with_two_comments.id),
+        str(rating_with_one_comment.id),
+        str(rating_without_comments.id),
+    ]
+    assert [item["comments_count"] for item in data["items"]["ratings"]] == [2, 1, 0]
 
 
 @pytest.mark.django_db

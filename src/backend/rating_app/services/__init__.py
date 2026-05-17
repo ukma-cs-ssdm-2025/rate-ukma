@@ -1,3 +1,5 @@
+from .comment_normalizer import CommentNormalizer
+from .comment_service import CommentService
 from .course_offering_service import CourseOfferingService
 from .course_service import CourseService
 from .department_service import DepartmentService
@@ -12,6 +14,8 @@ from .vote_service import RatingFeedbackService
 
 __all__ = [
     "CourseService",
+    "CommentNormalizer",
+    "CommentService",
     "RatingService",
     "InstructorService",
     "StudentService",

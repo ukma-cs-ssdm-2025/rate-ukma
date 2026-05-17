@@ -49,14 +49,14 @@ export function CourseDetailsHeader({
 			</div>
 
 			{(metaParts.length > 0 || educationLevelLabel) && (
-				<p className="text-sm text-muted-foreground">
+				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
 					{educationLevelLabel && (
-						<span className="mr-2 inline-flex items-center rounded-sm border px-1.5 py-0.5 text-xs font-medium text-muted-foreground align-middle">
+						<span className="inline-flex shrink-0 items-center rounded-sm border px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
 							{educationLevelLabel}
 						</span>
 					)}
-					{metaParts.join(" · ")}
-				</p>
+					{metaParts.length > 0 && <span>{metaParts.join(" · ")}</span>}
+				</div>
 			)}
 
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-2">

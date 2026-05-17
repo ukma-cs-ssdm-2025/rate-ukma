@@ -4,6 +4,7 @@ from django.db.models import Count, Q
 from reversion.admin import VersionAdmin
 
 from rating_app.models import (
+    Comment,
     Course,
     CourseInstructor,
     CourseOffering,
@@ -260,6 +261,55 @@ class RatingAdmin(VersionAdmin):
     @admin.display(description="Downvotes", ordering="_downvotes")
     def downvotes_count(self, obj):
         return obj._downvotes
+
+
+@admin.register(Comment)
+class CommentAdmin(VersionAdmin):
+    list_display = (
+        "id",
+        "rating",
+        "parent_comment",
+        "user",
+        "content",
+        "is_anonymous",
+        "created_at",
+    )
+    list_select_related = (
+        "rating",
+        "rating__course_offering",
+        "rating__course_offering__course",
+        "parent_comment",
+        "user",
+    )
+    list_filter = (
+        "is_anonymous",
+        "created_at",
+        "rating__course_offering__course__department",
+    )
+    search_fields = (
+        "content",
+        "user__username",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+        "rating__course_offering__course__title",
+    )
+    ordering = ("-created_at",)
+    readonly_fields = ("created_at",)
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related(
+                "rating",
+                "rating__course_offering",
+                "rating__course_offering__course",
+                "rating__course_offering__course__department",
+                "parent_comment",
+                "user",
+            )
+        )
 
 
 @admin.register(Semester)
