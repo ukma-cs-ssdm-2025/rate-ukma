@@ -122,17 +122,8 @@ class TestCommentCacheInvalidator:
         return MagicMock()
 
     @pytest.fixture
-    def comment_repository(self):
-        repository = MagicMock()
-        repository.get_by_id.return_value = _make_comment_dto()
-        return repository
-
-    @pytest.fixture
-    def invalidator(self, cache_manager, comment_repository):
-        return CommentCacheInvalidator(
-            cache_manager=cache_manager,
-            comment_repository=comment_repository,
-        )
+    def invalidator(self, cache_manager):
+        return CommentCacheInvalidator(cache_manager=cache_manager)
 
     def test_bumps_rating_comments_and_course_ratings_namespaces(
         self,
@@ -171,17 +162,16 @@ class TestCommentCacheInvalidator:
         self,
         invalidator,
         cache_manager,
-        comment_repository,
     ):
         grandparent_id = uuid.uuid4()
         parent_id = uuid.uuid4()
         course_id = uuid.uuid4()
-        comment_repository.get_by_id.return_value = _make_comment_dto(
-            parent_id=grandparent_id,
-            course_id=course_id,
-        )
         comment = _make_comment_dto(parent_id=parent_id, course_id=course_id)
-        event = CommentEvent(comment=comment, action=CommentAction.CREATED)
+        event = CommentEvent(
+            comment=comment,
+            action=CommentAction.CREATED,
+            parent_parent_id=grandparent_id,
+        )
 
         invalidator.on_event(event)
 
