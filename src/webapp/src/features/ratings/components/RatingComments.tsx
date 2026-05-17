@@ -301,8 +301,8 @@ function PreviewAuthorAvatar({
 	return (
 		<span
 			className={cn(
-				"relative flex size-7 shrink-0 rounded-full",
-				index > 0 && "-ml-2.5",
+				"relative flex size-6 shrink-0 rounded-full",
+				index > 0 && "-ml-2",
 				index > 0 &&
 					cn(
 						"before:absolute before:-inset-0.5 before:rounded-full before:content-['']",
@@ -310,7 +310,7 @@ function PreviewAuthorAvatar({
 					),
 			)}
 		>
-			<Avatar className="relative size-full text-[11px] font-semibold">
+			<Avatar className="relative size-full text-[10px] font-semibold">
 				{showAvatar && (
 					<AvatarImage
 						src={author.user_avatar_url ?? undefined}
@@ -319,7 +319,7 @@ function PreviewAuthorAvatar({
 				)}
 				<AvatarFallback
 					className={cn(
-						"text-[11px] font-semibold",
+						"text-[10px] font-semibold",
 						getAvatarColor(authorName),
 					)}
 				>
