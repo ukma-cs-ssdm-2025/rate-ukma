@@ -38,7 +38,6 @@ interface RatingCommentsProps {
 	readonly courseId?: string;
 	readonly commentsCount?: number;
 	readonly commentAuthors?: readonly CommentAuthor[];
-	readonly avatarSeparatorClassName?: string;
 	readonly trailingContent?: ReactNode;
 }
 
@@ -290,52 +289,39 @@ function CommentAvatar({ comment }: Readonly<{ comment: CommentRead }>) {
 function PreviewAuthorAvatar({
 	author,
 	index,
-	separatorClassName,
 }: Readonly<{
 	author: CommentPreviewAuthor;
 	index: number;
-	separatorClassName: string;
 }>) {
 	const authorName = getAuthorName(author);
 	const showAvatar = !author.is_anonymous && author.user_avatar_url;
 	return (
-		<span
+		<Avatar
 			className={cn(
-				"relative flex size-6 shrink-0 rounded-full",
+				"size-6 shrink-0 text-[10px] font-semibold",
+				"ring-2 ring-[color:var(--avatar-ring-color,var(--card))]",
 				index > 0 && "-ml-2",
-				index > 0 &&
-					cn(
-						"before:absolute before:-inset-0.5 before:rounded-full before:content-['']",
-						separatorClassName,
-					),
 			)}
 		>
-			<Avatar className="relative size-full text-[10px] font-semibold">
-				{showAvatar && (
-					<AvatarImage
-						src={author.user_avatar_url ?? undefined}
-						alt={authorName}
-					/>
-				)}
-				<AvatarFallback
-					className={cn(
-						"text-[10px] font-semibold",
-						getAvatarColor(authorName),
-					)}
-				>
-					{getInitials(authorName, author.is_anonymous ?? false)}
-				</AvatarFallback>
-			</Avatar>
-		</span>
+			{showAvatar && (
+				<AvatarImage
+					src={author.user_avatar_url ?? undefined}
+					alt={authorName}
+				/>
+			)}
+			<AvatarFallback
+				className={cn("text-[10px] font-semibold", getAvatarColor(authorName))}
+			>
+				{getInitials(authorName, author.is_anonymous ?? false)}
+			</AvatarFallback>
+		</Avatar>
 	);
 }
 
 function CommentAuthorsPreview({
 	authors,
-	separatorClassName,
 }: Readonly<{
 	authors?: readonly CommentAuthor[];
-	separatorClassName: string;
 }>) {
 	const previewAuthors = authors?.length ? authors.slice(0, 3).reverse() : [];
 
@@ -350,7 +336,6 @@ function CommentAuthorsPreview({
 					key={`${author.user_id ?? "anonymous"}-${index}`}
 					author={author}
 					index={index}
-					separatorClassName={separatorClassName}
 				/>
 			))}
 		</span>
@@ -607,7 +592,6 @@ export function RatingComments({
 	courseId,
 	commentsCount = 0,
 	commentAuthors,
-	avatarSeparatorClassName = "before:bg-background",
 	trailingContent,
 }: RatingCommentsProps) {
 	const queryClient = useQueryClient();
@@ -721,10 +705,7 @@ export function RatingComments({
 							aria-expanded={isExpanded}
 							data-testid={testIds.comments.toggleButton}
 						>
-							<CommentAuthorsPreview
-								authors={commentAuthors}
-								separatorClassName={avatarSeparatorClassName}
-							/>
+							<CommentAuthorsPreview authors={commentAuthors} />
 							<span className="text-xs font-medium">
 								Коментарі {formatCount(displayedCount)}
 							</span>
