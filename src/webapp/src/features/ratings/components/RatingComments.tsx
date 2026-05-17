@@ -62,6 +62,7 @@ interface RatingCommentItemProps {
 	readonly comment: CommentRead;
 	readonly ratingId: string;
 	readonly courseId?: string;
+	readonly parentListCommentId?: string | null;
 }
 
 interface CommentActionsProps {
@@ -87,6 +88,19 @@ function invalidateRatingCommentQueries(
 			refetchType: "none",
 		});
 	}
+}
+
+function invalidateRepliesQuery(
+	queryClient: ReturnType<typeof useQueryClient>,
+	commentId: string | null | undefined,
+) {
+	if (!commentId) {
+		return;
+	}
+
+	queryClient.invalidateQueries({
+		queryKey: getCommentsRepliesRetrieveQueryKey(commentId),
+	});
 }
 
 function getAuthorName(author: {
@@ -397,6 +411,7 @@ function RatingCommentItem({
 	comment,
 	ratingId,
 	courseId,
+	parentListCommentId = null,
 }: RatingCommentItemProps) {
 	const queryClient = useQueryClient();
 	const [isReplying, setIsReplying] = useState(false);
@@ -440,9 +455,8 @@ function RatingCommentItem({
 
 		setIsReplying(false);
 		setShowReplies(true);
-		queryClient.invalidateQueries({
-			queryKey: getCommentsRepliesRetrieveQueryKey(commentId),
-		});
+		invalidateRepliesQuery(queryClient, commentId);
+		invalidateRepliesQuery(queryClient, comment.parent_id);
 		invalidateRatingCommentQueries(queryClient, ratingId, courseId);
 		toast.success("Відповідь додано");
 	};
@@ -473,11 +487,8 @@ function RatingCommentItem({
 	const handleDelete = async () => {
 		try {
 			await deleteComment.mutateAsync({ commentId });
-			queryClient.invalidateQueries({
-				queryKey: comment.parent_id
-					? getCommentsRepliesRetrieveQueryKey(comment.parent_id)
-					: getRatingsCommentsListQueryKey(ratingId),
-			});
+			invalidateRepliesQuery(queryClient, comment.parent_id);
+			invalidateRepliesQuery(queryClient, parentListCommentId);
 			invalidateRatingCommentQueries(queryClient, ratingId, courseId);
 			toast.success("Коментар видалено");
 		} catch (error) {
@@ -505,6 +516,7 @@ function RatingCommentItem({
 							comment={reply}
 							ratingId={ratingId}
 							courseId={courseId}
+							parentListCommentId={comment.parent_id}
 						/>
 					))}
 					{repliesQuery.hasNextPage && (
