@@ -3,7 +3,7 @@ import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, Pencil, Reply, Trash2 } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -29,7 +29,6 @@ import {
 } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
-import { getAvatarColor, getInitials } from "./reviewerAvatar";
 
 const COMMENTS_PAGE_SIZE = 5;
 const REPLIES_PAGE_SIZE = 5;
@@ -272,20 +271,13 @@ function CommentBody({ comment }: Readonly<{ comment: CommentRead }>) {
 }
 
 function CommentAvatar({ comment }: Readonly<{ comment: CommentRead }>) {
-	const author = getCommentAuthor(comment);
-	const showAvatar = !comment.is_anonymous && comment.user_avatar_url;
-
 	return (
-		<Avatar className="size-7 shrink-0 text-[11px] font-semibold">
-			{showAvatar && (
-				<AvatarImage src={comment.user_avatar_url ?? undefined} alt={author} />
-			)}
-			<AvatarFallback
-				className={cn("text-[11px] font-semibold", getAvatarColor(author))}
-			>
-				{getInitials(author, comment.is_anonymous ?? false)}
-			</AvatarFallback>
-		</Avatar>
+		<UserAvatar
+			name={getCommentAuthor(comment)}
+			avatarUrl={comment.user_avatar_url}
+			isAnonymous={comment.is_anonymous ?? false}
+			className="size-7 shrink-0 text-[11px] font-semibold"
+		/>
 	);
 }
 
@@ -296,28 +288,17 @@ function PreviewAuthorAvatar({
 	author: CommentPreviewAuthor;
 	index: number;
 }>) {
-	const authorName = getAuthorName(author);
-	const showAvatar = !author.is_anonymous && author.user_avatar_url;
 	return (
-		<Avatar
+		<UserAvatar
+			name={getAuthorName(author)}
+			avatarUrl={author.user_avatar_url}
+			isAnonymous={author.is_anonymous ?? false}
 			className={cn(
 				"size-6 shrink-0 text-[10px] font-semibold",
 				"ring-2 ring-[color:var(--avatar-ring-color,var(--card))]",
 				index > 0 && "-ml-2",
 			)}
-		>
-			{showAvatar && (
-				<AvatarImage
-					src={author.user_avatar_url ?? undefined}
-					alt={authorName}
-				/>
-			)}
-			<AvatarFallback
-				className={cn("text-[10px] font-semibold", getAvatarColor(authorName))}
-			>
-				{getInitials(authorName, author.is_anonymous ?? false)}
-			</AvatarFallback>
-		</Avatar>
+		/>
 	);
 }
 

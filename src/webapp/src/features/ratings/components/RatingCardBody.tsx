@@ -1,6 +1,6 @@
 import { Info } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { UserAvatar } from "@/components/UserAvatar";
 import {
 	Tooltip,
 	TooltipContent,
@@ -8,12 +8,10 @@ import {
 } from "@/components/ui/Tooltip";
 import { formatDate } from "@/features/courses/courseFormatting";
 import type { CommentAuthor, RatingVoteStrType } from "@/lib/api/generated";
-import { cn } from "@/lib/utils";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
 import { RatingVotes } from "./RatingVotes";
-import { getAvatarColor, getInitials } from "./reviewerAvatar";
 
 interface RatingCardBodyProps {
 	readonly displayName: string;
@@ -62,19 +60,12 @@ export function RatingCardBody({
 		<>
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 				<div className="flex min-w-0 items-start gap-2.5">
-					<Avatar className="h-8 w-8 shrink-0 text-xs font-semibold">
-						{avatarUrl && !isAnonymous && (
-							<AvatarImage src={avatarUrl} alt={displayName} />
-						)}
-						<AvatarFallback
-							className={cn(
-								"text-xs font-semibold",
-								getAvatarColor(displayName),
-							)}
-						>
-							{getInitials(displayName, isAnonymous)}
-						</AvatarFallback>
-					</Avatar>
+					<UserAvatar
+						name={displayName}
+						avatarUrl={avatarUrl}
+						isAnonymous={isAnonymous}
+						className="h-8 w-8 shrink-0 text-xs font-semibold"
+					/>
 					<div className="flex min-w-0 flex-col flex-1">
 						<div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
 							<span className="min-w-0 truncate text-sm font-medium">

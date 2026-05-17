@@ -1,3 +1,8 @@
+import type { ComponentProps } from "react";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { cn } from "@/lib/utils";
+
 const AVATAR_COLORS = [
 	"bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
 	"bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
@@ -18,7 +23,11 @@ function hashName(name: string): number {
 	return Math.abs(hash);
 }
 
-export function getInitials(name: string, isAnonymous: boolean): string {
+function getAvatarColor(name: string): string {
+	return AVATAR_COLORS[hashName(name) % AVATAR_COLORS.length];
+}
+
+function getInitials(name: string, isAnonymous: boolean): string {
 	if (isAnonymous) return "?";
 	const parts = name.trim().split(/\s+/);
 	if (parts.length >= 2) {
@@ -27,6 +36,27 @@ export function getInitials(name: string, isAnonymous: boolean): string {
 	return name.slice(0, 2).toUpperCase();
 }
 
-export function getAvatarColor(name: string): string {
-	return AVATAR_COLORS[hashName(name) % AVATAR_COLORS.length];
+interface UserAvatarProps extends ComponentProps<typeof Avatar> {
+	readonly name: string;
+	readonly avatarUrl?: string | null;
+	readonly isAnonymous?: boolean;
+}
+
+export function UserAvatar({
+	name,
+	avatarUrl,
+	isAnonymous = false,
+	className,
+	...rest
+}: UserAvatarProps) {
+	const showImage = !isAnonymous && Boolean(avatarUrl);
+
+	return (
+		<Avatar className={className} {...rest}>
+			{showImage && <AvatarImage src={avatarUrl ?? undefined} alt={name} />}
+			<AvatarFallback className={cn(getAvatarColor(name))}>
+				{getInitials(name, isAnonymous)}
+			</AvatarFallback>
+		</Avatar>
+	);
 }
