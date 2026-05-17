@@ -293,24 +293,31 @@ function PreviewAuthorAvatar({
 	const authorName = getAuthorName(author);
 	const showAvatar = !author.is_anonymous && author.user_avatar_url;
 	return (
-		<Avatar
+		<span
 			className={cn(
-				"size-7 shrink-0 border-2 border-background text-[11px] font-semibold",
+				"relative flex size-7 shrink-0 rounded-full",
 				index > 0 && "-ml-2.5",
+				index > 0 &&
+					"before:absolute before:-inset-0.5 before:rounded-full before:bg-background before:content-['']",
 			)}
 		>
-			{showAvatar && (
-				<AvatarImage
-					src={author.user_avatar_url ?? undefined}
-					alt={authorName}
-				/>
-			)}
-			<AvatarFallback
-				className={cn("text-[11px] font-semibold", getAvatarColor(authorName))}
-			>
-				{getInitials(authorName, author.is_anonymous ?? false)}
-			</AvatarFallback>
-		</Avatar>
+			<Avatar className="relative size-full text-[11px] font-semibold">
+				{showAvatar && (
+					<AvatarImage
+						src={author.user_avatar_url ?? undefined}
+						alt={authorName}
+					/>
+				)}
+				<AvatarFallback
+					className={cn(
+						"text-[11px] font-semibold",
+						getAvatarColor(authorName),
+					)}
+				>
+					{getInitials(authorName, author.is_anonymous ?? false)}
+				</AvatarFallback>
+			</Avatar>
+		</span>
 	);
 }
 
