@@ -48,7 +48,7 @@ export function UserAvatar({
 	isAnonymous = false,
 	className,
 	...rest
-}: UserAvatarProps) {
+}: Readonly<UserAvatarProps>) {
 	const showImage = !isAnonymous && Boolean(avatarUrl);
 
 	return (
