@@ -80,6 +80,40 @@ def test_create_comment_notifies_created_action(
     )
 
 
+def test_create_nested_reply_notifies_with_parent_parent_id(
+    service,
+    comment_repository,
+    comment_normalizer,
+):
+    listener = MagicMock()
+    service.add_observer(listener)
+    rating_id = uuid.uuid4()
+    parent_id = uuid.uuid4()
+    grandparent_id = uuid.uuid4()
+    parent = _make_comment_dto(rating_id=rating_id, parent_id=grandparent_id)
+    params = CommentCreateParams(
+        rating_id=rating_id,
+        user_id=1,
+        parent_comment=parent_id,
+        content=" Nested reply ",
+        is_anonymous=False,
+    )
+    comment = _make_comment_dto(rating_id=rating_id, parent_id=parent_id)
+    comment_repository.get_by_id.return_value = parent
+    comment_repository.create.return_value = comment
+    comment_normalizer.normalize_comment.return_value = "Nested reply"
+
+    service.create_comment(params)
+
+    listener.on_event.assert_called_once_with(
+        CommentEvent(
+            comment=comment,
+            action=CommentAction.CREATED,
+            parent_parent_id=grandparent_id,
+        )
+    )
+
+
 def test_create_comment_rejects_parent_from_another_rating(
     service,
     comment_repository,
@@ -116,6 +150,32 @@ def test_delete_comment_notifies_deleted_action(service, comment_repository):
         CommentEvent(comment=comment, action=CommentAction.DELETED)
     )
     comment_repository.delete.assert_called_once_with(str(comment.id))
+
+
+def test_delete_nested_reply_notifies_with_parent_parent_id(service, comment_repository):
+    listener = MagicMock()
+    service.add_observer(listener)
+    parent_id = uuid.uuid4()
+    grandparent_id = uuid.uuid4()
+    comment = _make_comment_dto(parent_id=parent_id)
+    parent = _make_comment_dto(
+        rating_id=comment.rating_id,
+        parent_id=grandparent_id,
+        course_id=comment.course_id,
+    )
+    comment_repository.get_by_id.return_value = parent
+
+    service.delete_comment(comment)
+
+    comment_repository.get_by_id.assert_called_once_with(str(parent_id))
+    comment_repository.delete.assert_called_once_with(str(comment.id))
+    listener.on_event.assert_called_once_with(
+        CommentEvent(
+            comment=comment,
+            action=CommentAction.DELETED,
+            parent_parent_id=grandparent_id,
+        )
+    )
 
 
 def test_delete_comment_does_not_notify_when_repository_fails(service, comment_repository):

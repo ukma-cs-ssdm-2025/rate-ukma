@@ -1,3 +1,4 @@
+import uuid
 from typing import Any
 
 from rateukma.caching.decorators import rcached
@@ -51,18 +52,27 @@ class CommentService(IObservable[CommentEvent]):
         self._listeners.append(observer)
 
     def create_comment(self, params: CommentCreateParams) -> CommentDTO:
-        self._validate_parent_comment_matches_rating(params)
+        parent = self._validate_parent_comment_matches_rating(params)
         params.content = self.comment_normalizer.normalize_comment(params.content)
         comment = self.comment_repository.create(params)
-        self._notify_comment(comment, CommentAction.CREATED)
+        self._notify_comment(
+            comment,
+            CommentAction.CREATED,
+            parent_parent_id=parent.parent_id if parent else None,
+        )
         return self._with_manage_permission(comment, params.user_id)
 
     def get_comment(self, comment_id: str) -> CommentDTO:
         return self.comment_repository.get_by_id(comment_id)
 
     def delete_comment(self, comment: CommentDTO) -> None:
+        parent_parent_id = self._get_parent_parent_id(comment)
         self.comment_repository.delete(str(comment.id))
-        self._notify_comment(comment, CommentAction.DELETED)
+        self._notify_comment(
+            comment,
+            CommentAction.DELETED,
+            parent_parent_id=parent_parent_id,
+        )
 
     def update_comment(
         self,
@@ -76,16 +86,39 @@ class CommentService(IObservable[CommentEvent]):
         self._notify_comment(updated_comment, CommentAction.UPDATED)
         return self._with_manage_permission(updated_comment, updated_comment.user_id)
 
-    def _notify_comment(self, comment: CommentDTO, action: CommentAction) -> None:
-        self.notify(CommentEvent(comment=comment, action=action))
+    def _notify_comment(
+        self,
+        comment: CommentDTO,
+        action: CommentAction,
+        parent_parent_id: uuid.UUID | None = None,
+    ) -> None:
+        self.notify(
+            CommentEvent(
+                comment=comment,
+                action=action,
+                parent_parent_id=parent_parent_id,
+            )
+        )
 
-    def _validate_parent_comment_matches_rating(self, params: CommentCreateParams) -> None:
+    def _validate_parent_comment_matches_rating(
+        self,
+        params: CommentCreateParams,
+    ) -> CommentDTO | None:
         if params.parent_comment is None:
-            return
+            return None
 
         parent = self.comment_repository.get_by_id(str(params.parent_comment))
         if parent.rating_id != params.rating_id:
             raise CommentParentRatingMismatchError()
+
+        return parent
+
+    def _get_parent_parent_id(self, comment: CommentDTO) -> uuid.UUID | None:
+        if comment.parent_id is None:
+            return None
+
+        parent = self.comment_repository.get_by_id(str(comment.parent_id))
+        return parent.parent_id
 
     @rcached(ttl=300, versioned_by=_comments_namespace)
     def filter_comments(

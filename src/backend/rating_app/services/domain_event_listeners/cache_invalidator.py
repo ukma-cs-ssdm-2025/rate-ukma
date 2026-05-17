@@ -12,7 +12,7 @@ from rateukma.protocols.generic import IEventListener
 from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
 from rating_app.repositories import RatingRepository
-from rating_app.services.comment_events import CommentEvent
+from rating_app.services.comment_events import CommentAction, CommentEvent
 
 # TODO: implement a generic cache invalidator with patterns
 
@@ -54,5 +54,11 @@ class CommentCacheInvalidator(IEventListener[CommentEvent]):
         self.cache_manager.bump_version(comment_replies_namespace(str(comment.id)))
         if comment.parent_id is not None:
             self.cache_manager.bump_version(comment_replies_namespace(str(comment.parent_id)))
+            if event.action in (CommentAction.CREATED, CommentAction.DELETED):
+                self._bump_parent_container_replies_namespace(event)
 
         self.cache_manager.bump_version(course_ratings_namespace(str(comment.course_id)))
+
+    def _bump_parent_container_replies_namespace(self, event: CommentEvent) -> None:
+        if event.parent_parent_id is not None:
+            self.cache_manager.bump_version(comment_replies_namespace(str(event.parent_parent_id)))

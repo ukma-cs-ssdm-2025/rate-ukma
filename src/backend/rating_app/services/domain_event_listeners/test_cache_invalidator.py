@@ -157,3 +157,29 @@ class TestCommentCacheInvalidator:
 
         cache_manager.bump_version.assert_any_call(comment_replies_namespace(str(parent_id)))
         assert cache_manager.bump_version.call_count == 4
+
+    @pytest.mark.parametrize(
+        "action",
+        [CommentAction.CREATED, CommentAction.DELETED],
+    )
+    def test_bumps_parent_container_replies_namespace_for_nested_reply_count_changes(
+        self,
+        invalidator,
+        cache_manager,
+        action,
+    ):
+        grandparent_id = uuid.uuid4()
+        parent_id = uuid.uuid4()
+        course_id = uuid.uuid4()
+        comment = _make_comment_dto(parent_id=parent_id, course_id=course_id)
+        event = CommentEvent(
+            comment=comment,
+            action=action,
+            parent_parent_id=grandparent_id,
+        )
+
+        invalidator.on_event(event)
+
+        cache_manager.bump_version.assert_any_call(comment_replies_namespace(str(parent_id)))
+        cache_manager.bump_version.assert_any_call(comment_replies_namespace(str(grandparent_id)))
+        assert cache_manager.bump_version.call_count == 5

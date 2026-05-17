@@ -1,3 +1,4 @@
+import uuid
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -14,3 +15,4 @@ class CommentAction(StrEnum):
 class CommentEvent:
     comment: CommentDTO
     action: CommentAction
+    parent_parent_id: uuid.UUID | None = None

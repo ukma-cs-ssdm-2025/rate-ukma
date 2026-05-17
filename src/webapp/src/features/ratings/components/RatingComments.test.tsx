@@ -383,6 +383,87 @@ describe("RatingComments", () => {
 		});
 	});
 
+	it("invalidates the parent replies cache when creating a nested reply", async () => {
+		const user = userEvent.setup();
+		apiMocks.ratingsCommentsList.mockResolvedValue(
+			mockCommentList([
+				{
+					id: "comment-1",
+					rating_id: "rating-1",
+					parent_id: null,
+					content: "Parent comment",
+					user_id: 8,
+					user_name: "Parent Author",
+					user_avatar_url: null,
+					is_anonymous: false,
+					created_at: "2026-05-11T12:00:00Z",
+					replies_count: 1,
+				},
+			]),
+		);
+		apiMocks.commentsRepliesRetrieve.mockImplementation((commentId: string) =>
+			Promise.resolve(
+				commentId === "comment-1"
+					? mockCommentList([
+							{
+								id: "reply-1",
+								rating_id: "rating-1",
+								parent_id: "comment-1",
+								content: "Reply body",
+								user_id: 7,
+								user_name: "Reply Author",
+								user_avatar_url: null,
+								is_anonymous: false,
+								created_at: "2026-05-11T12:05:00Z",
+								replies_count: 0,
+							},
+						])
+					: mockCommentList([]),
+			),
+		);
+		const { queryClient } = renderWithQuery(
+			<RatingComments ratingId="rating-1" commentsCount={2} />,
+		);
+		const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+
+		await user.click(screen.getByTestId(testIds.comments.toggleButton));
+		await screen.findByText("Parent comment");
+		await user.click(screen.getByRole("button", { name: /1/ }));
+		const replyItem = (await screen.findByText("Reply body")).closest(
+			`[data-testid="${testIds.comments.item}"]`,
+		);
+		expect(replyItem).not.toBeNull();
+
+		await user.click(within(replyItem as HTMLElement).getByRole("button"));
+		await user.type(
+			within(replyItem as HTMLElement).getByTestId(testIds.comments.textarea),
+			"Nested reply",
+		);
+		await user.click(
+			within(replyItem as HTMLElement).getByTestId(
+				testIds.comments.submitButton,
+			),
+		);
+
+		expect(apiMocks.createComment).toHaveBeenCalledWith({
+			ratingId: "rating-1",
+			data: {
+				content: "Nested reply",
+				is_anonymous: false,
+				parent_comment: "reply-1",
+			},
+		});
+		expect(invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["comment-replies", "reply-1"],
+		});
+		expect(invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["comment-replies", "comment-1"],
+		});
+		expect(invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["rating-comments", "rating-1"],
+		});
+	});
+
 	it("creates a top-level comment", async () => {
 		const user = userEvent.setup();
 
