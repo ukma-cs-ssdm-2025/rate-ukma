@@ -16,9 +16,9 @@ const AVATAR_COLORS = [
 
 function hashName(name: string): number {
 	let hash = 0;
-	for (let i = 0; i < name.length; i++) {
-		hash = (hash << 5) - hash + name.charCodeAt(i);
-		hash |= 0;
+	for (const char of name) {
+		hash = (hash << 5) - hash + (char.codePointAt(0) ?? 0);
+		hash = Math.trunc(hash);
 	}
 	return Math.abs(hash);
 }
