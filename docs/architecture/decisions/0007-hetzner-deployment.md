@@ -52,8 +52,8 @@ We will migrate both environments to **Hetzner Cloud** VMs in the `nbg1` (Nuremb
 
 3. **Secrets**
    - We formalize the current practice and drop the unimplemented AWS SSM/Secrets Manager plan from ADR-0002 §3.
-   - Secrets live as **GitHub Environment secrets** (per `Live` / `Staging` environments), and a single `APP_DOTENV` secret holds the full `.env` content for the server.
-   - On deploy, `APP_DOTENV` is written to `/opt/rateukma/.env` on the VM.
+   - Secrets live as **GitHub Environment secrets** (per `Live` / `Staging` environments), one secret per sensitive value (`DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`, `MICROSOFT_CLIENT_SECRET`, etc.). Non-secret per-env config (hostnames, allowed origins, redirect URLs) lives in committed templates at `infra/deploy/.env.<environment>` with `${VAR}` placeholders for the secrets. This evolved from a single `APP_DOTENV` blob secret to per-value secrets so individual values can be rotated without copy-pasting the whole `.env`.
+   - Every deploy renders the chosen environment's template via `envsubst`, substituting the Environment secrets into the `${VAR}` placeholders, and uploads the result as `.deploy_env` to the VM. The deploy script copies it to `src/.env`, where `docker compose` reads it. GitHub Environment secrets are the source of truth for sensitive values; the committed templates are the source of truth for structure and non-secret config; the file on the server is derived state, overwritten on each deploy.
    - Trade-off: no central rotation/audit, but a single source of truth that matches who actually has merge access to the deployment workflows.
 
 4. **Network & TLS**
