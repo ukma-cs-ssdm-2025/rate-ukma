@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Pencil, Reply, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Label } from "@/components/ui/Label";
 import { Spinner } from "@/components/ui/Spinner";
 import { Textarea } from "@/components/ui/Textarea";
@@ -231,6 +232,7 @@ function CommentActions({ comment, onEdit, onDelete }: CommentActionsProps) {
 				className="size-7"
 				onClick={onEdit}
 				aria-label="Редагувати коментар"
+				data-testid={testIds.comments.editButton}
 			>
 				<Pencil className="size-3.5" />
 			</Button>
@@ -241,6 +243,7 @@ function CommentActions({ comment, onEdit, onDelete }: CommentActionsProps) {
 				className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
 				onClick={onDelete}
 				aria-label="Видалити коментар"
+				data-testid={testIds.comments.deleteButton}
 			>
 				<Trash2 className="size-3.5" />
 			</Button>
@@ -387,6 +390,7 @@ function RatingCommentItem({
 	const [isReplying, setIsReplying] = useState(false);
 	const [isEditing, setIsEditing] = useState(false);
 	const [showReplies, setShowReplies] = useState(false);
+	const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 	const commentId = comment.id;
 
 	const createComment = useRatingsCommentsCreate();
@@ -455,7 +459,7 @@ function RatingCommentItem({
 		toast.success("Коментар оновлено");
 	};
 
-	const handleDelete = async () => {
+	const handleDeleteConfirm = async () => {
 		try {
 			await deleteComment.mutateAsync({ commentId });
 			queryClient.invalidateQueries({
@@ -464,6 +468,7 @@ function RatingCommentItem({
 					: getRatingsCommentsListQueryKey(ratingId),
 			});
 			invalidateRatingCommentQueries(queryClient, ratingId, courseId);
+			setIsDeleteOpen(false);
 			toast.success("Коментар видалено");
 		} catch (error) {
 			console.error("Failed to delete comment:", error);
@@ -543,7 +548,7 @@ function RatingCommentItem({
 						<CommentActions
 							comment={comment}
 							onEdit={() => setIsEditing(true)}
-							onDelete={handleDelete}
+							onDelete={() => setIsDeleteOpen(true)}
 						/>
 					</>
 				)}
@@ -583,6 +588,17 @@ function RatingCommentItem({
 			)}
 
 			{showReplies && <div className="ml-9 space-y-3">{repliesContent}</div>}
+
+			<ConfirmDialog
+				open={isDeleteOpen}
+				onOpenChange={setIsDeleteOpen}
+				onConfirm={handleDeleteConfirm}
+				title="Видалити коментар?"
+				description="Ця дія незворотна. Коментар та всі відповіді на нього буде видалено назавжди."
+				confirmText="Видалити"
+				cancelText="Скасувати"
+				variant="destructive"
+			/>
 		</div>
 	);
 }
