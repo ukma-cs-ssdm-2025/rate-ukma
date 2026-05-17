@@ -33,6 +33,26 @@ on:
         required: true
       SENTRY_AUTH_TOKEN:
         required: true
+      POSTGRES_PASSWORD:
+        required: true
+      DJANGO_SECRET_KEY:
+        required: true
+      MICROSOFT_CLIENT_ID:
+        required: true
+      MICROSOFT_CLIENT_SECRET:
+        required: true
+      MICROSOFT_TENANT_ID:
+        required: true
+      SENTRY_DSN_BACKEND:
+        required: true
+      VITE_SENTRY_DSN_FRONTEND:
+        required: true
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_KEY:
+        required: true
 
 env:
   PROJECT_DIR: /opt/rateukma
@@ -145,25 +165,7 @@ jobs:
           CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
           SENTRY_DSN_BACKEND: ${{ secrets.SENTRY_DSN_BACKEND }}
           VITE_SENTRY_DSN_FRONTEND: ${{ secrets.VITE_SENTRY_DSN_FRONTEND }}
-        run: |
-          case "$ENVIRONMENT" in
-            staging|live) ;;
-            *)
-              echo "::error::Unsupported environment: $ENVIRONMENT"
-              exit 1
-              ;;
-          esac
-
-          TEMPLATE="infra/deploy/.env.${ENVIRONMENT}"
-          if [[ ! -f "$TEMPLATE" ]]; then
-            echo "::error::Template $TEMPLATE not found"
-            exit 1
-          fi
-          envsubst < "$TEMPLATE" > .deploy_env
-          if grep -nE '\$\{[A-Z0-9_]+\}' .deploy_env; then
-            echo "::error::Unresolved placeholders in rendered .env (see above) — missing secret in $ENVIRONMENT environment"
-            exit 1
-          fi
+        run: bash scripts/ci/render-deploy-env.sh "$ENVIRONMENT"
 
       - name: Upload archive, env file, and deploy script to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
