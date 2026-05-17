@@ -38,6 +38,7 @@ interface RatingCommentsProps {
 	readonly courseId?: string;
 	readonly commentsCount?: number;
 	readonly commentAuthors?: readonly CommentAuthor[];
+	readonly avatarSeparatorClassName?: string;
 	readonly trailingContent?: ReactNode;
 }
 
@@ -289,7 +290,12 @@ function CommentAvatar({ comment }: Readonly<{ comment: CommentRead }>) {
 function PreviewAuthorAvatar({
 	author,
 	index,
-}: Readonly<{ author: CommentPreviewAuthor; index: number }>) {
+	separatorClassName,
+}: Readonly<{
+	author: CommentPreviewAuthor;
+	index: number;
+	separatorClassName: string;
+}>) {
 	const authorName = getAuthorName(author);
 	const showAvatar = !author.is_anonymous && author.user_avatar_url;
 	return (
@@ -298,7 +304,10 @@ function PreviewAuthorAvatar({
 				"relative flex size-7 shrink-0 rounded-full",
 				index > 0 && "-ml-2.5",
 				index > 0 &&
-					"before:absolute before:-inset-0.5 before:rounded-full before:bg-background before:content-['']",
+					cn(
+						"before:absolute before:-inset-0.5 before:rounded-full before:content-['']",
+						separatorClassName,
+					),
 			)}
 		>
 			<Avatar className="relative size-full text-[11px] font-semibold">
@@ -323,7 +332,11 @@ function PreviewAuthorAvatar({
 
 function CommentAuthorsPreview({
 	authors,
-}: Readonly<{ authors?: readonly CommentAuthor[] }>) {
+	separatorClassName,
+}: Readonly<{
+	authors?: readonly CommentAuthor[];
+	separatorClassName: string;
+}>) {
 	const previewAuthors = authors?.length ? authors.slice(0, 3).reverse() : [];
 
 	if (previewAuthors.length === 0) {
@@ -337,6 +350,7 @@ function CommentAuthorsPreview({
 					key={`${author.user_id ?? "anonymous"}-${index}`}
 					author={author}
 					index={index}
+					separatorClassName={separatorClassName}
 				/>
 			))}
 		</span>
@@ -593,6 +607,7 @@ export function RatingComments({
 	courseId,
 	commentsCount = 0,
 	commentAuthors,
+	avatarSeparatorClassName = "before:bg-background",
 	trailingContent,
 }: RatingCommentsProps) {
 	const queryClient = useQueryClient();
@@ -706,7 +721,10 @@ export function RatingComments({
 							aria-expanded={isExpanded}
 							data-testid={testIds.comments.toggleButton}
 						>
-							<CommentAuthorsPreview authors={commentAuthors} />
+							<CommentAuthorsPreview
+								authors={commentAuthors}
+								separatorClassName={avatarSeparatorClassName}
+							/>
 							<span className="text-xs font-medium">
 								Коментарі {formatCount(displayedCount)}
 							</span>

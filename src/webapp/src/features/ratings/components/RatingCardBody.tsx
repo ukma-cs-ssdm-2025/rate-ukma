@@ -33,6 +33,7 @@ interface RatingCardBodyProps {
 	readonly viewerVote: RatingVoteStrType | null;
 	readonly commentsCount?: number;
 	readonly commentAuthors?: readonly CommentAuthor[];
+	readonly commentAvatarSeparatorClassName?: string;
 	readonly votesReadOnly?: boolean;
 	readonly votesDisabledMessage?: string;
 }
@@ -55,6 +56,7 @@ export function RatingCardBody({
 	viewerVote,
 	commentsCount = 0,
 	commentAuthors = [],
+	commentAvatarSeparatorClassName,
 	votesReadOnly = false,
 	votesDisabledMessage,
 }: RatingCardBodyProps) {
@@ -121,6 +123,7 @@ export function RatingCardBody({
 						courseId={courseId}
 						commentsCount={commentsCount}
 						commentAuthors={commentAuthors}
+						avatarSeparatorClassName={commentAvatarSeparatorClassName}
 						trailingContent={
 							<RatingVotes
 								ratingId={ratingId}
