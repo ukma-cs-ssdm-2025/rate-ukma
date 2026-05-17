@@ -169,6 +169,44 @@ def test_comment_reply_caches_invalidated_after_reply_create(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_nested_reply_create_invalidates_parent_replies_cache(
+    token_client,
+    rating_factory,
+    comment_factory,
+):
+    rating = rating_factory()
+    parent = comment_factory(rating=rating)
+    reply = comment_factory(rating=rating, parent_comment=parent)
+
+    response = token_client.get(f"/api/v1/comments/{parent.id}/replies/")
+    assert response.status_code == 200
+    assert response.json()["items"][0]["replies_count"] == 0
+
+    response = token_client.get(f"/api/v1/comments/{reply.id}/replies/")
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
+
+    payload = {
+        "content": "Fresh nested reply",
+        "parent_comment": str(reply.id),
+        "is_anonymous": False,
+    }
+    response = token_client.post(f"/api/v1/ratings/{rating.id}/comments/", payload, format="json")
+    assert response.status_code == 201
+
+    response = token_client.get(f"/api/v1/comments/{parent.id}/replies/")
+    assert response.status_code == 200
+    assert response.json()["items"][0]["replies_count"] == 1
+
+    response = token_client.get(f"/api/v1/comments/{reply.id}/replies/")
+    data = response.json()
+    assert response.status_code == 200
+    assert data["total"] == 1
+    assert data["items"][0]["content"] == "Fresh nested reply"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_comment_reply_parent_must_belong_to_rating(
     token_client,
     rating_factory,

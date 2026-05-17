@@ -122,8 +122,17 @@ class TestCommentCacheInvalidator:
         return MagicMock()
 
     @pytest.fixture
-    def invalidator(self, cache_manager):
-        return CommentCacheInvalidator(cache_manager=cache_manager)
+    def comment_repository(self):
+        repository = MagicMock()
+        repository.get_by_id.return_value = _make_comment_dto()
+        return repository
+
+    @pytest.fixture
+    def invalidator(self, cache_manager, comment_repository):
+        return CommentCacheInvalidator(
+            cache_manager=cache_manager,
+            comment_repository=comment_repository,
+        )
 
     def test_bumps_rating_comments_and_course_ratings_namespaces(
         self,
@@ -157,3 +166,25 @@ class TestCommentCacheInvalidator:
 
         cache_manager.bump_version.assert_any_call(comment_replies_namespace(str(parent_id)))
         assert cache_manager.bump_version.call_count == 4
+
+    def test_bumps_parent_container_replies_namespace_for_nested_reply_create(
+        self,
+        invalidator,
+        cache_manager,
+        comment_repository,
+    ):
+        grandparent_id = uuid.uuid4()
+        parent_id = uuid.uuid4()
+        course_id = uuid.uuid4()
+        comment_repository.get_by_id.return_value = _make_comment_dto(
+            parent_id=grandparent_id,
+            course_id=course_id,
+        )
+        comment = _make_comment_dto(parent_id=parent_id, course_id=course_id)
+        event = CommentEvent(comment=comment, action=CommentAction.CREATED)
+
+        invalidator.on_event(event)
+
+        cache_manager.bump_version.assert_any_call(comment_replies_namespace(str(parent_id)))
+        cache_manager.bump_version.assert_any_call(comment_replies_namespace(str(grandparent_id)))
+        assert cache_manager.bump_version.call_count == 5
