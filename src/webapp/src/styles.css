@@ -84,7 +84,7 @@ code {
 	--foreground: oklch(0.96 0.002 285.823);
 	--card: oklch(0.2 0.005 285.823);
 	--card-foreground: oklch(0.96 0.002 285.823);
-	--card-user: oklch(0.24 0.025 230);
+	--card-user: oklch(0.21 0.02 230);
 	--card-user-foreground: oklch(0.96 0.002 285.823);
 	--avatar-ring-color: var(--card);
 	--popover: oklch(0.2 0.005 285.823);
