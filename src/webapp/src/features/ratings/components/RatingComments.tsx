@@ -289,16 +289,21 @@ function PreviewAuthorAvatar({
 	index: number;
 }>) {
 	return (
-		<UserAvatar
-			name={getAuthorName(author)}
-			avatarUrl={author.user_avatar_url}
-			isAnonymous={author.is_anonymous ?? false}
+		<span
 			className={cn(
-				"size-7 text-[10px] font-semibold",
-				"bg-card p-[2px]",
+				"relative flex size-6 shrink-0 rounded-full",
 				index > 0 && "-ml-2",
+				index > 0 &&
+					"before:absolute before:-inset-0.5 before:rounded-full before:bg-card before:content-['']",
 			)}
-		/>
+		>
+			<UserAvatar
+				name={getAuthorName(author)}
+				avatarUrl={author.user_avatar_url}
+				isAnonymous={author.is_anonymous ?? false}
+				className="relative size-full text-[10px] font-semibold"
+			/>
+		</span>
 	);
 }
 
