@@ -166,6 +166,8 @@ export const testIds = {
 		textarea: "rating-comments-textarea",
 		anonymousCheckbox: "rating-comments-anonymous-checkbox",
 		submitButton: "rating-comments-submit-button",
+		editButton: "rating-comments-edit-button",
+		deleteButton: "rating-comments-delete-button",
 	},
 
 	// Delete confirmation dialog

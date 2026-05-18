@@ -7,6 +7,7 @@
 - **Focused components:** Keep UI parts tiny—break buttons/menus into single-purpose pieces, avoid deeply nested hooks, and favor obvious control flow.
 - **Pattern recheck:** Search `src/components` and `src/components/ui` before introducing new patterns; reuse an existing solution when it fits.
 - **Reuse:** Prefer existing components when the markup/behavior already exists instead of recreating similar UI.
+- **Design tokens live in one place:** Every color, radius, or themeable value must be declared in `src/styles.css` inside `:root` (light) AND `.dark` (dark), then exposed to Tailwind via `@theme inline { --color-*: var(--*) }`. Use the resulting utilities (`bg-card`, `ring-primary`, `text-muted-foreground`, …). Do NOT invent ad-hoc CSS variables inline on a component (e.g. `[--my-thing:#abcdef]`) or hardcode hex/oklch values in JSX — those break dark theme, bypass the palette, and fragment the token system. If you need a new surface or tint, add a proper token (e.g. `--card-user`) in both `:root` and `.dark` and a `@theme inline` alias, then use it everywhere.
 
 ## Tooling reminders
 
