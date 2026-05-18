@@ -70,8 +70,6 @@ class Command(BaseCommand):
             Student,
         )
         from ...models.choices import (
-            AcademicDegree,
-            AcademicTitle,
             CourseStatus,
             EducationLevel,
             ExamType,
@@ -272,17 +270,7 @@ class Command(BaseCommand):
                 first_name=random.choice(ukrainian_first_names),
                 last_name=random.choice(ukrainian_last_names),
                 patronymic=random.choice(ukrainian_patronymics),
-                academic_degree=random.choice(
-                    [AcademicDegree.PHD, AcademicDegree.DOCTOR_OF_SCIENCES]
-                ),
-                academic_title=random.choice(
-                    [
-                        AcademicTitle.LECTURER,
-                        AcademicTitle.SENIOR_LECTURER,
-                        AcademicTitle.ASSOCIATE_PROF,
-                        AcademicTitle.PROFESSOR,
-                    ]
-                ),
+                email=f"mock.instructor{i}@ukma.edu.ua",
             )
             instructors.append(instructor)
 

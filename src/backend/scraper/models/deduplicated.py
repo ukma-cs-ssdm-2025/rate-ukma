@@ -43,24 +43,6 @@ class CourseTypeKind(str, Enum):
     PROF_ORIENTED = "PROF_ORIENTED"
 
 
-class AcademicDegree(str, Enum):
-    PHD = "PHD"
-    DOCTOR_OF_SCIENCES = "DRSCI"
-
-
-class InstructorRole(str, Enum):
-    LECTURE_INSTRUCTOR = "LECTURE_INSTRUCTOR"
-    PRACTICUM_INSTRUCTOR = "PRACTICUM_INSTRUCTOR"
-
-
-class AcademicTitle(str, Enum):
-    ASSISTANT = "ASSISTANT"
-    LECTURER = "LECTURER"
-    SENIOR_LECTURER = "SENIOR_LECTURER"
-    ASSOCIATE_PROF = "ASSOCIATE_PROF"
-    PROFESSOR = "PROFESSOR"
-
-
 class DeduplicatedStudent(BaseModel):
     first_name: str
     patronymic: str = ""
@@ -71,14 +53,6 @@ class DeduplicatedStudent(BaseModel):
     education_level: EducationLevel | None = None
     program_start_academic_year_start: int | None = None
     group: str = ""
-
-
-class DeduplicatedInstructor(BaseModel):
-    first_name: str
-    patronymic: str = ""
-    last_name: str
-    academic_degree: AcademicDegree | None = None
-    academic_title: AcademicTitle | None = None
 
 
 class DeduplicatedSemester(BaseModel):
@@ -98,11 +72,6 @@ class DeduplicatedEnrollment(BaseModel):
     student: DeduplicatedStudent
     status: EnrollmentStatus
     enrolled_at: str = ""
-
-
-class DeduplicatedCourseInstructor(BaseModel):
-    instructor: DeduplicatedInstructor
-    role: InstructorRole
 
 
 class DeduplicatedCourseOfferingTerm(BaseModel):
@@ -129,7 +98,6 @@ class DeduplicatedCourseOffering(BaseModel):
     max_groups: int | None = None
     group_size_min: int | None = None
     group_size_max: int | None = None
-    instructors: list[DeduplicatedCourseInstructor] = []
     enrollments: list[DeduplicatedEnrollment] = []
     specialities: list[DeduplicatedSpeciality] = []
     terms: list[DeduplicatedCourseOfferingTerm] = []

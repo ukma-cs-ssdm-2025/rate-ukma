@@ -21,6 +21,7 @@ def test_get_instructor_detail(token_client, instructor_factory):
     assert data["id"] == str(instructor.id)
     assert data["first_name"] == instructor.first_name
     assert data["last_name"] == instructor.last_name
+    assert data["email"] == instructor.email
 
 
 @pytest.mark.django_db

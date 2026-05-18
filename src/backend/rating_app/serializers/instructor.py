@@ -11,7 +11,6 @@ class InstructorSerializer(serializers.ModelSerializer):
             "first_name",
             "patronymic",
             "last_name",
-            "academic_degree",
-            "academic_title",
+            "email",
         ]
         read_only_fields = ["id"]
