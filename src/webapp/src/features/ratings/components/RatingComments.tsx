@@ -3,9 +3,10 @@ import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, Pencil, Reply, Trash2 } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Label } from "@/components/ui/Label";
 import { Spinner } from "@/components/ui/Spinner";
 import { Textarea } from "@/components/ui/Textarea";
@@ -28,7 +29,6 @@ import {
 } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
-import { getAvatarColor, getInitials } from "./reviewerAvatar";
 
 const COMMENTS_PAGE_SIZE = 5;
 const REPLIES_PAGE_SIZE = 5;
@@ -38,7 +38,6 @@ interface RatingCommentsProps {
 	readonly courseId?: string;
 	readonly commentsCount?: number;
 	readonly commentAuthors?: readonly CommentAuthor[];
-	readonly avatarSeparatorClassName?: string;
 	readonly trailingContent?: ReactNode;
 }
 
@@ -246,6 +245,7 @@ function CommentActions({ comment, onEdit, onDelete }: CommentActionsProps) {
 				className="size-7"
 				onClick={onEdit}
 				aria-label="Редагувати коментар"
+				data-testid={testIds.comments.editButton}
 			>
 				<Pencil className="size-3.5" />
 			</Button>
@@ -256,6 +256,7 @@ function CommentActions({ comment, onEdit, onDelete }: CommentActionsProps) {
 				className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
 				onClick={onDelete}
 				aria-label="Видалити коментар"
+				data-testid={testIds.comments.deleteButton}
 			>
 				<Trash2 className="size-3.5" />
 			</Button>
@@ -284,72 +285,46 @@ function CommentBody({ comment }: Readonly<{ comment: CommentRead }>) {
 }
 
 function CommentAvatar({ comment }: Readonly<{ comment: CommentRead }>) {
-	const author = getCommentAuthor(comment);
-	const showAvatar = !comment.is_anonymous && comment.user_avatar_url;
-
 	return (
-		<Avatar className="size-7 shrink-0 text-[11px] font-semibold">
-			{showAvatar && (
-				<AvatarImage src={comment.user_avatar_url ?? undefined} alt={author} />
-			)}
-			<AvatarFallback
-				className={cn("text-[11px] font-semibold", getAvatarColor(author))}
-			>
-				{getInitials(author, comment.is_anonymous ?? false)}
-			</AvatarFallback>
-		</Avatar>
+		<UserAvatar
+			name={getCommentAuthor(comment)}
+			avatarUrl={comment.user_avatar_url}
+			isAnonymous={comment.is_anonymous ?? false}
+			className="size-7 shrink-0 text-[11px] font-semibold"
+		/>
 	);
 }
 
 function PreviewAuthorAvatar({
 	author,
 	index,
-	separatorClassName,
 }: Readonly<{
 	author: CommentPreviewAuthor;
 	index: number;
-	separatorClassName: string;
 }>) {
-	const authorName = getAuthorName(author);
-	const showAvatar = !author.is_anonymous && author.user_avatar_url;
 	return (
 		<span
 			className={cn(
 				"relative flex size-6 shrink-0 rounded-full",
 				index > 0 && "-ml-2",
 				index > 0 &&
-					cn(
-						"before:absolute before:-inset-0.5 before:rounded-full before:content-['']",
-						separatorClassName,
-					),
+					"before:absolute before:-inset-0.5 before:rounded-full before:bg-[var(--avatar-ring-color)] before:content-['']",
 			)}
 		>
-			<Avatar className="relative size-full text-[10px] font-semibold">
-				{showAvatar && (
-					<AvatarImage
-						src={author.user_avatar_url ?? undefined}
-						alt={authorName}
-					/>
-				)}
-				<AvatarFallback
-					className={cn(
-						"text-[10px] font-semibold",
-						getAvatarColor(authorName),
-					)}
-				>
-					{getInitials(authorName, author.is_anonymous ?? false)}
-				</AvatarFallback>
-			</Avatar>
+			<UserAvatar
+				name={getAuthorName(author)}
+				avatarUrl={author.user_avatar_url}
+				isAnonymous={author.is_anonymous ?? false}
+				className="relative size-full text-[10px] font-semibold"
+			/>
 		</span>
 	);
 }
 
 function CommentAuthorsPreview({
 	authors,
-	separatorClassName,
 }: Readonly<{
 	authors?: readonly CommentAuthor[];
-	separatorClassName: string;
 }>) {
 	const previewAuthors = authors?.length ? authors.slice(0, 3).reverse() : [];
 
@@ -364,7 +339,6 @@ function CommentAuthorsPreview({
 					key={`${author.user_id ?? "anonymous"}-${index}`}
 					author={author}
 					index={index}
-					separatorClassName={separatorClassName}
 				/>
 			))}
 		</span>
@@ -417,6 +391,7 @@ function RatingCommentItem({
 	const [isReplying, setIsReplying] = useState(false);
 	const [isEditing, setIsEditing] = useState(false);
 	const [showReplies, setShowReplies] = useState(false);
+	const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 	const commentId = comment.id;
 
 	const createComment = useRatingsCommentsCreate();
@@ -484,12 +459,13 @@ function RatingCommentItem({
 		toast.success("Коментар оновлено");
 	};
 
-	const handleDelete = async () => {
+	const handleDeleteConfirm = async () => {
 		try {
 			await deleteComment.mutateAsync({ commentId });
 			invalidateRepliesQuery(queryClient, comment.parent_id);
 			invalidateRepliesQuery(queryClient, parentListCommentId);
 			invalidateRatingCommentQueries(queryClient, ratingId, courseId);
+			setIsDeleteOpen(false);
 			toast.success("Коментар видалено");
 		} catch (error) {
 			console.error("Failed to delete comment:", error);
@@ -570,7 +546,7 @@ function RatingCommentItem({
 						<CommentActions
 							comment={comment}
 							onEdit={() => setIsEditing(true)}
-							onDelete={handleDelete}
+							onDelete={() => setIsDeleteOpen(true)}
 						/>
 					</>
 				)}
@@ -610,6 +586,17 @@ function RatingCommentItem({
 			)}
 
 			{showReplies && <div className="ml-9 space-y-3">{repliesContent}</div>}
+
+			<ConfirmDialog
+				open={isDeleteOpen}
+				onOpenChange={setIsDeleteOpen}
+				onConfirm={handleDeleteConfirm}
+				title="Видалити коментар?"
+				description="Ця дія незворотна. Коментар та всі відповіді на нього буде видалено назавжди."
+				confirmText="Видалити"
+				cancelText="Скасувати"
+				variant="destructive"
+			/>
 		</div>
 	);
 }
@@ -619,7 +606,6 @@ export function RatingComments({
 	courseId,
 	commentsCount = 0,
 	commentAuthors,
-	avatarSeparatorClassName = "before:bg-background",
 	trailingContent,
 }: RatingCommentsProps) {
 	const queryClient = useQueryClient();
@@ -733,10 +719,7 @@ export function RatingComments({
 							aria-expanded={isExpanded}
 							data-testid={testIds.comments.toggleButton}
 						>
-							<CommentAuthorsPreview
-								authors={commentAuthors}
-								separatorClassName={avatarSeparatorClassName}
-							/>
+							<CommentAuthorsPreview authors={commentAuthors} />
 							<span className="text-xs font-medium">
 								Коментарі {formatCount(displayedCount)}
 							</span>

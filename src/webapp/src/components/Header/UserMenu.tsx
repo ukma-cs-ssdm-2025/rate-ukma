@@ -1,12 +1,8 @@
 import { LogOut } from "lucide-react";
 
-import {
-	getAvatarColor,
-	getInitials,
-} from "@/features/ratings/components/reviewerAvatar";
 import type { AuthUser } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/Avatar";
+import { UserAvatar } from "../UserAvatar";
 import { Button } from "../ui/Button";
 import {
 	DropdownMenu,
@@ -31,7 +27,6 @@ export function UserMenu({ user, logout }: Readonly<UserMenuProps>) {
 		[user.firstName, user.lastName].filter(Boolean).join(" ") ||
 		user.email ||
 		"Користувач";
-	const avatarColor = getAvatarColor(displayName);
 
 	return (
 		<DropdownMenu>
@@ -41,17 +36,11 @@ export function UserMenu({ user, logout }: Readonly<UserMenuProps>) {
 					className="relative h-9 w-9 rounded-full"
 					data-testid={testIds.header.userMenuTrigger}
 				>
-					<Avatar className="h-9 w-9">
-						{user.avatarUrl && (
-							<AvatarImage
-								src={user.avatarUrl}
-								alt={user.email ?? "user avatar"}
-							/>
-						)}
-						<AvatarFallback className={avatarColor}>
-							{getInitials(displayName, false)}
-						</AvatarFallback>
-					</Avatar>
+					<UserAvatar
+						name={displayName}
+						avatarUrl={user.avatarUrl}
+						className="h-9 w-9"
+					/>
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
