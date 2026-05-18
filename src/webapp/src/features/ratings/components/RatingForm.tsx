@@ -16,8 +16,9 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/Form";
-import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
+import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import {
@@ -38,12 +39,7 @@ const ratingSchema = z.object({
 		.string()
 		.transform((val) => val?.trim() || undefined)
 		.optional(),
-	// TODO: temporary free-text field; will be replaced with a verified instructor dropdown
-	instructor: z
-		.string()
-		.max(256, "Ім'я викладача не може перевищувати 256 символів")
-		.transform((val) => val?.trim() || undefined)
-		.optional(),
+	instructor_ids: z.array(z.string().uuid()),
 	is_anonymous: z.boolean(),
 });
 
@@ -149,8 +145,12 @@ function StarRatingInput({
 
 function RatingFormFields({
 	control,
+	offeringId,
+	initialInstructors,
 }: Readonly<{
 	control: ReturnType<typeof useForm<RatingFormData>>["control"];
+	offeringId?: string;
+	initialInstructors?: readonly Instructor[];
 }>) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
@@ -196,20 +196,24 @@ function RatingFormFields({
 				/>
 			</div>
 
-			<FormField<RatingFormData, "instructor">
+			<FormField<RatingFormData, "instructor_ids">
 				control={control}
-				name="instructor"
+				name="instructor_ids"
 				render={({ field }) => (
 					<FormItem>
-						<FormLabel>Викладач (необов'язково)</FormLabel>
+						<FormLabel>Викладачі (необов'язково)</FormLabel>
 						<FormControl>
-							<Input
-								placeholder="Ім'я викладача"
-								{...field}
-								data-testid={testIds.rating.instructorInput}
+							<InstructorMultiSelect
+								value={field.value ?? []}
+								onChange={field.onChange}
+								initialOptions={initialInstructors}
+								courseOfferingId={offeringId}
+								data-testid={testIds.rating.instructorMultiSelect}
 							/>
 						</FormControl>
-						<FormDescription>Вкажіть викладача, який вів курс</FormDescription>
+						<FormDescription>
+							Можна обрати кількох викладачів, які вели курс
+						</FormDescription>
 						<FormMessage />
 					</FormItem>
 				)}
@@ -274,6 +278,8 @@ interface RatingFormProps {
 	readonly isLoading?: boolean;
 	readonly isEditMode?: boolean;
 	readonly initialData?: RatingFormData;
+	readonly offeringId?: string;
+	readonly initialInstructors?: readonly Instructor[];
 }
 
 export function RatingForm({
@@ -282,6 +288,8 @@ export function RatingForm({
 	isLoading = false,
 	isEditMode = false,
 	initialData,
+	offeringId,
+	initialInstructors,
 }: RatingFormProps) {
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
@@ -289,7 +297,7 @@ export function RatingForm({
 			difficulty: 3,
 			usefulness: 3,
 			comment: "",
-			instructor: "",
+			instructor_ids: [],
 			is_anonymous: false,
 		},
 	});
@@ -307,7 +315,11 @@ export function RatingForm({
 				className="flex min-h-0 flex-1 flex-col overflow-hidden"
 				data-testid={testIds.rating.form}
 			>
-				<RatingFormFields control={form.control} />
+				<RatingFormFields
+					control={form.control}
+					offeringId={offeringId}
+					initialInstructors={initialInstructors}
+				/>
 
 				<div className="shrink-0 border-t bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
 					<div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

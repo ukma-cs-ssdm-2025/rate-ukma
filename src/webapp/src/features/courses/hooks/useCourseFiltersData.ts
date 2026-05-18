@@ -1,6 +1,10 @@
 import * as React from "react";
 
-import { EducationLevelEnum, type FilterOptions } from "@/lib/api/generated";
+import {
+	EducationLevelEnum,
+	type FilterOptions,
+	useInstructorsList,
+} from "@/lib/api/generated";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
@@ -246,6 +250,9 @@ export function useCourseFiltersData({
 		[semesterYears, filters.year],
 	);
 
+	const topInstructorsQuery = useInstructorsList({ page_size: 50 });
+	const topInstructors = topInstructorsQuery.data?.items ?? [];
+
 	const educationLevelToggleOptions: EducationLevelToggle = React.useMemo(
 		() => ({
 			options: [
@@ -322,6 +329,23 @@ export function useCourseFiltersData({
 					? undefined
 					: "Спочатку оберіть спеціальність",
 			},
+			{
+				key: "instructor",
+				label: "Викладач",
+				placeholder: "Усі викладачі",
+				value: filters.instructor,
+				options: [
+					{ value: "", label: "Усі викладачі" },
+					...topInstructors
+						.filter((i) => i.id)
+						.map((i) => ({
+							value: i.id as string,
+							label: [i.last_name, i.first_name].filter(Boolean).join(" "),
+						})),
+				],
+				contentClassName: "max-h-72",
+				useCombobox: true,
+			},
 		],
 		[
 			courseTypes,
@@ -332,6 +356,8 @@ export function useCourseFiltersData({
 			filters.dept,
 			filters.spec,
 			filters.type,
+			filters.instructor,
+			topInstructors,
 		],
 	);
 
@@ -369,6 +395,7 @@ export function useCourseFiltersData({
 		if (filters.spec) count++;
 		if (filters.type) count++;
 		if (filters.eduLevel) count++;
+		if (filters.instructor) count++;
 		return count;
 	}, [
 		filters.faculty,
@@ -376,6 +403,7 @@ export function useCourseFiltersData({
 		filters.spec,
 		filters.type,
 		filters.eduLevel,
+		filters.instructor,
 	]);
 
 	const activePresetIds = React.useMemo(() => {

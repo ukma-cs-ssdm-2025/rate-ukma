@@ -365,6 +365,7 @@ const SELECT_FILTER_TEST_IDS: Record<string, string> = {
 	dept: testIds.filters.departmentSelect,
 	spec: testIds.filters.specialitySelect,
 	type: testIds.filters.typeSelect,
+	instructor: testIds.filters.instructorSelect,
 };
 
 function RangeFilters({

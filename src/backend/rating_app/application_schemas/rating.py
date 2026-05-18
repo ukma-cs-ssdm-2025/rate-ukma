@@ -136,6 +136,20 @@ def strip_instructor(value: str | None) -> str | None:
     return result
 
 
+class RatingInstructor(BaseModel):
+    model_config = {
+        "from_attributes": True,
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    id: uuid.UUID
+    first_name: str
+    patronymic: str | None = ""
+    last_name: str
+    email: str
+
+
 class Rating(BaseModel):
     model_config = {
         "from_attributes": True,
@@ -155,6 +169,7 @@ class Rating(BaseModel):
     usefulness: int
     comment: str | None
     instructor: str | None = None
+    instructors: list[RatingInstructor] = Field(default_factory=list)
     is_anonymous: bool
     created_at: datetime.datetime
 
@@ -191,7 +206,14 @@ class RatingCreateRequest(BaseModel):
     )
     instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_instructor)] = Field(
         default=None,
-        description="Temp. free-text instructor name; will be replaced with a verified dropdown.",
+        description=(
+            "Legacy free-text instructor name. Kept for backward compatibility "
+            "with old clients. New clients should populate `instructor_ids` instead."
+        ),
+    )
+    instructor_ids: list[uuid.UUID] = Field(
+        default_factory=list,
+        description="UUIDs of Instructor entities mentioned in this rating.",
     )
     is_anonymous: bool = Field(default=False)
 
@@ -215,6 +237,7 @@ class RatingPutParams(BaseModel):
     instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_instructor)] = Field(
         default=None,
     )
+    instructor_ids: list[uuid.UUID] = Field(default_factory=list)
     is_anonymous: bool = Field(default=False)
 
 
@@ -237,6 +260,7 @@ class RatingPatchParams(BaseModel):
     instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_instructor)] = Field(
         default=None,
     )
+    instructor_ids: list[uuid.UUID] | SkipJsonSchema[None] = Field(default=None)
     is_anonymous: bool | SkipJsonSchema[None] = Field(
         default=None,
     )
