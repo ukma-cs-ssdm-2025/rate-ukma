@@ -294,7 +294,7 @@ function PreviewAuthorAvatar({
 				"relative flex size-6 shrink-0 rounded-full",
 				index > 0 && "-ml-2",
 				index > 0 &&
-					"before:absolute before:-inset-0.5 before:rounded-full before:bg-card before:content-['']",
+					"before:absolute before:-inset-0.5 before:rounded-full before:bg-[var(--avatar-ring-color)] before:content-['']",
 			)}
 		>
 			<UserAvatar

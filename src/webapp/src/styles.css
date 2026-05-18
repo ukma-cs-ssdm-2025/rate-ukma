@@ -43,6 +43,7 @@ code {
 	--card-foreground: oklch(0.141 0.005 285.823);
 	--card-user: oklch(0.97 0.014 230);
 	--card-user-foreground: oklch(0.141 0.005 285.823);
+	--avatar-ring-color: var(--card);
 	--popover: oklch(1 0 0);
 	--popover-foreground: oklch(0.141 0.005 285.823);
 	--primary: oklch(0.52 0.18 230);
@@ -85,6 +86,7 @@ code {
 	--card-foreground: oklch(0.96 0.002 285.823);
 	--card-user: oklch(0.24 0.025 230);
 	--card-user-foreground: oklch(0.96 0.002 285.823);
+	--avatar-ring-color: var(--card);
 	--popover: oklch(0.2 0.005 285.823);
 	--popover-foreground: oklch(0.96 0.002 285.823);
 	--primary: oklch(0.52 0.18 230);
