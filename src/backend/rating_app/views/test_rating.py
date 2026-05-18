@@ -1377,6 +1377,72 @@ def test_patch_rating_instructor(
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_create_rating_with_instructor_ids(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    semester_factory,
+    instructor_factory,
+):
+    semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+    course = course_factory()
+    offering = course_offering_factory(course=course, semester=semester)
+    student = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=student)
+    instr_a = instructor_factory.create(first_name="Anna", last_name="Petrenko")
+    instr_b = instructor_factory.create(first_name="Bohdan", last_name="Kovalenko")
+
+    url = f"/api/v1/courses/{course.id}/ratings/"
+    payload = {
+        "course_offering": str(offering.id),
+        "difficulty": 4,
+        "usefulness": 5,
+        "instructor_ids": [str(instr_a.id), str(instr_b.id)],
+        "is_anonymous": False,
+    }
+
+    response = token_client.post(url, data=payload, format="json")
+    assert response.status_code == 201, response.data
+    body = response.json()
+    returned_ids = {item["id"] for item in body["instructors"]}
+    assert returned_ids == {str(instr_a.id), str(instr_b.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_patch_rating_instructor_ids_replaces_set(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    rating_factory,
+    instructor_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    student = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=student)
+    rating = rating_factory(course_offering=offering, student=student, difficulty=3, usefulness=4)
+    initial = instructor_factory.create()
+    replacement = instructor_factory.create()
+    rating.instructors.add(initial)
+
+    url = f"/api/v1/courses/{course.id}/ratings/{rating.id}/"
+    payload = {"instructor_ids": [str(replacement.id)]}
+
+    response = token_client.patch(url, data=payload, format="json")
+    assert response.status_code == 200, response.data
+
+    rating.refresh_from_db()
+    assert list(rating.instructors.values_list("id", flat=True)) == [replacement.id]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
 def test_create_rating_instructor_too_long(
     token_client,
     course_factory,

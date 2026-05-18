@@ -20,13 +20,61 @@ export class RatingModal {
 	// Action buttons
 	private readonly saveButton: Locator;
 
+	private readonly page: Page;
+	private readonly instructorTrigger: Locator;
+
 	constructor(page: Page) {
+		this.page = page;
 		this.modal = page.getByTestId(testIds.rating.modal);
 		this.difficultyStars = page.getByTestId(testIds.rating.difficultySlider);
 		this.usefulnessStars = page.getByTestId(testIds.rating.usefulnessSlider);
 		this.commentTextarea = page.getByTestId(testIds.rating.commentTextarea);
+		this.instructorTrigger = page.getByTestId(
+			testIds.rating.instructorMultiSelect,
+		);
 
 		this.saveButton = page.getByTestId(testIds.rating.submitButton);
+	}
+
+	async openInstructorPicker(): Promise<void> {
+		await expect(this.instructorTrigger).toBeVisible();
+		await this.instructorTrigger.click();
+		await expect(
+			this.page.getByTestId(
+				`${testIds.rating.instructorMultiSelect}-list`,
+			),
+		).toBeVisible();
+	}
+
+	async searchInstructor(query: string): Promise<void> {
+		const list = this.page.getByTestId(
+			`${testIds.rating.instructorMultiSelect}-list`,
+		);
+		await expect(list).toBeVisible();
+		await this.page
+			.locator(
+				`[data-testid='${testIds.rating.instructorMultiSelect}-content'] [cmdk-input]`,
+			)
+			.fill(query);
+	}
+
+	async pickInstructorByText(text: string): Promise<void> {
+		const list = this.page.getByTestId(
+			`${testIds.rating.instructorMultiSelect}-list`,
+		);
+		await expect(list).toBeVisible();
+		await list.getByText(text, { exact: false }).first().click();
+	}
+
+	async closeInstructorPicker(): Promise<void> {
+		await this.page.keyboard.press("Escape");
+	}
+
+	async getSelectedInstructorCount(): Promise<number> {
+		const chips = this.instructorTrigger.locator(
+			"span[class*='bg-secondary']",
+		);
+		return chips.count();
 	}
 
 	async waitForHidden(): Promise<void> {

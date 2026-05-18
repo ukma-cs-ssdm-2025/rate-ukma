@@ -1,6 +1,7 @@
+import uuid
 from typing import Literal, overload
 
-from django.db.models import QuerySet
+from django.db.models import Count, Q, QuerySet
 
 from rating_app.application_schemas.instructor import Instructor, InstructorInput
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
@@ -18,6 +19,65 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         if ordered:
             qs = qs.order_by("last_name", "first_name", "id")
         return self._map_to_domain_models(qs)
+
+    def list_ranked(
+        self,
+        *,
+        search: str | None = None,
+        course_offering_id: uuid.UUID | None = None,
+        speciality_id: uuid.UUID | None = None,
+    ) -> QuerySet[InstructorModel]:
+        """Annotate instructors with mention counts and order by relevance.
+
+        Ordering: per-offering mentions DESC, per-speciality mentions DESC,
+        global mentions DESC, last_name ASC, first_name ASC. Per-offering and
+        per-speciality counts are zero when the corresponding filter is omitted.
+        """
+        offering_filter = (
+            Q(ratings__course_offering_id=course_offering_id)
+            if course_offering_id
+            else Q(pk__in=[])
+        )
+        speciality_filter = (
+            Q(ratings__course_offering__specialities__id=speciality_id)
+            if speciality_id
+            else Q(pk__in=[])
+        )
+
+        qs = InstructorModel.objects.annotate(
+            offering_mentions=Count(
+                "ratings",
+                filter=offering_filter,
+                distinct=True,
+            ),
+            speciality_mentions=Count(
+                "ratings",
+                filter=speciality_filter,
+                distinct=True,
+            ),
+            global_mentions=Count("ratings", distinct=True),
+        )
+
+        if search:
+            qs = qs.filter(
+                Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+                | Q(email__icontains=search)
+            )
+
+        return qs.order_by(
+            "-offering_mentions",
+            "-speciality_mentions",
+            "-global_mentions",
+            "last_name",
+            "first_name",
+            "id",
+        )
+
+    def get_many_by_ids(self, ids: list[uuid.UUID]) -> list[InstructorModel]:
+        if not ids:
+            return []
+        return list(InstructorModel.objects.filter(id__in=ids))
 
     def get_by_id(self, id: str) -> Instructor:
         model = self._get_by_id(id)

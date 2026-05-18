@@ -8,6 +8,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/Dialog";
 import { toast } from "@/components/ui/Toaster";
+import type { Instructor, RatingInstructor } from "@/lib/api/generated";
 import {
 	getCoursesListQueryKey,
 	getCoursesRatingsListQueryKey,
@@ -26,6 +27,7 @@ interface ExistingRating {
 	usefulness?: number;
 	comment?: string | null;
 	instructor?: string | null;
+	instructors?: RatingInstructor[];
 	is_anonymous?: boolean;
 }
 
@@ -84,7 +86,7 @@ export function RatingModal({
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment ?? "",
-						instructor: data.instructor ?? "",
+						instructor_ids: data.instructor_ids,
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -102,7 +104,7 @@ export function RatingModal({
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment ?? undefined,
-						instructor: data.instructor ?? undefined,
+						instructor_ids: data.instructor_ids,
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -120,12 +122,23 @@ export function RatingModal({
 		}
 	};
 
+	const existingInstructors = (existingRating?.instructors ?? []).filter(
+		(ri): ri is Required<RatingInstructor> => Boolean(ri.id),
+	);
+	const initialInstructors: Instructor[] = existingInstructors.map((ri) => ({
+		id: ri.id,
+		first_name: ri.first_name ?? "",
+		last_name: ri.last_name ?? "",
+		patronymic: ri.patronymic ?? "",
+		email: ri.email ?? "",
+	}));
+
 	const initialData: RatingFormData | undefined = existingRating
 		? {
 				difficulty: existingRating.difficulty ?? 3,
 				usefulness: existingRating.usefulness ?? 3,
 				comment: existingRating.comment ?? "",
-				instructor: existingRating.instructor ?? "",
+				instructor_ids: existingInstructors.map((ri) => ri.id),
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
 		: undefined;
@@ -159,6 +172,8 @@ export function RatingModal({
 					isLoading={isLoading}
 					isEditMode={isEditMode}
 					initialData={initialData}
+					offeringId={offeringId}
+					initialInstructors={initialInstructors}
 				/>
 			</DialogContent>
 		</Dialog>

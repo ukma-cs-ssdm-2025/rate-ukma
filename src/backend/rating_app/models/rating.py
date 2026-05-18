@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.db.models.manager import Manager
 
 from .course_offering import CourseOffering
+from .instructor import Instructor
 from .student import Student
 
 if TYPE_CHECKING:
@@ -30,7 +31,15 @@ class Rating(models.Model):
         max_length=256,
         blank=True,
         default="",
-        help_text="Temporary free-text field; will be replaced with a verified instructor FK.",
+        help_text=(
+            "Legacy free-text field. Kept for backward compatibility with old "
+            "clients; new clients should use the `instructors` M2M instead."
+        ),
+    )
+    instructors = models.ManyToManyField(
+        Instructor,
+        related_name="ratings",
+        blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     is_anonymous = models.BooleanField(default=False)

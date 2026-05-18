@@ -10,6 +10,14 @@ class CommentAuthorSerializer(serializers.Serializer):
     is_anonymous = serializers.BooleanField(read_only=True)
 
 
+class RatingInstructorSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    first_name = serializers.CharField(read_only=True)
+    patronymic = serializers.CharField(read_only=True, allow_blank=True)
+    last_name = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+
+
 class RatingReadSerializer(serializers.Serializer):
     """Serializer for reading RatingDTO. Nulls identity fields for anonymous ratings."""
 
@@ -27,6 +35,7 @@ class RatingReadSerializer(serializers.Serializer):
     usefulness = serializers.IntegerField(read_only=True)
     comment = serializers.CharField(read_only=True, allow_null=True)
     instructor = serializers.CharField(read_only=True, allow_null=True)
+    instructors = RatingInstructorSerializer(many=True, read_only=True)
     is_anonymous = serializers.BooleanField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     upvotes = serializers.IntegerField(read_only=True)

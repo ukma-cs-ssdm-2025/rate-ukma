@@ -91,15 +91,6 @@ paths:
           format: uuid
         description: Filter by instructor UUID
       - in: query
-        name: last_review_order
-        schema:
-          type: string
-          enum:
-          - asc
-          - desc
-        description: Sort order for most recent review timestamp (asc/desc); courses
-          without reviews appear last in both directions
-      - in: query
         name: name
         schema:
           type: string
@@ -956,15 +947,6 @@ paths:
           format: uuid
         description: Filter by instructor UUID
       - in: query
-        name: last_review_order
-        schema:
-          type: string
-          enum:
-          - asc
-          - desc
-        description: Sort order for most recent review timestamp (asc/desc); courses
-          without reviews appear last in both directions
-      - in: query
         name: name
         schema:
           type: string
@@ -1764,23 +1746,90 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
-  /api/v1/flags/:
+  /api/v1/instructors/:
     get:
-      operationId: flags_list
-      summary: List public feature flags evaluated for the current user
+      operationId: instructors_list
+      description: Paginated instructor list ordered by mention count. Pass `course_offering_id`
+        and/or `speciality_id` to boost instructors most mentioned on that course
+        offering or speciality.
+      summary: List instructors
+      parameters:
+      - in: query
+        name: course_offering_id
+        schema:
+          type: string
+          format: uuid
+        description: Boost instructors most mentioned on this course offering
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number (1-based)
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Page size
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Substring match on name or email (case-insensitive)
+      - in: query
+        name: speciality_id
+        schema:
+          type: string
+          format: uuid
+        description: Boost instructors most mentioned on this speciality
       tags:
-      - flags
+      - instructors
       security:
       - cookieAuth: []
       - tokenAuth: []
-      - {}
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FeatureFlags'
+                $ref: '#/components/schemas/InstructorListResponse'
           description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/instructors/{instructor_id}:
     get:
       operationId: instructors_retrieve
@@ -3089,16 +3138,6 @@ components:
       - id
       - name
       - specialities
-    FeatureFlags:
-      type: object
-      properties:
-        flags:
-          type: object
-          additionalProperties:
-            type: boolean
-          readOnly: true
-          description: Map of public feature flag name to its enabled state for the
-            current user.
     FilterOptions:
       type: object
       properties:
@@ -3266,6 +3305,38 @@ components:
           type: string
           format: email
           readOnly: true
+    InstructorListResponse:
+      type: object
+      description: Schema for GET /api/v1/instructors/ response envelope.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Instructor'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - items
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - total
+      - total_pages
     InstructorOption:
       type: object
       properties:
@@ -3375,6 +3446,13 @@ components:
           default: null
           title: Instructor
           type: string
+        instructor_ids:
+          default: null
+          items:
+            format: uuid
+            type: string
+          title: Instructor Ids
+          type: array
         is_anonymous:
           default: null
           title: Is Anonymous
@@ -3412,10 +3490,17 @@ components:
           type: string
         instructor:
           default: null
-          description: Temp. free-text instructor name; will be replaced with a verified
-            dropdown.
+          description: Legacy free-text instructor name. Kept for backward compatibility
+            with old clients. New clients should populate `instructor_ids` instead.
           title: Instructor
           type: string
+        instructor_ids:
+          description: UUIDs of Instructor entities mentioned in this rating.
+          items:
+            format: uuid
+            type: string
+          title: Instructor Ids
+          type: array
         is_anonymous:
           default: false
           title: Is Anonymous
@@ -3426,6 +3511,26 @@ components:
       - usefulness
       title: RatingCreateRequest
       type: object
+    RatingInstructor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+        patronymic:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
     RatingPutParams:
       properties:
         difficulty:
@@ -3446,6 +3551,12 @@ components:
           default: null
           title: Instructor
           type: string
+        instructor_ids:
+          items:
+            format: uuid
+            type: string
+          title: Instructor Ids
+          type: array
         is_anonymous:
           default: false
           title: Is Anonymous
@@ -3506,6 +3617,11 @@ components:
           type: string
           readOnly: true
           nullable: true
+        instructors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RatingInstructor'
+          readOnly: true
         is_anonymous:
           type: boolean
           readOnly: true

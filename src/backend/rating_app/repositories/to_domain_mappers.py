@@ -214,6 +214,7 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             usefulness=model.usefulness,
             comment=model.comment if model.comment else None,
             instructor=model.instructor if model.instructor else None,
+            instructors=self._map_rating_instructors(model),
             is_anonymous=model.is_anonymous,
             created_at=model.created_at,
             upvotes=upvotes,
@@ -222,6 +223,13 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
             comments_count=comments_count,
             comment_authors=self._map_comment_authors(model),
         )
+
+    def _map_rating_instructors(self, model: RatingModel):
+        from rating_app.application_schemas.rating import RatingInstructor
+
+        prefetched = getattr(model, "_prefetched_objects_cache", {}).get("instructors")
+        instructors = prefetched if prefetched is not None else model.instructors.all()
+        return [RatingInstructor.model_validate(instr) for instr in instructors]
 
     def _map_comment_authors(self, model: RatingModel) -> list[CommentAuthor]:
         comments = getattr(model, "comment_preview_comments", [])
