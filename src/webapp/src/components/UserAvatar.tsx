@@ -52,14 +52,13 @@ export function UserAvatar({
 	const showImage = !isAnonymous && Boolean(avatarUrl);
 
 	return (
-		<Avatar
-			className={cn("transform-gpu backface-hidden", className)}
-			{...rest}
-		>
-			{showImage && <AvatarImage src={avatarUrl ?? undefined} alt={name} />}
-			<AvatarFallback className={cn(getAvatarColor(name))}>
-				{getInitials(name, isAnonymous)}
-			</AvatarFallback>
-		</Avatar>
+		<span className={cn("inline-flex shrink-0 rounded-full", className)}>
+			<Avatar className="size-full transform-gpu backface-hidden" {...rest}>
+				{showImage && <AvatarImage src={avatarUrl ?? undefined} alt={name} />}
+				<AvatarFallback className={cn(getAvatarColor(name))}>
+					{getInitials(name, isAnonymous)}
+				</AvatarFallback>
+			</Avatar>
+		</span>
 	);
 }

@@ -294,8 +294,8 @@ function PreviewAuthorAvatar({
 			avatarUrl={author.user_avatar_url}
 			isAnonymous={author.is_anonymous ?? false}
 			className={cn(
-				"size-6 shrink-0 text-[10px] font-semibold",
-				"ring-2 ring-[color:var(--avatar-ring-color,var(--card))]",
+				"size-7 text-[10px] font-semibold",
+				"bg-[color:var(--avatar-ring-color,var(--card))] p-[2px]",
 				index > 0 && "-ml-2",
 			)}
 		/>
