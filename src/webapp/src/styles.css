@@ -43,7 +43,7 @@ code {
 	--card-foreground: oklch(0.141 0.005 285.823);
 	--card-user: oklch(0.97 0.014 230);
 	--card-user-foreground: oklch(0.141 0.005 285.823);
-	--avatar-ring-color: var(--card);
+	--avatar-ring-color: var(--background);
 	--popover: oklch(1 0 0);
 	--popover-foreground: oklch(0.141 0.005 285.823);
 	--primary: oklch(0.52 0.18 230);
