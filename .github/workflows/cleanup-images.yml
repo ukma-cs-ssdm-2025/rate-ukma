@@ -5,6 +5,11 @@ on:
   schedule:
     - cron: "0 3 * * 0"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run in dry-run mode (list deletion candidates, do not delete)"
+        type: boolean
+        default: true
 
 jobs:
   cleanup-images:
@@ -15,6 +20,8 @@ jobs:
     strategy:
       matrix:
         package: [rate-ukma/backend, rate-ukma/webapp]
+    env:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
     steps:
       - name: Delete all untagged images
         uses: dataaxiom/ghcr-cleanup-action@v1
@@ -24,7 +31,7 @@ jobs:
           repository: rate-ukma
           packages: "${{ matrix.package }}"
           delete-untagged: true
-          dry-run: true
+          dry-run: ${{ env.DRY_RUN }}
 
       - name: Prune old commit-SHA tagged images
         uses: dataaxiom/ghcr-cleanup-action@v1
@@ -36,4 +43,4 @@ jobs:
           delete-tags: "[0-9a-f]{40}"
           exclude-tags: latest
           older-than: 14 days
-          dry-run: true
+          dry-run: ${{ env.DRY_RUN }}
