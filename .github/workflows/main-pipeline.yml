@@ -31,7 +31,8 @@ jobs:
       code_changed: >-
         ${{ inputs.version-tag == '' &&
         (fromJSON(needs.changes-filter.outputs.backend_changed) ||
-        fromJSON(needs.changes-filter.outputs.webapp_changed)) }}
+        fromJSON(needs.changes-filter.outputs.webapp_changed) ||
+        fromJSON(needs.changes-filter.outputs.infra_changed)) }}
     uses: ./.github/workflows/version.yml
 
   test:
