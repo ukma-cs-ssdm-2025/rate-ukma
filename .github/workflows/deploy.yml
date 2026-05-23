@@ -33,26 +33,30 @@ on:
         required: true
       SENTRY_AUTH_TOKEN:
         required: true
+      # Environment-scoped secrets (loaded inside the deploy job via `environment:`).
+      # Not marked `required` here because workflow_call validation runs in the caller's
+      # scope, which has no environment and therefore cannot see these. Presence is
+      # enforced inside the job by scripts/ci/render-deploy-env.sh.
       POSTGRES_PASSWORD:
-        required: true
+        required: false
       DJANGO_SECRET_KEY:
-        required: true
+        required: false
       MICROSOFT_CLIENT_ID:
-        required: true
+        required: false
       MICROSOFT_CLIENT_SECRET:
-        required: true
+        required: false
       MICROSOFT_TENANT_ID:
-        required: true
+        required: false
       SENTRY_DSN_BACKEND:
-        required: true
+        required: false
       VITE_SENTRY_DSN_FRONTEND:
-        required: true
+        required: false
       SSH_HOST:
-        required: true
+        required: false
       SSH_USER:
-        required: true
+        required: false
       SSH_KEY:
-        required: true
+        required: false
 
 env:
   PROJECT_DIR: /opt/rateukma
