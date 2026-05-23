@@ -16,15 +16,24 @@ jobs:
       matrix:
         package: [rate-ukma/backend, rate-ukma/webapp]
     steps:
-      - name: Delete untagged and old tagged versions
+      - name: Delete all untagged images
         uses: dataaxiom/ghcr-cleanup-action@v1
         with:
           token: ${{ secrets.GHCR_PAT }}
           owner: ukma-cs-ssdm-2025
           repository: rate-ukma
           packages: "${{ matrix.package }}"
-          keep-n-tagged: 5
           delete-untagged: true
+          dry-run: true
+
+      - name: Prune old commit-SHA tagged images
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          token: ${{ secrets.GHCR_PAT }}
+          owner: ukma-cs-ssdm-2025
+          repository: rate-ukma
+          packages: "${{ matrix.package }}"
+          delete-tags: "[0-9a-f]{40}"
           exclude-tags: latest
           older-than: 14 days
-          dry-run: false
+          dry-run: true
