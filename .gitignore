@@ -26,6 +26,8 @@ htmlcov/
 .env
 .env.*
 !.env.example
+!infra/deploy/.env.staging
+!infra/deploy/.env.live
 
 media/
 static/
