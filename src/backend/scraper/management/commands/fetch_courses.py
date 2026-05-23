@@ -48,8 +48,8 @@ class Command(BaseCommand):
         slowmo = options["slowmo"] or settings.SCRAPER_SLOWMO
 
         decorated_function = with_authenticated_context(
-            email=settings.SAZ_EMAIL,
-            password=settings.SAZ_PASSWORD,
+            email=settings.CORPORATE_EMAIL,
+            password=settings.CORPORATE_PASSWORD,
             base_url=settings.PARSE_BASE_URL,
             state_path=settings.SCRAPER_STATE_DIR / "storage_state.json",
             headless=settings.SCRAPER_HEADLESS,

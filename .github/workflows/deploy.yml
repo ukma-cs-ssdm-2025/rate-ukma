@@ -33,6 +33,26 @@ on:
         required: true
       SENTRY_AUTH_TOKEN:
         required: true
+      POSTGRES_PASSWORD:
+        required: true
+      DJANGO_SECRET_KEY:
+        required: true
+      MICROSOFT_CLIENT_ID:
+        required: true
+      MICROSOFT_CLIENT_SECRET:
+        required: true
+      MICROSOFT_TENANT_ID:
+        required: true
+      SENTRY_DSN_BACKEND:
+        required: true
+      VITE_SENTRY_DSN_FRONTEND:
+        required: true
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_KEY:
+        required: true
 
 env:
   PROJECT_DIR: /opt/rateukma
@@ -133,13 +153,27 @@ jobs:
         run: |
           tar -czf "$ARCHIVE_NAME" src/ docs/api/openapi-generated.yaml infra/nginx/
 
-      - name: Upload archive and deploy script to server
+      - name: Render .env from per-env template
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          MICROSOFT_CLIENT_SECRET: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          MICROSOFT_TENANT_ID: ${{ secrets.MICROSOFT_TENANT_ID }}
+          CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
+          CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
+          SENTRY_DSN_BACKEND: ${{ secrets.SENTRY_DSN_BACKEND }}
+          VITE_SENTRY_DSN_FRONTEND: ${{ secrets.VITE_SENTRY_DSN_FRONTEND }}
+        run: bash scripts/ci/render-deploy-env.sh "$ENVIRONMENT"
+
+      - name: Upload archive, env file, and deploy script to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: "${{ env.ARCHIVE_NAME }},scripts/ci/deploy.sh"
+          source: "${{ env.ARCHIVE_NAME }},scripts/ci/deploy.sh,.deploy_env"
           target: ${{ env.REMOTE_TMP_DEPLOY_DIR }}/
 
       - name: Deploy to server
