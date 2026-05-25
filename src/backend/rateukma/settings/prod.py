@@ -12,6 +12,9 @@ CSRF_COOKIE_SECURE = True
 # Proxy SSL header for HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Force allauth to build https:// callback URLs — TLS is terminated at nginx ingress
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
+
 SENTRY_DSN = config("SENTRY_DSN_BACKEND", default="")  # noqa: F405
 if SENTRY_DSN:
     ENVIRONMENT = config("ENVIRONMENT")  # noqa: F405
