@@ -81,10 +81,13 @@ jobs:
         include:
           - environment: staging
             api_url_var: STAGING_URL
+            vite_environment: staging
           - environment: live
             api_url_var: LIVE_URL
+            vite_environment: live
           - environment: k8s-beta
             api_url_var: K8S_BETA_URL
+            vite_environment: live
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -118,7 +121,7 @@ jobs:
           DOCKER_BUILDKIT: 1
           VITE_API_BASE_URL: ${{ vars[matrix.api_url_var] }}
           VITE_SENTRY_DSN_FRONTEND: ${{ vars.SENTRY_DSN_FRONTEND }}
-          VITE_ENVIRONMENT: ${{ matrix.environment }}
+          VITE_ENVIRONMENT: ${{ matrix.vite_environment }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT_FRONTEND: ${{ vars.SENTRY_PROJECT_FRONTEND }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
