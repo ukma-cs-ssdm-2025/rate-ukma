@@ -83,6 +83,8 @@ jobs:
             api_url_var: STAGING_URL
           - environment: live
             api_url_var: LIVE_URL
+          - environment: k8s-beta
+            api_url_var: K8S_BETA_URL
     steps:
       - name: Checkout
         uses: actions/checkout@v5
