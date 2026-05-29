@@ -5,10 +5,7 @@ from rating_app.application_schemas.instructor import (
     InstructorListParams,
     InstructorListResult,
 )
-from rating_app.application_schemas.pagination import (
-    PaginationFilters,
-    PaginationMetadata,
-)
+from rating_app.application_schemas.pagination import PaginationFilters
 from rating_app.pagination.paginator import GenericQuerysetPaginator
 from rating_app.repositories import InstructorRepository
 from rating_app.repositories.to_domain_mappers import InstructorMapper
@@ -54,4 +51,4 @@ class InstructorService(IFilterable):
         ]
 
 
-__all__ = ["InstructorService", "PaginationMetadata"]
+__all__ = ["InstructorService"]
