@@ -40,9 +40,7 @@ export class RatingModal {
 		await expect(this.instructorTrigger).toBeVisible();
 		await this.instructorTrigger.click();
 		await expect(
-			this.page.getByTestId(
-				`${testIds.rating.instructorMultiSelect}-list`,
-			),
+			this.page.getByTestId(`${testIds.rating.instructorMultiSelect}-list`),
 		).toBeVisible();
 	}
 
@@ -71,9 +69,7 @@ export class RatingModal {
 	}
 
 	async getSelectedInstructorCount(): Promise<number> {
-		const chips = this.instructorTrigger.locator(
-			"span[class*='bg-secondary']",
-		);
+		const chips = this.instructorTrigger.locator("span[class*='bg-secondary']");
 		return chips.count();
 	}
 

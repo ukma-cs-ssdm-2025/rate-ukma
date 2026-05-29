@@ -105,6 +105,7 @@ def rating_service() -> RatingService:
         vote_repository=vote_repository(),
         vote_mapper=rating_vote_mapper(),
         comment_normalizer=comment_normalizer(),
+        instructor_repository=instructor_repository(),
     )
 
 
