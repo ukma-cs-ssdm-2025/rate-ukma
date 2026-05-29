@@ -152,6 +152,31 @@ def test_creates_instructor_from_cyrillic_name(tmp_path):
 
 
 @pytest.mark.django_db
+def test_ingests_utf16_encoded_csv(tmp_path):
+    # M365 exports occasionally land as UTF-16; the utf-8-sig probe must fail
+    # and fall back rather than mis-decoding or raising.
+    csv_path = tmp_path / "users_utf16.csv"
+    csv_path.write_text(
+        CSV_HEADER + "Петренко Іван Васильович,i.petrenko@ukma.edu.ua,Member\n",
+        encoding="utf-16",
+    )
+
+    call_command("ingest_instructors_from_csv", str(csv_path), stdout=io.StringIO())
+
+    assert Instructor.objects.filter(email="i.petrenko@ukma.edu.ua").exists()
+
+
+@pytest.mark.django_db
+def test_undecodable_csv_raises_command_error(tmp_path):
+    csv_path = tmp_path / "users_bad.csv"
+    # Invalid as utf-8 and odd-length for utf-16 → neither encoding decodes.
+    csv_path.write_bytes(b"\x80\x81\x82")
+
+    with pytest.raises(CommandError):
+        call_command("ingest_instructors_from_csv", str(csv_path), stdout=io.StringIO())
+
+
+@pytest.mark.django_db
 def test_skips_rows_matching_existing_student_email(tmp_path):
     StudentFactory.create(email="student@ukma.edu.ua")
     csv_path = _write_csv(

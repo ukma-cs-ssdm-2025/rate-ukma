@@ -179,10 +179,19 @@ def _parse_name(display_name: str) -> tuple[str, str, str]:
 
 
 def _open_csv(path: str):
+    # open() defers decoding until the first read, so we must probe a chunk to
+    # actually trigger (and catch) a wrong-encoding UnicodeDecodeError here
+    # rather than letting it escape later from the csv reader.
     for encoding in ("utf-8-sig", "utf-16"):
+        handle = None
         try:
-            return open(path, encoding=encoding, newline="")
+            handle = open(path, encoding=encoding, newline="")
+            handle.read(512)
+            handle.seek(0)
+            return handle
         except UnicodeError:
+            if handle is not None:
+                handle.close()
             continue
     raise CommandError(f"Unable to decode CSV at {path} as utf-8-sig or utf-16")
 
