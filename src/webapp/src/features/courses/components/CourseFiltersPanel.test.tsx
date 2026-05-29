@@ -1,9 +1,9 @@
-import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { testIds } from "@/lib/test-ids";
 import { createMockFilterOptions } from "@/test-utils/factories";
+import { render, screen, within } from "@/test-utils/render";
 import { CourseFiltersPanel } from "./CourseFiltersPanel";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {

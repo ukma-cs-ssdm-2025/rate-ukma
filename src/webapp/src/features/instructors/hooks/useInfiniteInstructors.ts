@@ -1,13 +1,8 @@
 import type { RefObject } from "react";
 import { useEffect, useMemo, useRef } from "react";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
-
-import type { Instructor } from "@/lib/api/generated";
-import {
-	getInstructorsListQueryKey,
-	instructorsList,
-} from "@/lib/api/generated";
+import type { Instructor, InstructorsListParams } from "@/lib/api/generated";
+import { useInstructorsListInfinite } from "@/lib/api/generated";
 
 export interface UseInfiniteInstructorsReturn {
 	allInstructors: Instructor[];
@@ -35,7 +30,7 @@ export function useInfiniteInstructors({
 	pageSize = DEFAULT_PAGE_SIZE,
 	enabled = true,
 }: UseInfiniteInstructorsOptions = {}): UseInfiniteInstructorsReturn {
-	const params = useMemo(
+	const params = useMemo<InstructorsListParams>(
 		() => ({
 			page_size: pageSize,
 			...(search ? { search } : {}),
@@ -46,14 +41,12 @@ export function useInfiniteInstructors({
 	);
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-		useInfiniteQuery({
-			queryKey: getInstructorsListQueryKey(params),
-			queryFn: ({ pageParam }) =>
-				instructorsList({ ...params, page: pageParam as number }),
-			getNextPageParam: (lastPage) =>
-				lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
-			initialPageParam: 1,
-			enabled,
+		useInstructorsListInfinite(params, {
+			query: {
+				initialPageParam: 1,
+				getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
+				enabled,
+			},
 		});
 
 	const allInstructors = data?.pages.flatMap((p) => p.items) ?? [];

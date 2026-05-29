@@ -1,7 +1,7 @@
-import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { createMockFilterOptions } from "@/test-utils/factories";
+import { renderHookWithProviders as renderHook } from "@/test-utils/render";
 import { useCourseFiltersData } from "./useCourseFiltersData";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
@@ -179,9 +179,16 @@ describe("useCourseFiltersData", () => {
 
 			// Assert
 			const selects = allSelectFilters(result.current);
-			expect(selects).toHaveLength(5);
+			expect(selects).toHaveLength(6);
 			const filterKeys = selects.map((f) => f.key);
-			expect(filterKeys).toEqual(["year", "faculty", "dept", "spec", "type"]);
+			expect(filterKeys).toEqual([
+				"year",
+				"faculty",
+				"dept",
+				"spec",
+				"type",
+				"instructor",
+			]);
 		});
 
 		it("should map filter options to select options", () => {

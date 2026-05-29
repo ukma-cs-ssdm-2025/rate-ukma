@@ -17,7 +17,6 @@ import {
 import type { Instructor } from "@/lib/api/generated";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { cn } from "@/lib/utils";
-
 import { useInfiniteInstructors } from "../hooks/useInfiniteInstructors";
 
 function formatInstructorLabel(instructor: Instructor): string {
@@ -79,18 +78,13 @@ function InstructorMultiSelect({
 		return () => unlock();
 	}, [open]);
 
-	const {
-		allInstructors,
-		hasMore,
-		isFetchingNextPage,
-		isLoading,
-		loaderRef,
-	} = useInfiniteInstructors({
-		search: debouncedSearch || undefined,
-		courseOfferingId,
-		specialityId,
-		enabled: open,
-	});
+	const { allInstructors, hasMore, isFetchingNextPage, isLoading, loaderRef } =
+		useInfiniteInstructors({
+			search: debouncedSearch || undefined,
+			courseOfferingId,
+			specialityId,
+			enabled: open,
+		});
 
 	const optionsById = React.useMemo(() => {
 		const map = new Map<string, Instructor>();
@@ -144,7 +138,9 @@ function InstructorMultiSelect({
 					data-testid={testId}
 				>
 					{selectedInstructors.length === 0 ? (
-						<span className="text-muted-foreground truncate">{placeholder}</span>
+						<span className="text-muted-foreground truncate">
+							{placeholder}
+						</span>
 					) : (
 						selectedInstructors.map((instr) => (
 							<span
