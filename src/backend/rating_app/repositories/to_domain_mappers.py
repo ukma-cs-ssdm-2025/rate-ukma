@@ -227,9 +227,12 @@ class RatingMapper(IProcessor[[RatingModel], RatingDTO]):
     def _map_rating_instructors(self, model: RatingModel):
         from rating_app.application_schemas.rating import RatingInstructor
 
-        prefetched = getattr(model, "_prefetched_objects_cache", {}).get("instructors")
-        instructors = prefetched if prefetched is not None else model.instructors.all()
-        return [RatingInstructor.model_validate(instr) for instr in instructors]
+        # `.all()` transparently uses the prefetch cache when callers prefetch
+        # "instructors" (every read path goes through _build_lightweight_queryset).
+        return [
+            RatingInstructor.model_validate(instr)
+            for instr in model.instructors.all()
+        ]
 
     def _map_comment_authors(self, model: RatingModel) -> list[CommentAuthor]:
         comments = getattr(model, "comment_preview_comments", [])
