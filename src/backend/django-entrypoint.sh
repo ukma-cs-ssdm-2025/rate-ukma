@@ -61,7 +61,9 @@ GUNICORN_ARGS=(
     --access-logfile -
     --max-requests "$MAX_REQUESTS"
     --max-requests-jitter "$((MAX_REQUESTS / 10))"
-    --keep-alive 65
+    # short keep-alive: nginx closes each upstream connection (Connection: close),
+    # so this only bounds direct/idle clients; 5s is the recommended 5-15s range
+    --keep-alive 5
 )
 
 # environment-specific settings
