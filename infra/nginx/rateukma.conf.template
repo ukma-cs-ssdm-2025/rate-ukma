@@ -1,6 +1,10 @@
+# nginx <-> gunicorn connection reuse is OFF on purpose. This hop is local and
+# plaintext, so reusing connections saves almost nothing; meanwhile gunicorn's
+# gthread worker leaks reused-then-idle sockets into CLOSE_WAIT until workers
+# stall (see issue #609, nginx trac #2145). "Connection: close" below makes
+# each request close cleanly, so nothing is left open to leak.
 upstream backend {
     server 127.0.0.1:8000;
-    keepalive 16;
 }
 
 server {
@@ -8,6 +12,11 @@ server {
 
     access_log /var/log/nginx/rateukma_access.log;
     error_log /var/log/nginx/rateukma_error.log;
+
+    # Browser <-> nginx connection reuse stays ON (this is the hop where it pays
+    # off: real network + TLS). 75s is the nginx default, set here explicitly so
+    # it's clear we only disabled reuse on the upstream hop above, not this one.
+    keepalive_timeout 75s;
 
     # Gzip compression
     gzip on;
@@ -20,7 +29,7 @@ server {
     location /api/ {
         proxy_pass http://backend;
         proxy_http_version 1.1;
-        proxy_set_header Connection "";
+        proxy_set_header Connection "close";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -30,7 +39,7 @@ server {
     location /admin/ {
         proxy_pass http://backend;
         proxy_http_version 1.1;
-        proxy_set_header Connection "";
+        proxy_set_header Connection "close";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -50,7 +59,7 @@ server {
     location /accounts/ {
         proxy_pass http://backend;
         proxy_http_version 1.1;
-        proxy_set_header Connection "";
+        proxy_set_header Connection "close";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -65,7 +74,7 @@ server {
     location /courses/ {
         proxy_pass http://backend;
         proxy_http_version 1.1;
-        proxy_set_header Connection "";
+        proxy_set_header Connection "close";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
