@@ -6,7 +6,7 @@ from django.db import transaction
 
 import structlog
 
-from rating_app.models import CourseInstructor, Instructor, Student
+from rating_app.models import CourseInstructor, Instructor
 
 logger = structlog.get_logger(__name__)
 
@@ -199,7 +199,10 @@ def _open_csv(path: str):
 class Command(BaseCommand):
     help = (
         "Ingest instructors from a Microsoft 365 user export CSV. Filters out "
-        "service accounts and rows whose email matches an existing Student."
+        "guests and service accounts. Students share the @ukma.edu.ua domain and "
+        "are intentionally kept (they cannot be told apart from teaching staff in "
+        "the export); the ranked instructor list surfaces actually-rated teachers "
+        "first, so students stay in the searchable tail."
     )
 
     def add_arguments(self, parser):
@@ -231,8 +234,7 @@ class Command(BaseCommand):
         rows = self._load_rows(csv_path)
         logger.info("instructors_csv_loaded", path=csv_path, row_count=len(rows))
 
-        student_emails = self._load_student_emails()
-        candidates, counters = self._filter_rows(rows, student_emails)
+        candidates, counters = self._filter_rows(rows)
         logger.info(
             "instructors_filtered",
             **counters,
@@ -243,7 +245,6 @@ class Command(BaseCommand):
             f"  Dropped non-internal: {counters['dropped_non_internal']}\n"
             f"  Dropped service display: {counters['dropped_service_display']}\n"
             f"  Dropped service UPN: {counters['dropped_service_upn']}\n"
-            f"  Dropped student-email match: {counters['dropped_student_match']}\n"
             f"  Candidates: {len(candidates)}\n"
         )
 
@@ -283,22 +284,14 @@ class Command(BaseCommand):
                 )
             return list(reader)
 
-    def _load_student_emails(self) -> set[str]:
-        return {
-            email.lower()
-            for email in Student.objects.exclude(email="").values_list("email", flat=True)
-        }
-
     def _filter_rows(
         self,
         rows: list[dict[str, str]],
-        student_emails: set[str],
     ) -> tuple[list[dict[str, str]], dict[str, int]]:
         counters = {
             "dropped_non_internal": 0,
             "dropped_service_display": 0,
             "dropped_service_upn": 0,
-            "dropped_student_match": 0,
         }
         kept: list[dict[str, str]] = []
         for row in rows:
@@ -314,9 +307,9 @@ class Command(BaseCommand):
             if _is_service_upn_local(local_part):
                 counters["dropped_service_upn"] += 1
                 continue
-            if upn in student_emails:
-                counters["dropped_student_match"] += 1
-                continue
+            # Students share the @ukma.edu.ua domain and cannot be told apart
+            # from teaching staff in the export, so they are intentionally kept;
+            # the ranked instructor list surfaces actually-rated teachers first.
             kept.append(row)
         return kept, counters
 

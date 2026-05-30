@@ -1,9 +1,10 @@
 import io
 from pathlib import Path
 
-import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
+
+import pytest
 
 from rating_app.management.commands.ingest_instructors_from_csv import (
     _is_internal,
@@ -13,7 +14,6 @@ from rating_app.management.commands.ingest_instructors_from_csv import (
 )
 from rating_app.models import CourseInstructor, Instructor
 from rating_app.tests.factories import InstructorFactory, StudentFactory
-
 
 CSV_HEADER = "displayName,userPrincipalName,userType\n"
 
@@ -177,7 +177,10 @@ def test_undecodable_csv_raises_command_error(tmp_path):
 
 
 @pytest.mark.django_db
-def test_skips_rows_matching_existing_student_email(tmp_path):
+def test_keeps_rows_matching_existing_student_email(tmp_path):
+    # Students share the @ukma.edu.ua domain with staff and cannot be told apart
+    # in the export, so a student-domain user is intentionally ingested; the
+    # ranked list surfaces actually-rated teachers first instead.
     StudentFactory.create(email="student@ukma.edu.ua")
     csv_path = _write_csv(
         tmp_path,
@@ -188,7 +191,7 @@ def test_skips_rows_matching_existing_student_email(tmp_path):
     call_command("ingest_instructors_from_csv", str(csv_path), stdout=io.StringIO())
 
     emails = set(Instructor.objects.values_list("email", flat=True))
-    assert emails == {"i.petrenko@ukma.edu.ua"}
+    assert emails == {"student@ukma.edu.ua", "i.petrenko@ukma.edu.ua"}
 
 
 @pytest.mark.django_db
