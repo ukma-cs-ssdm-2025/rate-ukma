@@ -7,11 +7,24 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import { formatDate } from "@/features/courses/courseFormatting";
-import type { CommentAuthor, RatingVoteStrType } from "@/lib/api/generated";
+import type {
+	CommentAuthor,
+	RatingInstructor,
+	RatingVoteStrType,
+} from "@/lib/api/generated";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
 import { RatingVotes } from "./RatingVotes";
+
+/** "Прізвище І. В." — surname plus initials, blanks skipped. */
+function formatInstructorName(instructor: RatingInstructor): string {
+	const initials = [instructor.first_name, instructor.patronymic]
+		.filter(Boolean)
+		.map((part) => `${(part as string).charAt(0)}.`)
+		.join(" ");
+	return [instructor.last_name, initials].filter(Boolean).join(" ");
+}
 
 interface RatingCardBodyProps {
 	readonly displayName: string;
@@ -23,6 +36,7 @@ interface RatingCardBodyProps {
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
 	readonly instructor?: string | null;
+	readonly instructors?: readonly RatingInstructor[];
 	readonly commentEmptyMessage?: string;
 	readonly ratingId?: string;
 	readonly courseId?: string;
@@ -45,6 +59,7 @@ export function RatingCardBody({
 	usefulness,
 	comment,
 	instructor,
+	instructors = [],
 	commentEmptyMessage,
 	ratingId,
 	courseId,
@@ -88,17 +103,28 @@ export function RatingCardBody({
 				<RatingStats difficulty={difficulty} usefulness={usefulness} />
 			</div>
 
-			{instructor && (
+			{instructors.length > 0 ? (
 				<p className="mt-2 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
-					<span className="shrink-0 font-medium">Викладач:</span>
-					<span className="min-w-0 break-words">{instructor}</span>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Info className="h-3.5 w-3.5 shrink-0 cursor-help text-muted-foreground/60" />
-						</TooltipTrigger>
-						<TooltipContent>Вказано студентом, не перевірено</TooltipContent>
-					</Tooltip>
+					<span className="shrink-0 font-medium">
+						{instructors.length > 1 ? "Викладачі:" : "Викладач:"}
+					</span>
+					<span className="min-w-0 break-words">
+						{instructors.map(formatInstructorName).join(", ")}
+					</span>
 				</p>
+			) : (
+				instructor && (
+					<p className="mt-2 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
+						<span className="shrink-0 font-medium">Викладач:</span>
+						<span className="min-w-0 break-words">{instructor}</span>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Info className="h-3.5 w-3.5 shrink-0 cursor-help text-muted-foreground/60" />
+							</TooltipTrigger>
+							<TooltipContent>Вказано студентом, не перевірено</TooltipContent>
+						</Tooltip>
+					</p>
+				)
 			)}
 
 			<div className="mt-3">
