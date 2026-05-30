@@ -1,9 +1,8 @@
-# Upstream keepalive intentionally disabled: nginx -> gunicorn runs over the
-# local plaintext loopback, so connection pooling saves no measurable handshake
-# cost, while gthread leaks nginx-closed keepalive sockets into CLOSE_WAIT
-# (see nginx trac #2145, gunicorn #1976/#2297). Each request opens and closes
-# cleanly instead. Re-enable only if the backend moves off-host (and switch to
-# an async worker first).
+# nginx <-> gunicorn connection reuse is OFF on purpose. This hop is local and
+# plaintext, so reusing connections saves almost nothing; meanwhile gunicorn's
+# gthread worker leaks reused-then-idle sockets into CLOSE_WAIT until workers
+# stall (see issue #609, nginx trac #2145). "Connection: close" below makes
+# each request close cleanly, so nothing is left open to leak.
 upstream backend {
     server 127.0.0.1:8000;
 }
@@ -13,6 +12,11 @@ server {
 
     access_log /var/log/nginx/rateukma_access.log;
     error_log /var/log/nginx/rateukma_error.log;
+
+    # Browser <-> nginx connection reuse stays ON (this is the hop where it pays
+    # off: real network + TLS). 75s is the nginx default, set here explicitly so
+    # it's clear we only disabled reuse on the upstream hop above, not this one.
+    keepalive_timeout 75s;
 
     # Gzip compression
     gzip on;
