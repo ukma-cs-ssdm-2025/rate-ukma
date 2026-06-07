@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     profiles:
@@ -26,7 +26,7 @@ services:
     container_name: "${COMPOSE_PROJECT_NAME}_redis"
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -62,7 +62,7 @@ services:
       - ${STATIC_ROOT}:/static
       - ${MEDIA_ROOT}:/media
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     networks:
       - backend
       - frontend
@@ -95,7 +95,7 @@ services:
       - ${STATIC_ROOT}:/static
       - ${MEDIA_ROOT}:/media
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     profiles:
       - prod
 
@@ -110,7 +110,7 @@ services:
       - ./webapp:/app
       - /app/node_modules
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     networks:
       - frontend
     env_file:
