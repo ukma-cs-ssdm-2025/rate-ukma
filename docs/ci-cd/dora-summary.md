@@ -1,15 +1,15 @@
 # DORA Metrics Report
 
-**Generated:** 2026-06-02 10:31:13
+**Generated:** 2026-06-09 10:13:19
 
 ## Summary
 
 |Metric|Value|Category|
 | --- | --- | --- |
 | Deployment Frequency | 14.00/week | Elite |
-| Lead Time for Changes | 6m 32s | Elite |
+| Lead Time for Changes | 3m 48s | Elite |
 | Change Failure Rate | 0.0% | Elite |
-| Time to Restore | 20h 20m | High |
+| Time to Restore | 20h 7m | High |
 
 **Total Runs:** 2 | **Successful:** 2 (100.0%) | **Failed:** 0 (0.0%)
 
@@ -29,9 +29,9 @@ pie title Workflow Run Outcomes
 ```mermaid
 xychart-beta
     title "Average Lead Time by Week"
-    x-axis ["Mar 16", "Mar 23", "Mar 30", "Apr 06", "Apr 20", "Apr 27", "May 11", "May 18", "May 25"]
+    x-axis ["Mar 16", "Mar 23", "Mar 30", "Apr 06", "Apr 20", "Apr 27", "May 11", "May 18", "May 25", "Jun 01"]
     y-axis "Duration (minutes)" 0 --> 13
-    bar [7.30, 7.96, 7.80, 7.85, 8.40, 7.58, 7.84, 7.57, 10.99]
+    bar [7.30, 7.96, 7.80, 7.85, 8.40, 7.58, 7.84, 7.57, 10.99, 3.80]
 ```
 
 | Week Starting | Avg Lead Time | Deployments |
@@ -45,19 +45,20 @@ xychart-beta
 | May 11 | 7m 51s | 19 |
 | May 18 | 7m 34s | 10 |
 | May 25 | 10m 59s | 5 |
+| Jun 01 | 3m 48s | 2 |
 
 ### Deployment Frequency Trend
 
 ```mermaid
 xychart-beta
     title "Deployment Frequency Trend"
-    x-axis ["Mar 16", "Mar 23", "Mar 30", "Apr 06", "Apr 20", "Apr 27", "May 11", "May 18", "May 25"]
+    x-axis ["Mar 16", "Mar 23", "Mar 30", "Apr 06", "Apr 20", "Apr 27", "May 11", "May 18", "May 25", "Jun 01"]
     y-axis "Number of Deployments" 0 --> 22
-    bar [2.00, 13.00, 5.00, 2.00, 3.00, 6.00, 19.00, 10.00, 5.00]
+    bar [2.00, 13.00, 5.00, 2.00, 3.00, 6.00, 19.00, 10.00, 5.00, 2.00]
 ```
 
 **Deployment Cadence Analysis:**
-- **Average per week:** 7.2 deployments
+- **Average per week:** 6.7 deployments
 - **Most active week:** 19 deployments
 - **Least active week:** 2 deployments
 - **Consistency:** Low (irregular release pattern)
@@ -67,14 +68,14 @@ xychart-beta
 ```mermaid
 xychart-beta
     title "Change Failure Rate Trend"
-    x-axis ["Mar 16", "Mar 23", "Mar 30", "Apr 06", "Apr 13", "Apr 20", "Apr 27", "May 11", "May 18", "May 25"]
+    x-axis ["Mar 16", "Mar 23", "Mar 30", "Apr 06", "Apr 13", "Apr 20", "Apr 27", "May 11", "May 18", "May 25", "Jun 01"]
     y-axis "Failure Rate (%)" 0 --> 100
-    bar [25.00, 27.78, 16.67, 0.00, 100.00, 0.00, 0.00, 25.00, 20.00, 0.00]
+    bar [0.00, 27.78, 16.67, 0.00, 100.00, 0.00, 0.00, 25.00, 20.00, 0.00, 0.00]
 ```
 
 | Week Starting | Total Runs | Failed | CFR |
 |---------------|------------|--------|-----|
-| Mar 16 | 4 | 1 | 25.0% |
+| Mar 16 | 2 | 0 | 0.0% |
 | Mar 23 | 18 | 5 | 27.8% |
 | Mar 30 | 6 | 1 | 16.7% |
 | Apr 06 | 2 | 0 | 0.0% |
@@ -84,6 +85,7 @@ xychart-beta
 | May 11 | 36 | 9 | 25.0% |
 | May 18 | 15 | 3 | 20.0% |
 | May 25 | 5 | 0 | 0.0% |
+| Jun 01 | 2 | 0 | 0.0% |
 **DORA Performance Tiers:**
 - Elite: ≤ 15%
 - High: 16-30%
