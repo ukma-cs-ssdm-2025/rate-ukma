@@ -53,12 +53,14 @@ def test_is_internal_rejects_non_ukma_or_guest(row):
     [
         "",
         "   ",
-        '"Сходи КМЦ"',
-        "«KMAmnesty»",
+        '"Quoted Name"',  # quote char is not name-legal
+        "«ClubName»",  # guillemets + single token
         "abuse-mailboxes",  # service word in second token
         "Backup Account",  # service word
         "Admin Power BI",  # service word "admin"/"power"/"bi"
         "team",  # single lowercase token
+        "Meeting Room 5",  # room name with a digit
+        "Scholarship Fund 2020",  # org name with a digit
     ],
 )
 def test_is_service_display_rejects(name):
@@ -71,7 +73,10 @@ def test_is_service_display_rejects(name):
         "Ivan Petrenko",
         "Петренко Іван",
         "Петренко Іван Васильович",
-        "Anna Bettinna Steinberg",
+        "Anna Maria Doe",
+        "Петренко Дар`я Іванівна",  # grave-accent apostrophe (U+0060) in the export
+        "Іваненко Мар‘яна Петрівна",  # left single quote apostrophe (U+2018)
+        "Коваленко В`ячеслав Олегович",
     ],
 )
 def test_is_service_display_accepts_human_name(name):
@@ -80,13 +85,13 @@ def test_is_service_display_accepts_human_name(name):
 
 @pytest.mark.parametrize(
     "local",
-    ["abuse", "info", "support", "noreply", "valeria_kazadarova", "my_alias"],
+    ["abuse", "info", "support", "noreply", "shared_inbox", "my_alias"],
 )
 def test_is_service_upn_local_rejects(local):
     assert _is_service_upn_local(local)
 
 
-@pytest.mark.parametrize("local", ["ivan.petrenko", "a.kovalenko", "andreas.umland"])
+@pytest.mark.parametrize("local", ["ivan.petrenko", "a.kovalenko", "john.doe"])
 def test_is_service_upn_local_accepts(local):
     assert not _is_service_upn_local(local)
 
@@ -113,10 +118,10 @@ def test_parse_name_latin_two_tokens():
 
 
 def test_parse_name_latin_multiple_tokens_keeps_last_as_remainder():
-    first, patronymic, last = _parse_name("Anna Bettinna Steinberg")
+    first, patronymic, last = _parse_name("Anna Maria Doe")
     assert first == "Anna"
     assert patronymic == ""
-    assert last == "Bettinna Steinberg"
+    assert last == "Maria Doe"
 
 
 @pytest.mark.django_db
@@ -198,7 +203,7 @@ def test_keeps_rows_matching_existing_student_email(tmp_path):
 def test_filters_service_rows(tmp_path):
     csv_path = _write_csv(
         tmp_path,
-        "«Сходи КМЦ»,stairs@ukma.edu.ua,Member\n"
+        "«Shared Club»,club@ukma.edu.ua,Member\n"
         "Backup Account,backup.account@ukma.edu.ua,Member\n"
         "Іван Петренко,ivan.petrenko@ukma.edu.ua,Guest\n"
         "Іваненко Іван Васильович,i.ivanenko@ukma.edu.ua,Member\n",

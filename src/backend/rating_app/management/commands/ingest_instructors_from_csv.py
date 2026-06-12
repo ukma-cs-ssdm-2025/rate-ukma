@@ -15,7 +15,6 @@ _REQUIRED_COLUMNS = ("displayName", "userPrincipalName", "userType")
 _INTERNAL_DOMAIN_SUFFIX = "@ukma.edu.ua"
 _EXTERNAL_MARKER = "#ext#"
 
-_FORBIDDEN_DISPLAY_CHARS = frozenset("«»\"()[]@/&")
 _SERVICE_WORDS = frozenset(
     {
         "team",
@@ -90,25 +89,31 @@ def _is_internal(row: dict[str, str]) -> bool:
 
 
 def _is_service_display(name: str) -> bool:
-    """Return True when displayName looks like a shared mailbox / service account."""
+    """Return True when displayName looks like a shared mailbox / service account.
+
+    A personal name is positively recognised by structure: at least two
+    whitespace-separated tokens, each made only of letters (plus apostrophes and
+    hyphens), with normal capitalisation and no digits. Anything else (acronyms,
+    all-lowercase aliases, room/lab names with numbers, quoted org titles) is
+    treated as a service account. `_SERVICE_WORDS` is the residual denylist for
+    the hard case structure cannot catch: title-cased English service mailboxes
+    (e.g. "Backup Account") that look exactly like a "First Last" name.
+    """
     if not name or not name.strip():
         return True
     stripped = name.strip()
+    if any(ch.isdigit() for ch in stripped):
+        return True
     if stripped == stripped.lower():
         return True
     if not any(ch.islower() for ch in stripped):
         return True
-    if any(ch in _FORBIDDEN_DISPLAY_CHARS for ch in stripped):
-        return True
     tokens = [t for t in _split_tokens(stripped) if t]
     if len(tokens) < 2:
         return True
-    for token in tokens[:3]:
-        if not _is_letter_token(token):
-            return True
-        if token.lower() in _SERVICE_WORDS:
-            return True
-    return False
+    if not all(_is_letter_token(token) for token in tokens):
+        return True
+    return any(token.lower() in _SERVICE_WORDS for token in tokens[:3])
 
 
 def _is_service_upn_local(local: str) -> bool:
@@ -139,7 +144,7 @@ def _is_letter_token(token: str) -> bool:
     if not token:
         return False
     for ch in token:
-        if ch in {"'", "ʼ", "’", "-"}:
+        if ch in {"'", "ʼ", "’", "`", "‘", "´", "-"}:
             continue
         if not ch.isalpha():
             return False
