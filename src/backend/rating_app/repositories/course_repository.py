@@ -7,6 +7,7 @@ from django.db.models import (
     Exists,
     F,
     IntegerField,
+    Max,
     OuterRef,
     Prefetch,
     Q,
@@ -418,6 +419,9 @@ class CourseRepository(
     def _apply_sorting(
         self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal
     ) -> QuerySet[Course]:
+        if filters.last_review_order is not None:
+            courses = courses.annotate(last_review=Max("offerings__ratings__created_at"))
+
         order_by_fields = self._build_order_by_fields(filters)
 
         courses = courses.annotate(
@@ -446,6 +450,18 @@ class CourseRepository(
                 order_by_fields.append(field.asc())
             else:
                 order_by_fields.append(field.desc())
+        if filters.ratings_count_order:
+            field = F("ratings_count")
+            if filters.ratings_count_order == "asc":
+                order_by_fields.append(field.asc())
+            else:
+                order_by_fields.append(field.desc())
+        if filters.last_review_order:
+            field = F("last_review")
+            if filters.last_review_order == "asc":
+                order_by_fields.append(field.asc(nulls_last=True))
+            else:
+                order_by_fields.append(field.desc(nulls_last=True))
         return order_by_fields
 
     def _map_to_domain_models(self, models: list[Course]) -> list[CourseDTO]:

@@ -90,6 +90,7 @@ const defaultParams: CourseFiltersParamsState = {
 	size: 10,
 	diffOrder: null,
 	useOrder: null,
+	freshOrder: null,
 };
 
 const defaultSetParams = vi.fn();
@@ -360,6 +361,7 @@ describe("Reset Filters", () => {
 			size: 10,
 			diffOrder: null,
 			useOrder: null,
+			freshOrder: null,
 		});
 	});
 });
@@ -682,6 +684,7 @@ describe("Sorting", () => {
 		expect(setParams).toHaveBeenCalledWith({
 			diffOrder: "asc",
 			useOrder: null,
+			freshOrder: null,
 			page: 1,
 		});
 	});
@@ -716,6 +719,36 @@ describe("Sorting", () => {
 		expect(setParams).toHaveBeenCalledWith({
 			diffOrder: null,
 			useOrder: "desc",
+			freshOrder: null,
+			page: 1,
+		});
+	});
+
+	it("should set freshOrder=desc and clear column sorts when 'Найновіші' is picked", async () => {
+		const user = userEvent.setup();
+		const setParams = vi.fn();
+		const courses = Array.from({ length: 3 }, () => createMockCourse());
+
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				data={courses}
+				params={{ ...defaultParams, diffOrder: "asc" }}
+				setParams={setParams}
+			/>,
+		);
+
+		await user.click(
+			screen.getByRole("button", { name: "Сортування за відгуками" }),
+		);
+		await user.click(
+			screen.getByRole("menuitemradio", { name: "Найновіші" }),
+		);
+
+		expect(setParams).toHaveBeenCalledWith({
+			freshOrder: "desc",
+			diffOrder: null,
+			useOrder: null,
 			page: 1,
 		});
 	});

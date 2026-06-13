@@ -91,6 +91,15 @@ paths:
           format: uuid
         description: Filter by instructor UUID
       - in: query
+        name: last_review_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: Sort order for most recent review timestamp (asc/desc); courses
+          without reviews appear last in both directions
+      - in: query
         name: name
         schema:
           type: string
@@ -110,6 +119,14 @@ paths:
         schema:
           type: integer
         description: Minimum ratings count (0+)
+      - in: query
+        name: ratings_count_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: Sort order for review count (asc/desc)
       - in: query
         name: semester_terms
         schema:
@@ -947,6 +964,15 @@ paths:
           format: uuid
         description: Filter by instructor UUID
       - in: query
+        name: last_review_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: Sort order for most recent review timestamp (asc/desc); courses
+          without reviews appear last in both directions
+      - in: query
         name: name
         schema:
           type: string
@@ -966,6 +992,14 @@ paths:
         schema:
           type: integer
         description: Minimum ratings count (0+)
+      - in: query
+        name: ratings_count_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: Sort order for review count (asc/desc)
       - in: query
         name: semester_terms
         schema:

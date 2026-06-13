@@ -99,6 +99,14 @@ class CourseFilterCriteria(BaseModel):
     avg_usefulness_order: AvgOrder | None = Field(
         default=None, description="Sort order for usefulness (asc/desc)"
     )
+    ratings_count_order: AvgOrder | None = Field(
+        default=None, description="Sort order for review count (asc/desc)"
+    )
+    last_review_order: AvgOrder | None = Field(
+        default=None,
+        description="Sort order for most recent review timestamp (asc/desc); "
+        "courses without reviews appear last in both directions",
+    )
     page: int | None = Field(default=1, ge=1, description="Page number")
     page_size: int | None = Field(default=None, ge=1, description="Items per page")
 
@@ -131,7 +139,13 @@ class CourseFilterCriteria(BaseModel):
             return [value.upper()]
         return value
 
-    @field_validator("avg_difficulty_order", "avg_usefulness_order", mode="before")
+    @field_validator(
+        "avg_difficulty_order",
+        "avg_usefulness_order",
+        "ratings_count_order",
+        "last_review_order",
+        mode="before",
+    )
     @classmethod
     def normalize_sort_order(cls, value):
         if isinstance(value, str):

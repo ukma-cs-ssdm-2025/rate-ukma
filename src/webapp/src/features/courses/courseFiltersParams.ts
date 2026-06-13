@@ -102,6 +102,9 @@ export const courseFiltersParams = {
 	useOrder: parseAsStringEnum<SortOrder>(
 		VALID_SORT_ORDERS as unknown as SortOrder[],
 	),
+	freshOrder: parseAsStringEnum<SortOrder>(
+		VALID_SORT_ORDERS as unknown as SortOrder[],
+	),
 };
 
 export function useCourseFiltersParams() {
@@ -137,6 +140,7 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	size: 10,
 	diffOrder: null,
 	useOrder: null,
+	freshOrder: null,
 };
 
 export function courseFiltersStateToSearchParams(
@@ -176,6 +180,7 @@ export function courseFiltersStateToSearchParams(
 	if (state.size !== 10) params.size = state.size;
 	if (state.diffOrder) params.diffOrder = state.diffOrder;
 	if (state.useOrder) params.useOrder = state.useOrder;
+	if (state.freshOrder) params.freshOrder = state.freshOrder;
 
 	return params;
 }
