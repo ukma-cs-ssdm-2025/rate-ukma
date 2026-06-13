@@ -410,12 +410,11 @@ export function CoursesTable({
 		[sorting, setParams],
 	);
 
-	const reviewsSortValue: CoursesReviewsSortOption | null =
-		params.diffOrder || params.useOrder
-			? null
-			: params.reviewSort === "by-count"
-				? "by-count"
-				: "newest";
+	const reviewsSortValue = useMemo<CoursesReviewsSortOption | null>(() => {
+		if (params.diffOrder || params.useOrder) return null;
+		if (params.reviewSort === "by-count") return "by-count";
+		return "newest";
+	}, [params.diffOrder, params.useOrder, params.reviewSort]);
 
 	const handleReviewsSortChange = useCallback(
 		(value: CoursesReviewsSortOption) => {
