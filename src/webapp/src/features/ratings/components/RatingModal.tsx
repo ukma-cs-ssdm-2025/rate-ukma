@@ -27,7 +27,7 @@ interface ExistingRating {
 	usefulness?: number;
 	comment?: string | null;
 	instructor?: string | null;
-	instructors?: RatingInstructor[];
+	instructors?: readonly RatingInstructor[];
 	is_anonymous?: boolean;
 }
 

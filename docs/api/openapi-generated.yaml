@@ -3235,6 +3235,11 @@ components:
           type: string
           readOnly: true
           nullable: true
+        instructors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RatingInstructor'
+          readOnly: true
         created_at:
           type: string
           format: date-time

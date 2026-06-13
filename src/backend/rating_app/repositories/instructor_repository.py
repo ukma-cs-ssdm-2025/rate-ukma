@@ -1,7 +1,7 @@
 import uuid
 from typing import Literal, overload
 
-from django.db.models import Count, Q, QuerySet
+from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When
 
 from rating_app.application_schemas.instructor import Instructor, InstructorInput
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
@@ -30,8 +30,9 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         """Annotate instructors with mention counts and order by relevance.
 
         Ordering: per-offering mentions DESC, per-speciality mentions DESC,
-        global mentions DESC, last_name ASC, first_name ASC. Per-offering and
-        per-speciality counts are zero when the corresponding filter is omitted.
+        global mentions DESC, Cyrillic names before Latin, last_name ASC,
+        first_name ASC. Per-offering and per-speciality counts are zero when the
+        corresponding filter is omitted.
         """
         offering_filter = (
             Q(ratings__course_offering_id=course_offering_id)
@@ -56,6 +57,11 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
                 distinct=True,
             ),
             global_mentions=Count("ratings", distinct=True),
+            starts_latin=Case(
+                When(last_name__regex=r"^[A-Za-z]", then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
         )
 
         if search:
@@ -69,6 +75,7 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             "-offering_mentions",
             "-speciality_mentions",
             "-global_mentions",
+            "starts_latin",
             "last_name",
             "first_name",
             "id",
