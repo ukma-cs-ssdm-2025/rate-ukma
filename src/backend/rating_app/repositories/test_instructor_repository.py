@@ -5,7 +5,6 @@ import pytest
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.ioc_container.repositories import instructor_mapper
-from rating_app.models.choices import AcademicDegree, AcademicTitle
 from rating_app.repositories.instructor_repository import InstructorRepository
 
 
@@ -31,14 +30,14 @@ def test_get_or_create_handles_empty_patronymic(repo):
         first_name="Jane",
         last_name="Smith",
         patronymic="",
-        academic_degree=AcademicDegree.PHD,
-        academic_title=AcademicTitle.ASSISTANT,
+        email="jane.smith@ukma.edu.ua",
     )
 
     instructor, created = repo.get_or_create(data)
 
     assert created is True
     assert instructor.patronymic == ""
+    assert instructor.email == "jane.smith@ukma.edu.ua"
 
 
 @pytest.mark.django_db
@@ -49,8 +48,7 @@ def test_get_or_create_with_return_model_returns_orm_model(repo):
         first_name="John",
         last_name="Doe",
         patronymic="Michael",
-        academic_degree=AcademicDegree.PHD,
-        academic_title=AcademicTitle.PROFESSOR,
+        email="john.doe@ukma.edu.ua",
     )
 
     instructor, created = repo.get_or_create(data, return_model=True)
@@ -58,3 +56,22 @@ def test_get_or_create_with_return_model_returns_orm_model(repo):
     assert created is True
     # Verify it's an ORM model (has save method)
     assert hasattr(instructor, "save")
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_or_create_is_idempotent_on_email(repo):
+    data = InstructorDTO(
+        id=uuid4(),
+        first_name="Alex",
+        last_name="Kovalenko",
+        patronymic="",
+        email="a.kovalenko@ukma.edu.ua",
+    )
+
+    first, created_first = repo.get_or_create(data)
+    second, created_second = repo.get_or_create(data)
+
+    assert created_first is True
+    assert created_second is False
+    assert first.id == second.id

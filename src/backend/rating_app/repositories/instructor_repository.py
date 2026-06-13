@@ -46,11 +46,12 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         return_model: bool = False,
     ) -> tuple[Instructor, bool] | tuple[InstructorModel, bool]:
         obj, created = InstructorModel.objects.get_or_create(
-            first_name=data.first_name,
-            last_name=data.last_name,
-            patronymic=data.patronymic,
-            academic_degree=data.academic_degree,
-            academic_title=data.academic_title,
+            email=data.email.lower(),
+            defaults={
+                "first_name": data.first_name,
+                "last_name": data.last_name,
+                "patronymic": data.patronymic or "",
+            },
         )
 
         if return_model:
@@ -80,15 +81,13 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         *,
         return_model: bool = False,
     ) -> tuple[Instructor, bool] | tuple[InstructorModel, bool]:
-        defaults = {
-            "academic_degree": data.academic_degree,
-            "academic_title": data.academic_title,
-        }
         obj, created = InstructorModel.objects.update_or_create(
-            first_name=data.first_name,
-            last_name=data.last_name,
-            patronymic=data.patronymic,
-            defaults=defaults,
+            email=data.email.lower(),
+            defaults={
+                "first_name": data.first_name,
+                "last_name": data.last_name,
+                "patronymic": data.patronymic or "",
+            },
         )
 
         if return_model:

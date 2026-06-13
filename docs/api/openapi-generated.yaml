@@ -2420,28 +2420,6 @@ paths:
           description: No response body
 components:
   schemas:
-    AcademicDegreeEnum:
-      enum:
-      - PHD
-      - DRSCI
-      type: string
-      description: |-
-        * `PHD` - PhD
-        * `DRSCI` - DoctorOfSciences
-    AcademicTitleEnum:
-      enum:
-      - ASSISTANT
-      - LECTURER
-      - SENIOR_LECTURER
-      - ASSOCIATE_PROF
-      - PROFESSOR
-      type: string
-      description: |-
-        * `ASSISTANT` - Assistant
-        * `LECTURER` - Lecturer
-        * `SENIOR_LECTURER` - SeniorLecturer
-        * `ASSOCIATE_PROF` - AssociateProfessor
-        * `PROFESSOR` - Professor
     CSRFToken:
       type: object
       properties:
@@ -3219,10 +3197,6 @@ components:
         last_name:
           type: string
           maxLength: 120
-        academic_degree:
-          $ref: '#/components/schemas/AcademicDegreeEnum'
-        academic_title:
-          $ref: '#/components/schemas/AcademicTitleEnum'
       required:
       - first_name
       - last_name
@@ -3243,13 +3217,9 @@ components:
         last_name:
           type: string
           readOnly: true
-        academic_degree:
-          allOf:
-          - $ref: '#/components/schemas/AcademicDegreeEnum'
-          readOnly: true
-        academic_title:
-          allOf:
-          - $ref: '#/components/schemas/AcademicTitleEnum'
+        email:
+          type: string
+          format: email
           readOnly: true
     InstructorOption:
       type: object

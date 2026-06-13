@@ -1,29 +1,27 @@
 from django.db import models
 
-from rating_app.models.choices import AcademicDegree, AcademicTitle
-
 from .person import Person
 
 
 class Instructor(Person):
-    academic_degree = models.CharField(
-        max_length=8, choices=AcademicDegree.choices, blank=True, default=""
-    )
-    academic_title = models.CharField(
-        max_length=32, choices=AcademicTitle.choices, blank=True, default=""
-    )
+    """A person creditable as a course instructor, sourced from the M365
+    directory (``ingest_instructors_from_csv``). The pool is intentionally
+    broad: the export cannot distinguish teaching staff from students, so most
+    rows are only *candidate* instructors and the ranked instructor list
+    surfaces actually-rated people first. Distinct from ``Student`` (scraped
+    from the site), which the same person may also appear in.
+    """
+
+    email = models.EmailField(max_length=254, unique=True, db_index=True)
 
     class Meta(Person.Meta):
         abstract = False
 
     def __str__(self) -> str:
-        return (
-            f"{self.first_name} {self.last_name}. ({self.academic_degree}, {self.academic_title})"
-        )
+        return f"{self.first_name} {self.last_name} <{self.email}>"
 
     def __repr__(self) -> str:
         return (
             f"<Instructor id={self.id} last_name={self.last_name} "
-            f"first_name={self.first_name} degree={self.academic_degree} "
-            f"title={self.academic_title}>"
+            f"first_name={self.first_name} email={self.email}>"
         )
