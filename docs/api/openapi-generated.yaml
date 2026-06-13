@@ -3197,12 +3197,7 @@ components:
         last_name:
           type: string
           maxLength: 120
-        email:
-          type: string
-          format: email
-          maxLength: 254
       required:
-      - email
       - first_name
       - last_name
     InstructorDTO:

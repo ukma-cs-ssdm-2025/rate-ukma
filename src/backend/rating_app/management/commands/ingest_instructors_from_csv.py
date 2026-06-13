@@ -6,7 +6,7 @@ from django.db import transaction
 
 import structlog
 
-from rating_app.models import CourseInstructor, Instructor
+from rating_app.models import Instructor
 
 logger = structlog.get_logger(__name__)
 
@@ -221,20 +221,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Run the filter pipeline and report counts without writing.",
         )
-        parser.add_argument(
-            "--purge",
-            action="store_true",
-            help=(
-                "Delete all existing Instructor rows (cascades to CourseInstructor) "
-                "before ingest."
-            ),
-        )
 
     @transaction.atomic
     def handle(self, *args, **options):
         csv_path: str = options["csv_path"]
         dry_run: bool = options["dry_run"]
-        purge: bool = options["purge"]
 
         rows = self._load_rows(csv_path)
         logger.info("instructors_csv_loaded", path=csv_path, row_count=len(rows))
@@ -252,9 +243,6 @@ class Command(BaseCommand):
             f"  Dropped service UPN: {counters['dropped_service_upn']}\n"
             f"  Candidates: {len(candidates)}\n"
         )
-
-        if purge:
-            self._purge(dry_run)
 
         created, updated = self._upsert(candidates, dry_run)
         logger.info(
@@ -318,23 +306,6 @@ class Command(BaseCommand):
             kept.append(row)
         return kept, counters
 
-    def _purge(self, dry_run: bool) -> None:
-        ci_count = CourseInstructor.objects.count()
-        instr_count = Instructor.objects.count()
-        if not dry_run:
-            CourseInstructor.objects.all().delete()
-            Instructor.objects.all().delete()
-        logger.info(
-            "instructors_purged",
-            course_instructor_rows=ci_count,
-            instructor_rows=instr_count,
-            dry_run=dry_run,
-        )
-        self.stdout.write(
-            f"  Purge: {instr_count} instructors, {ci_count} course_instructors"
-            f"{' (dry-run)' if dry_run else ''}"
-        )
-
     def _upsert(
         self,
         candidates: list[dict[str, str]],
@@ -348,8 +319,7 @@ class Command(BaseCommand):
             if not last_name and not first_name:
                 continue
             if dry_run:
-                exists = Instructor.objects.filter(email=email).exists()
-                if exists:
+                if Instructor.objects.filter(email=email).exists():
                     updated += 1
                 else:
                     created += 1

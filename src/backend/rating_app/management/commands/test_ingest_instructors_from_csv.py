@@ -12,7 +12,7 @@ from rating_app.management.commands.ingest_instructors_from_csv import (
     _is_service_upn_local,
     _parse_name,
 )
-from rating_app.models import CourseInstructor, Instructor
+from rating_app.models import Instructor
 from rating_app.tests.factories import InstructorFactory, StudentFactory
 
 CSV_HEADER = "displayName,userPrincipalName,userType\n"
@@ -213,26 +213,6 @@ def test_filters_service_rows(tmp_path):
 
     emails = set(Instructor.objects.values_list("email", flat=True))
     assert emails == {"i.ivanenko@ukma.edu.ua"}
-
-
-@pytest.mark.django_db
-def test_purge_clears_existing_instructors_and_links(tmp_path):
-    InstructorFactory.create(email="old@ukma.edu.ua")
-    csv_path = _write_csv(
-        tmp_path,
-        "Петренко Іван,i.petrenko@ukma.edu.ua,Member\n",
-    )
-
-    call_command(
-        "ingest_instructors_from_csv",
-        str(csv_path),
-        "--purge",
-        stdout=io.StringIO(),
-    )
-
-    emails = set(Instructor.objects.values_list("email", flat=True))
-    assert emails == {"i.petrenko@ukma.edu.ua"}
-    assert CourseInstructor.objects.count() == 0
 
 
 @pytest.mark.django_db
