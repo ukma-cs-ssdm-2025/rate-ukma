@@ -108,3 +108,23 @@ def test_get_many_by_ids_returns_only_matching_and_omits_unknown(repo):
 
     assert [instructor.id for instructor in result] == [existing.id]
     assert other.id not in {instructor.id for instructor in result}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_ranked_orders_cyrillic_before_latin_at_equal_mentions(repo):
+    # No ratings => equal (zero) mentions, so script ordering decides:
+    # Cyrillic names come before Latin ones, each group alphabetical.
+    latin_a = InstructorFactory.create(first_name="Anna", last_name="Adams")
+    cyrillic_ya = InstructorFactory.create(first_name="Юрій", last_name="Яременко")
+    cyrillic_a = InstructorFactory.create(first_name="Андрій", last_name="Андрієнко")
+    latin_z = InstructorFactory.create(first_name="Zach", last_name="Zorin")
+
+    ranked = list(repo.list_ranked())
+
+    assert [i.id for i in ranked] == [
+        cyrillic_a.id,
+        cyrillic_ya.id,
+        latin_a.id,
+        latin_z.id,
+    ]

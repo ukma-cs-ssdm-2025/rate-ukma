@@ -7,10 +7,23 @@ from rating_app.tests.factories import (
     CourseFactory,
     CourseOfferingFactory,
     EnrollmentFactory,
+    InstructorFactory,
     RatingFactory,
     SemesterFactory,
     StudentFactory,
 )
+
+
+def _rated_with_two_instructors(student):
+    course = CourseFactory()
+    semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+    rating = RatingFactory(student=student, course_offering=offering)
+    first = InstructorFactory(first_name="Олена", patronymic="Ігорівна", last_name="Коваленко")
+    second = InstructorFactory(first_name="Іван", patronymic="Петрович", last_name="Петренко")
+    rating.instructors.set([first, second])
+    return rating, first, second
 
 
 @pytest.fixture
@@ -503,3 +516,47 @@ def test_get_detailed_by_student_includes_all_course_fields(repo):
     assert "year" in record["semester"]
     assert "season" in record["semester"]
     assert "rated" in record
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_rating_stats_includes_m2m_instructors(repo):
+    student = StudentFactory()
+    rating, first, second = _rated_with_two_instructors(student)
+
+    result = repo.get_rating_stats(student_id=str(student.id))
+
+    rated = result[0]["offerings"][0]["rated"]
+    assert rated["id"] == str(rating.id)
+    instructors_by_id = {i["id"]: i for i in rated["instructors"]}
+    assert set(instructors_by_id) == {str(first.id), str(second.id)}
+    assert instructors_by_id[str(first.id)]["last_name"] == "Коваленко"
+    assert instructors_by_id[str(first.id)]["patronymic"] == "Ігорівна"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_detailed_rating_stats_includes_m2m_instructors(repo):
+    student = StudentFactory()
+    rating, first, second = _rated_with_two_instructors(student)
+
+    result = repo.get_detailed_rating_stats(student_id=str(student.id))
+
+    rated = result[0]["rated"]
+    assert rated["id"] == str(rating.id)
+    assert {i["id"] for i in rated["instructors"]} == {str(first.id), str(second.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_rating_stats_returns_empty_instructors_when_none_linked(repo):
+    student = StudentFactory()
+    course = CourseFactory()
+    semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+    RatingFactory(student=student, course_offering=offering)
+
+    result = repo.get_rating_stats(student_id=str(student.id))
+
+    assert result[0]["offerings"][0]["rated"]["instructors"] == []

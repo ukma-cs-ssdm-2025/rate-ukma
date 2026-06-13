@@ -81,6 +81,7 @@ export function UserRatingCard({
 						onClick={onEdit}
 						aria-label="Редагувати оцінку"
 						className="h-7 w-7 p-0"
+						data-testid={testIds.courseDetails.editUserRatingButton}
 					>
 						<Pencil className="h-3.5 w-3.5" />
 					</Button>

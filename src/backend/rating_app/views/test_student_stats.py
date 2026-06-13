@@ -7,6 +7,7 @@ from rating_app.tests.factories import (
     CourseFactory,
     CourseOfferingFactory,
     EnrollmentFactory,
+    InstructorFactory,
     RatingFactory,
     SemesterFactory,
     StudentFactory,
@@ -468,3 +469,30 @@ def test_student_courses_cache_is_busted_after_version_bump(token_client, mock_c
     offering_data = fresh.json()[0]["offerings"][0]
     assert offering_data["rated"] is not None
     assert offering_data["rated"]["comment"] == "Late rating"
+
+
+@freeze_time(DEFAULT_DATE)
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_courses_stats_returns_m2m_instructors_on_rated(token_client):
+    # Regression: the light /students/me/courses/ endpoint must expose the
+    # rating's M2M instructors so the edit modal can pre-populate them.
+    student = StudentFactory(user=token_client.user)
+    course = CourseFactory(title="Course With Instructors")
+    semester = SemesterFactory(term=SemesterTerm[DEFAULT_TERM], year=DEFAULT_YEAR)
+    offering = CourseOfferingFactory(course=course, semester=semester)
+    EnrollmentFactory(student=student, offering=offering)
+    rating = RatingFactory(student=student, course_offering=offering)
+    instructor = InstructorFactory(
+        first_name="Олена", patronymic="Ігорівна", last_name="Коваленко"
+    )
+    rating.instructors.set([instructor])
+
+    response = token_client.get("/api/v1/students/me/courses/")
+
+    assert response.status_code == 200
+    rated = response.json()[0]["offerings"][0]["rated"]
+    assert len(rated["instructors"]) == 1
+    assert rated["instructors"][0]["id"] == str(instructor.id)
+    assert rated["instructors"][0]["last_name"] == "Коваленко"
+    assert rated["instructors"][0]["patronymic"] == "Ігорівна"
