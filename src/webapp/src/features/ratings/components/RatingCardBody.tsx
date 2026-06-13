@@ -17,13 +17,11 @@ import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
 import { RatingVotes } from "./RatingVotes";
 
-/** "Прізвище І. В." — surname plus initials, blanks skipped. */
+/** "Прізвище Імʼя" — surname plus full first name, blanks skipped. Patronymic
+ * is omitted for brevity; the full first name keeps same-surname instructors
+ * distinguishable (e.g. "Калиновська Олександра" vs "Калиновська Оксана"). */
 function formatInstructorName(instructor: RatingInstructor): string {
-	const initials = [instructor.first_name, instructor.patronymic]
-		.filter(Boolean)
-		.map((part) => `${(part as string).charAt(0)}.`)
-		.join(" ");
-	return [instructor.last_name, initials].filter(Boolean).join(" ");
+	return [instructor.last_name, instructor.first_name].filter(Boolean).join(" ");
 }
 
 interface RatingCardBodyProps {
