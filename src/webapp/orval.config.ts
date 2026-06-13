@@ -4,9 +4,9 @@ export default defineConfig({
 	api: {
 		output: {
 			mode: "split",
-			target: "src/lib/api/generated/index.ts",
+			target: "endpoints.ts",
 			workspace: "src/lib/api/generated",
-			schemas: "src/lib/api/generated/models",
+			schemas: "models",
 			client: "react-query",
 			override: {
 				mutator: {
