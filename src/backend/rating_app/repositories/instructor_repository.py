@@ -25,18 +25,26 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         *,
         search: str | None = None,
         course_offering_id: uuid.UUID | None = None,
+        course_id: uuid.UUID | None = None,
         speciality_id: uuid.UUID | None = None,
     ) -> QuerySet[InstructorModel]:
         """Annotate instructors with mention counts and order by relevance.
 
-        Ordering: per-offering mentions DESC, per-speciality mentions DESC,
-        global mentions DESC, Cyrillic names before Latin, last_name ASC,
-        first_name ASC. Per-offering and per-speciality counts are zero when the
-        corresponding filter is omitted.
+        Ordering, most specific first: mentions on this exact offering DESC,
+        mentions on any offering of the same course DESC, per-speciality
+        mentions DESC, global mentions DESC (so anyone ever rated outranks the
+        never-rated directory tail, which includes students), then Cyrillic
+        before Latin, last_name ASC, first_name ASC. Each scoped count is zero
+        when the corresponding filter is omitted.
         """
         offering_filter = (
             Q(ratings__course_offering_id=course_offering_id)
             if course_offering_id
+            else Q(pk__in=[])
+        )
+        course_filter = (
+            Q(ratings__course_offering__course_id=course_id)
+            if course_id
             else Q(pk__in=[])
         )
         speciality_filter = (
@@ -49,6 +57,11 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             offering_mentions=Count(
                 "ratings",
                 filter=offering_filter,
+                distinct=True,
+            ),
+            course_mentions=Count(
+                "ratings",
+                filter=course_filter,
                 distinct=True,
             ),
             speciality_mentions=Count(
@@ -73,6 +86,7 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
 
         return qs.order_by(
             "-offering_mentions",
+            "-course_mentions",
             "-speciality_mentions",
             "-global_mentions",
             "starts_latin",

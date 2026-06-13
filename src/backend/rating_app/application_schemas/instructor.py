@@ -32,6 +32,10 @@ class InstructorListParams(BaseModel):
         default=None,
         description="Boost instructors most mentioned on this course offering",
     )
+    course_id: uuid.UUID | None = Field(
+        default=None,
+        description="Boost instructors mentioned on any offering of this course",
+    )
     speciality_id: uuid.UUID | None = Field(
         default=None,
         description="Boost instructors most mentioned on this speciality",

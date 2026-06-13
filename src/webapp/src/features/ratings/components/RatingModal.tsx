@@ -172,6 +172,7 @@ export function RatingModal({
 					isEditMode={isEditMode}
 					initialData={initialData}
 					offeringId={offeringId}
+					courseId={courseId}
 					initialInstructors={initialInstructors}
 				/>
 			</DialogContent>

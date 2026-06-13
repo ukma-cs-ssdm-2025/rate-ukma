@@ -1755,6 +1755,12 @@ paths:
       summary: List instructors
       parameters:
       - in: query
+        name: course_id
+        schema:
+          type: string
+          format: uuid
+        description: Boost instructors mentioned on any offering of this course
+      - in: query
         name: course_offering_id
         schema:
           type: string

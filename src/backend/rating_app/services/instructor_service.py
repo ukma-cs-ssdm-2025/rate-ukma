@@ -30,6 +30,7 @@ class InstructorService(IFilterable):
         qs = self.instructor_repository.list_ranked(
             search=params.search,
             course_offering_id=params.course_offering_id,
+            course_id=params.course_id,
             speciality_id=params.speciality_id,
         )
         paginated = self.paginator.process(
