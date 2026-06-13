@@ -1,4 +1,4 @@
-import { expect, type Locator, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 import { MyRatingsPage } from "./my-ratings.page";
@@ -18,51 +18,89 @@ test.describe("Rating instructor multi-select", () => {
 
 		await myRatingsPage.goto();
 		await myRatingsPage.openFirstCourseToRate();
-
 		await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();
 	});
 
-	test("pick two instructors via multi-select and submit", async ({ page }) => {
+	// Select one, select two, deselect one, deselect all, persist two, then
+	// reopen the edit modal and confirm the saved instructors pre-populate
+	// (regression: the edit modal used to open with an empty picker), finally
+	// clear them all and confirm the cleared state persists.
+	test("select, deselect, persist and re-open with saved instructors", async ({
+		page,
+	}) => {
 		let createdRating = false;
-		let reviewCard: Locator | undefined;
 		let mainError: unknown;
 
 		try {
 			await coursePage.clickRateButton();
 			await expect(page.getByTestId(testIds.rating.modal)).toBeVisible();
 
-			const comment = `e2e:instructor:${String(Date.now())}`;
-			const testData = createTestRatingData({ comment });
-
+			const testData = createTestRatingData({
+				comment: `e2e:instructor:${String(Date.now())}`,
+			});
 			await ratingModal.setDifficultyRating(testData.difficulty);
 			await ratingModal.setUsefulnessRating(testData.usefulness);
 			await ratingModal.setComment(testData.comment);
 
+			// --- select one ---
 			await ratingModal.openInstructorPicker();
-			const list = page.getByTestId(
-				`${testIds.rating.instructorMultiSelect}-list`,
-			);
-			const firstThree = list.locator("[role='option']");
-			await expect(firstThree.first()).toBeVisible();
-			const optionCount = Math.min(2, await firstThree.count());
-
-			for (let i = 0; i < optionCount; i++) {
-				await firstThree.nth(i).click();
-			}
-
+			await ratingModal.selectInstructorOptionByIndex(0);
 			await ratingModal.closeInstructorPicker();
+			expect(await ratingModal.getSelectedInstructorCount()).toBe(1);
 
-			const chips = page
-				.getByTestId(testIds.rating.instructorMultiSelect)
-				.locator("span[class*='bg-secondary']");
-			await expect(chips).toHaveCount(optionCount);
+			// --- select two ---
+			await ratingModal.openInstructorPicker();
+			await ratingModal.selectInstructorOptionByIndex(1);
+			await ratingModal.closeInstructorPicker();
+			expect(await ratingModal.getSelectedInstructorCount()).toBe(2);
+
+			const savedNames = (
+				await ratingModal.getSelectedInstructorNames()
+			).sort();
+
+			// --- deselect one ---
+			await ratingModal.removeInstructorChipByIndex(0);
+			expect(await ratingModal.getSelectedInstructorCount()).toBe(1);
+
+			// --- deselect all ---
+			await ratingModal.removeInstructorChipByIndex(0);
+			expect(await ratingModal.getSelectedInstructorCount()).toBe(0);
+
+			// re-select the same two and persist them
+			await ratingModal.openInstructorPicker();
+			await ratingModal.selectInstructorOptionByIndex(0);
+			await ratingModal.selectInstructorOptionByIndex(1);
+			await ratingModal.closeInstructorPicker();
+			expect(await ratingModal.getSelectedInstructorCount()).toBe(2);
+			expect((await ratingModal.getSelectedInstructorNames()).sort()).toEqual(
+				savedNames,
+			);
 
 			await ratingModal.submitRating();
 			await ratingModal.waitForHidden();
 			createdRating = true;
 
-			reviewCard = await coursePage.findReviewCardByText(testData.comment);
-			await expect(reviewCard).toBeVisible();
+			// --- regression: re-open edit, saved instructors must be present ---
+			await coursePage.clickEditUserRating();
+			await expect(page.getByTestId(testIds.rating.modal)).toBeVisible();
+			expect(await ratingModal.getSelectedInstructorCount()).toBe(2);
+			expect((await ratingModal.getSelectedInstructorNames()).sort()).toEqual(
+				savedNames,
+			);
+
+			// --- deselect all in edit and persist the cleared state ---
+			await ratingModal.removeInstructorChipByIndex(0);
+			await ratingModal.removeInstructorChipByIndex(0);
+			expect(await ratingModal.getSelectedInstructorCount()).toBe(0);
+			await ratingModal.submitRating();
+			await ratingModal.waitForHidden();
+
+			// re-open once more: the cleared state must have persisted
+			await coursePage.clickEditUserRating();
+			await expect(page.getByTestId(testIds.rating.modal)).toBeVisible();
+			expect(await ratingModal.getSelectedInstructorCount()).toBe(0);
+			await ratingModal.closeInstructorPicker();
+			await page.getByTestId(testIds.rating.modal).waitFor({ state: "hidden" });
 		} catch (error) {
 			mainError = error;
 		}
@@ -70,9 +108,6 @@ test.describe("Rating instructor multi-select", () => {
 		if (createdRating) {
 			try {
 				await coursePage.deleteUserRating();
-				if (reviewCard) {
-					await expect(reviewCard).toBeHidden();
-				}
 			} catch (cleanupError) {
 				if (!mainError) {
 					throw cleanupError;
