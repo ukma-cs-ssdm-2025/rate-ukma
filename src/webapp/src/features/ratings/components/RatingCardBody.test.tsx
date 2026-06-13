@@ -20,7 +20,6 @@ function instructor(over: Partial<RatingInstructor>): RatingInstructor {
 		first_name: "",
 		patronymic: "",
 		last_name: "",
-		email: "",
 		...over,
 	};
 }

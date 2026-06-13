@@ -3311,10 +3311,6 @@ components:
         last_name:
           type: string
           readOnly: true
-        email:
-          type: string
-          format: email
-          readOnly: true
     InstructorListResponse:
       type: object
       description: Schema for GET /api/v1/instructors/ response envelope.
@@ -3536,10 +3532,6 @@ components:
           readOnly: true
         last_name:
           type: string
-          readOnly: true
-        email:
-          type: string
-          format: email
           readOnly: true
     RatingPutParams:
       properties:

@@ -15,7 +15,6 @@ def _serialize_rating_instructors(rating_obj: Rating) -> list[dict[str, Any]]:
             "first_name": instructor.first_name,
             "patronymic": instructor.patronymic,
             "last_name": instructor.last_name,
-            "email": instructor.email,
         }
         for instructor in rating_obj.instructors.all()
     ]

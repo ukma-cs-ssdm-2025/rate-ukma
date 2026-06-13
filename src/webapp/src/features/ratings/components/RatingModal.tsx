@@ -130,7 +130,6 @@ export function RatingModal({
 		first_name: ri.first_name ?? "",
 		last_name: ri.last_name ?? "",
 		patronymic: ri.patronymic ?? "",
-		email: ri.email ?? "",
 	}));
 
 	const initialData: RatingFormData | undefined = existingRating
