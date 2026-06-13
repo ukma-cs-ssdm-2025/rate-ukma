@@ -176,7 +176,7 @@ export class CommentsSection {
 	}
 
 	private commentControls(commentItem: Locator): Locator {
-		return commentItem.locator(":scope > div").nth(1);
+		return commentItem.getByTestId(testIds.comments.controls).first();
 	}
 
 	private repliesToggle(commentItem: Locator): Locator {

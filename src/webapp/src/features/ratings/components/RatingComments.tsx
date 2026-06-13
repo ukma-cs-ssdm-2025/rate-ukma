@@ -553,7 +553,10 @@ function RatingCommentItem({
 			</div>
 
 			{!isEditing && (
-				<div className="ml-9 flex flex-wrap items-center gap-2">
+				<div
+					className="ml-9 flex flex-wrap items-center gap-2"
+					data-testid={testIds.comments.controls}
+				>
 					<RepliesPreview
 						comment={comment}
 						showReplies={showReplies}
