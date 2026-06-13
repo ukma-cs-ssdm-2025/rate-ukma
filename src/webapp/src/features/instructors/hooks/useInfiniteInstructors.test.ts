@@ -45,7 +45,6 @@ function createMockInstructor(overrides: Partial<Instructor> = {}): Instructor {
 		id: "instructor-1",
 		first_name: "Іван",
 		last_name: "Іваненко",
-		email: "ivan@ukma.edu.ua",
 		...overrides,
 	};
 }

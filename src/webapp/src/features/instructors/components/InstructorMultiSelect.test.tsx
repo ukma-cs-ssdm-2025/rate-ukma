@@ -26,7 +26,6 @@ function createMockInstructor(overrides: Partial<Instructor> = {}): Instructor {
 		id: "instructor-1",
 		first_name: "Іван",
 		last_name: "Іваненко",
-		email: "ivan@ukma.edu.ua",
 		...overrides,
 	};
 }
@@ -82,7 +81,6 @@ describe("formatInstructorLabel", () => {
 			id: "x",
 			last_name: "",
 			first_name: "Іван",
-			email: "x@ukma.edu.ua",
 		});
 		expect(label).toBe("Іван");
 	});

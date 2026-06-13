@@ -15,7 +15,6 @@ class RatingInstructorSerializer(serializers.Serializer):
     first_name = serializers.CharField(read_only=True)
     patronymic = serializers.CharField(read_only=True, allow_blank=True)
     last_name = serializers.CharField(read_only=True)
-    email = serializers.EmailField(read_only=True)
 
 
 class RatingReadSerializer(serializers.Serializer):
