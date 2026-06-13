@@ -15,8 +15,7 @@ import { createTestRatingData } from "../framework/test-config";
 import { CommentsSection } from "../shared/comments-section.component";
 import { RatingModal } from "../shared/rating-modal.component";
 
-const ANONYMOUS_REVIEW_NAME =
-	"\u0410\u043d\u043e\u043d\u0456\u043c\u043d\u0438\u0439 \u0432\u0456\u0434\u0433\u0443\u043a";
+const ANONYMOUS_REVIEW_NAME = "Анонімний відгук";
 const COMMENTS_LIST_ROUTE = "**/api/v1/ratings/**/comments/**";
 const NON_OWNER_USER_ID = 1_000_001;
 

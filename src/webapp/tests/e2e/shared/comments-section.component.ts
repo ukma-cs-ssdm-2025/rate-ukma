@@ -2,8 +2,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 
-const REPLY_BUTTON_NAME =
-	/\u0412\u0456\u0434\u043f\u043e\u0432\u0456\u0441\u0442\u0438/u;
+const REPLY_BUTTON_NAME = /Відповісти/u;
 
 interface SubmitCommentOptions {
 	readonly anonymous?: boolean;
