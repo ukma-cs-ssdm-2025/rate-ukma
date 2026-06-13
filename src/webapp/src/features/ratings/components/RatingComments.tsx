@@ -178,7 +178,11 @@ function CommentForm({
 	};
 
 	return (
-		<form className="space-y-2" onSubmit={handleSubmit}>
+		<form
+			className="space-y-2"
+			onSubmit={handleSubmit}
+			data-testid={testIds.comments.form}
+		>
 			<Textarea
 				value={content}
 				onChange={(event) => setContent(event.target.value)}
