@@ -146,10 +146,12 @@ function StarRatingInput({
 function RatingFormFields({
 	control,
 	offeringId,
+	courseId,
 	initialInstructors,
 }: Readonly<{
 	control: ReturnType<typeof useForm<RatingFormData>>["control"];
 	offeringId?: string;
+	courseId?: string;
 	initialInstructors?: readonly Instructor[];
 }>) {
 	return (
@@ -208,6 +210,7 @@ function RatingFormFields({
 								onChange={field.onChange}
 								initialOptions={initialInstructors}
 								courseOfferingId={offeringId}
+								courseId={courseId}
 								data-testid={testIds.rating.instructorMultiSelect}
 							/>
 						</FormControl>
@@ -279,6 +282,7 @@ interface RatingFormProps {
 	readonly isEditMode?: boolean;
 	readonly initialData?: RatingFormData;
 	readonly offeringId?: string;
+	readonly courseId?: string;
 	readonly initialInstructors?: readonly Instructor[];
 }
 
@@ -289,6 +293,7 @@ export function RatingForm({
 	isEditMode = false,
 	initialData,
 	offeringId,
+	courseId,
 	initialInstructors,
 }: RatingFormProps) {
 	const form = useForm<RatingFormData>({
@@ -318,6 +323,7 @@ export function RatingForm({
 				<RatingFormFields
 					control={form.control}
 					offeringId={offeringId}
+					courseId={courseId}
 					initialInstructors={initialInstructors}
 				/>
 

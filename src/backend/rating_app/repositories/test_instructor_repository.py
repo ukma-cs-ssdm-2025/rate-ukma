@@ -6,7 +6,12 @@ from rating_app.application_schemas.instructor import Instructor as InstructorDT
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.ioc_container.repositories import instructor_mapper
 from rating_app.repositories.instructor_repository import InstructorRepository
-from rating_app.tests.factories import InstructorFactory
+from rating_app.tests.factories import (
+    CourseFactory,
+    CourseOfferingFactory,
+    InstructorFactory,
+    RatingFactory,
+)
 
 
 @pytest.fixture
@@ -127,4 +132,34 @@ def test_list_ranked_orders_cyrillic_before_latin_at_equal_mentions(repo):
         cyrillic_ya.id,
         latin_a.id,
         latin_z.id,
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_ranked_tiers_offering_then_course_then_global(repo):
+    # Same course, two offerings (semesters).
+    course = CourseFactory.create()
+    offering_a = CourseOfferingFactory.create(course=course)
+    offering_b = CourseOfferingFactory.create(course=course)
+    other_offering = CourseOfferingFactory.create()  # unrelated course
+
+    on_offering = InstructorFactory.create(last_name="Aaa")  # exact offering
+    on_course = InstructorFactory.create(last_name="Bbb")  # same course, other offering
+    rated_elsewhere = InstructorFactory.create(last_name="Ccc")  # only global mention
+    never_rated = InstructorFactory.create(last_name="Ddd")  # directory tail
+
+    RatingFactory.create(course_offering=offering_a).instructors.add(on_offering)
+    RatingFactory.create(course_offering=offering_b).instructors.add(on_course)
+    RatingFactory.create(course_offering=other_offering).instructors.add(rated_elsewhere)
+
+    ranked = list(
+        repo.list_ranked(course_offering_id=offering_a.id, course_id=course.id)
+    )
+
+    assert [i.id for i in ranked] == [
+        on_offering.id,
+        on_course.id,
+        rated_elsewhere.id,
+        never_rated.id,
     ]

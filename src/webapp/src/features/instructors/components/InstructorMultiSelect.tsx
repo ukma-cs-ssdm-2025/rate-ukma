@@ -34,6 +34,7 @@ interface InstructorMultiSelectProps {
 	readonly onChange: (next: string[]) => void;
 	readonly initialOptions?: readonly Instructor[];
 	readonly courseOfferingId?: string;
+	readonly courseId?: string;
 	readonly specialityId?: string;
 	readonly placeholder?: string;
 	readonly searchPlaceholder?: string;
@@ -49,6 +50,7 @@ function InstructorMultiSelect({
 	onChange,
 	initialOptions = [],
 	courseOfferingId,
+	courseId,
 	specialityId,
 	placeholder = "Обрати викладача…",
 	searchPlaceholder = "Пошук викладача…",
@@ -82,6 +84,7 @@ function InstructorMultiSelect({
 		useInfiniteInstructors({
 			search: debouncedSearch || undefined,
 			courseOfferingId,
+			courseId,
 			specialityId,
 			enabled: open,
 		});
