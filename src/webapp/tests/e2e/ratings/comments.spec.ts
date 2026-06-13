@@ -3,6 +3,7 @@ import {
 	type Locator,
 	type Page,
 	type Response as PlaywrightResponse,
+	type Route,
 	type TestInfo,
 	test,
 } from "@playwright/test";
@@ -16,6 +17,7 @@ import { RatingModal } from "../shared/rating-modal.component";
 
 const ANONYMOUS_REVIEW_NAME =
 	"\u0410\u043d\u043e\u043d\u0456\u043c\u043d\u0438\u0439 \u0432\u0456\u0434\u0433\u0443\u043a";
+const COMMENTS_LIST_ROUTE = "**/api/v1/ratings/**/comments/**";
 const NON_OWNER_USER_ID = 1_000_001;
 
 interface SeededRatingContext {
@@ -119,18 +121,25 @@ test.describe("Rating comments workflow", () => {
 				const comment = uniqueText(test.info(), "non-owner");
 
 				await comments.createComment(comment);
-				await mockCommentAsNonOwner(page, comment);
-				await page.reload();
-				await expect(
-					page.getByTestId(testIds.courseDetails.title),
-				).toBeVisible();
+				const stopMockingCommentOwner = await mockCommentAsNonOwner(
+					page,
+					comment,
+				);
+				try {
+					await page.reload();
+					await expect(
+						page.getByTestId(testIds.courseDetails.title),
+					).toBeVisible();
 
-				const reloadedCard =
-					await coursePage.findReviewCardByText(ratingComment);
-				const reloadedComments = new CommentsSection(page, reloadedCard);
+					const reloadedCard =
+						await coursePage.findReviewCardByText(ratingComment);
+					const reloadedComments = new CommentsSection(page, reloadedCard);
 
-				await reloadedComments.expand();
-				await reloadedComments.expectManagementActionsHidden(comment);
+					await reloadedComments.expand();
+					await reloadedComments.expectManagementActionsHidden(comment);
+				} finally {
+					await stopMockingCommentOwner();
+				}
 			},
 		);
 	});
@@ -294,8 +303,8 @@ async function getCsrfToken(
 async function mockCommentAsNonOwner(
 	page: Page,
 	targetContent: string,
-): Promise<void> {
-	await page.route("**/api/v1/ratings/**/comments/**", async (route) => {
+): Promise<() => Promise<void>> {
+	const handler = async (route: Route) => {
 		const response = await route.fetch();
 
 		if (route.request().method() !== "GET") {
@@ -325,7 +334,10 @@ async function mockCommentAsNonOwner(
 		} catch {
 			await route.fulfill({ response });
 		}
-	});
+	};
+
+	await page.route(COMMENTS_LIST_ROUTE, handler);
+	return () => page.unroute(COMMENTS_LIST_ROUTE, handler);
 }
 
 function isRatingCreateResponse(response: PlaywrightResponse): boolean {
