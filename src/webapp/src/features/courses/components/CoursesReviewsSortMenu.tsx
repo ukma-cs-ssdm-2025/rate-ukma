@@ -34,13 +34,17 @@ export function CoursesReviewsSortMenu({
 					type="button"
 					variant="ghost"
 					size="sm"
-					className="h-7 w-7 p-0"
+					className="-ml-2 inline-flex h-8 items-center gap-2 px-2 text-sm font-medium"
 					aria-label="Сортування за відгуками"
 				>
+					<span>Відгуки</span>
 					<ChevronDown className="h-4 w-4" />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="center">
+			<DropdownMenuContent
+				align="center"
+				onCloseAutoFocus={(event) => event.preventDefault()}
+			>
 				{SORT_OPTIONS.map((option) => {
 					const isSelected = option.value === value;
 					return (

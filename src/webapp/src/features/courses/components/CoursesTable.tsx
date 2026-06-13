@@ -200,10 +200,7 @@ function buildCoursesTableColumns({
 			id: "ratings_count",
 			accessorKey: "ratings_count",
 			header: () => (
-				<div className="hidden sm:inline-flex h-8 items-center gap-1">
-					<span className="px-2 text-sm font-medium text-foreground">
-						Відгуки
-					</span>
+				<div className="hidden sm:block">
 					<CoursesReviewsSortMenu
 						value={reviewsSortValue}
 						onValueChange={onReviewsSortChange}
