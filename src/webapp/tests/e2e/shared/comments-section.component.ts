@@ -77,15 +77,15 @@ export class CommentsSection {
 		await replyButton.click();
 
 		await this.submitForm(parentItem, replyContent, options);
+		await this.expectCommentVisible(replyContent, "last");
+		await expect(this.repliesToggle(parentItem)).toBeVisible();
 	}
 
 	async expandReplies(parentContent: string): Promise<void> {
 		const parentItem = this.commentItemByText(parentContent);
 		await expect(parentItem).toBeVisible();
 
-		const repliesToggle = this.commentControls(parentItem)
-			.locator("button[aria-expanded]")
-			.first();
+		const repliesToggle = this.repliesToggle(parentItem);
 		await expect(repliesToggle).toBeVisible();
 
 		if ((await repliesToggle.getAttribute("aria-expanded")) !== "true") {
@@ -177,6 +177,12 @@ export class CommentsSection {
 
 	private commentControls(commentItem: Locator): Locator {
 		return commentItem.locator(":scope > div").nth(1);
+	}
+
+	private repliesToggle(commentItem: Locator): Locator {
+		return this.commentControls(commentItem)
+			.locator("button[aria-expanded]")
+			.first();
 	}
 
 	private async submitForm(
