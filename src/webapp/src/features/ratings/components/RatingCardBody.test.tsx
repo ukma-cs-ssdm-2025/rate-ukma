@@ -25,7 +25,7 @@ function instructor(over: Partial<RatingInstructor>): RatingInstructor {
 }
 
 describe("RatingCardBody instructor display", () => {
-	it("renders M2M instructors as surname + initials", () => {
+	it("renders M2M instructors as surname + full first name", () => {
 		render(
 			<RatingCardBody
 				{...baseProps}
@@ -42,7 +42,7 @@ describe("RatingCardBody instructor display", () => {
 
 		expect(screen.getByText("Викладачі:")).toBeInTheDocument();
 		expect(
-			screen.getByText("Петренко І. В., Коваленко А."),
+			screen.getByText("Петренко Іван, Коваленко Анна"),
 		).toBeInTheDocument();
 	});
 
@@ -57,7 +57,7 @@ describe("RatingCardBody instructor display", () => {
 		);
 
 		expect(screen.getByText("Викладач:")).toBeInTheDocument();
-		expect(screen.getByText("Коваленко А.")).toBeInTheDocument();
+		expect(screen.getByText("Коваленко Анна")).toBeInTheDocument();
 	});
 
 	it("falls back to legacy text when no M2M instructors", () => {
@@ -78,7 +78,7 @@ describe("RatingCardBody instructor display", () => {
 			/>,
 		);
 
-		expect(screen.getByText("Коваленко А.")).toBeInTheDocument();
+		expect(screen.getByText("Коваленко Анна")).toBeInTheDocument();
 		expect(screen.queryByText("Старий текст")).not.toBeInTheDocument();
 	});
 
