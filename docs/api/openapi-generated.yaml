@@ -120,14 +120,6 @@ paths:
           type: integer
         description: Minimum ratings count (0+)
       - in: query
-        name: ratings_count_order
-        schema:
-          type: string
-          enum:
-          - asc
-          - desc
-        description: Sort order for review count (asc/desc)
-      - in: query
         name: semester_terms
         schema:
           type: array
@@ -992,14 +984,6 @@ paths:
         schema:
           type: integer
         description: Minimum ratings count (0+)
-      - in: query
-        name: ratings_count_order
-        schema:
-          type: string
-          enum:
-          - asc
-          - desc
-        description: Sort order for review count (asc/desc)
       - in: query
         name: semester_terms
         schema:

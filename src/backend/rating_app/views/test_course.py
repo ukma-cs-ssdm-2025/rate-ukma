@@ -667,50 +667,6 @@ def test_sorting_preserves_order_with_various_ratings(token_client, course_facto
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_sorting_by_ratings_count(token_client, course_factory):
-    course_many = course_factory.create()
-    course_many.ratings_count = 12
-    course_many.save()
-
-    course_few = course_factory.create()
-    course_few.ratings_count = 2
-    course_few.save()
-
-    course_mid = course_factory.create()
-    course_mid.ratings_count = 5
-    course_mid.save()
-
-    course_none = course_factory.create()
-    course_none.ratings_count = 0
-    course_none.save()
-
-    response_desc = token_client.get(
-        "/api/v1/courses/?ratings_count_order=desc&page_size=10"
-    )
-    assert response_desc.status_code == 200
-    items_desc = response_desc.json()["items"]
-    assert [item["id"] for item in items_desc[:4]] == [
-        str(course_many.id),
-        str(course_mid.id),
-        str(course_few.id),
-        str(course_none.id),
-    ]
-
-    response_asc = token_client.get(
-        "/api/v1/courses/?ratings_count_order=asc&page_size=10"
-    )
-    assert response_asc.status_code == 200
-    items_asc = response_asc.json()["items"]
-    assert [item["id"] for item in items_asc[:4]] == [
-        str(course_few.id),
-        str(course_mid.id),
-        str(course_many.id),
-        str(course_none.id),
-    ]
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_sorting_by_last_review(
     token_client, course_factory, course_offering_factory, rating_factory
 ):

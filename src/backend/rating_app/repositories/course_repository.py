@@ -450,12 +450,6 @@ class CourseRepository(
                 order_by_fields.append(field.asc())
             else:
                 order_by_fields.append(field.desc())
-        if filters.ratings_count_order:
-            field = F("ratings_count")
-            if filters.ratings_count_order == "asc":
-                order_by_fields.append(field.asc())
-            else:
-                order_by_fields.append(field.desc())
         if filters.last_review_order:
             field = F("last_review")
             if filters.last_review_order == "asc":

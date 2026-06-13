@@ -99,9 +99,6 @@ class CourseFilterCriteria(BaseModel):
     avg_usefulness_order: AvgOrder | None = Field(
         default=None, description="Sort order for usefulness (asc/desc)"
     )
-    ratings_count_order: AvgOrder | None = Field(
-        default=None, description="Sort order for review count (asc/desc)"
-    )
     last_review_order: AvgOrder | None = Field(
         default=None,
         description="Sort order for most recent review timestamp (asc/desc); "
@@ -142,7 +139,6 @@ class CourseFilterCriteria(BaseModel):
     @field_validator(
         "avg_difficulty_order",
         "avg_usefulness_order",
-        "ratings_count_order",
         "last_review_order",
         mode="before",
     )

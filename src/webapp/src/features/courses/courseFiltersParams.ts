@@ -36,6 +36,7 @@ const VALID_EDUCATION_LEVELS: readonly EducationLevelEnum[] = [
 
 type SortOrder = "asc" | "desc";
 const VALID_SORT_ORDERS: readonly SortOrder[] = ["asc", "desc"];
+const VALID_FRESH_ORDERS: readonly "desc"[] = ["desc"];
 
 function createRangeParser(bounds: [number, number], step?: number) {
 	const [minBound, maxBound] = bounds;
@@ -102,8 +103,8 @@ export const courseFiltersParams = {
 	useOrder: parseAsStringEnum<SortOrder>(
 		VALID_SORT_ORDERS as unknown as SortOrder[],
 	),
-	freshOrder: parseAsStringEnum<SortOrder>(
-		VALID_SORT_ORDERS as unknown as SortOrder[],
+	freshOrder: parseAsStringEnum<"desc">(
+		VALID_FRESH_ORDERS as unknown as "desc"[],
 	),
 };
 
