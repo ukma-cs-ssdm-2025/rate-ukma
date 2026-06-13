@@ -19,6 +19,7 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/Collapsible";
 import { Combobox } from "@/components/ui/Combobox";
+import { InstructorFilterSelect } from "@/features/instructors/components/InstructorFilterSelect";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import {
@@ -488,6 +489,23 @@ function SelectFilters({
 					const currentValue = getSelectValue(key);
 					const testId = SELECT_FILTER_TEST_IDS[key];
 					const isDisabled = disabled || options.length === 0;
+
+					if (key === "instructor") {
+						return (
+							<div key={key} className="space-y-3">
+								<Label className="text-sm font-medium inline-flex items-center gap-1.5">
+									{label}
+									{disabledMessage && <InfoHint message={disabledMessage} />}
+								</Label>
+								<InstructorFilterSelect
+									value={currentValue}
+									onChange={(nextValue) => onSelectChange(key, nextValue)}
+									placeholder={placeholder}
+									data-testid={testId}
+								/>
+							</div>
+						);
+					}
 
 					const selectElement = useCombobox ? (
 						<Combobox

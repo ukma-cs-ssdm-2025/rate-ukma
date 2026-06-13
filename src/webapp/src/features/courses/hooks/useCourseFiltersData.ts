@@ -1,10 +1,6 @@
 import * as React from "react";
 
-import {
-	EducationLevelEnum,
-	type FilterOptions,
-	useInstructorsList,
-} from "@/lib/api/generated";
+import { EducationLevelEnum, type FilterOptions } from "@/lib/api/generated";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
@@ -250,9 +246,6 @@ export function useCourseFiltersData({
 		[semesterYears, filters.year],
 	);
 
-	const topInstructorsQuery = useInstructorsList({ page_size: 50 });
-	const topInstructors = topInstructorsQuery.data?.items ?? [];
-
 	const educationLevelToggleOptions: EducationLevelToggle = React.useMemo(
 		() => ({
 			options: [
@@ -330,19 +323,13 @@ export function useCourseFiltersData({
 					: "Спочатку оберіть спеціальність",
 			},
 			{
+				// Rendered by a dedicated InstructorFilterSelect (server search +
+				// infinite scroll); options are fetched inside that component.
 				key: "instructor",
 				label: "Викладач",
 				placeholder: "Усі викладачі",
 				value: filters.instructor,
-				options: [
-					{ value: "", label: "Усі викладачі" },
-					...topInstructors
-						.filter((i) => i.id)
-						.map((i) => ({
-							value: i.id as string,
-							label: [i.last_name, i.first_name].filter(Boolean).join(" "),
-						})),
-				],
+				options: [],
 				contentClassName: "max-h-72",
 				useCombobox: true,
 			},
@@ -357,7 +344,6 @@ export function useCourseFiltersData({
 			filters.spec,
 			filters.type,
 			filters.instructor,
-			topInstructors,
 		],
 	);
 
