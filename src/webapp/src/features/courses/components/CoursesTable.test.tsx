@@ -742,7 +742,7 @@ describe("Sorting", () => {
 			screen.getByRole("button", { name: "Сортування за відгуками" }),
 		);
 		await user.click(
-			screen.getByRole("menuitemradio", { name: "Найновіші" }),
+			screen.getByRole("menuitem", { name: "Найновіші" }),
 		);
 
 		expect(setParams).toHaveBeenCalledWith({

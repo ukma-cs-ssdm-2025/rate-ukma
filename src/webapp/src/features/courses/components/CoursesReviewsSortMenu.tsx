@@ -1,11 +1,10 @@
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuRadioGroup,
-	DropdownMenuRadioItem,
+	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
 
@@ -42,18 +41,21 @@ export function CoursesReviewsSortMenu({
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="center">
-				<DropdownMenuRadioGroup
-					value={value ?? ""}
-					onValueChange={(next) =>
-						onValueChange(next as CoursesReviewsSortOption)
-					}
-				>
-					{SORT_OPTIONS.map((option) => (
-						<DropdownMenuRadioItem key={option.value} value={option.value}>
+				{SORT_OPTIONS.map((option) => {
+					const isSelected = option.value === value;
+					return (
+						<DropdownMenuItem
+							key={option.value}
+							onSelect={() => onValueChange(option.value)}
+							className="pr-8"
+						>
 							{option.label}
-						</DropdownMenuRadioItem>
-					))}
-				</DropdownMenuRadioGroup>
+							{isSelected && (
+								<Check className="absolute right-2 size-4" />
+							)}
+						</DropdownMenuItem>
+					);
+				})}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
