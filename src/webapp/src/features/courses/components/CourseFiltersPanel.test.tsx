@@ -29,7 +29,7 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	size: 10,
 	diffOrder: null,
 	useOrder: null,
-	freshOrder: null,
+	reviewSort: null,
 };
 
 function assertElement(

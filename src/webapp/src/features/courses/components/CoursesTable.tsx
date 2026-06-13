@@ -403,7 +403,7 @@ export function CoursesTable({
 			setParams({
 				diffOrder,
 				useOrder,
-				freshOrder: null,
+				reviewSort: null,
 				page: 1,
 			});
 		},
@@ -413,14 +413,14 @@ export function CoursesTable({
 	const reviewsSortValue: CoursesReviewsSortOption | null =
 		params.diffOrder || params.useOrder
 			? null
-			: params.freshOrder === "desc"
-				? "newest"
-				: "by-count";
+			: params.reviewSort === "by-count"
+				? "by-count"
+				: "newest";
 
 	const handleReviewsSortChange = useCallback(
 		(value: CoursesReviewsSortOption) => {
 			setParams({
-				freshOrder: value === "newest" ? "desc" : null,
+				reviewSort: value === "by-count" ? "by-count" : null,
 				diffOrder: null,
 				useOrder: null,
 				page: 1,
