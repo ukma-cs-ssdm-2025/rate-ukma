@@ -192,14 +192,9 @@ function InstructorMultiSelect({
 									onSelect={() => toggleValue(id)}
 									className="flex items-start gap-2"
 								>
-									<div className="flex flex-col">
-										<span className="break-words">
-											{formatInstructorLabel(instr)}
-										</span>
-										<span className="text-muted-foreground text-xs">
-											{instr.email}
-										</span>
-									</div>
+									<span className="break-words">
+										{formatInstructorLabel(instr)}
+									</span>
 									<CheckIcon
 										className={cn(
 											"ml-auto size-4 shrink-0",
