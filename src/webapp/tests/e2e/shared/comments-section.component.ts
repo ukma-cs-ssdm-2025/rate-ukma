@@ -105,7 +105,12 @@ export class CommentsSection {
 		await expect(editButton).toBeVisible();
 		await editButton.click();
 
-		await this.submitForm(commentItem, updatedContent, options);
+		const editTextarea = this.root
+			.getByTestId(testIds.comments.textarea)
+			.last();
+		await expect(editTextarea).toHaveValue(currentContent);
+		const editForm = editTextarea.locator("xpath=ancestor::form[1]");
+		await this.submitForm(editForm, updatedContent, options);
 		await this.expectCommentVisible(updatedContent);
 	}
 
