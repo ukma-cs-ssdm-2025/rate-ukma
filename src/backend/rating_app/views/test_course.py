@@ -1,6 +1,9 @@
+import datetime
 import uuid
 
 import pytest
+
+from rating_app.models import Rating
 
 
 @pytest.mark.django_db
@@ -660,3 +663,129 @@ def test_sorting_preserves_order_with_various_ratings(token_client, course_facto
         str(course_no_ratings.id),
     ]
     assert items_use_desc[3]["ratings_count"] == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_sorting_by_last_review(
+    token_client, course_factory, course_offering_factory, rating_factory
+):
+    course_newest = course_factory.create()
+    course_oldest = course_factory.create()
+    course_middle = course_factory.create()
+    course_no_reviews = course_factory.create()
+
+    offering_newest = course_offering_factory.create(course=course_newest)
+    offering_oldest = course_offering_factory.create(course=course_oldest)
+    offering_middle = course_offering_factory.create(course=course_middle)
+
+    rating_newest = rating_factory.create(course_offering=offering_newest)
+    rating_oldest = rating_factory.create(course_offering=offering_oldest)
+    rating_middle = rating_factory.create(course_offering=offering_middle)
+
+    Rating.objects.filter(id=rating_newest.id).update(
+        created_at=datetime.datetime(2026, 5, 20, tzinfo=datetime.timezone.utc)
+    )
+    Rating.objects.filter(id=rating_oldest.id).update(
+        created_at=datetime.datetime(2025, 1, 10, tzinfo=datetime.timezone.utc)
+    )
+    Rating.objects.filter(id=rating_middle.id).update(
+        created_at=datetime.datetime(2025, 8, 15, tzinfo=datetime.timezone.utc)
+    )
+
+    for course in (course_newest, course_oldest, course_middle):
+        course.ratings_count = 1
+        course.save()
+
+    response_desc = token_client.get(
+        "/api/v1/courses/?last_review_order=desc&page_size=10"
+    )
+    assert response_desc.status_code == 200
+    items_desc = response_desc.json()["items"]
+    assert [item["id"] for item in items_desc[:4]] == [
+        str(course_newest.id),
+        str(course_middle.id),
+        str(course_oldest.id),
+        str(course_no_reviews.id),
+    ]
+
+    response_asc = token_client.get(
+        "/api/v1/courses/?last_review_order=asc&page_size=10"
+    )
+    assert response_asc.status_code == 200
+    items_asc = response_asc.json()["items"]
+    assert [item["id"] for item in items_asc[:4]] == [
+        str(course_oldest.id),
+        str(course_middle.id),
+        str(course_newest.id),
+        str(course_no_reviews.id),
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_sorting_by_last_review_aggregates_across_offerings(
+    token_client, course_factory, course_offering_factory, rating_factory
+):
+    course_multi = course_factory.create()
+    offering_old = course_offering_factory.create(course=course_multi)
+    offering_recent = course_offering_factory.create(course=course_multi)
+    rating_on_old_offering = rating_factory.create(course_offering=offering_old)
+    rating_on_recent_offering = rating_factory.create(course_offering=offering_recent)
+    Rating.objects.filter(id=rating_on_old_offering.id).update(
+        created_at=datetime.datetime(2025, 1, 5, tzinfo=datetime.timezone.utc)
+    )
+    Rating.objects.filter(id=rating_on_recent_offering.id).update(
+        created_at=datetime.datetime(2026, 5, 20, tzinfo=datetime.timezone.utc)
+    )
+
+    course_single = course_factory.create()
+    offering_single = course_offering_factory.create(course=course_single)
+    rating_single = rating_factory.create(course_offering=offering_single)
+    Rating.objects.filter(id=rating_single.id).update(
+        created_at=datetime.datetime(2026, 3, 1, tzinfo=datetime.timezone.utc)
+    )
+
+    course_multi.ratings_count = 2
+    course_multi.save()
+    course_single.ratings_count = 1
+    course_single.save()
+
+    response = token_client.get("/api/v1/courses/?last_review_order=desc&page_size=10")
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert [item["id"] for item in items[:2]] == [
+        str(course_multi.id),
+        str(course_single.id),
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_sorting_by_last_review_breaks_ties_by_title(
+    token_client, course_factory, course_offering_factory, rating_factory
+):
+    course_b = course_factory.create(title="Курс Б")
+    course_a = course_factory.create(title="Курс А")
+
+    offering_a = course_offering_factory.create(course=course_a)
+    offering_b = course_offering_factory.create(course=course_b)
+    rating_a = rating_factory.create(course_offering=offering_a)
+    rating_b = rating_factory.create(course_offering=offering_b)
+
+    same_moment = datetime.datetime(2026, 5, 1, tzinfo=datetime.timezone.utc)
+    Rating.objects.filter(id=rating_a.id).update(created_at=same_moment)
+    Rating.objects.filter(id=rating_b.id).update(created_at=same_moment)
+
+    course_a.ratings_count = 1
+    course_a.save()
+    course_b.ratings_count = 1
+    course_b.save()
+
+    response = token_client.get("/api/v1/courses/?last_review_order=desc&page_size=10")
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert [item["id"] for item in items[:2]] == [
+        str(course_a.id),
+        str(course_b.id),
+    ]
