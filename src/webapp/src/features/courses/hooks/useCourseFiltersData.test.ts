@@ -231,6 +231,13 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			const selects = allSelectFilters(result.current);
 			selects.forEach((filter) => {
+				// The instructor filter is rendered by a dedicated server-search
+				// component, so it carries no inline options.
+				if (filter.key === "instructor") {
+					expect(filter.options).toEqual([]);
+					return;
+				}
+
 				if (filter.useCombobox) {
 					expect(filter.options).toHaveLength(1);
 					expect(filter.options[0].value).toBe("");
