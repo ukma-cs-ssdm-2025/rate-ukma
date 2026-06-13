@@ -27,8 +27,6 @@ from rating_app.models import (
     Student,
 )
 from rating_app.models.choices import (
-    AcademicDegree,
-    AcademicTitle,
     CourseStatus,
     CourseTypeKind,
     EducationLevel,
@@ -99,8 +97,7 @@ class InstructorFactory(DjangoModelFactory):
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
     patronymic = factory.Faker("first_name")
-    academic_degree = AcademicDegree.PHD
-    academic_title = AcademicTitle.ASSISTANT
+    email = factory.Sequence(lambda n: f"instructor{n}@ukma.edu.ua")
 
 
 class CourseOfferingFactory(DjangoModelFactory):

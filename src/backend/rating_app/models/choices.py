@@ -40,22 +40,9 @@ class EnrollmentStatus(models.TextChoices):
     FORCED = "FORCED", "Forced"
 
 
-class AcademicDegree(models.TextChoices):
-    PHD = "PHD", "PhD"
-    DOCTOR_OF_SCIENCES = "DRSCI", "DoctorOfSciences"
-
-
 class InstructorRole(models.TextChoices):
     LECTURE_INSTRUCTOR = "LECTURE_INSTRUCTOR", "LectureInstructor"
     PRACTICUM_INSTRUCTOR = "PRACTICUM_INSTRUCTOR", "PracticumInstructor"
-
-
-class AcademicTitle(models.TextChoices):
-    ASSISTANT = "ASSISTANT", "Assistant"
-    LECTURER = "LECTURER", "Lecturer"
-    SENIOR_LECTURER = "SENIOR_LECTURER", "SeniorLecturer"
-    ASSOCIATE_PROF = "ASSOCIATE_PROF", "AssociateProfessor"
-    PROFESSOR = "PROFESSOR", "Professor"
 
 
 class RatingVoteType(models.IntegerChoices):

@@ -21,6 +21,8 @@ def test_get_instructor_detail(token_client, instructor_factory):
     assert data["id"] == str(instructor.id)
     assert data["first_name"] == instructor.first_name
     assert data["last_name"] == instructor.last_name
+    # email is intentionally not exposed in the API
+    assert "email" not in data
 
 
 @pytest.mark.django_db

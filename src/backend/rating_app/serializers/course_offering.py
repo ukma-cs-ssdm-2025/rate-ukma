@@ -1,8 +1,6 @@
 from rest_framework import serializers
 
 from rating_app.models.choices import (
-    AcademicDegree,
-    AcademicTitle,
     CourseTypeKind,
     ExamType,
     PracticeType,
@@ -14,12 +12,7 @@ class InstructorDTOSerializer(serializers.Serializer):
     first_name = serializers.CharField(read_only=True)
     patronymic = serializers.CharField(read_only=True, allow_null=True)
     last_name = serializers.CharField(read_only=True)
-    academic_degree = serializers.ChoiceField(
-        choices=AcademicDegree.choices, read_only=True, allow_blank=True
-    )
-    academic_title = serializers.ChoiceField(
-        choices=AcademicTitle.choices, read_only=True, allow_blank=True
-    )
+    email = serializers.EmailField(read_only=True)
 
 
 class CourseOfferingSpecialitySerializer(serializers.Serializer):

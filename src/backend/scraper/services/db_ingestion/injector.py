@@ -16,12 +16,10 @@ from rateukma.caching.patterns import (
 from rateukma.protocols.decorators import implements
 from rateukma.protocols.generic import IOperation
 from rating_app.application_schemas.course import CourseInput
-from rating_app.application_schemas.course_instructor import CourseInstructorInput
 from rating_app.application_schemas.course_offering import CourseOfferingInput
 from rating_app.application_schemas.department import DepartmentInput
 from rating_app.application_schemas.enrollment import EnrollmentInput
 from rating_app.application_schemas.faculty import FacultyInput
-from rating_app.application_schemas.instructor import InstructorInput
 from rating_app.application_schemas.semester import SemesterInput
 from rating_app.application_schemas.speciality import SpecialityInput
 from rating_app.application_schemas.student import StudentInput
@@ -31,7 +29,6 @@ from rating_app.models import (
     CourseOfferingTerm,
     Department,
     Faculty,
-    Instructor,
     Semester,
     Speciality,
     Student,
@@ -39,13 +36,11 @@ from rating_app.models import (
 from rating_app.models.choices import CourseStatus, EducationLevel, ExamType, PracticeType
 from rating_app.models.course_offering_speciality import CourseOfferingSpeciality
 from rating_app.repositories import (
-    CourseInstructorRepository,
     CourseOfferingRepository,
     CourseRepository,
     DepartmentRepository,
     EnrollmentRepository,
     FacultyRepository,
-    InstructorRepository,
     SemesterRepository,
     SpecialityRepository,
     StudentRepository,
@@ -56,10 +51,8 @@ from scraper.services.db_ingestion.progress_tracker import InjectionProgressTrac
 
 from ...models.deduplicated import (
     DeduplicatedCourse,
-    DeduplicatedCourseInstructor,
     DeduplicatedCourseOffering,
     DeduplicatedEnrollment,
-    DeduplicatedInstructor,
     DeduplicatedStudent,
 )
 
@@ -83,10 +76,8 @@ class CourseDbInjector(IDbInjector):
         faculty_repository: FacultyRepository,
         semester_repository: SemesterRepository,
         speciality_repository: SpecialityRepository,
-        instructor_repository: InstructorRepository,
         student_repository: StudentRepository,
         course_offering_repository: CourseOfferingRepository,
-        course_instructor_repository: CourseInstructorRepository,
         enrollment_repository: EnrollmentRepository,
         injection_progress_tracker: InjectionProgressTracker,
         student_service: StudentService,
@@ -98,11 +89,9 @@ class CourseDbInjector(IDbInjector):
         self.faculty_repository = faculty_repository
         self.semester_repository = semester_repository
         self.speciality_repository = speciality_repository
-        self.instructor_repository = instructor_repository
         self.student_repository = student_repository
         self.student_mapper = student_mapper
         self.course_offering_repository = course_offering_repository
-        self.course_instructor_repository = course_instructor_repository
         self.enrollment_repository = enrollment_repository
         self.tracker = injection_progress_tracker
         self.student_service = student_service
@@ -113,7 +102,6 @@ class CourseDbInjector(IDbInjector):
         self._course_cache: dict[tuple[str, str, str], Course] = {}
         self._speciality_cache: dict[str, Speciality | None] = {}
         self._semester_cache: dict[tuple[int, str], Semester] = {}
-        self._instructor_cache: dict[tuple[str, str, str, str, str], Instructor] = {}
         self._student_cache: dict[tuple[str, str, str, str, str], Student] = {}
         self._batch_number: int | None = None
 
@@ -157,7 +145,6 @@ class CourseDbInjector(IDbInjector):
         self._course_cache.clear()
         self._speciality_cache.clear()
         self._semester_cache.clear()
-        self._instructor_cache.clear()
         self._student_cache.clear()
 
     def _inject_to_db(self, models: Sequence[DeduplicatedCourse]) -> None:
@@ -266,7 +253,6 @@ class CourseDbInjector(IDbInjector):
             course_offering = self._create_course_offering(course, offering_data)
             self._process_offering_terms(course_offering, offering_data.terms)
             self._process_offering_specialities(course_offering, offering_data.specialities)
-            self._process_instructors_m2m(course_offering, offering_data.instructors)
             self._process_enrollments(course_offering, offering_data.enrollments)
 
     def _process_offering_specialities(
@@ -368,50 +354,6 @@ class CourseDbInjector(IDbInjector):
                     "practice_type": practice_type,
                 },
             )
-
-    def _process_instructors_m2m(
-        self,
-        course_offering: CourseOffering,
-        instructors_data: Sequence[DeduplicatedCourseInstructor],
-    ) -> None:
-        for instructor_data in instructors_data:
-            instructor = self._create_instructor(instructor_data.instructor)
-            ci_input = CourseInstructorInput(
-                instructor_id=instructor.id,
-                course_offering_id=course_offering.id,
-                role=instructor_data.role.value,
-            )
-            self.course_instructor_repository.get_or_create(ci_input)
-
-    def _create_instructor(self, instructor_data: DeduplicatedInstructor) -> Instructor:
-        key = (
-            instructor_data.first_name,
-            instructor_data.last_name,
-            instructor_data.patronymic or "",
-            instructor_data.academic_degree.value if instructor_data.academic_degree else "",
-            instructor_data.academic_title.value if instructor_data.academic_title else "",
-        )
-        cached = self._instructor_cache.get(key)
-        if cached:
-            return cached
-
-        instructor_dto = InstructorInput(
-            first_name=instructor_data.first_name,
-            patronymic=instructor_data.patronymic or "",
-            last_name=instructor_data.last_name,
-            academic_degree=instructor_data.academic_degree.value
-            if instructor_data.academic_degree
-            else "",
-            academic_title=instructor_data.academic_title.value
-            if instructor_data.academic_title
-            else "",
-        )
-        instructor, _ = self.instructor_repository.get_or_create(
-            instructor_dto,
-            return_model=True,
-        )
-        self._instructor_cache[key] = instructor
-        return instructor
 
     def _process_enrollments(
         self,

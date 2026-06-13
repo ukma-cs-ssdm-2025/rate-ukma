@@ -9,18 +9,15 @@ from scraper.models.deduplicated import (
     CourseStatus,
     CourseTypeKind,
     DeduplicatedCourse,
-    DeduplicatedCourseInstructor,
     DeduplicatedCourseOffering,
     DeduplicatedCourseOfferingTerm,
     DeduplicatedEnrollment,
-    DeduplicatedInstructor,
     DeduplicatedSemester,
     DeduplicatedSpeciality,
     DeduplicatedStudent,
     EducationLevel,
     EnrollmentStatus,
     ExamType,
-    InstructorRole,
     PracticeType,
     SemesterTerm,
 )
@@ -59,10 +56,8 @@ def repo_mocks():
     faculty_repo = MagicMock()
     semester_repo = MagicMock()
     speciality_repo = MagicMock()
-    instructor_repo = MagicMock()
     student_repo = MagicMock()
     offering_repo = MagicMock()
-    course_instructor_repo = MagicMock()
     enrollment_repo = MagicMock()
     tracker = MagicMock()
     student_service = MagicMock()
@@ -77,7 +72,6 @@ def repo_mocks():
     semester = SimpleNamespace(year=2024, term="FALL", id=faker.uuid4())
     course_offering = SimpleNamespace(id=uuid4(), code="ABC123")
     speciality = SimpleNamespace(name=faker.word(), id=faker.uuid4())
-    instructor = SimpleNamespace(id=uuid4())
     student = SimpleNamespace(
         id=faker.uuid4(),
         email="",
@@ -96,7 +90,6 @@ def repo_mocks():
     semester_repo.get_or_create.return_value = (semester, True)
     offering_repo.get_or_upsert.return_value = (course_offering, True)
     speciality_repo.get_by_name.return_value = speciality
-    instructor_repo.get_or_create.return_value = (instructor, True)
     student_repo.get_or_upsert.return_value = (student, True)
 
     return SimpleNamespace(
@@ -105,10 +98,8 @@ def repo_mocks():
         faculty_repo=faculty_repo,
         semester_repo=semester_repo,
         speciality_repo=speciality_repo,
-        instructor_repo=instructor_repo,
         student_repo=student_repo,
         offering_repo=offering_repo,
-        course_instructor_repo=course_instructor_repo,
         enrollment_repo=enrollment_repo,
         tracker=tracker,
         student_service=student_service,
@@ -118,7 +109,6 @@ def repo_mocks():
         semester=semester,
         course_offering=course_offering,
         speciality=speciality,
-        instructor=instructor,
         student=student,
         cache_manager=cache_manager,
         student_mapper=student_mapper,
@@ -133,10 +123,8 @@ def injector(repo_mocks) -> CourseDbInjector:
         repo_mocks.faculty_repo,
         repo_mocks.semester_repo,
         repo_mocks.speciality_repo,
-        repo_mocks.instructor_repo,
         repo_mocks.student_repo,
         repo_mocks.offering_repo,
-        repo_mocks.course_instructor_repo,
         repo_mocks.enrollment_repo,
         repo_mocks.tracker,
         repo_mocks.student_service,
@@ -177,7 +165,6 @@ def create_mock_no_speciality_payload() -> list[DeduplicatedCourse]:
                     code="XYZ789",
                     term=SemesterTerm.SPRING,
                     exam_type=ExamType.CREDIT,
-                    instructors=[],
                     enrollments=[
                         create_mock_enrollment(
                             first_name="Jane",
@@ -201,7 +188,6 @@ def create_mock_empty_education_level_payload() -> list[DeduplicatedCourse]:
                     code="XYZ999",
                     term=SemesterTerm.SPRING,
                     exam_type=ExamType.CREDIT,
-                    instructors=[],
                     enrollments=[
                         create_mock_enrollment(
                             first_name="Bob",
@@ -222,7 +208,6 @@ def create_mock_payload() -> list[DeduplicatedCourse]:
             title="Course B",
             offerings=[
                 create_mock_offering(
-                    instructors=[create_mock_instr()],
                     enrollments=[create_mock_enrollment()],
                 )
             ],
@@ -236,17 +221,6 @@ def create_mock_spec(
     type_kind: CourseTypeKind | None = None,
 ) -> DeduplicatedSpeciality:
     return DeduplicatedSpeciality(name=name, faculty=faculty, type_kind=type_kind)
-
-
-def create_mock_instr(
-    first_name: str = "Ada",
-    last_name: str = "Lovelace",
-    role: InstructorRole = InstructorRole.LECTURE_INSTRUCTOR,
-) -> DeduplicatedCourseInstructor:
-    return DeduplicatedCourseInstructor(
-        instructor=DeduplicatedInstructor(first_name=first_name, last_name=last_name),
-        role=role,
-    )
 
 
 def create_mock_enrollment(
@@ -286,7 +260,6 @@ def create_mock_offering(
     max_groups: int | None = 2,
     group_size_min: int | None = 10,
     group_size_max: int | None = 15,
-    instructors: list[DeduplicatedCourseInstructor] | None = None,
     enrollments: list[DeduplicatedEnrollment] | None = None,
     specialities: list[DeduplicatedSpeciality] | None = None,
     terms: list[DeduplicatedCourseOfferingTerm] | None = None,
@@ -317,7 +290,6 @@ def create_mock_offering(
         max_groups=max_groups,
         group_size_min=group_size_min,
         group_size_max=group_size_max,
-        instructors=instructors or [],
         enrollments=enrollments or [],
         specialities=specialities or [],
         terms=default_terms if terms is None else terms,
@@ -399,7 +371,7 @@ def test_injector_processes_specialities(injector, repo_mocks):
 
 
 @pytest.mark.django_db
-def test_injector_processes_offerings_instructors_and_enrollments(injector, repo_mocks):
+def test_injector_processes_offerings_and_enrollments(injector, repo_mocks):
     # Arrange
     models = create_mock_payload()
 
@@ -409,8 +381,6 @@ def test_injector_processes_offerings_instructors_and_enrollments(injector, repo
     # Assert - now using DTO-based API with return_model=True
     repo_mocks.semester_repo.get_or_create.assert_called_once()
     repo_mocks.offering_repo.get_or_upsert.assert_called_once()
-    repo_mocks.instructor_repo.get_or_create.assert_called_once()
-    repo_mocks.course_instructor_repo.get_or_create.assert_called_once()
     repo_mocks.student_repo.get_or_upsert.assert_called_once()
     repo_mocks.enrollment_repo.get_or_upsert.assert_called_once()
 
@@ -521,7 +491,6 @@ def test_injector_persists_course_offering_terms(injector, repo_mocks):
                     weekly_hours=3,
                     exam_type=ExamType.EXAM,
                     practice_type=PracticeType.SEMINAR,
-                    instructors=[],
                     enrollments=[],
                     specialities=[],
                     terms=[

@@ -24,8 +24,7 @@ Student "*" -- "1" Speciality
 Student --|> Person
 
 class Instructor {
-  +academicDegree     : AcademicDegree [0..1]
-  +academicTitle      : AcademicTitle [0..1]
+  +email : Email [1]
 }
 Instructor --|> Person
 
@@ -169,19 +168,6 @@ enum EnrollmentStatus {
   Enrolled
   Dropped
   Forced
-}
-
-enum AcademicDegree {
-  PhD
-  DoctorOfSciences
-}
-
-enum AcademicTitle {
-  Assistant
-  Lecturer
-  SeniorLecturer
-  AssociateProfessor   
-  Professor            
 }
 
 enum InstructorRole {

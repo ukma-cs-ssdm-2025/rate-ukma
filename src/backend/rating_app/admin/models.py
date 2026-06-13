@@ -133,12 +133,10 @@ class InstructorAdmin(VersionAdmin):
         "last_name",
         "first_name",
         "patronymic",
-        "academic_degree",
-        "academic_title",
+        "email",
         "courses_count",
     )
-    list_filter = ("academic_degree", "academic_title")
-    search_fields = ("last_name", "first_name", "patronymic")
+    search_fields = ("last_name", "first_name", "patronymic", "email")
     ordering = ("last_name", "first_name")
 
     def get_queryset(self, request):

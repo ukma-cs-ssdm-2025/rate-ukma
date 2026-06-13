@@ -7,7 +7,6 @@ from scraper.services.deduplication.extractors import (
     CourseLimitsExtractor,
     DescriptionExtractor,
     EducationLevelExtractor,
-    InstructorExtractor,
     PracticeTypeExtractor,
     SemesterExtractor,
     SpecialtyExtractor,
@@ -85,92 +84,6 @@ def test_semester_extractor_success(sample_course):
     assert hasattr(semester, "year")
     assert hasattr(semester, "term")
     assert semester.year == 2025
-
-
-def test_instructor_extractor_success(sample_course):
-    # Arrange
-    extractor = InstructorExtractor()
-
-    # Act
-    result = extractor.extract(sample_course)
-
-    # Assert
-    assert result is not None
-    assert len(result) > 0
-
-
-def test_instructor_extractor_empty_teachers():
-    # Arrange
-    extractor = InstructorExtractor()
-    course_data = BASE_TEST_COURSE.copy()
-    course_data["teachers"] = ""
-    course = ParsedCourseDetails(**course_data)
-
-    # Act
-    result = extractor.extract(course)
-
-    # Assert
-    assert result == []
-
-
-def test_instructor_extractor_with_initials():
-    # Arrange
-    extractor = InstructorExtractor()
-    course_data = BASE_TEST_COURSE.copy()
-    course_data["teachers"] = "Ростовська Т.В."
-    course = ParsedCourseDetails(**course_data)
-
-    # Act
-    result = extractor.extract(course)
-
-    # Assert
-    assert len(result) == 1
-    instructor = result[0].instructor
-    assert instructor.last_name == "Ростовська"
-    assert instructor.first_name == "Т"
-    assert instructor.patronymic == "В"
-
-
-def test_instructor_extractor_with_initials_no_dots():
-    # Arrange
-    extractor = InstructorExtractor()
-    course_data = BASE_TEST_COURSE.copy()
-    course_data["teachers"] = "Петров А Б"
-    course = ParsedCourseDetails(**course_data)
-
-    # Act
-    result = extractor.extract(course)
-
-    # Assert
-    assert len(result) == 1
-    instructor = result[0].instructor
-    assert instructor.last_name == "Петров"
-    assert instructor.first_name == "А"
-    assert instructor.patronymic == "Б"
-
-
-def test_instructor_extractor_with_single_initial():
-    # Arrange
-    extractor = InstructorExtractor()
-    course_data = {
-        "url": "https://my.ukma.edu.ua/course/550001",
-        "title": "Test Course",
-        "id": "550001",
-        "academic_year": "2025–2026",
-        "semesters": ["Семестр 1"],
-        "teachers": "Іванов І.",
-    }
-    course = ParsedCourseDetails(**course_data)
-
-    # Act
-    result = extractor.extract(course)
-
-    # Assert
-    assert len(result) == 1
-    instructor = result[0].instructor
-    assert instructor.last_name == "Іванов"
-    assert instructor.first_name == "І"
-    assert instructor.patronymic == ""
 
 
 def test_student_extractor_success(sample_course):

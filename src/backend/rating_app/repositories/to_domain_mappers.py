@@ -324,8 +324,7 @@ class InstructorMapper(IProcessor[[InstructorModel], InstructorDTO]):
             first_name=model.first_name,
             patronymic=model.patronymic,
             last_name=model.last_name,
-            academic_degree=model.academic_degree,
-            academic_title=model.academic_title,
+            email=model.email,
         )
 
 
