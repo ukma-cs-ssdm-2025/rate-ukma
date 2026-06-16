@@ -34,10 +34,13 @@ AVAILABLE_MEMORY_MB=$((AVAILABLE_MEMORY_KB / 1024))
 MAX_REQUESTS=$((AVAILABLE_MEMORY_MB * 2))
 
 # optimal number of workers
+# sync workers handle one request at a time (no threads), so we run ~2x the
+# process count gthread used (it had 2 threads/worker) to keep equivalent
+# concurrency for I/O-bound requests. Still capped by available memory.
 CORES=$(nproc)
 MEMORY_PER_WORKER_MB=150
 MAX_WORKERS_BY_MEMORY=$((AVAILABLE_MEMORY_MB / MEMORY_PER_WORKER_MB))
-WORKERS_BY_CORES=$((2 * CORES + 1))
+WORKERS_BY_CORES=$((4 * CORES + 1))
 WORKERS=$((WORKERS_BY_CORES < MAX_WORKERS_BY_MEMORY ? WORKERS_BY_CORES : MAX_WORKERS_BY_MEMORY))
 WORKERS=$((WORKERS < 1 ? 1 : WORKERS))
 
@@ -46,24 +49,22 @@ if [[ -n "${GUNICORN_WORKERS:-}" ]]; then
     WORKERS="$GUNICORN_WORKERS"
 fi # minimum 1 worker
 
-# number of threads
-THREADS=2 # for bigger instances we can use 4
-
 # start gunicorn
-echo "Starting gunicorn with $WORKERS workers, $THREADS threads and $MAX_REQUESTS max requests"
+echo "Starting gunicorn (sync) with $WORKERS workers and $MAX_REQUESTS max requests"
 
 GUNICORN_ARGS=(
     --timeout 300
     --bind 0.0.0.0:8000
     --workers "$WORKERS"
-    --worker-class gthread
-    --threads "$THREADS"
+    # sync worker: one request per worker, no persistent keep-alive connection
+    # pool. This removes the gthread CLOSE_WAIT socket leak (issue #609, ADR-0008)
+    # at its root. Each connection is closed after a single request, which matches
+    # nginx's upstream "Connection: close" exactly, so we give up nothing.
+    # (sync ignores --threads and --keep-alive, so they are intentionally absent.)
+    --worker-class sync
     --access-logfile -
     --max-requests "$MAX_REQUESTS"
     --max-requests-jitter "$((MAX_REQUESTS / 10))"
-    # short keep-alive: nginx closes each upstream connection (Connection: close),
-    # so this only bounds direct/idle clients; 5s is the recommended 5-15s range
-    --keep-alive 5
 )
 
 # environment-specific settings
