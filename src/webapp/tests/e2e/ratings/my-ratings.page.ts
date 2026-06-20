@@ -17,7 +17,7 @@ export class MyRatingsPage {
 		await this.page.goto("/my-ratings");
 	}
 
-	async openFirstCourseToRate(): Promise<void> {
+	async openFirstCourseToRate(nth = 0): Promise<void> {
 		await expect(this.list).toBeVisible();
 		await this.expandAllSections();
 
@@ -26,7 +26,7 @@ export class MyRatingsPage {
 			.filter({
 				has: this.page.getByTestId(testIds.myRatings.leaveReviewLink),
 			})
-			.first();
+			.nth(nth);
 		await expect(rateableCard).toBeVisible();
 
 		// Navigate via the course title link — leaveReviewLink opens an inline modal

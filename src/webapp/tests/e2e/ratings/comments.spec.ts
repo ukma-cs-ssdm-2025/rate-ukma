@@ -46,7 +46,6 @@ interface CommentPayload {
 }
 
 test.describe("Rating comments workflow", () => {
-	test.describe.configure({ mode: "serial" });
 
 	test("posts a top-level comment under a rating", async ({ page }) => {
 		await withSeededRating(page, test.info(), async ({ comments }) => {
@@ -187,7 +186,7 @@ async function seedRating(
 	const ratingModal = new RatingModal(page);
 
 	await myRatingsPage.goto();
-	await myRatingsPage.openFirstCourseToRate();
+	await myRatingsPage.openFirstCourseToRate(testInfo.workerIndex);
 	await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();
 
 	const courseId = getCourseIdFromUrl(page);
