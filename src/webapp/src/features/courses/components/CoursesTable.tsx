@@ -54,6 +54,10 @@ import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
+import {
+	type CoursesReviewsSortOption,
+	CoursesReviewsSortMenu,
+} from "./CoursesReviewsSortMenu";
 import { CoursesScatterPlot } from "./CoursesScatterPlot";
 import {
 	type CourseFiltersParamsSetter,
@@ -135,160 +139,171 @@ interface CoursesTableProps {
 const SCATTER_COLLAPSE_STORAGE_KEY = "courses:scatter-open";
 const FULLSCREEN_TRANSITION_DELAY_MS = 200;
 
-const columns: ColumnDef<CourseList>[] = [
-	{
-		id: "title",
-		accessorKey: "title",
-		header: ({ column }) => (
-			<CourseColumnHeader column={column} title="Назва курсу" />
-		),
-		cell: ({ row }) => {
-			const course = row.original;
-			const courseId = course.id;
-			return (
-				<span className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words">
-					{courseId ? (
-						<Link
-							to="/courses/$courseId"
-							params={{ courseId }}
-							className="font-semibold text-sm transition-colors hover:text-primary hover:underline md:text-base"
-							data-testid={testIds.courses.tableTitleLink}
-						>
-							{course.title}
-						</Link>
-					) : (
-						<span className="font-semibold text-sm md:text-base">
-							{course.title}
-						</span>
-					)}
-					{course.education_level === EducationLevelEnum.MASTER && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<span className="inline-flex shrink-0 cursor-default items-center rounded-sm border px-1 py-px text-[10px] font-medium leading-tight text-muted-foreground">
-									М
-								</span>
-							</TooltipTrigger>
-							<TooltipContent side="top">Магістр</TooltipContent>
-						</Tooltip>
-					)}
-					<CourseSpecialityBadges specialities={course.specialities} />
-				</span>
-			);
-		},
-		enableSorting: false,
-		size: 300,
-		meta: {
-			label: "Назва курсу",
-			placeholder: "Пошук курсів...",
-			variant: "text",
-			icon: BookOpen,
-			align: "left",
-		},
-	},
-	{
-		id: "ratings_count",
-		accessorKey: "ratings_count",
-		header: ({ column }) => (
-			<div className="hidden sm:block">
-				<CourseColumnHeader column={column} title="Відгуки" />
-			</div>
-		),
-		cell: ({ row }) => {
-			const count = row.getValue("ratings_count") as number;
-			return (
-				<div className="hidden sm:flex items-center justify-center">
-					<span className="text-sm font-medium text-muted-foreground md:text-base">
-						{count}
+function buildCoursesTableColumns({
+	reviewsSortValue,
+	onReviewsSortChange,
+}: {
+	reviewsSortValue: CoursesReviewsSortOption | null;
+	onReviewsSortChange: (value: CoursesReviewsSortOption) => void;
+}): ColumnDef<CourseList>[] {
+	return [
+		{
+			id: "title",
+			accessorKey: "title",
+			header: ({ column }) => (
+				<CourseColumnHeader column={column} title="Назва курсу" />
+			),
+			cell: ({ row }) => {
+				const course = row.original;
+				const courseId = course.id;
+				return (
+					<span className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words">
+						{courseId ? (
+							<Link
+								to="/courses/$courseId"
+								params={{ courseId }}
+								className="font-semibold text-sm transition-colors hover:text-primary hover:underline md:text-base"
+								data-testid={testIds.courses.tableTitleLink}
+							>
+								{course.title}
+							</Link>
+						) : (
+							<span className="font-semibold text-sm md:text-base">
+								{course.title}
+							</span>
+						)}
+						{course.education_level === EducationLevelEnum.MASTER && (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<span className="inline-flex shrink-0 cursor-default items-center rounded-sm border px-1 py-px text-[10px] font-medium leading-tight text-muted-foreground">
+										М
+									</span>
+								</TooltipTrigger>
+								<TooltipContent side="top">Магістр</TooltipContent>
+							</Tooltip>
+						)}
+						<CourseSpecialityBadges specialities={course.specialities} />
 					</span>
-				</div>
-			);
+				);
+			},
+			enableSorting: false,
+			size: 300,
+			meta: {
+				label: "Назва курсу",
+				placeholder: "Пошук курсів...",
+				variant: "text",
+				icon: BookOpen,
+				align: "left",
+			},
 		},
-		enableSorting: false,
-		size: 80,
-		meta: {
-			label: "Відгуки",
-			align: "center",
-		},
-	},
-	{
-		id: "avg_difficulty",
-		accessorKey: "avg_difficulty",
-		header: ({ column }) => (
-			<>
-				<div className="md:hidden">
-					<CourseColumnHeader
-						column={column}
-						title="Склад."
-						initialSortDirection="asc"
-						testId={testIds.courses.difficultySortButtonMobile}
+		{
+			id: "ratings_count",
+			accessorKey: "ratings_count",
+			header: () => (
+				<div className="hidden sm:block">
+					<CoursesReviewsSortMenu
+						value={reviewsSortValue}
+						onValueChange={onReviewsSortChange}
 					/>
 				</div>
-				<div className="hidden md:block">
-					<CourseColumnHeader
-						column={column}
-						title="Складність"
-						initialSortDirection="asc"
-						testId={testIds.courses.difficultySortButtonDesktop}
-					/>
-				</div>
-			</>
-		),
-		cell: ({ row }) => (
-			<CourseScoreCell
-				value={row.getValue("avg_difficulty") as number}
-				variant="difficulty"
-			/>
-		),
-		enableSorting: true,
-		size: 100,
-		meta: {
-			label: "Складність",
-			placeholder: "Фільтр за складністю...",
-			variant: "number",
-			range: DIFFICULTY_RANGE,
-			align: "center",
+			),
+			cell: ({ row }) => {
+				const count = row.getValue("ratings_count") as number;
+				return (
+					<div className="hidden sm:flex items-center justify-center">
+						<span className="text-sm font-medium text-muted-foreground md:text-base">
+							{count}
+						</span>
+					</div>
+				);
+			},
+			enableSorting: false,
+			size: 100,
+			meta: {
+				label: "Відгуки",
+				align: "center",
+			},
 		},
-	},
-	{
-		id: "avg_usefulness",
-		accessorKey: "avg_usefulness",
-		header: ({ column }) => (
-			<>
-				<div className="md:hidden">
-					<CourseColumnHeader
-						column={column}
-						title="Корисн."
-						initialSortDirection="desc"
-						testId={testIds.courses.usefulnessSortButtonMobile}
-					/>
-				</div>
-				<div className="hidden md:block">
-					<CourseColumnHeader
-						column={column}
-						title="Корисність"
-						initialSortDirection="desc"
-						testId={testIds.courses.usefulnessSortButtonDesktop}
-					/>
-				</div>
-			</>
-		),
-		cell: ({ row }) => (
-			<CourseScoreCell
-				value={row.getValue("avg_usefulness") as number}
-				variant="usefulness"
-			/>
-		),
-		enableSorting: true,
-		size: 100,
-		meta: {
-			label: "Корисність",
-			placeholder: "Фільтр за корисністю...",
-			variant: "number",
-			range: USEFULNESS_RANGE,
-			align: "center",
+		{
+			id: "avg_difficulty",
+			accessorKey: "avg_difficulty",
+			header: ({ column }) => (
+				<>
+					<div className="md:hidden">
+						<CourseColumnHeader
+							column={column}
+							title="Склад."
+							initialSortDirection="asc"
+							testId={testIds.courses.difficultySortButtonMobile}
+						/>
+					</div>
+					<div className="hidden md:block">
+						<CourseColumnHeader
+							column={column}
+							title="Складність"
+							initialSortDirection="asc"
+							testId={testIds.courses.difficultySortButtonDesktop}
+						/>
+					</div>
+				</>
+			),
+			cell: ({ row }) => (
+				<CourseScoreCell
+					value={row.getValue("avg_difficulty") as number}
+					variant="difficulty"
+				/>
+			),
+			enableSorting: true,
+			size: 100,
+			meta: {
+				label: "Складність",
+				placeholder: "Фільтр за складністю...",
+				variant: "number",
+				range: DIFFICULTY_RANGE,
+				align: "center",
+			},
 		},
-	},
-];
+		{
+			id: "avg_usefulness",
+			accessorKey: "avg_usefulness",
+			header: ({ column }) => (
+				<>
+					<div className="md:hidden">
+						<CourseColumnHeader
+							column={column}
+							title="Корисн."
+							initialSortDirection="desc"
+							testId={testIds.courses.usefulnessSortButtonMobile}
+						/>
+					</div>
+					<div className="hidden md:block">
+						<CourseColumnHeader
+							column={column}
+							title="Корисність"
+							initialSortDirection="desc"
+							testId={testIds.courses.usefulnessSortButtonDesktop}
+						/>
+					</div>
+				</>
+			),
+			cell: ({ row }) => (
+				<CourseScoreCell
+					value={row.getValue("avg_usefulness") as number}
+					variant="usefulness"
+				/>
+			),
+			enableSorting: true,
+			size: 100,
+			meta: {
+				label: "Корисність",
+				placeholder: "Фільтр за корисністю...",
+				variant: "number",
+				range: USEFULNESS_RANGE,
+				align: "center",
+			},
+		},
+	];
+}
 
 function DebouncedInput({
 	value: initialValue,
@@ -385,10 +400,29 @@ export function CoursesTable({
 			setParams({
 				diffOrder,
 				useOrder,
+				reviewSort: null,
 				page: 1,
 			});
 		},
 		[sorting, setParams],
+	);
+
+	const reviewsSortValue = useMemo<CoursesReviewsSortOption | null>(() => {
+		if (params.diffOrder || params.useOrder) return null;
+		if (params.reviewSort === "by-count") return "by-count";
+		return "newest";
+	}, [params.diffOrder, params.useOrder, params.reviewSort]);
+
+	const handleReviewsSortChange = useCallback(
+		(value: CoursesReviewsSortOption) => {
+			setParams({
+				reviewSort: value === "by-count" ? "by-count" : null,
+				diffOrder: null,
+				useOrder: null,
+				page: 1,
+			});
+		},
+		[setParams],
 	);
 
 	const pagination = useMemo<PaginationState>(
@@ -501,6 +535,15 @@ export function CoursesTable({
 	const apiFilters = useMemo(
 		() => transformFiltersToApiParams(params),
 		[params],
+	);
+
+	const columns = useMemo(
+		() =>
+			buildCoursesTableColumns({
+				reviewsSortValue,
+				onReviewsSortChange: handleReviewsSortChange,
+			}),
+		[reviewsSortValue, handleReviewsSortChange],
 	);
 
 	const table = useReactTable({

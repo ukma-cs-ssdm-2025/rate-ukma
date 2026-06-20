@@ -14,3 +14,4 @@ This document serves as the central index and log for all significant **Architec
 * [ADR-0005](0005-api-data-validation.md) - API Data Validation
 * [ADR-0006](0006-server-side-caching.md) - Server-Side Caching
 * [ADR-0007](0007-hetzner-deployment.md) - Migrate Deployment from AWS EC2 to Hetzner Cloud
+* [ADR-0008](0008-gunicorn-worker-class.md) - Gunicorn Worker Class — `gthread` → `sync`

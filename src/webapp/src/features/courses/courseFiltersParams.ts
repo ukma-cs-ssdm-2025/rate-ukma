@@ -36,6 +36,7 @@ const VALID_EDUCATION_LEVELS: readonly EducationLevelEnum[] = [
 
 type SortOrder = "asc" | "desc";
 const VALID_SORT_ORDERS: readonly SortOrder[] = ["asc", "desc"];
+const VALID_REVIEW_SORTS: "by-count"[] = ["by-count"];
 
 function createRangeParser(bounds: [number, number], step?: number) {
 	const [minBound, maxBound] = bounds;
@@ -102,6 +103,7 @@ export const courseFiltersParams = {
 	useOrder: parseAsStringEnum<SortOrder>(
 		VALID_SORT_ORDERS as unknown as SortOrder[],
 	),
+	reviewSort: parseAsStringEnum<"by-count">(VALID_REVIEW_SORTS),
 };
 
 export function useCourseFiltersParams() {
@@ -137,6 +139,7 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	size: 10,
 	diffOrder: null,
 	useOrder: null,
+	reviewSort: null,
 };
 
 export function courseFiltersStateToSearchParams(
@@ -176,6 +179,7 @@ export function courseFiltersStateToSearchParams(
 	if (state.size !== 10) params.size = state.size;
 	if (state.diffOrder) params.diffOrder = state.diffOrder;
 	if (state.useOrder) params.useOrder = state.useOrder;
+	if (state.reviewSort) params.reviewSort = state.reviewSort;
 
 	return params;
 }

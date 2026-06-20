@@ -91,6 +91,15 @@ paths:
           format: uuid
         description: Filter by instructor UUID
       - in: query
+        name: last_review_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: Sort order for most recent review timestamp (asc/desc); courses
+          without reviews appear last in both directions
+      - in: query
         name: name
         schema:
           type: string
@@ -946,6 +955,15 @@ paths:
           type: string
           format: uuid
         description: Filter by instructor UUID
+      - in: query
+        name: last_review_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: Sort order for most recent review timestamp (asc/desc); courses
+          without reviews appear last in both directions
       - in: query
         name: name
         schema:

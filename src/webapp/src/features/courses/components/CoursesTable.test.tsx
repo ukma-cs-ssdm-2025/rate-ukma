@@ -90,6 +90,7 @@ const defaultParams: CourseFiltersParamsState = {
 	size: 10,
 	diffOrder: null,
 	useOrder: null,
+	reviewSort: null,
 };
 
 const defaultSetParams = vi.fn();
@@ -360,6 +361,7 @@ describe("Reset Filters", () => {
 			size: 10,
 			diffOrder: null,
 			useOrder: null,
+			reviewSort: null,
 		});
 	});
 });
@@ -682,6 +684,7 @@ describe("Sorting", () => {
 		expect(setParams).toHaveBeenCalledWith({
 			diffOrder: "asc",
 			useOrder: null,
+			reviewSort: null,
 			page: 1,
 		});
 	});
@@ -716,6 +719,65 @@ describe("Sorting", () => {
 		expect(setParams).toHaveBeenCalledWith({
 			diffOrder: null,
 			useOrder: "desc",
+			reviewSort: null,
+			page: 1,
+		});
+	});
+
+	it("should clear all sort params when 'Найновіші' is picked (default state)", async () => {
+		const user = userEvent.setup();
+		const setParams = vi.fn();
+		const courses = Array.from({ length: 3 }, () => createMockCourse());
+
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				data={courses}
+				params={{ ...defaultParams, diffOrder: "asc" }}
+				setParams={setParams}
+			/>,
+		);
+
+		await user.click(
+			screen.getByRole("button", { name: "Сортування за відгуками" }),
+		);
+		await user.click(
+			screen.getByRole("menuitem", { name: "Найновіші" }),
+		);
+
+		expect(setParams).toHaveBeenCalledWith({
+			reviewSort: null,
+			diffOrder: null,
+			useOrder: null,
+			page: 1,
+		});
+	});
+
+	it("should set reviewSort='by-count' when 'За кількістю' is picked", async () => {
+		const user = userEvent.setup();
+		const setParams = vi.fn();
+		const courses = Array.from({ length: 3 }, () => createMockCourse());
+
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				data={courses}
+				params={{ ...defaultParams, useOrder: "desc" }}
+				setParams={setParams}
+			/>,
+		);
+
+		await user.click(
+			screen.getByRole("button", { name: "Сортування за відгуками" }),
+		);
+		await user.click(
+			screen.getByRole("menuitem", { name: "За кількістю" }),
+		);
+
+		expect(setParams).toHaveBeenCalledWith({
+			reviewSort: "by-count",
+			diffOrder: null,
+			useOrder: null,
 			page: 1,
 		});
 	});
