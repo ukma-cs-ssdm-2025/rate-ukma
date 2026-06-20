@@ -104,9 +104,13 @@ export class CommentsSection {
 		await expect(editButton).toBeVisible();
 		await editButton.click();
 
-		const editForm = commentItem.getByTestId(testIds.comments.form).last();
-		const editTextarea = editForm.getByTestId(testIds.comments.textarea);
+		const editTextarea = commentItem
+			.getByTestId(testIds.comments.textarea)
+			.last();
 		await expect(editTextarea).toHaveValue(currentContent);
+		// Use root-scoped form so the locator stays valid after fill() changes
+		// the textarea value (which would break the commentItem text filter).
+		const editForm = this.root.getByTestId(testIds.comments.form).last();
 		await this.submitForm(editForm, updatedContent, options);
 		await this.expectCommentVisible(updatedContent);
 	}
