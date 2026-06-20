@@ -163,6 +163,8 @@ export const testIds = {
 	comments: {
 		toggleButton: "rating-comments-toggle-button",
 		item: "rating-comments-item",
+		controls: "rating-comments-controls",
+		form: "rating-comments-form",
 		textarea: "rating-comments-textarea",
 		anonymousCheckbox: "rating-comments-anonymous-checkbox",
 		submitButton: "rating-comments-submit-button",
