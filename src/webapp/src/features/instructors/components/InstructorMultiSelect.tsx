@@ -5,6 +5,7 @@ import { CheckIcon, ChevronDownIcon, Loader2Icon, XIcon } from "lucide-react";
 import {
 	Command,
 	CommandEmpty,
+	CommandGroup,
 	CommandInput,
 	CommandItem,
 	CommandList,
@@ -63,6 +64,9 @@ function InstructorMultiSelect({
 	const [open, setOpen] = React.useState(false);
 	const [searchTerm, setSearchTerm] = React.useState("");
 	const [debouncedSearch, setDebouncedSearch] = React.useState("");
+	const [selectedOptionsById, setSelectedOptionsById] = React.useState<
+		Map<string, Instructor>
+	>(() => new Map());
 
 	React.useEffect(() => {
 		const handle = setTimeout(
@@ -102,7 +106,37 @@ function InstructorMultiSelect({
 
 	const selectedSet = React.useMemo(() => new Set(value), [value]);
 
-	const toggleValue = (id: string) => {
+	React.useEffect(() => {
+		setSelectedOptionsById((current) => {
+			let changed = false;
+			const next = new Map(current);
+
+			for (const id of next.keys()) {
+				if (!selectedSet.has(id)) {
+					next.delete(id);
+					changed = true;
+				}
+			}
+
+			for (const option of [...initialOptions, ...allInstructors]) {
+				if (!option.id || !selectedSet.has(option.id)) {
+					continue;
+				}
+
+				if (next.get(option.id) !== option) {
+					next.set(option.id, option);
+					changed = true;
+				}
+			}
+
+			return changed ? next : current;
+		});
+	}, [initialOptions, allInstructors, selectedSet]);
+
+	const toggleValue = (instr: Instructor) => {
+		if (!instr.id) return;
+		const id = instr.id;
+
 		if (selectedSet.has(id)) {
 			onChange(value.filter((v) => v !== id));
 			return;
@@ -110,6 +144,11 @@ function InstructorMultiSelect({
 		if (maxSelected !== undefined && value.length >= maxSelected) {
 			return;
 		}
+		setSelectedOptionsById((current) => {
+			const next = new Map(current);
+			next.set(id, instr);
+			return next;
+		});
 		onChange([...value, id]);
 	};
 
@@ -120,7 +159,7 @@ function InstructorMultiSelect({
 	};
 
 	const selectedInstructors = value
-		.map((id) => optionsById.get(id))
+		.map((id) => selectedOptionsById.get(id) ?? optionsById.get(id))
 		.filter(
 			(instr): instr is Instructor & { id: string } =>
 				instr !== undefined && Boolean(instr.id),
@@ -184,29 +223,31 @@ function InstructorMultiSelect({
 						{!isLoading && allInstructors.length === 0 ? (
 							<CommandEmpty>{emptyText}</CommandEmpty>
 						) : null}
-						{allInstructors.map((instr) => {
-							if (!instr.id) return null;
-							const id = instr.id;
-							const isSelected = selectedSet.has(id);
-							return (
-								<CommandItem
-									key={id}
-									value={id}
-									onSelect={() => toggleValue(id)}
-									className="flex items-start gap-2"
-								>
-									<span className="break-words">
-										{formatInstructorLabel(instr)}
-									</span>
-									<CheckIcon
-										className={cn(
-											"ml-auto size-4 shrink-0",
-											isSelected ? "opacity-100" : "opacity-0",
-										)}
-									/>
-								</CommandItem>
-							);
-						})}
+						<CommandGroup>
+							{allInstructors.map((instr) => {
+								if (!instr.id) return null;
+								const id = instr.id;
+								const isSelected = selectedSet.has(id);
+								return (
+									<CommandItem
+										key={id}
+										value={id}
+										onSelect={() => toggleValue(instr)}
+										className="flex items-start gap-2"
+									>
+										<span className="break-words">
+											{formatInstructorLabel(instr)}
+										</span>
+										<CheckIcon
+											className={cn(
+												"ml-auto size-4 shrink-0",
+												isSelected ? "opacity-100" : "opacity-0",
+											)}
+										/>
+									</CommandItem>
+								);
+							})}
+						</CommandGroup>
 						{(isLoading || isFetchingNextPage) && (
 							<div className="text-muted-foreground flex items-center justify-center gap-2 py-2 text-xs">
 								<Loader2Icon className="size-3 animate-spin" />

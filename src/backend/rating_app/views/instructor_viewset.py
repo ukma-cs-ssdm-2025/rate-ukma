@@ -20,8 +20,6 @@ to_openapi = pydantic_to_openapi_request_mapper().map
 
 @extend_schema(tags=["instructors"])
 class InstructorViewSet(viewsets.ViewSet):
-    serializer_class = InstructorSerializer
-
     instructor_service: InstructorService | None = None
 
     @extend_schema(
@@ -67,8 +65,4 @@ class InstructorViewSet(viewsets.ViewSet):
 
         instructor = self.instructor_service.get_instructor_by_id(str(params.instructor_id))
 
-        return Response(self.get_serializer(instructor).data)
-
-    def get_serializer(self, *args, **kwargs):
-        kwargs.setdefault("context", {"request": self.request, "view": self})
-        return self.serializer_class(*args, **kwargs)
+        return Response(InstructorSerializer(instructor).data)

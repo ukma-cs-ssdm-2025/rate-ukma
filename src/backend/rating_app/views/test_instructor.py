@@ -87,6 +87,57 @@ def test_list_instructors_search(token_client, instructor_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_list_instructors_search_matches_display_name_tokens(token_client, instructor_factory):
+    instructor_factory.create(
+        first_name="Микола",
+        patronymic="Миколайович",
+        last_name="Глибовець",
+        email="mykola.hlybovets@ukma.edu.ua",
+    )
+    instructor_factory.create(
+        first_name="Альбіна",
+        patronymic="Андріївна",
+        last_name="Глибовець",
+        email="albina.hlybovets@ukma.edu.ua",
+    )
+
+    url = reverse("instructor-list")
+    response = token_client.get(url, {"search": "Глибовець Микола"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["first_name"] == "Микола"
+    assert data["items"][0]["last_name"] == "Глибовець"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_instructors_search_matches_patronymic_token(token_client, instructor_factory):
+    instructor_factory.create(
+        first_name="Микола",
+        patronymic="Миколайович",
+        last_name="Глибовець",
+        email="mykola.hlybovets@ukma.edu.ua",
+    )
+    instructor_factory.create(
+        first_name="Альбіна",
+        patronymic="Андріївна",
+        last_name="Глибовець",
+        email="albina.hlybovets@ukma.edu.ua",
+    )
+
+    url = reverse("instructor-list")
+    response = token_client.get(url, {"search": "Миколайович"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["patronymic"] == "Миколайович"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_list_instructors_orders_by_offering_mentions(token_client, instructor_factory):
     offering = CourseOfferingFactory.create()
     top = instructor_factory.create(last_name="Aaa")
