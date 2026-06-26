@@ -10,6 +10,7 @@ from ..views import (
     CommentViewset,
     CourseOfferingViewSet,
     CourseViewSet,
+    FlagsViewSet,
     InstructorViewSet,
     NotificationViewSet,
     RatingViewSet,
@@ -222,6 +223,11 @@ def course_page_view():
 
 
 @once
+def flags_list_view():
+    return FlagsViewSet.as_view({"get": "list"})
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -348,6 +354,11 @@ def rest_urlpatterns() -> list:
             "notifications/mark-group-read/",
             notification_mark_group_read_view(),
             name="notification-mark-group-read",
+        ),
+        path(
+            "flags/",
+            flags_list_view(),
+            name="flags-list",
         ),
     ]
 

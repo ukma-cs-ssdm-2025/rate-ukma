@@ -1764,6 +1764,23 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/flags/:
+    get:
+      operationId: flags_list
+      summary: List public feature flags evaluated for the current user
+      tags:
+      - flags
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlags'
+          description: OK
   /api/v1/instructors/{instructor_id}:
     get:
       operationId: instructors_retrieve
@@ -3072,6 +3089,16 @@ components:
       - id
       - name
       - specialities
+    FeatureFlags:
+      type: object
+      properties:
+        flags:
+          type: object
+          additionalProperties:
+            type: boolean
+          readOnly: true
+          description: Map of public feature flag name to its enabled state for the
+            current user.
     FilterOptions:
       type: object
       properties:
