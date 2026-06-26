@@ -91,6 +91,15 @@ paths:
           format: uuid
         description: Filter by instructor UUID
       - in: query
+        name: last_review_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: Sort order for most recent review timestamp (asc/desc); courses
+          without reviews appear last in both directions
+      - in: query
         name: name
         schema:
           type: string
@@ -947,6 +956,15 @@ paths:
           format: uuid
         description: Filter by instructor UUID
       - in: query
+        name: last_review_order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        description: Sort order for most recent review timestamp (asc/desc); courses
+          without reviews appear last in both directions
+      - in: query
         name: name
         schema:
           type: string
@@ -1746,6 +1764,23 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/flags/:
+    get:
+      operationId: flags_list
+      summary: List public feature flags evaluated for the current user
+      tags:
+      - flags
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlags'
+          description: OK
   /api/v1/instructors/:
     get:
       operationId: instructors_list
@@ -3144,6 +3179,16 @@ components:
       - id
       - name
       - specialities
+    FeatureFlags:
+      type: object
+      properties:
+        flags:
+          type: object
+          additionalProperties:
+            type: boolean
+          readOnly: true
+          description: Map of public feature flag name to its enabled state for the
+            current user.
     FilterOptions:
       type: object
       properties:
