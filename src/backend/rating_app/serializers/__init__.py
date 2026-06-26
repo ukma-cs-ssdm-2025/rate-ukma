@@ -6,6 +6,7 @@ from .course.course_list import CourseListSerializer
 from .course.course_list_resp import CourseListResponseSerializer
 from .course.filter_options import FilterOptionsSerializer
 from .error_envelope import ErrorEnvelopeSerializer
+from .feature_flags import FeatureFlagsSerializer
 from .instructor import InstructorSerializer
 from .notification import NotificationGroupSerializer, UnreadCountSerializer
 from .rating_list_resp import RatingsWithUserListSerializer
@@ -26,6 +27,7 @@ __all__ = [
     "StudentRatingsDetailedSerializer",
     "InstructorSerializer",
     "ErrorEnvelopeSerializer",
+    "FeatureFlagsSerializer",
     "FilterOptionsSerializer",
     "RatingsWithUserListSerializer",
     "RatingVoteReadSerializer",
