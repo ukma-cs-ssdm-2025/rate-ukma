@@ -29,4 +29,30 @@ describe("RatingForm", () => {
 			"6",
 		);
 	});
+
+	describe("instructor field — feature flag gating", () => {
+		it("shows the legacy free-text input when the flag is off", () => {
+			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+			expect(
+				screen.getByTestId(testIds.rating.instructorInput),
+			).toBeInTheDocument();
+			expect(
+				screen.queryByTestId(testIds.rating.instructorMultiSelect),
+			).not.toBeInTheDocument();
+		});
+
+		it("shows the multi-select when the flag is on", () => {
+			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />, {
+				flags: { fe_instructor_multiselect: true },
+			});
+
+			expect(
+				screen.getByTestId(testIds.rating.instructorMultiSelect),
+			).toBeInTheDocument();
+			expect(
+				screen.queryByTestId(testIds.rating.instructorInput),
+			).not.toBeInTheDocument();
+		});
+	});
 });

@@ -19,7 +19,6 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/Collapsible";
 import { Combobox } from "@/components/ui/Combobox";
-import { InstructorFilterSelect } from "@/features/instructors/components/InstructorFilterSelect";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import {
@@ -36,12 +35,14 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
+import { InstructorFilterSelect } from "@/features/instructors/components/InstructorFilterSelect";
 import type {
 	CoursesListSemesterTermsItem,
 	CoursesListTypeKind,
 	EducationLevelEnum,
 	FilterOptions,
 } from "@/lib/api/generated";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
@@ -473,6 +474,7 @@ function SelectFilters({
 	getSelectValue: (key: string) => string;
 	onSelectChange: (key: string, value: string) => void;
 }>) {
+	const showInstructorFilter = useFeatureFlag("fe_instructor_multiselect");
 	return (
 		<>
 			{filters.map(
@@ -491,6 +493,9 @@ function SelectFilters({
 					const isDisabled = disabled || options.length === 0;
 
 					if (key === "instructor") {
+						if (!showInstructorFilter) {
+							return null;
+						}
 						return (
 							<div key={key} className="space-y-3">
 								<Label className="text-sm font-medium inline-flex items-center gap-1.5">

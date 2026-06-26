@@ -12,6 +12,7 @@ import type {
 	RatingInstructor,
 	RatingVoteStrType,
 } from "@/lib/api/generated";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
@@ -21,7 +22,9 @@ import { RatingVotes } from "./RatingVotes";
  * is omitted for brevity; the full first name keeps same-surname instructors
  * distinguishable (e.g. "Калиновська Олександра" vs "Калиновська Оксана"). */
 function formatInstructorName(instructor: RatingInstructor): string {
-	return [instructor.last_name, instructor.first_name].filter(Boolean).join(" ");
+	return [instructor.last_name, instructor.first_name]
+		.filter(Boolean)
+		.join(" ");
 }
 
 interface RatingCardBodyProps {
@@ -69,6 +72,7 @@ export function RatingCardBody({
 	votesReadOnly = false,
 	votesDisabledMessage,
 }: RatingCardBodyProps) {
+	const showMultiSelect = useFeatureFlag("fe_instructor_multiselect");
 	return (
 		<>
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -101,7 +105,7 @@ export function RatingCardBody({
 				<RatingStats difficulty={difficulty} usefulness={usefulness} />
 			</div>
 
-			{instructors.length > 0 ? (
+			{showMultiSelect && instructors.length > 0 ? (
 				<p className="mt-2 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
 					<span className="shrink-0 font-medium">
 						{instructors.length > 1 ? "Викладачі:" : "Викладач:"}
