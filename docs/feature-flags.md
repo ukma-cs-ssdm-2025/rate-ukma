@@ -96,6 +96,39 @@ Runtime, no deploy. Django admin (Waffle ▸ Flags) or CLI. A `Flag` supports:
 > any write. Anonymous users get waffle's `AnonymousUser` defaults
 > (`WAFFLE_FLAG_DEFAULT`, currently off).
 
+## Override a flag in the browser (QA / Playwright)
+
+Waffle evaluates flags per user on the server, so you cannot flip one from the
+browser by editing a cookie. The frontend adds a thin client-side override layer
+(`src/webapp/src/lib/feature-flags/overrides.ts`) that **wins over** the
+`/api/v1/flags/` response, so QA and E2E can force a flag on/off without touching
+the backend.
+
+Overrides live in `localStorage` under `ff:overrides` and are enabled in
+**every** environment, including live. They only change client-side display
+gating — the write path is validated server-side regardless — so this is a
+convenience affordance, **not** a security boundary.
+
+**From the browser console** (helpers exposed on `window`):
+```js
+featureFlags.set("fe_instructor_multiselect", true)   // force on,  then reload
+featureFlags.set("fe_instructor_multiselect", false)  // force off, then reload
+featureFlags.clear("fe_instructor_multiselect")        // back to the server value
+featureFlags.clearAll()                                // drop all overrides
+featureFlags.list()                                    // inspect current overrides
+```
+
+**From Playwright** — seed before navigation (runs on every page load):
+```ts
+import { setFeatureFlagOverride } from "../shared/feature-flags";
+
+await setFeatureFlagOverride(page, "fe_instructor_multiselect", true);
+await page.goto(...);
+```
+Cover both variants by setting the flag on in one spec and off in another (see
+`tests/e2e/ratings/instructor-multiselect.spec.ts` for the on path and
+`instructor-legacy.spec.ts` for the legacy off path).
+
 ## Test
 
 - **Backend** — force a state without DB rows, and pin the allowlist:
@@ -108,13 +141,14 @@ Runtime, no deploy. Django admin (Waffle ▸ Flags) or CLI. A `Flag` supports:
       ...
   ```
   Always test **both** states. See `src/backend/rating_app/views/test_flags.py`.
-- **Frontend** — mock the hook (no MSW), mirroring
-  `src/webapp/src/lib/feature-flags/FeatureFlagsContext.test.tsx`:
-  ```ts
-  vi.mock("@/lib/feature-flags", () => ({
-    useFeatureFlag: () => true,
-  }));
+- **Frontend** — pass `flags` to `renderWithProviders`, which seeds the
+  `FeatureFlagsContext` directly (no network, no mock):
+  ```tsx
+  render(<RatingForm />, { flags: { fe_instructor_multiselect: true } });
   ```
+  Default is all-off. Test **both** states (see `RatingForm.test.tsx` /
+  `RatingCardBody.test.tsx`). For hook/provider internals, mirror
+  `src/webapp/src/lib/feature-flags/FeatureFlagsContext.test.tsx`.
 
 ## Remove a flag (do not skip)
 
