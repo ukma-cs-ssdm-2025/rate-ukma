@@ -4,6 +4,7 @@ import { testIds } from "@/lib/test-ids";
 import { MyRatingsPage } from "./my-ratings.page";
 import { CourseDetailsPage } from "../courses/course-details.page";
 import { createTestRatingData } from "../framework/test-config";
+import { setFeatureFlagOverride } from "../shared/feature-flags";
 import { RatingModal } from "../shared/rating-modal.component";
 
 test.describe("Rating instructor multi-select", () => {
@@ -12,6 +13,9 @@ test.describe("Rating instructor multi-select", () => {
 	let myRatingsPage: MyRatingsPage;
 
 	test.beforeEach(async ({ page }) => {
+		// The multi-select UI is gated behind this flag; force it on for the test.
+		await setFeatureFlagOverride(page, "fe_instructor_multiselect", true);
+
 		coursePage = new CourseDetailsPage(page);
 		ratingModal = new RatingModal(page);
 		myRatingsPage = new MyRatingsPage(page);

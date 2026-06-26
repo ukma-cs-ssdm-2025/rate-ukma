@@ -18,6 +18,7 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
@@ -51,6 +52,7 @@ export function RatingModal({
 	onSuccess,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
+	const showMultiSelect = useFeatureFlag("fe_instructor_multiselect");
 	const queryClient = useQueryClient();
 
 	const createMutation = useCoursesRatingsCreate();
@@ -77,6 +79,11 @@ export function RatingModal({
 	};
 
 	const handleSubmit = async (data: RatingFormData) => {
+		// Gate the write path: when the multi-select flag is off, persist the
+		// legacy free-text instructor; when on, persist the M2M instructor_ids.
+		const instructorPayload = showMultiSelect
+			? { instructor_ids: data.instructor_ids }
+			: { instructor: data.instructor ?? "" };
 		try {
 			if (isEditMode && existingRating?.id) {
 				await updateMutation.mutateAsync({
@@ -86,7 +93,7 @@ export function RatingModal({
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment ?? "",
-						instructor_ids: data.instructor_ids,
+						...instructorPayload,
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -104,7 +111,7 @@ export function RatingModal({
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment ?? undefined,
-						instructor_ids: data.instructor_ids,
+						...instructorPayload,
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -138,6 +145,7 @@ export function RatingModal({
 				usefulness: existingRating.usefulness ?? 3,
 				comment: existingRating.comment ?? "",
 				instructor_ids: existingInstructors.map((ri) => ri.id),
+				instructor: existingRating.instructor ?? "",
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
 		: undefined;

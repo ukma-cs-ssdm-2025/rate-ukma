@@ -16,9 +16,11 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/Form";
+import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import {
@@ -40,6 +42,8 @@ const ratingSchema = z.object({
 		.transform((val) => val?.trim() || undefined)
 		.optional(),
 	instructor_ids: z.array(z.string().uuid()),
+	// Legacy free-text instructor, used when the multi-select feature flag is off.
+	instructor: z.string().optional(),
 	is_anonymous: z.boolean(),
 });
 
@@ -148,11 +152,13 @@ function RatingFormFields({
 	offeringId,
 	courseId,
 	initialInstructors,
+	showMultiSelect,
 }: Readonly<{
 	control: ReturnType<typeof useForm<RatingFormData>>["control"];
 	offeringId?: string;
 	courseId?: string;
 	initialInstructors?: readonly Instructor[];
+	showMultiSelect: boolean;
 }>) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
@@ -198,29 +204,50 @@ function RatingFormFields({
 				/>
 			</div>
 
-			<FormField<RatingFormData, "instructor_ids">
-				control={control}
-				name="instructor_ids"
-				render={({ field }) => (
-					<FormItem>
-						<FormLabel>Викладачі (необов'язково)</FormLabel>
-						<FormControl>
-							<InstructorMultiSelect
-								value={field.value ?? []}
-								onChange={field.onChange}
-								initialOptions={initialInstructors}
-								courseOfferingId={offeringId}
-								courseId={courseId}
-								data-testid={testIds.rating.instructorMultiSelect}
-							/>
-						</FormControl>
-						<FormDescription>
-							Можна обрати кількох викладачів, які вели курс
-						</FormDescription>
-						<FormMessage />
-					</FormItem>
-				)}
-			/>
+			{showMultiSelect ? (
+				<FormField<RatingFormData, "instructor_ids">
+					control={control}
+					name="instructor_ids"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Викладачі (необов'язково)</FormLabel>
+							<FormControl>
+								<InstructorMultiSelect
+									value={field.value ?? []}
+									onChange={field.onChange}
+									initialOptions={initialInstructors}
+									courseOfferingId={offeringId}
+									courseId={courseId}
+									data-testid={testIds.rating.instructorMultiSelect}
+								/>
+							</FormControl>
+							<FormDescription>
+								Можна обрати кількох викладачів, які вели курс
+							</FormDescription>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			) : (
+				<FormField<RatingFormData, "instructor">
+					control={control}
+					name="instructor"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Викладач (необов'язково)</FormLabel>
+							<FormControl>
+								<Input
+									placeholder="Ім'я викладача"
+									{...field}
+									value={field.value ?? ""}
+									data-testid={testIds.rating.instructorInput}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			)}
 
 			<FormField<RatingFormData, "comment">
 				control={control}
@@ -296,6 +323,7 @@ export function RatingForm({
 	courseId,
 	initialInstructors,
 }: RatingFormProps) {
+	const showMultiSelect = useFeatureFlag("fe_instructor_multiselect");
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
 		defaultValues: initialData || {
@@ -303,6 +331,7 @@ export function RatingForm({
 			usefulness: 3,
 			comment: "",
 			instructor_ids: [],
+			instructor: "",
 			is_anonymous: false,
 		},
 	});
@@ -325,6 +354,7 @@ export function RatingForm({
 					offeringId={offeringId}
 					courseId={courseId}
 					initialInstructors={initialInstructors}
+					showMultiSelect={showMultiSelect}
 				/>
 
 				<div className="shrink-0 border-t bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
