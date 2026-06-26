@@ -1,6 +1,12 @@
 import type { PropsWithChildren } from "react";
-import { createContext, useMemo } from "react";
+import { createContext, useEffect, useMemo, useState } from "react";
 
+import {
+	FEATURE_FLAG_OVERRIDES_EVENT,
+	FEATURE_FLAG_OVERRIDES_STORAGE_KEY,
+	installFeatureFlagConsoleHelpers,
+	readFeatureFlagOverrides,
+} from "./overrides";
 import { useFlagsList } from "../api/generated";
 
 export interface FeatureFlagsState {
@@ -22,12 +28,31 @@ export function FeatureFlagsProvider({ children }: PropsWithChildren) {
 		},
 	});
 
+	const [overrides, setOverrides] = useState<Record<string, boolean>>(
+		readFeatureFlagOverrides,
+	);
+
+	useEffect(() => {
+		installFeatureFlagConsoleHelpers();
+		const refresh = () => setOverrides(readFeatureFlagOverrides());
+		const onStorage = (e: StorageEvent) => {
+			if (e.key === FEATURE_FLAG_OVERRIDES_STORAGE_KEY) refresh();
+		};
+		globalThis.addEventListener(FEATURE_FLAG_OVERRIDES_EVENT, refresh);
+		globalThis.addEventListener("storage", onStorage);
+		return () => {
+			globalThis.removeEventListener(FEATURE_FLAG_OVERRIDES_EVENT, refresh);
+			globalThis.removeEventListener("storage", onStorage);
+		};
+	}, []);
+
 	const value = useMemo<FeatureFlagsState>(
 		() => ({
-			flags: data?.flags ?? {},
+			// Client overrides win over the server response (non-live only).
+			flags: { ...(data?.flags ?? {}), ...overrides },
 			isReady: isSuccess,
 		}),
-		[data, isSuccess],
+		[data, isSuccess, overrides],
 	);
 
 	return (
