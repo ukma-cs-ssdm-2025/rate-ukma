@@ -50,6 +50,3 @@ class InstructorService(IFilterable):
             }
             for instructor in instructors
         ]
-
-
-__all__ = ["InstructorService"]

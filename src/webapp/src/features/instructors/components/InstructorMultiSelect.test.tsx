@@ -1,3 +1,5 @@
+import * as React from "react";
+
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -146,6 +148,76 @@ describe("InstructorMultiSelect", () => {
 
 			// Assert
 			expect(onChange).toHaveBeenCalledWith(["b"]);
+		});
+
+		it("should keep a selected chip when search results no longer include it", async () => {
+			// Arrange
+			const user = userEvent.setup();
+			const selectedInstructor = createMockInstructor({
+				id: "kalynovska",
+				first_name: "Оксана",
+				last_name: "Калиновська",
+				patronymic: "В`ячеславівна",
+			});
+			const otherInstructor = createMockInstructor({
+				id: "hlybovets",
+				first_name: "Микола",
+				last_name: "Глибовець",
+				patronymic: "Миколайович",
+			});
+			let currentItems = [selectedInstructor];
+
+			mockedInfinite.mockImplementation(
+				() =>
+					({
+						data: {
+							pages: [
+								{
+									items: currentItems,
+									total: currentItems.length,
+									next_page: null,
+								},
+							],
+							pageParams: [],
+						},
+						fetchNextPage: vi.fn(),
+						hasNextPage: false,
+						isFetchingNextPage: false,
+						isLoading: false,
+					}) as unknown as ReturnType<typeof useInstructorsListInfinite>,
+			);
+
+			function Harness() {
+				const [value, setValue] = React.useState<string[]>([]);
+				return (
+					<InstructorMultiSelect
+						value={value}
+						onChange={setValue}
+						data-testid="instructor-select"
+					/>
+				);
+			}
+
+			renderWithProviders(<Harness />);
+
+			// Act
+			await user.click(screen.getByRole("combobox"));
+			const input = screen.getByPlaceholderText("Пошук викладача…");
+			await user.type(input, "Калиновська");
+			await user.click(
+				within(await screen.findByTestId("instructor-select-list")).getByText(
+					"Калиновська Оксана В`ячеславівна",
+				),
+			);
+
+			currentItems = [otherInstructor];
+			await user.clear(screen.getByPlaceholderText("Пошук викладача…"));
+
+			// Assert
+			expect(
+				screen.getByText("Калиновська Оксана В`ячеславівна"),
+			).toBeInTheDocument();
+			expect(screen.queryByText("Обрати викладача…")).not.toBeInTheDocument();
 		});
 	});
 

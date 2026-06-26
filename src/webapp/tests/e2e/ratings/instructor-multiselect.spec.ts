@@ -42,21 +42,33 @@ test.describe("Rating instructor multi-select", () => {
 			await ratingModal.setUsefulnessRating(testData.usefulness);
 			await ratingModal.setComment(testData.comment);
 
-			// --- select one ---
+			// --- select one via search; regression: chip survives clearing search ---
 			await ratingModal.openInstructorPicker();
-			await ratingModal.selectInstructorOptionByIndex(0);
+			await ratingModal.searchInstructor("Калиновська");
+			await ratingModal.pickInstructorByText("Калиновська");
+			const [kalynovskaName] = await ratingModal.getSelectedInstructorNames();
+			expect(kalynovskaName).toContain("Калиновська");
+			await ratingModal.clearInstructorSearch();
+			expect(await ratingModal.getSelectedInstructorNames()).toContain(
+				kalynovskaName,
+			);
 			await ratingModal.closeInstructorPicker();
 			expect(await ratingModal.getSelectedInstructorCount()).toBe(1);
 
 			// --- select two ---
 			await ratingModal.openInstructorPicker();
-			await ratingModal.selectInstructorOptionByIndex(1);
+			await ratingModal.searchInstructor("Глибовець Микола");
+			await ratingModal.pickInstructorByText("Глибовець Микола");
 			await ratingModal.closeInstructorPicker();
 			expect(await ratingModal.getSelectedInstructorCount()).toBe(2);
 
 			const savedNames = (
 				await ratingModal.getSelectedInstructorNames()
 			).sort();
+			const hlybovetsName = savedNames.find((name) =>
+				name.includes("Глибовець"),
+			);
+			expect(hlybovetsName).toBeTruthy();
 
 			// --- deselect one ---
 			await ratingModal.removeInstructorChipByIndex(0);
@@ -68,8 +80,12 @@ test.describe("Rating instructor multi-select", () => {
 
 			// re-select the same two and persist them
 			await ratingModal.openInstructorPicker();
-			await ratingModal.selectInstructorOptionByIndex(0);
-			await ratingModal.selectInstructorOptionByIndex(1);
+			await ratingModal.searchInstructor(kalynovskaName);
+			await ratingModal.pickInstructorByText(kalynovskaName);
+			await ratingModal.searchInstructor(hlybovetsName ?? "Глибовець Микола");
+			await ratingModal.pickInstructorByText(
+				hlybovetsName ?? "Глибовець Микола",
+			);
 			await ratingModal.closeInstructorPicker();
 			expect(await ratingModal.getSelectedInstructorCount()).toBe(2);
 			expect((await ratingModal.getSelectedInstructorNames()).sort()).toEqual(

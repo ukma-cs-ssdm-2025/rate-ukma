@@ -78,11 +78,12 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         )
 
         if search:
-            qs = qs.filter(
-                Q(first_name__icontains=search)
-                | Q(last_name__icontains=search)
-                | Q(email__icontains=search)
-            )
+            for token in search.split():
+                qs = qs.filter(
+                    Q(first_name__icontains=token)
+                    | Q(last_name__icontains=token)
+                    | Q(patronymic__icontains=token)
+                )
 
         return qs.order_by(
             "-offering_mentions",

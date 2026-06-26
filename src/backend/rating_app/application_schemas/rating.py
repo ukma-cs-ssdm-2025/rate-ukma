@@ -147,7 +147,6 @@ class RatingInstructor(BaseModel):
     first_name: str
     patronymic: str | None = ""
     last_name: str
-    email: str
 
 
 class Rating(BaseModel):

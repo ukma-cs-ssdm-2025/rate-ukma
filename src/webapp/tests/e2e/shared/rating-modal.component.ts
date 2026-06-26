@@ -56,6 +56,14 @@ export class RatingModal {
 			.fill(query);
 	}
 
+	async clearInstructorSearch(): Promise<void> {
+		await this.page
+			.locator(
+				`[data-testid='${testIds.rating.instructorMultiSelect}-content'] [cmdk-input]`,
+			)
+			.fill("");
+	}
+
 	async pickInstructorByText(text: string): Promise<void> {
 		const list = this.page.getByTestId(
 			`${testIds.rating.instructorMultiSelect}-list`,
@@ -65,7 +73,11 @@ export class RatingModal {
 	}
 
 	async closeInstructorPicker(): Promise<void> {
+		const list = this.page.getByTestId(
+			`${testIds.rating.instructorMultiSelect}-list`,
+		);
 		await this.page.keyboard.press("Escape");
+		await expect(list).toBeHidden();
 	}
 
 	private get instructorChips(): Locator {
@@ -83,17 +95,6 @@ export class RatingModal {
 			names.push((await this.instructorChips.nth(i).innerText()).trim());
 		}
 		return names;
-	}
-
-	/** Click the option at `index` in the open picker list; returns its label. */
-	async selectInstructorOptionByIndex(index: number): Promise<string> {
-		const options = this.page
-			.getByTestId(`${testIds.rating.instructorMultiSelect}-list`)
-			.locator("[role='option']");
-		await expect(options.nth(index)).toBeVisible();
-		const label = (await options.nth(index).innerText()).trim();
-		await options.nth(index).click();
-		return label;
 	}
 
 	/** Remove the chip at `index` by clicking its × button. */
