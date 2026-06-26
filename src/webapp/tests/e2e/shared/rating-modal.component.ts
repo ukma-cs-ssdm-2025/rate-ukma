@@ -58,10 +58,23 @@ export class RatingModal {
 
 	async openInstructorPicker(): Promise<void> {
 		await expect(this.instructorTrigger).toBeVisible();
-		await this.instructorTrigger.click();
-		await expect(
-			this.page.getByTestId(`${testIds.rating.instructorMultiSelect}-list`),
-		).toBeVisible();
+		const list = this.page.getByTestId(
+			`${testIds.rating.instructorMultiSelect}-list`,
+		);
+		// The picker is a Radix Popover rendered inside the rating Dialog; the
+		// open click can race with the dialog's focus handling, so retry the
+		// click until the list actually shows.
+		await expect(async () => {
+			if (!(await list.isVisible())) {
+				await this.instructorTrigger.click();
+			}
+			await expect(list).toBeVisible({ timeout: 2_000 });
+		}).toPass({ timeout: 20_000 });
+	}
+
+	async cancel(): Promise<void> {
+		await this.page.getByTestId(testIds.rating.cancelButton).click();
+		await this.waitForHidden();
 	}
 
 	async searchInstructor(query: string): Promise<void> {

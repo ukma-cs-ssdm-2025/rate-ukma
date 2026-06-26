@@ -59,6 +59,10 @@ test.describe("Rating instructor — legacy free-text (flag off)", () => {
 			await expect(page.getByTestId(testIds.rating.modal)).toBeVisible();
 			await expect(ratingModal.instructorTextInputLocator()).toBeVisible();
 			expect(await ratingModal.getInstructorTextValue()).toBe(instructorName);
+
+			// Close the edit modal so the cleanup can reach the card's delete button
+			// (an open modal overlay would intercept the click).
+			await ratingModal.cancel();
 		} catch (error) {
 			mainError = error;
 		}
