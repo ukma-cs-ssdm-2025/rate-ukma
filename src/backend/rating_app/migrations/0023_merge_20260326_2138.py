@@ -4,11 +4,9 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rating_app', '0021_alter_courseofferingspeciality_type_kind'),
-        ('rating_app', '0022_course_identity_unique_constraint'),
+        ("rating_app", "0021_alter_courseofferingspeciality_type_kind"),
+        ("rating_app", "0022_course_identity_unique_constraint"),
     ]
 
-    operations = [
-    ]
+    operations = []

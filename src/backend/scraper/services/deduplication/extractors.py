@@ -401,7 +401,10 @@ class PracticeTypeExtractor(Extractor[ParsedCourseDetails, PracticeType | None])
 
     def _map_practice_type(self, practice_type: str) -> PracticeType:
         result = parse_practice_type(practice_type)
-        if result == PracticeType.PRACTICE and practice_type.strip().upper() not in ("PRACTICE", ""):
+        if result == PracticeType.PRACTICE and practice_type.strip().upper() not in (
+            "PRACTICE",
+            "",
+        ):
             logger.warning(
                 "unknown_practice_type", practice_type=practice_type, defaulting_to="PRACTICE"
             )

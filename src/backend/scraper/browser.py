@@ -78,14 +78,10 @@ class BrowserManager:
         self.browser: Browser | None = None
         self.playwright = None
 
-    async def create_browser(
-        self, headless: bool = True, slowmo: int | None = None
-    ) -> Browser:
+    async def create_browser(self, headless: bool = True, slowmo: int | None = None) -> Browser:
         if self.playwright is None:
             self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(
-            headless=headless, slow_mo=slowmo
-        )
+        self.browser = await self.playwright.chromium.launch(headless=headless, slow_mo=slowmo)
         return self.browser
 
     async def close(self):

@@ -1,5 +1,5 @@
-from pytest import approx
 from faker import Faker
+from pytest import approx
 
 from scraper.models import Enrollment, Limits, ParsedCourseDetails, SpecialtyEntry, StudentRow
 from scraper.parsers.course import (

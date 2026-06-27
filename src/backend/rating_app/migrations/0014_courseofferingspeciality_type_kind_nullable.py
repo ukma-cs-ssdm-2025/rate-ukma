@@ -4,15 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rating_app', '0013_courseofferingspeciality'),
+        ("rating_app", "0013_courseofferingspeciality"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='courseofferingspeciality',
-            name='type_kind',
-            field=models.CharField(blank=True, choices=[('COMPULSORY', 'Compulsory'), ('ELECTIVE', 'Elective'), ('PROF_ORIENTED', 'ProfOriented')], default=None, max_length=16, null=True),
+            model_name="courseofferingspeciality",
+            name="type_kind",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("COMPULSORY", "Compulsory"),
+                    ("ELECTIVE", "Elective"),
+                    ("PROF_ORIENTED", "ProfOriented"),
+                ],
+                default=None,
+                max_length=16,
+                null=True,
+            ),
         ),
     ]

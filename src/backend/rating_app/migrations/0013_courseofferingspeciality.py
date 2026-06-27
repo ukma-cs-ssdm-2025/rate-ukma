@@ -6,29 +6,64 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rating_app', '0012_alter_coursespeciality_options_alter_ratingvote_type_and_more'),
+        ("rating_app", "0012_alter_coursespeciality_options_alter_ratingvote_type_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='CourseOfferingSpeciality',
+            name="CourseOfferingSpeciality",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('type_kind', models.CharField(blank=True, choices=[('COMPULSORY', 'Compulsory'), ('ELECTIVE', 'Elective'), ('PROF_ORIENTED', 'ProfOriented')], default='', max_length=16)),
-                ('offering', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='course_offering_specialities', to='rating_app.courseoffering')),
-                ('speciality', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='course_offering_specialities', to='rating_app.speciality')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "type_kind",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("COMPULSORY", "Compulsory"),
+                            ("ELECTIVE", "Elective"),
+                            ("PROF_ORIENTED", "ProfOriented"),
+                        ],
+                        default="",
+                        max_length=16,
+                    ),
+                ),
+                (
+                    "offering",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="course_offering_specialities",
+                        to="rating_app.courseoffering",
+                    ),
+                ),
+                (
+                    "speciality",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="course_offering_specialities",
+                        to="rating_app.speciality",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Course offering speciality',
-                'verbose_name_plural': 'Course offering specialities',
-                'unique_together': {('offering', 'speciality')},
+                "verbose_name": "Course offering speciality",
+                "verbose_name_plural": "Course offering specialities",
+                "unique_together": {("offering", "speciality")},
             },
         ),
         migrations.AddField(
-            model_name='courseoffering',
-            name='specialities',
-            field=models.ManyToManyField(blank=True, related_name='course_offerings', through='rating_app.CourseOfferingSpeciality', to='rating_app.speciality'),
+            model_name="courseoffering",
+            name="specialities",
+            field=models.ManyToManyField(
+                blank=True,
+                related_name="course_offerings",
+                through="rating_app.CourseOfferingSpeciality",
+                to="rating_app.speciality",
+            ),
         ),
     ]

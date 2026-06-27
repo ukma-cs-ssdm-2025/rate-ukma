@@ -338,9 +338,7 @@ class CourseDbInjector(IDbInjector):
                 self._semester_cache[semester_key] = semester
 
             practice_type = (
-                PracticeType(term_data.practice_type.value)
-                if term_data.practice_type
-                else ""
+                PracticeType(term_data.practice_type.value) if term_data.practice_type else ""
             )
             CourseOfferingTerm.objects.update_or_create(
                 offering=offering,

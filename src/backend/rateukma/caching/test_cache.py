@@ -256,14 +256,13 @@ class TestRCachedComponents:
             assert f"{key}" in key1
             assert f"{value}" in key1
 
-    def test_rcached_decorator_with_versioned_namespace(
-        self, settings
-    ):
+    def test_rcached_decorator_with_versioned_namespace(self, settings):
         settings.ENABLE_CACHE = True
         cache_manager = InMemoryCacheManager()
         calls = {"count": 0}
 
         with patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager):
+
             @rcached(ttl=60, return_type=int, versioned_by="courses:list")
             def get_value():
                 calls["count"] += 1

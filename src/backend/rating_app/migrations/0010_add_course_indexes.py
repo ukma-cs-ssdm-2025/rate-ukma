@@ -4,26 +4,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rating_app', '0009_alter_course_avg_difficulty_and_more'),
+        ("rating_app", "0009_alter_course_avg_difficulty_and_more"),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='course',
-            index=models.Index(fields=['ratings_count'], name='course_ratings_count_idx'),
+            model_name="course",
+            index=models.Index(fields=["ratings_count"], name="course_ratings_count_idx"),
         ),
         migrations.AddIndex(
-            model_name='course',
-            index=models.Index(fields=['avg_difficulty'], name='course_avg_difficulty_idx'),
+            model_name="course",
+            index=models.Index(fields=["avg_difficulty"], name="course_avg_difficulty_idx"),
         ),
         migrations.AddIndex(
-            model_name='course',
-            index=models.Index(fields=['avg_usefulness'], name='course_avg_usefulness_idx'),
+            model_name="course",
+            index=models.Index(fields=["avg_usefulness"], name="course_avg_usefulness_idx"),
         ),
         migrations.AddIndex(
-            model_name='course',
-            index=models.Index(fields=['title'], name='course_title_idx'),
+            model_name="course",
+            index=models.Index(fields=["title"], name="course_title_idx"),
         ),
     ]

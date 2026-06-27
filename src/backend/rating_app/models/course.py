@@ -3,8 +3,7 @@ import uuid
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 
-from .choices import EducationLevel
-from .choices import CourseStatus
+from .choices import CourseStatus, EducationLevel
 from .department import Department
 
 

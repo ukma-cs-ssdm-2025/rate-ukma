@@ -1,14 +1,10 @@
-from typing import Generic, TypeVar
-
 from django.core.paginator import Paginator
 from django.db.models import Model, QuerySet
 
 from rating_app.application_schemas.pagination import PaginationMetadata
 
-T = TypeVar("T", bound=Model)
 
-
-class QuerysetPaginator(Generic[T]):
+class QuerysetPaginator[T: Model]:
     def process(
         self, queryset: QuerySet[T], page_num: int | None, page_size: int
     ) -> tuple[list[T], PaginationMetadata]:

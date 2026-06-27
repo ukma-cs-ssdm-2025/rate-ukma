@@ -54,9 +54,7 @@ export function CoursesReviewsSortMenu({
 							className="pr-8"
 						>
 							{option.label}
-							{isSelected && (
-								<Check className="absolute right-2 size-4" />
-							)}
+							{isSelected && <Check className="absolute right-2 size-4" />}
 						</DropdownMenuItem>
 					);
 				})}

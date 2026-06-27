@@ -316,7 +316,9 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
 
         return term_details
 
-    def _select_representative_term(self, term_details: list[dict[str, object]]) -> dict[str, object]:
+    def _select_representative_term(
+        self, term_details: list[dict[str, object]]
+    ) -> dict[str, object]:
         return max(
             term_details,
             key=lambda item: (
@@ -357,9 +359,7 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         season_credits = season_info.credits if season_info else None
 
         resolved_credits = (
-            season_credits
-            if season_credits is not None and season_credits > 0
-            else course_credits
+            season_credits if season_credits is not None and season_credits > 0 else course_credits
         )
         weekly_hours = (
             season_info.hours_per_week
@@ -404,4 +404,3 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
                 return season_info
 
         return None
-
