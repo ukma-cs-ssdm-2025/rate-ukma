@@ -9,6 +9,7 @@ from rating_app.serializers import (
     CourseListResponseSerializer,
     FeatureFlagsSerializer,
     FilterOptionsSerializer,
+    InstructorListResponseSerializer,
     InstructorSerializer,
     RatingReadSerializer,
     RatingsWithUserListSerializer,
@@ -179,6 +180,13 @@ R_CSRF_TOKEN = {
 R_INSTRUCTOR = {
     200: OpenApiResponse(InstructorSerializer, "OK"),
     **common_errors(include_404=True),
+}
+
+R_INSTRUCTOR_LIST = {
+    200: OpenApiResponse(
+        forced_singular_serializer(InstructorListResponseSerializer), "OK"
+    ),
+    **common_errors(include_404=False),
 }
 
 R_STUDENT_RATINGS = {

@@ -10,6 +10,7 @@ import {
 import type {
 	CommentAuthor,
 	InlineRating,
+	RatingInstructor,
 	RatingRead,
 	RatingVoteStrType,
 } from "@/lib/api/generated";
@@ -23,6 +24,7 @@ interface ExtendedRating extends InlineRating {
 	viewer_vote?: RatingVoteStrType | null;
 	comments_count?: number;
 	comment_authors?: CommentAuthor[];
+	instructors?: RatingInstructor[];
 }
 
 interface UserRatingCardProps {
@@ -79,6 +81,7 @@ export function UserRatingCard({
 						onClick={onEdit}
 						aria-label="Редагувати оцінку"
 						className="h-7 w-7 p-0"
+						data-testid={testIds.courseDetails.editUserRatingButton}
 					>
 						<Pencil className="h-3.5 w-3.5" />
 					</Button>
@@ -105,6 +108,7 @@ export function UserRatingCard({
 				usefulness={rating.usefulness}
 				comment={rating.comment}
 				instructor={rating.instructor}
+				instructors={rating.instructors ?? []}
 				commentEmptyMessage="Ви не залишили коментар."
 				ratingId={rating.id}
 				courseId={courseId}

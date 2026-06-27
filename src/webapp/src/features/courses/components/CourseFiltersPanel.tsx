@@ -35,12 +35,14 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
+import { InstructorFilterSelect } from "@/features/instructors/components/InstructorFilterSelect";
 import type {
 	CoursesListSemesterTermsItem,
 	CoursesListTypeKind,
 	EducationLevelEnum,
 	FilterOptions,
 } from "@/lib/api/generated";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
@@ -365,6 +367,7 @@ const SELECT_FILTER_TEST_IDS: Record<string, string> = {
 	dept: testIds.filters.departmentSelect,
 	spec: testIds.filters.specialitySelect,
 	type: testIds.filters.typeSelect,
+	instructor: testIds.filters.instructorSelect,
 };
 
 function RangeFilters({
@@ -471,6 +474,7 @@ function SelectFilters({
 	getSelectValue: (key: string) => string;
 	onSelectChange: (key: string, value: string) => void;
 }>) {
+	const showInstructorFilter = useFeatureFlag("fe_instructor_multiselect");
 	return (
 		<>
 			{filters.map(
@@ -487,6 +491,26 @@ function SelectFilters({
 					const currentValue = getSelectValue(key);
 					const testId = SELECT_FILTER_TEST_IDS[key];
 					const isDisabled = disabled || options.length === 0;
+
+					if (key === "instructor") {
+						if (!showInstructorFilter) {
+							return null;
+						}
+						return (
+							<div key={key} className="space-y-3">
+								<Label className="text-sm font-medium inline-flex items-center gap-1.5">
+									{label}
+									{disabledMessage && <InfoHint message={disabledMessage} />}
+								</Label>
+								<InstructorFilterSelect
+									value={currentValue}
+									onChange={(nextValue) => onSelectChange(key, nextValue)}
+									placeholder={placeholder}
+									data-testid={testId}
+								/>
+							</div>
+						);
+					}
 
 					const selectElement = useCombobox ? (
 						<Combobox

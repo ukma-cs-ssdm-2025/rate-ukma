@@ -131,6 +131,7 @@ export const testIds = {
 		departmentSelect: "filters-department-select",
 		specialitySelect: "filters-speciality-select",
 		typeSelect: "filters-type-select",
+		instructorSelect: "filters-instructor-select",
 		educationLevelToggle: "filters-education-level-toggle",
 	},
 
@@ -138,6 +139,7 @@ export const testIds = {
 	courseDetails: {
 		title: "course-details-title",
 		rateButton: "course-details-rate-button",
+		editUserRatingButton: "course-details-edit-user-rating-button",
 		statsCards: "course-details-stats-cards",
 		ratingsCountStat: "course-details-ratings-count-stat",
 		reviewsSection: "course-details-reviews-section",
@@ -154,6 +156,7 @@ export const testIds = {
 		usefulnessSlider: "rating-usefulness-slider",
 		commentTextarea: "rating-comment-textarea",
 		instructorInput: "rating-instructor-input",
+		instructorMultiSelect: "rating-instructor-multiselect",
 		anonymousCheckbox: "rating-anonymous-checkbox",
 		submitButton: "rating-submit-button",
 		cancelButton: "rating-cancel-button",

@@ -7,11 +7,25 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import { formatDate } from "@/features/courses/courseFormatting";
-import type { CommentAuthor, RatingVoteStrType } from "@/lib/api/generated";
+import type {
+	CommentAuthor,
+	RatingInstructor,
+	RatingVoteStrType,
+} from "@/lib/api/generated";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
 import { RatingVotes } from "./RatingVotes";
+
+/** "Прізвище Імʼя" — surname plus full first name, blanks skipped. Patronymic
+ * is omitted for brevity; the full first name keeps same-surname instructors
+ * distinguishable (e.g. "Калиновська Олександра" vs "Калиновська Оксана"). */
+function formatInstructorName(instructor: RatingInstructor): string {
+	return [instructor.last_name, instructor.first_name]
+		.filter(Boolean)
+		.join(" ");
+}
 
 interface RatingCardBodyProps {
 	readonly displayName: string;
@@ -23,6 +37,7 @@ interface RatingCardBodyProps {
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
 	readonly instructor?: string | null;
+	readonly instructors?: readonly RatingInstructor[];
 	readonly commentEmptyMessage?: string;
 	readonly ratingId?: string;
 	readonly courseId?: string;
@@ -45,6 +60,7 @@ export function RatingCardBody({
 	usefulness,
 	comment,
 	instructor,
+	instructors = [],
 	commentEmptyMessage,
 	ratingId,
 	courseId,
@@ -56,6 +72,7 @@ export function RatingCardBody({
 	votesReadOnly = false,
 	votesDisabledMessage,
 }: RatingCardBodyProps) {
+	const showMultiSelect = useFeatureFlag("fe_instructor_multiselect");
 	return (
 		<>
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -88,17 +105,28 @@ export function RatingCardBody({
 				<RatingStats difficulty={difficulty} usefulness={usefulness} />
 			</div>
 
-			{instructor && (
+			{showMultiSelect && instructors.length > 0 ? (
 				<p className="mt-2 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
-					<span className="shrink-0 font-medium">Викладач:</span>
-					<span className="min-w-0 break-words">{instructor}</span>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Info className="h-3.5 w-3.5 shrink-0 cursor-help text-muted-foreground/60" />
-						</TooltipTrigger>
-						<TooltipContent>Вказано студентом, не перевірено</TooltipContent>
-					</Tooltip>
+					<span className="shrink-0 font-medium">
+						{instructors.length > 1 ? "Викладачі:" : "Викладач:"}
+					</span>
+					<span className="min-w-0 break-words">
+						{instructors.map(formatInstructorName).join(", ")}
+					</span>
 				</p>
+			) : (
+				instructor && (
+					<p className="mt-2 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
+						<span className="shrink-0 font-medium">Викладач:</span>
+						<span className="min-w-0 break-words">{instructor}</span>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Info className="h-3.5 w-3.5 shrink-0 cursor-help text-muted-foreground/60" />
+							</TooltipTrigger>
+							<TooltipContent>Вказано студентом, не перевірено</TooltipContent>
+						</Tooltip>
+					</p>
+				)
 			)}
 
 			<div className="mt-3">

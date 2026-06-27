@@ -8,6 +8,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/Dialog";
 import { toast } from "@/components/ui/Toaster";
+import type { Instructor, RatingInstructor } from "@/lib/api/generated";
 import {
 	getCoursesListQueryKey,
 	getCoursesRatingsListQueryKey,
@@ -17,6 +18,7 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
@@ -26,6 +28,7 @@ interface ExistingRating {
 	usefulness?: number;
 	comment?: string | null;
 	instructor?: string | null;
+	instructors?: readonly RatingInstructor[];
 	is_anonymous?: boolean;
 }
 
@@ -49,6 +52,7 @@ export function RatingModal({
 	onSuccess,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
+	const showMultiSelect = useFeatureFlag("fe_instructor_multiselect");
 	const queryClient = useQueryClient();
 
 	const createMutation = useCoursesRatingsCreate();
@@ -75,6 +79,11 @@ export function RatingModal({
 	};
 
 	const handleSubmit = async (data: RatingFormData) => {
+		// Gate the write path: when the multi-select flag is off, persist the
+		// legacy free-text instructor; when on, persist the M2M instructor_ids.
+		const instructorPayload = showMultiSelect
+			? { instructor_ids: data.instructor_ids }
+			: { instructor: data.instructor ?? "" };
 		try {
 			if (isEditMode && existingRating?.id) {
 				await updateMutation.mutateAsync({
@@ -84,7 +93,7 @@ export function RatingModal({
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment ?? "",
-						instructor: data.instructor ?? "",
+						...instructorPayload,
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -102,7 +111,7 @@ export function RatingModal({
 						difficulty: data.difficulty,
 						usefulness: data.usefulness,
 						comment: data.comment ?? undefined,
-						instructor: data.instructor ?? undefined,
+						...instructorPayload,
 						is_anonymous: data.is_anonymous,
 					},
 				});
@@ -120,11 +129,22 @@ export function RatingModal({
 		}
 	};
 
+	const existingInstructors = (existingRating?.instructors ?? []).filter(
+		(ri): ri is Required<RatingInstructor> => Boolean(ri.id),
+	);
+	const initialInstructors: Instructor[] = existingInstructors.map((ri) => ({
+		id: ri.id,
+		first_name: ri.first_name ?? "",
+		last_name: ri.last_name ?? "",
+		patronymic: ri.patronymic ?? "",
+	}));
+
 	const initialData: RatingFormData | undefined = existingRating
 		? {
 				difficulty: existingRating.difficulty ?? 3,
 				usefulness: existingRating.usefulness ?? 3,
 				comment: existingRating.comment ?? "",
+				instructor_ids: existingInstructors.map((ri) => ri.id),
 				instructor: existingRating.instructor ?? "",
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
@@ -159,6 +179,9 @@ export function RatingModal({
 					isLoading={isLoading}
 					isEditMode={isEditMode}
 					initialData={initialData}
+					offeringId={offeringId}
+					courseId={courseId}
+					initialInstructors={initialInstructors}
 				/>
 			</DialogContent>
 		</Dialog>

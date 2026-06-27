@@ -319,4 +319,4 @@ PARSE_BASE_URL = "https://my.ukma.edu.ua"
 # ONLY when added to this allowlist in a reviewed PR — the endpoint fails closed,
 # so server-only flags can never leak through a naming mistake. `fe_` is a soft
 # naming convention for client-facing flags, not the security boundary.
-PUBLIC_FEATURE_FLAGS = ["fe_test_header"]
+PUBLIC_FEATURE_FLAGS = ["fe_test_header", "fe_instructor_multiselect"]

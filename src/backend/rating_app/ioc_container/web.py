@@ -129,6 +129,11 @@ def instructor_detail_view():
 
 
 @once
+def instructor_list_view():
+    return InstructorViewSet.as_view({"get": "list"}, instructor_service=instructor_service())
+
+
+@once
 def microsoft_login_view() -> Callable[[HttpRequest], HttpResponse]:
     return microsoft_login
 
@@ -309,6 +314,11 @@ def rest_urlpatterns() -> list:
             "students/me/grades/",
             course_detailed_rating_stats(),
             name="student-courses-grades",
+        ),
+        path(
+            "instructors/",
+            instructor_list_view(),
+            name="instructor-list",
         ),
         path(
             "instructors/<str:instructor_id>",

@@ -8,6 +8,18 @@ from rating_app.models import CourseOffering, Rating, Student
 from rating_app.repositories.to_domain_mappers import StudentMapper
 
 
+def _serialize_rating_instructors(rating_obj: Rating) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": str(instructor.id),
+            "first_name": instructor.first_name,
+            "patronymic": instructor.patronymic,
+            "last_name": instructor.last_name,
+        }
+        for instructor in rating_obj.instructors.all()
+    ]
+
+
 class StudentStatisticsRepository:
     """
     Get student specific statistics (specifically on courses/offerings rated).
@@ -31,7 +43,9 @@ class StudentStatisticsRepository:
         """
         student_ratings = Prefetch(
             "ratings",
-            queryset=Rating.objects.filter(student_id=student_id),
+            queryset=Rating.objects.filter(student_id=student_id).prefetch_related(
+                "instructors"
+            ),
             to_attr="student_ratings_list",
         )
 
@@ -60,6 +74,7 @@ class StudentStatisticsRepository:
                     "usefulness": rating_obj.usefulness,
                     "comment": rating_obj.comment,
                     "instructor": rating_obj.instructor or None,
+                    "instructors": _serialize_rating_instructors(rating_obj),
                     "created_at": rating_obj.created_at,
                     "is_anonymous": rating_obj.is_anonymous,
                 }
@@ -87,7 +102,9 @@ class StudentStatisticsRepository:
 
         student_ratings = Prefetch(
             "ratings",
-            queryset=Rating.objects.filter(student_id=student_id),
+            queryset=Rating.objects.filter(student_id=student_id).prefetch_related(
+                "instructors"
+            ),
             to_attr="student_ratings_list",
         )
 
@@ -114,6 +131,7 @@ class StudentStatisticsRepository:
                     "usefulness": rating_obj.usefulness,
                     "comment": rating_obj.comment,
                     "instructor": rating_obj.instructor or None,
+                    "instructors": _serialize_rating_instructors(rating_obj),
                     "created_at": rating_obj.created_at,
                     "is_anonymous": rating_obj.is_anonymous,
                 }
