@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -19,9 +21,8 @@ class FlagsViewSet(viewsets.ViewSet):
         summary="List public feature flags evaluated for the current user",
         responses=R_FLAGS,
     )
+    @method_decorator(never_cache)
     def list(self, request) -> Response:
-        flags = {
-            name: flag_is_active(request, name) for name in settings.PUBLIC_FEATURE_FLAGS
-        }
+        flags = {name: flag_is_active(request, name) for name in settings.PUBLIC_FEATURE_FLAGS}
         serializer = FeatureFlagsSerializer({"flags": flags})
         return Response(serializer.data, status=status.HTTP_200_OK)

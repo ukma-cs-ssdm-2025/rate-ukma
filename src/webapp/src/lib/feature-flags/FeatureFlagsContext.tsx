@@ -1,7 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { createContext, useEffect, useMemo, useRef, useState } from "react";
-
-import { useQueryClient } from "@tanstack/react-query";
+import { createContext, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/lib/auth";
 import {
@@ -23,32 +21,21 @@ const FLAGS_REFETCH_INTERVAL = 5 * 60_000;
 const FeatureFlagsContext = createContext<FeatureFlagsState | null>(null);
 
 export function FeatureFlagsProvider({ children }: PropsWithChildren) {
-	const queryClient = useQueryClient();
 	const { status, user } = useAuth();
 	const userId = user?.id ?? null;
 
+	// Flags are evaluated per request user, so key the query by auth identity.
+	// A login/logout or user A -> user B switch immediately reads the new
+	// identity's (empty, pending) cache entry instead of painting the previous
+	// user's flags, with no stale frame and no manual invalidation.
 	const { data, isSuccess, isError } = useFlagsList({
 		query: {
+			queryKey: [...getFlagsListQueryKey(), status, userId],
 			staleTime: FLAGS_STALE_TIME,
 			refetchInterval: FLAGS_REFETCH_INTERVAL,
 			refetchOnWindowFocus: true,
 		},
 	});
-
-	// Flags are evaluated per request user. When the identity changes (anonymous
-	// <-> authenticated, or user A -> user B) drop the cached flags immediately so
-	// we never serve the previous user's values while the new request is in
-	// flight; the mounted query then refetches for the new identity. Skip the
-	// initial mount — the query already fetches on mount.
-	const isInitialIdentity = useRef(true);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: act only when the auth identity (status/userId) changes
-	useEffect(() => {
-		if (isInitialIdentity.current) {
-			isInitialIdentity.current = false;
-			return;
-		}
-		queryClient.removeQueries({ queryKey: getFlagsListQueryKey() });
-	}, [status, userId, queryClient]);
 
 	const [overrides, setOverrides] = useState<Record<string, boolean>>(
 		readFeatureFlagOverrides,

@@ -18,7 +18,12 @@ export async function setFeatureFlagOverride(
 			const KEY = "ff:overrides";
 			let current: Record<string, boolean> = {};
 			try {
-				current = JSON.parse(window.localStorage.getItem(KEY) ?? "{}");
+				const parsed: unknown = JSON.parse(
+					window.localStorage.getItem(KEY) ?? "{}",
+				);
+				if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+					current = parsed as Record<string, boolean>;
+				}
 			} catch {
 				current = {};
 			}

@@ -1,6 +1,5 @@
 import type { PropsWithChildren } from "react";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -21,27 +20,26 @@ const { authState } = vi.hoisted(() => ({
 
 vi.mock("../api/generated", () => ({
 	useFlagsList: (...args: unknown[]) => mockUseFlagsList(...args),
-	getFlagsListQueryKey: () => FLAGS_QUERY_KEY,
+	getFlagsListQueryKey: () => [...FLAGS_QUERY_KEY],
 }));
 
 vi.mock("@/lib/auth", () => ({
 	useAuth: () => authState.current,
 }));
 
-let queryClient: QueryClient;
-
 function wrapper({ children }: PropsWithChildren) {
-	return (
-		<QueryClientProvider client={queryClient}>
-			<FeatureFlagsProvider>{children}</FeatureFlagsProvider>
-		</QueryClientProvider>
-	);
+	return <FeatureFlagsProvider>{children}</FeatureFlagsProvider>;
+}
+
+function lastQueryKey() {
+	const lastCall = mockUseFlagsList.mock.calls.at(-1)?.[0];
+	return lastCall?.query?.queryKey;
 }
 
 describe("feature flags", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		queryClient = new QueryClient();
+		localStorage.clear(); // drop any ff:overrides leaked from other tests
 		authState.current = { status: "unauthenticated", user: null };
 		mockUseFlagsList.mockReturnValue({
 			data: { flags: { fe_test_header: true } },
@@ -86,14 +84,14 @@ describe("feature flags", () => {
 		expect(result.current.flags).toEqual({});
 	});
 
-	it("drops the previous user's flags when the auth identity changes", () => {
-		const removeSpy = vi.spyOn(queryClient, "removeQueries");
+	it("keys the flags query by auth identity", () => {
 		const { rerender } = renderHook(() => useFeatureFlags(), { wrapper });
-		expect(removeSpy).not.toHaveBeenCalled(); // initial mount is skipped
+		const anonKey = lastQueryKey();
+		expect(anonKey).toEqual([...FLAGS_QUERY_KEY, "unauthenticated", null]);
 
 		authState.current = { status: "authenticated", user: { id: 1 } };
 		rerender();
-		expect(removeSpy).toHaveBeenCalledWith({ queryKey: FLAGS_QUERY_KEY });
+		expect(lastQueryKey()).toEqual([...FLAGS_QUERY_KEY, "authenticated", 1]);
 	});
 
 	it("throws when used outside the provider", () => {
