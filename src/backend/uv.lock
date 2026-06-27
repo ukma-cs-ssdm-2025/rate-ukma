@@ -589,6 +589,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-types"
+version = "0.24.0"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+dependencies = [
+    { name = "types-psycopg2" },
+]
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/d7/7b/8e05b8631fa7de84038d4f24fa57e983107aff889a6d88a9c40a21e15d1c/django_types-0.24.0.tar.gz", hash = "sha256:af903de8b9ee963b7594459a7a20cb8eaaab176ae2b3244ecaa089e0c570b0d1", size = 208426, upload-time = "2026-04-22T22:19:01.999Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/2f/ab/f5c37ecc08c396df62579246597796697b58253c8b30206870e8d0f644d0/django_types-0.24.0-py3-none-any.whl", hash = "sha256:ddb478ca733e0dde5475118dd59ab340156980f9659fd92de2083326ae96100a", size = 379436, upload-time = "2026-04-22T22:19:03.368Z" },
+]
+
+[[package]]
 name = "django-vite"
 version = "3.1.0"
 source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
@@ -1737,6 +1749,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pyright"
+version = "1.1.411"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+dependencies = [
+    { name = "nodeenv" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/7e/ab/265f7dc69d28113ebba19092e57b075f41543b2ed048429c5f56e2b88eac/pyright-1.1.411.tar.gz", hash = "sha256:d885a0551f2e763b089a02702174e7f4ba77548cddabc972ab86d1f7f1b0f998", size = 4112861, upload-time = "2026-06-25T02:14:06.37Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/0a/49/385be530a6a5b78d1cbcd5c2e38debc8959a2fc6bdb716f4e581002979fc/pyright-1.1.411-py3-none-any.whl", hash = "sha256:dc7c72a8e2700c55baa127554040e067041ea53ccfd50bf96308cc4291c7d5d9", size = 6181526, upload-time = "2026-06-25T02:14:04.691Z" },
+]
+
+[[package]]
 name = "pytest"
 version = "8.3.4"
 source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
@@ -1986,11 +2011,13 @@ dev = [
     { name = "coverage" },
     { name = "django-debug-toolbar" },
     { name = "django-stubs" },
+    { name = "django-types" },
     { name = "factory-boy" },
     { name = "freezegun" },
     { name = "ipython" },
     { name = "locust" },
     { name = "pre-commit" },
+    { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
@@ -2013,6 +2040,10 @@ test = [
     { name = "pytest-cov" },
     { name = "pytest-django" },
 ]
+typecheck = [
+    { name = "django-types" },
+    { name = "pyright" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -2029,6 +2060,7 @@ requires-dist = [
     { name = "django-redis", specifier = ">=6.0.0" },
     { name = "django-reversion", specifier = ">=5.1.0" },
     { name = "django-stubs", marker = "extra == 'dev'", specifier = ">=5.1.0" },
+    { name = "django-types", marker = "extra == 'typecheck'", specifier = ">=0.22.0" },
     { name = "django-vite", specifier = "==3.1.0" },
     { name = "django-waffle", specifier = ">=4.2.0" },
     { name = "djangorestframework", specifier = ">=3.14.0" },
@@ -2046,6 +2078,7 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = "==2.9.10" },
     { name = "pydantic", specifier = ">=2.12" },
     { name = "pyjwt", specifier = "==2.9.0" },
+    { name = "pyright", marker = "extra == 'typecheck'", specifier = ">=1.1.407" },
     { name = "pytest", marker = "extra == 'test'", specifier = "==8.3.4" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = "==7.0.0" },
     { name = "pytest-django", marker = "extra == 'test'", specifier = ">=4.5.2" },
@@ -2053,6 +2086,7 @@ requires-dist = [
     { name = "rateukma", extras = ["linting"], marker = "extra == 'dev'" },
     { name = "rateukma", extras = ["security"], marker = "extra == 'dev'" },
     { name = "rateukma", extras = ["test"], marker = "extra == 'dev'" },
+    { name = "rateukma", extras = ["typecheck"], marker = "extra == 'dev'" },
     { name = "redis", specifier = ">=7.0.0" },
     { name = "requests", specifier = "==2.32.4" },
     { name = "ruff", marker = "extra == 'linting'", specifier = "==0.14.0" },
@@ -2060,7 +2094,7 @@ requires-dist = [
     { name = "sentry-sdk", extras = ["django"], specifier = ">=2.47.0" },
     { name = "structlog", specifier = ">=24.2.0" },
 ]
-provides-extras = ["test", "linting", "security", "dev"]
+provides-extras = ["test", "linting", "typecheck", "security", "dev"]
 
 [[package]]
 name = "redis"
@@ -2571,6 +2605,15 @@ dependencies = [
 sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/8f/28/7c85c8032b91dbe79725b6f17d2fffc595dff06a35c7a30a37bef73a1ab4/typer-0.20.0.tar.gz", hash = "sha256:1aaf6494031793e4876fb0bacfa6a912b551cf43c1e63c800df8b1a866720c37", size = 106492, upload-time = "2025-10-20T17:03:49.445Z" }
 wheels = [
     { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/78/64/7713ffe4b5983314e9d436a90d5bd4f63b6054e2aca783a3cfc44cb95bbf/typer-0.20.0-py3-none-any.whl", hash = "sha256:5b463df6793ec1dca6213a3cf4c0f03bc6e322ac5e16e13ddd622a889489784a", size = 47028, upload-time = "2025-10-20T17:03:47.617Z" },
+]
+
+[[package]]
+name = "types-psycopg2"
+version = "2.9.21.20260518"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/3e/46/61f27369bd1426ea718f759249a5160463522ace6325bcfcbb846305646d/types_psycopg2-2.9.21.20260518.tar.gz", hash = "sha256:8b1f80d90d6799a4fcdac12198b382a8feee9ed4340d5f69b56fc5ffa0644143", size = 27241, upload-time = "2026-05-18T06:01:42.167Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/aa/87/41f48317ec5fea2cc9e881547600f40bcf9021f2b63183d9b0705d0aa72b/types_psycopg2-2.9.21.20260518-py3-none-any.whl", hash = "sha256:2fd728a4fa3860db0a4a9813e5f49c30ed329b3d2e60e73530d9db01b2b98420", size = 24955, upload-time = "2026-05-18T06:01:40.764Z" },
 ]
 
 [[package]]

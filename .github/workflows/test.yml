@@ -55,6 +55,28 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: uv run ruff format --check .
 
+  typecheck-backend:
+    if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ env.BRANCH }}
+
+      - name: Setup Python & uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install typecheck dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv sync --extra typecheck
+
+      - name: Run pyright
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv run pyright
+
   lint-webapp:
     if: inputs.webapp_changed == true && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04

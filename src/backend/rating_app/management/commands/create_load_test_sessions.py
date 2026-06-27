@@ -4,7 +4,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from django.middleware.csrf import _get_new_csrf_string, _mask_cipher_secret
+from django.middleware.csrf import (
+    _get_new_csrf_string,
+    _mask_cipher_secret,  # pyright: ignore[reportAttributeAccessIssue]
+)
 
 import structlog
 
@@ -77,8 +80,9 @@ class Command(BaseCommand):
                         "last_name": f"Tester{i}",
                     },
                 )
+                student_profile = getattr(user, "student_profile", None)
 
-                if not hasattr(user, "student_profile") or user.student_profile is None:
+                if student_profile is None:
                     from rating_app.models import Student
 
                     Student.objects.create(

@@ -2,6 +2,7 @@ import dis
 import sys
 from collections.abc import Callable
 from types import FrameType
+from typing import Any, cast
 
 
 def _get_base_classes(frame: FrameType, namespace: dict) -> list[type]:
@@ -89,7 +90,7 @@ def implements[**P, RT](method: Callable[P, RT]) -> Callable[P, RT]:
             return "https://github.com"
     ```
     """
-    method.__implements__ = True
+    cast(Any, method).__implements__ = True
     global_vars = getattr(method, "__globals__", None)
     if global_vars is None:
         global_vars = vars(sys.modules[method.__module__])
