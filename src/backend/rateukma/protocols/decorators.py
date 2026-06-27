@@ -2,10 +2,6 @@ import dis
 import sys
 from collections.abc import Callable
 from types import FrameType
-from typing import ParamSpec, TypeVar
-
-_P = ParamSpec("_P")
-_RT = TypeVar("_RT", covariant=True)
 
 
 def _get_base_classes(frame: FrameType, namespace: dict) -> list[type]:
@@ -59,7 +55,7 @@ def _get_base_class(components: list[str], namespace: dict) -> type:
     return obj
 
 
-def implements(method: Callable[_P, _RT]) -> Callable[_P, _RT]:
+def implements[**P, RT](method: Callable[P, RT]) -> Callable[P, RT]:
     """
     Decorator that verifies a method implements a protocol method.
 

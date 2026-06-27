@@ -518,7 +518,9 @@ def test_injector_persists_course_offering_terms(injector, repo_mocks):
         )
     ]
 
-    with patch("scraper.services.db_ingestion.injector.CourseOfferingTerm.objects.update_or_create") as mocked:
+    with patch(
+        "scraper.services.db_ingestion.injector.CourseOfferingTerm.objects.update_or_create"
+    ) as mocked:
         injector.execute(models)
 
     assert mocked.call_count == 2

@@ -4,18 +4,17 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rating_app', '0018_ratingvote_rating_type_idx'),
+        ("rating_app", "0018_ratingvote_rating_type_idx"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='courseoffering',
+            name="courseoffering",
             options={},
         ),
         migrations.AddIndex(
-            model_name='rating',
-            index=models.Index(fields=['-created_at'], name='rating_created_at_idx'),
+            model_name="rating",
+            index=models.Index(fields=["-created_at"], name="rating_created_at_idx"),
         ),
     ]

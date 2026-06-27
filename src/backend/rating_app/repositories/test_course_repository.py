@@ -1,7 +1,6 @@
 import pytest
 
-from rating_app.application_schemas.course import CourseInput
-from rating_app.application_schemas.course import CourseFilterCriteriaInternal
+from rating_app.application_schemas.course import CourseFilterCriteriaInternal, CourseInput
 from rating_app.models import Course
 from rating_app.models.choices import CourseStatus, EducationLevel, SemesterTerm
 from rating_app.pagination import GenericQuerysetPaginator

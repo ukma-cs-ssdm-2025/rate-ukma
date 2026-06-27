@@ -1,7 +1,12 @@
 import pytest
 
 from scraper.models import ParsedCourseDetails
-from scraper.models.deduplicated import CourseTypeKind, EducationLevel, EnrollmentStatus, PracticeType
+from scraper.models.deduplicated import (
+    CourseTypeKind,
+    EducationLevel,
+    EnrollmentStatus,
+    PracticeType,
+)
 from scraper.services.deduplication.base import DataValidationError
 from scraper.services.deduplication.extractors import (
     CourseLimitsExtractor,

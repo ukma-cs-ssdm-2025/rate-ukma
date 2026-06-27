@@ -4,14 +4,15 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rating_app', '0021_course_education_level_courseoffering_study_year_and_more'),
+        ("rating_app", "0021_course_education_level_courseoffering_study_year_and_more"),
     ]
 
     operations = [
         migrations.AddConstraint(
-            model_name='course',
-            constraint=models.UniqueConstraint(fields=('title', 'department', 'education_level'), name='course_identity_unique'),
+            model_name="course",
+            constraint=models.UniqueConstraint(
+                fields=("title", "department", "education_level"), name="course_identity_unique"
+            ),
         ),
     ]

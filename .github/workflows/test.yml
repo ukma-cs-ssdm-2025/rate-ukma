@@ -29,6 +29,50 @@ env:
   BADGE_COMMIT_MESSAGE: "chore(ci): update coverage badge"
 
 jobs:
+  lint-backend:
+    if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ env.BRANCH }}
+
+      - name: Setup Python & uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install linting dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv sync --extra linting
+
+      - name: Run lint checks
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv run ruff check .
+
+      - name: Check formatting
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: uv run ruff format --check .
+
+  lint-webapp:
+    if: inputs.webapp_changed == true && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ env.BRANCH }}
+
+      - name: Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          working-directory: ${{ env.WEBAPP_DIR }}
+
+      - name: Run lint and format checks
+        working-directory: ${{ env.WEBAPP_DIR }}
+        run: pnpm check
+
   test-backend:
     if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04

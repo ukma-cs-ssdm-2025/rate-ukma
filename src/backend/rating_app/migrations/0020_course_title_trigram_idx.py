@@ -5,7 +5,6 @@ from django.contrib.postgres.indexes import GinIndex
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("rating_app", "0019_perf_rating_created_at_idx_remove_co_ordering"),
     ]
