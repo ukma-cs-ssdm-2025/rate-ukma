@@ -181,11 +181,13 @@ apply_nginx_config() {
 
 flush_cache() {
   echo "Flushing Redis cache"
+  cd "$SOURCE_CODE"
+
   local backend_container
-  backend_container=$(sudo docker ps --format "{{.Names}}" | grep backend | head -n1)
+  backend_container=$(compose_cmd "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG" ps -q backend)
 
   if [[ -z "$backend_container" ]]; then
-    echo "Warning: backend container not found, skipping cache flush"
+    echo "Warning: prod backend container not found, skipping cache flush"
     return 0
   fi
 
@@ -197,8 +199,8 @@ flush_cache() {
 
 cleanup_on_success() {
   echo "Services are up and healthy"
-  flush_cache
   apply_nginx_config
+  flush_cache
 
   rm -rf "$BACKUP_DIR"
   rm -f "$TMP_DIR/prev_tags.env"
