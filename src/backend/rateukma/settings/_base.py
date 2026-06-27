@@ -313,3 +313,10 @@ CORPORATE_PASSWORD = config("CORPORATE_PASSWORD", default="")
 
 # Base URL for parsing
 PARSE_BASE_URL = "https://my.ukma.edu.ua"
+
+# Feature flags (django-waffle)
+# Only flags listed here are exposed via GET /api/v1/flags/. A flag is public
+# ONLY when added to this allowlist in a reviewed PR — the endpoint fails closed,
+# so server-only flags can never leak through a naming mistake. `fe_` is a soft
+# naming convention for client-facing flags, not the security boundary.
+PUBLIC_FEATURE_FLAGS = ["fe_test_header"]

@@ -33,6 +33,16 @@ pnpm format --write
 pnpm check
 ```
 
+## Feature flags
+
+Gate UI with `useFeatureFlag("fe_<name>")` from `@/lib/feature-flags` (mirrors
+`@/lib/auth`); use `useFeatureFlags().isReady` to avoid a flash of the wrong
+variant for non-trivial content. Flags are served by `GET /api/v1/flags/` and
+must be allowlisted backend-side. See
+[docs/feature-flags.md](../../docs/feature-flags.md) for the end-to-end flow
+(add / toggle / test / remove) and
+[ADR-0009](../../docs/architecture/decisions/0009-feature-flags.md) for the why.
+
 ## Small tips
 
 - Prefer `globalThis` over `window` when touching the global scope.
