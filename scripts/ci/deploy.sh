@@ -179,8 +179,25 @@ apply_nginx_config() {
   echo "Nginx config applied and reloaded"
 }
 
+flush_cache() {
+  echo "Flushing Redis cache"
+  local backend_container
+  backend_container=$(sudo docker ps --format "{{.Names}}" | grep backend | head -n1)
+
+  if [[ -z "$backend_container" ]]; then
+    echo "Warning: backend container not found, skipping cache flush"
+    return 0
+  fi
+
+  # clear, skip on failure - cache entries expire on their own after TTL
+  if ! sudo docker exec "$backend_container" uv run python manage.py manage_cache --clear; then
+    echo "Warning: cache flush failed, continuing"
+  fi
+}
+
 cleanup_on_success() {
   echo "Services are up and healthy"
+  flush_cache
   apply_nginx_config
 
   rm -rf "$BACKUP_DIR"
