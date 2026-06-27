@@ -1,6 +1,8 @@
 import type { PropsWithChildren } from "react";
 import { createContext, useEffect, useMemo, useRef, useState } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import { useAuth } from "@/lib/auth";
 import {
 	FEATURE_FLAG_OVERRIDES_EVENT,
@@ -8,7 +10,7 @@ import {
 	installFeatureFlagConsoleHelpers,
 	readFeatureFlagOverrides,
 } from "./overrides";
-import { useFlagsList } from "../api/generated";
+import { getFlagsListQueryKey, useFlagsList } from "../api/generated";
 
 export interface FeatureFlagsState {
 	flags: Record<string, boolean>;
@@ -21,10 +23,11 @@ const FLAGS_REFETCH_INTERVAL = 5 * 60_000;
 const FeatureFlagsContext = createContext<FeatureFlagsState | null>(null);
 
 export function FeatureFlagsProvider({ children }: PropsWithChildren) {
+	const queryClient = useQueryClient();
 	const { status, user } = useAuth();
 	const userId = user?.id ?? null;
 
-	const { data, isSuccess, isError, refetch } = useFlagsList({
+	const { data, isSuccess, isError } = useFlagsList({
 		query: {
 			staleTime: FLAGS_STALE_TIME,
 			refetchInterval: FLAGS_REFETCH_INTERVAL,
@@ -32,19 +35,20 @@ export function FeatureFlagsProvider({ children }: PropsWithChildren) {
 		},
 	});
 
-	// Flags are evaluated per request user, so refetch when the identity changes
-	// (anonymous <-> authenticated, or user A -> user B) instead of serving the
-	// previous user's flags until the next poll/focus refetch. Skip the initial
-	// mount — the query already fetches on mount.
+	// Flags are evaluated per request user. When the identity changes (anonymous
+	// <-> authenticated, or user A -> user B) drop the cached flags immediately so
+	// we never serve the previous user's values while the new request is in
+	// flight; the mounted query then refetches for the new identity. Skip the
+	// initial mount — the query already fetches on mount.
 	const isInitialIdentity = useRef(true);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: refetch only when the auth identity (status/userId) changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: act only when the auth identity (status/userId) changes
 	useEffect(() => {
 		if (isInitialIdentity.current) {
 			isInitialIdentity.current = false;
 			return;
 		}
-		refetch();
-	}, [status, userId, refetch]);
+		queryClient.removeQueries({ queryKey: getFlagsListQueryKey() });
+	}, [status, userId, queryClient]);
 
 	const [overrides, setOverrides] = useState<Record<string, boolean>>(
 		readFeatureFlagOverrides,

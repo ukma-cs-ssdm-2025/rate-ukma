@@ -75,7 +75,11 @@ export function renderHookWithProviders<Result, Props>(
 	function Wrapper({ children }: Readonly<{ children: ReactNode }>) {
 		return (
 			<QueryClientProvider client={queryClient}>
-				<AuthProvider>{children}</AuthProvider>
+				<AuthProvider>
+					<FeatureFlagsContext.Provider value={{ flags: {}, isReady: true }}>
+						{children}
+					</FeatureFlagsContext.Provider>
+				</AuthProvider>
 			</QueryClientProvider>
 		);
 	}

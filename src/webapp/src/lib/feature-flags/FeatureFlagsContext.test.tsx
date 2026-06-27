@@ -1,11 +1,13 @@
 import type { PropsWithChildren } from "react";
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FeatureFlagsProvider } from "./FeatureFlagsContext";
 import { useFeatureFlag, useFeatureFlags } from "./useFeatureFlag";
 
+const FLAGS_QUERY_KEY = ["/api/v1/flags/"];
 const mockUseFlagsList = vi.fn();
 
 const { authState } = vi.hoisted(() => ({
@@ -19,25 +21,32 @@ const { authState } = vi.hoisted(() => ({
 
 vi.mock("../api/generated", () => ({
 	useFlagsList: (...args: unknown[]) => mockUseFlagsList(...args),
+	getFlagsListQueryKey: () => FLAGS_QUERY_KEY,
 }));
 
 vi.mock("@/lib/auth", () => ({
 	useAuth: () => authState.current,
 }));
 
+let queryClient: QueryClient;
+
 function wrapper({ children }: PropsWithChildren) {
-	return <FeatureFlagsProvider>{children}</FeatureFlagsProvider>;
+	return (
+		<QueryClientProvider client={queryClient}>
+			<FeatureFlagsProvider>{children}</FeatureFlagsProvider>
+		</QueryClientProvider>
+	);
 }
 
 describe("feature flags", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		queryClient = new QueryClient();
 		authState.current = { status: "unauthenticated", user: null };
 		mockUseFlagsList.mockReturnValue({
 			data: { flags: { fe_test_header: true } },
 			isSuccess: true,
 			isError: false,
-			refetch: vi.fn(),
 		});
 	});
 
@@ -60,7 +69,6 @@ describe("feature flags", () => {
 			data: undefined,
 			isSuccess: false,
 			isError: false,
-			refetch: vi.fn(),
 		});
 		const { result } = renderHook(() => useFeatureFlags(), { wrapper });
 		expect(result.current.isReady).toBe(false);
@@ -72,27 +80,20 @@ describe("feature flags", () => {
 			data: undefined,
 			isSuccess: false,
 			isError: true,
-			refetch: vi.fn(),
 		});
 		const { result } = renderHook(() => useFeatureFlags(), { wrapper });
 		expect(result.current.isReady).toBe(true);
 		expect(result.current.flags).toEqual({});
 	});
 
-	it("refetches when the auth identity changes", () => {
-		const refetch = vi.fn();
-		mockUseFlagsList.mockReturnValue({
-			data: { flags: {} },
-			isSuccess: true,
-			isError: false,
-			refetch,
-		});
+	it("drops the previous user's flags when the auth identity changes", () => {
+		const removeSpy = vi.spyOn(queryClient, "removeQueries");
 		const { rerender } = renderHook(() => useFeatureFlags(), { wrapper });
-		expect(refetch).not.toHaveBeenCalled(); // skips initial mount
+		expect(removeSpy).not.toHaveBeenCalled(); // initial mount is skipped
 
 		authState.current = { status: "authenticated", user: { id: 1 } };
 		rerender();
-		expect(refetch).toHaveBeenCalledTimes(1);
+		expect(removeSpy).toHaveBeenCalledWith({ queryKey: FLAGS_QUERY_KEY });
 	});
 
 	it("throws when used outside the provider", () => {
