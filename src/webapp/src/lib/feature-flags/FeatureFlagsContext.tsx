@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from "react";
-import { createContext, useEffect, useMemo, useState } from "react";
+import { createContext, useEffect, useMemo, useRef, useState } from "react";
 
+import { useAuth } from "@/lib/auth";
 import {
 	FEATURE_FLAG_OVERRIDES_EVENT,
 	FEATURE_FLAG_OVERRIDES_STORAGE_KEY,
@@ -20,13 +21,30 @@ const FLAGS_REFETCH_INTERVAL = 5 * 60_000;
 const FeatureFlagsContext = createContext<FeatureFlagsState | null>(null);
 
 export function FeatureFlagsProvider({ children }: PropsWithChildren) {
-	const { data, isSuccess } = useFlagsList({
+	const { status, user } = useAuth();
+	const userId = user?.id ?? null;
+
+	const { data, isSuccess, isError, refetch } = useFlagsList({
 		query: {
 			staleTime: FLAGS_STALE_TIME,
 			refetchInterval: FLAGS_REFETCH_INTERVAL,
 			refetchOnWindowFocus: true,
 		},
 	});
+
+	// Flags are evaluated per request user, so refetch when the identity changes
+	// (anonymous <-> authenticated, or user A -> user B) instead of serving the
+	// previous user's flags until the next poll/focus refetch. Skip the initial
+	// mount — the query already fetches on mount.
+	const isInitialIdentity = useRef(true);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: refetch only when the auth identity (status/userId) changes
+	useEffect(() => {
+		if (isInitialIdentity.current) {
+			isInitialIdentity.current = false;
+			return;
+		}
+		refetch();
+	}, [status, userId, refetch]);
 
 	const [overrides, setOverrides] = useState<Record<string, boolean>>(
 		readFeatureFlagOverrides,
@@ -50,9 +68,12 @@ export function FeatureFlagsProvider({ children }: PropsWithChildren) {
 		() => ({
 			// Client overrides win over the server response (non-live only).
 			flags: { ...(data?.flags ?? {}), ...overrides },
-			isReady: isSuccess,
+			// Ready once the first request settles (success OR error) so consumers
+			// behind the isReady gate fall back to default-disabled flags instead of
+			// getting stuck on a failed fetch.
+			isReady: isSuccess || isError,
 		}),
-		[data, isSuccess, overrides],
+		[data, isSuccess, isError, overrides],
 	);
 
 	return (
