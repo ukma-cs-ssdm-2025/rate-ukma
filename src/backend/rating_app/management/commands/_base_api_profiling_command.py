@@ -5,7 +5,7 @@ from typing import Any, cast
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
-from django.http import HttpResponseBase
+from django.http.response import HttpResponseBase
 from django.test import Client
 from django.urls import reverse
 

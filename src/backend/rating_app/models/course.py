@@ -1,13 +1,29 @@
+from __future__ import annotations
+
 import uuid
+from decimal import Decimal
+from typing import TYPE_CHECKING, Protocol
 
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
+from django.db.models import Manager
 
 from .choices import CourseStatus, EducationLevel
 from .department import Department
 
+if TYPE_CHECKING:
+    from .course_offering import CourseOffering
+    from .speciality import Speciality
+
+    class _SpecialitiesRelation(Protocol):
+        def add(self, *objs: Speciality) -> None: ...
+
 
 class Course(models.Model):
+    department_id: uuid.UUID
+    offerings: Manager[CourseOffering]
+    specialities: _SpecialitiesRelation
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
@@ -21,8 +37,8 @@ class Course(models.Model):
 
     department = models.ForeignKey(Department, on_delete=models.PROTECT, related_name="courses")
 
-    avg_difficulty = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
-    avg_usefulness = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    avg_difficulty = models.DecimalField(max_digits=3, decimal_places=2, default=Decimal("0.0"))
+    avg_usefulness = models.DecimalField(max_digits=3, decimal_places=2, default=Decimal("0.0"))
     ratings_count = models.PositiveIntegerField(default=0)
 
     class Meta:

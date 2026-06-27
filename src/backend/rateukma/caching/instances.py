@@ -1,9 +1,16 @@
+from typing import cast
+
 from django.conf import settings
 from rest_framework.response import Response
 
 from redis import Redis
 
-from ..caching.cache_manager import ICacheManager, InMemoryCacheManager, RedisCacheManager
+from ..caching.cache_manager import (
+    ICacheManager,
+    InMemoryCacheManager,
+    RedisCacheClient,
+    RedisCacheManager,
+)
 from ..ioc.decorators import once
 from .types_extensions import (
     CacheKeyContextProvider,
@@ -29,7 +36,7 @@ def redis_cache_manager() -> ICacheManager:
     )
 
     return RedisCacheManager(
-        redis_client=redis_client,
+        redis_client=cast(RedisCacheClient, redis_client),
         key_prefix="rateukma",
         default_ttl=300,  # 5 minutes
         ignore_exceptions=True,  # gracefully handle exceptions

@@ -5,7 +5,6 @@ from typing import Any, Protocol
 from uuid import UUID
 
 import structlog
-from redis.client import Redis
 from redis.exceptions import RedisError
 
 logger = structlog.get_logger(__name__)
@@ -35,6 +34,31 @@ class ICacheManager(Protocol):
     def get_stats(self) -> dict[str, Any]: ...
 
 
+class RedisCacheClient(Protocol):
+    def get(self, name: str) -> bytes | str | None: ...
+
+    def set(self, name: str, value: bytes) -> bool: ...
+
+    def setex(self, name: str, time: int, value: bytes) -> bool: ...
+
+    def delete(self, *names: str | bytes) -> int: ...
+
+    def scan(
+        self,
+        cursor: int = 0,
+        match: str | None = None,
+        count: int | None = None,
+    ) -> tuple[int, list[bytes]]: ...
+
+    def incr(self, name: str) -> int: ...
+
+    def expire(self, name: str, time: int) -> bool: ...
+
+    def info(self) -> dict[str, Any]: ...
+
+    def dbsize(self) -> int: ...
+
+
 #! TODO: fix stubs (current code works, but PyRight complains)
 # On demand -> implement versioned cache
 
@@ -42,7 +66,7 @@ class ICacheManager(Protocol):
 class RedisCacheManager(ICacheManager):
     def __init__(
         self,
-        redis_client: Redis,
+        redis_client: RedisCacheClient,
         key_prefix: str = "rateukma",
         default_ttl: int = 3600,
         ignore_exceptions: bool = True,
@@ -97,7 +121,7 @@ class RedisCacheManager(ICacheManager):
                 cursor, keys = self.redis_client.scan(cursor, match=full_pattern, count=100)
 
                 if keys:
-                    deleted += int(self.redis_client.delete(*keys))  # cast
+                    deleted += self.redis_client.delete(*keys)
 
                 if cursor == 0:
                     break
@@ -123,7 +147,7 @@ class RedisCacheManager(ICacheManager):
     def bump_version(self, namespace: str) -> int:
         version_key = self._make_version_key(namespace)
         try:
-            new_version = int(self.redis_client.incr(version_key))
+            new_version = self.redis_client.incr(version_key)
             self.redis_client.expire(version_key, 60 * 60 * 24 * 30)
             return new_version
         except RedisError as e:
@@ -166,7 +190,7 @@ class RedisCacheManager(ICacheManager):
         if not self.ignore_exceptions:
             raise
 
-    def _calculate_hit_rate(self, info: dict) -> float:
+    def _calculate_hit_rate(self, info: dict[str, Any]) -> float:
         hits = info.get("keyspace_hits", 0)
         misses = info.get("keyspace_misses", 0)
         total = hits + misses
@@ -178,16 +202,16 @@ class RedisCacheManager(ICacheManager):
 
 
 class CacheJsonDataEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, UUID | Decimal):
-            return str(obj)
-        if isinstance(obj, (datetime | date)):
-            return obj.isoformat()
-        if isinstance(obj, bytes):
-            return obj.hex()
-        if hasattr(obj, "__dict__"):
-            return repr(obj)
-        return super().default(obj)
+    def default(self, o: Any) -> Any:
+        if isinstance(o, UUID | Decimal):
+            return str(o)
+        if isinstance(o, (datetime | date)):
+            return o.isoformat()
+        if isinstance(o, bytes):
+            return o.hex()
+        if hasattr(o, "__dict__"):
+            return repr(o)
+        return super().default(o)
 
 
 class InMemoryCacheManager(ICacheManager):

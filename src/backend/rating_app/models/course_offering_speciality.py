@@ -16,6 +16,9 @@ class CourseOfferingSpeciality(models.Model):
     # TODO(#511): remove CourseSpeciality after this table is fully populated in prod.
     """
 
+    offering_id: uuid.UUID
+    speciality_id: uuid.UUID
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     offering = models.ForeignKey(
         "CourseOffering",
