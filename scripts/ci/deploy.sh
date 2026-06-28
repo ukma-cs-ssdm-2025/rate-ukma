@@ -179,9 +179,28 @@ apply_nginx_config() {
   echo "Nginx config applied and reloaded"
 }
 
+flush_cache() {
+  echo "Flushing Redis cache"
+  cd "$SOURCE_CODE"
+
+  local backend_container
+  backend_container=$(compose_cmd "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG" ps -q backend)
+
+  if [[ -z "$backend_container" ]]; then
+    echo "Warning: prod backend container not found, skipping cache flush"
+    return 0
+  fi
+
+  # clear, skip on failure - cache entries expire on their own after TTL
+  if ! sudo docker exec "$backend_container" uv run python manage.py manage_cache --clear; then
+    echo "Warning: cache flush failed, continuing"
+  fi
+}
+
 cleanup_on_success() {
   echo "Services are up and healthy"
   apply_nginx_config
+  flush_cache
 
   rm -rf "$BACKUP_DIR"
   rm -f "$TMP_DIR/prev_tags.env"

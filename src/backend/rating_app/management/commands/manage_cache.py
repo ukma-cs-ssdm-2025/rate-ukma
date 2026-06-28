@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 
+from rateukma.caching.cache_manager import SESSION_KEY_MARKER
 from rateukma.caching.instances import redis_cache_manager
 
 
@@ -18,21 +19,38 @@ class Command(BaseCommand):
         parser.add_argument(
             "--clear",
             action="store_true",
-            help="Clear all cache keys",
+            help="Clear application cache keys (sessions preserved by default)",
+        )
+        parser.add_argument(
+            "--with-sessions",
+            action="store_true",
+            help="With --clear, also delete session keys",
         )
 
     def handle(self, *args, **options):
         keys_count = options.get("keys", 0)
         should_clear = options.get("clear", False)
+        with_sessions = options.get("with_sessions", False)
 
         cache_manager = redis_cache_manager()
 
         if should_clear:
-            self.stdout.write("Clearing all cache keys...")
-            cleared_count = cache_manager.invalidate_pattern("*")
+            if with_sessions:
+                self.stdout.write("Clearing all cache keys, including sessions...")
+                cleared_count = cache_manager.invalidate_pattern("*")
+            else:
+                self.stdout.write("Clearing application cache keys (sessions preserved)...")
+                cleared_count = cache_manager.invalidate_pattern(
+                    "*", skip_keys=[SESSION_KEY_MARKER]
+                )
+
             self.stdout.write(
                 self.style.SUCCESS(f"Successfully cleared {cleared_count} cache keys")  # type: ignore
             )
+            return
+
+        if with_sessions:
+            self.stderr.write("--with-sessions has no effect without --clear")
             return
 
         stats = cache_manager.get_stats()

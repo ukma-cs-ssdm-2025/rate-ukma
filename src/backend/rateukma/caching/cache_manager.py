@@ -12,6 +12,9 @@ logger = structlog.get_logger(__name__)
 
 
 JSON_Serializable = int | float | str | bool | list[Any] | dict[str, Any] | None
+KeyType = str | bytes | bytearray | memoryview
+
+SESSION_KEY_MARKER = "django.contrib.sessions"
 
 
 class ICacheManager(Protocol):
@@ -26,7 +29,7 @@ class ICacheManager(Protocol):
 
     def invalidate(self, key: str) -> bool: ...
 
-    def invalidate_pattern(self, pattern: str) -> int: ...
+    def invalidate_pattern(self, pattern: str, skip_keys: list[str] | None = None) -> int: ...
 
     def get_version(self, namespace: str) -> int: ...
 
@@ -86,7 +89,7 @@ class RedisCacheManager(ICacheManager):
             self._handle_error("delete", e)
             return False
 
-    def invalidate_pattern(self, pattern: str) -> int:
+    def invalidate_pattern(self, pattern: str, skip_keys: list[str] | None = None) -> int:
         logger.info("invalidating_pattern", pattern=pattern)
         try:
             full_pattern = self._make_key(pattern)
@@ -95,6 +98,9 @@ class RedisCacheManager(ICacheManager):
 
             while True:
                 cursor, keys = self.redis_client.scan(cursor, match=full_pattern, count=100)
+
+                if skip_keys:
+                    keys = [key for key in keys if not self._matches_marker(key, skip_keys)]
 
                 if keys:
                     deleted += int(self.redis_client.delete(*keys))  # cast
@@ -108,6 +114,10 @@ class RedisCacheManager(ICacheManager):
         except RedisError as e:
             self._handle_error("invalidate_pattern", e)
             return 0
+
+    def _matches_marker(self, raw_key: KeyType, markers: list[str]) -> bool:
+        key = raw_key if isinstance(raw_key, str) else bytes(raw_key).decode("utf-8")
+        return any(marker in key for marker in markers)
 
     def get_version(self, namespace: str) -> int:
         version_key = self._make_version_key(namespace)
@@ -213,9 +223,13 @@ class InMemoryCacheManager(ICacheManager):
             return True
         return False
 
-    def invalidate_pattern(self, pattern: str) -> int:
+    def invalidate_pattern(self, pattern: str, skip_keys: list[str] | None = None) -> int:
         pattern_base = pattern.replace("*", "")
         keys_to_remove = [k for k in self._store if pattern_base in k]
+        if skip_keys:
+            keys_to_remove = [
+                k for k in keys_to_remove if not any(marker in k for marker in skip_keys)
+            ]
         for key in keys_to_remove:
             del self._store[key]
         return len(keys_to_remove)

@@ -281,6 +281,50 @@ class TestRCachedComponents:
         mock_redis_client.expire.assert_called_with("test:version:courses:list", 60 * 60 * 24 * 30)
 
 
+@pytest.mark.integration
+class TestInvalidatePatternSkipKeys:
+    SESSION_MARKER = "django.contrib.sessions"
+
+    def test_redis_skip_keys_preserves_session_keys(self):
+        app_key = b"rateukma:CourseService.get_course|1"
+        version_key = b"rateukma:version:courses:list"
+        session_key = b"rateukma:1:django.contrib.sessions.cache<abc123>"
+
+        client = Mock()
+        client.scan.return_value = (0, [app_key, version_key, session_key])
+        client.delete.return_value = 2
+        manager = RedisCacheManager(redis_client=client, key_prefix="rateukma")
+
+        deleted = manager.invalidate_pattern("*", skip_keys=[self.SESSION_MARKER])
+
+        # session key is excluded; only app + version keys are deleted
+        client.delete.assert_called_once_with(app_key, version_key)
+        assert deleted == 2
+
+    def test_redis_skip_keys_no_delete_when_all_skipped(self):
+        session_key = b"rateukma:1:django.contrib.sessions.cache<abc123>"
+
+        client = Mock()
+        client.scan.return_value = (0, [session_key])
+        manager = RedisCacheManager(redis_client=client, key_prefix="rateukma")
+
+        deleted = manager.invalidate_pattern("*", skip_keys=[self.SESSION_MARKER])
+
+        client.delete.assert_not_called()
+        assert deleted == 0
+
+    def test_inmemory_skip_keys_preserves_session_keys(self):
+        manager = InMemoryCacheManager()
+        manager.set("course:1", 1)
+        manager.set("1:django.contrib.sessions.cache<abc123>", "session-data")
+
+        deleted = manager.invalidate_pattern("*", skip_keys=[self.SESSION_MARKER])
+
+        assert deleted == 1
+        assert manager.get("course:1") is None
+        assert manager.get("1:django.contrib.sessions.cache<abc123>") == "session-data"
+
+
 class TestCacheInvalidation:
     class _TestService:
         pass
