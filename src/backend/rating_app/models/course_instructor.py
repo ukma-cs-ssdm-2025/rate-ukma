@@ -6,6 +6,9 @@ from .choices import InstructorRole
 
 
 class CourseInstructor(models.Model):
+    instructor_id: uuid.UUID
+    course_offering_id: uuid.UUID
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     instructor = models.ForeignKey(
         "rating_app.Instructor", on_delete=models.CASCADE, related_name="assignments"
