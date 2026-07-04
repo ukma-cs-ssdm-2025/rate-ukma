@@ -5,8 +5,7 @@ from rest_framework.fields import DictField
 class ErrorEnvelopeSerializer(serializers.Serializer):
     detail = serializers.CharField()
     status = serializers.IntegerField()
-    # Clashes with Serializer.fields (BindingDict property); DRF's metaclass moves
-    # declared fields out of the class dict at runtime, so the override is safe.
-    fields: DictField = serializers.DictField(  # pyright: ignore[reportIncompatibleVariableOverride, reportAssignmentType]
+    # name clashes with Serializer.fields; DRF's metaclass keeps this safe at runtime
+    fields: DictField = serializers.DictField(  # pyright: ignore[reportIncompatibleVariableOverride]
         child=serializers.ListField(child=serializers.CharField()), required=False
     )

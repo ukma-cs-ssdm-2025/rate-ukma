@@ -138,8 +138,7 @@ skips = ["B108"]
 "*/migrations/*" = ["ALL"]
 "*/management/commands/generate_mock_data.py" = ["ALL"]
 
-# Run via `uv run pyright` so it resolves the project interpreter.
-# Tests are excluded for now (~100 errors, mostly django test-client stub gaps); ratchet in as follow-up.
+# Run via `uv run pyright`; see AGENTS.md
 [tool.pyright]
 include = ["rating_app", "rateukma"]
 exclude = [

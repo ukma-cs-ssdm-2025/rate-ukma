@@ -1,8 +1,8 @@
-from typing import cast, override
+from typing import override
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser, User
 from django.http import HttpRequest
 from django.shortcuts import redirect
 
@@ -20,11 +20,7 @@ from rating_app.ioc_container.services import student_service
 logger = structlog.get_logger(__name__)
 
 
-def _user_log_id(user: User) -> int | str | None:
-    return getattr(user, "pk", getattr(user, "id", None))
-
-
-def _update_student_avatar(user: User, sociallogin: SocialLogin) -> None:
+def _update_student_avatar(user: AbstractUser, sociallogin: SocialLogin) -> None:
     """Fetch the Microsoft profile photo and save it to the student's avatar field."""
     student = getattr(user, "student_profile", None)
     if not student:
@@ -33,7 +29,7 @@ def _update_student_avatar(user: User, sociallogin: SocialLogin) -> None:
     token = getattr(sociallogin, "token", None)
     access_token = getattr(token, "token", None)
     if not access_token:
-        logger.debug("avatar_update_skipped_no_token", user_id=_user_log_id(user))
+        logger.debug("avatar_update_skipped_no_token", user_id=user.pk)
         return
 
     try:
@@ -46,7 +42,7 @@ def _update_student_avatar(user: User, sociallogin: SocialLogin) -> None:
     except Exception:
         logger.exception(
             "student_avatar_update_failed",
-            user_id=_user_log_id(user),
+            user_id=user.pk,
             student_id=str(student.id),
         )
         return
@@ -57,19 +53,20 @@ def _update_student_avatar(user: User, sociallogin: SocialLogin) -> None:
         except Exception:
             logger.warning(
                 "student_avatar_cleanup_failed",
-                user_id=_user_log_id(user),
+                user_id=user.pk,
                 student_id=str(student.id),
                 avatar_name=old_avatar_name,
             )
 
-    logger.info("student_avatar_updated", user_id=_user_log_id(user), student_id=str(student.id))
+    logger.info("student_avatar_updated", user_id=user.pk, student_id=str(student.id))
 
 
 class StudentLinkingMixin:
     """Mixin that provides student linking functionality for auth adapters."""
 
     def save_user(self, request: HttpRequest, *args, **kwargs) -> User:
-        user = cast(User, super().save_user(request, *args, **kwargs))  # type: ignore[attr-defined]
+        # save_user comes from the allauth adapter this mixin is combined with
+        user: User = super().save_user(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]
 
         commit = kwargs.get("commit", True)
         if commit and user.email:
@@ -79,7 +76,7 @@ class StudentLinkingMixin:
             if linked:
                 logger.info(
                     "new_user_linked_to_student",
-                    user_id=_user_log_id(user),
+                    user_id=user.pk,
                     email=user.email,
                 )
 
@@ -151,7 +148,7 @@ class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAda
             sociallogin.connect(request, existing_user)
             logger.info("user_connected", email=email)
 
-            _update_student_avatar(cast(User, existing_user), sociallogin)
+            _update_student_avatar(existing_user, sociallogin)
         except user_model.DoesNotExist:
             logger.info("new_user_registration", email=email)
 
@@ -181,7 +178,8 @@ class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAda
 
 class MicrosoftAccountAdapter(StudentLinkingMixin, DefaultAccountAdapter):
     @override
-    def is_open_for_signup(self, request: HttpRequest) -> bool:  # type: ignore[override]
+    # allauth's base method is untyped and inferred as returning Literal[True]
+    def is_open_for_signup(self, request: HttpRequest) -> bool:  # pyright: ignore[reportIncompatibleMethodOverride]
         return bool(settings.ACCOUNT_ALLOW_REGISTRATION)
 
     @override

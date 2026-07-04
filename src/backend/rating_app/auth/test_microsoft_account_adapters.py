@@ -177,7 +177,7 @@ def test_save_user_calls_link_user_to_student(
     account_adapter: MicrosoftAccountAdapter, http_request: MagicMock
 ):
     # Arrange
-    mock_user = SimpleNamespace(email="test@ukma.edu.ua", id=1)
+    mock_user = SimpleNamespace(email="test@ukma.edu.ua", pk=1)
     mock_form = MagicMock()
 
     with (
@@ -203,7 +203,7 @@ def test_save_user_does_not_link_when_commit_is_false(
     account_adapter: MicrosoftAccountAdapter, http_request: MagicMock
 ):
     # Arrange
-    mock_user = SimpleNamespace(email="test@ukma.edu.ua", id=1)
+    mock_user = SimpleNamespace(email="test@ukma.edu.ua", pk=1)
     mock_form = MagicMock()
 
     with (
@@ -227,7 +227,7 @@ def test_social_adapter_save_user_links_user_to_student(
     social_adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock
 ):
     # Arrange
-    mock_user = SimpleNamespace(email="test@ukma.edu.ua", id=1)
+    mock_user = SimpleNamespace(email="test@ukma.edu.ua", pk=1)
     mock_sociallogin = MagicMock()
 
     with (

@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import cast
 
 import structlog
 
@@ -148,7 +147,7 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
                 faculty_id=str(faculty_obj.id),
                 faculty_name=faculty_obj.name,
                 speciality_alias=speciality.alias or None,
-                type_kind=cast(CourseTypeKind, type_kind),
+                type_kind=type_kind,
             )
         )
 
@@ -419,7 +418,7 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
                     faculty_id=faculty_obj.id,
                     faculty_name=faculty_obj.name,
                     speciality_alias=speciality.alias or None,
-                    type_kind=cast(CourseTypeKind, type_kind),
+                    type_kind=type_kind,
                 )
             )
         return result

@@ -1,5 +1,3 @@
-from typing import cast
-
 from django.core.exceptions import DisallowedHost
 
 import sentry_sdk
@@ -17,9 +15,9 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Force allauth to build https:// callback URLs — TLS is terminated at nginx ingress
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
 
-SENTRY_DSN = cast(str, config("SENTRY_DSN_BACKEND", default=""))  # noqa: F405
+SENTRY_DSN = str(config("SENTRY_DSN_BACKEND", default=""))  # noqa: F405
 if SENTRY_DSN:
-    ENVIRONMENT = cast(str, config("ENVIRONMENT"))  # noqa: F405
+    ENVIRONMENT = str(config("ENVIRONMENT"))  # noqa: F405
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         # Environment helps filter issues in Sentry dashboard (staging/live)

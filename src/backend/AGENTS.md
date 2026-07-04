@@ -19,6 +19,19 @@ server-only flags with `waffle.flag_is_active(request, name)`. See
 removing flags, and [ADR-0009](../../docs/architecture/decisions/0009-feature-flags.md)
 for the rationale.
 
+## Typechecking
+
+Pyright runs in `standard` mode over `rating_app` and `rateukma`. Always invoke it through uv so it picks up the project interpreter (the config deliberately has no `venvPath`):
+
+```bash
+uv sync --extra typecheck  # once, or after dependency changes
+uv run pyright
+```
+
+CI runs the same commands in the `typecheck-backend` job and must stay at 0 errors. Tests, migrations, and `generate_mock_data.py` are excluded for now; ratcheting tests in (~100 errors, mostly django test-client stub gaps) is a follow-up under #628.
+
+Prefer real typing fixes over escapes: no `cast()` to paper over model relations (annotate `RelatedManager[...]` on the model instead), and any `# pyright: ignore[rule]` must be rule-scoped with a one-line reason.
+
 ## Logging style
 
 Start log calls with a snake_case event name, then pass structured context via keyword args so tools can parse them.
