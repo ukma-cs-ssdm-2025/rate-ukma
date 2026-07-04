@@ -18,5 +18,13 @@ AUTH_PASSWORD_VALIDATORS = []
 DEBUG = False
 ENABLE_CACHE = False
 
+# Keep tests isolated from the local Redis: waffle caches flag lookups in the
+# default cache, so a real backend leaks state between tests and across runs
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    }
+}
+
 # Use DB sessions in tests since the cache backend is disabled
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
