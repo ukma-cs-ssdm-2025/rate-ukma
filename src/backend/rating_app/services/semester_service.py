@@ -6,7 +6,6 @@ from rating_app.application_schemas.semester import Semester, SemesterInput
 from rating_app.exception.semester_exception import SemesterDoesNotExistError, SemesterNotFoundError
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories import SemesterRepository
-from rating_app.services.protocols import IFilterable
 
 
 @dataclass
@@ -27,7 +26,7 @@ class SemesterFilterData:
         }
 
 
-class SemesterService(IFilterable):
+class SemesterService:
     TERM_PRIORITY = {
         SemesterTerm.SPRING: 0,
         SemesterTerm.SUMMER: 1,

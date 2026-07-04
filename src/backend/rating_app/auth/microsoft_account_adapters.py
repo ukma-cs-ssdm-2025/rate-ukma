@@ -20,7 +20,7 @@ from rating_app.ioc_container.services import student_service
 logger = structlog.get_logger(__name__)
 
 
-def _user_log_id(user: User) -> object:
+def _user_log_id(user: User) -> int | str | None:
     return getattr(user, "pk", getattr(user, "id", None))
 
 

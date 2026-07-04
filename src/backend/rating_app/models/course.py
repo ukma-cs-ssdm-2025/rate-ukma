@@ -2,27 +2,23 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
-from django.db.models import Manager
 
 from .choices import CourseStatus, EducationLevel
 from .department import Department
 
 if TYPE_CHECKING:
-    from .course_offering import CourseOffering
-    from .speciality import Speciality
+    from django.db.models.manager import RelatedManager
 
-    class _SpecialitiesRelation(Protocol):
-        def add(self, *objs: Speciality) -> None: ...
+    from .course_offering import CourseOffering
 
 
 class Course(models.Model):
     department_id: uuid.UUID
-    offerings: Manager[CourseOffering]
-    specialities: _SpecialitiesRelation
+    offerings: RelatedManager[CourseOffering]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)

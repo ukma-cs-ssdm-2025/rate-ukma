@@ -1,7 +1,5 @@
 from datetime import datetime
-from typing import Protocol, cast
-
-from django.db.models import Manager
+from typing import cast
 
 import structlog
 
@@ -45,9 +43,6 @@ from rating_app.models.choices import (
 from rating_app.models.comment import Comment as CommentModel
 from rating_app.models.course_instructor import CourseInstructor as CourseInstructorModel
 from rating_app.models.course_offering import CourseOffering as CourseOfferingModel
-from rating_app.models.course_offering_speciality import (
-    CourseOfferingSpeciality as CourseOfferingSpecialityModel,
-)
 from rating_app.models.course_offering_term import CourseOfferingTerm as CourseOfferingTermModel
 from rating_app.models.department import Department as DepartmentModel
 from rating_app.models.enrollment import Enrollment as EnrollmentModel
@@ -61,10 +56,6 @@ from rating_app.models.speciality import Speciality as SpecialityModel
 from rating_app.models.student import Student as StudentModel
 
 logger = structlog.get_logger(__name__)
-
-
-class _CourseOfferingWithSpecialities(Protocol):
-    course_offering_specialities: Manager[CourseOfferingSpecialityModel]
 
 
 class CourseMapper(IProcessor[[Course], CourseDTO]):
@@ -121,10 +112,7 @@ class CourseMapper(IProcessor[[Course], CourseDTO]):
             return specialities
 
         for offering in model.offerings.all():
-            offering_with_specialities = cast(_CourseOfferingWithSpecialities, offering)
-            for (
-                course_offering_speciality
-            ) in offering_with_specialities.course_offering_specialities.all():
+            for course_offering_speciality in offering.course_offering_specialities.all():
                 self._try_add_speciality(
                     course_offering_speciality,
                     specialities,
