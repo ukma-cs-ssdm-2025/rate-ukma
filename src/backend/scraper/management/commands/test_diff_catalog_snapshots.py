@@ -32,6 +32,15 @@ def test_diff_sections_added_removed_changed():
     }
 
 
+def test_diff_sections_detects_removed_fields():
+    before = {"offerings": {"123456": {"credits": "3.0", "max_groups": 2}}}
+    after = {"offerings": {"123456": {"credits": "3.0"}}}
+
+    diff = diff_sections(before, after)
+
+    assert diff["offerings"]["changed"] == {"123456": {"max_groups": {"before": 2, "after": None}}}
+
+
 def test_diff_sections_handles_missing_section():
     diff = diff_sections({}, {"faculties": {"FI": {}}})
 

@@ -29,10 +29,12 @@ def diff_sections(before: dict, after: dict) -> dict:
         removed = sorted(before_records.keys() - after_records.keys())
         changed = {}
         for key in before_records.keys() & after_records.keys():
+            before_fields = before_records[key]
+            after_fields = after_records[key]
             field_changes = {
-                field: {"before": before_records[key].get(field), "after": value}
-                for field, value in after_records[key].items()
-                if before_records[key].get(field) != value
+                field: {"before": before_fields.get(field), "after": after_fields.get(field)}
+                for field in before_fields.keys() | after_fields.keys()
+                if before_fields.get(field) != after_fields.get(field)
             }
             if field_changes:
                 changed[key] = field_changes

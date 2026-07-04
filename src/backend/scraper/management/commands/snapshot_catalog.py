@@ -22,10 +22,30 @@ from rating_app.models.course_offering_speciality import CourseOfferingSpecialit
 logger = structlog.get_logger(__name__)
 
 
-def _student_key(email: str, first_name: str, last_name: str, patronymic: str) -> str:
+def _student_key(
+    email: str,
+    first_name: str,
+    last_name: str,
+    patronymic: str,
+    education_level: str,
+    speciality: str | None,
+) -> str:
     if email:
         return email.lower()
-    return f"{last_name}|{first_name}|{patronymic}"
+    return f"{last_name}|{first_name}|{patronymic}|{education_level}|{speciality or ''}"
+
+
+def _collect_keyed(rows, build_key, build_value, section: str) -> dict:
+    result = {}
+    collisions = 0
+    for row in rows:
+        key = build_key(row)
+        if key in result:
+            collisions += 1
+        result[key] = build_value(row)
+    if collisions:
+        logger.warning("snapshot_key_collisions", section=section, collisions=collisions)
+    return result
 
 
 def _snapshot_faculties() -> dict:
@@ -154,15 +174,24 @@ def _snapshot_students() -> dict:
         "speciality__name",
         "program_start_academic_year_start",
     )
-    return {
-        _student_key(r["email"], r["first_name"], r["last_name"], r["patronymic"]): {
+    return _collect_keyed(
+        rows.iterator(),
+        lambda r: _student_key(
+            r["email"],
+            r["first_name"],
+            r["last_name"],
+            r["patronymic"],
+            r["education_level"],
+            r["speciality__name"],
+        ),
+        lambda r: {
             "name": f"{r['last_name']} {r['first_name']} {r['patronymic']}".strip(),
             "education_level": r["education_level"],
             "speciality": r["speciality__name"],
             "program_start": r["program_start_academic_year_start"],
-        }
-        for r in rows.iterator()
-    }
+        },
+        section="students",
+    )
 
 
 def _snapshot_enrollments() -> dict:
@@ -173,19 +202,25 @@ def _snapshot_enrollments() -> dict:
         "student__first_name",
         "student__last_name",
         "student__patronymic",
+        "student__education_level",
+        "student__speciality__name",
     )
-    return {
-        "{}|{}".format(
+    return _collect_keyed(
+        rows.iterator(),
+        lambda r: "{}|{}".format(
             r["offering__code"],
             _student_key(
                 r["student__email"],
                 r["student__first_name"],
                 r["student__last_name"],
                 r["student__patronymic"],
+                r["student__education_level"],
+                r["student__speciality__name"],
             ),
-        ): {"status": r["status"]}
-        for r in rows.iterator()
-    }
+        ),
+        lambda r: {"status": r["status"]},
+        section="enrollments",
+    )
 
 
 SECTION_SNAPSHOTTERS = {
