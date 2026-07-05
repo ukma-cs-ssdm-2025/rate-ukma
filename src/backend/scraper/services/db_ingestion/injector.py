@@ -395,6 +395,7 @@ class CourseDbInjector(IDbInjector):
         )
         cached = self._student_cache.get(key)
         if cached:
+            self._merge_cached_program_start(cached, student_data.program_start_academic_year_start)
             return cached
 
         student_input = StudentInput(
@@ -417,6 +418,15 @@ class CourseDbInjector(IDbInjector):
 
         self._student_cache[key] = student
         return student
+
+    def _merge_cached_program_start(self, student: Student, incoming_year: int | None) -> None:
+        if incoming_year is None:
+            return
+        existing_year = student.program_start_academic_year_start
+        if existing_year is not None and existing_year <= incoming_year:
+            return
+        student.program_start_academic_year_start = incoming_year
+        student.save(update_fields=["program_start_academic_year_start"])
 
     def _get_or_create_speciality(self, speciality_name: str) -> Speciality | None:
         cached = self._speciality_cache.get(speciality_name)

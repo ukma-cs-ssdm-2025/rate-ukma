@@ -126,9 +126,6 @@ class SemesterExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedSemester
 
 
 class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollment]]):
-    def __init__(self, *, reference_academic_year_start: int | None = None) -> None:
-        self.reference_academic_year_start = reference_academic_year_start
-
     def extract(self, data: ParsedCourseDetails) -> list[DeduplicatedEnrollment]:
         if not data.students:
             logger.debug(
@@ -164,14 +161,12 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
             index = getattr(student_row, "index", None)
             email = getattr(student_row, "email", None)
             specialty = getattr(student_row, "specialty", None)
-            course_year = getattr(student_row, "course", None)
             group = getattr(student_row, "group", None)
         elif isinstance(student_row, dict):
             name = student_row.get("name", "")
             index = student_row.get("index")
             email = student_row.get("email")
             specialty = student_row.get("specialty")
-            course_year = student_row.get("course")
             group = student_row.get("group")
         else:
             logger.warning("invalid_student_data_format", student_data=type(student_row))
@@ -199,9 +194,8 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
             email=email or "",
             speciality=specialty or "",
             education_level=self._extract_education_level(course_data.education_level),
-            program_start_academic_year_start=self._extract_program_start_year(
-                course_year=course_year,
-                academic_year=course_data.academic_year,
+            program_start_academic_year_start=self._extract_academic_year_start(
+                course_data.academic_year
             ),
             group=group or "",
         )
@@ -210,31 +204,6 @@ class StudentExtractor(Extractor[ParsedCourseDetails, list[DeduplicatedEnrollmen
 
     def _extract_education_level(self, raw_level: str | None) -> EducationLevel | None:
         return _parse_education_level(raw_level)
-
-    def _extract_program_start_year(
-        self,
-        *,
-        course_year: str | int | None,
-        academic_year: str | None,
-    ) -> int | None:
-        if not course_year:
-            return None
-
-        course_year_match = re.search(r"(\d+)", str(course_year))
-        if course_year_match is None:
-            return None
-
-        numeric_course_year = int(course_year_match.group(1))
-        if numeric_course_year <= 0:
-            return None
-
-        reference_year = self._extract_academic_year_start(academic_year)
-        if reference_year is None:
-            reference_year = self.reference_academic_year_start
-        if reference_year is None:
-            return None
-
-        return reference_year - (numeric_course_year - 1)
 
     def _extract_academic_year_start(self, academic_year: str | None) -> int | None:
         if not academic_year:
