@@ -5,12 +5,17 @@ import pytest
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.ioc_container.repositories import instructor_mapper
-from rating_app.repositories.instructor_repository import InstructorRepository
+from rating_app.models.choices import EducationLevel
+from rating_app.repositories.instructor_repository import (
+    InstructorRepository,
+    current_academic_year_start,
+)
 from rating_app.tests.factories import (
     CourseFactory,
     CourseOfferingFactory,
     InstructorFactory,
     RatingFactory,
+    StudentFactory,
 )
 
 
@@ -163,3 +168,70 @@ def test_list_ranked_tiers_offering_then_course_then_global(repo):
         rated_elsewhere.id,
         never_rated.id,
     ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_ranked_hides_unrated_current_bachelor_student(repo):
+    # Instructor row that is really a still-enrolled bachelor student (matched
+    # by email) and was never rated: dropped by default, shown when the filter
+    # is disabled.
+    email = "current.bachelor@ukma.edu.ua"
+    instructor = InstructorFactory.create(email=email)
+    StudentFactory.create(
+        email=email,
+        education_level=EducationLevel.BACHELOR,
+        program_start_academic_year_start=current_academic_year_start() - 1,
+    )
+
+    default_ids = {i.id for i in repo.list_ranked()}
+    unfiltered_ids = {i.id for i in repo.list_ranked(exclude_current_students=False)}
+
+    assert instructor.id not in default_ids
+    assert instructor.id in unfiltered_ids
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_ranked_keeps_current_bachelor_student_when_rated(repo):
+    # A rated instructor is never hidden, even if they match a current student.
+    email = "rated.bachelor@ukma.edu.ua"
+    instructor = InstructorFactory.create(email=email)
+    StudentFactory.create(
+        email=email,
+        education_level=EducationLevel.BACHELOR,
+        program_start_academic_year_start=current_academic_year_start(),
+    )
+    RatingFactory.create().instructors.add(instructor)
+
+    assert instructor.id in {i.id for i in repo.list_ranked()}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_ranked_keeps_master_current_student(repo):
+    # Masters routinely teach practicums, so current master students stay.
+    email = "current.master@ukma.edu.ua"
+    instructor = InstructorFactory.create(email=email)
+    StudentFactory.create(
+        email=email,
+        education_level=EducationLevel.MASTER,
+        program_start_academic_year_start=current_academic_year_start(),
+    )
+
+    assert instructor.id in {i.id for i in repo.list_ranked()}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_ranked_keeps_graduated_bachelor(repo):
+    # Started long enough ago to have graduated a 4-year bachelor: kept.
+    email = "alumnus@ukma.edu.ua"
+    instructor = InstructorFactory.create(email=email)
+    StudentFactory.create(
+        email=email,
+        education_level=EducationLevel.BACHELOR,
+        program_start_academic_year_start=current_academic_year_start() - 6,
+    )
+
+    assert instructor.id in {i.id for i in repo.list_ranked()}

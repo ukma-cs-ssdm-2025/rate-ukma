@@ -1,13 +1,43 @@
 import uuid
+from datetime import date
 from typing import Literal, overload
 
-from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When
+from django.db.models import (
+    Case,
+    Count,
+    IntegerField,
+    Q,
+    QuerySet,
+    Subquery,
+    Value,
+    When,
+)
+from django.db.models.functions import Lower
 
 from rating_app.application_schemas.instructor import Instructor, InstructorInput
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.models import Instructor as InstructorModel
+from rating_app.models import Student as StudentModel
+from rating_app.models.choices import EducationLevel
 from rating_app.repositories.protocol import IDomainOrmRepository
 from rating_app.repositories.to_domain_mappers import InstructorMapper
+
+# A bachelor programme is 4 academic years; a student who started within the
+# last 4 years is still enrolled. Masters are excluded from the rule on purpose
+# (master students routinely teach practicums), and anyone ever rated is kept
+# regardless (see list_ranked).
+_BACHELOR_PROGRAMME_YEARS = 4
+
+
+def current_academic_year_start(today: date | None = None) -> int:
+    """Academic year currently in progress, as its starting calendar year.
+
+    The UKMA academic year begins in September, so Jan–Aug belongs to the year
+    that started the previous September. Derived from the wall clock rather than
+    the scraped ``Semester`` table, which also holds *planned* future semesters.
+    """
+    today = today or date.today()
+    return today.year if today.month >= 9 else today.year - 1
 
 
 class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
@@ -27,15 +57,24 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         course_offering_id: uuid.UUID | None = None,
         course_id: uuid.UUID | None = None,
         speciality_id: uuid.UUID | None = None,
+        exclude_current_students: bool = True,
     ) -> QuerySet[InstructorModel]:
         """Annotate instructors with mention counts and order by relevance.
 
         Ordering, most specific first: mentions on this exact offering DESC,
         mentions on any offering of the same course DESC, per-speciality
         mentions DESC, global mentions DESC (so anyone ever rated outranks the
-        never-rated directory tail, which includes students), then Cyrillic
-        before Latin, last_name ASC, first_name ASC. Each scoped count is zero
-        when the corresponding filter is omitted.
+        never-rated directory tail), then Cyrillic before Latin, last_name ASC,
+        first_name ASC. Each scoped count is zero when the corresponding filter
+        is omitted.
+
+        With ``exclude_current_students`` (default) the never-rated tail is
+        trimmed of people who are still enrolled bachelor students: an
+        instructor is dropped when their email matches a bachelor ``Student``
+        whose programme started within the last four academic years AND they
+        have never been rated. Masters are intentionally kept (they teach), and
+        any rated instructor is always kept — so no real teacher becomes
+        unselectable.
         """
         offering_filter = (
             Q(ratings__course_offering_id=course_offering_id)
@@ -76,6 +115,22 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
                 output_field=IntegerField(),
             ),
         )
+
+        if exclude_current_students:
+            cutoff_year = current_academic_year_start() - (_BACHELOR_PROGRAMME_YEARS - 1)
+            current_bachelor_emails = (
+                StudentModel.objects.filter(
+                    education_level=EducationLevel.BACHELOR,
+                    program_start_academic_year_start__gte=cutoff_year,
+                )
+                .exclude(email="")
+                .annotate(email_lower=Lower("email"))
+                .values("email_lower")
+            )
+            qs = qs.annotate(email_lower=Lower("email")).exclude(
+                email_lower__in=Subquery(current_bachelor_emails),
+                global_mentions=0,
+            )
 
         if search:
             for token in search.split():
