@@ -140,7 +140,7 @@ skips = ["B108"]
 
 # Run via `uv run pyright`; see AGENTS.md
 [tool.pyright]
-include = ["rating_app", "rateukma"]
+include = ["rating_app", "rateukma", "scraper"]
 exclude = [
     "**/migrations",
     "**/test_*.py",

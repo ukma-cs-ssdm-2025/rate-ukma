@@ -67,6 +67,10 @@ class IDbInjector(IOperation[[Sequence[_T]]]):
 
     def execute(self, models: Sequence[_T]) -> None: ...
 
+    def reset_state(self) -> None: ...
+
+    def set_batch_number(self, batch_number: int) -> None: ...
+
 
 class CourseDbInjector(IDbInjector):
     def __init__(
@@ -193,7 +197,9 @@ class CourseDbInjector(IDbInjector):
                 title=course_data.title,
                 description=course_data.description or "",
                 status=CourseStatus(course_data.status.value),
-                education_level=course_data.education_level,
+                education_level=EducationLevel(course_data.education_level.value)
+                if course_data.education_level
+                else None,
                 department=str(department.id),
                 department_name=department.name,
                 faculty=str(faculty.id),
