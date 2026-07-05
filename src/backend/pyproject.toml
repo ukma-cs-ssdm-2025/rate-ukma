@@ -145,6 +145,7 @@ exclude = [
     "**/migrations",
     "**/test_*.py",
     "**/tests",
+    "**/conftest.py",
     "rating_app/management/commands/generate_mock_data.py",
 ]
 typeCheckingMode = "standard"
