@@ -395,9 +395,7 @@ class CourseDbInjector(IDbInjector):
         )
         cached = self._student_cache.get(key)
         if cached:
-            self._merge_cached_program_start(
-                cached, student_data.program_start_academic_year_start
-            )
+            self._merge_cached_program_start(cached, student_data.program_start_academic_year_start)
             return cached
 
         student_input = StudentInput(
