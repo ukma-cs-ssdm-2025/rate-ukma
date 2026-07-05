@@ -83,6 +83,8 @@ def test_list_instructors_search(token_client, instructor_factory):
     data = response.json()
     assert data["total"] == 1
     assert data["items"][0]["first_name"] == "Ivan"
+    # email is intentionally not exposed on the list payload either
+    assert "email" not in data["items"][0]
 
 
 @pytest.mark.django_db

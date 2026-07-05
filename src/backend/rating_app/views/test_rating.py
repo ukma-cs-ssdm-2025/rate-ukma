@@ -1409,6 +1409,8 @@ def test_create_rating_with_instructor_ids(
     body = response.json()
     returned_ids = {item["id"] for item in body["instructors"]}
     assert returned_ids == {str(instr_a.id), str(instr_b.id)}
+    # email must never leak through the rating's instructor payload
+    assert all("email" not in item for item in body["instructors"])
 
 
 @pytest.mark.django_db

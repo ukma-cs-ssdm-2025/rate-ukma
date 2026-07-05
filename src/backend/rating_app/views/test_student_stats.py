@@ -496,3 +496,4 @@ def test_get_courses_stats_returns_m2m_instructors_on_rated(token_client):
     assert rated["instructors"][0]["id"] == str(instructor.id)
     assert rated["instructors"][0]["last_name"] == "Коваленко"
     assert rated["instructors"][0]["patronymic"] == "Ігорівна"
+    assert "email" not in rated["instructors"][0]
