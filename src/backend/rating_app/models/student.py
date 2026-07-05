@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import TYPE_CHECKING
 
 from django.apps import apps
@@ -20,6 +21,7 @@ class Student(Person):
     ratings: Manager[Rating]
     rating_vote: Manager[RatingVote]
     user_id: int | None
+    speciality_id: uuid.UUID
 
     education_level = models.CharField(
         max_length=16,

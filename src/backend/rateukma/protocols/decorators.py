@@ -89,7 +89,6 @@ def implements[**P, RT](method: Callable[P, RT]) -> Callable[P, RT]:
             return "https://github.com"
     ```
     """
-    method.__implements__ = True
     global_vars = getattr(method, "__globals__", None)
     if global_vars is None:
         global_vars = vars(sys.modules[method.__module__])

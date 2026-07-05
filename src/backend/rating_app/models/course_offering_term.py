@@ -10,6 +10,9 @@ from .semester import Semester
 
 
 class CourseOfferingTerm(models.Model):
+    offering_id: uuid.UUID
+    semester_id: uuid.UUID
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     offering = models.ForeignKey(
         "CourseOffering",

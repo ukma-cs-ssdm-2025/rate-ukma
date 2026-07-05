@@ -8,6 +8,9 @@ from .student import Student
 
 
 class RatingVote(models.Model):
+    student_id: uuid.UUID
+    rating_id: uuid.UUID
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="rating_vote")
     rating = models.ForeignKey(Rating, on_delete=models.CASCADE, related_name="rating_vote")
