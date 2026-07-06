@@ -69,6 +69,8 @@ class CourseRepository(
         self,
         criteria: CourseFilterCriteriaInternal,
         pagination: PaginationFilters,
+        *,
+        prefetch_related: bool = True,
     ) -> PaginationResult[CourseDTO]: ...
 
     @overload
@@ -76,6 +78,8 @@ class CourseRepository(
         self,
         criteria: CourseFilterCriteriaInternal,
         pagination: None = ...,
+        *,
+        prefetch_related: bool = True,
     ) -> list[CourseDTO]: ...
 
     def filter(

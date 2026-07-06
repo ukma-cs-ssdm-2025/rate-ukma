@@ -55,8 +55,8 @@ import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import {
-	type CoursesReviewsSortOption,
 	CoursesReviewsSortMenu,
+	type CoursesReviewsSortOption,
 } from "./CoursesReviewsSortMenu";
 import { CoursesScatterPlot } from "./CoursesScatterPlot";
 import {

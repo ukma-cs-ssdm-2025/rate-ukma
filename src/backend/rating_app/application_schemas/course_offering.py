@@ -17,7 +17,7 @@ class CourseOfferingSpeciality:
     faculty_id: uuid.UUID
     faculty_name: str
     speciality_alias: str | None
-    type_kind: CourseTypeKind
+    type_kind: CourseTypeKind | None
 
 
 class CourseOfferingCourseFilterParams(BaseModel):

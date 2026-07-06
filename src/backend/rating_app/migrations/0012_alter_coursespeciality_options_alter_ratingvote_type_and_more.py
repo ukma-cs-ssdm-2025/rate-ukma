@@ -18,24 +18,28 @@ def convert_vote_types_to_str(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rating_app', '0011_ratingvote'),
+        ("rating_app", "0011_ratingvote"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='coursespeciality',
-            options={'verbose_name': 'Course speciality', 'verbose_name_plural': 'Course specialities'},
+            name="coursespeciality",
+            options={
+                "verbose_name": "Course speciality",
+                "verbose_name_plural": "Course specialities",
+            },
         ),
         migrations.RunPython(convert_vote_types_to_int, convert_vote_types_to_str),
         migrations.AlterField(
-            model_name='ratingvote',
-            name='type',
-            field=models.SmallIntegerField(choices=[(-1, 'Downvote'), (1, 'Upvote')]),
+            model_name="ratingvote",
+            name="type",
+            field=models.SmallIntegerField(choices=[(-1, "Downvote"), (1, "Upvote")]),
         ),
         migrations.AddConstraint(
-            model_name='ratingvote',
-            constraint=models.CheckConstraint(condition=models.Q(('type__in', [1, -1])), name='rating_vote_type_valid'),
+            model_name="ratingvote",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("type__in", [1, -1])), name="rating_vote_type_valid"
+            ),
         ),
     ]

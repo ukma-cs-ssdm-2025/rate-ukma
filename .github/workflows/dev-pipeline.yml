@@ -17,8 +17,8 @@ jobs:
     needs: changes-filter
     uses: ./.github/workflows/test.yml
     with:
-      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
-      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
+      backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
 
   openapi-validation:
     needs: changes-filter

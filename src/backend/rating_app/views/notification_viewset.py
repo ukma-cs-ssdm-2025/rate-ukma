@@ -1,3 +1,5 @@
+from typing import cast
+
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -101,10 +103,11 @@ class NotificationViewSet(viewsets.ViewSet):
 
         serializer = MarkGroupReadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        validated_data = cast(dict[str, str], serializer.validated_data)
 
         self.notification_service.mark_group_read(
             user_id=request.user.id,
-            group_key=serializer.validated_data["group_key"],
+            group_key=validated_data["group_key"],
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -661,7 +661,7 @@ def test_course_grouper_propagates_specialities_to_offerings(course_grouper, sam
 
     # Offering must carry the same specialities as the source course
     assert len(offering.specialities) == len(grouped.specialities)
-    for off_spec, course_spec in zip(offering.specialities, grouped.specialities):
+    for off_spec, course_spec in zip(offering.specialities, grouped.specialities, strict=False):
         assert off_spec.name == course_spec.name
         assert off_spec.type_kind == course_spec.type_kind
 

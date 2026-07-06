@@ -256,9 +256,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Dry run — no changes made."))
             transaction.set_rollback(True)
         else:
-            self.stdout.write(
-                self.style.SUCCESS(f"Done. created={created} updated={updated}")
-            )
+            self.stdout.write(self.style.SUCCESS(f"Done. created={created} updated={updated}"))
 
     def _load_rows(self, path: str) -> list[dict[str, str]]:
         try:
@@ -272,9 +270,7 @@ class Command(BaseCommand):
                 raise CommandError("CSV has no header row")
             missing = [c for c in _REQUIRED_COLUMNS if c not in reader.fieldnames]
             if missing:
-                raise CommandError(
-                    f"CSV missing required columns: {', '.join(missing)}"
-                )
+                raise CommandError(f"CSV missing required columns: {', '.join(missing)}")
             return list(reader)
 
     def _filter_rows(

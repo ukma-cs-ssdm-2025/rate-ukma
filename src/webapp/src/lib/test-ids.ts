@@ -90,6 +90,7 @@ export const testIds = {
 		userMenu: "header-user-menu",
 		userMenuTrigger: "header-user-menu-trigger",
 		logoutButton: "header-logout-button",
+		testFlag: "header-test-flag",
 	},
 
 	// Courses page

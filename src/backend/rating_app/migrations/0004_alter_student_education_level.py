@@ -4,15 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rating_app', '0003_add_default_empty_string_to_text_fields'),
+        ("rating_app", "0003_add_default_empty_string_to_text_fields"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='student',
-            name='education_level',
-            field=models.CharField(blank=True, choices=[('BACHELOR', 'Bachelor'), ('MASTER', 'Master')], default='', max_length=16),
+            model_name="student",
+            name="education_level",
+            field=models.CharField(
+                blank=True,
+                choices=[("BACHELOR", "Bachelor"), ("MASTER", "Master")],
+                default="",
+                max_length=16,
+            ),
         ),
     ]

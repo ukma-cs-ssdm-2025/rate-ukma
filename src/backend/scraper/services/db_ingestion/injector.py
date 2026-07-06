@@ -67,6 +67,10 @@ class IDbInjector(IOperation[[Sequence[_T]]]):
 
     def execute(self, models: Sequence[_T]) -> None: ...
 
+    def reset_state(self) -> None: ...
+
+    def set_batch_number(self, batch_number: int) -> None: ...
+
 
 class CourseDbInjector(IDbInjector):
     def __init__(
@@ -193,7 +197,9 @@ class CourseDbInjector(IDbInjector):
                 title=course_data.title,
                 description=course_data.description or "",
                 status=CourseStatus(course_data.status.value),
-                education_level=course_data.education_level,
+                education_level=EducationLevel(course_data.education_level.value)
+                if course_data.education_level
+                else None,
                 department=str(department.id),
                 department_name=department.name,
                 faculty=str(faculty.id),
@@ -338,9 +344,7 @@ class CourseDbInjector(IDbInjector):
                 self._semester_cache[semester_key] = semester
 
             practice_type = (
-                PracticeType(term_data.practice_type.value)
-                if term_data.practice_type
-                else ""
+                PracticeType(term_data.practice_type.value) if term_data.practice_type else ""
             )
             CourseOfferingTerm.objects.update_or_create(
                 offering=offering,
@@ -397,6 +401,7 @@ class CourseDbInjector(IDbInjector):
         )
         cached = self._student_cache.get(key)
         if cached:
+            self._merge_cached_program_start(cached, student_data.program_start_academic_year_start)
             return cached
 
         student_input = StudentInput(
@@ -419,6 +424,15 @@ class CourseDbInjector(IDbInjector):
 
         self._student_cache[key] = student
         return student
+
+    def _merge_cached_program_start(self, student: Student, incoming_year: int | None) -> None:
+        if incoming_year is None:
+            return
+        existing_year = student.program_start_academic_year_start
+        if existing_year is not None and existing_year <= incoming_year:
+            return
+        student.program_start_academic_year_start = incoming_year
+        student.save(update_fields=["program_start_academic_year_start"])
 
     def _get_or_create_speciality(self, speciality_name: str) -> Speciality | None:
         cached = self._speciality_cache.get(speciality_name)

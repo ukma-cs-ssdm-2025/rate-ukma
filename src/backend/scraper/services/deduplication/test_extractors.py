@@ -1,7 +1,12 @@
 import pytest
 
 from scraper.models import ParsedCourseDetails
-from scraper.models.deduplicated import CourseTypeKind, EducationLevel, EnrollmentStatus, PracticeType
+from scraper.models.deduplicated import (
+    CourseTypeKind,
+    EducationLevel,
+    EnrollmentStatus,
+    PracticeType,
+)
 from scraper.services.deduplication.base import DataValidationError
 from scraper.services.deduplication.extractors import (
     CourseLimitsExtractor,
@@ -159,7 +164,7 @@ def test_student_extractor_empty_students():
 
 
 def test_student_extractor_preserves_speciality_email_and_program_start_year():
-    extractor = StudentExtractor(reference_academic_year_start=2025)
+    extractor = StudentExtractor()
     course = ParsedCourseDetails(
         url="https://my.ukma.edu.ua/course/1",
         title="Test",
@@ -186,11 +191,11 @@ def test_student_extractor_preserves_speciality_email_and_program_start_year():
     assert student.speciality == "Комп`ютерні науки"
     assert student.email == "a.valenia@ukma.edu.ua"
     assert student.education_level == EducationLevel.BACHELOR
-    assert student.program_start_academic_year_start == 2023
+    assert student.program_start_academic_year_start == 2025
 
 
 def test_student_extractor_uses_course_academic_year_for_historical_offerings():
-    extractor = StudentExtractor(reference_academic_year_start=2025)
+    extractor = StudentExtractor()
     course = ParsedCourseDetails(
         url="https://my.ukma.edu.ua/course/2",
         title="Historical Course",
@@ -213,7 +218,7 @@ def test_student_extractor_uses_course_academic_year_for_historical_offerings():
     result = extractor.extract(course)
 
     assert len(result) == 1
-    assert result[0].student.program_start_academic_year_start == 2021
+    assert result[0].student.program_start_academic_year_start == 2023
 
 
 def test_specialty_extractor_success(sample_course):

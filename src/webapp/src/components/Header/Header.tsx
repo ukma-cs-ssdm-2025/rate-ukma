@@ -6,6 +6,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useAuth } from "@/lib/auth";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { HeaderNav } from "./HeaderNav";
 import { MobileMenu } from "./MobileMenu";
@@ -20,6 +21,7 @@ export default function Header() {
 	const { status, user, logout } = useAuth();
 	const { theme, setTheme } = useTheme();
 	const isAuthenticated = status === "authenticated";
+	const showTestFlag = useFeatureFlag("fe_test_header");
 
 	useEffect(() => {
 		if (typeof document === "undefined") {
@@ -57,6 +59,15 @@ export default function Header() {
 			>
 				<div className="container mx-auto px-6 max-w-7xl flex h-16 items-center justify-between">
 					<Logo />
+
+					{showTestFlag && (
+						<span
+							className="ml-2 text-sm font-medium text-muted-foreground"
+							data-testid={testIds.header.testFlag}
+						>
+							Test
+						</span>
+					)}
 
 					<div className="flex items-center justify-center flex-1">
 						<HeaderNav

@@ -684,22 +684,20 @@ def test_sorting_by_last_review(
     rating_middle = rating_factory.create(course_offering=offering_middle)
 
     Rating.objects.filter(id=rating_newest.id).update(
-        created_at=datetime.datetime(2026, 5, 20, tzinfo=datetime.timezone.utc)
+        created_at=datetime.datetime(2026, 5, 20, tzinfo=datetime.UTC)
     )
     Rating.objects.filter(id=rating_oldest.id).update(
-        created_at=datetime.datetime(2025, 1, 10, tzinfo=datetime.timezone.utc)
+        created_at=datetime.datetime(2025, 1, 10, tzinfo=datetime.UTC)
     )
     Rating.objects.filter(id=rating_middle.id).update(
-        created_at=datetime.datetime(2025, 8, 15, tzinfo=datetime.timezone.utc)
+        created_at=datetime.datetime(2025, 8, 15, tzinfo=datetime.UTC)
     )
 
     for course in (course_newest, course_oldest, course_middle):
         course.ratings_count = 1
         course.save()
 
-    response_desc = token_client.get(
-        "/api/v1/courses/?last_review_order=desc&page_size=10"
-    )
+    response_desc = token_client.get("/api/v1/courses/?last_review_order=desc&page_size=10")
     assert response_desc.status_code == 200
     items_desc = response_desc.json()["items"]
     assert [item["id"] for item in items_desc[:4]] == [
@@ -709,9 +707,7 @@ def test_sorting_by_last_review(
         str(course_no_reviews.id),
     ]
 
-    response_asc = token_client.get(
-        "/api/v1/courses/?last_review_order=asc&page_size=10"
-    )
+    response_asc = token_client.get("/api/v1/courses/?last_review_order=asc&page_size=10")
     assert response_asc.status_code == 200
     items_asc = response_asc.json()["items"]
     assert [item["id"] for item in items_asc[:4]] == [
@@ -733,17 +729,17 @@ def test_sorting_by_last_review_aggregates_across_offerings(
     rating_on_old_offering = rating_factory.create(course_offering=offering_old)
     rating_on_recent_offering = rating_factory.create(course_offering=offering_recent)
     Rating.objects.filter(id=rating_on_old_offering.id).update(
-        created_at=datetime.datetime(2025, 1, 5, tzinfo=datetime.timezone.utc)
+        created_at=datetime.datetime(2025, 1, 5, tzinfo=datetime.UTC)
     )
     Rating.objects.filter(id=rating_on_recent_offering.id).update(
-        created_at=datetime.datetime(2026, 5, 20, tzinfo=datetime.timezone.utc)
+        created_at=datetime.datetime(2026, 5, 20, tzinfo=datetime.UTC)
     )
 
     course_single = course_factory.create()
     offering_single = course_offering_factory.create(course=course_single)
     rating_single = rating_factory.create(course_offering=offering_single)
     Rating.objects.filter(id=rating_single.id).update(
-        created_at=datetime.datetime(2026, 3, 1, tzinfo=datetime.timezone.utc)
+        created_at=datetime.datetime(2026, 3, 1, tzinfo=datetime.UTC)
     )
 
     course_multi.ratings_count = 2
@@ -773,7 +769,7 @@ def test_sorting_by_last_review_breaks_ties_by_title(
     rating_a = rating_factory.create(course_offering=offering_a)
     rating_b = rating_factory.create(course_offering=offering_b)
 
-    same_moment = datetime.datetime(2026, 5, 1, tzinfo=datetime.timezone.utc)
+    same_moment = datetime.datetime(2026, 5, 1, tzinfo=datetime.UTC)
     Rating.objects.filter(id=rating_a.id).update(created_at=same_moment)
     Rating.objects.filter(id=rating_b.id).update(created_at=same_moment)
 

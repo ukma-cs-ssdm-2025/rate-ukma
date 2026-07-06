@@ -13,7 +13,7 @@ from rating_app.management.commands.ingest_instructors_from_csv import (
     _parse_name,
 )
 from rating_app.models import Instructor
-from rating_app.tests.factories import InstructorFactory, StudentFactory
+from rating_app.tests.factories import StudentFactory
 
 CSV_HEADER = "displayName,userPrincipalName,userType\n"
 

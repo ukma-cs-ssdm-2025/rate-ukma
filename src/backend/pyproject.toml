@@ -21,6 +21,8 @@ dependencies = [
     "django-vite==3.1.0",
     "django-reversion>=5.1.0",
     "drf-spectacular>=0.28.0",
+    # Feature flags
+    "django-waffle>=4.2.0",
     # Database
     "psycopg2-binary==2.9.10",
     # Cache
@@ -57,7 +59,8 @@ test = [
     "factory-boy==3.3.3",
     "freezegun==1.5.5",
 ]
-linting = ["ruff==0.9.6", "isort==5.12.0", "flake8==6.1.0"]
+linting = ["ruff==0.14.0"]
+typecheck = ["pyright>=1.1.407", "django-types>=0.22.0"]
 security = [
     "safety>=3.6.2",
     "bandit[toml]>=1.8.6",
@@ -66,6 +69,7 @@ security = [
 dev = [
     "RateUKMA[test]",
     "RateUKMA[linting]",
+    "RateUKMA[typecheck]",
     "RateUKMA[security]",
 
     # dev-only
@@ -133,6 +137,19 @@ skips = ["B108"]
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*" = ["ALL"]
 "*/management/commands/generate_mock_data.py" = ["ALL"]
+
+# Run via `uv run pyright`; see AGENTS.md
+[tool.pyright]
+include = ["rating_app", "rateukma", "scraper"]
+exclude = [
+    "**/migrations",
+    "**/test_*.py",
+    "**/tests",
+    "**/conftest.py",
+    "rating_app/management/commands/generate_mock_data.py",
+]
+typeCheckingMode = "standard"
+pythonVersion = "3.12"
 
 [tool.coverage.run]
 source = ["rateukma", "rating_app", "scraper"]

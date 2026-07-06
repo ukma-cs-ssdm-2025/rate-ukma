@@ -11,6 +11,7 @@ import { Toaster } from "@/components/ui/Toaster";
 import { SentryUserSync } from "@/integrations/sentry/SentryUserSync";
 import { AppMetadataDefaults } from "@/lib/app-metadata";
 import { AuthProvider } from "@/lib/auth";
+import { FeatureFlagsProvider } from "@/lib/feature-flags";
 
 const TanStackRouterDevtools = import.meta.env.PROD
 	? () => null
@@ -30,16 +31,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			<HelmetProvider>
 				<AppMetadataDefaults />
 				<AuthProvider>
-					<SentryUserSync />
-					<ThemeProvider defaultTheme="system" storageKey="rate-ukma-theme">
-						<NuqsAdapter>
-							<Outlet />
-						</NuqsAdapter>
-						<Toaster />
-					</ThemeProvider>
-					<Suspense>
-						<TanStackRouterDevtools position="bottom-left" />
-					</Suspense>
+					<FeatureFlagsProvider>
+						<SentryUserSync />
+						<ThemeProvider defaultTheme="system" storageKey="rate-ukma-theme">
+							<NuqsAdapter>
+								<Outlet />
+							</NuqsAdapter>
+							<Toaster />
+						</ThemeProvider>
+						<Suspense>
+							<TanStackRouterDevtools position="bottom-left" />
+						</Suspense>
+					</FeatureFlagsProvider>
 				</AuthProvider>
 			</HelmetProvider>
 		</ErrorBoundary>

@@ -7,6 +7,7 @@ from rating_app.serializers import (
     CommentReadSerializer,
     CourseDetailSerializer,
     CourseListResponseSerializer,
+    FeatureFlagsSerializer,
     FilterOptionsSerializer,
     InstructorSerializer,
     RatingReadSerializer,
@@ -245,4 +246,8 @@ R_NOTIFICATION_GROUP_MARK_READ = {
     204: OpenApiResponse(description="Notification group marked as read"),
     400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
     401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+}
+
+R_FLAGS = {
+    200: OpenApiResponse(forced_singular_serializer(FeatureFlagsSerializer), "OK"),
 }

@@ -128,9 +128,7 @@ def with_authenticated_context(
         @wraps(func)
         async def wrapper(*args, **kwargs):
             async with async_playwright() as p:
-                browser = await p.chromium.launch(
-                    headless=headless, slow_mo=slowmo
-                )
+                browser = await p.chromium.launch(headless=headless, slow_mo=slowmo)
 
                 if state_path.exists():
                     logger.info("reusing_existing_storage_state", path=str(state_path))

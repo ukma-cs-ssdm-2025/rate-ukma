@@ -741,9 +741,7 @@ describe("Sorting", () => {
 		await user.click(
 			screen.getByRole("button", { name: "Сортування за відгуками" }),
 		);
-		await user.click(
-			screen.getByRole("menuitem", { name: "Найновіші" }),
-		);
+		await user.click(screen.getByRole("menuitem", { name: "Найновіші" }));
 
 		expect(setParams).toHaveBeenCalledWith({
 			reviewSort: null,
@@ -770,9 +768,7 @@ describe("Sorting", () => {
 		await user.click(
 			screen.getByRole("button", { name: "Сортування за відгуками" }),
 		);
-		await user.click(
-			screen.getByRole("menuitem", { name: "За кількістю" }),
-		);
+		await user.click(screen.getByRole("menuitem", { name: "За кількістю" }));
 
 		expect(setParams).toHaveBeenCalledWith({
 			reviewSort: "by-count",

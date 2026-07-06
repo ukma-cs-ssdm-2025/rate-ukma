@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import Any
+
 import structlog
 
 from ...models import ParsedCourseDetails
@@ -5,9 +8,12 @@ from ...models.deduplicated import (
     DeduplicatedCourse,
     DeduplicatedCourseOffering,
     DeduplicatedCourseOfferingTerm,
+    DeduplicatedSemester,
+    ExamType,
+    PracticeType,
     SemesterTerm,
 )
-from .base import DataValidationError, DeduplicationComponent
+from .base import DataValidationError, DeduplicationComponent, Extractor
 from .extractors import (
     CourseLimitsExtractor,
     CreditsExtractor,
@@ -63,9 +69,25 @@ def get_course_grouping_key(course: ParsedCourseDetails) -> tuple[str, str, str,
     return (title, faculty, specialty_info, education_level)
 
 
+@dataclass(frozen=True)
+class OfferingTermDetails:
+    credits: float
+    weekly_hours: int
+    lecture_count: int | None
+    practice_count: int | None
+    exam_type: ExamType
+    practice_type: PracticeType | None
+
+
+@dataclass(frozen=True)
+class TermDetail:
+    semester: DeduplicatedSemester
+    details: OfferingTermDetails
+
+
 class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[DeduplicatedCourse]]):
     def __init__(self):
-        self.extractors = {
+        self.extractors: dict[str, Extractor[ParsedCourseDetails, Any]] = {
             "title": RequiredFieldExtractor("title"),
             "description": DescriptionExtractor(),
             "status": StatusExtractor(),
@@ -249,20 +271,20 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
                 continue
 
             representative_term = self._select_representative_term(term_details)
-            representative_details = representative_term["details"]
-            representative_semester = representative_term["semester"]
+            representative_details = representative_term.details
+            representative_semester = representative_term.semester
 
             offering = DeduplicatedCourseOffering(
                 code=self.extractors["code"].extract(course),
                 semester=representative_semester,
                 credits=self._resolve_total_offering_credits(course, term_details),
-                weekly_hours=representative_details["weekly_hours"],
+                weekly_hours=representative_details.weekly_hours,
                 study_year=course.year,
                 enrollments=self.extractors["enrollments"].extract(course),
-                exam_type=representative_details["exam_type"],
-                lecture_count=representative_details["lecture_count"],
-                practice_count=representative_details["practice_count"],
-                practice_type=representative_details["practice_type"],
+                exam_type=representative_details.exam_type,
+                lecture_count=representative_details.lecture_count,
+                practice_count=representative_details.practice_count,
+                practice_type=representative_details.practice_type,
                 max_students=limits["max_students"],
                 max_groups=limits["max_groups"],
                 group_size_min=limits["group_size_min"],
@@ -270,13 +292,13 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
                 specialities=course_specialities,
                 terms=[
                     DeduplicatedCourseOfferingTerm(
-                        semester=item["semester"],
-                        credits=item["details"]["credits"],
-                        weekly_hours=item["details"]["weekly_hours"],
-                        lecture_count=item["details"]["lecture_count"],
-                        practice_count=item["details"]["practice_count"],
-                        practice_type=item["details"]["practice_type"],
-                        exam_type=item["details"]["exam_type"],
+                        semester=item.semester,
+                        credits=item.details.credits,
+                        weekly_hours=item.details.weekly_hours,
+                        lecture_count=item.details.lecture_count,
+                        practice_count=item.details.practice_count,
+                        practice_type=item.details.practice_type,
+                        exam_type=item.details.exam_type,
                     )
                     for item in term_details
                 ],
@@ -288,40 +310,24 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
     def _build_term_details(
         self,
         course: ParsedCourseDetails,
-        semesters,
-    ) -> list[dict[str, object]]:
-        term_details: list[dict[str, object]] = []
+        semesters: list[DeduplicatedSemester],
+    ) -> list[TermDetail]:
+        term_details: list[TermDetail] = []
         for semester in semesters:
             offering_details = self._build_offering_details(course, semester)
-            term_credits = offering_details["credits"]
-
-            if term_credits is None or term_credits <= 0:
-                logger.warning(
-                    "offering_term_creation_skipped",
-                    reason="invalid_offering_credits",
-                    course_id=course.id,
-                    course_title=course.title,
-                    semester_term=semester.term.value,
-                    semester_year=semester.year,
-                    credits=term_credits,
-                )
+            if offering_details is None:
                 continue
 
-            term_details.append(
-                {
-                    "semester": semester,
-                    "details": offering_details,
-                }
-            )
+            term_details.append(TermDetail(semester=semester, details=offering_details))
 
         return term_details
 
-    def _select_representative_term(self, term_details: list[dict[str, object]]) -> dict[str, object]:
+    def _select_representative_term(self, term_details: list[TermDetail]) -> TermDetail:
         return max(
             term_details,
             key=lambda item: (
-                item["semester"].year,
-                self._term_rank(item["semester"].term),
+                item.semester.year,
+                self._term_rank(item.semester.term),
             ),
         )
 
@@ -335,13 +341,13 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
     def _resolve_total_offering_credits(
         self,
         course: ParsedCourseDetails,
-        term_details: list[dict[str, object]],
+        term_details: list[TermDetail],
     ) -> float:
         total_credits = self.extractors["credits"].extract(course)
         if total_credits and total_credits > 0:
             return total_credits
 
-        return float(sum(item["details"]["credits"] for item in term_details))
+        return float(sum(item.details.credits for item in term_details))
 
     def _validate_course_for_transformation(self, course: ParsedCourseDetails) -> None:
         if not course.academic_year:
@@ -350,16 +356,14 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
     def _build_offering_details(
         self,
         course: ParsedCourseDetails,
-        semester,
-    ) -> dict[str, object]:
+        semester: DeduplicatedSemester,
+    ) -> OfferingTermDetails | None:
         season_info = self._get_season_info(course, semester.term)
         course_credits = self.extractors["credits"].extract(course)
         season_credits = season_info.credits if season_info else None
 
         resolved_credits = (
-            season_credits
-            if season_credits is not None and season_credits > 0
-            else course_credits
+            season_credits if season_credits is not None and season_credits > 0 else course_credits
         )
         weekly_hours = (
             season_info.hours_per_week
@@ -377,14 +381,26 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
             else self.extractors["practice_type"].extract(course)
         )
 
-        return {
-            "credits": resolved_credits,
-            "weekly_hours": weekly_hours,
-            "lecture_count": season_info.lecture_hours if season_info else None,
-            "practice_count": season_info.practice_hours if season_info else None,
-            "exam_type": exam_type,
-            "practice_type": practice_type,
-        }
+        if resolved_credits is None or resolved_credits <= 0:
+            logger.warning(
+                "offering_term_creation_skipped",
+                reason="invalid_offering_credits",
+                course_id=course.id,
+                course_title=course.title,
+                semester_term=semester.term.value,
+                semester_year=semester.year,
+                credits=resolved_credits,
+            )
+            return None
+
+        return OfferingTermDetails(
+            credits=resolved_credits,
+            weekly_hours=weekly_hours,
+            lecture_count=season_info.lecture_hours if season_info else None,
+            practice_count=season_info.practice_hours if season_info else None,
+            exam_type=exam_type,
+            practice_type=practice_type,
+        )
 
     def _get_season_info(self, course: ParsedCourseDetails, term: SemesterTerm):
         if not course.season_details:
@@ -404,4 +420,3 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
                 return season_info
 
         return None
-

@@ -1,19 +1,19 @@
-import logging
 import re
 from collections.abc import Iterator
 from urllib.parse import parse_qs, urljoin, urlparse
 
+import structlog
 from bs4 import BeautifulSoup, Tag
 
 from .base import BaseParser
 
 COURSE_LINK_SELECTOR = "a[href^='/course/']"
 COURSE_PATH_PATTERN = re.compile(r"^/course/(\d+)$")
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class CourseLinkParser(BaseParser):
-    def parse(self, html: str, base_url: str) -> list[str]:
+    def parse(self, html: str, base_url: str = "", **kwargs) -> list[str]:
         if not base_url or not isinstance(base_url, str):
             raise ValueError("base_url must be a non-empty string")
 
@@ -72,7 +72,7 @@ class CatalogParser(BaseParser):
     def __init__(self):
         self.course_link_parser = CourseLinkParser()
 
-    def parse(self, html: str, base_url: str) -> tuple[list[str], int | None]:
+    def parse(self, html: str, base_url: str = "", **kwargs) -> tuple[list[str], int | None]:
         if not base_url or not isinstance(base_url, str):
             raise ValueError("base_url must be a non-empty string")
 
