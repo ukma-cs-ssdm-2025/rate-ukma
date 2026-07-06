@@ -178,7 +178,11 @@ function CommentForm({
 	};
 
 	return (
-		<form className="space-y-2" onSubmit={handleSubmit}>
+		<form
+			className="space-y-2"
+			onSubmit={handleSubmit}
+			data-testid={testIds.comments.form}
+		>
 			<Textarea
 				value={content}
 				onChange={(event) => setContent(event.target.value)}
@@ -553,7 +557,10 @@ function RatingCommentItem({
 			</div>
 
 			{!isEditing && (
-				<div className="ml-9 flex flex-wrap items-center gap-2">
+				<div
+					className="ml-9 flex flex-wrap items-center gap-2"
+					data-testid={testIds.comments.controls}
+				>
 					<RepliesPreview
 						comment={comment}
 						showReplies={showReplies}
