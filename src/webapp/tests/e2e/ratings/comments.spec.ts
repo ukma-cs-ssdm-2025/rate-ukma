@@ -46,7 +46,6 @@ interface CommentPayload {
 }
 
 test.describe("Rating comments workflow", () => {
-
 	test("posts a top-level comment under a rating", async ({ page }) => {
 		await withSeededRating(page, test.info(), async ({ comments }) => {
 			const comment = uniqueText(test.info(), "comment");
