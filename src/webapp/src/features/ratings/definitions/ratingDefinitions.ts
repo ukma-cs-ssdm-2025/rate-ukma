@@ -27,4 +27,5 @@ export const CANNOT_VOTE_BEFORE_MIDTERM_TEXT =
 	"Реакції стануть доступними з середини семестру курсу";
 
 export const ANONYMOUS_REVIEW_NAME = "Анонімний відгук";
+export const ANONYMOUS_COMMENT_NAME = "Анонімний коментар";
 export const DEFAULT_STUDENT_NAME = "Студент";
