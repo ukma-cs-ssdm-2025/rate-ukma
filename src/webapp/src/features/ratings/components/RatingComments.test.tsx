@@ -236,6 +236,33 @@ describe("RatingComments", () => {
 		});
 	});
 
+	it("renders anonymous comments with anonymous comment author label", async () => {
+		const user = userEvent.setup();
+		apiMocks.ratingsCommentsList.mockResolvedValue(
+			mockCommentList([
+				{
+					id: "comment-1",
+					rating_id: "rating-1",
+					parent_id: null,
+					content: "Anonymous thought",
+					user_id: null,
+					user_name: null,
+					user_avatar_url: null,
+					is_anonymous: true,
+					created_at: "2026-05-11T12:00:00Z",
+					replies_count: 0,
+				},
+			]),
+		);
+
+		renderWithQuery(<RatingComments ratingId="rating-1" commentsCount={1} />);
+
+		await user.click(screen.getByTestId(testIds.comments.toggleButton));
+
+		const commentItem = await screen.findByTestId(testIds.comments.item);
+		expect(commentItem).toHaveTextContent("Анонімний коментар");
+	});
+
 	it("keeps replies included in the displayed comments count", async () => {
 		const user = userEvent.setup();
 		apiMocks.ratingsCommentsList.mockResolvedValue(

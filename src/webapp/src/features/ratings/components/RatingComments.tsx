@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { toast } from "@/components/ui/Toaster";
 import { formatDate } from "@/features/courses/courseFormatting";
 import {
-	ANONYMOUS_REVIEW_NAME,
+	ANONYMOUS_COMMENT_NAME,
 	DEFAULT_STUDENT_NAME,
 } from "@/features/ratings/definitions/ratingDefinitions";
 import type { CommentAuthor, CommentRead } from "@/lib/api/generated";
@@ -107,7 +107,7 @@ function getAuthorName(author: {
 	readonly user_name?: string | null;
 }) {
 	if (author.is_anonymous) {
-		return ANONYMOUS_REVIEW_NAME;
+		return ANONYMOUS_COMMENT_NAME;
 	}
 	return author.user_name || DEFAULT_STUDENT_NAME;
 }

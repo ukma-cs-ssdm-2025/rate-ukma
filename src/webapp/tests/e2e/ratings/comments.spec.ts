@@ -15,7 +15,7 @@ import { createTestRatingData } from "../framework/test-config";
 import { CommentsSection } from "../shared/comments-section.component";
 import { RatingModal } from "../shared/rating-modal.component";
 
-const ANONYMOUS_REVIEW_NAME = "Анонімний відгук";
+const ANONYMOUS_COMMENT_NAME = "Анонімний коментар";
 const COMMENTS_LIST_ROUTE = "**/api/v1/ratings/**/comments/**";
 const NON_OWNER_USER_ID = 1_000_001;
 
@@ -104,7 +104,7 @@ test.describe("Rating comments workflow", () => {
 			await comments.createComment(comment, { anonymous: true });
 
 			const commentItem = await comments.expectCommentVisible(comment);
-			await expect(commentItem).toContainText(ANONYMOUS_REVIEW_NAME);
+			await expect(commentItem).toContainText(ANONYMOUS_COMMENT_NAME);
 		});
 	});
 
