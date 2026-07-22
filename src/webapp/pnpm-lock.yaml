@@ -6,7 +6,7 @@ settings:
 
 overrides:
   '@modelcontextprotocol/sdk@<1.26.0': '>=1.26.0'
-  axios@<1.15.2: '>=1.15.2'
+  axios@<1.18.0: 1.18.0
   vite@<7.3.5: '>=7.3.5'
   minimatch@<10.2.3: '>=10.2.3'
   rollup@<4.59.0: '>=4.59.0'
@@ -22,13 +22,15 @@ overrides:
   markdown-it@<14.1.1: '>=14.1.1'
   picomatch: '>=4.0.4'
   path-to-regexp: '>=8.4.0'
-  fast-uri@<3.1.2: '>=3.1.2'
+  fast-uri@<3.1.4: 3.1.4
   esbuild@<0.28.1: '>=0.28.1'
   ws@>=8.0.0 <8.21.0: 8.21.0
   form-data@>=4.0.0 <4.0.6: 4.0.6
   vite@>=7.0.0 <=7.3.4: 7.3.5
   hono@<4.12.25: 4.12.25
-  linkify-it@<=5.0.0: 5.0.1
+  linkify-it@<5.0.2: 5.0.2
+  brace-expansion@<5.0.7: 5.0.7
+  js-yaml@<4.3.0: 4.3.0
 
 importers:
 
@@ -152,8 +154,8 @@ importers:
         specifier: ^3.12.0
         version: 3.12.0(react@19.2.4)
       axios:
-        specifier: ^1.15.2
-        version: 1.16.0
+        specifier: 1.18.0
+        version: 1.18.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -262,7 +264,7 @@ importers:
         version: 5.1.3(vite@7.3.5(@types/node@24.10.10)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.2))
       axios-mock-adapter:
         specifier: ^2.1.0
-        version: 2.1.0(axios@1.16.0)
+        version: 2.1.0(axios@1.18.0)
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
@@ -2464,10 +2466,10 @@ packages:
   axios-mock-adapter@2.1.0:
     resolution: {integrity: sha512-AZUe4OjECGCNNssH8SOdtneiQELsqTsat3SQQCWLPjN436/H+L9AjWfV7bF+Zg/YL9cgbhrz5671hoh+Tbn98w==}
     peerDependencies:
-      axios: '>=1.15.2'
+      axios: 1.18.0
 
-  axios@1.16.0:
-    resolution: {integrity: sha512-6hp5CwvTPlN2A31g5dxnwAX0orzM7pmCRDLnZSX772mv8WDqICwFjowHuPs04Mc8deIld1+ejhtaMn5vp6b+1w==}
+  axios@1.18.0:
+    resolution: {integrity: sha512-E32NzpYKp++W7XRe52rHiXV2ehxmh3wbdgO7MHeFM+vqxLBYHzt0ElkiImtOBxtOmyp0yoC8C6uESVV84Y2/hw==}
 
   babel-dead-code-elimination@1.0.12:
     resolution: {integrity: sha512-GERT7L2TiYcYDtYk1IpD+ASAYXjKbLTDPhBtYj7X1NuRMDTMtAx9kyBenub1Ev41lo91OHCKdmP+egTDmfQ7Ig==}
@@ -2497,8 +2499,8 @@ packages:
     resolution: {integrity: sha512-oP5VkATKlNwcgvxi0vM0p/D3n2C3EReYVX+DNYs5TjZFn/oQt2j+4sVJtSMr18pdRr8wjTcBl6LoV+FUwzPmNA==}
     engines: {node: '>=18'}
 
-  brace-expansion@5.0.3:
-    resolution: {integrity: sha512-fy6KJm2RawA5RcHkLa1z/ScpBeA762UF9KmZQxwIbDtRJrgLzM10depAiEQ+CXYcoiqW1/m96OAAoke2nE9EeA==}
+  brace-expansion@5.0.7:
+    resolution: {integrity: sha512-7oFy703dxfY3/NLxC1fh2SUCQ0H9rmAY+5EpDVfXjUTTs+HEwR2nYaqLv+GWcTsumwxPfiz6CzCNkwXwBUwqCA==}
     engines: {node: 18 || 20 || >=22}
 
   braces@3.0.3:
@@ -3046,8 +3048,8 @@ packages:
   fast-safe-stringify@2.1.1:
     resolution: {integrity: sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==}
 
-  fast-uri@3.1.2:
-    resolution: {integrity: sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==}
+  fast-uri@3.1.4:
+    resolution: {integrity: sha512-8JnbkQ4juDyvYs4mgFGQqg4yCYtFDtUtmp2QIQq11ZZe5CFQ5wcqm1rqDgAh/QdMySuBnPzMUiJUNZG5N/AiQw==}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
@@ -3245,10 +3247,6 @@ packages:
 
   has-tostringtag@1.0.2:
     resolution: {integrity: sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw==}
-    engines: {node: '>= 0.4'}
-
-  hasown@2.0.2:
-    resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
   hasown@2.0.4:
@@ -3534,8 +3532,8 @@ packages:
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
-  js-yaml@4.1.1:
-    resolution: {integrity: sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==}
+  js-yaml@4.3.0:
+    resolution: {integrity: sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==}
     hasBin: true
 
   jsdom@27.4.0:
@@ -3743,8 +3741,8 @@ packages:
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
-  linkify-it@5.0.1:
-    resolution: {integrity: sha512-wVoTjP4Q6R0NW5hiZkVJaFZPWgtXfoGF+6LucL3/FtiNjmcHhYjEr5f1Kqjirc1nBW07J/ZuRFumqr2oqccEWg==}
+  linkify-it@5.0.2:
+    resolution: {integrity: sha512-ONTm2jCMAVZjgQa/Fy1kScXsuOoF5NPTsoFBdE1KVIZ2vAh/r9+Bqo+0jINCBYnavTPQZz38QzFTme79ENoN3Q==}
 
   locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
@@ -5133,7 +5131,7 @@ snapshots:
   '@apidevtools/json-schema-ref-parser@14.0.1':
     dependencies:
       '@types/json-schema': 7.0.15
-      js-yaml: 4.1.1
+      js-yaml: 4.3.0
 
   '@apidevtools/openapi-schemas@2.1.0': {}
 
@@ -7422,7 +7420,7 @@ snapshots:
   ajv@8.18.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.2
+      fast-uri: 3.1.4
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -7492,19 +7490,21 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.1.0
 
-  axios-mock-adapter@2.1.0(axios@1.16.0):
+  axios-mock-adapter@2.1.0(axios@1.18.0):
     dependencies:
-      axios: 1.16.0
+      axios: 1.18.0
       fast-deep-equal: 3.1.3
       is-buffer: 2.0.5
 
-  axios@1.16.0:
+  axios@1.18.0:
     dependencies:
       follow-redirects: 1.16.0
       form-data: 4.0.6
+      https-proxy-agent: 5.0.1
       proxy-from-env: 2.1.0
     transitivePeerDependencies:
       - debug
+      - supports-color
 
   babel-dead-code-elimination@1.0.12:
     dependencies:
@@ -7543,7 +7543,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  brace-expansion@5.0.3:
+  brace-expansion@5.0.7:
     dependencies:
       balanced-match: 4.0.4
 
@@ -7688,7 +7688,7 @@ snapshots:
     dependencies:
       env-paths: 2.2.1
       import-fresh: 3.3.1
-      js-yaml: 4.1.1
+      js-yaml: 4.3.0
       parse-json: 5.2.0
     optionalDependencies:
       typescript: 5.9.3
@@ -7968,7 +7968,7 @@ snapshots:
       has-property-descriptors: 1.0.2
       has-proto: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.4
       internal-slot: 1.1.0
       is-array-buffer: 3.0.5
       is-callable: 1.2.7
@@ -8169,7 +8169,7 @@ snapshots:
 
   fast-safe-stringify@2.1.1: {}
 
-  fast-uri@3.1.2: {}
+  fast-uri@3.1.4: {}
 
   fastq@1.20.1:
     dependencies:
@@ -8255,7 +8255,7 @@ snapshots:
       call-bound: 1.0.4
       define-properties: 1.2.1
       functions-have-names: 1.2.3
-      hasown: 2.0.2
+      hasown: 2.0.4
       is-callable: 1.2.7
 
   functions-have-names@1.2.3: {}
@@ -8282,7 +8282,7 @@ snapshots:
       get-proto: 1.0.1
       gopd: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.4
       math-intrinsics: 1.1.0
 
   get-nonce@1.0.1: {}
@@ -8366,10 +8366,6 @@ snapshots:
     dependencies:
       has-symbols: 1.1.0
 
-  hasown@2.0.2:
-    dependencies:
-      function-bind: 1.1.2
-
   hasown@2.0.4:
     dependencies:
       function-bind: 1.1.2
@@ -8441,7 +8437,7 @@ snapshots:
   internal-slot@1.1.0:
     dependencies:
       es-errors: 1.3.0
-      hasown: 2.0.2
+      hasown: 2.0.4
       side-channel: 1.1.0
 
   internmap@2.0.3: {}
@@ -8554,7 +8550,7 @@ snapshots:
       call-bound: 1.0.4
       gopd: 1.2.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   is-regexp@3.1.0: {}
 
@@ -8622,7 +8618,7 @@ snapshots:
 
   js-tokens@4.0.0: {}
 
-  js-yaml@4.1.1:
+  js-yaml@4.3.0:
     dependencies:
       argparse: 2.0.1
 
@@ -8791,7 +8787,7 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  linkify-it@5.0.1:
+  linkify-it@5.0.2:
     dependencies:
       uc.micro: 2.1.0
 
@@ -8854,7 +8850,7 @@ snapshots:
     dependencies:
       argparse: 2.0.1
       entities: 4.5.0
-      linkify-it: 5.0.1
+      linkify-it: 5.0.2
       mdurl: 2.0.0
       punycode.js: 2.3.1
       uc.micro: 2.1.0
@@ -8900,7 +8896,7 @@ snapshots:
 
   minimatch@10.2.4:
     dependencies:
-      brace-expansion: 5.0.3
+      brace-expansion: 5.0.7
 
   minimist@1.2.8: {}
 
@@ -9111,7 +9107,7 @@ snapshots:
       find-up: 5.0.0
       fs-extra: 11.3.3
       jiti: 2.6.1
-      js-yaml: 4.1.1
+      js-yaml: 4.3.0
       lodash.uniq: 4.5.0
       openapi3-ts: 4.5.0
       string-argv: 0.3.2
