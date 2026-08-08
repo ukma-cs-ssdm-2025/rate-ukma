@@ -403,7 +403,7 @@ function RatingCommentItem({
 	const deleteComment = useCommentsDestroy();
 
 	const repliesQuery = useInfiniteQuery({
-		queryKey: getCommentsRepliesRetrieveQueryKey(commentId, {
+		queryKey: getCommentsRepliesRetrieveQueryKey(commentId ?? "", {
 			page_size: REPLIES_PAGE_SIZE,
 		}),
 		queryFn: ({ pageParam }) =>

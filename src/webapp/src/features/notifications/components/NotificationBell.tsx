@@ -49,7 +49,7 @@ export function NotificationBell() {
 		resetPagination();
 	}, [markAllRead, resetPagination]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: refetch on open or when unreadCount changes while open
+	// refetch on open or when unreadCount changes while open
 	useEffect(() => {
 		if (open) {
 			refetch();

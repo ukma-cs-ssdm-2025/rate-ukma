@@ -8,6 +8,7 @@ export default defineConfig({
 			workspace: "src/lib/api/generated",
 			schemas: "src/lib/api/generated/models",
 			client: "react-query",
+			httpClient: "axios",
 			override: {
 				mutator: {
 					path: "../apiClient.ts",

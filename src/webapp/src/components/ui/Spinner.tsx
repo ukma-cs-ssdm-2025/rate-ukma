@@ -7,7 +7,7 @@ function Spinner({
 	...props
 }: Readonly<React.ComponentProps<"div">>) {
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: Loading spinner is a status indicator, not a calculation result
+		// Loading spinner is a status indicator, not a calculation result
 		<div
 			role="status"
 			aria-label="Loading"

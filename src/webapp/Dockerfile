@@ -1,14 +1,14 @@
 # Base stage - common setup for both development and production
-FROM --platform=$BUILDPLATFORM node:20-alpine AS base
+FROM --platform=$BUILDPLATFORM node:22.23.2-alpine AS base
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11.20.0
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files and orval config
-COPY src/webapp/package.json src/webapp/pnpm-lock.yaml src/webapp/orval.config.ts ./
+COPY src/webapp/package.json src/webapp/pnpm-lock.yaml src/webapp/pnpm-workspace.yaml src/webapp/orval.config.ts ./
 
 # Create docs/api directory structure at the correct location for orval
 RUN mkdir -p /docs/api

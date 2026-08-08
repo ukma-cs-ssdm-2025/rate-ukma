@@ -68,8 +68,8 @@ Backend / Frontend Responsibilities:
 ### Coding Standards
 
 * All Python code must follow [PEP8](https://peps.python.org/pep-0008/) and be linted with [ruff](https://github.com/astral-sh/ruff).
-* All TypeScript/JavaScript code must follow [biome](https://biomejs.dev/) formatting and linting rules.
-* Both ruff and biome are enforced automatically on pre-commit using configured hooks to ensure consistency and prevent style regressions.
+* All TypeScript/JavaScript code must follow [Oxlint](https://oxc.rs/docs/guide/usage/linter) and [Oxfmt](https://oxc.rs/docs/guide/usage/formatter) formatting and linting rules.
+* Both ruff and Oxlint/Oxfmt are enforced automatically on pre-commit using configured hooks to ensure consistency and prevent style regressions.
 * Code must be readable, well-documented and use meaningful naming conventions.
 
 ### Quality Processes
