@@ -192,4 +192,4 @@ docker exec -it <backend_container_name> python -m safety scan --report
 docker exec -it <backend_container_name> python -m bandit -r .
 ```
 
-Security audit run automatically in CI via the [backend security audit workflow](../../.github/workflows/audit.yml).
+The security audit runs automatically in CI via the [backend security audit workflow](../../.github/workflows/audit.yml).

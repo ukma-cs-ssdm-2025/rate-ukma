@@ -17,7 +17,7 @@ repos:
         name: Oxlint + Oxfmt check webapp
         entry: bash -c "cd src/webapp && pnpm lint:fix && pnpm format"
         language: system
-        files: ^src/webapp/.*\.(ts|tsx|js|jsx|json)$
+        files: ^src/webapp/.*\.(ts|tsx|js|jsx|json|css)$
         pass_filenames: false
       - id: check-commit-message
         name: Check commit message format

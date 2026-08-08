@@ -1,5 +1,5 @@
 # Base stage - common setup for both development and production
-FROM --platform=$BUILDPLATFORM node:22-alpine AS base
+FROM --platform=$BUILDPLATFORM node:22.23.2-alpine AS base
 
 # Install pnpm
 RUN npm install -g pnpm@11.20.0
