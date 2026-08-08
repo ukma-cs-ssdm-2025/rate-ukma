@@ -41,7 +41,7 @@ function shouldIgnoreRowClickTarget(target: EventTarget | null): boolean {
 }
 
 declare module "@tanstack/react-table" {
-	// biome-ignore lint: Required by TanStack Table interface signature
+	// Required by TanStack Table interface signature
 	interface ColumnMeta<TData, TValue> {
 		align?: "left" | "center" | "right";
 		label?: string;

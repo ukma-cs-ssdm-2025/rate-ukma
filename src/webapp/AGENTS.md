@@ -29,7 +29,7 @@ Run these commands regularly:
 
 ```bash
 pnpm lint
-pnpm format --write
+pnpm format
 pnpm check
 ```
 

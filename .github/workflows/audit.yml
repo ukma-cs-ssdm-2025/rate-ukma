@@ -31,7 +31,7 @@ env:
 jobs:
   frontend-security-audit:
     name: Frontend Security Audit
-    if: inputs.run_frontend_audit == true
+    if: github.event_name == 'schedule' || inputs.run_frontend_audit == true
     runs-on: ubuntu-24.04
 
     steps:
@@ -63,7 +63,7 @@ jobs:
 
   backend-security-audit:
     name: Backend Security Audit
-    if: inputs.run_backend_audit == true
+    if: github.event_name == 'schedule' || inputs.run_backend_audit == true
     runs-on: ubuntu-24.04
 
     steps:

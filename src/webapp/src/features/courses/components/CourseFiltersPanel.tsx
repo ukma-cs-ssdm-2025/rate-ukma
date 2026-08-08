@@ -413,6 +413,7 @@ function SemesterTermToggleControl({
 				onValueChange={onTermToggle}
 				className="flex w-full"
 				data-testid={testIds.filters.termToggle}
+				role="group"
 			>
 				{toggle.options.map((option) => (
 					<ToggleGroupItem

@@ -91,7 +91,8 @@ webapp/
 │  
 ├── package.json                    # Node.js dependencies  
 ├── vite.config.ts                  # Vite configuration  
-├── biome.json                      # Biome linting rules  
+├── .oxlintrc.json                  # Oxlint linting rules
+├── .oxfmtrc.json                    # Oxfmt formatting rules
 ├── orval.config.ts                 # API client generation config  
 ├── tailwind.config.ts              # Tailwind CSS configuration  
 ├── components.json                 # shadcn/ui configuration  

@@ -9,7 +9,7 @@
 		"charliermarsh.ruff",
 		"streetsidesoftware.code-spell-checker",
 		// * frontend-related extensions
-		"biomejs.biome",
+		"oxc.oxc-vscode",
 		"bradlc.vscode-tailwindcss",
 		"ms-vscode.vscode-typescript-next",
 		// * other extensions

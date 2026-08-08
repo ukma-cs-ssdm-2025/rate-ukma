@@ -8,7 +8,8 @@ const cardVariants = cva(
 );
 
 export interface CardProps
-	extends React.HTMLAttributes<HTMLDivElement>,
+	extends
+		React.HTMLAttributes<HTMLDivElement>,
 		VariantProps<typeof cardVariants> {
 	asChild?: boolean;
 }

@@ -512,9 +512,8 @@ describe("Accessibility", () => {
 describe("Attended Courses Highlighting", () => {
 	it("should highlight attended course rows", async () => {
 		// Arrange
-		const { useStudentsMeCoursesRetrieve } = await import(
-			"@/lib/api/generated"
-		);
+		const { useStudentsMeCoursesRetrieve } =
+			await import("@/lib/api/generated");
 		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
 		const attendedCourseId = "course-attended-1";
 		const nonAttendedCourseId = "course-non-attended-2";
@@ -548,9 +547,8 @@ describe("Attended Courses Highlighting", () => {
 
 	it("should not highlight any rows when no attended courses", async () => {
 		// Arrange
-		const { useStudentsMeCoursesRetrieve } = await import(
-			"@/lib/api/generated"
-		);
+		const { useStudentsMeCoursesRetrieve } =
+			await import("@/lib/api/generated");
 		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
 
 		mockedHook.mockReturnValue({

@@ -39,7 +39,7 @@ export function useNotifications() {
 
 	const firstPage = data ?? [];
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset buffer when server data changes
+	// reset buffer when server data changes
 	useEffect(() => {
 		setExtra([]);
 		setHasMore(true);

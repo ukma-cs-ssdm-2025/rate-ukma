@@ -1,0 +1,17 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "unicorn", "oxc"],
+	"categories": {
+		"correctness": "error"
+	},
+	"ignorePatterns": [
+		"src/routeTree.gen.ts",
+		"src/lib/api/generated/**/*",
+		"playwright-report/**/*",
+		"playwright/.auth/**/*",
+		"test-results/**/*"
+	],
+	"env": {
+		"builtin": true
+	}
+}

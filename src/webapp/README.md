@@ -6,7 +6,7 @@
 - **TanStack Router** for file-based routing
 - **Tailwind CSS** for styling
 - **shadcn/ui** for component library
-- **Biome** for linting and formatting
+- **Oxlint/Oxfmt** for linting and formatting
 - **Vitest** for testing
 
 ## 🚀 IDE Setup for Better Development Experience
@@ -15,12 +15,12 @@ The application runs in Docker containers as described in the main [README](../.
 
 ### Prerequisites
 
-- Node.js v20+ and pnpm
+- Node.js v22.18+ and pnpm 11
 
 ### 0. Install pnpm
 
 ```bash
-npm install -g pnpm
+npm install -g pnpm@11.20.0
 ```
 
 ### 1. Install Dependencies
@@ -88,12 +88,12 @@ Copy from `src/.env.sample` if you haven't set up your `.env` file yet.
 ```bash
 # Local
 pnpm lint
-pnpm format --write
+pnpm format
 pnpm check
 
 # Docker
 docker exec -it <frontend_container_name> pnpm lint
-docker exec -it <frontend_container_name> pnpm format --write
+docker exec -it <frontend_container_name> pnpm format
 docker exec -it <frontend_container_name> pnpm check
 ```
 

@@ -8,7 +8,7 @@
 	"version": 1,
 	"framework": "react-vite",
 	"chosenAddOns": [
-		"biome",
+		"oxc",
 		"form",
 		"shadcn",
 		"t3env",

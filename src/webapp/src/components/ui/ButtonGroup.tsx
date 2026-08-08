@@ -76,7 +76,7 @@ function ButtonGroup({
 
 	return (
 		<ButtonGroupContext.Provider value={orientation}>
-			{/* biome-ignore lint/a11y/useSemanticElements: role="group" is correct for button groups; fieldset is for form controls */}
+			{/* role="group" is correct for button groups; fieldset is for form controls */}
 			<div
 				role="group"
 				data-slot="button-group"

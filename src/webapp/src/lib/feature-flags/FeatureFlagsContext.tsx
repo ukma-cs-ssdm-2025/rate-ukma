@@ -58,7 +58,7 @@ export function FeatureFlagsProvider({ children }: PropsWithChildren) {
 	const value = useMemo<FeatureFlagsState>(
 		() => ({
 			// Client overrides win over the server response (non-live only).
-			flags: { ...(data?.flags ?? {}), ...overrides },
+			flags: { ...data?.flags, ...overrides },
 			// Ready once the first request settles (success OR error) so consumers
 			// behind the isReady gate fall back to default-disabled flags instead of
 			// getting stuck on a failed fetch.

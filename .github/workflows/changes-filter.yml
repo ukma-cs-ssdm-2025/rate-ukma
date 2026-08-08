@@ -40,7 +40,7 @@ env:
   BACKEND_DIR: src/backend
   WEBAPP_DIR: src/webapp
   OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
-  CI_DIR: .github/workflows
+  CI_DIR: .github
   INFRA_DIR: infra
 
 jobs:

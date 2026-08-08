@@ -13,9 +13,9 @@ repos:
         entry: bash -lc "cd src/backend && uv run python manage.py spectacular --file ../../docs/api/openapi-generated.yaml"
         language: system
         pass_filenames: false
-      - id: webapp-biome-check
-        name: Biome check webapp (lint + format)
-        entry: bash -c "cd src/webapp && pnpm check --write"
+      - id: webapp-oxc-check
+        name: Oxlint + Oxfmt check webapp
+        entry: bash -c "cd src/webapp && pnpm lint:fix && pnpm format"
         language: system
         files: ^src/webapp/.*\.(ts|tsx|js|jsx|json)$
         pass_filenames: false

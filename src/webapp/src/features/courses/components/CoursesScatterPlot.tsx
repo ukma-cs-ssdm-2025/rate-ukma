@@ -374,7 +374,7 @@ function ScatterPlotContent({
 
 	return (
 		<>
-			{/* biome-ignore lint/a11y/noSvgWithoutTitle: Interactive chart with aria-label, title element not suitable for this interaction model */}
+			{/* Interactive chart with aria-label, title element not suitable for this interaction model */}
 			<svg
 				ref={svgRef}
 				width={width}
@@ -404,7 +404,7 @@ function ScatterPlotContent({
 							? POINT_HOVER_STROKE_WIDTH
 							: POINT_DEFAULT_STROKE_WIDTH;
 						return (
-							// biome-ignore lint/a11y/useSemanticElements: Interactive SVG point cannot be a native button element
+							// Interactive SVG point cannot be a native button element
 							<circle
 								key={point.id}
 								cx={cx}

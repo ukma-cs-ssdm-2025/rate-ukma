@@ -4,7 +4,7 @@
 
 - **Django** with Django REST Framework
 - **PostgreSQL** database
-- **Python 3.11+**
+- **Python 3.12+**
 - **OpenAPI** documentation
 - **pytest** for testing
 
@@ -14,7 +14,7 @@ The application runs in Docker containers as described in the main [README](../.
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.12+
 - uv package manager (faster, more secure alternative to pip)
 
 ### 1. Create Virtual Environment
@@ -192,4 +192,4 @@ docker exec -it <backend_container_name> python -m safety scan --report
 docker exec -it <backend_container_name> python -m bandit -r .
 ```
 
-Security audit run automatically in CI via the [backend security audit workflow](../../.github/workflows/backend-audit.yml).
+Security audit run automatically in CI via the [backend security audit workflow](../../.github/workflows/audit.yml).
