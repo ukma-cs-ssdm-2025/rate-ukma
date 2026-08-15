@@ -183,9 +183,7 @@ R_INSTRUCTOR = {
 }
 
 R_INSTRUCTOR_LIST = {
-    200: OpenApiResponse(
-        forced_singular_serializer(InstructorListResponseSerializer), "OK"
-    ),
+    200: OpenApiResponse(forced_singular_serializer(InstructorListResponseSerializer), "OK"),
     **common_errors(include_404=False),
 }
 

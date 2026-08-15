@@ -82,9 +82,7 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             else Q(pk__in=[])
         )
         course_filter = (
-            Q(ratings__course_offering__course_id=course_id)
-            if course_id
-            else Q(pk__in=[])
+            Q(ratings__course_offering__course_id=course_id) if course_id else Q(pk__in=[])
         )
         speciality_filter = (
             Q(ratings__course_offering__specialities__id=speciality_id)

@@ -158,9 +158,7 @@ def test_list_ranked_tiers_offering_then_course_then_global(repo):
     RatingFactory.create(course_offering=offering_b).instructors.add(on_course)
     RatingFactory.create(course_offering=other_offering).instructors.add(rated_elsewhere)
 
-    ranked = list(
-        repo.list_ranked(course_offering_id=offering_a.id, course_id=course.id)
-    )
+    ranked = list(repo.list_ranked(course_offering_id=offering_a.id, course_id=course.id))
 
     assert [i.id for i in ranked] == [
         on_offering.id,

@@ -483,9 +483,7 @@ def test_get_courses_stats_returns_m2m_instructors_on_rated(token_client):
     offering = CourseOfferingFactory(course=course, semester=semester)
     EnrollmentFactory(student=student, offering=offering)
     rating = RatingFactory(student=student, course_offering=offering)
-    instructor = InstructorFactory(
-        first_name="Олена", patronymic="Ігорівна", last_name="Коваленко"
-    )
+    instructor = InstructorFactory(first_name="Олена", patronymic="Ігорівна", last_name="Коваленко")
     rating.instructors.set([instructor])
 
     response = token_client.get("/api/v1/students/me/courses/")

@@ -43,9 +43,7 @@ class StudentStatisticsRepository:
         """
         student_ratings = Prefetch(
             "ratings",
-            queryset=Rating.objects.filter(student_id=student_id).prefetch_related(
-                "instructors"
-            ),
+            queryset=Rating.objects.filter(student_id=student_id).prefetch_related("instructors"),
             to_attr="student_ratings_list",
         )
 
@@ -102,9 +100,7 @@ class StudentStatisticsRepository:
 
         student_ratings = Prefetch(
             "ratings",
-            queryset=Rating.objects.filter(student_id=student_id).prefetch_related(
-                "instructors"
-            ),
+            queryset=Rating.objects.filter(student_id=student_id).prefetch_related("instructors"),
             to_attr="student_ratings_list",
         )
 
