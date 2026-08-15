@@ -103,12 +103,34 @@ export class RatingModal {
 			.fill("");
 	}
 
-	async pickInstructorByText(text: string): Promise<void> {
+	/** Names currently offered by the picker, in listed order. */
+	async getListedInstructorNames(limit = 5): Promise<string[]> {
 		const list = this.page.getByTestId(
 			`${testIds.rating.instructorMultiSelect}-list`,
 		);
 		await expect(list).toBeVisible();
-		await list.getByText(text, { exact: false }).first().click();
+		const options = list.getByRole("option");
+		await expect(options.first()).toBeVisible();
+		const count = Math.min(await options.count(), limit);
+		const names: string[] = [];
+		for (let i = 0; i < count; i++) {
+			names.push((await options.nth(i).innerText()).trim());
+		}
+		return names;
+	}
+
+	/**
+	 * Search for a name, then pick the row that matches it exactly, so the
+	 * choice never depends on directory ordering or on a partial-name collision.
+	 */
+	async pickInstructorByText(text: string): Promise<void> {
+		const list = this.page.getByTestId(
+			`${testIds.rating.instructorMultiSelect}-list`,
+		);
+		await this.searchInstructor(text);
+		const option = list.getByRole("option", { name: text, exact: true });
+		await expect(option).toBeVisible();
+		await option.click();
 	}
 
 	async closeInstructorPicker(): Promise<void> {

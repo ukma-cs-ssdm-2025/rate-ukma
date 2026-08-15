@@ -63,15 +63,12 @@ beforeEach(() => {
 describe("useInfiniteInstructors", () => {
 	describe("Query Params", () => {
 		it("should omit empty search, courseOfferingId, and specialityId", () => {
-			// Act
 			renderHook(() => useInfiniteInstructors());
 
-			// Assert
 			expect(lastCallParams()).toEqual({ page_size: 20 });
 		});
 
 		it("should include provided filters with snake_case keys", () => {
-			// Act
 			renderHook(() =>
 				useInfiniteInstructors({
 					search: "Іван",
@@ -80,7 +77,6 @@ describe("useInfiniteInstructors", () => {
 				}),
 			);
 
-			// Assert
 			expect(lastCallParams()).toEqual({
 				page_size: 20,
 				search: "Іван",
@@ -90,17 +86,14 @@ describe("useInfiniteInstructors", () => {
 		});
 
 		it("should respect a custom pageSize", () => {
-			// Act
 			renderHook(() => useInfiniteInstructors({ pageSize: 50 }));
 
-			// Assert
 			expect(lastCallParams()).toEqual({ page_size: 50 });
 		});
 	});
 
 	describe("Derived Output", () => {
 		it("should flat-map instructors across multiple pages", () => {
-			// Arrange
 			const a = createMockInstructor({ id: "a" });
 			const b = createMockInstructor({ id: "b" });
 			const c = createMockInstructor({ id: "c" });
@@ -113,15 +106,12 @@ describe("useInfiniteInstructors", () => {
 				}),
 			);
 
-			// Act
 			const { result } = renderHook(() => useInfiniteInstructors());
 
-			// Assert
 			expect(result.current.allInstructors).toEqual([a, b, c]);
 		});
 
 		it("should expose total from the first page", () => {
-			// Arrange
 			mockedInfinite.mockReturnValue(
 				createMockInfiniteReturn({
 					pages: [
@@ -131,24 +121,19 @@ describe("useInfiniteInstructors", () => {
 				}),
 			);
 
-			// Act
 			const { result } = renderHook(() => useInfiniteInstructors());
 
-			// Assert
 			expect(result.current.total).toBe(42);
 		});
 
 		it("should return an empty list and undefined total when no data", () => {
-			// Act
 			const { result } = renderHook(() => useInfiniteInstructors());
 
-			// Assert
 			expect(result.current.allInstructors).toEqual([]);
 			expect(result.current.total).toBeUndefined();
 		});
 
 		it("should derive hasMore from hasNextPage", () => {
-			// Arrange
 			mockedInfinite.mockReturnValue(
 				createMockInfiniteReturn({
 					pages: [{ items: [createMockInstructor()], total: 1, next_page: 2 }],
@@ -156,15 +141,12 @@ describe("useInfiniteInstructors", () => {
 				}),
 			);
 
-			// Act
 			const { result } = renderHook(() => useInfiniteInstructors());
 
-			// Assert
 			expect(result.current.hasMore).toBe(true);
 		});
 
 		it("should report hasMore as false when there is no next page", () => {
-			// Arrange
 			mockedInfinite.mockReturnValue(
 				createMockInfiniteReturn({
 					pages: [
@@ -174,29 +156,23 @@ describe("useInfiniteInstructors", () => {
 				}),
 			);
 
-			// Act
 			const { result } = renderHook(() => useInfiniteInstructors());
 
-			// Assert
 			expect(result.current.hasMore).toBe(false);
 		});
 	});
 
 	describe("Query Options", () => {
 		it("should forward enabled=false to the query options", () => {
-			// Act
 			renderHook(() => useInfiniteInstructors({ enabled: false }));
 
-			// Assert
 			const options = mockedInfinite.mock.calls.at(-1)?.[1];
 			expect(options?.query?.enabled).toBe(false);
 		});
 
 		it("should default enabled to true", () => {
-			// Act
 			renderHook(() => useInfiniteInstructors());
 
-			// Assert
 			const options = mockedInfinite.mock.calls.at(-1)?.[1];
 			expect(options?.query?.enabled).toBe(true);
 		});

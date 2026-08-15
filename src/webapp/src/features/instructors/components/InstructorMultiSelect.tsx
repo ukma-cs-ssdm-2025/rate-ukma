@@ -170,8 +170,7 @@ function InstructorMultiSelect({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				{/* A div, not a button: the chip remove controls below are themselves
-				    buttons and HTML forbids nesting interactive elements. */}
+				{/* A div, not a button — the chip remove controls are buttons. */}
 				<div
 					role="combobox"
 					tabIndex={disabled ? -1 : 0}
@@ -218,8 +217,7 @@ function InstructorMultiSelect({
 							</span>
 						))
 					)}
-					{/* Stable open target: the rest of the trigger is covered by chips
-					    whose remove buttons swallow the click. */}
+					{/* Stable open target: chips cover the rest of the trigger. */}
 					<ChevronDownIcon
 						className="ml-auto size-4 shrink-0 opacity-50"
 						data-testid={testId ? `${testId}-toggle` : undefined}

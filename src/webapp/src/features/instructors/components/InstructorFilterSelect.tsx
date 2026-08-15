@@ -92,8 +92,7 @@ function InstructorFilterSelect({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				{/* A div, not a button: the clear control below is itself a button and
-				    HTML forbids nesting interactive elements. */}
+				{/* A div, not a button — the clear control is a button. */}
 				<div
 					role="combobox"
 					tabIndex={0}

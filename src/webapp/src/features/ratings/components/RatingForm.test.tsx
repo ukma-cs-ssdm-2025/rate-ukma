@@ -74,7 +74,7 @@ describe("RatingForm", () => {
 			);
 
 			expect(
-				screen.getByTestId(testIds.rating.legacyInstructorReadonly),
+				screen.getByTestId(testIds.rating.legacyInstructorText),
 			).toHaveTextContent("Сегін");
 			expect(
 				screen.getByTestId(testIds.rating.instructorMultiSelect),

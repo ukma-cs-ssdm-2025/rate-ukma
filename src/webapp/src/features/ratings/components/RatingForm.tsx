@@ -208,9 +208,8 @@ function RatingFormFields({
 				/>
 			</div>
 
-			{/* Hold the instructor field until flags resolve: rendering the legacy
-			    input first would let typed text be discarded when the multi-select
-			    takes over. */}
+			{/* Held until flags resolve, or text typed into the legacy input would
+			    be discarded when the multi-select takes over. */}
 			{!flagsReady ? null : showMultiSelect ? (
 				<FormField<RatingFormData, "instructor_ids">
 					control={control}
@@ -221,7 +220,7 @@ function RatingFormFields({
 							{legacyInstructor && (
 								<p
 									className="text-sm text-muted-foreground"
-									data-testid={testIds.rating.legacyInstructorReadonly}
+									data-testid={testIds.rating.legacyInstructorText}
 								>
 									Раніше вказано текстом:{" "}
 									<span className="font-medium">{legacyInstructor}</span>

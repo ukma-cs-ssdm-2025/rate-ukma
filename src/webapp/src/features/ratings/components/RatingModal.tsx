@@ -81,15 +81,12 @@ export function RatingModal({
 	};
 
 	const handleSubmit = async (data: RatingFormData) => {
-		// Gate the write path: when the multi-select flag is off, persist the
-		// legacy free-text instructor; when on, persist the M2M instructor_ids.
-		// Submitting before the flags resolve would pick the wrong shape.
+		// Submitting before the flags resolve would persist the wrong shape.
 		if (!flagsReady) {
 			return;
 		}
-		// Picking real instructors supersedes whatever was typed into the legacy
-		// field, so clear it. An empty selection leaves the old text alone rather
-		// than silently dropping the only instructor the rating has.
+		// A non-empty selection supersedes the legacy text; an empty one leaves it,
+		// rather than dropping the rating's only instructor.
 		const instructorPayload = showMultiSelect
 			? {
 					instructor_ids: data.instructor_ids,

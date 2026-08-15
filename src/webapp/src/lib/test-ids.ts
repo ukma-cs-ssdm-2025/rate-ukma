@@ -157,7 +157,7 @@ export const testIds = {
 		commentTextarea: "rating-comment-textarea",
 		instructorInput: "rating-instructor-input",
 		instructorMultiSelect: "rating-instructor-multiselect",
-		legacyInstructorReadonly: "rating-legacy-instructor-readonly",
+		legacyInstructorText: "rating-legacy-instructor-text",
 		anonymousCheckbox: "rating-anonymous-checkbox",
 		submitButton: "rating-submit-button",
 		cancelButton: "rating-cancel-button",

@@ -91,14 +91,12 @@ describe("formatInstructorLabel", () => {
 describe("InstructorMultiSelect", () => {
 	describe("Selected Chips", () => {
 		it("should render a chip for each selected instructor", () => {
-			// Arrange
 			const selected = createMockInstructor({
 				id: "instructor-1",
 				last_name: "Іваненко",
 				first_name: "Іван",
 			});
 
-			// Act
 			renderWithProviders(
 				<InstructorMultiSelect
 					value={["instructor-1"]}
@@ -107,12 +105,10 @@ describe("InstructorMultiSelect", () => {
 				/>,
 			);
 
-			// Assert
 			expect(screen.getByText("Іваненко Іван")).toBeInTheDocument();
 		});
 
 		it("should show the placeholder when nothing is selected", () => {
-			// Act
 			renderWithProviders(
 				<InstructorMultiSelect
 					value={[]}
@@ -121,12 +117,10 @@ describe("InstructorMultiSelect", () => {
 				/>,
 			);
 
-			// Assert
 			expect(screen.getByText("Обрати викладача…")).toBeInTheDocument();
 		});
 
 		it("should call onChange without the removed id when a chip is removed", async () => {
-			// Arrange
 			const user = userEvent.setup();
 			const onChange = vi.fn();
 			const a = createMockInstructor({ id: "a", last_name: "Алексенко" });
@@ -140,18 +134,15 @@ describe("InstructorMultiSelect", () => {
 				/>,
 			);
 
-			// Act
 			const removeButton = screen.getByRole("button", {
 				name: /Видалити Алексенко/,
 			});
 			await user.click(removeButton);
 
-			// Assert
 			expect(onChange).toHaveBeenCalledWith(["b"]);
 		});
 
 		it("should keep a selected chip when search results no longer include it", async () => {
-			// Arrange
 			const user = userEvent.setup();
 			const selectedInstructor = createMockInstructor({
 				id: "kalynovska",
@@ -200,7 +191,6 @@ describe("InstructorMultiSelect", () => {
 
 			renderWithProviders(<Harness />);
 
-			// Act
 			await user.click(screen.getByRole("combobox"));
 			const input = screen.getByPlaceholderText("Пошук викладача…");
 			await user.type(input, "Калиновська");
@@ -213,7 +203,6 @@ describe("InstructorMultiSelect", () => {
 			currentItems = [otherInstructor];
 			await user.clear(screen.getByPlaceholderText("Пошук викладача…"));
 
-			// Assert
 			expect(
 				screen.getByText("Калиновська Оксана В`ячеславівна"),
 			).toBeInTheDocument();
@@ -223,7 +212,6 @@ describe("InstructorMultiSelect", () => {
 
 	describe("Option Toggling", () => {
 		it("should add an option when toggled on", async () => {
-			// Arrange
 			const user = userEvent.setup();
 			const onChange = vi.fn();
 			const option = createMockInstructor({ id: "a", last_name: "Алексенко" });
@@ -237,17 +225,14 @@ describe("InstructorMultiSelect", () => {
 				/>,
 			);
 
-			// Act: open the dropdown then click the option
 			await user.click(screen.getByRole("combobox"));
 			const list = await screen.findByTestId("instructor-select-list");
 			await user.click(within(list).getByText("Алексенко Іван"));
 
-			// Assert
 			expect(onChange).toHaveBeenCalledWith(["a"]);
 		});
 
 		it("should remove an already-selected option when toggled off", async () => {
-			// Arrange
 			const user = userEvent.setup();
 			const onChange = vi.fn();
 			const option = createMockInstructor({ id: "a", last_name: "Алексенко" });
@@ -262,19 +247,16 @@ describe("InstructorMultiSelect", () => {
 				/>,
 			);
 
-			// Act
 			await user.click(screen.getByRole("combobox"));
 			const list = await screen.findByTestId("instructor-select-list");
 			await user.click(within(list).getByText("Алексенко Іван"));
 
-			// Assert
 			expect(onChange).toHaveBeenCalledWith([]);
 		});
 	});
 
 	describe("maxSelected", () => {
 		it("should not add beyond the cap", async () => {
-			// Arrange
 			const user = userEvent.setup();
 			const onChange = vi.fn();
 			const a = createMockInstructor({ id: "a", last_name: "Алексенко" });
@@ -291,17 +273,15 @@ describe("InstructorMultiSelect", () => {
 				/>,
 			);
 
-			// Act: try to add a second option while at the cap
+			// The cap must block additions but still allow deselection.
 			await user.click(screen.getByRole("combobox"));
 			const list = await screen.findByTestId("instructor-select-list");
 			await user.click(within(list).getByText("Борисенко Іван"));
 
-			// Assert
 			expect(onChange).not.toHaveBeenCalled();
 		});
 
 		it("should still allow deselecting at the cap", async () => {
-			// Arrange
 			const user = userEvent.setup();
 			const onChange = vi.fn();
 			const a = createMockInstructor({ id: "a", last_name: "Алексенко" });
@@ -317,12 +297,10 @@ describe("InstructorMultiSelect", () => {
 				/>,
 			);
 
-			// Act
 			await user.click(screen.getByRole("combobox"));
 			const list = await screen.findByTestId("instructor-select-list");
 			await user.click(within(list).getByText("Алексенко Іван"));
 
-			// Assert
 			expect(onChange).toHaveBeenCalledWith([]);
 		});
 	});

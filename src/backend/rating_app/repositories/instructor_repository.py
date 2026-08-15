@@ -61,19 +61,19 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     ) -> QuerySet[InstructorModel]:
         """Annotate instructors with mention counts and order by relevance.
 
-        Ordering, most specific first: mentions on this exact offering DESC,
-        mentions on any offering of the same course DESC, per-speciality
-        mentions DESC, global mentions DESC (so anyone ever rated outranks the
-        never-rated directory tail), then Cyrillic before Latin, last_name ASC,
-        first_name ASC. Each scoped count is zero when the corresponding filter
-        is omitted.
+        Ordering, most specific first (each scoped count is zero when its
+        filter is omitted):
 
-        With ``exclude_current_students`` (default) the never-rated tail is
-        trimmed of people who are still enrolled bachelor students: an
-        instructor is dropped when their email matches a bachelor ``Student``
-        whose programme started within the last four academic years AND they
-        have never been rated. Masters are intentionally kept (they teach), and
-        any rated instructor is always kept — so no real teacher becomes
+        1. mentions on this exact offering, DESC
+        2. mentions on any offering of the same course, DESC
+        3. mentions within the speciality, DESC
+        4. global mentions, DESC — anyone ever rated outranks the never-rated tail
+        5. Cyrillic before Latin, then last_name, first_name, id
+
+        ``exclude_current_students`` (default) drops an instructor when their
+        email matches a bachelor ``Student`` whose programme started within the
+        last four academic years AND they have never been rated. Masters and
+        rated instructors are always kept, so no real teacher becomes
         unselectable.
         """
         offering_filter = (
