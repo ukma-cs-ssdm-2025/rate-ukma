@@ -147,11 +147,6 @@ def promo_banner_service() -> PromoBannerService:
 
 
 @once
-def promo_banner_service() -> PromoBannerService:
-    return PromoBannerService(promo_banner_repository=promo_banner_repository())
-
-
-@once
 def student_service() -> StudentService:
     return StudentService(
         student_stats_repository=student_stats_repository(),
