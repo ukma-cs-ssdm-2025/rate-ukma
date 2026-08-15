@@ -9,6 +9,7 @@ from .error_envelope import ErrorEnvelopeSerializer
 from .feature_flags import FeatureFlagsSerializer
 from .instructor import InstructorSerializer
 from .notification import NotificationGroupSerializer, UnreadCountSerializer
+from .promo_banner import PromoBannerResponseSerializer, PromoBannerSerializer
 from .rating_list_resp import RatingsWithUserListSerializer
 from .rating_read import RatingReadSerializer
 from .rating_vote import RatingVoteReadSerializer
@@ -33,4 +34,6 @@ __all__ = [
     "RatingVoteReadSerializer",
     "NotificationGroupSerializer",
     "UnreadCountSerializer",
+    "PromoBannerSerializer",
+    "PromoBannerResponseSerializer",
 ]
