@@ -1,72 +1,100 @@
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen } from "@/test-utils/render";
+import type { PromoBanner as PromoBannerModel } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import type { PromoBannerContent } from "@/features/promo/promoConfig";
-import { PROMO_BANNER_FLAG, PromoBanner } from "./PromoBanner";
+import { renderWithProviders, screen } from "@/test-utils/render";
+import { PromoBanner } from "./PromoBanner";
 
-const content: PromoBannerContent = {
+const { usePromoBannerListMock } = vi.hoisted(() => ({
+	usePromoBannerListMock: vi.fn(),
+}));
+
+// Only the promo query is stubbed; the rest of the generated client stays real
+// so co-rendered providers (auth, flags) keep working.
+vi.mock("@/lib/api/generated", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@/lib/api/generated")>()),
+	usePromoBannerList: usePromoBannerListMock,
+}));
+
+const banner: PromoBannerModel = {
 	id: "test-promo-1",
 	href: "https://example.com/events",
-	logoUrl: "/favicon-kma-events-ad.svg",
-	logoAlt: "KMA Events",
+	logo_url: "http://localhost:8000/media/promo/logo.svg",
+	logo_alt: "KMA Events",
 	title: "KMA Events",
 	description: "Афіша подій",
-	ctaLabel: "Відкрити",
+	cta_label: "Відкрити",
 };
 
-const enabled = { [PROMO_BANNER_FLAG]: true };
+function mockBanner(value: PromoBannerModel | null) {
+	usePromoBannerListMock.mockReturnValue({ data: { banner: value } });
+}
 
 afterEach(() => {
 	globalThis.localStorage.clear();
+	vi.clearAllMocks();
 });
 
 describe("PromoBanner", () => {
-	it("renders the link when the flag is on", () => {
-		renderWithProviders(<PromoBanner content={content} />, { flags: enabled });
+	it("renders the banner configured in admin", () => {
+		mockBanner(banner);
+		renderWithProviders(<PromoBanner />);
 
 		expect(screen.getByTestId(testIds.promo.banner)).toBeInTheDocument();
 		expect(screen.getByTestId(testIds.promo.link)).toHaveAttribute(
 			"href",
-			content.href,
+			banner.href,
 		);
+		expect(screen.getByRole("img")).toHaveAttribute("src", banner.logo_url);
 	});
 
-	it("renders nothing when the flag is off", () => {
-		renderWithProviders(<PromoBanner content={content} />);
+	it("renders nothing when no banner is active", () => {
+		mockBanner(null);
+		renderWithProviders(<PromoBanner />);
 
 		expect(screen.queryByTestId(testIds.promo.banner)).not.toBeInTheDocument();
 	});
 
+	it("renders nothing while the request is still in flight", () => {
+		usePromoBannerListMock.mockReturnValue({ data: undefined });
+		renderWithProviders(<PromoBanner />);
+
+		expect(screen.queryByTestId(testIds.promo.banner)).not.toBeInTheDocument();
+	});
+
+	it("omits the logo when the banner has none", () => {
+		mockBanner({ ...banner, logo_url: null });
+		renderWithProviders(<PromoBanner />);
+
+		expect(screen.getByTestId(testIds.promo.banner)).toBeInTheDocument();
+		expect(screen.queryByRole("img")).not.toBeInTheDocument();
+	});
+
 	it("hides the banner when dismissed and keeps it hidden on remount", async () => {
 		const user = userEvent.setup();
-		const { unmount } = renderWithProviders(<PromoBanner content={content} />, {
-			flags: enabled,
-		});
+		mockBanner(banner);
+		const { unmount } = renderWithProviders(<PromoBanner />);
 
 		await user.click(screen.getByTestId(testIds.promo.dismissButton));
 		expect(screen.queryByTestId(testIds.promo.banner)).not.toBeInTheDocument();
 
 		unmount();
-		renderWithProviders(<PromoBanner content={content} />, { flags: enabled });
+		renderWithProviders(<PromoBanner />);
 
 		expect(screen.queryByTestId(testIds.promo.banner)).not.toBeInTheDocument();
 	});
 
 	it("reappears when the promo id changes", async () => {
 		const user = userEvent.setup();
-		const { unmount } = renderWithProviders(<PromoBanner content={content} />, {
-			flags: enabled,
-		});
+		mockBanner(banner);
+		const { unmount } = renderWithProviders(<PromoBanner />);
 
 		await user.click(screen.getByTestId(testIds.promo.dismissButton));
 		unmount();
 
-		renderWithProviders(
-			<PromoBanner content={{ ...content, id: "test-promo-2" }} />,
-			{ flags: enabled },
-		);
+		mockBanner({ ...banner, id: "test-promo-2" });
+		renderWithProviders(<PromoBanner />);
 
 		expect(screen.getByTestId(testIds.promo.banner)).toBeInTheDocument();
 	});

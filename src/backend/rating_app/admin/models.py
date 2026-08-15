@@ -13,6 +13,7 @@ from rating_app.models import (
     Enrollment,
     Faculty,
     Instructor,
+    PromoBanner,
     Rating,
     RatingVote,
     Semester,
@@ -394,3 +395,38 @@ class CourseOfferingSpecialityAdmin(VersionAdmin):
             .get_queryset(request)
             .select_related("offering__course", "speciality", "speciality__faculty")
         )
+
+
+@admin.register(PromoBanner)
+class PromoBannerAdmin(VersionAdmin):
+    list_display = ("title", "href", "is_active", "updated_at")
+    list_filter = ("is_active",)
+    list_editable = ("is_active",)
+    search_fields = ("title", "description", "href")
+    ordering = ("-updated_at",)
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (
+            "Content",
+            {
+                "fields": ("title", "description", "cta_label", "href"),
+                "description": "Text is shown in Ukrainian, exactly as entered.",
+            },
+        ),
+        (
+            "Logo",
+            {"fields": ("logo", "logo_alt")},
+        ),
+        (
+            "Visibility",
+            {
+                "fields": ("is_active", "created_at", "updated_at"),
+                "description": (
+                    "Only one banner can be active at a time; activating this "
+                    "one deactivates any other. Create a new banner instead of "
+                    "editing a live one so that users who dismissed the old ad "
+                    "see the new one."
+                ),
+            },
+        ),
+    )
