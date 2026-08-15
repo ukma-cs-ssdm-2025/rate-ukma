@@ -70,11 +70,12 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         4. global mentions, DESC — anyone ever rated outranks the never-rated tail
         5. Cyrillic before Latin, then last_name, first_name, id
 
-        ``exclude_current_students`` (default) drops an instructor when their
-        email matches a bachelor ``Student`` whose programme started within the
-        last four academic years AND they have never been rated. Masters and
-        rated instructors are always kept, so no real teacher becomes
-        unselectable.
+        ``exclude_current_students`` (default) drops an instructor from the
+        *browsing* list when their email matches a bachelor ``Student`` whose
+        programme started within the last four academic years AND they have
+        never been rated. Masters and rated instructors are always kept, and a
+        non-empty ``search`` bypasses the rule entirely, so no real teacher is
+        unreachable.
         """
         offering_filter = (
             Q(ratings__course_offering_id=course_offering_id)
@@ -114,7 +115,10 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             ),
         )
 
-        if exclude_current_students:
+        # Only while browsing: a search means the user has someone specific in
+        # mind, and hiding them there would be a deadlock — an excluded person
+        # cannot be picked, so they can never earn the rating that reveals them.
+        if exclude_current_students and not search:
             cutoff_year = current_academic_year_start() - (_BACHELOR_PROGRAMME_YEARS - 1)
             current_bachelor_emails = (
                 StudentModel.objects.filter(

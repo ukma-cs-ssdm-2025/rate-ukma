@@ -191,6 +191,23 @@ def test_list_ranked_hides_unrated_current_bachelor_student(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_list_ranked_search_reveals_unrated_current_bachelor_student(repo):
+    # Searching must find them, or they could never be picked and so could never
+    # earn the rating that would reveal them.
+    email = "searchable.bachelor@ukma.edu.ua"
+    instructor = InstructorFactory.create(email=email, last_name="Небачений")
+    StudentFactory.create(
+        email=email,
+        education_level=EducationLevel.BACHELOR,
+        program_start_academic_year_start=current_academic_year_start() - 1,
+    )
+
+    assert instructor.id not in {i.id for i in repo.list_ranked()}
+    assert instructor.id in {i.id for i in repo.list_ranked(search="Небачений")}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_list_ranked_keeps_current_bachelor_student_when_rated(repo):
     # A rated instructor is never hidden, even if they match a current student.
     email = "rated.bachelor@ukma.edu.ua"
