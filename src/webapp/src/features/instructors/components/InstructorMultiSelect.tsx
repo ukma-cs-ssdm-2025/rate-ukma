@@ -218,7 +218,12 @@ function InstructorMultiSelect({
 							</span>
 						))
 					)}
-					<ChevronDownIcon className="ml-auto size-4 opacity-50" />
+					{/* Stable open target: the rest of the trigger is covered by chips
+					    whose remove buttons swallow the click. */}
+					<ChevronDownIcon
+						className="ml-auto size-4 shrink-0 opacity-50"
+						data-testid={testId ? `${testId}-toggle` : undefined}
+					/>
 				</div>
 			</PopoverTrigger>
 			<PopoverContent

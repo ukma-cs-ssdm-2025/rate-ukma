@@ -61,12 +61,18 @@ export class RatingModal {
 		const list = this.page.getByTestId(
 			`${testIds.rating.instructorMultiSelect}-list`,
 		);
+		// Click the chevron, not the trigger itself: once a chip is selected the
+		// trigger's centre lands on that chip's remove button, which removes the
+		// chip and stops the click from reaching the popover.
+		const toggle = this.page.getByTestId(
+			`${testIds.rating.instructorMultiSelect}-toggle`,
+		);
 		// The picker is a Radix Popover rendered inside the rating Dialog; the
 		// open click can race with the dialog's focus handling, so retry the
 		// click until the list actually shows.
 		await expect(async () => {
 			if (!(await list.isVisible())) {
-				await this.instructorTrigger.click();
+				await toggle.click();
 			}
 			await expect(list).toBeVisible({ timeout: 2_000 });
 		}).toPass({ timeout: 20_000 });
