@@ -23,6 +23,9 @@ export class RatingModal {
 	private readonly page: Page;
 	private readonly instructorTrigger: Locator;
 	private readonly instructorInput: Locator;
+	private readonly instructorToggle: Locator;
+	private readonly instructorList: Locator;
+	private readonly instructorSearchInput: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -34,6 +37,15 @@ export class RatingModal {
 			testIds.rating.instructorMultiSelect,
 		);
 		this.instructorInput = page.getByTestId(testIds.rating.instructorInput);
+		this.instructorToggle = page.getByTestId(
+			`${testIds.rating.instructorMultiSelect}-toggle`,
+		);
+		this.instructorList = page.getByTestId(
+			`${testIds.rating.instructorMultiSelect}-list`,
+		);
+		this.instructorSearchInput = page.locator(
+			`[data-testid='${testIds.rating.instructorMultiSelect}-content'] [cmdk-input]`,
+		);
 
 		this.saveButton = page.getByTestId(testIds.rating.submitButton);
 	}
@@ -58,23 +70,14 @@ export class RatingModal {
 
 	async openInstructorPicker(): Promise<void> {
 		await expect(this.instructorTrigger).toBeVisible();
-		const list = this.page.getByTestId(
-			`${testIds.rating.instructorMultiSelect}-list`,
-		);
-		// Click the chevron, not the trigger itself: once a chip is selected the
-		// trigger's centre lands on that chip's remove button, which removes the
-		// chip and stops the click from reaching the popover.
-		const toggle = this.page.getByTestId(
-			`${testIds.rating.instructorMultiSelect}-toggle`,
-		);
-		// The picker is a Radix Popover rendered inside the rating Dialog; the
-		// open click can race with the dialog's focus handling, so retry the
-		// click until the list actually shows.
+		// Click the chevron, not the trigger: with a chip selected the trigger's
+		// centre lands on that chip's remove button. The open click can also race
+		// with the dialog's focus handling, so retry until the list shows.
 		await expect(async () => {
-			if (!(await list.isVisible())) {
-				await toggle.click();
+			if (!(await this.instructorList.isVisible())) {
+				await this.instructorToggle.click();
 			}
-			await expect(list).toBeVisible({ timeout: 2_000 });
+			await expect(this.instructorList).toBeVisible({ timeout: 2_000 });
 		}).toPass({ timeout: 20_000 });
 	}
 
@@ -84,32 +87,18 @@ export class RatingModal {
 	}
 
 	async searchInstructor(query: string): Promise<void> {
-		const list = this.page.getByTestId(
-			`${testIds.rating.instructorMultiSelect}-list`,
-		);
-		await expect(list).toBeVisible();
-		await this.page
-			.locator(
-				`[data-testid='${testIds.rating.instructorMultiSelect}-content'] [cmdk-input]`,
-			)
-			.fill(query);
+		await expect(this.instructorList).toBeVisible();
+		await this.instructorSearchInput.fill(query);
 	}
 
 	async clearInstructorSearch(): Promise<void> {
-		await this.page
-			.locator(
-				`[data-testid='${testIds.rating.instructorMultiSelect}-content'] [cmdk-input]`,
-			)
-			.fill("");
+		await this.instructorSearchInput.fill("");
 	}
 
 	/** Names currently offered by the picker, in listed order. */
 	async getListedInstructorNames(limit = 5): Promise<string[]> {
-		const list = this.page.getByTestId(
-			`${testIds.rating.instructorMultiSelect}-list`,
-		);
-		await expect(list).toBeVisible();
-		const options = list.getByRole("option");
+		await expect(this.instructorList).toBeVisible();
+		const options = this.instructorList.getByRole("option");
 		await expect(options.first()).toBeVisible();
 		const count = Math.min(await options.count(), limit);
 		const names: string[] = [];
@@ -124,21 +113,18 @@ export class RatingModal {
 	 * choice never depends on directory ordering or on a partial-name collision.
 	 */
 	async pickInstructorByText(text: string): Promise<void> {
-		const list = this.page.getByTestId(
-			`${testIds.rating.instructorMultiSelect}-list`,
-		);
 		await this.searchInstructor(text);
-		const option = list.getByRole("option", { name: text, exact: true });
+		const option = this.instructorList.getByRole("option", {
+			name: text,
+			exact: true,
+		});
 		await expect(option).toBeVisible();
 		await option.click();
 	}
 
 	async closeInstructorPicker(): Promise<void> {
-		const list = this.page.getByTestId(
-			`${testIds.rating.instructorMultiSelect}-list`,
-		);
 		await this.page.keyboard.press("Escape");
-		await expect(list).toBeHidden();
+		await expect(this.instructorList).toBeHidden();
 	}
 
 	private get instructorChips(): Locator {
