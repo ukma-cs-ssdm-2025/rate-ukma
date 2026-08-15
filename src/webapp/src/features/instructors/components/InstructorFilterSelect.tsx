@@ -81,6 +81,8 @@ function InstructorFilterSelect({
 		setOpen(false);
 	};
 
+	const listId = React.useId();
+
 	const clear = (event: React.MouseEvent) => {
 		event.preventDefault();
 		event.stopPropagation();
@@ -90,11 +92,22 @@ function InstructorFilterSelect({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				<button
-					type="button"
+				{/* A div, not a button: the clear control below is itself a button and
+				    HTML forbids nesting interactive elements. */}
+				<div
 					role="combobox"
+					tabIndex={0}
 					aria-expanded={open}
+					aria-haspopup="listbox"
+					aria-controls={listId}
+					onKeyDown={(event) => {
+						if (event.key === "Enter" || event.key === " ") {
+							event.preventDefault();
+							setOpen(!open);
+						}
+					}}
 					className={cn(
+						"cursor-pointer",
 						"border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex min-h-9 w-full items-center gap-1 rounded-md border bg-transparent px-3 py-1.5 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px]",
 						className,
 					)}
@@ -119,7 +132,7 @@ function InstructorFilterSelect({
 					) : (
 						<ChevronDownIcon className="ml-auto size-4 opacity-50" />
 					)}
-				</button>
+				</div>
 			</PopoverTrigger>
 			<PopoverContent
 				className="w-(--radix-popover-trigger-width) p-0"
@@ -132,6 +145,7 @@ function InstructorFilterSelect({
 						placeholder={searchPlaceholder}
 					/>
 					<CommandList
+						id={listId}
 						className="max-h-72 overflow-y-auto"
 						data-testid={testId ? `${testId}-list` : undefined}
 					>

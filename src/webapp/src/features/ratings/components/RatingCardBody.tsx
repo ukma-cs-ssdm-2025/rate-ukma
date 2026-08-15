@@ -12,7 +12,7 @@ import type {
 	RatingInstructor,
 	RatingVoteStrType,
 } from "@/lib/api/generated";
-import { useFeatureFlag } from "@/lib/feature-flags";
+import { useFeatureFlags } from "@/lib/feature-flags";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
@@ -72,7 +72,9 @@ export function RatingCardBody({
 	votesReadOnly = false,
 	votesDisabledMessage,
 }: RatingCardBodyProps) {
-	const showMultiSelect = useFeatureFlag("fe_instructor_multiselect");
+	const { flags, isReady } = useFeatureFlags();
+	const showMultiSelect = isReady && flags.fe_instructor_multiselect === true;
+	const instructorNames = instructors.map(formatInstructorName).filter(Boolean);
 	return (
 		<>
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -105,13 +107,13 @@ export function RatingCardBody({
 				<RatingStats difficulty={difficulty} usefulness={usefulness} />
 			</div>
 
-			{showMultiSelect && instructors.length > 0 ? (
+			{!isReady ? null : showMultiSelect && instructorNames.length > 0 ? (
 				<p className="mt-2 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
 					<span className="shrink-0 font-medium">
-						{instructors.length > 1 ? "Викладачі:" : "Викладач:"}
+						{instructorNames.length > 1 ? "Викладачі:" : "Викладач:"}
 					</span>
 					<span className="min-w-0 break-words">
-						{instructors.map(formatInstructorName).join(", ")}
+						{instructorNames.join(", ")}
 					</span>
 				</p>
 			) : (

@@ -1815,7 +1815,7 @@ paths:
         name: search
         schema:
           type: string
-        description: Substring match on name or email (case-insensitive)
+        description: Substring match on first name, last name or patronymic (case-insensitive)
       - in: query
         name: speciality_id
         schema:

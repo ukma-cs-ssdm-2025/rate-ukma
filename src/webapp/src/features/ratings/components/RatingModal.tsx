@@ -18,7 +18,7 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
-import { useFeatureFlag } from "@/lib/feature-flags";
+import { useFeatureFlags } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
@@ -52,7 +52,9 @@ export function RatingModal({
 	onSuccess,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
-	const showMultiSelect = useFeatureFlag("fe_instructor_multiselect");
+	const { flags, isReady: flagsReady } = useFeatureFlags();
+	const showMultiSelect =
+		flagsReady && flags.fe_instructor_multiselect === true;
 	const queryClient = useQueryClient();
 
 	const createMutation = useCoursesRatingsCreate();
@@ -81,6 +83,10 @@ export function RatingModal({
 	const handleSubmit = async (data: RatingFormData) => {
 		// Gate the write path: when the multi-select flag is off, persist the
 		// legacy free-text instructor; when on, persist the M2M instructor_ids.
+		// Submitting before the flags resolve would pick the wrong shape.
+		if (!flagsReady) {
+			return;
+		}
 		const instructorPayload = showMultiSelect
 			? { instructor_ids: data.instructor_ids }
 			: { instructor: data.instructor ?? "" };

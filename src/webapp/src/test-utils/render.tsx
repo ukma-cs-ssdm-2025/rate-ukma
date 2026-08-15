@@ -18,6 +18,7 @@ export function renderWithProviders(
 		RenderOptions & {
 			queryClient?: QueryClient;
 			flags?: Record<string, boolean>;
+			flagsReady?: boolean;
 		}
 	>,
 ) {
@@ -36,7 +37,10 @@ export function renderWithProviders(
 			<QueryClientProvider client={queryClient}>
 				<AuthProvider>
 					<FeatureFlagsContext.Provider
-						value={{ flags: options?.flags ?? {}, isReady: true }}
+						value={{
+							flags: options?.flags ?? {},
+							isReady: options?.flagsReady ?? true,
+						}}
 					>
 						{children}
 					</FeatureFlagsContext.Provider>

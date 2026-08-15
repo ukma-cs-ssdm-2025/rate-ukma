@@ -152,6 +152,8 @@ function InstructorMultiSelect({
 		onChange([...value, id]);
 	};
 
+	const listId = React.useId();
+
 	const removeValue = (event: React.MouseEvent, id: string) => {
 		event.preventDefault();
 		event.stopPropagation();
@@ -168,15 +170,28 @@ function InstructorMultiSelect({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				<button
-					type="button"
+				{/* A div, not a button: the chip remove controls below are themselves
+				    buttons and HTML forbids nesting interactive elements. */}
+				<div
 					role="combobox"
+					tabIndex={disabled ? -1 : 0}
 					aria-expanded={open}
+					aria-haspopup="listbox"
+					aria-controls={listId}
+					aria-disabled={disabled || undefined}
+					onKeyDown={(event) => {
+						if (disabled) {
+							return;
+						}
+						if (event.key === "Enter" || event.key === " ") {
+							event.preventDefault();
+							setOpen(!open);
+						}
+					}}
 					className={cn(
-						"border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border bg-transparent px-3 py-1.5 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+						"border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex min-h-9 w-full cursor-pointer flex-wrap items-center gap-1 rounded-md border bg-transparent px-3 py-1.5 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
 						className,
 					)}
-					disabled={disabled}
 					data-testid={testId}
 				>
 					{selectedInstructors.length === 0 ? (
@@ -204,7 +219,7 @@ function InstructorMultiSelect({
 						))
 					)}
 					<ChevronDownIcon className="ml-auto size-4 opacity-50" />
-				</button>
+				</div>
 			</PopoverTrigger>
 			<PopoverContent
 				className="w-(--radix-popover-trigger-width) p-0"
@@ -217,6 +232,7 @@ function InstructorMultiSelect({
 						placeholder={searchPlaceholder}
 					/>
 					<CommandList
+						id={listId}
 						className="max-h-72 overflow-y-auto"
 						data-testid={testId ? `${testId}-list` : undefined}
 					>

@@ -54,5 +54,18 @@ describe("RatingForm", () => {
 				screen.queryByTestId(testIds.rating.instructorInput),
 			).not.toBeInTheDocument();
 		});
+
+		it("renders neither variant until the flags resolve", () => {
+			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />, {
+				flagsReady: false,
+			});
+
+			expect(
+				screen.queryByTestId(testIds.rating.instructorInput),
+			).not.toBeInTheDocument();
+			expect(
+				screen.queryByTestId(testIds.rating.instructorMultiSelect),
+			).not.toBeInTheDocument();
+		});
 	});
 });

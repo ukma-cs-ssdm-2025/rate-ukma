@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
-import { useFeatureFlag } from "@/lib/feature-flags";
+import { useFeatureFlags } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import {
@@ -43,7 +43,7 @@ const ratingSchema = z.object({
 		.optional(),
 	instructor_ids: z.array(z.string().uuid()),
 	// Legacy free-text instructor, used when the multi-select feature flag is off.
-	instructor: z.string().optional(),
+	instructor: z.string().max(256).optional(),
 	is_anonymous: z.boolean(),
 });
 
@@ -153,12 +153,14 @@ function RatingFormFields({
 	courseId,
 	initialInstructors,
 	showMultiSelect,
+	flagsReady,
 }: Readonly<{
 	control: ReturnType<typeof useForm<RatingFormData>>["control"];
 	offeringId?: string;
 	courseId?: string;
 	initialInstructors?: readonly Instructor[];
 	showMultiSelect: boolean;
+	flagsReady: boolean;
 }>) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
@@ -204,7 +206,10 @@ function RatingFormFields({
 				/>
 			</div>
 
-			{showMultiSelect ? (
+			{/* Hold the instructor field until flags resolve: rendering the legacy
+			    input first would let typed text be discarded when the multi-select
+			    takes over. */}
+			{!flagsReady ? null : showMultiSelect ? (
 				<FormField<RatingFormData, "instructor_ids">
 					control={control}
 					name="instructor_ids"
@@ -323,7 +328,9 @@ export function RatingForm({
 	courseId,
 	initialInstructors,
 }: RatingFormProps) {
-	const showMultiSelect = useFeatureFlag("fe_instructor_multiselect");
+	const { flags, isReady: flagsReady } = useFeatureFlags();
+	const showMultiSelect =
+		flagsReady && flags.fe_instructor_multiselect === true;
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
 		defaultValues: initialData || {
@@ -355,6 +362,7 @@ export function RatingForm({
 					courseId={courseId}
 					initialInstructors={initialInstructors}
 					showMultiSelect={showMultiSelect}
+					flagsReady={flagsReady}
 				/>
 
 				<div className="shrink-0 border-t bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">

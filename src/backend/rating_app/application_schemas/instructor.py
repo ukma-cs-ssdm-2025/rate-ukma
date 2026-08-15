@@ -26,7 +26,7 @@ class InstructorListParams(BaseModel):
     page_size: int = Field(default=20, ge=1, le=100, description="Page size")
     search: str | None = Field(
         default=None,
-        description="Substring match on name or email (case-insensitive)",
+        description="Substring match on first name, last name or patronymic (case-insensitive)",
     )
     course_offering_id: uuid.UUID | None = Field(
         default=None,
