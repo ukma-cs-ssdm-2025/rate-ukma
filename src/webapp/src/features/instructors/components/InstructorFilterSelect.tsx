@@ -18,7 +18,7 @@ import { useInstructorsRetrieve } from "@/lib/api/generated";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { cn } from "@/lib/utils";
 import { useInfiniteInstructors } from "../hooks/useInfiniteInstructors";
-import { formatInstructorLabel } from "./InstructorMultiSelect";
+import { formatInstructorName } from "../formatInstructorName";
 
 const SEARCH_DEBOUNCE_MS = 200;
 
@@ -115,7 +115,7 @@ function InstructorFilterSelect({
 					<span className={cn("truncate", !value && "text-muted-foreground")}>
 						{value
 							? selected
-								? formatInstructorLabel(selected)
+								? formatInstructorName(selected)
 								: "…"
 							: placeholder}
 					</span>
@@ -162,7 +162,7 @@ function InstructorFilterSelect({
 									className="flex items-start gap-2"
 								>
 									<span className="break-words">
-										{formatInstructorLabel(instr)}
+										{formatInstructorName(instr)}
 									</span>
 									<CheckIcon
 										className={cn(

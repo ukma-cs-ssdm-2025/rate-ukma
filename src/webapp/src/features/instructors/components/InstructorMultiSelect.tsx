@@ -18,15 +18,8 @@ import {
 import type { Instructor } from "@/lib/api/generated";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { cn } from "@/lib/utils";
+import { formatInstructorName } from "../formatInstructorName";
 import { useInfiniteInstructors } from "../hooks/useInfiniteInstructors";
-
-function formatInstructorLabel(instructor: Instructor): string {
-	const parts = [instructor.last_name ?? "", instructor.first_name ?? ""];
-	if (instructor.patronymic) {
-		parts.push(instructor.patronymic);
-	}
-	return parts.filter(Boolean).join(" ");
-}
 
 const SEARCH_DEBOUNCE_MS = 200;
 
@@ -204,11 +197,11 @@ function InstructorMultiSelect({
 								className="bg-secondary text-secondary-foreground inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-xs"
 							>
 								<span className="break-words">
-									{formatInstructorLabel(instr)}
+									{formatInstructorName(instr)}
 								</span>
 								<button
 									type="button"
-									aria-label={`Видалити ${formatInstructorLabel(instr)}`}
+									aria-label={`Видалити ${formatInstructorName(instr)}`}
 									className="hover:text-destructive cursor-pointer"
 									onClick={(e) => removeValue(e, instr.id)}
 								>
@@ -255,7 +248,7 @@ function InstructorMultiSelect({
 										className="flex items-start gap-2"
 									>
 										<span className="break-words">
-											{formatInstructorLabel(instr)}
+											{formatInstructorName(instr)}
 										</span>
 										<CheckIcon
 											className={cn(
@@ -281,5 +274,5 @@ function InstructorMultiSelect({
 	);
 }
 
-export { InstructorMultiSelect, formatInstructorLabel };
+export { InstructorMultiSelect };
 export type { InstructorMultiSelectProps };

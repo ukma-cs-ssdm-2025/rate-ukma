@@ -160,12 +160,103 @@ def _is_cyrillic(ch: str) -> bool:
         return False
 
 
-def _parse_name(display_name: str) -> tuple[str, str, str]:
+# How each letter can appear in a UKMA mailbox.
+_TRANSLITERATION = {
+    "а": ("a",),
+    "б": ("b",),
+    "в": ("v", "w"),
+    "г": ("h", "g"),
+    "ґ": ("g",),
+    "д": ("d",),
+    "е": ("e",),
+    "є": ("ye", "ie", "e"),
+    "ж": ("zh", "j", "z"),
+    "з": ("z", "s"),
+    "и": ("y", "i", "e"),
+    "і": ("i", "y"),
+    "ї": ("yi", "i", "ji"),
+    "й": ("y", "i", "j"),
+    "к": ("k", "c"),
+    "л": ("l",),
+    "м": ("m",),
+    "н": ("n",),
+    "о": ("o",),
+    "п": ("p",),
+    "р": ("r",),
+    "с": ("s", "c"),
+    "т": ("t",),
+    "у": ("u", "ou"),
+    "ф": ("f", "ph"),
+    "х": ("kh", "h", "x", "ch"),
+    "ц": ("ts", "c", "tz"),
+    "ч": ("ch", "tch"),
+    "ш": ("sh", "sch"),
+    "щ": ("shch", "sch", "sh"),
+    "ь": ("",),
+    "ю": ("yu", "iu", "ju", "u"),
+    "я": ("ya", "ia", "ja", "a"),
+}
+_MIN_SURNAME_SEGMENT_LENGTH = 3
+_MAX_INITIAL_SEGMENT_LENGTH = 2
+_MIN_MATCH = 2
+_MIN_MARGIN = 2
+
+
+def _match_length(token: str, segment: str) -> int:
+    """How many characters of the mailbox segment this token can spell."""
+    reachable = {0}
+    matched = 0
+    for char in token.lower():
+        spellings = _TRANSLITERATION.get(char)
+        if spellings is None:
+            spellings = (char,) if char.isalnum() else ("",)
+        advanced = {
+            position + len(spelling)
+            for position in reachable
+            for spelling in spellings
+            if segment.startswith(spelling, position)
+        }
+        if not advanced:
+            break
+        reachable = advanced
+        matched = max(reachable)
+    return matched
+
+
+def _order_by_mailbox(tokens: list[str], upn_local: str) -> tuple[str, str] | None:
+    """Which of the two words is the surname, per the mailbox. None if unclear."""
+    local = upn_local.lower().strip()
+    if "." not in local:
+        return None
+
+    initial_segment, surname_segment = local.rsplit(".", 1)
+    if len(surname_segment) < _MIN_SURNAME_SEGMENT_LENGTH:
+        return None
+    if len(initial_segment) > _MAX_INITIAL_SEGMENT_LENGTH:
+        return None
+
+    scored = sorted(
+        ((_match_length(token, surname_segment), token) for token in tokens),
+        key=lambda pair: pair[0],
+        reverse=True,
+    )
+    (best, last_name), (runner_up, _) = scored
+    if best < _MIN_MATCH or best - runner_up < _MIN_MARGIN:
+        return None
+    return next(t for t in tokens if t is not last_name), last_name
+
+
+def _parse_name(display_name: str, upn_local: str = "") -> tuple[str, str, str]:
     """Return (first_name, patronymic, last_name).
 
-    Ukrainian display names follow `Last First [Patronymic]`; Latin display names
-    follow `First Last`. Detection is based on the first alphabetic character of
-    the displayName.
+    Ukrainian display names mostly follow `Last First [Patronymic]`, Latin ones
+    `First Last`. Detection is based on the first alphabetic character of the
+    displayName.
+
+    Part of the export writes Cyrillic names the other way round, as
+    `First Last`, and with only two tokens nothing in the string itself gives
+    the order away. `upn_local` resolves those against the mailbox; a third
+    token means the name is already `Last First Patronymic` and is trusted.
     """
     tokens = [t for t in display_name.strip().split() if t]
     if not tokens:
@@ -176,11 +267,22 @@ def _parse_name(display_name: str) -> tuple[str, str, str]:
         last_name = tokens[0]
         first_name = tokens[1] if len(tokens) > 1 else ""
         patronymic = tokens[2] if len(tokens) > 2 else ""
+        if len(tokens) == 2 and upn_local:
+            ordered = _order_by_mailbox(tokens, upn_local)
+            if ordered is not None:
+                first_name, last_name = ordered
         return first_name, patronymic, last_name
 
     if len(tokens) == 1:
         return tokens[0], "", ""
     return tokens[0], "", " ".join(tokens[1:])
+
+
+def _names_from_row(row: dict[str, str], email: str) -> dict[str, str] | None:
+    first_name, patronymic, last_name = _parse_name(row["displayName"], email.split("@", 1)[0])
+    if not last_name and not first_name:
+        return None
+    return {"first_name": first_name, "last_name": last_name, "patronymic": patronymic}
 
 
 def _open_csv(path: str):
@@ -221,11 +323,21 @@ class Command(BaseCommand):
             action="store_true",
             help="Run the filter pipeline and report counts without writing.",
         )
+        parser.add_argument(
+            "--refresh-names",
+            action="store_true",
+            help=(
+                "Also rewrite the names of people already in the directory. Off by "
+                "default: the export is inconsistent about name order, so corrections "
+                "made here would be undone on the next run."
+            ),
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
         csv_path: str = options["csv_path"]
         dry_run: bool = options["dry_run"]
+        refresh_names: bool = options["refresh_names"]
 
         rows = self._load_rows(csv_path)
         logger.info("instructors_csv_loaded", path=csv_path, row_count=len(rows))
@@ -244,11 +356,13 @@ class Command(BaseCommand):
             f"  Candidates: {len(candidates)}\n"
         )
 
-        created, updated = self._upsert(candidates, dry_run)
+        created, updated, kept_as_is = self._upsert(candidates, dry_run, refresh_names)
         logger.info(
             "instructors_ingest_complete",
             created=created,
             updated=updated,
+            kept_as_is=kept_as_is,
+            refresh_names=refresh_names,
             dry_run=dry_run,
         )
 
@@ -256,7 +370,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Dry run — no changes made."))
             transaction.set_rollback(True)
         else:
-            self.stdout.write(self.style.SUCCESS(f"Done. created={created} updated={updated}"))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Done. created={created} updated={updated} kept_as_is={kept_as_is}"
+                )
+            )
 
     def _load_rows(self, path: str) -> list[dict[str, str]]:
         try:
@@ -306,32 +424,26 @@ class Command(BaseCommand):
         self,
         candidates: list[dict[str, str]],
         dry_run: bool,
-    ) -> tuple[int, int]:
+        refresh_names: bool,
+    ) -> tuple[int, int, int]:
+        """Add people; leave the ones already here alone, so hand fixes survive."""
         created = 0
         updated = 0
+        kept_as_is = 0
         for row in candidates:
             email = (row["userPrincipalName"] or "").lower()
-            first_name, patronymic, last_name = _parse_name(row["displayName"])
-            if not last_name and not first_name:
+            names = _names_from_row(row, email)
+            if names is None:
                 continue
-            if dry_run:
-                if Instructor.objects.filter(email=email).exists():
-                    updated += 1
-                else:
-                    created += 1
-                continue
-            _, was_created = Instructor.objects.update_or_create(
-                email=email,
-                defaults={
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "patronymic": patronymic,
-                },
-            )
-            if was_created:
+
+            if not Instructor.objects.filter(email=email).exists():
                 created += 1
-                logger.debug("instructor_upserted", email=email, created=True)
-            else:
+            elif refresh_names:
                 updated += 1
-                logger.debug("instructor_upserted", email=email, created=False)
-        return created, updated
+            else:
+                kept_as_is += 1
+                continue
+
+            if not dry_run:
+                Instructor.objects.update_or_create(email=email, defaults=names)
+        return created, updated, kept_as_is
