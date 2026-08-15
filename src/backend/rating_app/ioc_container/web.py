@@ -13,6 +13,7 @@ from ..views import (
     FlagsViewSet,
     InstructorViewSet,
     NotificationViewSet,
+    PromoBannerViewSet,
     RatingViewSet,
     RatingVoteViewSet,
     StudentStatisticsViewSet,
@@ -26,6 +27,7 @@ from .services import (
     course_service,
     instructor_service,
     notification_service,
+    promo_banner_service,
     rating_service,
     student_service,
     vote_service,
@@ -233,6 +235,14 @@ def flags_list_view():
 
 
 @once
+def promo_banner_list_view():
+    return PromoBannerViewSet.as_view(
+        {"get": "list"},
+        promo_banner_service=promo_banner_service(),
+    )
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -369,6 +379,11 @@ def rest_urlpatterns() -> list:
             "flags/",
             flags_list_view(),
             name="flags-list",
+        ),
+        path(
+            "promo-banner/",
+            promo_banner_list_view(),
+            name="promo-banner-list",
         ),
     ]
 

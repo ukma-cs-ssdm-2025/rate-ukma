@@ -213,6 +213,13 @@ export const testIds = {
 		mobilePanel: "notifications-mobile-panel",
 	},
 
+	// Homepage promo banner
+	promo: {
+		banner: "promo-banner",
+		link: "promo-banner-link",
+		dismissButton: "promo-banner-dismiss-button",
+	},
+
 	// Footer
 	footer: {
 		repoLink: "footer-repo-link",

@@ -19,6 +19,7 @@ from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDT
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.application_schemas.notification import NotificationGroup
+from rating_app.application_schemas.promo_banner import PromoBanner as PromoBannerDTO
 from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
 from rating_app.application_schemas.semester import Semester as SemesterDTO
@@ -48,6 +49,7 @@ from rating_app.models.enrollment import Enrollment as EnrollmentModel
 from rating_app.models.faculty import Faculty as FacultyModel
 from rating_app.models.instructor import Instructor as InstructorModel
 from rating_app.models.notification import Notification as NotificationModel
+from rating_app.models.promo_banner import PromoBanner as PromoBannerModel
 from rating_app.models.rating import Rating as RatingModel
 from rating_app.models.rating_vote import RatingVote as RatingVoteModel
 from rating_app.models.semester import Semester as SemesterModel
@@ -549,6 +551,20 @@ class FacultyMapper(IProcessor[[FacultyModel], FacultyDTO]):
             id=model.id,
             name=model.name,
             custom_abbreviation=model.custom_abbreviation,
+        )
+
+
+class PromoBannerMapper(IProcessor[[PromoBannerModel], PromoBannerDTO]):
+    @implements
+    def process(self, model: PromoBannerModel) -> PromoBannerDTO:
+        return PromoBannerDTO(
+            id=model.id,
+            title=model.title,
+            description=model.description,
+            href=model.href,
+            cta_label=model.cta_label,
+            logo_url=model.logo.url if model.logo else None,
+            logo_alt=model.logo_alt or model.title,
         )
 
 

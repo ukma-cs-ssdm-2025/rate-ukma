@@ -11,6 +11,7 @@ from rating_app.ioc_container.repositories import (
     instructor_repository,
     notification_cursor_repository,
     notification_repository,
+    promo_banner_repository,
     rating_repository,
     rating_vote_mapper,
     semester_repository,
@@ -29,6 +30,7 @@ from rating_app.services import (
     DepartmentService,
     FacultyService,
     InstructorService,
+    PromoBannerService,
     RatingFeedbackService,
     RatingService,
     SemesterService,
@@ -137,6 +139,11 @@ def instructor_service() -> InstructorService:
         mapper=instructor_mapper(),
         paginator=GenericQuerysetPaginator(),
     )
+
+
+@once
+def promo_banner_service() -> PromoBannerService:
+    return PromoBannerService(promo_banner_repository=promo_banner_repository())
 
 
 @once

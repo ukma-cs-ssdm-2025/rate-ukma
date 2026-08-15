@@ -12,6 +12,7 @@ import {
 	DIFFICULTY_RANGE,
 	USEFULNESS_RANGE,
 } from "@/features/courses/courseFormatting";
+import { PromoBanner } from "@/features/promo/components/PromoBanner";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
@@ -68,6 +69,7 @@ export function CoursesRoute() {
 	return (
 		<Layout>
 			<div className="space-y-8">
+				<PromoBanner />
 				{isError ? (
 					<CoursesErrorState onRetry={handleRetry} />
 				) : (

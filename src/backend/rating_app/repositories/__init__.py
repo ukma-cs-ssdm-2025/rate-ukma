@@ -10,6 +10,7 @@ from .notification_repository import (
     NotificationCursorRepository,
     NotificationRepository,
 )
+from .promo_banner_repository import PromoBannerRepository
 from .rating_repository import RatingRepository
 from .semester_repository import SemesterRepository
 from .speciality_repository import SpecialityRepository
@@ -21,6 +22,7 @@ from .to_domain_mappers import (
     CourseOfferingMapper,
     InstructorMapper,
     NotificationGroupMapper,
+    PromoBannerMapper,
     RatingMapper,
     RatingVoteMapper,
 )
@@ -52,4 +54,6 @@ __all__ = [
     "NotificationRepository",
     "NotificationCursorRepository",
     "NotificationGroupMapper",
+    "PromoBannerRepository",
+    "PromoBannerMapper",
 ]

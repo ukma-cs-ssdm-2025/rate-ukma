@@ -2087,6 +2087,25 @@ paths:
                     detail: Authentication credentials were not provided
                     status: 401
           description: Unauthorized
+  /api/v1/promo-banner/:
+    get:
+      operationId: promo_banner_list
+      description: Returns the active promo banner configured in Django admin, or
+        `null` when none is active.
+      summary: Retrieve the active promo banner
+      tags:
+      - promo-banner
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromoBannerResponse'
+          description: OK
   /api/v1/ratings/{rating_id}/comments/:
     get:
       operationId: ratings_comments_list
@@ -3524,6 +3543,41 @@ components:
       description: |-
         * `PRACTICE` - Practice
         * `SEMINAR` - Seminar
+    PromoBanner:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        href:
+          type: string
+          readOnly: true
+        cta_label:
+          type: string
+          readOnly: true
+        logo_url:
+          type: string
+          readOnly: true
+          nullable: true
+        logo_alt:
+          type: string
+          readOnly: true
+    PromoBannerResponse:
+      type: object
+      properties:
+        banner:
+          allOf:
+          - $ref: '#/components/schemas/PromoBanner'
+          readOnly: true
+          nullable: true
+          description: The active promo banner, or null when none is configured.
     RatingCreateRequest:
       properties:
         course_offering:
