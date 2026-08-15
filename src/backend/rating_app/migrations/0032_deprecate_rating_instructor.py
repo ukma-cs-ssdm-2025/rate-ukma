@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Deprecated. The text the student typed; read-only fallback.",
+                help_text="Deprecated. The text the student typed; use `instructors`.",
                 max_length=256,
             ),
         ),

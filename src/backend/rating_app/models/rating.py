@@ -27,13 +27,15 @@ class Rating(models.Model):
     difficulty = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     usefulness = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True, default="")
-    # DEPRECATED: superseded by `instructors`. Kept as the provenance record for
-    # the backfill, so it is never written to and never dropped.
+    # DEPRECATED: superseded by `instructors`, but not dropped — it is what the
+    # student typed, and the only provenance for links the backfill derived.
+    # Still written by the legacy path, and cleared when a student picks
+    # instructors instead.
     instructor = models.CharField(
         max_length=256,
         blank=True,
         default="",
-        help_text="Deprecated. The text the student typed; read-only fallback.",
+        help_text="Deprecated. The text the student typed; use `instructors`.",
     )
     instructors = models.ManyToManyField(
         Instructor,
