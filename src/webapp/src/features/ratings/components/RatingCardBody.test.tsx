@@ -72,6 +72,13 @@ describe("RatingCardBody instructor display", () => {
 		expect(screen.getByText("Сегін")).toBeInTheDocument();
 	});
 
+	it("still shows legacy text with the flag on when the rating has no M2M instructors", () => {
+		render(<RatingCardBody {...baseProps} instructor="Сегін" />, FF_ON);
+
+		expect(screen.getByText("Викладач:")).toBeInTheDocument();
+		expect(screen.getByText("Сегін")).toBeInTheDocument();
+	});
+
 	it("prefers M2M over legacy text when both are present", () => {
 		render(
 			<RatingCardBody

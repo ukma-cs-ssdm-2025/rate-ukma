@@ -87,8 +87,14 @@ export function RatingModal({
 		if (!flagsReady) {
 			return;
 		}
+		// Picking real instructors supersedes whatever was typed into the legacy
+		// field, so clear it. An empty selection leaves the old text alone rather
+		// than silently dropping the only instructor the rating has.
 		const instructorPayload = showMultiSelect
-			? { instructor_ids: data.instructor_ids }
+			? {
+					instructor_ids: data.instructor_ids,
+					...(data.instructor_ids.length > 0 ? { instructor: "" } : {}),
+				}
 			: { instructor: data.instructor ?? "" };
 		try {
 			if (isEditMode && existingRating?.id) {

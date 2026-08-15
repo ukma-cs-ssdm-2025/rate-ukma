@@ -55,6 +55,36 @@ describe("RatingForm", () => {
 			).not.toBeInTheDocument();
 		});
 
+		it("shows the previous free-text instructor read-only next to the multi-select", () => {
+			render(
+				<RatingForm
+					onSubmit={vi.fn()}
+					onCancel={vi.fn()}
+					isEditMode
+					initialData={{
+						difficulty: 3,
+						usefulness: 3,
+						comment: "",
+						instructor_ids: [],
+						instructor: "Сегін",
+						is_anonymous: false,
+					}}
+				/>,
+				{ flags: { fe_instructor_multiselect: true } },
+			);
+
+			expect(
+				screen.getByTestId(testIds.rating.legacyInstructorReadonly),
+			).toHaveTextContent("Сегін");
+			expect(
+				screen.getByTestId(testIds.rating.instructorMultiSelect),
+			).toBeInTheDocument();
+			// The old value is informational only — it cannot be edited as text.
+			expect(
+				screen.queryByTestId(testIds.rating.instructorInput),
+			).not.toBeInTheDocument();
+		});
+
 		it("renders neither variant until the flags resolve", () => {
 			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />, {
 				flagsReady: false,

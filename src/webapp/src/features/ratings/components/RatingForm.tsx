@@ -154,6 +154,7 @@ function RatingFormFields({
 	initialInstructors,
 	showMultiSelect,
 	flagsReady,
+	legacyInstructor,
 }: Readonly<{
 	control: ReturnType<typeof useForm<RatingFormData>>["control"];
 	offeringId?: string;
@@ -161,6 +162,7 @@ function RatingFormFields({
 	initialInstructors?: readonly Instructor[];
 	showMultiSelect: boolean;
 	flagsReady: boolean;
+	legacyInstructor?: string;
 }>) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
@@ -216,6 +218,15 @@ function RatingFormFields({
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Викладачі (необов'язково)</FormLabel>
+							{legacyInstructor && (
+								<p
+									className="text-sm text-muted-foreground"
+									data-testid={testIds.rating.legacyInstructorReadonly}
+								>
+									Раніше вказано текстом:{" "}
+									<span className="font-medium">{legacyInstructor}</span>
+								</p>
+							)}
 							<FormControl>
 								<InstructorMultiSelect
 									value={field.value ?? []}
@@ -227,7 +238,9 @@ function RatingFormFields({
 								/>
 							</FormControl>
 							<FormDescription>
-								Можна обрати кількох викладачів, які вели курс
+								{legacyInstructor
+									? "Оберіть викладачів зі списку — вони замінять текстовий запис"
+									: "Можна обрати кількох викладачів, які вели курс"}
 							</FormDescription>
 							<FormMessage />
 						</FormItem>
@@ -363,6 +376,7 @@ export function RatingForm({
 					initialInstructors={initialInstructors}
 					showMultiSelect={showMultiSelect}
 					flagsReady={flagsReady}
+					legacyInstructor={initialData?.instructor?.trim() || undefined}
 				/>
 
 				<div className="shrink-0 border-t bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
