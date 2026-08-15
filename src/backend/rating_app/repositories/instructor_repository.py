@@ -1,12 +1,43 @@
+import uuid
+from datetime import date
 from typing import Literal, overload
 
-from django.db.models import QuerySet
+from django.db.models import (
+    Case,
+    Count,
+    IntegerField,
+    Q,
+    QuerySet,
+    Subquery,
+    Value,
+    When,
+)
+from django.db.models.functions import Lower
 
 from rating_app.application_schemas.instructor import Instructor, InstructorInput
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.models import Instructor as InstructorModel
+from rating_app.models import Student as StudentModel
+from rating_app.models.choices import EducationLevel
 from rating_app.repositories.protocol import IDomainOrmRepository
 from rating_app.repositories.to_domain_mappers import InstructorMapper
+
+# A bachelor programme is 4 academic years; a student who started within the
+# last 4 years is still enrolled. Masters are excluded from the rule on purpose
+# (master students routinely teach practicums), and anyone ever rated is kept
+# regardless (see list_ranked).
+_BACHELOR_PROGRAMME_YEARS = 4
+
+
+def current_academic_year_start(today: date | None = None) -> int:
+    """Academic year currently in progress, as its starting calendar year.
+
+    The UKMA academic year begins in September, so Jan–Aug belongs to the year
+    that started the previous September. Derived from the wall clock rather than
+    the scraped ``Semester`` table, which also holds *planned* future semesters.
+    """
+    today = today or date.today()
+    return today.year if today.month >= 9 else today.year - 1
 
 
 class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
@@ -18,6 +49,114 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         if ordered:
             qs = qs.order_by("last_name", "first_name", "id")
         return self._map_to_domain_models(qs)
+
+    def list_ranked(
+        self,
+        *,
+        search: str | None = None,
+        course_offering_id: uuid.UUID | None = None,
+        course_id: uuid.UUID | None = None,
+        speciality_id: uuid.UUID | None = None,
+        exclude_current_students: bool = True,
+    ) -> QuerySet[InstructorModel]:
+        """Annotate instructors with mention counts and order by relevance.
+
+        Ordering, most specific first (each scoped count is zero when its
+        filter is omitted):
+
+        1. mentions on this exact offering, DESC
+        2. mentions on any offering of the same course, DESC
+        3. mentions within the speciality, DESC
+        4. global mentions, DESC — anyone ever rated outranks the never-rated tail
+        5. Cyrillic before Latin, then last_name, first_name, id
+
+        ``exclude_current_students`` (default) drops an instructor from the
+        *browsing* list when their email matches a bachelor ``Student`` whose
+        programme started within the last four academic years AND they have
+        never been rated. Masters and rated instructors are always kept, and a
+        non-empty ``search`` bypasses the rule entirely, so no real teacher is
+        unreachable.
+        """
+        offering_filter = (
+            Q(ratings__course_offering_id=course_offering_id)
+            if course_offering_id
+            else Q(pk__in=[])
+        )
+        course_filter = (
+            Q(ratings__course_offering__course_id=course_id) if course_id else Q(pk__in=[])
+        )
+        speciality_filter = (
+            Q(ratings__course_offering__specialities__id=speciality_id)
+            if speciality_id
+            else Q(pk__in=[])
+        )
+
+        qs = InstructorModel.objects.annotate(
+            offering_mentions=Count(
+                "ratings",
+                filter=offering_filter,
+                distinct=True,
+            ),
+            course_mentions=Count(
+                "ratings",
+                filter=course_filter,
+                distinct=True,
+            ),
+            speciality_mentions=Count(
+                "ratings",
+                filter=speciality_filter,
+                distinct=True,
+            ),
+            global_mentions=Count("ratings", distinct=True),
+            starts_latin=Case(
+                When(last_name__regex=r"^[A-Za-z]", then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+        )
+
+        # Only while browsing: a search means the user has someone specific in
+        # mind, and hiding them there would be a deadlock — an excluded person
+        # cannot be picked, so they can never earn the rating that reveals them.
+        if exclude_current_students and not search:
+            cutoff_year = current_academic_year_start() - (_BACHELOR_PROGRAMME_YEARS - 1)
+            current_bachelor_emails = (
+                StudentModel.objects.filter(
+                    education_level=EducationLevel.BACHELOR,
+                    program_start_academic_year_start__gte=cutoff_year,
+                )
+                .exclude(email="")
+                .annotate(email_lower=Lower("email"))
+                .values("email_lower")
+            )
+            qs = qs.annotate(email_lower=Lower("email")).exclude(
+                email_lower__in=Subquery(current_bachelor_emails),
+                global_mentions=0,
+            )
+
+        if search:
+            for token in search.split():
+                qs = qs.filter(
+                    Q(first_name__icontains=token)
+                    | Q(last_name__icontains=token)
+                    | Q(patronymic__icontains=token)
+                )
+
+        return qs.order_by(
+            "-offering_mentions",
+            "-course_mentions",
+            "-speciality_mentions",
+            "-global_mentions",
+            "starts_latin",
+            "last_name",
+            "first_name",
+            "id",
+        )
+
+    def get_many_by_ids(self, ids: list[uuid.UUID]) -> list[InstructorModel]:
+        if not ids:
+            return []
+        return list(InstructorModel.objects.filter(id__in=ids))
 
     def get_by_id(self, id: str) -> Instructor:
         model = self._get_by_id(id)

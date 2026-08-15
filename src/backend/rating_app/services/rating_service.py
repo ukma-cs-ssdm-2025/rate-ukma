@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import Any
 
@@ -25,6 +26,7 @@ from rating_app.application_schemas.semester import (
     Semester,
     SemesterInput,
 )
+from rating_app.exception.instructor_exceptions import InvalidInstructorIdsError
 from rating_app.exception.rating_exceptions import (
     DuplicateRatingException,
     NotEnrolledException,
@@ -36,6 +38,7 @@ from rating_app.repositories import (
     RatingVoteMapper,
     RatingVoteRepository,
 )
+from rating_app.repositories.instructor_repository import InstructorRepository
 from rating_app.services.comment_normalizer import CommentNormalizer
 from rating_app.services.course_offering_service import CourseOfferingService
 from rating_app.services.semester_service import SemesterService
@@ -63,6 +66,7 @@ class RatingService(IObservable[RatingDTO]):
         vote_repository: RatingVoteRepository,
         vote_mapper: RatingVoteMapper,
         comment_normalizer: CommentNormalizer,
+        instructor_repository: InstructorRepository,
     ):
         self.rating_repository = rating_repository
         self.enrollment_repository = enrollment_repository
@@ -71,6 +75,7 @@ class RatingService(IObservable[RatingDTO]):
         self.vote_repository = vote_repository
         self.vote_mapper = vote_mapper
         self.comment_normalizer = comment_normalizer
+        self.instructor_repository = instructor_repository
         self._listeners: list[IEventListener[RatingDTO]] = []
 
     @implements
@@ -170,6 +175,7 @@ class RatingService(IObservable[RatingDTO]):
             raise DuplicateRatingException()
 
         params.comment = self.comment_normalizer.normalize_comment(params.comment)
+        self._validate_instructor_ids(params.instructor_ids)
 
         rating = self.rating_repository.create(params)
         self.notify(rating)
@@ -179,9 +185,28 @@ class RatingService(IObservable[RatingDTO]):
         self, rating: RatingDTO, update_data: RatingPutParams | RatingPatchParams
     ) -> RatingDTO:
         update_data.comment = self.comment_normalizer.normalize_comment(update_data.comment)
+        self._validate_instructor_ids(update_data.instructor_ids)
         updated_rating = self.rating_repository.update(rating, update_data)
         self.notify(updated_rating)
         return updated_rating
+
+    def _validate_instructor_ids(self, instructor_ids: list[uuid.UUID] | None) -> None:
+        """Reject ids that do not reference an existing Instructor.
+
+        Django's M2M ``.set()`` silently ignores unknown primary keys, which
+        would let a client persist a rating with fewer instructors than it asked
+        for and no error. Fail loudly with a 400 instead.
+        """
+        if not instructor_ids:
+            return
+
+        unique_ids = set(instructor_ids)
+        found = self.instructor_repository.get_many_by_ids(list(unique_ids))
+        missing = unique_ids - {instructor.id for instructor in found}
+        if missing:
+            raise InvalidInstructorIdsError(
+                detail=f"Unknown instructor ids: {sorted(str(i) for i in missing)}"
+            )
 
     def delete_rating(self, rating: RatingDTO) -> None:
         self.rating_repository.delete(str(rating.id))

@@ -15,6 +15,7 @@ export class CourseDetailsPage {
 	// Reviews section
 	private readonly reviewsSection: Locator;
 	private readonly reviewCards: Locator;
+	private readonly editUserRatingButton: Locator;
 	private readonly userRatingDeleteButton: Locator;
 	private readonly deleteConfirmButton: Locator;
 
@@ -42,6 +43,9 @@ export class CourseDetailsPage {
 
 		this.reviewCards = page.getByTestId(testIds.courseDetails.reviewCard);
 
+		this.editUserRatingButton = page.getByTestId(
+			testIds.courseDetails.editUserRatingButton,
+		);
 		this.userRatingDeleteButton = page.getByTestId(testIds.rating.deleteButton);
 		this.deleteConfirmButton = page.getByTestId(
 			testIds.deleteDialog.confirmButton,
@@ -83,6 +87,11 @@ export class CourseDetailsPage {
 	async clickRateButton(): Promise<void> {
 		await expect(this.rateButton).toBeVisible();
 		await this.rateButton.click();
+	}
+
+	async clickEditUserRating(): Promise<void> {
+		await expect(this.editUserRatingButton).toBeVisible();
+		await this.editUserRatingButton.click();
 	}
 
 	async hasStatsData(): Promise<boolean> {

@@ -15,3 +15,16 @@ export function useFeatureFlags() {
 export function useFeatureFlag(name: string): boolean {
 	return useFeatureFlags().flags[name] ?? false;
 }
+
+/**
+ * Flag value plus whether it has resolved yet, for UI that must not flash the
+ * wrong variant. `useFeatureFlag` alone reports an unresolved flag as `false`,
+ * which is indistinguishable from "off".
+ */
+export function useFeatureFlagState(name: string): {
+	enabled: boolean;
+	isReady: boolean;
+} {
+	const { flags, isReady } = useFeatureFlags();
+	return { enabled: flags[name] ?? false, isReady };
+}

@@ -233,6 +233,9 @@ class RatingRepository(
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
+        if create_params.instructor_ids:
+            rating.instructors.set([str(iid) for iid in create_params.instructor_ids])
+
         # Refetch with related fields for mapper
         rating = self._build_lightweight_queryset().get(pk=rating.pk)
         return self._map_to_domain_model(rating)
@@ -245,6 +248,9 @@ class RatingRepository(
         rating_model = self._get_by_id_shallow(str(obj.id))
         is_patch = isinstance(update_data, RatingPatchParams)
         update_data_map = update_data.model_dump(exclude_unset=is_patch)
+
+        # M2M not assignable via setattr — pop it first.
+        instructor_ids = update_data_map.pop("instructor_ids", None)
 
         # normalizing nullable text fields to empty strings for the DB
         # TODO: consider making DB fields nullable and removing this logic
@@ -260,11 +266,15 @@ class RatingRepository(
         except IntegrityError as err:
             raise DuplicateRatingException() from err
 
+        if instructor_ids is not None:
+            rating_model.instructors.set([str(iid) for iid in instructor_ids])
+
         logger.info(
             "rating_partially_updated",
             rating_id=obj.id,
             student_id=str(obj.student_id) if obj.student_id else None,
-            updated_fields=list(update_data_map.keys()),
+            updated_fields=list(update_data_map.keys())
+            + (["instructor_ids"] if instructor_ids is not None else []),
         )
 
         rating_model = self._build_base_queryset().get(pk=rating_model.pk)
@@ -333,11 +343,12 @@ class RatingRepository(
             "course_offering__semester",
             "student",
         ).prefetch_related(
+            "instructors",
             Prefetch(
                 "comments",
                 queryset=self._build_latest_unique_comment_authors_queryset(),
                 to_attr="comment_preview_comments",
-            )
+            ),
         )
 
     def _build_latest_unique_comment_authors_queryset(self) -> QuerySet[Comment]:

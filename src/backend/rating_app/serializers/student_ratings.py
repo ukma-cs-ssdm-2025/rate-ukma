@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from rating_app.serializers.rating_read import RatingInstructorSerializer
+
 
 class InlineRatingSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
@@ -7,6 +9,7 @@ class InlineRatingSerializer(serializers.Serializer):
     usefulness = serializers.IntegerField()
     comment = serializers.CharField(allow_blank=True, required=False, allow_null=True)
     instructor = serializers.CharField(allow_blank=True, required=False, allow_null=True)
+    instructors = RatingInstructorSerializer(many=True, read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     is_anonymous = serializers.BooleanField()
 
