@@ -46,9 +46,6 @@ export function PromoBanner() {
 				href={banner.href}
 				target="_blank"
 				rel="noreferrer noopener"
-				onClick={() => {
-					console.info("promo_banner_click", { promoId: banner.id });
-				}}
 				className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
 				data-testid={testIds.promo.link}
 			>
