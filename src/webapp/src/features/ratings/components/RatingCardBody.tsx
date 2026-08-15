@@ -12,7 +12,7 @@ import type {
 	RatingInstructor,
 	RatingVoteStrType,
 } from "@/lib/api/generated";
-import { useFeatureFlags } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
@@ -72,8 +72,9 @@ export function RatingCardBody({
 	votesReadOnly = false,
 	votesDisabledMessage,
 }: RatingCardBodyProps) {
-	const { flags, isReady } = useFeatureFlags();
-	const showMultiSelect = isReady && flags.fe_instructor_multiselect === true;
+	const { enabled: showMultiSelect, isReady } = useFeatureFlagState(
+		"fe_instructor_multiselect",
+	);
 	const instructorNames = instructors.map(formatInstructorName).filter(Boolean);
 	return (
 		<>

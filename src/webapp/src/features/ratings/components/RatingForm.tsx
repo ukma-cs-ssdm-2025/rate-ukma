@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
-import { useFeatureFlags } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import {
@@ -340,9 +340,9 @@ export function RatingForm({
 	courseId,
 	initialInstructors,
 }: RatingFormProps) {
-	const { flags, isReady: flagsReady } = useFeatureFlags();
-	const showMultiSelect =
-		flagsReady && flags.fe_instructor_multiselect === true;
+	const { enabled: showMultiSelect, isReady: flagsReady } = useFeatureFlagState(
+		"fe_instructor_multiselect",
+	);
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
 		defaultValues: initialData || {

@@ -4,7 +4,11 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FeatureFlagsProvider } from "./FeatureFlagsContext";
-import { useFeatureFlag, useFeatureFlags } from "./useFeatureFlag";
+import {
+	useFeatureFlag,
+	useFeatureFlags,
+	useFeatureFlagState,
+} from "./useFeatureFlag";
 
 const FLAGS_QUERY_KEY = ["/api/v1/flags/"];
 const mockUseFlagsList = vi.fn();
@@ -60,6 +64,18 @@ describe("feature flags", () => {
 			wrapper,
 		});
 		expect(result.current).toBe(false);
+	});
+
+	it("separates an unresolved flag from an off one", () => {
+		mockUseFlagsList.mockReturnValue({
+			data: undefined,
+			isSuccess: false,
+			isError: false,
+		});
+		const { result } = renderHook(() => useFeatureFlagState("fe_test_header"), {
+			wrapper,
+		});
+		expect(result.current).toEqual({ enabled: false, isReady: false });
 	});
 
 	it("is not ready and exposes no flags before the query resolves", () => {

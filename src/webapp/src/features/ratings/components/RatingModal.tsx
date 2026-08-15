@@ -18,7 +18,7 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
-import { useFeatureFlags } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
@@ -52,9 +52,9 @@ export function RatingModal({
 	onSuccess,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
-	const { flags, isReady: flagsReady } = useFeatureFlags();
-	const showMultiSelect =
-		flagsReady && flags.fe_instructor_multiselect === true;
+	const { enabled: showMultiSelect, isReady: flagsReady } = useFeatureFlagState(
+		"fe_instructor_multiselect",
+	);
 	const queryClient = useQueryClient();
 
 	const createMutation = useCoursesRatingsCreate();

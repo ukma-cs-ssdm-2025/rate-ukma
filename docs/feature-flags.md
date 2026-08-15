@@ -56,15 +56,18 @@ it ships with a deploy. **Toggling** an already-exposed flag is runtime-only
    const isOn = useFeatureFlag("fe_my_new_flag");
    return isOn ? <NewThing /> : <OldThing />;
    ```
-   For non-trivial content where a flash of the wrong variant matters, wait for
-   `isReady` so you do not render the OFF state before flags resolve:
+   For non-trivial content where a flash of the wrong variant matters, use
+   `useFeatureFlagState` — it returns the value *and* whether flags have
+   resolved, so an unresolved flag is not silently treated as OFF:
    ```tsx
-   import { useFeatureFlags } from "@/lib/feature-flags";
+   import { useFeatureFlagState } from "@/lib/feature-flags";
 
-   const { flags, isReady } = useFeatureFlags();
+   const { enabled, isReady } = useFeatureFlagState("fe_my_new_flag");
    if (!isReady) return null; // or a skeleton
-   return flags.fe_my_new_flag ? <NewThing /> : <OldThing />;
+   return enabled ? <NewThing /> : <OldThing />;
    ```
+   Gate write paths on `isReady` too — submitting before flags resolve can
+   persist the OFF variant's shape.
 
 ## Server-only flags
 
