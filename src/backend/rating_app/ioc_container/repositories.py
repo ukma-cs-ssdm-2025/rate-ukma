@@ -14,6 +14,7 @@ from rating_app.repositories.to_domain_mappers import (
     FacultyMapper,
     InstructorMapper,
     NotificationGroupMapper,
+    PromoBannerMapper,
     RatingVoteModelMapper,
     SemesterMapper,
     SpecialityMapper,
@@ -31,6 +32,7 @@ from ..repositories import (
     EnrollmentRepository,
     FacultyRepository,
     InstructorRepository,
+    PromoBannerRepository,
     RatingMapper,
     RatingRepository,
     RatingVoteMapper,
@@ -111,6 +113,16 @@ def course_instructor_mapper() -> CourseInstructorMapper:
 @once
 def enrollment_mapper() -> EnrollmentMapper:
     return EnrollmentMapper()
+
+
+@once
+def promo_banner_mapper() -> PromoBannerMapper:
+    return PromoBannerMapper()
+
+
+@once
+def promo_banner_repository() -> PromoBannerRepository:
+    return PromoBannerRepository(mapper=promo_banner_mapper())
 
 
 @once

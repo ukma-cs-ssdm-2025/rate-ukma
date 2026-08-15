@@ -5,6 +5,7 @@ from .course_viewset import CourseViewSet
 from .flags_viewset import FlagsViewSet
 from .instructor_viewset import InstructorViewSet
 from .notification_viewset import NotificationViewSet
+from .promo_banner_viewset import PromoBannerViewSet
 from .rating_viewset import RatingViewSet
 from .student_viewset import StudentStatisticsViewSet
 from .vote_viewset import RatingVoteViewSet
@@ -20,4 +21,5 @@ __all__ = [
     "CommentViewset",
     "NotificationViewSet",
     "FlagsViewSet",
+    "PromoBannerViewSet",
 ]

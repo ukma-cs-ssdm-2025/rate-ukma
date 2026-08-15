@@ -10,6 +10,7 @@ from rating_app.ioc_container.repositories import (
     instructor_repository,
     notification_cursor_repository,
     notification_repository,
+    promo_banner_repository,
     rating_repository,
     rating_vote_mapper,
     semester_repository,
@@ -27,6 +28,7 @@ from rating_app.services import (
     DepartmentService,
     FacultyService,
     InstructorService,
+    PromoBannerService,
     RatingFeedbackService,
     RatingService,
     SemesterService,
@@ -130,6 +132,11 @@ def rating_cache_invalidator() -> RatingCacheInvalidator:
 @once
 def instructor_service() -> InstructorService:
     return InstructorService(instructor_repository=instructor_repository())
+
+
+@once
+def promo_banner_service() -> PromoBannerService:
+    return PromoBannerService(promo_banner_repository=promo_banner_repository())
 
 
 @once

@@ -10,6 +10,7 @@ from rating_app.serializers import (
     FeatureFlagsSerializer,
     FilterOptionsSerializer,
     InstructorSerializer,
+    PromoBannerResponseSerializer,
     RatingReadSerializer,
     RatingsWithUserListSerializer,
     RatingVoteReadSerializer,
@@ -250,4 +251,8 @@ R_NOTIFICATION_GROUP_MARK_READ = {
 
 R_FLAGS = {
     200: OpenApiResponse(forced_singular_serializer(FeatureFlagsSerializer), "OK"),
+}
+
+R_PROMO_BANNER = {
+    200: OpenApiResponse(forced_singular_serializer(PromoBannerResponseSerializer), "OK"),
 }
