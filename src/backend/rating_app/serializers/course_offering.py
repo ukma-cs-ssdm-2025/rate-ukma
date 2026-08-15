@@ -12,7 +12,6 @@ class InstructorDTOSerializer(serializers.Serializer):
     first_name = serializers.CharField(read_only=True)
     patronymic = serializers.CharField(read_only=True, allow_null=True)
     last_name = serializers.CharField(read_only=True)
-    email = serializers.EmailField(read_only=True)
 
 
 class CourseOfferingSpecialitySerializer(serializers.Serializer):

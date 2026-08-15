@@ -7,6 +7,7 @@ from rating_app.ioc_container.repositories import (
     department_repository,
     enrollment_repository,
     faculty_repository,
+    instructor_mapper,
     instructor_repository,
     notification_cursor_repository,
     notification_repository,
@@ -20,6 +21,7 @@ from rating_app.ioc_container.repositories import (
     user_repository,
     vote_repository,
 )
+from rating_app.pagination.paginator import GenericQuerysetPaginator
 from rating_app.services import (
     CommentNormalizer,
     CommentService,
@@ -105,6 +107,7 @@ def rating_service() -> RatingService:
         vote_repository=vote_repository(),
         vote_mapper=rating_vote_mapper(),
         comment_normalizer=comment_normalizer(),
+        instructor_repository=instructor_repository(),
     )
 
 
@@ -131,7 +134,16 @@ def rating_cache_invalidator() -> RatingCacheInvalidator:
 
 @once
 def instructor_service() -> InstructorService:
-    return InstructorService(instructor_repository=instructor_repository())
+    return InstructorService(
+        instructor_repository=instructor_repository(),
+        mapper=instructor_mapper(),
+        paginator=GenericQuerysetPaginator(),
+    )
+
+
+@once
+def promo_banner_service() -> PromoBannerService:
+    return PromoBannerService(promo_banner_repository=promo_banner_repository())
 
 
 @once

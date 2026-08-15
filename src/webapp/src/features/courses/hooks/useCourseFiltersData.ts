@@ -322,6 +322,17 @@ export function useCourseFiltersData({
 					? undefined
 					: "Спочатку оберіть спеціальність",
 			},
+			{
+				// Rendered by a dedicated InstructorFilterSelect (server search +
+				// infinite scroll); options are fetched inside that component.
+				key: "instructor",
+				label: "Викладач",
+				placeholder: "Усі викладачі",
+				value: filters.instructor,
+				options: [],
+				contentClassName: "max-h-72",
+				useCombobox: true,
+			},
 		],
 		[
 			courseTypes,
@@ -332,6 +343,7 @@ export function useCourseFiltersData({
 			filters.dept,
 			filters.spec,
 			filters.type,
+			filters.instructor,
 		],
 	);
 
@@ -369,6 +381,7 @@ export function useCourseFiltersData({
 		if (filters.spec) count++;
 		if (filters.type) count++;
 		if (filters.eduLevel) count++;
+		if (filters.instructor) count++;
 		return count;
 	}, [
 		filters.faculty,
@@ -376,6 +389,7 @@ export function useCourseFiltersData({
 		filters.spec,
 		filters.type,
 		filters.eduLevel,
+		filters.instructor,
 	]);
 
 	const activePresetIds = React.useMemo(() => {

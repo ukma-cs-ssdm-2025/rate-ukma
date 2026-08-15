@@ -36,8 +36,9 @@ pnpm check
 ## Feature flags
 
 Gate UI with `useFeatureFlag("fe_<name>")` from `@/lib/feature-flags` (mirrors
-`@/lib/auth`); use `useFeatureFlags().isReady` to avoid a flash of the wrong
-variant for non-trivial content. Flags are served by `GET /api/v1/flags/` and
+`@/lib/auth`). For non-trivial content, and for anything that writes, use
+`useFeatureFlagState("fe_<name>")` instead — it returns `{ enabled, isReady }`,
+so an unresolved flag cannot be mistaken for OFF. Flags are served by `GET /api/v1/flags/` and
 must be allowlisted backend-side. See
 [docs/feature-flags.md](../../docs/feature-flags.md) for the end-to-end flow
 (add / toggle / test / remove) and

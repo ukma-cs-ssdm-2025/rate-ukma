@@ -46,6 +46,7 @@ export function RatingCard({
 				usefulness={rating.usefulness}
 				comment={rating.comment}
 				instructor={rating.instructor}
+				instructors={rating.instructors ?? []}
 				ratingId={rating.id}
 				courseId={courseId}
 				upvotes={rating.upvotes ?? 0}
