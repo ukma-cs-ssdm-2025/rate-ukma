@@ -89,7 +89,9 @@ Copy from `src/.env.sample` if you haven't set up your `.env` file yet.
 # Local
 pnpm lint
 pnpm format
-pnpm check
+pnpm typecheck
+pnpm check      # lint + format:check + typecheck, same as CI
+pnpm check:all  # the above plus unit tests
 
 # Docker
 docker exec -it <frontend_container_name> pnpm lint
