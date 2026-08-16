@@ -16,7 +16,6 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/Popover";
 import type { Instructor } from "@/lib/api/generated";
-import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { cn } from "@/lib/utils";
 import { formatInstructorName } from "../formatInstructorName";
 import { useInfiniteInstructors } from "../hooks/useInfiniteInstructors";
@@ -68,14 +67,6 @@ function InstructorMultiSelect({
 		);
 		return () => clearTimeout(handle);
 	}, [searchTerm]);
-
-	React.useEffect(() => {
-		if (!open) {
-			return;
-		}
-		const unlock = lockBodyScroll();
-		return () => unlock();
-	}, [open]);
 
 	const { allInstructors, hasMore, isFetchingNextPage, isLoading, loaderRef } =
 		useInfiniteInstructors({
@@ -161,7 +152,13 @@ function InstructorMultiSelect({
 		);
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
+		<Popover
+			open={open}
+			onOpenChange={setOpen}
+			// The portalled list lands outside the rating dialog's scroll lock,
+			// which swallows wheel events over it.
+			modal
+		>
 			<PopoverTrigger asChild>
 				{/* A div, not a button — the chip remove controls are buttons. */}
 				<div
@@ -229,7 +226,7 @@ function InstructorMultiSelect({
 					/>
 					<CommandList
 						id={listId}
-						className="max-h-72 overflow-y-auto"
+						className="max-h-[min(18rem,calc(var(--radix-popover-content-available-height)-3rem))] overflow-y-auto"
 						data-testid={testId ? `${testId}-list` : undefined}
 					>
 						{!isLoading && allInstructors.length === 0 ? (
