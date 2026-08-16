@@ -3601,8 +3601,8 @@ components:
           type: string
         instructor:
           default: null
-          description: Legacy free-text instructor name. Kept for backward compatibility
-            with old clients. New clients should populate `instructor_ids` instead.
+          description: Deprecated free-text instructor name, kept for old clients.
+            Populate `instructor_ids` instead.
           title: Instructor
           type: string
         instructor_ids:

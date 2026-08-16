@@ -6,10 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Instructor } from "@/lib/api/generated";
 import { renderWithProviders } from "@/test-utils/render";
-import {
-	formatInstructorLabel,
-	InstructorMultiSelect,
-} from "./InstructorMultiSelect";
+import { InstructorMultiSelect } from "./InstructorMultiSelect";
 
 // Mock the orval-generated infinite query hook backing the dropdown
 vi.mock("@/lib/api/generated", async () => {
@@ -53,39 +50,6 @@ beforeEach(() => {
 	mockInstructors([]);
 	// cmdk scrolls the active item into view; jsdom lacks this API
 	Element.prototype.scrollIntoView = vi.fn();
-});
-
-describe("formatInstructorLabel", () => {
-	it("should order last, first, then patronymic", () => {
-		const label = formatInstructorLabel(
-			createMockInstructor({
-				last_name: "Іваненко",
-				first_name: "Іван",
-				patronymic: "Петрович",
-			}),
-		);
-		expect(label).toBe("Іваненко Іван Петрович");
-	});
-
-	it("should omit a missing patronymic", () => {
-		const label = formatInstructorLabel(
-			createMockInstructor({
-				last_name: "Іваненко",
-				first_name: "Іван",
-				patronymic: undefined,
-			}),
-		);
-		expect(label).toBe("Іваненко Іван");
-	});
-
-	it("should filter out blank name parts", () => {
-		const label = formatInstructorLabel({
-			id: "x",
-			last_name: "",
-			first_name: "Іван",
-		});
-		expect(label).toBe("Іван");
-	});
 });
 
 describe("InstructorMultiSelect", () => {

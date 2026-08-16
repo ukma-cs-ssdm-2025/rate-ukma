@@ -110,6 +110,96 @@ def test_parse_name_cyrillic_two_tokens():
     assert last == "Петренко"
 
 
+def test_parse_name_cyrillic_two_tokens_reordered_by_mailbox():
+    first, patronymic, last = _parse_name("Оксана Дорошенко", "z.doroshenko")
+    assert first == "Оксана"
+    assert patronymic == ""
+    assert last == "Дорошенко"
+
+
+def test_parse_name_cyrillic_two_tokens_mailbox_confirms_default_order():
+    first, patronymic, last = _parse_name("Петренко Іван", "i.petrenko")
+    assert first == "Іван"
+    assert last == "Петренко"
+
+
+def test_parse_name_ignores_a_mailbox_with_no_separator():
+    first, _, last = _parse_name("Вікторія Савченко", "savchenko")
+    assert first == "Савченко"
+    assert last == "Вікторія"
+
+
+def test_parse_name_no_separator_does_not_swap_a_correct_name():
+    first, _, last = _parse_name("Петренко Іван", "ivan")
+    assert first == "Іван"
+    assert last == "Петренко"
+
+
+def test_parse_name_ignores_a_surname_first_mailbox():
+    first, _, last = _parse_name("Петренко Іван", "petrenko.ivan")
+    assert first == "Іван"
+    assert last == "Петренко"
+
+
+def test_parse_name_ignores_an_initials_only_mailbox():
+    first, _, last = _parse_name("Гнатюк Катерина", "h.k")
+    assert first == "Катерина"
+    assert last == "Гнатюк"
+
+
+def test_parse_name_ignores_a_fully_spelled_mailbox():
+    first, _, last = _parse_name("Назарій Литвин", "nazarii.lytvyn")
+    assert first == "Литвин"
+    assert last == "Назарій"
+
+
+@pytest.mark.parametrize(
+    "display_name,upn_local",
+    [
+        ("Щербак Софія", "s.shcherbak"),  # щ spelled "sh", not "shch"
+        ("Хоменко Катерина", "k.chomenko"),  # х spelled "ch"
+        ("Цимбал Тарас", "t.tzymbal"),  # ц spelled "tz"
+    ],
+)
+def test_parse_name_survives_a_nonstandard_transliteration(display_name, upn_local):
+    first, _, last = _parse_name(display_name, upn_local)
+    assert last == display_name.split()[0]
+    assert first == display_name.split()[1]
+
+
+def test_parse_name_accepts_a_two_letter_initial():
+    first, _, last = _parse_name("Марія Ковальчук", "ma.kovalchuk")
+    assert first == "Марія"
+    assert last == "Ковальчук"
+
+
+def test_parse_name_uses_the_initial_when_the_surname_segment_is_ambiguous():
+    first, _, last = _parse_name("Христина Гриценко", "k.hrytsenko")
+    assert first == "Христина"
+    assert last == "Гриценко"
+
+
+@pytest.mark.parametrize(
+    "display_name,upn_local",
+    [
+        ("Сидоренко Софія", "s.sydorenko"),
+        ("Петренко Іван", "x.unrelated"),
+        ("Петренко Іван", ""),
+    ],
+)
+def test_parse_name_keeps_default_order_when_mailbox_is_no_help(display_name, upn_local):
+    first, _, last = _parse_name(display_name, upn_local)
+    assert last == display_name.split()[0]
+    assert first == display_name.split()[1]
+
+
+def test_parse_name_three_tokens_ignores_mailbox():
+    first, patronymic, last = _parse_name("Гнатюк Катерина Ігорівна", "h.kateryna")
+    assert first == "Катерина"
+    assert patronymic == "Ігорівна"
+    assert last == "Гнатюк"
+
+
 def test_parse_name_latin_two_tokens():
     first, patronymic, last = _parse_name("Ivan Petrenko")
     assert first == "Ivan"
@@ -154,6 +244,60 @@ def test_creates_instructor_from_cyrillic_name(tmp_path):
     assert instructor.first_name == "Іван"
     assert instructor.patronymic == "Васильович"
     assert instructor.last_name == "Петренко"
+
+
+@pytest.mark.django_db
+def test_creates_instructor_from_reversed_cyrillic_name(tmp_path):
+    csv_path = _write_csv(
+        tmp_path,
+        "Оксана Дорошенко,z.doroshenko@ukma.edu.ua,Member\n",
+    )
+
+    call_command("ingest_instructors_from_csv", str(csv_path), stdout=io.StringIO())
+
+    instructor = Instructor.objects.get(email="z.doroshenko@ukma.edu.ua")
+    assert instructor.first_name == "Оксана"
+    assert instructor.last_name == "Дорошенко"
+
+
+@pytest.mark.django_db
+def test_existing_instructor_is_left_alone(tmp_path):
+    Instructor.objects.create(
+        email="i.petrenko@ukma.edu.ua",
+        first_name="Іван",
+        last_name="Петренко",
+        patronymic="Васильович",
+    )
+    csv_path = _write_csv(
+        tmp_path,
+        "Хтось Інший,i.petrenko@ukma.edu.ua,Member\n",
+    )
+
+    call_command("ingest_instructors_from_csv", str(csv_path), stdout=io.StringIO())
+
+    instructor = Instructor.objects.get(email="i.petrenko@ukma.edu.ua")
+    assert instructor.last_name == "Петренко"
+    assert instructor.patronymic == "Васильович"
+
+
+@pytest.mark.django_db
+def test_refresh_names_rewrites_an_existing_instructor(tmp_path):
+    Instructor.objects.create(
+        email="i.petrenko@ukma.edu.ua", first_name="Іван", last_name="Петренко"
+    )
+    csv_path = _write_csv(
+        tmp_path,
+        "Петренко Іван Васильович,i.petrenko@ukma.edu.ua,Member\n",
+    )
+
+    call_command(
+        "ingest_instructors_from_csv",
+        str(csv_path),
+        "--refresh-names",
+        stdout=io.StringIO(),
+    )
+
+    assert Instructor.objects.get(email="i.petrenko@ukma.edu.ua").patronymic == "Васильович"
 
 
 @pytest.mark.django_db

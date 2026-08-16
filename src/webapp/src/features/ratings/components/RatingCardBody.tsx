@@ -7,6 +7,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import { formatDate } from "@/features/courses/courseFormatting";
+import { formatInstructorName } from "@/features/instructors/formatInstructorName";
 import type {
 	CommentAuthor,
 	RatingInstructor,
@@ -17,15 +18,6 @@ import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
 import { RatingVotes } from "./RatingVotes";
-
-/** "Прізвище Імʼя" — surname plus full first name, blanks skipped. Patronymic
- * is omitted for brevity; the full first name keeps same-surname instructors
- * distinguishable (e.g. "Калиновська Олександра" vs "Калиновська Оксана"). */
-function formatInstructorName(instructor: RatingInstructor): string {
-	return [instructor.last_name, instructor.first_name]
-		.filter(Boolean)
-		.join(" ");
-}
 
 interface RatingCardBodyProps {
 	readonly displayName: string;

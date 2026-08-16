@@ -206,8 +206,8 @@ class RatingCreateRequest(BaseModel):
     instructor: Annotated[str | SkipJsonSchema[None], BeforeValidator(strip_instructor)] = Field(
         default=None,
         description=(
-            "Legacy free-text instructor name. Kept for backward compatibility "
-            "with old clients. New clients should populate `instructor_ids` instead."
+            "Deprecated free-text instructor name, kept for old clients. "
+            "Populate `instructor_ids` instead."
         ),
     )
     instructor_ids: list[uuid.UUID] = Field(

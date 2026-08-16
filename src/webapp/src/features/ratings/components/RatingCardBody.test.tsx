@@ -28,7 +28,7 @@ function instructor(over: Partial<RatingInstructor>): RatingInstructor {
 const FF_ON = { flags: { fe_instructor_multiselect: true } } as const;
 
 describe("RatingCardBody instructor display", () => {
-	it("renders M2M instructors as surname + full first name", () => {
+	it("renders M2M instructors with the full name, surname first", () => {
 		render(
 			<RatingCardBody
 				{...baseProps}
@@ -46,7 +46,7 @@ describe("RatingCardBody instructor display", () => {
 
 		expect(screen.getByText("Викладачі:")).toBeInTheDocument();
 		expect(
-			screen.getByText("Петренко Іван, Коваленко Анна"),
+			screen.getByText("Петренко Іван Васильович, Коваленко Анна"),
 		).toBeInTheDocument();
 	});
 
