@@ -46,14 +46,14 @@ describe("feature flags", () => {
 		localStorage.clear(); // drop any ff:overrides leaked from other tests
 		authState.current = { status: "unauthenticated", user: null };
 		mockUseFlagsList.mockReturnValue({
-			data: { flags: { fe_test_header: true } },
+			data: { flags: { fe_example: true } },
 			isSuccess: true,
 			isError: false,
 		});
 	});
 
 	it("returns true for an enabled flag", () => {
-		const { result } = renderHook(() => useFeatureFlag("fe_test_header"), {
+		const { result } = renderHook(() => useFeatureFlag("fe_example"), {
 			wrapper,
 		});
 		expect(result.current).toBe(true);
@@ -72,7 +72,7 @@ describe("feature flags", () => {
 			isSuccess: false,
 			isError: false,
 		});
-		const { result } = renderHook(() => useFeatureFlagState("fe_test_header"), {
+		const { result } = renderHook(() => useFeatureFlagState("fe_example"), {
 			wrapper,
 		});
 		expect(result.current).toEqual({ enabled: false, isReady: false });
@@ -111,7 +111,7 @@ describe("feature flags", () => {
 	});
 
 	it("throws when used outside the provider", () => {
-		expect(() => renderHook(() => useFeatureFlag("fe_test_header"))).toThrow(
+		expect(() => renderHook(() => useFeatureFlag("fe_example"))).toThrow(
 			/within a FeatureFlagsProvider/,
 		);
 	});
