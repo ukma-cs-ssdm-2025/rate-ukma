@@ -90,7 +90,7 @@ Copy from `src/.env.sample` if you haven't set up your `.env` file yet.
 pnpm lint
 pnpm format
 pnpm typecheck
-pnpm check      # lint + format + typecheck, same as CI
+pnpm check      # lint + format:check + typecheck, same as CI
 pnpm check:all  # the above plus unit tests
 
 # Docker
