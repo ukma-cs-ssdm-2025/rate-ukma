@@ -61,6 +61,7 @@ class Command(BaseCommand):
             Course,
             CourseInstructor,
             CourseOffering,
+            CourseOfferingSpeciality,
             Department,
             Faculty,
             Instructor,
@@ -71,6 +72,7 @@ class Command(BaseCommand):
         )
         from ...models.choices import (
             CourseStatus,
+            CourseTypeKind,
             EducationLevel,
             ExamType,
             PracticeType,
@@ -752,7 +754,12 @@ class Command(BaseCommand):
                     group_size_max=random.randint(18, 25),
                 )
 
-                offering.specialities.set(course_specialities[course.id])
+                for speciality in course_specialities[course.id]:
+                    CourseOfferingSpeciality.objects.create(
+                        offering=offering,
+                        speciality=speciality,
+                        type_kind=random.choice(CourseTypeKind.values),
+                    )
 
                 # Add 1-3 instructors to each offering
                 selected_instructors = random.sample(instructors, random.randint(1, 3))
