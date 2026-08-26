@@ -12,6 +12,7 @@ import {
 	DIFFICULTY_RANGE,
 	USEFULNESS_RANGE,
 } from "@/features/courses/courseFormatting";
+import { FeedStrip } from "@/features/feed/components/FeedStrip";
 import { PromoBanner } from "@/features/promo/components/PromoBanner";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
@@ -70,6 +71,7 @@ export function CoursesRoute() {
 		<Layout>
 			<div className="space-y-8">
 				<PromoBanner />
+				<FeedStrip />
 				{isError ? (
 					<CoursesErrorState onRetry={handleRetry} />
 				) : (
