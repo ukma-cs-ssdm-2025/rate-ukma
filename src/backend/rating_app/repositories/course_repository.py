@@ -282,6 +282,9 @@ class CourseRepository(
         if filters.name:
             courses = self._apply_name_filter(courses, filters.name)
 
+        if filters.education_level:
+            course_filters["education_level"] = filters.education_level
+
         if filters.faculty:
             course_filters["department__faculty_id"] = filters.faculty
 

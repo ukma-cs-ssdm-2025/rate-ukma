@@ -44,6 +44,24 @@ def test_filter_by_instructor_returns_only_assigned_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_filter_by_education_level_returns_correct_courses(repo):
+    # Arrange
+    master_course = CourseFactory(education_level=EducationLevel.MASTER)
+    _bachelor_course = CourseFactory(education_level=EducationLevel.BACHELOR)
+
+    # Act
+    filters = CourseFilterCriteriaInternal(education_level=EducationLevel.MASTER)
+    result = repo.filter(filters)
+
+    # Assert
+    assert len(result) == 1
+    returned_ids = {course.id for course in result}
+    assert returned_ids == {str(master_course.id)}
+    assert result[0].title == master_course.title
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_semester_limits_to_matching_courses(repo):
     # Arrange
     fall_semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
