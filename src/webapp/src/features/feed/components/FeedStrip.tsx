@@ -1,6 +1,8 @@
 import { ArrowRight, Newspaper } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { useFeatureFlagState } from "@/lib/feature-flags";
+import { FEED_FLAG } from "../feedFlags";
 import { MOCK_FEED_ITEMS } from "../feedMockData";
 import { isPromoItem } from "../feedTypes";
 import { FeedPromoItem } from "./FeedPromoItem";
@@ -18,7 +20,12 @@ import { FeedReviewItem } from "./FeedReviewItem";
  * scroll, which isn't obvious on its own.
  */
 export function FeedStrip() {
+	const { enabled, isReady } = useFeatureFlagState(FEED_FLAG);
 	const items = MOCK_FEED_ITEMS;
+
+	// Gate on the flag, and stay hidden until it resolves so the feed never
+	// flashes in before a disabled flag lands.
+	if (!isReady || !enabled) return null;
 
 	return (
 		<section aria-label="Стрічка оновлень" className="space-y-3">
