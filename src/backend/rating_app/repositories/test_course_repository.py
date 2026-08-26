@@ -46,8 +46,8 @@ def test_filter_by_instructor_returns_only_assigned_courses(repo):
 @pytest.mark.integration
 def test_filter_by_education_level_returns_correct_courses(repo):
     # Arrange
-    master_course = CourseFactory(education_level = EducationLevel.MASTER)
-    _bachelor_course = CourseFactory(education_level = EducationLevel.BACHELOR)
+    master_course = CourseFactory(education_level=EducationLevel.MASTER)
+    _bachelor_course = CourseFactory(education_level=EducationLevel.BACHELOR)
 
     # Act
     filters = CourseFilterCriteriaInternal(education_level=EducationLevel.MASTER)
