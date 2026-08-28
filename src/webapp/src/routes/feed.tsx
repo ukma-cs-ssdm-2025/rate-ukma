@@ -10,7 +10,7 @@ import { isPromoItem, orderFeedItems } from "@/features/feed/feedTypes";
 import { withAuth } from "@/lib/auth";
 import { useFeatureFlagState } from "@/lib/feature-flags";
 
-function FeedRoute() {
+export function FeedRoute() {
 	const { enabled, isReady } = useFeatureFlagState(FEED_FLAG);
 	const items = orderFeedItems(MOCK_FEED_ITEMS);
 
