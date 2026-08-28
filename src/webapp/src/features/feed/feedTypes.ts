@@ -7,6 +7,10 @@
  *
  * Both share `id` and `createdAt` so a single feed list can sort/interleave
  * them, but each renders through its own component.
+ *
+ * `pinned` is the orthogonal "static vs dynamic" axis the admin controls:
+ * pinned items ("static content") lead the feed and hold their place; the rest
+ * ("dynamic content") flow after in recency order. Any item kind can be pinned.
  */
 export type FeedItem = FeedReviewItem | FeedPromoItem;
 
@@ -14,6 +18,7 @@ export interface FeedReviewItem {
 	readonly kind: "review";
 	readonly id: string;
 	readonly createdAt: string;
+	readonly pinned?: boolean;
 	readonly courseId: string;
 	readonly courseTitle: string;
 	readonly studentName: string;
@@ -36,6 +41,7 @@ export interface FeedPromoItem {
 	readonly kind: "promo";
 	readonly id: string;
 	readonly createdAt: string;
+	readonly pinned?: boolean;
 	readonly title: string;
 	readonly body: string;
 	readonly label?: string;
@@ -47,4 +53,15 @@ export interface FeedPromoItem {
 
 export function isPromoItem(item: FeedItem): item is FeedPromoItem {
 	return item.kind === "promo";
+}
+
+/**
+ * Pinned ("static") items first, in their given order, then the rest
+ * ("dynamic") unchanged. Stable, so items keep their relative order within
+ * each group.
+ */
+export function orderFeedItems(items: readonly FeedItem[]): FeedItem[] {
+	return [...items].sort(
+		(a, b) => Number(b.pinned ?? false) - Number(a.pinned ?? false),
+	);
 }

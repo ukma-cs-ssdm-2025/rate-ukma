@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConnectionErrorRouteImport } from './routes/connection-error'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as FeedRouteImport } from './routes/feed'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyRatingsRouteImport } from './routes/my-ratings'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
@@ -31,6 +32,11 @@ const ConnectionErrorRoute = ConnectionErrorRouteImport.update({
 const ExploreRoute = ExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/connection-error': typeof ConnectionErrorRoute
   '/explore': typeof ExploreRoute
+  '/feed': typeof FeedRoute
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/connection-error': typeof ConnectionErrorRoute
   '/explore': typeof ExploreRoute
+  '/feed': typeof FeedRoute
   '/my-ratings': typeof MyRatingsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/connection-error': typeof ConnectionErrorRoute
   '/explore': typeof ExploreRoute
+  '/feed': typeof FeedRoute
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/'
     | '/connection-error'
     | '/explore'
+    | '/feed'
     | '/login'
     | '/my-ratings'
     | '/courses/$courseId'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/'
     | '/connection-error'
     | '/explore'
+    | '/feed'
     | '/my-ratings'
     | '/courses/$courseId'
     | '/login/failed'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/connection-error'
     | '/explore'
+    | '/feed'
     | '/login'
     | '/my-ratings'
     | '/courses/$courseId'
@@ -125,6 +137,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConnectionErrorRoute: typeof ConnectionErrorRoute
   ExploreRoute: typeof ExploreRoute
+  FeedRoute: typeof FeedRoute
   LoginRoute: typeof LoginRouteWithChildren
   MyRatingsRoute: typeof MyRatingsRoute
   CoursesCourseIdRoute: typeof CoursesCourseIdRoute
@@ -151,6 +164,13 @@ declare module '@tanstack/react-router' {
       path: '/explore'
       fullPath: '/explore'
       preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -207,6 +227,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConnectionErrorRoute: ConnectionErrorRoute,
   ExploreRoute: ExploreRoute,
+  FeedRoute: FeedRoute,
   LoginRoute: LoginRouteWithChildren,
   MyRatingsRoute: MyRatingsRoute,
   CoursesCourseIdRoute: CoursesCourseIdRoute,

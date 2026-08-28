@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
+import { MessageSquareText } from "lucide-react";
 
-import { UserAvatar } from "@/components/UserAvatar";
 import {
 	getDifficultyTone,
 	getSemesterDisplay,
@@ -15,9 +15,8 @@ interface FeedReviewItemProps {
 }
 
 /**
- * Auto-populated feed entry: a compact summary of a recent rating. Kept
- * intentionally quiet (no border, muted meta) so it reads as ambient activity
- * next to the louder promo cards.
+ * Auto-populated feed entry: a compact summary of a recent rating.
+ * Reviews are anonymous in the feed.
  */
 export function FeedReviewItem({ item }: FeedReviewItemProps) {
 	const semesterLabel =
@@ -27,16 +26,15 @@ export function FeedReviewItem({ item }: FeedReviewItemProps) {
 
 	return (
 		<article className="flex gap-3 py-4">
-			<UserAvatar
-				name={item.studentName}
-				avatarUrl={item.avatarUrl}
-				isAnonymous={item.isAnonymous}
-				className="h-8 w-8 shrink-0 text-xs font-semibold"
-			/>
+			<span
+				className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+				aria-hidden
+			>
+				<MessageSquareText className="size-4" />
+			</span>
 			<div className="min-w-0 flex-1">
 				<p className="text-sm leading-snug">
-					<span className="font-medium">{item.studentName}</span>
-					<span className="text-muted-foreground"> оцінив(ла) </span>
+					<span className="text-muted-foreground">Новий відгук на </span>
 					<Link
 						to="/courses/$courseId"
 						params={{ courseId: item.courseId }}

@@ -60,6 +60,7 @@ export const MOCK_FEED_ITEMS: readonly FeedItem[] = [
 		kind: "promo",
 		id: "promo-2",
 		createdAt: ago(5 * HOUR),
+		pinned: true,
 		accent: "info",
 		label: "Подія",
 		title: "Хакатон факультету інформатики",

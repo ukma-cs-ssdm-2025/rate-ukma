@@ -9,30 +9,28 @@ import type {
 } from "../feedTypes";
 
 /**
- * Accent -> color treatment. Manual content is deliberately louder than the
- * review stream: tinted background, colored left rail, and an explicit label
- * badge so it never gets mistaken for organic activity.
+ * Accent -> color treatment.
  */
+type BadgeVariant = "default" | "secondary" | "destructive";
+
 const ACCENT_STYLES: Record<
 	FeedPromoAccent,
-	{ container: string; rail: string; badge: string }
+	{ container: string; rail: string; badge: BadgeVariant }
 > = {
 	brand: {
 		container: "bg-primary/5 border-primary/20",
 		rail: "bg-primary",
-		badge: "bg-primary text-primary-foreground",
+		badge: "default",
 	},
 	info: {
-		container:
-			"bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900",
-		rail: "bg-blue-500",
-		badge: "bg-blue-500 text-white",
+		container: "bg-accent border-border",
+		rail: "bg-muted-foreground",
+		badge: "secondary",
 	},
 	warning: {
-		container:
-			"bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-900",
-		rail: "bg-amber-500",
-		badge: "bg-amber-500 text-white",
+		container: "bg-destructive/5 border-destructive/20",
+		rail: "bg-destructive",
+		badge: "destructive",
 	},
 };
 
@@ -54,7 +52,7 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 				accent.container,
 				isBanner
 					? "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-					: "p-5",
+					: "flex h-full flex-col p-5",
 			)}
 		>
 			<span
@@ -65,10 +63,8 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 			<div className={cn("min-w-0", isBanner ? "flex-1 pl-2" : "pl-2")}>
 				<div className="flex items-center gap-2">
 					<Badge
-						className={cn(
-							"gap-1 border-transparent text-[10px] uppercase tracking-wide",
-							accent.badge,
-						)}
+						variant={accent.badge}
+						className="gap-1 text-[10px] uppercase tracking-wide"
 					>
 						<Megaphone className="size-3" />
 						{label}
@@ -89,7 +85,11 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 			</div>
 
 			{item.ctaLabel && (
-				<div className={cn(isBanner ? "shrink-0 pl-2 sm:pl-0" : "mt-4 pl-2")}>
+				<div
+					className={cn(
+						isBanner ? "shrink-0 pl-2 sm:pl-0" : "mt-auto pl-2 pt-4",
+					)}
+				>
 					<Button asChild size="sm" className="gap-1.5">
 						<a href={item.ctaHref ?? "#"}>
 							{item.ctaLabel}
