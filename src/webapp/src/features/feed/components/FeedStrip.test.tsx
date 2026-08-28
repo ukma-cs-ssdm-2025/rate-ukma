@@ -1,31 +1,13 @@
-import type { ReactNode } from "react";
-
 import { describe, expect, it, vi } from "vitest";
 
-import { FEED_FLAG } from "../feedFlags";
 import { renderWithProviders, screen } from "@/test-utils/render";
+import { FEED_FLAG } from "../feedFlags";
 import { FeedStrip } from "./FeedStrip";
 
-vi.mock("@tanstack/react-router", async () => {
-	const actual = await vi.importActual("@tanstack/react-router");
-	return {
-		...actual,
-		Link: ({
-			to,
-			children,
-			className,
-			...rest
-		}: {
-			to: string;
-			children: ReactNode;
-			className?: string;
-		}) => (
-			<a href={to} className={className} {...rest}>
-				{children}
-			</a>
-		),
-	};
-});
+vi.mock("@tanstack/react-router", async () => ({
+	...(await vi.importActual("@tanstack/react-router")),
+	Link: (await import("@/test-utils/router")).MockLink,
+}));
 
 describe("FeedStrip", () => {
 	it("renders nothing when the feed flag is off", () => {

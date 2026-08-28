@@ -1,32 +1,13 @@
-import type { ReactNode } from "react";
-
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { FeedReviewItem as FeedReviewItemType } from "../feedTypes";
 import { FeedReviewItem } from "./FeedReviewItem";
 
-vi.mock("@tanstack/react-router", async () => {
-	const actual = await vi.importActual("@tanstack/react-router");
-	return {
-		...actual,
-		Link: ({
-			to,
-			params,
-			children,
-			className,
-		}: {
-			to: string;
-			params?: Record<string, string>;
-			children: ReactNode;
-			className?: string;
-		}) => (
-			<a href={to} data-params={JSON.stringify(params)} className={className}>
-				{children}
-			</a>
-		),
-	};
-});
+vi.mock("@tanstack/react-router", async () => ({
+	...(await vi.importActual("@tanstack/react-router")),
+	Link: (await import("@/test-utils/router")).MockLink,
+}));
 
 const baseItem: FeedReviewItemType = {
 	kind: "review",

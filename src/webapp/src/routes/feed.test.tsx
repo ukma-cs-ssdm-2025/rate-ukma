@@ -10,26 +10,10 @@ vi.mock("@/components/Layout", () => ({
 	default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("@tanstack/react-router", async () => {
-	const actual = await vi.importActual("@tanstack/react-router");
-	return {
-		...actual,
-		Link: ({
-			to,
-			children,
-			className,
-			...rest
-		}: {
-			to: string;
-			children: ReactNode;
-			className?: string;
-		}) => (
-			<a href={to} className={className} {...rest}>
-				{children}
-			</a>
-		),
-	};
-});
+vi.mock("@tanstack/react-router", async () => ({
+	...(await vi.importActual("@tanstack/react-router")),
+	Link: (await import("@/test-utils/router")).MockLink,
+}));
 
 describe("FeedRoute", () => {
 	it("shows an unavailable message when the feed flag is off", () => {
