@@ -224,6 +224,7 @@ class RatingAdmin(VersionAdmin):
         "student__last_name",
         "student__first_name",
         "course_offering__course__title",
+        "comment",
     )
     ordering = ("-created_at",)
     readonly_fields = ("created_at",)
