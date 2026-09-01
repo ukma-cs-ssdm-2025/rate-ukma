@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
 from django.db.models import Count, Q
 
 from reversion.admin import VersionAdmin
@@ -21,6 +23,37 @@ from rating_app.models import (
     Student,
 )
 from rating_app.models.choices import RatingVoteType
+
+admin.site.unregister(User)
+
+
+@admin.register(User)
+class CustomUserAdmin(BaseUserAdmin):
+    list_display = (
+        "email",
+        "first_name",
+        "last_name",
+        "last_login",
+        "date_joined",
+        "is_active",
+    )
+    list_filter = (
+        "date_joined",
+        "last_login",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+    )
+    search_fields = (
+        "first_name",
+        "last_name",
+        "email",
+        "username",
+    )
+    ordering = ("-date_joined",)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request)
 
 
 @admin.register(Course)
