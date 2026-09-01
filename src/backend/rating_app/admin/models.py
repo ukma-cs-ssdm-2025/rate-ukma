@@ -239,7 +239,7 @@ class RatingAdmin(VersionAdmin):
         "student",
         "difficulty",
         "usefulness",
-        "comment",
+        "comment_preview",
         "is_anonymous",
         "instructors_display",
         "created_at",
@@ -301,6 +301,15 @@ class RatingAdmin(VersionAdmin):
         if not instructors:
             return "—"
         return ", ".join([f"{inst.first_name} {inst.last_name}" for inst in instructors])
+
+    @admin.display(description="Comment")
+    def comment_preview(self, obj):
+        if not obj.comment:
+            return "—"
+        max_length = 100
+        if len(obj.comment) > max_length:
+            return f"{obj.comment[:max_length]}..."
+        return obj.comment
 
 
 @admin.register(Comment)
