@@ -35,6 +35,7 @@ class CustomUserAdmin(BaseUserAdmin):
         "last_name",
         "last_login",
         "date_joined",
+        "ratings_count",
         "is_active",
     )
     list_filter = (
@@ -53,7 +54,20 @@ class CustomUserAdmin(BaseUserAdmin):
     ordering = ("-date_joined",)
 
     def get_queryset(self, request):
-        return super().get_queryset(request)
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(
+                _overall_rated_courses=Count(
+                    "student_profile__ratings__course_offering__course",
+                    distinct=True,
+                )
+            )
+        )
+
+    @admin.display(description="Ratings", ordering="_overall_rated_courses")
+    def ratings_count(self, obj):
+        return obj._overall_rated_courses
 
 
 @admin.register(Course)
@@ -208,7 +222,6 @@ class StudentAdmin(VersionAdmin):
         "first_name",
         "patronymic",
         "speciality",
-        "ratings_count",
         "education_level",
     )
     list_select_related = ("speciality", "user")
@@ -217,18 +230,7 @@ class StudentAdmin(VersionAdmin):
     ordering = ("last_name", "first_name")
 
     def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .select_related("speciality", "user")
-            .annotate(
-                _overall_rated_courses=Count("ratings__course_offering__course", distinct=True),
-            )
-        )
-
-    @admin.display(description="Ratings", ordering="_overall_rated_courses")
-    def ratings_count(self, obj):
-        return obj._overall_rated_courses
+        return super().get_queryset(request).select_related("speciality", "user")
 
 
 @admin.register(Rating)
