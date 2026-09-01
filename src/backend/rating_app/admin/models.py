@@ -217,7 +217,6 @@ class RatingAdmin(VersionAdmin):
         "is_anonymous",
         "difficulty",
         "usefulness",
-        "course_offering__course__department",
         "created_at",
     )
     search_fields = (
@@ -237,7 +236,6 @@ class RatingAdmin(VersionAdmin):
                 "student",
                 "course_offering",
                 "course_offering__course",
-                "course_offering__course__department",
             )
             .annotate(
                 _upvotes=Count(
