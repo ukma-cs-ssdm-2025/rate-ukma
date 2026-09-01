@@ -208,6 +208,7 @@ class RatingAdmin(VersionAdmin):
         "usefulness",
         "comment",
         "is_anonymous",
+        "instructors_display",
         "created_at",
         "upvotes_count",
         "downvotes_count",
@@ -237,6 +238,7 @@ class RatingAdmin(VersionAdmin):
                 "course_offering",
                 "course_offering__course",
             )
+            .prefetch_related("instructors")
             .annotate(
                 _upvotes=Count(
                     "rating_vote",
@@ -259,6 +261,13 @@ class RatingAdmin(VersionAdmin):
     @admin.display(description="Downvotes", ordering="_downvotes")
     def downvotes_count(self, obj):
         return obj._downvotes
+
+    @admin.display(description="Instructors")
+    def instructors_display(self, obj):
+        instructors = obj.instructors.all()
+        if not instructors:
+            return "—"
+        return ", ".join([f"{inst.first_name} {inst.last_name}" for inst in instructors])
 
 
 @admin.register(Comment)
