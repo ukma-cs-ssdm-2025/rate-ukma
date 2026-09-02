@@ -14,6 +14,7 @@ from rating_app.models import (
     Department,
     Enrollment,
     Faculty,
+    FeedPost,
     Instructor,
     PromoBanner,
     Rating,
@@ -463,7 +464,6 @@ class PromoBannerAdmin(VersionAdmin):
             "Content",
             {
                 "fields": ("title", "description", "cta_label", "href"),
-                "description": "Text is shown in Ukrainian, exactly as entered.",
             },
         ),
         (
@@ -479,6 +479,40 @@ class PromoBannerAdmin(VersionAdmin):
                     "one deactivates any other. Create a new banner instead of "
                     "editing a live one so that users who dismissed the old ad "
                     "see the new one."
+                ),
+            },
+        ),
+    )
+
+
+@admin.register(FeedPost)
+class FeedPostAdmin(VersionAdmin):
+    list_display = ("title", "accent", "pinned", "is_active", "published_at")
+    list_filter = ("is_active", "pinned", "accent")
+    list_editable = ("pinned", "is_active")
+    search_fields = ("title", "body", "label")
+    ordering = ("-published_at",)
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (
+            "Content",
+            {
+                "fields": ("title", "body", "label", "cta_label", "cta_href", "accent"),
+            },
+        ),
+        (
+            "Media",
+            {"fields": ("image",)},
+        ),
+        (
+            "Visibility",
+            {
+                "fields": ("pinned", "is_active", "published_at", "created_at", "updated_at"),
+                "description": (
+                    "`published_at` places the post in the feed timeline and may "
+                    "be set in the future to schedule it — the post stays hidden "
+                    "until then. `is_active` hides it outright. Pinned posts lead "
+                    "the feed until unpinned."
                 ),
             },
         ),
