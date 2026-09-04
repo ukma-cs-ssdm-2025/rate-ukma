@@ -13,6 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from rateukma.caching.patterns import (
+    FEED_NAMESPACE,
     comment_replies_namespace,
     course_analytics_namespace,
     course_detail_namespace,
@@ -96,6 +97,10 @@ class TestRatingCacheInvalidator:
         event = _make_rating_dto()
         invalidator.on_event(event)
         cache_manager.bump_version.assert_any_call(course_ratings_namespace(str(event.course)))
+
+    def test_bumps_feed_namespace(self, invalidator, cache_manager):
+        invalidator.on_event(_make_rating_dto())
+        cache_manager.bump_version.assert_any_call(FEED_NAMESPACE)
 
     def test_bumps_student_ratings_namespace(self, invalidator, cache_manager):
         event = _make_rating_dto()
