@@ -6,6 +6,7 @@ import { FeedPromoItem } from "@/features/feed/components/FeedPromoItem";
 import { FeedReviewItem } from "@/features/feed/components/FeedReviewItem";
 import { FEED_FLAG } from "@/features/feed/feedFlags";
 import { isPromoItem } from "@/features/feed/feedTypes";
+import { testIds } from "@/lib/test-ids";
 import { useFeed } from "@/features/feed/hooks/useFeed";
 import { withAuth } from "@/lib/auth";
 import { useFeatureFlagState } from "@/lib/feature-flags";
@@ -29,7 +30,12 @@ export function FeedRoute() {
 				</header>
 
 				{!isReady ? null : !enabled ? (
-					<p className="text-muted-foreground">Стрічка наразі недоступна.</p>
+					<p
+						data-testid={testIds.feed.unavailable}
+						className="text-muted-foreground"
+					>
+						Стрічка наразі недоступна.
+					</p>
 				) : isError ? (
 					<p className="text-muted-foreground">
 						Не вдалося завантажити стрічку. Спробуйте пізніше.
@@ -37,12 +43,18 @@ export function FeedRoute() {
 				) : isLoading ? (
 					<p className="text-muted-foreground">Завантаження…</p>
 				) : items.length === 0 ? (
-					<p className="text-muted-foreground">Тут поки що порожньо.</p>
+					<p data-testid={testIds.feed.empty} className="text-muted-foreground">
+						Тут поки що порожньо.
+					</p>
 				) : (
 					<>
-						<div className="space-y-3">
+						<div data-testid={testIds.feed.list} className="space-y-3">
 							{items.map((item) => (
-								<div key={`${item.kind}:${item.id}`} className="relative">
+								<div
+									key={`${item.kind}:${item.id}`}
+									data-testid={testIds.feed.item}
+									className="relative"
+								>
 									{item.pinned && (
 										<span className="absolute right-3 top-3 z-10 inline-flex items-center rounded-full border bg-background/90 p-1 text-muted-foreground shadow-sm backdrop-blur">
 											<Pin className="size-3" />

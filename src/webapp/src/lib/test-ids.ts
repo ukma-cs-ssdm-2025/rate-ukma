@@ -198,6 +198,13 @@ export const testIds = {
 	},
 
 	// Notifications
+	feed: {
+		list: "feed-list",
+		item: "feed-item",
+		strip: "feed-strip",
+		unavailable: "feed-unavailable",
+		empty: "feed-empty",
+	},
 	notifications: {
 		bellTrigger: "notifications-bell-trigger",
 		panel: "notifications-panel",
