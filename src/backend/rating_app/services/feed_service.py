@@ -1,5 +1,5 @@
 from rateukma.caching.decorators import rcached
-from rateukma.caching.patterns import FEED_NAMESPACE, feed_published_namespace
+from rateukma.caching.patterns import FEED_NAMESPACE
 from rating_app.application_schemas.feed import FeedPage, FeedPromoItem, FeedReviewItem
 from rating_app.pagination import FeedCursor
 from rating_app.repositories import FeedPostRepository, RatingRepository
@@ -19,9 +19,7 @@ class FeedService:
         self.rating_repository = rating_repository
 
     def cache_namespaces(self, *_args, **_kwargs) -> list[str]:
-        published_at = self.feed_post_repository.get_latest_publication_time()
-        epoch = published_at.isoformat() if published_at else "none"
-        return [FEED_NAMESPACE, feed_published_namespace(epoch)]
+        return [FEED_NAMESPACE]
 
     @rcached(ttl=FEED_CACHE_TTL, versioned_by=cache_namespaces)
     def get_feed(self, cursor: str | None, limit: int) -> FeedPage:
