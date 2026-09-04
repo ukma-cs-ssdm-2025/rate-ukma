@@ -30,6 +30,14 @@ describe("FeedPromoItem", () => {
 		expect(cta).toHaveAttribute("href", "https://example.com/hack");
 	});
 
+	it("opens the CTA in a new tab", () => {
+		render(<FeedPromoItem item={baseItem} />);
+
+		const cta = screen.getByRole("link", { name: /Зареєструватися/ });
+		expect(cta).toHaveAttribute("target", "_blank");
+		expect(cta).toHaveAttribute("rel", "noopener noreferrer");
+	});
+
 	it("falls back to the default label when none is provided", () => {
 		render(<FeedPromoItem item={{ ...baseItem, label: undefined }} />);
 
@@ -40,5 +48,12 @@ describe("FeedPromoItem", () => {
 		render(<FeedPromoItem item={{ ...baseItem, ctaLabel: undefined }} />);
 
 		expect(screen.queryByRole("link")).not.toBeInTheDocument();
+	});
+
+	it("omits the CTA when there is no ctaHref", () => {
+		render(<FeedPromoItem item={{ ...baseItem, ctaHref: undefined }} />);
+
+		expect(screen.queryByRole("link")).not.toBeInTheDocument();
+		expect(screen.queryByText("Зареєструватися")).not.toBeInTheDocument();
 	});
 });

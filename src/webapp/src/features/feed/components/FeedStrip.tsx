@@ -27,6 +27,7 @@ export function FeedStrip() {
 	const { items, isLoading } = useFeed({
 		limit: STRIP_PAGE_SIZE,
 		infinite: false,
+		enabled: isReady && enabled,
 	});
 
 	// Gate on the flag, and stay hidden until it resolves so the feed never

@@ -58,6 +58,11 @@ EX_400_VOTE = OpenApiExample(
     },
     status_codes=["400"],
 )
+EX_400_FEED_CURSOR = OpenApiExample(
+    "Malformed cursor",
+    value={"detail": "Invalid feed cursor", "status": 400},
+    status_codes=["400"],
+)
 EX_401 = OpenApiExample(
     "Unauthorized",
     value={"detail": "Authentication credentials were not provided", "status": 401},
@@ -266,6 +271,6 @@ R_PROMO_BANNER = {
 
 R_FEED = {
     200: OpenApiResponse(forced_singular_serializer(FeedPageSerializer), "OK"),
-    400: OpenApiResponse(Err, "Malformed cursor", [EX_400]),
+    400: OpenApiResponse(Err, "Malformed cursor", [EX_400_FEED_CURSOR]),
     401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }

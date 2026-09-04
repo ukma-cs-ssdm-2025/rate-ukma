@@ -1802,14 +1802,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
               examples:
-                ValidationError:
+                MalformedCursor:
                   value:
-                    detail: Validation failed
+                    detail: Invalid feed cursor
                     status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
-                  summary: Validation error
+                  summary: Malformed cursor
           description: Malformed cursor
         '401':
           content:

@@ -92,7 +92,9 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 				</p>
 			</div>
 
-			{item.ctaLabel && (
+			{/* Both halves are required: a label without a real href would render a
+			    link that goes nowhere, so admin data missing one drops the CTA. */}
+			{item.ctaLabel && item.ctaHref && (
 				<div
 					className={cn(
 						isBanner ? "shrink-0 pl-2 sm:pl-0" : "mt-auto pl-2 pt-4",
@@ -104,7 +106,7 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 						variant={accent.variant}
 						className={cn("gap-1.5", accent.cta)}
 					>
-						<a href={item.ctaHref ?? "#"}>
+						<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
 							{item.ctaLabel}
 							<ArrowRight className="size-4" />
 						</a>

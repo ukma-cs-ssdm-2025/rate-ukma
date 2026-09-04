@@ -13,7 +13,7 @@ import { useFeatureFlagState } from "@/lib/feature-flags";
 export function FeedRoute() {
 	const { enabled, isReady } = useFeatureFlagState(FEED_FLAG);
 	const { items, isLoading, isError, isFetchingNextPage, hasMore, loaderRef } =
-		useFeed();
+		useFeed({ enabled: isReady && enabled });
 
 	return (
 		<Layout>

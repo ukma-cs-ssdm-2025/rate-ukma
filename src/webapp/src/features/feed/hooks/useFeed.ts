@@ -28,10 +28,16 @@ interface UseFeedOptions {
 	limit?: number;
 	/** Off for the homepage strip, which shows the first page only. */
 	infinite?: boolean;
+	/** Off keeps the query idle, so a gated feed issues no request. */
+	enabled?: boolean;
 }
 
 export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
-	const { limit = DEFAULT_PAGE_SIZE, infinite = true } = options;
+	const {
+		limit = DEFAULT_PAGE_SIZE,
+		infinite = true,
+		enabled = true,
+	} = options;
 	const params = { limit };
 
 	const {
@@ -49,6 +55,7 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 		// when it stops issuing one.
 		getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
 		initialPageParam: null as string | null,
+		enabled,
 	});
 
 	const items = useMemo(
