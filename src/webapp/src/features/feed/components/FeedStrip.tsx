@@ -4,8 +4,8 @@ import { ArrowRight, Newspaper, Pin } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useFeatureFlagState } from "@/lib/feature-flags";
 import { FEED_FLAG } from "../feedFlags";
-import { MOCK_FEED_ITEMS } from "../feedMockData";
-import { isPromoItem, orderFeedItems } from "../feedTypes";
+import { isPromoItem } from "../feedTypes";
+import { useFeed } from "../hooks/useFeed";
 import { FeedPromoItem } from "./FeedPromoItem";
 import { FeedReviewItem } from "./FeedReviewItem";
 
@@ -20,13 +20,22 @@ import { FeedReviewItem } from "./FeedReviewItem";
  * link (the `/feed` route) rather than by discovering the horizontal scroll,
  * which isn't obvious on its own.
  */
+const STRIP_PAGE_SIZE = 8;
+
 export function FeedStrip() {
 	const { enabled, isReady } = useFeatureFlagState(FEED_FLAG);
-	const items = MOCK_FEED_ITEMS;
+	const { items, isLoading } = useFeed({
+		limit: STRIP_PAGE_SIZE,
+		infinite: false,
+	});
 
 	// Gate on the flag, and stay hidden until it resolves so the feed never
 	// flashes in before a disabled flag lands.
 	if (!isReady || !enabled) return null;
+
+	// The strip is secondary to the courses table below it: an empty or failed
+	// feed should leave no gap rather than announce itself.
+	if (!isLoading && items.length === 0) return null;
 
 	return (
 		<section aria-label="Стрічка оновлень" className="space-y-3">
@@ -52,9 +61,9 @@ export function FeedStrip() {
 			    strip rather than an attention-grabbing carousel; the header link
 			    and trailing tile carry discoverability of older items. */}
 			<div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-				{orderFeedItems(items).map((item) => (
+				{items.map((item) => (
 					<div
-						key={item.id}
+						key={`${item.kind}:${item.id}`}
 						className="relative w-[260px] shrink-0 sm:w-[280px]"
 					>
 						{item.pinned && (

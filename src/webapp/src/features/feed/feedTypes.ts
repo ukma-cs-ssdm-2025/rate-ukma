@@ -21,12 +21,11 @@ export interface FeedReviewItem {
 	readonly pinned?: boolean;
 	readonly courseId: string;
 	readonly courseTitle: string;
-	readonly studentName: string;
-	readonly isAnonymous: boolean;
-	readonly avatarUrl?: string | null;
 	readonly difficulty: number;
 	readonly usefulness: number;
-	readonly comment?: string | null;
+	readonly comment: string;
+	readonly courseAvgDifficulty: number;
+	readonly courseAvgUsefulness: number;
 	readonly semesterYear?: number;
 	readonly semesterTerm?: string;
 }
@@ -35,7 +34,7 @@ export interface FeedReviewItem {
  * Accent controls the promo card's color treatment so admins can visually
  * prioritise announcements without touching code.
  */
-export type FeedPromoAccent = "brand" | "info" | "warning";
+export type FeedPromoAccent = "BRAND" | "INFO" | "WARNING";
 
 export interface FeedPromoItem {
 	readonly kind: "promo";

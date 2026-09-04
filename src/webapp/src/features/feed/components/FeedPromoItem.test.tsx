@@ -13,7 +13,7 @@ const baseItem: FeedPromoItemType = {
 	label: "Подія",
 	ctaLabel: "Зареєструватися",
 	ctaHref: "https://example.com/hack",
-	accent: "info",
+	accent: "INFO",
 };
 
 describe("FeedPromoItem", () => {

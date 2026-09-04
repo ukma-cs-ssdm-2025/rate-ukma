@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { MessageSquareText } from "lucide-react";
+import { ArrowDown, ArrowUp, MessageSquareText } from "lucide-react";
 
 import {
 	getDifficultyTone,
@@ -12,6 +12,31 @@ import type { FeedReviewItem as FeedReviewItemType } from "../feedTypes";
 
 interface FeedReviewItemProps {
 	readonly item: FeedReviewItemType;
+}
+
+/**
+ * How this score sits against the course average.
+ *
+ * Ties are real — a course whose only rating is this one has `average ===
+ * score` — so equality renders nothing rather than an arbitrary arrow. The
+ * epsilon keeps float noise from reading as a difference.
+ */
+const TIE_EPSILON = 0.05;
+
+function ComparisonArrow({
+	score,
+	average,
+}: {
+	readonly score: number;
+	readonly average: number;
+}) {
+	const delta = score - average;
+	if (Math.abs(delta) < TIE_EPSILON) return null;
+
+	const Icon = delta > 0 ? ArrowUp : ArrowDown;
+	const label = `${delta > 0 ? "вище" : "нижче"} за середнє (${average.toFixed(1)})`;
+
+	return <Icon className="size-3 text-muted-foreground" aria-label={label} />;
 }
 
 /**
@@ -55,6 +80,10 @@ export function FeedReviewItem({ item }: FeedReviewItemProps) {
 						>
 							{item.difficulty.toFixed(1)}
 						</span>
+						<ComparisonArrow
+							score={item.difficulty}
+							average={item.courseAvgDifficulty}
+						/>
 					</span>
 					<span className="flex items-center gap-1">
 						<span className="text-muted-foreground">Корисність</span>
@@ -66,6 +95,10 @@ export function FeedReviewItem({ item }: FeedReviewItemProps) {
 						>
 							{item.usefulness.toFixed(1)}
 						</span>
+						<ComparisonArrow
+							score={item.usefulness}
+							average={item.courseAvgUsefulness}
+						/>
 					</span>
 				</div>
 

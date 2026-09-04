@@ -5,14 +5,15 @@ import Layout from "@/components/Layout";
 import { FeedPromoItem } from "@/features/feed/components/FeedPromoItem";
 import { FeedReviewItem } from "@/features/feed/components/FeedReviewItem";
 import { FEED_FLAG } from "@/features/feed/feedFlags";
-import { MOCK_FEED_ITEMS } from "@/features/feed/feedMockData";
-import { isPromoItem, orderFeedItems } from "@/features/feed/feedTypes";
+import { isPromoItem } from "@/features/feed/feedTypes";
+import { useFeed } from "@/features/feed/hooks/useFeed";
 import { withAuth } from "@/lib/auth";
 import { useFeatureFlagState } from "@/lib/feature-flags";
 
 export function FeedRoute() {
 	const { enabled, isReady } = useFeatureFlagState(FEED_FLAG);
-	const items = orderFeedItems(MOCK_FEED_ITEMS);
+	const { items, isLoading, isError, isFetchingNextPage, hasMore, loaderRef } =
+		useFeed();
 
 	return (
 		<Layout>
@@ -29,25 +30,48 @@ export function FeedRoute() {
 
 				{!isReady ? null : !enabled ? (
 					<p className="text-muted-foreground">Стрічка наразі недоступна.</p>
+				) : isError ? (
+					<p className="text-muted-foreground">
+						Не вдалося завантажити стрічку. Спробуйте пізніше.
+					</p>
+				) : isLoading ? (
+					<p className="text-muted-foreground">Завантаження…</p>
+				) : items.length === 0 ? (
+					<p className="text-muted-foreground">Тут поки що порожньо.</p>
 				) : (
-					<div className="space-y-3">
-						{items.map((item) => (
-							<div key={item.id} className="relative">
-								{item.pinned && (
-									<span className="absolute right-3 top-3 z-10 inline-flex items-center rounded-full border bg-background/90 p-1 text-muted-foreground shadow-sm backdrop-blur">
-										<Pin className="size-3" />
-									</span>
-								)}
-								{isPromoItem(item) ? (
-									<FeedPromoItem item={item} variant="banner" />
-								) : (
-									<div className="rounded-xl border bg-card px-4 shadow-sm">
-										<FeedReviewItem item={item} />
-									</div>
-								)}
-							</div>
-						))}
-					</div>
+					<>
+						<div className="space-y-3">
+							{items.map((item) => (
+								<div key={`${item.kind}:${item.id}`} className="relative">
+									{item.pinned && (
+										<span className="absolute right-3 top-3 z-10 inline-flex items-center rounded-full border bg-background/90 p-1 text-muted-foreground shadow-sm backdrop-blur">
+											<Pin className="size-3" />
+										</span>
+									)}
+									{isPromoItem(item) ? (
+										<FeedPromoItem item={item} variant="banner" />
+									) : (
+										<div className="rounded-xl border bg-card px-4 shadow-sm">
+											<FeedReviewItem item={item} />
+										</div>
+									)}
+								</div>
+							))}
+						</div>
+
+						{/* Sentinel: intersecting it pulls the next page. */}
+						<div ref={loaderRef} className="h-px" aria-hidden />
+						{isFetchingNextPage && (
+							<p className="text-center text-sm text-muted-foreground">
+								Завантаження…
+							</p>
+						)}
+						{!hasMore && (
+							<p className="text-center text-sm text-muted-foreground">
+								Це вся стрічка
+							</p>
+						)}
+					</>
 				)}
 			</div>
 		</Layout>
