@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 from rest_framework import serializers
 
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
@@ -67,8 +69,8 @@ class FeedPageSerializer(serializers.Serializer):
         # dispatch on the DTO type instead.
         return [self._serialize(item) for item in page.items]
 
-    def _serialize(self, item: FeedReviewItem | FeedPromoItem) -> dict:
+    def _serialize(self, item: FeedReviewItem | FeedPromoItem) -> dict[str, Any]:
         serializer = (
             FeedPromoItemSerializer if isinstance(item, FeedPromoItem) else FeedReviewItemSerializer
         )
-        return serializer(item).data
+        return cast(dict[str, Any], serializer(item).data)
