@@ -38,6 +38,35 @@ describe("FeedPromoItem", () => {
 		expect(cta).toHaveAttribute("rel", "noopener noreferrer");
 	});
 
+	it("renders the image in the banner variant", () => {
+		const item = { ...baseItem, imageUrl: "https://example.com/promo.png" };
+
+		render(<FeedPromoItem item={item} variant="banner" />);
+
+		expect(screen.getByRole("img", { name: item.title })).toHaveAttribute(
+			"src",
+			"https://example.com/promo.png",
+		);
+	});
+
+	it("omits the image in the card variant used by the homepage strip", () => {
+		render(
+			<FeedPromoItem
+				item={{ ...baseItem, imageUrl: "https://example.com/promo.png" }}
+			/>,
+		);
+
+		expect(screen.queryByRole("img")).not.toBeInTheDocument();
+	});
+
+	it("renders no image when the promo has none", () => {
+		render(
+			<FeedPromoItem item={{ ...baseItem, imageUrl: null }} variant="banner" />,
+		);
+
+		expect(screen.queryByRole("img")).not.toBeInTheDocument();
+	});
+
 	it("falls back to the default label when none is provided", () => {
 		render(<FeedPromoItem item={{ ...baseItem, label: undefined }} />);
 

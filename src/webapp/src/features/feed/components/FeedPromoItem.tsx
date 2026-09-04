@@ -68,6 +68,17 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 				aria-hidden
 			/>
 
+			{/* Banner only: the homepage strip's cards are too narrow to carry an
+			    image without crowding out the title and body. */}
+			{item.imageUrl && isBanner && (
+				<img
+					src={item.imageUrl}
+					alt={item.title}
+					className="ml-2 size-20 shrink-0 rounded-lg object-cover sm:size-24"
+					loading="lazy"
+				/>
+			)}
+
 			<div className={cn("min-w-0", isBanner ? "flex-1 pl-2" : "pl-2")}>
 				<div className="flex items-center gap-2">
 					<Badge
