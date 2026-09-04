@@ -8,6 +8,7 @@ from rating_app.serializers import (
     CourseDetailSerializer,
     CourseListResponseSerializer,
     FeatureFlagsSerializer,
+    FeedPageSerializer,
     FilterOptionsSerializer,
     InstructorListResponseSerializer,
     InstructorSerializer,
@@ -261,4 +262,10 @@ R_FLAGS = {
 
 R_PROMO_BANNER = {
     200: OpenApiResponse(forced_singular_serializer(PromoBannerResponseSerializer), "OK"),
+}
+
+R_FEED = {
+    200: OpenApiResponse(forced_singular_serializer(FeedPageSerializer), "OK"),
+    400: OpenApiResponse(Err, "Malformed cursor", [EX_400]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }

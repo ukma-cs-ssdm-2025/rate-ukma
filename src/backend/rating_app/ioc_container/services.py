@@ -7,6 +7,7 @@ from rating_app.ioc_container.repositories import (
     department_repository,
     enrollment_repository,
     faculty_repository,
+    feed_post_repository,
     instructor_mapper,
     instructor_repository,
     notification_cursor_repository,
@@ -52,6 +53,7 @@ from rating_app.services.domain_event_listeners.comment_notification import (
 from rating_app.services.domain_event_listeners.vote_notification import (
     VoteNotificationObserver,
 )
+from rating_app.services.feed_service import FeedService
 from rating_app.services.notification_service import NotificationService
 
 
@@ -144,6 +146,14 @@ def instructor_service() -> InstructorService:
 @once
 def promo_banner_service() -> PromoBannerService:
     return PromoBannerService(promo_banner_repository=promo_banner_repository())
+
+
+@once
+def feed_service() -> FeedService:
+    return FeedService(
+        feed_post_repository=feed_post_repository(),
+        rating_repository=rating_repository(),
+    )
 
 
 @once
