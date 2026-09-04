@@ -30,8 +30,13 @@ class FeedPostRepository:
             posts = posts.filter(cursor.filter("published_at"))
         return self._map(posts[: limit + 1])
 
-    def get_latest_publication_time(self) -> datetime | None:
-        return self._build_live_queryset().values_list("published_at", flat=True).first()
+    def get_next_future_publication_time(self) -> datetime | None:
+        return (
+            FeedPost.objects.filter(is_active=True, published_at__gt=timezone.now())
+            .order_by("published_at")
+            .values_list("published_at", flat=True)
+            .first()
+        )
 
     def _build_live_queryset(self) -> QuerySet[FeedPost]:
         """Posts a reader may see right now."""

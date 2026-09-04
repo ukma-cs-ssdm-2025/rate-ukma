@@ -46,7 +46,7 @@ class FeedViewSet(viewsets.ViewSet):
             logger.error("validation_error", errors=e.errors())
             raise ValidationError(detail=e.errors()) from e
 
-        page = self.feed_service.get_feed(
+        page = self.feed_service.get_feed_page(
             cursor=query_params.cursor,
             limit=query_params.limit,
         )
