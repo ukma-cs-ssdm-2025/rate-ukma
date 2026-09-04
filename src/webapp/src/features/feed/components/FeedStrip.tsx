@@ -3,6 +3,7 @@ import { ArrowRight, Newspaper, Pin } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { useFeatureFlagState } from "@/lib/feature-flags";
+import { testIds } from "@/lib/test-ids";
 import { FEED_FLAG } from "../feedFlags";
 import { isPromoItem } from "../feedTypes";
 import { useFeed } from "../hooks/useFeed";
@@ -38,7 +39,11 @@ export function FeedStrip() {
 	if (!isLoading && items.length === 0) return null;
 
 	return (
-		<section aria-label="Стрічка оновлень" className="space-y-3">
+		<section
+			aria-label="Стрічка оновлень"
+			data-testid={testIds.feed.strip}
+			className="space-y-3"
+		>
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex items-center gap-2">
 					<Newspaper className="size-4 text-muted-foreground" />
