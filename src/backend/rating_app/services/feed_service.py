@@ -1,5 +1,5 @@
 from rateukma.caching.decorators import rcached
-from rateukma.caching.patterns import FEED_NAMESPACE
+from rateukma.caching.patterns import FEED_NAMESPACE, feed_published_namespace
 from rating_app.application_schemas.feed import FeedPage, FeedPromoItem, FeedReviewItem
 from rating_app.pagination import FeedCursor
 from rating_app.repositories import FeedPostRepository, RatingRepository
@@ -18,11 +18,16 @@ class FeedService:
         self.feed_post_repository = feed_post_repository
         self.rating_repository = rating_repository
 
-    @rcached(ttl=FEED_CACHE_TTL, versioned_by=FEED_NAMESPACE)
+    def cache_namespaces(self, *_args, **_kwargs) -> list[str]:
+        published_at = self.feed_post_repository.get_latest_publication_time()
+        epoch = published_at.isoformat() if published_at else "none"
+        return [FEED_NAMESPACE, feed_published_namespace(epoch)]
+
+    @rcached(ttl=FEED_CACHE_TTL, versioned_by=cache_namespaces)
     def get_feed(self, cursor: str | None, limit: int) -> FeedPage:
         """One page of the feed, newest first.
 
-        The cursor is part of the cache key, so each page caches separately;
+        The cursor is part of the cache key, each page caches separately.
         `FEED_NAMESPACE` is bumped on any rating or post change, which retires
         every page at once.
         """

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db.models import QuerySet
 from django.utils import timezone
 
@@ -27,6 +29,9 @@ class FeedPostRepository:
         if cursor is not None:
             posts = posts.filter(cursor.filter("published_at"))
         return self._map(posts[: limit + 1])
+
+    def get_latest_publication_time(self) -> datetime | None:
+        return self._build_live_queryset().values_list("published_at", flat=True).first()
 
     def _build_live_queryset(self) -> QuerySet[FeedPost]:
         """Posts a reader may see right now."""

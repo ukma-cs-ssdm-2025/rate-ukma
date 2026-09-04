@@ -40,3 +40,7 @@ def comment_replies_namespace(comment_id: str) -> str:
 
 def student_ratings_namespace(student_id: str) -> str:
     return f"ratings:student:{student_id}"
+
+
+def feed_published_namespace(epoch: str) -> str:
+    return f"{FEED_NAMESPACE}:published:{epoch}"
