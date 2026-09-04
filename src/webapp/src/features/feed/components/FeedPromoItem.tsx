@@ -11,26 +11,34 @@ import type {
 /**
  * Accent -> color treatment.
  */
-type BadgeVariant = "default" | "secondary" | "destructive";
+/** Badge and Button share these variant names, so one value drives both. */
+type AccentVariant = "default" | "secondary" | "destructive";
 
 const ACCENT_STYLES: Record<
 	FeedPromoAccent,
-	{ container: string; rail: string; badge: BadgeVariant }
+	{
+		container: string;
+		rail: string;
+		variant: AccentVariant;
+		/** Darkens the CTA where the variant's own fill is too pale to read as a button. */
+		cta?: string;
+	}
 > = {
-	brand: {
+	BRAND: {
 		container: "bg-primary/5 border-primary/20",
 		rail: "bg-primary",
-		badge: "default",
+		variant: "default",
 	},
-	info: {
+	INFO: {
 		container: "bg-accent border-border",
 		rail: "bg-muted-foreground",
-		badge: "secondary",
+		variant: "secondary",
+		cta: "bg-muted-foreground text-background hover:bg-muted-foreground/90",
 	},
-	warning: {
+	WARNING: {
 		container: "bg-destructive/5 border-destructive/20",
 		rail: "bg-destructive",
-		badge: "destructive",
+		variant: "destructive",
 	},
 };
 
@@ -41,7 +49,7 @@ interface FeedPromoItemProps {
 }
 
 export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
-	const accent = ACCENT_STYLES[item.accent ?? "brand"];
+	const accent = ACCENT_STYLES[item.accent ?? "BRAND"];
 	const label = item.label ?? "Оголошення";
 	const isBanner = variant === "banner";
 
@@ -60,10 +68,21 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 				aria-hidden
 			/>
 
+			{/* Banner only: the homepage strip's cards are too narrow to carry an
+			    image without crowding out the title and body. */}
+			{item.imageUrl && isBanner && (
+				<img
+					src={item.imageUrl}
+					alt={item.title}
+					className="ml-2 size-20 shrink-0 rounded-lg object-cover sm:size-24"
+					loading="lazy"
+				/>
+			)}
+
 			<div className={cn("min-w-0", isBanner ? "flex-1 pl-2" : "pl-2")}>
 				<div className="flex items-center gap-2">
 					<Badge
-						variant={accent.badge}
+						variant={accent.variant}
 						className="gap-1 text-[10px] uppercase tracking-wide"
 					>
 						<Megaphone className="size-3" />
@@ -84,14 +103,21 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 				</p>
 			</div>
 
-			{item.ctaLabel && (
+			{/* Both halves are required: a label without a real href would render a
+			    link that goes nowhere, so admin data missing one drops the CTA. */}
+			{item.ctaLabel && item.ctaHref && (
 				<div
 					className={cn(
 						isBanner ? "shrink-0 pl-2 sm:pl-0" : "mt-auto pl-2 pt-4",
 					)}
 				>
-					<Button asChild size="sm" className="gap-1.5">
-						<a href={item.ctaHref ?? "#"}>
+					<Button
+						asChild
+						size="sm"
+						variant={accent.variant}
+						className={cn("gap-1.5", accent.cta)}
+					>
+						<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
 							{item.ctaLabel}
 							<ArrowRight className="size-4" />
 						</a>

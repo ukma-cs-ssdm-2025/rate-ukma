@@ -8,6 +8,7 @@ from rating_app.serializers import (
     CourseDetailSerializer,
     CourseListResponseSerializer,
     FeatureFlagsSerializer,
+    FeedPageSerializer,
     FilterOptionsSerializer,
     InstructorListResponseSerializer,
     InstructorSerializer,
@@ -55,6 +56,11 @@ EX_400_VOTE = OpenApiExample(
         "status": 400,
         "fields": {"vote_type": ["Must be either UPVOTE or DOWNVOTE."]},
     },
+    status_codes=["400"],
+)
+EX_400_FEED_CURSOR = OpenApiExample(
+    "Malformed cursor",
+    value={"detail": "Invalid feed cursor", "status": 400},
     status_codes=["400"],
 )
 EX_401 = OpenApiExample(
@@ -261,4 +267,10 @@ R_FLAGS = {
 
 R_PROMO_BANNER = {
     200: OpenApiResponse(forced_singular_serializer(PromoBannerResponseSerializer), "OK"),
+}
+
+R_FEED = {
+    200: OpenApiResponse(forced_singular_serializer(FeedPageSerializer), "OK"),
+    400: OpenApiResponse(Err, "Malformed cursor", [EX_400_FEED_CURSOR]),
+    401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }

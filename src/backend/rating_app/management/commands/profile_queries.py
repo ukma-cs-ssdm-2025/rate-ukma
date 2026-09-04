@@ -181,9 +181,11 @@ class Command(BaseCommand):
                     name="offerings_by_course",
                     description="Course offering lookup for one representative course",
                     executor=lambda: course_offering_repository().get_by_course(sample_course_id),
-                    queryset_builder=lambda: course_offering_repository()
-                    ._build_base_queryset()  # noqa: SLF001
-                    .filter(course_id=sample_course_id),
+                    queryset_builder=lambda: (
+                        course_offering_repository()
+                        ._build_base_queryset()  # noqa: SLF001
+                        .filter(course_id=sample_course_id)
+                    ),
                 )
             )
 

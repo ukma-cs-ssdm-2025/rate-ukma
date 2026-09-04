@@ -10,10 +10,11 @@ function review(id: string, pinned?: boolean): FeedItem {
 		pinned,
 		courseId: `course-${id}`,
 		courseTitle: `Course ${id}`,
-		studentName: "Student",
-		isAnonymous: false,
 		difficulty: 3,
 		usefulness: 3,
+		comment: "comment",
+		courseAvgDifficulty: 3,
+		courseAvgUsefulness: 3,
 	};
 }
 

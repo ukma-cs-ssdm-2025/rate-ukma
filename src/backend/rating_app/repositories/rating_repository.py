@@ -21,6 +21,7 @@ import structlog
 
 from rateukma.protocols import IProcessor
 from rating_app.application_schemas.course import Course as CourseDTO
+from rating_app.application_schemas.feed import FeedReviewItem as FeedReviewItemDTO
 from rating_app.application_schemas.pagination import PaginationFilters, PaginationResult
 from rating_app.application_schemas.rating import (
     AggregatedCourseRatingStats,
@@ -40,7 +41,7 @@ from rating_app.exception.rating_exceptions import (
 )
 from rating_app.models import Comment, Rating
 from rating_app.models.choices import RatingVoteType
-from rating_app.pagination import GenericQuerysetPaginator
+from rating_app.pagination import FeedCursor, GenericQuerysetPaginator
 from rating_app.queries.rating_popularity import WilsonPopularityAnnotator
 from rating_app.repositories.protocol import IPaginatedRepository
 
@@ -53,10 +54,12 @@ class RatingRepository(
     def __init__(
         self,
         mapper: IProcessor[[Rating], RatingDTO],
+        feed_mapper: IProcessor[[Rating], FeedReviewItemDTO],
         paginator: GenericQuerysetPaginator[Rating],
         popularity_annotator: WilsonPopularityAnnotator,
     ):
         self.mapper = mapper
+        self.feed_mapper = feed_mapper
         self.paginator = paginator
         self.popularity_annotator = popularity_annotator
 
@@ -284,6 +287,23 @@ class RatingRepository(
         rating_model = self._get_by_id_shallow(id)
         rating_model.delete()
         logger.info("rating_deleted", rating_id=id)
+
+    def get_feed_page(self, cursor: FeedCursor | None, limit: int) -> list[FeedReviewItemDTO]:
+        """Commented ratings older than `cursor`, newest first, for the feed."""
+        ratings = self._build_feed_queryset()
+        if cursor is not None:
+            ratings = ratings.filter(cursor.filter("created_at"))
+        return [self.feed_mapper.process(rating) for rating in ratings[: limit + 1]]
+
+    def _build_feed_queryset(self) -> QuerySet[Rating]:
+        return (
+            Rating.objects.select_related(
+                "course_offering__course",
+                "course_offering__semester",
+            )
+            .exclude(comment="")
+            .order_by("-created_at", "-id")
+        )
 
     def _filter(self, criteria: RatingFilterCriteria) -> QuerySet[Rating]:
         ratings = self._build_base_queryset()

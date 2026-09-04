@@ -5,6 +5,7 @@ class RatingAppConfig(AppConfig):
     name = "rating_app"
 
     def ready(self):
+        import rating_app.signals  # noqa: F401
         from rating_app.ioc_container.services import register_observers
 
         register_observers()

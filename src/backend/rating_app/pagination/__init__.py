@@ -1,3 +1,4 @@
+from .cursor import FeedCursor
 from .paginator import (
     GenericListPaginator,
     GenericQuerysetPaginator,
@@ -10,4 +11,5 @@ __all__ = [
     "GenericListPaginator",
     "PaginationFilters",
     "PaginationResult",
+    "FeedCursor",
 ]

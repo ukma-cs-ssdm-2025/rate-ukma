@@ -1,5 +1,6 @@
 from rateukma.caching.cache_manager import ICacheManager
 from rateukma.caching.patterns import (
+    FEED_NAMESPACE,
     comment_replies_namespace,
     course_analytics_namespace,
     course_detail_namespace,
@@ -27,6 +28,7 @@ class RatingCacheInvalidator(IEventListener[RatingDTO]):
         self.cache_manager.bump_version(course_detail_namespace(course_id))
         self.cache_manager.bump_version(course_analytics_namespace(course_id))
         self.cache_manager.bump_version(course_ratings_namespace(course_id))
+        self.cache_manager.bump_version(FEED_NAMESPACE)
         if event.student_id is not None:
             self.cache_manager.bump_version(student_ratings_namespace(str(event.student_id)))
 

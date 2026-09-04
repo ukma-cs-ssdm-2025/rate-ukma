@@ -1764,6 +1764,61 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/feed/:
+    get:
+      operationId: feed_list
+      description: Recent course reviews and admin-authored posts merged into one
+        timeline, newest first. Pass `next_cursor` from the previous response as `cursor`
+        to page; a null `next_cursor` means the end. Pinned posts lead the first page
+        only.
+      summary: List the activity feed
+      parameters:
+      - in: query
+        name: cursor
+        schema:
+          type: string
+        description: Opaque position token from the previous page. Omit for the first
+          page.
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: 'Items per page (default: 20)'
+      tags:
+      - feed
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedPage'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                MalformedCursor:
+                  value:
+                    detail: Invalid feed cursor
+                    status: 400
+                  summary: Malformed cursor
+          description: Malformed cursor
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
   /api/v1/flags/:
     get:
       operationId: flags_list
@@ -2564,6 +2619,16 @@ paths:
           description: No response body
 components:
   schemas:
+    AccentEnum:
+      enum:
+      - BRAND
+      - INFO
+      - WARNING
+      type: string
+      description: |-
+        * `BRAND` - Brand
+        * `INFO` - Info
+        * `WARNING` - Warning
     CSRFToken:
       type: object
       properties:
@@ -3208,6 +3273,122 @@ components:
           readOnly: true
           description: Map of public feature flag name to its enabled state for the
             current user.
+    FeedItem:
+      oneOf:
+      - $ref: '#/components/schemas/FeedReviewItem'
+      - $ref: '#/components/schemas/FeedPromoItem'
+      discriminator:
+        propertyName: kind
+        mapping:
+          review: '#/components/schemas/FeedReviewItem'
+          promo: '#/components/schemas/FeedPromoItem'
+    FeedPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedItem'
+          readOnly: true
+        next_cursor:
+          type: string
+          readOnly: true
+          nullable: true
+    FeedPromoItem:
+      type: object
+      properties:
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/FeedPromoItemKindEnum'
+          readOnly: true
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+        pinned:
+          type: boolean
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        accent:
+          allOf:
+          - $ref: '#/components/schemas/AccentEnum'
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        cta_label:
+          type: string
+          readOnly: true
+        cta_href:
+          type: string
+          readOnly: true
+        image_url:
+          type: string
+          readOnly: true
+          nullable: true
+    FeedPromoItemKindEnum:
+      type: string
+      enum:
+      - promo
+    FeedReviewItem:
+      type: object
+      properties:
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/FeedReviewItemKindEnum'
+          readOnly: true
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+        course_id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_title:
+          type: string
+          readOnly: true
+        difficulty:
+          type: integer
+          readOnly: true
+        usefulness:
+          type: integer
+          readOnly: true
+        comment:
+          type: string
+          readOnly: true
+        semester_year:
+          type: integer
+          readOnly: true
+        semester_term:
+          allOf:
+          - $ref: '#/components/schemas/SemesterTermEnum'
+          readOnly: true
+        course_avg_difficulty:
+          type: number
+          format: double
+          readOnly: true
+        course_avg_usefulness:
+          type: number
+          format: double
+          readOnly: true
+    FeedReviewItemKindEnum:
+      type: string
+      enum:
+      - review
     FilterOptions:
       type: object
       properties:
@@ -3822,6 +4003,16 @@ components:
       - previous_page
       - total
       - total_pages
+    SemesterTermEnum:
+      enum:
+      - FALL
+      - SPRING
+      - SUMMER
+      type: string
+      description: |-
+        * `FALL` - Fall
+        * `SPRING` - Spring
+        * `SUMMER` - Summer
     SemesterTermOption:
       type: object
       properties:

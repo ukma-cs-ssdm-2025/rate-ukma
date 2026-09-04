@@ -4,6 +4,11 @@ import { renderWithProviders, screen } from "@/test-utils/render";
 import { FEED_FLAG } from "../feedFlags";
 import { FeedStrip } from "./FeedStrip";
 
+vi.mock("@/features/feed/hooks/useFeed", async () => {
+	const { feedState } = await import("@/features/feed/feedTestFixtures");
+	return { useFeed: () => feedState };
+});
+
 vi.mock("@tanstack/react-router", async () => ({
 	...(await vi.importActual("@tanstack/react-router")),
 	Link: (await import("@/test-utils/router")).MockLink,

@@ -6,6 +6,11 @@ import { FEED_FLAG } from "@/features/feed/feedFlags";
 import { renderWithProviders, screen } from "@/test-utils/render";
 import { FeedRoute } from "./feed";
 
+vi.mock("@/features/feed/hooks/useFeed", async () => {
+	const { feedState } = await import("@/features/feed/feedTestFixtures");
+	return { useFeed: () => feedState };
+});
+
 vi.mock("@/components/Layout", () => ({
 	default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));

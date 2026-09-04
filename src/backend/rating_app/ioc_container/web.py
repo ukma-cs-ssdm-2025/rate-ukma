@@ -10,6 +10,7 @@ from ..views import (
     CommentViewset,
     CourseOfferingViewSet,
     CourseViewSet,
+    FeedViewSet,
     FlagsViewSet,
     InstructorViewSet,
     NotificationViewSet,
@@ -25,6 +26,7 @@ from .services import (
     course_offering_service,
     course_page_service,
     course_service,
+    feed_service,
     instructor_service,
     notification_service,
     promo_banner_service,
@@ -235,6 +237,14 @@ def flags_list_view():
 
 
 @once
+def feed_list_view():
+    return FeedViewSet.as_view(
+        {"get": "list"},
+        feed_service=feed_service(),
+    )
+
+
+@once
 def promo_banner_list_view():
     return PromoBannerViewSet.as_view(
         {"get": "list"},
@@ -384,6 +394,11 @@ def rest_urlpatterns() -> list:
             "promo-banner/",
             promo_banner_list_view(),
             name="promo-banner-list",
+        ),
+        path(
+            "feed/",
+            feed_list_view(),
+            name="feed-list",
         ),
     ]
 

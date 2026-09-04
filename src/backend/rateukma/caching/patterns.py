@@ -7,6 +7,8 @@ FILTER_OPTIONS_PATTERN = "*get_filter_options*"
 COURSES_LIST_NAMESPACE = "courses:list"
 ANALYTICS_LIST_NAMESPACE = "analytics:list"
 FILTER_OPTIONS_NAMESPACE = "courses:filter-options"
+FEED_NAMESPACE = "feed"
+FEED_WATERMARK_KEY = "feed:next-publish-at"
 
 
 def course_ratings_pattern(course_id: str) -> str:
