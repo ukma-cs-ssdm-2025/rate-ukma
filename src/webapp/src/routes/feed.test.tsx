@@ -6,52 +6,10 @@ import { FEED_FLAG } from "@/features/feed/feedFlags";
 import { renderWithProviders, screen } from "@/test-utils/render";
 import { FeedRoute } from "./feed";
 
-import type { FeedItem } from "@/features/feed/feedTypes";
-
-const PINNED_PROMO: FeedItem = {
-	kind: "promo",
-	id: "p1",
-	createdAt: "2026-09-01T10:00:00.000Z",
-	pinned: true,
-	title: "Хакатон факультету інформатики",
-	body: "48 годин, 12–14 вересня.",
-};
-
-const UNPINNED_PROMO: FeedItem = {
-	kind: "promo",
-	id: "p2",
-	createdAt: "2026-09-02T10:00:00.000Z",
-	title: "Реєстрація на вибіркові відкрита",
-	body: "До 20 вересня.",
-};
-
-const REVIEW: FeedItem = {
-	kind: "review",
-	id: "r1",
-	createdAt: "2026-09-03T10:00:00.000Z",
-	courseId: "course-1",
-	courseTitle: "Алгоритми та структури даних",
-	difficulty: 4,
-	usefulness: 5,
-	comment: "Складно, але корисно.",
-	courseAvgDifficulty: 4,
-	courseAvgUsefulness: 5,
-};
-
-const FEED_ITEMS = [PINNED_PROMO, UNPINNED_PROMO, REVIEW];
-
-const feedState = {
-	items: FEED_ITEMS,
-	hasMore: false,
-	isLoading: false,
-	isError: false,
-	isFetchingNextPage: false,
-	loaderRef: { current: null },
-};
-
-vi.mock("@/features/feed/hooks/useFeed", () => ({
-	useFeed: () => feedState,
-}));
+vi.mock("@/features/feed/hooks/useFeed", async () => {
+	const { feedState } = await import("@/features/feed/feedTestFixtures");
+	return { useFeed: () => feedState };
+});
 
 vi.mock("@/components/Layout", () => ({
 	default: ({ children }: { children: ReactNode }) => <>{children}</>,
