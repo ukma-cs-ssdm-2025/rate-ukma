@@ -12,6 +12,7 @@ from rating_app.tests.factories import (
     CourseOfferingFactory,
     CourseOfferingSpecialityFactory,
     EnrollmentFactory,
+    FeedPostFactory,
     InstructorFactory,
     RatingFactory,
     RatingVoteFactory,
@@ -156,6 +157,11 @@ def vote_factory():
 @pytest.fixture
 def comment_factory():
     return CommentFactory
+
+
+@pytest.fixture
+def feed_post_factory():
+    return FeedPostFactory
 
 
 @pytest.fixture(autouse=True)
