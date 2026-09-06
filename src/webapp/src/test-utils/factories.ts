@@ -1,5 +1,7 @@
 import { faker } from "@faker-js/faker";
 
+import type { FeedPromoItem, FeedReviewItem } from "@/features/feed/feedTypes";
+import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import type {
 	CourseList,
 	CourseTypeOption,
@@ -215,6 +217,73 @@ export function createMockFilterOptions(
 			createMockCourseType({ value: "COMPULSORY", label: "Обов'язковий" }),
 			createMockCourseType({ value: "ELECTIVE", label: "Вибірковий" }),
 		],
+		...overrides,
+	};
+}
+
+/**
+ * Factory for creating a mock promo feed item (the domain shape `useFeed`
+ * returns, not the generated API shape)
+ */
+export function createMockFeedPromoItem(
+	overrides?: Partial<FeedPromoItem>,
+): FeedPromoItem {
+	return {
+		kind: "promo",
+		id: faker.string.uuid(),
+		createdAt: faker.date.recent().toISOString(),
+		title: faker.lorem.words(4),
+		body: faker.lorem.sentence(),
+		...overrides,
+	};
+}
+
+/**
+ * Factory for creating a mock review feed item (the domain shape `useFeed`
+ * returns, not the generated API shape)
+ */
+export function createMockFeedReviewItem(
+	overrides?: Partial<FeedReviewItem>,
+): FeedReviewItem {
+	return {
+		kind: "review",
+		id: faker.string.uuid(),
+		createdAt: faker.date.recent().toISOString(),
+		courseId: faker.string.uuid(),
+		courseTitle: faker.lorem.words(3),
+		difficulty: faker.number.int({ min: 1, max: 5 }),
+		usefulness: faker.number.int({ min: 1, max: 5 }),
+		comment: faker.lorem.sentence(),
+		courseAvgDifficulty: faker.number.float({
+			min: 1,
+			max: 5,
+			fractionDigits: 2,
+		}),
+		courseAvgUsefulness: faker.number.float({
+			min: 1,
+			max: 5,
+			fractionDigits: 2,
+		}),
+		...overrides,
+	};
+}
+
+/**
+ * Factory for creating a mock `useFeed` return value, for tests that mock the
+ * hook out and only render its result
+ */
+export function createMockFeedState(
+	overrides?: Partial<UseFeedReturn>,
+): UseFeedReturn {
+	return {
+		items: [],
+		hasMore: false,
+		isLoading: false,
+		isError: false,
+		isFetchingNextPage: false,
+		isRefetching: false,
+		refetch: () => {},
+		loaderRef: { current: null },
 		...overrides,
 	};
 }

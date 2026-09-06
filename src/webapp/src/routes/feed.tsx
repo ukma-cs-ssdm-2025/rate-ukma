@@ -1,18 +1,24 @@
+import type { ReactNode } from "react";
+
 import { createFileRoute } from "@tanstack/react-router";
 import { Newspaper, Pin } from "lucide-react";
 
 import Layout from "@/components/Layout";
+import { FeedEmptyState } from "@/features/feed/components/FeedEmptyState";
+import { FeedErrorState } from "@/features/feed/components/FeedErrorState";
 import { FeedPromoItem } from "@/features/feed/components/FeedPromoItem";
 import { FeedReviewItem } from "@/features/feed/components/FeedReviewItem";
+import { FeedSkeleton } from "@/features/feed/components/FeedSkeleton";
 import { isPromoItem } from "@/features/feed/feedTypes";
+import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import { useFeed } from "@/features/feed/hooks/useFeed";
 import { withAuth } from "@/lib/auth";
 import { useFeatureFlagState } from "@/lib/feature-flags";
+import { testIds } from "@/lib/test-ids";
 
 export function FeedRoute() {
 	const { enabled, isReady } = useFeatureFlagState("fe_feed");
-	const { items, isLoading, isError, isFetchingNextPage, hasMore, loaderRef } =
-		useFeed({ enabled: isReady && enabled });
+	const feed = useFeed({ enabled: isReady && enabled });
 
 	return (
 		<Layout>
@@ -27,53 +33,75 @@ export function FeedRoute() {
 					</p>
 				</header>
 
-				{!isReady ? null : !enabled ? (
-					<p className="text-muted-foreground">Стрічка наразі недоступна.</p>
-				) : isError ? (
-					<p className="text-muted-foreground">
-						Не вдалося завантажити стрічку. Спробуйте пізніше.
-					</p>
-				) : isLoading ? (
-					<p className="text-muted-foreground">Завантаження…</p>
-				) : items.length === 0 ? (
-					<p className="text-muted-foreground">Тут поки що порожньо.</p>
-				) : (
-					<>
-						<div className="space-y-3">
-							{items.map((item) => (
-								<div key={`${item.kind}:${item.id}`} className="relative">
-									{item.pinned && (
-										<span className="absolute right-3 top-3 z-10 inline-flex items-center rounded-full border bg-background/90 p-1 text-muted-foreground shadow-sm backdrop-blur">
-											<Pin className="size-3" />
-										</span>
-									)}
-									{isPromoItem(item) ? (
-										<FeedPromoItem item={item} variant="banner" />
-									) : (
-										<div className="rounded-xl border bg-card px-4 shadow-sm">
-											<FeedReviewItem item={item} />
-										</div>
-									)}
-								</div>
-							))}
-						</div>
-
-						{/* Sentinel: intersecting it pulls the next page. */}
-						<div ref={loaderRef} className="h-px" aria-hidden />
-						{isFetchingNextPage && (
-							<p className="text-center text-sm text-muted-foreground">
-								Завантаження…
-							</p>
-						)}
-						{!hasMore && (
-							<p className="text-center text-sm text-muted-foreground">
-								Це вся стрічка
-							</p>
-						)}
-					</>
-				)}
+				{resolveContent({ isReady, enabled, feed })}
 			</div>
 		</Layout>
+	);
+}
+
+function resolveContent({
+	isReady,
+	enabled,
+	feed,
+}: {
+	isReady: boolean;
+	enabled: boolean;
+	feed: UseFeedReturn;
+}): ReactNode {
+	// Stay blank until the flag resolves, so a disabled feed never flashes in.
+	if (!isReady) return null;
+	if (!enabled) {
+		return (
+			<p
+				className="text-muted-foreground"
+				data-testid={testIds.feed.unavailableState}
+			>
+				Стрічка наразі недоступна.
+			</p>
+		);
+	}
+	if (feed.isLoading) return <FeedSkeleton />;
+	if (feed.isError) {
+		return (
+			<FeedErrorState onRetry={feed.refetch} isRetrying={feed.isRefetching} />
+		);
+	}
+	if (feed.items.length === 0) return <FeedEmptyState />;
+
+	return (
+		<>
+			<div className="space-y-3" data-testid={testIds.feed.list}>
+				{feed.items.map((item) => (
+					<div key={`${item.kind}:${item.id}`} className="relative">
+						{item.pinned && (
+							<span className="absolute right-3 top-3 z-10 inline-flex items-center rounded-full border bg-background/90 p-1 text-muted-foreground shadow-sm backdrop-blur">
+								<Pin className="size-3" />
+							</span>
+						)}
+						{isPromoItem(item) ? (
+							<FeedPromoItem item={item} variant="banner" />
+						) : (
+							<div className="rounded-xl border bg-card px-4 shadow-sm">
+								<FeedReviewItem item={item} />
+							</div>
+						)}
+					</div>
+				))}
+			</div>
+
+			{/* Sentinel: intersecting it pulls the next page. */}
+			<div ref={feed.loaderRef} className="h-px" aria-hidden />
+			{feed.isFetchingNextPage && (
+				<p className="text-center text-sm text-muted-foreground">
+					Завантаження…
+				</p>
+			)}
+			{!feed.hasMore && (
+				<p className="text-center text-sm text-muted-foreground">
+					Це вся стрічка
+				</p>
+			)}
+		</>
 	);
 }
 

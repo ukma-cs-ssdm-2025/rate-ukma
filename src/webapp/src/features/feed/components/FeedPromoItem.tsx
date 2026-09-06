@@ -46,7 +46,7 @@ interface FeedPromoItemProps {
 }
 
 export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
-	const accent = ACCENT_STYLES[item.accent ?? "BRAND"];
+	const accent = ACCENT_STYLES[item.accent ?? "BRAND"] ?? ACCENT_STYLES.BRAND;
 	const label = item.label ?? "Оголошення";
 	const isBanner = variant === "banner";
 

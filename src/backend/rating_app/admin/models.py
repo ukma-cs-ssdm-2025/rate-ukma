@@ -512,7 +512,8 @@ class FeedPostAdmin(VersionAdmin):
                     "`published_at` places the post in the feed timeline and may "
                     "be set in the future to schedule it — the post stays hidden "
                     "until then. `is_active` hides it outright. Pinned posts lead "
-                    "the feed until unpinned."
+                    "the feed until unpinned — only the 3 most recent pinned posts "
+                    "are shown, so pinning more will not surface them all."
                 ),
             },
         ),

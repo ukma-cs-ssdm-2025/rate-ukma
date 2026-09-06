@@ -85,4 +85,17 @@ describe("FeedPromoItem", () => {
 		expect(screen.queryByRole("link")).not.toBeInTheDocument();
 		expect(screen.queryByText("Зареєструватися")).not.toBeInTheDocument();
 	});
+
+	// A server-side accent this bundle predates is a plain object miss, not
+	// undefined, so `??` on `item.accent` alone would leave the lookup
+	// undefined and throw on `.container`.
+	it("falls back to BRAND styling for an unknown accent", () => {
+		const unknownAccent = {
+			...baseItem,
+			accent: "NEON" as FeedPromoItemType["accent"],
+		};
+
+		expect(() => render(<FeedPromoItem item={unknownAccent} />)).not.toThrow();
+		expect(screen.getByText(baseItem.title)).toBeInTheDocument();
+	});
 });

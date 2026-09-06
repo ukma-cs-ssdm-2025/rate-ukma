@@ -8,6 +8,8 @@ from rating_app.models import FeedPost
 from rating_app.pagination import FeedCursor
 from rating_app.repositories.to_domain_mappers import FeedPostMapper
 
+MAX_PINNED = 3
+
 
 class FeedPostRepository:
     """Read-only access to feed posts. Rows are authored in Django admin."""
@@ -17,7 +19,7 @@ class FeedPostRepository:
 
     def get_pinned(self) -> list[FeedPromoItemDTO]:
         posts = self._build_live_queryset().filter(pinned=True)
-        return self._map(posts)
+        return self._map(posts[:MAX_PINNED])
 
     def get_page(self, cursor: FeedCursor | None, limit: int) -> list[FeedPromoItemDTO]:
         """Unpinned posts older than `cursor`, newest first."""

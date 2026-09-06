@@ -5,7 +5,7 @@ from django.utils import timezone
 import pytest
 
 from rating_app.pagination import FeedCursor
-from rating_app.repositories.feed_post_repository import FeedPostRepository
+from rating_app.repositories.feed_post_repository import MAX_PINNED, FeedPostRepository
 from rating_app.repositories.to_domain_mappers import FeedPostMapper
 from rating_app.tests.factories import FeedPostFactory
 
@@ -48,6 +48,25 @@ class TestGetPinned:
         result = repo.get_pinned()
 
         assert [item.id for item in result] == [newer.id, older.id]
+
+    def test_caps_the_number_of_pinned_posts(self, repo):
+        """Pinned posts lead every page, so an unbounded count would push the
+        homepage strip past its intended size."""
+        for hours in range(MAX_PINNED + 2):
+            FeedPostFactory(pinned=True, published_at=_at(hours=hours + 1))
+
+        assert len(repo.get_pinned()) == MAX_PINNED
+
+    def test_keeps_the_newest_pinned_posts_when_capped(self, repo):
+        posts = [
+            FeedPostFactory(pinned=True, published_at=_at(hours=hours + 1))
+            for hours in range(MAX_PINNED + 2)
+        ]
+        newest = sorted(posts, key=lambda p: p.published_at, reverse=True)[:MAX_PINNED]
+
+        result = repo.get_pinned()
+
+        assert [item.id for item in result] == [p.id for p in newest]
 
 
 class TestGetPage:

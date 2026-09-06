@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from .choices import FeedPostAccent
 
-FEED_IMAGE_EXTENSIONS = ["svg", "png", "webp", "jpg", "jpeg"]
+FEED_IMAGE_EXTENSIONS = ["png", "webp", "jpg", "jpeg"]
 
 
 class FeedPost(models.Model):

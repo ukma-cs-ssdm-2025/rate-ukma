@@ -1,10 +1,8 @@
 import type { RefObject } from "react";
 import { useEffect, useMemo, useRef } from "react";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
-
 import type { FeedItem as ApiFeedItem } from "@/lib/api/generated";
-import { feedList, getFeedListQueryKey } from "@/lib/api/generated";
+import { useFeedListInfinite } from "@/lib/api/generated";
 import type { FeedItem, FeedPromoItem, FeedReviewItem } from "../feedTypes";
 import { orderFeedItems } from "../feedTypes";
 
@@ -16,6 +14,9 @@ export interface UseFeedReturn {
 	isLoading: boolean;
 	isError: boolean;
 	isFetchingNextPage: boolean;
+	/** True only while a retry is in flight, so the first load stays a skeleton. */
+	isRefetching: boolean;
+	refetch: () => void;
 	loaderRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -42,15 +43,18 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 		isFetchingNextPage,
 		isLoading,
 		isError,
-	} = useInfiniteQuery({
-		queryKey: getFeedListQueryKey(params),
-		queryFn: ({ pageParam }) =>
-			feedList({ ...params, cursor: (pageParam as string) ?? undefined }),
-		// The cursor is opaque: pass back whatever the server issued, and stop
-		// when it stops issuing one.
-		getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
-		initialPageParam: null as string | null,
-		enabled,
+		isFetching,
+		refetch,
+	} = useFeedListInfinite(params, {
+		query: {
+			// The first page carries no cursor; orval threads each subsequent
+			// page param back in as `cursor`.
+			initialPageParam: undefined,
+			// The cursor is opaque: pass back whatever the server issued, and
+			// stop when it stops issuing one.
+			getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
+			enabled,
+		},
 	});
 
 	const items = useMemo(
@@ -98,6 +102,8 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 		isLoading,
 		isError,
 		isFetchingNextPage,
+		isRefetching: isFetching && !isLoading,
+		refetch,
 		loaderRef,
 	};
 }

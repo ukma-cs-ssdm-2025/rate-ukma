@@ -14,14 +14,20 @@ export default defineConfig({
 					path: "../apiClient.ts",
 					name: "authorizedFetcher",
 				},
-				// Generate an infinite-query hook for the paginated instructors
-				// list (page-based). Scoped per-operation so other list
-				// endpoints keep their standard useQuery output.
+				// Generate infinite-query hooks for the paginated list endpoints.
+				// Scoped per-operation so other list endpoints keep their
+				// standard useQuery output.
 				operations: {
 					instructors_list: {
 						query: {
 							useInfinite: true,
 							useInfiniteQueryParam: "page",
+						},
+					},
+					feed_list: {
+						query: {
+							useInfinite: true,
+							useInfiniteQueryParam: "cursor",
 						},
 					},
 				},

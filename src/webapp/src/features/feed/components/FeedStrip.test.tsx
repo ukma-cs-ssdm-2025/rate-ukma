@@ -4,7 +4,27 @@ import { renderWithProviders, screen } from "@/test-utils/render";
 import { FeedStrip } from "./FeedStrip";
 
 vi.mock("@/features/feed/hooks/useFeed", async () => {
-	const { feedState } = await import("@/features/feed/feedTestFixtures");
+	const {
+		createMockFeedPromoItem,
+		createMockFeedReviewItem,
+		createMockFeedState,
+	} = await import("@/test-utils/factories");
+	const feedState = createMockFeedState({
+		items: [
+			createMockFeedPromoItem({
+				id: "p1",
+				pinned: true,
+				title: "Хакатон факультету інформатики",
+				body: "48 годин, 12–14 вересня.",
+			}),
+			createMockFeedPromoItem({
+				id: "p2",
+				title: "Реєстрація на вибіркові відкрита",
+				body: "До 20 вересня.",
+			}),
+			createMockFeedReviewItem({ id: "r1" }),
+		],
+	});
 	return { useFeed: () => feedState };
 });
 

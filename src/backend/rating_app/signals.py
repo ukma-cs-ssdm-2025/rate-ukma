@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
@@ -11,5 +12,8 @@ from rating_app.models import FeedPost
 # it writes straight to the ORM and never reaches the service layer.
 @receiver([post_save, post_delete], sender=FeedPost)
 def invalidate_feed_cache(sender, **kwargs) -> None:
-    redis_cache_manager().bump_version(FEED_NAMESPACE)
-    feed_service().refresh_next_publish_marker()
+    def _bump() -> None:
+        redis_cache_manager().bump_version(FEED_NAMESPACE)
+        feed_service().refresh_next_publish_marker()
+
+    transaction.on_commit(_bump)
