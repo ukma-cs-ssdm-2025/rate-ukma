@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen } from "@/test-utils/render";
-import { FEED_FLAG } from "../feedFlags";
 import { FeedStrip } from "./FeedStrip";
 
 vi.mock("@tanstack/react-router", async () => ({
@@ -11,14 +10,14 @@ vi.mock("@tanstack/react-router", async () => ({
 
 describe("FeedStrip", () => {
 	it("renders nothing when the feed flag is off", () => {
-		renderWithProviders(<FeedStrip />, { flags: { [FEED_FLAG]: false } });
+		renderWithProviders(<FeedStrip />, { flags: { fe_feed: false } });
 
 		expect(screen.queryByText("Стрічка оновлень")).not.toBeInTheDocument();
 	});
 
 	it("renders nothing until the flags have resolved", () => {
 		renderWithProviders(<FeedStrip />, {
-			flags: { [FEED_FLAG]: true },
+			flags: { fe_feed: true },
 			flagsReady: false,
 		});
 
@@ -26,7 +25,7 @@ describe("FeedStrip", () => {
 	});
 
 	it("renders the feed and links to /feed when the flag is on", () => {
-		renderWithProviders(<FeedStrip />, { flags: { [FEED_FLAG]: true } });
+		renderWithProviders(<FeedStrip />, { flags: { fe_feed: true } });
 
 		expect(screen.getByText("Стрічка оновлень")).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: /Уся стрічка/ })).toHaveAttribute(
@@ -39,7 +38,7 @@ describe("FeedStrip", () => {
 	});
 
 	it("orders pinned content ahead of unpinned content", () => {
-		renderWithProviders(<FeedStrip />, { flags: { [FEED_FLAG]: true } });
+		renderWithProviders(<FeedStrip />, { flags: { fe_feed: true } });
 
 		const pinned = screen.getByText("Хакатон факультету інформатики");
 		const unpinned = screen.getByText("Реєстрація на вибіркові відкрита");
