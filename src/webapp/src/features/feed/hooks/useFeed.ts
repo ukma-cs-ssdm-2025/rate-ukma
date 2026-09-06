@@ -5,12 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 
 import type { FeedItem as ApiFeedItem } from "@/lib/api/generated";
 import { feedList, getFeedListQueryKey } from "@/lib/api/generated";
-import type {
-	FeedItem,
-	FeedPromoAccent,
-	FeedPromoItem,
-	FeedReviewItem,
-} from "../feedTypes";
+import type { FeedItem, FeedPromoItem, FeedReviewItem } from "../feedTypes";
 import { orderFeedItems } from "../feedTypes";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -142,6 +137,6 @@ function toPromoItem(item: Extract<ApiFeedItem, { kind: "promo" }>) {
 		ctaLabel: item.cta_label || undefined,
 		ctaHref: item.cta_href || undefined,
 		imageUrl: item.image_url,
-		accent: item.accent as FeedPromoAccent | undefined,
+		accent: item.accent,
 	} satisfies FeedPromoItem;
 }

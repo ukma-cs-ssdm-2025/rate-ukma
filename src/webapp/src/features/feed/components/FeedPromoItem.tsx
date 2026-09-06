@@ -8,9 +8,6 @@ import type {
 	FeedPromoItem as FeedPromoItemType,
 } from "../feedTypes";
 
-/**
- * Accent -> color treatment.
- */
 /** Badge and Button share these variant names, so one value drives both. */
 type AccentVariant = "default" | "secondary" | "destructive";
 

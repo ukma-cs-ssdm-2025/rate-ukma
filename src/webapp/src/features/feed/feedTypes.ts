@@ -1,3 +1,5 @@
+import type { AccentEnum } from "@/lib/api/generated";
+
 /**
  * The feed mixes two content sources that must stay visually distinguishable:
  *
@@ -33,8 +35,11 @@ export interface FeedReviewItem {
 /**
  * Accent controls the promo card's color treatment so admins can visually
  * prioritise announcements without touching code.
+ *
+ * Aliased to the generated enum so a new accent added server-side surfaces
+ * here as a type error in `ACCENT_STYLES` rather than as an unstyled card.
  */
-export type FeedPromoAccent = "BRAND" | "INFO" | "WARNING";
+export type FeedPromoAccent = AccentEnum;
 
 export interface FeedPromoItem {
 	readonly kind: "promo";
