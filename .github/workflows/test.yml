@@ -123,7 +123,7 @@ jobs:
 
       - name: Check for missing migrations
         working-directory: ${{ env.BACKEND_DIR }}
-        run: uv run --frozen --no-sync python manage.py makemigrations --check --dry-run
+        run: uv run --frozen --no-sync --no-build python manage.py makemigrations --check --dry-run
 
       - name: Run tests with pytest and coverage
         working-directory: ${{ env.BACKEND_DIR }}
