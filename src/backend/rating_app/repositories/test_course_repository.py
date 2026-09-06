@@ -3,7 +3,7 @@ import pytest
 from rating_app.application_schemas.course import CourseFilterCriteriaInternal, CourseInput
 from rating_app.models import Course
 from rating_app.models.choices import CourseStatus, EducationLevel, SemesterTerm
-from rating_app.pagination import GenericQuerysetPaginator
+from rating_app.pagination import GenericQuerysetPaginator, PaginationFilters
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.repositories.to_domain_mappers import CourseMapper
 from rating_app.tests.factories import (
@@ -146,6 +146,71 @@ def test_filter_returns_domain_models(repo):
     assert found_course is not None
     assert found_course.title == course.title
     assert isinstance(found_course.specialities, list)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_without_pagination_returns_plain_list_of_all_matching_courses(repo):
+    # Arrange
+    courses = [CourseFactory(title=f"Course {letter}") for letter in "ABCDE"]
+
+    # Act
+    result = repo.filter(CourseFilterCriteriaInternal())
+
+    # Assert
+    assert isinstance(result, list)
+    assert [c.title for c in result] == [c.title for c in courses]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_with_pagination_returns_first_page_and_metadata(repo):
+    # Arrange
+    for letter in "ABCDE":
+        CourseFactory(title=f"Course {letter}")
+
+    # Act
+    result = repo.filter(CourseFilterCriteriaInternal(), PaginationFilters(page=1, page_size=2))
+
+    # Assert
+    assert [c.title for c in result.page_objects] == ["Course A", "Course B"]
+    assert result.metadata.total == 5
+    assert result.metadata.total_pages == 3
+    assert result.metadata.page == 1
+    assert result.metadata.page_size == 2
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_with_pagination_last_page_returns_remaining_courses(repo):
+    # Arrange
+    for letter in "ABCDE":
+        CourseFactory(title=f"Course {letter}")
+
+    # Act
+    result = repo.filter(CourseFilterCriteriaInternal(), PaginationFilters(page=3, page_size=2))
+
+    # Assert
+    assert [c.title for c in result.page_objects] == ["Course E"]
+    assert result.metadata.page == 3
+    assert result.metadata.total_pages == 3
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_with_pagination_page_beyond_range_clamps_to_last_page(repo):
+    # Arrange
+    for letter in "ABCDE":
+        CourseFactory(title=f"Course {letter}")
+
+    # Act
+    result = repo.filter(CourseFilterCriteriaInternal(), PaginationFilters(page=99, page_size=2))
+
+    # Assert
+    assert [c.title for c in result.page_objects] == ["Course E"]
+    assert result.metadata.page == 3
+    assert result.metadata.total_pages == 3
+    assert result.metadata.total == 5
 
 
 @pytest.mark.django_db
