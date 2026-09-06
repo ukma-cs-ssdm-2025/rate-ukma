@@ -1,6 +1,10 @@
 import { useContext } from "react";
 
+import type { PublicFeatureFlags } from "../api/generated";
 import { FeatureFlagsContext } from "./FeatureFlagsContext";
+
+/** Allowlisted flag names, derived from the generated `/api/v1/flags/` schema. */
+export type FeatureFlagName = keyof PublicFeatureFlags;
 
 export function useFeatureFlags() {
 	const context = useContext(FeatureFlagsContext);
@@ -12,7 +16,7 @@ export function useFeatureFlags() {
 	return context;
 }
 
-export function useFeatureFlag(name: string): boolean {
+export function useFeatureFlag(name: FeatureFlagName): boolean {
 	return useFeatureFlags().flags[name] ?? false;
 }
 
@@ -21,7 +25,7 @@ export function useFeatureFlag(name: string): boolean {
  * wrong variant. `useFeatureFlag` alone reports an unresolved flag as `false`,
  * which is indistinguishable from "off".
  */
-export function useFeatureFlagState(name: string): {
+export function useFeatureFlagState(name: FeatureFlagName): {
 	enabled: boolean;
 	isReady: boolean;
 } {

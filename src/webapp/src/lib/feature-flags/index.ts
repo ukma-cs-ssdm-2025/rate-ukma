@@ -7,6 +7,7 @@ export {
 	readFeatureFlagOverrides,
 	setFeatureFlagOverride,
 } from "./overrides";
+export type { FeatureFlagName } from "./useFeatureFlag";
 export {
 	useFeatureFlag,
 	useFeatureFlags,

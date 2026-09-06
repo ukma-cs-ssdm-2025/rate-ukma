@@ -4,14 +4,13 @@ import { Newspaper, Pin } from "lucide-react";
 import Layout from "@/components/Layout";
 import { FeedPromoItem } from "@/features/feed/components/FeedPromoItem";
 import { FeedReviewItem } from "@/features/feed/components/FeedReviewItem";
-import { FEED_FLAG } from "@/features/feed/feedFlags";
 import { MOCK_FEED_ITEMS } from "@/features/feed/feedMockData";
 import { isPromoItem, orderFeedItems } from "@/features/feed/feedTypes";
 import { withAuth } from "@/lib/auth";
 import { useFeatureFlagState } from "@/lib/feature-flags";
 
 export function FeedRoute() {
-	const { enabled, isReady } = useFeatureFlagState(FEED_FLAG);
+	const { enabled, isReady } = useFeatureFlagState("fe_feed");
 	const items = orderFeedItems(MOCK_FEED_ITEMS);
 
 	return (

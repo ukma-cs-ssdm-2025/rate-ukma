@@ -3,7 +3,6 @@ import { ArrowRight, Newspaper, Pin } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { useFeatureFlagState } from "@/lib/feature-flags";
-import { FEED_FLAG } from "../feedFlags";
 import { MOCK_FEED_ITEMS } from "../feedMockData";
 import { isPromoItem, orderFeedItems } from "../feedTypes";
 import { FeedPromoItem } from "./FeedPromoItem";
@@ -21,7 +20,7 @@ import { FeedReviewItem } from "./FeedReviewItem";
  * which isn't obvious on its own.
  */
 export function FeedStrip() {
-	const { enabled, isReady } = useFeatureFlagState(FEED_FLAG);
+	const { enabled, isReady } = useFeatureFlagState("fe_feed");
 	const items = MOCK_FEED_ITEMS;
 
 	// Gate on the flag, and stay hidden until it resolves so the feed never
