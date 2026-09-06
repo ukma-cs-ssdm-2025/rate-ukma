@@ -3202,12 +3202,11 @@ components:
       type: object
       properties:
         flags:
-          type: object
-          additionalProperties:
-            type: boolean
-          readOnly: true
-          description: Map of public feature flag name to its enabled state for the
-            current user.
+          allOf:
+          - $ref: '#/components/schemas/PublicFeatureFlags'
+          description: Enabled state of each public feature flag for the current user.
+      required:
+      - flags
     FilterOptions:
       type: object
       properties:
@@ -3578,6 +3577,15 @@ components:
           readOnly: true
           nullable: true
           description: The active promo banner, or null when none is configured.
+    PublicFeatureFlags:
+      type: object
+      properties:
+        fe_instructor_multiselect:
+          type: boolean
+          description: Whether `fe_instructor_multiselect` is enabled for the current
+            user.
+      required:
+      - fe_instructor_multiselect
     RatingCreateRequest:
       properties:
         course_offering:

@@ -62,9 +62,14 @@ it ships with a deploy. **Toggling** an already-exposed flag is runtime-only
    ```python
    PUBLIC_FEATURE_FLAGS = ["fe_my_new_flag"]
    ```
-   No new endpoint, serializer, or OpenAPI regen needed — the response schema is
-   a dynamic `Record<string, boolean>`, so it does not change when flags are
-   added.
+   The flag names are emitted as explicit fields of the `/api/v1/flags/` schema,
+   so regenerate the spec and the client so the name type-checks:
+   ```bash
+   (cd src/backend && uv run python manage.py spectacular --file ../../docs/api/openapi-generated.yaml)
+   (cd src/webapp && pnpm generate-api)
+   ```
+   `useFeatureFlag` accepts only `FeatureFlagName` (the keys of the generated
+   `PublicFeatureFlags` type), so an unlisted name fails `tsc`.
 
 2. **Create the `Flag` row** in each environment: Django admin (Waffle ▸ Flags)
    or CLI —
@@ -220,7 +225,9 @@ feature is fully rolled out or dropped:
 
 1. Delete the consumer code on both sides (the `flag_is_active` /
    `useFeatureFlag` call and the dead branch).
-2. Remove the name from `PUBLIC_FEATURE_FLAGS`.
+2. Remove the name from `PUBLIC_FEATURE_FLAGS`, regenerate the spec and
+   `pnpm generate-api`; `tsc` then fails on every stale `useFeatureFlag`
+   consumer you missed in step 1.
 3. Delete the `Flag` row in each environment (Django admin, or the ORM — there
    is no `waffle_flag --delete`).
 
