@@ -20,11 +20,7 @@ class FeedPostRepository:
         return self._map(posts)
 
     def get_page(self, cursor: FeedCursor | None, limit: int) -> list[FeedPromoItemDTO]:
-        """Unpinned posts older than `cursor`, newest first.
-
-        Returns `limit + 1` rows: the extra one is how the service learns that
-        a next page exists without a `COUNT`.
-        """
+        """Unpinned posts older than `cursor`, newest first."""
         posts = self._build_live_queryset().filter(pinned=False)
         if cursor is not None:
             posts = posts.filter(cursor.filter("published_at"))

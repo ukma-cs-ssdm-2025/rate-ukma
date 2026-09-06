@@ -25,14 +25,12 @@ class FeedCursor:
 
     @classmethod
     def decode(cls, token: str) -> "FeedCursor":
-        # decode the base64-encoded token
         try:
             padded = token + "=" * (-len(token) % 4)
             payload = base64.urlsafe_b64decode(padded.encode()).decode()
         except (binascii.Error, UnicodeDecodeError) as exc:
             raise InvalidCursorError from exc
 
-        # parse the decoded payload
         try:
             occurred_at, item_id = cls._parse_decoded(payload)
         except ValueError as exc:

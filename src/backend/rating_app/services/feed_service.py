@@ -2,7 +2,7 @@ from rateukma.caching.decorators import rcached
 from rateukma.caching.instances import redis_cache_manager
 from rateukma.caching.patterns import FEED_NAMESPACE
 from rating_app.application_schemas.feed import FeedPage, FeedPromoItem, FeedReviewItem
-from rating_app.caching.feed_watermark import is_watermark_due, store_feed_watermark
+from rating_app.caching.feed_next_publish_at import is_next_publish_due, store_feed_next_publish_at
 from rating_app.pagination import FeedCursor
 from rating_app.repositories import FeedPostRepository, RatingRepository
 
@@ -24,13 +24,13 @@ class FeedService:
         """Read-path invalidation for posts nothing wrote at their publication time.
 
         Costs one Redis read, the DB is touched only by the single request that
-        finds the watermark due, which then moves it to the next scheduled post.
+        finds a publication due, which then moves the marker to the next post.
         """
         cache_manager = redis_cache_manager()
 
-        if is_watermark_due(cache_manager):
+        if is_next_publish_due(cache_manager):
             cache_manager.bump_version(FEED_NAMESPACE)
-            store_feed_watermark(
+            store_feed_next_publish_at(
                 cache_manager, self.feed_post_repository.get_next_future_publication_time()
             )
 
@@ -40,7 +40,6 @@ class FeedService:
     # above: `rcached` treats a string as a namespace name, not as a reference.
     @rcached(ttl=FEED_CACHE_TTL, versioned_by=_cache_namespaces)
     def get_feed_page(self, cursor: str | None, limit: int) -> FeedPage:
-        # each page is cached separately
         position = FeedCursor.decode(cursor) if cursor else None
 
         # `limit + 1` from each source: to check if next page exists
@@ -51,7 +50,7 @@ class FeedService:
         page = merged[:limit]
         next_cursor = self._next_cursor(page) if len(merged) > limit else None
 
-        # skip pinned posts
+        # pinned posts lead the first page only
         if position is None:
             page = self.feed_post_repository.get_pinned() + page
 

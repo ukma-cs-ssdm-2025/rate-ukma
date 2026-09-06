@@ -55,7 +55,7 @@ def test_new_post_invalidates_the_cached_page(service):
 
 
 def test_each_scheduled_post_appears_in_turn(service, monkeypatch):
-    """The watermark has to move on to the post after the one it just released."""
+    """The marker has to move on to the post after the one it just released."""
     now = timezone.now()
     first = FeedPostFactory(published_at=now + timedelta(minutes=10))
     second = FeedPostFactory(published_at=now + timedelta(minutes=20))
