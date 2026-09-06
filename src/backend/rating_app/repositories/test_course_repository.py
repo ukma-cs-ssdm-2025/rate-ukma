@@ -148,27 +148,34 @@ def test_filter_returns_domain_models(repo):
     assert isinstance(found_course.specialities, list)
 
 
+@pytest.fixture
+def five_courses_out_of_order():
+    # Insertion order differs from the alphabetical order the repository must apply.
+    return [CourseFactory(title=f"Course {letter}") for letter in "DBEAC"]
+
+
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_without_pagination_returns_plain_list_of_all_matching_courses(repo):
-    # Arrange
-    courses = [CourseFactory(title=f"Course {letter}") for letter in "ABCDE"]
-
+def test_filter_without_pagination_returns_plain_list_of_all_matching_courses(
+    repo, five_courses_out_of_order
+):
     # Act
     result = repo.filter(CourseFilterCriteriaInternal())
 
     # Assert
     assert isinstance(result, list)
-    assert [c.title for c in result] == [c.title for c in courses]
+    assert [c.title for c in result] == [
+        "Course A",
+        "Course B",
+        "Course C",
+        "Course D",
+        "Course E",
+    ]
 
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_with_pagination_returns_first_page_and_metadata(repo):
-    # Arrange
-    for letter in "ABCDE":
-        CourseFactory(title=f"Course {letter}")
-
+def test_filter_with_pagination_returns_first_page_and_metadata(repo, five_courses_out_of_order):
     # Act
     result = repo.filter(CourseFilterCriteriaInternal(), PaginationFilters(page=1, page_size=2))
 
@@ -182,11 +189,9 @@ def test_filter_with_pagination_returns_first_page_and_metadata(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_with_pagination_last_page_returns_remaining_courses(repo):
-    # Arrange
-    for letter in "ABCDE":
-        CourseFactory(title=f"Course {letter}")
-
+def test_filter_with_pagination_last_page_returns_remaining_courses(
+    repo, five_courses_out_of_order
+):
     # Act
     result = repo.filter(CourseFilterCriteriaInternal(), PaginationFilters(page=3, page_size=2))
 
@@ -198,11 +203,9 @@ def test_filter_with_pagination_last_page_returns_remaining_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_with_pagination_page_beyond_range_clamps_to_last_page(repo):
-    # Arrange
-    for letter in "ABCDE":
-        CourseFactory(title=f"Course {letter}")
-
+def test_filter_with_pagination_page_beyond_range_clamps_to_last_page(
+    repo, five_courses_out_of_order
+):
     # Act
     result = repo.filter(CourseFilterCriteriaInternal(), PaginationFilters(page=99, page_size=2))
 
