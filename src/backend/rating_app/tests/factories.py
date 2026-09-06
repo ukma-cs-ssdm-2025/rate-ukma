@@ -19,6 +19,7 @@ from rating_app.models import (
     Department,
     Enrollment,
     Faculty,
+    FeedPost,
     Instructor,
     Rating,
     RatingVote,
@@ -30,6 +31,7 @@ from rating_app.models.choices import (
     CourseStatus,
     CourseTypeKind,
     EducationLevel,
+    FeedPostAccent,
     InstructorRole,
     RatingVoteType,
     SemesterTerm,
@@ -218,3 +220,14 @@ class CommentFactory(DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     parent_comment = None
     is_anonymous = False
+
+
+class FeedPostFactory(DjangoModelFactory):
+    class Meta:
+        model = FeedPost
+
+    title = factory.Sequence(lambda n: f"Feed post {n}")
+    body = factory.Faker("paragraph")
+    accent = FeedPostAccent.BRAND
+    pinned = False
+    is_active = True

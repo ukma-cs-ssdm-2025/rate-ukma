@@ -7,6 +7,7 @@ from .course.course_list_resp import CourseListResponseSerializer
 from .course.filter_options import FilterOptionsSerializer
 from .error_envelope import ErrorEnvelopeSerializer
 from .feature_flags import FeatureFlagsSerializer
+from .feed import FeedPageSerializer, FeedPromoItemSerializer, FeedReviewItemSerializer
 from .instructor import InstructorSerializer
 from .instructor_list_resp import InstructorListResponseSerializer
 from .notification import NotificationGroupSerializer, UnreadCountSerializer
@@ -38,4 +39,7 @@ __all__ = [
     "UnreadCountSerializer",
     "PromoBannerSerializer",
     "PromoBannerResponseSerializer",
+    "FeedPageSerializer",
+    "FeedReviewItemSerializer",
+    "FeedPromoItemSerializer",
 ]

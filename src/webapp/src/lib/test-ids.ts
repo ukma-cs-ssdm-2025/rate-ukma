@@ -197,6 +197,16 @@ export const testIds = {
 		errorState: "my-ratings-error-state",
 	},
 
+	// Feed page
+	feed: {
+		list: "feed-list",
+		skeleton: "feed-skeleton",
+		emptyState: "feed-empty-state",
+		errorState: "feed-error-state",
+		retryButton: "feed-retry-button",
+		unavailableState: "feed-unavailable-state",
+	},
+
 	// Notifications
 	notifications: {
 		bellTrigger: "notifications-bell-trigger",

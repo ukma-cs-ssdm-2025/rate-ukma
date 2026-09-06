@@ -12,6 +12,7 @@ from rating_app.tests.factories import (
     CourseOfferingFactory,
     CourseOfferingSpecialityFactory,
     EnrollmentFactory,
+    FeedPostFactory,
     InstructorFactory,
     RatingFactory,
     RatingVoteFactory,
@@ -158,6 +159,11 @@ def comment_factory():
     return CommentFactory
 
 
+@pytest.fixture
+def feed_post_factory():
+    return FeedPostFactory
+
+
 @pytest.fixture(autouse=True)
 def mock_cache_manager(monkeypatch):
     cache = InMemoryCacheManager()
@@ -165,17 +171,20 @@ def mock_cache_manager(monkeypatch):
     monkeypatch.setattr("rateukma.caching.decorators.redis_cache_manager", lambda: cache)
     monkeypatch.setattr("rateukma.caching.instances.redis_cache_manager", lambda: cache)
     monkeypatch.setattr("rating_app.ioc_container.services.redis_cache_manager", lambda: cache)
+    monkeypatch.setattr("rating_app.signals.redis_cache_manager", lambda: cache)
 
-    # The @once singletons for cache invalidators are created at app startup
+    # The @once singletons holding a cache manager are created at app startup
     # (apps.ready → register_observers) and hold a reference to the startup
     # cache instance. Patch their .cache_manager so they use the per-test cache,
     # keeping version bumps and @rcached reads on the same instance.
     from rating_app.ioc_container.services import (
         comment_cache_invalidator,
+        feed_service,
         rating_cache_invalidator,
         rating_vote_cache_invalidator,
     )
 
+    monkeypatch.setattr(feed_service(), "cache_manager", cache)
     monkeypatch.setattr(comment_cache_invalidator(), "cache_manager", cache)
     monkeypatch.setattr(rating_cache_invalidator(), "cache_manager", cache)
     monkeypatch.setattr(rating_vote_cache_invalidator(), "cache_manager", cache)

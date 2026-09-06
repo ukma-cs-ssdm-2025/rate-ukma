@@ -17,6 +17,8 @@ from rating_app.application_schemas.course_offering import (
 from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDTO
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
+from rating_app.application_schemas.feed import FeedPromoItem as FeedPromoItemDTO
+from rating_app.application_schemas.feed import FeedReviewItem as FeedReviewItemDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.application_schemas.notification import NotificationGroup
 from rating_app.application_schemas.promo_banner import PromoBanner as PromoBannerDTO
@@ -34,6 +36,7 @@ from rating_app.models.choices import (
     EducationLevel,
     EnrollmentStatus,
     ExamType,
+    FeedPostAccent,
     InstructorRole,
     PracticeType,
     RatingVoteStrType,
@@ -47,6 +50,7 @@ from rating_app.models.course_offering_term import CourseOfferingTerm as CourseO
 from rating_app.models.department import Department as DepartmentModel
 from rating_app.models.enrollment import Enrollment as EnrollmentModel
 from rating_app.models.faculty import Faculty as FacultyModel
+from rating_app.models.feed_post import FeedPost as FeedPostModel
 from rating_app.models.instructor import Instructor as InstructorModel
 from rating_app.models.notification import Notification as NotificationModel
 from rating_app.models.promo_banner import PromoBanner as PromoBannerModel
@@ -565,6 +569,44 @@ class PromoBannerMapper(IProcessor[[PromoBannerModel], PromoBannerDTO]):
             cta_label=model.cta_label,
             logo_url=model.logo.url if model.logo else None,
             logo_alt=model.logo_alt or model.title,
+        )
+
+
+class FeedPostMapper(IProcessor[[FeedPostModel], FeedPromoItemDTO]):
+    @implements
+    def process(self, model: FeedPostModel) -> FeedPromoItemDTO:
+        return FeedPromoItemDTO(
+            id=model.id,
+            occurred_at=model.published_at,
+            title=model.title,
+            body=model.body,
+            accent=FeedPostAccent(model.accent),
+            pinned=model.pinned,
+            label=model.label,
+            cta_label=model.cta_label,
+            cta_href=model.cta_href,
+            image_url=model.image.url if model.image else None,
+        )
+
+
+class FeedReviewMapper(IProcessor[[RatingModel], FeedReviewItemDTO]):
+    @implements
+    def process(self, model: RatingModel) -> FeedReviewItemDTO:
+        course = model.course_offering.course
+        semester = model.course_offering.semester
+
+        return FeedReviewItemDTO(
+            id=model.id,
+            occurred_at=model.created_at,
+            course_id=course.id,
+            course_title=course.title,
+            difficulty=model.difficulty,
+            usefulness=model.usefulness,
+            comment=model.comment,
+            semester_year=semester.year,
+            semester_term=SemesterTerm(semester.term),
+            course_avg_difficulty=course.avg_difficulty,
+            course_avg_usefulness=course.avg_usefulness,
         )
 
 

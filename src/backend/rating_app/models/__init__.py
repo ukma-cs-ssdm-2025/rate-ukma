@@ -7,6 +7,7 @@ from .course_offering_term import CourseOfferingTerm
 from .department import Department
 from .enrollment import Enrollment
 from .faculty import Faculty
+from .feed_post import FeedPost
 from .instructor import Instructor
 from .notification import Notification, NotificationCursor
 from .person import Person
@@ -37,4 +38,5 @@ __all__ = [
     "Notification",
     "NotificationCursor",
     "PromoBanner",
+    "FeedPost",
 ]

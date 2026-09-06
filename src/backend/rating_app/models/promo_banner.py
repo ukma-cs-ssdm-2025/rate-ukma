@@ -3,7 +3,7 @@ import uuid
 from django.core.validators import FileExtensionValidator
 from django.db import models, transaction
 
-PROMO_LOGO_EXTENSIONS = ["svg", "png", "webp", "jpg", "jpeg"]
+PROMO_LOGO_EXTENSIONS = ["png", "webp", "jpg", "jpeg"]
 
 
 class PromoBanner(models.Model):

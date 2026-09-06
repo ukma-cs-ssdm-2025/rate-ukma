@@ -13,6 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from rateukma.caching.patterns import (
+    FEED_NAMESPACE,
     comment_replies_namespace,
     course_analytics_namespace,
     course_detail_namespace,
@@ -97,15 +98,19 @@ class TestRatingCacheInvalidator:
         invalidator.on_event(event)
         cache_manager.bump_version.assert_any_call(course_ratings_namespace(str(event.course)))
 
+    def test_bumps_feed_namespace(self, invalidator, cache_manager):
+        invalidator.on_event(_make_rating_dto())
+        cache_manager.bump_version.assert_any_call(FEED_NAMESPACE)
+
     def test_bumps_student_ratings_namespace(self, invalidator, cache_manager):
         event = _make_rating_dto()
         invalidator.on_event(event)
         cache_manager.bump_version.assert_any_call(student_ratings_namespace(str(event.student_id)))
 
-    def test_bumps_all_four_namespaces(self, invalidator, cache_manager):
+    def test_bumps_all_namespaces(self, invalidator, cache_manager):
         event = _make_rating_dto()
         invalidator.on_event(event)
-        assert cache_manager.bump_version.call_count == 4
+        assert cache_manager.bump_version.call_count == 5
 
     def test_anonymous_rating_still_bumps_student_namespace(self, invalidator, cache_manager):
         """Anonymous ratings carry the real student_id in the domain model.
@@ -113,7 +118,7 @@ class TestRatingCacheInvalidator:
         event = _make_rating_dto(is_anonymous=True)
         invalidator.on_event(event)
         cache_manager.bump_version.assert_any_call(student_ratings_namespace(str(event.student_id)))
-        assert cache_manager.bump_version.call_count == 4
+        assert cache_manager.bump_version.call_count == 5
 
 
 class TestCommentCacheInvalidator:

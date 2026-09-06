@@ -8,6 +8,9 @@ COURSES_LIST_NAMESPACE = "courses:list"
 ANALYTICS_LIST_NAMESPACE = "analytics:list"
 FILTER_OPTIONS_NAMESPACE = "courses:filter-options"
 
+FEED_NAMESPACE = "feed:list"
+FEED_NEXT_PUBLISH_AT_KEY = "feed:next-publish-at"
+
 
 def course_ratings_pattern(course_id: str) -> str:
     return f"*filter_ratings*{course_id}*"
