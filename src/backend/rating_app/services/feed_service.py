@@ -1,12 +1,19 @@
+from datetime import datetime
+
+from django.utils import timezone
+
+from rateukma.caching.cache_manager import ICacheManager
 from rateukma.caching.decorators import rcached
-from rateukma.caching.instances import redis_cache_manager
-from rateukma.caching.patterns import FEED_NAMESPACE
+from rateukma.caching.patterns import FEED_NAMESPACE, FEED_NEXT_PUBLISH_AT_KEY
 from rating_app.application_schemas.feed import FeedPage, FeedPromoItem, FeedReviewItem
-from rating_app.caching.feed_next_publish_at import is_next_publish_due, store_feed_next_publish_at
 from rating_app.pagination import FeedCursor
 from rating_app.repositories import FeedPostRepository, RatingRepository
 
 FEED_CACHE_TTL = 60
+
+# The stored time has to outlive the moment it marks,
+# or it expires before any reader gets to act on it.
+NEXT_PUBLISH_GRACE = 60 * 60
 
 FeedItem = FeedReviewItem | FeedPromoItem
 
@@ -16,9 +23,11 @@ class FeedService:
         self,
         feed_post_repository: FeedPostRepository,
         rating_repository: RatingRepository,
+        cache_manager: ICacheManager,
     ):
         self.feed_post_repository = feed_post_repository
         self.rating_repository = rating_repository
+        self.cache_manager = cache_manager
 
     def _cache_namespaces(self, *_args, **_kwargs) -> list[str]:
         """Read-path invalidation for posts nothing wrote at their publication time.
@@ -26,13 +35,10 @@ class FeedService:
         Costs one Redis read, the DB is touched only by the single request that
         finds a publication due, which then moves the marker to the next post.
         """
-        cache_manager = redis_cache_manager()
 
-        if is_next_publish_due(cache_manager):
-            cache_manager.bump_version(FEED_NAMESPACE)
-            store_feed_next_publish_at(
-                cache_manager, self.feed_post_repository.get_next_future_publication_time()
-            )
+        if self._is_next_publish_due():
+            self.cache_manager.bump_version(FEED_NAMESPACE)
+            self.refresh_next_publish_marker()
 
         return [FEED_NAMESPACE]
 
@@ -56,6 +62,15 @@ class FeedService:
 
         return FeedPage(items=page, next_cursor=next_cursor)
 
+    def refresh_next_publish_marker(self) -> None:
+        next_publication = self.feed_post_repository.get_next_future_publication_time()
+        if next_publication is None:
+            self.cache_manager.invalidate(FEED_NEXT_PUBLISH_AT_KEY)
+            return
+
+        ttl = int((next_publication - timezone.now()).total_seconds()) + NEXT_PUBLISH_GRACE
+        self.cache_manager.set(FEED_NEXT_PUBLISH_AT_KEY, next_publication.isoformat(), max(ttl, 1))
+
     def _merge(self, items: list[FeedItem]) -> list[FeedItem]:
         return sorted(items, key=lambda item: (item.occurred_at, item.id), reverse=True)
 
@@ -64,3 +79,9 @@ class FeedService:
             return None
         last = page[-1]
         return FeedCursor(last.occurred_at, last.id).encode()
+
+    def _is_next_publish_due(self) -> bool:
+        stored = self.cache_manager.get(FEED_NEXT_PUBLISH_AT_KEY)
+        if not isinstance(stored, str):
+            return False
+        return datetime.fromisoformat(stored) <= timezone.now()

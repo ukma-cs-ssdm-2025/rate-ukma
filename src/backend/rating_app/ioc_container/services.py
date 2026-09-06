@@ -153,6 +153,7 @@ def feed_service() -> FeedService:
     return FeedService(
         feed_post_repository=feed_post_repository(),
         rating_repository=rating_repository(),
+        cache_manager=redis_cache_manager(),
     )
 
 
