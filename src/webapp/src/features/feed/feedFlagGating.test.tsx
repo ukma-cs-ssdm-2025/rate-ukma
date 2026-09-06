@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FeedStrip } from "@/features/feed/components/FeedStrip";
-import { FEED_FLAG } from "@/features/feed/feedFlags";
 import { FeedRoute } from "@/routes/feed";
 import { renderWithProviders, screen, waitFor } from "@/test-utils/render";
 
@@ -34,14 +33,14 @@ describe("feed flag gating", () => {
 	});
 
 	it("issues no request from the strip when the feed flag is off", async () => {
-		renderWithProviders(<FeedStrip />, { flags: { [FEED_FLAG]: false } });
+		renderWithProviders(<FeedStrip />, { flags: { fe_feed: false } });
 
 		await waitFor(() => expect(feedListMock).not.toHaveBeenCalled());
 	});
 
 	it("issues no request from the strip until the flags have resolved", async () => {
 		renderWithProviders(<FeedStrip />, {
-			flags: { [FEED_FLAG]: true },
+			flags: { fe_feed: true },
 			flagsReady: false,
 		});
 
@@ -49,14 +48,14 @@ describe("feed flag gating", () => {
 	});
 
 	it("issues no request from the feed route when the feed flag is off", async () => {
-		renderWithProviders(<FeedRoute />, { flags: { [FEED_FLAG]: false } });
+		renderWithProviders(<FeedRoute />, { flags: { fe_feed: false } });
 
 		expect(screen.getByText("Стрічка наразі недоступна.")).toBeInTheDocument();
 		await waitFor(() => expect(feedListMock).not.toHaveBeenCalled());
 	});
 
 	it("requests the feed once the flag is on", async () => {
-		renderWithProviders(<FeedRoute />, { flags: { [FEED_FLAG]: true } });
+		renderWithProviders(<FeedRoute />, { flags: { fe_feed: true } });
 
 		await waitFor(() => expect(feedListMock).toHaveBeenCalled());
 	});

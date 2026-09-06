@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { FEED_FLAG } from "@/features/feed/feedFlags";
 import { renderWithProviders, screen } from "@/test-utils/render";
 import { FeedRoute } from "./feed";
 
@@ -22,13 +21,13 @@ vi.mock("@tanstack/react-router", async () => ({
 
 describe("FeedRoute", () => {
 	it("shows an unavailable message when the feed flag is off", () => {
-		renderWithProviders(<FeedRoute />, { flags: { [FEED_FLAG]: false } });
+		renderWithProviders(<FeedRoute />, { flags: { fe_feed: false } });
 
 		expect(screen.getByText("Стрічка наразі недоступна.")).toBeInTheDocument();
 	});
 
 	it("renders the heading and feed items when the flag is on", () => {
-		renderWithProviders(<FeedRoute />, { flags: { [FEED_FLAG]: true } });
+		renderWithProviders(<FeedRoute />, { flags: { fe_feed: true } });
 
 		expect(
 			screen.getByRole("heading", { name: /Стрічка оновлень/ }),

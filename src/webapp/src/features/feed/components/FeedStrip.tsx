@@ -3,7 +3,6 @@ import { ArrowRight, Newspaper, Pin } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { useFeatureFlagState } from "@/lib/feature-flags";
-import { FEED_FLAG } from "../feedFlags";
 import { isPromoItem } from "../feedTypes";
 import { useFeed } from "../hooks/useFeed";
 import { FeedPromoItem } from "./FeedPromoItem";
@@ -23,7 +22,7 @@ import { FeedReviewItem } from "./FeedReviewItem";
 const STRIP_PAGE_SIZE = 8;
 
 export function FeedStrip() {
-	const { enabled, isReady } = useFeatureFlagState(FEED_FLAG);
+	const { enabled, isReady } = useFeatureFlagState("fe_feed");
 	const { items, isLoading } = useFeed({
 		limit: STRIP_PAGE_SIZE,
 		infinite: false,

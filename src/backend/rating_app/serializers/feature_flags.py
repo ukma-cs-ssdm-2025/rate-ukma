@@ -1,9 +1,22 @@
+from django.conf import settings
 from rest_framework import serializers
 
 
+class PublicFeatureFlagsSerializer(serializers.Serializer):
+    def get_fields(self):
+        """Build one BooleanField per allowlisted flag.
+
+        Read at call time, not import, so settings overrides in tests are honoured.
+        """
+        return {
+            name: serializers.BooleanField(
+                help_text=f"Whether `{name}` is enabled for the current user."
+            )
+            for name in settings.PUBLIC_FEATURE_FLAGS
+        }
+
+
 class FeatureFlagsSerializer(serializers.Serializer):
-    flags = serializers.DictField(
-        child=serializers.BooleanField(),
-        read_only=True,
-        help_text="Map of public feature flag name to its enabled state for the current user.",
+    flags = PublicFeatureFlagsSerializer(
+        help_text="Enabled state of each public feature flag for the current user.",
     )

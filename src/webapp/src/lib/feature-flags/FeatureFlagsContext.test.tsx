@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FeatureFlagsProvider } from "./FeatureFlagsContext";
 import {
+	type FeatureFlagName,
 	useFeatureFlag,
 	useFeatureFlags,
 	useFeatureFlagState,
@@ -12,6 +13,9 @@ import {
 
 const FLAGS_QUERY_KEY = ["/api/v1/flags/"];
 const mockUseFlagsList = vi.fn();
+// Fixture names, cast so the test does not depend on the live allowlist.
+const FE_EXAMPLE = "fe_example" as FeatureFlagName;
+const FE_MISSING = "fe_missing" as FeatureFlagName;
 
 const { authState } = vi.hoisted(() => ({
 	authState: {
@@ -46,21 +50,21 @@ describe("feature flags", () => {
 		localStorage.clear(); // drop any ff:overrides leaked from other tests
 		authState.current = { status: "unauthenticated", user: null };
 		mockUseFlagsList.mockReturnValue({
-			data: { flags: { fe_example: true } },
+			data: { flags: { [FE_EXAMPLE]: true } },
 			isSuccess: true,
 			isError: false,
 		});
 	});
 
 	it("returns true for an enabled flag", () => {
-		const { result } = renderHook(() => useFeatureFlag("fe_example"), {
+		const { result } = renderHook(() => useFeatureFlag(FE_EXAMPLE), {
 			wrapper,
 		});
 		expect(result.current).toBe(true);
 	});
 
 	it("returns false for an unknown flag", () => {
-		const { result } = renderHook(() => useFeatureFlag("fe_missing"), {
+		const { result } = renderHook(() => useFeatureFlag(FE_MISSING), {
 			wrapper,
 		});
 		expect(result.current).toBe(false);
@@ -72,7 +76,7 @@ describe("feature flags", () => {
 			isSuccess: false,
 			isError: false,
 		});
-		const { result } = renderHook(() => useFeatureFlagState("fe_example"), {
+		const { result } = renderHook(() => useFeatureFlagState(FE_EXAMPLE), {
 			wrapper,
 		});
 		expect(result.current).toEqual({ enabled: false, isReady: false });
@@ -111,7 +115,7 @@ describe("feature flags", () => {
 	});
 
 	it("throws when used outside the provider", () => {
-		expect(() => renderHook(() => useFeatureFlag("fe_example"))).toThrow(
+		expect(() => renderHook(() => useFeatureFlag(FE_EXAMPLE))).toThrow(
 			/within a FeatureFlagsProvider/,
 		);
 	});
