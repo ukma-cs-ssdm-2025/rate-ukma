@@ -8,6 +8,7 @@ import pytest
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.group_courses.CourseGroupingService")
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_success(mock_path, mock_grouping_service):
@@ -42,6 +43,7 @@ def test_group_courses_success(mock_path, mock_grouping_service):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_input_not_found(mock_path):
     # Arrange
@@ -55,6 +57,7 @@ def test_group_courses_input_not_found(mock_path):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_same_input_output(mock_path):
     # Arrange
@@ -69,6 +72,7 @@ def test_group_courses_same_input_output(mock_path):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.group_courses.CourseGroupingService")
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_force_overwrite(mock_path, mock_grouping_service):
@@ -104,6 +108,7 @@ def test_group_courses_force_overwrite(mock_path, mock_grouping_service):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_output_exists_no_force(mock_path):
     # Arrange

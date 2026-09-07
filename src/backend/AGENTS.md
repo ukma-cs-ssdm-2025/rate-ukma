@@ -53,6 +53,16 @@ Escapes are a last resort, in order of preference:
 
 Don't widen a shared type (protocol return, DTO field) to make one implementer pass — fix the implementer or remove the false inheritance.
 
+## Tests
+
+Full conventions: [docs/testing/backend-tests.md](../../docs/testing/backend-tests.md). The rules that are cheapest to get wrong:
+
+- Module-level `def test_*` functions next to the code under test; no `class Test*`. Shared setup is a module-level `@pytest.fixture` or a `_make_*` helper.
+- Database access needs `@pytest.mark.django_db` and `@pytest.mark.integration`, in that order. Repositories and views run against factories from `rating_app.tests.factories`; services and listeners are unit-tested against `MagicMock` protocols, and a service test that needs the ORM carries both markers like any other DB test.
+- Insert ordering fixtures out of order; a test whose fixtures already sit in the expected order passes without the `order_by` it claims to cover.
+- `pytest.raises` takes `match=` with a message fragment, unless the exception carries no message; ruff `PT` rules enforce the rest of the pytest style.
+- Run `uv run pytest <file> -q` from `src/backend`; needs `uv sync --extra test` and a `.env` copied from `src/.env.sample`.
+
 ## Logging style
 
 Start log calls with a snake_case event name, then pass structured context via keyword args so tools can parse them.

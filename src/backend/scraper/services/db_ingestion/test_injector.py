@@ -49,7 +49,7 @@ def mock_offering_term_objects():
         yield mock
 
 
-@pytest.fixture()
+@pytest.fixture
 def repo_mocks():
     course_repo = MagicMock()
     dept_repo = MagicMock()
@@ -115,7 +115,7 @@ def repo_mocks():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def injector(repo_mocks) -> CourseDbInjector:
     return CourseDbInjector(
         repo_mocks.course_repo,
@@ -297,6 +297,7 @@ def create_mock_offering(
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_basic_flow_calls_repos_and_tracker(injector, repo_mocks):
     # Arrange
     repo_mocks.course_repo.get_or_upsert.return_value = (repo_mocks.course, True)
@@ -322,6 +323,7 @@ def test_injector_basic_flow_calls_repos_and_tracker(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_passes_course_education_level(injector, repo_mocks):
     models = [
         create_mock_course(
@@ -343,6 +345,7 @@ def test_injector_passes_course_education_level(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_processes_specialities(injector, repo_mocks):
     # Arrange
     existing_spec_dto = SimpleNamespace(id=uuid4())  # DTO returned by get_by_name
@@ -371,6 +374,7 @@ def test_injector_processes_specialities(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_processes_offerings_and_enrollments(injector, repo_mocks):
     # Arrange
     models = create_mock_payload()
@@ -386,6 +390,7 @@ def test_injector_processes_offerings_and_enrollments(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_handles_exception_and_calls_fail(injector, repo_mocks):
     # Arrange
     repo_mocks.faculty_repo.get_or_create.side_effect = RuntimeError("boom")
@@ -401,6 +406,7 @@ def test_injector_handles_exception_and_calls_fail(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_skips_student_creation_when_missing_speciality(injector, repo_mocks):
     # Arrange
     models = create_mock_no_speciality_payload()
@@ -413,6 +419,7 @@ def test_injector_skips_student_creation_when_missing_speciality(injector, repo_
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_handles_empty_education_level(injector, repo_mocks):
     # Arrange
     models = create_mock_empty_education_level_payload()
@@ -429,6 +436,7 @@ def test_injector_handles_empty_education_level(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_passes_program_start_year_and_term_hours_to_repositories(injector, repo_mocks):
     models = [
         create_mock_course(
@@ -478,6 +486,7 @@ def test_injector_passes_program_start_year_and_term_hours_to_repositories(injec
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_persists_course_offering_terms(injector, repo_mocks):
     models = [
         create_mock_course(
@@ -527,6 +536,7 @@ def test_injector_persists_course_offering_terms(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_invalidates_cache_after_successful_execution(injector, repo_mocks):
     # Arrange
     models = create_mock_payload()
@@ -542,6 +552,7 @@ def test_injector_invalidates_cache_after_successful_execution(injector, repo_mo
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_logs_warning_when_type_kind_is_none(injector, repo_mocks):
     # Arrange
     repo_mocks.speciality_repo.get_by_name.return_value = SimpleNamespace(id=uuid4())
@@ -561,6 +572,7 @@ def test_injector_logs_warning_when_type_kind_is_none(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_does_not_invalidate_cache_on_exception(injector, repo_mocks):
     # Arrange
     repo_mocks.faculty_repo.get_or_create.side_effect = RuntimeError("error")
@@ -575,6 +587,7 @@ def test_injector_does_not_invalidate_cache_on_exception(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_processes_offering_specialities(injector, repo_mocks):
     # Arrange — course-level speciality populates the cache; offering references same name
     repo_mocks.speciality_repo.get_by_name.return_value = SimpleNamespace(id=uuid4())
@@ -609,6 +622,7 @@ def test_injector_processes_offering_specialities(injector, repo_mocks):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_skips_offering_speciality_when_not_in_cache(injector, repo_mocks):
     # Arrange — offering references a speciality not processed at course level → not in cache
     repo_mocks.speciality_repo.get_by_name.return_value = None

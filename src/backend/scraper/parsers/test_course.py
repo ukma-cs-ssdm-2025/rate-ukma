@@ -1,5 +1,5 @@
+import pytest
 from faker import Faker
-from pytest import approx
 
 from scraper.models import Enrollment, Limits, ParsedCourseDetails, SpecialtyEntry, StudentRow
 from scraper.parsers.course import (
@@ -392,7 +392,7 @@ def test_course_detail_parser_with_basic_course_info():
     assert result.url == url
     assert result.title == title
     assert result.id == course_id
-    assert result.credits == approx(float(credits))
+    assert result.credits == pytest.approx(float(credits))
     assert result.hours == hours
     assert result.year == year
     assert result.format == format_type
