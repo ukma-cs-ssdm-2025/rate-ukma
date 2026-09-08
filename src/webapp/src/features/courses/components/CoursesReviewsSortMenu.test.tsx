@@ -29,4 +29,13 @@ describe("CoursesReviewsSortMenu sort hint", () => {
 			expect.stringContaining("без відгуків завжди внизу"),
 		);
 	});
+
+	it("states column sorts replace the review sort", () => {
+		render(<CoursesReviewsSortMenu value="by-count" onValueChange={vi.fn()} />);
+
+		expect(screen.getByTestId(testIds.courses.sortInfoHint)).toHaveAttribute(
+			"aria-label",
+			expect.stringContaining("замінює сортування за відгуками"),
+		);
+	});
 });
