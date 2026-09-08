@@ -67,7 +67,11 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 
 	const loaderRef = useRef<HTMLDivElement | null>(null);
 	const fetchNextPageRef = useRef(fetchNextPage);
-	fetchNextPageRef.current = fetchNextPage;
+	// Latest-ref for the observer callback: reassigned in an effect so the
+	// closure stays fresh without re-subscribing, and never writes during render.
+	useEffect(() => {
+		fetchNextPageRef.current = fetchNextPage;
+	});
 
 	useEffect(() => {
 		if (!infinite || !hasNextPage || items.length === 0) {

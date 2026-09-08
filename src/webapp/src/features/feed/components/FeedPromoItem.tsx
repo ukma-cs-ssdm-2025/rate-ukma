@@ -46,7 +46,7 @@ interface FeedPromoItemProps {
 }
 
 export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
-	const accent: AccentStyle =
+	const accent =
 		dictionaryLookup(ACCENT_STYLES, item.accent ?? "BRAND") ??
 		ACCENT_STYLES.BRAND;
 	const label = item.label ?? "Оголошення";
@@ -114,7 +114,7 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 						asChild
 						size="sm"
 						variant={accent.variant}
-						className={cn("gap-1.5", accent.cta)}
+						className={cn("gap-1.5", "cta" in accent ? accent.cta : undefined)}
 					>
 						<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
 							{item.ctaLabel}
