@@ -286,6 +286,8 @@ export function createMockFeedState(
 		loaderRef: { current: null },
 		...overrides,
 	};
+}
+
 /** Build a typed 2-element range, e.g. for filter value tuples. */
 export function createRange(min: number, max: number): [number, number] {
 	return [min, max];

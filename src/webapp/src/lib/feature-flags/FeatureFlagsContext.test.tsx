@@ -17,8 +17,9 @@ import {
 } from "./useFeatureFlag";
 
 const FLAGS_QUERY_KEY = ["/api/v1/flags/"];
-// Fixture names, cast so the test does not depend on the live allowlist.
+// SAFETY: fixture names bypass the live allowlist; the stubbed flags map is controlled by the test.
 const FE_EXAMPLE = "fe_example" as FeatureFlagName;
+// SAFETY: fixture names bypass the live allowlist; the stubbed flags map is controlled by the test.
 const FE_MISSING = "fe_missing" as FeatureFlagName;
 let mockUseFlagsList: ReturnType<typeof vi.spyOn>;
 let currentAuth: AuthContextValue;

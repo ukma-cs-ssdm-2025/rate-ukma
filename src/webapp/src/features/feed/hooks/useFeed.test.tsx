@@ -6,27 +6,24 @@ import type {
 	FeedListParams,
 	FeedPage,
 } from "@/lib/api/generated";
+import * as apiClientModule from "@/lib/api/apiClient";
 import { act, renderWithProviders, waitFor } from "@/test-utils/render";
 import type { UseFeedReturn } from "./useFeed";
 import { useFeed } from "./useFeed";
 
-// Mocked at the HTTP mutator rather than at the generated hook, so the cursor
+// Stubbed at the HTTP mutator rather than at the generated hook, so the cursor
 // threading orval generates (`useFeedListInfinite`) stays under test.
-vi.mock("@/lib/api/apiClient", async () => ({
-	...(await vi.importActual("@/lib/api/apiClient")),
-	authorizedFetcher: vi.fn(),
-}));
-
-const { authorizedFetcher } = await import("@/lib/api/apiClient");
-const mockedFetcher = vi.mocked(authorizedFetcher);
+let mockedFetcher: ReturnType<typeof vi.spyOn>;
 
 /** The query params of the nth (0-based) request the hook issued. */
 function requestParams(call: number): FeedListParams {
+	// SAFETY: the hook always calls authorizedFetcher with a params object.
 	return mockedFetcher.mock.calls[call][0].params as FeedListParams;
 }
 
 /** The generated (snake_case) shape the endpoint returns, not the domain one. */
 function apiPromo(overrides: Partial<ApiFeedItem> = {}): ApiFeedItem {
+	// SAFETY: promo fixtures always carry the literal promo kind with defaults.
 	return {
 		kind: "promo",
 		id: "p1",
@@ -44,17 +41,42 @@ function apiPromo(overrides: Partial<ApiFeedItem> = {}): ApiFeedItem {
 let observerCallback: IntersectionObserverCallback | undefined;
 const realIntersectionObserver = globalThis.IntersectionObserver;
 
+class ScrollObserverStub implements IntersectionObserver {
+	readonly root: Element | Document | null = null;
+	readonly rootMargin = "";
+	readonly scrollMargin = "";
+	readonly thresholds: readonly number[] = [];
+	observe = vi.fn();
+	unobserve = vi.fn();
+	disconnect = vi.fn();
+
+	constructor(callback: IntersectionObserverCallback) {
+		observerCallback = callback;
+	}
+
+	takeRecords(): IntersectionObserverEntry[] {
+		return [];
+	}
+}
+
 function scrollLoaderIntoView() {
 	act(() => {
 		observerCallback?.(
+			// SAFETY: the hook only reads isIntersecting off the entry.
 			[{ isIntersecting: true } as IntersectionObserverEntry],
+			// SAFETY: the hook never touches the observer instance itself.
 			{} as IntersectionObserver,
 		);
 	});
 }
 
+/** Write-once cell the probe fills during render. */
+interface FeedProbeState {
+	current: UseFeedReturn | null;
+}
+
 function renderFeed(limit = 2) {
-	const feed: { current: UseFeedReturn | null } = { current: null };
+	const feed: FeedProbeState = { current: null };
 
 	function FeedProbe() {
 		const result = useFeed({ limit });
@@ -68,22 +90,21 @@ function renderFeed(limit = 2) {
 		}),
 	});
 
-	return feed as { current: UseFeedReturn };
+	return {
+		get current(): UseFeedReturn {
+			if (feed.current === null) {
+				throw new Error("FeedProbe did not render");
+			}
+			return feed.current;
+		},
+	};
 }
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	mockedFetcher = vi.spyOn(apiClientModule, "authorizedFetcher");
 	observerCallback = undefined;
-	globalThis.IntersectionObserver = vi.fn().mockImplementation(function (
-		callback: IntersectionObserverCallback,
-	) {
-		observerCallback = callback;
-		return {
-			observe: vi.fn(),
-			unobserve: vi.fn(),
-			disconnect: vi.fn(),
-		};
-	}) as unknown as typeof IntersectionObserver;
+	globalThis.IntersectionObserver = ScrollObserverStub;
 });
 
 afterEach(() => {
