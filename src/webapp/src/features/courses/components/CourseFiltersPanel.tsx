@@ -508,6 +508,7 @@ function SelectFilters({
 									onChange={(nextValue) => onSelectChange(key, nextValue)}
 									placeholder={placeholder}
 									data-testid={testId}
+									mentionedOnly
 								/>
 							</div>
 						);
