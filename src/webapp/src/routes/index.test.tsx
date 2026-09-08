@@ -110,5 +110,31 @@ describe("CoursesRoute", () => {
 		expect(screen.queryByTestId("courses-error-state")).not.toBeInTheDocument();
 		expect(screen.getByTestId("courses-table")).toBeInTheDocument();
 		expect(screen.getByTestId("courses-search-input")).toHaveValue("persisted");
+		expect(vi.mocked(useCoursesList)).toHaveBeenCalledWith(
+			expect.objectContaining({ last_review_order: undefined }),
+			expect.anything(),
+		);
+	});
+
+	it("uses newest review sorting when explicitly selected", () => {
+		const setParams = vi.fn();
+		vi.mocked(useCourseFiltersParams).mockReturnValue([
+			{ ...DEFAULT_COURSE_FILTERS_PARAMS, reviewSort: "newest" },
+			setParams,
+		]);
+
+		vi.mocked(useCoursesList).mockReturnValue({
+			data: { items: [], page: 1, page_size: 10, total: 0, total_pages: 0 },
+			isFetching: false,
+			isError: false,
+			refetch: vi.fn(),
+		} as unknown as ReturnType<typeof useCoursesList>);
+
+		render(<CoursesRoute />);
+
+		expect(vi.mocked(useCoursesList)).toHaveBeenCalledWith(
+			expect.objectContaining({ last_review_order: "desc" }),
+			expect.anything(),
+		);
 	});
 });

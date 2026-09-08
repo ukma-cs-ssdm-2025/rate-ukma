@@ -742,7 +742,7 @@ describe("Sorting", () => {
 		await user.click(screen.getByRole("menuitem", { name: "Найновіші" }));
 
 		expect(setParams).toHaveBeenCalledWith({
-			reviewSort: null,
+			reviewSort: "newest",
 			diffOrder: null,
 			useOrder: null,
 			page: 1,
