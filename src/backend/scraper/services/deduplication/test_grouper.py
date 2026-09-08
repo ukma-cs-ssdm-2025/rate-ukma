@@ -859,7 +859,7 @@ def test_course_grouper_falls_back_to_course_credits_when_term_credits_are_zero(
     grouped = result[0]
     assert len(grouped.offerings) == 1
 
-    spring = grouped.offerings[0]
+    spring = grouped.offerings[0].terms[0]
     assert spring.credits == approx(4.0)
     assert spring.weekly_hours == 1
 

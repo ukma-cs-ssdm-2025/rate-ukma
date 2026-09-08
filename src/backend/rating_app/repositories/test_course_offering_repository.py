@@ -43,8 +43,6 @@ def test_get_or_upsert_updates_existing_offering_when_code_matches(repo):
         code="CS101-001",
         course=course1,
         semester=semester1,
-        credits=3.0,
-        weekly_hours=2,
         study_year=2,
     )
 
@@ -54,12 +52,7 @@ def test_get_or_upsert_updates_existing_offering_when_code_matches(repo):
         course_id=course2.id,
         semester_id=semester1.id,
         exam_type="EXAM",
-        practice_type="PRACTICE",
-        credits=Decimal("4.0"),
-        weekly_hours=4,
         study_year=3,
-        lecture_count=14,
-        practice_count=14,
         max_students=30,
         max_groups=2,
         group_size_min=10,
@@ -69,9 +62,6 @@ def test_get_or_upsert_updates_existing_offering_when_code_matches(repo):
 
     assert created is False
     assert offering.id == existing.id
-    assert offering.credits == pytest.approx(4.0)
-    assert offering.weekly_hours == 4
-    assert offering.total_hours == 120
     assert offering.study_year == 3
     assert offering.course_id == course2.id
     assert offering.semester_id == semester1.id
@@ -95,12 +85,7 @@ def test_get_or_upsert_updates_existing_offering_when_same_code_targets_other_se
         course_id=course.id,
         semester_id=spring_semester.id,
         exam_type="EXAM",
-        practice_type="PRACTICE",
-        credits=Decimal("4.0"),
-        weekly_hours=4,
         study_year=3,
-        lecture_count=14,
-        practice_count=14,
         max_students=30,
         max_groups=2,
         group_size_min=10,
@@ -127,12 +112,7 @@ def test_get_or_upsert_with_return_model_returns_orm_model(repo):
         course_id=course.id,
         semester_id=semester.id,
         exam_type="EXAM",
-        practice_type="PRACTICE",
-        credits=Decimal("3.0"),
-        weekly_hours=2,
         study_year=2,
-        lecture_count=14,
-        practice_count=14,
         max_students=30,
         max_groups=2,
         group_size_min=10,
@@ -143,7 +123,6 @@ def test_get_or_upsert_with_return_model_returns_orm_model(repo):
     assert created is True
     assert hasattr(offering, "course")
     assert offering.course == course
-    assert offering.total_hours == 90
     assert offering.study_year == 2
 
 
@@ -159,12 +138,7 @@ def test_create_returns_hydrated_domain_model(repo):
         course_id=course.id,
         semester_id=semester.id,
         exam_type="EXAM",
-        practice_type="PRACTICE",
-        credits=Decimal("3.0"),
-        weekly_hours=2,
         study_year=1,
-        lecture_count=14,
-        practice_count=14,
         max_students=30,
         max_groups=2,
         group_size_min=10,
@@ -176,7 +150,6 @@ def test_create_returns_hydrated_domain_model(repo):
     assert offering.course_title == "Algorithms"
     assert offering.semester_year == 2024
     assert offering.semester_term == semester.label
-    assert offering.total_hours == 90
     assert offering.study_year == 1
 
 

@@ -200,8 +200,6 @@ def test_db_ingestion_links_student_to_existing_user(user_factory):
                 DeduplicatedCourseOffering(
                     code="CS101",
                     semester=DeduplicatedSemester(year=2024, term=SemesterTerm.FALL),
-                    credits=3.0,
-                    weekly_hours=4,
                     exam_type=ExamType.EXAM,
                     enrollments=[
                         DeduplicatedEnrollment(
@@ -245,8 +243,6 @@ def test_db_ingestion_does_not_link_when_no_matching_user():
                 DeduplicatedCourseOffering(
                     code="MATH101",
                     semester=DeduplicatedSemester(year=2024, term=SemesterTerm.FALL),
-                    credits=3.0,
-                    weekly_hours=4,
                     exam_type=ExamType.EXAM,
                     enrollments=[
                         DeduplicatedEnrollment(

@@ -13,6 +13,7 @@ from django.db.models import (
     Q,
     QuerySet,
     Subquery,
+    Sum,
     Value,
     When,
 )
@@ -322,12 +323,15 @@ class CourseRepository(
             offering_query = offering_query.filter(instructors__id=filters.instructor)
             has_offering_filter = True
 
-        if filters.credits_min is not None:
-            offering_query = offering_query.filter(credits__gte=filters.credits_min)
-            has_offering_filter = True
-
-        if filters.credits_max is not None:
-            offering_query = offering_query.filter(credits__lte=filters.credits_max)
+        if filters.credits_min is not None or filters.credits_max is not None:
+            # Credits live per term (#558); match offerings whose SUM of term
+            # credits falls in range. Offerings without terms have a NULL sum
+            # and never match a credits range.
+            offering_query = offering_query.annotate(terms_credits=Sum("terms__credits"))
+            if filters.credits_min is not None:
+                offering_query = offering_query.filter(terms_credits__gte=filters.credits_min)
+            if filters.credits_max is not None:
+                offering_query = offering_query.filter(terms_credits__lte=filters.credits_max)
             has_offering_filter = True
 
         if not has_offering_filter:

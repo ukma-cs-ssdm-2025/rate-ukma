@@ -10,6 +10,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import connection
+from django.db.models import Sum
 from django.test.utils import CaptureQueriesContext
 
 from rateukma.caching.cache_manager import InMemoryCacheManager
@@ -21,7 +22,7 @@ from rating_app.ioc_container.repositories import (
     rating_repository,
 )
 from rating_app.ioc_container.services import course_service, rating_service
-from rating_app.models import Course, CourseOfferingSpeciality, Rating, Student
+from rating_app.models import Course, CourseOfferingSpeciality, CourseOfferingTerm, Rating, Student
 from rating_app.models.choices import SemesterTerm
 
 
@@ -341,14 +342,20 @@ class Command(BaseCommand):
 
         instructor_id = offering.instructors.order_by("id").values_list("id", flat=True).first()
 
+        total_credits = (
+            CourseOfferingTerm.objects.filter(offering=offering).aggregate(total=Sum("credits"))[
+                "total"
+            ]
+            or 0
+        )
         payload: dict[str, Any] = {
             "faculty": course.department.faculty_id,
             "department": course.department_id,
             "speciality": sample.speciality_id,
             "semester_year": year,
             "semester_terms": [semester.term],
-            "credits_min": offering.credits,
-            "credits_max": offering.credits,
+            "credits_min": total_credits,
+            "credits_max": total_credits,
         }
         if sample.type_kind:
             payload["type_kind"] = sample.type_kind

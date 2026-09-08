@@ -1,3 +1,5 @@
+import decimal
+
 import pytest
 
 from rating_app.application_schemas.course import CourseFilterCriteriaInternal, CourseInput
@@ -10,6 +12,7 @@ from rating_app.tests.factories import (
     CourseFactory,
     CourseInstructorFactory,
     CourseOfferingFactory,
+    CourseOfferingTermFactory,
     InstructorFactory,
     SemesterFactory,
 )
@@ -96,22 +99,29 @@ def test_filter_by_credits_range_and_semester_year_uses_same_offering(repo):
     other_semester = SemesterFactory(term=SemesterTerm.FALL, year=2023)
 
     matching_course = CourseFactory(title="Matching course")
-    CourseOfferingFactory(
+    matching_offering = CourseOfferingFactory(
         course=matching_course,
         semester=target_semester,
-        credits=4.0,
+    )
+    CourseOfferingTermFactory(
+        offering=matching_offering,
+        semester=target_semester,
+        credits=decimal.Decimal("4.0"),
     )
 
     mismatched_course = CourseFactory(title="Mismatched course")
-    CourseOfferingFactory(
+    mismatched_offering = CourseOfferingFactory(
         course=mismatched_course,
         semester=target_semester,
-        credits=3.0,
+    )
+    CourseOfferingTermFactory(
+        offering=mismatched_offering,
+        semester=target_semester,
+        credits=decimal.Decimal("3.0"),
     )
     CourseOfferingFactory(
         course=mismatched_course,
         semester=other_semester,
-        credits=4.0,
     )
 
     # Act
@@ -127,6 +137,55 @@ def test_filter_by_credits_range_and_semester_year_uses_same_offering(repo):
     returned_ids = {course.id for course in result}
     assert returned_ids == {str(matching_course.id)}
     assert len(result) == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_credits_uses_sum_of_terms(repo):
+    # Fall 3cr + Spring 4cr = 7cr total; the offering-level value only mirrors
+    # the representative term (4.0). The filter must match the sum (#558).
+    fall = SemesterFactory(term=SemesterTerm.FALL, year=2024)
+    spring = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
+    target = CourseFactory(title="Multi-term course")
+    offering = CourseOfferingFactory(course=target, semester=spring)
+    CourseOfferingTermFactory(offering=offering, semester=fall, credits=decimal.Decimal("3.0"))
+    CourseOfferingTermFactory(offering=offering, semester=spring, credits=decimal.Decimal("4.0"))
+
+    other = CourseFactory(title="Other course")
+    other_offering = CourseOfferingFactory(course=other, semester=fall)
+    CourseOfferingTermFactory(offering=other_offering, semester=fall)
+
+    result = repo.filter(
+        CourseFilterCriteriaInternal(
+            semester_year="2024–2025",
+            credits_min=decimal.Decimal("7.0"),
+            credits_max=decimal.Decimal("7.0"),
+        )
+    )
+
+    assert {course.id for course in result} == {str(target.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_credits_excludes_offerings_without_terms(repo):
+    # Offerings with no terms have no computable credit sum, so a credits
+    # range must not match them — but an unfiltered listing still includes them.
+    semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
+    termless = CourseFactory(title="Termless course")
+    CourseOfferingFactory(course=termless, semester=semester)
+
+    ranged = repo.filter(
+        CourseFilterCriteriaInternal(
+            semester_year="2024–2025",
+            credits_min=decimal.Decimal("3.5"),
+            credits_max=decimal.Decimal("4.5"),
+        )
+    )
+    assert ranged == []
+
+    unfiltered = repo.filter(CourseFilterCriteriaInternal())
+    assert str(termless.id) in {course.id for course in unfiltered}
 
 
 @pytest.mark.django_db

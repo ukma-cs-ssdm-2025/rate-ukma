@@ -109,12 +109,7 @@ class CourseOfferingFactory(DjangoModelFactory):
     code = factory.LazyFunction(lambda: f"{random.randint(100000, 999999)}")  # 6 символів
     course = factory.SubFactory(CourseFactory)
     semester = factory.SubFactory(SemesterFactory)
-    credits = fuzzy.FuzzyDecimal(1, 6, precision=1)
-    weekly_hours = fuzzy.FuzzyInteger(1, 12)
     study_year = fuzzy.FuzzyInteger(1, 6)
-    lecture_count = fuzzy.FuzzyInteger(4, 32)
-    practice_count = fuzzy.FuzzyInteger(0, 20)
-    practice_type = ""
     exam_type = "EXAM"
     max_students = fuzzy.FuzzyInteger(10, 200)
     max_groups = fuzzy.FuzzyInteger(1, 6)
