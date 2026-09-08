@@ -194,7 +194,6 @@ def test_list_ranked_without_mentioned_only_keeps_never_rated(repo):
     assert never_rated.id in ranked_ids
 
 
-
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_list_ranked_hides_unrated_current_bachelor_student(repo):

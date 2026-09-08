@@ -93,6 +93,7 @@ def test_filter_by_instructor(
     data = response.json()
     assert {item["id"] for item in data["items"]} == {str(course.id)}
 
+
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_filter_by_name(token_client, course_factory):
