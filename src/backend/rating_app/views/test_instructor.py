@@ -206,6 +206,7 @@ def test_list_instructors_global_fallback(token_client, instructor_factory, rati
     ids = [item["id"] for item in data["items"][:2]]
     assert ids == [str(more.id), str(less.id)]
 
+
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_list_instructors_mentioned_only_filters_unrated(
@@ -215,7 +216,6 @@ def test_list_instructors_mentioned_only_filters_unrated(
     instructor_factory(last_name="Unrated")
     rating = rating_factory()
     rating.instructors.add(rated)
-
     url = reverse("instructor-list")
     response = token_client.get(url, {"mentioned_only": "true"})
 
