@@ -219,19 +219,37 @@ def test_filter_by_credits_range_and_semester_year_uses_same_offering(
     assert len(result) == 1
 
 
+@pytest.fixture
+def offering_with_terms(course_offering_factory, course_offering_term_factory):
+    def build(course, fall, spring):
+        offering = course_offering_factory(course=course, semester=spring)
+        course_offering_term_factory(
+            offering=offering, semester=fall, credits=decimal.Decimal("3.0")
+        )
+        course_offering_term_factory(
+            offering=offering, semester=spring, credits=decimal.Decimal("4.0")
+        )
+        return offering
+
+    return build
+
+
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_filter_by_credits_uses_sum_of_terms(
-    repo, semester_factory, course_factory, course_offering_factory, course_offering_term_factory
+    repo,
+    semester_factory,
+    course_factory,
+    course_offering_factory,
+    course_offering_term_factory,
+    offering_with_terms,
 ):
     # Fall 3cr + Spring 4cr = 7cr total; the offering-level value only mirrors
     # the representative term (4.0). The filter must match the sum (#558).
     fall = semester_factory(term=SemesterTerm.FALL, year=2024)
     spring = semester_factory(term=SemesterTerm.SPRING, year=2025)
     target = course_factory(title="Multi-term course")
-    offering = course_offering_factory(course=target, semester=spring)
-    course_offering_term_factory(offering=offering, semester=fall, credits=decimal.Decimal("3.0"))
-    course_offering_term_factory(offering=offering, semester=spring, credits=decimal.Decimal("4.0"))
+    offering_with_terms(target, fall, spring)
 
     other = course_factory(title="Other course")
     other_offering = course_offering_factory(course=other, semester=fall)
@@ -275,13 +293,7 @@ def test_filter_by_credits_excludes_offerings_without_terms(
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_filter_by_instructor_and_credits_uses_stable_term_sum(
-    repo,
-    semester_factory,
-    instructor_factory,
-    course_factory,
-    course_offering_factory,
-    course_offering_term_factory,
-    rating_factory,
+    repo, semester_factory, instructor_factory, course_factory, rating_factory, offering_with_terms
 ):
     # Two ratings mention the same instructor on one offering; the instructor
     # filter must not multiply the term-credits sum (#558).
@@ -289,12 +301,10 @@ def test_filter_by_instructor_and_credits_uses_stable_term_sum(
     spring = semester_factory(term=SemesterTerm.SPRING, year=2025)
     instructor = instructor_factory()
     target = course_factory(title="Stable sum course")
-    offering = course_offering_factory(course=target, semester=spring)
+    offering = offering_with_terms(target, fall, spring)
     for _ in range(2):
         rating = rating_factory(course_offering=offering)
         rating.instructors.add(instructor)
-    course_offering_term_factory(offering=offering, semester=fall, credits=decimal.Decimal("3.0"))
-    course_offering_term_factory(offering=offering, semester=spring, credits=decimal.Decimal("4.0"))
 
     result = repo.filter(
         CourseFilterCriteriaInternal(
