@@ -36,7 +36,13 @@ from rating_app.exception.department_exceptions import (
     DepartmentNotFoundError,
     InvalidDepartmentIdentifierError,
 )
-from rating_app.models import Course, CourseOffering, CourseOfferingSpeciality, Department
+from rating_app.models import (
+    Course,
+    CourseOffering,
+    CourseOfferingSpeciality,
+    CourseOfferingTerm,
+    Department,
+)
 from rating_app.models.choices import SemesterTerm
 from rating_app.pagination import GenericQuerysetPaginator, PaginationFilters, PaginationResult
 from rating_app.repositories.protocol import IPaginatedRepository
@@ -324,10 +330,17 @@ class CourseRepository(
             has_offering_filter = True
 
         if filters.credits_min is not None or filters.credits_max is not None:
-            # Credits live per term (#558); match offerings whose SUM of term
-            # credits falls in range. Offerings without terms have a NULL sum
-            # and never match a credits range.
-            offering_query = offering_query.annotate(terms_credits=Sum("terms__credits"))
+            # Credits live per term (#558). Use a correlated subquery so the
+            # sum stays stable when other filters (e.g. instructor M2M with
+            # role-distinct rows) join extra rows into the outer query.
+            # Offerings without terms get NULL and never match a credits range.
+            terms_total = (
+                CourseOfferingTerm.objects.filter(offering_id=OuterRef("pk"))
+                .values("offering_id")
+                .annotate(total=Sum("credits"))
+                .values("total")
+            )
+            offering_query = offering_query.annotate(terms_credits=Subquery(terms_total))
             if filters.credits_min is not None:
                 offering_query = offering_query.filter(terms_credits__gte=filters.credits_min)
             if filters.credits_max is not None:

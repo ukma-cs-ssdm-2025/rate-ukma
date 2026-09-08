@@ -190,6 +190,43 @@ def test_filter_by_credits_excludes_offerings_without_terms(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_filter_by_instructor_and_credits_uses_stable_term_sum(repo):
+    # Same instructor holds two role-distinct rows on one offering; the
+    # instructor join must not multiply the term-credits sum (#558).
+    from rating_app.models.choices import InstructorRole
+
+    fall = SemesterFactory(term=SemesterTerm.FALL, year=2024)
+    spring = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
+    instructor = InstructorFactory()
+    target = CourseFactory(title="Stable sum course")
+    offering = CourseOfferingFactory(course=target, semester=spring)
+    CourseInstructorFactory(
+        course_offering=offering,
+        instructor=instructor,
+        role=InstructorRole.LECTURE_INSTRUCTOR,
+    )
+    CourseInstructorFactory(
+        course_offering=offering,
+        instructor=instructor,
+        role=InstructorRole.PRACTICUM_INSTRUCTOR,
+    )
+    CourseOfferingTermFactory(offering=offering, semester=fall, credits=decimal.Decimal("3.0"))
+    CourseOfferingTermFactory(offering=offering, semester=spring, credits=decimal.Decimal("4.0"))
+
+    result = repo.filter(
+        CourseFilterCriteriaInternal(
+            semester_year="2024–2025",
+            instructor=instructor.id,
+            credits_min=decimal.Decimal("7.0"),
+            credits_max=decimal.Decimal("7.0"),
+        )
+    )
+
+    assert {course.id for course in result} == {str(target.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_returns_domain_models(repo):
     # Arrange
     course = CourseFactory()

@@ -6,6 +6,9 @@ from .choices import InstructorRole
 
 
 class CourseInstructor(models.Model):
+    # NOTE: prod-empty — only generate_mock_data.py creates rows; the scraper
+    # injector never populates this table, so instructor filters match nothing
+    # in prod (see #664). Follow-up proposes removal: #687.
     instructor_id: uuid.UUID
     course_offering_id: uuid.UUID
 

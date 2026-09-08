@@ -864,6 +864,46 @@ def test_course_grouper_falls_back_to_course_credits_when_term_credits_are_zero(
     assert spring.weekly_hours == 1
 
 
+def test_course_grouper_skips_semesters_without_season_credits_when_partial(course_grouper):
+    # Fall has 4cr of season data, Spring has none: Spring must not fall
+    # back to the full 8cr course total (4 + 8 = 12 double-count) (#558).
+    course = ParsedCourseDetails(
+        url="https://example.com/course/340520",
+        title="Часткові сезонні дані",
+        id="340520",
+        credits=8.0,
+        hours=240,
+        year=3,
+        format="Формат 2015",
+        status="рекомендовано",
+        faculty="Факультет інформатики",
+        department="Кафедра інформатики",
+        education_level="Бакалавр",
+        academic_year="2025–2026",
+        semesters=["Семестр 5", "Семестр 6"],
+        specialties=[{"specialty": "Комп`ютерні науки", "type": "Обов`язкова"}],
+        limits={"max_students": 30, "max_groups": 3, "group_size_min": 9, "group_size_max": 12},
+        season_details={
+            "Осінь": {
+                "credits": 4.0,
+                "hours_per_week": 3,
+                "lecture_hours": 22,
+                "practice_hours": 22,
+                "practice_type": "PRACTICE",
+                "exam_type": "екзамен",
+            },
+        },
+    )
+
+    result = course_grouper.group_course_offerings([course])
+
+    assert len(result) == 1
+    terms = result[0].offerings[0].terms
+    assert len(terms) == 1
+    assert terms[0].semester.term.value == "FALL"
+    assert terms[0].credits == approx(4.0)
+
+
 def test_course_grouper_treats_ispyt_as_exam(course_grouper):
     course = ParsedCourseDetails(
         url="https://example.com/course/365146",
