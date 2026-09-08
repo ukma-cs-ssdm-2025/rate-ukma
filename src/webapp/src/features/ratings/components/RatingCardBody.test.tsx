@@ -24,9 +24,6 @@ function instructor(over: Partial<RatingInstructor>): RatingInstructor {
 	};
 }
 
-// M2M instructor display is gated behind the feature flag.
-const FF_ON = { flags: { fe_instructor_multiselect: true } } as const;
-
 describe("RatingCardBody instructor display", () => {
 	it("renders M2M instructors with the full name, surname first", () => {
 		render(
@@ -41,7 +38,6 @@ describe("RatingCardBody instructor display", () => {
 					instructor({ first_name: "Анна", last_name: "Коваленко" }),
 				]}
 			/>,
-			FF_ON,
 		);
 
 		expect(screen.getByText("Викладачі:")).toBeInTheDocument();
@@ -58,7 +54,6 @@ describe("RatingCardBody instructor display", () => {
 					instructor({ first_name: "Анна", last_name: "Коваленко" }),
 				]}
 			/>,
-			FF_ON,
 		);
 
 		expect(screen.getByText("Викладач:")).toBeInTheDocument();
@@ -67,13 +62,6 @@ describe("RatingCardBody instructor display", () => {
 
 	it("falls back to legacy text when no M2M instructors", () => {
 		render(<RatingCardBody {...baseProps} instructor="Сегін" />);
-
-		expect(screen.getByText("Викладач:")).toBeInTheDocument();
-		expect(screen.getByText("Сегін")).toBeInTheDocument();
-	});
-
-	it("still shows legacy text with the flag on when the rating has no M2M instructors", () => {
-		render(<RatingCardBody {...baseProps} instructor="Сегін" />, FF_ON);
 
 		expect(screen.getByText("Викладач:")).toBeInTheDocument();
 		expect(screen.getByText("Сегін")).toBeInTheDocument();
@@ -88,7 +76,6 @@ describe("RatingCardBody instructor display", () => {
 					instructor({ first_name: "Анна", last_name: "Коваленко" }),
 				]}
 			/>,
-			FF_ON,
 		);
 
 		expect(screen.getByText("Коваленко Анна")).toBeInTheDocument();
@@ -99,20 +86,5 @@ describe("RatingCardBody instructor display", () => {
 		render(<RatingCardBody {...baseProps} />);
 
 		expect(screen.queryByText(/Викладач/)).not.toBeInTheDocument();
-	});
-
-	it("hides M2M instructors and shows legacy text when the flag is off", () => {
-		render(
-			<RatingCardBody
-				{...baseProps}
-				instructor="Старий текст"
-				instructors={[
-					instructor({ first_name: "Анна", last_name: "Коваленко" }),
-				]}
-			/>,
-		);
-
-		expect(screen.queryByText("Коваленко Анна")).not.toBeInTheDocument();
-		expect(screen.getByText("Старий текст")).toBeInTheDocument();
 	});
 });

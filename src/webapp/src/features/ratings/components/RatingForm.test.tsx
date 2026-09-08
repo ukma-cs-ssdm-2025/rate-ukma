@@ -30,29 +30,13 @@ describe("RatingForm", () => {
 		);
 	});
 
-	describe("instructor field — feature flag gating", () => {
-		it("shows the legacy free-text input when the flag is off", () => {
+	describe("instructor field", () => {
+		it("shows the multi-select", () => {
 			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
-
-			expect(
-				screen.getByTestId(testIds.rating.instructorInput),
-			).toBeInTheDocument();
-			expect(
-				screen.queryByTestId(testIds.rating.instructorMultiSelect),
-			).not.toBeInTheDocument();
-		});
-
-		it("shows the multi-select when the flag is on", () => {
-			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />, {
-				flags: { fe_instructor_multiselect: true },
-			});
 
 			expect(
 				screen.getByTestId(testIds.rating.instructorMultiSelect),
 			).toBeInTheDocument();
-			expect(
-				screen.queryByTestId(testIds.rating.instructorInput),
-			).not.toBeInTheDocument();
 		});
 
 		it("shows the previous free-text instructor read-only next to the multi-select", () => {
@@ -70,7 +54,6 @@ describe("RatingForm", () => {
 						is_anonymous: false,
 					}}
 				/>,
-				{ flags: { fe_instructor_multiselect: true } },
 			);
 
 			expect(
@@ -79,23 +62,6 @@ describe("RatingForm", () => {
 			expect(
 				screen.getByTestId(testIds.rating.instructorMultiSelect),
 			).toBeInTheDocument();
-			// The old value is informational only — it cannot be edited as text.
-			expect(
-				screen.queryByTestId(testIds.rating.instructorInput),
-			).not.toBeInTheDocument();
-		});
-
-		it("renders neither variant until the flags resolve", () => {
-			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />, {
-				flagsReady: false,
-			});
-
-			expect(
-				screen.queryByTestId(testIds.rating.instructorInput),
-			).not.toBeInTheDocument();
-			expect(
-				screen.queryByTestId(testIds.rating.instructorMultiSelect),
-			).not.toBeInTheDocument();
 		});
 	});
 });
