@@ -307,9 +307,20 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         course: ParsedCourseDetails,
         semesters: list[DeduplicatedSemester],
     ) -> list[TermDetail]:
+        # When some semesters carry valid per-season credits, the remaining
+        # semesters must not fall back to the full course total — that
+        # double-counts (e.g. Fall 4cr + fallback 8cr = 12cr vs 8cr) (#558).
+        has_valid_season_credits = any(
+            (season := self._get_season_info(course, semester.term)) is not None
+            and season.credits is not None
+            and season.credits > 0
+            for semester in semesters
+        )
         term_details: list[TermDetail] = []
         for semester in semesters:
-            offering_details = self._build_offering_details(course, semester)
+            offering_details = self._build_offering_details(
+                course, semester, fallback_credits=not has_valid_season_credits
+            )
             if offering_details is None:
                 continue
 
@@ -341,14 +352,18 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         self,
         course: ParsedCourseDetails,
         semester: DeduplicatedSemester,
+        fallback_credits: bool = True,
     ) -> OfferingTermDetails | None:
         season_info = self._get_season_info(course, semester.term)
         course_credits = self.extractors["credits"].extract(course)
         season_credits = season_info.credits if season_info else None
 
-        resolved_credits = (
-            season_credits if season_credits is not None and season_credits > 0 else course_credits
-        )
+        if season_credits is not None and season_credits > 0:
+            resolved_credits = season_credits
+        elif fallback_credits:
+            resolved_credits = course_credits
+        else:
+            resolved_credits = None
         weekly_hours = (
             season_info.hours_per_week
             if season_info and season_info.hours_per_week is not None

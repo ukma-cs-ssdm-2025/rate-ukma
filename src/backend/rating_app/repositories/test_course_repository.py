@@ -274,6 +274,42 @@ def test_filter_by_credits_excludes_offerings_without_terms(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_filter_by_instructor_and_credits_uses_stable_term_sum(
+    repo,
+    semester_factory,
+    instructor_factory,
+    course_factory,
+    course_offering_factory,
+    course_offering_term_factory,
+    rating_factory,
+):
+    # Two ratings mention the same instructor on one offering; the instructor
+    # filter must not multiply the term-credits sum (#558).
+    fall = semester_factory(term=SemesterTerm.FALL, year=2024)
+    spring = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    instructor = instructor_factory()
+    target = course_factory(title="Stable sum course")
+    offering = course_offering_factory(course=target, semester=spring)
+    for _ in range(2):
+        rating = rating_factory(course_offering=offering)
+        rating.instructors.add(instructor)
+    course_offering_term_factory(offering=offering, semester=fall, credits=decimal.Decimal("3.0"))
+    course_offering_term_factory(offering=offering, semester=spring, credits=decimal.Decimal("4.0"))
+
+    result = repo.filter(
+        CourseFilterCriteriaInternal(
+            semester_year="2024–2025",
+            instructor=instructor.id,
+            credits_min=decimal.Decimal("7.0"),
+            credits_max=decimal.Decimal("7.0"),
+        )
+    )
+
+    assert {course.id for course in result} == {str(target.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_returns_domain_models(repo, course_factory, course_offering_factory):
     # Arrange
     course = course_factory()

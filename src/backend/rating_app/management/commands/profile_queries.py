@@ -26,6 +26,17 @@ from rating_app.models import Course, CourseOfferingSpeciality, CourseOfferingTe
 from rating_app.models.choices import SemesterTerm
 
 
+def credits_range_payload(offering) -> dict[str, Any]:
+    # Termless offerings have no computable credit sum (#558): omit the
+    # range so validation (credits gt=0) never sees a synthetic 0.
+    total = CourseOfferingTerm.objects.filter(offering=offering).aggregate(total=Sum("credits"))[
+        "total"
+    ]
+    if total is None:
+        return {}
+    return {"credits_min": total, "credits_max": total}
+
+
 @dataclass(frozen=True)
 class Scenario:
     name: str
@@ -342,20 +353,13 @@ class Command(BaseCommand):
 
         instructor_id = offering.instructors.order_by("id").values_list("id", flat=True).first()
 
-        total_credits = (
-            CourseOfferingTerm.objects.filter(offering=offering).aggregate(total=Sum("credits"))[
-                "total"
-            ]
-            or 0
-        )
         payload: dict[str, Any] = {
             "faculty": course.department.faculty_id,
             "department": course.department_id,
             "speciality": sample.speciality_id,
             "semester_year": year,
             "semester_terms": [semester.term],
-            "credits_min": total_credits,
-            "credits_max": total_credits,
+            **credits_range_payload(offering),
         }
         if sample.type_kind:
             payload["type_kind"] = sample.type_kind
