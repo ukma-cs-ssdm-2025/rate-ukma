@@ -52,7 +52,7 @@ export function CoursesRoute() {
 		avg_difficulty_order: params.diffOrder ?? undefined,
 		avg_usefulness_order: params.useOrder ?? undefined,
 		last_review_order:
-			params.diffOrder || params.useOrder || params.reviewSort === "by-count"
+			params.diffOrder || params.useOrder || params.reviewSort !== "newest"
 				? undefined
 				: "desc",
 	};
