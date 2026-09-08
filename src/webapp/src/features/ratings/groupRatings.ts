@@ -1,5 +1,6 @@
 import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
+import { dictionaryLookup } from "@/lib/dictionary";
 
 export type RatingFilter = "all" | "unrated" | "rated";
 
@@ -25,16 +26,13 @@ export interface YearGroup {
 	ratedCount: number;
 }
 
-const TERM_ORDER: Record<string, number> = {
+const TERM_ORDER = {
 	FALL: 1,
 	SPRING: 2,
 	SUMMER: 3,
-};
+} satisfies Record<string, number>;
 
-function getAcademicYear(
-	year: number,
-	season: string | undefined,
-): { academicYearStart: number; academicYearLabel: string } {
+function getAcademicYear(year: number, season: string | undefined) {
 	const academicYearStart = season?.toUpperCase() === "FALL" ? year : year - 1;
 	const academicYearLabel = `${academicYearStart} – ${academicYearStart + 1}`;
 	return { academicYearStart, academicYearLabel };
@@ -80,7 +78,7 @@ function resolveSeasonInfo(
 			key: "no-semester",
 			label: "Без семестра",
 			description: "Невідомий рік",
-			order: TERM_ORDER[seasonRaw ?? ""] ?? 99,
+			order: dictionaryLookup(TERM_ORDER, seasonRaw ?? "") ?? 99,
 		};
 	}
 
@@ -96,7 +94,7 @@ function resolveSeasonInfo(
 		key,
 		label,
 		description,
-		order: TERM_ORDER[seasonRaw ?? ""] ?? 99,
+		order: dictionaryLookup(TERM_ORDER, seasonRaw ?? "") ?? 99,
 	};
 }
 
@@ -163,10 +161,7 @@ export function groupRatingsByYearAndSemester(
 	const years = new Map<string, YearAccumulator>();
 
 	for (const course of allRatings) {
-		const yearValue =
-			typeof course.semester?.year === "number"
-				? course.semester.year
-				: undefined;
+		const yearValue = course.semester?.year;
 		const seasonRaw = course.semester?.season?.toUpperCase();
 
 		const yearInfo = resolveYearInfo(yearValue, seasonRaw);

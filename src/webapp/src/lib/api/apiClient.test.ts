@@ -31,6 +31,7 @@ describe("apiClient axios interceptor integration", () => {
 			origin: "http://localhost:3000",
 		});
 		mockWindowReplace = replace;
+		// SAFETY: the test stubs only the onLine facet of navigator that isOffline reads.
 		vi.stubGlobal("navigator", { onLine: true } as Navigator);
 
 		mockAxios = new MockAdapter(authorizedHttpClient);
@@ -69,6 +70,7 @@ describe("apiClient axios interceptor integration", () => {
 
 	it("redirects with offline reason when network error occurs and user is offline", async () => {
 		// Arrange
+		// SAFETY: the test stubs only the onLine facet of navigator that isOffline reads.
 		vi.stubGlobal("navigator", { onLine: false } as Navigator);
 		mockAxios.onGet("/api/test").networkError();
 

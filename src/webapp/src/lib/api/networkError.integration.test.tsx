@@ -76,6 +76,7 @@ describe("Network Error Handling - Full Integration", () => {
 			origin: "http://localhost:3000",
 		});
 		mockWindowReplace = replace;
+		// SAFETY: the test stubs only the onLine facet of navigator that isOffline reads.
 		vi.stubGlobal("navigator", { onLine: true } as Navigator);
 
 		mockAxios = new MockAdapter(authorizedHttpClient);
@@ -110,6 +111,7 @@ describe("Network Error Handling - Full Integration", () => {
 	it("redirects with offline reason when user is offline", async () => {
 		// Arrange
 		const user = userEvent.setup();
+		// SAFETY: the test stubs only the onLine facet of navigator that isOffline reads.
 		vi.stubGlobal("navigator", { onLine: false } as Navigator);
 		mockAxios.onGet("/api/data").networkError();
 

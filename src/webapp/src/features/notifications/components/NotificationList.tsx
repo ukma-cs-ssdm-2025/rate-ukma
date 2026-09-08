@@ -10,6 +10,7 @@ import {
 
 import { Button } from "@/components/ui/Button";
 import type { NotificationGroup } from "@/lib/api/generated";
+import { dictionaryLookup } from "@/lib/dictionary";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "../notificationFormatting";
@@ -26,11 +27,11 @@ interface NotificationListProps {
 	onLoadMore?: () => void;
 }
 
-const EVENT_ICONS: Record<string, typeof ThumbsUp> = {
+const EVENT_ICONS = {
 	RATING_UPVOTED: ThumbsUp,
 	RATING_DOWNVOTED: ThumbsDown,
 	RATING_COMMENT_CREATED: MessageSquare,
-};
+} satisfies Record<string, typeof ThumbsUp>;
 
 export function NotificationList({
 	notifications,
@@ -130,7 +131,8 @@ function NotificationItem({
 	notification: NotificationGroup;
 	onClick?: (groupKey: string) => void;
 }>) {
-	const Icon = EVENT_ICONS[notification.event_type ?? ""] ?? Bell;
+	const Icon =
+		dictionaryLookup(EVENT_ICONS, notification.event_type ?? "") ?? Bell;
 	const isUpvote = notification.event_type === "RATING_UPVOTED";
 	const courseId = notification.course_id;
 

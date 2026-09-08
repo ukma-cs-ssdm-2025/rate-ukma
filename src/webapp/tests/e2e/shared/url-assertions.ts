@@ -17,7 +17,7 @@ export function getSearchParam(page: Page, key: string): string {
 	return getUrlSearchParams(page).get(key) ?? "";
 }
 
-export function getAllSearchParams(page: Page): Record<string, string> {
+export function getAllSearchParams(page: Page) {
 	const params: Record<string, string> = {};
 	getUrlSearchParams(page).forEach((value, key) => {
 		params[key] = value;

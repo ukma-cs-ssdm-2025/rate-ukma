@@ -18,7 +18,7 @@ export function CourseColumnHeader<TData, TValue>({
 	initialSortDirection = "asc",
 	testId,
 }: Readonly<CourseColumnHeaderProps<TData, TValue>>) {
-	const sortState = column.getIsSorted() as false | "asc" | "desc";
+	const sortState = column.getIsSorted();
 
 	const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
 		if (!column.getCanSort()) {

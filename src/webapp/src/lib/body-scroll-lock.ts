@@ -1,8 +1,10 @@
+import { hasDocument } from "@/lib/environment";
+
 let lockCount = 0;
 let previousOverflow: string | null = null;
 
 export function lockBodyScroll(): () => void {
-	if (typeof document === "undefined") {
+	if (!hasDocument()) {
 		return () => {};
 	}
 
@@ -14,7 +16,7 @@ export function lockBodyScroll(): () => void {
 	}
 
 	return () => {
-		if (typeof document === "undefined") {
+		if (!hasDocument()) {
 			return;
 		}
 

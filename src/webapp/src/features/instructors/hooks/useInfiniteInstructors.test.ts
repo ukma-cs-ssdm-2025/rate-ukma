@@ -1,20 +1,12 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import * as generated from "@/lib/api/generated";
 import type { Instructor, InstructorsListParams } from "@/lib/api/generated";
+import { createInfiniteQueryStub } from "@/test-utils/infinite-query-stub";
 import { useInfiniteInstructors } from "./useInfiniteInstructors";
 
-// Mock the orval-generated infinite query hook
-vi.mock("@/lib/api/generated", async () => {
-	const actual = await vi.importActual("@/lib/api/generated");
-	return {
-		...actual,
-		useInstructorsListInfinite: vi.fn(),
-	};
-});
-
-const { useInstructorsListInfinite } = await import("@/lib/api/generated");
-const mockedInfinite = vi.mocked(useInstructorsListInfinite);
+let mockedInfinite: ReturnType<typeof vi.spyOn>;
 
 interface MockPage {
 	items: Instructor[];
@@ -31,13 +23,12 @@ function createMockInfiniteReturn(
 	}> = {},
 ) {
 	const pages = overrides.pages ?? [];
-	return {
+	return createInfiniteQueryStub({
 		data: pages.length > 0 ? { pages, pageParams: [] } : undefined,
-		fetchNextPage: vi.fn(),
 		hasNextPage: overrides.hasNextPage ?? false,
 		isFetchingNextPage: overrides.isFetchingNextPage ?? false,
 		isLoading: overrides.isLoading ?? false,
-	} as unknown as ReturnType<typeof useInstructorsListInfinite>;
+	});
 }
 
 function createMockInstructor(overrides: Partial<Instructor> = {}): Instructor {
@@ -52,12 +43,18 @@ function createMockInstructor(overrides: Partial<Instructor> = {}): Instructor {
 /** Read the params passed to the most recent useInstructorsListInfinite call */
 function lastCallParams(): InstructorsListParams {
 	const calls = mockedInfinite.mock.calls;
-	return calls[calls.length - 1][0] as InstructorsListParams;
+	return calls[calls.length - 1][0];
 }
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	mockedInfinite.mockReturnValue(createMockInfiniteReturn());
+	mockedInfinite = vi.spyOn(generated, "useInstructorsListInfinite");
+	mockedInfinite.mockReturnValue(
+		// SAFETY: useInfiniteInstructors only reads the fields the fixture provides.
+		createMockInfiniteReturn() as ReturnType<
+			typeof generated.useInstructorsListInfinite
+		>,
+	);
 });
 
 describe("useInfiniteInstructors", () => {

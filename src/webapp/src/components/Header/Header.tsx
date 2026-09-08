@@ -6,6 +6,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useAuth } from "@/lib/auth";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
+import { hasDocument } from "@/lib/environment";
 import { testIds } from "@/lib/test-ids";
 import { HeaderNav } from "./HeaderNav";
 import { MobileMenu } from "./MobileMenu";
@@ -22,7 +23,7 @@ export default function Header() {
 	const isAuthenticated = status === "authenticated";
 
 	useEffect(() => {
-		if (typeof document === "undefined") {
+		if (!hasDocument()) {
 			return;
 		}
 

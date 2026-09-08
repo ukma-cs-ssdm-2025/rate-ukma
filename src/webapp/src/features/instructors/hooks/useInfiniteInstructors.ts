@@ -32,16 +32,14 @@ export function useInfiniteInstructors({
 	pageSize = DEFAULT_PAGE_SIZE,
 	enabled = true,
 }: UseInfiniteInstructorsOptions = {}): UseInfiniteInstructorsReturn {
-	const params = useMemo<InstructorsListParams>(
-		() => ({
-			page_size: pageSize,
-			...(search ? { search } : {}),
-			...(courseOfferingId ? { course_offering_id: courseOfferingId } : {}),
-			...(courseId ? { course_id: courseId } : {}),
-			...(specialityId ? { speciality_id: specialityId } : {}),
-		}),
-		[search, courseOfferingId, courseId, specialityId, pageSize],
-	);
+	const params = useMemo<InstructorsListParams>(() => {
+		const next: InstructorsListParams = { page_size: pageSize };
+		if (search) next.search = search;
+		if (courseOfferingId) next.course_offering_id = courseOfferingId;
+		if (courseId) next.course_id = courseId;
+		if (specialityId) next.speciality_id = specialityId;
+		return next;
+	}, [search, courseOfferingId, courseId, specialityId, pageSize]);
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
 		useInstructorsListInfinite(params, {

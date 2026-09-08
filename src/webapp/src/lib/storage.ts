@@ -1,11 +1,9 @@
+import { hasLocalStorage } from "@/lib/environment";
+
 export interface PersistentStorage {
 	getItem<T>(key: string): T | null;
 	setItem<T>(key: string, value: T): void;
 	removeItem(key: string): void;
-}
-
-function hasLocalStorage(): boolean {
-	return globalThis.window?.localStorage !== undefined;
 }
 
 export class LocalStorageAdapter implements PersistentStorage {
@@ -14,6 +12,8 @@ export class LocalStorageAdapter implements PersistentStorage {
 		try {
 			const rawValue = globalThis.window.localStorage.getItem(key);
 			if (rawValue === null) return null;
+			// SAFETY: setItem serializes the same T with JSON.stringify, so the
+			// stored value round-trips to the generic type this key was written with.
 			return JSON.parse(rawValue) as T;
 		} catch {
 			return null;

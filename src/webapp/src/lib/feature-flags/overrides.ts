@@ -12,26 +12,35 @@
  * write path is validated server-side regardless). Not a security boundary.
  */
 
+import { z } from "zod";
+
+import { hasLocalStorage, hasWindow } from "@/lib/environment";
+
 const STORAGE_KEY = "ff:overrides";
 const CHANGE_EVENT = "ff:overrides-changed";
 
+/** Any JSON object; entries are filtered to booleans below. */
+const overridesRecordSchema = z.record(z.string(), z.unknown());
+
 export const featureFlagOverridesEnabled = true;
 
-export function readFeatureFlagOverrides(): Record<string, boolean> {
-	if (!featureFlagOverridesEnabled || typeof localStorage === "undefined") {
+export function readFeatureFlagOverrides() {
+	if (!featureFlagOverridesEnabled || !hasLocalStorage()) {
 		return {};
 	}
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
 		if (!raw) return {};
-		const parsed: unknown = JSON.parse(raw);
-		if (parsed && typeof parsed === "object") {
-			return Object.fromEntries(
-				Object.entries(parsed as Record<string, unknown>)
-					.filter(([, v]) => typeof v === "boolean")
-					.map(([k, v]) => [k, v as boolean]),
-			);
+		const parsed = overridesRecordSchema.safeParse(JSON.parse(raw));
+		if (!parsed.success) return {};
+		const overrides: Record<string, boolean> = {};
+		for (const [name, value] of Object.entries(parsed.data)) {
+			// Salvage the valid entries even if one stored value is corrupted.
+			if (value === true || value === false) {
+				overrides[name] = value;
+			}
 		}
+		return overrides;
 	} catch {
 		// corrupt value — treat as no overrides
 	}
@@ -39,7 +48,7 @@ export function readFeatureFlagOverrides(): Record<string, boolean> {
 }
 
 function writeOverrides(next: Record<string, boolean>): void {
-	if (!featureFlagOverridesEnabled || typeof localStorage === "undefined") {
+	if (!featureFlagOverridesEnabled || !hasLocalStorage()) {
 		return;
 	}
 	localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -63,6 +72,12 @@ export function clearFeatureFlagOverrides(): void {
 export const FEATURE_FLAG_OVERRIDES_EVENT = CHANGE_EVENT;
 export const FEATURE_FLAG_OVERRIDES_STORAGE_KEY = STORAGE_KEY;
 
+declare global {
+	interface Window {
+		featureFlags?: unknown;
+	}
+}
+
 /**
  * Expose `window.featureFlags` helpers in non-live environments so a flag can
  * be flipped straight from the browser console:
@@ -71,10 +86,10 @@ export const FEATURE_FLAG_OVERRIDES_STORAGE_KEY = STORAGE_KEY;
  *   featureFlags.list()
  */
 export function installFeatureFlagConsoleHelpers(): void {
-	if (!featureFlagOverridesEnabled || typeof window === "undefined") {
+	if (!featureFlagOverridesEnabled || !hasWindow()) {
 		return;
 	}
-	(window as unknown as { featureFlags?: unknown }).featureFlags = {
+	window.featureFlags = {
 		set: setFeatureFlagOverride,
 		clear: clearFeatureFlagOverride,
 		clearAll: clearFeatureFlagOverrides,

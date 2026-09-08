@@ -141,7 +141,7 @@ function StarRatingInput({
 				})}
 			</fieldset>
 			<p className="mt-1.5 text-xs text-muted-foreground min-h-8">
-				{descriptions[displayValue as keyof typeof descriptions] ?? ""}
+				{descriptions[displayValue] ?? ""}
 			</p>
 		</div>
 	);

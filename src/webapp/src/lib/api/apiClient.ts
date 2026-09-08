@@ -3,6 +3,7 @@ import axios, { AxiosHeaders } from "axios";
 
 import { env } from "@/env";
 import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
+import { hasDocument } from "@/lib/environment";
 import { handleConnectionIssue } from "./networkError";
 
 export const authorizedHttpClient = axios.create({
@@ -22,7 +23,7 @@ const AUTH_PATH_PREFIX = "/auth";
 const AUTH_SESSION_ENDPOINT_SUBSTRING = "/auth/session";
 
 const getCsrfToken = () => {
-	if (typeof document === "undefined") {
+	if (!hasDocument()) {
 		return null;
 	}
 
@@ -58,11 +59,11 @@ authorizedHttpClient.interceptors.request.use((config) => {
 	return config;
 });
 
-const handleSessionExpiry = (error: unknown): boolean => {
-	if (!axios.isAxiosError(error)) return false;
+const handleSessionExpiry = (cause: unknown): boolean => {
+	if (!axios.isAxiosError(cause)) return false;
 
-	const status = error.response?.status;
-	const requestUrl = error.config?.url;
+	const status = cause.response?.status;
+	const requestUrl = cause.config?.url;
 	const currentPath = globalThis.location.pathname ?? "";
 
 	if (status !== 401 && status !== 403) return false;
@@ -79,14 +80,14 @@ const handleSessionExpiry = (error: unknown): boolean => {
 	return true;
 };
 
-const logErrorToSentry = (error: unknown) => {
-	if (!axios.isAxiosError(error) || axios.isCancel(error)) {
+const logErrorToSentry = (cause: unknown) => {
+	if (!axios.isAxiosError(cause) || axios.isCancel(cause)) {
 		return;
 	}
 
-	const method = error.config?.method?.toUpperCase();
-	const status = error.response?.status;
-	const url = error.config?.url;
+	const method = cause.config?.method?.toUpperCase();
+	const status = cause.response?.status;
+	const url = cause.config?.url;
 
 	// 401 on the session probe is an expected "not authenticated" state — skip to avoid noise
 	if (status === 401 && url?.includes(AUTH_SESSION_ENDPOINT_SUBSTRING)) {
@@ -95,12 +96,12 @@ const logErrorToSentry = (error: unknown) => {
 
 	// Capture a plain Error (not the raw AxiosError) to prevent sending PII/large
 	// payloads from config.data (request body) and response.data to Sentry.
-	Sentry.captureException(new Error(error.message), {
+	Sentry.captureException(new Error(cause.message), {
 		level: "error",
 		tags: {
 			httpMethod: method,
 			httpStatus: status?.toString(),
-			axiosErrorCode: error.code,
+			axiosErrorCode: cause.code,
 		},
 		extra: { url },
 	});

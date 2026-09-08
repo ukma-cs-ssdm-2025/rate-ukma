@@ -409,7 +409,7 @@ function RatingCommentItem({
 		queryFn: ({ pageParam }) =>
 			commentsRepliesRetrieve(commentId ?? "", {
 				page_size: REPLIES_PAGE_SIZE,
-				page: pageParam as number,
+				page: pageParam,
 			}),
 		getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
 		initialPageParam: 1,
@@ -627,7 +627,7 @@ export function RatingComments({
 		queryFn: ({ pageParam }) =>
 			ratingsCommentsList(ratingId, {
 				page_size: COMMENTS_PAGE_SIZE,
-				page: pageParam as number,
+				page: pageParam,
 			}),
 		getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
 		initialPageParam: 1,

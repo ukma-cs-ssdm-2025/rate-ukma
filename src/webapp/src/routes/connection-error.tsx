@@ -189,21 +189,21 @@ const shouldBlockDueToOffline = ({
 };
 
 const getReconnectErrorMessage = (
-	error: unknown,
+	cause: unknown,
 	skipOfflineCheck: boolean,
 ): string | null => {
 	if (!skipOfflineCheck && isOffline()) {
 		return OFFLINE_RETRY_MESSAGE;
 	}
 
-	if (!axios.isAxiosError(error)) {
-		if (error instanceof DOMException && error.name === "AbortError") {
+	if (!axios.isAxiosError(cause)) {
+		if (cause instanceof DOMException && cause.name === "AbortError") {
 			return "Час очікування перевищено. Спробуйте пізніше.";
 		}
 		return "Не вдалося встановити з'єднання. Спробуйте пізніше.";
 	}
 
-	const status = error.response?.status;
+	const status = cause.response?.status;
 	if (status && status >= 500) {
 		return "Сервер тимчасово недоступний. Спробуйте пізніше.";
 	}

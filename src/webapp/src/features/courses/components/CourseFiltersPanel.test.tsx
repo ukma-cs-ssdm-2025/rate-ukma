@@ -39,6 +39,7 @@ function assertElement(
 	if (!element) {
 		throw new Error(message);
 	}
+	// SAFETY: assertElement is only called with elements located by querySelector.
 	return element as HTMLElement;
 }
 

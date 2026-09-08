@@ -25,6 +25,7 @@ type FormFieldContextValue<
 };
 
 const FormFieldContext = React.createContext<FormFieldContextValue>(
+	// SAFETY: FormField only renders inside FormFieldProvider, which always provides a value.
 	{} as FormFieldContextValue,
 );
 
@@ -70,6 +71,7 @@ type FormItemContextValue = {
 };
 
 const FormItemContext = React.createContext<FormItemContextValue>(
+	// SAFETY: FormItem only renders inside FormItemProvider, which always provides a value.
 	{} as FormItemContextValue,
 );
 
