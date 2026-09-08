@@ -74,11 +74,11 @@ export function createTypeEnvironment(
 		}
 
 		if (declaration?.type === "TSTypeAliasDeclaration") {
-			const existing = aliases.get(declaration.id.name);
-			if (existing === undefined) aliases.set(declaration.id.name, declaration);
-			else shadowedBuiltIns.add(declaration.id.name);
-			if (BUILT_INS.has(declaration.id.name))
-				shadowedBuiltIns.add(declaration.id.name);
+			const name = declaration.id.name;
+			const existing = aliases.get(name);
+			if (existing === undefined) aliases.set(name, declaration);
+			else shadowedBuiltIns.add(name);
+			if (BUILT_INS.has(name)) shadowedBuiltIns.add(name);
 			continue;
 		}
 

@@ -23,8 +23,18 @@ function isInsideTypeGuard(node: ESTree.Node): boolean {
 	return false;
 }
 
+interface TypeofRuleOptions {
+	allowInTypeGuards?: unknown;
+}
+
+function isOptionsObject(value: unknown): value is TypeofRuleOptions {
+	return (
+		typeof value === "object" && value !== null && !Array.isArray(value)
+	);
+}
+
 /** Disallow runtime typeof checks that narrow unparsed values instead of decoding them. */
-export const noRuntimeTypeofRule = defineRule({
+ export const noRuntimeTypeofRule = defineRule({
 	meta: {
 		type: "problem",
 		docs: {
@@ -51,10 +61,7 @@ export const noRuntimeTypeofRule = defineRule({
 			UnaryExpression(node) {
 				const option = context.options?.[0];
 				const allowInTypeGuards =
-					typeof option === "object" &&
-					option !== null &&
-					!Array.isArray(option) &&
-					option.allowInTypeGuards === true;
+					isOptionsObject(option) && option.allowInTypeGuards === true;
 				if (
 					node.operator === "typeof" &&
 					(!allowInTypeGuards || !isInsideTypeGuard(node))

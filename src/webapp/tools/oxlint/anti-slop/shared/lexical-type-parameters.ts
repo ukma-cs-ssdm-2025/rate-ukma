@@ -17,6 +17,8 @@ function collectInferTypeParameterNames(
 	names: Set<string>,
 ): void {
 	if (node.type === "TSInferType") names.add(node.typeParameter.name.name);
+	// SAFETY: keys come from the visitor-key table for this node type, and
+	// every access is validated by isNode/Array checks before recursion.
 	const record = node as unknown as Readonly<Record<string, unknown>>;
 	for (const key of visitorKeys[node.type] ?? []) {
 		const value = record[key];
