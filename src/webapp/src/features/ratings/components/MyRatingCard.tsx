@@ -223,7 +223,10 @@ function CardActions({
 							)}
 							style={
 								accent
-									? { backgroundColor: accent.background, color: accent.foreground }
+									? {
+											backgroundColor: accent.background,
+											color: accent.foreground,
+										}
 									: undefined
 							}
 						>
