@@ -58,6 +58,7 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         course_id: uuid.UUID | None = None,
         speciality_id: uuid.UUID | None = None,
         exclude_current_students: bool = True,
+        mentioned_only: bool = False,
     ) -> QuerySet[InstructorModel]:
         """Annotate instructors with mention counts and order by relevance.
 
@@ -76,6 +77,9 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         never been rated. Masters and rated instructors are always kept, and a
         non-empty ``search`` bypasses the rule entirely, so no real teacher is
         unreachable.
+        #
+        # ``mentioned_only`` drops every instructor with zero global mentions,
+        # so the course-filter dropdown offers only pickable teachers (#664).
         """
         offering_filter = (
             Q(ratings__course_offering_id=course_offering_id)
@@ -133,7 +137,8 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
                 email_lower__in=Subquery(current_bachelor_emails),
                 global_mentions=0,
             )
-
+        if mentioned_only:
+            qs = qs.filter(global_mentions__gt=0)
         if search:
             for token in search.split():
                 qs = qs.filter(

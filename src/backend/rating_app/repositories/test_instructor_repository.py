@@ -170,6 +170,33 @@ def test_list_ranked_tiers_offering_then_course_then_global(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_list_ranked_mentioned_only_drops_never_rated(repo):
+    rated = InstructorFactory.create(last_name="Rated")
+    never_rated = InstructorFactory.create(last_name="NeverRated")
+    RatingFactory.create().instructors.add(rated)
+
+    ranked_ids = {i.id for i in repo.list_ranked(mentioned_only=True)}
+
+    assert rated.id in ranked_ids
+    assert never_rated.id not in ranked_ids
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_ranked_without_mentioned_only_keeps_never_rated(repo):
+    rated = InstructorFactory.create(last_name="Rated")
+    never_rated = InstructorFactory.create(last_name="NeverRated")
+    RatingFactory.create().instructors.add(rated)
+
+    ranked_ids = {i.id for i in repo.list_ranked()}
+
+    assert rated.id in ranked_ids
+    assert never_rated.id in ranked_ids
+
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_list_ranked_hides_unrated_current_bachelor_student(repo):
     # Instructor row that is really a still-enrolled bachelor student (matched
     # by email) and was never rated: dropped by default, shown when the filter

@@ -8,9 +8,9 @@ from rating_app.repositories.course_repository import CourseRepository
 from rating_app.repositories.to_domain_mappers import CourseMapper
 from rating_app.tests.factories import (
     CourseFactory,
-    CourseInstructorFactory,
     CourseOfferingFactory,
     InstructorFactory,
+    RatingFactory,
     SemesterFactory,
 )
 
@@ -22,24 +22,81 @@ def repo():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_by_instructor_returns_only_assigned_courses(repo):
-    # Arrange
+def test_filter_by_instructor_returns_mentioned_courses(repo):
+    # Arrange — instructor mentioned in a rating, with NO CourseInstructor
+    # assignment row (assignments are unpopulated in real data; mentions are
+    # the signal). Regression test for #664.
     instructor = InstructorFactory()
-    course_with_instructor = CourseFactory()
-    offering_with_instructor = CourseOfferingFactory(course=course_with_instructor)
-    CourseInstructorFactory(course_offering=offering_with_instructor, instructor=instructor)
+    course_with_mention = CourseFactory()
+    offering_with_mention = CourseOfferingFactory(course=course_with_mention)
+    rating = RatingFactory(course_offering=offering_with_mention)
+    rating.instructors.add(instructor)
 
     # Act
-    course_without_instructor = CourseFactory()
-    CourseOfferingFactory(course=course_without_instructor)
+    course_without_mention = CourseFactory()
+    CourseOfferingFactory(course=course_without_mention)
     filters = CourseFilterCriteriaInternal(instructor=instructor.id)
     result = repo.filter(filters)
 
     # Assert
     returned_ids = {course.id for course in result}
-    assert returned_ids == {str(course_with_instructor.id)}
+    assert returned_ids == {str(course_with_mention.id)}
     assert len(result) == 1
-    assert result[0].title == course_with_instructor.title
+    assert result[0].title == course_with_mention.title
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_instructor_with_zero_mentions_returns_empty(repo):
+    # An instructor nobody mentioned matches nothing, even when offerings exist.
+    instructor = InstructorFactory()
+    CourseOfferingFactory()
+
+    result = repo.filter(CourseFilterCriteriaInternal(instructor=instructor.id))
+
+    assert result == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_instructor_combined_with_department(repo):
+    # Mention on a course in another department must not leak through the
+    # combined filter.
+    instructor = InstructorFactory()
+    wanted = CourseFactory()
+    wanted_offering = CourseOfferingFactory(course=wanted)
+    wanted_rating = RatingFactory(course_offering=wanted_offering)
+    wanted_rating.instructors.add(instructor)
+
+    other = CourseFactory()
+    other_offering = CourseOfferingFactory(course=other)
+    other_rating = RatingFactory(course_offering=other_offering)
+    other_rating.instructors.add(instructor)
+
+    filters = CourseFilterCriteriaInternal(
+        instructor=instructor.id, department=str(wanted.department_id)
+    )
+    result = repo.filter(filters)
+
+    assert {course.id for course in result} == {str(wanted.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_instructor_pagination_edge_clamps_to_last_page(repo):
+    # One mentioned course; asking for page 2 clamps to page 1 (Django
+    # get_page) without error or leaking rows.
+    instructor = InstructorFactory()
+    offering = CourseOfferingFactory()
+    rating = RatingFactory(course_offering=offering)
+    rating.instructors.add(instructor)
+
+    filters = CourseFilterCriteriaInternal(instructor=instructor.id)
+    result = repo.filter(filters, PaginationFilters(page=2, page_size=1))
+
+    assert result.metadata.total == 1
+    assert result.metadata.page == 1
+    assert len(result.page_objects) == 1
 
 
 @pytest.mark.django_db
