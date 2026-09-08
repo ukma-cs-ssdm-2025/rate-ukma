@@ -35,7 +35,7 @@ from rating_app.exception.department_exceptions import (
     DepartmentNotFoundError,
     InvalidDepartmentIdentifierError,
 )
-from rating_app.models import Course, CourseOffering, CourseOfferingSpeciality, Department
+from rating_app.models import Course, CourseOffering, CourseOfferingSpeciality, Department, Rating
 from rating_app.models.choices import SemesterTerm
 from rating_app.pagination import GenericQuerysetPaginator, PaginationFilters, PaginationResult
 from rating_app.repositories.protocol import IPaginatedRepository
@@ -319,7 +319,14 @@ class CourseRepository(
             has_offering_filter = True
 
         if filters.instructor:
-            offering_query = offering_query.filter(instructors__id=filters.instructor)
+            # Match offerings with a rating that mentions this instructor.
+            # CourseInstructor assignment rows are unpopulated in real data
+            # (see #664), so mentions are the only reliable signal.
+            mentioned = Rating.objects.filter(
+                course_offering_id=OuterRef("pk"),
+                instructors__id=filters.instructor,
+            )
+            offering_query = offering_query.filter(Exists(mentioned))
             has_offering_filter = True
 
         if filters.credits_min is not None:
