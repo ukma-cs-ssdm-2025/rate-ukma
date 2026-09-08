@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { env } from "@/env";
@@ -50,9 +56,7 @@ const stubLocation = () => {
 	return { replace };
 };
 
-const renderPage = (
-	props: Parameters<typeof ConnectionErrorPage>[0] = {},
-) => {
+const renderPage = (props: Parameters<typeof ConnectionErrorPage>[0] = {}) => {
 	const location = stubLocation();
 	stubNavigatorOnline();
 	return { ...location, view: render(<ConnectionErrorPage {...props} />) };
@@ -198,7 +202,9 @@ describe("ConnectionErrorPage manual retry", () => {
 		await screen.findByRole("heading", { name: "Проблема з'єднання" });
 		expect(sessionRetrieveMock).not.toHaveBeenCalled();
 
-		fireEvent.click(screen.getByRole("button", { name: "Перевірити з'єднання" }));
+		fireEvent.click(
+			screen.getByRole("button", { name: "Перевірити з'єднання" }),
+		);
 
 		await waitFor(() => expect(sessionRetrieveMock).toHaveBeenCalledOnce());
 		await waitFor(() => expect(replace).toHaveBeenCalledWith("/courses"));
@@ -208,7 +214,9 @@ describe("ConnectionErrorPage manual retry", () => {
 		sessionRetrieveMock.mockRejectedValue(new Error("boom"));
 		renderPage({ reason: "server" });
 
-		fireEvent.click(screen.getByRole("button", { name: "Перевірити з'єднання" }));
+		fireEvent.click(
+			screen.getByRole("button", { name: "Перевірити з'єднання" }),
+		);
 
 		await screen.findByRole("alert");
 		expect(
@@ -223,7 +231,9 @@ describe("ConnectionErrorPage manual retry", () => {
 		});
 		const { replace } = renderPage({ reason: "server", from: "/courses" });
 
-		fireEvent.click(screen.getByRole("button", { name: "Перевірити з'єднання" }));
+		fireEvent.click(
+			screen.getByRole("button", { name: "Перевірити з'єднання" }),
+		);
 
 		await waitFor(() => expect(replace).toHaveBeenCalledOnce());
 		const loginUrl = new URL(replace.mock.calls[0][0] as string);
