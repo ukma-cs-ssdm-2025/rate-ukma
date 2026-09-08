@@ -51,7 +51,10 @@ export function CoursesRoute() {
 		education_level: params.eduLevel ?? undefined,
 		avg_difficulty_order: params.diffOrder ?? undefined,
 		avg_usefulness_order: params.useOrder ?? undefined,
-		last_review_order: params.reviewSort === "newest" ? "desc" : undefined,
+		last_review_order:
+			params.diffOrder || params.useOrder || params.reviewSort !== "newest"
+				? undefined
+				: "desc",
 	};
 
 	const { data, isFetching, isError, refetch } = useCoursesList(apiFilters, {
