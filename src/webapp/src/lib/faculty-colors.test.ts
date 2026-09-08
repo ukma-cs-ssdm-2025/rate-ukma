@@ -44,4 +44,12 @@ describe("getFacultyAccent", () => {
 		expect(getFacultyAccent(undefined)).toBeNull();
 		expect(getFacultyAccent("")).toBeNull();
 	});
+
+	it("falls back to gray for inherited property names", () => {
+		expect(getFacultyAccent("__proto__")).toEqual({
+			background: "#6b7280",
+			foreground: "#ffffff",
+		});
+		expect(getFacultyAccent("toString")?.background).toBe("#6b7280");
+	});
 });
