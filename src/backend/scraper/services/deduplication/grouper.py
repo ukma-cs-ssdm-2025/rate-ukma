@@ -271,20 +271,15 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
                 continue
 
             representative_term = self._select_representative_term(term_details)
-            representative_details = representative_term.details
             representative_semester = representative_term.semester
+            representative_details = representative_term.details
 
             offering = DeduplicatedCourseOffering(
                 code=self.extractors["code"].extract(course),
                 semester=representative_semester,
-                credits=self._resolve_total_offering_credits(course, term_details),
-                weekly_hours=representative_details.weekly_hours,
                 study_year=course.year,
                 enrollments=self.extractors["enrollments"].extract(course),
                 exam_type=representative_details.exam_type,
-                lecture_count=representative_details.lecture_count,
-                practice_count=representative_details.practice_count,
-                practice_type=representative_details.practice_type,
                 max_students=limits["max_students"],
                 max_groups=limits["max_groups"],
                 group_size_min=limits["group_size_min"],
@@ -337,17 +332,6 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
             SemesterTerm.SPRING: 2,
             SemesterTerm.SUMMER: 3,
         }.get(term, 0)
-
-    def _resolve_total_offering_credits(
-        self,
-        course: ParsedCourseDetails,
-        term_details: list[TermDetail],
-    ) -> float:
-        total_credits = self.extractors["credits"].extract(course)
-        if total_credits and total_credits > 0:
-            return total_credits
-
-        return float(sum(item.details.credits for item in term_details))
 
     def _validate_course_for_transformation(self, course: ParsedCourseDetails) -> None:
         if not course.academic_year:

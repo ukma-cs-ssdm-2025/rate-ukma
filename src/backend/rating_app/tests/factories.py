@@ -130,12 +130,7 @@ class CourseOfferingFactory(DjangoModelFactory):
     code = factory.Sequence(lambda n: f"{100000 + n}")
     course = factory.SubFactory(CourseFactory)
     semester = factory.SubFactory(SemesterFactory)
-    credits = Decimal("3.0")
-    weekly_hours = 4
     study_year = 1
-    lecture_count = 16
-    practice_count = 16
-    practice_type = ""
     exam_type = ExamType.EXAM
     max_students = 60
     max_groups = 3

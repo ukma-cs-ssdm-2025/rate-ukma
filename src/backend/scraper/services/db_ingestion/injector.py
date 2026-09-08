@@ -304,15 +304,8 @@ class CourseDbInjector(IDbInjector):
             code=offering_data.code,
             course_id=course.id,
             semester_id=semester.id,
-            credits=Decimal(str(offering_data.credits)),
-            weekly_hours=offering_data.weekly_hours,
             exam_type=ExamType(offering_data.exam_type.value),
             study_year=offering_data.study_year,
-            practice_type=PracticeType(offering_data.practice_type.value)
-            if offering_data.practice_type
-            else None,
-            lecture_count=offering_data.lecture_count,
-            practice_count=offering_data.practice_count,
             max_students=offering_data.max_students,
             max_groups=offering_data.max_groups,
             group_size_min=offering_data.group_size_min,

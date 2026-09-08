@@ -1,3 +1,5 @@
+import decimal
+
 import pytest
 
 from rating_app.application_schemas.course import CourseFilterCriteriaInternal, CourseInput
@@ -170,29 +172,36 @@ def test_filter_by_semester_limits_to_matching_courses(
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_filter_by_credits_range_and_semester_year_uses_same_offering(
-    repo, semester_factory, course_factory, course_offering_factory
+    repo, semester_factory, course_factory, course_offering_factory, course_offering_term_factory
 ):
     # Arrange
     target_semester = semester_factory(term=SemesterTerm.FALL, year=2024)
     other_semester = semester_factory(term=SemesterTerm.FALL, year=2023)
 
     matching_course = course_factory(title="Matching course")
-    course_offering_factory(
+    matching_offering = course_offering_factory(
         course=matching_course,
         semester=target_semester,
-        credits=4.0,
+    )
+    course_offering_term_factory(
+        offering=matching_offering,
+        semester=target_semester,
+        credits=decimal.Decimal("4.0"),
     )
 
     mismatched_course = course_factory(title="Mismatched course")
-    course_offering_factory(
+    mismatched_offering = course_offering_factory(
         course=mismatched_course,
         semester=target_semester,
-        credits=3.0,
+    )
+    course_offering_term_factory(
+        offering=mismatched_offering,
+        semester=target_semester,
+        credits=decimal.Decimal("3.0"),
     )
     course_offering_factory(
         course=mismatched_course,
         semester=other_semester,
-        credits=4.0,
     )
 
     # Act
@@ -208,6 +217,59 @@ def test_filter_by_credits_range_and_semester_year_uses_same_offering(
     returned_ids = {course.id for course in result}
     assert returned_ids == {str(matching_course.id)}
     assert len(result) == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_credits_uses_sum_of_terms(
+    repo, semester_factory, course_factory, course_offering_factory, course_offering_term_factory
+):
+    # Fall 3cr + Spring 4cr = 7cr total; the offering-level value only mirrors
+    # the representative term (4.0). The filter must match the sum (#558).
+    fall = semester_factory(term=SemesterTerm.FALL, year=2024)
+    spring = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    target = course_factory(title="Multi-term course")
+    offering = course_offering_factory(course=target, semester=spring)
+    course_offering_term_factory(offering=offering, semester=fall, credits=decimal.Decimal("3.0"))
+    course_offering_term_factory(offering=offering, semester=spring, credits=decimal.Decimal("4.0"))
+
+    other = course_factory(title="Other course")
+    other_offering = course_offering_factory(course=other, semester=fall)
+    course_offering_term_factory(offering=other_offering, semester=fall)
+
+    result = repo.filter(
+        CourseFilterCriteriaInternal(
+            semester_year="2024–2025",
+            credits_min=decimal.Decimal("7.0"),
+            credits_max=decimal.Decimal("7.0"),
+        )
+    )
+
+    assert {course.id for course in result} == {str(target.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_credits_excludes_offerings_without_terms(
+    repo, semester_factory, course_factory, course_offering_factory
+):
+    # Offerings with no terms have no computable credit sum, so a credits
+    # range must not match them — but an unfiltered listing still includes them.
+    semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    termless = course_factory(title="Termless course")
+    course_offering_factory(course=termless, semester=semester)
+
+    ranged = repo.filter(
+        CourseFilterCriteriaInternal(
+            semester_year="2024–2025",
+            credits_min=decimal.Decimal("3.5"),
+            credits_max=decimal.Decimal("4.5"),
+        )
+    )
+    assert ranged == []
+
+    unfiltered = repo.filter(CourseFilterCriteriaInternal())
+    assert str(termless.id) in {course.id for course in unfiltered}
 
 
 @pytest.mark.django_db
