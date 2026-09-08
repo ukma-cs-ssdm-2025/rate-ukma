@@ -19,20 +19,30 @@ benefit this codebase. The forces that decide this are already in the tree:
   `RatingNotFoundError` in `src/backend/rating_app/repositories/rating_repository.py`);
   services raise business-rule exceptions (`NotEnrolledException`,
   `DuplicateRatingException` in `src/backend/rating_app/services/rating_service.py`);
-  per-domain modules in `src/backend/rating_app/exception/` subclass DRF's
+  most per-domain modules in `src/backend/rating_app/exception/` subclass DRF's
   `NotFound`/`ValidationError`, so HTTP status mapping is automatic. This
-  layering is the accepted ADR-0005 settlement.
-- **One envelope normalizes everything.** `rating_app/exception/exception_handler.py`
-  converts any DRF exception into `{detail, status, fields?}`. A Result type
-  would still need a single choke point that converts `Err` into exactly this
-  envelope — i.e. it re-implements the handler.
+  layering is the accepted ADR-0005 settlement. The mapping is convention, not
+  total: `vote`/`rating` modules also use `PermissionDenied`/`APIException`,
+  and `SemesterDoesNotExistError` is still a plain `Exception` (an unhandled
+  semester-missing path escapes as 500 today) — the reviewer rule below covers
+  keeping new exceptions inside the DRF hierarchy.
+- **One envelope normalizes dict-shaped errors.** `rating_app/exception/exception_handler.py`
+  converts dict-shaped DRF errors into `{detail, status, fields?}`. It does
+  *not* cover list-detail errors: several views raise
+  `ValidationError(detail=e.errors())`, which pass through as bare lists.
+  That inconsistency predates this decision and is out of scope here — but it
+  means a Result type would face the same single-choke-point work, not less:
+  every `Err` would still need conversion into whatever the envelope becomes.
 - **The frontend already depends on thrown errors.** The react-query defaults in
   `src/webapp/src/integrations/tanstack-query/RootProvider.tsx` retry on thrown
-  query errors (never on 401/403), and `components/ErrorBoundary.tsx` plus the
-  `connection-error.tsx` route catch what propagates. Returning `{ok, error}`
-  objects from API hooks would silently disable retry and boundary handling
-  unless every call site unwraps — the failure mode is a swallowed error, the
-  worst kind.
+  query errors (never on 401/403); components consume the rest through
+  `isError` (no `throwOnError` is configured anywhere, so query rejections
+  never reach `components/ErrorBoundary.tsx` — that boundary is for render
+  crashes), and transport failures redirect through the `apiClient`
+  interceptor to the `connection-error.tsx` route. Returning `{ok, error}`
+  objects from API hooks would silently disable retry (it operates on
+  rejection) and force every call site to branch — the failure mode is a
+  swallowed error, the worst kind.
 - **Python has no language-level Result.** No `?` operator, no exhaustive
   `match` enforcement. A hand-rolled `Result` is a convention the type checker
   cannot enforce at every call site, so adoption would be partial by default.
@@ -42,14 +52,15 @@ benefit this codebase. The forces that decide this are already in the tree:
 We will **keep exceptions as the error-signalling mechanism across layer and
 network boundaries** and will not adopt Rust-like Result types codebase-wide.
 
-Narrowly allowed, no migration needed: two Result-shaped idioms already exist
-and stay. Repository `get_or_create`/`get_or_upsert` return
-`tuple[T_DTO, bool]` per `rating_app/repositories/protocol.py`, and internal
-pure helpers may return `None` / tuples where the "error" is an ordinary,
-expected outcome (e.g. cache miss, cursor absent). The rule: if the caller must
-translate the outcome into an HTTP status or a user-visible error, it arrives
-as an exception; if both outcomes are normal control flow inside one layer, a
-plain return type is fine.
+Narrowly allowed, no migration needed: the `tuple[X, bool]` created/existing
+idiom already exists and stays — `get_or_create`/`get_or_upsert` per
+`rating_app/repositories/protocol.py` (also `comment_repository.py`),
+`vote_service.upsert`. Same for tuples carrying plain data (paginated payloads,
+year ranges) and internal pure helpers returning `None` where the outcome is
+ordinary control flow (cache miss, cursor absent). The rule is semantic, not a
+site list: if the caller must translate the outcome into an HTTP status or a
+user-visible error, it arrives as an exception; if both outcomes are normal
+control flow inside one layer, a plain return type is fine.
 
 ## Consequences
 
@@ -66,25 +77,28 @@ plain return type is fine.
 - ❌ We forgo compiler-enforced exhaustiveness — accepted because Python cannot
   provide it without a heavyweight wrapper type.
 
-## When to Revisit
-
-If Python gains enforced exhaustiveness (or the team adopts a validated
-`Result` wrapper with lint rules that actually fire), reopen this ADR and
-re-run the cost analysis. Until then, new "Result-like" helpers are rejected
-in review by citing this record.
-
 ## Considered Alternatives
 
 1. **Result<T, E> everywhere (backend services and repositories).**
-   Rejection reason: every service and repository method changes signature;
-   every caller must unwrap; the DRF handler must still convert `Err` to HTTP —
-   all cost, and the one real benefit (exhaustiveness) is unenforceable in
-   Python without a strict wrapper plus lint rules nobody maintains.
+   Honest benefits: fallibility visible in signatures, no hidden control flow,
+   forces callers to decide; a single view-boundary adapter could translate
+   `Err` into DRF exceptions in one place. Rejection reason: the adapter
+   collapses to re-raising domain exceptions — Result with extra steps, while
+   every service and repository method still changes signature and every
+   caller still unwraps. All cost, and the one real benefit (exhaustiveness)
+   is unenforceable in Python without a strict wrapper plus lint rules nobody
+   maintains.
 2. **Result only at the service layer, exceptions at the API boundary.**
-   Rejection reason: two conventions with a translation seam in the views, and
-   the seam duplicates the existing exception handler. Splits the codebase's
-   mental model for no observable gain.
-3. **Frontend discriminated-union returns from API hooks.**
-   Rejection reason: breaks react-query retry semantics and error boundaries by
-   default; every existing hook and test would need unwrap logic. Rejected
+   Honest benefit: explicit outcomes where business rules live, with one
+   mapper translating `Err` to a DRF exception at the seam. Rejection reason:
+   the mapper does not remove the exception handler, it prefaces it — every
+   service returns Result only for views to immediately convert back into the
+   exceptions the handler already understands. Splits the codebase's mental
+   model for no observable gain.
+3. **Frontend discriminated-union returns from API hooks, fetcher-wrapped.**
+   Honest benefit: transport errors keep throwing (retry and `isError`
+   preserved) while only domain errors ride the union. Rejection reason: two
+   error channels — thrown transport failures vs returned domain failures —
+   and every hook, component, and test must learn which is which. The orval
+   generated layer would need a permanent fork to sustain it. Rejected
    outright.
