@@ -15,6 +15,7 @@ import {
 } from "@/features/courses/courseFormatting";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
+import { getFacultyAccent, type FacultyAccent } from "@/lib/faculty-colors";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { DeleteRatingDialog } from "./DeleteRatingDialog";
@@ -25,12 +26,18 @@ interface MyRatingCardProps {
 	onRatingChanged: () => undefined | Promise<unknown>;
 }
 
-function getCardClassName(hasRating: boolean, canRate: boolean): string {
+function getCardClassName(
+	hasRating: boolean,
+	canRate: boolean,
+	hasAccent: boolean,
+): string {
 	if (hasRating) {
 		return "border-border/50 bg-card hover:border-border";
 	}
 	if (canRate) {
-		return "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
+		return hasAccent
+			? "border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]"
+			: "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
 	}
 	return "border-dashed border-border/70 bg-muted/30 opacity-80";
 }
@@ -46,6 +53,7 @@ export function MyRatingCard({
 
 	const hasRating = Boolean(rating);
 	const canModify = Boolean(hasRating && rating?.id && courseId);
+	const accent = getFacultyAccent(course.faculty_name);
 
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -53,9 +61,10 @@ export function MyRatingCard({
 	return (
 		<div
 			className={cn(
-				"group flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border px-4 py-3 transition-all",
-				getCardClassName(hasRating, canRate),
+				"group flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-l-4 px-4 py-3 transition-all",
+				getCardClassName(hasRating, canRate, accent !== null),
 			)}
+			style={accent ? { borderLeftColor: accent.background } : undefined}
 			data-testid={testIds.myRatings.card}
 		>
 			<div className="flex-1 min-w-0">
@@ -116,6 +125,7 @@ export function MyRatingCard({
 					courseId={courseId}
 					offeringId={offeringId}
 					canRate={canRate}
+					accent={accent}
 					onEdit={() => setShowRatingModal(true)}
 					onDelete={() => setShowDeleteDialog(true)}
 				/>
@@ -152,6 +162,7 @@ interface CardActionsProps {
 	courseId: string | undefined;
 	offeringId: string | undefined;
 	canRate: boolean;
+	accent: FacultyAccent | null;
 	onEdit: () => void;
 	onDelete: () => void;
 }
@@ -162,6 +173,7 @@ function CardActions({
 	courseId,
 	offeringId,
 	canRate,
+	accent,
 	onEdit,
 	onDelete,
 }: Readonly<CardActionsProps>) {
@@ -224,7 +236,12 @@ function CardActions({
 			<Button
 				variant="default"
 				size="sm"
-				className="h-8 px-4 shadow-sm"
+				className={cn("h-8 px-4 shadow-sm", accent && "hover:brightness-90")}
+				style={
+					accent
+						? { backgroundColor: accent.background, color: accent.foreground }
+						: undefined
+				}
 				onClick={onEdit}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
@@ -235,7 +252,17 @@ function CardActions({
 	}
 
 	return (
-		<Button variant="default" size="sm" className="h-8 px-4 shadow-sm" asChild>
+		<Button
+			variant="default"
+			size="sm"
+			className={cn("h-8 px-4 shadow-sm", accent && "hover:brightness-90")}
+			style={
+				accent
+					? { backgroundColor: accent.background, color: accent.foreground }
+					: undefined
+			}
+			asChild
+		>
 			<Link
 				to="/courses/$courseId"
 				params={{ courseId }}

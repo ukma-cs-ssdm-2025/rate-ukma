@@ -4160,6 +4160,10 @@ components:
         course_offering_id:
           type: string
           readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
+          nullable: true
         semester:
           allOf:
           - $ref: '#/components/schemas/InlineSemester'
