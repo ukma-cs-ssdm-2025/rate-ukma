@@ -58,10 +58,20 @@ plain return type is fine.
   boundaries keep working with no call-site changes.
 - ✅ Newcomers meet one rule (raise domain exceptions, let the handler shape
   them) instead of two competing conventions.
-- ⚠️ Discipline stays convention-based: reviewers must keep service/repository
-  code raising rather than returning `None` to signal failure.
+- ⚠️ Discipline stays convention-based: in review, any service/repository
+  method that returns `None`, `False`, or an empty collection to signal
+  *failure* (as opposed to a legitimate empty result) must raise a domain
+  exception instead. Returning `None` for "not found" is the exact bug shape
+  this ADR bans.
 - ❌ We forgo compiler-enforced exhaustiveness — accepted because Python cannot
   provide it without a heavyweight wrapper type.
+
+## When to Revisit
+
+If Python gains enforced exhaustiveness (or the team adopts a validated
+`Result` wrapper with lint rules that actually fire), reopen this ADR and
+re-run the cost analysis. Until then, new "Result-like" helpers are rejected
+in review by citing this record.
 
 ## Considered Alternatives
 
