@@ -38,7 +38,7 @@ function renderWithQuery(ui: ReactElement) {
 	};
 }
 
-function mockCommentList(items: Partial<CommentRead>[]) {
+function mockCommentList(items: CommentRead[]) {
 	return {
 		items,
 		filters: {},
@@ -197,6 +197,7 @@ describe("RatingComments", () => {
 					user_name: "Test User",
 					user_avatar_url: null,
 					is_anonymous: false,
+					can_manage: false,
 					created_at: "2026-05-11T12:00:00Z",
 					replies_count: 0,
 				},
@@ -230,6 +231,7 @@ describe("RatingComments", () => {
 					user_name: null,
 					user_avatar_url: null,
 					is_anonymous: true,
+					can_manage: false,
 					created_at: "2026-05-11T12:00:00Z",
 					replies_count: 0,
 				},
@@ -257,6 +259,7 @@ describe("RatingComments", () => {
 					user_name: "Test User",
 					user_avatar_url: null,
 					is_anonymous: false,
+					can_manage: false,
 					created_at: "2026-05-11T12:00:00Z",
 					replies_count: 1,
 				},
@@ -296,6 +299,7 @@ describe("RatingComments", () => {
 					user_name: "Test User",
 					user_avatar_url: null,
 					is_anonymous: false,
+					can_manage: false,
 					created_at: "2026-05-11T12:00:00Z",
 					replies_count: repliesCount,
 				},
@@ -325,6 +329,7 @@ describe("RatingComments", () => {
 					user_name: "Parent Author",
 					user_avatar_url: null,
 					is_anonymous: false,
+					can_manage: false,
 					created_at: "2026-05-11T12:00:00Z",
 					replies_count: 1,
 				},
@@ -402,6 +407,7 @@ describe("RatingComments", () => {
 					user_name: "Parent Author",
 					user_avatar_url: null,
 					is_anonymous: false,
+					can_manage: false,
 					created_at: "2026-05-11T12:00:00Z",
 					replies_count: 1,
 				},
@@ -420,6 +426,7 @@ describe("RatingComments", () => {
 								user_name: "Reply Author",
 								user_avatar_url: null,
 								is_anonymous: false,
+								can_manage: false,
 								created_at: "2026-05-11T12:05:00Z",
 								replies_count: 0,
 							},

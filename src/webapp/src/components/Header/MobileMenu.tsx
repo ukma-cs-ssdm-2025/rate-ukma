@@ -8,7 +8,7 @@ import {
 	MobileNotificationPanel,
 	MobileNotificationRow,
 } from "@/features/notifications/components/MobileNotificationPanel";
-import type { AuthUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth/useAuth";
 import { testIds } from "@/lib/test-ids";
 import type { NavigationItem, ThemeOption } from "./navigationData";
 import { Logo } from "../Logo";

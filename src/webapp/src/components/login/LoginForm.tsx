@@ -30,7 +30,7 @@ type LoginFormProps = {
 	onCancel: () => void;
 };
 
-const errorDetailSchema = z.union([z.string(), z.array(z.string())]);
+const errorDetailSchema = z.union([z.string(), z.array(z.unknown())]);
 
 function mapErrorToMessage(cause: unknown): string {
 	if (!isAxiosError(cause)) {
@@ -45,7 +45,9 @@ function mapErrorToMessage(cause: unknown): string {
 	const detail = errorDetailSchema.safeParse(data?.detail);
 	if (detail.success) {
 		if (Array.isArray(detail.data)) {
-			const firstDetail = detail.data.find((item) => item.length > 0);
+			const firstDetail = detail.data.find(
+				(item): item is string => typeof item === "string" && item.length > 0,
+			);
 			if (firstDetail) {
 				return firstDetail;
 			}

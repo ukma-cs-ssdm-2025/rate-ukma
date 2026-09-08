@@ -15,7 +15,8 @@ import {
 } from "@/features/ratings/groupRatings";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
-import { useAuth, withAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
+import { withAuth } from "@/lib/auth/withAuth";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 

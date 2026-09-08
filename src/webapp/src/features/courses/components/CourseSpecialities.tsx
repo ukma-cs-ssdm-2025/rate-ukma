@@ -11,7 +11,7 @@ interface CourseSpecialitiesProps {
 export function CourseSpecialities({
 	specialities,
 }: Readonly<CourseSpecialitiesProps>) {
-	if (!specialities || specialities.length === 0) {
+	if (specialities.length === 0) {
 		return null;
 	}
 
@@ -26,15 +26,11 @@ export function CourseSpecialities({
 					>
 						<div className="flex items-center gap-2">
 							<GraduationCap className="h-4 w-4 text-muted-foreground/60" />
-							<p className="text-sm font-medium">
-								{item.speciality_title ?? "—"}
-							</p>
+							<p className="text-sm font-medium">{item.speciality_title}</p>
 						</div>
-						{item.type_kind && (
-							<Badge variant={getTypeKindVariant(item.type_kind)}>
-								{getTypeKindLabel(item.type_kind)}
-							</Badge>
-						)}
+						<Badge variant={getTypeKindVariant(item.type_kind)}>
+							{getTypeKindLabel(item.type_kind)}
+						</Badge>
 					</div>
 				))}
 			</div>

@@ -16,6 +16,7 @@ import * as FeedStripModule from "@/features/feed/components/FeedStrip";
 import * as PromoBannerModule from "@/features/promo/components/PromoBanner";
 import type { CourseListResponse } from "@/lib/api/generated";
 import * as generated from "@/lib/api/generated";
+import { emptyCourseFilters } from "@/test-utils/factories";
 import { CoursesRoute } from "./index";
 
 interface CoursesListStub {
@@ -100,7 +101,7 @@ describe("CoursesRoute", () => {
 					page_size: 10,
 					total: 0,
 					total_pages: 0,
-					filters: {},
+					filters: emptyCourseFilters(),
 					next_page: null,
 					previous_page: null,
 				},
@@ -133,7 +134,7 @@ describe("CoursesRoute", () => {
 					page_size: 10,
 					total: 0,
 					total_pages: 0,
-					filters: {},
+					filters: emptyCourseFilters(),
 					next_page: null,
 					previous_page: null,
 				},

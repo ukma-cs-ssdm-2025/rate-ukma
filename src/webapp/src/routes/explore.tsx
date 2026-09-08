@@ -27,7 +27,7 @@ import {
 } from "@/features/courses/courseFormatting";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
-import { withAuth } from "@/lib/auth";
+import { withAuth } from "@/lib/auth/withAuth";
 import { localStorageAdapter } from "@/lib/storage";
 
 const SHOW_ALL_LABELS_STORAGE_KEY = "explore:show-all-labels";

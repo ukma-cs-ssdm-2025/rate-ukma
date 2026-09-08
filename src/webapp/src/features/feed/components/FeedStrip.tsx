@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, Newspaper, Pin } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 import { isCommentItem, isPromoItem } from "../feedTypes";
 import { useFeed } from "../hooks/useFeed";
 import { FeedCommentItem } from "./FeedCommentItem";

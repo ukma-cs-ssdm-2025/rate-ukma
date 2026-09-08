@@ -46,7 +46,7 @@ import {
 	useCoursesFilterOptionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";

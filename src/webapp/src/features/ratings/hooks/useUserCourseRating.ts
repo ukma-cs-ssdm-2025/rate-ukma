@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import type { InlineCourseOffering, InlineRating } from "@/lib/api/generated";
 import { useStudentsMeCoursesRetrieve } from "@/lib/api/generated";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 
 export interface UserCourseRating {
 	rating: InlineRating | null;

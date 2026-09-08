@@ -4,7 +4,7 @@ import { Menu } from "lucide-react";
 
 import { useTheme } from "@/components/ThemeProvider";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { hasDocument } from "@/lib/environment";
 import { testIds } from "@/lib/test-ids";

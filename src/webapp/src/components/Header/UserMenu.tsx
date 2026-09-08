@@ -1,6 +1,6 @@
 import { LogOut } from "lucide-react";
 
-import type { AuthUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth/useAuth";
 import { testIds } from "@/lib/test-ids";
 import { UserAvatar } from "../UserAvatar";
 import { Button } from "../ui/Button";

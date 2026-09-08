@@ -152,9 +152,12 @@ describe("NotificationBell", () => {
 				{
 					group_key: "key-1",
 					event_type: "RATING_UPVOTED",
+					latest_notification_id: "notification-1",
+					source_object_id: "rating-1",
 					message: "Тестове сповіщення",
 					is_unread: true,
 					course_id: "c-1",
+					rating_id: "rating-1",
 					latest_created_at: new Date().toISOString(),
 					count: 1,
 				},
