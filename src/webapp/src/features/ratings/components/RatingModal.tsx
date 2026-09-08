@@ -19,7 +19,6 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
-import { useFeatureFlagState } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
@@ -53,9 +52,6 @@ export function RatingModal({
 	onSuccess,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
-	const { enabled: showMultiSelect, isReady: flagsReady } = useFeatureFlagState(
-		"fe_instructor_multiselect",
-	);
 	const queryClient = useQueryClient();
 
 	const createMutation = useCoursesRatingsCreate();
@@ -85,18 +81,12 @@ export function RatingModal({
 	};
 
 	const handleSubmit = async (data: RatingFormData) => {
-		// Submitting before the flags resolve would persist the wrong shape.
-		if (!flagsReady) {
-			return;
-		}
 		// A non-empty selection supersedes the legacy text; an empty one leaves it,
 		// rather than dropping the rating's only instructor.
-		const instructorPayload = showMultiSelect
-			? {
-					instructor_ids: data.instructor_ids,
-					...(data.instructor_ids.length > 0 ? { instructor: "" } : {}),
-				}
-			: { instructor: data.instructor ?? "" };
+		const instructorPayload = {
+			instructor_ids: data.instructor_ids,
+			...(data.instructor_ids.length > 0 ? { instructor: "" } : {}),
+		};
 		try {
 			if (isEditMode && existingRating?.id) {
 				await updateMutation.mutateAsync({
