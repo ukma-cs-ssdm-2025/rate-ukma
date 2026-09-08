@@ -1,3 +1,5 @@
+import { dictionaryLookup } from "@/lib/dictionary";
+
 /**
  * Faculty color mappings for NaUKMA
  * Maps faculty names to their Tailwind color names and brand hex colors
@@ -41,7 +43,7 @@ const FACULTY_COLOR_MAP = {
 type ColorConfig = { bg: string; text: string; border: string; hex: string };
 
 // Explicit mapping of color names to Tailwind classes (prevents purging in production)
-const COLOR_CLASS_MAP: Record<string, Omit<ColorConfig, "hex">> = {
+const COLOR_CLASS_MAP = {
 	purple: {
 		bg: "bg-purple-100",
 		text: "text-purple-700",
@@ -82,10 +84,11 @@ const COLOR_CLASS_MAP: Record<string, Omit<ColorConfig, "hex">> = {
 		text: "text-gray-700",
 		border: "border-gray-300",
 	},
-};
+} satisfies Record<string, Omit<ColorConfig, "hex">>;
 
 function createColorConfig(color: string, hex: string): ColorConfig {
-	const classes = COLOR_CLASS_MAP[color] ?? COLOR_CLASS_MAP.gray;
+	const classes =
+		dictionaryLookup(COLOR_CLASS_MAP, color) ?? COLOR_CLASS_MAP.gray;
 	return {
 		...classes,
 		hex,
@@ -93,17 +96,16 @@ function createColorConfig(color: string, hex: string): ColorConfig {
 }
 
 // Build the full faculty colors object
-export const FACULTY_COLORS = Object.entries(FACULTY_COLOR_MAP).reduce(
-	(acc, [faculty, { color, hex }]) => {
-		acc[faculty] = createColorConfig(color, hex);
-		return acc;
-	},
-	{} as Record<string, ColorConfig>,
-);
+export const FACULTY_COLORS = Object.entries(FACULTY_COLOR_MAP).reduce<
+	Record<string, ColorConfig>
+>((acc, [faculty, { color, hex }]) => {
+	acc[faculty] = createColorConfig(color, hex);
+	return acc;
+}, {});
 
 export type FacultyName = keyof typeof FACULTY_COLOR_MAP;
 export function getFacultyColors(facultyName: string) {
-	const colors = FACULTY_COLORS[facultyName as FacultyName];
+	const colors = dictionaryLookup(FACULTY_COLORS, facultyName);
 
 	if (!colors) {
 		return {

@@ -32,7 +32,6 @@ interface SeededRatingContext {
 
 interface CommentListPayload {
 	items?: CommentPayload[];
-	[key: string]: unknown;
 }
 
 interface CommentPayload {
@@ -42,7 +41,6 @@ interface CommentPayload {
 	user_name?: string | null;
 	user_avatar_url?: string | null;
 	is_anonymous?: boolean;
-	[key: string]: unknown;
 }
 
 test.describe("Rating comments workflow", () => {
@@ -209,6 +207,7 @@ async function seedRating(
 
 	await ratingModal.waitForHidden();
 
+	// SAFETY: the create response is a rating object; we only read its id below.
 	const ratingPayload = (await ratingResponse.json()) as { id?: string };
 	if (!ratingPayload.id) {
 		throw new Error("Rating create response did not include an id");
@@ -283,10 +282,12 @@ async function getUnsafeRequestHeaders(
 		csrfToken = await getCsrfToken(page, apiOrigin);
 	}
 
-	return {
-		"X-Requested-With": "XMLHttpRequest",
-		...(csrfToken ? { "X-CSRFToken": decodeURIComponent(csrfToken) } : {}),
-	};
+	const headers: Record<string, string> = {};
+	headers["X-Requested-With"] = "XMLHttpRequest";
+	if (csrfToken) {
+		headers["X-CSRFToken"] = decodeURIComponent(csrfToken);
+	}
+	return headers;
 }
 
 async function getCsrfToken(
@@ -310,6 +311,7 @@ async function mockCommentAsNonOwner(
 		}
 
 		try {
+			// SAFETY: fields are validated individually after this narrow cast.
 			const payload = (await response.json()) as CommentListPayload;
 
 			if (Array.isArray(payload.items)) {

@@ -14,6 +14,7 @@ import {
 	getPaginationRowModel,
 	type PaginationState,
 	type SortingState,
+	type Updater,
 	useReactTable,
 } from "@tanstack/react-table";
 import {
@@ -45,7 +46,7 @@ import {
 	useCoursesFilterOptionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
@@ -58,6 +59,9 @@ import {
 	CoursesReviewsSortMenu,
 	type CoursesReviewsSortOption,
 } from "./CoursesReviewsSortMenu";
+
+const isUpdater = <T,>(updater: Updater<T>): updater is (old: T) => T =>
+	typeof updater === "function";
 import { CoursesScatterPlot } from "./CoursesScatterPlot";
 import {
 	type CourseFiltersParamsSetter,
@@ -208,6 +212,7 @@ function buildCoursesTableColumns({
 				</div>
 			),
 			cell: ({ row }) => {
+				// SAFETY: the ratings_count column is defined with a number accessor.
 				const count = row.getValue("ratings_count") as number;
 				return (
 					<div className="hidden sm:flex items-center justify-center">
@@ -249,6 +254,7 @@ function buildCoursesTableColumns({
 			),
 			cell: ({ row }) => (
 				<CourseScoreCell
+					// SAFETY: the avg_difficulty column is defined with a number accessor.
 					value={row.getValue("avg_difficulty") as number}
 					variant="difficulty"
 				/>
@@ -288,6 +294,7 @@ function buildCoursesTableColumns({
 			),
 			cell: ({ row }) => (
 				<CourseScoreCell
+					// SAFETY: the avg_usefulness column is defined with a number accessor.
 					value={row.getValue("avg_usefulness") as number}
 					variant="usefulness"
 				/>
@@ -381,8 +388,7 @@ export function CoursesTable({
 
 	const handleSortingChange = useCallback(
 		(updater: SortingState | ((old: SortingState) => SortingState)) => {
-			const newSorting =
-				typeof updater === "function" ? updater(sorting) : updater;
+			const newSorting = isUpdater(updater) ? updater(sorting) : updater;
 
 			const diffSort = newSorting.find((s) => s.id === "avg_difficulty");
 			const useSort = newSorting.find((s) => s.id === "avg_usefulness");
@@ -552,8 +558,7 @@ export function CoursesTable({
 		manualPagination: true,
 		onSortingChange: handleSortingChange,
 		onPaginationChange: (updater) => {
-			const newPagination =
-				typeof updater === "function" ? updater(pagination) : updater;
+			const newPagination = isUpdater(updater) ? updater(pagination) : updater;
 
 			const nextSize = newPagination.pageSize;
 			const nextPage = newPagination.pageIndex + 1;

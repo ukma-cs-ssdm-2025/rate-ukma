@@ -155,12 +155,12 @@ export function useCourseFiltersData({
 
 	// Extract all departments and specialities from nested faculty structure
 	const allDepartments = React.useMemo(
-		() => faculties.flatMap((faculty) => faculty.departments || []),
+		() => faculties.flatMap((faculty) => faculty.departments),
 		[faculties],
 	);
 
 	const allSpecialities = React.useMemo(
-		() => faculties.flatMap((faculty) => faculty.specialities || []),
+		() => faculties.flatMap((faculty) => faculty.specialities),
 		[faculties],
 	);
 
@@ -170,7 +170,7 @@ export function useCourseFiltersData({
 		}
 
 		const selectedFaculty = faculties.find((f) => f.id === filters.faculty);
-		return selectedFaculty?.departments || [];
+		return selectedFaculty?.departments ?? [];
 	}, [faculties, filters.faculty, allDepartments]);
 
 	const filteredSpecialities = React.useMemo(() => {
@@ -179,7 +179,7 @@ export function useCourseFiltersData({
 		}
 
 		const selectedFaculty = faculties.find((f) => f.id === filters.faculty);
-		return selectedFaculty?.specialities || [];
+		return selectedFaculty?.specialities ?? [];
 	}, [faculties, filters.faculty, allSpecialities]);
 
 	const ratingRangeFilters: RangeFilterConfig[] = [
@@ -239,7 +239,7 @@ export function useCourseFiltersData({
 				value: filters.year,
 				options: semesterYears.map((year) => ({
 					value: year.value,
-					label: year.label ?? year.value,
+					label: year.label,
 				})),
 			},
 		],

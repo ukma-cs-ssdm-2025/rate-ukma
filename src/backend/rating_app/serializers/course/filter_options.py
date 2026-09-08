@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from rating_app.models.choices import CourseTypeKind, SemesterTerm
 
 class FilterOptionSerializer(serializers.Serializer):
     id = serializers.UUIDField()
@@ -11,7 +12,7 @@ class InstructorOptionSerializer(FilterOptionSerializer):
 
 
 class SemesterTermOptionSerializer(serializers.Serializer):
-    value = serializers.CharField()
+    value = serializers.ChoiceField(choices=SemesterTerm.choices)
     label = serializers.CharField()
 
 
@@ -35,7 +36,7 @@ class SemesterYearOptionSerializer(serializers.Serializer):
 
 
 class CourseTypeOptionSerializer(serializers.Serializer):
-    value = serializers.CharField()
+    value = serializers.ChoiceField(choices=CourseTypeKind.choices)
     label = serializers.CharField()
 
 

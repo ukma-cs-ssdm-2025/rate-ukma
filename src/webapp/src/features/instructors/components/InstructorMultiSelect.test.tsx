@@ -5,20 +5,27 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Instructor } from "@/lib/api/generated";
+import * as generated from "@/lib/api/generated";
+import { createInfiniteQueryStub } from "@/test-utils/infinite-query-stub";
 import { renderWithProviders } from "@/test-utils/render";
 import { InstructorMultiSelect } from "./InstructorMultiSelect";
 
-// Mock the orval-generated infinite query hook backing the dropdown
-vi.mock("@/lib/api/generated", async () => {
-	const actual = await vi.importActual("@/lib/api/generated");
-	return {
-		...actual,
-		useInstructorsListInfinite: vi.fn(),
-	};
-});
+let mockedInfinite: ReturnType<typeof vi.spyOn>;
 
-const { useInstructorsListInfinite } = await import("@/lib/api/generated");
-const mockedInfinite = vi.mocked(useInstructorsListInfinite);
+function infiniteStub(items: Instructor[]) {
+	return createInfiniteQueryStub({
+		data:
+			items.length > 0
+				? {
+						pages: [{ items, total: items.length, next_page: null }],
+						pageParams: [],
+					}
+				: undefined,
+		hasNextPage: false,
+		isFetchingNextPage: false,
+		isLoading: false,
+	});
+}
 
 function createMockInstructor(overrides: Partial<Instructor> = {}): Instructor {
 	return {
@@ -30,23 +37,17 @@ function createMockInstructor(overrides: Partial<Instructor> = {}): Instructor {
 }
 
 function mockInstructors(items: Instructor[]) {
-	mockedInfinite.mockReturnValue({
-		data:
-			items.length > 0
-				? {
-						pages: [{ items, total: items.length, next_page: null }],
-						pageParams: [],
-					}
-				: undefined,
-		fetchNextPage: vi.fn(),
-		hasNextPage: false,
-		isFetchingNextPage: false,
-		isLoading: false,
-	} as unknown as ReturnType<typeof useInstructorsListInfinite>);
+	mockedInfinite.mockReturnValue(
+		// SAFETY: the dropdown only reads the fields InfiniteStub provides.
+		infiniteStub(items) as ReturnType<
+			typeof generated.useInstructorsListInfinite
+		>,
+	);
 }
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	mockedInfinite = vi.spyOn(generated, "useInstructorsListInfinite");
 	mockInstructors([]);
 	// cmdk scrolls the active item into view; jsdom lacks this API
 	Element.prototype.scrollIntoView = vi.fn();
@@ -122,24 +123,12 @@ describe("InstructorMultiSelect", () => {
 			});
 			let currentItems = [selectedInstructor];
 
+			// SAFETY: the dropdown only reads the fields InfiniteStub provides.
 			mockedInfinite.mockImplementation(
 				() =>
-					({
-						data: {
-							pages: [
-								{
-									items: currentItems,
-									total: currentItems.length,
-									next_page: null,
-								},
-							],
-							pageParams: [],
-						},
-						fetchNextPage: vi.fn(),
-						hasNextPage: false,
-						isFetchingNextPage: false,
-						isLoading: false,
-					}) as unknown as ReturnType<typeof useInstructorsListInfinite>,
+					infiniteStub(currentItems) as ReturnType<
+						typeof generated.useInstructorsListInfinite
+					>,
 			);
 
 			function Harness() {

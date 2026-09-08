@@ -3,8 +3,44 @@ import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type RenderOptions, render, renderHook } from "@testing-library/react";
 
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider } from "@/lib/auth/AuthContext";
 import { FeatureFlagsContext } from "@/lib/feature-flags/FeatureFlagsContext";
+
+export function createTestQueryClient(): QueryClient {
+	return new QueryClient({
+		defaultOptions: {
+			queries: {
+				gcTime: Number.POSITIVE_INFINITY,
+			},
+		},
+	});
+}
+
+/**
+ * Provider stack shared by the test renders below. Nest it manually when a
+ * test also needs its own wrapper (e.g. a router from `test-utils/router`).
+ */
+export function Providers({
+	children,
+	queryClient = createTestQueryClient(),
+	flags = {},
+	flagsReady = true,
+}: Readonly<{
+	children: ReactNode;
+	queryClient?: QueryClient;
+	flags?: Record<string, boolean>;
+	flagsReady?: boolean;
+}>) {
+	return (
+		<QueryClientProvider client={queryClient}>
+			<AuthProvider>
+				<FeatureFlagsContext.Provider value={{ flags, isReady: flagsReady }}>
+					{children}
+				</FeatureFlagsContext.Provider>
+			</AuthProvider>
+		</QueryClientProvider>
+	);
+}
 
 /**
  * Custom render function that wraps components with necessary providers
@@ -22,35 +58,21 @@ export function renderWithProviders(
 		}
 	>,
 ) {
-	const queryClient =
-		options?.queryClient ??
-		new QueryClient({
-			defaultOptions: {
-				queries: {
-					gcTime: Number.POSITIVE_INFINITY,
-				},
-			},
-		});
-
-	function Wrapper({ children }: Readonly<{ children: ReactNode }>) {
-		return (
-			<QueryClientProvider client={queryClient}>
-				<AuthProvider>
-					<FeatureFlagsContext.Provider
-						value={{
-							flags: options?.flags ?? {},
-							isReady: options?.flagsReady ?? true,
-						}}
-					>
-						{children}
-					</FeatureFlagsContext.Provider>
-				</AuthProvider>
-			</QueryClientProvider>
-		);
-	}
+	const queryClient = options?.queryClient ?? createTestQueryClient();
 
 	return {
-		...render(ui, { wrapper: Wrapper, ...options }),
+		...render(ui, {
+			wrapper: ({ children }) => (
+				<Providers
+					queryClient={queryClient}
+					flags={options?.flags}
+					flagsReady={options?.flagsReady}
+				>
+					{children}
+				</Providers>
+			),
+			...options,
+		}),
 		queryClient,
 	};
 }
@@ -66,31 +88,13 @@ export function renderHookWithProviders<Result, Props>(
 		initialProps?: Props;
 	}>,
 ) {
-	const queryClient =
-		options?.queryClient ??
-		new QueryClient({
-			defaultOptions: {
-				queries: {
-					gcTime: Number.POSITIVE_INFINITY,
-				},
-			},
-		});
-
-	function Wrapper({ children }: Readonly<{ children: ReactNode }>) {
-		return (
-			<QueryClientProvider client={queryClient}>
-				<AuthProvider>
-					<FeatureFlagsContext.Provider value={{ flags: {}, isReady: true }}>
-						{children}
-					</FeatureFlagsContext.Provider>
-				</AuthProvider>
-			</QueryClientProvider>
-		);
-	}
+	const queryClient = options?.queryClient ?? createTestQueryClient();
 
 	return {
 		...renderHook(renderCallback, {
-			wrapper: Wrapper,
+			wrapper: ({ children }) => (
+				<Providers queryClient={queryClient}>{children}</Providers>
+			),
 			initialProps: options?.initialProps,
 		}),
 		queryClient,

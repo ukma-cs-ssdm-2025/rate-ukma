@@ -1,21 +1,11 @@
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PromoBanner as PromoBannerModel } from "@/lib/api/generated";
+import * as generated from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { renderWithProviders, screen } from "@/test-utils/render";
 import { PromoBanner } from "./PromoBanner";
-
-const { usePromoBannerListMock } = vi.hoisted(() => ({
-	usePromoBannerListMock: vi.fn(),
-}));
-
-// Only the promo query is stubbed; the rest of the generated client stays real
-// so co-rendered providers (auth, flags) keep working.
-vi.mock("@/lib/api/generated", async (importOriginal) => ({
-	...(await importOriginal<typeof import("@/lib/api/generated")>()),
-	usePromoBannerList: usePromoBannerListMock,
-}));
 
 const banner: PromoBannerModel = {
 	id: "test-promo-1",
@@ -28,8 +18,18 @@ const banner: PromoBannerModel = {
 };
 
 function mockBanner(value: PromoBannerModel | null) {
-	usePromoBannerListMock.mockReturnValue({ data: { banner: value } });
+	vi.spyOn(generated, "usePromoBannerList").mockReturnValue(
+		// SAFETY: PromoBanner only reads data.banner.
+		{ data: { banner: value } } as ReturnType<
+			typeof generated.usePromoBannerList
+		>,
+	);
 }
+
+beforeEach(() => {
+	vi.clearAllMocks();
+	mockBanner(null);
+});
 
 afterEach(() => {
 	globalThis.localStorage.clear();
@@ -57,7 +57,10 @@ describe("PromoBanner", () => {
 	});
 
 	it("renders nothing while the request is still in flight", () => {
-		usePromoBannerListMock.mockReturnValue({ data: undefined });
+		vi.spyOn(generated, "usePromoBannerList").mockReturnValue(
+			// SAFETY: PromoBanner only reads data.banner; undefined models the in-flight request.
+			{ data: undefined } as ReturnType<typeof generated.usePromoBannerList>,
+		);
 		renderWithProviders(<PromoBanner />);
 
 		expect(screen.queryByTestId(testIds.promo.banner)).not.toBeInTheDocument();

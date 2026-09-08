@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { hasWindow } from "@/lib/environment";
+
 function getMatches(query: string) {
 	return globalThis.window?.matchMedia(query).matches;
 }
@@ -8,7 +10,7 @@ function useMediaQuery(query: string) {
 	const [matches, setMatches] = useState(() => getMatches(query));
 
 	useEffect(() => {
-		if (globalThis.window === undefined) return undefined;
+		if (!hasWindow()) return undefined;
 
 		const mediaQuery = globalThis.window.matchMedia(query);
 		const handleChange = (event: MediaQueryListEvent) => {

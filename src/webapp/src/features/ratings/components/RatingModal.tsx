@@ -18,7 +18,7 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 import { testIds } from "@/lib/test-ids";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
@@ -87,12 +87,15 @@ export function RatingModal({
 		}
 		// A non-empty selection supersedes the legacy text; an empty one leaves it,
 		// rather than dropping the rating's only instructor.
-		const instructorPayload = showMultiSelect
-			? {
-					instructor_ids: data.instructor_ids,
-					...(data.instructor_ids.length > 0 ? { instructor: "" } : {}),
-				}
+		const instructorPayload: {
+			instructor_ids?: string[];
+			instructor?: string;
+		} = showMultiSelect
+			? { instructor_ids: data.instructor_ids }
 			: { instructor: data.instructor ?? "" };
+		if (showMultiSelect && data.instructor_ids.length > 0) {
+			instructorPayload.instructor = "";
+		}
 		try {
 			if (isEditMode && existingRating?.id) {
 				await updateMutation.mutateAsync({

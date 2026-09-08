@@ -8,6 +8,9 @@ type ThemeProviderProps = {
 	storageKey?: string;
 };
 
+const isThemeValue = (value: string | null): value is Theme =>
+	value === "dark" || value === "light" || value === "system";
+
 type ThemeProviderState = {
 	theme: Theme;
 	setTheme: (theme: Theme) => void;
@@ -26,9 +29,10 @@ export function ThemeProvider({
 	storageKey = "rate-ukma-theme",
 	...props
 }: Readonly<ThemeProviderProps>) {
-	const [theme, setTheme] = useState<Theme>(
-		() => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
-	);
+	const [theme, setTheme] = useState<Theme>(() => {
+		const stored = localStorage.getItem(storageKey);
+		return isThemeValue(stored) ? stored : defaultTheme;
+	});
 
 	useEffect(() => {
 		const root = globalThis.document.documentElement;

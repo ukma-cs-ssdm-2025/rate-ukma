@@ -1836,6 +1836,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeatureFlags'
           description: OK
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/instructors/:
     get:
       operationId: instructors_list
@@ -2161,6 +2183,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/PromoBannerResponse'
           description: OK
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/ratings/{rating_id}/comments/:
     get:
       operationId: ratings_comments_list
@@ -2601,22 +2645,6 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
-  /courses/{course_id}/:
-    get:
-      operationId: courses_retrieve_2
-      parameters:
-      - in: path
-        name: course_id
-        schema:
-          type: string
-        required: true
-      tags:
-      - courses
-      security:
-      - {}
-      responses:
-        '200':
-          description: No response body
 components:
   schemas:
     AccentEnum:
@@ -2629,6 +2657,22 @@ components:
         * `BRAND` - Brand
         * `INFO` - Info
         * `WARNING` - Warning
+    AvgDifficultyOrderEnum:
+      enum:
+      - asc
+      - desc
+      type: string
+      description: |-
+        * `asc` - asc
+        * `desc` - desc
+    AvgUsefulnessOrderEnum:
+      enum:
+      - asc
+      - desc
+      type: string
+      description: |-
+        * `asc` - asc
+        * `desc` - desc
     CSRFToken:
       type: object
       properties:
@@ -2655,6 +2699,11 @@ components:
         is_anonymous:
           type: boolean
           readOnly: true
+      required:
+      - is_anonymous
+      - user_avatar_url
+      - user_id
+      - user_name
     CommentCreateRequest:
       properties:
         parent_comment:
@@ -2770,6 +2819,18 @@ components:
         replies_count:
           type: integer
           readOnly: true
+      required:
+      - can_manage
+      - content
+      - created_at
+      - id
+      - is_anonymous
+      - parent_id
+      - rating_id
+      - replies_count
+      - user_avatar_url
+      - user_id
+      - user_name
     CourseAnalytics:
       type: object
       description: Serializer for course analytics
@@ -2798,6 +2859,13 @@ components:
         faculty_name:
           type: string
           readOnly: true
+      required:
+      - avg_difficulty
+      - avg_usefulness
+      - faculty_name
+      - id
+      - name
+      - ratings_count
     CourseDetail:
       type: object
       description: Read-only serializer for course details
@@ -2860,6 +2928,21 @@ components:
           type: integer
           readOnly: true
           default: 0
+      required:
+      - avg_difficulty
+      - avg_usefulness
+      - department
+      - department_name
+      - description
+      - education_level
+      - faculty
+      - faculty_custom_abbreviation
+      - faculty_name
+      - id
+      - ratings_count
+      - specialities
+      - status
+      - title
     CourseList:
       type: object
       description: Serializer for course list responses
@@ -2922,6 +3005,131 @@ components:
           items:
             $ref: '#/components/schemas/CourseOfferingSpecialityInline'
           readOnly: true
+      required:
+      - avg_difficulty
+      - avg_usefulness
+      - department
+      - department_name
+      - description
+      - education_level
+      - faculty
+      - faculty_custom_abbreviation
+      - faculty_name
+      - id
+      - ratings_count
+      - specialities
+      - status
+      - title
+    CourseListFilters:
+      type: object
+      description: |-
+        Typed mirror of the `applied_filters` dict returned for course search.
+
+        Spec-only: CourseService already returns every key below at runtime
+        (full Criteria.model_dump()); this just documents them for the schema.
+      properties:
+        name:
+          type: string
+          nullable: true
+        type_kind:
+          allOf:
+          - $ref: '#/components/schemas/TypeKindEnum'
+          nullable: true
+        instructor:
+          type: string
+          format: uuid
+          nullable: true
+        faculty:
+          type: string
+          format: uuid
+          nullable: true
+        department:
+          type: string
+          format: uuid
+          nullable: true
+        speciality:
+          type: string
+          format: uuid
+          nullable: true
+        education_level:
+          allOf:
+          - $ref: '#/components/schemas/EducationLevelEnum'
+          nullable: true
+        semester_year:
+          type: string
+          nullable: true
+        semester_terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/SemesterTermsEnum'
+          nullable: true
+        credits_max:
+          type: number
+          format: double
+          nullable: true
+        credits_min:
+          type: number
+          format: double
+          nullable: true
+        avg_difficulty_min:
+          type: number
+          format: double
+          nullable: true
+        avg_difficulty_max:
+          type: number
+          format: double
+          nullable: true
+        avg_usefulness_min:
+          type: number
+          format: double
+          nullable: true
+        avg_usefulness_max:
+          type: number
+          format: double
+          nullable: true
+        ratings_count_min:
+          type: integer
+          nullable: true
+        avg_difficulty_order:
+          allOf:
+          - $ref: '#/components/schemas/AvgDifficultyOrderEnum'
+          nullable: true
+        avg_usefulness_order:
+          allOf:
+          - $ref: '#/components/schemas/AvgUsefulnessOrderEnum'
+          nullable: true
+        last_review_order:
+          allOf:
+          - $ref: '#/components/schemas/LastReviewOrderEnum'
+          nullable: true
+        page:
+          type: integer
+          nullable: true
+        page_size:
+          type: integer
+          nullable: true
+      required:
+      - avg_difficulty_max
+      - avg_difficulty_min
+      - avg_difficulty_order
+      - avg_usefulness_max
+      - avg_usefulness_min
+      - avg_usefulness_order
+      - credits_max
+      - credits_min
+      - department
+      - education_level
+      - faculty
+      - instructor
+      - last_review_order
+      - name
+      - page
+      - page_size
+      - ratings_count_min
+      - semester_terms
+      - semester_year
+      - speciality
+      - type_kind
     CourseListResponse:
       type: object
       description: Schema for GET /api/v1/courses response envelope.
@@ -2931,8 +3139,7 @@ components:
           items:
             $ref: '#/components/schemas/CourseList'
         filters:
-          type: object
-          additionalProperties: {}
+          $ref: '#/components/schemas/CourseListFilters'
         page:
           type: integer
         page_size:
@@ -3052,6 +3259,29 @@ components:
           items:
             $ref: '#/components/schemas/CourseOfferingTerm'
           readOnly: true
+      required:
+      - code
+      - course_id
+      - course_title
+      - credits
+      - exam_type
+      - group_size_max
+      - group_size_min
+      - id
+      - instructors
+      - lecture_count
+      - max_groups
+      - max_students
+      - practice_count
+      - practice_type
+      - semester_id
+      - semester_term
+      - semester_year
+      - specialities
+      - study_year
+      - terms
+      - total_hours
+      - weekly_hours
     CourseOfferingListResponse:
       type: object
       properties:
@@ -3086,6 +3316,13 @@ components:
           allOf:
           - $ref: '#/components/schemas/TypeKindEnum'
           readOnly: true
+      required:
+      - faculty_id
+      - faculty_name
+      - speciality_alias
+      - speciality_id
+      - speciality_title
+      - type_kind
     CourseOfferingSpecialityInline:
       type: object
       description: Inline serializer for course offering speciality
@@ -3114,6 +3351,13 @@ components:
           allOf:
           - $ref: '#/components/schemas/TypeKindEnum'
           readOnly: true
+      required:
+      - faculty_id
+      - faculty_name
+      - speciality_alias
+      - speciality_id
+      - speciality_title
+      - type_kind
     CourseOfferingTerm:
       type: object
       properties:
@@ -3166,6 +3410,19 @@ components:
           type: integer
           readOnly: true
           nullable: true
+      required:
+      - credits
+      - exam_type
+      - id
+      - lecture_count
+      - offering_id
+      - practice_count
+      - practice_type
+      - semester_id
+      - semester_term
+      - semester_year
+      - total_hours
+      - weekly_hours
     CourseOfferingTermEnum:
       enum:
       - FALL
@@ -3180,7 +3437,7 @@ components:
       type: object
       properties:
         value:
-          type: string
+          $ref: '#/components/schemas/Value283Enum'
         label:
           type: string
       required:
@@ -3293,6 +3550,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+      required:
+      - items
+      - next_cursor
     FeedPromoItem:
       type: object
       properties:
@@ -3334,6 +3594,18 @@ components:
           type: string
           readOnly: true
           nullable: true
+      required:
+      - accent
+      - body
+      - cta_href
+      - cta_label
+      - id
+      - image_url
+      - kind
+      - label
+      - occurred_at
+      - pinned
+      - title
     FeedPromoItemKindEnum:
       type: string
       enum:
@@ -3384,6 +3656,19 @@ components:
           type: number
           format: double
           readOnly: true
+      required:
+      - comment
+      - course_avg_difficulty
+      - course_avg_usefulness
+      - course_id
+      - course_title
+      - difficulty
+      - id
+      - kind
+      - occurred_at
+      - semester_term
+      - semester_year
+      - usefulness
     FeedReviewItemKindEnum:
       type: string
       enum:
@@ -3440,6 +3725,13 @@ components:
           - $ref: '#/components/schemas/InlineRating'
           readOnly: true
           nullable: true
+      required:
+      - can_rate
+      - course_id
+      - id
+      - rated
+      - season
+      - year
     InlineRating:
       type: object
       properties:
@@ -3468,7 +3760,10 @@ components:
         is_anonymous:
           type: boolean
       required:
+      - created_at
       - difficulty
+      - id
+      - instructors
       - is_anonymous
       - usefulness
     InlineRatingDetailed:
@@ -3502,6 +3797,15 @@ components:
         is_anonymous:
           type: boolean
           readOnly: true
+      required:
+      - comment
+      - created_at
+      - difficulty
+      - id
+      - instructor
+      - instructors
+      - is_anonymous
+      - usefulness
     InlineRatingsItems:
       type: object
       properties:
@@ -3525,6 +3829,9 @@ components:
         season:
           type: string
           readOnly: true
+      required:
+      - season
+      - year
     Instructor:
       type: object
       properties:
@@ -3543,6 +3850,7 @@ components:
           maxLength: 120
       required:
       - first_name
+      - id
       - last_name
     InstructorDTO:
       type: object
@@ -3561,6 +3869,11 @@ components:
         last_name:
           type: string
           readOnly: true
+      required:
+      - first_name
+      - id
+      - last_name
+      - patronymic
     InstructorListResponse:
       type: object
       description: Schema for GET /api/v1/instructors/ response envelope.
@@ -3607,6 +3920,14 @@ components:
       required:
       - id
       - name
+    LastReviewOrderEnum:
+      enum:
+      - asc
+      - desc
+      type: string
+      description: |-
+        * `asc` - asc
+        * `desc` - desc
     Login:
       type: object
       properties:
@@ -3661,12 +3982,25 @@ components:
           readOnly: true
         rating_id:
           type: string
+          format: uuid
           nullable: true
           readOnly: true
         course_id:
           type: string
+          format: uuid
           nullable: true
           readOnly: true
+      required:
+      - count
+      - course_id
+      - event_type
+      - group_key
+      - is_unread
+      - latest_created_at
+      - latest_notification_id
+      - message
+      - rating_id
+      - source_object_id
     PatchedCommentPatchParams:
       properties:
         content:
@@ -3749,6 +4083,14 @@ components:
         logo_alt:
           type: string
           readOnly: true
+      required:
+      - cta_label
+      - description
+      - href
+      - id
+      - logo_alt
+      - logo_url
+      - title
     PromoBannerResponse:
       type: object
       properties:
@@ -3758,6 +4100,8 @@ components:
           readOnly: true
           nullable: true
           description: The active promo banner, or null when none is configured.
+      required:
+      - banner
     PublicFeatureFlags:
       type: object
       properties:
@@ -3831,6 +4175,31 @@ components:
         last_name:
           type: string
           readOnly: true
+      required:
+      - first_name
+      - id
+      - last_name
+      - patronymic
+    RatingListFilters:
+      type: object
+      description: |-
+        Typed mirror of RatingService._format_applied_filters().
+
+        Spec-only: the service already returns these keys at runtime (sparse —
+        only non-null criteria, without page/page_size); this documents them.
+      properties:
+        course_id:
+          type: string
+          format: uuid
+        separate_current_user:
+          type: boolean
+        viewer_id:
+          type: string
+          format: uuid
+        time_order:
+          $ref: '#/components/schemas/TimeOrderEnum'
+        popularity_order:
+          type: boolean
     RatingPutParams:
       properties:
         difficulty:
@@ -3948,6 +4317,27 @@ components:
           items:
             $ref: '#/components/schemas/CommentAuthor'
           readOnly: true
+      required:
+      - comment
+      - comment_authors
+      - comments_count
+      - course
+      - course_offering
+      - course_offering_term
+      - course_offering_year
+      - created_at
+      - difficulty
+      - downvotes
+      - id
+      - instructor
+      - instructors
+      - is_anonymous
+      - student_avatar_url
+      - student_id
+      - student_name
+      - upvotes
+      - usefulness
+      - viewer_vote
     RatingVoteCreateRequest:
       properties:
         vote_type:
@@ -3973,9 +4363,15 @@ components:
           format: uuid
           readOnly: true
         vote_type:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/VoteTypeEnum'
           nullable: true
           readOnly: true
+      required:
+      - id
+      - rating
+      - student
+      - vote_type
     RatingVoteStrType:
       enum:
       - DOWNVOTE
@@ -3988,8 +4384,7 @@ components:
         items:
           $ref: '#/components/schemas/InlineRatingsItems'
         filters:
-          type: object
-          additionalProperties: {}
+          $ref: '#/components/schemas/RatingListFilters'
         page:
           type: integer
         page_size:
@@ -4029,12 +4424,22 @@ components:
       type: object
       properties:
         value:
-          type: string
+          $ref: '#/components/schemas/ValueC6bEnum'
         label:
           type: string
       required:
       - label
       - value
+    SemesterTermsEnum:
+      enum:
+      - FALL
+      - SPRING
+      - SUMMER
+      type: string
+      description: |-
+        * `FALL` - Fall
+        * `SPRING` - Spring
+        * `SUMMER` - Summer
     SemesterYearOption:
       type: object
       properties:
@@ -4132,6 +4537,14 @@ components:
         can_rate:
           type: boolean
           readOnly: true
+      required:
+      - can_rate
+      - course_code
+      - course_id
+      - course_offering_id
+      - course_title
+      - rated
+      - semester
     StudentRatingsLight:
       type: object
       properties:
@@ -4143,6 +4556,17 @@ components:
           items:
             $ref: '#/components/schemas/InlineCourseOffering'
           readOnly: true
+      required:
+      - id
+      - offerings
+    TimeOrderEnum:
+      enum:
+      - asc
+      - desc
+      type: string
+      description: |-
+        * `asc` - asc
+        * `desc` - desc
     TypeKindEnum:
       enum:
       - COMPULSORY
@@ -4159,7 +4583,37 @@ components:
         count:
           type: integer
           readOnly: true
+      required:
+      - count
+    Value283Enum:
+      enum:
+      - COMPULSORY
+      - ELECTIVE
+      - PROF_ORIENTED
+      type: string
+      description: |-
+        * `COMPULSORY` - Compulsory
+        * `ELECTIVE` - Elective
+        * `PROF_ORIENTED` - ProfOriented
+    ValueC6bEnum:
+      enum:
+      - FALL
+      - SPRING
+      - SUMMER
+      type: string
+      description: |-
+        * `FALL` - Fall
+        * `SPRING` - Spring
+        * `SUMMER` - Summer
     ViewerVoteEnum:
+      enum:
+      - DOWNVOTE
+      - UPVOTE
+      type: string
+      description: |-
+        * `DOWNVOTE` - Downvote
+        * `UPVOTE` - Upvote
+    VoteTypeEnum:
       enum:
       - DOWNVOTE
       - UPVOTE

@@ -6,6 +6,7 @@ import {
 	DIFFICULTY_RANGE,
 	USEFULNESS_RANGE,
 } from "./courseFormatting";
+import { createRange } from "@/test-utils/factories";
 import {
 	transformFiltersToApiParams,
 	transformSortingToApiParams,
@@ -184,7 +185,7 @@ describe("filterTransformations", () => {
 			expect(result).toEqual({
 				semester_year: "2024–2025",
 			});
-			expect(typeof result.semester_year).toBe("string");
+			expect(result.semester_year).toEqual(expect.any(String));
 		});
 
 		it("should exclude semester year when empty string", () => {
@@ -206,7 +207,7 @@ describe("filterTransformations", () => {
 			const filters = {
 				...DEFAULT_PARAMS,
 				year: "2024–2025",
-				credits: [3.5, 4.5] as [number, number],
+				credits: createRange(3.5, 4.5),
 			};
 
 			// Act
@@ -224,7 +225,7 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_PARAMS,
-				credits: [3.5, 4.5] as [number, number],
+				credits: createRange(3.5, 4.5),
 			};
 
 			// Act
@@ -239,7 +240,7 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_PARAMS,
-				diff: [2, 4.5] as [number, number],
+				diff: createRange(2, 4.5),
 			};
 
 			// Act
@@ -271,7 +272,7 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_PARAMS,
-				diff: [2.5, DIFFICULTY_RANGE[1]] as [number, number],
+				diff: createRange(2.5, DIFFICULTY_RANGE[1]),
 			};
 
 			// Act
@@ -286,7 +287,7 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_PARAMS,
-				diff: [DIFFICULTY_RANGE[0], 3.5] as [number, number],
+				diff: createRange(DIFFICULTY_RANGE[0], 3.5),
 			};
 
 			// Act
@@ -301,7 +302,7 @@ describe("filterTransformations", () => {
 			// Arrange
 			const filters = {
 				...DEFAULT_PARAMS,
-				use: [3, 5] as [number, number],
+				use: createRange(3, 5),
 			};
 
 			// Act
@@ -341,8 +342,8 @@ describe("filterTransformations", () => {
 				year: "2024–2025",
 				type: "ELECTIVE" as const,
 				spec: "spec-4",
-				diff: [2, 4] as [number, number],
-				use: [3.5, 5] as [number, number],
+				diff: createRange(2, 4),
+				use: createRange(3.5, 5),
 			};
 
 			// Act

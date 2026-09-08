@@ -92,6 +92,7 @@ describe("FeedPromoItem", () => {
 	it("falls back to BRAND styling for an unknown accent", () => {
 		const unknownAccent = {
 			...baseItem,
+			// SAFETY: NEON is not a real accent; the test asserts the BRAND fallback for unknown server values.
 			accent: "NEON" as FeedPromoItemType["accent"],
 		};
 

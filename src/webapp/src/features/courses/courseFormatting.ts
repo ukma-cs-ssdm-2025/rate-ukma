@@ -1,3 +1,5 @@
+import { dictionaryLookup } from "@/lib/dictionary";
+
 export const DIFFICULTY_RANGE: [number, number] = [1, 5];
 export const USEFULNESS_RANGE: [number, number] = [1, 5];
 export const CREDITS_RANGE: [number, number] = [0.5, 20];
@@ -53,40 +55,48 @@ export function getUsefulnessTone(value?: number | null): string {
 	return "text-[var(--muted-foreground)]";
 }
 
-const EDUCATION_LEVEL_LABELS: Record<string, string> = {
+const EDUCATION_LEVEL_LABELS = {
 	BACHELOR: "Бакалавр",
 	MASTER: "Магістр",
-};
+} satisfies Record<string, string>;
 
 export function getEducationLevelDisplay(
 	level: string | null | undefined,
 	fallback?: string,
 ): string {
 	if (!level) return fallback ?? "";
-	return EDUCATION_LEVEL_LABELS[level.toUpperCase()] ?? fallback ?? level;
+	return (
+		dictionaryLookup(EDUCATION_LEVEL_LABELS, level.toUpperCase()) ??
+		fallback ??
+		level
+	);
 }
 
-const COURSE_TYPE_LABELS: Record<string, string> = {
+const COURSE_TYPE_LABELS = {
 	COMPULSORY: "Обов'язковий",
 	ELECTIVE: "Вибірковий",
 	PROF_ORIENTED: "Професійно-орієнтований",
-};
+} satisfies Record<string, string>;
 
-const SEMESTER_TERM_LABELS: Record<string, string> = {
+const SEMESTER_TERM_LABELS = {
 	FALL: "Осінь",
 	SPRING: "Весна",
 	SUMMER: "Літо",
-};
+} satisfies Record<string, string>;
 
 export function getCourseTypeDisplay(value: string, fallback?: string): string {
-	return COURSE_TYPE_LABELS[value] ?? fallback ?? value;
+	return dictionaryLookup(COURSE_TYPE_LABELS, value) ?? fallback ?? value;
 }
 
 export function getSemesterTermDisplay(
 	term: string,
 	fallback?: string,
 ): string {
-	return SEMESTER_TERM_LABELS[term.toUpperCase()] ?? fallback ?? term;
+	return (
+		dictionaryLookup(SEMESTER_TERM_LABELS, term.toUpperCase()) ??
+		fallback ??
+		term
+	);
 }
 
 export function getSemesterDisplay(
@@ -98,36 +108,36 @@ export function getSemesterDisplay(
 }
 
 export function getStatusLabel(status: string): string {
-	const STATUS_LABELS: Record<string, string> = {
+	const STATUS_LABELS = {
 		PLANNED: "Заплановано",
 		ACTIVE: "Активний",
 		FINISHED: "Завершено",
-	};
-	return STATUS_LABELS[status] ?? status;
+	} satisfies Record<string, string>;
+	return dictionaryLookup(STATUS_LABELS, status) ?? status;
 }
 
 export type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
 export function getStatusVariant(status: string): BadgeVariant {
-	const STATUS_VARIANTS: Record<string, BadgeVariant> = {
+	const STATUS_VARIANTS = {
 		PLANNED: "outline",
 		ACTIVE: "default",
 		FINISHED: "secondary",
-	};
-	return STATUS_VARIANTS[status] ?? "default";
+	} satisfies Record<string, BadgeVariant>;
+	return dictionaryLookup(STATUS_VARIANTS, status) ?? "default";
 }
 
 export function getTypeKindLabel(typeKind: string): string {
-	return COURSE_TYPE_LABELS[typeKind] ?? typeKind;
+	return dictionaryLookup(COURSE_TYPE_LABELS, typeKind) ?? typeKind;
 }
 
 export function getTypeKindVariant(typeKind: string): BadgeVariant {
-	const TYPE_KIND_VARIANTS: Record<string, BadgeVariant> = {
+	const TYPE_KIND_VARIANTS = {
 		COMPULSORY: "default",
 		ELECTIVE: "secondary",
 		PROF_ORIENTED: "outline",
-	};
-	return TYPE_KIND_VARIANTS[typeKind] ?? "outline";
+	} satisfies Record<string, BadgeVariant>;
+	return dictionaryLookup(TYPE_KIND_VARIANTS, typeKind) ?? "outline";
 }
 
 export function formatDate(dateString: string): string {
@@ -149,7 +159,7 @@ interface CurrentSemester {
 	season: SemesterSeason;
 }
 
-const MONTH_TO_SEASON: Record<number, SemesterSeason> = {
+const MONTH_TO_SEASON = {
 	1: "SPRING",
 	2: "SPRING",
 	3: "SPRING",
@@ -162,18 +172,18 @@ const MONTH_TO_SEASON: Record<number, SemesterSeason> = {
 	10: "FALL",
 	11: "FALL",
 	12: "FALL",
-};
+} satisfies Record<number, SemesterSeason>;
 
-const CALENDAR_SEASON_ORDER: Record<string, number> = {
+const CALENDAR_SEASON_ORDER = {
 	SPRING: 0,
 	SUMMER: 1,
 	FALL: 2,
-};
+} satisfies Record<string, number>;
 
 export function getCurrentSemester(now: Date = new Date()): CurrentSemester {
 	const month = now.getMonth() + 1;
 	const year = now.getFullYear();
-	return { year, season: MONTH_TO_SEASON[month] };
+	return { year, season: dictionaryLookup(MONTH_TO_SEASON, month) ?? "FALL" };
 }
 
 export function compareSemesters(
@@ -181,9 +191,11 @@ export function compareSemesters(
 	b: { year: number; season: string },
 ): number {
 	const valueA =
-		a.year * 10 + (CALENDAR_SEASON_ORDER[a.season.toUpperCase()] ?? 5);
+		a.year * 10 +
+		(dictionaryLookup(CALENDAR_SEASON_ORDER, a.season.toUpperCase()) ?? 5);
 	const valueB =
-		b.year * 10 + (CALENDAR_SEASON_ORDER[b.season.toUpperCase()] ?? 5);
+		b.year * 10 +
+		(dictionaryLookup(CALENDAR_SEASON_ORDER, b.season.toUpperCase()) ?? 5);
 	return valueA - valueB;
 }
 

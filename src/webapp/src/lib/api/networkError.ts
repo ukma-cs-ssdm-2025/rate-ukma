@@ -37,34 +37,40 @@ const redirectToConnectionError = (
 };
 
 const getConnectionIssueReason = (
-	error: unknown,
+	cause: unknown,
 ): ConnectionIssueReason | null => {
-	if (!axios.isAxiosError(error) || axios.isCancel(error)) {
+	if (!axios.isAxiosError(cause) || axios.isCancel(cause)) {
 		return null;
 	}
 
-	if (!error.response) {
+	if (!cause.response) {
 		return isOffline() ? "offline" : "server";
 	}
-	if (error.code === "ERR_NETWORK") {
+	if (cause.code === "ERR_NETWORK") {
 		return isOffline() ? "offline" : "server";
 	}
 
 	return null;
 };
 
+/** Extract the HTTP status from a thrown value, when it is an axios error. */
+export const getHttpErrorStatus = (cause: unknown): number | undefined => {
+	if (!axios.isAxiosError(cause)) return undefined;
+	return cause.response?.status ?? cause.status;
+};
+
 /**
  * Handles connection issues by detecting the error type and redirecting to the error page.
  * Returns true if the error was a connection issue and handled, false otherwise.
  *
- * @param error - The error to check
+ * @param cause - The error to check
  * @param redirect - Optional redirect function for testing purposes
  */
 export const handleConnectionIssue = (
-	error: unknown,
+	cause: unknown,
 	redirect = redirectToConnectionError,
 ): boolean => {
-	const reason = getConnectionIssueReason(error);
+	const reason = getConnectionIssueReason(cause);
 	if (!reason) {
 		return false;
 	}

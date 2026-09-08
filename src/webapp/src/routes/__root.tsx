@@ -10,8 +10,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/Toaster";
 import { SentryUserSync } from "@/integrations/sentry/SentryUserSync";
 import { AppMetadataDefaults } from "@/lib/app-metadata";
-import { AuthProvider } from "@/lib/auth";
-import { FeatureFlagsProvider } from "@/lib/feature-flags";
+import { AuthProvider } from "@/lib/auth/AuthContext";
+import { FeatureFlagsProvider } from "@/lib/feature-flags/FeatureFlagsContext";
 
 const TanStackRouterDevtools = import.meta.env.PROD
 	? () => null

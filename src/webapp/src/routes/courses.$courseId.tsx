@@ -30,7 +30,7 @@ import {
 	useCoursesRetrieve,
 } from "@/lib/api/generated";
 import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
-import { withAuth } from "@/lib/auth";
+import { withAuth } from "@/lib/auth/withAuth";
 
 function CourseDescription({ text }: Readonly<{ text: string }>) {
 	return (

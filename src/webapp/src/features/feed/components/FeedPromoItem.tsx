@@ -2,6 +2,7 @@ import { ArrowRight, Megaphone } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { dictionaryLookup } from "@/lib/dictionary";
 import { cn } from "@/lib/utils";
 import type {
 	FeedPromoAccent,
@@ -11,16 +12,15 @@ import type {
 /** Badge and Button share these variant names, so one value drives both. */
 type AccentVariant = "default" | "secondary" | "destructive";
 
-const ACCENT_STYLES: Record<
-	FeedPromoAccent,
-	{
-		container: string;
-		rail: string;
-		variant: AccentVariant;
-		/** Darkens the CTA where the variant's own fill is too pale to read as a button. */
-		cta?: string;
-	}
-> = {
+interface AccentStyle {
+	container: string;
+	rail: string;
+	variant: AccentVariant;
+	/** Darkens the CTA where the variant's own fill is too pale to read as a button. */
+	cta?: string;
+}
+
+const ACCENT_STYLES = {
 	BRAND: {
 		container: "bg-primary/5 border-primary/20",
 		rail: "bg-primary",
@@ -37,7 +37,7 @@ const ACCENT_STYLES: Record<
 		rail: "bg-destructive",
 		variant: "destructive",
 	},
-};
+} satisfies Record<FeedPromoAccent, AccentStyle>;
 
 interface FeedPromoItemProps {
 	readonly item: FeedPromoItemType;
@@ -46,7 +46,9 @@ interface FeedPromoItemProps {
 }
 
 export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
-	const accent = ACCENT_STYLES[item.accent ?? "BRAND"] ?? ACCENT_STYLES.BRAND;
+	const accent =
+		dictionaryLookup(ACCENT_STYLES, item.accent ?? "BRAND") ??
+		ACCENT_STYLES.BRAND;
 	const label = item.label ?? "Оголошення";
 	const isBanner = variant === "banner";
 
@@ -112,7 +114,7 @@ export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
 						asChild
 						size="sm"
 						variant={accent.variant}
-						className={cn("gap-1.5", accent.cta)}
+						className={cn("gap-1.5", "cta" in accent ? accent.cta : undefined)}
 					>
 						<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
 							{item.ctaLabel}

@@ -19,6 +19,7 @@ const DEFAULT_REDIRECT_SOURCE = `${DEFAULT_WINDOW_LOCATION.pathname}${DEFAULT_WI
 type AxiosErrorOverrides = Partial<AxiosError>;
 
 const createAxiosError = (overrides: AxiosErrorOverrides): AxiosError => {
+	// SAFETY: the fake covers every AxiosError field the code under test reads.
 	return {
 		isAxiosError: true,
 		toJSON: () => ({}),
@@ -30,6 +31,7 @@ const createAxiosError = (overrides: AxiosErrorOverrides): AxiosError => {
 };
 
 const stubNavigatorOnline = (onLine = true) =>
+	// SAFETY: only the onLine facet is read by isOffline.
 	vi.stubGlobal("navigator", { onLine } as Navigator);
 
 describe("networkError", () => {
@@ -78,6 +80,7 @@ describe("networkError", () => {
 			// Arrange
 			stubNavigatorOnline();
 			const axiosError = createAxiosError({
+				// SAFETY: only status is read from the response by handleConnectionIssue.
 				response: { status: 503 } as AxiosError["response"],
 			});
 
@@ -151,6 +154,7 @@ describe("networkError", () => {
 			// Arrange
 			stubNavigatorOnline();
 			const axiosError = createAxiosError({
+				// SAFETY: only status is read from the response by handleConnectionIssue.
 				response: { status: 404 } as AxiosError["response"],
 			});
 

@@ -18,24 +18,21 @@ import {
 	USEFULNESS_RANGE,
 } from "./courseFormatting";
 
-const VALID_SEMESTER_TERMS: readonly CoursesListSemesterTermsItem[] = [
+const VALID_SEMESTER_TERMS: CoursesListSemesterTermsItem[] = [
 	"FALL",
 	"SPRING",
 	"SUMMER",
 ];
-const VALID_TYPE_KINDS: readonly CoursesListTypeKind[] = [
+const VALID_TYPE_KINDS: CoursesListTypeKind[] = [
 	"COMPULSORY",
 	"ELECTIVE",
 	"PROF_ORIENTED",
 ];
 
-const VALID_EDUCATION_LEVELS: readonly EducationLevelEnum[] = [
-	"BACHELOR",
-	"MASTER",
-];
+const VALID_EDUCATION_LEVELS: EducationLevelEnum[] = ["BACHELOR", "MASTER"];
 
 type SortOrder = "asc" | "desc";
-const VALID_SORT_ORDERS: readonly SortOrder[] = ["asc", "desc"];
+const VALID_SORT_ORDERS: SortOrder[] = ["asc", "desc"];
 const VALID_REVIEW_SORTS: Array<"by-count" | "newest"> = ["by-count", "newest"];
 
 function createRangeParser(bounds: [number, number], step?: number) {
@@ -82,27 +79,17 @@ export const courseFiltersParams = {
 	dept: parseAsString.withDefault(""),
 	instructor: parseAsString.withDefault(""),
 	term: parseAsArrayOf(
-		parseAsStringEnum<CoursesListSemesterTermsItem>(
-			VALID_SEMESTER_TERMS as unknown as CoursesListSemesterTermsItem[],
-		),
+		parseAsStringEnum<CoursesListSemesterTermsItem>(VALID_SEMESTER_TERMS),
 	).withDefault([]),
 	year: parseAsString.withDefault(""),
 	credits: createRangeParser(CREDITS_RANGE, 0.5),
-	type: parseAsStringEnum<CoursesListTypeKind>(
-		VALID_TYPE_KINDS as unknown as CoursesListTypeKind[],
-	),
+	type: parseAsStringEnum<CoursesListTypeKind>(VALID_TYPE_KINDS),
 	spec: parseAsString.withDefault(""),
-	eduLevel: parseAsStringEnum<EducationLevelEnum>(
-		VALID_EDUCATION_LEVELS as unknown as EducationLevelEnum[],
-	),
+	eduLevel: parseAsStringEnum<EducationLevelEnum>(VALID_EDUCATION_LEVELS),
 	page: parseAsInteger.withDefault(1),
 	size: parseAsInteger.withDefault(10),
-	diffOrder: parseAsStringEnum<SortOrder>(
-		VALID_SORT_ORDERS as unknown as SortOrder[],
-	),
-	useOrder: parseAsStringEnum<SortOrder>(
-		VALID_SORT_ORDERS as unknown as SortOrder[],
-	),
+	diffOrder: parseAsStringEnum<SortOrder>(VALID_SORT_ORDERS),
+	useOrder: parseAsStringEnum<SortOrder>(VALID_SORT_ORDERS),
 	reviewSort: parseAsStringEnum<"by-count" | "newest">(VALID_REVIEW_SORTS),
 };
 
@@ -144,7 +131,7 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 
 export function courseFiltersStateToSearchParams(
 	state: CourseFiltersParamsState,
-): Record<string, string | number> {
+) {
 	const params: Record<string, string | number> = {};
 
 	if (state.q) params.q = state.q;

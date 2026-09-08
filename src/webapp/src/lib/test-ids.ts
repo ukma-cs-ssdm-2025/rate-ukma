@@ -51,7 +51,7 @@ function toCamelCase(str: string): string {
 export function createTestIds<T extends string>(
 	prefix: string,
 	ids: readonly T[],
-): Record<string, string> {
+) {
 	const result: Record<string, string> = {};
 	for (const id of ids) {
 		const key = toCamelCase(id);

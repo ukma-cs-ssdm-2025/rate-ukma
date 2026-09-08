@@ -8,7 +8,7 @@ import {
 
 import { LoginForm } from "@/components/login/LoginForm";
 import { MicrosoftLoginButton } from "@/components/login/MicrosoftLoginButton";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 
 const REDIRECT_MESSAGES = [
 	{

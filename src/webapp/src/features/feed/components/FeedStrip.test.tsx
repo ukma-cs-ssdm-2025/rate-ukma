@@ -1,56 +1,64 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen } from "@/test-utils/render";
+import * as feedHook from "@/features/feed/hooks/useFeed";
+import {
+	createMockFeedPromoItem,
+	createMockFeedReviewItem,
+	createMockFeedState,
+} from "@/test-utils/factories";
+import { Providers, screen } from "@/test-utils/render";
+import { renderWithRouter } from "@/test-utils/router";
 import { FeedStrip } from "./FeedStrip";
 
-vi.mock("@/features/feed/hooks/useFeed", async () => {
-	const {
-		createMockFeedPromoItem,
-		createMockFeedReviewItem,
-		createMockFeedState,
-	} = await import("@/test-utils/factories");
-	const feedState = createMockFeedState({
-		items: [
-			createMockFeedPromoItem({
-				id: "p1",
-				pinned: true,
-				title: "Хакатон факультету інформатики",
-				body: "48 годин, 12–14 вересня.",
-			}),
-			createMockFeedPromoItem({
-				id: "p2",
-				title: "Реєстрація на вибіркові відкрита",
-				body: "До 20 вересня.",
-			}),
-			createMockFeedReviewItem({ id: "r1" }),
-		],
-	});
-	return { useFeed: () => feedState };
+const feedState = createMockFeedState({
+	items: [
+		createMockFeedPromoItem({
+			id: "p1",
+			pinned: true,
+			title: "Хакатон факультету інформатики",
+			body: "48 годин, 12–14 вересня.",
+		}),
+		createMockFeedPromoItem({
+			id: "p2",
+			title: "Реєстрація на вибіркові відкрита",
+			body: "До 20 вересня.",
+		}),
+		createMockFeedReviewItem({ id: "r1" }),
+	],
 });
 
-vi.mock("@tanstack/react-router", async () => ({
-	...(await vi.importActual("@tanstack/react-router")),
-	Link: (await import("@/test-utils/router")).MockLink,
-}));
+beforeEach(() => {
+	vi.clearAllMocks();
+	vi.spyOn(feedHook, "useFeed").mockReturnValue(feedState);
+});
 
 describe("FeedStrip", () => {
-	it("renders nothing when the feed flag is off", () => {
-		renderWithProviders(<FeedStrip />, { flags: { fe_feed: false } });
+	it("renders nothing when the feed flag is off", async () => {
+		await renderWithRouter(
+			<Providers flags={{ fe_feed: false }}>
+				<FeedStrip />
+			</Providers>,
+		);
 
 		expect(screen.queryByText("Стрічка оновлень")).not.toBeInTheDocument();
 	});
 
-	it("renders nothing until the flags have resolved", () => {
-		renderWithProviders(<FeedStrip />, {
-			flags: { fe_feed: true },
-			flagsReady: false,
-		});
+	it("renders nothing until the flags have resolved", async () => {
+		await renderWithRouter(
+			<Providers flags={{ fe_feed: true }} flagsReady={false}>
+				<FeedStrip />
+			</Providers>,
+		);
 
 		expect(screen.queryByText("Стрічка оновлень")).not.toBeInTheDocument();
 	});
 
-	it("renders the feed and links to /feed when the flag is on", () => {
-		renderWithProviders(<FeedStrip />, { flags: { fe_feed: true } });
+	it("renders the feed and links to /feed when the flag is on", async () => {
+		await renderWithRouter(
+			<Providers flags={{ fe_feed: true }}>
+				<FeedStrip />
+			</Providers>,
+		);
 
 		expect(screen.getByText("Стрічка оновлень")).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: /Уся стрічка/ })).toHaveAttribute(
@@ -62,8 +70,12 @@ describe("FeedStrip", () => {
 		).toHaveAttribute("href", "/feed");
 	});
 
-	it("orders pinned content ahead of unpinned content", () => {
-		renderWithProviders(<FeedStrip />, { flags: { fe_feed: true } });
+	it("orders pinned content ahead of unpinned content", async () => {
+		await renderWithRouter(
+			<Providers flags={{ fe_feed: true }}>
+				<FeedStrip />
+			</Providers>,
+		);
 
 		const pinned = screen.getByText("Хакатон факультету інформатики");
 		const unpinned = screen.getByText("Реєстрація на вибіркові відкрита");

@@ -4,6 +4,7 @@ import type { FeedPromoItem, FeedReviewItem } from "@/features/feed/feedTypes";
 import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import type {
 	CourseList,
+	CourseListFilters,
 	CourseTypeOption,
 	DepartmentOption,
 	FacultyOption,
@@ -30,12 +31,21 @@ export function createMockCourse(overrides?: Partial<CourseList>): CourseList {
 	return {
 		id: faker.string.uuid(),
 		title: faker.lorem.words(3),
+		description: faker.lorem.sentence(),
 		status: faker.helpers.arrayElement([
 			"PLANNED",
 			"ACTIVE",
 			"FINISHED",
 		] as const),
+		education_level: faker.helpers.arrayElement([
+			"BACHELOR",
+			"MASTER",
+		] as const),
+		department: faker.string.uuid(),
+		department_name: "Кафедра інформатики",
+		faculty: faker.string.uuid(),
 		faculty_name: faker.helpers.arrayElement(facultyNames),
+		faculty_custom_abbreviation: null,
 		avg_difficulty: faker.number.float({ min: 1, max: 5, fractionDigits: 2 }),
 		avg_usefulness: faker.number.float({
 			min: 1,
@@ -137,7 +147,7 @@ export function createMockCourseType(
 	const courseTypes = [
 		{ value: "COMPULSORY", label: "Обов'язковий" },
 		{ value: "ELECTIVE", label: "Вибірковий" },
-		{ value: "FREE_CHOICE", label: "Вільного вибору" },
+		{ value: "PROF_ORIENTED", label: "Професійно-орієнтований" },
 	] as const;
 	const courseType = faker.helpers.arrayElement(courseTypes);
 	return {
@@ -222,6 +232,39 @@ export function createMockFilterOptions(
 }
 
 /**
+ * Empty `applied_filters` envelope: the API returns every CourseListFilters
+ * key on each response, so tests stub all of them as unset.
+ */
+export function emptyCourseFilters(
+	overrides?: Partial<CourseListFilters>,
+): CourseListFilters {
+	return {
+		name: null,
+		type_kind: null,
+		instructor: null,
+		faculty: null,
+		department: null,
+		speciality: null,
+		education_level: null,
+		semester_year: null,
+		semester_terms: null,
+		credits_max: null,
+		credits_min: null,
+		avg_difficulty_min: null,
+		avg_difficulty_max: null,
+		avg_usefulness_min: null,
+		avg_usefulness_max: null,
+		ratings_count_min: null,
+		avg_difficulty_order: null,
+		avg_usefulness_order: null,
+		last_review_order: null,
+		page: null,
+		page_size: null,
+		...overrides,
+	};
+}
+
+/**
  * Factory for creating a mock promo feed item (the domain shape `useFeed`
  * returns, not the generated API shape)
  */
@@ -286,4 +329,9 @@ export function createMockFeedState(
 		loaderRef: { current: null },
 		...overrides,
 	};
+}
+
+/** Build a typed 2-element range, e.g. for filter value tuples. */
+export function createRange(min: number, max: number): [number, number] {
+	return [min, max];
 }

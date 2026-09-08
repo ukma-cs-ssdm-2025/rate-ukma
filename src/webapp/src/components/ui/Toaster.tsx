@@ -16,6 +16,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
 	return (
 		<Sonner
+			// SAFETY: sonner's theme prop accepts the same "light"|"dark"|"system" values next-themes uses.
 			theme={theme as ToasterProps["theme"]}
 			className="toaster group"
 			icons={{
@@ -26,6 +27,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
 				loading: <Loader2Icon className="size-4 animate-spin" />,
 			}}
 			style={
+				// SAFETY: sonner reads these custom properties from the style object
+				// to theme toasts; --vars are not part of CSSProperties.
 				{
 					"--normal-bg": "var(--popover)",
 					"--normal-text": "var(--popover-foreground)",

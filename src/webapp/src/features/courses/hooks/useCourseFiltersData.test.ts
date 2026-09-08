@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createMockFilterOptions } from "@/test-utils/factories";
+import { createMockFilterOptions, createRange } from "@/test-utils/factories";
 import { renderHookWithProviders as renderHook } from "@/test-utils/render";
 import { useCourseFiltersData } from "./useCourseFiltersData";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
@@ -139,7 +139,7 @@ describe("useCourseFiltersData", () => {
 		it("should include current filter values in range configs", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				diff: [2, 4] as [number, number],
+				diff: createRange(2, 4),
 			});
 
 			// Assert
@@ -400,8 +400,8 @@ describe("useCourseFiltersData", () => {
 		it("should count active rating filters", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				diff: [2, 4] as [number, number],
-				use: [3, 5] as [number, number],
+				diff: createRange(2, 4),
+				use: createRange(3, 5),
 			});
 
 			// Assert
@@ -435,7 +435,7 @@ describe("useCourseFiltersData", () => {
 		it("should detect active easy preset", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				diff: [1, 2.5] as [number, number],
+				diff: createRange(1, 2.5),
 			});
 
 			// Assert
@@ -445,7 +445,7 @@ describe("useCourseFiltersData", () => {
 		it("should detect active most-useful preset", () => {
 			// Act
 			const { result } = renderFiltersHook({
-				use: [4, 5] as [number, number],
+				use: createRange(4, 5),
 			});
 
 			// Assert

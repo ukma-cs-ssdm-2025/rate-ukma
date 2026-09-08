@@ -116,8 +116,8 @@ function getCommentAuthor(comment: CommentRead) {
 	return getAuthorName(comment);
 }
 
-function formatCount(value: number | undefined): string {
-	return new Intl.NumberFormat("uk-UA").format(value ?? 0);
+function formatCount(value: number): string {
+	return new Intl.NumberFormat("uk-UA").format(value);
 }
 
 function formatReply(value: number): string {
@@ -293,7 +293,7 @@ function CommentAvatar({ comment }: Readonly<{ comment: CommentRead }>) {
 		<UserAvatar
 			name={getCommentAuthor(comment)}
 			avatarUrl={comment.user_avatar_url}
-			isAnonymous={comment.is_anonymous ?? false}
+			isAnonymous={comment.is_anonymous}
 			className="size-7 shrink-0 text-[11px] font-semibold"
 		/>
 	);
@@ -318,7 +318,7 @@ function PreviewAuthorAvatar({
 			<UserAvatar
 				name={getAuthorName(author)}
 				avatarUrl={author.user_avatar_url}
-				isAnonymous={author.is_anonymous ?? false}
+				isAnonymous={author.is_anonymous}
 				className="relative size-full text-[10px] font-semibold"
 			/>
 		</span>
@@ -358,7 +358,7 @@ function RepliesPreview({
 	showReplies: boolean;
 	onToggle: () => void;
 }>) {
-	const replyCount = comment.replies_count ?? 0;
+	const replyCount = comment.replies_count;
 
 	if (replyCount === 0) {
 		return null;
@@ -403,22 +403,18 @@ function RatingCommentItem({
 	const deleteComment = useCommentsDestroy();
 
 	const repliesQuery = useInfiniteQuery({
-		queryKey: getCommentsRepliesRetrieveQueryKey(commentId ?? "", {
+		queryKey: getCommentsRepliesRetrieveQueryKey(commentId, {
 			page_size: REPLIES_PAGE_SIZE,
 		}),
 		queryFn: ({ pageParam }) =>
-			commentsRepliesRetrieve(commentId ?? "", {
+			commentsRepliesRetrieve(commentId, {
 				page_size: REPLIES_PAGE_SIZE,
-				page: pageParam as number,
+				page: pageParam,
 			}),
 		getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
 		initialPageParam: 1,
-		enabled: showReplies && Boolean(commentId),
+		enabled: showReplies,
 	});
-
-	if (!commentId) {
-		return null;
-	}
 
 	const replies = repliesQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -536,8 +532,8 @@ function RatingCommentItem({
 						<CommentForm
 							placeholder="Оновіть коментар"
 							submitLabel="Зберегти"
-							initialContent={comment.content ?? ""}
-							initialAnonymous={comment.is_anonymous ?? false}
+							initialContent={comment.content}
+							initialAnonymous={comment.is_anonymous}
 							isSubmitting={updateComment.isPending}
 							onSubmit={handleUpdate}
 							onCancel={() => setIsEditing(false)}
@@ -627,7 +623,7 @@ export function RatingComments({
 		queryFn: ({ pageParam }) =>
 			ratingsCommentsList(ratingId, {
 				page_size: COMMENTS_PAGE_SIZE,
-				page: pageParam as number,
+				page: pageParam,
 			}),
 		getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
 		initialPageParam: 1,
@@ -637,7 +633,7 @@ export function RatingComments({
 	const comments =
 		commentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
 	const loadedCommentsCount = comments.reduce(
-		(total, comment) => total + 1 + (comment.replies_count ?? 0),
+		(total, comment) => total + 1 + comment.replies_count,
 		0,
 	);
 	const displayedCount = Math.max(

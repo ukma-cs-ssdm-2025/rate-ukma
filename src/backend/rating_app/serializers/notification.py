@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 import structlog
@@ -39,6 +40,7 @@ class NotificationGroupSerializer(serializers.Serializer):
     rating_id = serializers.SerializerMethodField()
     course_id = serializers.SerializerMethodField()
 
+    @extend_schema_field(serializers.CharField())
     def get_message(self, obj) -> str:
         templates = NOTIFICATION_MESSAGE_TEMPLATES.get(obj.event_type)
         if templates is None:
@@ -66,9 +68,11 @@ class NotificationGroupSerializer(serializers.Serializer):
             others_count=others_count,
         )
 
+    @extend_schema_field(serializers.UUIDField(allow_null=True))
     def get_rating_id(self, obj) -> str | None:
         return _parse_rating_id(obj.group_key)
 
+    @extend_schema_field(serializers.UUIDField(allow_null=True))
     def get_course_id(self, obj) -> str | None:
         rating_id = _parse_rating_id(obj.group_key)
         if rating_id is None:

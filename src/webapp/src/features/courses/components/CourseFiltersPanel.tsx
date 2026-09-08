@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
+import { dictionaryLookup } from "@/lib/dictionary";
 import {
 	Tooltip,
 	TooltipContent,
@@ -42,7 +43,7 @@ import type {
 	EducationLevelEnum,
 	FilterOptions,
 } from "@/lib/api/generated";
-import { useFeatureFlag } from "@/lib/feature-flags";
+import { useFeatureFlag } from "@/lib/feature-flags/useFeatureFlag";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
@@ -234,6 +235,7 @@ function FilterSlider({
 				step={step}
 				value={localValue}
 				onValueChange={(val) => {
+					// SAFETY: a range slider always reports exactly two values.
 					const next = val as [number, number];
 					setLocalValue(next);
 					setInputValue([
@@ -241,7 +243,10 @@ function FilterSlider({
 						formatDecimalValue(next[1], { fallback: "0" }),
 					]);
 				}}
-				onValueCommit={(val) => onValueChange(val as [number, number])}
+				onValueCommit={(val) =>
+					// SAFETY: a range slider always reports exactly two values.
+					onValueChange(val as [number, number])
+				}
 				disabled={disabled}
 				data-testid={testId}
 				className="w-full"
@@ -256,11 +261,11 @@ function FilterSlider({
 
 // --- Filter Group ---
 
-const GROUP_ICONS: Record<string, React.ElementType> = {
+const GROUP_ICONS = {
 	rating: Star,
 	semester: CalendarDays,
 	structure: Building2,
-};
+} satisfies Record<string, React.ElementType>;
 
 const STORAGE_KEY_FILTER_GROUPS = "filters:open-groups";
 
@@ -355,20 +360,20 @@ function FilterPresets({
 
 // --- Select/Range rendering helpers ---
 
-const RANGE_FILTER_TEST_IDS: Record<string, string> = {
+const RANGE_FILTER_TEST_IDS = {
 	diff: testIds.filters.difficultySlider,
 	use: testIds.filters.usefulnessSlider,
 	credits: testIds.filters.creditsSelect,
-};
+} satisfies Record<string, string>;
 
-const SELECT_FILTER_TEST_IDS: Record<string, string> = {
+const SELECT_FILTER_TEST_IDS = {
 	year: testIds.filters.yearSelect,
 	faculty: testIds.filters.facultySelect,
 	dept: testIds.filters.departmentSelect,
 	spec: testIds.filters.specialitySelect,
 	type: testIds.filters.typeSelect,
 	instructor: testIds.filters.instructorSelect,
-};
+} satisfies Record<string, string>;
 
 function RangeFilters({
 	filters,
@@ -490,7 +495,7 @@ function SelectFilters({
 					disabledMessage,
 				}) => {
 					const currentValue = getSelectValue(key);
-					const testId = SELECT_FILTER_TEST_IDS[key];
+					const testId = dictionaryLookup(SELECT_FILTER_TEST_IDS, key);
 					const isDisabled = disabled || options.length === 0;
 
 					if (key === "instructor") {
@@ -617,6 +622,8 @@ function CourseFiltersContent({
 	const handleTermToggle = useCallback(
 		(values: string[]) => {
 			setWithPageReset({
+				// SAFETY: the toggle options only emit values from
+				// CoursesListSemesterTermsItem (FALL/SPRING/SUMMER).
 				term: values as CoursesListSemesterTermsItem[],
 			});
 		},
@@ -684,6 +691,8 @@ function CourseFiltersContent({
 					return;
 				case "type":
 					setWithPageReset({
+						// SAFETY: the select options only emit values from
+						// CoursesListTypeKind.
 						type: (value || null) as CoursesListTypeKind | null,
 					});
 					return;
@@ -695,6 +704,8 @@ function CourseFiltersContent({
 	const handleEducationLevelToggle = useCallback(
 		(value: string) => {
 			setWithPageReset({
+				// SAFETY: the toggle options only emit values from
+				// EducationLevelEnum.
 				eduLevel: (value || null) as EducationLevelEnum | null,
 			});
 		},

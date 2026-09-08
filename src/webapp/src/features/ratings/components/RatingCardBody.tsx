@@ -13,7 +13,7 @@ import type {
 	RatingInstructor,
 	RatingVoteStrType,
 } from "@/lib/api/generated";
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
