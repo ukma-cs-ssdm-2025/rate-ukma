@@ -41,13 +41,25 @@ function parameterName(parameter: Parameter, sourceText: string): string {
 		: sourceText.replace(/\s*:\s*unknown\s*$/u, "");
 }
 
+/**
+ * A type predicate is the sanctioned I/O boundary decoder: it takes
+ * unparsed input and establishes its contract, so its parameter is
+ * necessarily `unknown`.
+ */
+function returnsPredicate(node: ParameterOwner): boolean {
+	return (
+		"returnType" in node &&
+		node.returnType?.typeAnnotation.type === "TSTypePredicate"
+	);
+}
+
 /** Disallow unknown inputs except explicitly named error-cause enrichment. */
 export const noUnknownParametersRule = defineRule({
 	meta: {
 		type: "problem",
 		docs: {
 			description:
-				"Disallow explicitly unknown function parameters except `cause`; decode unknown input at its I/O boundary instead.",
+				"Disallow explicitly unknown function parameters except `cause` and type-predicate decoders; decode unknown input at its I/O boundary instead.",
 		},
 		messages: {
 			unknownParameter:
@@ -56,6 +68,7 @@ export const noUnknownParametersRule = defineRule({
 	},
 	createOnce(context) {
 		const checkParameters = (node: ParameterOwner) => {
+			if (returnsPredicate(node)) return;
 			for (const parameter of node.params) {
 				const annotation = parameterAnnotation(parameter);
 				if (annotation?.typeAnnotation.type !== "TSUnknownKeyword") continue;
