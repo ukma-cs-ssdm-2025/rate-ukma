@@ -12,7 +12,10 @@ const MAX_RETRY_DELAY = 30_000; // 30 seconds cap
  * /connection-error on the first failure, so retries would only multiply
  * slow connections while the user is being navigated away.
  */
-export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
+export function shouldRetryQuery(
+	failureCount: number,
+	error: unknown,
+): boolean {
 	const errorStatus = (error as { response?: { status?: number } } | null)
 		?.response?.status;
 	// Never retry on 401 (unauthorized) or 403 (forbidden)

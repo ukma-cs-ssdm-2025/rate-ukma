@@ -34,11 +34,9 @@ describe("RootProvider", () => {
 		it("retries 5xx up to three attempts, then stops", () => {
 			const serverError = { response: { status: 502 } };
 
-			expect([0, 1, 2].map((count) => shouldRetryQuery(count, serverError))).toEqual([
-				true,
-				true,
-				true,
-			]);
+			expect(
+				[0, 1, 2].map((count) => shouldRetryQuery(count, serverError)),
+			).toEqual([true, true, true]);
 			expect(shouldRetryQuery(3, serverError)).toBe(false);
 		});
 
