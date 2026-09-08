@@ -42,15 +42,16 @@ function parameterName(parameter: Parameter, sourceText: string): string {
 }
 
 /**
- * A type predicate is the sanctioned I/O boundary decoder: it takes
- * unparsed input and establishes its contract, so its parameter is
- * necessarily `unknown`.
+ * The parameter a type predicate narrows, if any. A predicate is the
+ * sanctioned I/O boundary decoder, so only its narrowed parameter may stay
+ * `unknown`; every other parameter is still checked.
  */
-function returnsPredicate(node: ParameterOwner): boolean {
-	return (
-		"returnType" in node &&
-		node.returnType?.typeAnnotation.type === "TSTypePredicate"
-	);
+function predicatedParameter(node: ParameterOwner): string | null {
+	if (!("returnType" in node)) return null;
+	const annotation = node.returnType?.typeAnnotation;
+	if (annotation?.type !== "TSTypePredicate") return null;
+	const predicateTarget = annotation.parameterName;
+	return predicateTarget.type === "Identifier" ? predicateTarget.name : null;
 }
 
 /** Disallow unknown inputs except explicitly named error-cause enrichment. */
@@ -59,7 +60,7 @@ export const noUnknownParametersRule = defineRule({
 		type: "problem",
 		docs: {
 			description:
-				"Disallow explicitly unknown function parameters except `cause` and type-predicate decoders; decode unknown input at its I/O boundary instead.",
+				"Disallow explicitly unknown function parameters except `cause` and the parameter a type predicate narrows; decode unknown input at its I/O boundary instead.",
 		},
 		messages: {
 			unknownParameter:
@@ -68,7 +69,7 @@ export const noUnknownParametersRule = defineRule({
 	},
 	createOnce(context) {
 		const checkParameters = (node: ParameterOwner) => {
-			if (returnsPredicate(node)) return;
+			const exempt = predicatedParameter(node);
 			for (const parameter of node.params) {
 				const annotation = parameterAnnotation(parameter);
 				if (annotation?.typeAnnotation.type !== "TSUnknownKeyword") continue;
@@ -76,7 +77,7 @@ export const noUnknownParametersRule = defineRule({
 					parameter,
 					context.sourceCode.getText(parameter),
 				);
-				if (name === "cause") continue;
+				if (name === "cause" || name === exempt) continue;
 				context.report({
 					node: annotation.typeAnnotation,
 					messageId: "unknownParameter",

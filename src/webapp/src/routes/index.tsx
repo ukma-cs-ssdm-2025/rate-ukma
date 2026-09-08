@@ -16,7 +16,7 @@ import { FeedStrip } from "@/features/feed/components/FeedStrip";
 import { PromoBanner } from "@/features/promo/components/PromoBanner";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
-import { withAuth } from "@/lib/auth";
+import { withAuth } from "@/lib/auth/withAuth";
 
 export function CoursesRoute() {
 	const [params, setParams] = useCourseFiltersParams();

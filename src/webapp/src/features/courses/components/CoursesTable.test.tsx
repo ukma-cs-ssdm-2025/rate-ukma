@@ -511,6 +511,9 @@ describe("Course Display", () => {
 					{
 						speciality_id: "spec-1",
 						speciality_title: "Інженерія програмного забезпечення",
+						speciality_alias: "ІПЗ",
+						faculty_name: "Факультет інформатики",
+						faculty_id: "faculty-1",
 						type_kind: "COMPULSORY" as const,
 					},
 				],
@@ -663,11 +666,12 @@ describe("Course Row Navigation", () => {
 		const user = userEvent.setup();
 		const courseId = "course-2";
 		const courseTitle = "Badges Course";
-
 		const specialities = Array.from({ length: 7 }, (_, i) => ({
 			speciality_id: `spec-${i + 1}`,
 			speciality_title: `Speciality ${i + 1}`,
+			speciality_alias: `S${i + 1}`,
 			faculty_name: "Факультет інформатики",
+			faculty_id: "faculty-1",
 			type_kind: "COMPULSORY" as const,
 		}));
 

@@ -9,7 +9,7 @@ const baseItem: FeedReviewItemType = {
 	kind: "review",
 	id: "r1",
 	createdAt: new Date().toISOString(),
-	courseId: "course-1",
+	courseId: "course-7f3a",
 	courseTitle: "Алгоритми та структури даних",
 	difficulty: 4.2,
 	usefulness: 4.8,
@@ -28,7 +28,7 @@ describe("FeedReviewItem", () => {
 		const link = screen.getByRole("link", {
 			name: "Алгоритми та структури даних",
 		});
-		expect(link).toHaveAttribute("href", "/courses/course-1");
+		expect(link).toHaveAttribute("href", "/courses/course-7f3a");
 	});
 
 	it("shows an arrow when the score differs from the course average", async () => {

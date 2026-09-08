@@ -131,8 +131,7 @@ function NotificationItem({
 	notification: NotificationGroup;
 	onClick?: (groupKey: string) => void;
 }>) {
-	const Icon =
-		dictionaryLookup(EVENT_ICONS, notification.event_type ?? "") ?? Bell;
+	const Icon = dictionaryLookup(EVENT_ICONS, notification.event_type) ?? Bell;
 	const isUpvote = notification.event_type === "RATING_UPVOTED";
 	const courseId = notification.course_id;
 

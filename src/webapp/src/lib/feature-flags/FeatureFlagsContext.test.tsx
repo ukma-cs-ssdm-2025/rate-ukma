@@ -3,9 +3,9 @@ import type { PropsWithChildren } from "react";
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import * as auth from "@/lib/auth";
-import type { AuthUser } from "@/lib/auth";
 import type { AuthContextValue } from "@/lib/auth/AuthContext";
+import * as useAuthModule from "@/lib/auth/useAuth";
+import type { AuthUser } from "@/lib/auth/useAuth";
 import * as generated from "../api/generated";
 
 import { FeatureFlagsProvider } from "./FeatureFlagsContext";
@@ -73,7 +73,7 @@ describe("feature flags", () => {
 				isError: false,
 			}) as ReturnType<typeof generated.useFlagsList>,
 		);
-		vi.spyOn(auth, "useAuth").mockImplementation(() => currentAuth);
+		vi.spyOn(useAuthModule, "useAuth").mockImplementation(() => currentAuth);
 	});
 
 	it("returns true for an enabled flag", () => {

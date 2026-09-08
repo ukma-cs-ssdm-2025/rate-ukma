@@ -60,7 +60,7 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 	const items = useMemo(
 		() =>
 			orderFeedItems(
-				data?.pages.flatMap((page) => page.items?.map(toFeedItem) ?? []) ?? [],
+				data?.pages.flatMap((page) => page.items.map(toFeedItem)) ?? [],
 			),
 		[data],
 	);
@@ -112,8 +112,9 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 	};
 }
 
-// Every field but `kind` generates as optional, since DRF marks read-only
-// fields as not required. Defaults keep the render path total.
+// Read models generate every field as required (nullable only where the wire
+// format allows null, e.g. promo `image_url`), so no defaults are needed —
+// only the snake_case renames remain.
 function toFeedItem(item: ApiFeedItem): FeedItem {
 	return item.kind === "promo" ? toPromoItem(item) : toReviewItem(item);
 }
@@ -121,15 +122,15 @@ function toFeedItem(item: ApiFeedItem): FeedItem {
 function toReviewItem(item: Extract<ApiFeedItem, { kind: "review" }>) {
 	return {
 		kind: "review",
-		id: item.id ?? "",
-		createdAt: item.occurred_at ?? "",
-		courseId: item.course_id ?? "",
-		courseTitle: item.course_title ?? "",
-		difficulty: item.difficulty ?? 0,
-		usefulness: item.usefulness ?? 0,
-		comment: item.comment ?? "",
-		courseAvgDifficulty: item.course_avg_difficulty ?? 0,
-		courseAvgUsefulness: item.course_avg_usefulness ?? 0,
+		id: item.id,
+		createdAt: item.occurred_at,
+		courseId: item.course_id,
+		courseTitle: item.course_title,
+		difficulty: item.difficulty,
+		usefulness: item.usefulness,
+		comment: item.comment,
+		courseAvgDifficulty: item.course_avg_difficulty,
+		courseAvgUsefulness: item.course_avg_usefulness,
 		semesterYear: item.semester_year,
 		semesterTerm: item.semester_term,
 	} satisfies FeedReviewItem;
@@ -138,11 +139,11 @@ function toReviewItem(item: Extract<ApiFeedItem, { kind: "review" }>) {
 function toPromoItem(item: Extract<ApiFeedItem, { kind: "promo" }>) {
 	return {
 		kind: "promo",
-		id: item.id ?? "",
-		createdAt: item.occurred_at ?? "",
+		id: item.id,
+		createdAt: item.occurred_at,
 		pinned: item.pinned,
-		title: item.title ?? "",
-		body: item.body ?? "",
+		title: item.title,
+		body: item.body,
 		label: item.label || undefined,
 		ctaLabel: item.cta_label || undefined,
 		ctaHref: item.cta_href || undefined,

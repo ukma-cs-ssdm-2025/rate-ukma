@@ -18,7 +18,7 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 import { testIds } from "@/lib/test-ids";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 

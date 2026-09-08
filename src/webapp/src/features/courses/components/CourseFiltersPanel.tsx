@@ -43,7 +43,7 @@ import type {
 	EducationLevelEnum,
 	FilterOptions,
 } from "@/lib/api/generated";
-import { useFeatureFlag } from "@/lib/feature-flags";
+import { useFeatureFlag } from "@/lib/feature-flags/useFeatureFlag";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";

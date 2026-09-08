@@ -2,9 +2,9 @@ import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
-	FeedItem as ApiFeedItem,
 	FeedListParams,
 	FeedPage,
+	FeedPromoItem as ApiFeedPromoItem,
 } from "@/lib/api/generated";
 import * as apiClientModule from "@/lib/api/apiClient";
 import { act, renderWithProviders, waitFor } from "@/test-utils/render";
@@ -22,16 +22,21 @@ function requestParams(call: number): FeedListParams {
 }
 
 /** The generated (snake_case) shape the endpoint returns, not the domain one. */
-function apiPromo(overrides: Partial<ApiFeedItem> = {}): ApiFeedItem {
-	// SAFETY: promo fixtures always carry the literal promo kind with defaults.
+function apiPromo(overrides: Partial<ApiFeedPromoItem> = {}): ApiFeedPromoItem {
 	return {
 		kind: "promo",
 		id: "p1",
 		occurred_at: "2026-09-01T10:00:00.000Z",
+		pinned: false,
 		title: "Хакатон",
 		body: "48 годин.",
+		accent: "BRAND",
+		label: "Оголошення",
+		cta_label: "Детальніше",
+		cta_href: "https://example.com/hackathon",
+		image_url: null,
 		...overrides,
-	} as ApiFeedItem;
+	};
 }
 
 /**
