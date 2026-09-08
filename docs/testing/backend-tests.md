@@ -21,6 +21,7 @@ The mechanical half of these rules is enforced by ruff's `PT` (flake8-pytest-sty
 `pytest.ini` registers two markers: `integration` and `e2e`. There is no `unit` marker; a test without markers is a unit test.
 
 - Every test that touches the database carries both `@pytest.mark.django_db` and `@pytest.mark.integration`, in that order, directly above the function. A file where every test hits the database may declare `pytestmark = [pytest.mark.django_db, pytest.mark.integration]` once at module level.
+- The converse does not hold: the cache-layer tests in `rateukma/caching/test_cache.py` carry `integration` without touching the database (they exercise the cache layer against a mocked redis client).
 - `@pytest.mark.e2e` is reserved for Playwright flows in `src/webapp`; backend tests do not use it.
 
 ## Test data by layer
@@ -50,7 +51,7 @@ cd src/backend
 uv sync --extra test --extra linting   # pytest and ruff are extras, not base dependencies
 cp ../.env.sample .env                 # settings read DJANGO_SECRET_KEY even under settings.testing
 uv run pytest rating_app/repositories/test_course_repository.py -q
-uv run pytest -m integration -q        # DB-backed tests only
+uv run pytest -m integration -q        # integration-marked tests (mostly, not only, DB-backed)
 uv run ruff check --select PT .        # pytest-style lint
 ```
 
