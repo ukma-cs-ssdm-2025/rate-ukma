@@ -121,11 +121,10 @@ stable selectors go in `lib/test-ids.ts`; check `src/components` and
 Commands (`src/webapp/package.json`): `pnpm start`, `pnpm test` (vitest),
 `pnpm test:e2e` (playwright, `playwright.config.ts`), `pnpm check`
 (lint + format:check + typecheck — the CI gate).
-
-## 6. Conventions before your first MR
-
-- Commit style: `semantic-commit.sh` at the root; MR titles look like
-  `fix(#NNN): ...`.
+- Each app has agent notes worth one skim: `src/backend/AGENTS.md`,
+  `src/webapp/AGENTS.md`.
+- Agents do the typing: your job is the goal, the constraints, and the
+  verification. Never paste secrets, `.env` contents, or user data into a prompt.
 - New files need the GPL v3 header from `CONTRIBUTING.md`.
 - New architecture choice? Write an ADR from `docs/architecture/decisions/TEMPLATE.md`
   and link it in `INDEX.md`.
