@@ -25,10 +25,7 @@ export function useFeatureFlag(name: FeatureFlagName): boolean {
  * wrong variant. `useFeatureFlag` alone reports an unresolved flag as `false`,
  * which is indistinguishable from "off".
  */
-export function useFeatureFlagState(name: FeatureFlagName): {
-	enabled: boolean;
-	isReady: boolean;
-} {
+export function useFeatureFlagState(name: FeatureFlagName) {
 	const { flags, isReady } = useFeatureFlags();
 	return { enabled: flags[name] ?? false, isReady };
 }
