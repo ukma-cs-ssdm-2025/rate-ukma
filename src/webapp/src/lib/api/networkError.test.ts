@@ -2,6 +2,7 @@ import axios, { type AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+	BOUNCE_WINDOW_MS,
 	CONNECTION_ERROR_PATH,
 	handleConnectionIssue,
 	isOffline,
@@ -57,6 +58,7 @@ describe("networkError", () => {
 
 	afterEach(() => {
 		resetRedirectFlag();
+		sessionStorage.clear();
 		vi.unstubAllGlobals();
 	});
 
@@ -265,6 +267,12 @@ describe("networkError", () => {
 		const timeoutError = () => createAxiosError({ response: undefined });
 		const redirectUrl = () =>
 			new URL(mockWindowReplace.mock.calls[0][0] as string);
+		const startCycle = (ageMs = 0) => {
+			sessionStorage.setItem(
+				"rateukma.connection-error-ts",
+				String(Date.now() - ageMs),
+			);
+		};
 
 		it("stamps bounces=1 on the first redirect", () => {
 			stubNavigatorOnline();
@@ -274,7 +282,7 @@ describe("networkError", () => {
 			expect(redirectUrl().searchParams.get("bounces")).toBe("1");
 		});
 
-		it("increments the counter carried by the return target", () => {
+		it("increments the counter within one outage", () => {
 			mockWindowReplace = stubBrowserLocation({
 				pathname: "/",
 				search: "?bounces=2",
@@ -282,10 +290,26 @@ describe("networkError", () => {
 				origin: "http://localhost:3000",
 			}).replace;
 			stubNavigatorOnline();
+			startCycle();
 
 			handleConnectionIssue(timeoutError());
 
 			expect(redirectUrl().searchParams.get("bounces")).toBe("3");
+		});
+
+		it("restarts at 1 when the previous cycle aged out", () => {
+			mockWindowReplace = stubBrowserLocation({
+				pathname: "/",
+				search: "?bounces=5",
+				hash: "",
+				origin: "http://localhost:3000",
+			}).replace;
+			stubNavigatorOnline();
+			startCycle(BOUNCE_WINDOW_MS + 60_000);
+
+			handleConnectionIssue(timeoutError());
+
+			expect(redirectUrl().searchParams.get("bounces")).toBe("1");
 		});
 
 		it.each(["?foo=bar", "?bounces=nope", "?bounces=-4"])(
