@@ -13,15 +13,16 @@ import {
 import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpecialityBadges";
 import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
 import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
+import { dictionaryLookup } from "@/lib/dictionary";
 import { cn } from "@/lib/utils";
 
 const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
 
-const TERM_ORDER: Record<string, number> = {
+const TERM_ORDER = {
 	FALL: 0,
 	SPRING: 1,
 	SUMMER: 2,
-};
+} satisfies Record<string, number>;
 
 function formatCredits(credits?: string): string | null {
 	if (!credits) return null;
@@ -51,8 +52,10 @@ function sortOfferings(items: CourseOffering[]): CourseOffering[] {
 		const yearB = b.semester_year ?? 0;
 		if (yearA !== yearB) return yearB - yearA;
 
-		const termA = TERM_ORDER[(a.semester_term ?? "").toUpperCase()] ?? 99;
-		const termB = TERM_ORDER[(b.semester_term ?? "").toUpperCase()] ?? 99;
+		const termA =
+			dictionaryLookup(TERM_ORDER, (a.semester_term ?? "").toUpperCase()) ?? 99;
+		const termB =
+			dictionaryLookup(TERM_ORDER, (b.semester_term ?? "").toUpperCase()) ?? 99;
 		return termA - termB;
 	});
 }
@@ -144,8 +147,10 @@ function sortTerms(terms: readonly CourseOfferingTerm[]): CourseOfferingTerm[] {
 		const yearB = b.semester_year ?? 0;
 		if (yearA !== yearB) return yearA - yearB;
 
-		const termA = TERM_ORDER[(a.semester_term ?? "").toUpperCase()] ?? 99;
-		const termB = TERM_ORDER[(b.semester_term ?? "").toUpperCase()] ?? 99;
+		const termA =
+			dictionaryLookup(TERM_ORDER, (a.semester_term ?? "").toUpperCase()) ?? 99;
+		const termB =
+			dictionaryLookup(TERM_ORDER, (b.semester_term ?? "").toUpperCase()) ?? 99;
 		return termA - termB;
 	});
 }

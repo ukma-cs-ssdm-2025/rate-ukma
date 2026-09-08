@@ -9,9 +9,9 @@ afterEach(() => {
 });
 
 // Mock window.matchMedia for responsive design tests
-Object.defineProperty(globalThis, "matchMedia", {
-	writable: true,
-	value: vi.fn().mockImplementation(function (query) {
+vi.stubGlobal(
+	"matchMedia",
+	vi.fn().mockImplementation(function (query: string) {
 		return {
 			matches: false,
 			media: query,
@@ -23,26 +23,32 @@ Object.defineProperty(globalThis, "matchMedia", {
 			dispatchEvent: vi.fn(),
 		};
 	}),
-});
+);
 
 // Mock IntersectionObserver for components that use it
-globalThis.IntersectionObserver = vi.fn().mockImplementation(function () {
-	return {
-		observe: vi.fn(),
-		unobserve: vi.fn(),
-		disconnect: vi.fn(),
-		root: null,
-		rootMargin: "",
-		thresholds: [],
-		takeRecords: () => [],
-	};
-}) as unknown as typeof IntersectionObserver;
+vi.stubGlobal(
+	"IntersectionObserver",
+	vi.fn().mockImplementation(function () {
+		return {
+			observe: vi.fn(),
+			unobserve: vi.fn(),
+			disconnect: vi.fn(),
+			root: null,
+			rootMargin: "",
+			thresholds: [],
+			takeRecords: () => [],
+		};
+	}),
+);
 
 // Mock ResizeObserver for components that use it
-globalThis.ResizeObserver = vi.fn().mockImplementation(function () {
-	return {
-		observe: vi.fn(),
-		unobserve: vi.fn(),
-		disconnect: vi.fn(),
-	};
-}) as unknown as typeof ResizeObserver;
+vi.stubGlobal(
+	"ResizeObserver",
+	vi.fn().mockImplementation(function () {
+		return {
+			observe: vi.fn(),
+			unobserve: vi.fn(),
+			disconnect: vi.fn(),
+		};
+	}),
+);

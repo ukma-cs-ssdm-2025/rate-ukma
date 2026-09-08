@@ -165,7 +165,7 @@ function resolveContent({
 	error: unknown;
 	totalCourses: number;
 	isRefetching: boolean;
-	refetch: () => undefined | Promise<unknown>;
+	refetch: () => void;
 	filter: RatingFilter;
 	groupedRatings: ReturnType<typeof groupRatingsByYearAndSemester>;
 	collapsedState: Record<string, boolean>;

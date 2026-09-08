@@ -23,6 +23,8 @@ function Harness({
 	const [sortState, setSortState] = useState<SortState>(false);
 
 	const column = useMemo(() => {
+		// SAFETY: the fake implements every Column member the header component
+		// touches; the rest of Column is never accessed in this test.
 		return {
 			getCanSort: () => canSort,
 			getIsSorted: () => sortState,
@@ -34,7 +36,7 @@ function Harness({
 				onClearSorting();
 				setSortState(false);
 			},
-		} as unknown as Column<unknown, unknown>;
+		} as Column<unknown, unknown>;
 	}, [canSort, onClearSorting, onToggleSorting, sortState]);
 
 	return (

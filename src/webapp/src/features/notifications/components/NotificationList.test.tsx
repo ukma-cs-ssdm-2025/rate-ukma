@@ -4,37 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { NotificationGroup } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { renderWithProviders } from "@/test-utils/render";
+import { Providers } from "@/test-utils/render";
+import { renderWithRouter } from "@/test-utils/router";
 import { NotificationList } from "./NotificationList";
-
-vi.mock("@tanstack/react-router", async () => {
-	const actual = await vi.importActual("@tanstack/react-router");
-	return {
-		...actual,
-		Link: ({
-			to,
-			params,
-			children,
-			className,
-			onClick,
-		}: {
-			to: string;
-			params?: Record<string, string>;
-			children: React.ReactNode;
-			className?: string;
-			onClick?: () => void;
-		}) => (
-			<a
-				href={to}
-				data-params={JSON.stringify(params)}
-				className={className}
-				onClick={onClick}
-			>
-				{children}
-			</a>
-		),
-	};
-});
 
 function createNotification(
 	overrides?: Partial<NotificationGroup>,
@@ -55,9 +27,11 @@ function createNotification(
 }
 
 describe("NotificationList", () => {
-	it("should show loading state", () => {
-		renderWithProviders(
-			<NotificationList notifications={[]} isLoading={true} />,
+	it("should show loading state", async () => {
+		await renderWithRouter(
+			<Providers>
+				<NotificationList notifications={[]} isLoading={true} />
+			</Providers>,
 		);
 
 		expect(
@@ -66,9 +40,11 @@ describe("NotificationList", () => {
 		expect(screen.getByText("Завантаження...")).toBeInTheDocument();
 	});
 
-	it("should show empty state when no notifications", () => {
-		renderWithProviders(
-			<NotificationList notifications={[]} isLoading={false} />,
+	it("should show empty state when no notifications", async () => {
+		await renderWithRouter(
+			<Providers>
+				<NotificationList notifications={[]} isLoading={false} />
+			</Providers>,
 		);
 
 		expect(screen.getByTestId(testIds.notifications.empty)).toBeInTheDocument();
@@ -79,13 +55,15 @@ describe("NotificationList", () => {
 		const user = userEvent.setup();
 		const onRetry = vi.fn();
 
-		renderWithProviders(
-			<NotificationList
-				notifications={[]}
-				isLoading={false}
-				isError={true}
-				onRetry={onRetry}
-			/>,
+		await renderWithRouter(
+			<Providers>
+				<NotificationList
+					notifications={[]}
+					isLoading={false}
+					isError={true}
+					onRetry={onRetry}
+				/>
+			</Providers>,
 		);
 
 		expect(screen.getByTestId(testIds.notifications.error)).toBeInTheDocument();
@@ -95,7 +73,7 @@ describe("NotificationList", () => {
 		expect(onRetry).toHaveBeenCalledTimes(1);
 	});
 
-	it("should render notification items", () => {
+	it("should render notification items", async () => {
 		const notifications = [
 			createNotification({ group_key: "key-1", message: "Перше сповіщення" }),
 			createNotification({
@@ -106,8 +84,10 @@ describe("NotificationList", () => {
 			}),
 		];
 
-		renderWithProviders(
-			<NotificationList notifications={notifications} isLoading={false} />,
+		await renderWithRouter(
+			<Providers>
+				<NotificationList notifications={notifications} isLoading={false} />
+			</Providers>,
 		);
 
 		expect(screen.getByTestId(testIds.notifications.list)).toBeInTheDocument();
@@ -123,12 +103,14 @@ describe("NotificationList", () => {
 			createNotification({ group_key: "click-key", course_id: "c-1" }),
 		];
 
-		renderWithProviders(
-			<NotificationList
-				notifications={notifications}
-				isLoading={false}
-				onNotificationClick={onClick}
-			/>,
+		await renderWithRouter(
+			<Providers>
+				<NotificationList
+					notifications={notifications}
+					isLoading={false}
+					onNotificationClick={onClick}
+				/>
+			</Providers>,
 		);
 
 		const link = screen.getByRole("link");
@@ -136,13 +118,15 @@ describe("NotificationList", () => {
 		expect(onClick).toHaveBeenCalledWith("click-key");
 	});
 
-	it("should not render as link when course_id is missing", () => {
+	it("should not render as link when course_id is missing", async () => {
 		const notifications = [
 			createNotification({ group_key: "no-link", course_id: null }),
 		];
 
-		renderWithProviders(
-			<NotificationList notifications={notifications} isLoading={false} />,
+		await renderWithRouter(
+			<Providers>
+				<NotificationList notifications={notifications} isLoading={false} />
+			</Providers>,
 		);
 
 		expect(screen.queryByRole("link")).not.toBeInTheDocument();
@@ -153,13 +137,15 @@ describe("NotificationList", () => {
 		const onLoadMore = vi.fn();
 		const notifications = [createNotification()];
 
-		renderWithProviders(
-			<NotificationList
-				notifications={notifications}
-				isLoading={false}
-				hasMore={true}
-				onLoadMore={onLoadMore}
-			/>,
+		await renderWithRouter(
+			<Providers>
+				<NotificationList
+					notifications={notifications}
+					isLoading={false}
+					hasMore={true}
+					onLoadMore={onLoadMore}
+				/>
+			</Providers>,
 		);
 
 		const loadMoreButton = screen.getByTestId(testIds.notifications.loadMore);
@@ -170,31 +156,35 @@ describe("NotificationList", () => {
 		expect(onLoadMore).toHaveBeenCalledTimes(1);
 	});
 
-	it("should disable load more button while loading more", () => {
+	it("should disable load more button while loading more", async () => {
 		const notifications = [createNotification()];
 
-		renderWithProviders(
-			<NotificationList
-				notifications={notifications}
-				isLoading={false}
-				hasMore={true}
-				isLoadingMore={true}
-				onLoadMore={vi.fn()}
-			/>,
+		await renderWithRouter(
+			<Providers>
+				<NotificationList
+					notifications={notifications}
+					isLoading={false}
+					hasMore={true}
+					isLoadingMore={true}
+					onLoadMore={vi.fn()}
+				/>
+			</Providers>,
 		);
 
 		expect(screen.getByTestId(testIds.notifications.loadMore)).toBeDisabled();
 	});
 
-	it("should not show load more button when hasMore is false", () => {
+	it("should not show load more button when hasMore is false", async () => {
 		const notifications = [createNotification()];
 
-		renderWithProviders(
-			<NotificationList
-				notifications={notifications}
-				isLoading={false}
-				hasMore={false}
-			/>,
+		await renderWithRouter(
+			<Providers>
+				<NotificationList
+					notifications={notifications}
+					isLoading={false}
+					hasMore={false}
+				/>
+			</Providers>,
 		);
 
 		expect(
@@ -202,13 +192,15 @@ describe("NotificationList", () => {
 		).not.toBeInTheDocument();
 	});
 
-	it("should show unread indicator for unread notifications", () => {
+	it("should show unread indicator for unread notifications", async () => {
 		const notifications = [
 			createNotification({ group_key: "unread", is_unread: true }),
 		];
 
-		renderWithProviders(
-			<NotificationList notifications={notifications} isLoading={false} />,
+		await renderWithRouter(
+			<Providers>
+				<NotificationList notifications={notifications} isLoading={false} />
+			</Providers>,
 		);
 
 		const item = screen.getByTestId(testIds.notifications.item);
@@ -216,13 +208,15 @@ describe("NotificationList", () => {
 		expect(dot).toBeInTheDocument();
 	});
 
-	it("should not show unread indicator for read notifications", () => {
+	it("should not show unread indicator for read notifications", async () => {
 		const notifications = [
 			createNotification({ group_key: "read", is_unread: false }),
 		];
 
-		renderWithProviders(
-			<NotificationList notifications={notifications} isLoading={false} />,
+		await renderWithRouter(
+			<Providers>
+				<NotificationList notifications={notifications} isLoading={false} />
+			</Providers>,
 		);
 
 		const item = screen.getByTestId(testIds.notifications.item);

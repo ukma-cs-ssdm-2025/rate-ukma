@@ -3,6 +3,11 @@ import type { PropsWithChildren } from "react";
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import * as auth from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth";
+import type { AuthContextValue } from "@/lib/auth/AuthContext";
+import * as generated from "../api/generated";
+
 import { FeatureFlagsProvider } from "./FeatureFlagsContext";
 import {
 	type FeatureFlagName,
@@ -12,28 +17,37 @@ import {
 } from "./useFeatureFlag";
 
 const FLAGS_QUERY_KEY = ["/api/v1/flags/"];
-const mockUseFlagsList = vi.fn();
 // Fixture names, cast so the test does not depend on the live allowlist.
 const FE_EXAMPLE = "fe_example" as FeatureFlagName;
 const FE_MISSING = "fe_missing" as FeatureFlagName;
+let mockUseFlagsList: ReturnType<typeof vi.spyOn>;
+let currentAuth: AuthContextValue;
 
-const { authState } = vi.hoisted(() => ({
-	authState: {
-		current: { status: "unauthenticated", user: null } as {
-			status: string;
-			user: { id: number } | null;
-		},
-	},
-}));
+interface FlagsQueryStub {
+	data: { flags: Record<string, boolean> } | undefined;
+	isSuccess: boolean;
+	isError: boolean;
+}
 
-vi.mock("../api/generated", () => ({
-	useFlagsList: (...args: unknown[]) => mockUseFlagsList(...args),
-	getFlagsListQueryKey: () => [...FLAGS_QUERY_KEY],
-}));
+function flagsStub(over: FlagsQueryStub) {
+	return over;
+}
 
-vi.mock("@/lib/auth", () => ({
-	useAuth: () => authState.current,
-}));
+function createAuthState(
+	status: AuthContextValue["status"],
+	user: AuthUser | null,
+): AuthContextValue {
+	return {
+		status,
+		user,
+		sessionExpired: false,
+		isStudent: status === "authenticated",
+		loginWithMicrosoft: vi.fn(),
+		loginWithDjango: vi.fn(() => Promise.resolve()),
+		logout: vi.fn(() => Promise.resolve()),
+		checkAuth: vi.fn(),
+	};
+}
 
 function wrapper({ children }: PropsWithChildren) {
 	return <FeatureFlagsProvider>{children}</FeatureFlagsProvider>;
@@ -48,12 +62,17 @@ describe("feature flags", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		localStorage.clear(); // drop any ff:overrides leaked from other tests
-		authState.current = { status: "unauthenticated", user: null };
-		mockUseFlagsList.mockReturnValue({
-			data: { flags: { [FE_EXAMPLE]: true } },
-			isSuccess: true,
-			isError: false,
-		});
+		currentAuth = createAuthState("unauthenticated", null);
+		mockUseFlagsList = vi.spyOn(generated, "useFlagsList");
+		mockUseFlagsList.mockReturnValue(
+			// SAFETY: FeatureFlagsProvider only reads data/isSuccess/isError.
+			flagsStub({
+				data: { flags: { [FE_EXAMPLE]: true } },
+				isSuccess: true,
+				isError: false,
+			}) as ReturnType<typeof generated.useFlagsList>,
+		);
+		vi.spyOn(auth, "useAuth").mockImplementation(() => currentAuth);
 	});
 
 	it("returns true for an enabled flag", () => {
@@ -71,11 +90,14 @@ describe("feature flags", () => {
 	});
 
 	it("separates an unresolved flag from an off one", () => {
-		mockUseFlagsList.mockReturnValue({
-			data: undefined,
-			isSuccess: false,
-			isError: false,
-		});
+		mockUseFlagsList.mockReturnValue(
+			// SAFETY: FeatureFlagsProvider only reads data/isSuccess/isError.
+			flagsStub({
+				data: undefined,
+				isSuccess: false,
+				isError: false,
+			}) as ReturnType<typeof generated.useFlagsList>,
+		);
 		const { result } = renderHook(() => useFeatureFlagState(FE_EXAMPLE), {
 			wrapper,
 		});
@@ -83,22 +105,28 @@ describe("feature flags", () => {
 	});
 
 	it("is not ready and exposes no flags before the query resolves", () => {
-		mockUseFlagsList.mockReturnValue({
-			data: undefined,
-			isSuccess: false,
-			isError: false,
-		});
+		mockUseFlagsList.mockReturnValue(
+			// SAFETY: FeatureFlagsProvider only reads data/isSuccess/isError.
+			flagsStub({
+				data: undefined,
+				isSuccess: false,
+				isError: false,
+			}) as ReturnType<typeof generated.useFlagsList>,
+		);
 		const { result } = renderHook(() => useFeatureFlags(), { wrapper });
 		expect(result.current.isReady).toBe(false);
 		expect(result.current.flags).toEqual({});
 	});
 
 	it("is ready with default-off flags after a failed fetch", () => {
-		mockUseFlagsList.mockReturnValue({
-			data: undefined,
-			isSuccess: false,
-			isError: true,
-		});
+		mockUseFlagsList.mockReturnValue(
+			// SAFETY: FeatureFlagsProvider only reads data/isSuccess/isError.
+			flagsStub({
+				data: undefined,
+				isSuccess: false,
+				isError: true,
+			}) as ReturnType<typeof generated.useFlagsList>,
+		);
 		const { result } = renderHook(() => useFeatureFlags(), { wrapper });
 		expect(result.current.isReady).toBe(true);
 		expect(result.current.flags).toEqual({});
@@ -109,7 +137,7 @@ describe("feature flags", () => {
 		const anonKey = lastQueryKey();
 		expect(anonKey).toEqual([...FLAGS_QUERY_KEY, "unauthenticated", null]);
 
-		authState.current = { status: "authenticated", user: { id: 1 } };
+		currentAuth = createAuthState("authenticated", { id: 1 });
 		rerender();
 		expect(lastQueryKey()).toEqual([...FLAGS_QUERY_KEY, "authenticated", 1]);
 	});

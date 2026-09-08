@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import { getHttpErrorStatus } from "@/lib/api/networkError";
+
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
 const MAX_RETRY_ATTEMPTS = 3;
 const MAX_RETRY_DELAY = 30_000; // 30 seconds cap

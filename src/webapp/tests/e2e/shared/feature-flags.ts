@@ -21,7 +21,9 @@ export async function setFeatureFlagOverride(
 				const parsed: unknown = JSON.parse(
 					window.localStorage.getItem(KEY) ?? "{}",
 				);
-				if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+				if (parsed instanceof Object && !Array.isArray(parsed)) {
+					// SAFETY: instance checks guarantee only plain JSON objects are
+					// treated as the boolean record the app reads back.
 					current = parsed as Record<string, boolean>;
 				}
 			} catch {

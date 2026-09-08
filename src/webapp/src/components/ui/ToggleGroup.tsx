@@ -40,6 +40,7 @@ function ToggleGroup({
 			data-variant={variant}
 			data-size={size}
 			data-spacing={spacing}
+			// SAFETY: --gap is a custom CSS variable consumed by the gap-[--gap] utility.
 			style={{ "--gap": spacing } as CSSProperties}
 			className={cn(
 				"group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-md data-[spacing=default]:data-[variant=outline]:shadow-xs",

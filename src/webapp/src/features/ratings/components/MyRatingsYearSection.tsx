@@ -3,7 +3,7 @@ import { MyRatingsSemesterSection } from "./MyRatingsSemesterSection";
 
 interface MyRatingsYearSectionProps {
 	yearGroup: YearGroup;
-	onRatingChanged: () => undefined | Promise<unknown>;
+	onRatingChanged: () => void;
 	collapsedState: Record<string, boolean>;
 	onToggle: (key: string, isOpen: boolean) => void;
 }

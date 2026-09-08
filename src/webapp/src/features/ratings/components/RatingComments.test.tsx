@@ -5,62 +5,18 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import * as Toaster from "@/components/ui/Toaster";
 import type { CommentRead } from "@/lib/api/generated";
+import * as generated from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
+import { createMutationStub } from "@/test-utils/mutation-stub";
 import { RatingComments } from "./RatingComments";
 
-const apiMocks = vi.hoisted(() => ({
-	ratingsCommentsList: vi.fn(),
-	commentsRepliesRetrieve: vi.fn(),
-	createComment: vi.fn(),
-	updateComment: vi.fn(),
-	deleteComment: vi.fn(),
-	toastSuccess: vi.fn(),
-	toastError: vi.fn(),
-}));
-
-vi.mock("@/lib/auth", () => ({
-	useAuth: () => ({
-		user: { id: 7 },
-	}),
-}));
-
-vi.mock("@/components/ui/Toaster", () => ({
-	toast: {
-		success: apiMocks.toastSuccess,
-		error: apiMocks.toastError,
-	},
-}));
-
-vi.mock("@/lib/api/generated", () => ({
-	commentsRepliesRetrieve: apiMocks.commentsRepliesRetrieve,
-	getCommentsRepliesRetrieveQueryKey: (
-		commentId?: string,
-		params?: Record<string, unknown>,
-	) => ["comment-replies", commentId, params].filter(Boolean),
-	getCoursesRatingsListQueryKey: (courseId?: string) => [
-		"course-ratings",
-		courseId,
-	],
-	getRatingsCommentsListQueryKey: (
-		ratingId?: string,
-		params?: Record<string, unknown>,
-	) => ["rating-comments", ratingId, params].filter(Boolean),
-	ratingsCommentsList: apiMocks.ratingsCommentsList,
-	useCommentsDestroy: () => ({
-		mutateAsync: apiMocks.deleteComment,
-		isPending: false,
-	}),
-	useCommentsPartialUpdate: () => ({
-		mutateAsync: apiMocks.updateComment,
-		isPending: false,
-	}),
-	useRatingsCommentsCreate: () => ({
-		mutateAsync: apiMocks.createComment,
-		isPending: false,
-	}),
-}));
-
+let mockRatingsCommentsList: ReturnType<typeof vi.spyOn>;
+let mockCommentsRepliesRetrieve: ReturnType<typeof vi.spyOn>;
+let mockCreateComment: ReturnType<typeof vi.fn>;
+let mockUpdateComment: ReturnType<typeof vi.fn>;
+let mockDeleteComment: ReturnType<typeof vi.fn>;
 function renderWithQuery(ui: ReactElement) {
 	const queryClient = new QueryClient({
 		defaultOptions: {
@@ -98,11 +54,36 @@ function mockCommentList(items: Partial<CommentRead>[]) {
 describe("RatingComments", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		apiMocks.ratingsCommentsList.mockResolvedValue(mockCommentList([]));
-		apiMocks.commentsRepliesRetrieve.mockResolvedValue(mockCommentList([]));
-		apiMocks.createComment.mockResolvedValue({});
-		apiMocks.updateComment.mockResolvedValue({});
-		apiMocks.deleteComment.mockResolvedValue(undefined);
+		mockRatingsCommentsList = vi
+			.spyOn(generated, "ratingsCommentsList")
+			.mockResolvedValue(mockCommentList([]));
+		mockCommentsRepliesRetrieve = vi
+			.spyOn(generated, "commentsRepliesRetrieve")
+			.mockResolvedValue(mockCommentList([]));
+		mockCreateComment = vi.fn().mockResolvedValue({});
+		mockUpdateComment = vi.fn().mockResolvedValue({});
+		mockDeleteComment = vi.fn().mockResolvedValue(undefined);
+		// Stub sonner toasts so failed saves do not reach the real DOM.
+		vi.spyOn(Toaster.toast, "success").mockImplementation(() => "");
+		vi.spyOn(Toaster.toast, "error").mockImplementation(() => "");
+		vi.spyOn(generated, "useCommentsDestroy").mockReturnValue(
+			// SAFETY: RatingComments only reads mutateAsync and isPending.
+			createMutationStub({ mutateAsync: mockDeleteComment }) as ReturnType<
+				typeof generated.useCommentsDestroy
+			>,
+		);
+		vi.spyOn(generated, "useCommentsPartialUpdate").mockReturnValue(
+			// SAFETY: RatingComments only reads mutateAsync and isPending.
+			createMutationStub({ mutateAsync: mockUpdateComment }) as ReturnType<
+				typeof generated.useCommentsPartialUpdate
+			>,
+		);
+		vi.spyOn(generated, "useRatingsCommentsCreate").mockReturnValue(
+			// SAFETY: RatingComments only reads mutateAsync and isPending.
+			createMutationStub({ mutateAsync: mockCreateComment }) as ReturnType<
+				typeof generated.useRatingsCommentsCreate
+			>,
+		);
 	});
 
 	it("shows the first three rating comment avatars reversed in the collapsed button", () => {
@@ -205,7 +186,7 @@ describe("RatingComments", () => {
 
 	it("loads top-level comments when expanded", async () => {
 		const user = userEvent.setup();
-		apiMocks.ratingsCommentsList.mockResolvedValue(
+		mockRatingsCommentsList.mockResolvedValue(
 			mockCommentList([
 				{
 					id: "comment-1",
@@ -230,7 +211,7 @@ describe("RatingComments", () => {
 		expect(
 			screen.queryByTestId(testIds.comments.textarea),
 		).not.toBeInTheDocument();
-		expect(apiMocks.ratingsCommentsList).toHaveBeenCalledWith("rating-1", {
+		expect(mockRatingsCommentsList).toHaveBeenCalledWith("rating-1", {
 			page: 1,
 			page_size: 5,
 		});
@@ -238,7 +219,7 @@ describe("RatingComments", () => {
 
 	it("renders anonymous comments with anonymous comment author label", async () => {
 		const user = userEvent.setup();
-		apiMocks.ratingsCommentsList.mockResolvedValue(
+		mockRatingsCommentsList.mockResolvedValue(
 			mockCommentList([
 				{
 					id: "comment-1",
@@ -265,7 +246,7 @@ describe("RatingComments", () => {
 
 	it("keeps replies included in the displayed comments count", async () => {
 		const user = userEvent.setup();
-		apiMocks.ratingsCommentsList.mockResolvedValue(
+		mockRatingsCommentsList.mockResolvedValue(
 			mockCommentList([
 				{
 					id: "comment-1",
@@ -304,7 +285,7 @@ describe("RatingComments", () => {
 		[25, "25 відповідей"],
 	])("formats %i replies as %s", async (repliesCount, expectedText) => {
 		const user = userEvent.setup();
-		apiMocks.ratingsCommentsList.mockResolvedValue(
+		mockRatingsCommentsList.mockResolvedValue(
 			mockCommentList([
 				{
 					id: "comment-1",
@@ -333,7 +314,7 @@ describe("RatingComments", () => {
 
 	it("invalidates top-level comments when a reply is updated", async () => {
 		const user = userEvent.setup();
-		apiMocks.ratingsCommentsList.mockResolvedValue(
+		mockRatingsCommentsList.mockResolvedValue(
 			mockCommentList([
 				{
 					id: "comment-1",
@@ -349,7 +330,7 @@ describe("RatingComments", () => {
 				},
 			]),
 		);
-		apiMocks.commentsRepliesRetrieve.mockResolvedValue(
+		mockCommentsRepliesRetrieve.mockResolvedValue(
 			mockCommentList([
 				{
 					id: "reply-1",
@@ -378,24 +359,22 @@ describe("RatingComments", () => {
 			`[data-testid="${testIds.comments.item}"]`,
 		);
 		expect(replyItem).not.toBeNull();
+		// SAFETY: closest() returned the item node because the reply body rendered inside it.
+		const replyElement = replyItem as HTMLElement;
 
-		await user.click(
-			within(replyItem as HTMLElement).getAllByRole("button")[0],
-		);
+		await user.click(within(replyElement).getAllByRole("button")[0]);
 		await user.clear(
-			within(replyItem as HTMLElement).getByTestId(testIds.comments.textarea),
+			within(replyElement).getByTestId(testIds.comments.textarea),
 		);
 		await user.type(
-			within(replyItem as HTMLElement).getByTestId(testIds.comments.textarea),
+			within(replyElement).getByTestId(testIds.comments.textarea),
 			"Updated reply",
 		);
 		await user.click(
-			within(replyItem as HTMLElement).getByTestId(
-				testIds.comments.submitButton,
-			),
+			within(replyElement).getByTestId(testIds.comments.submitButton),
 		);
 
-		expect(apiMocks.updateComment).toHaveBeenCalledWith({
+		expect(mockUpdateComment).toHaveBeenCalledWith({
 			commentId: "reply-1",
 			data: {
 				content: "Updated reply",
@@ -403,16 +382,16 @@ describe("RatingComments", () => {
 			},
 		});
 		expect(invalidateQueries).toHaveBeenCalledWith({
-			queryKey: ["comment-replies", "comment-1"],
+			queryKey: ["/api/v1/comments/comment-1/replies/"],
 		});
 		expect(invalidateQueries).toHaveBeenCalledWith({
-			queryKey: ["rating-comments", "rating-1"],
+			queryKey: ["/api/v1/ratings/rating-1/comments/"],
 		});
 	});
 
 	it("invalidates the parent replies cache when creating a nested reply", async () => {
 		const user = userEvent.setup();
-		apiMocks.ratingsCommentsList.mockResolvedValue(
+		mockRatingsCommentsList.mockResolvedValue(
 			mockCommentList([
 				{
 					id: "comment-1",
@@ -428,7 +407,7 @@ describe("RatingComments", () => {
 				},
 			]),
 		);
-		apiMocks.commentsRepliesRetrieve.mockImplementation((commentId: string) =>
+		mockCommentsRepliesRetrieve.mockImplementation((commentId: string) =>
 			Promise.resolve(
 				commentId === "comment-1"
 					? mockCommentList([
@@ -460,19 +439,19 @@ describe("RatingComments", () => {
 			`[data-testid="${testIds.comments.item}"]`,
 		);
 		expect(replyItem).not.toBeNull();
+		// SAFETY: closest() returned the item node because the reply body rendered inside it.
+		const replyElement = replyItem as HTMLElement;
 
-		await user.click(within(replyItem as HTMLElement).getByRole("button"));
+		await user.click(within(replyElement).getByRole("button"));
 		await user.type(
-			within(replyItem as HTMLElement).getByTestId(testIds.comments.textarea),
+			within(replyElement).getByTestId(testIds.comments.textarea),
 			"Nested reply",
 		);
 		await user.click(
-			within(replyItem as HTMLElement).getByTestId(
-				testIds.comments.submitButton,
-			),
+			within(replyElement).getByTestId(testIds.comments.submitButton),
 		);
 
-		expect(apiMocks.createComment).toHaveBeenCalledWith({
+		expect(mockCreateComment).toHaveBeenCalledWith({
 			ratingId: "rating-1",
 			data: {
 				content: "Nested reply",
@@ -481,13 +460,13 @@ describe("RatingComments", () => {
 			},
 		});
 		expect(invalidateQueries).toHaveBeenCalledWith({
-			queryKey: ["comment-replies", "reply-1"],
+			queryKey: ["/api/v1/comments/reply-1/replies/"],
 		});
 		expect(invalidateQueries).toHaveBeenCalledWith({
-			queryKey: ["comment-replies", "comment-1"],
+			queryKey: ["/api/v1/comments/comment-1/replies/"],
 		});
 		expect(invalidateQueries).toHaveBeenCalledWith({
-			queryKey: ["rating-comments", "rating-1"],
+			queryKey: ["/api/v1/ratings/rating-1/comments/"],
 		});
 	});
 
@@ -503,7 +482,7 @@ describe("RatingComments", () => {
 		);
 		await user.click(screen.getByTestId(testIds.comments.submitButton));
 
-		expect(apiMocks.createComment).toHaveBeenCalledWith({
+		expect(mockCreateComment).toHaveBeenCalledWith({
 			ratingId: "rating-1",
 			data: {
 				content: "New comment",

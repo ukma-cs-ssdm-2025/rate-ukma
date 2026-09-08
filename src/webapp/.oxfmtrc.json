@@ -16,7 +16,8 @@
 		"src/lib/api/generated/**/*",
 		"playwright-report/**/*",
 		"playwright/.auth/**/*",
-		"test-results/**/*"
+		"test-results/**/*",
+		"tools/oxlint/anti-slop/**"
 	],
 	"sortPackageJson": false,
 	"sortImports": false
