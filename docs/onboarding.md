@@ -15,14 +15,14 @@ Rate UKMA is a course-rating platform for NaUKMA students: a React SPA talks to
 a Django REST API backed by PostgreSQL and Redis. Start with
 `docs/architecture/high-level-design.md` for the N-tier layer diagram, then
 come back here for where that diagram lives in code.
-
 ```mermaid
 flowchart LR
     Browser["Browser :3000"] --> Webapp["webapp (SPA)"]
     Webapp -->|"/api/*"| Backend["backend :8000 (DRF)"]
     Backend --> PG[("PostgreSQL")]
     Backend --> Redis[("Redis (cache)")]
-    Scraper["scraper (one-shot)"] --> PG
+    Scraper["scraper (one-shot)"] --> JSONL["JSONL dumps"]
+    JSONL --> Injector["CourseDbInjector"] --> PG
 ```
 
 ## 2. Repo map
@@ -49,39 +49,46 @@ flowchart LR
 
 ## 3. Run it
 
-Follow `README.md` § "Running Project": copy `src/.env.sample` to `src/.env`,
+Follow `README.md` § "Running Project": copy `src/.env.sample` to `src/.env`
+(inside containers the backend reaches Redis as `redis`, so override
+`REDIS_HOST=redis` in `src/.env` — the sample's `localhost` only fits local runs),
 then `docker compose --profile dev up -d --build` from `src/`. You get the
 webapp on `:3000` and the API on `:8000` (`/admin` included). For IDE feedback
 without Docker, each side has its own setup guide: `src/backend/README.md`
 (`uv sync`, `uv venv`) and `src/webapp/README.md` (`pnpm install`).
 
-Seed data for local exploration: `rating_app/management/commands/` has
-`generate_mock_data.py` and `generate_mock_ratings.py`, runnable via
+Seed data for local exploration: `src/backend/rating_app/management/commands/`
+has `generate_mock_data.py` and `generate_mock_ratings.py`, runnable via
 `python manage.py <name>` (locally or with `docker exec -it <backend> ...`).
+Seeds create bare `Student` rows with no login or enrollments, so submitting a
+rating needs an enrolled user (easiest: Django admin) — browsing works immediately.
 
 ## 4. Backend: follow one request
 
 Trace a rating submission to learn the layering (enforced by ADR-0005):
 
-1. **View** (`rating_app/views/rating_viewset.py`): thin HTTP adapter, Pydantic
-   input schemas from `rating_app/application_schemas/` validate at the boundary.
-2. **Service** (`rating_app/services/rating_service.py`): business rules only,
+1. **View** (`src/backend/rating_app/views/rating_viewset.py`): thin HTTP adapter, Pydantic
+   input schemas from `src/backend/rating_app/application_schemas/` validate at the boundary.
+2. **Service** (`src/backend/rating_app/services/rating_service.py`): business rules only,
    e.g. raises `NotEnrolledException`, `RatingPeriodNotStarted`,
    `DuplicateRatingException`. No ORM here beyond what repositories return.
-3. **Repository** (`rating_app/repositories/rating_repository.py`): catches ORM
+3. **Repository** (`src/backend/rating_app/repositories/rating_repository.py`): catches ORM
    errors and re-raises domain exceptions, e.g. `Rating.DoesNotExist` →
-   `RatingNotFoundError` (see `rating_app/exception/` — one module per domain).
+   `RatingNotFoundError` (see `src/backend/rating_app/exception/` — one module per domain).
 4. **Response**: DRF maps the exception to a status code and
-   `rating_app/exception/exception_handler.py` normalizes the envelope to
-   `{detail, status, fields?}`. Output serialization stays in DRF serializers
-   (`rating_app/serializers/`).
+   `src/backend/rating_app/exception/exception_handler.py` normalizes dict-shaped
+   errors to `{detail, status, fields?}` (list-detail errors pass through bare).
+   Output serialization stays in DRF serializers
+   (`src/backend/rating_app/serializers/`).
 
-Supporting pieces: per-request wiring in `rating_app/ioc_container/`,
+Supporting pieces: singleton wiring in `src/backend/rating_app/ioc_container/`
+(`@once` providers),
 per-user feature flags via django-waffle (`GET /api/v1/flags/`, allowlist
-`PUBLIC_FEATURE_FLAGS` in `rateukma/settings/_base.py` — see ADR-0009),
-in-app notifications in `services/notification_service.py` + `views/notification_viewset.py`
+`PUBLIC_FEATURE_FLAGS` in `src/backend/rateukma/settings/_base.py` — see ADR-0009),
+in-app notifications in `src/backend/rating_app/services/notification_service.py`
++ `src/backend/rating_app/views/notification_viewset.py`
 (grouped reads behind a per-user cursor, event types in
-`models/choices.py::NotificationEventType`).
+`src/backend/rating_app/models/choices.py::NotificationEventType`).
 
 After changing endpoints or serializers, regenerate the contract from
 `src/backend/AGENTS.md`:
@@ -90,18 +97,20 @@ After changing endpoints or serializers, regenerate the contract from
 .venv/bin/python manage.py spectacular --file ../../docs/api/openapi-generated.yaml
 ```
 
-Tests live next to the code (`test_*.py`, e.g. `views/test_rating.py`,
-`services/test_notification_service.py`). Markers in `pytest.ini`: default run
-is unit-speed (`--reuse-db`), `-m "not integration"` skips integration,
-`-m e2e` selects end-to-end. Type safety: `uv run pyright` must stay at
+Tests live next to the code (`test_*.py`, e.g.
+`src/backend/rating_app/views/test_rating.py`,
+`src/backend/rating_app/services/test_notification_service.py`). Markers in
+`src/backend/pytest.ini`: `integration` and `e2e` exist, default run is
+unit-speed (`--reuse-db`). Type safety: `uv run pyright` must stay at
 0 errors (conventions in `src/backend/AGENTS.md`).
 
 ## 5. Frontend: follow one page
 
 Trace the course page (`src/webapp/src/routes/courses.$courseId.tsx`):
 
-1. **Route** wires loaders/search params to **feature hooks**
-   (`features/courses/hooks/`, `features/ratings/hooks/`).
+1. **Route** renders directly from **feature hooks**
+   (`src/webapp/src/features/courses/hooks/`, `src/webapp/src/features/ratings/hooks/`,
+   e.g. `useUserCourseRating(courseId)` — no route loaders).
 2. **Feature slice** (`features/courses/`, `features/ratings/`) owns its
    components, formatting (`courseFormatting.ts`), and param mapping
    (`courseFiltersParams.ts`, `filterTransformations.ts`).
@@ -136,7 +145,8 @@ Commands (`src/webapp/package.json`): `pnpm start`, `pnpm test` (vitest),
 
 ## 7. Suggested first tasks
 
-1. Run the stack, seed mock data, open a course page, submit a rating.
+1. Run the stack, seed mock data, open a course page and browse ratings
+   (submitting needs an enrolled user — see §3).
 2. Add a field to a serializer, regenerate the OpenAPI yaml, run
    `pnpm install` in webapp, and watch the generated hook change.
 3. Flip a `waffle` flag in Django admin and gate a UI string behind
