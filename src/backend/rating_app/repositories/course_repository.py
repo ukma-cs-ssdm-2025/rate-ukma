@@ -320,8 +320,10 @@ class CourseRepository(
 
         if filters.instructor:
             # Match offerings with a rating that mentions this instructor.
-            # CourseInstructor assignment rows are unpopulated in real data
-            # (see #664), so mentions are the only reliable signal.
+            # CourseInstructor assignment rows are prod-empty: only
+            # generate_mock_data.py creates them while the scraper injector
+            # never populates the table, so mentions are the only reliable
+            # signal (see #664). Follow-up proposes removal: #687.
             mentioned = Rating.objects.filter(
                 course_offering_id=OuterRef("pk"),
                 instructors__id=filters.instructor,

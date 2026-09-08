@@ -163,9 +163,7 @@ def test_list_ranked_tiers_offering_then_course_then_global(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_ranked_mentioned_only_drops_never_rated(
-    repo, instructor_factory, rating_factory
-):
+def test_list_ranked_mentioned_only_drops_never_rated(repo, instructor_factory, rating_factory):
     rated = instructor_factory(last_name="Rated")
     never_rated = instructor_factory(last_name="NeverRated")
     rating_factory().instructors.add(rated)

@@ -82,6 +82,32 @@ def test_filter_by_instructor_combined_with_department(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_filter_by_instructor_combined_with_education_level(
+    repo, instructor_factory, course_factory, course_offering_factory, rating_factory
+):
+    # Mention on a bachelor course must not leak into a master-scoped
+    # instructor query.
+    instructor = instructor_factory()
+    wanted = course_factory(education_level=EducationLevel.MASTER)
+    wanted_offering = course_offering_factory(course=wanted)
+    wanted_rating = rating_factory(course_offering=wanted_offering)
+    wanted_rating.instructors.add(instructor)
+
+    other = course_factory(education_level=EducationLevel.BACHELOR)
+    other_offering = course_offering_factory(course=other)
+    other_rating = rating_factory(course_offering=other_offering)
+    other_rating.instructors.add(instructor)
+
+    filters = CourseFilterCriteriaInternal(
+        instructor=instructor.id, education_level=EducationLevel.MASTER
+    )
+    result = repo.filter(filters)
+
+    assert {course.id for course in result} == {str(wanted.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_instructor_pagination_edge_clamps_to_last_page(
     repo, instructor_factory, course_offering_factory, rating_factory
 ):
