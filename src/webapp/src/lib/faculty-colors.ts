@@ -103,7 +103,10 @@ export const FACULTY_COLORS = Object.entries(FACULTY_COLOR_MAP).reduce(
 
 export type FacultyName = keyof typeof FACULTY_COLOR_MAP;
 export function getFacultyColors(facultyName: string) {
-	const colors = FACULTY_COLORS[facultyName as FacultyName];
+	// hasOwn: inherited props (__proto__, toString, …) must fall back to gray.
+	const colors = Object.hasOwn(FACULTY_COLORS, facultyName)
+		? FACULTY_COLORS[facultyName as FacultyName]
+		: undefined;
 
 	if (!colors) {
 		return {
