@@ -58,6 +58,8 @@ export function ThemeProvider({
 			setSystemTheme(event.matches ? "dark" : "light");
 		};
 		mediaQuery.addEventListener("change", handleChange);
+		// Re-sync: the OS theme may have flipped between init and subscribe.
+		setSystemTheme(mediaQuery.matches ? "dark" : "light");
 		return () => mediaQuery.removeEventListener("change", handleChange);
 	}, []);
 

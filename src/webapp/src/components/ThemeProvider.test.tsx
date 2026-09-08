@@ -177,4 +177,31 @@ describe("ThemeProvider", () => {
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
 	});
+
+	it("picks up an OS flip between init and effect subscription", () => {
+		let calls = 0;
+		vi.mocked(globalThis.matchMedia).mockImplementation(((query: string) => {
+			calls += 1;
+			// The OS flips to dark after lazy init but before the effect runs.
+			const matches = calls > 1;
+			return {
+				matches,
+				media: query,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+				addListener: vi.fn(),
+				removeListener: vi.fn(),
+				dispatchEvent: vi.fn(),
+			};
+		}) as typeof globalThis.matchMedia);
+
+		render(
+			<ThemeProvider>
+				<ThemeProbe />
+			</ThemeProvider>,
+		);
+
+		expect(document.documentElement.classList.contains("dark")).toBe(true);
+		expect(document.documentElement.classList.contains("light")).toBe(false);
+	});
 });
