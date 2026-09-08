@@ -268,4 +268,18 @@ describe("InstructorMultiSelect", () => {
 			expect(onChange).toHaveBeenCalledWith([]);
 		});
 	});
+
+	describe("Directory scope", () => {
+		it("should list all instructors without the mentioned-only filter", () => {
+			mockInstructors([createMockInstructor()]);
+
+			renderWithProviders(
+				<InstructorMultiSelect value={[]} onChange={vi.fn()} />,
+			);
+
+			const calls = mockedInfinite.mock.calls;
+			expect(calls.length).toBeGreaterThan(0);
+			expect(calls[calls.length - 1]?.[0]).not.toHaveProperty("mentioned_only");
+		});
+	});
 });

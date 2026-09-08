@@ -18,6 +18,7 @@ export interface UseInfiniteInstructorsOptions {
 	readonly courseOfferingId?: string;
 	readonly courseId?: string;
 	readonly specialityId?: string;
+	readonly mentionedOnly?: boolean;
 	readonly pageSize?: number;
 	readonly enabled?: boolean;
 }
@@ -29,6 +30,7 @@ export function useInfiniteInstructors({
 	courseOfferingId,
 	courseId,
 	specialityId,
+	mentionedOnly = false,
 	pageSize = DEFAULT_PAGE_SIZE,
 	enabled = true,
 }: UseInfiniteInstructorsOptions = {}): UseInfiniteInstructorsReturn {
@@ -39,8 +41,9 @@ export function useInfiniteInstructors({
 			...(courseOfferingId ? { course_offering_id: courseOfferingId } : {}),
 			...(courseId ? { course_id: courseId } : {}),
 			...(specialityId ? { speciality_id: specialityId } : {}),
+			...(mentionedOnly ? { mentioned_only: true } : {}),
 		}),
-		[search, courseOfferingId, courseId, specialityId, pageSize],
+		[search, courseOfferingId, courseId, specialityId, mentionedOnly, pageSize],
 	);
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
