@@ -217,7 +217,15 @@ function CardActions({
 							variant="secondary"
 							size="sm"
 							disabled
-							className="opacity-50 cursor-not-allowed"
+							className={cn(
+								"opacity-50 cursor-not-allowed",
+								accent && "border-transparent",
+							)}
+							style={
+								accent
+									? { backgroundColor: accent.background, color: accent.foreground }
+									: undefined
+							}
 						>
 							<PenLine className="size-3.5 mr-1.5" />
 							Оцінити

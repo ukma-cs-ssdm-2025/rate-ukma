@@ -101,4 +101,24 @@ describe("MyRatingCard faculty accent", () => {
 		expect(rateButton.style.backgroundColor).toBe("");
 		expect(rateButton.style.color).toBe("");
 	});
+
+	it("paints the disabled button in the faculty color", () => {
+		renderWithProviders(
+			<MyRatingCard
+				course={makeCourse({
+					faculty_name: "Факультет інформатики",
+					can_rate: false,
+				})}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		const rateButton = screen.getByRole("button", { name: "Оцінити" });
+		expect(rateButton).toBeDisabled();
+		expect(rateButton).toHaveClass("opacity-50");
+		expect(rateButton).toHaveStyle({
+			backgroundColor: "#4c217a",
+			color: "#ffffff",
+		});
+	});
 });
