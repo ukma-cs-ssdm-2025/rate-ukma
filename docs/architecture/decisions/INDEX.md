@@ -16,3 +16,4 @@ This document serves as the central index and log for all significant **Architec
 * [ADR-0007](0007-hetzner-deployment.md) - Migrate Deployment from AWS EC2 to Hetzner Cloud
 * [ADR-0008](0008-gunicorn-worker-class.md) - Gunicorn Worker Class — `gthread` → `sync`
 * [ADR-0009](0009-feature-flags.md) - Feature Flags with django-waffle
+* [ADR-0010](0010-rust-like-return-types.md) - Error Handling — Exceptions over Rust-like Result Types
