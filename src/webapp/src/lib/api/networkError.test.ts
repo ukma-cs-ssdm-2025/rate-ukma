@@ -307,19 +307,15 @@ describe("networkError", () => {
 	});
 
 	describe("parseBounceCount", () => {
-		it("parses raw param values", () => {
-			expect(parseBounceCount("3")).toBe(3);
-			expect(parseBounceCount(undefined)).toBe(0);
-			expect(parseBounceCount(null)).toBe(0);
-			expect(parseBounceCount("nope")).toBe(0);
-			expect(parseBounceCount("0")).toBe(0);
-			expect(parseBounceCount("-2")).toBe(0);
-		});
-
-		it("parses full search strings", () => {
-			expect(parseBounceCount("?bounces=2")).toBe(2);
-			expect(parseBounceCount("?foo=bar")).toBe(0);
-			expect(parseBounceCount("")).toBe(0);
+		it.each([
+			["3", 3],
+			[undefined, 0],
+			[null, 0],
+			["nope", 0],
+			["0", 0],
+			["-2", 0],
+		])("parses %s as %i", (value, expected) => {
+			expect(parseBounceCount(value)).toBe(expected);
 		});
 	});
 

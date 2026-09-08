@@ -7,15 +7,12 @@ export type ConnectionIssueReason = "offline" | "server" | "unknown";
 export const BOUNCES_PARAM = "bounces";
 
 /**
- * Reads the bounce counter from a raw param value or search string.
+ * Reads the bounce counter from a raw param value.
  * Anything missing or unparseable counts as zero so a hand-typed URL
  * never breaks the page.
  */
 export const parseBounceCount = (value?: string | null): number => {
-	const raw = (value ?? "").startsWith("?")
-		? new URLSearchParams(value ?? "").get(BOUNCES_PARAM)
-		: value;
-	const parsed = Number.parseInt(raw ?? "", 10);
+	const parsed = Number.parseInt(value ?? "", 10);
 	return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
 };
 
@@ -49,7 +46,11 @@ const redirectToConnectionError = (
 	url.searchParams.set("from", from);
 	url.searchParams.set(
 		BOUNCES_PARAM,
-		String(parseBounceCount(globalThis.location.search) + 1),
+		String(
+			parseBounceCount(
+				new URLSearchParams(globalThis.location.search).get(BOUNCES_PARAM),
+			) + 1,
+		),
 	);
 
 	globalThis.location.replace(url.toString());
