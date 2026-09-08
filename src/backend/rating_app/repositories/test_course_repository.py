@@ -83,6 +83,30 @@ def test_filter_by_instructor_combined_with_department(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_filter_by_instructor_combined_with_education_level(repo):
+    # Mention on a bachelor course must not leak into a master-scoped
+    # instructor query.
+    instructor = InstructorFactory()
+    wanted = CourseFactory(education_level=EducationLevel.MASTER)
+    wanted_offering = CourseOfferingFactory(course=wanted)
+    wanted_rating = RatingFactory(course_offering=wanted_offering)
+    wanted_rating.instructors.add(instructor)
+
+    other = CourseFactory(education_level=EducationLevel.BACHELOR)
+    other_offering = CourseOfferingFactory(course=other)
+    other_rating = RatingFactory(course_offering=other_offering)
+    other_rating.instructors.add(instructor)
+
+    filters = CourseFilterCriteriaInternal(
+        instructor=instructor.id, education_level=EducationLevel.MASTER
+    )
+    result = repo.filter(filters)
+
+    assert {course.id for course in result} == {str(wanted.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_filter_by_instructor_pagination_edge_clamps_to_last_page(repo):
     # One mentioned course; asking for page 2 clamps to page 1 (Django
     # get_page) without error or leaking rows.
