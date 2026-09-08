@@ -129,7 +129,7 @@ export function getLatestOfferingMeta(
 	const totalCredits = getTermsTotalCredits(terms);
 	const creditsStr = formatTotalCredits(totalCredits);
 	const sortedTerms = sortTerms(terms);
-	const representative = sortedTerms[sortedTerms.length - 1];
+	const representative = sortedTerms.at(-1);
 	const hoursStr =
 		representative?.weekly_hours != null
 			? `${representative.weekly_hours} год`

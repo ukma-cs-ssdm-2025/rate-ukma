@@ -4,7 +4,7 @@ import pytest
 
 from rating_app.application_schemas.course import CourseFilterCriteriaInternal, CourseInput
 from rating_app.models import Course
-from rating_app.models.choices import CourseStatus, EducationLevel, SemesterTerm
+from rating_app.models.choices import CourseStatus, EducationLevel, InstructorRole, SemesterTerm
 from rating_app.pagination import GenericQuerysetPaginator, PaginationFilters
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.repositories.to_domain_mappers import CourseMapper
@@ -139,6 +139,17 @@ def test_filter_by_credits_range_and_semester_year_uses_same_offering(repo):
     assert len(result) == 1
 
 
+def _offering_with_terms(course, fall, spring, fall_credits="3.0", spring_credits="4.0"):
+    offering = CourseOfferingFactory(course=course, semester=spring)
+    CourseOfferingTermFactory(
+        offering=offering, semester=fall, credits=decimal.Decimal(fall_credits)
+    )
+    CourseOfferingTermFactory(
+        offering=offering, semester=spring, credits=decimal.Decimal(spring_credits)
+    )
+    return offering
+
+
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_filter_by_credits_uses_sum_of_terms(repo):
@@ -147,9 +158,7 @@ def test_filter_by_credits_uses_sum_of_terms(repo):
     fall = SemesterFactory(term=SemesterTerm.FALL, year=2024)
     spring = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
     target = CourseFactory(title="Multi-term course")
-    offering = CourseOfferingFactory(course=target, semester=spring)
-    CourseOfferingTermFactory(offering=offering, semester=fall, credits=decimal.Decimal("3.0"))
-    CourseOfferingTermFactory(offering=offering, semester=spring, credits=decimal.Decimal("4.0"))
+    _offering_with_terms(target, fall, spring)
 
     other = CourseFactory(title="Other course")
     other_offering = CourseOfferingFactory(course=other, semester=fall)
@@ -193,13 +202,11 @@ def test_filter_by_credits_excludes_offerings_without_terms(repo):
 def test_filter_by_instructor_and_credits_uses_stable_term_sum(repo):
     # Same instructor holds two role-distinct rows on one offering; the
     # instructor join must not multiply the term-credits sum (#558).
-    from rating_app.models.choices import InstructorRole
-
     fall = SemesterFactory(term=SemesterTerm.FALL, year=2024)
     spring = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
     instructor = InstructorFactory()
     target = CourseFactory(title="Stable sum course")
-    offering = CourseOfferingFactory(course=target, semester=spring)
+    offering = _offering_with_terms(target, fall, spring)
     CourseInstructorFactory(
         course_offering=offering,
         instructor=instructor,
@@ -210,8 +217,6 @@ def test_filter_by_instructor_and_credits_uses_stable_term_sum(repo):
         instructor=instructor,
         role=InstructorRole.PRACTICUM_INSTRUCTOR,
     )
-    CourseOfferingTermFactory(offering=offering, semester=fall, credits=decimal.Decimal("3.0"))
-    CourseOfferingTermFactory(offering=offering, semester=spring, credits=decimal.Decimal("4.0"))
 
     result = repo.filter(
         CourseFilterCriteriaInternal(

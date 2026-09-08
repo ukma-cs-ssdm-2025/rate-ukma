@@ -20,18 +20,18 @@ def backfill_terms_from_offerings(apps, schema_editor):
     # 0021 created CourseOfferingTerm with no data migration, so offerings
     # predating it have no terms. Copy their per-term fields into one term
     # row each before the offering columns are dropped (#558).
-    CourseOffering = apps.get_model("rating_app", "CourseOffering")
-    CourseOfferingTerm = apps.get_model("rating_app", "CourseOfferingTerm")
+    offering_model = apps.get_model("rating_app", "CourseOffering")
+    term_model = apps.get_model("rating_app", "CourseOfferingTerm")
 
     batch = []
-    termless = CourseOffering.objects.filter(terms__isnull=True).iterator(chunk_size=500)
+    termless = offering_model.objects.filter(terms__isnull=True).iterator(chunk_size=500)
     for offering in termless:
-        batch.append(CourseOfferingTerm(**build_term_kwargs(offering)))
+        batch.append(term_model(**build_term_kwargs(offering)))
         if len(batch) >= 500:
-            CourseOfferingTerm.objects.bulk_create(batch)
+            term_model.objects.bulk_create(batch)
             batch = []
     if batch:
-        CourseOfferingTerm.objects.bulk_create(batch)
+        term_model.objects.bulk_create(batch)
 
 
 class Migration(migrations.Migration):
