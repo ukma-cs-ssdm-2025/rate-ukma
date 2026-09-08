@@ -1,14 +1,14 @@
 import axios, { type AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { stubBrowserLocation } from "./browserMocks.test-support";
 import {
 	CONNECTION_ERROR_PATH,
 	handleConnectionIssue,
 	isOffline,
+	parseBounceCount,
 	resetRedirectFlag,
 } from "./networkError";
-
+import { stubBrowserLocation } from "./browserMocks.test-support";
 const DEFAULT_WINDOW_LOCATION = {
 	pathname: "/some-page",
 	search: "?foo=bar",
@@ -258,6 +258,68 @@ describe("networkError", () => {
 				// Assert
 				expect(mockWindowReplace).toHaveBeenCalledTimes(2);
 			});
+		});
+	});
+
+	describe("bounce counter", () => {
+		const timeoutError = () => createAxiosError({ response: undefined });
+		const redirectUrl = () =>
+			new URL(mockWindowReplace.mock.calls[0][0] as string);
+
+		it("stamps bounces=1 on the first redirect", () => {
+			stubNavigatorOnline();
+
+			handleConnectionIssue(timeoutError());
+
+			expect(redirectUrl().searchParams.get("bounces")).toBe("1");
+		});
+
+		it("increments the counter carried by the return target", () => {
+			mockWindowReplace = stubBrowserLocation({
+				pathname: "/",
+				search: "?bounces=2",
+				hash: "",
+				origin: "http://localhost:3000",
+			}).replace;
+			stubNavigatorOnline();
+
+			handleConnectionIssue(timeoutError());
+
+			expect(redirectUrl().searchParams.get("bounces")).toBe("3");
+		});
+
+		it.each(["?foo=bar", "?bounces=nope", "?bounces=-4"])(
+			"restarts at 1 when the counter is %s",
+			(search) => {
+				mockWindowReplace = stubBrowserLocation({
+					pathname: "/",
+					search,
+					hash: "",
+					origin: "http://localhost:3000",
+				}).replace;
+				stubNavigatorOnline();
+
+				handleConnectionIssue(timeoutError());
+
+				expect(redirectUrl().searchParams.get("bounces")).toBe("1");
+			},
+		);
+	});
+
+	describe("parseBounceCount", () => {
+		it("parses raw param values", () => {
+			expect(parseBounceCount("3")).toBe(3);
+			expect(parseBounceCount(undefined)).toBe(0);
+			expect(parseBounceCount(null)).toBe(0);
+			expect(parseBounceCount("nope")).toBe(0);
+			expect(parseBounceCount("0")).toBe(0);
+			expect(parseBounceCount("-2")).toBe(0);
+		});
+
+		it("parses full search strings", () => {
+			expect(parseBounceCount("?bounces=2")).toBe(2);
+			expect(parseBounceCount("?foo=bar")).toBe(0);
+			expect(parseBounceCount("")).toBe(0);
 		});
 	});
 
