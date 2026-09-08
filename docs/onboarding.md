@@ -3,12 +3,27 @@
 How to go from zero to first merged MR in the Rate UKMA codebase. Every path
 below is relative to the repo root and was verified against the current tree.
 
+| You are | Do this |
+| --- | --- |
+| First day | §2 repo map, §3 run the stack, open `:3000`, submit one rating |
+| First week | §4 or §5 trace (pick your side), §7 tasks 1–2 |
+| First MR | §6 conventions, §7 task 3, §8 when stuck |
+
 ## 1. Big picture
 
 Rate UKMA is a course-rating platform for NaUKMA students: a React SPA talks to
 a Django REST API backed by PostgreSQL and Redis. Start with
 `docs/architecture/high-level-design.md` for the N-tier layer diagram, then
 come back here for where that diagram lives in code.
+
+```mermaid
+flowchart LR
+    Browser["Browser :3000"] --> Webapp["webapp (SPA)"]
+    Webapp -->|"/api/*"| Backend["backend :8000 (DRF)"]
+    Backend --> PG[("PostgreSQL")]
+    Backend --> Redis[("Redis (cache)")]
+    Scraper["scraper (one-shot)"] --> PG
+```
 
 ## 2. Repo map
 
@@ -124,3 +139,13 @@ Commands (`src/webapp/package.json`): `pnpm start`, `pnpm test` (vitest),
    `pnpm install` in webapp, and watch the generated hook change.
 3. Flip a `waffle` flag in Django admin and gate a UI string behind
    `useFeatureFlagState` (see `docs/feature-flags.md`).
+
+## 8. When stuck
+
+| Symptom | Fix |
+| --- | --- |
+| Port already in use | `lsof -i :3000` / `:8000`, stop the other process |
+| Backend can't reach DB | `docker compose ps` in `src/`; check `src/.env` exists (copied from `.env.sample`) |
+| `src/webapp/src/lib/api/generated/` missing | rerun `pnpm install` (postinstall runs orval) |
+| How tests are organized | `docs/testing/testing-strategy.md`, e2e in `docs/testing/e2e-tests.md` |
+| Auth/key incident | `docs/runbooks/` (key rotation), then tell the team lead |
