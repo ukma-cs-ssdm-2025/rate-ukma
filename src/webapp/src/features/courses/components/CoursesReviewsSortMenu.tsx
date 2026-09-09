@@ -81,7 +81,7 @@ export function CoursesReviewsSortMenu({
 						<Info className="h-3.5 w-3.5" aria-hidden="true" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="top" sideOffset={4}>
+				<TooltipContent side="top" sideOffset={4} className="max-w-lg">
 					<p>{COURSES_SORT_HINT}</p>
 				</TooltipContent>
 			</Tooltip>
