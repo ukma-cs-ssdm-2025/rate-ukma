@@ -109,7 +109,7 @@ class StudentStatisticsRepository:
                 Q(enrollments__student_id=student_id)
                 & (Q(enrollments__status="ENROLLED") | Q(enrollments__status="FORCED"))
             )
-            .select_related("course", "semester")
+            .select_related("course", "semester", "course__department__faculty")
             .prefetch_related(student_ratings)
             .distinct()
             .order_by("semester__year", "semester__term", "course__title")
@@ -132,12 +132,15 @@ class StudentStatisticsRepository:
                     "is_anonymous": rating_obj.is_anonymous,
                 }
 
+            department = offering.course.department
+            faculty = department.faculty if department else None
             result.append(
                 {
                     "course_id": str(offering.course.id),
                     "course_title": offering.course.title,
                     "course_code": offering.code,
                     "course_offering_id": str(offering.id),
+                    "faculty_name": faculty.name if faculty else None,
                     "semester": {"year": offering.semester.year, "season": offering.semester.term},
                     "rated": rated,
                 }
