@@ -48,6 +48,7 @@ For comprehensive project information, please refer to the following documents:
 
 - [Team Charter](TeamCharter.md) - Detailed information about our team structure, workflows and collaboration guidelines
 - [Project Description](Project-Description.md) - An overview of our project's core idea, goals and key features
+- [Developer Onboarding](docs/onboarding.md) - Zero-to-first-MR guide: repo map, backend/frontend tours, conventions
 - [Architecture](docs/architecture/) - High-level design, ADRs and UML diagrams
 - [User Stories](docs/requirements/user-stories.md) - Detailed information about project user stories
 - [Requirements Specification](docs/requirements/requirements.md) - Functional and non-functional requirements
