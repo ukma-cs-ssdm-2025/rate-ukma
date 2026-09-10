@@ -59,119 +59,126 @@ def service(student_stats_repo, student_repo, user_repo, semester_service, ratin
     )
 
 
-class TestLinkStudentToUser:
-    def test_returns_false_when_student_has_no_email(self, service):
-        # Arrange
-        student = SimpleNamespace(email="", user_id=None)
+def test_link_student_to_user_returns_false_when_student_has_no_email(service):
+    # Arrange
+    student = SimpleNamespace(email="", user_id=None)
 
-        # Act
-        result = service.link_student_to_user(student)
+    # Act
+    result = service.link_student_to_user(student)
 
-        # Assert
-        assert result is False
-
-    def test_returns_false_when_student_already_has_user(self, service):
-        # Arrange
-        student = SimpleNamespace(email="test@ukma.edu.ua", user_id=1)
-
-        # Act
-        result = service.link_student_to_user(student)
-
-        # Assert
-        assert result is False
-
-    def test_returns_false_when_no_user_with_email(self, service, user_repo):
-        # Arrange
-        student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="student-id")
-        user_repo.get_by_email.return_value = None
-
-        # Act
-        result = service.link_student_to_user(student)
-
-        # Assert
-        assert result is False
-        user_repo.get_by_email.assert_called_once_with("test@ukma.edu.ua")
-
-    def test_returns_false_when_user_already_linked_to_another_student(self, service, user_repo):
-        # Arrange
-        student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="new-student")
-        existing_user = SimpleNamespace(
-            id=1,
-            pk=1,
-            email="test@ukma.edu.ua",
-            student_profile=SimpleNamespace(id="existing-student"),
-        )
-        user_repo.get_by_email.return_value = existing_user
-
-        # Act
-        result = service.link_student_to_user(student)
-
-        # Assert
-        assert result is False
-
-    def test_links_student_to_user_successfully(self, service, user_repo, student_repo):
-        # Arrange
-        student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="student-id")
-        user = SimpleNamespace(id=1, pk=1, email="test@ukma.edu.ua", student_profile=None)
-        user_repo.get_by_email.return_value = user
-
-        # Act
-        result = service.link_student_to_user(student)
-
-        # Assert
-        assert result is True
-        student_repo.link_to_user.assert_called_once_with("student-id", user)
+    # Assert
+    assert result is False
 
 
-class TestLinkUserToStudent:
-    def test_returns_false_when_user_has_no_email(self, service):
-        # Arrange
-        user = SimpleNamespace(email="", id=1)
+def test_link_student_to_user_returns_false_when_student_already_has_user(service):
+    # Arrange
+    student = SimpleNamespace(email="test@ukma.edu.ua", user_id=1)
 
-        # Act
-        result = service.link_user_to_student(user)
+    # Act
+    result = service.link_student_to_user(student)
 
-        # Assert
-        assert result is False
+    # Assert
+    assert result is False
 
-    def test_returns_false_when_user_already_linked_to_student(self, service):
-        # Arrange
-        user = SimpleNamespace(
-            email="test@ukma.edu.ua",
-            id=1,
-            student_profile=SimpleNamespace(id="existing-student"),
-        )
 
-        # Act
-        result = service.link_user_to_student(user)
+def test_link_student_to_user_returns_false_when_no_user_with_email(service, user_repo):
+    # Arrange
+    student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="student-id")
+    user_repo.get_by_email.return_value = None
 
-        # Assert
-        assert result is False
+    # Act
+    result = service.link_student_to_user(student)
 
-    def test_returns_false_when_no_student_with_email(self, service, student_repo):
-        # Arrange
-        user = SimpleNamespace(email="test@ukma.edu.ua", id=1, student_profile=None)
-        student_repo.get_by_email.return_value = None
+    # Assert
+    assert result is False
+    user_repo.get_by_email.assert_called_once_with("test@ukma.edu.ua")
 
-        # Act
-        result = service.link_user_to_student(user)
 
-        # Assert
-        assert result is False
-        student_repo.get_by_email.assert_called_once_with("test@ukma.edu.ua")
+def test_link_student_to_user_returns_false_when_user_already_linked_to_another_student(
+    service, user_repo
+):
+    # Arrange
+    student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="new-student")
+    existing_user = SimpleNamespace(
+        id=1,
+        pk=1,
+        email="test@ukma.edu.ua",
+        student_profile=SimpleNamespace(id="existing-student"),
+    )
+    user_repo.get_by_email.return_value = existing_user
 
-    def test_links_user_to_student_successfully(self, service, student_repo):
-        # Arrange
-        user = SimpleNamespace(email="test@ukma.edu.ua", id=1, student_profile=None)
-        student = SimpleNamespace(id="student-id", email="test@ukma.edu.ua", user_id=None)
-        student_repo.get_by_email.return_value = student
+    # Act
+    result = service.link_student_to_user(student)
 
-        # Act
-        result = service.link_user_to_student(user)
+    # Assert
+    assert result is False
 
-        # Assert
-        assert result is True
-        student_repo.link_to_user.assert_called_once_with("student-id", user)
+
+def test_link_student_to_user_links_student_to_user_successfully(service, user_repo, student_repo):
+    # Arrange
+    student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="student-id")
+    user = SimpleNamespace(id=1, pk=1, email="test@ukma.edu.ua", student_profile=None)
+    user_repo.get_by_email.return_value = user
+
+    # Act
+    result = service.link_student_to_user(student)
+
+    # Assert
+    assert result is True
+    student_repo.link_to_user.assert_called_once_with("student-id", user)
+
+
+def test_link_user_to_student_returns_false_when_user_has_no_email(service):
+    # Arrange
+    user = SimpleNamespace(email="", id=1)
+
+    # Act
+    result = service.link_user_to_student(user)
+
+    # Assert
+    assert result is False
+
+
+def test_link_user_to_student_returns_false_when_user_already_linked_to_student(service):
+    # Arrange
+    user = SimpleNamespace(
+        email="test@ukma.edu.ua",
+        id=1,
+        student_profile=SimpleNamespace(id="existing-student"),
+    )
+
+    # Act
+    result = service.link_user_to_student(user)
+
+    # Assert
+    assert result is False
+
+
+def test_link_user_to_student_returns_false_when_no_student_with_email(service, student_repo):
+    # Arrange
+    user = SimpleNamespace(email="test@ukma.edu.ua", id=1, student_profile=None)
+    student_repo.get_by_email.return_value = None
+
+    # Act
+    result = service.link_user_to_student(user)
+
+    # Assert
+    assert result is False
+    student_repo.get_by_email.assert_called_once_with("test@ukma.edu.ua")
+
+
+def test_link_user_to_student_links_user_to_student_successfully(service, student_repo):
+    # Arrange
+    user = SimpleNamespace(email="test@ukma.edu.ua", id=1, student_profile=None)
+    student = SimpleNamespace(id="student-id", email="test@ukma.edu.ua", user_id=None)
+    student_repo.get_by_email.return_value = student
+
+    # Act
+    result = service.link_user_to_student(user)
+
+    # Assert
+    assert result is True
+    student_repo.link_to_user.assert_called_once_with("student-id", user)
 
 
 # Integration tests exercising real services/DB

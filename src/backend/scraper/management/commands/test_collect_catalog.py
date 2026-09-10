@@ -6,6 +6,7 @@ import pytest
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.collect_catalog.with_authenticated_context")
 @patch("scraper.management.commands.collect_catalog.FilterService")
 def test_collect_catalog_with_default_url(mock_filter_service, mock_auth_context):
@@ -26,6 +27,7 @@ def test_collect_catalog_with_default_url(mock_filter_service, mock_auth_context
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.collect_catalog.with_authenticated_context")
 @patch("scraper.management.commands.collect_catalog.FilterService")
 def test_collect_catalog_with_custom_url(mock_filter_service, mock_auth_context):
@@ -52,6 +54,7 @@ def test_collect_catalog_with_custom_url(mock_filter_service, mock_auth_context)
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.collect_catalog.with_authenticated_context")
 @patch("scraper.management.commands.collect_catalog.FilterService")
 def test_collect_catalog_with_filtered_url(mock_filter_service, mock_auth_context):

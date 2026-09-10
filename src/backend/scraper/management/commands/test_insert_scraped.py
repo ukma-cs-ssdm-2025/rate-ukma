@@ -6,6 +6,7 @@ import pytest
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.insert_scraped.courses_ingestion")
 def test_insert_scraped_success(mock_ingestion):
     # Arrange
@@ -21,6 +22,7 @@ def test_insert_scraped_success(mock_ingestion):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.insert_scraped.courses_ingestion")
 def test_insert_scraped_with_batch_size(mock_ingestion):
     # Arrange
@@ -38,6 +40,7 @@ def test_insert_scraped_with_batch_size(mock_ingestion):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.insert_scraped.courses_ingestion")
 def test_insert_scraped_dry_run(mock_ingestion):
     # Arrange

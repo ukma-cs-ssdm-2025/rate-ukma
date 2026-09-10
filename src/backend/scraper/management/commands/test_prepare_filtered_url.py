@@ -6,6 +6,7 @@ import pytest
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.prepare_filtered_url.with_authenticated_context")
 @patch("scraper.management.commands.prepare_filtered_url.FilterService")
 def test_prepare_filtered_url_success(mock_filter_service, mock_auth_context):
@@ -28,6 +29,7 @@ def test_prepare_filtered_url_success(mock_filter_service, mock_auth_context):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.prepare_filtered_url.with_authenticated_context")
 @patch("scraper.management.commands.prepare_filtered_url.FilterService")
 def test_prepare_filtered_url_interactive_mode(mock_filter_service, mock_auth_context):
@@ -51,6 +53,7 @@ def test_prepare_filtered_url_interactive_mode(mock_filter_service, mock_auth_co
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 @patch("scraper.management.commands.prepare_filtered_url.with_authenticated_context")
 @patch("scraper.management.commands.prepare_filtered_url.FilterService")
 def test_prepare_filtered_url_custom_output(mock_filter_service, mock_auth_context):

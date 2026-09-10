@@ -99,6 +99,7 @@ select = [
     "C4", # collections comprehensions
     "UP", # use more modern Python
     "N",  # naming conventions
+    "PT", # pytest style, see docs/testing/backend-tests.md
 ]
 
 [tool.ruff.format]

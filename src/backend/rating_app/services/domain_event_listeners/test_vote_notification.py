@@ -69,115 +69,122 @@ RECIPIENT_USER_ID = 42
 ACTOR_USER_ID = 99
 
 
-class TestVoteNotificationObserver:
-    @pytest.fixture
-    def notification_service(self):
-        return MagicMock()
+@pytest.fixture
+def notification_service():
+    return MagicMock()
 
-    @pytest.fixture
-    def rating_repository(self):
-        return MagicMock()
 
-    @pytest.fixture
-    def student_repository(self):
-        return MagicMock()
+@pytest.fixture
+def rating_repository():
+    return MagicMock()
 
-    @pytest.fixture
-    def observer(self, notification_service, rating_repository, student_repository):
-        return VoteNotificationObserver(
-            notification_service=notification_service,
-            rating_repository=rating_repository,
-            student_repository=student_repository,
-        )
 
-    def _setup_student_lookups(self, student_repository, rating_student_id, voter_student_id):
-        """Configure student_repository to return proper DTOs for recipient and actor."""
+@pytest.fixture
+def student_repository():
+    return MagicMock()
 
-        def get_by_id(sid):
-            if sid == str(rating_student_id):
-                return _make_student_dto(rating_student_id, user_id=RECIPIENT_USER_ID)
-            if sid == str(voter_student_id):
-                return _make_student_dto(voter_student_id, user_id=ACTOR_USER_ID)
-            raise StudentNotFoundError()
 
-        student_repository.get_by_id.side_effect = get_by_id
+@pytest.fixture
+def observer(notification_service, rating_repository, student_repository):
+    return VoteNotificationObserver(
+        notification_service=notification_service,
+        rating_repository=rating_repository,
+        student_repository=student_repository,
+    )
 
-    def test_creates_notification_on_upvote(
-        self, observer, notification_service, rating_repository, student_repository
-    ):
-        rating = _make_rating_dto()
-        rating_repository.get_by_id.return_value = rating
-        vote = _make_vote_dto(rating_id=rating.id, vote_type=RatingVoteType.UPVOTE)
-        self._setup_student_lookups(student_repository, rating.student_id, vote.student_id)
 
-        observer.on_event(vote)
+def _setup_student_lookups(student_repository, rating_student_id, voter_student_id):
+    """Configure student_repository to return proper DTOs for recipient and actor."""
 
-        notification_service.create_notification.assert_called_once_with(
-            recipient_id=RECIPIENT_USER_ID,
-            event_type=NotificationEventType.RATING_UPVOTED,
-            group_key=f"{NotificationEventType.RATING_UPVOTED}:{vote.rating_id}",
-            source_model=RatingVoteModel,
-            source_id=str(vote.id),
-            actor_id=ACTOR_USER_ID,
-        )
+    def get_by_id(sid):
+        if sid == str(rating_student_id):
+            return _make_student_dto(rating_student_id, user_id=RECIPIENT_USER_ID)
+        if sid == str(voter_student_id):
+            return _make_student_dto(voter_student_id, user_id=ACTOR_USER_ID)
+        raise StudentNotFoundError()
 
-    def test_creates_notification_on_downvote(
-        self, observer, notification_service, rating_repository, student_repository
-    ):
-        rating = _make_rating_dto()
-        rating_repository.get_by_id.return_value = rating
-        vote = _make_vote_dto(rating_id=rating.id, vote_type=RatingVoteType.DOWNVOTE)
-        self._setup_student_lookups(student_repository, rating.student_id, vote.student_id)
+    student_repository.get_by_id.side_effect = get_by_id
 
-        observer.on_event(vote)
 
-        notification_service.create_notification.assert_called_once()
-        call_kwargs = notification_service.create_notification.call_args.kwargs
-        assert call_kwargs["event_type"] == NotificationEventType.RATING_DOWNVOTED
+def test_creates_notification_on_upvote(
+    observer, notification_service, rating_repository, student_repository
+):
+    rating = _make_rating_dto()
+    rating_repository.get_by_id.return_value = rating
+    vote = _make_vote_dto(rating_id=rating.id, vote_type=RatingVoteType.UPVOTE)
+    _setup_student_lookups(student_repository, rating.student_id, vote.student_id)
 
-    def test_skips_self_vote(self, observer, notification_service, rating_repository):
-        shared_student_id = uuid.uuid4()
-        rating = _make_rating_dto(student_id=shared_student_id)
-        rating_repository.get_by_id.return_value = rating
-        vote = _make_vote_dto(student_id=shared_student_id, rating_id=rating.id)
+    observer.on_event(vote)
 
-        observer.on_event(vote)
+    notification_service.create_notification.assert_called_once_with(
+        recipient_id=RECIPIENT_USER_ID,
+        event_type=NotificationEventType.RATING_UPVOTED,
+        group_key=f"{NotificationEventType.RATING_UPVOTED}:{vote.rating_id}",
+        source_model=RatingVoteModel,
+        source_id=str(vote.id),
+        actor_id=ACTOR_USER_ID,
+    )
 
-        notification_service.create_notification.assert_not_called()
 
-    def test_skips_anonymous_rating_without_student(
-        self, observer, notification_service, rating_repository
-    ):
-        rating = _make_rating_dto(student_id=None)
-        rating_repository.get_by_id.return_value = rating
-        vote = _make_vote_dto(rating_id=rating.id)
+def test_creates_notification_on_downvote(
+    observer, notification_service, rating_repository, student_repository
+):
+    rating = _make_rating_dto()
+    rating_repository.get_by_id.return_value = rating
+    vote = _make_vote_dto(rating_id=rating.id, vote_type=RatingVoteType.DOWNVOTE)
+    _setup_student_lookups(student_repository, rating.student_id, vote.student_id)
 
-        observer.on_event(vote)
+    observer.on_event(vote)
 
-        notification_service.create_notification.assert_not_called()
+    notification_service.create_notification.assert_called_once()
+    call_kwargs = notification_service.create_notification.call_args.kwargs
+    assert call_kwargs["event_type"] == NotificationEventType.RATING_DOWNVOTED
 
-    def test_skips_when_recipient_not_found(
-        self, observer, notification_service, rating_repository, student_repository
-    ):
-        rating = _make_rating_dto()
-        rating_repository.get_by_id.return_value = rating
-        vote = _make_vote_dto(rating_id=rating.id)
-        student_repository.get_by_id.side_effect = StudentNotFoundError()
 
-        observer.on_event(vote)
+def test_skips_self_vote(observer, notification_service, rating_repository):
+    shared_student_id = uuid.uuid4()
+    rating = _make_rating_dto(student_id=shared_student_id)
+    rating_repository.get_by_id.return_value = rating
+    vote = _make_vote_dto(student_id=shared_student_id, rating_id=rating.id)
 
-        notification_service.create_notification.assert_not_called()
+    observer.on_event(vote)
 
-    def test_group_key_contains_event_type_and_rating_id(
-        self, observer, notification_service, rating_repository, student_repository
-    ):
-        rating = _make_rating_dto()
-        rating_repository.get_by_id.return_value = rating
-        vote = _make_vote_dto(rating_id=rating.id, vote_type=RatingVoteType.UPVOTE)
-        self._setup_student_lookups(student_repository, rating.student_id, vote.student_id)
+    notification_service.create_notification.assert_not_called()
 
-        observer.on_event(vote)
 
-        call_kwargs = notification_service.create_notification.call_args.kwargs
-        expected_group_key = f"{NotificationEventType.RATING_UPVOTED}:{vote.rating_id}"
-        assert call_kwargs["group_key"] == expected_group_key
+def test_skips_anonymous_rating_without_student(observer, notification_service, rating_repository):
+    rating = _make_rating_dto(student_id=None)
+    rating_repository.get_by_id.return_value = rating
+    vote = _make_vote_dto(rating_id=rating.id)
+
+    observer.on_event(vote)
+
+    notification_service.create_notification.assert_not_called()
+
+
+def test_skips_when_recipient_not_found(
+    observer, notification_service, rating_repository, student_repository
+):
+    rating = _make_rating_dto()
+    rating_repository.get_by_id.return_value = rating
+    vote = _make_vote_dto(rating_id=rating.id)
+    student_repository.get_by_id.side_effect = StudentNotFoundError()
+
+    observer.on_event(vote)
+
+    notification_service.create_notification.assert_not_called()
+
+
+def test_group_key_contains_event_type_and_rating_id(
+    observer, notification_service, rating_repository, student_repository
+):
+    rating = _make_rating_dto()
+    rating_repository.get_by_id.return_value = rating
+    vote = _make_vote_dto(rating_id=rating.id, vote_type=RatingVoteType.UPVOTE)
+    _setup_student_lookups(student_repository, rating.student_id, vote.student_id)
+
+    observer.on_event(vote)
+
+    call_kwargs = notification_service.create_notification.call_args.kwargs
+    expected_group_key = f"{NotificationEventType.RATING_UPVOTED}:{vote.rating_id}"
+    assert call_kwargs["group_key"] == expected_group_key

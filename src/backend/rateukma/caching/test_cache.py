@@ -48,349 +48,354 @@ def cache_key_context_provider() -> CacheKeyContextProvider:
     return CacheKeyContextProvider()
 
 
+@dataclass(frozen=True)
+class _TestData:
+    name: str
+    value: int
+    active: bool = True
+
+
+class _TestModel(BaseModel):
+    name: str
+    count: int
+    optional: str = "default"
+
+
+class _TestService:
+    pass
+
+
+_SESSION_MARKER = "django.contrib.sessions"
+
+
 @pytest.mark.usefixtures("cache_manager", "mock_redis_client", "cache_key_context_provider")
 @pytest.mark.integration
-class TestCachePrimitives:
-    @pytest.mark.parametrize(
-        "primitive_value, type",
-        [
-            (42, int),
-            ("hello", str),
-            (True, bool),
-            (False, bool),
-            ([1, 2, 3], list),
-            ({"key": "value"}, dict),
-        ],
-    )
-    def test_cache_primitives(self, primitive_value, type, cache_key_context_provider):
-        # Arrange
-        ext = TypeAdapterCacheExtension(cache_key_context_provider)
+@pytest.mark.parametrize(
+    ("primitive_value", "type"),
+    [
+        (42, int),
+        ("hello", str),
+        (True, bool),
+        (False, bool),
+        ([1, 2, 3], list),
+        ({"key": "value"}, dict),
+    ],
+)
+def test_cache_primitives(primitive_value, type, cache_key_context_provider):
+    # Arrange
+    ext = TypeAdapterCacheExtension(cache_key_context_provider)
 
-        # Act and Assert - serialize
-        result = ext.serialize(primitive_value, type)
-        assert result == primitive_value
+    # Act and Assert - serialize
+    result = ext.serialize(primitive_value, type)
+    assert result == primitive_value
 
-        # Act and Assert - deserialize
-        deserialized = ext.deserialize(result, type)
-        assert deserialized == primitive_value
-
-
-@pytest.mark.usefixtures("cache_manager", "mock_redis_client")
-@pytest.mark.integration
-class TestCacheDataclasses:
-    @dataclass(frozen=True)
-    class _TestData:
-        name: str
-        value: int
-        active: bool = True
-
-    def test_cache_dataclasses(self, cache_key_context_provider):
-        # Arrange
-        test_data = self._TestData(name="test", value=42, active=False)
-        ext = TypeAdapterCacheExtension(cache_key_context_provider)
-
-        # Act and Assert - serialize
-        result = ext.serialize(test_data, self._TestData)
-        expected = asdict(test_data)
-        assert result == expected
-
-        # Act and Assert - deserialize
-        deserialized = ext.deserialize(result, self._TestData)
-        assert isinstance(deserialized, self._TestData)
-        assert deserialized.name == test_data.name
-        assert deserialized.value == test_data.value
-        assert deserialized.active == test_data.active
-
-        # cache key generation
-        cache_key = ext.get_cache_key(lambda: None, (), {})
-        assert "lambda" in cache_key
+    # Act and Assert - deserialize
+    deserialized = ext.deserialize(result, type)
+    assert deserialized == primitive_value
 
 
 @pytest.mark.usefixtures("cache_manager", "mock_redis_client")
 @pytest.mark.integration
-class TestCacheDRFResponses:
-    @pytest.mark.parametrize(
-        "response, expected_result",
-        [
-            (
-                Response(
-                    {"data": "test"}, status=200, headers={"Content-Type": "application/json"}
-                ),
-                {
-                    "_wrapped": False,
-                    "data": "test",
-                    "status_code": 200,
-                    "headers": {"Content-Type": "application/json"},
-                },
-            ),
-            (
-                Response(
-                    ["item1", "item2"], status=200, headers={"Content-Type": "application/json"}
-                ),
-                {
-                    "_wrapped": True,
-                    "data": ["item1", "item2"],
-                    "status_code": 200,
-                    "headers": {"Content-Type": "application/json"},
-                },
-            ),
-        ],
-    )
-    def test_cache_drf_responses(self, response, expected_result, cache_key_context_provider):
-        # Arrange
-        ext = DRFResponseCacheTypeExtension(cache_key_context_provider)
+def test_cache_dataclasses(cache_key_context_provider):
+    # Arrange
+    test_data = _TestData(name="test", value=42, active=False)
+    ext = TypeAdapterCacheExtension(cache_key_context_provider)
 
-        mock_request = Mock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.path = "/api/test"
-        mock_request.query_params = {"param": "value"}
-        mock_request.headers = {"Content-Type": "application/json"}
+    # Act and Assert - serialize
+    result = ext.serialize(test_data, _TestData)
+    expected = asdict(test_data)
+    assert result == expected
 
-        # Act and Assert - serialize
-        result = ext.serialize(response, Response)
-        assert result == expected_result
+    # Act and Assert - deserialize
+    deserialized = ext.deserialize(result, _TestData)
+    assert isinstance(deserialized, _TestData)
+    assert deserialized.name == test_data.name
+    assert deserialized.value == test_data.value
+    assert deserialized.active == test_data.active
 
-        # Act and Assert - deserialize
-        deserialized = ext.deserialize(result, Response)
-        assert isinstance(deserialized, Response)
-        assert deserialized.data == response.data
-        assert deserialized.status_code == response.status_code
-        assert deserialized.headers == response.headers
-
-        # Act and Assert - get cache key
-        cache_key = ext.get_cache_key(lambda: None, (mock_request,), {})
-        expected_func_pattern = (
-            f"{mock_request.method}:{mock_request.path}?{urlencode(mock_request.query_params)}"
-        )
-        assert expected_func_pattern in cache_key
+    # cache key generation
+    cache_key = ext.get_cache_key(lambda: None, (), {})
+    assert "lambda" in cache_key
 
 
 @pytest.mark.usefixtures("cache_manager", "mock_redis_client")
 @pytest.mark.integration
-class TestCacheBaseModels:
-    class _TestModel(BaseModel):
-        name: str
-        count: int
-        optional: str = "default"
+@pytest.mark.parametrize(
+    ("response", "expected_result"),
+    [
+        (
+            Response({"data": "test"}, status=200, headers={"Content-Type": "application/json"}),
+            {
+                "_wrapped": False,
+                "data": "test",
+                "status_code": 200,
+                "headers": {"Content-Type": "application/json"},
+            },
+        ),
+        (
+            Response(["item1", "item2"], status=200, headers={"Content-Type": "application/json"}),
+            {
+                "_wrapped": True,
+                "data": ["item1", "item2"],
+                "status_code": 200,
+                "headers": {"Content-Type": "application/json"},
+            },
+        ),
+    ],
+)
+def test_cache_drf_responses(response, expected_result, cache_key_context_provider):
+    # Arrange
+    ext = DRFResponseCacheTypeExtension(cache_key_context_provider)
 
-    def test_cache_base_models(self, cache_key_context_provider):
-        # Arrange
-        ext = TypeAdapterCacheExtension(cache_key_context_provider)
-        instance = self._TestModel(name="test model", count=100, optional="custom")
+    mock_request = Mock(spec=Request)
+    mock_request.method = "GET"
+    mock_request.path = "/api/test"
+    mock_request.query_params = {"param": "value"}
+    mock_request.headers = {"Content-Type": "application/json"}
 
-        # Act and Assert - serialize
-        result = ext.serialize(instance, self._TestModel)
-        expected = instance.model_dump()
-        assert result == expected
+    # Act and Assert - serialize
+    result = ext.serialize(response, Response)
+    assert result == expected_result
 
-        # Act and Assert - deserialize
-        deserialized = ext.deserialize(result, self._TestModel)
-        assert isinstance(deserialized, self._TestModel)
-        assert deserialized.name == "test model"
-        assert deserialized.count == 100
-        assert deserialized.optional == "custom"
+    # Act and Assert - deserialize
+    deserialized = ext.deserialize(result, Response)
+    assert isinstance(deserialized, Response)
+    assert deserialized.data == response.data
+    assert deserialized.status_code == response.status_code
+    assert deserialized.headers == response.headers
 
-        # Act and Assert - get cache key
-        cache_key = ext.get_cache_key(lambda: None, (), {"param": "value"})
-        assert "param" in cache_key
-        assert "value" in cache_key
+    # Act and Assert - get cache key
+    cache_key = ext.get_cache_key(lambda: None, (mock_request,), {})
+    expected_func_pattern = (
+        f"{mock_request.method}:{mock_request.path}?{urlencode(mock_request.query_params)}"
+    )
+    assert expected_func_pattern in cache_key
+
+
+@pytest.mark.usefixtures("cache_manager", "mock_redis_client")
+@pytest.mark.integration
+def test_cache_base_models(cache_key_context_provider):
+    # Arrange
+    ext = TypeAdapterCacheExtension(cache_key_context_provider)
+    instance = _TestModel(name="test model", count=100, optional="custom")
+
+    # Act and Assert - serialize
+    result = ext.serialize(instance, _TestModel)
+    expected = instance.model_dump()
+    assert result == expected
+
+    # Act and Assert - deserialize
+    deserialized = ext.deserialize(result, _TestModel)
+    assert isinstance(deserialized, _TestModel)
+    assert deserialized.name == "test model"
+    assert deserialized.count == 100
+    assert deserialized.optional == "custom"
+
+    # Act and Assert - get cache key
+    cache_key = ext.get_cache_key(lambda: None, (), {"param": "value"})
+    assert "param" in cache_key
+    assert "value" in cache_key
 
 
 @pytest.mark.integration
-class TestRCachedComponents:
-    @pytest.mark.parametrize(
-        "primitive_value,expected_type",
-        [
-            (42, int),
-            ("hello world", str),
-            (True, bool),
-            (False, bool),
-            ([1, 2, 3], list),
-            ({"key": "value"}, dict),
-        ],
-    )
-    def test_rcached_decorator_with_primitives(
-        self, cache_manager, mock_redis_client, primitive_value, expected_type, settings
-    ):
-        settings.ENABLE_CACHE = True
-        with patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager):
-            # Arrange
-            @rcached(ttl=60, return_type=expected_type)
-            def get_primitive():
-                return primitive_value
-
-            mock_redis_client.get.return_value = None  # Cache miss
-
-            # Act and Assert - first call
-            result1 = get_primitive()
-            assert result1 == primitive_value
-            assert mock_redis_client.setex.called
-
-            # Arrange - reset mock for second call
-            mock_redis_client.reset_mock()
-
-            # Act and Assert - second call
-            cached_data = json.dumps(primitive_value).encode()
-            mock_redis_client.get.return_value = cached_data
-            result2 = get_primitive()
-            assert result2 == primitive_value
-
-    def test_cache_key_generation(self, cache_key_context_provider):
+@pytest.mark.parametrize(
+    ("primitive_value", "expected_type"),
+    [
+        (42, int),
+        ("hello world", str),
+        (True, bool),
+        (False, bool),
+        ([1, 2, 3], list),
+        ({"key": "value"}, dict),
+    ],
+)
+def test_rcached_decorator_with_primitives(
+    cache_manager, mock_redis_client, primitive_value, expected_type, settings
+):
+    settings.ENABLE_CACHE = True
+    with patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager):
         # Arrange
-        ext = TypeAdapterCacheExtension(cache_key_context_provider)
-        kwargs = {"param": "value"}
-        args1 = (1,)
-        args2 = (2,)
+        @rcached(ttl=60, return_type=expected_type)
+        def get_primitive():
+            return primitive_value
 
-        # Act and Assert
-        key1 = ext.get_cache_key(lambda x: x, args1, kwargs)
-        key2 = ext.get_cache_key(lambda x: x, args1, kwargs)
-        assert key1 == key2
+        mock_redis_client.get.return_value = None  # Cache miss
 
-        key3 = ext.get_cache_key(lambda x: x, args2, kwargs)
-        assert key1 != key3
+        # Act and Assert - first call
+        result1 = get_primitive()
+        assert result1 == primitive_value
+        assert mock_redis_client.setex.called
 
-        # Assert cache key contains args and kwargs
-        assert str(args1[0]) in key1
-        for key, value in kwargs.items():
-            assert f"{key}" in key1
-            assert f"{value}" in key1
+        # Arrange - reset mock for second call
+        mock_redis_client.reset_mock()
 
-    def test_rcached_decorator_with_versioned_namespace(self, settings):
-        settings.ENABLE_CACHE = True
-        cache_manager = InMemoryCacheManager()
-        calls = {"count": 0}
+        # Act and Assert - second call
+        cached_data = json.dumps(primitive_value).encode()
+        mock_redis_client.get.return_value = cached_data
+        result2 = get_primitive()
+        assert result2 == primitive_value
 
-        with patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager):
 
-            @rcached(ttl=60, return_type=int, versioned_by="courses:list")
-            def get_value():
-                calls["count"] += 1
-                return 42
+@pytest.mark.integration
+def test_cache_key_generation(cache_key_context_provider):
+    # Arrange
+    ext = TypeAdapterCacheExtension(cache_key_context_provider)
+    kwargs = {"param": "value"}
+    args1 = (1,)
+    args2 = (2,)
 
-            assert get_value() == 42
-            assert get_value() == 42
-            assert calls["count"] == 1
+    # Act and Assert
+    key1 = ext.get_cache_key(lambda x: x, args1, kwargs)
+    key2 = ext.get_cache_key(lambda x: x, args1, kwargs)
+    assert key1 == key2
 
-            cache_manager.bump_version("courses:list")
-            assert get_value() == 42
-            assert calls["count"] == 2
+    key3 = ext.get_cache_key(lambda x: x, args2, kwargs)
+    assert key1 != key3
 
-    def test_bump_version_sets_ttl(self, cache_manager, mock_redis_client):
+    # Assert cache key contains args and kwargs
+    assert str(args1[0]) in key1
+    for key, value in kwargs.items():
+        assert f"{key}" in key1
+        assert f"{value}" in key1
+
+
+@pytest.mark.integration
+def test_rcached_decorator_with_versioned_namespace(settings):
+    settings.ENABLE_CACHE = True
+    cache_manager = InMemoryCacheManager()
+    calls = {"count": 0}
+
+    with patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager):
+
+        @rcached(ttl=60, return_type=int, versioned_by="courses:list")
+        def get_value():
+            calls["count"] += 1
+            return 42
+
+        assert get_value() == 42
+        assert get_value() == 42
+        assert calls["count"] == 1
+
         cache_manager.bump_version("courses:list")
-        mock_redis_client.expire.assert_called_with("test:version:courses:list", 60 * 60 * 24 * 30)
+        assert get_value() == 42
+        assert calls["count"] == 2
 
 
 @pytest.mark.integration
-class TestInvalidatePatternSkipKeys:
-    SESSION_MARKER = "django.contrib.sessions"
-
-    def test_redis_skip_keys_preserves_session_keys(self):
-        app_key = b"rateukma:CourseService.get_course|1"
-        version_key = b"rateukma:version:courses:list"
-        session_key = b"rateukma:1:django.contrib.sessions.cache<abc123>"
-
-        client = Mock()
-        client.scan.return_value = (0, [app_key, version_key, session_key])
-        client.delete.return_value = 2
-        manager = RedisCacheManager(redis_client=client, key_prefix="rateukma")
-
-        deleted = manager.invalidate_pattern("*", skip_keys=[self.SESSION_MARKER])
-
-        # session key is excluded; only app + version keys are deleted
-        client.delete.assert_called_once_with(app_key, version_key)
-        assert deleted == 2
-
-    def test_redis_skip_keys_no_delete_when_all_skipped(self):
-        session_key = b"rateukma:1:django.contrib.sessions.cache<abc123>"
-
-        client = Mock()
-        client.scan.return_value = (0, [session_key])
-        manager = RedisCacheManager(redis_client=client, key_prefix="rateukma")
-
-        deleted = manager.invalidate_pattern("*", skip_keys=[self.SESSION_MARKER])
-
-        client.delete.assert_not_called()
-        assert deleted == 0
-
-    def test_inmemory_skip_keys_preserves_session_keys(self):
-        manager = InMemoryCacheManager()
-        manager.set("course:1", 1)
-        manager.set("1:django.contrib.sessions.cache<abc123>", "session-data")
-
-        deleted = manager.invalidate_pattern("*", skip_keys=[self.SESSION_MARKER])
-
-        assert deleted == 1
-        assert manager.get("course:1") is None
-        assert manager.get("1:django.contrib.sessions.cache<abc123>") == "session-data"
+def test_bump_version_sets_ttl(cache_manager, mock_redis_client):
+    cache_manager.bump_version("courses:list")
+    mock_redis_client.expire.assert_called_with("test:version:courses:list", 60 * 60 * 24 * 30)
 
 
-class TestCacheInvalidation:
-    class _TestService:
-        pass
+@pytest.mark.integration
+def test_redis_skip_keys_preserves_session_keys():
+    app_key = b"rateukma:CourseService.get_course|1"
+    version_key = b"rateukma:version:courses:list"
+    session_key = b"rateukma:1:django.contrib.sessions.cache<abc123>"
 
-    def test_invalidate_cache_with_custom_pattern(self, cache_manager, mock_redis_client):
-        with (
-            patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager),
-            patch.object(cache_manager, "invalidate_pattern") as mock_invalidate,
-        ):
-            # Arrange
-            return_value = "executed"
-            pattern = "custom:*"
+    client = Mock()
+    client.scan.return_value = (0, [app_key, version_key, session_key])
+    client.delete.return_value = 2
+    manager = RedisCacheManager(redis_client=client, key_prefix="rateukma")
 
-            @invalidate_cache_for(patterns=pattern)
-            def test_operation():
-                return return_value
+    deleted = manager.invalidate_pattern("*", skip_keys=[_SESSION_MARKER])
 
-            # Act
-            result = test_operation()
+    # session key is excluded; only app + version keys are deleted
+    client.delete.assert_called_once_with(app_key, version_key)
+    assert deleted == 2
 
-            # Assert
-            assert result == return_value
-            mock_invalidate.assert_called_with(pattern)
 
-    def test_invalidate_cache_with_method_name(self, cache_manager, mock_redis_client):
-        service_instance = self._TestService()
+@pytest.mark.integration
+def test_redis_skip_keys_no_delete_when_all_skipped():
+    session_key = b"rateukma:1:django.contrib.sessions.cache<abc123>"
 
-        with (
-            patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager),
-            patch.object(cache_manager, "invalidate_pattern") as mock_invalidate,
-        ):
-            # Arrange
-            return_value = "executed"
-            method_name = "test_method"
-            expected_pattern = f"*{service_instance.__class__.__name__}.{method_name}*"
+    client = Mock()
+    client.scan.return_value = (0, [session_key])
+    manager = RedisCacheManager(redis_client=client, key_prefix="rateukma")
 
-            @invalidate_cache_for(method_name)
-            def test_operation(self):
-                return return_value
+    deleted = manager.invalidate_pattern("*", skip_keys=[_SESSION_MARKER])
 
-            # Act
-            result = test_operation(service_instance)
+    client.delete.assert_not_called()
+    assert deleted == 0
 
-            # Assert
-            assert result == return_value
-            mock_invalidate.assert_called_with(expected_pattern)
 
-    def test_invalidate_cache_with_multiple_patterns(self, cache_manager, mock_redis_client):
-        with (
-            patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager),
-            patch.object(cache_manager, "invalidate_pattern") as mock_invalidate,
-        ):
-            # Arrange
-            return_value = "executed"
-            patterns = ["pattern1:*", "pattern2:*", "*common*"]
+@pytest.mark.integration
+def test_inmemory_skip_keys_preserves_session_keys():
+    manager = InMemoryCacheManager()
+    manager.set("course:1", 1)
+    manager.set("1:django.contrib.sessions.cache<abc123>", "session-data")
 
-            @invalidate_cache_for(patterns=patterns)
-            def test_operation():
-                return return_value
+    deleted = manager.invalidate_pattern("*", skip_keys=[_SESSION_MARKER])
 
-            # Act
-            result = test_operation()
+    assert deleted == 1
+    assert manager.get("course:1") is None
+    assert manager.get("1:django.contrib.sessions.cache<abc123>") == "session-data"
 
-            # Assert
-            assert result == return_value
-            assert mock_invalidate.call_count == len(patterns)
-            mock_invalidate.assert_any_call("pattern1:*")
-            mock_invalidate.assert_any_call("pattern2:*")
-            mock_invalidate.assert_any_call("*common*")
+
+def test_invalidate_cache_with_custom_pattern(cache_manager, mock_redis_client):
+    with (
+        patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager),
+        patch.object(cache_manager, "invalidate_pattern") as mock_invalidate,
+    ):
+        # Arrange
+        return_value = "executed"
+        pattern = "custom:*"
+
+        @invalidate_cache_for(patterns=pattern)
+        def test_operation():
+            return return_value
+
+        # Act
+        result = test_operation()
+
+        # Assert
+        assert result == return_value
+        mock_invalidate.assert_called_with(pattern)
+
+
+def test_invalidate_cache_with_method_name(cache_manager, mock_redis_client):
+    service_instance = _TestService()
+
+    with (
+        patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager),
+        patch.object(cache_manager, "invalidate_pattern") as mock_invalidate,
+    ):
+        # Arrange
+        return_value = "executed"
+        method_name = "test_method"
+        expected_pattern = f"*{service_instance.__class__.__name__}.{method_name}*"
+
+        @invalidate_cache_for(method_name)
+        def test_operation(self):
+            return return_value
+
+        # Act
+        result = test_operation(service_instance)
+
+        # Assert
+        assert result == return_value
+        mock_invalidate.assert_called_with(expected_pattern)
+
+
+def test_invalidate_cache_with_multiple_patterns(cache_manager, mock_redis_client):
+    with (
+        patch("rateukma.caching.decorators.redis_cache_manager", return_value=cache_manager),
+        patch.object(cache_manager, "invalidate_pattern") as mock_invalidate,
+    ):
+        # Arrange
+        return_value = "executed"
+        patterns = ["pattern1:*", "pattern2:*", "*common*"]
+
+        @invalidate_cache_for(patterns=patterns)
+        def test_operation():
+            return return_value
+
+        # Act
+        result = test_operation()
+
+        # Assert
+        assert result == return_value
+        assert mock_invalidate.call_count == len(patterns)
+        mock_invalidate.assert_any_call("pattern1:*")
+        mock_invalidate.assert_any_call("pattern2:*")
+        mock_invalidate.assert_any_call("*common*")
