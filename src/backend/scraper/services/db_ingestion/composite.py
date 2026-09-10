@@ -70,3 +70,15 @@ class CoursesIngestion(IOperation[[Path, int, bool]]):
                 total=total_records,
                 percentage="100.0%",
             )
+
+        if not dry_run:
+            # Prune legacy specialities after each ingest so recreated stale
+            # names from old snapshots do not accumulate (#533).
+            from rating_app.management.commands.prune_legacy_specialities import run_prune
+
+            pruned = run_prune(apply=True)
+            logger.info(
+                "legacy_specialities_pruned",
+                deleted_specs=pruned["deleted_specs"],
+                deleted_links=pruned["deleted_links"],
+            )
