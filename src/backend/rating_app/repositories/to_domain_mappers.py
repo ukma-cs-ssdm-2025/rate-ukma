@@ -360,25 +360,14 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
             if model.exam_type and model.exam_type in ExamType.values
             else ExamType.EXAM
         )
-        practice_type = (
-            PracticeType(model.practice_type)
-            if model.practice_type and model.practice_type in PracticeType.values
-            else None
-        )
 
         return CourseOfferingDTO(
             id=model.id,
             code=model.code,
             course_id=model.course_id,  # type: ignore TODO: resolve type checker issue - prefetched field
             semester_id=model.semester_id,  # type: ignore TODO: resolve type checker issue - prefetched field
-            credits=model.credits,
-            weekly_hours=model.weekly_hours,
             exam_type=exam_type,
-            total_hours=model.total_hours,
             study_year=model.study_year,
-            lecture_count=model.lecture_count,
-            practice_count=model.practice_count,
-            practice_type=practice_type,
             max_students=model.max_students,
             max_groups=model.max_groups,
             group_size_min=model.group_size_min,
