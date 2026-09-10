@@ -1,14 +1,15 @@
 import axios, { type AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { stubBrowserLocation } from "./browserMocks.test-support";
 import {
+	BOUNCE_WINDOW_MS,
 	CONNECTION_ERROR_PATH,
 	handleConnectionIssue,
 	isOffline,
+	parseBounceCount,
 	resetRedirectFlag,
 } from "./networkError";
-
+import { stubBrowserLocation } from "./browserMocks.test-support";
 const DEFAULT_WINDOW_LOCATION = {
 	pathname: "/some-page",
 	search: "?foo=bar",
@@ -57,6 +58,7 @@ describe("networkError", () => {
 
 	afterEach(() => {
 		resetRedirectFlag();
+		sessionStorage.clear();
 		vi.unstubAllGlobals();
 	});
 
@@ -258,6 +260,86 @@ describe("networkError", () => {
 				// Assert
 				expect(mockWindowReplace).toHaveBeenCalledTimes(2);
 			});
+		});
+	});
+
+	describe("bounce counter", () => {
+		const timeoutError = () => createAxiosError({ response: undefined });
+		const redirectUrl = () =>
+			new URL(mockWindowReplace.mock.calls[0][0] as string);
+		const startCycle = (ageMs = 0) => {
+			sessionStorage.setItem(
+				"rateukma.connection-error-ts",
+				String(Date.now() - ageMs),
+			);
+		};
+
+		it("stamps bounces=1 on the first redirect", () => {
+			stubNavigatorOnline();
+
+			handleConnectionIssue(timeoutError());
+
+			expect(redirectUrl().searchParams.get("bounces")).toBe("1");
+		});
+
+		it("increments the counter within one outage", () => {
+			mockWindowReplace = stubBrowserLocation({
+				pathname: "/",
+				search: "?bounces=2",
+				hash: "",
+				origin: "http://localhost:3000",
+			}).replace;
+			stubNavigatorOnline();
+			startCycle();
+
+			handleConnectionIssue(timeoutError());
+
+			expect(redirectUrl().searchParams.get("bounces")).toBe("3");
+		});
+
+		it("restarts at 1 when the previous cycle aged out", () => {
+			mockWindowReplace = stubBrowserLocation({
+				pathname: "/",
+				search: "?bounces=5",
+				hash: "",
+				origin: "http://localhost:3000",
+			}).replace;
+			stubNavigatorOnline();
+			startCycle(BOUNCE_WINDOW_MS + 60_000);
+
+			handleConnectionIssue(timeoutError());
+
+			expect(redirectUrl().searchParams.get("bounces")).toBe("1");
+		});
+
+		it.each(["?foo=bar", "?bounces=nope", "?bounces=-4"])(
+			"restarts at 1 when the counter is %s",
+			(search) => {
+				mockWindowReplace = stubBrowserLocation({
+					pathname: "/",
+					search,
+					hash: "",
+					origin: "http://localhost:3000",
+				}).replace;
+				stubNavigatorOnline();
+
+				handleConnectionIssue(timeoutError());
+
+				expect(redirectUrl().searchParams.get("bounces")).toBe("1");
+			},
+		);
+	});
+
+	describe("parseBounceCount", () => {
+		it.each([
+			["3", 3],
+			[undefined, 0],
+			[null, 0],
+			["nope", 0],
+			["0", 0],
+			["-2", 0],
+		])("parses %s as %i", (value, expected) => {
+			expect(parseBounceCount(value)).toBe(expected);
 		});
 	});
 
