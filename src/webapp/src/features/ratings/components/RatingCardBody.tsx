@@ -13,7 +13,6 @@ import type {
 	RatingInstructor,
 	RatingVoteStrType,
 } from "@/lib/api/generated";
-import { useFeatureFlagState } from "@/lib/feature-flags";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
@@ -64,9 +63,6 @@ export function RatingCardBody({
 	votesReadOnly = false,
 	votesDisabledMessage,
 }: RatingCardBodyProps) {
-	const { enabled: showMultiSelect, isReady } = useFeatureFlagState(
-		"fe_instructor_multiselect",
-	);
 	const instructorNames = instructors.map(formatInstructorName).filter(Boolean);
 	return (
 		<>
@@ -100,7 +96,7 @@ export function RatingCardBody({
 				<RatingStats difficulty={difficulty} usefulness={usefulness} />
 			</div>
 
-			{!isReady ? null : showMultiSelect && instructorNames.length > 0 ? (
+			{instructorNames.length > 0 ? (
 				<p className="mt-2 flex min-w-0 items-start gap-1 text-sm text-muted-foreground">
 					<span className="shrink-0 font-medium">
 						{instructorNames.length > 1 ? "Викладачі:" : "Викладач:"}

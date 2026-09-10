@@ -42,7 +42,6 @@ import type {
 	EducationLevelEnum,
 	FilterOptions,
 } from "@/lib/api/generated";
-import { useFeatureFlag } from "@/lib/feature-flags";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
@@ -475,7 +474,6 @@ function SelectFilters({
 	getSelectValue: (key: string) => string;
 	onSelectChange: (key: string, value: string) => void;
 }>) {
-	const showInstructorFilter = useFeatureFlag("fe_instructor_multiselect");
 	return (
 		<>
 			{filters.map(
@@ -494,9 +492,6 @@ function SelectFilters({
 					const isDisabled = disabled || options.length === 0;
 
 					if (key === "instructor") {
-						if (!showInstructorFilter) {
-							return null;
-						}
 						return (
 							<div key={key} className="space-y-3">
 								<Label className="text-sm font-medium inline-flex items-center gap-1.5">
