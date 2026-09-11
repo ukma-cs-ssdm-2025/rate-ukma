@@ -6,10 +6,11 @@ import { Newspaper, Pin } from "lucide-react";
 import Layout from "@/components/Layout";
 import { FeedEmptyState } from "@/features/feed/components/FeedEmptyState";
 import { FeedErrorState } from "@/features/feed/components/FeedErrorState";
+import { FeedCommentItem } from "@/features/feed/components/FeedCommentItem";
 import { FeedPromoItem } from "@/features/feed/components/FeedPromoItem";
 import { FeedReviewItem } from "@/features/feed/components/FeedReviewItem";
 import { FeedSkeleton } from "@/features/feed/components/FeedSkeleton";
-import { isPromoItem } from "@/features/feed/feedTypes";
+import { isCommentItem, isPromoItem } from "@/features/feed/feedTypes";
 import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import { useFeed } from "@/features/feed/hooks/useFeed";
 import { withAuth } from "@/lib/auth";
@@ -82,7 +83,11 @@ function resolveContent({
 							<FeedPromoItem item={item} variant="banner" />
 						) : (
 							<div className="rounded-xl border bg-card px-4 shadow-sm">
-								<FeedReviewItem item={item} />
+								{isCommentItem(item) ? (
+									<FeedCommentItem item={item} />
+								) : (
+									<FeedReviewItem item={item} />
+								)}
 							</div>
 						)}
 					</div>
