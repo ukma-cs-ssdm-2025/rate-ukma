@@ -4,7 +4,11 @@ from rest_framework import serializers
 
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
 
-from rating_app.application_schemas.feed import FeedPromoItem, FeedReviewItem
+from rating_app.application_schemas.feed import (
+    FeedItem,
+    FeedPromoItem,
+    FeedReviewItem,
+)
 from rating_app.models.choices import FeedPostAccent, SemesterTerm
 
 REVIEW_KIND = "review"
@@ -48,6 +52,11 @@ class FeedPromoItemSerializer(serializers.Serializer):
         return PROMO_KIND
 
 
+SERIALIZER_BY_ITEM_TYPE: dict[type[FeedItem], type[serializers.Serializer]] = {
+    FeedReviewItem: FeedReviewItemSerializer,
+    FeedPromoItem: FeedPromoItemSerializer,
+}
+
 FeedItemSerializer = PolymorphicProxySerializer(
     component_name="FeedItem",
     resource_type_field_name="kind",
@@ -69,8 +78,6 @@ class FeedPageSerializer(serializers.Serializer):
         # dispatch on the DTO type instead.
         return [self._serialize(item) for item in page.items]
 
-    def _serialize(self, item: FeedReviewItem | FeedPromoItem) -> dict[str, Any]:
-        serializer = (
-            FeedPromoItemSerializer if isinstance(item, FeedPromoItem) else FeedReviewItemSerializer
-        )
+    def _serialize(self, item: FeedItem) -> dict[str, Any]:
+        serializer = SERIALIZER_BY_ITEM_TYPE[type(item)]
         return cast(dict[str, Any], serializer(item).data)
