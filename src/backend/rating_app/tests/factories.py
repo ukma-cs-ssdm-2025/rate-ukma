@@ -9,6 +9,8 @@ from factory import fuzzy
 from factory.django import DjangoModelFactory
 from faker import Faker
 
+from rating_app.ioc_container.repositories import rating_repository
+from rating_app.ioc_container.services import feed_update_service
 from rating_app.models import (
     Comment,
     Course,
@@ -200,6 +202,13 @@ class RatingFactory(DjangoModelFactory):
     @factory.lazy_attribute
     def comment(self):
         return faker.sentence() if random.random() < 0.5 else ""
+
+    @factory.post_generation
+    def sync_feed(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        feed_update_service().sync_rating(rating_repository().get_by_id(str(self.id)))
 
 
 class RatingVoteFactory(DjangoModelFactory):

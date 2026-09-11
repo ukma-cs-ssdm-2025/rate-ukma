@@ -3,6 +3,8 @@ import uuid
 from dataclasses import dataclass, field
 from decimal import Decimal
 
+from django.contrib.contenttypes.models import ContentType
+
 from pydantic import BaseModel, Field
 from pydantic.alias_generators import to_snake
 
@@ -11,7 +13,7 @@ from rating_app.constants import (
     MAX_PAGE_SIZE,
     MIN_PAGE_SIZE,
 )
-from rating_app.models.choices import FeedPostAccent, SemesterTerm
+from rating_app.models.choices import FeedEventType, FeedPostAccent, SemesterTerm
 
 
 @dataclass(frozen=True)
@@ -45,6 +47,18 @@ class FeedPromoItem(FeedItemBase):
     cta_label: str = ""
     cta_href: str = ""
     image_url: str | None = None
+
+
+@dataclass(frozen=True)
+class FeedEventUpsertData:
+    # key: (content_type, object_id)
+
+    event_type: FeedEventType
+    content_type: ContentType
+    object_id: uuid.UUID
+    occurred_at: datetime.datetime
+    is_visible: bool = True
+    pinned: bool = False
 
 
 @dataclass(frozen=True)

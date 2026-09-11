@@ -33,6 +33,7 @@ from ..repositories import (
     DepartmentRepository,
     EnrollmentRepository,
     FacultyRepository,
+    FeedEventRepository,
     FeedPostRepository,
     InstructorRepository,
     PromoBannerRepository,
@@ -141,6 +142,11 @@ def feed_review_mapper() -> FeedReviewMapper:
 @once
 def feed_post_repository() -> FeedPostRepository:
     return FeedPostRepository(mapper=feed_post_mapper())
+
+
+@once
+def feed_event_repository() -> FeedEventRepository:
+    return FeedEventRepository()
 
 
 @once
