@@ -47,7 +47,7 @@ class FeedEvent(models.Model):
                 condition=Q(is_visible=True, pinned=False),
             ),
             models.Index(
-                fields=["-occurred_at"],
+                fields=["-occurred_at", "-id"],
                 name="feed_event_pinned_idx",
                 condition=Q(is_visible=True, pinned=True),
             ),

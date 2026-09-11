@@ -1,5 +1,6 @@
 import uuid
 
+from django.contrib.contenttypes.fields import GenericRelation
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils import timezone
@@ -65,6 +66,7 @@ class FeedPost(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    feed_events = GenericRelation("rating_app.FeedEvent")
 
     class Meta:
         ordering = ["-published_at"]

@@ -4,8 +4,6 @@ import django.db.models.deletion
 import uuid
 from django.db import migrations, models
 
-BATCH_SIZE = 1000
-
 
 def _content_type(apps, model):
     ContentType = apps.get_model("contenttypes", "ContentType")
@@ -24,7 +22,7 @@ def backfill(apps, schema_editor):
     rating_type = _content_type(apps, Rating)
     post_type = _content_type(apps, FeedPost)
 
-    reviews = (
+    reviews = [
         FeedEvent(
             event_type="REVIEW_PUBLISHED",
             occurred_at=created_at,
@@ -33,12 +31,12 @@ def backfill(apps, schema_editor):
             content_type=rating_type,
             object_id=rating_id,
         )
-        for rating_id, created_at in Rating.objects.exclude(comment="")
-        .values_list("id", "created_at")
-        .iterator(chunk_size=BATCH_SIZE)
-    )
+        for rating_id, created_at in Rating.objects.exclude(comment="").values_list(
+            "id", "created_at"
+        )
+    ]
 
-    posts = (
+    posts = [
         FeedEvent(
             event_type="POST_PUBLISHED",
             occurred_at=published_at,
@@ -49,13 +47,12 @@ def backfill(apps, schema_editor):
         )
         for post_id, published_at, is_active, pinned in FeedPost.objects.values_list(
             "id", "published_at", "is_active", "pinned"
-        ).iterator(chunk_size=BATCH_SIZE)
-    )
+        )
+    ]
 
-    for events in (reviews, posts):
-        # `ignore_conflicts` against `unique_feed_event_source`, so a re-run after a
-        # partial failure is a no-op rather than an IntegrityError.
-        FeedEvent.objects.bulk_create(events, batch_size=BATCH_SIZE, ignore_conflicts=True)
+    # `ignore_conflicts` against `unique_feed_event_source`, so a re-run after a
+    # partial failure is a no-op rather than an IntegrityError.
+    FeedEvent.objects.bulk_create(reviews + posts, ignore_conflicts=True)
 
 
 def unbackfill(apps, schema_editor):
@@ -117,7 +114,7 @@ class Migration(migrations.Migration):
                     ),
                     models.Index(
                         condition=models.Q(("is_visible", True), ("pinned", True)),
-                        fields=["-occurred_at"],
+                        fields=["-occurred_at", "-id"],
                         name="feed_event_pinned_idx",
                     ),
                 ],
