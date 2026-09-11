@@ -61,11 +61,14 @@ it the feed's single read source.
    `(-occurred_at, -id)`.
 5. **Writes reach the index through the domain-event bus where one exists, and Django
    signals where none does.** `RatingService` emits a `RatingEvent(rating, action)` envelope —
-   mirroring `CommentEvent` — so a `RatingFeedUpdateObserver` can tell a delete from a write;
-   `FeedPost` is authored in Django admin and never reaches a service, so a thin `post_save` /
-   `post_delete` receiver feeds it instead. Both delegate to one `FeedUpdateService`, keyed
-   idempotently on `(content_type, object_id)` by a unique constraint, and both write inside the
-   caller's transaction so a source row and its index entry commit or roll back together.
+   mirroring `CommentEvent` — and a `RatingFeedUpdateObserver` keeps the index in step;
+   `FeedPost` is authored in Django admin and never reaches a service, so a thin `post_save`
+   receiver feeds it instead. Both delegate to one `FeedUpdateService`, keyed idempotently on
+   `(content_type, object_id)` by a unique constraint, and both write inside the caller's
+   transaction so a source row and its index entry commit or roll back together. **Deletion needs
+   no application code at all**: each source model declares the reverse
+   `GenericRelation("rating_app.FeedEvent")`, so the ORM collector cascades the index entry on
+   every delete path — service, admin, `QuerySet.delete()`, and cascades from a parent row.
 6. **Cache invalidation collapses to a single trigger.** Every path that changes the feed now
    writes `feed_event`, so one `post_save`/`post_delete` receiver on that model owns the
    `feed:list` namespace bump. The bumps in `RatingCacheInvalidator` and in the existing
@@ -93,18 +96,22 @@ the table; phase 2 flips the read path and deletes the superseded source queries
   over two independently over-fetched sources.
 - ✅ Synthetic events (achievements) become representable, via a later additive `payload` column.
 - ✅ No API or frontend change, so the refactor is verified by existing tests passing unedited.
-- ⚠️ A second table must be kept in step with the sources. A missed projection means an item is
-  silently absent from the feed; the unique constraint makes re-projection safe, and a backfill
-  command can repair drift.
-- ⚠️ A page can return fewer than `limit` cards when an event's source row was deleted without
-  the event being retracted. The cursor is minted from the last _row_ rather than the last
-  hydrated item, so paging still advances correctly; the cost is one short page. An orphan-purge
-  command is a follow-up.
+- ⚠️ A second table must be kept in step with the sources on the write side. Writes that bypass
+  both the bus and signals (`QuerySet.update()`, `bulk_create`, raw SQL) leave an item silently
+  absent or stale; the unique constraint makes re-projection safe, and a backfill command can
+  repair drift.
+- ⚠️ A page can return fewer than `limit` cards if an entry's source row is gone. With the
+  reverse `GenericRelation` this can only happen through raw SQL or `_raw_delete`, since every
+  ORM delete path cascades. The read path tolerates it anyway: the cursor is minted from the
+  last _row_ rather than the last hydrated item, so paging still advances; the cost is one short
+  page.
 - ⚠️ Cursors issued by the old code during the deploy address a `Rating`/`FeedPost` id rather
   than a `FeedEvent` id, giving a reader mid-scroll one page with a wrong tie-break. Accepted on
   an opt-in feature (`fe_feed`) in preference to versioning the cursor, which would surface as a 400.
-- ⚠️ Projection runs in `transaction.on_commit` on the request path, adding one write per rating
-  or post save.
+- ⚠️ Each rating or post save carries one extra write, in the same transaction. That is the
+  cost of atomicity: a failed index write fails the source write with it, rather than leaving a
+  row the feed silently never shows. Only the Redis cache bump runs in `transaction.on_commit`,
+  since Redis cannot roll back with the database.
 - ❌ Feed content is no longer readable from a single table — debugging a card means joining the
   event to its source. Read-only Django admin for `FeedEvent` mitigates this.
 
