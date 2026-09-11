@@ -3,7 +3,12 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { FeedItem as ApiFeedItem } from "@/lib/api/generated";
 import { useFeedListInfinite } from "@/lib/api/generated";
-import type { FeedItem, FeedPromoItem, FeedReviewItem } from "../feedTypes";
+import type {
+	FeedCommentItem,
+	FeedItem,
+	FeedPromoItem,
+	FeedReviewItem,
+} from "../feedTypes";
 import { orderFeedItems } from "../feedTypes";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -111,7 +116,26 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 // Every field but `kind` generates as optional, since DRF marks read-only
 // fields as not required. Defaults keep the render path total.
 function toFeedItem(item: ApiFeedItem): FeedItem {
-	return item.kind === "promo" ? toPromoItem(item) : toReviewItem(item);
+	switch (item.kind) {
+		case "promo":
+			return toPromoItem(item);
+		case "comment":
+			return toCommentItem(item);
+		default:
+			return toReviewItem(item);
+	}
+}
+
+function toCommentItem(item: Extract<ApiFeedItem, { kind: "comment" }>) {
+	return {
+		kind: "comment",
+		id: item.id ?? "",
+		createdAt: item.occurred_at ?? "",
+		ratingId: item.rating_id ?? "",
+		courseId: item.course_id ?? "",
+		courseTitle: item.course_title ?? "",
+		content: item.content ?? "",
+	} satisfies FeedCommentItem;
 }
 
 function toReviewItem(item: Extract<ApiFeedItem, { kind: "review" }>) {
