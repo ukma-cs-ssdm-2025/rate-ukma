@@ -9,13 +9,12 @@ from .choices import FeedEventType
 
 
 class FeedEvent(models.Model):
-    """One row per feed-worthy occurrence: an index over the feed, not a copy of it.
+    """One row per feed event: an index over the feed.
 
-    The row carries only what ordering and visibility need; the card's content is
-    read live from the source row at request time. Nothing here goes stale when a
-    review is edited or a post is retitled, and nothing has to be rewritten when it
-    is — which is the whole reason there is no payload column.
+    The card's content is read live from the source row at request time.
     """
+
+    content_type_id: int
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event_type = models.CharField(max_length=40, choices=FeedEventType.choices)
