@@ -17,6 +17,7 @@ from rating_app.application_schemas.course_offering import (
 from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDTO
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
+from rating_app.application_schemas.feed import FeedCommentItem as FeedCommentItemDTO
 from rating_app.application_schemas.feed import FeedEventRow
 from rating_app.application_schemas.feed import FeedPromoItem as FeedPromoItemDTO
 from rating_app.application_schemas.feed import FeedReviewItem as FeedReviewItemDTO
@@ -572,6 +573,20 @@ class PromoBannerMapper(IProcessor[[PromoBannerModel], PromoBannerDTO]):
             cta_label=model.cta_label,
             logo_url=model.logo.url if model.logo else None,
             logo_alt=model.logo_alt or model.title,
+        )
+
+
+class FeedCommentMapper(IProcessor[[CommentModel], FeedCommentItemDTO]):
+    @implements
+    def process(self, model: CommentModel) -> FeedCommentItemDTO:
+        course = model.rating.course_offering.course
+        return FeedCommentItemDTO(
+            id=model.id,
+            occurred_at=model.created_at,
+            rating_id=model.rating_id,
+            course_id=course.id,
+            course_title=course.title,
+            content=model.content,
         )
 
 

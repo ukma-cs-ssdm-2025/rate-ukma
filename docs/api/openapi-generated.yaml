@@ -3272,15 +3272,50 @@ components:
           description: Enabled state of each public feature flag for the current user.
       required:
       - flags
+    FeedCommentItem:
+      type: object
+      properties:
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/FeedCommentItemKindEnum'
+          readOnly: true
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+        rating_id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_title:
+          type: string
+          readOnly: true
+        content:
+          type: string
+          readOnly: true
+    FeedCommentItemKindEnum:
+      type: string
+      enum:
+      - comment
     FeedItem:
       oneOf:
       - $ref: '#/components/schemas/FeedReviewItem'
       - $ref: '#/components/schemas/FeedPromoItem'
+      - $ref: '#/components/schemas/FeedCommentItem'
       discriminator:
         propertyName: kind
         mapping:
           review: '#/components/schemas/FeedReviewItem'
           promo: '#/components/schemas/FeedPromoItem'
+          comment: '#/components/schemas/FeedCommentItem'
     FeedPage:
       type: object
       properties:

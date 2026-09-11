@@ -6,10 +6,15 @@ from django.utils import timezone
 
 import pytest
 
-from rating_app.ioc_container.repositories import rating_repository
-from rating_app.ioc_container.services import feed_update_service, rating_feed_update_observer
-from rating_app.models import FeedEvent, Rating
+from rating_app.ioc_container.repositories import comment_repository, rating_repository
+from rating_app.ioc_container.services import (
+    comment_feed_update_observer,
+    feed_update_service,
+    rating_feed_update_observer,
+)
+from rating_app.models import Comment, FeedEvent, Rating
 from rating_app.models.choices import FeedEventType
+from rating_app.services.comment_events import CommentAction, CommentEvent
 from rating_app.services.rating_events import RatingAction, RatingEvent
 
 pytestmark = [pytest.mark.django_db, pytest.mark.integration]
@@ -97,6 +102,55 @@ class TestPostUpdates:
         assert after.pinned is True
 
 
+class TestCommentUpdates:
+    @pytest.fixture
+    def emit(self):
+        observer = comment_feed_update_observer()
+
+        def _emit(comment, action: CommentAction):
+            dto = comment_repository().get_by_id(str(comment.id))
+            observer.on_event(CommentEvent(comment=dto, action=action))
+
+        return _emit
+
+    def test_comment_becomes_a_visible_event(self, emit, comment_factory):
+        comment = comment_factory(content="Погоджуюсь")
+
+        emit(comment, CommentAction.CREATED)
+
+        event = _event_for(comment)
+        assert event.event_type == FeedEventType.COMMENT_PUBLISHED
+        assert event.occurred_at == comment.created_at
+        assert event.is_visible is True
+        assert event.pinned is False
+
+    def test_reply_is_an_event_of_its_own(self, emit, comment_factory):
+        parent = comment_factory()
+        reply = comment_factory(rating=parent.rating, parent_comment=parent)
+
+        emit(reply, CommentAction.CREATED)
+
+        assert _event_for(reply).object_id == reply.id
+        assert FeedEvent.objects.filter(event_type=FeedEventType.COMMENT_PUBLISHED).count() == 2
+
+    def test_delete_event_leaves_the_index_to_the_orm(self, emit, comment_factory):
+        """Cascade via `Comment.feed_events` removes the entry; the observer must not."""
+        comment = comment_factory()
+
+        emit(comment, CommentAction.DELETED)
+
+        assert _event_for(comment) is not None
+
+    def test_deleting_the_rating_takes_the_comment_entries_with_it(self, comment_factory):
+        """The FK cascade reaches the comment, and `Comment.feed_events` reaches its entry."""
+        comment = comment_factory()
+
+        Rating.objects.filter(pk=comment.rating_id).delete()
+
+        assert not Comment.objects.filter(pk=comment.id).exists()
+        assert not FeedEvent.objects.filter(object_id=comment.id).exists()
+
+
 class TestRebuild:
     def test_indexes_rows_that_bypassed_the_service(self, rating_factory, feed_post_factory):
         """`Rating.objects.create` and bulk loads never reach the observers."""
@@ -109,6 +163,14 @@ class TestRebuild:
         assert count == 2
         assert _event_for(rating).is_visible is True
         assert _event_for(post).pinned is True
+
+    def test_includes_comments(self, comment_factory):
+        comment = comment_factory()
+        FeedEvent.objects.all().delete()
+
+        feed_update_service().rebuild()
+
+        assert _event_for(comment).event_type == FeedEventType.COMMENT_PUBLISHED
 
     def test_applies_the_same_visibility_rule_as_sync(self, rating_factory):
         rating_factory(comment="")
