@@ -10,27 +10,28 @@ from rateukma.caching.patterns import (
 )
 from rateukma.protocols import implements
 from rateukma.protocols.generic import IEventListener
-from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
 from rating_app.repositories import RatingRepository
 from rating_app.services.comment_events import CommentAction, CommentEvent
+from rating_app.services.rating_events import RatingEvent
 
 # TODO: implement a generic cache invalidator with patterns
 
 
-class RatingCacheInvalidator(IEventListener[RatingDTO]):
+class RatingCacheInvalidator(IEventListener[RatingEvent]):
     def __init__(self, cache_manager: ICacheManager):
         self.cache_manager = cache_manager
 
     @implements
-    def on_event(self, event: RatingDTO, *args, **kwargs) -> None:
-        course_id = str(event.course)
+    def on_event(self, event: RatingEvent, *args, **kwargs) -> None:
+        rating = event.rating
+        course_id = str(rating.course)
         self.cache_manager.bump_version(course_detail_namespace(course_id))
         self.cache_manager.bump_version(course_analytics_namespace(course_id))
         self.cache_manager.bump_version(course_ratings_namespace(course_id))
         self.cache_manager.bump_version(FEED_NAMESPACE)
-        if event.student_id is not None:
-            self.cache_manager.bump_version(student_ratings_namespace(str(event.student_id)))
+        if rating.student_id is not None:
+            self.cache_manager.bump_version(student_ratings_namespace(str(rating.student_id)))
 
 
 class RatingVoteCacheInvalidator(IEventListener[RatingVoteDTO]):
