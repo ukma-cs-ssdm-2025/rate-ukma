@@ -80,9 +80,6 @@ it the feed's single read source.
 The migration is phased: phase 1 ships the model, backfill and projection with nothing reading
 the table; phase 2 flips the read path and deletes the superseded source queries.
 
-The implementation plan lives in
-[`docs/architecture/feed-event-source-plan.md`](../feed-event-source-plan.md).
-
 ## Consequences
 
 - ✅ Adding a source-backed kind touches four backend files (choices, DTO+mapper, hydrator,
