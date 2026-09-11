@@ -61,6 +61,11 @@ class FeedPostAccent(models.TextChoices):
     WARNING = "WARNING", "Warning"
 
 
+class FeedEventType(models.TextChoices):
+    REVIEW_PUBLISHED = "REVIEW_PUBLISHED", "Review Published"
+    POST_PUBLISHED = "POST_PUBLISHED", "Post Published"
+
+
 class NotificationEventType(models.TextChoices):
     RATING_UPVOTED = "RATING_UPVOTED", "Rating Upvoted"
     RATING_DOWNVOTED = "RATING_DOWNVOTED", "Rating Downvoted"
