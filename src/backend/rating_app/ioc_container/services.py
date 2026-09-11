@@ -23,6 +23,7 @@ from rating_app.ioc_container.repositories import (
     user_repository,
     vote_repository,
 )
+from rating_app.models.choices import FeedEventType
 from rating_app.pagination.paginator import GenericQuerysetPaginator
 from rating_app.services import (
     CommentNormalizer,
@@ -55,6 +56,7 @@ from rating_app.services.domain_event_listeners.feed_update import RatingFeedUpd
 from rating_app.services.domain_event_listeners.vote_notification import (
     VoteNotificationObserver,
 )
+from rating_app.services.feed_item_provider import FeedItemProvider
 from rating_app.services.feed_service import FeedService
 from rating_app.services.feed_update_service import FeedUpdateService
 from rating_app.services.notification_service import NotificationService
@@ -157,10 +159,20 @@ def feed_update_service() -> FeedUpdateService:
 
 
 @once
+def feed_item_provider() -> FeedItemProvider:
+    return FeedItemProvider(
+        sources={
+            FeedEventType.REVIEW_PUBLISHED: rating_repository(),
+            FeedEventType.POST_PUBLISHED: feed_post_repository(),
+        }
+    )
+
+
+@once
 def feed_service() -> FeedService:
     return FeedService(
-        feed_post_repository=feed_post_repository(),
-        rating_repository=rating_repository(),
+        feed_event_repository=feed_event_repository(),
+        item_provider=feed_item_provider(),
         cache_manager=redis_cache_manager(),
     )
 

@@ -12,6 +12,7 @@ from rating_app.repositories.to_domain_mappers import (
     DepartmentMapper,
     EnrollmentMapper,
     FacultyMapper,
+    FeedEventRowMapper,
     FeedPostMapper,
     FeedReviewMapper,
     InstructorMapper,
@@ -145,8 +146,13 @@ def feed_post_repository() -> FeedPostRepository:
 
 
 @once
+def feed_event_row_mapper() -> FeedEventRowMapper:
+    return FeedEventRowMapper()
+
+
+@once
 def feed_event_repository() -> FeedEventRepository:
-    return FeedEventRepository()
+    return FeedEventRepository(mapper=feed_event_row_mapper())
 
 
 @once
