@@ -4,12 +4,12 @@ from django.dispatch import receiver
 
 from rateukma.caching.instances import redis_cache_manager
 from rateukma.caching.patterns import FEED_NAMESPACE
-from rating_app.ioc_container.services import feed_service
+from rating_app.ioc_container.services import feed_service, feed_update_service
 from rating_app.models import FeedPost
 
 
-#! Not a domain-event observer: posts are authored in Django admin.
-# it writes straight to the ORM and never reaches the service layer.
+#! Not domain-event observers: posts are authored in Django admin.
+# It writes straight to the ORM and never reaches the service layer.
 @receiver([post_save, post_delete], sender=FeedPost)
 def invalidate_feed_cache(sender, **kwargs) -> None:
     def _bump() -> None:
@@ -17,3 +17,13 @@ def invalidate_feed_cache(sender, **kwargs) -> None:
         feed_service().refresh_next_publish_marker()
 
     transaction.on_commit(_bump)
+
+
+@receiver(post_save, sender=FeedPost)
+def sync_post_to_feed(sender, instance: FeedPost, **kwargs) -> None:
+    feed_update_service().sync_post(instance)
+
+
+@receiver(post_delete, sender=FeedPost)
+def remove_post_from_feed(sender, instance: FeedPost, **kwargs) -> None:
+    feed_update_service().remove(FeedPost, instance.pk)

@@ -54,7 +54,7 @@ class FeedEvent(models.Model):
             ),
         ]
         constraints = [
-            # Projection is re-run on every write to a source row, so it has to be
+            # The index is rewritten on every write to a source row, so it has to be
             # idempotent: this is what lets it be an upsert rather than an insert.
             models.UniqueConstraint(
                 fields=["content_type", "object_id"],
