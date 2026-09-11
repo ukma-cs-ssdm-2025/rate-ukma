@@ -1,4 +1,9 @@
+from importlib import import_module
+
+from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.db.migrations import RunPython
 from rest_framework.test import APIClient
 
 import pytest
@@ -162,6 +167,33 @@ def comment_factory():
 @pytest.fixture
 def feed_post_factory():
     return FeedPostFactory
+
+
+@pytest.fixture
+def run_data_migration(db):
+    """Drive one migration's `RunPython` steps against the test database.
+
+    The test schema is built straight from the models (`MIGRATION_MODULES` is
+    off in `settings.testing`), so data migrations never run in CI on their own.
+    The live app registry stands in for the historical one, which holds as long
+    as the migration only touches models that still exist in their current shape.
+    """
+
+    def _run(name: str, *, backwards: bool = False) -> None:
+        module = import_module(f"rating_app.migrations.{name}")
+        # Never entered: on SQLite that would try to drop constraint checks inside
+        # the test transaction. The callables here do not use it anyway.
+        schema_editor = connection.schema_editor(atomic=False)
+
+        steps = [op for op in module.Migration.operations if isinstance(op, RunPython)]
+        if backwards:
+            steps.reverse()
+
+        for step in steps:
+            code = step.reverse_code if backwards else step.code
+            code(apps, schema_editor)
+
+    return _run
 
 
 @pytest.fixture(autouse=True)
