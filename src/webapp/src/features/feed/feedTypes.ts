@@ -1,11 +1,12 @@
 import type { AccentEnum } from "@/lib/api/generated";
 
 /**
- * The feed mixes two content sources that must stay visually distinguishable:
+ * The feed mixes content sources that must stay visually distinguishable:
  *
- * - `review` — auto-populated activity, generated from real rating events.
- * - `promo`  — manually configured content (ads / announcements) authored in
- *              the admin panel.
+ * - `review`  — auto-populated activity, generated from real rating events.
+ * - `comment` — auto-populated activity, a comment left on a review.
+ * - `promo`   — manually configured content (ads / announcements) authored in
+ *               the admin panel.
  *
  * Both share `id` and `createdAt` so a single feed list can sort/interleave
  * them, but each renders through its own component.
@@ -14,7 +15,7 @@ import type { AccentEnum } from "@/lib/api/generated";
  * pinned items ("static content") lead the feed and hold their place; the rest
  * ("dynamic content") flow after in recency order. Any item kind can be pinned.
  */
-export type FeedItem = FeedReviewItem | FeedPromoItem;
+export type FeedItem = FeedReviewItem | FeedCommentItem | FeedPromoItem;
 
 export interface FeedReviewItem {
 	readonly kind: "review";
@@ -30,6 +31,17 @@ export interface FeedReviewItem {
 	readonly courseAvgUsefulness: number;
 	readonly semesterYear?: number;
 	readonly semesterTerm?: string;
+}
+
+export interface FeedCommentItem {
+	readonly kind: "comment";
+	readonly id: string;
+	readonly createdAt: string;
+	readonly pinned?: boolean;
+	readonly ratingId: string;
+	readonly courseId: string;
+	readonly courseTitle: string;
+	readonly content: string;
 }
 
 /**
@@ -57,6 +69,10 @@ export interface FeedPromoItem {
 
 export function isPromoItem(item: FeedItem): item is FeedPromoItem {
 	return item.kind === "promo";
+}
+
+export function isCommentItem(item: FeedItem): item is FeedCommentItem {
+	return item.kind === "comment";
 }
 
 /**

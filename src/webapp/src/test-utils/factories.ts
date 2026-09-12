@@ -1,6 +1,10 @@
 import { faker } from "@faker-js/faker";
 
-import type { FeedPromoItem, FeedReviewItem } from "@/features/feed/feedTypes";
+import type {
+	FeedCommentItem,
+	FeedPromoItem,
+	FeedReviewItem,
+} from "@/features/feed/feedTypes";
 import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import type {
 	CourseList,
@@ -264,6 +268,25 @@ export function createMockFeedReviewItem(
 			max: 5,
 			fractionDigits: 2,
 		}),
+		...overrides,
+	};
+}
+
+/**
+ * Factory for creating a mock comment feed item (the domain shape `useFeed`
+ * returns, not the generated API shape)
+ */
+export function createMockFeedCommentItem(
+	overrides?: Partial<FeedCommentItem>,
+): FeedCommentItem {
+	return {
+		kind: "comment",
+		id: faker.string.uuid(),
+		createdAt: faker.date.recent().toISOString(),
+		ratingId: faker.string.uuid(),
+		courseId: faker.string.uuid(),
+		courseTitle: faker.lorem.words(3),
+		content: faker.lorem.sentence(),
 		...overrides,
 	};
 }

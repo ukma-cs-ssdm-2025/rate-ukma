@@ -4,9 +4,10 @@ from datetime import datetime
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 
+from rating_app.application_schemas.comment import CommentDTO
 from rating_app.application_schemas.feed import FeedEventUpsertData
 from rating_app.application_schemas.rating import Rating as RatingDTO
-from rating_app.models import FeedPost, Rating
+from rating_app.models import Comment, FeedPost, Rating
 from rating_app.models.choices import FeedEventType
 from rating_app.repositories import FeedEventRepository
 
@@ -22,6 +23,9 @@ class FeedUpdateService:
         self.feed_event_repository.upsert(
             self._rating_entry(rating.id, rating.created_at, rating.comment)
         )
+
+    def sync_comment(self, comment: CommentDTO) -> None:
+        self.feed_event_repository.upsert(self._comment_entry(comment.id, comment.created_at))
 
     def sync_post(self, post: FeedPost) -> None:
         self.feed_event_repository.upsert(
@@ -46,8 +50,12 @@ class FeedUpdateService:
                 "id", "published_at", "is_active", "pinned"
             )
         )
+        comments = (
+            self._comment_entry(comment_id, created_at)
+            for comment_id, created_at in Comment.objects.values_list("id", "created_at")
+        )
         with transaction.atomic():
-            return self.feed_event_repository.replace_all([*ratings, *posts])
+            return self.feed_event_repository.replace_all([*ratings, *posts, *comments])
 
     def _rating_entry(
         self, rating_id: uuid.UUID, created_at: datetime, comment: str | None
@@ -59,6 +67,14 @@ class FeedUpdateService:
             occurred_at=created_at,
             # the feed shows commented ratings only
             is_visible=bool(comment),
+        )
+
+    def _comment_entry(self, comment_id: uuid.UUID, created_at: datetime) -> FeedEventUpsertData:
+        return FeedEventUpsertData(
+            event_type=FeedEventType.COMMENT_PUBLISHED,
+            content_type=ContentType.objects.get_for_model(Comment),
+            object_id=comment_id,
+            occurred_at=created_at,
         )
 
     def _post_entry(

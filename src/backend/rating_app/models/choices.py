@@ -64,6 +64,7 @@ class FeedPostAccent(models.TextChoices):
 class FeedEventType(models.TextChoices):
     REVIEW_PUBLISHED = "REVIEW_PUBLISHED", "Review Published"
     POST_PUBLISHED = "POST_PUBLISHED", "Post Published"
+    COMMENT_PUBLISHED = "COMMENT_PUBLISHED", "Comment Published"
 
 
 class NotificationEventType(models.TextChoices):
