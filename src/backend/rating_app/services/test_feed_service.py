@@ -1,10 +1,14 @@
+import uuid
 from datetime import timedelta
 
+from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
 import pytest
 
 from rating_app.ioc_container.services import feed_service
+from rating_app.models import FeedEvent, Rating
+from rating_app.models.choices import FeedEventType
 from rating_app.tests.factories import FeedPostFactory, RatingFactory
 
 pytestmark = [pytest.mark.django_db, pytest.mark.integration]
@@ -80,3 +84,44 @@ def test_a_cache_hit_costs_no_database_query(service, django_assert_num_queries)
 
     with django_assert_num_queries(0):
         service.get_feed_page(cursor=None, limit=10)
+
+
+def test_a_page_costs_one_index_query_plus_one_per_kind(service, django_assert_num_queries):
+    for i in range(4):
+        RatingFactory(comment=f"Відгук {i}")
+        FeedPostFactory(published_at=timezone.now() - timedelta(hours=i + 1))
+
+    # first page holds 4 reviews + 2 posts: keyset + pinned prefix + one fetch per kind
+    with django_assert_num_queries(4):
+        first = service.get_feed_page(cursor=None, limit=6)
+
+    # second page holds the 2 remaining posts: keyset + posts only, no pinned prefix
+    with django_assert_num_queries(2):
+        second = service.get_feed_page(cursor=first.next_cursor, limit=6)
+
+    assert len(first.items) == 6
+    assert len(second.items) == 2
+
+
+def test_an_entry_whose_source_is_gone_is_skipped_but_still_paged_past(service):
+    """Every ORM delete cascades through the sources' GenericRelation, so a
+    dangling entry can only come from raw SQL. The read path tolerates it
+    anyway: the card drops out, and the cursor is minted from the index row,
+    so the reader lands on the next page rather than looping on the hole.
+    """
+    earliest = RatingFactory(comment="Перший")
+    dangling = FeedEvent.objects.create(
+        event_type=FeedEventType.REVIEW_PUBLISHED,
+        occurred_at=timezone.now(),
+        content_type=ContentType.objects.get_for_model(Rating),
+        object_id=uuid.uuid4(),
+    )
+    latest = RatingFactory(comment="Останній")
+
+    first = service.get_feed_page(cursor=None, limit=2)
+    second = service.get_feed_page(cursor=first.next_cursor, limit=2)
+
+    assert dangling.occurred_at > earliest.created_at
+    assert _ids(first) == [str(latest.id)]
+    assert _ids(second) == [str(earliest.id)]
+    assert second.next_cursor is None

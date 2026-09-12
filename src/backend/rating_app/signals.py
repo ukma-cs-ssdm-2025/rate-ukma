@@ -5,17 +5,20 @@ from django.dispatch import receiver
 from rateukma.caching.instances import redis_cache_manager
 from rateukma.caching.patterns import FEED_NAMESPACE
 from rating_app.ioc_container.services import feed_service, feed_update_service
-from rating_app.models import FeedPost
+from rating_app.models import FeedEvent, FeedPost
 
 
-#! Not a domain-event observer: posts are authored in Django admin.
-# it writes straight to the ORM and never reaches the service layer.
-@receiver([post_save, post_delete], sender=FeedPost)
+# Every change to the feed lands in `FeedEvent`, whichever source it came
+# from, so this is the one place the cached page is invalidated. Cascaded
+# deletes reach here too: a `post_delete` listener disables the collector's
+# fast path for this model.
+@receiver([post_save, post_delete], sender=FeedEvent)
 def invalidate_feed_cache(sender, **kwargs) -> None:
     def _bump() -> None:
         redis_cache_manager().bump_version(FEED_NAMESPACE)
         feed_service().refresh_next_publish_marker()
 
+    # Redis cannot roll back with the transaction, so wait for the commit.
     transaction.on_commit(_bump)
 
 

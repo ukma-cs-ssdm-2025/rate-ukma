@@ -49,6 +49,20 @@ class FeedPromoItem(FeedItemBase):
     image_url: str | None = None
 
 
+FeedItem = FeedReviewItem | FeedPromoItem
+
+
+@dataclass(frozen=True, slots=True)
+class FeedEventRow:
+    # an index entry
+    # object_id is the key of the source feed item
+
+    id: uuid.UUID
+    event_type: FeedEventType
+    occurred_at: datetime.datetime
+    object_id: uuid.UUID
+
+
 @dataclass(frozen=True)
 class FeedEventUpsertData:
     # key: (content_type, object_id)
@@ -63,7 +77,7 @@ class FeedEventUpsertData:
 
 @dataclass(frozen=True)
 class FeedPage:
-    items: list[FeedReviewItem | FeedPromoItem] = field(default_factory=list)
+    items: list[FeedItem] = field(default_factory=list)
     next_cursor: str | None = None
 
 

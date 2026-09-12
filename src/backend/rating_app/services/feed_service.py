@@ -5,9 +5,10 @@ from django.utils import timezone
 from rateukma.caching.cache_manager import ICacheManager
 from rateukma.caching.decorators import rcached
 from rateukma.caching.patterns import FEED_NAMESPACE, FEED_NEXT_PUBLISH_AT_KEY
-from rating_app.application_schemas.feed import FeedPage, FeedPromoItem, FeedReviewItem
+from rating_app.application_schemas.feed import FeedEventRow, FeedPage
 from rating_app.pagination import FeedCursor
-from rating_app.repositories import FeedPostRepository, RatingRepository
+from rating_app.repositories import FeedEventRepository
+from rating_app.services.feed_item_provider import FeedItemProvider
 
 FEED_CACHE_TTL = 60
 
@@ -15,25 +16,23 @@ FEED_CACHE_TTL = 60
 # or it expires before any reader gets to act on it.
 NEXT_PUBLISH_GRACE = 60 * 60
 
-FeedItem = FeedReviewItem | FeedPromoItem
-
 
 class FeedService:
     def __init__(
         self,
-        feed_post_repository: FeedPostRepository,
-        rating_repository: RatingRepository,
+        feed_event_repository: FeedEventRepository,
+        item_provider: FeedItemProvider,
         cache_manager: ICacheManager,
     ):
-        self.feed_post_repository = feed_post_repository
-        self.rating_repository = rating_repository
+        self.feed_event_repository = feed_event_repository
+        self.item_provider = item_provider
         self.cache_manager = cache_manager
 
     def _cache_namespaces(self, *_args, **_kwargs) -> list[str]:
-        """Read-path invalidation for posts nothing wrote at their publication time.
+        """Read-path invalidation for entries nothing wrote at their scheduled time.
 
         Costs one Redis read, the DB is touched only by the single request that
-        finds a publication due, which then moves the marker to the next post.
+        finds a publication due, which then moves the marker to the next one.
         """
 
         if self._is_next_publish_due():
@@ -48,36 +47,34 @@ class FeedService:
     def get_feed_page(self, cursor: str | None, limit: int) -> FeedPage:
         position = FeedCursor.decode(cursor) if cursor else None
 
-        # `limit + 1` from each source: to check if next page exists
-        reviews = self.rating_repository.get_feed_page(cursor=position, limit=limit)
-        posts = self.feed_post_repository.get_page(cursor=position, limit=limit)
+        rows = self.feed_event_repository.get_page(cursor=position, limit=limit)
+        has_more = len(rows) > limit
+        rows = rows[:limit]
 
-        merged = self._merge(reviews + posts)
-        page = merged[:limit]
-        next_cursor = self._next_cursor(page) if len(merged) > limit else None
+        items = self.item_provider.provide_feed_items(rows)
 
-        # pinned posts lead the first page only
+        next_cursor = self._next_cursor(rows) if has_more else None
+
+        # pinned entries lead the first page only
         if position is None:
-            page = self.feed_post_repository.get_pinned() + page
+            pinned = self.feed_event_repository.get_pinned()
+            items = self.item_provider.provide_feed_items(pinned) + items
 
-        return FeedPage(items=page, next_cursor=next_cursor)
+        return FeedPage(items=items, next_cursor=next_cursor)
 
     def refresh_next_publish_marker(self) -> None:
-        next_publication = self.feed_post_repository.get_next_future_publication_time()
-        if next_publication is None:
+        next_occurrence = self.feed_event_repository.get_next_future_occurrence()
+        if next_occurrence is None:
             self.cache_manager.invalidate(FEED_NEXT_PUBLISH_AT_KEY)
             return
 
-        ttl = int((next_publication - timezone.now()).total_seconds()) + NEXT_PUBLISH_GRACE
-        self.cache_manager.set(FEED_NEXT_PUBLISH_AT_KEY, next_publication.isoformat(), max(ttl, 1))
+        ttl = int((next_occurrence - timezone.now()).total_seconds()) + NEXT_PUBLISH_GRACE
+        self.cache_manager.set(FEED_NEXT_PUBLISH_AT_KEY, next_occurrence.isoformat(), max(ttl, 1))
 
-    def _merge(self, items: list[FeedItem]) -> list[FeedItem]:
-        return sorted(items, key=lambda item: (item.occurred_at, item.id), reverse=True)
-
-    def _next_cursor(self, page: list[FeedItem]) -> str | None:
-        if not page:
+    def _next_cursor(self, rows: list[FeedEventRow]) -> str | None:
+        if not rows:
             return None
-        last = page[-1]
+        last = rows[-1]
         return FeedCursor(last.occurred_at, last.id).encode()
 
     def _is_next_publish_due(self) -> bool:
