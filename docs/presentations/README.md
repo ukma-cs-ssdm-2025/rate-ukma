@@ -4,7 +4,8 @@ Marp decks. Source is `<deck>/slides.md`, layout comes from the shared `theme.cs
 assets live in `<deck>/assets/`.
 
 ```sh
-docs/presentations/render.sh fall-2026
+node docs/presentations/render.mjs fall-2026     # macOS, Linux, Windows
+docs/presentations/render.sh fall-2026          # POSIX wrapper around the same script
 ```
 
 That writes `slides.html` and `slides.pdf` (the PDF keeps speaker notes). `marp-cli` is

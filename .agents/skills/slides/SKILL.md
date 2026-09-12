@@ -10,7 +10,7 @@ Decks live in `docs/presentations/<deck>/slides.md` and share `docs/presentation
 
 ```sh
 node docs/presentations/render.mjs fall-2026              # slides.html + slides.pdf with notes
-node docs/presentations/render.mjs fall-2026 --png /tmp/d # one image per slide, for review
+node docs/presentations/render.mjs fall-2026 --png out    # one image per slide, for review
 ```
 
 Same command on macOS, Linux and Windows. `render.sh` is a wrapper around it.

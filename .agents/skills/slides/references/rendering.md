@@ -2,7 +2,7 @@
 
 ```sh
 node docs/presentations/render.mjs <deck>                 # slides.html + slides.pdf
-node docs/presentations/render.mjs <deck> --png /tmp/deck # one PNG per slide
+node docs/presentations/render.mjs <deck> --png out      # one PNG per slide
 MARP_BIN=/path/to/marp node docs/presentations/render.mjs <deck>
 ```
 
@@ -29,6 +29,8 @@ its own directory, so it can be called from anywhere in the repo.
 - `--allow-local-files` is required for the logo and brand icons, and prints a warning every
   run. That warning is expected.
 - `--pdf-notes` puts the speaker notes into the PDF. The HTML keeps them as comments only.
+- A note comment needs a blank line before it. Placed straight after a closing `</div>`,
+  Marp attaches it to nothing and the slide silently loses its notes.
 
 ## Word budget check
 

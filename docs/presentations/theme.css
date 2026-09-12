@@ -186,7 +186,7 @@ section > p.big { margin: 0 0 22px; max-width: 900px; }
 .app h4 { margin: 0; font-size: 36px; font-weight: 700; letter-spacing: -0.9px; line-height: 40px; }
 .app .saz { margin-left: auto; font-size: 14px; color: #71717a; padding-top: 6px; }
 .app .meta { display: flex; gap: 14px; color: #71717a; font-size: 14px; margin: 6px 0 10px; }
-.app .meta b { color: #71717a; font-weight: 400; background: #f4f4f5; border-radius: 6px; padding: 1px 7px; }
+.app .meta b { color: #52525b; font-weight: 400; background: #f4f4f5; border-radius: 6px; padding: 1px 7px; }
 .app .pills { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
 
 /* Two panels side by side: ratings on the left, reviews on the right. */
@@ -198,7 +198,7 @@ section > p.big { margin: 0 0 22px; max-width: 900px; }
 .app .revhead { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 650; margin-bottom: 6px; }
 .app .revhead b {
   background: #f4f4f5; border-radius: 999px; padding: 1px 10px;
-  font-size: 14px; font-weight: 500; color: #71717a;
+  font-size: 14px; font-weight: 500; color: #52525b;
 }
 .app .revhead .sort { margin-left: auto; font-size: 14px; color: #71717a; font-weight: 400; }
 .app .rev { border-top: 1px solid #e4e4e7; padding: 14px 0; }
