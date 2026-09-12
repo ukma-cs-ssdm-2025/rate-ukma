@@ -7,6 +7,7 @@ from rating_app.ioc_container.repositories import (
     department_repository,
     enrollment_repository,
     faculty_repository,
+    feed_event_repository,
     feed_post_repository,
     instructor_mapper,
     instructor_repository,
@@ -50,10 +51,12 @@ from rating_app.services.domain_event_listeners.cache_invalidator import (
 from rating_app.services.domain_event_listeners.comment_notification import (
     CommentNotificationObserver,
 )
+from rating_app.services.domain_event_listeners.feed_update import RatingFeedUpdateObserver
 from rating_app.services.domain_event_listeners.vote_notification import (
     VoteNotificationObserver,
 )
 from rating_app.services.feed_service import FeedService
+from rating_app.services.feed_update_service import FeedUpdateService
 from rating_app.services.notification_service import NotificationService
 
 
@@ -149,6 +152,11 @@ def promo_banner_service() -> PromoBannerService:
 
 
 @once
+def feed_update_service() -> FeedUpdateService:
+    return FeedUpdateService(feed_event_repository=feed_event_repository())
+
+
+@once
 def feed_service() -> FeedService:
     return FeedService(
         feed_post_repository=feed_post_repository(),
@@ -225,9 +233,15 @@ def comment_notification_observer() -> CommentNotificationObserver:
     )
 
 
+@once
+def rating_feed_update_observer() -> RatingFeedUpdateObserver:
+    return RatingFeedUpdateObserver(feed_update_service=feed_update_service())
+
+
 def register_observers() -> None:
     rating_service().add_observer(course_model_aggregates_update_observer())
     rating_service().add_observer(rating_cache_invalidator())
+    rating_service().add_observer(rating_feed_update_observer())
     comment_service().add_observer(comment_cache_invalidator())
     comment_service().add_observer(comment_notification_observer())
     vote_service().add_observer(rating_vote_cache_invalidator())

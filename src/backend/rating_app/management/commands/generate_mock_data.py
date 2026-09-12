@@ -5,6 +5,8 @@ from django.db import transaction
 
 import structlog
 
+from rating_app.ioc_container.services import feed_update_service
+
 logger = structlog.get_logger(__name__)
 
 
@@ -817,6 +819,9 @@ class Command(BaseCommand):
                     ratings.append(rating)
 
         logger.info("ratings_created", count=len(ratings))
+
+        # `Rating.objects.create` bypasses RatingService, so nothing indexed these.
+        feed_update_service().rebuild()
 
         logger.info(
             "mock_data_generation_complete",
