@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 from django.contrib.contenttypes.models import ContentType
@@ -6,8 +7,8 @@ from django.utils import timezone
 import pytest
 
 from rating_app.ioc_container.repositories import rating_repository
-from rating_app.ioc_container.services import rating_feed_update_observer
-from rating_app.models import FeedEvent
+from rating_app.ioc_container.services import feed_update_service, rating_feed_update_observer
+from rating_app.models import FeedEvent, Rating
 from rating_app.models.choices import FeedEventType
 from rating_app.services.rating_events import RatingAction, RatingEvent
 
@@ -94,3 +95,37 @@ class TestPostUpdates:
         after = _event_for(post)
         assert after.id == before.id
         assert after.pinned is True
+
+
+class TestRebuild:
+    def test_indexes_rows_that_bypassed_the_service(self, rating_factory, feed_post_factory):
+        """`Rating.objects.create` and bulk loads never reach the observers."""
+        rating = rating_factory(comment="Не проіндексовано")
+        post = feed_post_factory(pinned=True)
+        FeedEvent.objects.all().delete()  # what a bypassing write leaves behind
+
+        count = feed_update_service().rebuild()
+
+        assert count == 2
+        assert _event_for(rating).is_visible is True
+        assert _event_for(post).pinned is True
+
+    def test_applies_the_same_visibility_rule_as_sync(self, rating_factory):
+        rating_factory(comment="")
+        FeedEvent.objects.all().delete()
+
+        feed_update_service().rebuild()
+
+        assert FeedEvent.objects.get().is_visible is False
+
+    def test_drops_entries_with_no_source(self, rating_factory):
+        FeedEvent.objects.create(
+            event_type=FeedEventType.REVIEW_PUBLISHED,
+            occurred_at=timezone.now(),
+            content_type=ContentType.objects.get_for_model(Rating),
+            object_id=uuid.uuid4(),
+        )
+
+        feed_update_service().rebuild()
+
+        assert not FeedEvent.objects.exists()

@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from rating_app.application_schemas.feed import FeedEventUpsertData
 from rating_app.models import FeedEvent
 
@@ -15,3 +17,19 @@ class FeedEventRepository:
                 "pinned": data.pinned,
             },
         )
+
+    def replace_all(self, entries: Iterable[FeedEventUpsertData]) -> int:
+        """Wipe the index and write it afresh. Returns the number of entries written."""
+        FeedEvent.objects.all().delete()
+        created = FeedEvent.objects.bulk_create(
+            FeedEvent(
+                event_type=entry.event_type,
+                content_type=entry.content_type,
+                object_id=entry.object_id,
+                occurred_at=entry.occurred_at,
+                is_visible=entry.is_visible,
+                pinned=entry.pinned,
+            )
+            for entry in entries
+        )
+        return len(created)
