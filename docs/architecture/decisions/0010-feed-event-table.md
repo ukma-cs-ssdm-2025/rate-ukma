@@ -65,7 +65,9 @@ it the feed's single read source.
    `FeedPost` is authored in Django admin and never reaches a service, so a thin `post_save`
    receiver feeds it instead. Both delegate to one `FeedUpdateService`, keyed idempotently on
    `(content_type, object_id)` by a unique constraint, and both write inside the caller's
-   transaction so a source row and its index entry commit or roll back together. **Deletion needs
+   transaction so a source row and its index entry commit or roll back together —
+   `RatingService` wraps each mutation together with its `notify()` in `transaction.atomic()`,
+   and Django admin already does the same around a `FeedPost` save. **Deletion needs
    no application code at all**: each source model declares the reverse
    `GenericRelation("rating_app.FeedEvent")`, so the ORM collector cascades the index entry on
    every delete path — service, admin, `QuerySet.delete()`, and cascades from a parent row.

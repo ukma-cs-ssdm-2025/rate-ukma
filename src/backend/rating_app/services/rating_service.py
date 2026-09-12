@@ -2,6 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from django.db import transaction
+
 import structlog
 
 from rateukma.caching.decorators import rcached
@@ -170,10 +172,12 @@ class RatingService(IObservable[RatingEvent]):
         params.comment = self.comment_normalizer.normalize_comment(params.comment)
         self._validate_instructor_ids(params.instructor_ids)
 
-        rating = self.rating_repository.create(params)
-
-        event = RatingEvent(rating=rating, action=RatingAction.CREATED)
-        self.notify(event)
+        # Listeners write derived state (course aggregates, the feed index); a
+        # failure in any of them must take the rating with it, not leave it half
+        # applied. Autocommit would otherwise commit the row before they run.
+        with transaction.atomic():
+            rating = self.rating_repository.create(params)
+            self.notify(RatingEvent(rating=rating, action=RatingAction.CREATED))
 
         return rating
 
@@ -182,15 +186,15 @@ class RatingService(IObservable[RatingEvent]):
     ) -> RatingDTO:
         update_data.comment = self.comment_normalizer.normalize_comment(update_data.comment)
         self._validate_instructor_ids(update_data.instructor_ids)
-        updated_rating = self.rating_repository.update(rating, update_data)
-        self.notify(RatingEvent(rating=updated_rating, action=RatingAction.UPDATED))
+        with transaction.atomic():
+            updated_rating = self.rating_repository.update(rating, update_data)
+            self.notify(RatingEvent(rating=updated_rating, action=RatingAction.UPDATED))
         return updated_rating
 
     def delete_rating(self, rating: RatingDTO) -> None:
-        self.rating_repository.delete(str(rating.id))
-
-        event = RatingEvent(rating=rating, action=RatingAction.DELETED)
-        self.notify(event)
+        with transaction.atomic():
+            self.rating_repository.delete(str(rating.id))
+            self.notify(RatingEvent(rating=rating, action=RatingAction.DELETED))
 
     def is_semester_open_for_rating(
         self,
