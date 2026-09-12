@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
+from django.contrib.contenttypes.fields import GenericRelation
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
@@ -44,6 +45,7 @@ class Rating(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     is_anonymous = models.BooleanField(default=False)
+    feed_events = GenericRelation("rating_app.FeedEvent")
 
     class Meta:
         unique_together = ("student", "course_offering")
