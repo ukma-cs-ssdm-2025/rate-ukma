@@ -21,6 +21,7 @@ import {
 	commentsRepliesRetrieve,
 	getCommentsRepliesRetrieveQueryKey,
 	getCoursesRatingsListQueryKey,
+	getFeedListInfiniteQueryKey,
 	getRatingsCommentsListQueryKey,
 	ratingsCommentsList,
 	useCommentsDestroy,
@@ -79,6 +80,9 @@ function invalidateRatingCommentQueries(
 ) {
 	queryClient.invalidateQueries({
 		queryKey: getRatingsCommentsListQueryKey(ratingId),
+	});
+	queryClient.invalidateQueries({
+		queryKey: getFeedListInfiniteQueryKey(),
 	});
 
 	if (courseId) {
