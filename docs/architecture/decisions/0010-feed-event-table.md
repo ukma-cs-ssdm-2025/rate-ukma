@@ -58,7 +58,9 @@ it the feed's single read source.
    first synthetic kind (achievements) actually lands.
 4. **Two partial indexes serve exactly the two read queries** — the body page
    (`is_visible AND NOT pinned`) and the pinned prefix (`is_visible AND pinned`) — both ordered
-   `(-occurred_at, -id)`.
+   `(-occurred_at, -id)`. Every read additionally filters `occurred_at <= now()`: `is_visible`
+   is a static flag, and this predicate is a range on the index's
+   leading column, not part of the partial condition.
 5. **Writes reach the index through the domain-event bus where one exists, and Django
    signals where none does.** `RatingService` emits a `RatingEvent(rating, action)` envelope —
    mirroring `CommentEvent` — and a `RatingFeedUpdateObserver` keeps the index in step;
@@ -69,6 +71,11 @@ it the feed's single read source.
    no application code at all**: each source model declares the reverse
    `GenericRelation("rating_app.FeedEvent")`, so the ORM collector cascades the index entry on
    every delete path — service, admin, `QuerySet.delete()`, and cascades from a parent row.
+   Two consequences of that key are deliberate for now: `unique(content_type, object_id)` means
+   **one event per source row** (a rating's create and its later comment edit are the same
+   entry, rewritten), and the `NOT NULL` pointer columns mean **no source-less synthetic
+   events**. Both relax alongside the `payload` column in (3), so phase 2 keys its upsert on the
+   pair as-is rather than anticipating either.
 6. **Cache invalidation collapses to a single trigger.** Every path that changes the feed now
    writes `feed_event`, so one `post_save`/`post_delete` receiver on that model owns the
    `feed:list` namespace bump. The bumps in `RatingCacheInvalidator` and in the existing
