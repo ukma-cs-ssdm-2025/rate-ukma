@@ -20,7 +20,7 @@ def invalidate_feed_cache(sender, **kwargs) -> None:
     transaction.on_commit(_bump)
 
 
-# Posts are created in admin andnever reach a service, so signal is needed.
+# Posts are created in admin and never reach a service, so signal is needed.
 # Deletion cascades through `FeedPost.feed_events`.
 @receiver(post_save, sender=FeedPost)
 def sync_post_to_feed(sender, instance: FeedPost, **kwargs) -> None:
