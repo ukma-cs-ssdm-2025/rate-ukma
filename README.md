@@ -13,7 +13,7 @@
 
 **The problem.** To understand what a course is really like, a student has to ask around: older students, friends, acquaintances, course chats. In my.ukma.edu.ua a course is a name, a credit count and an annotation, and credits show the general workload, not the real one: the two do not always match. So the experience lives with people, scattered and never written down, and there is no single place to find it before enrolment.
 
-**Target user.** NaUKMA students, mostly 2nd to 4th year bachelor's students choosing electives for the next year and planning their semester. Access is student-only, via a NaUKMA Outlook account.
+**Target user.** NaUKMA students, mostly 2nd to 4th year bachelor's students choosing electives for the next year and planning their semester. They read reviews and leave ratings, and writing a review is optional. Access is student-only, via a NaUKMA Outlook account.
 
 **The idea.** One place for the whole course choice: student reviews with usefulness and difficulty ratings and an interactive course map, live at rateukma.com, plus the semester planning and analytics we are building now.
 
@@ -36,15 +36,15 @@
 
 ## 🧑‍💻 Team
 
-| Name                    | Role                                          | GitHub                                                 |
-| ----------------------- | --------------------------------------------- | ------------------------------------------------------ |
-| Anastasiia Aleksieienko | CI/CD, parser service                         | [@stasiaaleks](https://github.com/stasiaaleks)         |
-| Kateryna Bratiuk        | Backend core, individual study plan planner   | [@katerynabratiuk](https://github.com/katerynabratiuk) |
-| Andrii Valenia          | Frontend and UX, parser service               | [@Fybex](https://github.com/Fybex)                     |
-| Milana Horalevych       | Documentation and API, analytics              | [@miqdok](https://github.com/miqdok)                   |
-| Nastya Dvoilenko        | Individual study plan planner, lecturer contact | [@anastasiaaq](https://github.com/anastasiaaq)       |
+| Name                    | Role             | GitHub                                                 |
+| ----------------------- | ---------------- | ------------------------------------------------------ |
+| Anastasiia Aleksieienko | Product engineer | [@stasiaaleks](https://github.com/stasiaaleks)         |
+| Kateryna Bratiuk        | Product engineer | [@katerynabratiuk](https://github.com/katerynabratiuk) |
+| Andrii Valenia          | Product engineer | [@Fybex](https://github.com/Fybex)                     |
+| Milana Horalevych       | Product engineer | [@miqdok](https://github.com/miqdok)                   |
+| Nastya Dvoilenko        | Product engineer | [@anastasiaaq](https://github.com/anastasiaaq)         |
 
-Roles are the starting focus for the fall 2026 semester and can shift between iterations.
+Everyone writes and reviews code; the semester tracks are split across the team.
 
 ## 🛠️ Tech Stack
 
