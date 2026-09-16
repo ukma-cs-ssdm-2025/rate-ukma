@@ -11,6 +11,14 @@
 
 **Rate UKMA** is a web platform designed for students of NaUKMA to share and view feedback on university courses. Our goal is to create a centralized hub for course reviews and ratings, empowering students to make more informed decisions about their academic choices.
 
+**The problem.** To understand what a course is really like, a student has to ask around: older students, friends, acquaintances, course chats. In my.ukma.edu.ua a course is a name, a credit count and an annotation, and credits show the general workload, not the real one: the two do not always match. So the experience lives with people, scattered and never written down, and there is no single place to find it before enrolment.
+
+**Target user.** NaUKMA students, mostly 2nd to 4th year bachelor's students choosing electives for the next year and planning their semester. Access is student-only, via a NaUKMA Outlook account.
+
+**The idea.** One place for the whole course choice: student reviews with usefulness and difficulty ratings and an interactive course map, live at rateukma.com, plus the semester planning and analytics we are building now.
+
+**How it started.** Rate UKMA began as a project in one of our university courses and grew into a product. From the first days we treated it as a product rather than an assignment to hand in, and shipped it: the site has been live since 2025, about 300 students come to it every month, with a peak in the spring registration window. The first point was a hand-made chart someone shared in a student chat, courses plotted on two axes, usefulness and difficulty. The chart was not ours, but the format stuck: we turned the idea into a product, the same map built from real student reviews.
+
 **Staging**: <https://staging.rateukma.com>
 
 **Live**: <https://rateukma.com>
@@ -28,12 +36,15 @@
 
 ## 🧑‍💻 Team
 
-| Name                    | GitHub                                                 |
-| ----------------------- | ------------------------------------------------------ |
-| Anastasiia Aleksieienko | [@stasiaaleks](https://github.com/stasiaaleks)         |
-| Kateryna Bratiuk        | [@katerynabratiuk](https://github.com/katerynabratiuk) |
-| Andrii Valenia          | [@Fybex](https://github.com/Fybex)                     |
-| Milana Horalevych       | [@miqdok](https://github.com/miqdok)                   |
+| Name                    | Role                                          | GitHub                                                 |
+| ----------------------- | --------------------------------------------- | ------------------------------------------------------ |
+| Anastasiia Aleksieienko | CI/CD, parser service                         | [@stasiaaleks](https://github.com/stasiaaleks)         |
+| Kateryna Bratiuk        | Backend core, individual study plan planner   | [@katerynabratiuk](https://github.com/katerynabratiuk) |
+| Andrii Valenia          | Frontend and UX, parser service               | [@Fybex](https://github.com/Fybex)                     |
+| Milana Horalevych       | Documentation and API, analytics              | [@miqdok](https://github.com/miqdok)                   |
+| Nastya Dvoilenko        | Individual study plan planner, lecturer contact | [@anastasiaaq](https://github.com/anastasiaaq)       |
+
+Roles are the starting focus for the fall 2026 semester and can shift between iterations.
 
 ## 🛠️ Tech Stack
 
