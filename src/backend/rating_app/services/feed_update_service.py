@@ -12,8 +12,10 @@ from rating_app.repositories import FeedEventRepository
 
 
 class FeedUpdateService:
-    """Keeps the feed index in step with its sources. Deletion needs nothing here:
-    each source declares a `GenericRelation` to `FeedEvent`, so the ORM cascades."""
+    """Keeps the feed index in sync with its sources.
+
+    Deletion is handled by ORM cascades from GenericRelation fields.
+    """
 
     def __init__(self, feed_event_repository: FeedEventRepository) -> None:
         self.feed_event_repository = feed_event_repository
@@ -29,10 +31,9 @@ class FeedUpdateService:
         )
 
     def rebuild(self) -> int:
-        """Re-derive the whole index from the source tables.
+        """Rebuilds the whole index from the source tables.
 
-        For writes that bypass the observers and receivers — bulk loads, mock
-        data, raw SQL. The same per-kind rules as `sync_*`, applied to every row.
+        For writes that bypass the observers and receivers: bulk loads, mock data, raw SQL.
         """
         ratings = (
             self._rating_entry(rating_id, created_at, comment)
@@ -40,12 +41,14 @@ class FeedUpdateService:
                 "id", "created_at", "comment"
             )
         )
+
         posts = (
             self._post_entry(post_id, published_at, is_active, pinned)
             for post_id, published_at, is_active, pinned in FeedPost.objects.values_list(
                 "id", "published_at", "is_active", "pinned"
             )
         )
+
         with transaction.atomic():
             return self.feed_event_repository.replace_all([*ratings, *posts])
 
@@ -57,8 +60,7 @@ class FeedUpdateService:
             content_type=ContentType.objects.get_for_model(Rating),
             object_id=rating_id,
             occurred_at=created_at,
-            # the feed shows commented ratings only
-            is_visible=bool(comment),
+            is_visible=bool(comment),  # the feed shows commented ratings only
         )
 
     def _post_entry(

@@ -19,8 +19,8 @@ class FeedEventRepository:
         )
 
     def replace_all(self, entries: Iterable[FeedEventUpsertData]) -> int:
-        """Wipe the index and write it afresh. Returns the number of entries written."""
         FeedEvent.objects.all().delete()
+
         created = FeedEvent.objects.bulk_create(
             FeedEvent(
                 event_type=entry.event_type,
@@ -32,4 +32,5 @@ class FeedEventRepository:
             )
             for entry in entries
         )
+
         return len(created)
