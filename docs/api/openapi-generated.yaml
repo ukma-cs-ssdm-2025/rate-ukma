@@ -1857,6 +1857,11 @@ paths:
           format: uuid
         description: Boost instructors most mentioned on this course offering
       - in: query
+        name: mentioned_only
+        schema:
+          type: boolean
+        description: Only return instructors mentioned in at least one rating
+      - in: query
         name: page
         schema:
           type: integer

@@ -32,6 +32,7 @@ class InstructorService(IFilterable):
             course_offering_id=params.course_offering_id,
             course_id=params.course_id,
             speciality_id=params.speciality_id,
+            mentioned_only=params.mentioned_only,
         )
         paginated = self.paginator.process(
             qs,
