@@ -27,10 +27,13 @@
 
 ## 🧩 Features
 
-- Rate courses and leave reviews
-- Vote and comment on reviews
-- Interactive graphs and analytics
-- Search and filter courses by department, professor, or rating
+- Rate courses on difficulty and usefulness, with optional written reviews
+- Comment on reviews and vote them up or down
+- A personal page with your own ratings, grouped by year
+- Feed of the latest reviews and university announcements
+- Notifications about votes and comments on your ratings
+- Interactive course map and per-course analytics
+- Search and filter courses by speciality, instructor, semester, credits and rating
 - Anonymity to protect student privacy and prevent bias
 - NaUKMA Outlook authentication for secure student-only access
 
@@ -48,9 +51,10 @@ Everyone writes and reviews code; the semester tracks are split across the team.
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Django
-- **Frontend:** React
-- **Database:** PostgreSQL
+- **Backend:** Django, Django REST Framework
+- **Frontend:** React, TypeScript, TanStack, Tailwind
+- **Database:** PostgreSQL, Redis
+- **Infrastructure:** Docker, Hetzner, GitHub Actions, Sentry
 - **API Contract:** OpenAPI
 
 ## 📚 Additional Documentation
