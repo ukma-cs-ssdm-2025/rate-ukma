@@ -8,10 +8,8 @@ from rating_app.ioc_container.services import feed_service, feed_update_service
 from rating_app.models import FeedEvent, FeedPost
 
 
-# Every change to the feed lands in `FeedEvent`, whichever source it came
-# from, so this is the one place the cached page is invalidated. Cascaded
-# deletes reach here too: a `post_delete` listener disables the collector's
-# fast path for this model.
+# Every feed change, including cascaded deletes, lands in `FeedEvent`
+# This is the one place where the cached page is invalidated.
 @receiver([post_save, post_delete], sender=FeedEvent)
 def invalidate_feed_cache(sender, **kwargs) -> None:
     def _bump() -> None:
@@ -22,8 +20,7 @@ def invalidate_feed_cache(sender, **kwargs) -> None:
     transaction.on_commit(_bump)
 
 
-# Posts never reach a service, so this receiver is the only place a post's lifecycle can be seen.
-# Ratings go through `RatingService` and are handled by its observers instead.
+# Posts are created in admin andnever reach a service, so signal is needed.
 # Deletion cascades through `FeedPost.feed_events`.
 @receiver(post_save, sender=FeedPost)
 def sync_post_to_feed(sender, instance: FeedPost, **kwargs) -> None:
