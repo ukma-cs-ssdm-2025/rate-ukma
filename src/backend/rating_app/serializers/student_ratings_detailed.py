@@ -24,6 +24,7 @@ class StudentRatingsDetailedSerializer(serializers.Serializer):
     course_title = serializers.CharField(read_only=True)
     course_code = serializers.CharField(read_only=True, allow_null=True)
     course_offering_id = serializers.CharField(read_only=True)
+    faculty_name = serializers.CharField(read_only=True, allow_null=True)
     semester = InlineSemesterSerializer(read_only=True)
     rated = InlineRatingDetailedSerializer(allow_null=True, read_only=True)
     can_rate = serializers.BooleanField(read_only=True)

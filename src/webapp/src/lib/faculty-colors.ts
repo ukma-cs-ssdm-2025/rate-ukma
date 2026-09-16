@@ -103,7 +103,10 @@ export const FACULTY_COLORS = Object.entries(FACULTY_COLOR_MAP).reduce(
 
 export type FacultyName = keyof typeof FACULTY_COLOR_MAP;
 export function getFacultyColors(facultyName: string) {
-	const colors = FACULTY_COLORS[facultyName as FacultyName];
+	// hasOwn: inherited props (__proto__, toString, …) must fall back to gray.
+	const colors = Object.hasOwn(FACULTY_COLORS, facultyName)
+		? FACULTY_COLORS[facultyName as FacultyName]
+		: undefined;
 
 	if (!colors) {
 		return {
@@ -122,4 +125,45 @@ export function getFacultyColors(facultyName: string) {
  */
 export function getFacultyHexColor(facultyName: string): string {
 	return getFacultyColors(facultyName).hex;
+}
+
+/**
+ * Readable text color for a faculty hex background.
+ * Uses WCAG relative luminance so light brand colors (e.g. yellow)
+ * get dark text while dark ones keep white text.
+ */
+export function getFacultyContrastTextColor(
+	hex: string,
+): "#ffffff" | "#1a1a1a" {
+	const match = /^#([\dA-Fa-f]{6})$/.exec(hex.trim());
+	if (!match?.[1]) return "#ffffff";
+
+	const channels = [0, 2, 4].map((offset) => {
+		const channel =
+			Number.parseInt(match[1].slice(offset, offset + 2), 16) / 255;
+		return channel <= 0.03928
+			? channel / 12.92
+			: ((channel + 0.055) / 1.055) ** 2.4;
+	});
+
+	const luminance =
+		0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+	return luminance > 0.179 ? "#1a1a1a" : "#ffffff";
+}
+
+export interface FacultyAccent {
+	background: string;
+	foreground: string;
+}
+
+/**
+ * Accent colors for a discipline, or null when no faculty is assigned
+ * (callers fall back to the default blue styling in that case).
+ */
+export function getFacultyAccent(
+	facultyName: string | null | undefined,
+): FacultyAccent | null {
+	if (!facultyName) return null;
+	const background = getFacultyHexColor(facultyName);
+	return { background, foreground: getFacultyContrastTextColor(background) };
 }
