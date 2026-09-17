@@ -45,7 +45,7 @@
 | Kateryna Bratiuk        | Product engineer | [@katerynabratiuk](https://github.com/katerynabratiuk) |
 | Andrii Valenia          | Product engineer | [@Fybex](https://github.com/Fybex)                     |
 | Milana Horalevych       | Product engineer | [@miqdok](https://github.com/miqdok)                   |
-| Nastya Dvoilenko        | Product engineer | [@anastasiaaq](https://github.com/anastasiaaq)         |
+| Anastasiia Dvoilenko    | Product engineer | [@anastasiaaq](https://github.com/anastasiaaq)         |
 
 Everyone writes and reviews code; the semester tracks are split across the team.
 
