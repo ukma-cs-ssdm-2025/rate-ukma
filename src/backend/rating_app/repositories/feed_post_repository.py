@@ -1,14 +1,8 @@
-from datetime import datetime
-
-from django.db.models import QuerySet
-from django.utils import timezone
+import uuid
 
 from rating_app.application_schemas.feed import FeedPromoItem as FeedPromoItemDTO
 from rating_app.models import FeedPost
-from rating_app.pagination import FeedCursor
 from rating_app.repositories.to_domain_mappers import FeedPostMapper
-
-MAX_PINNED = 3
 
 
 class FeedPostRepository:
@@ -17,31 +11,7 @@ class FeedPostRepository:
     def __init__(self, mapper: FeedPostMapper) -> None:
         self._mapper = mapper
 
-    def get_pinned(self) -> list[FeedPromoItemDTO]:
-        posts = self._build_live_queryset().filter(pinned=True)
-        return self._map(posts[:MAX_PINNED])
-
-    def get_page(self, cursor: FeedCursor | None, limit: int) -> list[FeedPromoItemDTO]:
-        """Unpinned posts older than `cursor`, newest first."""
-        posts = self._build_live_queryset().filter(pinned=False)
-        if cursor is not None:
-            posts = posts.filter(cursor.filter("published_at"))
-        return self._map(posts[: limit + 1])
-
-    def get_next_future_publication_time(self) -> datetime | None:
-        return (
-            FeedPost.objects.filter(is_active=True, published_at__gt=timezone.now())
-            .order_by("published_at")
-            .values_list("published_at", flat=True)
-            .first()
-        )
-
-    def _build_live_queryset(self) -> QuerySet[FeedPost]:
-        """Posts a reader may see right now."""
-        return FeedPost.objects.filter(
-            is_active=True,
-            published_at__lte=timezone.now(),
-        ).order_by("-published_at", "-id")
-
-    def _map(self, posts: QuerySet[FeedPost]) -> list[FeedPromoItemDTO]:
-        return [self._mapper.process(post) for post in posts]
+    def get_feed_items_by_ids(self, ids: list[uuid.UUID]) -> list[FeedPromoItemDTO]:
+        posts = FeedPost.objects.filter(id__in=ids)
+        mapped = [self._mapper.process(post) for post in posts]
+        return mapped

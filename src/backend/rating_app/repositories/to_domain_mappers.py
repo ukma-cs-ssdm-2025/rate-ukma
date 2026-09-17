@@ -17,6 +17,7 @@ from rating_app.application_schemas.course_offering import (
 from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDTO
 from rating_app.application_schemas.faculty import Faculty as FacultyDTO
+from rating_app.application_schemas.feed import FeedEventRow
 from rating_app.application_schemas.feed import FeedPromoItem as FeedPromoItemDTO
 from rating_app.application_schemas.feed import FeedReviewItem as FeedReviewItemDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
@@ -36,6 +37,7 @@ from rating_app.models.choices import (
     EducationLevel,
     EnrollmentStatus,
     ExamType,
+    FeedEventType,
     FeedPostAccent,
     InstructorRole,
     PracticeType,
@@ -50,6 +52,7 @@ from rating_app.models.course_offering_term import CourseOfferingTerm as CourseO
 from rating_app.models.department import Department as DepartmentModel
 from rating_app.models.enrollment import Enrollment as EnrollmentModel
 from rating_app.models.faculty import Faculty as FacultyModel
+from rating_app.models.feed_event import FeedEvent as FeedEventModel
 from rating_app.models.feed_post import FeedPost as FeedPostModel
 from rating_app.models.instructor import Instructor as InstructorModel
 from rating_app.models.notification import Notification as NotificationModel
@@ -569,6 +572,17 @@ class PromoBannerMapper(IProcessor[[PromoBannerModel], PromoBannerDTO]):
             cta_label=model.cta_label,
             logo_url=model.logo.url if model.logo else None,
             logo_alt=model.logo_alt or model.title,
+        )
+
+
+class FeedEventRowMapper(IProcessor[[FeedEventModel], FeedEventRow]):
+    @implements
+    def process(self, model: FeedEventModel) -> FeedEventRow:
+        return FeedEventRow(
+            id=model.id,
+            event_type=FeedEventType(model.event_type),
+            occurred_at=model.occurred_at,
+            object_id=model.object_id,
         )
 
 
