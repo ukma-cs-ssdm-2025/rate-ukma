@@ -11,6 +11,14 @@
 
 **Rate UKMA** is a web platform designed for students of NaUKMA to share and view feedback on university courses. Our goal is to create a centralized hub for course reviews and ratings, empowering students to make more informed decisions about their academic choices.
 
+**The problem.** To understand what a course is really like, a student has to ask around: older students, friends, acquaintances, course chats. In my.ukma.edu.ua a course is a name, a credit count and an annotation, and credits show the general workload, not the real one: the two do not always match. So the experience lives with people, scattered and never written down, and there is no single place to find it before enrolment.
+
+**Target user.** NaUKMA students, mostly 2nd to 4th year bachelor's students choosing electives for the next year and planning their semester. They read reviews and leave ratings, and writing a review is optional. Access is student-only, via a NaUKMA Outlook account.
+
+**The idea.** One place for the whole course choice: student reviews with usefulness and difficulty ratings and an interactive course map, live at rateukma.com, plus the semester planning and analytics we are building now.
+
+**How it started.** Rate UKMA began as a project in one of our university courses and grew into a product. From the first days we treated it as a product rather than an assignment to hand in, and shipped it: the site has been live since 2025, about 300 students come to it every month, with a peak in the spring registration window. The first point was a hand-made chart someone shared in a student chat, courses plotted on two axes, usefulness and difficulty. The chart was not ours, but the format stuck: we turned the idea into a product, the same map built from real student reviews.
+
 **Staging**: <https://staging.rateukma.com>
 
 **Live**: <https://rateukma.com>
@@ -19,27 +27,34 @@
 
 ## 🧩 Features
 
-- Rate courses and leave reviews
-- Vote and comment on reviews
-- Interactive graphs and analytics
-- Search and filter courses by department, professor, or rating
+- Rate courses on difficulty and usefulness, with optional written reviews
+- Comment on reviews and vote them up or down
+- A personal page with your own ratings, grouped by year
+- Feed of the latest reviews and university announcements
+- Notifications about votes and comments on your ratings
+- Interactive course map and per-course analytics
+- Search and filter courses by speciality, instructor, semester, credits and rating
 - Anonymity to protect student privacy and prevent bias
 - NaUKMA Outlook authentication for secure student-only access
 
 ## 🧑‍💻 Team
 
-| Name                    | GitHub                                                 |
-| ----------------------- | ------------------------------------------------------ |
-| Anastasiia Aleksieienko | [@stasiaaleks](https://github.com/stasiaaleks)         |
-| Kateryna Bratiuk        | [@katerynabratiuk](https://github.com/katerynabratiuk) |
-| Andrii Valenia          | [@Fybex](https://github.com/Fybex)                     |
-| Milana Horalevych       | [@miqdok](https://github.com/miqdok)                   |
+| Name                    | Role             | GitHub                                                 |
+| ----------------------- | ---------------- | ------------------------------------------------------ |
+| Anastasiia Aleksieienko | Product engineer | [@stasiaaleks](https://github.com/stasiaaleks)         |
+| Kateryna Bratiuk        | Product engineer | [@katerynabratiuk](https://github.com/katerynabratiuk) |
+| Andrii Valenia          | Product engineer | [@Fybex](https://github.com/Fybex)                     |
+| Milana Horalevych       | Product engineer | [@miqdok](https://github.com/miqdok)                   |
+| Nastya Dvoilenko        | Product engineer | [@anastasiaaq](https://github.com/anastasiaaq)         |
+
+Everyone writes and reviews code; the semester tracks are split across the team.
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Django
-- **Frontend:** React
-- **Database:** PostgreSQL
+- **Backend:** Django, Django REST Framework
+- **Frontend:** React, TypeScript, TanStack, Tailwind
+- **Database:** PostgreSQL, Redis
+- **Infrastructure:** Docker, Hetzner, GitHub Actions, Sentry
 - **API Contract:** OpenAPI
 
 ## 📚 Additional Documentation
