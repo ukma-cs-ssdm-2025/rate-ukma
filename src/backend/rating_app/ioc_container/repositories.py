@@ -12,6 +12,7 @@ from rating_app.repositories.to_domain_mappers import (
     DepartmentMapper,
     EnrollmentMapper,
     FacultyMapper,
+    FeedCommentMapper,
     FeedEventRowMapper,
     FeedPostMapper,
     FeedReviewMapper,
@@ -218,7 +219,16 @@ def rating_repository() -> RatingRepository:
 
 @once
 def comment_repository() -> CommentRepository:
-    return CommentRepository(paginator=GenericQuerysetPaginator(), mapper=CommentMapper())
+    return CommentRepository(
+        paginator=GenericQuerysetPaginator(),
+        mapper=CommentMapper(),
+        feed_mapper=feed_comment_mapper(),
+    )
+
+
+@once
+def feed_comment_mapper() -> FeedCommentMapper:
+    return FeedCommentMapper()
 
 
 @once

@@ -13,6 +13,7 @@ import {
 	getCoursesListQueryKey,
 	getCoursesRatingsListQueryKey,
 	getCoursesRetrieveQueryKey,
+	getFeedListInfiniteQueryKey,
 	getStudentsMeCoursesRetrieveQueryKey,
 	getStudentsMeGradesRetrieveQueryKey,
 	useCoursesRatingsCreate,
@@ -76,6 +77,9 @@ export function RatingModal({
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getCoursesListQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getFeedListInfiniteQueryKey(),
 			}),
 		]);
 	};

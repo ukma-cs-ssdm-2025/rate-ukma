@@ -230,6 +230,16 @@ class CommentFactory(DjangoModelFactory):
     parent_comment = None
     is_anonymous = False
 
+    @factory.post_generation
+    def sync_feed(self, create, extracted, **kwargs):
+        """Factories bypass `CommentService`, so replay what its feed observer does."""
+        if not create:
+            return
+        from rating_app.ioc_container.repositories import comment_repository
+        from rating_app.ioc_container.services import feed_update_service
+
+        feed_update_service().sync_comment(comment_repository().get_by_id(str(self.id)))
+
 
 class FeedPostFactory(DjangoModelFactory):
     class Meta:

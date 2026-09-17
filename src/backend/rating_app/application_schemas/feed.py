@@ -49,7 +49,15 @@ class FeedPromoItem(FeedItemBase):
     image_url: str | None = None
 
 
-FeedItem = FeedReviewItem | FeedPromoItem
+@dataclass(frozen=True)
+class FeedCommentItem(FeedItemBase):
+    rating_id: uuid.UUID
+    course_id: uuid.UUID
+    course_title: str
+    content: str
+
+
+FeedItem = FeedReviewItem | FeedPromoItem | FeedCommentItem
 
 
 @dataclass(frozen=True, slots=True)

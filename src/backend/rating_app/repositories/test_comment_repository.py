@@ -6,13 +6,14 @@ from rating_app.application_schemas.comment import CommentCreateParams, CommentU
 from rating_app.models import Comment
 from rating_app.pagination import GenericQuerysetPaginator
 from rating_app.repositories.comment_repository import CommentRepository
-from rating_app.repositories.to_domain_mappers import CommentMapper
+from rating_app.repositories.to_domain_mappers import CommentMapper, FeedCommentMapper
 
 
 @pytest.fixture
 def repo():
     return CommentRepository(
         mapper=CommentMapper(),
+        feed_mapper=FeedCommentMapper(),
         paginator=GenericQuerysetPaginator[Comment](),
     )
 

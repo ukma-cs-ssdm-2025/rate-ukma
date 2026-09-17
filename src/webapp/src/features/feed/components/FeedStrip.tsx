@@ -3,8 +3,9 @@ import { ArrowRight, Newspaper, Pin } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { useFeatureFlagState } from "@/lib/feature-flags";
-import { isPromoItem } from "../feedTypes";
+import { isCommentItem, isPromoItem } from "../feedTypes";
 import { useFeed } from "../hooks/useFeed";
+import { FeedCommentItem } from "./FeedCommentItem";
 import { FeedPromoItem } from "./FeedPromoItem";
 import { FeedReviewItem } from "./FeedReviewItem";
 
@@ -75,7 +76,11 @@ export function FeedStrip() {
 							<FeedPromoItem item={item} />
 						) : (
 							<div className="h-full rounded-lg border bg-card/60 px-3">
-								<FeedReviewItem item={item} />
+								{isCommentItem(item) ? (
+									<FeedCommentItem item={item} />
+								) : (
+									<FeedReviewItem item={item} />
+								)}
 							</div>
 						)}
 					</div>

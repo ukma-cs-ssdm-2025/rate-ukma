@@ -52,7 +52,10 @@ from rating_app.services.domain_event_listeners.cache_invalidator import (
 from rating_app.services.domain_event_listeners.comment_notification import (
     CommentNotificationObserver,
 )
-from rating_app.services.domain_event_listeners.feed_update import RatingFeedUpdateObserver
+from rating_app.services.domain_event_listeners.feed_update import (
+    CommentFeedUpdateObserver,
+    RatingFeedUpdateObserver,
+)
 from rating_app.services.domain_event_listeners.vote_notification import (
     VoteNotificationObserver,
 )
@@ -164,6 +167,7 @@ def feed_item_provider() -> FeedItemProvider:
         sources={
             FeedEventType.REVIEW_PUBLISHED: rating_repository(),
             FeedEventType.POST_PUBLISHED: feed_post_repository(),
+            FeedEventType.COMMENT_PUBLISHED: comment_repository(),
         }
     )
 
@@ -250,12 +254,18 @@ def rating_feed_update_observer() -> RatingFeedUpdateObserver:
     return RatingFeedUpdateObserver(feed_update_service=feed_update_service())
 
 
+@once
+def comment_feed_update_observer() -> CommentFeedUpdateObserver:
+    return CommentFeedUpdateObserver(feed_update_service=feed_update_service())
+
+
 def register_observers() -> None:
     rating_service().add_observer(course_model_aggregates_update_observer())
     rating_service().add_observer(rating_cache_invalidator())
     rating_service().add_observer(rating_feed_update_observer())
     comment_service().add_observer(comment_cache_invalidator())
     comment_service().add_observer(comment_notification_observer())
+    comment_service().add_observer(comment_feed_update_observer())
     vote_service().add_observer(rating_vote_cache_invalidator())
     vote_service().add_observer(vote_notification_observer())
 

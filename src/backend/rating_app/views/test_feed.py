@@ -6,6 +6,7 @@ from django.utils import timezone
 import pytest
 
 from rating_app.tests.factories import (
+    CommentFactory,
     CourseFactory,
     CourseOfferingFactory,
     FeedPostFactory,
@@ -130,3 +131,27 @@ class TestPagination:
 
     def test_rejects_an_out_of_range_limit(self, token_client, feed_url):
         assert token_client.get(feed_url, {"limit": 0}).status_code == 400
+
+
+def test_comment_items_carry_the_review_and_course_they_belong_to(token_client, feed_url):
+    course = CourseFactory(title="Алгоритми")
+    rating = RatingFactory(comment="Складно", course_offering=CourseOfferingFactory(course=course))
+    comment = CommentFactory(rating=rating, content="Погоджуюсь, але варто")
+
+    items = token_client.get(feed_url).json()["items"]
+    [item] = [i for i in items if i["kind"] == "comment"]
+
+    assert item["id"] == str(comment.id)
+    assert item["rating_id"] == str(rating.id)
+    assert item["course_id"] == str(course.id)
+    assert item["course_title"] == "Алгоритми"
+    assert item["content"] == "Погоджуюсь, але варто"
+    assert item["occurred_at"] is not None
+
+
+def test_comment_items_expose_no_author_identity(token_client, feed_url):
+    CommentFactory(content="Анонімно")
+
+    [item] = [i for i in token_client.get(feed_url).json()["items"] if i["kind"] == "comment"]
+
+    assert not {"user_id", "user_name", "user_avatar_url", "is_anonymous"} & item.keys()
