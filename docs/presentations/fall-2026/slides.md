@@ -3,6 +3,7 @@ marp: true
 theme: rate-ukma
 paginate: true
 title: Rate UKMA — план на семестр
+lang: uk
 ---
 
 <!-- _class: lead -->
