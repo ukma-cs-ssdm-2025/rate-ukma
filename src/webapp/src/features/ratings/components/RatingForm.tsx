@@ -16,11 +16,9 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/Form";
-import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
-import { useFeatureFlagState } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import {
@@ -42,7 +40,8 @@ const ratingSchema = z.object({
 		.transform((val) => val?.trim() || undefined)
 		.optional(),
 	instructor_ids: z.array(z.string().uuid()),
-	// Legacy free-text instructor, used when the multi-select feature flag is off.
+	// Legacy free-text instructor, kept for backward compatibility with old clients.
+	// The form no longer edits it — new ratings pick Instructor entities instead.
 	instructor: z.string().max(256).optional(),
 	is_anonymous: z.boolean(),
 });
@@ -152,16 +151,12 @@ function RatingFormFields({
 	offeringId,
 	courseId,
 	initialInstructors,
-	showMultiSelect,
-	flagsReady,
 	legacyInstructor,
 }: Readonly<{
 	control: ReturnType<typeof useForm<RatingFormData>>["control"];
 	offeringId?: string;
 	courseId?: string;
 	initialInstructors?: readonly Instructor[];
-	showMultiSelect: boolean;
-	flagsReady: boolean;
 	legacyInstructor?: string;
 }>) {
 	return (
@@ -208,63 +203,40 @@ function RatingFormFields({
 				/>
 			</div>
 
-			{/* Held until flags resolve, or text typed into the legacy input would
-			    be discarded when the multi-select takes over. */}
-			{!flagsReady ? null : showMultiSelect ? (
-				<FormField<RatingFormData, "instructor_ids">
-					control={control}
-					name="instructor_ids"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Викладачі (необов'язково)</FormLabel>
-							{legacyInstructor && (
-								<p
-									className="text-sm text-muted-foreground"
-									data-testid={testIds.rating.legacyInstructorText}
-								>
-									Раніше вказано текстом:{" "}
-									<span className="font-medium">{legacyInstructor}</span>
-								</p>
-							)}
-							<FormControl>
-								<InstructorMultiSelect
-									value={field.value ?? []}
-									onChange={field.onChange}
-									initialOptions={initialInstructors}
-									courseOfferingId={offeringId}
-									courseId={courseId}
-									data-testid={testIds.rating.instructorMultiSelect}
-								/>
-							</FormControl>
-							<FormDescription>
-								{legacyInstructor
-									? "Оберіть викладачів зі списку — вони замінять текстовий запис"
-									: "Можна обрати кількох викладачів, які вели курс"}
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-			) : (
-				<FormField<RatingFormData, "instructor">
-					control={control}
-					name="instructor"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Викладач (необов'язково)</FormLabel>
-							<FormControl>
-								<Input
-									placeholder="Ім'я викладача"
-									{...field}
-									value={field.value ?? ""}
-									data-testid={testIds.rating.instructorInput}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-			)}
+			<FormField<RatingFormData, "instructor_ids">
+				control={control}
+				name="instructor_ids"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Викладачі (необов'язково)</FormLabel>
+						{legacyInstructor && (
+							<p
+								className="text-sm text-muted-foreground"
+								data-testid={testIds.rating.legacyInstructorText}
+							>
+								Раніше вказано текстом:{" "}
+								<span className="font-medium">{legacyInstructor}</span>
+							</p>
+						)}
+						<FormControl>
+							<InstructorMultiSelect
+								value={field.value ?? []}
+								onChange={field.onChange}
+								initialOptions={initialInstructors}
+								courseOfferingId={offeringId}
+								courseId={courseId}
+								data-testid={testIds.rating.instructorMultiSelect}
+							/>
+						</FormControl>
+						<FormDescription>
+							{legacyInstructor
+								? "Оберіть викладачів зі списку — вони замінять текстовий запис"
+								: "Можна обрати кількох викладачів, які вели курс"}
+						</FormDescription>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
 
 			<FormField<RatingFormData, "comment">
 				control={control}
@@ -340,9 +312,6 @@ export function RatingForm({
 	courseId,
 	initialInstructors,
 }: RatingFormProps) {
-	const { enabled: showMultiSelect, isReady: flagsReady } = useFeatureFlagState(
-		"fe_instructor_multiselect",
-	);
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
 		defaultValues: initialData || {
@@ -373,8 +342,6 @@ export function RatingForm({
 					offeringId={offeringId}
 					courseId={courseId}
 					initialInstructors={initialInstructors}
-					showMultiSelect={showMultiSelect}
-					flagsReady={flagsReady}
 					legacyInstructor={initialData?.instructor?.trim() || undefined}
 				/>
 

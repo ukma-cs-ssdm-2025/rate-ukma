@@ -22,7 +22,6 @@ export class RatingModal {
 
 	private readonly page: Page;
 	private readonly instructorTrigger: Locator;
-	private readonly instructorInput: Locator;
 	private readonly instructorToggle: Locator;
 	private readonly instructorList: Locator;
 	private readonly instructorSearchInput: Locator;
@@ -36,7 +35,6 @@ export class RatingModal {
 		this.instructorTrigger = page.getByTestId(
 			testIds.rating.instructorMultiSelect,
 		);
-		this.instructorInput = page.getByTestId(testIds.rating.instructorInput);
 		this.instructorToggle = page.getByTestId(
 			`${testIds.rating.instructorMultiSelect}-toggle`,
 		);
@@ -50,22 +48,8 @@ export class RatingModal {
 		this.saveButton = page.getByTestId(testIds.rating.submitButton);
 	}
 
-	/** Legacy free-text instructor input (shown when the multi-select flag is off). */
-	async fillInstructorText(text: string): Promise<void> {
-		await expect(this.instructorInput).toBeVisible();
-		await this.instructorInput.fill(text);
-	}
-
-	async getInstructorTextValue(): Promise<string> {
-		return this.instructorInput.inputValue();
-	}
-
 	instructorMultiSelectLocator(): Locator {
 		return this.instructorTrigger;
-	}
-
-	instructorTextInputLocator(): Locator {
-		return this.instructorInput;
 	}
 
 	async openInstructorPicker(): Promise<void> {
