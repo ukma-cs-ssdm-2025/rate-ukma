@@ -54,6 +54,8 @@ Validate critical user journeys
 - pytest-cov
 - factory_boy (test fixtures)
 
+Conventions for writing backend tests: [backend-tests.md](backend-tests.md).
+
 ### Frontend Testing
 
 - Vitest
