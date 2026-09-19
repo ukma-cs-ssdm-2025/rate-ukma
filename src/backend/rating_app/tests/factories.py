@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import random
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 
 import factory
-from factory import fuzzy
 from factory.django import DjangoModelFactory
-from faker import Faker
 
 from rating_app.ioc_container.repositories import rating_repository
 from rating_app.ioc_container.services import feed_update_service
@@ -23,6 +21,7 @@ from rating_app.models import (
     Faculty,
     FeedPost,
     Instructor,
+    PromoBanner,
     Rating,
     RatingVote,
     Semester,
@@ -33,22 +32,38 @@ from rating_app.models.choices import (
     CourseStatus,
     CourseTypeKind,
     EducationLevel,
+    EnrollmentStatus,
+    ExamType,
     FeedPostAccent,
     InstructorRole,
     RatingVoteType,
     SemesterTerm,
 )
 
-faker = Faker()
 User = get_user_model()
 
 
 class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
+        # The password hook saves the row itself.
+        skip_postgeneration_save = True
 
-    username = factory.Sequence(lambda n: f"user{n}@ukma.edu.ua")
     email = factory.Sequence(lambda n: f"user{n}@ukma.edu.ua")
+    username = factory.LazyAttribute(lambda user: user.email)
+
+    @factory.post_generation
+    def password(self, create, extracted, **kwargs):
+        """Hash the password the way `create_user` would.
+
+        Assigning `password=` on a model factory would store the raw string,
+        leaving `check_password` and any real login test failing for a reason
+        no assertion explains.
+        """
+        if not create:
+            return
+        self.set_password(extracted or "test-password")
+        self.save(update_fields=["password"])
 
 
 class FacultyFactory(DjangoModelFactory):
@@ -90,8 +105,10 @@ class SemesterFactory(DjangoModelFactory):
         model = Semester
         django_get_or_create = ("year", "term")
 
-    year = fuzzy.FuzzyInteger(2018, 2026)
-    term = fuzzy.FuzzyChoice(SemesterTerm.values)
+    # Sequence, not fuzzy: the get_or_create key must not collide, or two calls
+    # silently return the same semester.
+    year = factory.Sequence(lambda n: 2018 + n)
+    term = SemesterTerm.FALL
 
 
 class InstructorFactory(DjangoModelFactory):
@@ -107,21 +124,24 @@ class InstructorFactory(DjangoModelFactory):
 class CourseOfferingFactory(DjangoModelFactory):
     class Meta:
         model = CourseOffering
+        # Neither post-generation hook mutates the instance, so factory_boy 4's
+        # default (no implicit re-save) is already correct here.
+        skip_postgeneration_save = True
 
-    code = factory.LazyFunction(lambda: f"{random.randint(100000, 999999)}")  # 6 символів
+    code = factory.Sequence(lambda n: f"{100000 + n}")
     course = factory.SubFactory(CourseFactory)
     semester = factory.SubFactory(SemesterFactory)
-    credits = fuzzy.FuzzyDecimal(1, 6, precision=1)
-    weekly_hours = fuzzy.FuzzyInteger(1, 12)
-    study_year = fuzzy.FuzzyInteger(1, 6)
-    lecture_count = fuzzy.FuzzyInteger(4, 32)
-    practice_count = fuzzy.FuzzyInteger(0, 20)
+    credits = Decimal("3.0")
+    weekly_hours = 4
+    study_year = 1
+    lecture_count = 16
+    practice_count = 16
     practice_type = ""
-    exam_type = "EXAM"
-    max_students = fuzzy.FuzzyInteger(10, 200)
-    max_groups = fuzzy.FuzzyInteger(1, 6)
-    group_size_min = fuzzy.FuzzyInteger(5, 30)
-    group_size_max = fuzzy.FuzzyInteger(20, 200)
+    exam_type = ExamType.EXAM
+    max_students = 60
+    max_groups = 3
+    group_size_min = 10
+    group_size_max = 30
 
     @factory.post_generation
     def instructors(self, create, extracted, **kwargs):
@@ -131,7 +151,7 @@ class CourseOfferingFactory(DjangoModelFactory):
             CourseInstructorFactory(
                 course_offering=self,
                 instructor=instr,
-                role="LECTURE_INSTRUCTOR",
+                role=InstructorRole.LECTURE_INSTRUCTOR,
             )
 
 
@@ -150,12 +170,12 @@ class CourseOfferingTermFactory(DjangoModelFactory):
 
     offering = factory.SubFactory(CourseOfferingFactory)
     semester = factory.SubFactory(SemesterFactory)
-    credits = fuzzy.FuzzyDecimal(1, 6, precision=1)
-    weekly_hours = fuzzy.FuzzyInteger(1, 12)
-    lecture_count = fuzzy.FuzzyInteger(4, 32)
-    practice_count = fuzzy.FuzzyInteger(0, 20)
+    credits = Decimal("3.0")
+    weekly_hours = 4
+    lecture_count = 16
+    practice_count = 16
     practice_type = ""
-    exam_type = "EXAM"
+    exam_type = ExamType.EXAM
 
 
 class CourseOfferingSpecialityFactory(DjangoModelFactory):
@@ -171,13 +191,18 @@ class StudentFactory(DjangoModelFactory):
     class Meta:
         model = Student
 
+    class Params:
+        # StudentFactory(with_user=True) links a fresh user; pass user= to link a
+        # specific one.
+        with_user = factory.Trait(user=factory.SubFactory(UserFactory))
+
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
     patronymic = factory.Faker("first_name")
     education_level = EducationLevel.BACHELOR
     user = None
     speciality = factory.SubFactory(SpecialityFactory)
-    program_start_academic_year_start = fuzzy.FuzzyInteger(2018, 2026)
+    program_start_academic_year_start = 2022
 
 
 class EnrollmentFactory(DjangoModelFactory):
@@ -186,22 +211,20 @@ class EnrollmentFactory(DjangoModelFactory):
 
     student = factory.SubFactory(StudentFactory)
     offering = factory.SubFactory(CourseOfferingFactory)
-    status = "ENROLLED"
+    status = EnrollmentStatus.ENROLLED
 
 
 class RatingFactory(DjangoModelFactory):
     class Meta:
         model = Rating
+        skip_postgeneration_save = True
 
     student = factory.SubFactory(StudentFactory)
     course_offering = factory.SubFactory(CourseOfferingFactory)
-    difficulty = fuzzy.FuzzyInteger(1, 5)
-    usefulness = fuzzy.FuzzyInteger(1, 5)
+    difficulty = 3
+    usefulness = 4
+    comment = factory.Sequence(lambda n: f"Rating comment {n}")
     is_anonymous = False
-
-    @factory.lazy_attribute
-    def comment(self):
-        return faker.sentence() if random.random() < 0.5 else ""
 
     @factory.post_generation
     def sync_feed(self, create, extracted, **kwargs):
@@ -223,6 +246,8 @@ class RatingVoteFactory(DjangoModelFactory):
 class CommentFactory(DjangoModelFactory):
     class Meta:
         model = Comment
+        # The hook only replays the feed observer; it never mutates the instance.
+        skip_postgeneration_save = True
 
     content = factory.Faker("paragraph")
     rating = factory.SubFactory(RatingFactory)
@@ -250,3 +275,15 @@ class FeedPostFactory(DjangoModelFactory):
     accent = FeedPostAccent.BRAND
     pinned = False
     is_active = True
+
+
+class PromoBannerFactory(DjangoModelFactory):
+    class Meta:
+        model = PromoBanner
+
+    title = factory.Sequence(lambda n: f"Promo {n}")
+    description = factory.Faker("sentence")
+    href = factory.Sequence(lambda n: f"https://example.com/promo/{n}")
+    cta_label = "Open"
+    logo_alt = ""
+    is_active = False
