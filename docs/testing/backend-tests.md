@@ -9,7 +9,7 @@ Ruff `PT` enforces the `parametrize` / `raises` / fixture-syntax rules. Everythi
 - Test sits next to its unit: `test_course_repository.py`, `rating_app/views/test_<resource>.py`. Name the file after the unit or a concern of it (`test_rating_cache_invalidation.py`), never after how it runs — an `_integration.py` suffix duplicates the marker and drifts when one test stops needing the database.
 - Never put a test module inside `rating_app/models/`: pytest imports it as top-level `models.*` and Django raises `doesn't declare an explicit app_label`. Cross-model tests go at the app root beside `test_signals.py`. `rating_app/tests/` holds no tests — only `factories.py` and `semester_dates.py`.
 - Fixture goes in the narrowest scope that needs it: module first, package `conftest.py` next, root `src/backend/conftest.py` last.
-- `autouse` is for global environment swaps only (`mock_cache_manager`). An autouse fixture that builds data hides the arrange block.
+- `autouse` swaps the environment a test runs in — redis (`mock_cache_manager`), the clock (`_frozen_time` in `test_rating_cache_invalidation.py`), a patched ORM entry point. It never builds test data: an autouse fixture that creates rows hides the arrange block.
 - Time-gated views need `@freeze_time` with a date from `rating_app/tests/semester_dates.py` (`DEFAULT_AFTER_MIDTERM_DATE` open, `DEFAULT_BEFORE_MIDTERM_DATE` closed). A test module never imports another test module.
 
 ## Factories
@@ -21,7 +21,7 @@ Registered in `conftest.py` via `pytest-factoryboy` `register(CourseFactory)`, w
 - Prefer `course_factory` over bare `course`; the bare fixture is one shared instance.
 - A helper that builds rows becomes a fixture returning the builder (`make_rating(rating_factory, student_factory)`). Plain `_make_*` functions stay for DTOs.
 - Defaults are deterministic: `Sequence` for `unique=True` and any `django_get_or_create` key, fixed values for anything asserted on, enum members over string literals, variants as traits (`student_factory(with_user=True)`). A fuzzy `get_or_create` key collides silently — `SemesterFactory` keyed on `(year, term)` returned the same row for two calls ~5% of the time.
-- Randomness only via `factory.Faker`, which `factory.random.reseed_random()` can pin. Never stdlib `random` or a module-level `Faker()`.
+- A factory's randomness comes only from `factory.Faker`, which `factory.random.reseed_random()` can pin. Never stdlib `random` or a module-level `Faker()` in `factories.py`, or a failure cannot be reproduced from a seed. A test module building its own sample payloads (the scraper parsers) may hold a plain `Faker()`.
 - Every model a test touches needs a factory. Raw `Model.objects.create` survives only for `waffle.Flag` (third-party) and `FeedEvent` rows written deliberately without the service layer.
 
 ## Structure
