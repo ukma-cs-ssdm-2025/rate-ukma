@@ -6,10 +6,7 @@ from pytest_factoryboy import register
 from rateukma.caching.cache_manager import InMemoryCacheManager
 from rating_app.tests import factories
 
-# Factory fixtures: `register(CourseFactory)` exposes `course_factory` (the
-# factory itself, for building several instances or overriding fields) and
-# `course` (one built instance). Never hand-write a fixture that returns a
-# factory.
+# Each register() generates `<model>` and `<model>_factory` fixtures.
 register(factories.UserFactory)
 register(factories.FacultyFactory)
 register(factories.DepartmentFactory)
