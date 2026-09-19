@@ -8,9 +8,6 @@ from rating_app.ioc_container.repositories import feed_event_repository
 from rating_app.models.choices import FeedEventType
 from rating_app.pagination import FeedCursor
 from rating_app.repositories.feed_event_repository import MAX_PINNED
-from rating_app.tests.factories import FeedPostFactory, RatingFactory
-
-pytestmark = [pytest.mark.django_db, pytest.mark.integration]
 
 
 @pytest.fixture
@@ -22,33 +19,35 @@ def _at(**offset):
     return timezone.now() - timedelta(**offset)
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestGetPinned:
-    def test_returns_only_pinned_entries(self, repo):
-        pinned = FeedPostFactory(pinned=True, published_at=_at(hours=1))
-        FeedPostFactory(pinned=False, published_at=_at(hours=2))
+    def test_returns_only_pinned_entries(self, repo, feed_post_factory):
+        pinned = feed_post_factory(pinned=True, published_at=_at(hours=1))
+        feed_post_factory(pinned=False, published_at=_at(hours=2))
 
         assert [row.object_id for row in repo.get_pinned()] == [pinned.id]
 
-    def test_excludes_invisible_entries(self, repo):
-        FeedPostFactory(pinned=True, is_active=False, published_at=_at(hours=1))
+    def test_excludes_invisible_entries(self, repo, feed_post_factory):
+        feed_post_factory(pinned=True, is_active=False, published_at=_at(hours=1))
 
         assert repo.get_pinned() == []
 
-    def test_excludes_future_entries(self, repo):
+    def test_excludes_future_entries(self, repo, feed_post_factory):
         """A scheduled post must stay hidden until its publication time."""
-        FeedPostFactory(pinned=True, published_at=timezone.now() + timedelta(days=1))
+        feed_post_factory(pinned=True, published_at=timezone.now() + timedelta(days=1))
 
         assert repo.get_pinned() == []
 
-    def test_orders_newest_first(self, repo):
-        older = FeedPostFactory(pinned=True, published_at=_at(days=2))
-        newer = FeedPostFactory(pinned=True, published_at=_at(hours=1))
+    def test_orders_newest_first(self, repo, feed_post_factory):
+        older = feed_post_factory(pinned=True, published_at=_at(days=2))
+        newer = feed_post_factory(pinned=True, published_at=_at(hours=1))
 
         assert [row.object_id for row in repo.get_pinned()] == [newer.id, older.id]
 
-    def test_keeps_the_newest_when_capped(self, repo):
+    def test_keeps_the_newest_when_capped(self, repo, feed_post_factory):
         posts = [
-            FeedPostFactory(pinned=True, published_at=_at(hours=hours + 1))
+            feed_post_factory(pinned=True, published_at=_at(hours=hours + 1))
             for hours in range(MAX_PINNED + 2)
         ]
         newest = sorted(posts, key=lambda p: p.published_at, reverse=True)[:MAX_PINNED]
@@ -56,11 +55,13 @@ class TestGetPinned:
         assert [row.object_id for row in repo.get_pinned()] == [p.id for p in newest]
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestGetPage:
-    def test_mixes_kinds_in_one_ordered_stream(self, repo):
-        older_post = FeedPostFactory(published_at=_at(hours=3))
-        rating = RatingFactory(comment="Свіжий відгук")
-        newer_post = FeedPostFactory(published_at=_at(hours=1))
+    def test_mixes_kinds_in_one_ordered_stream(self, repo, feed_post_factory, rating_factory):
+        older_post = feed_post_factory(published_at=_at(hours=3))
+        rating = rating_factory(comment="Свіжий відгук")
+        newer_post = feed_post_factory(published_at=_at(hours=1))
 
         rows = repo.get_page(cursor=None, limit=10)
 
@@ -71,25 +72,27 @@ class TestGetPage:
             FeedEventType.POST_PUBLISHED,
         ]
 
-    def test_excludes_pinned_invisible_and_future_entries(self, repo):
-        visible = FeedPostFactory(published_at=_at(hours=1))
-        FeedPostFactory(pinned=True, published_at=_at(hours=2))
-        FeedPostFactory(is_active=False, published_at=_at(hours=3))
-        FeedPostFactory(published_at=timezone.now() + timedelta(days=1))
-        RatingFactory(comment="")
+    def test_excludes_pinned_invisible_and_future_entries(
+        self, repo, feed_post_factory, rating_factory
+    ):
+        visible = feed_post_factory(published_at=_at(hours=1))
+        feed_post_factory(pinned=True, published_at=_at(hours=2))
+        feed_post_factory(is_active=False, published_at=_at(hours=3))
+        feed_post_factory(published_at=timezone.now() + timedelta(days=1))
+        rating_factory(comment="")
 
         assert [row.object_id for row in repo.get_page(cursor=None, limit=10)] == [visible.id]
 
-    def test_returns_one_row_beyond_limit_as_lookahead(self, repo):
+    def test_returns_one_row_beyond_limit_as_lookahead(self, repo, feed_post_factory):
         for hours in range(5):
-            FeedPostFactory(published_at=_at(hours=hours + 1))
+            feed_post_factory(published_at=_at(hours=hours + 1))
 
         assert len(repo.get_page(cursor=None, limit=2)) == 3
 
-    def test_cursor_excludes_everything_up_to_that_position(self, repo):
-        newest = FeedPostFactory(published_at=_at(hours=1))
-        middle = FeedPostFactory(published_at=_at(hours=2))
-        oldest = FeedPostFactory(published_at=_at(hours=3))
+    def test_cursor_excludes_everything_up_to_that_position(self, repo, feed_post_factory):
+        newest = feed_post_factory(published_at=_at(hours=1))
+        middle = feed_post_factory(published_at=_at(hours=2))
+        oldest = feed_post_factory(published_at=_at(hours=3))
 
         first_page = repo.get_page(cursor=None, limit=1)
         cursor = FeedCursor(first_page[0].occurred_at, first_page[0].id)
@@ -98,10 +101,10 @@ class TestGetPage:
         assert first_page[0].object_id == newest.id
         assert [row.object_id for row in second_page] == [middle.id, oldest.id]
 
-    def test_cursor_breaks_ties_by_id(self, repo):
+    def test_cursor_breaks_ties_by_id(self, repo, feed_post_factory):
         """Entries sharing a timestamp must not repeat or vanish at a boundary."""
         published_at = _at(hours=1)
-        posts = [FeedPostFactory(published_at=published_at) for _ in range(3)]
+        posts = [feed_post_factory(published_at=published_at) for _ in range(3)]
 
         walked = []
         cursor = None
@@ -114,22 +117,24 @@ class TestGetPage:
 
         assert sorted(walked) == sorted(post.id for post in posts)
 
-    def test_returns_empty_when_cursor_past_the_oldest_entry(self, repo):
-        FeedPostFactory(published_at=_at(hours=1))
+    def test_returns_empty_when_cursor_past_the_oldest_entry(self, repo, feed_post_factory):
+        feed_post_factory(published_at=_at(hours=1))
         [row] = repo.get_page(cursor=None, limit=10)
 
         assert repo.get_page(cursor=FeedCursor(row.occurred_at, row.id), limit=10) == []
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestGetNextFutureOccurrence:
-    def test_earliest_visible_future_entry(self, repo):
-        FeedPostFactory(published_at=timezone.now() + timedelta(days=2))
-        soonest = FeedPostFactory(published_at=timezone.now() + timedelta(days=1))
-        FeedPostFactory(is_active=False, published_at=timezone.now() + timedelta(hours=1))
+    def test_earliest_visible_future_entry(self, repo, feed_post_factory):
+        feed_post_factory(published_at=timezone.now() + timedelta(days=2))
+        soonest = feed_post_factory(published_at=timezone.now() + timedelta(days=1))
+        feed_post_factory(is_active=False, published_at=timezone.now() + timedelta(hours=1))
 
         assert repo.get_next_future_occurrence() == soonest.published_at
 
-    def test_none_when_nothing_is_scheduled(self, repo):
-        FeedPostFactory(published_at=_at(hours=1))
+    def test_none_when_nothing_is_scheduled(self, repo, feed_post_factory):
+        feed_post_factory(published_at=_at(hours=1))
 
         assert repo.get_next_future_occurrence() is None

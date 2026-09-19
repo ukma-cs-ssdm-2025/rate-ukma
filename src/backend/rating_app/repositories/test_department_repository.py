@@ -5,7 +5,6 @@ import pytest
 from rating_app.application_schemas.department import Department as DepartmentDTO
 from rating_app.repositories.department_repository import DepartmentRepository
 from rating_app.repositories.to_domain_mappers import DepartmentMapper
-from rating_app.tests.factories import DepartmentFactory, FacultyFactory
 
 
 @pytest.fixture
@@ -15,8 +14,8 @@ def repo():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_all_prefetches_related_faculty(repo, django_assert_num_queries):
-    DepartmentFactory.create_batch(3)
+def test_get_all_prefetches_related_faculty(repo, django_assert_num_queries, department_factory):
+    department_factory.create_batch(3)
 
     result = repo.get_all()
 
@@ -28,10 +27,12 @@ def test_get_all_prefetches_related_faculty(repo, django_assert_num_queries):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_create_creates_different_department_with_same_name_different_faculty(repo):
-    faculty_one = FacultyFactory()
-    faculty_two = FacultyFactory()
-    existing = DepartmentFactory(name="Engineering", faculty=faculty_one)
+def test_get_or_create_creates_different_department_with_same_name_different_faculty(
+    repo, faculty_factory, department_factory
+):
+    faculty_one = faculty_factory()
+    faculty_two = faculty_factory()
+    existing = department_factory(name="Engineering", faculty=faculty_one)
 
     department_dto = DepartmentDTO(
         id=uuid.uuid4(),

@@ -1,3 +1,9 @@
+from datetime import timedelta
+from uuid import uuid4
+
+from django.urls import reverse
+from django.utils import timezone
+
 import pytest
 
 from rating_app.models import Comment
@@ -395,3 +401,121 @@ def test_comment_delete_forbidden_for_non_owner(token_client, rating_factory, co
 
     assert response.status_code == 403
     assert Comment.objects.filter(id=comment.id).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("action", "method"),
+    [
+        ("list", "get"),
+        ("create", "post"),
+        ("replies", "get"),
+        ("update", "put"),
+        ("partial_update", "patch"),
+        ("destroy", "delete"),
+    ],
+)
+def test_comment_forbidden_when_unauthenticated(
+    api_client, rating_factory, comment_factory, action, method
+):
+    rating = rating_factory()
+    comment = comment_factory(rating=rating)
+
+    if action in ("list", "create"):
+        url = reverse("comment-get", kwargs={"rating_id": str(rating.id)})
+    elif action == "replies":
+        url = reverse("comment-replies", kwargs={"comment_id": str(comment.id)})
+    else:
+        url = reverse("comment-detail", kwargs={"comment_id": str(comment.id)})
+
+    if action == "create":
+        payload: dict | None = {"content": "Unauthenticated comment", "is_anonymous": False}
+    elif action == "update":
+        payload = {"content": "Unauthenticated update", "is_anonymous": False}
+    elif action == "partial_update":
+        payload = {"content": "Unauthenticated patch"}
+    else:
+        payload = None
+
+    client_method = getattr(api_client, method)
+    if payload is None:
+        response = client_method(url)
+    else:
+        response = client_method(url, data=payload, format="json")
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Authentication credentials were not provided."
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize("method", ["put", "patch", "delete"])
+def test_comment_detail_not_found_when_unknown_id(token_client, method):
+    url = reverse("comment-detail", kwargs={"comment_id": str(uuid4())})
+
+    if method == "put":
+        response = token_client.put(
+            url, {"content": "Missing comment", "is_anonymous": False}, format="json"
+        )
+    elif method == "patch":
+        response = token_client.patch(url, {"content": "Missing comment"}, format="json")
+    else:
+        response = token_client.delete(url)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Comment not found"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize("method", ["put", "patch", "delete"])
+def test_comment_detail_bad_request_when_malformed_id(token_client, method):
+    url = reverse("comment-detail", kwargs={"comment_id": "not-a-uuid"})
+
+    if method == "put":
+        response = token_client.put(
+            url, {"content": "Malformed id", "is_anonymous": False}, format="json"
+        )
+    elif method == "patch":
+        response = token_client.patch(url, {"content": "Malformed id"}, format="json")
+    else:
+        response = token_client.delete(url)
+
+    assert response.status_code == 400
+    assert response.json()["fields"]["comment_id"] == "Invalid comment identifier"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_comments_list_paginates_when_second_page_requested(
+    token_client, rating_factory, comment_factory
+):
+    rating = rating_factory()
+    base = timezone.now()
+    created = [comment_factory(rating=rating) for _ in range(12)]
+    for index, comment in enumerate(created):
+        Comment.objects.filter(pk=comment.pk).update(
+            created_at=base + timedelta(seconds=len(created) - index)
+        )
+    ordered = list(reversed(created))
+    for comment in ordered:
+        comment.refresh_from_db()
+
+    url = reverse("comment-get", kwargs={"rating_id": str(rating.id)})
+    page1 = token_client.get(url, {"page": 1, "page_size": 5})
+    page2 = token_client.get(url, {"page": 2, "page_size": 5})
+
+    assert page1.status_code == 200
+    assert page2.status_code == 200
+    assert page1.json()["total"] == 12
+    assert page2.json()["page"] == 2
+
+    page1_ids = [item["id"] for item in page1.json()["items"]]
+    page2_ids = [item["id"] for item in page2.json()["items"]]
+    expected_page1 = [str(comment.id) for comment in ordered[:5]]
+    expected_page2 = [str(comment.id) for comment in ordered[5:10]]
+
+    assert page1_ids == expected_page1
+    assert page2_ids == expected_page2
+    assert set(page1_ids).isdisjoint(page2_ids)

@@ -1,6 +1,8 @@
 import datetime
 import uuid
 
+from django.urls import reverse
+
 import pytest
 
 from rating_app.models import Rating
@@ -50,7 +52,7 @@ def test_courses_paging(token_client, course_factory):
 @pytest.mark.integration
 def test_filter_by_department_and_faculty(token_client, course_factory):
     # Arrange
-    course = course_factory.create()
+    course = course_factory()
     department_id = course.department.id
     faculty_id = course.department.faculty.id
     url = f"/api/v1/courses/?department={department_id}&faculty={faculty_id}"
@@ -75,10 +77,10 @@ def test_filter_by_instructor(
     course_instructor_factory,
 ):
     # Arrange
-    course = course_factory.create()
-    offering = course_offering_factory.create(course=course)
-    instructor = instructor_factory.create()
-    course_instructor_factory.create(course_offering=offering, instructor=instructor)
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    instructor = instructor_factory()
+    course_instructor_factory(course_offering=offering, instructor=instructor)
 
     url = f"/api/v1/courses/?instructor={instructor.id}"
 
@@ -94,7 +96,7 @@ def test_filter_by_instructor(
 def test_filter_by_name(token_client, course_factory):
     # Arrange
     unique_title = "UniqueCourseTitle123"
-    course_factory.create(title=unique_title)
+    course_factory(title=unique_title)
     url = f"/api/v1/courses/?name={unique_title}"
 
     # Act
@@ -110,8 +112,8 @@ def test_filter_by_name(token_client, course_factory):
 @pytest.mark.integration
 def test_filter_by_saz_code(token_client, course_factory, course_offering_factory):
     # Arrange
-    course = course_factory.create()
-    course_offering_factory.create(course=course, code="123456")
+    course = course_factory()
+    course_offering_factory(course=course, code="123456")
     url = "/api/v1/courses/?name=123456"
 
     # Act
@@ -125,24 +127,34 @@ def test_filter_by_saz_code(token_client, course_factory, course_offering_factor
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_by_semester(token_client, course_factory):
+def test_filter_by_semester(
+    token_client, course_factory, course_offering_factory, semester_factory
+):
     # Arrange
-    semester_year = "2024–2025"
-    course_factory.create()
-    url = f"/api/v1/courses/?semester_year={semester_year}&semester_terms=FALL"
+    matching_course = course_factory()
+    other_course = course_factory()
+    target_semester = semester_factory(term="FALL", year=2024)
+    other_semester = semester_factory(term="FALL", year=2023)
+    course_offering_factory(course=matching_course, semester=target_semester)
+    course_offering_factory(course=other_course, semester=other_semester)
+    url = "/api/v1/courses/?semester_year=2024–2025&semester_terms=FALL"
 
     # Act
     response = token_client.get(url)
 
     # Assert
     assert response.status_code == 200
+    data = response.json()
+    returned_ids = {item["id"] for item in data["items"]}
+    assert str(matching_course.id) in returned_ids
+    assert str(other_course.id) not in returned_ids
 
 
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_filter_by_credits_range_requires_semester_year(token_client, course_factory):
     # Arrange
-    course_factory.create()
+    course_factory()
     url = "/api/v1/courses/?credits_min=3.0&credits_max=4.0"
 
     # Act
@@ -158,8 +170,8 @@ def test_filter_by_credits_range_with_semester_year(
     token_client, course_factory, course_offering_factory, semester_factory
 ):
     # Arrange
-    matching_course = course_factory.create()
-    non_matching_course = course_factory.create()
+    matching_course = course_factory()
+    non_matching_course = course_factory()
 
     target_semester = semester_factory(term="FALL", year=2024)
     other_semester = semester_factory(term="FALL", year=2023)
@@ -202,9 +214,9 @@ def test_filter_by_speciality_and_typekind(
     course_offering_speciality_factory,
 ):
     # Arrange
-    course = course_factory.create()
-    offering = course_offering_factory.create(course=course)
-    cos = course_offering_speciality_factory.create(offering=offering, type_kind="COMPULSORY")
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    cos = course_offering_speciality_factory(offering=offering, type_kind="COMPULSORY")
     speciality_id = cos.speciality.id
     url = f"/api/v1/courses/?speciality={speciality_id}&typeKind=COMPULSORY"
 
@@ -218,15 +230,24 @@ def test_filter_by_speciality_and_typekind(
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_sorting_params(token_client, course_factory):
-    # Arrange
-    course_factory.create_batch(3)
+    # Arrange: inserted out of order; the difficulty tie proves the second
+    # key applies, and the order differs from the default -ratings_count.
+    course_a = course_factory(avg_difficulty=3.0, avg_usefulness=2.0, ratings_count=4)
+    course_c = course_factory(avg_difficulty=1.5, avg_usefulness=1.0, ratings_count=3)
+    course_b = course_factory(avg_difficulty=3.0, avg_usefulness=5.0, ratings_count=5)
     url = "/api/v1/courses/?avg_difficulty_order=asc&avg_usefulness_order=desc"
 
     # Act
     response = token_client.get(url)
 
     # Assert
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert [item["id"] for item in items[:3]] == [
+        str(course_c.id),
+        str(course_b.id),
+        str(course_a.id),
+    ]
 
 
 @pytest.mark.django_db
@@ -271,6 +292,11 @@ def test_course_retrieve(course_factory, token_client):
 
     # Assert
     assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == str(existing.id)
+    assert data["title"] == existing.title
+    assert data["department"] == str(existing.department.id)
+    assert data["faculty"] == str(existing.department.faculty.id)
 
 
 @pytest.mark.django_db
@@ -335,8 +361,10 @@ def test_filter_by_multiple_parameters(
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_course_list_with_avg_filters(token_client, course_factory):
-    # Arrange
-    course_factory.create_batch(5)
+    # Arrange: out-of-range courses first so order cannot mask the filter
+    course_factory(avg_difficulty=1.0, ratings_count=2)
+    matching_course = course_factory(avg_difficulty=3.0, ratings_count=5)
+    course_factory(avg_difficulty=5.0, ratings_count=7)
     url = "/api/v1/courses/?avg_difficulty_min=2&avg_difficulty_max=4"
 
     # Act
@@ -344,6 +372,8 @@ def test_course_list_with_avg_filters(token_client, course_factory):
 
     # Assert
     assert response.status_code == 200
+    returned_ids = {item["id"] for item in response.json()["items"]}
+    assert returned_ids == {str(matching_course.id)}
 
 
 @pytest.mark.django_db
@@ -415,7 +445,6 @@ def test_course_is_elective_for_speciality_if_no_explicit_type_assigned(
     assert response.status_code == 200
 
     data = response.json()
-    print(data)
     assert len(data["items"]) == 1
     assert data["items"][0]["id"] == str(course.id)
 
@@ -442,7 +471,6 @@ def test_course_is_elective_for_speciality_if_no_type_assigned(
     assert response.status_code == 200
 
     data = response.json()
-    print(data)
     assert len(data["items"]) == 1
     assert data["items"][0]["id"] == str(course.id)
 
@@ -476,7 +504,6 @@ def test_filter_by_elective_type_kind(
     assert response.status_code == 200
 
     data = response.json()
-    print(data)
     assert len(data["items"]) == 1
     assert data["items"][0]["id"] == str(course.id)
 
@@ -588,25 +615,25 @@ def test_sorting_preserves_order_with_various_ratings(token_client, course_facto
 
     Courses with ratings_count=0 should always appear at the end regardless of sort direction.
     """
-    course_medium = course_factory.create()
+    course_medium = course_factory()
     course_medium.avg_difficulty = 3.0
     course_medium.avg_usefulness = 4.0
     course_medium.ratings_count = 5
     course_medium.save()
 
-    course_low = course_factory.create()
+    course_low = course_factory()
     course_low.avg_difficulty = 1.5
     course_low.avg_usefulness = 2.5
     course_low.ratings_count = 3
     course_low.save()
 
-    course_high = course_factory.create()
+    course_high = course_factory()
     course_high.avg_difficulty = 4.5
     course_high.avg_usefulness = 4.8
     course_high.ratings_count = 8
     course_high.save()
 
-    course_no_ratings = course_factory.create()
+    course_no_ratings = course_factory()
     course_no_ratings.avg_difficulty = 0.0
     course_no_ratings.avg_usefulness = 0.0
     course_no_ratings.ratings_count = 0
@@ -670,18 +697,18 @@ def test_sorting_preserves_order_with_various_ratings(token_client, course_facto
 def test_sorting_by_last_review(
     token_client, course_factory, course_offering_factory, rating_factory
 ):
-    course_newest = course_factory.create()
-    course_oldest = course_factory.create()
-    course_middle = course_factory.create()
-    course_no_reviews = course_factory.create()
+    course_newest = course_factory()
+    course_oldest = course_factory()
+    course_middle = course_factory()
+    course_no_reviews = course_factory()
 
-    offering_newest = course_offering_factory.create(course=course_newest)
-    offering_oldest = course_offering_factory.create(course=course_oldest)
-    offering_middle = course_offering_factory.create(course=course_middle)
+    offering_newest = course_offering_factory(course=course_newest)
+    offering_oldest = course_offering_factory(course=course_oldest)
+    offering_middle = course_offering_factory(course=course_middle)
 
-    rating_newest = rating_factory.create(course_offering=offering_newest)
-    rating_oldest = rating_factory.create(course_offering=offering_oldest)
-    rating_middle = rating_factory.create(course_offering=offering_middle)
+    rating_newest = rating_factory(course_offering=offering_newest)
+    rating_oldest = rating_factory(course_offering=offering_oldest)
+    rating_middle = rating_factory(course_offering=offering_middle)
 
     Rating.objects.filter(id=rating_newest.id).update(
         created_at=datetime.datetime(2026, 5, 20, tzinfo=datetime.UTC)
@@ -723,11 +750,11 @@ def test_sorting_by_last_review(
 def test_sorting_by_last_review_aggregates_across_offerings(
     token_client, course_factory, course_offering_factory, rating_factory
 ):
-    course_multi = course_factory.create()
-    offering_old = course_offering_factory.create(course=course_multi)
-    offering_recent = course_offering_factory.create(course=course_multi)
-    rating_on_old_offering = rating_factory.create(course_offering=offering_old)
-    rating_on_recent_offering = rating_factory.create(course_offering=offering_recent)
+    course_multi = course_factory()
+    offering_old = course_offering_factory(course=course_multi)
+    offering_recent = course_offering_factory(course=course_multi)
+    rating_on_old_offering = rating_factory(course_offering=offering_old)
+    rating_on_recent_offering = rating_factory(course_offering=offering_recent)
     Rating.objects.filter(id=rating_on_old_offering.id).update(
         created_at=datetime.datetime(2025, 1, 5, tzinfo=datetime.UTC)
     )
@@ -735,9 +762,9 @@ def test_sorting_by_last_review_aggregates_across_offerings(
         created_at=datetime.datetime(2026, 5, 20, tzinfo=datetime.UTC)
     )
 
-    course_single = course_factory.create()
-    offering_single = course_offering_factory.create(course=course_single)
-    rating_single = rating_factory.create(course_offering=offering_single)
+    course_single = course_factory()
+    offering_single = course_offering_factory(course=course_single)
+    rating_single = rating_factory(course_offering=offering_single)
     Rating.objects.filter(id=rating_single.id).update(
         created_at=datetime.datetime(2026, 3, 1, tzinfo=datetime.UTC)
     )
@@ -761,13 +788,13 @@ def test_sorting_by_last_review_aggregates_across_offerings(
 def test_sorting_by_last_review_breaks_ties_by_title(
     token_client, course_factory, course_offering_factory, rating_factory
 ):
-    course_b = course_factory.create(title="Курс Б")
-    course_a = course_factory.create(title="Курс А")
+    course_b = course_factory(title="Курс Б")
+    course_a = course_factory(title="Курс А")
 
-    offering_a = course_offering_factory.create(course=course_a)
-    offering_b = course_offering_factory.create(course=course_b)
-    rating_a = rating_factory.create(course_offering=offering_a)
-    rating_b = rating_factory.create(course_offering=offering_b)
+    offering_a = course_offering_factory(course=course_a)
+    offering_b = course_offering_factory(course=course_b)
+    rating_a = rating_factory(course_offering=offering_a)
+    rating_b = rating_factory(course_offering=offering_b)
 
     same_moment = datetime.datetime(2026, 5, 1, tzinfo=datetime.UTC)
     Rating.objects.filter(id=rating_a.id).update(created_at=same_moment)
@@ -785,3 +812,46 @@ def test_sorting_by_last_review_breaks_ties_by_title(
         str(course_a.id),
         str(course_b.id),
     ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_options_returns_seeded_values_when_rows_exist(
+    token_client, instructor_factory, semester_factory, course_factory
+):
+    # Arrange
+    instructor_factory(first_name="Ada", last_name="Lovelace")
+    semester_factory(year=2024, term="FALL")
+    course = course_factory()
+    url = reverse("course-filter-options")
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert "Ada Lovelace" in [item["name"] for item in data["instructors"]]
+    faculty = next(
+        item for item in data["faculties"] if item["id"] == str(course.department.faculty.id)
+    )
+    assert faculty["name"] == course.department.faculty.name
+    assert str(course.department.id) in [item["id"] for item in faculty["departments"]]
+    assert "FALL" in [item["value"] for item in data["semester_terms"]]
+    assert "2024–2025" in [item["value"] for item in data["semester_years"]]
+    assert {item["value"] for item in data["course_types"]} == {
+        "COMPULSORY",
+        "ELECTIVE",
+        "PROF_ORIENTED",
+    }
+
+
+def test_filter_options_rejects_unauthenticated_when_no_credentials(api_client):
+    # Arrange
+    url = reverse("course-filter-options")
+
+    # Act
+    response = api_client.get(url)
+
+    # Assert
+    assert response.status_code == 403

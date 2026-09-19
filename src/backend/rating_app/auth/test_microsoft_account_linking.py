@@ -6,7 +6,6 @@ from allauth.core.exceptions import ImmediateHttpResponse
 
 from rating_app.auth.microsoft_account_adapters import MicrosoftSocialAccountAdapter
 from rating_app.models import Student
-from rating_app.tests.factories import StudentFactory
 
 
 def _make_social_login(email: str | None) -> MagicMock:
@@ -29,10 +28,13 @@ def http_request() -> MagicMock:
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_oauth_new_user_with_ukma_email_creates_user_and_links_to_student(
-    adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock, user_factory
+    adapter: MicrosoftSocialAccountAdapter,
+    http_request: MagicMock,
+    user_factory,
+    student_factory,
 ):
     email = "newuser@ukma.edu.ua"
-    student = StudentFactory(email=email, user=None)
+    student = student_factory(email=email, user=None)
     sociallogin = _make_social_login(email)
 
     with patch(
@@ -70,8 +72,6 @@ def test_oauth_new_user_without_matching_student_creates_user_only(
     assert not Student.objects.filter(user=user).exists()
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_oauth_new_user_with_non_ukma_email_is_rejected(
     adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock, settings
 ):
@@ -84,8 +84,6 @@ def test_oauth_new_user_with_non_ukma_email_is_rejected(
     assert exc.value.response.url == "/login-error"
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_oauth_new_user_without_email_is_rejected(
     adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock, settings
 ):
@@ -123,10 +121,13 @@ def test_oauth_existing_user_reconnects_to_account(
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_oauth_save_user_respects_commit_flag(
-    adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock, user_factory
+    adapter: MicrosoftSocialAccountAdapter,
+    http_request: MagicMock,
+    user_factory,
+    student_factory,
 ):
     email = "commit-flag@ukma.edu.ua"
-    student = StudentFactory(email=email, user=None)
+    student = student_factory(email=email, user=None)
     sociallogin = _make_social_login(email)
 
     with patch(
@@ -146,11 +147,14 @@ def test_oauth_save_user_respects_commit_flag(
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_oauth_does_not_relink_student_owned_by_another_user(
-    adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock, user_factory
+    adapter: MicrosoftSocialAccountAdapter,
+    http_request: MagicMock,
+    user_factory,
+    student_factory,
 ):
     email = "linked@ukma.edu.ua"
     existing_user = user_factory(email=email)
-    student = StudentFactory(email=email, user=existing_user)
+    student = student_factory(email=email, user=existing_user)
     sociallogin = _make_social_login(email)
 
     with patch(
@@ -171,11 +175,14 @@ def test_oauth_does_not_relink_student_owned_by_another_user(
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_oauth_handles_multiple_students_with_same_email(
-    adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock, user_factory
+    adapter: MicrosoftSocialAccountAdapter,
+    http_request: MagicMock,
+    user_factory,
+    student_factory,
 ):
     email = "duplicate@ukma.edu.ua"
-    StudentFactory(email=email, user=None)
-    StudentFactory(email=email, user=None)
+    student_factory(email=email, user=None)
+    student_factory(email=email, user=None)
     sociallogin = _make_social_login(email)
 
     with patch(
@@ -191,9 +198,9 @@ def test_oauth_handles_multiple_students_with_same_email(
     assert not Student.objects.filter(user=user).exists()
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_oauth_populate_user_sets_username_to_email(adapter: MicrosoftSocialAccountAdapter):
+def test_oauth_populate_user_sets_username_to_email(
+    adapter: MicrosoftSocialAccountAdapter,
+):
     sociallogin = _make_social_login("populate@ukma.edu.ua")
 
     with patch(
@@ -210,10 +217,13 @@ def test_oauth_populate_user_sets_username_to_email(adapter: MicrosoftSocialAcco
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_oauth_links_existing_user_without_student(
-    adapter: MicrosoftSocialAccountAdapter, http_request: MagicMock, user_factory
+    adapter: MicrosoftSocialAccountAdapter,
+    http_request: MagicMock,
+    user_factory,
+    student_factory,
 ):
     email = "ingested@ukma.edu.ua"
-    student = StudentFactory(email=email, user=None)
+    student = student_factory(email=email, user=None)
     existing_user = user_factory(email=email)
     sociallogin = _make_social_login(email)
 

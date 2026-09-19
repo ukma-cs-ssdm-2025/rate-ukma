@@ -3,7 +3,6 @@ import pytest
 from rating_app.application_schemas.speciality import Speciality as SpecialityDTO
 from rating_app.repositories.speciality_repository import SpecialityRepository
 from rating_app.repositories.to_domain_mappers import SpecialityMapper
-from rating_app.tests.factories import SpecialityFactory
 
 
 @pytest.fixture
@@ -13,8 +12,8 @@ def repo():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_all_prefetches_related_faculty(repo, django_assert_num_queries):
-    SpecialityFactory.create_batch(3)
+def test_get_all_prefetches_related_faculty(repo, django_assert_num_queries, speciality_factory):
+    speciality_factory.create_batch(3)
 
     result = repo.get_all()
 
@@ -26,8 +25,10 @@ def test_get_all_prefetches_related_faculty(repo, django_assert_num_queries):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_name_prefetches_related_faculty(repo, django_assert_num_queries):
-    speciality = SpecialityFactory(name="Computer Science")
+def test_get_by_name_prefetches_related_faculty(
+    repo, django_assert_num_queries, speciality_factory
+):
+    speciality = speciality_factory(name="Computer Science")
 
     result = repo.get_by_name("Computer Science")
 

@@ -1,25 +1,37 @@
-from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 import pytest
-from faker import Faker
+from pytest_factoryboy import register
 
 from rateukma.caching.cache_manager import InMemoryCacheManager
-from rating_app.tests.factories import (
-    CommentFactory,
-    CourseFactory,
-    CourseInstructorFactory,
-    CourseOfferingFactory,
-    CourseOfferingSpecialityFactory,
-    EnrollmentFactory,
-    FeedPostFactory,
-    InstructorFactory,
-    RatingFactory,
-    RatingVoteFactory,
-    SemesterFactory,
-    SpecialityFactory,
-    StudentFactory,
-)
+from rating_app.tests import factories
+
+# Each register() generates `<model>` and `<model>_factory` fixtures.
+register(factories.UserFactory)
+register(factories.FacultyFactory)
+register(factories.DepartmentFactory)
+register(factories.SpecialityFactory)
+register(factories.CourseFactory)
+register(factories.SemesterFactory)
+register(factories.InstructorFactory)
+register(factories.CourseOfferingFactory)
+register(factories.CourseInstructorFactory)
+register(factories.CourseOfferingTermFactory)
+register(factories.CourseOfferingSpecialityFactory)
+register(factories.StudentFactory)
+register(factories.EnrollmentFactory)
+register(factories.RatingFactory)
+register(factories.RatingVoteFactory)
+register(factories.CommentFactory)
+register(factories.FeedPostFactory)
+register(factories.PromoBannerFactory)
+
+
+@pytest.fixture
+def user__email():
+    """Default email for the registered `user` fixture: the suite assumes the
+    internal UKMA domain, since that is what the OAuth adapter accepts."""
+    return "student@ukma.edu.ua"
 
 
 class AuthClient:
@@ -33,14 +45,6 @@ class AuthClient:
     def __iter__(self):
         yield self._client
         yield self.user
-
-
-# core fixtures
-
-
-@pytest.fixture
-def user(db, user_factory):
-    return user_factory(email="student@ukma.edu.ua")
 
 
 @pytest.fixture
@@ -59,109 +63,6 @@ def token_client(api_client, user):
     """
     api_client.force_authenticate(user=user)
     return AuthClient(api_client, user)
-
-
-@pytest.fixture
-def user_factory(db):
-    User = get_user_model()  # noqa: N806
-    faker = Faker()
-
-    def _create_user(*, email: str | None = None, password: str | None = None, **extra):
-        email = email or faker.email(domain="ukma.edu.ua")
-        password_value = password or faker.password(length=12)
-        username = extra.pop("username", email)
-        return User.objects.create_user(
-            username=username,
-            email=email,
-            password=password_value,
-            **extra,
-        )
-
-    return _create_user
-
-
-@pytest.fixture
-def invalid_user_factory(db):
-    User = get_user_model()  # noqa: N806
-    faker = Faker()
-
-    def _create_invalid_user(*, password: str | None = None, **extra):
-        email = faker.email()  # non-ukma domain for negative scenarios
-        password_value = password or faker.password(length=12)
-        username = extra.pop("username", email)
-        return User.objects.create_user(
-            username=username,
-            email=email,
-            password=password_value,
-            **extra,
-        )
-
-    return _create_invalid_user
-
-
-@pytest.fixture
-def course_factory():
-    return CourseFactory
-
-
-@pytest.fixture
-def course_offering_factory():
-    return CourseOfferingFactory
-
-
-@pytest.fixture
-def course_offering_speciality_factory():
-    return CourseOfferingSpecialityFactory
-
-
-@pytest.fixture
-def speciality_factory():
-    return SpecialityFactory
-
-
-@pytest.fixture
-def instructor_factory():
-    return InstructorFactory
-
-
-@pytest.fixture
-def course_instructor_factory():
-    return CourseInstructorFactory
-
-
-@pytest.fixture
-def rating_factory():
-    return RatingFactory
-
-
-@pytest.fixture
-def student_factory():
-    return StudentFactory
-
-
-@pytest.fixture
-def enrollment_factory():
-    return EnrollmentFactory
-
-
-@pytest.fixture
-def semester_factory():
-    return SemesterFactory
-
-
-@pytest.fixture
-def vote_factory():
-    return RatingVoteFactory
-
-
-@pytest.fixture
-def comment_factory():
-    return CommentFactory
-
-
-@pytest.fixture
-def feed_post_factory():
-    return FeedPostFactory
 
 
 @pytest.fixture(autouse=True)

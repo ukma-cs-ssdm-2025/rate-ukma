@@ -2,10 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from django.core.management import call_command
 
-import pytest
 
-
-@pytest.mark.django_db
 @patch("scraper.management.commands.collect_catalog.with_authenticated_context")
 @patch("scraper.management.commands.collect_catalog.FilterService")
 def test_collect_catalog_with_default_url(mock_filter_service, mock_auth_context):
@@ -25,7 +22,6 @@ def test_collect_catalog_with_default_url(mock_filter_service, mock_auth_context
     mock_decorated.assert_called_once()
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.collect_catalog.with_authenticated_context")
 @patch("scraper.management.commands.collect_catalog.FilterService")
 def test_collect_catalog_with_custom_url(mock_filter_service, mock_auth_context):
@@ -51,7 +47,6 @@ def test_collect_catalog_with_custom_url(mock_filter_service, mock_auth_context)
     mock_filter_service.assert_not_called()
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.collect_catalog.with_authenticated_context")
 @patch("scraper.management.commands.collect_catalog.FilterService")
 def test_collect_catalog_with_filtered_url(mock_filter_service, mock_auth_context):

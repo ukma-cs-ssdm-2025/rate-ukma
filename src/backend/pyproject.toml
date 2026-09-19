@@ -58,6 +58,7 @@ test = [
     "pytest-cov==7.0.0",
     "factory-boy==3.3.3",
     "freezegun==1.5.5",
+    "pytest-factoryboy>=2.7",
 ]
 linting = ["ruff==0.14.0"]
 typecheck = ["pyright>=1.1.407", "django-types>=0.22.0"]
@@ -99,6 +100,7 @@ select = [
     "C4", # collections comprehensions
     "UP", # use more modern Python
     "N",  # naming conventions
+    "PT", # pytest style, see docs/testing/backend-tests.md
 ]
 
 [tool.ruff.format]
@@ -177,9 +179,6 @@ exclude_lines = [
     "if __name__ == ['\"]__main__['\"]:",
     "class .*\\bProtocol\\):",
 ]
-
-[tool.pytest.ini_options]
-addopts = "--cov --cov-report=term-missing:skip-covered --cov-report=html --cov-report=xml"
 
 [[tool.uv.index]]
 name = "safety"

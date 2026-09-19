@@ -4,7 +4,6 @@ from rating_app.application_schemas.course_instructor import CourseInstructorInp
 from rating_app.models.choices import InstructorRole
 from rating_app.repositories.course_instructor_repository import CourseInstructorRepository
 from rating_app.repositories.to_domain_mappers import CourseInstructorMapper
-from rating_app.tests.factories import CourseInstructorFactory
 
 
 @pytest.fixture
@@ -14,8 +13,8 @@ def repo():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_all_returns_domain_models(repo):
-    CourseInstructorFactory.create_batch(3)
+def test_get_all_returns_domain_models(repo, course_instructor_factory):
+    course_instructor_factory.create_batch(3)
 
     result = repo.get_all()
 
@@ -28,8 +27,10 @@ def test_get_all_returns_domain_models(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_create_creates_different_instructor_with_different_role(repo):
-    existing = CourseInstructorFactory(role=InstructorRole.LECTURE_INSTRUCTOR)
+def test_get_or_create_creates_different_instructor_with_different_role(
+    repo, course_instructor_factory
+):
+    existing = course_instructor_factory(role=InstructorRole.LECTURE_INSTRUCTOR)
 
     ci_input = CourseInstructorInput(
         instructor_id=existing.instructor_id,

@@ -7,7 +7,6 @@ from rating_app.ioc_container.services import student_service
 from rating_app.models import Student
 from rating_app.repositories.to_domain_mappers import StudentMapper
 from rating_app.services.student_service import StudentService
-from rating_app.tests.factories import SpecialityFactory, StudentFactory
 from scraper.ioc_container.common import course_db_injector
 from scraper.models.deduplicated import (
     CourseStatus,
@@ -184,10 +183,10 @@ def student_mapper():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_db_ingestion_links_student_to_existing_user(user_factory):
+def test_db_ingestion_links_student_to_existing_user(user_factory, speciality_factory):
     email = "student@ukma.edu.ua"
     user = user_factory(email=email)
-    speciality = SpecialityFactory(name="Computer Science")
+    speciality = speciality_factory(name="Computer Science")
 
     course_data = [
         DeduplicatedCourse(
@@ -230,9 +229,9 @@ def test_db_ingestion_links_student_to_existing_user(user_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_db_ingestion_does_not_link_when_no_matching_user():
+def test_db_ingestion_does_not_link_when_no_matching_user(speciality_factory):
     email = "no-user@ukma.edu.ua"
-    speciality = SpecialityFactory(name="Mathematics")
+    speciality = speciality_factory(name="Mathematics")
 
     course_data = [
         DeduplicatedCourse(
@@ -274,9 +273,9 @@ def test_db_ingestion_does_not_link_when_no_matching_user():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_service_links_user_to_existing_student(user_factory):
+def test_service_links_user_to_existing_student(user_factory, student_factory):
     email = "existing@ukma.edu.ua"
-    student = StudentFactory(email=email, user=None)
+    student = student_factory(email=email, user=None)
     user = user_factory(email=email)
 
     service = student_service()
@@ -289,14 +288,14 @@ def test_service_links_user_to_existing_student(user_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_service_does_not_link_when_user_already_has_student(user_factory):
+def test_service_does_not_link_when_user_already_has_student(user_factory, student_factory):
     email = "linked@ukma.edu.ua"
-    existing_student = StudentFactory(email=email, user=None)
+    existing_student = student_factory(email=email, user=None)
     user = user_factory(email=email)
     existing_student.user = user
     existing_student.save()
 
-    another_student = StudentFactory(email=email, user=None)
+    another_student = student_factory(email=email, user=None)
 
     service = student_service()
     result = service.link_user_to_student(user)
@@ -308,10 +307,10 @@ def test_service_does_not_link_when_user_already_has_student(user_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_service_links_student_to_existing_user(user_factory, student_mapper):
+def test_service_links_student_to_existing_user(user_factory, student_mapper, student_factory):
     email = "newstudent@ukma.edu.ua"
     user = user_factory(email=email)
-    student_model = StudentFactory(email=email, user=None)
+    student_model = student_factory(email=email, user=None)
 
     # Convert ORM model to DTO for service
     student_dto = student_mapper.process(student_model)
