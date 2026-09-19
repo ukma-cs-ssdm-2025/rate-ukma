@@ -6,13 +6,6 @@ from rating_app.models.choices import CourseStatus, EducationLevel, SemesterTerm
 from rating_app.pagination import GenericQuerysetPaginator, PaginationFilters
 from rating_app.repositories.course_repository import CourseRepository
 from rating_app.repositories.to_domain_mappers import CourseMapper
-from rating_app.tests.factories import (
-    CourseFactory,
-    CourseInstructorFactory,
-    CourseOfferingFactory,
-    InstructorFactory,
-    SemesterFactory,
-)
 
 
 @pytest.fixture
@@ -22,16 +15,18 @@ def repo():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_by_instructor_returns_only_assigned_courses(repo):
+def test_filter_by_instructor_returns_only_assigned_courses(
+    repo, instructor_factory, course_factory, course_offering_factory, course_instructor_factory
+):
     # Arrange
-    instructor = InstructorFactory()
-    course_with_instructor = CourseFactory()
-    offering_with_instructor = CourseOfferingFactory(course=course_with_instructor)
-    CourseInstructorFactory(course_offering=offering_with_instructor, instructor=instructor)
+    instructor = instructor_factory()
+    course_with_instructor = course_factory()
+    offering_with_instructor = course_offering_factory(course=course_with_instructor)
+    course_instructor_factory(course_offering=offering_with_instructor, instructor=instructor)
 
     # Act
-    course_without_instructor = CourseFactory()
-    CourseOfferingFactory(course=course_without_instructor)
+    course_without_instructor = course_factory()
+    course_offering_factory(course=course_without_instructor)
     filters = CourseFilterCriteriaInternal(instructor=instructor.id)
     result = repo.filter(filters)
 
@@ -44,10 +39,10 @@ def test_filter_by_instructor_returns_only_assigned_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_by_education_level_returns_correct_courses(repo):
+def test_filter_by_education_level_returns_correct_courses(repo, course_factory):
     # Arrange
-    master_course = CourseFactory(education_level=EducationLevel.MASTER)
-    _bachelor_course = CourseFactory(education_level=EducationLevel.BACHELOR)
+    master_course = course_factory(education_level=EducationLevel.MASTER)
+    _bachelor_course = course_factory(education_level=EducationLevel.BACHELOR)
 
     # Act
     filters = CourseFilterCriteriaInternal(education_level=EducationLevel.MASTER)
@@ -62,16 +57,18 @@ def test_filter_by_education_level_returns_correct_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_by_semester_limits_to_matching_courses(repo):
+def test_filter_by_semester_limits_to_matching_courses(
+    repo, semester_factory, course_factory, course_offering_factory
+):
     # Arrange
-    fall_semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    spring_semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
+    fall_semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    spring_semester = semester_factory(term=SemesterTerm.SPRING, year=2025)
 
-    fall_course = CourseFactory(title="Autumn Course")
-    CourseOfferingFactory(course=fall_course, semester=fall_semester)
+    fall_course = course_factory(title="Autumn Course")
+    course_offering_factory(course=fall_course, semester=fall_semester)
 
-    spring_course = CourseFactory(title="Spring Course")
-    CourseOfferingFactory(course=spring_course, semester=spring_semester)
+    spring_course = course_factory(title="Spring Course")
+    course_offering_factory(course=spring_course, semester=spring_semester)
 
     # Act - Use academic year format "2024–2025" which includes Fall 2024 and Spring 2025
     result = repo.filter(
@@ -90,25 +87,27 @@ def test_filter_by_semester_limits_to_matching_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_by_credits_range_and_semester_year_uses_same_offering(repo):
+def test_filter_by_credits_range_and_semester_year_uses_same_offering(
+    repo, semester_factory, course_factory, course_offering_factory
+):
     # Arrange
-    target_semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    other_semester = SemesterFactory(term=SemesterTerm.FALL, year=2023)
+    target_semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    other_semester = semester_factory(term=SemesterTerm.FALL, year=2023)
 
-    matching_course = CourseFactory(title="Matching course")
-    CourseOfferingFactory(
+    matching_course = course_factory(title="Matching course")
+    course_offering_factory(
         course=matching_course,
         semester=target_semester,
         credits=4.0,
     )
 
-    mismatched_course = CourseFactory(title="Mismatched course")
-    CourseOfferingFactory(
+    mismatched_course = course_factory(title="Mismatched course")
+    course_offering_factory(
         course=mismatched_course,
         semester=target_semester,
         credits=3.0,
     )
-    CourseOfferingFactory(
+    course_offering_factory(
         course=mismatched_course,
         semester=other_semester,
         credits=4.0,
@@ -131,10 +130,10 @@ def test_filter_by_credits_range_and_semester_year_uses_same_offering(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_returns_domain_models(repo):
+def test_filter_returns_domain_models(repo, course_factory, course_offering_factory):
     # Arrange
-    course = CourseFactory()
-    CourseOfferingFactory(course=course)
+    course = course_factory()
+    course_offering_factory(course=course)
 
     # Act
     result = repo.filter(CourseFilterCriteriaInternal())
@@ -149,9 +148,9 @@ def test_filter_returns_domain_models(repo):
 
 
 @pytest.fixture
-def five_courses_out_of_order():
+def five_courses_out_of_order(course_factory):
     # Insertion order differs from the alphabetical order the repository must apply.
-    return [CourseFactory(title=f"Course {letter}") for letter in "DBEAC"]
+    return [course_factory(title=f"Course {letter}") for letter in "DBEAC"]
 
 
 @pytest.mark.django_db
@@ -219,12 +218,12 @@ def test_filter_with_pagination_page_beyond_range_clamps_to_last_page(
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_filter_prefetches_only_relations_needed_for_course_mapping(
-    django_assert_num_queries, repo
+    django_assert_num_queries, repo, semester_factory, course_offering_factory, instructor_factory
 ):
     # Arrange
-    semester = SemesterFactory()
+    semester = semester_factory()
     for _ in range(3):
-        CourseOfferingFactory(semester=semester, instructors=[InstructorFactory()])
+        course_offering_factory(semester=semester, instructors=[instructor_factory()])
 
     # Assert
     # 1) base courses + department/faculty
@@ -236,8 +235,8 @@ def test_filter_prefetches_only_relations_needed_for_course_mapping(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_create_keeps_bachelor_and_master_courses_separate(repo):
-    department = CourseFactory().department
+def test_get_or_create_keeps_bachelor_and_master_courses_separate(repo, course_factory):
+    department = course_factory().department
 
     bachelor_input = CourseInput(
         title="Data Science",
@@ -272,8 +271,8 @@ def test_get_or_create_keeps_bachelor_and_master_courses_separate(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_create_does_not_update_existing_course_fields(repo):
-    department = CourseFactory().department
+def test_get_or_create_does_not_update_existing_course_fields(repo, course_factory):
+    department = course_factory().department
 
     course_input = CourseInput(
         title="Data Science",
@@ -309,8 +308,8 @@ def test_get_or_create_does_not_update_existing_course_fields(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_course_mapper_normalizes_empty_education_level_to_none():
-    course = CourseFactory(education_level="")
+def test_course_mapper_normalizes_empty_education_level_to_none(course_factory):
+    course = course_factory(education_level="")
     mapper = CourseMapper()
     result = mapper.process(course)
     assert result.education_level is None
@@ -318,8 +317,8 @@ def test_course_mapper_normalizes_empty_education_level_to_none():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_upsert_reuses_legacy_blank_level_course(repo):
-    legacy_course = CourseFactory(
+def test_get_or_upsert_reuses_legacy_blank_level_course(repo, course_factory):
+    legacy_course = course_factory(
         title="Data Science",
         education_level="",
     )

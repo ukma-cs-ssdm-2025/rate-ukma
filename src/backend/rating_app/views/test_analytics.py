@@ -11,28 +11,14 @@ def analytics_url():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_analytics_list_no_filters(token_client, course_factory, analytics_url):
+@pytest.mark.parametrize("query_string", ["", "?page=2&page_size=2"])
+def test_analytics_list_ignores_pagination_params(
+    token_client, course_factory, analytics_url, query_string
+):
     # Arrange
     num_courses = 5
     course_factory.create_batch(num_courses)
-    url = analytics_url
-
-    # Act
-    response = token_client.get(url)
-
-    # Assert
-    data = response.json()
-    assert response.status_code == 200
-    assert len(data) == num_courses
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_analytics_no_pagination(token_client, course_factory, analytics_url):
-    # Arrange
-    num_courses = 5
-    course_factory.create_batch(num_courses)
-    url = f"{analytics_url}?page=2&page_size=2"  # page and page_size are ignored
+    url = f"{analytics_url}{query_string}"
 
     # Act
     response = token_client.get(url)
@@ -49,8 +35,8 @@ def test_analytics_filter_applied(
     token_client, course_factory, rating_factory, course_offering_factory, analytics_url
 ):
     # Arrange
-    math_course = course_factory.create(title="Math")
-    physics_course = course_factory.create(title="Physics")
+    math_course = course_factory(title="Math")
+    physics_course = course_factory(title="Physics")
     offering_math = course_offering_factory(course=math_course)
     offering_physics = course_offering_factory(course=physics_course)
     rating_factory.create_batch(5, course_offering=offering_math)
@@ -83,7 +69,7 @@ def test_analytics_filter_applied(
 @pytest.mark.integration
 def test_analytics_by_course_id(token_client, course_factory, analytics_url):
     # Arrange
-    course = course_factory.create()
+    course = course_factory()
     url = f"{analytics_url}?course_id={course.id}"
 
     # Act
@@ -152,7 +138,7 @@ def test_analytics_single_course_no_n_plus_1(
 ):
     """Test that fetching a single course analytics doesn't trigger extra queries."""
     # Arrange
-    course = course_factory.create()
+    course = course_factory()
     offering = course_offering_factory(course=course)
     rating_factory.create_batch(5, course_offering=offering)
 
@@ -177,8 +163,8 @@ def test_analytics_filter_by_ratings_count(
     token_client, course_factory, rating_factory, course_offering_factory, analytics_url
 ):
     # Arrange
-    course_no_ratings = course_factory.create(title="No Ratings Course")
-    course_with_ratings = course_factory.create(title="Popular Course")
+    course_no_ratings = course_factory(title="No Ratings Course")
+    course_with_ratings = course_factory(title="Popular Course")
 
     offering = course_offering_factory(course=course_with_ratings)
     rating_factory.create_batch(5, course_offering=offering)

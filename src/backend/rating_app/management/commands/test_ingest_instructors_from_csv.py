@@ -13,7 +13,6 @@ from rating_app.management.commands.ingest_instructors_from_csv import (
     _parse_name,
 )
 from rating_app.models import Instructor
-from rating_app.tests.factories import StudentFactory
 
 CSV_HEADER = "displayName,userPrincipalName,userType\n"
 
@@ -154,7 +153,7 @@ def test_parse_name_ignores_a_fully_spelled_mailbox():
 
 
 @pytest.mark.parametrize(
-    "display_name,upn_local",
+    ("display_name", "upn_local"),
     [
         ("Щербак Софія", "s.shcherbak"),  # щ spelled "sh", not "shch"
         ("Хоменко Катерина", "k.chomenko"),  # х spelled "ch"
@@ -180,7 +179,7 @@ def test_parse_name_uses_the_initial_when_the_surname_segment_is_ambiguous():
 
 
 @pytest.mark.parametrize(
-    "display_name,upn_local",
+    ("display_name", "upn_local"),
     [
         ("Сидоренко Софія", "s.sydorenko"),
         ("Петренко Іван", "x.unrelated"),
@@ -261,8 +260,8 @@ def test_creates_instructor_from_reversed_cyrillic_name(tmp_path):
 
 
 @pytest.mark.django_db
-def test_existing_instructor_is_left_alone(tmp_path):
-    Instructor.objects.create(
+def test_existing_instructor_is_left_alone(tmp_path, instructor_factory):
+    instructor_factory(
         email="i.petrenko@ukma.edu.ua",
         first_name="Іван",
         last_name="Петренко",
@@ -281,10 +280,8 @@ def test_existing_instructor_is_left_alone(tmp_path):
 
 
 @pytest.mark.django_db
-def test_refresh_names_rewrites_an_existing_instructor(tmp_path):
-    Instructor.objects.create(
-        email="i.petrenko@ukma.edu.ua", first_name="Іван", last_name="Петренко"
-    )
+def test_refresh_names_rewrites_an_existing_instructor(tmp_path, instructor_factory):
+    instructor_factory(email="i.petrenko@ukma.edu.ua", first_name="Іван", last_name="Петренко")
     csv_path = _write_csv(
         tmp_path,
         "Петренко Іван Васильович,i.petrenko@ukma.edu.ua,Member\n",
@@ -326,11 +323,11 @@ def test_undecodable_csv_raises_command_error(tmp_path):
 
 
 @pytest.mark.django_db
-def test_keeps_rows_matching_existing_student_email(tmp_path):
+def test_keeps_rows_matching_existing_student_email(tmp_path, student_factory):
     # Students share the @ukma.edu.ua domain with staff and cannot be told apart
     # in the export, so a student-domain user is intentionally ingested; the
     # ranked list surfaces actually-rated teachers first instead.
-    StudentFactory.create(email="student@ukma.edu.ua")
+    student_factory(email="student@ukma.edu.ua")
     csv_path = _write_csv(
         tmp_path,
         "Іваненко Олена Сергіївна,student@ukma.edu.ua,Member\n"

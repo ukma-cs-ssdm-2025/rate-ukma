@@ -1,3 +1,4 @@
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -6,8 +7,7 @@ from freezegun import freeze_time
 
 from rating_app.models import Notification
 from rating_app.models.choices import RatingVoteStrType
-
-from .test_rating import (
+from rating_app.tests.semester_dates import (
     DEFAULT_AFTER_MIDTERM_DATE,
     DEFAULT_TERM,
     DEFAULT_YEAR,
@@ -95,8 +95,6 @@ def test_notifications_list_empty(token_client):
     assert response.json() == []
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_notifications_unauthenticated(api_client):
     response = api_client.get(NOTIFICATIONS_URL)
 
@@ -456,3 +454,127 @@ def test_notifications_list_with_pagination(token_client):
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_mark_group_read_marks_named_group_only_when_two_groups_exist(
+    api_client, user_factory, student_factory, rating_factory
+):
+    # Arrange
+    author_student = student_factory(user=user_factory())
+    rating = rating_factory(student=author_student)
+    api_client.force_authenticate(user=user_factory())
+    first_response = api_client.post(
+        reverse("comment-get", kwargs={"rating_id": rating.id}),
+        data={
+            "content": "First comment",
+            "is_anonymous": False,
+            "created_at": timezone.now().isoformat(),
+        },
+        format="json",
+    )
+    assert first_response.status_code == 201
+    second_response = api_client.post(
+        reverse("comment-get", kwargs={"rating_id": rating.id}),
+        data={
+            "content": "Second comment",
+            "is_anonymous": False,
+            "created_at": timezone.now().isoformat(),
+        },
+        format="json",
+    )
+    assert second_response.status_code == 201
+    first_key = f"RATING_COMMENT_CREATED:{rating.id}:{first_response.json()['id']}"
+    second_key = f"RATING_COMMENT_CREATED:{rating.id}:{second_response.json()['id']}"
+    api_client.force_authenticate(user=author_student.user)
+    assert api_client.get(reverse("notification-unread-count")).json()["count"] == 2
+
+    # Act
+    response = api_client.post(
+        reverse("notification-mark-group-read"),
+        data={"group_key": first_key},
+        format="json",
+    )
+
+    # Assert
+    assert response.status_code == 204
+    assert api_client.get(reverse("notification-unread-count")).json()["count"] == 1
+    groups = {g["group_key"]: g for g in api_client.get(reverse("notification-list")).json()}
+    assert groups[first_key]["is_unread"] is False
+    assert groups[second_key]["is_unread"] is True
+
+
+def test_mark_group_read_rejects_unauthenticated_when_no_credentials(api_client):
+    # Arrange
+    url = reverse("notification-mark-group-read")
+
+    # Act
+    response = api_client.post(url, data={"group_key": "RATING_UPVOTED:missing"}, format="json")
+
+    # Assert
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_mark_group_read_rejects_missing_group_key_when_body_empty(token_client):
+    # Arrange
+    url = reverse("notification-mark-group-read")
+
+    # Act
+    response = token_client.post(url, data={}, format="json")
+
+    # Assert
+    assert response.status_code == 400
+    assert "group_key" in response.json()["fields"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_mark_group_read_returns_no_content_when_group_key_unknown(token_client):
+    # Arrange
+    url = reverse("notification-mark-group-read")
+
+    # Act
+    response = token_client.post(
+        url,
+        data={"group_key": "RATING_UPVOTED:00000000-0000-0000-0000-000000000000"},
+        format="json",
+    )
+
+    # Assert
+    assert response.status_code == 204
+    assert token_client.get(reverse("notification-unread-count")).json()["count"] == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_notifications_list_excludes_groups_when_belonging_to_other_user(
+    api_client, user_factory, student_factory, rating_factory
+):
+    # Arrange
+    author_student = student_factory(user=user_factory())
+    rating = rating_factory(student=author_student)
+    api_client.force_authenticate(user=user_factory())
+    create_response = api_client.post(
+        reverse("comment-get", kwargs={"rating_id": rating.id}),
+        data={
+            "content": "Comment",
+            "is_anonymous": False,
+            "created_at": timezone.now().isoformat(),
+        },
+        format="json",
+    )
+    assert create_response.status_code == 201
+    api_client.force_authenticate(user=author_student.user)
+    assert api_client.get(reverse("notification-unread-count")).json()["count"] == 1
+
+    # Act
+    api_client.force_authenticate(user=user_factory())
+    response = api_client.get(reverse("notification-list"))
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == []
+    assert api_client.get(reverse("notification-unread-count")).json()["count"] == 0

@@ -2,18 +2,20 @@ from datetime import timedelta
 from decimal import Decimal
 from uuid import uuid4
 
+from django.urls import reverse
 from django.utils import timezone
 
 import pytest
 from freezegun import freeze_time
 
 from rating_app.models import Comment, Rating
-
-DEFAULT_DATE = "2023-10-25"
-DEFAULT_AFTER_MIDTERM_DATE = "2023-11-25"
-DEFAULT_BEFORE_MIDTERM_DATE = "2023-09-25"
-DEFAULT_YEAR = 2023
-DEFAULT_TERM = "FALL"
+from rating_app.models.choices import RatingVoteType
+from rating_app.tests.semester_dates import (
+    DEFAULT_AFTER_MIDTERM_DATE,
+    DEFAULT_BEFORE_MIDTERM_DATE,
+    DEFAULT_TERM,
+    DEFAULT_YEAR,
+)
 
 
 @pytest.mark.django_db
@@ -42,19 +44,17 @@ def test_ratings_list_counts_comments_and_votes_without_join_multiplication(
     course_offering_factory,
     rating_factory,
     comment_factory,
-    vote_factory,
+    rating_vote_factory,
     student_factory,
 ):
-    from rating_app.models.choices import RatingVoteType
-
     course = course_factory()
     offering = course_offering_factory(course=course)
     rating = rating_factory(course_offering=offering)
 
     comment = comment_factory(rating=rating)
     comment_factory(rating=rating, parent_comment=comment)
-    vote_factory(rating=rating, student=student_factory(), type=RatingVoteType.UPVOTE)
-    vote_factory(rating=rating, student=student_factory(), type=RatingVoteType.DOWNVOTE)
+    rating_vote_factory(rating=rating, student=student_factory(), type=RatingVoteType.UPVOTE)
+    rating_vote_factory(rating=rating, student=student_factory(), type=RatingVoteType.DOWNVOTE)
 
     response = token_client.get(f"/api/v1/courses/{course.id}/ratings/")
 
@@ -401,6 +401,166 @@ def test_delete_rating_not_enrolled(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+@pytest.mark.parametrize(
+    ("method", "route"),
+    [
+        ("get", "list"),
+        ("post", "list"),
+        ("get", "detail"),
+        ("put", "detail"),
+        ("patch", "detail"),
+        ("delete", "detail"),
+    ],
+)
+def test_rating_forbidden_when_unauthenticated(
+    api_client, course_factory, course_offering_factory, rating_factory, method, route
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    rating = rating_factory(course_offering=offering)
+
+    if route == "list":
+        url = reverse("course-ratings", kwargs={"course_id": str(course.id)})
+    else:
+        url = reverse(
+            "course-rating-detail",
+            kwargs={"course_id": str(course.id), "rating_id": str(rating.id)},
+        )
+
+    if method == "post":
+        payload = {
+            "course_offering": str(offering.id),
+            "difficulty": 4,
+            "usefulness": 5,
+            "comment": "Great course!",
+            "is_anonymous": False,
+        }
+
+        response = api_client.post(url, data=payload, format="json")
+    elif method == "put":
+        payload = {
+            "course_offering": str(offering.id),
+            "difficulty": 4,
+            "usefulness": 5,
+            "comment": "Different comm!",
+            "is_anonymous": False,
+        }
+
+        response = api_client.put(url, data=payload, format="json")
+    elif method == "patch":
+        response = api_client.patch(url, data={"comment": "Different comm!"}, format="json")
+    elif method == "delete":
+        response = api_client.delete(url)
+    else:
+        response = api_client.get(url)
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_update_rating_forbidden_when_enrolled_non_owner(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    rating_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    caller = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=caller)
+    foreign_rating = rating_factory(
+        course_offering=offering, difficulty=3, usefulness=4, comment="Original comment"
+    )
+
+    url = reverse(
+        "course-rating-detail",
+        kwargs={"course_id": str(course.id), "rating_id": str(foreign_rating.id)},
+    )
+    payload = {
+        "course_offering": str(offering.id),
+        "difficulty": 5,
+        "usefulness": 1,
+        "comment": "Hijacked comment!",
+        "is_anonymous": False,
+    }
+
+    response = token_client.put(url, data=payload, format="json")
+
+    assert response.status_code == 403
+    assert response.data["detail"] == "You do not have permission to modify this rating."
+
+    foreign_rating.refresh_from_db()
+    assert foreign_rating.difficulty == 3
+    assert foreign_rating.usefulness == 4
+    assert foreign_rating.comment == "Original comment"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_patch_rating_forbidden_when_enrolled_non_owner(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    rating_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    caller = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=caller)
+    foreign_rating = rating_factory(
+        course_offering=offering, difficulty=3, usefulness=4, comment="Original comment"
+    )
+
+    url = reverse(
+        "course-rating-detail",
+        kwargs={"course_id": str(course.id), "rating_id": str(foreign_rating.id)},
+    )
+
+    response = token_client.patch(url, data={"comment": "Hijacked comment!"}, format="json")
+
+    assert response.status_code == 403
+    assert response.data["detail"] == "You do not have permission to modify this rating."
+
+    foreign_rating.refresh_from_db()
+    assert foreign_rating.comment == "Original comment"
+    assert foreign_rating.difficulty == 3
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_delete_rating_forbidden_when_enrolled_non_owner(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    enrollment_factory,
+    rating_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    caller = student_factory(user=token_client.user)
+    enrollment_factory(offering=offering, student=caller)
+    foreign_rating = rating_factory(course_offering=offering)
+
+    url = reverse(
+        "course-rating-detail",
+        kwargs={"course_id": str(course.id), "rating_id": str(foreign_rating.id)},
+    )
+
+    response = token_client.delete(url)
+
+    assert response.status_code == 403
+    assert response.data["detail"] == "You do not have permission to modify this rating."
+    assert Rating.objects.filter(id=foreign_rating.id).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_retrieve_rating(
     token_client,
     course_factory,
@@ -433,10 +593,8 @@ def test_retrieve_nonexistent_rating(
     token_client,
     course_factory,
 ):
-    import uuid
-
     course = course_factory()
-    fake_rating_id = uuid.uuid4()
+    fake_rating_id = uuid4()
 
     url = f"/api/v1/courses/{course.id}/ratings/{fake_rating_id}/"
     response = token_client.get(url)
@@ -680,29 +838,6 @@ def test_create_rating_without_student_record(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-@freeze_time(DEFAULT_BEFORE_MIDTERM_DATE)
-def test_create_rating_before_midterm(
-    token_client,
-    course_factory,
-    course_offering_factory,
-):
-    course = course_factory()
-    offering = course_offering_factory(course=course)
-
-    url = f"/api/v1/courses/{course.id}/ratings/"
-    payload = {
-        "course_offering": str(offering.id),
-        "difficulty": 4,
-        "usefulness": 5,
-        "comment": "Test",
-    }
-
-    response = token_client.post(url, data=payload, format="json")
-    assert response.status_code == 403
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_ratings_list_separate_current_user_false_flag(
     token_client,
     course_factory,
@@ -762,13 +897,22 @@ def test_ratings_list_separate_current_user_true_flag(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_ratings_sort_by_newest(
+@pytest.mark.parametrize(
+    ("time_order", "expected"),
+    [
+        pytest.param("desc", (2, 1, 0), id="newest_first"),
+        pytest.param("asc", (0, 1, 2), id="oldest_first"),
+    ],
+)
+def test_ratings_sort_by_time_order(
     token_client,
     course_factory,
     course_offering_factory,
     rating_factory,
+    time_order,
+    expected,
 ):
-    """Test that ratings are sorted by creation time in descending order (newest first)."""
+    """Ratings are sorted by creation time in the requested direction."""
     course = course_factory()
     offering = course_offering_factory(course=course)
 
@@ -779,45 +923,17 @@ def test_ratings_sort_by_newest(
     with freeze_time("2023-10-03 10:00:00"):
         rating_3 = rating_factory(course_offering=offering, difficulty=3)
 
-    url = f"/api/v1/courses/{course.id}/ratings/?time_order=desc"
+    ratings = (rating_1, rating_2, rating_3)
+
+    url = f"/api/v1/courses/{course.id}/ratings/?time_order={time_order}"
     response = token_client.get(url)
     data = response.json()
 
     assert response.status_code == 200
     assert len(data["items"]["ratings"]) == 3
-    assert data["items"]["ratings"][0]["id"] == str(rating_3.id)
-    assert data["items"]["ratings"][1]["id"] == str(rating_2.id)
-    assert data["items"]["ratings"][2]["id"] == str(rating_1.id)
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_ratings_sort_by_oldest(
-    token_client,
-    course_factory,
-    course_offering_factory,
-    rating_factory,
-):
-    """Test that ratings are sorted by creation time in ascending order (oldest first)."""
-    course = course_factory()
-    offering = course_offering_factory(course=course)
-
-    with freeze_time("2023-10-01 10:00:00"):
-        rating_1 = rating_factory(course_offering=offering, difficulty=1)
-    with freeze_time("2023-10-02 10:00:00"):
-        rating_2 = rating_factory(course_offering=offering, difficulty=2)
-    with freeze_time("2023-10-03 10:00:00"):
-        rating_3 = rating_factory(course_offering=offering, difficulty=3)
-
-    url = f"/api/v1/courses/{course.id}/ratings/?time_order=asc"
-    response = token_client.get(url)
-    data = response.json()
-
-    assert response.status_code == 200
-    assert len(data["items"]["ratings"]) == 3
-    assert data["items"]["ratings"][0]["id"] == str(rating_1.id)
-    assert data["items"]["ratings"][1]["id"] == str(rating_2.id)
-    assert data["items"]["ratings"][2]["id"] == str(rating_3.id)
+    assert [item["id"] for item in data["items"]["ratings"]] == [
+        str(ratings[index].id) for index in expected
+    ]
 
 
 @pytest.mark.django_db
@@ -827,14 +943,12 @@ def test_ratings_sort_by_most_popular(
     course_factory,
     course_offering_factory,
     rating_factory,
-    vote_factory,
+    rating_vote_factory,
     student_factory,
 ):
     """Test that ratings are sorted by Wilson score in descending order.
     Wilson score favors ratings with more votes and higher proportion of upvotes.
     """
-    from rating_app.models.choices import RatingVoteType
-
     course = course_factory()
     offering = course_offering_factory(course=course)
 
@@ -845,14 +959,14 @@ def test_ratings_sort_by_most_popular(
 
     for _ in range(2):
         voter = student_factory()
-        vote_factory(rating=rating_1, student=voter, type=RatingVoteType.UPVOTE)
+        rating_vote_factory(rating=rating_1, student=voter, type=RatingVoteType.UPVOTE)
 
     for _ in range(5):
         voter = student_factory()
-        vote_factory(rating=rating_2, student=voter, type=RatingVoteType.UPVOTE)
+        rating_vote_factory(rating=rating_2, student=voter, type=RatingVoteType.UPVOTE)
 
     voter = student_factory()
-    vote_factory(rating=rating_3, student=voter, type=RatingVoteType.DOWNVOTE)
+    rating_vote_factory(rating=rating_3, student=voter, type=RatingVoteType.DOWNVOTE)
 
     url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
     response = token_client.get(url)
@@ -873,14 +987,12 @@ def test_ratings_sort_with_mixed_votes(
     course_factory,
     course_offering_factory,
     rating_factory,
-    vote_factory,
+    rating_vote_factory,
     student_factory,
 ):
     """Test that ratings with mixed upvotes and downvotes are sorted correctly using Wilson score.
     Wilson score considers both proportion and total votes.
     """
-    from rating_app.models.choices import RatingVoteType
-
     course = course_factory()
     offering = course_offering_factory(course=course)
 
@@ -889,16 +1001,16 @@ def test_ratings_sort_with_mixed_votes(
 
     for _ in range(3):
         voter = student_factory()
-        vote_factory(rating=rating_1, student=voter, type=RatingVoteType.UPVOTE)
+        rating_vote_factory(rating=rating_1, student=voter, type=RatingVoteType.UPVOTE)
     voter = student_factory()
-    vote_factory(rating=rating_1, student=voter, type=RatingVoteType.DOWNVOTE)
+    rating_vote_factory(rating=rating_1, student=voter, type=RatingVoteType.DOWNVOTE)
 
     for _ in range(5):
         voter = student_factory()
-        vote_factory(rating=rating_2, student=voter, type=RatingVoteType.UPVOTE)
+        rating_vote_factory(rating=rating_2, student=voter, type=RatingVoteType.UPVOTE)
     for _ in range(2):
         voter = student_factory()
-        vote_factory(rating=rating_2, student=voter, type=RatingVoteType.DOWNVOTE)
+        rating_vote_factory(rating=rating_2, student=voter, type=RatingVoteType.DOWNVOTE)
 
     url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
     response = token_client.get(url)
@@ -919,12 +1031,10 @@ def test_ratings_default_sort_order(
     course_factory,
     course_offering_factory,
     rating_factory,
-    vote_factory,
+    rating_vote_factory,
     student_factory,
 ):
     """Test that without explicit sorting, ratings default to most popular (Wilson score)."""
-    from rating_app.models.choices import RatingVoteType
-
     course = course_factory()
     offering = course_offering_factory(course=course)
 
@@ -938,11 +1048,11 @@ def test_ratings_default_sort_order(
 
     # Add votes
     voter = student_factory()
-    vote_factory(rating=rating_1, student=voter, type=RatingVoteType.UPVOTE)
+    rating_vote_factory(rating=rating_1, student=voter, type=RatingVoteType.UPVOTE)
 
     for _ in range(3):
         voter = student_factory()
-        vote_factory(rating=rating_2, student=voter, type=RatingVoteType.UPVOTE)
+        rating_vote_factory(rating=rating_2, student=voter, type=RatingVoteType.UPVOTE)
 
     # rating_3 has no votes
 
@@ -1000,12 +1110,10 @@ def test_ratings_sort_with_zero_votes_no_division_error(
     course_factory,
     course_offering_factory,
     rating_factory,
-    vote_factory,
+    rating_vote_factory,
     student_factory,
 ):
     """Test that Wilson score handles ratings with zero votes without division errors (n=0)."""
-    from rating_app.models.choices import RatingVoteType
-
     course = course_factory()
     offering = course_offering_factory(course=course)
 
@@ -1015,7 +1123,7 @@ def test_ratings_sort_with_zero_votes_no_division_error(
     # Add votes to second rating
     for _ in range(2):
         voter = student_factory()
-        vote_factory(rating=rating_with_votes, student=voter, type=RatingVoteType.UPVOTE)
+        rating_vote_factory(rating=rating_with_votes, student=voter, type=RatingVoteType.UPVOTE)
 
     url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
     response = token_client.get(url)
@@ -1035,12 +1143,10 @@ def test_ratings_sort_zero_votes_above_negative_score(
     course_factory,
     course_offering_factory,
     rating_factory,
-    vote_factory,
+    rating_vote_factory,
     student_factory,
 ):
     """Ratings with zero votes should rank above ratings with only downvotes."""
-    from rating_app.models.choices import RatingVoteType
-
     course = course_factory()
     offering = course_offering_factory(course=course)
 
@@ -1052,7 +1158,7 @@ def test_ratings_sort_zero_votes_above_negative_score(
         rating_negative = rating_factory(course_offering=offering)
 
     voter1 = student_factory()
-    vote_factory(rating=rating_negative, student=voter1, type=RatingVoteType.DOWNVOTE)
+    rating_vote_factory(rating=rating_negative, student=voter1, type=RatingVoteType.DOWNVOTE)
 
     url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
     response = token_client.get(url)
@@ -1066,253 +1172,48 @@ def test_ratings_sort_zero_votes_above_negative_score(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_ratings_sort_with_only_upvotes(
+@pytest.mark.parametrize(
+    ("votes", "expected"),
+    [
+        pytest.param(((2, 0), (5, 0)), (1, 0), id="only_upvotes"),
+        pytest.param(((0, 3), (0, 1)), (1, 0), id="only_downvotes"),
+        pytest.param(((3, 0), (0, 2), (1, 1)), (0, 2, 1), id="mixed"),
+        pytest.param(((0, 10), (1, 10), (0, 0)), (1, 2, 0), id="boundary_0_10_1_10_0_0"),
+        pytest.param(((0, 2), (1, 100), (0, 0)), (1, 2, 0), id="boundary_0_2_1_100_0_0"),
+        pytest.param(((0, 1), (1, 5), (0, 0)), (1, 2, 0), id="boundary_0_1_1_5_0_0"),
+    ],
+)
+def test_ratings_sort_popularity_wilson_orders_by_votes(
     token_client,
     course_factory,
     course_offering_factory,
     rating_factory,
-    vote_factory,
+    rating_vote_factory,
     student_factory,
+    votes,
+    expected,
 ):
-    """Test that Wilson score handles ratings with 100% upvotes (p=1)."""
-    from rating_app.models.choices import RatingVoteType
-
+    """Wilson lower bound favors confident approval; downvote-only ranks below unrated."""
     course = course_factory()
     offering = course_offering_factory(course=course)
 
-    rating_few_upvotes = rating_factory(course_offering=offering)
-    rating_many_upvotes = rating_factory(course_offering=offering)
-
-    # 2 upvotes
-    for _ in range(2):
-        voter = student_factory()
-        vote_factory(rating=rating_few_upvotes, student=voter, type=RatingVoteType.UPVOTE)
-
-    # 5 upvotes
-    for _ in range(5):
-        voter = student_factory()
-        vote_factory(rating=rating_many_upvotes, student=voter, type=RatingVoteType.UPVOTE)
+    ratings = [rating_factory(course_offering=offering) for _ in votes]
+    for rating, (upvotes, downvotes) in zip(ratings, votes, strict=False):
+        for _ in range(upvotes):
+            voter = student_factory()
+            rating_vote_factory(rating=rating, student=voter, type=RatingVoteType.UPVOTE)
+        for _ in range(downvotes):
+            voter = student_factory()
+            rating_vote_factory(rating=rating, student=voter, type=RatingVoteType.DOWNVOTE)
 
     url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
     response = token_client.get(url)
     data = response.json()
 
     assert response.status_code == 200
-    assert len(data["items"]["ratings"]) == 2
-    # More upvotes = higher Wilson score
-    assert data["items"]["ratings"][0]["id"] == str(rating_many_upvotes.id)
-    assert data["items"]["ratings"][1]["id"] == str(rating_few_upvotes.id)
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_ratings_sort_with_only_downvotes(
-    token_client,
-    course_factory,
-    course_offering_factory,
-    rating_factory,
-    vote_factory,
-    student_factory,
-):
-    """Test that Wilson score handles ratings with 100% downvotes (p=0)."""
-    from rating_app.models.choices import RatingVoteType
-
-    course = course_factory()
-    offering = course_offering_factory(course=course)
-
-    rating_few_downvotes = rating_factory(course_offering=offering)
-    rating_many_downvotes = rating_factory(course_offering=offering)
-
-    # 1 downvote
-    voter = student_factory()
-    vote_factory(rating=rating_few_downvotes, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    # 3 downvotes
-    for _ in range(3):
-        voter = student_factory()
-        vote_factory(rating=rating_many_downvotes, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
-    response = token_client.get(url)
-    data = response.json()
-
-    assert response.status_code == 200
-    assert len(data["items"]["ratings"]) == 2
-    # Ratings with only downvotes should have negative Wilson scores
-    assert data["items"]["ratings"][0]["id"] in [
-        str(rating_few_downvotes.id),
-        str(rating_many_downvotes.id),
+    assert [item["id"] for item in data["items"]["ratings"]] == [
+        str(ratings[index].id) for index in expected
     ]
-    assert data["items"]["ratings"][1]["id"] in [
-        str(rating_few_downvotes.id),
-        str(rating_many_downvotes.id),
-    ]
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_ratings_sort_mixed_edge_cases(
-    token_client,
-    course_factory,
-    course_offering_factory,
-    rating_factory,
-    vote_factory,
-    student_factory,
-):
-    """Test that Wilson score correctly orders ratings with various edge case combinations."""
-    from rating_app.models.choices import RatingVoteType
-
-    course = course_factory()
-    offering = course_offering_factory(course=course)
-
-    rating_only_up = rating_factory(course_offering=offering)
-    rating_only_down = rating_factory(course_offering=offering)
-    rating_mixed = rating_factory(course_offering=offering)
-
-    # Only upvotes (3 votes)
-    for _ in range(3):
-        voter = student_factory()
-        vote_factory(rating=rating_only_up, student=voter, type=RatingVoteType.UPVOTE)
-
-    # Only downvotes (2 votes)
-    for _ in range(2):
-        voter = student_factory()
-        vote_factory(rating=rating_only_down, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    # Mixed votes (1 up, 1 down)
-    voter = student_factory()
-    vote_factory(rating=rating_mixed, student=voter, type=RatingVoteType.UPVOTE)
-    voter = student_factory()
-    vote_factory(rating=rating_mixed, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
-    response = token_client.get(url)
-    data = response.json()
-
-    assert response.status_code == 200
-    assert len(data["items"]["ratings"]) == 3
-    # Expected order: only_up > mixed > only_down
-    assert data["items"]["ratings"][0]["id"] == str(rating_only_up.id)
-    assert data["items"]["ratings"][2]["id"] == str(rating_only_down.id)
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_ratings_sort_boundary_case_0_10_vs_1_10_vs_0_0(
-    token_client,
-    course_factory,
-    course_offering_factory,
-    rating_factory,
-    vote_factory,
-    student_factory,
-):
-    """Document abrupt boundary behavior between downvote-only and Wilson branches."""
-    from rating_app.models.choices import RatingVoteType
-
-    course = course_factory()
-    offering = course_offering_factory(course=course)
-
-    rating_0_10 = rating_factory(course_offering=offering)
-    rating_1_10 = rating_factory(course_offering=offering)
-    rating_0_0 = rating_factory(course_offering=offering)
-
-    for _ in range(10):
-        voter = student_factory()
-        vote_factory(rating=rating_0_10, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    voter = student_factory()
-    vote_factory(rating=rating_1_10, student=voter, type=RatingVoteType.UPVOTE)
-    for _ in range(10):
-        voter = student_factory()
-        vote_factory(rating=rating_1_10, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
-    response = token_client.get(url)
-    data = response.json()
-
-    assert response.status_code == 200
-    ordered_ids = [item["id"] for item in data["items"]["ratings"]]
-    assert ordered_ids.index(str(rating_1_10.id)) < ordered_ids.index(str(rating_0_0.id))
-    assert ordered_ids.index(str(rating_0_0.id)) < ordered_ids.index(str(rating_0_10.id))
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_ratings_sort_boundary_case_0_2_vs_1_100_vs_0_0(
-    token_client,
-    course_factory,
-    course_offering_factory,
-    rating_factory,
-    vote_factory,
-    student_factory,
-):
-    """A rating with heavy negatives but at least one upvote can still rank above unrated."""
-    from rating_app.models.choices import RatingVoteType
-
-    course = course_factory()
-    offering = course_offering_factory(course=course)
-
-    rating_0_2 = rating_factory(course_offering=offering)
-    rating_1_100 = rating_factory(course_offering=offering)
-    rating_0_0 = rating_factory(course_offering=offering)
-
-    for _ in range(2):
-        voter = student_factory()
-        vote_factory(rating=rating_0_2, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    voter = student_factory()
-    vote_factory(rating=rating_1_100, student=voter, type=RatingVoteType.UPVOTE)
-    for _ in range(100):
-        voter = student_factory()
-        vote_factory(rating=rating_1_100, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
-    response = token_client.get(url)
-    data = response.json()
-
-    assert response.status_code == 200
-    ordered_ids = [item["id"] for item in data["items"]["ratings"]]
-    assert ordered_ids.index(str(rating_1_100.id)) < ordered_ids.index(str(rating_0_0.id))
-    assert ordered_ids.index(str(rating_0_0.id)) < ordered_ids.index(str(rating_0_2.id))
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_ratings_sort_boundary_case_0_1_vs_1_5_vs_0_0(
-    token_client,
-    course_factory,
-    course_offering_factory,
-    rating_factory,
-    vote_factory,
-    student_factory,
-):
-    """Small one-upvote mixed rating outranks unrated, unrated outranks downvote-only."""
-    from rating_app.models.choices import RatingVoteType
-
-    course = course_factory()
-    offering = course_offering_factory(course=course)
-
-    rating_0_1 = rating_factory(course_offering=offering)
-    rating_1_5 = rating_factory(course_offering=offering)
-    rating_0_0 = rating_factory(course_offering=offering)
-
-    voter = student_factory()
-    vote_factory(rating=rating_0_1, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    voter = student_factory()
-    vote_factory(rating=rating_1_5, student=voter, type=RatingVoteType.UPVOTE)
-    for _ in range(5):
-        voter = student_factory()
-        vote_factory(rating=rating_1_5, student=voter, type=RatingVoteType.DOWNVOTE)
-
-    url = f"/api/v1/courses/{course.id}/ratings/?popularity_order=true"
-    response = token_client.get(url)
-    data = response.json()
-
-    assert response.status_code == 200
-    ordered_ids = [item["id"] for item in data["items"]["ratings"]]
-    assert ordered_ids.index(str(rating_1_5.id)) < ordered_ids.index(str(rating_0_0.id))
-    assert ordered_ids.index(str(rating_0_0.id)) < ordered_ids.index(str(rating_0_1.id))
 
 
 @pytest.mark.django_db
@@ -1392,8 +1293,8 @@ def test_create_rating_with_instructor_ids(
     offering = course_offering_factory(course=course, semester=semester)
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
-    instr_a = instructor_factory.create(first_name="Anna", last_name="Petrenko")
-    instr_b = instructor_factory.create(first_name="Bohdan", last_name="Kovalenko")
+    instr_a = instructor_factory(first_name="Anna", last_name="Petrenko")
+    instr_b = instructor_factory(first_name="Bohdan", last_name="Kovalenko")
 
     url = f"/api/v1/courses/{course.id}/ratings/"
     payload = {
@@ -1429,8 +1330,8 @@ def test_patch_rating_instructor_ids_replaces_set(
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
     rating = rating_factory(course_offering=offering, student=student, difficulty=3, usefulness=4)
-    initial = instructor_factory.create()
-    replacement = instructor_factory.create()
+    initial = instructor_factory()
+    replacement = instructor_factory()
     rating.instructors.add(initial)
 
     url = f"/api/v1/courses/{course.id}/ratings/{rating.id}/"
@@ -1513,7 +1414,7 @@ def test_patch_rating_instructor_ids_empty_clears_set(
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
     rating = rating_factory(course_offering=offering, student=student, difficulty=3, usefulness=4)
-    rating.instructors.add(instructor_factory.create())
+    rating.instructors.add(instructor_factory())
 
     url = f"/api/v1/courses/{course.id}/ratings/{rating.id}/"
     payload = {"instructor_ids": []}
@@ -1541,7 +1442,7 @@ def test_patch_rating_omitting_instructor_ids_keeps_set(
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
     rating = rating_factory(course_offering=offering, student=student, difficulty=3, usefulness=4)
-    instructor = instructor_factory.create()
+    instructor = instructor_factory()
     rating.instructors.add(instructor)
 
     url = f"/api/v1/courses/{course.id}/ratings/{rating.id}/"
@@ -1570,7 +1471,7 @@ def test_put_rating_instructor_ids_empty_clears_set(
     student = student_factory(user=token_client.user)
     enrollment_factory(offering=offering, student=student)
     rating = rating_factory(course_offering=offering, student=student, difficulty=3, usefulness=4)
-    rating.instructors.add(instructor_factory.create())
+    rating.instructors.add(instructor_factory())
 
     url = f"/api/v1/courses/{course.id}/ratings/{rating.id}/"
     payload = {

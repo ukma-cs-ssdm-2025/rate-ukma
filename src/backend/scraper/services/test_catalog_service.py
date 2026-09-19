@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
+import pytest
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from scraper.services import catalog_service
@@ -103,13 +104,12 @@ def test_fetch_catalog_page_navigation_failure():
             "scraper.services.catalog_service._add_page_param",
             return_value="https://example.com/catalog?page=1",
         ):
-            try:
+            with pytest.raises(Exception, match="Navigation failed") as exc_info:
                 await catalog_service.fetch_catalog_page(
                     context_mock, "https://example.com/catalog", 1
                 )
-                raise AssertionError("Expected exception was not raised")
-            except Exception as e:
-                assert str(e) == "Navigation failed"
+
+            assert str(exc_info.value) == "Navigation failed"
 
         page_mock.close.assert_called_once()
 
@@ -125,13 +125,12 @@ def test_fetch_catalog_page_page_creation_failure():
             "scraper.services.catalog_service._add_page_param",
             return_value="https://example.com/catalog?page=1",
         ):
-            try:
+            with pytest.raises(Exception, match="Failed to create page") as exc_info:
                 await catalog_service.fetch_catalog_page(
                     context_mock, "https://example.com/catalog", 1
                 )
-                raise AssertionError("Expected exception was not raised")
-            except Exception as e:
-                assert str(e) == "Failed to create page"
+
+            assert str(exc_info.value) == "Failed to create page"
 
     asyncio.run(run())
 

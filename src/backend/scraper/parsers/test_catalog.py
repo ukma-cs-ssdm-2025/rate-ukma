@@ -406,7 +406,7 @@ def test_course_link_parser_requires_base_url():
     </html>
     """
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="base_url must be a non-empty string"):
         CourseLinkParser().parse(html, base_url="")
 
 
@@ -439,7 +439,7 @@ def test_catalog_parser_requires_base_url():
         </body>
     </html>
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="base_url must be a non-empty string"):
         CatalogParser().parse(html, base_url="")
 
 

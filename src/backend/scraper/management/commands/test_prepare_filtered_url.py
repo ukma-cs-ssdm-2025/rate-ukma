@@ -2,10 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from django.core.management import call_command
 
-import pytest
 
-
-@pytest.mark.django_db
 @patch("scraper.management.commands.prepare_filtered_url.with_authenticated_context")
 @patch("scraper.management.commands.prepare_filtered_url.FilterService")
 def test_prepare_filtered_url_success(mock_filter_service, mock_auth_context):
@@ -27,7 +24,6 @@ def test_prepare_filtered_url_success(mock_filter_service, mock_auth_context):
     mock_decorated.assert_called_once()
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.prepare_filtered_url.with_authenticated_context")
 @patch("scraper.management.commands.prepare_filtered_url.FilterService")
 def test_prepare_filtered_url_interactive_mode(mock_filter_service, mock_auth_context):
@@ -50,7 +46,6 @@ def test_prepare_filtered_url_interactive_mode(mock_filter_service, mock_auth_co
     assert call_args.kwargs["headless"] is False
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.prepare_filtered_url.with_authenticated_context")
 @patch("scraper.management.commands.prepare_filtered_url.FilterService")
 def test_prepare_filtered_url_custom_output(mock_filter_service, mock_auth_context):

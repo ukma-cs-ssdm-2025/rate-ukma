@@ -3,27 +3,29 @@ import pytest
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories.student_stats_repository import StudentStatisticsRepository
 from rating_app.repositories.to_domain_mappers import StudentMapper
-from rating_app.tests.factories import (
-    CourseFactory,
-    CourseOfferingFactory,
-    EnrollmentFactory,
-    InstructorFactory,
-    RatingFactory,
-    SemesterFactory,
-    StudentFactory,
-)
 
 
-def _rated_with_two_instructors(student):
-    course = CourseFactory()
-    semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
-    rating = RatingFactory(student=student, course_offering=offering)
-    first = InstructorFactory(first_name="Олена", patronymic="Ігорівна", last_name="Коваленко")
-    second = InstructorFactory(first_name="Іван", patronymic="Петрович", last_name="Петренко")
-    rating.instructors.set([first, second])
-    return rating, first, second
+@pytest.fixture
+def rated_with_two_instructors(
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+    rating_factory,
+    instructor_factory,
+):
+    def _rated(student):
+        course = course_factory()
+        semester = semester_factory(term=SemesterTerm.SPRING, year=2025)
+        offering = course_offering_factory(course=course, semester=semester)
+        enrollment_factory(student=student, offering=offering)
+        rating = rating_factory(student=student, course_offering=offering)
+        first = instructor_factory(first_name="Олена", patronymic="Ігорівна", last_name="Коваленко")
+        second = instructor_factory(first_name="Іван", patronymic="Петрович", last_name="Петренко")
+        rating.instructors.set([first, second])
+        return rating, first, second
+
+    return _rated
 
 
 @pytest.fixture
@@ -36,13 +38,20 @@ def repo():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_student_returns_enrolled_courses(repo):
+def test_get_by_student_returns_enrolled_courses(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
     # Arrange
-    student = StudentFactory()
-    course = CourseFactory(title="Enrolled Course")
-    semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
+    student = student_factory()
+    course = course_factory(title="Enrolled Course")
+    semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    offering = course_offering_factory(course=course, semester=semester)
+    enrollment_factory(student=student, offering=offering)
 
     # Act
     result = repo.get_rating_stats(student_id=str(student.id))
@@ -60,14 +69,22 @@ def test_get_by_student_returns_enrolled_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_student_returns_rated_courses(repo):
+def test_get_by_student_returns_rated_courses(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+    rating_factory,
+):
     # Arrange
-    student = StudentFactory()
-    course = CourseFactory(title="Rated Course")
-    semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
-    rating = RatingFactory(
+    student = student_factory()
+    course = course_factory(title="Rated Course")
+    semester = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    offering = course_offering_factory(course=course, semester=semester)
+    enrollment_factory(student=student, offering=offering)
+    rating = rating_factory(
         student=student,
         course_offering=offering,
         difficulty=4,
@@ -93,14 +110,22 @@ def test_get_by_student_returns_rated_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_student_returns_enrolled_and_rated_courses(repo):
+def test_get_by_student_returns_enrolled_and_rated_courses(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+    rating_factory,
+):
     # Arrange
-    student = StudentFactory()
-    course = CourseFactory(title="Enrolled and Rated")
-    semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
-    rating = RatingFactory(
+    student = student_factory()
+    course = course_factory(title="Enrolled and Rated")
+    semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    offering = course_offering_factory(course=course, semester=semester)
+    enrollment_factory(student=student, offering=offering)
+    rating = rating_factory(
         student=student, course_offering=offering, difficulty=3, usefulness=4, comment="Good"
     )
 
@@ -119,18 +144,20 @@ def test_get_by_student_returns_enrolled_and_rated_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_student_excludes_unrelated_courses(repo):
+def test_get_by_student_excludes_unrelated_courses(
+    repo, student_factory, course_factory, course_offering_factory, enrollment_factory
+):
     # Arrange
-    student1 = StudentFactory()
-    student2 = StudentFactory()
+    student1 = student_factory()
+    student2 = student_factory()
 
-    course1 = CourseFactory(title="Student 1 Course")
-    offering1 = CourseOfferingFactory(course=course1)
-    EnrollmentFactory(student=student1, offering=offering1)
+    course1 = course_factory(title="Student 1 Course")
+    offering1 = course_offering_factory(course=course1)
+    enrollment_factory(student=student1, offering=offering1)
 
-    course2 = CourseFactory(title="Student 2 Course")
-    offering2 = CourseOfferingFactory(course=course2)
-    EnrollmentFactory(student=student2, offering=offering2)
+    course2 = course_factory(title="Student 2 Course")
+    offering2 = course_offering_factory(course=course2)
+    enrollment_factory(student=student2, offering=offering2)
 
     # Act
     result = repo.get_rating_stats(student_id=str(student1.id))
@@ -142,9 +169,9 @@ def test_get_by_student_excludes_unrelated_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_student_returns_empty_list_for_student_with_no_courses(repo):
+def test_get_by_student_returns_empty_list_for_student_with_no_courses(repo, student_factory):
     # Arrange
-    student = StudentFactory()
+    student = student_factory()
 
     # Act
     result = repo.get_rating_stats(student_id=str(student.id))
@@ -155,21 +182,29 @@ def test_get_by_student_returns_empty_list_for_student_with_no_courses(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_student_handles_multiple_offerings_same_course(repo):
+def test_get_by_student_handles_multiple_offerings_same_course(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+    rating_factory,
+):
     # Arrange
-    student = StudentFactory()
-    course = CourseFactory(title="Multi-offering Course")
+    student = student_factory()
+    course = course_factory(title="Multi-offering Course")
 
     # Student enrolled in fall 2024
-    fall_semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    fall_offering = CourseOfferingFactory(course=course, semester=fall_semester)
-    EnrollmentFactory(student=student, offering=fall_offering)
+    fall_semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    fall_offering = course_offering_factory(course=course, semester=fall_semester)
+    enrollment_factory(student=student, offering=fall_offering)
 
     # Student rated in spring 2025
-    spring_semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    spring_offering = CourseOfferingFactory(course=course, semester=spring_semester)
-    EnrollmentFactory(student=student, offering=spring_offering)
-    RatingFactory(
+    spring_semester = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    spring_offering = course_offering_factory(course=course, semester=spring_semester)
+    enrollment_factory(student=student, offering=spring_offering)
+    rating_factory(
         student=student,
         course_offering=spring_offering,
         difficulty=5,
@@ -209,21 +244,28 @@ def test_get_by_student_handles_multiple_offerings_same_course(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_student_does_not_return_dropped_offerings(repo):
+def test_get_by_student_does_not_return_dropped_offerings(
+    repo,
+    student_factory,
+    semester_factory,
+    course_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
     # Arrange
-    student = StudentFactory()
+    student = student_factory()
 
     # 2025 Spring - Course B (dropped)
-    spring_2025 = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    course_b = CourseFactory(title="B Course")
-    offering_b_2025 = CourseOfferingFactory(course=course_b, semester=spring_2025)
-    EnrollmentFactory(student=student, offering=offering_b_2025, status="DROPPED")
+    spring_2025 = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    course_b = course_factory(title="B Course")
+    offering_b_2025 = course_offering_factory(course=course_b, semester=spring_2025)
+    enrollment_factory(student=student, offering=offering_b_2025, status="DROPPED")
 
     # 2024 Fall - Course A (enrolled)
-    fall_2024 = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    course_a = CourseFactory(title="A Course")
-    offering_a_2024 = CourseOfferingFactory(course=course_a, semester=fall_2024)
-    EnrollmentFactory(student=student, offering=offering_a_2024)
+    fall_2024 = semester_factory(term=SemesterTerm.FALL, year=2024)
+    course_a = course_factory(title="A Course")
+    offering_a_2024 = course_offering_factory(course=course_a, semester=fall_2024)
+    enrollment_factory(student=student, offering=offering_a_2024)
 
     # Act
     result = repo.get_rating_stats(student_id=str(student.id))
@@ -236,21 +278,28 @@ def test_get_by_student_does_not_return_dropped_offerings(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_student_returns_enrolled_and_forced_offerings(repo):
+def test_get_by_student_returns_enrolled_and_forced_offerings(
+    repo,
+    student_factory,
+    semester_factory,
+    course_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
     # Arrange
-    student = StudentFactory()
+    student = student_factory()
 
     # 2025 Spring - Course B - FORCED
-    spring_2025 = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    course_b = CourseFactory(title="B Course")
-    offering_b_2025 = CourseOfferingFactory(course=course_b, semester=spring_2025)
-    EnrollmentFactory(student=student, offering=offering_b_2025, status="FORCED")
+    spring_2025 = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    course_b = course_factory(title="B Course")
+    offering_b_2025 = course_offering_factory(course=course_b, semester=spring_2025)
+    enrollment_factory(student=student, offering=offering_b_2025, status="FORCED")
 
     # 2024 Fall - Course A - ENROLLED (by default)
-    fall_2024 = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    course_a = CourseFactory(title="A Course")
-    offering_a_2024 = CourseOfferingFactory(course=course_a, semester=fall_2024)
-    EnrollmentFactory(student=student, offering=offering_a_2024)
+    fall_2024 = semester_factory(term=SemesterTerm.FALL, year=2024)
+    course_a = course_factory(title="A Course")
+    offering_a_2024 = course_offering_factory(course=course_a, semester=fall_2024)
+    enrollment_factory(student=student, offering=offering_a_2024)
 
     # Act
     result = repo.get_rating_stats(student_id=str(student.id))
@@ -266,13 +315,20 @@ def test_get_by_student_returns_enrolled_and_forced_offerings(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_returns_enrolled_offerings(repo):
+def test_get_detailed_by_student_returns_enrolled_offerings(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
     # Arrange
-    student = StudentFactory()
-    course = CourseFactory(title="Test Course")
-    semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
+    student = student_factory()
+    course = course_factory(title="Test Course")
+    semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    offering = course_offering_factory(course=course, semester=semester)
+    enrollment_factory(student=student, offering=offering)
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student.id))
@@ -289,14 +345,22 @@ def test_get_detailed_by_student_returns_enrolled_offerings(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_includes_rating_with_created_at(repo):
+def test_get_detailed_by_student_includes_rating_with_created_at(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+    rating_factory,
+):
     # Arrange
-    student = StudentFactory()
-    course = CourseFactory(title="Rated Course")
-    semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
-    rating = RatingFactory(
+    student = student_factory()
+    course = course_factory(title="Rated Course")
+    semester = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    offering = course_offering_factory(course=course, semester=semester)
+    enrollment_factory(student=student, offering=offering)
+    rating = rating_factory(
         student=student, course_offering=offering, difficulty=4, usefulness=5, comment="Excellent!"
     )
 
@@ -313,21 +377,29 @@ def test_get_detailed_by_student_includes_rating_with_created_at(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_returns_one_record_per_offering(repo):
+def test_get_detailed_by_student_returns_one_record_per_offering(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+    rating_factory,
+):
     # Arrange
-    student = StudentFactory()
-    course = CourseFactory(title="Multi-semester Course")
+    student = student_factory()
+    course = course_factory(title="Multi-semester Course")
 
     # Fall 2024
-    fall_semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    fall_offering = CourseOfferingFactory(course=course, semester=fall_semester)
-    EnrollmentFactory(student=student, offering=fall_offering)
+    fall_semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    fall_offering = course_offering_factory(course=course, semester=fall_semester)
+    enrollment_factory(student=student, offering=fall_offering)
 
     # Spring 2025
-    spring_semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    spring_offering = CourseOfferingFactory(course=course, semester=spring_semester)
-    EnrollmentFactory(student=student, offering=spring_offering)
-    RatingFactory(student=student, course_offering=spring_offering, difficulty=5, usefulness=5)
+    spring_semester = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    spring_offering = course_offering_factory(course=course, semester=spring_semester)
+    enrollment_factory(student=student, offering=spring_offering)
+    rating_factory(student=student, course_offering=spring_offering, difficulty=5, usefulness=5)
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student.id))
@@ -342,18 +414,20 @@ def test_get_detailed_by_student_returns_one_record_per_offering(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_excludes_other_students(repo):
+def test_get_detailed_by_student_excludes_other_students(
+    repo, student_factory, course_factory, course_offering_factory, enrollment_factory
+):
     # Arrange
-    student1 = StudentFactory()
-    student2 = StudentFactory()
+    student1 = student_factory()
+    student2 = student_factory()
 
-    course1 = CourseFactory(title="Student 1 Course")
-    offering1 = CourseOfferingFactory(course=course1)
-    EnrollmentFactory(student=student1, offering=offering1)
+    course1 = course_factory(title="Student 1 Course")
+    offering1 = course_offering_factory(course=course1)
+    enrollment_factory(student=student1, offering=offering1)
 
-    course2 = CourseFactory(title="Student 2 Course")
-    offering2 = CourseOfferingFactory(course=course2)
-    EnrollmentFactory(student=student2, offering=offering2)
+    course2 = course_factory(title="Student 2 Course")
+    offering2 = course_offering_factory(course=course2)
+    enrollment_factory(student=student2, offering=offering2)
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student1.id))
@@ -365,9 +439,9 @@ def test_get_detailed_by_student_excludes_other_students(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_returns_empty_for_no_enrollments(repo):
+def test_get_detailed_by_student_returns_empty_for_no_enrollments(repo, student_factory):
     # Arrange
-    student = StudentFactory()
+    student = student_factory()
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student.id))
@@ -378,20 +452,28 @@ def test_get_detailed_by_student_returns_empty_for_no_enrollments(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_excludes_non_enrolled_offerings(repo):
+def test_get_detailed_by_student_excludes_non_enrolled_offerings(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+    rating_factory,
+):
     # Arrange
-    student = StudentFactory()
-    course = CourseFactory()
+    student = student_factory()
+    course = course_factory()
 
     # Enrolled offering
-    enrolled_semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    enrolled_offering = CourseOfferingFactory(course=course, semester=enrolled_semester)
-    EnrollmentFactory(student=student, offering=enrolled_offering)
+    enrolled_semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    enrolled_offering = course_offering_factory(course=course, semester=enrolled_semester)
+    enrollment_factory(student=student, offering=enrolled_offering)
 
     # Not enrolled but rated (should not appear)
-    other_semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    other_offering = CourseOfferingFactory(course=course, semester=other_semester)
-    RatingFactory(student=student, course_offering=other_offering)
+    other_semester = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    other_offering = course_offering_factory(course=course, semester=other_semester)
+    rating_factory(student=student, course_offering=other_offering)
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student.id))
@@ -403,26 +485,33 @@ def test_get_detailed_by_student_excludes_non_enrolled_offerings(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_orders_by_semester_then_course(repo):
+def test_get_detailed_by_student_orders_by_semester_then_course(
+    repo,
+    student_factory,
+    semester_factory,
+    course_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
     # Arrange
-    student = StudentFactory()
+    student = student_factory()
 
     # 2025 Spring - Course B
-    spring_2025 = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    course_b = CourseFactory(title="B Course")
-    offering_b_2025 = CourseOfferingFactory(course=course_b, semester=spring_2025)
-    EnrollmentFactory(student=student, offering=offering_b_2025)
+    spring_2025 = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    course_b = course_factory(title="B Course")
+    offering_b_2025 = course_offering_factory(course=course_b, semester=spring_2025)
+    enrollment_factory(student=student, offering=offering_b_2025)
 
     # 2024 Fall - Course A
-    fall_2024 = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    course_a = CourseFactory(title="A Course")
-    offering_a_2024 = CourseOfferingFactory(course=course_a, semester=fall_2024)
-    EnrollmentFactory(student=student, offering=offering_a_2024)
+    fall_2024 = semester_factory(term=SemesterTerm.FALL, year=2024)
+    course_a = course_factory(title="A Course")
+    offering_a_2024 = course_offering_factory(course=course_a, semester=fall_2024)
+    enrollment_factory(student=student, offering=offering_a_2024)
 
     # 2024 Fall - Course C
-    course_c = CourseFactory(title="C Course")
-    offering_c_2024 = CourseOfferingFactory(course=course_c, semester=fall_2024)
-    EnrollmentFactory(student=student, offering=offering_c_2024)
+    course_c = course_factory(title="C Course")
+    offering_c_2024 = course_offering_factory(course=course_c, semester=fall_2024)
+    enrollment_factory(student=student, offering=offering_c_2024)
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student.id))
@@ -441,21 +530,28 @@ def test_get_detailed_by_student_orders_by_semester_then_course(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_does_not_return_dropped_offerings(repo):
+def test_get_detailed_by_student_does_not_return_dropped_offerings(
+    repo,
+    student_factory,
+    semester_factory,
+    course_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
     # Arrange
-    student = StudentFactory()
+    student = student_factory()
 
     # 2025 Spring - Course B
-    spring_2025 = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    course_b = CourseFactory(title="B Course")
-    offering_b_2025 = CourseOfferingFactory(course=course_b, semester=spring_2025)
-    EnrollmentFactory(student=student, offering=offering_b_2025, status="DROPPED")
+    spring_2025 = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    course_b = course_factory(title="B Course")
+    offering_b_2025 = course_offering_factory(course=course_b, semester=spring_2025)
+    enrollment_factory(student=student, offering=offering_b_2025, status="DROPPED")
 
     # 2024 Fall - Course A
-    fall_2024 = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    course_a = CourseFactory(title="A Course")
-    offering_a_2024 = CourseOfferingFactory(course=course_a, semester=fall_2024)
-    EnrollmentFactory(student=student, offering=offering_a_2024)
+    fall_2024 = semester_factory(term=SemesterTerm.FALL, year=2024)
+    course_a = course_factory(title="A Course")
+    offering_a_2024 = course_offering_factory(course=course_a, semester=fall_2024)
+    enrollment_factory(student=student, offering=offering_a_2024)
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student.id))
@@ -467,21 +563,28 @@ def test_get_detailed_by_student_does_not_return_dropped_offerings(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_returns_enrolled_and_forced_offerings(repo):
+def test_get_detailed_by_student_returns_enrolled_and_forced_offerings(
+    repo,
+    student_factory,
+    semester_factory,
+    course_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
     # Arrange
-    student = StudentFactory()
+    student = student_factory()
 
     # 2025 Spring - Course B - FORCED
-    spring_2025 = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    course_b = CourseFactory(title="B Course")
-    offering_b_2025 = CourseOfferingFactory(course=course_b, semester=spring_2025)
-    EnrollmentFactory(student=student, offering=offering_b_2025, status="FORCED")
+    spring_2025 = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    course_b = course_factory(title="B Course")
+    offering_b_2025 = course_offering_factory(course=course_b, semester=spring_2025)
+    enrollment_factory(student=student, offering=offering_b_2025, status="FORCED")
 
     # 2024 Fall - Course A - ENROLLED (by default)
-    fall_2024 = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    course_a = CourseFactory(title="A Course")
-    offering_a_2024 = CourseOfferingFactory(course=course_a, semester=fall_2024)
-    EnrollmentFactory(student=student, offering=offering_a_2024)
+    fall_2024 = semester_factory(term=SemesterTerm.FALL, year=2024)
+    course_a = course_factory(title="A Course")
+    offering_a_2024 = course_offering_factory(course=course_a, semester=fall_2024)
+    enrollment_factory(student=student, offering=offering_a_2024)
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student.id))
@@ -494,13 +597,20 @@ def test_get_detailed_by_student_returns_enrolled_and_forced_offerings(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_includes_all_course_fields(repo):
+def test_get_detailed_by_student_includes_all_course_fields(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
     # Arrange
-    student = StudentFactory()
-    course = CourseFactory(title="Complete Course")
-    semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
+    student = student_factory()
+    course = course_factory(title="Complete Course")
+    semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    offering = course_offering_factory(course=course, semester=semester)
+    enrollment_factory(student=student, offering=offering)
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student.id))
@@ -520,9 +630,11 @@ def test_get_detailed_by_student_includes_all_course_fields(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_rating_stats_includes_m2m_instructors(repo):
-    student = StudentFactory()
-    rating, first, second = _rated_with_two_instructors(student)
+def test_get_rating_stats_includes_m2m_instructors(
+    repo, student_factory, rated_with_two_instructors
+):
+    student = student_factory()
+    rating, first, second = rated_with_two_instructors(student)
 
     result = repo.get_rating_stats(student_id=str(student.id))
 
@@ -536,9 +648,11 @@ def test_get_rating_stats_includes_m2m_instructors(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_rating_stats_includes_m2m_instructors(repo):
-    student = StudentFactory()
-    rating, first, second = _rated_with_two_instructors(student)
+def test_get_detailed_rating_stats_includes_m2m_instructors(
+    repo, student_factory, rated_with_two_instructors
+):
+    student = student_factory()
+    rating, first, second = rated_with_two_instructors(student)
 
     result = repo.get_detailed_rating_stats(student_id=str(student.id))
 
@@ -549,13 +663,21 @@ def test_get_detailed_rating_stats_includes_m2m_instructors(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_rating_stats_returns_empty_instructors_when_none_linked(repo):
-    student = StudentFactory()
-    course = CourseFactory()
-    semester = SemesterFactory(term=SemesterTerm.SPRING, year=2025)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
-    RatingFactory(student=student, course_offering=offering)
+def test_get_rating_stats_returns_empty_instructors_when_none_linked(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+    rating_factory,
+):
+    student = student_factory()
+    course = course_factory()
+    semester = semester_factory(term=SemesterTerm.SPRING, year=2025)
+    offering = course_offering_factory(course=course, semester=semester)
+    enrollment_factory(student=student, offering=offering)
+    rating_factory(student=student, course_offering=offering)
 
     result = repo.get_rating_stats(student_id=str(student.id))
 

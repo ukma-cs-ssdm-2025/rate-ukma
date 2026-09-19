@@ -9,20 +9,11 @@ correct namespace (e.g., anonymous ratings with privacy-nulled student_id).
 import pytest
 from freezegun import freeze_time
 
-from rating_app.tests.factories import (
-    CourseFactory,
-    CourseOfferingFactory,
-    EnrollmentFactory,
-    RatingFactory,
-    SemesterFactory,
-    StudentFactory,
+from rating_app.tests.semester_dates import (
+    DEFAULT_AFTER_MIDTERM_DATE,
+    DEFAULT_TERM,
+    DEFAULT_YEAR,
 )
-
-DEFAULT_AFTER_MIDTERM_DATE = "2023-11-25"
-DEFAULT_YEAR = 2023
-DEFAULT_TERM = "FALL"
-
-pytestmark = [pytest.mark.django_db, pytest.mark.integration]
 
 
 @pytest.fixture(autouse=True)
@@ -31,14 +22,26 @@ def _frozen_time():
         yield
 
 
-def _setup_enrolled_student(token_client):
-    """Create a student enrolled in a course offering that is open for rating."""
-    student = StudentFactory(user=token_client.user)
-    course = CourseFactory()
-    semester = SemesterFactory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
-    return student, course, offering
+@pytest.fixture
+def setup_enrolled_student(
+    token_client,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
+    """Build a student enrolled in an offering that is open for rating."""
+
+    def _setup():
+        student = student_factory(user=token_client.user)
+        course = course_factory()
+        semester = semester_factory(year=DEFAULT_YEAR, term=DEFAULT_TERM)
+        offering = course_offering_factory(course=course, semester=semester)
+        enrollment_factory(student=student, offering=offering)
+        return student, course, offering
+
+    return _setup
 
 
 # ---------------------------------------------------------------------------
@@ -46,9 +49,14 @@ def _setup_enrolled_student(token_client):
 # ---------------------------------------------------------------------------
 
 
-def test_create_anonymous_rating_invalidates_student_courses_cache(token_client):
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_create_anonymous_rating_invalidates_student_courses_cache(
+    token_client,
+    setup_enrolled_student,
+):
     """After creating an anonymous rating, /students/me/courses/ must return it."""
-    student, course, offering = _setup_enrolled_student(token_client)
+    student, course, offering = setup_enrolled_student()
 
     # Warm the cache — no rating yet
     resp = token_client.get("/api/v1/students/me/courses/")
@@ -77,9 +85,14 @@ def test_create_anonymous_rating_invalidates_student_courses_cache(token_client)
     assert rated["is_anonymous"] is True
 
 
-def test_create_identified_rating_invalidates_student_courses_cache(token_client):
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_create_identified_rating_invalidates_student_courses_cache(
+    token_client,
+    setup_enrolled_student,
+):
     """Same flow for a non-anonymous rating — baseline sanity check."""
-    student, course, offering = _setup_enrolled_student(token_client)
+    student, course, offering = setup_enrolled_student()
 
     resp = token_client.get("/api/v1/students/me/courses/")
     assert resp.json()[0]["offerings"][0]["rated"] is None
@@ -108,9 +121,15 @@ def test_create_identified_rating_invalidates_student_courses_cache(token_client
 # ---------------------------------------------------------------------------
 
 
-def test_delete_anonymous_rating_invalidates_student_courses_cache(token_client):
-    student, course, offering = _setup_enrolled_student(token_client)
-    rating = RatingFactory(
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_delete_anonymous_rating_invalidates_student_courses_cache(
+    token_client,
+    rating_factory,
+    setup_enrolled_student,
+):
+    student, course, offering = setup_enrolled_student()
+    rating = rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,
@@ -132,9 +151,15 @@ def test_delete_anonymous_rating_invalidates_student_courses_cache(token_client)
     assert resp.json()[0]["offerings"][0]["rated"] is None
 
 
-def test_delete_identified_rating_invalidates_student_courses_cache(token_client):
-    student, course, offering = _setup_enrolled_student(token_client)
-    rating = RatingFactory(
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_delete_identified_rating_invalidates_student_courses_cache(
+    token_client,
+    rating_factory,
+    setup_enrolled_student,
+):
+    student, course, offering = setup_enrolled_student()
+    rating = rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,
@@ -157,9 +182,15 @@ def test_delete_identified_rating_invalidates_student_courses_cache(token_client
 # ---------------------------------------------------------------------------
 
 
-def test_update_anonymous_rating_invalidates_student_courses_cache(token_client):
-    student, course, offering = _setup_enrolled_student(token_client)
-    rating = RatingFactory(
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_update_anonymous_rating_invalidates_student_courses_cache(
+    token_client,
+    rating_factory,
+    setup_enrolled_student,
+):
+    student, course, offering = setup_enrolled_student()
+    rating = rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,
@@ -184,9 +215,15 @@ def test_update_anonymous_rating_invalidates_student_courses_cache(token_client)
     assert resp.json()[0]["offerings"][0]["rated"]["comment"] == "updated"
 
 
-def test_update_identified_rating_invalidates_student_courses_cache(token_client):
-    student, course, offering = _setup_enrolled_student(token_client)
-    rating = RatingFactory(
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_update_identified_rating_invalidates_student_courses_cache(
+    token_client,
+    rating_factory,
+    setup_enrolled_student,
+):
+    student, course, offering = setup_enrolled_student()
+    rating = rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,
@@ -213,9 +250,15 @@ def test_update_identified_rating_invalidates_student_courses_cache(token_client
 # ---------------------------------------------------------------------------
 
 
-def test_delete_anonymous_rating_invalidates_grades_cache(token_client):
-    student, course, offering = _setup_enrolled_student(token_client)
-    rating = RatingFactory(
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_delete_anonymous_rating_invalidates_grades_cache(
+    token_client,
+    rating_factory,
+    setup_enrolled_student,
+):
+    student, course, offering = setup_enrolled_student()
+    rating = rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,
@@ -238,9 +281,15 @@ def test_delete_anonymous_rating_invalidates_grades_cache(token_client):
     assert resp.json()[0]["rated"] is None
 
 
-def test_update_anonymous_rating_invalidates_grades_cache(token_client):
-    student, course, offering = _setup_enrolled_student(token_client)
-    rating = RatingFactory(
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_update_anonymous_rating_invalidates_grades_cache(
+    token_client,
+    rating_factory,
+    setup_enrolled_student,
+):
+    student, course, offering = setup_enrolled_student()
+    rating = rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,
@@ -267,9 +316,15 @@ def test_update_anonymous_rating_invalidates_grades_cache(token_client):
 # ---------------------------------------------------------------------------
 
 
-def test_delete_anonymous_rating_invalidates_course_ratings_cache(token_client):
-    student, course, offering = _setup_enrolled_student(token_client)
-    rating = RatingFactory(
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_delete_anonymous_rating_invalidates_course_ratings_cache(
+    token_client,
+    rating_factory,
+    setup_enrolled_student,
+):
+    student, course, offering = setup_enrolled_student()
+    rating = rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,
@@ -290,8 +345,13 @@ def test_delete_anonymous_rating_invalidates_course_ratings_cache(token_client):
     assert resp.json()["total"] == 0
 
 
-def test_create_anonymous_rating_invalidates_course_ratings_cache(token_client):
-    student, course, offering = _setup_enrolled_student(token_client)
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_create_anonymous_rating_invalidates_course_ratings_cache(
+    token_client,
+    setup_enrolled_student,
+):
+    student, course, offering = setup_enrolled_student()
 
     # Warm the cache — empty
     resp = token_client.get(f"/api/v1/courses/{course.id}/ratings/")
@@ -319,9 +379,11 @@ def test_create_anonymous_rating_invalidates_course_ratings_cache(token_client):
 # ---------------------------------------------------------------------------
 
 
-def test_anonymous_rating_hides_identity_in_create_response(token_client):
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_anonymous_rating_hides_identity_in_create_response(token_client, setup_enrolled_student):
     """POST response for anonymous rating must not contain student identity."""
-    _student, course, offering = _setup_enrolled_student(token_client)
+    _student, course, offering = setup_enrolled_student()
 
     resp = token_client.post(
         f"/api/v1/courses/{course.id}/ratings/",
@@ -342,10 +404,16 @@ def test_anonymous_rating_hides_identity_in_create_response(token_client):
     assert data["student_avatar_url"] is None
 
 
-def test_anonymous_rating_hides_identity_in_list_response(token_client):
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_anonymous_rating_hides_identity_in_list_response(
+    token_client,
+    rating_factory,
+    setup_enrolled_student,
+):
     """GET ratings list must not leak identity for anonymous ratings."""
-    student, course, offering = _setup_enrolled_student(token_client)
-    RatingFactory(
+    student, course, offering = setup_enrolled_student()
+    rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,
@@ -361,10 +429,16 @@ def test_anonymous_rating_hides_identity_in_list_response(token_client):
     assert rating_data["student_avatar_url"] is None
 
 
-def test_anonymous_rating_hides_identity_in_retrieve_response(token_client):
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_anonymous_rating_hides_identity_in_retrieve_response(
+    token_client,
+    rating_factory,
+    setup_enrolled_student,
+):
     """GET single rating must not leak identity for anonymous ratings."""
-    student, course, offering = _setup_enrolled_student(token_client)
-    rating = RatingFactory(
+    student, course, offering = setup_enrolled_student()
+    rating = rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,
@@ -381,10 +455,12 @@ def test_anonymous_rating_hides_identity_in_retrieve_response(token_client):
     assert data["student_avatar_url"] is None
 
 
-def test_identified_rating_exposes_identity(token_client):
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_identified_rating_exposes_identity(token_client, rating_factory, setup_enrolled_student):
     """Non-anonymous ratings must include student identity."""
-    student, course, offering = _setup_enrolled_student(token_client)
-    RatingFactory(
+    student, course, offering = setup_enrolled_student()
+    rating_factory(
         student=student,
         course_offering=offering,
         difficulty=3,

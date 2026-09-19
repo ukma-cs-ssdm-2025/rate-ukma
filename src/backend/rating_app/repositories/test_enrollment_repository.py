@@ -4,7 +4,6 @@ from rating_app.application_schemas.enrollment import EnrollmentInput
 from rating_app.models.choices import EnrollmentStatus
 from rating_app.repositories.enrollment_repository import EnrollmentRepository
 from rating_app.repositories.to_domain_mappers import EnrollmentMapper
-from rating_app.tests.factories import CourseOfferingFactory, EnrollmentFactory, StudentFactory
 
 
 @pytest.fixture
@@ -14,8 +13,8 @@ def repo():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_all_returns_domain_models(repo):
-    EnrollmentFactory.create_batch(3)
+def test_get_all_returns_domain_models(repo, enrollment_factory):
+    enrollment_factory.create_batch(3)
 
     result = repo.get_all()
 
@@ -28,8 +27,8 @@ def test_get_all_returns_domain_models(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_upsert_updates_status_when_enrollment_exists(repo):
-    enrollment = EnrollmentFactory(status=EnrollmentStatus.ENROLLED)
+def test_get_or_upsert_updates_status_when_enrollment_exists(repo, enrollment_factory):
+    enrollment = enrollment_factory(status=EnrollmentStatus.ENROLLED)
 
     enrollment_input = EnrollmentInput(
         student_id=enrollment.student_id,
@@ -46,8 +45,8 @@ def test_get_or_upsert_updates_status_when_enrollment_exists(repo):
 @pytest.mark.django_db
 @pytest.mark.integration
 @pytest.mark.parametrize("status", [EnrollmentStatus.ENROLLED, EnrollmentStatus.FORCED])
-def test_is_student_enrolled_returns_true_for_active_status(repo, status):
-    enrollment = EnrollmentFactory(status=status)
+def test_is_student_enrolled_returns_true_for_active_status(repo, status, enrollment_factory):
+    enrollment = enrollment_factory(status=status)
 
     result = repo.is_student_enrolled(enrollment.student_id, enrollment.offering_id)
 
@@ -56,9 +55,11 @@ def test_is_student_enrolled_returns_true_for_active_status(repo, status):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_is_student_enrolled_returns_false_when_no_enrollment(repo):
-    student = StudentFactory()
-    offering = CourseOfferingFactory()
+def test_is_student_enrolled_returns_false_when_no_enrollment(
+    repo, student_factory, course_offering_factory
+):
+    student = student_factory()
+    offering = course_offering_factory()
 
     result = repo.is_student_enrolled(student.id, offering.id)
 

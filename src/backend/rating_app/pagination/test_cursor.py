@@ -1,5 +1,5 @@
 import base64
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from django.db.models import Q
@@ -32,7 +32,7 @@ class TestEncodeDecodeCursor:
         assert second - first == timedelta(microseconds=1)
 
     def test_round_trip_preserves_non_utc_offset(self):
-        occurred_at = datetime(2026, 9, 1, 12, 0, tzinfo=UTC).astimezone()
+        occurred_at = datetime(2026, 9, 1, 12, 0, tzinfo=timezone(timedelta(hours=3)))
 
         cursor = FeedCursor.decode(FeedCursor(occurred_at, uuid4()).encode())
 
