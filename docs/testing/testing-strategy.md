@@ -2,15 +2,16 @@
 
 Targets and tooling for the whole project. How a backend test is written: [backend-tests.md](backend-tests.md).
 
-## Pyramid
+## Layers
 
-| Layer | Share | Backend | Frontend |
-| --- | --- | --- | --- |
-| Unit | 60% | pytest over models, services, mappers; dependencies mocked | Vitest over components, hooks, API clients |
-| Integration | 30% | endpoints and repositories against a real database, auth flows | component + API client integration |
-| E2E | 10% | — | Playwright over login, rating, profile |
+| Layer | Where | Count |
+| --- | --- | --- |
+| Backend unit | mocked services, mappers, parsers | 368 |
+| Backend integration | endpoints and repositories against a real database | 419 |
+| Frontend unit | Vitest over components, hooks, API clients | 35 files |
+| E2E | Playwright in `src/webapp/tests/e2e` | 15 specs |
 
-Backend unit vs integration is the `integration` marker: `-m integration` is everything that leaves the process, `-m "not integration"` the rest.
+Backend unit vs integration is the `integration` marker, not a folder: `-m integration` is everything that leaves the process, `-m "not integration"` the rest. The suite is currently integration-heavy because the product's risk sits in queries and permissions, not in pure functions; treat a new mock-only test that could have been an endpoint test as a smell.
 
 ## Coverage
 
@@ -20,7 +21,7 @@ Backend unit vs integration is the `integration` marker: `-m integration` is eve
 | Frontend | 70% | 50% |
 | Authentication, rating workflows | 90% | — |
 
-Merge blocks on a failing test or coverage below target. A drop over 5%, or a new untested critical path, is a review warning rather than a gate.
+These are review targets, not gates: nothing sets `fail_under`, so CI reports coverage and fails only on a failing test. A drop over 5% or a new untested critical path is a review objection, raised by a human.
 
 ## Tooling
 

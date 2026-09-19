@@ -1,13 +1,13 @@
 # Backend Test Conventions
 
-How a single pytest test under `src/backend` is written. Pyramid and coverage targets: [testing-strategy.md](testing-strategy.md). Older files predate these rules — follow the rule, not the neighbour, and flag the contradiction in the PR.
+How a single pytest test under `src/backend` is written. Pyramid and coverage targets: [testing-strategy.md](testing-strategy.md). Every rule below holds across the suite today; when you hit a file that contradicts one, the file is wrong — fix it or say why in the PR.
 
 Ruff `PT` enforces the `parametrize` / `raises` / fixture-syntax rules. Everything else here is review-enforced.
 
 ## Layout
 
 - Test sits next to its unit: `test_course_repository.py`, `rating_app/views/test_<resource>.py`. Name the file after the unit or a concern of it (`test_rating_cache_invalidation.py`), never after how it runs — an `_integration.py` suffix duplicates the marker and drifts when one test stops needing the database.
-- Never put a test module inside `rating_app/models/`: pytest imports it as top-level `models.*` and Django raises `doesn't declare an explicit app_label`. Cross-model tests go at the app root beside `test_signals.py`. `rating_app/tests/` holds only `factories.py` and `semester_dates.py`.
+- Never put a test module inside `rating_app/models/`: pytest imports it as top-level `models.*` and Django raises `doesn't declare an explicit app_label`. Cross-model tests go at the app root beside `test_signals.py`. `rating_app/tests/` holds no tests — only `factories.py` and `semester_dates.py`.
 - Fixture goes in the narrowest scope that needs it: module first, package `conftest.py` next, root `src/backend/conftest.py` last.
 - `autouse` is for global environment swaps only (`mock_cache_manager`). An autouse fixture that builds data hides the arrange block.
 - Time-gated views need `@freeze_time` with a date from `rating_app/tests/semester_dates.py` (`DEFAULT_AFTER_MIDTERM_DATE` open, `DEFAULT_BEFORE_MIDTERM_DATE` closed). A test module never imports another test module.
@@ -55,7 +55,7 @@ def test_course_returns_offerings(course_factory): ...
 | Services, listeners, adapters | `MagicMock` over the `rateukma.ioc` protocols | Assert the calls the service makes, not the ORM. |
 | Scraper parsers, dedup | inline payloads | Pure functions; no database. |
 
-- Insert ordering fixtures out of order, or a dropped `order_by` still passes (`test_course_repository.py::five_courses_out_of_order`).
+- Insert ordering fixtures out of order, or a dropped `order_by` still passes (the `five_courses_out_of_order` fixture in `test_course_repository.py`).
 - Assert what a consumer observes: DTOs, response JSON, the raised exception, repository calls. Never a mock echoing its input, `hasattr`, or `len(result) > 0`.
 - Query counts via `django_assert_num_queries` — the one place implementation detail is asserted on purpose.
 - Nothing resembling production data. Invent it or use `factory.Faker`.
