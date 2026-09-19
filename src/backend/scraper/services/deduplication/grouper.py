@@ -271,20 +271,15 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
                 continue
 
             representative_term = self._select_representative_term(term_details)
-            representative_details = representative_term.details
             representative_semester = representative_term.semester
+            representative_details = representative_term.details
 
             offering = DeduplicatedCourseOffering(
                 code=self.extractors["code"].extract(course),
                 semester=representative_semester,
-                credits=self._resolve_total_offering_credits(course, term_details),
-                weekly_hours=representative_details.weekly_hours,
                 study_year=course.year,
                 enrollments=self.extractors["enrollments"].extract(course),
                 exam_type=representative_details.exam_type,
-                lecture_count=representative_details.lecture_count,
-                practice_count=representative_details.practice_count,
-                practice_type=representative_details.practice_type,
                 max_students=limits["max_students"],
                 max_groups=limits["max_groups"],
                 group_size_min=limits["group_size_min"],
@@ -312,9 +307,20 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         course: ParsedCourseDetails,
         semesters: list[DeduplicatedSemester],
     ) -> list[TermDetail]:
+        # When some semesters carry valid per-season credits, the remaining
+        # semesters must not fall back to the full course total — that
+        # double-counts (e.g. Fall 4cr + fallback 8cr = 12cr vs 8cr) (#558).
+        has_valid_season_credits = any(
+            (season := self._get_season_info(course, semester.term)) is not None
+            and season.credits is not None
+            and season.credits > 0
+            for semester in semesters
+        )
         term_details: list[TermDetail] = []
         for semester in semesters:
-            offering_details = self._build_offering_details(course, semester)
+            offering_details = self._build_offering_details(
+                course, semester, fallback_credits=not has_valid_season_credits
+            )
             if offering_details is None:
                 continue
 
@@ -338,17 +344,6 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
             SemesterTerm.SUMMER: 3,
         }.get(term, 0)
 
-    def _resolve_total_offering_credits(
-        self,
-        course: ParsedCourseDetails,
-        term_details: list[TermDetail],
-    ) -> float:
-        total_credits = self.extractors["credits"].extract(course)
-        if total_credits and total_credits > 0:
-            return total_credits
-
-        return float(sum(item.details.credits for item in term_details))
-
     def _validate_course_for_transformation(self, course: ParsedCourseDetails) -> None:
         if not course.academic_year:
             raise DataValidationError(f"Course {course.id} missing required academic_year")
@@ -357,14 +352,18 @@ class CourseGrouper(DeduplicationComponent[list[ParsedCourseDetails], list[Dedup
         self,
         course: ParsedCourseDetails,
         semester: DeduplicatedSemester,
+        fallback_credits: bool = True,
     ) -> OfferingTermDetails | None:
         season_info = self._get_season_info(course, semester.term)
         course_credits = self.extractors["credits"].extract(course)
         season_credits = season_info.credits if season_info else None
 
-        resolved_credits = (
-            season_credits if season_credits is not None and season_credits > 0 else course_credits
-        )
+        if season_credits is not None and season_credits > 0:
+            resolved_credits = season_credits
+        elif fallback_credits:
+            resolved_credits = course_credits
+        else:
+            resolved_credits = None
         weekly_hours = (
             season_info.hours_per_week
             if season_info and season_info.hours_per_week is not None

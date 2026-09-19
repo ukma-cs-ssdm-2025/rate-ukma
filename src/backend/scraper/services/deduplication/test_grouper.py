@@ -820,37 +820,46 @@ def test_course_grouper_uses_term_specific_season_details(course_grouper):
     assert spring.exam_type.value == "CREDIT"
 
 
+def _course_kwargs(**overrides):
+    kwargs = {
+        "year": 3,
+        "format": "Формат 2015",
+        "status": "рекомендовано",
+        "education_level": "Бакалавр",
+        "academic_year": "2025–2026",
+        "limits": {"max_students": 30, "max_groups": 3, "group_size_min": 9, "group_size_max": 12},
+    }
+    kwargs.update(overrides)
+    return kwargs
+
+
 def test_course_grouper_falls_back_to_course_credits_when_term_credits_are_zero(
     course_grouper,
 ):
     course = ParsedCourseDetails(
-        url="https://example.com/course/342277",
-        title="Бюджетна система",
-        id="342277",
-        credits=4.0,
-        hours=120,
-        year=3,
-        format="Формат 2015",
-        status="рекомендовано",
-        faculty="Факультет економічних наук",
-        department="Кафедра фінансів",
-        education_level="Бакалавр",
-        academic_year="2025–2026",
-        semesters=["Семестр 6"],
-        specialties=[
-            {"specialty": "Фінанси, банківська справа та страхування", "type": "Обов`язкова"}
-        ],
-        limits={"max_students": 30, "max_groups": 3, "group_size_min": 9, "group_size_max": 12},
-        season_details={
-            "Весна": {
-                "credits": 0.0,
-                "hours_per_week": 1,
-                "lecture_hours": 8,
-                "practice_hours": 6,
-                "practice_type": "SEMINAR",
-                "exam_type": "екзамен",
-            }
-        },
+        **_course_kwargs(
+            url="https://example.com/course/342277",
+            title="Бюджетна система",
+            id="342277",
+            credits=4.0,
+            hours=120,
+            faculty="Факультет економічних наук",
+            department="Кафедра фінансів",
+            semesters=["Семестр 6"],
+            specialties=[
+                {"specialty": "Фінанси, банківська справа та страхування", "type": "Обов`язкова"}
+            ],
+            season_details={
+                "Весна": {
+                    "credits": 0.0,
+                    "hours_per_week": 1,
+                    "lecture_hours": 8,
+                    "practice_hours": 6,
+                    "practice_type": "SEMINAR",
+                    "exam_type": "екзамен",
+                }
+            },
+        )
     )
 
     result = course_grouper.group_course_offerings([course])
@@ -859,9 +868,44 @@ def test_course_grouper_falls_back_to_course_credits_when_term_credits_are_zero(
     grouped = result[0]
     assert len(grouped.offerings) == 1
 
-    spring = grouped.offerings[0]
+    spring = grouped.offerings[0].terms[0]
     assert spring.credits == approx(4.0)
     assert spring.weekly_hours == 1
+
+
+def test_course_grouper_skips_semesters_without_season_credits_when_partial(course_grouper):
+    # Fall has 4cr of season data, Spring has none: Spring must not fall
+    course = ParsedCourseDetails(
+        **_course_kwargs(
+            url="https://example.com/course/340520",
+            title="Часткові сезонні дані",
+            id="340520",
+            credits=8.0,
+            hours=240,
+            faculty="Факультет інформатики",
+            department="Кафедра інформатики",
+            semesters=["Семестр 5", "Семестр 6"],
+            specialties=[{"specialty": "Комп`ютерні науки", "type": "Обов`язкова"}],
+            season_details={
+                "Осінь": {
+                    "credits": 4.0,
+                    "hours_per_week": 3,
+                    "lecture_hours": 22,
+                    "practice_hours": 22,
+                    "practice_type": "PRACTICE",
+                    "exam_type": "екзамен",
+                },
+            },
+        )
+    )
+
+    result = course_grouper.group_course_offerings([course])
+
+    assert len(result) == 1
+    terms = result[0].offerings[0].terms
+    assert len(terms) == 1
+    assert terms[0].semester.term.value == "FALL"
+    assert terms[0].credits == approx(4.0)
 
 
 def test_course_grouper_treats_ispyt_as_exam(course_grouper):

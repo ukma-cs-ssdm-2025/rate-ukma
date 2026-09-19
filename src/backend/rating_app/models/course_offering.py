@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.db import models
-from django.db.models import Manager, Q
+from django.db.models import Manager
 
-from .choices import EnrollmentStatus, ExamType, PracticeType
+from .choices import EnrollmentStatus, ExamType
 from .course import Course
 from .instructor import Instructor
 from .semester import Semester
@@ -32,14 +32,7 @@ class CourseOffering(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="offerings")
     semester = models.ForeignKey(Semester, on_delete=models.PROTECT, related_name="offerings")
 
-    credits = models.DecimalField(max_digits=3, decimal_places=1)
-    weekly_hours = models.PositiveIntegerField()
     study_year = models.PositiveIntegerField(null=True, blank=True)
-    lecture_count = models.PositiveIntegerField(null=True, blank=True)
-    practice_count = models.PositiveIntegerField(null=True, blank=True)
-    practice_type = models.CharField(
-        max_length=16, choices=PracticeType.choices, blank=True, default=""
-    )
     exam_type = models.CharField(max_length=8, choices=ExamType.choices)
     max_students = models.PositiveIntegerField(null=True, blank=True)
     max_groups = models.PositiveIntegerField(null=True, blank=True)
@@ -55,14 +48,6 @@ class CourseOffering(models.Model):
         related_name="course_offerings",
         blank=True,
     )
-
-    class Meta:
-        constraints = [
-            models.CheckConstraint(
-                check=Q(credits__gt=0),
-                name="co_credits_gt_0",
-            ),
-        ]
 
     def __str__(self):
         return f"{self.course.title} @ {self.semester}"
@@ -82,7 +67,3 @@ class CourseOffering(models.Model):
         if self.max_students is None:
             return None
         return max(self.max_students - self.occupied_seats, 0)
-
-    @property
-    def total_hours(self) -> int:
-        return int(self.credits * 30)

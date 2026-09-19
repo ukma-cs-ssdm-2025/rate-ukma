@@ -279,12 +279,7 @@ def create_mock_offering(
     return DeduplicatedCourseOffering(
         code=code,
         semester=semester,
-        credits=credits,
-        weekly_hours=weekly_hours,
         study_year=study_year,
-        lecture_count=lecture_count,
-        practice_count=practice_count,
-        practice_type=practice_type,
         exam_type=exam_type,
         max_students=max_students,
         max_groups=max_groups,
@@ -471,6 +466,9 @@ def test_injector_passes_program_start_year_and_term_hours_to_repositories(injec
     offering_call = repo_mocks.offering_repo.get_or_upsert.call_args
     offering_dto = offering_call[0][0]
     assert offering_dto.study_year == 3
+    # Offering-level per-term fields are gone (#558); only terms carry them.
+    for removed in ("credits", "weekly_hours", "lecture_count", "practice_count", "practice_type"):
+        assert not hasattr(offering_dto, removed)
 
     student_call = repo_mocks.student_repo.get_or_upsert.call_args
     student_dto = student_call[0][0]
