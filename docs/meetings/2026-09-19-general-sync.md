@@ -13,7 +13,7 @@
 - Parser as a public service (repo layout open): Andrii designs the public API, Anastasiia Aleksieienko drafts the infra (Kubernetes + Terraform) and key-issuing approach.
 - Individual study-plan constructor is Kateryna with Anastasiia Dvoilenko's track: vision/spec doc with ASCII mockups first, warnings instead of hard blocks, multi-variant compare.
 - Fix PR review hygiene: stop auto-adding all codeowners; author picks reviewer(s); AI auto-approve for low-risk changes still open.
-- NaUKMA lecturer data is incomplete/stale — Anastasiia Aleksieienko investigates the source and update process.
+- Teacher data is a separate topic — discuss a teachers API with Kyrylo and Mykola (smart-ukma communicators) instead of the current corp-email parsing.
 
 ## Discussion
 
@@ -43,10 +43,10 @@
 - Mobility-student edge case (underload/overload semesters, transferred disciplines) — later feature, not v1.
 - Agreed artifact: vision/spec draft first (user flow + ASCII mockups), then backend work in parallel (see #706).
 
-### NaUKMA lecturer / profile data quality
+### Teacher data (smart-ukma, separate topic)
 
-- Lecturer profile cards have many empty or confusing fields; no clear distinction between teachers and non-teachers.
-- Data source and refresh cadence unknown — Anastasiia investigates.
+- Current approach parses corp emails; alternative is a teachers API.
+- Discuss with Kyrylo and Mykola, our communicators on smart-ukma.
 
 ### PR / code-review process
 
@@ -73,11 +73,9 @@
 - Andrii Valenia: design the parser public API (see #703, #704).
 - Andrii Valenia: check review-assignment settings (see #710).
 - Anastasiia Aleksieienko: draft infra vision (Kubernetes + Terraform, API-key issuance/auth; see #705).
-- Anastasiia Aleksieienko: investigate lecturer-data source (who feeds it, update cadence, teacher vs. non-teacher roles).
 - Kateryna Bratiuk with Anastasiia Dvoilenko: draft study-plan constructor vision/spec with ASCII mockups (see #706); circulate before backend work.
 - Milana Horalevych: come with a plan for the analytics/Metabase side (see #707).
-- Owner: TBD: ask data owners about stale lecturer entries.
-- Owner: TBD: confirm the 1 December milestone scope.
+- Owner: TBD: discuss teachers API vs corp-email parsing with Kyrylo and Mykola.
 
 ## Open questions
 
