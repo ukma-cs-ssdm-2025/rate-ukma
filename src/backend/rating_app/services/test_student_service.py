@@ -182,6 +182,7 @@ def student_mapper():
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_db_ingestion_links_student_to_existing_user(user_factory, speciality_factory):
     email = "student@ukma.edu.ua"
     user = user_factory(email=email)
@@ -227,6 +228,7 @@ def test_db_ingestion_links_student_to_existing_user(user_factory, speciality_fa
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_db_ingestion_does_not_link_when_no_matching_user(speciality_factory):
     email = "no-user@ukma.edu.ua"
     speciality = speciality_factory(name="Mathematics")
@@ -270,6 +272,7 @@ def test_db_ingestion_does_not_link_when_no_matching_user(speciality_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_service_links_user_to_existing_student(user_factory, student_factory):
     email = "existing@ukma.edu.ua"
     student = student_factory(email=email, user=None)
@@ -284,6 +287,7 @@ def test_service_links_user_to_existing_student(user_factory, student_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_service_does_not_link_when_user_already_has_student(user_factory, student_factory):
     email = "linked@ukma.edu.ua"
     existing_student = student_factory(email=email, user=None)
@@ -302,6 +306,7 @@ def test_service_does_not_link_when_user_already_has_student(user_factory, stude
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_service_links_student_to_existing_user(user_factory, student_mapper, student_factory):
     email = "newstudent@ukma.edu.ua"
     user = user_factory(email=email)

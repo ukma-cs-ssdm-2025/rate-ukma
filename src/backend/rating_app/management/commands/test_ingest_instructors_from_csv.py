@@ -214,6 +214,7 @@ def test_parse_name_latin_multiple_tokens_keeps_last_as_remainder():
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_dry_run_makes_no_changes(tmp_path):
     csv_path = _write_csv(
         tmp_path,
@@ -231,6 +232,7 @@ def test_dry_run_makes_no_changes(tmp_path):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_creates_instructor_from_cyrillic_name(tmp_path):
     csv_path = _write_csv(
         tmp_path,
@@ -246,6 +248,7 @@ def test_creates_instructor_from_cyrillic_name(tmp_path):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_creates_instructor_from_reversed_cyrillic_name(tmp_path):
     csv_path = _write_csv(
         tmp_path,
@@ -260,6 +263,7 @@ def test_creates_instructor_from_reversed_cyrillic_name(tmp_path):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_existing_instructor_is_left_alone(tmp_path, instructor_factory):
     instructor_factory(
         email="i.petrenko@ukma.edu.ua",
@@ -280,6 +284,7 @@ def test_existing_instructor_is_left_alone(tmp_path, instructor_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_refresh_names_rewrites_an_existing_instructor(tmp_path, instructor_factory):
     instructor_factory(email="i.petrenko@ukma.edu.ua", first_name="Іван", last_name="Петренко")
     csv_path = _write_csv(
@@ -298,6 +303,7 @@ def test_refresh_names_rewrites_an_existing_instructor(tmp_path, instructor_fact
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_ingests_utf16_encoded_csv(tmp_path):
     # M365 exports occasionally land as UTF-16; the utf-8-sig probe must fail
     # and fall back rather than mis-decoding or raising.
@@ -313,6 +319,7 @@ def test_ingests_utf16_encoded_csv(tmp_path):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_undecodable_csv_raises_command_error(tmp_path):
     csv_path = tmp_path / "users_bad.csv"
     # Invalid as utf-8 and odd-length for utf-16 → neither encoding decodes.
@@ -323,6 +330,7 @@ def test_undecodable_csv_raises_command_error(tmp_path):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_keeps_rows_matching_existing_student_email(tmp_path, student_factory):
     # Students share the @ukma.edu.ua domain with staff and cannot be told apart
     # in the export, so a student-domain user is intentionally ingested; the
@@ -341,6 +349,7 @@ def test_keeps_rows_matching_existing_student_email(tmp_path, student_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_filters_service_rows(tmp_path):
     csv_path = _write_csv(
         tmp_path,
@@ -357,6 +366,7 @@ def test_filters_service_rows(tmp_path):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_idempotent_rerun_updates_instead_of_creating(tmp_path):
     csv_path = _write_csv(
         tmp_path,
@@ -370,6 +380,7 @@ def test_idempotent_rerun_updates_instead_of_creating(tmp_path):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_missing_required_column_raises(tmp_path):
     path = tmp_path / "users.csv"
     path.write_text("displayName,userPrincipalName\nFoo,foo@ukma.edu.ua\n", encoding="utf-8")

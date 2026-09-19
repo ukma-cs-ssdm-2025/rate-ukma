@@ -41,7 +41,7 @@ Registered in `conftest.py` via `pytest-factoryboy` `register(CourseFactory)`, w
 def test_course_returns_offerings(course_factory): ...
 ```
 
-- Both markers, above the test, `django_db` first. No module-level `pytestmark` and no hook deriving one from the other: hoisting saves lines and costs the ability to tell from a test whether it hits the database.
+- Both markers top the decorator stack, `django_db` first, above any `parametrize` or `usefixtures`. No module-level `pytestmark` and no hook deriving one from the other: hoisting saves lines and costs the ability to tell from a test whether it hits the database.
 - On a class the pair may sit on the class, but only when every method needs it — a class marker silently covers methods added later.
 - `integration` alone means leaves-the-process without the ORM: `rateukma/caching/test_cache.py` against a mocked redis.
 - `--strict-markers` is on, so a typo fails collection. Nothing in CI filters by marker; the split serves local runs and the pyramid.

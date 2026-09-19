@@ -81,6 +81,7 @@ class TestNotificationService:
         cursor_repository.advance_cursor.assert_called_once_with(user_id)
 
     @pytest.mark.django_db
+    @pytest.mark.integration
     def test_create_notification_delegates_to_repository(self, service, notification_repository):
         notification_repository.create.return_value = MagicMock()
 

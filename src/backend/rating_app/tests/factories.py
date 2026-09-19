@@ -56,14 +56,13 @@ class UserFactory(DjangoModelFactory):
     def password(self, create, extracted, **kwargs):
         """Hash the password the way `create_user` would.
 
-        Assigning `password=` on a model factory would store the raw string,
-        leaving `check_password` and any real login test failing for a reason
-        no assertion explains.
+        Assigning `password=` on a model factory stores the raw string, leaving
+        `check_password` and any real login failing for a reason no assertion
+        explains. Hashing happens for `build()` too; only the save is skipped.
         """
-        if not create:
-            return
         self.set_password(extracted or "test-password")
-        self.save(update_fields=["password"])
+        if create:
+            self.save(update_fields=["password"])
 
 
 class FacultyFactory(DjangoModelFactory):
