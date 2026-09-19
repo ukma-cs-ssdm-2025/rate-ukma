@@ -31,8 +31,6 @@ def setup_enrolled_student(
     course_offering_factory,
     enrollment_factory,
 ):
-    """Build a student enrolled in an offering that is open for rating."""
-
     def _setup():
         student = student_factory(user=token_client.user)
         course = course_factory()

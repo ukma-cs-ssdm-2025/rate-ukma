@@ -912,7 +912,6 @@ def test_ratings_sort_by_time_order(
     time_order,
     expected,
 ):
-    """Ratings are sorted by creation time in the requested direction."""
     course = course_factory()
     offering = course_offering_factory(course=course)
 
@@ -1193,7 +1192,6 @@ def test_ratings_sort_popularity_wilson_orders_by_votes(
     votes,
     expected,
 ):
-    """Wilson lower bound favors confident approval; downvote-only ranks below unrated."""
     course = course_factory()
     offering = course_offering_factory(course=course)
 

@@ -280,8 +280,6 @@ def create_student_course_setup(
     course_offering_factory,
     enrollment_factory,
 ):
-    """Build a student, course, semester, offering, and enrollment."""
-
     def _create(term=DEFAULT_TERM, year=DEFAULT_YEAR, title="Test Course"):
         student = student_factory(user=token_client.user)
         course = course_factory(title=title)

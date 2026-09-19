@@ -8,7 +8,6 @@ from rating_app.models import FeedEvent, FeedPost, Rating
 
 
 def _assert_indexed(source) -> None:
-    """Factories and the FeedPost receiver keep the index in step; make that explicit."""
     assert FeedEvent.objects.filter(
         content_type=ContentType.objects.get_for_model(source), object_id=source.id
     ).exists()

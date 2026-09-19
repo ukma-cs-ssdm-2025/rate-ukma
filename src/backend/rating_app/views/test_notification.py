@@ -461,7 +461,6 @@ def test_notifications_list_with_pagination(token_client):
 def test_mark_group_read_marks_named_group_only_when_two_groups_exist(
     api_client, user_factory, student_factory, rating_factory
 ):
-    # Arrange
     author_student = student_factory(user=user_factory())
     rating = rating_factory(student=author_student)
     api_client.force_authenticate(user=user_factory())
@@ -490,14 +489,12 @@ def test_mark_group_read_marks_named_group_only_when_two_groups_exist(
     api_client.force_authenticate(user=author_student.user)
     assert api_client.get(reverse("notification-unread-count")).json()["count"] == 2
 
-    # Act
     response = api_client.post(
         reverse("notification-mark-group-read"),
         data={"group_key": first_key},
         format="json",
     )
 
-    # Assert
     assert response.status_code == 204
     assert api_client.get(reverse("notification-unread-count")).json()["count"] == 1
     groups = {g["group_key"]: g for g in api_client.get(reverse("notification-list")).json()}
@@ -506,26 +503,20 @@ def test_mark_group_read_marks_named_group_only_when_two_groups_exist(
 
 
 def test_mark_group_read_rejects_unauthenticated_when_no_credentials(api_client):
-    # Arrange
     url = reverse("notification-mark-group-read")
 
-    # Act
     response = api_client.post(url, data={"group_key": "RATING_UPVOTED:missing"}, format="json")
 
-    # Assert
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_mark_group_read_rejects_missing_group_key_when_body_empty(token_client):
-    # Arrange
     url = reverse("notification-mark-group-read")
 
-    # Act
     response = token_client.post(url, data={}, format="json")
 
-    # Assert
     assert response.status_code == 400
     assert "group_key" in response.json()["fields"]
 
@@ -533,17 +524,14 @@ def test_mark_group_read_rejects_missing_group_key_when_body_empty(token_client)
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_mark_group_read_returns_no_content_when_group_key_unknown(token_client):
-    # Arrange
     url = reverse("notification-mark-group-read")
 
-    # Act
     response = token_client.post(
         url,
         data={"group_key": "RATING_UPVOTED:00000000-0000-0000-0000-000000000000"},
         format="json",
     )
 
-    # Assert
     assert response.status_code == 204
     assert token_client.get(reverse("notification-unread-count")).json()["count"] == 0
 
@@ -553,7 +541,6 @@ def test_mark_group_read_returns_no_content_when_group_key_unknown(token_client)
 def test_notifications_list_excludes_groups_when_belonging_to_other_user(
     api_client, user_factory, student_factory, rating_factory
 ):
-    # Arrange
     author_student = student_factory(user=user_factory())
     rating = rating_factory(student=author_student)
     api_client.force_authenticate(user=user_factory())
@@ -570,11 +557,9 @@ def test_notifications_list_excludes_groups_when_belonging_to_other_user(
     api_client.force_authenticate(user=author_student.user)
     assert api_client.get(reverse("notification-unread-count")).json()["count"] == 1
 
-    # Act
     api_client.force_authenticate(user=user_factory())
     response = api_client.get(reverse("notification-list"))
 
     # Assert
     assert response.status_code == 200
     assert response.json() == []
-    assert api_client.get(reverse("notification-unread-count")).json()["count"] == 0

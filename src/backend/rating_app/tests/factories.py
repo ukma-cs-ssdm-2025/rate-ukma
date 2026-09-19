@@ -256,7 +256,6 @@ class CommentFactory(DjangoModelFactory):
 
     @factory.post_generation
     def sync_feed(self, create, extracted, **kwargs):
-        """Factories bypass `CommentService`, so replay what its feed observer does."""
         if not create:
             return
         from rating_app.ioc_container.repositories import comment_repository
