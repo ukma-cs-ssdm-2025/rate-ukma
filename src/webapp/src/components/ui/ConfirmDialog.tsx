@@ -49,7 +49,7 @@ export function ConfirmDialog({
 						onClick={onConfirm}
 						className={
 							variant === "destructive"
-								? "bg-destructive text-white hover:bg-destructive/80 transition-colors"
+								? "bg-destructive text-white hover:bg-destructive/80 dark:bg-destructive/60 transition-colors"
 								: ""
 						}
 						data-testid={testIds.deleteDialog.confirmButton}
