@@ -1,9 +1,13 @@
+from uuid import uuid4
+
+from django.urls import reverse
+
 import pytest
 from freezegun import freeze_time
 
+from rating_app.models import RatingVote
 from rating_app.models.choices import RatingVoteStrType, RatingVoteType
-
-from .test_rating import (
+from rating_app.tests.semester_dates import (
     DEFAULT_AFTER_MIDTERM_DATE,
     DEFAULT_BEFORE_MIDTERM_DATE,
     DEFAULT_TERM,
@@ -108,11 +112,11 @@ def test_create_vote_different_enrollment(
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
-def test_create_vote_toggle(token_client, enrolled_student_setup, vote_factory):
+def test_create_vote_toggle(token_client, enrolled_student_setup, rating_vote_factory):
     rating = enrolled_student_setup["rating"]
     student = enrolled_student_setup["student"]
     # Setup: Existing UPVOTE
-    vote_factory(rating=rating, student=student, type=RatingVoteType.UPVOTE)
+    rating_vote_factory(rating=rating, student=student, type=RatingVoteType.UPVOTE)
 
     response = make_vote_request(token_client, rating.id, RatingVoteStrType.DOWNVOTE)
 
@@ -123,10 +127,10 @@ def test_create_vote_toggle(token_client, enrolled_student_setup, vote_factory):
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
-def test_delete_vote(token_client, enrolled_student_setup, vote_factory):
+def test_delete_vote(token_client, enrolled_student_setup, rating_vote_factory):
     rating = enrolled_student_setup["rating"]
     student = enrolled_student_setup["student"]
-    vote_factory(rating=rating, student=student, type=RatingVoteType.UPVOTE)
+    rating_vote_factory(rating=rating, student=student, type=RatingVoteType.UPVOTE)
 
     url = make_vote_url(rating.id)
     response = token_client.delete(url)
@@ -253,3 +257,79 @@ def test_create_vote_on_past_semester_succeeds(
 
     assert response.status_code == 201
     assert response.json()["vote_type"] == RatingVoteStrType.DOWNVOTE
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("method", "body"),
+    [("put", {"vote_type": RatingVoteStrType.UPVOTE}), ("delete", None)],
+)
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_vote_forbidden_when_unauthenticated(api_client, rating_factory, method, body):
+    rating = rating_factory()
+    url = reverse("course-rating-votes", kwargs={"rating_id": str(rating.id)})
+    kwargs = {} if body is None else {"data": body, "format": "json"}
+
+    response = getattr(api_client, method)(url, **kwargs)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Authentication credentials were not provided."
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_delete_vote_forbidden_when_not_student(token_client, rating_factory):
+    rating = rating_factory()
+    url = reverse("course-rating-votes", kwargs={"rating_id": str(rating.id)})
+
+    response = token_client.delete(url)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Only students can perform this action."
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_delete_vote_noop_when_vote_missing(token_client, enrolled_student_setup):
+    rating = enrolled_student_setup["rating"]
+    url = reverse("course-rating-votes", kwargs={"rating_id": str(rating.id)})
+
+    response = token_client.delete(url)
+
+    assert response.status_code == 204
+    assert response.content == b""
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_delete_vote_idempotent_when_deleted_twice(
+    token_client, enrolled_student_setup, rating_vote_factory
+):
+    rating = enrolled_student_setup["rating"]
+    student = enrolled_student_setup["student"]
+    vote = rating_vote_factory(rating=rating, student=student, type=RatingVoteType.UPVOTE)
+    url = reverse("course-rating-votes", kwargs={"rating_id": str(rating.id)})
+
+    first = token_client.delete(url)
+    second = token_client.delete(url)
+
+    assert first.status_code == 204
+    assert second.status_code == 204
+    assert not RatingVote.objects.filter(id=vote.id).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_create_vote_not_found_when_rating_missing(token_client, student_factory):
+    student_factory(user=token_client.user)
+    url = reverse("course-rating-votes", kwargs={"rating_id": str(uuid4())})
+
+    response = token_client.put(url, {"vote_type": RatingVoteStrType.UPVOTE}, format="json")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Rating not found"

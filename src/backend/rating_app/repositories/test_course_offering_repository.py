@@ -4,10 +4,9 @@ from uuid import uuid4
 import pytest
 
 from rating_app.application_schemas.course_offering import CourseOffering as CourseOfferingDTO
-from rating_app.models import CourseOfferingTerm
+from rating_app.models.choices import ExamType, PracticeType, SemesterTerm
 from rating_app.repositories.course_offering_repository import CourseOfferingRepository
 from rating_app.repositories.to_domain_mappers import CourseOfferingMapper, InstructorMapper
-from rating_app.tests.factories import CourseFactory, CourseOfferingFactory, SemesterFactory
 
 
 @pytest.fixture
@@ -22,8 +21,8 @@ def repo(mapper):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_all_returns_domain_models(repo):
-    CourseOfferingFactory.create_batch(3)
+def test_get_all_returns_domain_models(repo, course_offering_factory):
+    course_offering_factory.create_batch(3)
 
     result = repo.get_all()
 
@@ -35,11 +34,13 @@ def test_get_all_returns_domain_models(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_upsert_updates_existing_offering_when_code_matches(repo):
-    course1 = CourseFactory()
-    course2 = CourseFactory()
-    semester1 = SemesterFactory()
-    existing = CourseOfferingFactory(
+def test_get_or_upsert_updates_existing_offering_when_code_matches(
+    repo, course_factory, semester_factory, course_offering_factory
+):
+    course1 = course_factory()
+    course2 = course_factory()
+    semester1 = semester_factory()
+    existing = course_offering_factory(
         code="CS101-001",
         course=course1,
         semester=semester1,
@@ -79,11 +80,13 @@ def test_get_or_upsert_updates_existing_offering_when_code_matches(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_upsert_updates_existing_offering_when_same_code_targets_other_semester(repo):
-    course = CourseFactory()
-    fall_semester = SemesterFactory(year=2025, term="FALL")
-    spring_semester = SemesterFactory(year=2026, term="SPRING")
-    existing = CourseOfferingFactory(
+def test_get_or_upsert_updates_existing_offering_when_same_code_targets_other_semester(
+    repo, course_factory, semester_factory, course_offering_factory
+):
+    course = course_factory()
+    fall_semester = semester_factory(year=2025, term="FALL")
+    spring_semester = semester_factory(year=2026, term="SPRING")
+    existing = course_offering_factory(
         code="CS101-001",
         course=course,
         semester=fall_semester,
@@ -117,9 +120,9 @@ def test_get_or_upsert_updates_existing_offering_when_same_code_targets_other_se
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_upsert_with_return_model_returns_orm_model(repo):
-    course = CourseFactory()
-    semester = SemesterFactory()
+def test_get_or_upsert_with_return_model_returns_orm_model(repo, course_factory, semester_factory):
+    course = course_factory()
+    semester = semester_factory()
 
     data = CourseOfferingDTO(
         id=uuid4(),
@@ -149,9 +152,9 @@ def test_get_or_upsert_with_return_model_returns_orm_model(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_create_returns_hydrated_domain_model(repo):
-    course = CourseFactory(title="Algorithms")
-    semester = SemesterFactory(year=2024, term="FALL")
+def test_create_returns_hydrated_domain_model(repo, course_factory, semester_factory):
+    course = course_factory(title="Algorithms")
+    semester = semester_factory(year=2024, term="FALL")
 
     data = CourseOfferingDTO(
         id=uuid4(),
@@ -182,11 +185,11 @@ def test_create_returns_hydrated_domain_model(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_applies_kwargs(repo):
-    course_one = CourseFactory()
-    course_two = CourseFactory()
-    target = CourseOfferingFactory(course=course_one)
-    CourseOfferingFactory(course=course_two)
+def test_filter_applies_kwargs(repo, course_factory, course_offering_factory):
+    course_one = course_factory()
+    course_two = course_factory()
+    target = course_offering_factory(course=course_one)
+    course_offering_factory(course=course_two)
 
     result = repo.filter(course_id=course_one.id)
 
@@ -195,31 +198,25 @@ def test_filter_applies_kwargs(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_id_includes_prefetched_terms(repo):
-    course = CourseFactory()
-    offering = CourseOfferingFactory(course=course)
-    fall = SemesterFactory(year=2025, term="FALL")
-    spring = SemesterFactory(year=2026, term="SPRING")
+def test_get_by_id_includes_prefetched_terms(
+    repo, course_factory, course_offering_factory, semester_factory, course_offering_term_factory
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    fall = semester_factory(year=2025, term=SemesterTerm.FALL)
+    spring = semester_factory(year=2026, term=SemesterTerm.SPRING)
 
-    CourseOfferingTerm.objects.create(
+    course_offering_term_factory(
         offering=offering,
         semester=fall,
-        credits=Decimal("4.0"),
-        weekly_hours=3,
-        lecture_count=28,
-        practice_count=14,
-        practice_type="SEMINAR",
-        exam_type="EXAM",
+        practice_type=PracticeType.SEMINAR,
+        exam_type=ExamType.EXAM,
     )
-    CourseOfferingTerm.objects.create(
+    course_offering_term_factory(
         offering=offering,
         semester=spring,
-        credits=Decimal("4.0"),
-        weekly_hours=2,
-        lecture_count=20,
-        practice_count=10,
-        practice_type="PRACTICE",
-        exam_type="CREDIT",
+        practice_type=PracticeType.PRACTICE,
+        exam_type=ExamType.CREDIT,
     )
 
     result = repo.get_by_id(str(offering.id))
@@ -230,8 +227,8 @@ def test_get_by_id_includes_prefetched_terms(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_by_code_returns_matching_offering(repo):
-    offering = CourseOfferingFactory.create(code="123456")
+def test_get_by_code_returns_matching_offering(repo, course_offering_factory):
+    offering = course_offering_factory(code="123456")
 
     result = repo.get_by_code("123456")
 

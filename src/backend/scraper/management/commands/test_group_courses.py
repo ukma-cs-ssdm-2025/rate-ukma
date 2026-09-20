@@ -7,7 +7,6 @@ from django.core.management.base import CommandError
 import pytest
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.group_courses.CourseGroupingService")
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_success(mock_path, mock_grouping_service):
@@ -41,7 +40,6 @@ def test_group_courses_success(mock_path, mock_grouping_service):
     mock_grouper.group_courses.assert_called_once()
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_input_not_found(mock_path):
     # Arrange
@@ -54,7 +52,6 @@ def test_group_courses_input_not_found(mock_path):
         call_command("group_courses", "nonexistent.jsonl")
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_same_input_output(mock_path):
     # Arrange
@@ -68,7 +65,6 @@ def test_group_courses_same_input_output(mock_path):
         call_command("group_courses", "file.jsonl", "--out", "file.jsonl")
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.group_courses.CourseGroupingService")
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_force_overwrite(mock_path, mock_grouping_service):
@@ -103,7 +99,6 @@ def test_group_courses_force_overwrite(mock_path, mock_grouping_service):
     mock_grouper.group_courses.assert_called_once()
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.group_courses.Path")
 def test_group_courses_output_exists_no_force(mock_path):
     # Arrange

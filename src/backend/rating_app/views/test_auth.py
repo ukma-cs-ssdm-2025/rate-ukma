@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from rest_framework import status
@@ -24,8 +25,6 @@ def test_microsoft_login_redirects(mock_redirect, api_client):
     assert response.url.startswith(expected_redirect_url)
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_microsoft_login_passes_redirect_as_next_param(api_client):
     # Arrange
     url = reverse("microsoft-login")
@@ -39,8 +38,6 @@ def test_microsoft_login_passes_redirect_as_next_param(api_client):
     assert response.url == "/accounts/microsoft/login/?next=%2Fcourses%2F123"
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_microsoft_login_without_redirect_omits_next_param(api_client):
     # Arrange
     url = reverse("microsoft-login")
@@ -53,8 +50,6 @@ def test_microsoft_login_without_redirect_omits_next_param(api_client):
     assert response.url == "/accounts/microsoft/login/"
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 @patch("rating_app.views.auth.authenticate")
 @patch("rating_app.views.auth.django_login")
 def test_login_successful(mock_django_login, mock_authenticate, api_client):
@@ -74,8 +69,6 @@ def test_login_successful(mock_django_login, mock_authenticate, api_client):
     mock_django_login.assert_called_once()
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 @patch("rating_app.views.auth.authenticate")
 def test_login_invalid_credentials(mock_authenticate, api_client):
     # Arrange
@@ -94,8 +87,6 @@ def test_login_invalid_credentials(mock_authenticate, api_client):
     )
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 @patch("rating_app.views.auth.django_logout")
 def test_logout_successful(mock_logout, api_client):
     # Arrange
@@ -122,8 +113,6 @@ def test_session_returns_active_user(token_client):
     assert data["user"]["email"] == token_client.user.email
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_session_returns_unauthorized_for_anonymous(api_client):
     response = api_client.get("/api/v1/auth/session/")
 
@@ -167,3 +156,17 @@ def test_session_returns_is_student_false_for_non_student_user(api_client, user_
     assert data["is_authenticated"] is True
     assert data["is_student"] is False
     assert data["user"]["email"] == user.email
+
+
+def test_csrf_returns_token_and_sets_cookie_when_anonymous(api_client):
+    # Arrange
+    url = reverse("csrf-token")
+
+    # Act
+    response = api_client.get(url)
+
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["csrf_token"]
+    assert settings.CSRF_COOKIE_NAME in response.cookies
+    assert response.cookies[settings.CSRF_COOKIE_NAME].value

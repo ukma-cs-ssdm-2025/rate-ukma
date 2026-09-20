@@ -5,17 +5,6 @@ from django.utils import timezone
 
 import pytest
 
-from rating_app.tests.factories import (
-    CommentFactory,
-    CourseFactory,
-    CourseOfferingFactory,
-    FeedPostFactory,
-    RatingFactory,
-    SemesterFactory,
-)
-
-pytestmark = [pytest.mark.integration, pytest.mark.django_db]
-
 
 @pytest.fixture
 def feed_url():
@@ -30,19 +19,27 @@ def test_requires_authentication(api_client, feed_url):
     assert api_client.get(feed_url).status_code in (401, 403)
 
 
-def test_returns_both_kinds_in_one_stream(token_client, feed_url):
-    RatingFactory(comment="Корисний курс")
-    FeedPostFactory(title="Хакатон")
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_returns_both_kinds_in_one_stream(
+    token_client, feed_url, rating_factory, feed_post_factory
+):
+    rating_factory(comment="Корисний курс")
+    feed_post_factory(title="Хакатон")
 
     body = token_client.get(feed_url).json()
 
     assert {item["kind"] for item in body["items"]} == {"review", "promo"}
 
 
-def test_orders_newest_first_across_kinds(token_client, feed_url):
-    FeedPostFactory(published_at=_at(hours=3))
-    rating = RatingFactory(comment="Свіжий відгук")
-    FeedPostFactory(published_at=_at(hours=1))
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_orders_newest_first_across_kinds(
+    token_client, feed_url, feed_post_factory, rating_factory
+):
+    feed_post_factory(published_at=_at(hours=3))
+    rating = rating_factory(comment="Свіжий відгук")
+    feed_post_factory(published_at=_at(hours=1))
 
     items = token_client.get(feed_url).json()["items"]
 
@@ -50,14 +47,18 @@ def test_orders_newest_first_across_kinds(token_client, feed_url):
     assert [item["kind"] for item in items] == ["review", "promo", "promo"]
 
 
-def test_omits_ratings_without_a_comment(token_client, feed_url):
-    RatingFactory(comment="")
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_omits_ratings_without_a_comment(token_client, feed_url, rating_factory):
+    rating_factory(comment="")
 
     assert token_client.get(feed_url).json()["items"] == []
 
 
-def test_review_items_expose_no_student_identity(token_client, feed_url):
-    RatingFactory(comment="Анонімно")
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_review_items_expose_no_student_identity(token_client, feed_url, rating_factory):
+    rating_factory(comment="Анонімно")
 
     item = token_client.get(feed_url).json()["items"][0]
 
@@ -65,11 +66,20 @@ def test_review_items_expose_no_student_identity(token_client, feed_url):
     assert "student_name" not in item
 
 
-def test_review_items_carry_course_context_and_averages(token_client, feed_url):
-    course = CourseFactory(title="Алгоритми", avg_difficulty="3.50", avg_usefulness="4.25")
-    semester = SemesterFactory(year=2026, term="FALL")
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    RatingFactory(comment="Складно", course_offering=offering)
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_review_items_carry_course_context_and_averages(
+    token_client,
+    feed_url,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    rating_factory,
+):
+    course = course_factory(title="Алгоритми", avg_difficulty="3.50", avg_usefulness="4.25")
+    semester = semester_factory(year=2026, term="FALL")
+    offering = course_offering_factory(course=course, semester=semester)
+    rating_factory(comment="Складно", course_offering=offering)
 
     item = token_client.get(feed_url).json()["items"][0]
 
@@ -80,20 +90,24 @@ def test_review_items_carry_course_context_and_averages(token_client, feed_url):
     assert item["course_avg_usefulness"] == 4.25
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestPinning:
-    def test_pinned_posts_lead_the_first_page(self, token_client, feed_url):
-        FeedPostFactory(published_at=_at(hours=1))
-        pinned = FeedPostFactory(pinned=True, published_at=_at(days=30))
+    def test_pinned_posts_lead_the_first_page(self, token_client, feed_url, feed_post_factory):
+        feed_post_factory(published_at=_at(hours=1))
+        pinned = feed_post_factory(pinned=True, published_at=_at(days=30))
 
         items = token_client.get(feed_url).json()["items"]
 
         assert items[0]["id"] == str(pinned.id)
         assert items[0]["pinned"] is True
 
-    def test_pinned_posts_never_appear_on_later_pages(self, token_client, feed_url):
-        FeedPostFactory(pinned=True, published_at=_at(days=30))
+    def test_pinned_posts_never_appear_on_later_pages(
+        self, token_client, feed_url, feed_post_factory
+    ):
+        feed_post_factory(pinned=True, published_at=_at(days=30))
         for hours in range(4):
-            FeedPostFactory(published_at=_at(hours=hours + 1))
+            feed_post_factory(published_at=_at(hours=hours + 1))
 
         first = token_client.get(feed_url, {"limit": 2}).json()
         second = token_client.get(feed_url, {"cursor": first["next_cursor"]}).json()
@@ -101,10 +115,14 @@ class TestPinning:
         assert sum(item["pinned"] for item in second["items"]) == 0
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestPagination:
-    def test_walks_to_exhaustion_without_duplicates_or_gaps(self, token_client, feed_url):
-        expected = {str(RatingFactory(comment=f"Відгук {i}").id) for i in range(4)}
-        expected |= {str(FeedPostFactory(published_at=_at(hours=i + 1)).id) for i in range(3)}
+    def test_walks_to_exhaustion_without_duplicates_or_gaps(
+        self, token_client, feed_url, rating_factory, feed_post_factory
+    ):
+        expected = {str(rating_factory(comment=f"Відгук {i}").id) for i in range(4)}
+        expected |= {str(feed_post_factory(published_at=_at(hours=i + 1)).id) for i in range(3)}
 
         seen = []
         cursor = None
@@ -121,8 +139,8 @@ class TestPagination:
         assert len(seen) == len(set(seen))
         assert set(seen) == expected
 
-    def test_next_cursor_is_null_on_the_last_page(self, token_client, feed_url):
-        RatingFactory(comment="Єдиний")
+    def test_next_cursor_is_null_on_the_last_page(self, token_client, feed_url, rating_factory):
+        rating_factory(comment="Єдиний")
 
         assert token_client.get(feed_url).json()["next_cursor"] is None
 
@@ -133,10 +151,20 @@ class TestPagination:
         assert token_client.get(feed_url, {"limit": 0}).status_code == 400
 
 
-def test_comment_items_carry_the_review_and_course_they_belong_to(token_client, feed_url):
-    course = CourseFactory(title="Алгоритми")
-    rating = RatingFactory(comment="Складно", course_offering=CourseOfferingFactory(course=course))
-    comment = CommentFactory(rating=rating, content="Погоджуюсь, але варто")
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_comment_items_carry_the_review_and_course_they_belong_to(
+    token_client,
+    feed_url,
+    course_factory,
+    rating_factory,
+    course_offering_factory,
+    comment_factory,
+):
+    course = course_factory(title="Алгоритми")
+    offering = course_offering_factory(course=course)
+    rating = rating_factory(comment="Складно", course_offering=offering)
+    comment = comment_factory(rating=rating, content="Погоджуюсь, але варто")
 
     items = token_client.get(feed_url).json()["items"]
     [item] = [i for i in items if i["kind"] == "comment"]
@@ -149,8 +177,10 @@ def test_comment_items_carry_the_review_and_course_they_belong_to(token_client, 
     assert item["occurred_at"] is not None
 
 
-def test_comment_items_expose_no_author_identity(token_client, feed_url):
-    CommentFactory(content="Анонімно")
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_comment_items_expose_no_author_identity(token_client, feed_url, comment_factory):
+    comment_factory(content="Анонімно")
 
     [item] = [i for i in token_client.get(feed_url).json()["items"] if i["kind"] == "comment"]
 

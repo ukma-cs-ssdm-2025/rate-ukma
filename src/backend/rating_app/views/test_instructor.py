@@ -4,19 +4,12 @@ from django.urls import reverse
 
 import pytest
 
-from rating_app.tests.factories import (
-    CourseOfferingFactory,
-    CourseOfferingSpecialityFactory,
-    RatingFactory,
-    SpecialityFactory,
-)
-
 
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_get_instructor_detail(token_client, instructor_factory):
     # Arrange
-    instructor = instructor_factory.create()
+    instructor = instructor_factory()
     url = reverse("instructor-detail", args=[instructor.id])
 
     # Act
@@ -73,8 +66,8 @@ def test_list_instructors_paginated(token_client, instructor_factory):
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_list_instructors_search(token_client, instructor_factory):
-    instructor_factory.create(first_name="Ivan", last_name="Petrenko", email="ivan@ukma.edu.ua")
-    instructor_factory.create(first_name="Anna", last_name="Koval", email="anna@ukma.edu.ua")
+    instructor_factory(first_name="Ivan", last_name="Petrenko", email="ivan@ukma.edu.ua")
+    instructor_factory(first_name="Anna", last_name="Koval", email="anna@ukma.edu.ua")
 
     url = reverse("instructor-list")
     response = token_client.get(url, {"search": "ivan"})
@@ -90,13 +83,13 @@ def test_list_instructors_search(token_client, instructor_factory):
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_list_instructors_search_matches_display_name_tokens(token_client, instructor_factory):
-    instructor_factory.create(
+    instructor_factory(
         first_name="Микола",
         patronymic="Миколайович",
         last_name="Глибовець",
         email="mykola.hlybovets@ukma.edu.ua",
     )
-    instructor_factory.create(
+    instructor_factory(
         first_name="Альбіна",
         patronymic="Андріївна",
         last_name="Глибовець",
@@ -116,13 +109,13 @@ def test_list_instructors_search_matches_display_name_tokens(token_client, instr
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_list_instructors_search_matches_patronymic_token(token_client, instructor_factory):
-    instructor_factory.create(
+    instructor_factory(
         first_name="Микола",
         patronymic="Миколайович",
         last_name="Глибовець",
         email="mykola.hlybovets@ukma.edu.ua",
     )
-    instructor_factory.create(
+    instructor_factory(
         first_name="Альбіна",
         patronymic="Андріївна",
         last_name="Глибовець",
@@ -140,17 +133,19 @@ def test_list_instructors_search_matches_patronymic_token(token_client, instruct
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_instructors_orders_by_offering_mentions(token_client, instructor_factory):
-    offering = CourseOfferingFactory.create()
-    top = instructor_factory.create(last_name="Aaa")
-    middle = instructor_factory.create(last_name="Bbb")
-    bottom = instructor_factory.create(last_name="Ccc")
+def test_list_instructors_orders_by_offering_mentions(
+    token_client, instructor_factory, course_offering_factory, rating_factory
+):
+    offering = course_offering_factory()
+    top = instructor_factory(last_name="Aaa")
+    middle = instructor_factory(last_name="Bbb")
+    bottom = instructor_factory(last_name="Ccc")
 
     # top → 2 ratings on this offering, middle → 1, bottom → 0
     for _ in range(2):
-        r = RatingFactory.create(course_offering=offering)
+        r = rating_factory(course_offering=offering)
         r.instructors.add(top)
-    r = RatingFactory.create(course_offering=offering)
+    r = rating_factory(course_offering=offering)
     r.instructors.add(middle)
 
     url = reverse("instructor-list")
@@ -164,18 +159,25 @@ def test_list_instructors_orders_by_offering_mentions(token_client, instructor_f
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_instructors_orders_by_speciality_mentions(token_client, instructor_factory):
-    speciality = SpecialityFactory.create()
-    offering = CourseOfferingFactory.create()
-    CourseOfferingSpecialityFactory.create(offering=offering, speciality=speciality)
-    other_offering = CourseOfferingFactory.create()
+def test_list_instructors_orders_by_speciality_mentions(
+    token_client,
+    instructor_factory,
+    speciality_factory,
+    course_offering_factory,
+    course_offering_speciality_factory,
+    rating_factory,
+):
+    speciality = speciality_factory()
+    offering = course_offering_factory()
+    course_offering_speciality_factory(offering=offering, speciality=speciality)
+    other_offering = course_offering_factory()
 
-    top = instructor_factory.create(last_name="Aaa")
-    other = instructor_factory.create(last_name="Bbb")
+    top = instructor_factory(last_name="Aaa")
+    other = instructor_factory(last_name="Bbb")
 
-    rating_on_spec = RatingFactory.create(course_offering=offering)
+    rating_on_spec = rating_factory(course_offering=offering)
     rating_on_spec.instructors.add(top)
-    rating_elsewhere = RatingFactory.create(course_offering=other_offering)
+    rating_elsewhere = rating_factory(course_offering=other_offering)
     rating_elsewhere.instructors.add(other)
 
     url = reverse("instructor-list")
@@ -189,12 +191,12 @@ def test_list_instructors_orders_by_speciality_mentions(token_client, instructor
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_instructors_global_fallback(token_client, instructor_factory):
-    less = instructor_factory.create(last_name="Less")
-    more = instructor_factory.create(last_name="More")
-    RatingFactory.create().instructors.add(less)
+def test_list_instructors_global_fallback(token_client, instructor_factory, rating_factory):
+    less = instructor_factory(last_name="Less")
+    more = instructor_factory(last_name="More")
+    rating_factory().instructors.add(less)
     for _ in range(3):
-        RatingFactory.create().instructors.add(more)
+        rating_factory().instructors.add(more)
 
     url = reverse("instructor-list")
     response = token_client.get(url)

@@ -19,6 +19,7 @@ def repo():
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_create_uses_model_default_id(repo, rating_factory, user):
     rating = rating_factory()
     params = CommentCreateParams(
@@ -37,6 +38,7 @@ def test_create_uses_model_default_id(repo, rating_factory, user):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_or_create_creates_comment_with_explicit_upsert_id(repo, rating_factory, user):
     comment_id = uuid.uuid4()
     params = CommentUpsertParams(
@@ -56,6 +58,7 @@ def test_get_or_create_creates_comment_with_explicit_upsert_id(repo, rating_fact
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_get_or_upsert_updates_comment_with_param_id(repo, rating_factory, user):
     comment_id = uuid.uuid4()
     params = CommentUpsertParams(

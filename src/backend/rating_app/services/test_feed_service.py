@@ -9,9 +9,6 @@ import pytest
 from rating_app.ioc_container.services import feed_service
 from rating_app.models import FeedEvent, Rating
 from rating_app.models.choices import FeedEventType
-from rating_app.tests.factories import FeedPostFactory, RatingFactory
-
-pytestmark = [pytest.mark.django_db, pytest.mark.integration]
 
 
 @pytest.fixture
@@ -20,10 +17,10 @@ def service():
 
 
 @pytest.fixture
-def make_post(django_capture_on_commit_callbacks):
+def make_post(django_capture_on_commit_callbacks, feed_post_factory):
     def _create(**kwargs):
         with django_capture_on_commit_callbacks(execute=True):
-            return FeedPostFactory(**kwargs)
+            return feed_post_factory(**kwargs)
 
     return _create
 
@@ -32,6 +29,8 @@ def _ids(page):
     return [str(item.id) for item in page.items]
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_scheduled_post_appears_once_its_publication_time_passes(service, monkeypatch, make_post):
     now = timezone.now()
     post = make_post(published_at=now + timedelta(minutes=10))
@@ -44,8 +43,10 @@ def test_scheduled_post_appears_once_its_publication_time_passes(service, monkey
     assert str(post.id) in _ids(service.get_feed_page(cursor=None, limit=10))
 
 
-def test_repeated_calls_are_served_from_cache_while_nothing_changes(service):
-    RatingFactory(comment="Корисний курс")
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_repeated_calls_are_served_from_cache_while_nothing_changes(service, rating_factory):
+    rating_factory(comment="Корисний курс")
 
     first = service.get_feed_page(cursor=None, limit=10)
     second = service.get_feed_page(cursor=None, limit=10)
@@ -53,6 +54,8 @@ def test_repeated_calls_are_served_from_cache_while_nothing_changes(service):
     assert _ids(first) == _ids(second)
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_new_post_invalidates_the_cached_page(service, make_post):
     service.get_feed_page(cursor=None, limit=10)
 
@@ -61,6 +64,8 @@ def test_new_post_invalidates_the_cached_page(service, make_post):
     assert str(post.id) in _ids(service.get_feed_page(cursor=None, limit=10))
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_each_scheduled_post_appears_in_turn(service, monkeypatch, make_post):
     """The marker has to move on to the post after the one it just released."""
     now = timezone.now()
@@ -78,18 +83,24 @@ def test_each_scheduled_post_appears_in_turn(service, monkeypatch, make_post):
     assert str(second.id) in _ids(service.get_feed_page(cursor=None, limit=10))
 
 
-def test_a_cache_hit_costs_no_database_query(service, django_assert_num_queries):
-    RatingFactory(comment="Корисний курс")
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_cache_hit_costs_no_database_query(service, django_assert_num_queries, rating_factory):
+    rating_factory(comment="Корисний курс")
     service.get_feed_page(cursor=None, limit=10)
 
     with django_assert_num_queries(0):
         service.get_feed_page(cursor=None, limit=10)
 
 
-def test_a_page_costs_one_index_query_plus_one_per_kind(service, django_assert_num_queries):
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_page_costs_one_index_query_plus_one_per_kind(
+    service, django_assert_num_queries, rating_factory, feed_post_factory
+):
     for i in range(4):
-        RatingFactory(comment=f"Відгук {i}")
-        FeedPostFactory(published_at=timezone.now() - timedelta(hours=i + 1))
+        rating_factory(comment=f"Відгук {i}")
+        feed_post_factory(published_at=timezone.now() - timedelta(hours=i + 1))
 
     # first page holds 4 reviews + 2 posts: keyset + pinned prefix + one fetch per kind
     with django_assert_num_queries(4):
@@ -103,20 +114,22 @@ def test_a_page_costs_one_index_query_plus_one_per_kind(service, django_assert_n
     assert len(second.items) == 2
 
 
-def test_an_entry_whose_source_is_gone_is_skipped_but_still_paged_past(service):
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_an_entry_whose_source_is_gone_is_skipped_but_still_paged_past(service, rating_factory):
     """Every ORM delete cascades through the sources' GenericRelation, so a
     dangling entry can only come from raw SQL. The read path tolerates it
     anyway: the card drops out, and the cursor is minted from the index row,
     so the reader lands on the next page rather than looping on the hole.
     """
-    earliest = RatingFactory(comment="Перший")
+    earliest = rating_factory(comment="Перший")
     dangling = FeedEvent.objects.create(
         event_type=FeedEventType.REVIEW_PUBLISHED,
         occurred_at=timezone.now(),
         content_type=ContentType.objects.get_for_model(Rating),
         object_id=uuid.uuid4(),
     )
-    latest = RatingFactory(comment="Останній")
+    latest = rating_factory(comment="Останній")
 
     first = service.get_feed_page(cursor=None, limit=2)
     second = service.get_feed_page(cursor=first.next_cursor, limit=2)

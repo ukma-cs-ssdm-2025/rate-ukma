@@ -56,11 +56,11 @@ class Rating(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=Q(difficulty__gte=1, difficulty__lte=5),
+                condition=Q(difficulty__gte=1, difficulty__lte=5),
                 name="rating_difficulty_1_5",
             ),
             models.CheckConstraint(
-                check=Q(usefulness__gte=1, usefulness__lte=5),
+                condition=Q(usefulness__gte=1, usefulness__lte=5),
                 name="rating_usefulness_1_5",
             ),
         ]

@@ -10,13 +10,6 @@ from rating_app.repositories.instructor_repository import (
     InstructorRepository,
     current_academic_year_start,
 )
-from rating_app.tests.factories import (
-    CourseFactory,
-    CourseOfferingFactory,
-    InstructorFactory,
-    RatingFactory,
-    StudentFactory,
-)
 
 
 @pytest.fixture
@@ -90,29 +83,27 @@ def test_get_or_create_is_idempotent_on_email(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_ranked_breaks_ties_alphabetically(repo):
+def test_list_ranked_breaks_ties_alphabetically(repo, instructor_factory):
     # No ratings => all mention counts are zero, so ordering falls back to
     # (last_name, first_name, id).
-    second = InstructorFactory.create(first_name="Bohdan", last_name="Petrenko")
-    first = InstructorFactory.create(first_name="Anna", last_name="Kovalenko")
-    third = InstructorFactory.create(first_name="Anna", last_name="Petrenko")
+    second = instructor_factory(first_name="Bohdan", last_name="Petrenko")
+    first = instructor_factory(first_name="Anna", last_name="Kovalenko")
+    third = instructor_factory(first_name="Anna", last_name="Petrenko")
 
     ranked = list(repo.list_ranked())
 
     assert [instructor.id for instructor in ranked] == [first.id, third.id, second.id]
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_get_many_by_ids_with_empty_list_returns_empty(repo):
     assert repo.get_many_by_ids([]) == []
 
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_many_by_ids_returns_only_matching_and_omits_unknown(repo):
-    existing = InstructorFactory.create()
-    other = InstructorFactory.create()
+def test_get_many_by_ids_returns_only_matching_and_omits_unknown(repo, instructor_factory):
+    existing = instructor_factory()
+    other = instructor_factory()
 
     result = repo.get_many_by_ids([existing.id, uuid4()])
 
@@ -122,13 +113,13 @@ def test_get_many_by_ids_returns_only_matching_and_omits_unknown(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_ranked_orders_cyrillic_before_latin_at_equal_mentions(repo):
+def test_list_ranked_orders_cyrillic_before_latin_at_equal_mentions(repo, instructor_factory):
     # No ratings => equal (zero) mentions, so script ordering decides:
     # Cyrillic names come before Latin ones, each group alphabetical.
-    latin_a = InstructorFactory.create(first_name="Anna", last_name="Adams")
-    cyrillic_ya = InstructorFactory.create(first_name="Юрій", last_name="Яременко")
-    cyrillic_a = InstructorFactory.create(first_name="Андрій", last_name="Андрієнко")
-    latin_z = InstructorFactory.create(first_name="Zach", last_name="Zorin")
+    latin_a = instructor_factory(first_name="Anna", last_name="Adams")
+    cyrillic_ya = instructor_factory(first_name="Юрій", last_name="Яременко")
+    cyrillic_a = instructor_factory(first_name="Андрій", last_name="Андрієнко")
+    latin_z = instructor_factory(first_name="Zach", last_name="Zorin")
 
     ranked = list(repo.list_ranked())
 
@@ -142,21 +133,23 @@ def test_list_ranked_orders_cyrillic_before_latin_at_equal_mentions(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_ranked_tiers_offering_then_course_then_global(repo):
+def test_list_ranked_tiers_offering_then_course_then_global(
+    repo, course_factory, course_offering_factory, instructor_factory, rating_factory
+):
     # Same course, two offerings (semesters).
-    course = CourseFactory.create()
-    offering_a = CourseOfferingFactory.create(course=course)
-    offering_b = CourseOfferingFactory.create(course=course)
-    other_offering = CourseOfferingFactory.create()  # unrelated course
+    course = course_factory()
+    offering_a = course_offering_factory(course=course)
+    offering_b = course_offering_factory(course=course)
+    other_offering = course_offering_factory()  # unrelated course
 
-    on_offering = InstructorFactory.create(last_name="Aaa")  # exact offering
-    on_course = InstructorFactory.create(last_name="Bbb")  # same course, other offering
-    rated_elsewhere = InstructorFactory.create(last_name="Ccc")  # only global mention
-    never_rated = InstructorFactory.create(last_name="Ddd")  # directory tail
+    on_offering = instructor_factory(last_name="Aaa")  # exact offering
+    on_course = instructor_factory(last_name="Bbb")  # same course, other offering
+    rated_elsewhere = instructor_factory(last_name="Ccc")  # only global mention
+    never_rated = instructor_factory(last_name="Ddd")  # directory tail
 
-    RatingFactory.create(course_offering=offering_a).instructors.add(on_offering)
-    RatingFactory.create(course_offering=offering_b).instructors.add(on_course)
-    RatingFactory.create(course_offering=other_offering).instructors.add(rated_elsewhere)
+    rating_factory(course_offering=offering_a).instructors.add(on_offering)
+    rating_factory(course_offering=offering_b).instructors.add(on_course)
+    rating_factory(course_offering=other_offering).instructors.add(rated_elsewhere)
 
     ranked = list(repo.list_ranked(course_offering_id=offering_a.id, course_id=course.id))
 
@@ -170,13 +163,15 @@ def test_list_ranked_tiers_offering_then_course_then_global(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_ranked_hides_unrated_current_bachelor_student(repo):
+def test_list_ranked_hides_unrated_current_bachelor_student(
+    repo, instructor_factory, student_factory
+):
     # Instructor row that is really a still-enrolled bachelor student (matched
     # by email) and was never rated: dropped by default, shown when the filter
     # is disabled.
     email = "current.bachelor@ukma.edu.ua"
-    instructor = InstructorFactory.create(email=email)
-    StudentFactory.create(
+    instructor = instructor_factory(email=email)
+    student_factory(
         email=email,
         education_level=EducationLevel.BACHELOR,
         program_start_academic_year_start=current_academic_year_start() - 1,
@@ -191,12 +186,14 @@ def test_list_ranked_hides_unrated_current_bachelor_student(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_ranked_search_reveals_unrated_current_bachelor_student(repo):
+def test_list_ranked_search_reveals_unrated_current_bachelor_student(
+    repo, instructor_factory, student_factory
+):
     # Searching must find them, or they could never be picked and so could never
     # earn the rating that would reveal them.
     email = "searchable.bachelor@ukma.edu.ua"
-    instructor = InstructorFactory.create(email=email, last_name="Небачений")
-    StudentFactory.create(
+    instructor = instructor_factory(email=email, last_name="Небачений")
+    student_factory(
         email=email,
         education_level=EducationLevel.BACHELOR,
         program_start_academic_year_start=current_academic_year_start() - 1,
@@ -208,27 +205,29 @@ def test_list_ranked_search_reveals_unrated_current_bachelor_student(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_ranked_keeps_current_bachelor_student_when_rated(repo):
+def test_list_ranked_keeps_current_bachelor_student_when_rated(
+    repo, instructor_factory, student_factory, rating_factory
+):
     # A rated instructor is never hidden, even if they match a current student.
     email = "rated.bachelor@ukma.edu.ua"
-    instructor = InstructorFactory.create(email=email)
-    StudentFactory.create(
+    instructor = instructor_factory(email=email)
+    student_factory(
         email=email,
         education_level=EducationLevel.BACHELOR,
         program_start_academic_year_start=current_academic_year_start(),
     )
-    RatingFactory.create().instructors.add(instructor)
+    rating_factory().instructors.add(instructor)
 
     assert instructor.id in {i.id for i in repo.list_ranked()}
 
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_ranked_keeps_master_current_student(repo):
+def test_list_ranked_keeps_master_current_student(repo, instructor_factory, student_factory):
     # Masters routinely teach practicums, so current master students stay.
     email = "current.master@ukma.edu.ua"
-    instructor = InstructorFactory.create(email=email)
-    StudentFactory.create(
+    instructor = instructor_factory(email=email)
+    student_factory(
         email=email,
         education_level=EducationLevel.MASTER,
         program_start_academic_year_start=current_academic_year_start(),
@@ -239,11 +238,11 @@ def test_list_ranked_keeps_master_current_student(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_list_ranked_keeps_graduated_bachelor(repo):
+def test_list_ranked_keeps_graduated_bachelor(repo, instructor_factory, student_factory):
     # Started long enough ago to have graduated a 4-year bachelor: kept.
     email = "alumnus@ukma.edu.ua"
-    instructor = InstructorFactory.create(email=email)
-    StudentFactory.create(
+    instructor = instructor_factory(email=email)
+    student_factory(
         email=email,
         education_level=EducationLevel.BACHELOR,
         program_start_academic_year_start=current_academic_year_start() - 6,

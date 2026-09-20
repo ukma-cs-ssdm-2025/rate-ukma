@@ -17,8 +17,6 @@ from rating_app.models.choices import FeedEventType
 from rating_app.services.comment_events import CommentAction, CommentEvent
 from rating_app.services.rating_events import RatingAction, RatingEvent
 
-pytestmark = [pytest.mark.django_db, pytest.mark.integration]
-
 
 def _event_for(source) -> FeedEvent:
     return FeedEvent.objects.get(
@@ -26,6 +24,8 @@ def _event_for(source) -> FeedEvent:
     )
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestRatingUpdates:
     @pytest.fixture
     def emit(self):
@@ -79,6 +79,8 @@ class TestRatingUpdates:
         assert _event_for(rating) is not None
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestPostUpdates:
     def test_post_state_mirrors_onto_the_event(self, feed_post_factory):
         scheduled_for = timezone.now() + timedelta(days=1)
@@ -102,6 +104,8 @@ class TestPostUpdates:
         assert after.pinned is True
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestCommentUpdates:
     @pytest.fixture
     def emit(self):
@@ -151,6 +155,8 @@ class TestCommentUpdates:
         assert not FeedEvent.objects.filter(object_id=comment.id).exists()
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestRebuild:
     def test_indexes_rows_that_bypassed_the_service(self, rating_factory, feed_post_factory):
         """`Rating.objects.create` and bulk loads never reach the observers."""

@@ -39,7 +39,7 @@ class CourseOfferingTerm(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                check=Q(credits__gt=0),
+                condition=Q(credits__gt=0),
                 name="cot_credits_gt_0",
             ),
             models.UniqueConstraint(

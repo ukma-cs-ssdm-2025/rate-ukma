@@ -1803,6 +1803,22 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-factoryboy"
+version = "2.8.1"
+source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
+dependencies = [
+    { name = "factory-boy" },
+    { name = "inflection" },
+    { name = "packaging" },
+    { name = "pytest" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/91/8a/a0f9c58bf176b0d39b630a6e29cccebec9a429dfeb62204bbb9b632fb798/pytest_factoryboy-2.8.1.tar.gz", hash = "sha256:2221d48b31b8b8ccaa739c6a162fb50a43a4de6dff6043f249d2807a3462548d", size = 16906, upload-time = "2025-07-01T04:05:38.901Z" }
+wheels = [
+    { url = "https://pkgs.safetycli.com/package/-7bd8a/pypi/packages/06/2f/4f73a79196b4acb0f902520a805caa22f8ba0adbecdfb028a371404c2537/pytest_factoryboy-2.8.1-py3-none-any.whl", hash = "sha256:91c762cb236bf34b11efdf2e54bafae33114488235621e8b2c4bd9fd77838784", size = 16413, upload-time = "2025-07-01T04:05:37.344Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pkgs.safetycli.com/repository/-7bd8a/project/rate-ukma/pypi/simple/" }
@@ -2021,6 +2037,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
+    { name = "pytest-factoryboy" },
     { name = "ruff" },
     { name = "safety" },
 ]
@@ -2039,6 +2056,7 @@ test = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
+    { name = "pytest-factoryboy" },
 ]
 typecheck = [
     { name = "django-types" },
@@ -2082,6 +2100,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'", specifier = "==8.3.4" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = "==7.0.0" },
     { name = "pytest-django", marker = "extra == 'test'", specifier = ">=4.5.2" },
+    { name = "pytest-factoryboy", marker = "extra == 'test'", specifier = ">=2.7" },
     { name = "python-decouple", specifier = ">=3.8" },
     { name = "rateukma", extras = ["linting"], marker = "extra == 'dev'" },
     { name = "rateukma", extras = ["security"], marker = "extra == 'dev'" },

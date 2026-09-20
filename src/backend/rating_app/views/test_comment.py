@@ -1,3 +1,9 @@
+from datetime import timedelta
+from uuid import uuid4
+
+from django.urls import reverse
+from django.utils import timezone
+
 import pytest
 
 from rating_app.models import Comment
@@ -395,3 +401,109 @@ def test_comment_delete_forbidden_for_non_owner(token_client, rating_factory, co
 
     assert response.status_code == 403
     assert Comment.objects.filter(id=comment.id).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("method", "route", "body"),
+    [
+        ("get", "list", None),
+        ("post", "list", {"content": "Unauthenticated comment", "is_anonymous": False}),
+        ("get", "replies", None),
+        ("put", "detail", {"content": "Unauthenticated update", "is_anonymous": False}),
+        ("patch", "detail", {"content": "Unauthenticated patch"}),
+        ("delete", "detail", None),
+    ],
+)
+def test_comment_forbidden_when_unauthenticated(
+    api_client, rating_factory, comment_factory, method, route, body
+):
+    rating = rating_factory()
+    comment = comment_factory(rating=rating)
+    urls = {
+        "list": reverse("comment-get", kwargs={"rating_id": str(rating.id)}),
+        "replies": reverse("comment-replies", kwargs={"comment_id": str(comment.id)}),
+        "detail": reverse("comment-detail", kwargs={"comment_id": str(comment.id)}),
+    }
+    kwargs = {} if body is None else {"data": body, "format": "json"}
+
+    response = getattr(api_client, method)(urls[route], **kwargs)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Authentication credentials were not provided."
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("method", "body"),
+    [
+        ("put", {"content": "Missing comment", "is_anonymous": False}),
+        ("patch", {"content": "Missing comment"}),
+        ("delete", None),
+    ],
+)
+def test_comment_detail_not_found_when_unknown_id(token_client, method, body):
+    url = reverse("comment-detail", kwargs={"comment_id": str(uuid4())})
+    kwargs = {} if body is None else {"data": body, "format": "json"}
+
+    response = getattr(token_client, method)(url, **kwargs)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Comment not found"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("method", "body"),
+    [
+        ("put", {"content": "Malformed id", "is_anonymous": False}),
+        ("patch", {"content": "Malformed id"}),
+        ("delete", None),
+    ],
+)
+def test_comment_detail_bad_request_when_malformed_id(token_client, method, body):
+    url = reverse("comment-detail", kwargs={"comment_id": "not-a-uuid"})
+    kwargs = {} if body is None else {"data": body, "format": "json"}
+
+    response = getattr(token_client, method)(url, **kwargs)
+
+    assert response.status_code == 400
+    assert response.json()["fields"]["comment_id"] == "Invalid comment identifier"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_comments_list_paginates_when_second_page_requested(
+    token_client, rating_factory, comment_factory
+):
+    rating = rating_factory()
+    base = timezone.now()
+    created = [comment_factory(rating=rating) for _ in range(12)]
+    for index, comment in enumerate(created):
+        Comment.objects.filter(pk=comment.pk).update(
+            created_at=base + timedelta(seconds=len(created) - index)
+        )
+    ordered = list(reversed(created))
+    for comment in ordered:
+        comment.refresh_from_db()
+
+    url = reverse("comment-get", kwargs={"rating_id": str(rating.id)})
+    page1 = token_client.get(url, {"page": 1, "page_size": 5})
+    page2 = token_client.get(url, {"page": 2, "page_size": 5})
+
+    assert page1.status_code == 200
+    assert page2.status_code == 200
+    assert page1.json()["total"] == 12
+    assert page2.json()["page"] == 2
+
+    page1_ids = [item["id"] for item in page1.json()["items"]]
+    page2_ids = [item["id"] for item in page2.json()["items"]]
+    expected_page1 = [str(comment.id) for comment in ordered[:5]]
+    expected_page2 = [str(comment.id) for comment in ordered[5:10]]
+
+    assert page1_ids == expected_page1
+    assert page2_ids == expected_page2
+    assert set(page1_ids).isdisjoint(page2_ids)

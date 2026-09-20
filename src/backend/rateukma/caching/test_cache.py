@@ -48,11 +48,11 @@ def cache_key_context_provider() -> CacheKeyContextProvider:
     return CacheKeyContextProvider()
 
 
-@pytest.mark.usefixtures("cache_manager", "mock_redis_client", "cache_key_context_provider")
 @pytest.mark.integration
+@pytest.mark.usefixtures("cache_manager", "mock_redis_client", "cache_key_context_provider")
 class TestCachePrimitives:
     @pytest.mark.parametrize(
-        "primitive_value, type",
+        ("primitive_value", "type"),
         [
             (42, int),
             ("hello", str),
@@ -75,8 +75,8 @@ class TestCachePrimitives:
         assert deserialized == primitive_value
 
 
-@pytest.mark.usefixtures("cache_manager", "mock_redis_client")
 @pytest.mark.integration
+@pytest.mark.usefixtures("cache_manager", "mock_redis_client")
 class TestCacheDataclasses:
     @dataclass(frozen=True)
     class _TestData:
@@ -106,11 +106,11 @@ class TestCacheDataclasses:
         assert "lambda" in cache_key
 
 
-@pytest.mark.usefixtures("cache_manager", "mock_redis_client")
 @pytest.mark.integration
+@pytest.mark.usefixtures("cache_manager", "mock_redis_client")
 class TestCacheDRFResponses:
     @pytest.mark.parametrize(
-        "response, expected_result",
+        ("response", "expected_result"),
         [
             (
                 Response(
@@ -165,8 +165,8 @@ class TestCacheDRFResponses:
         assert expected_func_pattern in cache_key
 
 
-@pytest.mark.usefixtures("cache_manager", "mock_redis_client")
 @pytest.mark.integration
+@pytest.mark.usefixtures("cache_manager", "mock_redis_client")
 class TestCacheBaseModels:
     class _TestModel(BaseModel):
         name: str
@@ -199,7 +199,7 @@ class TestCacheBaseModels:
 @pytest.mark.integration
 class TestRCachedComponents:
     @pytest.mark.parametrize(
-        "primitive_value,expected_type",
+        ("primitive_value", "expected_type"),
         [
             (42, int),
             ("hello world", str),
@@ -325,6 +325,7 @@ class TestInvalidatePatternSkipKeys:
         assert manager.get("1:django.contrib.sessions.cache<abc123>") == "session-data"
 
 
+@pytest.mark.integration
 class TestCacheInvalidation:
     class _TestService:
         pass
