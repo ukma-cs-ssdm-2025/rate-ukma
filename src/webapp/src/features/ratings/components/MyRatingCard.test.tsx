@@ -131,8 +131,7 @@ describe("MyRatingCard faculty accent", () => {
 
 		const rateButton = screen.getByRole("button", { name: "Оцінити" });
 		expect(rateButton).toBeDisabled();
-		expect(rateButton).toHaveClass("disabled:opacity-100");
-		expect(rateButton).not.toHaveClass("opacity-50");
+		expect(rateButton).toHaveClass("opacity-50");
 		expect(rateButton).toHaveStyle({
 			backgroundColor: "#4c217a",
 			color: "#ffffff",

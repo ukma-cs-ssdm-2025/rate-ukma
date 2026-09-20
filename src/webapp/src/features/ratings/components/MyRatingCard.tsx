@@ -227,10 +227,8 @@ function CardActions({
 							size="sm"
 							disabled
 							className={cn(
-								"cursor-not-allowed",
-								accent
-									? "border-transparent disabled:opacity-100"
-									: "opacity-50",
+								"opacity-50 cursor-not-allowed",
+								accent && "border-transparent",
 							)}
 							style={
 								accent
