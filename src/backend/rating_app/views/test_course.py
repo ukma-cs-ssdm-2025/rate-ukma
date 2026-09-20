@@ -74,21 +74,24 @@ def test_filter_by_instructor(
     course_factory,
     course_offering_factory,
     instructor_factory,
-    course_instructor_factory,
+    rating_factory,
 ):
-    # Arrange
+    # Mentioned in a rating, no CourseInstructor row (#664).
     course = course_factory()
     offering = course_offering_factory(course=course)
     instructor = instructor_factory()
-    course_instructor_factory(course_offering=offering, instructor=instructor)
+    rating = rating_factory(course_offering=offering)
+    rating.instructors.add(instructor)
+    other_course = course_factory()
+    course_offering_factory(course=other_course)
 
     url = f"/api/v1/courses/?instructor={instructor.id}"
 
-    # Act
     response = token_client.get(url)
 
-    # Assert
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    data = response.json()
+    assert {item["id"] for item in data["items"]} == {str(course.id)}
 
 
 @pytest.mark.django_db

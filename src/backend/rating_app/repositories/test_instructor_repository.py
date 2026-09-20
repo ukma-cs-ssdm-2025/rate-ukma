@@ -163,6 +163,34 @@ def test_list_ranked_tiers_offering_then_course_then_global(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_list_ranked_mentioned_only_drops_never_rated(repo, instructor_factory, rating_factory):
+    rated = instructor_factory(last_name="Rated")
+    never_rated = instructor_factory(last_name="NeverRated")
+    rating_factory().instructors.add(rated)
+
+    ranked_ids = {i.id for i in repo.list_ranked(mentioned_only=True)}
+
+    assert rated.id in ranked_ids
+    assert never_rated.id not in ranked_ids
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_ranked_without_mentioned_only_keeps_never_rated(
+    repo, instructor_factory, rating_factory
+):
+    rated = instructor_factory(last_name="Rated")
+    never_rated = instructor_factory(last_name="NeverRated")
+    rating_factory().instructors.add(rated)
+
+    ranked_ids = {i.id for i in repo.list_ranked()}
+
+    assert rated.id in ranked_ids
+    assert never_rated.id in ranked_ids
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_list_ranked_hides_unrated_current_bachelor_student(
     repo, instructor_factory, student_factory
 ):

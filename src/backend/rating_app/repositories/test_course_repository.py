@@ -15,26 +15,108 @@ def repo():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_filter_by_instructor_returns_only_assigned_courses(
-    repo, instructor_factory, course_factory, course_offering_factory, course_instructor_factory
+def test_filter_by_instructor_returns_mentioned_courses(
+    repo, instructor_factory, course_factory, course_offering_factory, rating_factory
 ):
-    # Arrange
+    # No CourseInstructor row — mentions are the signal (#664).
     instructor = instructor_factory()
-    course_with_instructor = course_factory()
-    offering_with_instructor = course_offering_factory(course=course_with_instructor)
-    course_instructor_factory(course_offering=offering_with_instructor, instructor=instructor)
+    course_with_mention = course_factory()
+    offering_with_mention = course_offering_factory(course=course_with_mention)
+    rating = rating_factory(course_offering=offering_with_mention)
+    rating.instructors.add(instructor)
 
-    # Act
-    course_without_instructor = course_factory()
-    course_offering_factory(course=course_without_instructor)
+    course_without_mention = course_factory()
+    course_offering_factory(course=course_without_mention)
     filters = CourseFilterCriteriaInternal(instructor=instructor.id)
     result = repo.filter(filters)
 
-    # Assert
     returned_ids = {course.id for course in result}
-    assert returned_ids == {str(course_with_instructor.id)}
+    assert returned_ids == {str(course_with_mention.id)}
     assert len(result) == 1
-    assert result[0].title == course_with_instructor.title
+    assert result[0].title == course_with_mention.title
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_instructor_with_zero_mentions_returns_empty(
+    repo, instructor_factory, course_offering_factory
+):
+    # Never mentioned, so nothing matches.
+    instructor = instructor_factory()
+    course_offering_factory()
+
+    result = repo.filter(CourseFilterCriteriaInternal(instructor=instructor.id))
+
+    assert result == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_instructor_combined_with_department(
+    repo, instructor_factory, course_factory, course_offering_factory, rating_factory
+):
+    # Other-department mention must not leak in.
+    instructor = instructor_factory()
+    wanted = course_factory()
+    wanted_offering = course_offering_factory(course=wanted)
+    wanted_rating = rating_factory(course_offering=wanted_offering)
+    wanted_rating.instructors.add(instructor)
+
+    other = course_factory()
+    other_offering = course_offering_factory(course=other)
+    other_rating = rating_factory(course_offering=other_offering)
+    other_rating.instructors.add(instructor)
+
+    filters = CourseFilterCriteriaInternal(
+        instructor=instructor.id, department=str(wanted.department_id)
+    )
+    result = repo.filter(filters)
+
+    assert {course.id for course in result} == {str(wanted.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_instructor_combined_with_education_level(
+    repo, instructor_factory, course_factory, course_offering_factory, rating_factory
+):
+    # Bachelor mention must not leak into master scope.
+    instructor = instructor_factory()
+    wanted = course_factory(education_level=EducationLevel.MASTER)
+    wanted_offering = course_offering_factory(course=wanted)
+    wanted_rating = rating_factory(course_offering=wanted_offering)
+    wanted_rating.instructors.add(instructor)
+
+    other = course_factory(education_level=EducationLevel.BACHELOR)
+    other_offering = course_offering_factory(course=other)
+    other_rating = rating_factory(course_offering=other_offering)
+    other_rating.instructors.add(instructor)
+
+    filters = CourseFilterCriteriaInternal(
+        instructor=instructor.id, education_level=EducationLevel.MASTER
+    )
+    result = repo.filter(filters)
+
+    assert {course.id for course in result} == {str(wanted.id)}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_filter_by_instructor_pagination_edge_clamps_to_last_page(
+    repo, instructor_factory, course_offering_factory, rating_factory
+):
+    # Page 2 clamps to page 1 (Django get_page).
+    instructor = instructor_factory()
+    offering = course_offering_factory()
+    rating = rating_factory(course_offering=offering)
+    rating.instructors.add(instructor)
+
+    filters = CourseFilterCriteriaInternal(instructor=instructor.id)
+    result = repo.filter(filters, PaginationFilters(page=2, page_size=1))
+
+    assert result.metadata.total == 1
+    assert result.metadata.page == 1
+    assert len(result.page_objects) == 1
 
 
 @pytest.mark.django_db

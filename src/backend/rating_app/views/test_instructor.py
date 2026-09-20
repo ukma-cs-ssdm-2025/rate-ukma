@@ -205,3 +205,40 @@ def test_list_instructors_global_fallback(token_client, instructor_factory, rati
     data = response.json()
     ids = [item["id"] for item in data["items"][:2]]
     assert ids == [str(more.id), str(less.id)]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_instructors_mentioned_only_filters_unrated(
+    token_client, instructor_factory, rating_factory
+):
+    rated = instructor_factory(last_name="Rated")
+    instructor_factory(last_name="Unrated")
+    rating = rating_factory()
+    rating.instructors.add(rated)
+    url = reverse("instructor-list")
+    response = token_client.get(url, {"mentioned_only": "true"})
+
+    assert response.status_code == 200
+    data = response.json()
+    ids = [item["id"] for item in data["items"]]
+    assert ids == [str(rated.id)]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_list_instructors_without_mentioned_only_keeps_unrated(
+    token_client, instructor_factory, rating_factory
+):
+    rated = instructor_factory(last_name="Rated")
+    unrated = instructor_factory(last_name="Unrated")
+    rating = rating_factory()
+    rating.instructors.add(rated)
+
+    url = reverse("instructor-list")
+    response = token_client.get(url)
+
+    assert response.status_code == 200
+    data = response.json()
+    ids = {item["id"] for item in data["items"]}
+    assert {str(rated.id), str(unrated.id)} <= ids
