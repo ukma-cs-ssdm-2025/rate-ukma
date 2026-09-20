@@ -686,13 +686,19 @@ def test_get_rating_stats_returns_empty_instructors_when_none_linked(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_detailed_by_student_includes_faculty_name(repo):
-    # Arrange
-    student = StudentFactory()
-    course = CourseFactory(title="Faculty Course")
-    semester = SemesterFactory(term=SemesterTerm.FALL, year=2024)
-    offering = CourseOfferingFactory(course=course, semester=semester)
-    EnrollmentFactory(student=student, offering=offering)
+def test_get_detailed_by_student_includes_faculty_name(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
+    student = student_factory()
+    course = course_factory(title="Faculty Course")
+    semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    offering = course_offering_factory(course=course, semester=semester)
+    enrollment_factory(student=student, offering=offering)
 
     # Act
     result = repo.get_detailed_rating_stats(student_id=str(student.id))

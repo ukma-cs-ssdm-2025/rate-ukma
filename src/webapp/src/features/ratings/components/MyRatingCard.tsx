@@ -16,6 +16,7 @@ import {
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { getFacultyAccent, type FacultyAccent } from "@/lib/faculty-colors";
+import { useFeatureFlag } from "@/lib/feature-flags/useFeatureFlag";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { DeleteRatingDialog } from "./DeleteRatingDialog";
@@ -53,7 +54,10 @@ export function MyRatingCard({
 
 	const hasRating = Boolean(rating);
 	const canModify = Boolean(hasRating && rating?.id && courseId);
-	const accent = getFacultyAccent(course.faculty_name);
+	const showFacultyColors = useFeatureFlag("fe_faculty_colors");
+	const accent = showFacultyColors
+		? getFacultyAccent(course.faculty_name)
+		: null;
 
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);

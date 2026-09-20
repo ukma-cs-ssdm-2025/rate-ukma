@@ -37,6 +37,7 @@ describe("MyRatingCard faculty accent", () => {
 				course={makeCourse({ faculty_name: "Факультет інформатики" })}
 				onRatingChanged={vi.fn()}
 			/>,
+			{ flags: { fe_faculty_colors: true } },
 		);
 
 		expect(screen.getByTestId(testIds.myRatings.card)).toHaveStyle({
@@ -59,6 +60,7 @@ describe("MyRatingCard faculty accent", () => {
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
+			{ flags: { fe_faculty_colors: true } },
 		);
 
 		expect(screen.getByTestId(testIds.myRatings.card)).toHaveStyle({
@@ -77,12 +79,25 @@ describe("MyRatingCard faculty accent", () => {
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
+			{ flags: { fe_faculty_colors: true } },
 		);
 
 		expect(screen.getByTestId(testIds.myRatings.leaveReviewLink)).toHaveStyle({
 			backgroundColor: "#f6b213",
 			color: "#1a1a1a",
 		});
+	});
+	it("keeps default blue styling when the flag is off", () => {
+		renderWithProviders(
+			<MyRatingCard
+				course={makeCourse({ faculty_name: "Факультет інформатики" })}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
+		expect(rateButton.style.backgroundColor).toBe("");
+		expect(rateButton.style.color).toBe("");
 	});
 
 	it("falls back to default styling when no faculty is assigned", () => {
@@ -111,6 +126,7 @@ describe("MyRatingCard faculty accent", () => {
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
+			{ flags: { fe_faculty_colors: true } },
 		);
 
 		const rateButton = screen.getByRole("button", { name: "Оцінити" });
