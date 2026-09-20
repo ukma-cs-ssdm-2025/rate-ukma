@@ -33,7 +33,9 @@ function getCardClassName(
 	hasAccent: boolean,
 ): string {
 	if (hasRating) {
-		return "border-border/50 bg-card hover:border-border";
+		return hasAccent
+			? "border-l-4 border-border/50 bg-card hover:border-border"
+			: "border-border/50 bg-card hover:border-border";
 	}
 	if (canRate && !hasAccent) {
 		return "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
@@ -41,7 +43,9 @@ function getCardClassName(
 	if (canRate) {
 		return "border-l-4 border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
 	}
-	return "border-dashed border-border/70 bg-muted/30 opacity-80";
+	return hasAccent
+		? "border-l-4 border-dashed border-border/70 bg-muted/30 opacity-80"
+		: "border-dashed border-border/70 bg-muted/30 opacity-80";
 }
 
 export function MyRatingCard({
@@ -223,8 +227,10 @@ function CardActions({
 							size="sm"
 							disabled
 							className={cn(
-								"opacity-50 cursor-not-allowed",
-								accent && "border-transparent",
+								"cursor-not-allowed",
+								accent
+									? "border-transparent disabled:opacity-100"
+									: "opacity-50",
 							)}
 							style={
 								accent

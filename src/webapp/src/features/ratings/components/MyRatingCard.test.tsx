@@ -63,9 +63,9 @@ describe("MyRatingCard faculty accent", () => {
 			{ flags: { fe_faculty_colors: true } },
 		);
 
-		expect(screen.getByTestId(testIds.myRatings.card)).toHaveStyle({
-			borderLeftColor: "#006e31",
-		});
+		const card = screen.getByTestId(testIds.myRatings.card);
+		expect(card).toHaveStyle({ borderLeftColor: "#006e31" });
+		expect(card).toHaveClass("border-l-4");
 		expect(
 			screen.queryByTestId(testIds.myRatings.leaveReviewLink),
 		).not.toBeInTheDocument();
@@ -131,7 +131,8 @@ describe("MyRatingCard faculty accent", () => {
 
 		const rateButton = screen.getByRole("button", { name: "Оцінити" });
 		expect(rateButton).toBeDisabled();
-		expect(rateButton).toHaveClass("opacity-50");
+		expect(rateButton).toHaveClass("disabled:opacity-100");
+		expect(rateButton).not.toHaveClass("opacity-50");
 		expect(rateButton).toHaveStyle({
 			backgroundColor: "#4c217a",
 			color: "#ffffff",
