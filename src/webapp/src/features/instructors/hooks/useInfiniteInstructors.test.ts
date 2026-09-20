@@ -90,6 +90,15 @@ describe("useInfiniteInstructors", () => {
 
 			expect(lastCallParams()).toEqual({ page_size: 50 });
 		});
+
+		it("should request only mentioned instructors when mentionedOnly is set", () => {
+			renderHook(() => useInfiniteInstructors({ mentionedOnly: true }));
+
+			expect(lastCallParams()).toEqual({
+				page_size: 20,
+				mentioned_only: true,
+			});
+		});
 	});
 
 	describe("Derived Output", () => {

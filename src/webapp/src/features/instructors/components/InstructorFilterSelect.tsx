@@ -30,6 +30,8 @@ interface InstructorFilterSelectProps {
 	readonly searchPlaceholder?: string;
 	readonly emptyText?: string;
 	readonly className?: string;
+	/** List only instructors mentioned in ratings (courses filter). */
+	readonly mentionedOnly?: boolean;
 	readonly "data-testid"?: string;
 }
 
@@ -42,6 +44,7 @@ function InstructorFilterSelect({
 	searchPlaceholder = "Пошук викладача…",
 	emptyText = "Викладачів не знайдено.",
 	className,
+	mentionedOnly = false,
 	"data-testid": testId,
 }: InstructorFilterSelectProps) {
 	const [open, setOpen] = React.useState(false);
@@ -73,6 +76,7 @@ function InstructorFilterSelect({
 	const { allInstructors, hasMore, isFetchingNextPage, isLoading, loaderRef } =
 		useInfiniteInstructors({
 			search: debouncedSearch || undefined,
+			mentionedOnly,
 			enabled: open,
 		});
 
