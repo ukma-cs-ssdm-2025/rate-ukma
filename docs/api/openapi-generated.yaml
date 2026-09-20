@@ -3808,7 +3808,11 @@ components:
         fe_feed:
           type: boolean
           description: Whether `fe_feed` is enabled for the current user.
+        fe_faculty_colors:
+          type: boolean
+          description: Whether `fe_faculty_colors` is enabled for the current user.
       required:
+      - fe_faculty_colors
       - fe_feed
       - fe_instructor_multiselect
     RatingCreateRequest:
@@ -4160,6 +4164,10 @@ components:
         course_offering_id:
           type: string
           readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
+          nullable: true
         semester:
           allOf:
           - $ref: '#/components/schemas/InlineSemester'

@@ -15,6 +15,8 @@ import {
 } from "@/features/courses/courseFormatting";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
+import { getFacultyAccent, type FacultyAccent } from "@/lib/faculty-colors";
+import { useFeatureFlag } from "@/lib/feature-flags/useFeatureFlag";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { DeleteRatingDialog } from "./DeleteRatingDialog";
@@ -25,14 +27,25 @@ interface MyRatingCardProps {
 	onRatingChanged: () => undefined | Promise<unknown>;
 }
 
-function getCardClassName(hasRating: boolean, canRate: boolean): string {
+function getCardClassName(
+	hasRating: boolean,
+	canRate: boolean,
+	hasAccent: boolean,
+): string {
 	if (hasRating) {
-		return "border-border/50 bg-card hover:border-border";
+		return hasAccent
+			? "border-l-4 border-border/50 bg-card hover:border-border"
+			: "border-border/50 bg-card hover:border-border";
 	}
-	if (canRate) {
+	if (canRate && !hasAccent) {
 		return "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
 	}
-	return "border-dashed border-border/70 bg-muted/30 opacity-80";
+	if (canRate) {
+		return "border-l-4 border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
+	}
+	return hasAccent
+		? "border-l-4 border-dashed border-border/70 bg-muted/30 opacity-80"
+		: "border-dashed border-border/70 bg-muted/30 opacity-80";
 }
 
 export function MyRatingCard({
@@ -46,6 +59,10 @@ export function MyRatingCard({
 
 	const hasRating = Boolean(rating);
 	const canModify = Boolean(hasRating && rating?.id && courseId);
+	const showFacultyColors = useFeatureFlag("fe_faculty_colors");
+	const accent = showFacultyColors
+		? getFacultyAccent(course.faculty_name)
+		: null;
 
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -54,8 +71,9 @@ export function MyRatingCard({
 		<div
 			className={cn(
 				"group flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border px-4 py-3 transition-all",
-				getCardClassName(hasRating, canRate),
+				getCardClassName(hasRating, canRate, accent !== null),
 			)}
+			style={accent ? { borderLeftColor: accent.background } : undefined}
 			data-testid={testIds.myRatings.card}
 		>
 			<div className="flex-1 min-w-0">
@@ -116,6 +134,7 @@ export function MyRatingCard({
 					courseId={courseId}
 					offeringId={offeringId}
 					canRate={canRate}
+					accent={accent}
 					onEdit={() => setShowRatingModal(true)}
 					onDelete={() => setShowDeleteDialog(true)}
 				/>
@@ -152,6 +171,7 @@ interface CardActionsProps {
 	courseId: string | undefined;
 	offeringId: string | undefined;
 	canRate: boolean;
+	accent: FacultyAccent | null;
 	onEdit: () => void;
 	onDelete: () => void;
 }
@@ -162,6 +182,7 @@ function CardActions({
 	courseId,
 	offeringId,
 	canRate,
+	accent,
 	onEdit,
 	onDelete,
 }: Readonly<CardActionsProps>) {
@@ -205,7 +226,18 @@ function CardActions({
 							variant="secondary"
 							size="sm"
 							disabled
-							className="opacity-50 cursor-not-allowed"
+							className={cn(
+								"opacity-50 cursor-not-allowed",
+								accent && "border-transparent",
+							)}
+							style={
+								accent
+									? {
+											backgroundColor: accent.background,
+											color: accent.foreground,
+										}
+									: undefined
+							}
 						>
 							<PenLine className="size-3.5 mr-1.5" />
 							Оцінити
@@ -224,7 +256,12 @@ function CardActions({
 			<Button
 				variant="default"
 				size="sm"
-				className="h-8 px-4 shadow-sm"
+				className={cn("h-8 px-4 shadow-sm", accent && "hover:brightness-90")}
+				style={
+					accent
+						? { backgroundColor: accent.background, color: accent.foreground }
+						: undefined
+				}
 				onClick={onEdit}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
@@ -235,7 +272,17 @@ function CardActions({
 	}
 
 	return (
-		<Button variant="default" size="sm" className="h-8 px-4 shadow-sm" asChild>
+		<Button
+			variant="default"
+			size="sm"
+			className={cn("h-8 px-4 shadow-sm", accent && "hover:brightness-90")}
+			style={
+				accent
+					? { backgroundColor: accent.background, color: accent.foreground }
+					: undefined
+			}
+			asChild
+		>
 			<Link
 				to="/courses/$courseId"
 				params={{ courseId }}

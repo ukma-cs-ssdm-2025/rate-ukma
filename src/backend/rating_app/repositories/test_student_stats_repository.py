@@ -682,3 +682,27 @@ def test_get_rating_stats_returns_empty_instructors_when_none_linked(
     result = repo.get_rating_stats(student_id=str(student.id))
 
     assert result[0]["offerings"][0]["rated"]["instructors"] == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_get_detailed_by_student_includes_faculty_name(
+    repo,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+):
+    student = student_factory()
+    course = course_factory(title="Faculty Course")
+    semester = semester_factory(term=SemesterTerm.FALL, year=2024)
+    offering = course_offering_factory(course=course, semester=semester)
+    enrollment_factory(student=student, offering=offering)
+
+    # Act
+    result = repo.get_detailed_rating_stats(student_id=str(student.id))
+
+    # Assert
+    assert len(result) == 1
+    assert result[0]["faculty_name"] == course.department.faculty.name
