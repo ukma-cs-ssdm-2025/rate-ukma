@@ -16,10 +16,9 @@ const MAX_RETRY_DELAY = 30_000; // 30 seconds cap
  */
 export function shouldRetryQuery(
 	failureCount: number,
-	error: unknown,
+	cause: unknown,
 ): boolean {
-	const errorStatus = (error as { response?: { status?: number } } | null)
-		?.response?.status;
+	const errorStatus = getHttpErrorStatus(cause);
 	// Never retry on 401 (unauthorized) or 403 (forbidden)
 	if (errorStatus === 401 || errorStatus === 403) {
 		return false;

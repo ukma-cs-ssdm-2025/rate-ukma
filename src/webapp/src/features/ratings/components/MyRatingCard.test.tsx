@@ -1,44 +1,62 @@
 import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { StudentRatingsDetailed } from "@/lib/api/generated";
+import type {
+	InlineRatingDetailed,
+	StudentRatingsDetailed,
+} from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { renderWithProviders } from "@/test-utils/render";
+import { Providers } from "@/test-utils/render";
+import { renderWithRouter } from "@/test-utils/router";
 import { MyRatingCard } from "./MyRatingCard";
 
-vi.mock("@tanstack/react-router", async () => {
-	const actual = await vi.importActual("@tanstack/react-router");
+function makeRating(
+	overrides?: Partial<InlineRatingDetailed>,
+): InlineRatingDetailed {
 	return {
-		...actual,
-		Link: ({ children, ...props }: { children: React.ReactNode }) => (
-			<a {...props}>{children}</a>
-		),
+		id: "rating-5f2a",
+		difficulty: 4,
+		usefulness: 5,
+		comment: "Добрий курс.",
+		instructor: null,
+		instructors: [],
+		created_at: new Date().toISOString(),
+		is_anonymous: false,
+		...overrides,
 	};
-});
+}
 
 function makeCourse(
 	overrides?: Partial<StudentRatingsDetailed>,
 ): StudentRatingsDetailed {
 	return {
-		course_id: "course-1",
+		course_id: "course-9c4e",
 		course_title: "Тестовий курс",
 		course_code: "C101",
-		course_offering_id: "offering-1",
+		course_offering_id: "offering-2b7d",
+		semester: { year: 2025, season: "FALL" },
 		can_rate: true,
 		rated: null,
 		...overrides,
 	};
 }
 
+async function renderCard(
+	course: StudentRatingsDetailed,
+	flags?: Record<string, boolean>,
+) {
+	await renderWithRouter(
+		<Providers flags={flags}>
+			<MyRatingCard course={course} onRatingChanged={vi.fn()} />
+		</Providers>,
+	);
+}
+
 describe("MyRatingCard faculty accent", () => {
-	it("paints the accent bar and Rate button in the faculty color", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({ faculty_name: "Факультет інформатики" })}
-				onRatingChanged={vi.fn()}
-			/>,
-			{ flags: { fe_faculty_colors: true } },
-		);
+	it("paints the accent bar and Rate button in the faculty color", async () => {
+		await renderCard(makeCourse({ faculty_name: "Факультет інформатики" }), {
+			fe_faculty_colors: true,
+		});
 
 		expect(screen.getByTestId(testIds.myRatings.card)).toHaveStyle({
 			borderLeftColor: "#4c217a",
@@ -51,16 +69,13 @@ describe("MyRatingCard faculty accent", () => {
 		});
 	});
 
-	it("keeps the accent bar on rated cards without a Rate button", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({
-					faculty_name: "Факультет природничих наук",
-					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
-				})}
-				onRatingChanged={vi.fn()}
-			/>,
-			{ flags: { fe_faculty_colors: true } },
+	it("keeps the accent bar on rated cards without a Rate button", async () => {
+		await renderCard(
+			makeCourse({
+				faculty_name: "Факультет природничих наук",
+				rated: makeRating(),
+			}),
+			{ fe_faculty_colors: true },
 		);
 
 		const card = screen.getByTestId(testIds.myRatings.card);
@@ -71,15 +86,12 @@ describe("MyRatingCard faculty accent", () => {
 		).not.toBeInTheDocument();
 	});
 
-	it("uses dark button text on the light yellow faculty", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({
-					faculty_name: "Факультет соціальних наук і соціальних технологій",
-				})}
-				onRatingChanged={vi.fn()}
-			/>,
-			{ flags: { fe_faculty_colors: true } },
+	it("uses dark button text on the light yellow faculty", async () => {
+		await renderCard(
+			makeCourse({
+				faculty_name: "Факультет соціальних наук і соціальних технологій",
+			}),
+			{ fe_faculty_colors: true },
 		);
 
 		expect(screen.getByTestId(testIds.myRatings.leaveReviewLink)).toHaveStyle({
@@ -87,26 +99,16 @@ describe("MyRatingCard faculty accent", () => {
 			color: "#1a1a1a",
 		});
 	});
-	it("keeps default blue styling when the flag is off", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({ faculty_name: "Факультет інформатики" })}
-				onRatingChanged={vi.fn()}
-			/>,
-		);
+	it("keeps default blue styling when the flag is off", async () => {
+		await renderCard(makeCourse({ faculty_name: "Факультет інформатики" }));
 
 		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
 		expect(rateButton.style.backgroundColor).toBe("");
 		expect(rateButton.style.color).toBe("");
 	});
 
-	it("falls back to default styling when no faculty is assigned", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({ faculty_name: null })}
-				onRatingChanged={vi.fn()}
-			/>,
-		);
+	it("falls back to default styling when no faculty is assigned", async () => {
+		await renderCard(makeCourse({ faculty_name: null }));
 
 		expect(screen.getByTestId(testIds.myRatings.card)).not.toHaveStyle({
 			borderLeftColor: "#4c217a",
@@ -117,16 +119,13 @@ describe("MyRatingCard faculty accent", () => {
 		expect(rateButton.style.color).toBe("");
 	});
 
-	it("paints the disabled button in the faculty color", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({
-					faculty_name: "Факультет інформатики",
-					can_rate: false,
-				})}
-				onRatingChanged={vi.fn()}
-			/>,
-			{ flags: { fe_faculty_colors: true } },
+	it("paints the disabled button in the faculty color", async () => {
+		await renderCard(
+			makeCourse({
+				faculty_name: "Факультет інформатики",
+				can_rate: false,
+			}),
+			{ fe_faculty_colors: true },
 		);
 
 		const rateButton = screen.getByRole("button", { name: "Оцінити" });

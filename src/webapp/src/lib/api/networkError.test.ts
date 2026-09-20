@@ -270,6 +270,7 @@ describe("networkError", () => {
 	describe("bounce counter", () => {
 		const timeoutError = () => createAxiosError({ response: undefined });
 		const redirectUrl = () =>
+			// SAFETY: handleConnectionIssue redirects with a same-origin string built from the stubbed location.
 			new URL(mockWindowReplace.mock.calls[0][0] as string);
 		const startCycle = (ageMs = 0) => {
 			sessionStorage.setItem(

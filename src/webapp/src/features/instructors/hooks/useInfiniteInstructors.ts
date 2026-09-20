@@ -42,7 +42,14 @@ export function useInfiniteInstructors({
 		if (specialityId) next.speciality_id = specialityId;
 		if (mentionedOnly) next.mentioned_only = true;
 		return next;
-	}, [search, courseOfferingId, courseId, specialityId, mentionedOnly, pageSize]);
+	}, [
+		search,
+		courseOfferingId,
+		courseId,
+		specialityId,
+		mentionedOnly,
+		pageSize,
+	]);
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
 		useInstructorsListInfinite(params, {

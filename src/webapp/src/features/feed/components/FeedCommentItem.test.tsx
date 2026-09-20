@@ -1,27 +1,23 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
+import { renderWithRouter } from "@/test-utils/router";
 import type { FeedCommentItem as FeedCommentItemType } from "../feedTypes";
 import { FeedCommentItem } from "./FeedCommentItem";
 
-vi.mock("@tanstack/react-router", async () => ({
-	...(await vi.importActual("@tanstack/react-router")),
-	Link: (await import("@/test-utils/router")).MockLink,
-}));
-
 const baseItem: FeedCommentItemType = {
 	kind: "comment",
-	id: "c1",
+	id: "comment-8c3f",
 	createdAt: new Date().toISOString(),
-	ratingId: "rating-1",
-	courseId: "course-1",
+	ratingId: "rating-4d1a",
+	courseId: "course-b7e2",
 	courseTitle: "Алгоритми та структури даних",
 	content: "Погоджуюсь, лабораторні справді важкі.",
 };
 
 describe("FeedCommentItem", () => {
-	it("leads with the course as a link to the course page", () => {
-		render(<FeedCommentItem item={baseItem} />);
+	it("leads with the course as a link to the course page", async () => {
+		await renderWithRouter(<FeedCommentItem item={baseItem} />);
 
 		expect(
 			screen.getByText(/Новий коментар до відгуку на/),
@@ -29,15 +25,11 @@ describe("FeedCommentItem", () => {
 		const link = screen.getByRole("link", {
 			name: "Алгоритми та структури даних",
 		});
-		expect(link).toHaveAttribute("href", "/courses/$courseId");
-		expect(link).toHaveAttribute(
-			"data-params",
-			JSON.stringify({ courseId: "course-1" }),
-		);
+		expect(link).toHaveAttribute("href", "/courses/course-b7e2");
 	});
 
-	it("renders the comment text", () => {
-		render(<FeedCommentItem item={baseItem} />);
+	it("renders the comment text", async () => {
+		await renderWithRouter(<FeedCommentItem item={baseItem} />);
 
 		expect(
 			screen.getByText("Погоджуюсь, лабораторні справді важкі."),
