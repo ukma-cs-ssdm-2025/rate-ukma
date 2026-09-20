@@ -18,22 +18,18 @@ def repo():
 def test_filter_by_instructor_returns_mentioned_courses(
     repo, instructor_factory, course_factory, course_offering_factory, rating_factory
 ):
-    # Arrange — instructor mentioned in a rating, with NO CourseInstructor
-    # assignment row (assignments are unpopulated in real data; mentions are
-    # the signal). Regression test for #664.
+    # No CourseInstructor row — mentions are the signal (#664).
     instructor = instructor_factory()
     course_with_mention = course_factory()
     offering_with_mention = course_offering_factory(course=course_with_mention)
     rating = rating_factory(course_offering=offering_with_mention)
     rating.instructors.add(instructor)
 
-    # Act
     course_without_mention = course_factory()
     course_offering_factory(course=course_without_mention)
     filters = CourseFilterCriteriaInternal(instructor=instructor.id)
     result = repo.filter(filters)
 
-    # Assert
     returned_ids = {course.id for course in result}
     assert returned_ids == {str(course_with_mention.id)}
     assert len(result) == 1
@@ -45,7 +41,7 @@ def test_filter_by_instructor_returns_mentioned_courses(
 def test_filter_by_instructor_with_zero_mentions_returns_empty(
     repo, instructor_factory, course_offering_factory
 ):
-    # An instructor nobody mentioned matches nothing, even when offerings exist.
+    # Never mentioned, so nothing matches.
     instructor = instructor_factory()
     course_offering_factory()
 
@@ -59,8 +55,7 @@ def test_filter_by_instructor_with_zero_mentions_returns_empty(
 def test_filter_by_instructor_combined_with_department(
     repo, instructor_factory, course_factory, course_offering_factory, rating_factory
 ):
-    # Mention on a course in another department must not leak through the
-    # combined filter.
+    # Other-department mention must not leak in.
     instructor = instructor_factory()
     wanted = course_factory()
     wanted_offering = course_offering_factory(course=wanted)
@@ -85,8 +80,7 @@ def test_filter_by_instructor_combined_with_department(
 def test_filter_by_instructor_combined_with_education_level(
     repo, instructor_factory, course_factory, course_offering_factory, rating_factory
 ):
-    # Mention on a bachelor course must not leak into a master-scoped
-    # instructor query.
+    # Bachelor mention must not leak into master scope.
     instructor = instructor_factory()
     wanted = course_factory(education_level=EducationLevel.MASTER)
     wanted_offering = course_offering_factory(course=wanted)
@@ -111,8 +105,7 @@ def test_filter_by_instructor_combined_with_education_level(
 def test_filter_by_instructor_pagination_edge_clamps_to_last_page(
     repo, instructor_factory, course_offering_factory, rating_factory
 ):
-    # One mentioned course; asking for page 2 clamps to page 1 (Django
-    # get_page) without error or leaking rows.
+    # Page 2 clamps to page 1 (Django get_page).
     instructor = instructor_factory()
     offering = course_offering_factory()
     rating = rating_factory(course_offering=offering)

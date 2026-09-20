@@ -77,9 +77,7 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         never been rated. Masters and rated instructors are always kept, and a
         non-empty ``search`` bypasses the rule entirely, so no real teacher is
         unreachable.
-        #
-        # ``mentioned_only`` drops every instructor with zero global mentions,
-        # so the course-filter dropdown offers only pickable teachers (#664).
+        # ``mentioned_only`` drops instructors with zero global mentions (#664).
         """
         offering_filter = (
             Q(ratings__course_offering_id=course_offering_id)

@@ -76,7 +76,7 @@ def test_filter_by_instructor(
     instructor_factory,
     rating_factory,
 ):
-    # Arrange — instructor mentioned in a rating, no CourseInstructor row (#664)
+    # Mentioned in a rating, no CourseInstructor row (#664).
     course = course_factory()
     offering = course_offering_factory(course=course)
     instructor = instructor_factory()
@@ -87,10 +87,8 @@ def test_filter_by_instructor(
 
     url = f"/api/v1/courses/?instructor={instructor.id}"
 
-    # Act
     response = token_client.get(url)
 
-    # Assert
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
     assert {item["id"] for item in data["items"]} == {str(course.id)}
