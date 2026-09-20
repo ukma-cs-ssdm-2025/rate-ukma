@@ -120,18 +120,12 @@ export function getFacultyColors(facultyName: string) {
 	return colors;
 }
 
-/**
- * Get hex color for a faculty (useful for charts/graphs)
- */
+/** Get hex color for a faculty (useful for charts/graphs). */
 export function getFacultyHexColor(facultyName: string): string {
 	return getFacultyColors(facultyName).hex;
 }
 
-/**
- * Readable text color for a faculty hex background.
- * Uses WCAG relative luminance so light brand colors (e.g. yellow)
- * get dark text while dark ones keep white text.
- */
+/** Readable text on a faculty hex background (WCAG luminance). */
 export function getFacultyContrastTextColor(
 	hex: string,
 ): "#ffffff" | "#1a1a1a" {
@@ -156,10 +150,7 @@ export interface FacultyAccent {
 	foreground: string;
 }
 
-/**
- * Accent colors for a discipline, or null when no faculty is assigned
- * (callers fall back to the default blue styling in that case).
- */
+/** Accent colors, or null when no faculty is assigned (blue fallback). */
 export function getFacultyAccent(
 	facultyName: string | null | undefined,
 ): FacultyAccent | null {

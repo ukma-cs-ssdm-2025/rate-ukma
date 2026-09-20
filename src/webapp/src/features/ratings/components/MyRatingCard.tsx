@@ -35,10 +35,11 @@ function getCardClassName(
 	if (hasRating) {
 		return "border-border/50 bg-card hover:border-border";
 	}
+	if (canRate && !hasAccent) {
+		return "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
+	}
 	if (canRate) {
-		return hasAccent
-			? "border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]"
-			: "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
+		return "border-l-4 border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
 	}
 	return "border-dashed border-border/70 bg-muted/30 opacity-80";
 }
@@ -65,7 +66,7 @@ export function MyRatingCard({
 	return (
 		<div
 			className={cn(
-				"group flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-l-4 px-4 py-3 transition-all",
+				"group flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border px-4 py-3 transition-all",
 				getCardClassName(hasRating, canRate, accent !== null),
 			)}
 			style={accent ? { borderLeftColor: accent.background } : undefined}
