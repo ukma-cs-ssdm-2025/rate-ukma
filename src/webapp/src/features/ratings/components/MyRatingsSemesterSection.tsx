@@ -158,7 +158,7 @@ function SemesterBadges({
 						<TooltipTrigger asChild>
 							<Badge
 								variant="outline"
-								className="h-5 px-1.5 text-[10px] text-green-600 border-green-200 bg-green-50/30 cursor-default"
+								className="h-5 px-1.5 text-[10px] text-green-600 border-green-200 bg-green-50/30 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 cursor-default"
 							>
 								Все оцінено
 							</Badge>
