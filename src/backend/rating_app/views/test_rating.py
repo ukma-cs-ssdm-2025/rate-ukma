@@ -402,57 +402,33 @@ def test_delete_rating_not_enrolled(
 @pytest.mark.django_db
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    ("method", "route"),
+    ("method", "route", "body"),
     [
-        ("get", "list"),
-        ("post", "list"),
-        ("get", "detail"),
-        ("put", "detail"),
-        ("patch", "detail"),
-        ("delete", "detail"),
+        ("get", "list", None),
+        ("post", "list", {"difficulty": 4, "usefulness": 5, "comment": "Great course!"}),
+        ("get", "detail", None),
+        ("put", "detail", {"difficulty": 4, "usefulness": 5, "comment": "Different comm!"}),
+        ("patch", "detail", {"comment": "Different comm!"}),
+        ("delete", "detail", None),
     ],
 )
 def test_rating_forbidden_when_unauthenticated(
-    api_client, course_factory, course_offering_factory, rating_factory, method, route
+    api_client, course_factory, course_offering_factory, rating_factory, method, route, body
 ):
     course = course_factory()
     offering = course_offering_factory(course=course)
     rating = rating_factory(course_offering=offering)
-
-    if route == "list":
-        url = reverse("course-ratings", kwargs={"course_id": str(course.id)})
-    else:
-        url = reverse(
+    urls = {
+        "list": reverse("course-ratings", kwargs={"course_id": str(course.id)}),
+        "detail": reverse(
             "course-rating-detail",
             kwargs={"course_id": str(course.id), "rating_id": str(rating.id)},
-        )
+        ),
+    }
+    payload = body if body is None else {**body, "course_offering": str(offering.id)}
+    kwargs = {} if payload is None else {"data": payload, "format": "json"}
 
-    if method == "post":
-        payload = {
-            "course_offering": str(offering.id),
-            "difficulty": 4,
-            "usefulness": 5,
-            "comment": "Great course!",
-            "is_anonymous": False,
-        }
-
-        response = api_client.post(url, data=payload, format="json")
-    elif method == "put":
-        payload = {
-            "course_offering": str(offering.id),
-            "difficulty": 4,
-            "usefulness": 5,
-            "comment": "Different comm!",
-            "is_anonymous": False,
-        }
-
-        response = api_client.put(url, data=payload, format="json")
-    elif method == "patch":
-        response = api_client.patch(url, data={"comment": "Different comm!"}, format="json")
-    elif method == "delete":
-        response = api_client.delete(url)
-    else:
-        response = api_client.get(url)
+    response = getattr(api_client, method)(urls[route], **kwargs)
 
     assert response.status_code == 403
 

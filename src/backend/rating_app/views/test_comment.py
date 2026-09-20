@@ -406,43 +406,29 @@ def test_comment_delete_forbidden_for_non_owner(token_client, rating_factory, co
 @pytest.mark.django_db
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    ("action", "method"),
+    ("method", "route", "body"),
     [
-        ("list", "get"),
-        ("create", "post"),
-        ("replies", "get"),
-        ("update", "put"),
-        ("partial_update", "patch"),
-        ("destroy", "delete"),
+        ("get", "list", None),
+        ("post", "list", {"content": "Unauthenticated comment", "is_anonymous": False}),
+        ("get", "replies", None),
+        ("put", "detail", {"content": "Unauthenticated update", "is_anonymous": False}),
+        ("patch", "detail", {"content": "Unauthenticated patch"}),
+        ("delete", "detail", None),
     ],
 )
 def test_comment_forbidden_when_unauthenticated(
-    api_client, rating_factory, comment_factory, action, method
+    api_client, rating_factory, comment_factory, method, route, body
 ):
     rating = rating_factory()
     comment = comment_factory(rating=rating)
+    urls = {
+        "list": reverse("comment-get", kwargs={"rating_id": str(rating.id)}),
+        "replies": reverse("comment-replies", kwargs={"comment_id": str(comment.id)}),
+        "detail": reverse("comment-detail", kwargs={"comment_id": str(comment.id)}),
+    }
+    kwargs = {} if body is None else {"data": body, "format": "json"}
 
-    if action in ("list", "create"):
-        url = reverse("comment-get", kwargs={"rating_id": str(rating.id)})
-    elif action == "replies":
-        url = reverse("comment-replies", kwargs={"comment_id": str(comment.id)})
-    else:
-        url = reverse("comment-detail", kwargs={"comment_id": str(comment.id)})
-
-    if action == "create":
-        payload: dict | None = {"content": "Unauthenticated comment", "is_anonymous": False}
-    elif action == "update":
-        payload = {"content": "Unauthenticated update", "is_anonymous": False}
-    elif action == "partial_update":
-        payload = {"content": "Unauthenticated patch"}
-    else:
-        payload = None
-
-    client_method = getattr(api_client, method)
-    if payload is None:
-        response = client_method(url)
-    else:
-        response = client_method(url, data=payload, format="json")
+    response = getattr(api_client, method)(urls[route], **kwargs)
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Authentication credentials were not provided."
@@ -450,18 +436,19 @@ def test_comment_forbidden_when_unauthenticated(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-@pytest.mark.parametrize("method", ["put", "patch", "delete"])
-def test_comment_detail_not_found_when_unknown_id(token_client, method):
+@pytest.mark.parametrize(
+    ("method", "body"),
+    [
+        ("put", {"content": "Missing comment", "is_anonymous": False}),
+        ("patch", {"content": "Missing comment"}),
+        ("delete", None),
+    ],
+)
+def test_comment_detail_not_found_when_unknown_id(token_client, method, body):
     url = reverse("comment-detail", kwargs={"comment_id": str(uuid4())})
+    kwargs = {} if body is None else {"data": body, "format": "json"}
 
-    if method == "put":
-        response = token_client.put(
-            url, {"content": "Missing comment", "is_anonymous": False}, format="json"
-        )
-    elif method == "patch":
-        response = token_client.patch(url, {"content": "Missing comment"}, format="json")
-    else:
-        response = token_client.delete(url)
+    response = getattr(token_client, method)(url, **kwargs)
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Comment not found"
@@ -469,18 +456,19 @@ def test_comment_detail_not_found_when_unknown_id(token_client, method):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-@pytest.mark.parametrize("method", ["put", "patch", "delete"])
-def test_comment_detail_bad_request_when_malformed_id(token_client, method):
+@pytest.mark.parametrize(
+    ("method", "body"),
+    [
+        ("put", {"content": "Malformed id", "is_anonymous": False}),
+        ("patch", {"content": "Malformed id"}),
+        ("delete", None),
+    ],
+)
+def test_comment_detail_bad_request_when_malformed_id(token_client, method, body):
     url = reverse("comment-detail", kwargs={"comment_id": "not-a-uuid"})
+    kwargs = {} if body is None else {"data": body, "format": "json"}
 
-    if method == "put":
-        response = token_client.put(
-            url, {"content": "Malformed id", "is_anonymous": False}, format="json"
-        )
-    elif method == "patch":
-        response = token_client.patch(url, {"content": "Malformed id"}, format="json")
-    else:
-        response = token_client.delete(url)
+    response = getattr(token_client, method)(url, **kwargs)
 
     assert response.status_code == 400
     assert response.json()["fields"]["comment_id"] == "Invalid comment identifier"

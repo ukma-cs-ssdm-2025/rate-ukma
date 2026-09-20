@@ -261,16 +261,17 @@ def test_create_vote_on_past_semester_succeeds(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-@pytest.mark.parametrize("method", ["put", "delete"])
+@pytest.mark.parametrize(
+    ("method", "body"),
+    [("put", {"vote_type": RatingVoteStrType.UPVOTE}), ("delete", None)],
+)
 @freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
-def test_vote_forbidden_when_unauthenticated(api_client, rating_factory, method):
+def test_vote_forbidden_when_unauthenticated(api_client, rating_factory, method, body):
     rating = rating_factory()
     url = reverse("course-rating-votes", kwargs={"rating_id": str(rating.id)})
+    kwargs = {} if body is None else {"data": body, "format": "json"}
 
-    if method == "put":
-        response = api_client.put(url, {"vote_type": RatingVoteStrType.UPVOTE}, format="json")
-    else:
-        response = api_client.delete(url)
+    response = getattr(api_client, method)(url, **kwargs)
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Authentication credentials were not provided."
