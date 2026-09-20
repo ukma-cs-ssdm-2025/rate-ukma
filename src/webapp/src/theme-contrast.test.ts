@@ -18,7 +18,8 @@ import { describe, expect, it } from "vitest";
 
 type Rgb = readonly [number, number, number];
 
-function oklchToRgb(l: number, c: number, hDeg: number): Rgb {
+/** Linear sRGB channels for an oklch color, unclamped (may leave [0, 1]). */
+function oklchToLinear(l: number, c: number, hDeg: number): Rgb {
 	const h = (hDeg * Math.PI) / 180;
 	const a = c * Math.cos(h);
 	const b = c * Math.sin(h);
@@ -28,17 +29,38 @@ function oklchToRgb(l: number, c: number, hDeg: number): Rgb {
 	const l3 = l_ ** 3;
 	const m3 = m_ ** 3;
 	const s3 = s_ ** 3;
+	return [
+		4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3,
+		-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3,
+		-0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3,
+	];
+}
+
+/**
+ * CSS Color 4 local-MINDE-style gamut map: binary-search chroma down until
+ * the linear sRGB channels land in [0, 1], then apply the sRGB transfer.
+ * Matches browser rendering instead of clipping channels (see #689 P2).
+ */
+function oklchToRgb(l: number, c: number, hDeg: number): Rgb {
+	let lo = 0;
+	let hi = c;
+	for (let i = 0; i < 24; i++) {
+		const mid = (lo + hi) / 2;
+		const [r, g, b] = oklchToLinear(l, mid, hDeg);
+		if (r >= 0 && r <= 1 && g >= 0 && g <= 1 && b >= 0 && b <= 1) {
+			lo = mid;
+		} else {
+			hi = mid;
+		}
+	}
+	const [r, g, bl] = oklchToLinear(l, lo, hDeg);
 	const toSrgb = (x: number) => {
 		const clamped = Math.min(Math.max(x, 0), 1);
 		return clamped <= 0.0031308
 			? 12.92 * clamped
 			: 1.055 * clamped ** (1 / 2.4) - 0.055;
 	};
-	return [
-		toSrgb(4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3),
-		toSrgb(-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3),
-		toSrgb(-0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3),
-	];
+	return [toSrgb(r), toSrgb(g), toSrgb(bl)];
 }
 
 function relativeLuminance([r, g, b]: Rgb): number {
