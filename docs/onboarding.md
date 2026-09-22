@@ -1,20 +1,20 @@
 # Developer Onboarding
 
-How to go from zero to first merged MR in the Rate UKMA codebase. Every path
-below is relative to the repo root and was verified against the current tree.
+From zero to a first merged MR in Rate UKMA. Every link opens the file on GitHub
+or in your editor and was checked against the current tree.
 
 | You are | Do this |
 | --- | --- |
-| First day | §2 repo map, §3 run the stack, open `:3000`, submit one rating |
-| First week | §4 or §5 trace (pick your side), §7 tasks 1–2 |
-| First MR | §6 conventions, §7 task 3, §8 when stuck |
+| First day | [Repo map](#2-repo-map), [run the stack](#3-run-it), open `:3000`, browse a course |
+| First week | [Backend](#4-backend-follow-one-request) or [frontend](#5-frontend-follow-one-page) trace, [tasks](#7-suggested-first-tasks) 1–2 |
+| First MR | [Conventions](#6-conventions-before-your-first-mr), task 3, [when stuck](#8-when-stuck) |
 
 ## 1. Big picture
 
-Rate UKMA is a course-rating platform for NaUKMA students: a React SPA talks to
-a Django REST API backed by PostgreSQL and Redis. Start with
-`docs/architecture/high-level-design.md` for the N-tier layer diagram, then
-come back here for where that diagram lives in code.
+A React SPA talks to a Django REST API backed by PostgreSQL and Redis. The layer
+diagram is in [high-level-design.md](architecture/high-level-design.md); this
+guide shows where it lives in code.
+
 ```mermaid
 flowchart LR
     Browser["Browser :3000"] --> Webapp["webapp (SPA)"]
@@ -29,161 +29,160 @@ flowchart LR
 
 | Path | What lives there |
 | --- | --- |
-| `src/docker-compose.yml` | All services: postgres, redis, backend (`:8000`), webapp (`:3000`) |
-| `src/.env.sample` | Copy to `src/.env` before first `docker compose` run |
-| `src/backend/` | Django + DRF API (`manage.py`, `pytest.ini`, `conftest.py`) |
-| `src/backend/rating_app/` | The product: `views/`, `services/`, `repositories/`, `models/`, `serializers/`, `application_schemas/`, `exception/`, `auth/`, `management/commands/` |
-| `src/backend/rateukma/` | Project plumbing: `settings/` (`_base.py`, `dev.py`, `prod.py`, `testing.py`), `protocols/`, `ioc/`, `caching/` |
-| `src/backend/scraper/` | University-portal importer: `browser.py`, `parsers/`, `services/`, `models/` |
-| `src/webapp/` | React 19 + TanStack Router SPA (`orval.config.ts`, `playwright.config.ts`) |
-| `src/webapp/src/routes/` | File-based routes (`index.tsx`, `explore.tsx`, `courses.$courseId.tsx`, `feed.tsx`, `my-ratings.tsx`, `login.tsx`) |
-| `src/webapp/src/features/` | Feature slices: `courses/`, `ratings/`, `feed/`, `notifications/`, `instructors/`, `course-offerings/`, `promo/` |
-| `src/webapp/src/components/` | Shared UI (`Layout.tsx`, `Header`, `ErrorBoundary.tsx`, `ui/`) |
-| `src/webapp/src/lib/` | Cross-cutting code: `api/apiClient.ts`, `auth`, `feature-flags`, `test-ids.ts` |
-| `src/webapp/src/integrations/tanstack-query/RootProvider.tsx` | 5-min stale time, exponential-backoff retry (never on 401/403 or when no HTTP response came back) |
-| `src/webapp/src/test-utils/` | `factories.ts`, `render.tsx`, `router.tsx` for component tests |
-| `docs/api/openapi-generated.yaml` | The API contract both sides code against |
-| `docs/architecture/decisions/` | ADRs plus `INDEX.md`; process in `0000-use-adrs.md`, blank in `TEMPLATE.md` |
-| `scripts/dora-metrics/` | DORA metrics generator run by `.github/workflows/dora.yml` |
-| `CONTRIBUTING.md` | License headers (required on every new file), workflow rules |
+| [`src/docker-compose.yml`](../src/docker-compose.yml) | postgres, redis, backend `:8000`, webapp `:3000` |
+| [`src/.env.sample`](../src/.env.sample) | Copy to `src/.env` before the first `docker compose` run |
+| [`src/backend/rating_app/`](../src/backend/rating_app/) | The product: [`views/`](../src/backend/rating_app/views/), [`services/`](../src/backend/rating_app/services/), [`repositories/`](../src/backend/rating_app/repositories/), [`models/`](../src/backend/rating_app/models/), [`serializers/`](../src/backend/rating_app/serializers/), [`exception/`](../src/backend/rating_app/exception/) |
+| [`src/backend/rateukma/`](../src/backend/rateukma/) | Plumbing: [`settings/`](../src/backend/rateukma/settings/), [`ioc/`](../src/backend/rateukma/ioc/), [`caching/`](../src/backend/rateukma/caching/), [`protocols/`](../src/backend/rateukma/protocols/) |
+| [`src/backend/scraper/`](../src/backend/scraper/) | University-portal importer |
+| [`src/webapp/src/routes/`](../src/webapp/src/routes/) | File-based TanStack Router pages |
+| [`src/webapp/src/features/`](../src/webapp/src/features/) | Feature slices: [`courses/`](../src/webapp/src/features/courses/), [`ratings/`](../src/webapp/src/features/ratings/), [`feed/`](../src/webapp/src/features/feed/), [`notifications/`](../src/webapp/src/features/notifications/), … |
+| [`src/webapp/src/components/`](../src/webapp/src/components/) | Shared UI, shadcn primitives in [`ui/`](../src/webapp/src/components/ui/) |
+| [`src/webapp/src/lib/`](../src/webapp/src/lib/) | API client, auth, feature flags, test ids |
+| [`docs/api/openapi-generated.yaml`](api/openapi-generated.yaml) | The API contract both sides code against |
+| [`docs/architecture/decisions/`](architecture/decisions/) | ADRs, listed in [`INDEX.md`](architecture/decisions/INDEX.md) |
 
 ## 3. Run it
 
-Follow `README.md` § "Running Project": copy `src/.env.sample` to `src/.env`
-(inside containers the backend reaches Redis as `redis`, so override
-`REDIS_HOST=redis` in `src/.env` — the sample's `localhost` only fits local runs),
-then `docker compose --profile dev up -d --build` from `src/`. You get the
-webapp on `:3000` and the API on `:8000` (`/admin` included). For IDE feedback
-without Docker, each side has its own setup guide: `src/backend/README.md`
-(`uv sync`, `uv venv`) and `src/webapp/README.md` (`pnpm install`).
+1. Copy [`src/.env.sample`](../src/.env.sample) to `src/.env` and set
+   `REDIS_HOST=redis` (the sample's `localhost` only works outside Docker).
+2. From `src/`: `docker compose --profile dev up -d --build`. Webapp on `:3000`,
+   API and `/admin` on `:8000`. More in
+   [README § Running Project](../README.md#-running-project).
+3. Seed data with `python manage.py generate_mock_data` and
+   `generate_mock_ratings` ([commands](../src/backend/rating_app/management/commands/)),
+   locally or through `docker exec -it <backend> ...`.
 
-Seed data for local exploration: `src/backend/rating_app/management/commands/`
-has `generate_mock_data.py` and `generate_mock_ratings.py`, runnable via
-`python manage.py <name>` (locally or with `docker exec -it <backend> ...`).
-Seeds create bare `Student` rows with no login or enrollments, so submitting a
-rating needs an enrolled user (easiest: Django admin) — browsing works immediately.
-Both seed commands rebuild the feed index when they finish; after any other bulk
-or raw-SQL load, run `python manage.py rebuild_feed_index` or the feed stays empty.
+Seeded students have no login or enrollments: browsing works at once, submitting
+a rating needs an enrolled user (easiest: Django admin). For IDE support without
+Docker see the [backend README](../src/backend/README.md) (`uv sync`) and the
+[webapp README](../src/webapp/README.md) (`pnpm install`).
 
 ## 4. Backend: follow one request
 
-Trace a rating submission to learn the layering (enforced by ADR-0005):
+A rating submission, layer by layer
+([ADR-0005](architecture/decisions/0005-api-data-validation.md)):
 
-1. **View** (`src/backend/rating_app/views/rating_viewset.py`): thin HTTP adapter, Pydantic
-   input schemas from `src/backend/rating_app/application_schemas/` validate at the boundary.
-2. **Service** (`src/backend/rating_app/services/rating_service.py`): business rules only,
-   e.g. raises `NotEnrolledException`, `RatingPeriodNotStarted`,
-   `DuplicateRatingException`. No ORM here beyond what repositories return.
-3. **Repository** (`src/backend/rating_app/repositories/rating_repository.py`): catches ORM
-   errors and re-raises domain exceptions, e.g. `Rating.DoesNotExist` →
-   `RatingNotFoundError` (see `src/backend/rating_app/exception/` — one module per domain).
-4. **Side effects**: the service writes the row and calls
-   `notify(RatingEvent(...))` inside one `transaction.atomic()`. Observers in
-   `src/backend/rating_app/services/domain_event_listeners/` update course
-   aggregates, invalidate caches, and sync the feed index, so a failing listener
-   rolls the rating back with it.
-5. **Response**: DRF maps the exception to a status code and
-   `src/backend/rating_app/exception/exception_handler.py` normalizes dict-shaped
-   errors to `{detail, status, fields?}` (list-detail errors pass through bare).
-   Output serialization stays in DRF serializers
-   (`src/backend/rating_app/serializers/`).
+1. **View** [`rating_viewset.py`](../src/backend/rating_app/views/rating_viewset.py):
+   thin HTTP adapter; Pydantic schemas in
+   [`application_schemas/`](../src/backend/rating_app/application_schemas/)
+   validate input.
+2. **Service** [`rating_service.py`](../src/backend/rating_app/services/rating_service.py):
+   business rules only, e.g. raises `NotEnrolledException`,
+   `DuplicateRatingException`.
+3. **Repository** [`rating_repository.py`](../src/backend/rating_app/repositories/rating_repository.py):
+   turns ORM errors into domain ones (`Rating.DoesNotExist` →
+   `RatingNotFoundError`), one module per domain in
+   [`exception/`](../src/backend/rating_app/exception/).
+4. **Side effects**: the service saves the row and calls
+   `notify(RatingEvent(...))` in one `transaction.atomic()`.
+   [Listeners](../src/backend/rating_app/services/domain_event_listeners/)
+   update aggregates, caches and the feed index; if one fails, the rating rolls
+   back.
+5. **Response**: [`exception_handler.py`](../src/backend/rating_app/exception/exception_handler.py)
+   shapes errors as `{detail, status, fields?}`; output goes through
+   [`serializers/`](../src/backend/rating_app/serializers/).
 
-Supporting pieces: singleton wiring in `src/backend/rating_app/ioc_container/`
-(`@once` providers),
-per-user feature flags via django-waffle (`GET /api/v1/flags/`, allowlist
-`PUBLIC_FEATURE_FLAGS` in `src/backend/rateukma/settings/_base.py` — see ADR-0009),
-in-app notifications in `src/backend/rating_app/services/notification_service.py`
-with `src/backend/rating_app/views/notification_viewset.py`
-(grouped reads behind a per-user cursor, event types in
-`src/backend/rating_app/models/choices.py::NotificationEventType`),
-and the activity feed (`GET /api/v1/feed/`,
-`src/backend/rating_app/services/feed_service.py`), which reads one
-`feed_event` index table (`src/backend/rating_app/models/feed_event.py`, see
-ADR-0010) kept in step with ratings, comments and admin posts by
-`src/backend/rating_app/services/feed_update_service.py`.
+Also worth knowing:
 
-After changing endpoints or serializers, regenerate the contract from
-`src/backend/AGENTS.md`:
+- **Wiring**: singletons are `@once` providers in
+  [`ioc_container/`](../src/backend/rating_app/ioc_container/).
+- **Feature flags**: django-waffle behind `GET /api/v1/flags/`; only names in
+  `PUBLIC_FEATURE_FLAGS` ([`_base.py`](../src/backend/rateukma/settings/_base.py))
+  reach the frontend ([ADR-0009](architecture/decisions/0009-feature-flags.md)).
+- **Notifications**: [`notification_service.py`](../src/backend/rating_app/services/notification_service.py)
+  and [`notification_viewset.py`](../src/backend/rating_app/views/notification_viewset.py);
+  event types are `NotificationEventType` in
+  [`choices.py`](../src/backend/rating_app/models/choices.py).
+- **Feed**: `GET /api/v1/feed/` reads one `feed_event` index table
+  ([`feed_event.py`](../src/backend/rating_app/models/feed_event.py),
+  [ADR-0010](architecture/decisions/0010-feed-event-table.md)), which
+  [`feed_update_service.py`](../src/backend/rating_app/services/feed_update_service.py)
+  keeps in step with ratings, comments and admin posts.
+- **API contract**: after changing endpoints or serializers, regenerate it from
+  `src/backend`:
 
-```bash
-.venv/bin/python manage.py spectacular --file ../../docs/api/openapi-generated.yaml
-```
+  ```bash
+  uv run python manage.py spectacular --file ../../docs/api/openapi-generated.yaml
+  ```
 
-Tests live next to the code (`test_*.py`, e.g.
-`src/backend/rating_app/views/test_rating.py`,
-`src/backend/rating_app/services/test_notification_service.py`). Read
-`docs/testing/backend-tests.md` before writing one: factories are
-pytest-factoryboy fixtures registered in `src/backend/conftest.py`
-(`course_factory`, `rating_factory`, … — take them as parameters, never import
-them), `src/backend/rating_app/tests/` holds only `factories.py` and
-`semester_dates.py`, and `token_client.user` has no `Student` row until you
-create one. `src/backend/pytest.ini` runs `--reuse-db --strict-markers`; a
-database test carries `@pytest.mark.django_db` plus `@pytest.mark.integration`,
-and `e2e` is reserved for webapp Playwright flows. Type safety: `uv run pyright`
-must stay at 0 errors (conventions in `src/backend/AGENTS.md`).
+**Tests** sit next to the code, e.g.
+[`views/test_rating.py`](../src/backend/rating_app/views/test_rating.py). Read
+[backend-tests.md](testing/backend-tests.md) before writing one. The traps:
+
+- Factories are fixtures (`course_factory`, `rating_factory`, …) registered in
+  [`conftest.py`](../src/backend/conftest.py): take them as parameters, never
+  import them.
+- `token_client.user` has no `Student` row until you create one.
+- A database test carries both `@pytest.mark.django_db` and
+  `@pytest.mark.integration`; [`pytest.ini`](../src/backend/pytest.ini) rejects
+  unknown markers.
+- `uv run pyright` must stay at 0 errors
+  ([backend AGENTS.md](../src/backend/AGENTS.md)).
 
 ## 5. Frontend: follow one page
 
-Trace the course page (`src/webapp/src/routes/courses.$courseId.tsx`):
+The course page, [`courses.$courseId.tsx`](../src/webapp/src/routes/courses.$courseId.tsx):
 
-1. **Route** renders directly from generated query hooks
-   (`useCoursesRetrieve`, `useCoursesOfferingsList` from `@/lib/api/generated`)
-   plus **feature hooks** such as `useUserCourseRating(courseId)`
-   (`src/webapp/src/features/ratings/hooks/`) — no route loaders.
-2. **Feature slice** (`features/courses/`, `features/ratings/`) owns its
-   components, formatting (`courseFormatting.ts`), and param mapping
-   (`courseFiltersParams.ts`, `filterTransformations.ts`).
-3. **API layer** (`lib/api/apiClient.ts` + `authorizedFetcher`) calls hooks
-   generated by orval from `docs/api/openapi-generated.yaml`. The generated
-   output (`src/lib/api/generated/`) is gitignored — it appears after
-   `pnpm install` (postinstall runs `orval`). Never edit it by hand.
-4. **Failures** surface through react-query errors (no retry on 401/403),
-   `components/ErrorBoundary.tsx`, and the `connection-error.tsx` route: a
-   request with no HTTP response is never retried, and the `apiClient.ts`
-   response interceptor sends it to `/connection-error` on the first failure
-   (`lib/api/networkError.ts` stops the redirect from bouncing back and forth).
+1. **Route** reads data straight from hooks, no route loaders: generated
+   `useCoursesRetrieve` and `useCoursesOfferingsList`, plus feature hooks such
+   as [`useUserCourseRating`](../src/webapp/src/features/ratings/hooks/useUserCourseRating.ts).
+2. **Feature slices** ([`courses/`](../src/webapp/src/features/courses/),
+   [`ratings/`](../src/webapp/src/features/ratings/)) own their components,
+   formatting and filter-param mapping.
+3. **API layer**: [`apiClient.ts`](../src/webapp/src/lib/api/apiClient.ts) plus
+   hooks that orval generates from the OpenAPI yaml into `src/lib/api/generated/`
+   (gitignored, created by `pnpm install`; never edit by hand).
+4. **Failures**: queries retry with backoff, never on 401/403
+   ([`RootProvider.tsx`](../src/webapp/src/integrations/tanstack-query/RootProvider.tsx)).
+   A request with no HTTP response goes straight to
+   [`/connection-error`](../src/webapp/src/routes/connection-error.tsx); other
+   errors reach the page as react-query `isError`, and render crashes hit
+   [`ErrorBoundary.tsx`](../src/webapp/src/components/ErrorBoundary.tsx).
 
-Rules that bite newcomers (from `src/webapp/AGENTS.md`): design tokens live in
-`src/styles.css` (`:root` + `.dark`, used as `bg-card` etc. — no ad-hoc hex in
-JSX); gate UI with `useFeatureFlag("fe_<name>")` / `useFeatureFlagState`, whose
-name is typed as `FeatureFlagName` (keys of the generated `PublicFeatureFlags`),
-so a new flag needs `PUBLIC_FEATURE_FLAGS` and a regenerated spec first or `tsc`
-fails; stable selectors go in `lib/test-ids.ts`; check `src/components` and
-`src/components/ui` (shadcn) before building new UI.
+Rules that bite newcomers ([webapp AGENTS.md](../src/webapp/AGENTS.md)):
 
-Commands (`src/webapp/package.json`): `pnpm start`, `pnpm test` (vitest),
-`pnpm test:e2e` (playwright, `playwright.config.ts`), `pnpm check`
-(lint + format:check + typecheck — the CI gate).
+- Colors come from tokens in [`styles.css`](../src/webapp/src/styles.css)
+  (`bg-card` etc.), never hex in JSX.
+- Gate UI with `useFeatureFlag("fe_<name>")` or `useFeatureFlagState`. Names are
+  typed from the generated spec, so a new flag needs `PUBLIC_FEATURE_FLAGS` and a
+  regenerated spec first ([feature-flags.md](feature-flags.md)).
+- Stable selectors go in [`test-ids.ts`](../src/webapp/src/lib/test-ids.ts).
+- Check [`components/ui/`](../src/webapp/src/components/ui/) (shadcn) before
+  building new UI.
+
+Commands ([`package.json`](../src/webapp/package.json)): `pnpm start`,
+`pnpm test` (vitest), `pnpm test:e2e` (Playwright), `pnpm check` (lint, format
+and types; the CI gate).
 
 ## 6. Conventions before your first MR
 
-- Commit style: `semantic-commit.sh` at the root; MR titles look like
+- Commits follow `type(scope): subject`, enforced by
+  [`semantic-commit.sh`](../semantic-commit.sh); MR titles look like
   `fix(#NNN): ...`.
-- New files need the GPL v3 header from `CONTRIBUTING.md`.
-- New architecture choice? Write an ADR from `docs/architecture/decisions/TEMPLATE.md`
-  and link it in `INDEX.md`.
-- Each app has agent notes worth one skim: `src/backend/AGENTS.md`,
-  `src/webapp/AGENTS.md`.
-- Agents do the typing: your job is the goal, the constraints, and the
-  verification. Never paste secrets, `.env` contents, or user data into a prompt.
+- New files get the GPL v3 header from [CONTRIBUTING.md](../CONTRIBUTING.md).
+- New architecture choice? Copy [`TEMPLATE.md`](architecture/decisions/TEMPLATE.md)
+  into an ADR and list it in [`INDEX.md`](architecture/decisions/INDEX.md).
+- Skim the agent notes: [backend](../src/backend/AGENTS.md),
+  [webapp](../src/webapp/AGENTS.md).
+- Agents do the typing: you own the goal, the constraints and the verification.
+  Never paste secrets, `.env` contents or user data into a prompt.
 
 ## 7. Suggested first tasks
 
-1. Run the stack, seed mock data, open a course page and browse ratings
-   (submitting needs an enrolled user — see §3).
-2. Add a field to a serializer, regenerate the OpenAPI yaml, run
-   `pnpm install` in webapp, and watch the generated hook change.
-3. Flip an allowlisted `waffle` flag (names in `PUBLIC_FEATURE_FLAGS`) in Django
-   admin and gate a UI string behind `useFeatureFlagState` (see
-   `docs/feature-flags.md`).
+1. Run the stack, seed data, open a course page and browse ratings (submitting
+   needs an enrolled user, see [Run it](#3-run-it)).
+2. Add a field to a serializer, regenerate the OpenAPI yaml, run `pnpm install`
+   in the webapp and watch the generated hook change.
+3. Flip an allowlisted waffle flag in Django admin and gate a UI string behind
+   `useFeatureFlagState` ([feature-flags.md](feature-flags.md)).
 
 ## 8. When stuck
 
 | Symptom | Fix |
 | --- | --- |
 | Port already in use | `lsof -i :3000` / `:8000`, stop the other process |
-| Backend can't reach DB | `docker compose ps` in `src/`; check `src/.env` exists (copied from `.env.sample`) |
-| `src/webapp/src/lib/api/generated/` missing | rerun `pnpm install` (postinstall runs orval) |
-| How tests are organized | `docs/testing/testing-strategy.md`, how to write a backend test in `docs/testing/backend-tests.md`, e2e in `docs/testing/e2e-tests.md` |
-| Feed empty after a bulk or raw-SQL load | `python manage.py rebuild_feed_index` (writes that skip the service layer never reach `feed_event`) |
-| Auth/key incident | `docs/runbooks/` (key rotation), then tell the team lead |
+| Backend can't reach the DB | `docker compose ps` in `src/`; check `src/.env` exists |
+| `src/webapp/src/lib/api/generated/` missing | Rerun `pnpm install` (postinstall runs orval) |
+| Feed empty after a bulk or raw-SQL load | `python manage.py rebuild_feed_index` |
+| How tests are organized | [testing-strategy.md](testing/testing-strategy.md), [backend-tests.md](testing/backend-tests.md), [e2e-tests.md](testing/e2e-tests.md) |
+| Auth or key incident | [`docs/runbooks/`](runbooks/), then tell the team lead |
