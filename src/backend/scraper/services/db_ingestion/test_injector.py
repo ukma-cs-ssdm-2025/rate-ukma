@@ -279,12 +279,7 @@ def create_mock_offering(
     return DeduplicatedCourseOffering(
         code=code,
         semester=semester,
-        credits=credits,
-        weekly_hours=weekly_hours,
         study_year=study_year,
-        lecture_count=lecture_count,
-        practice_count=practice_count,
-        practice_type=practice_type,
         exam_type=exam_type,
         max_students=max_students,
         max_groups=max_groups,
@@ -479,6 +474,9 @@ def test_injector_passes_program_start_year_and_term_hours_to_repositories(injec
     offering_call = repo_mocks.offering_repo.get_or_upsert.call_args
     offering_dto = offering_call[0][0]
     assert offering_dto.study_year == 3
+    # Offering-level per-term fields are gone (#558); only terms carry them.
+    for removed in ("credits", "weekly_hours", "lecture_count", "practice_count", "practice_type"):
+        assert not hasattr(offering_dto, removed)
 
     student_call = repo_mocks.student_repo.get_or_upsert.call_args
     student_dto = student_call[0][0]
@@ -533,6 +531,28 @@ def test_injector_persists_course_offering_terms(injector, repo_mocks):
         injector.execute(models)
 
     assert mocked.call_count == 2
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_execute_deletes_stored_terms_when_import_omits_their_semester(
+    injector, repo_mocks, mock_offering_term_objects
+):
+    # The catalog now reports only Spring; any other stored term is stale.
+    models = [
+        create_mock_course(
+            title="Quantum Chemistry",
+            offerings=[create_mock_offering(code="100001", year=2027, term=SemesterTerm.SPRING)],
+        )
+    ]
+
+    injector.execute(models)
+
+    stored_terms = mock_offering_term_objects.filter
+    stored_terms.assert_called_once_with(offering=repo_mocks.course_offering)
+    stale_terms = stored_terms.return_value.exclude
+    stale_terms.assert_called_once_with(semester__in=[repo_mocks.semester])
+    stale_terms.return_value.delete.assert_called_once_with()
 
 
 @pytest.mark.django_db

@@ -30,6 +30,27 @@ function formatCredits(credits?: string): string | null {
 	return `${Number.isInteger(parsed) ? parsed.toFixed(0) : parsed.toFixed(1)} ECTS`;
 }
 
+function getTermsTotalCredits(
+	terms: readonly CourseOfferingTerm[],
+): number | null {
+	let total = 0;
+	let hasValid = false;
+	for (const term of terms) {
+		if (term.credits == null) continue;
+		const parsed = Number.parseFloat(term.credits);
+		if (Number.isFinite(parsed)) {
+			total += parsed;
+			hasValid = true;
+		}
+	}
+	return hasValid ? total : null;
+}
+
+function formatTotalCredits(total: number | null): string | null {
+	if (total == null) return null;
+	return `${Number.isInteger(total) ? total.toFixed(0) : total.toFixed(1)} ECTS`;
+}
+
 function getAcademicStartYear(offering: CourseOffering): number | null {
 	if (offering.semester_year == null || !offering.semester_term) return null;
 	const term = offering.semester_term.toUpperCase();
@@ -102,25 +123,28 @@ export function getLatestOfferingMeta(
 
 	const badges: OfferingMetaBadge[] = [];
 
-	// Combined credits + hours badge
-	const creditsStr = formatCredits(latest.credits);
+	// Combined credits + hours badge derives from terms[] (#558):
+	// credits are summed across terms, weekly hours come from the latest term.
+	const terms = latest.terms ?? [];
+	const totalCredits = getTermsTotalCredits(terms);
+	const creditsStr = formatTotalCredits(totalCredits);
+	const sortedTerms = sortTerms(terms);
+	const representative = sortedTerms.at(-1);
 	const hoursStr =
-		latest.weekly_hours != null ? `${latest.weekly_hours} год` : null;
+		representative?.weekly_hours != null
+			? `${representative.weekly_hours} год`
+			: null;
 	if (creditsStr || hoursStr) {
 		const label = [creditsStr, hoursStr].filter(Boolean).join(" · ");
-		const parsedCredits = latest.credits
-			? Number.parseFloat(latest.credits)
-			: 0;
 		badges.push({
 			label,
-			color: getCreditsColor(parsedCredits),
+			color: getCreditsColor(totalCredits ?? 0),
 		});
 	}
 
 	// Semester terms
-	const terms = latest.terms ?? [];
-	if (terms.length > 0) {
-		for (const term of sortTerms(terms)) {
+	if (sortedTerms.length > 0) {
+		for (const term of sortedTerms) {
 			if (term.semester_term) {
 				badges.push({
 					label: getSemesterTermDisplay(term.semester_term),
@@ -256,8 +280,10 @@ export function CourseCazYearsSection({
 							</thead>
 							<tbody>
 								{sorted.map((item) => {
-									const credits = formatCredits(item.credits);
 									const terms = item.terms ?? [];
+									const credits = formatTotalCredits(
+										getTermsTotalCredits(terms),
+									);
 									const hasMultipleTerms = terms.length > 1;
 
 									return (

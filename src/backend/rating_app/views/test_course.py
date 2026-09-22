@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from decimal import Decimal
 
 from django.urls import reverse
 
@@ -170,7 +171,11 @@ def test_filter_by_credits_range_requires_semester_year(token_client, course_fac
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_filter_by_credits_range_with_semester_year(
-    token_client, course_factory, course_offering_factory, semester_factory
+    token_client,
+    course_factory,
+    course_offering_factory,
+    course_offering_term_factory,
+    semester_factory,
 ):
     # Arrange
     matching_course = course_factory()
@@ -179,20 +184,32 @@ def test_filter_by_credits_range_with_semester_year(
     target_semester = semester_factory(term="FALL", year=2024)
     other_semester = semester_factory(term="FALL", year=2023)
 
-    course_offering_factory(
+    matching_offering = course_offering_factory(
         course=matching_course,
         semester=target_semester,
-        credits=4.0,
     )
-    course_offering_factory(
+    course_offering_term_factory(
+        offering=matching_offering,
+        semester=target_semester,
+        credits=Decimal("4.0"),
+    )
+    non_matching_offering = course_offering_factory(
         course=non_matching_course,
         semester=target_semester,
-        credits=3.0,
     )
-    course_offering_factory(
+    course_offering_term_factory(
+        offering=non_matching_offering,
+        semester=target_semester,
+        credits=Decimal("3.0"),
+    )
+    other_offering = course_offering_factory(
         course=non_matching_course,
         semester=other_semester,
-        credits=4.0,
+    )
+    course_offering_term_factory(
+        offering=other_offering,
+        semester=other_semester,
+        credits=Decimal("4.0"),
     )
 
     url = "/api/v1/courses/?semester_year=2024–2025&credits_min=3.5&credits_max=4.5"
