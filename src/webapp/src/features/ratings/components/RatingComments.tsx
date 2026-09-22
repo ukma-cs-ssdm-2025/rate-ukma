@@ -298,7 +298,7 @@ function CommentAvatar({ comment }: Readonly<{ comment: CommentRead }>) {
 			name={getCommentAuthor(comment)}
 			avatarUrl={comment.user_avatar_url}
 			isAnonymous={comment.is_anonymous ?? false}
-			className="size-7 shrink-0 text-[11px] font-semibold"
+			className="size-7 shrink-0 text-xs font-semibold"
 		/>
 	);
 }
@@ -314,16 +314,14 @@ function PreviewAuthorAvatar({
 		<span
 			className={cn(
 				"relative flex size-6 shrink-0 rounded-full",
-				index > 0 && "-ml-2",
-				index > 0 &&
-					"before:absolute before:-inset-0.5 before:rounded-full before:bg-[var(--avatar-ring-color)] before:content-['']",
+				index > 0 && "-ml-2 ring-2 ring-background",
 			)}
 		>
 			<UserAvatar
 				name={getAuthorName(author)}
 				avatarUrl={author.user_avatar_url}
 				isAnonymous={author.is_anonymous ?? false}
-				className="relative size-full text-[10px] font-semibold"
+				className="relative size-full text-xs font-semibold"
 			/>
 		</span>
 	);
@@ -508,7 +506,7 @@ function RatingCommentItem({
 							type="button"
 							variant="ghost"
 							size="sm"
-							className="h-7 px-2 text-xs text-muted-foreground"
+							className="h-7 px-2 text-xs font-medium text-muted-foreground"
 							onClick={() => repliesQuery.fetchNextPage()}
 							disabled={repliesQuery.isFetchingNextPage}
 						>
@@ -529,7 +527,7 @@ function RatingCommentItem({
 		<div
 			className={cn(
 				"space-y-2",
-				comment.parent_id && "border-l border-border/60 pl-3",
+				comment.parent_id && "border-l-2 border-border pl-3",
 			)}
 			data-testid={testIds.comments.item}
 		>
@@ -761,7 +759,7 @@ export function RatingComments({
 			</div>
 
 			{isExpanded && (
-				<div className="mt-3 w-full space-y-4 rounded-lg border border-border/50 bg-background p-3">
+				<div className="mt-3 w-full space-y-4 border-l-2 border-border pl-4">
 					{isCreating && (
 						<CommentForm
 							placeholder="Напишіть коментар"

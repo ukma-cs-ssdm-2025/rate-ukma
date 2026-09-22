@@ -66,12 +66,12 @@ export function UserRatingCard({
 
 	return (
 		<article
-			className="rounded-lg border border-primary/20 bg-card-user px-4 py-4 [--avatar-ring-color:var(--card-user)]"
+			className="rounded-xl border bg-card-user px-4 py-4 shadow-sm"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
-			<div className="flex items-center justify-between mb-2">
+			<div className="mb-2 flex items-center justify-between">
 				<div className="flex items-center gap-2 text-xs">
-					<Star className="h-3.5 w-3.5 text-primary fill-primary" />
+					<Star className="h-3.5 w-3.5 fill-primary text-primary" />
 					<span className="font-medium text-primary">Ваша оцінка</span>
 				</div>
 				<div className="flex items-center gap-1">
@@ -80,7 +80,7 @@ export function UserRatingCard({
 						variant="ghost"
 						onClick={onEdit}
 						aria-label="Редагувати оцінку"
-						className="h-7 w-7 p-0"
+						className="h-7 w-7 p-0 text-muted-foreground"
 						data-testid={testIds.courseDetails.editUserRatingButton}
 					>
 						<Pencil className="h-3.5 w-3.5" />
@@ -90,7 +90,7 @@ export function UserRatingCard({
 						variant="ghost"
 						onClick={onDelete}
 						aria-label="Видалити оцінку"
-						className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+						className="h-7 w-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
 						data-testid={testIds.rating.deleteButton}
 					>
 						<Trash2 className="h-3.5 w-3.5" />

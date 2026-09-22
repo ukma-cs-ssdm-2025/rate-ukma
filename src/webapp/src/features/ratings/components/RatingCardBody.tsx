@@ -67,15 +67,15 @@ export function RatingCardBody({
 	return (
 		<>
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-				<div className="flex min-w-0 items-start gap-2.5">
+				<div className="flex min-w-0 flex-1 items-start gap-2.5">
 					<UserAvatar
 						name={displayName}
 						avatarUrl={avatarUrl}
 						isAnonymous={isAnonymous}
 						className="h-8 w-8 shrink-0 text-xs font-semibold"
 					/>
-					<div className="flex min-w-0 flex-col flex-1">
-						<div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+					<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+						<div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
 							<span className="min-w-0 truncate text-sm font-medium">
 								{displayName}
 							</span>
@@ -124,8 +124,8 @@ export function RatingCardBody({
 				<RatingComment comment={comment} emptyMessage={commentEmptyMessage} />
 			</div>
 
-			<div className="mt-3 flex flex-col gap-3">
-				{ratingId && (
+			{ratingId && (
+				<div className="mt-3">
 					<RatingComments
 						ratingId={ratingId}
 						courseId={courseId}
@@ -144,8 +144,8 @@ export function RatingCardBody({
 							/>
 						}
 					/>
-				)}
-			</div>
+				</div>
+			)}
 		</>
 	);
 }

@@ -2,6 +2,16 @@ import { useState } from "react";
 
 import { MessageSquare, PenLine } from "lucide-react";
 
+import { SectionHeader } from "@/components/SectionHeader";
+import { Badge } from "@/components/ui/Badge";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/Empty";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import type { InlineRating, RatingRead } from "@/lib/api/generated";
@@ -56,31 +66,28 @@ function EmptyState({
 	onRate?: () => void;
 }>) {
 	return (
-		<div
-			className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border/60 bg-muted/30 py-12 px-6 text-center"
+		<Empty
+			className="border-0 py-16"
 			data-testid={testIds.courseDetails.noReviewsMessage}
 		>
-			<MessageSquare className="h-10 w-10 text-muted-foreground/40" />
-			<div className="space-y-1">
-				<p className="text-base font-medium text-foreground">
-					Будь першим, хто оцінить цей курс
-				</p>
-				<p className="text-sm text-muted-foreground">
+			<EmptyHeader>
+				<EmptyMedia variant="icon">
+					<MessageSquare />
+				</EmptyMedia>
+				<EmptyTitle>Будь першим, хто оцінить цей курс</EmptyTitle>
+				<EmptyDescription>
 					Твій відгук допоможе іншим студентам зробити усвідомлений вибір
-				</p>
-			</div>
+				</EmptyDescription>
+			</EmptyHeader>
 			{showCta && (
-				<RatingButton
-					canRate={canRateButton}
-					onClick={onRate}
-					size="lg"
-					className="mt-2"
-				>
-					<PenLine className="mr-2 h-4 w-4" />
-					Оцінити цей курс
-				</RatingButton>
+				<EmptyContent>
+					<RatingButton canRate={canRateButton} onClick={onRate} size="lg">
+						<PenLine className="mr-2 h-4 w-4" />
+						Оцінити цей курс
+					</RatingButton>
+				</EmptyContent>
 			)}
-		</div>
+		</Empty>
 	);
 }
 
@@ -189,32 +196,40 @@ export function CourseRatingsList({
 			className="space-y-4"
 			data-testid={testIds.courseDetails.reviewsSection}
 		>
-			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<div className="flex items-center gap-2">
-					<MessageSquare className="h-5 w-5" />
-					<h2 className="text-xl font-semibold">Відгуки студентів</h2>
-					<span
-						className="inline-flex h-5 items-center rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground"
+			<SectionHeader
+				icon={MessageSquare}
+				title="Відгуки студентів"
+				meta={
+					<Badge
+						variant="secondary"
 						data-testid={testIds.courseDetails.ratingsCountStat}
 					>
 						{displayCount}
-					</span>
-				</div>
-				<div className="flex items-center gap-2">
-					{showCta && !hasNoReviews && (
-						<RatingButton canRate={canRateButton} onClick={onRate} size="sm">
-							<PenLine className="mr-1.5 h-3.5 w-3.5" />
-							Оцінити
-						</RatingButton>
-					)}
-					{displayCount > 0 && (
-						<RatingsSortSelect
-							value={sortOption}
-							onValueChange={setSortOption}
-						/>
-					)}
-				</div>
-			</div>
+					</Badge>
+				}
+				actions={
+					(showCta && !hasNoReviews) || displayCount > 0 ? (
+						<>
+							{showCta && !hasNoReviews && (
+								<RatingButton
+									canRate={canRateButton}
+									onClick={onRate}
+									size="sm"
+								>
+									<PenLine className="mr-1.5 h-3.5 w-3.5" />
+									Оцінити
+								</RatingButton>
+							)}
+							{displayCount > 0 && (
+								<RatingsSortSelect
+									value={sortOption}
+									onValueChange={setSortOption}
+								/>
+							)}
+						</>
+					) : undefined
+				}
+			/>
 
 			{userRating && onEditUserRating && onDeleteUserRating && (
 				<UserRatingCard

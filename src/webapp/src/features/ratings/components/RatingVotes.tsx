@@ -53,33 +53,31 @@ function Vote({
 				variant="ghost"
 				size="sm"
 				onClick={onClick}
+				aria-pressed={active}
 				className={cn(
-					"h-8 px-2 gap-1.5 transition-all duration-200",
-					"hover:bg-[#0076BB]/10 hover:text-[#0076BB]",
-					active
-						? "text-[#0076BB] bg-[#0076BB]/10 ring-1 ring-inset ring-[#0076BB]/20"
-						: "text-muted-foreground",
+					"h-8 gap-1.5 px-2",
+					active ? "bg-primary/10 text-primary" : "text-muted-foreground",
 				)}
 				aria-label={isUpvote ? "За" : "Проти"}
 			>
 				<Icon className={cn("h-5 w-5", active && "fill-current")} />
-				<span className="text-xs font-bold">{count}</span>
+				<span className="text-xs font-semibold tabular-nums">{count}</span>
 			</Button>
 		);
 	}
 
 	return (
-		<div className="flex items-center gap-1.5 h-8 px-2 transition-colors">
+		<div className="flex h-8 items-center gap-1.5 px-2">
 			<Icon
 				className={cn(
 					"h-5 w-5",
-					active ? "fill-current text-[#0076BB]" : "text-muted-foreground/40",
+					active ? "fill-current text-primary" : "text-muted-foreground/40",
 				)}
 			/>
 			<span
 				className={cn(
-					"text-xs font-bold",
-					active ? "text-[#0076BB]" : "text-muted-foreground",
+					"text-xs font-semibold tabular-nums",
+					active ? "text-primary" : "text-muted-foreground",
 				)}
 			>
 				{count}
