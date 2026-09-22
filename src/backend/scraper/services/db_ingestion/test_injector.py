@@ -535,6 +535,28 @@ def test_injector_persists_course_offering_terms(injector, repo_mocks):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_execute_deletes_stored_terms_when_import_omits_their_semester(
+    injector, repo_mocks, mock_offering_term_objects
+):
+    # The catalog now reports only Spring; any other stored term is stale.
+    models = [
+        create_mock_course(
+            title="Quantum Chemistry",
+            offerings=[create_mock_offering(code="100001", year=2027, term=SemesterTerm.SPRING)],
+        )
+    ]
+
+    injector.execute(models)
+
+    stored_terms = mock_offering_term_objects.filter
+    stored_terms.assert_called_once_with(offering=repo_mocks.course_offering)
+    stale_terms = stored_terms.return_value.exclude
+    stale_terms.assert_called_once_with(semester__in=[repo_mocks.semester])
+    stale_terms.return_value.delete.assert_called_once_with()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_injector_invalidates_cache_after_successful_execution(injector, repo_mocks):
     # Arrange
     models = create_mock_payload()
