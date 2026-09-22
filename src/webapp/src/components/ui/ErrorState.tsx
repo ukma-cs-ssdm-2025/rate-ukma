@@ -36,10 +36,7 @@ export function ErrorState({
 	return (
 		<Empty className={cn("border-0 py-16", className)} {...props}>
 			<EmptyHeader>
-				<EmptyMedia
-					variant="icon"
-					className="bg-destructive/10 text-destructive"
-				>
+				<EmptyMedia variant="icon" className="text-destructive">
 					<Icon />
 				</EmptyMedia>
 				<EmptyTitle>{title}</EmptyTitle>

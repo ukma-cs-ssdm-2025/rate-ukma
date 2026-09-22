@@ -60,7 +60,7 @@ export function FeedStrip() {
 					<Button
 						variant="outline"
 						size="icon-sm"
-						className="hidden rounded-full sm:inline-flex"
+						className="hidden sm:inline-flex"
 						aria-label="Попередні"
 						aria-controls={scrollId}
 						disabled={!canScrollPrev}
@@ -71,7 +71,7 @@ export function FeedStrip() {
 					<Button
 						variant="outline"
 						size="icon-sm"
-						className="hidden rounded-full sm:inline-flex"
+						className="hidden sm:inline-flex"
 						aria-label="Наступні"
 						aria-controls={scrollId}
 						disabled={!canScrollNext}

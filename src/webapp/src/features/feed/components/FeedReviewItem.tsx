@@ -61,14 +61,9 @@ export function FeedReviewItem({ item }: Readonly<FeedReviewItemProps>) {
 				</Link>
 			}
 			footer={
-				<div className="flex items-center gap-2 text-xs text-muted-foreground">
+				<div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
 					<time>{formatRelativeTime(item.createdAt)}</time>
-					{semesterLabel && (
-						<>
-							<span aria-hidden>·</span>
-							<span>{semesterLabel}</span>
-						</>
-					)}
+					{semesterLabel && <span>{semesterLabel}</span>}
 				</div>
 			}
 		>
