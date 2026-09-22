@@ -1,3 +1,5 @@
+import type { ComponentProps } from "react";
+
 import { ArrowRight, Megaphone } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
@@ -10,20 +12,14 @@ import type {
 import { FeedCard } from "./FeedCard";
 
 /** Accent only tints the badge; the card shell is shared. */
-const ACCENT_BADGE: Record<
+const ACCENT_BADGE = {
+	BRAND: "soft",
+	INFO: "secondary",
+	WARNING: "soft-destructive",
+} as const satisfies Record<
 	FeedPromoAccent,
-	{ variant: "outline" | "secondary"; className?: string }
-> = {
-	BRAND: {
-		variant: "outline",
-		className: "border-transparent bg-primary/10 text-primary",
-	},
-	INFO: { variant: "secondary" },
-	WARNING: {
-		variant: "outline",
-		className: "border-transparent bg-destructive/10 text-destructive",
-	},
-};
+	ComponentProps<typeof Badge>["variant"]
+>;
 
 interface FeedPromoItemProps {
 	readonly item: FeedPromoItemType;
@@ -42,7 +38,7 @@ export function FeedPromoItem({
 	return (
 		<FeedCard
 			badge={
-				<Badge variant={accent.variant} className={accent.className}>
+				<Badge variant={accent}>
 					<Megaphone className="size-3" aria-hidden="true" />
 					{label}
 				</Badge>

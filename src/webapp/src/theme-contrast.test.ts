@@ -180,6 +180,14 @@ function casesFor(mode: "light" | "dark"): ContrastCase[] {
 			min: TEXT,
 			why: "tinted error boxes (bg-destructive/10)",
 		},
+		{
+			fg: "success",
+			bg: "success",
+			bgAlphaOver: "background",
+			alpha: 0.1,
+			min: TEXT,
+			why: "success badges (bg-success/10 text-success)",
+		},
 	);
 	// Destructive buttons/badges render full-strength destructive in light
 	// mode (covered by the canonical pair above) and bg-destructive/60 in
