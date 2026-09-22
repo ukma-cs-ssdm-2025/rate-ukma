@@ -2,13 +2,17 @@ import type { Page, Route } from "@playwright/test";
 
 import {
 	ANALYTICS,
+	COMMENT_REPLIES,
 	COURSE_DETAIL,
 	COURSE_OFFERINGS,
 	COURSE_RATINGS,
 	COURSES,
+	EMPTY_COMMENT_LIST,
 	FEED_ITEMS,
 	FILTER_OPTIONS,
+	MY_COURSES,
 	MY_GRADES,
+	RATING_COMMENTS,
 	SESSION,
 } from "./data";
 
@@ -16,6 +20,8 @@ export interface MockOptions {
 	readonly feed?: "items" | "empty" | "error";
 	readonly courses?: "items" | "error";
 	readonly grades?: "items" | "empty";
+	readonly myCourses?: "none" | "rateable";
+	readonly comments?: "empty" | "thread";
 }
 
 const courseList = {
@@ -36,44 +42,75 @@ const courseList = {
  */
 export async function mockBackend(
 	page: Page,
-	{ feed = "items", courses = "items", grades = "items" }: MockOptions = {},
+	{
+		feed = "items",
+		courses = "items",
+		grades = "items",
+		myCourses = "none",
+		comments = "empty",
+	}: MockOptions = {},
 ): Promise<void> {
-	const handlers: ReadonlyArray<readonly [RegExp, () => unknown]> = [
-		[/^\/auth\/session\/$/, () => SESSION],
-		[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
+	const handlers: ReadonlyArray<readonly [RegExp, (path: string) => unknown]> =
 		[
-			/^\/flags\/$/,
-			() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
-		],
-		[/^\/promo-banner\/$/, () => ({ banner: null })],
-		[/^\/notifications\/unread-count\/$/, () => ({ count: 0 })],
-		[/^\/notifications\/$/, () => []],
-		[
-			/^\/feed\/$/,
-			() => ({ items: feed === "empty" ? [] : FEED_ITEMS, next_cursor: null }),
-		],
-		[/^\/courses\/filter-options\/$/, () => FILTER_OPTIONS],
-		[/^\/courses\/$/, () => courseList],
-		[/^\/courses\/[^/]+\/offerings\/$/, () => COURSE_OFFERINGS],
-		[/^\/courses\/[^/]+\/ratings\/$/, () => COURSE_RATINGS],
-		[/^\/courses\/[^/]+\/$/, () => COURSE_DETAIL],
-		[/^\/analytics\/$/, () => ANALYTICS],
-		[/^\/analytics\/[^/]+\/$/, () => ANALYTICS[0]],
-		[
-			/^\/instructors\/$/,
-			() => ({
-				items: [],
-				page: 1,
-				page_size: 20,
-				total: 0,
-				total_pages: 0,
-				next_page: null,
-				previous_page: null,
-			}),
-		],
-		[/^\/students\/me\/grades\/$/, () => (grades === "empty" ? [] : MY_GRADES)],
-		[/^\/students\/me\/courses\/$/, () => []],
-	];
+			[/^\/auth\/session\/$/, () => SESSION],
+			[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
+			[
+				/^\/flags\/$/,
+				() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
+			],
+			[/^\/promo-banner\/$/, () => ({ banner: null })],
+			[/^\/notifications\/unread-count\/$/, () => ({ count: 0 })],
+			[/^\/notifications\/$/, () => []],
+			[
+				/^\/feed\/$/,
+				() => ({
+					items: feed === "empty" ? [] : FEED_ITEMS,
+					next_cursor: null,
+				}),
+			],
+			[/^\/courses\/filter-options\/$/, () => FILTER_OPTIONS],
+			[/^\/courses\/$/, () => courseList],
+			[/^\/courses\/[^/]+\/offerings\/$/, () => COURSE_OFFERINGS],
+			[/^\/courses\/[^/]+\/ratings\/$/, () => COURSE_RATINGS],
+			[/^\/courses\/[^/]+\/$/, () => COURSE_DETAIL],
+			[
+				/^\/ratings\/[^/]+\/comments\/$/,
+				(path) =>
+					comments === "thread" && path.endsWith("/ratings/rating-0/comments/")
+						? RATING_COMMENTS
+						: EMPTY_COMMENT_LIST,
+			],
+			[
+				/^\/comments\/[^/]+\/replies\/$/,
+				(path) =>
+					comments === "thread" &&
+					path.endsWith("/comments/comment-c1/replies/")
+						? COMMENT_REPLIES
+						: EMPTY_COMMENT_LIST,
+			],
+			[/^\/analytics\/$/, () => ANALYTICS],
+			[/^\/analytics\/[^/]+\/$/, () => ANALYTICS[0]],
+			[
+				/^\/instructors\/$/,
+				() => ({
+					items: [],
+					page: 1,
+					page_size: 20,
+					total: 0,
+					total_pages: 0,
+					next_page: null,
+					previous_page: null,
+				}),
+			],
+			[
+				/^\/students\/me\/grades\/$/,
+				() => (grades === "empty" ? [] : MY_GRADES),
+			],
+			[
+				/^\/students\/me\/courses\/$/,
+				() => (myCourses === "rateable" ? MY_COURSES : []),
+			],
+		];
 	const failing: ReadonlyArray<RegExp> = [
 		...(feed === "error" ? [/^\/feed\/$/] : []),
 		...(courses === "error" ? [/^\/courses\/$/, /^\/analytics\/$/] : []),
@@ -97,6 +134,6 @@ export async function mockBackend(
 			await route.abort();
 			return;
 		}
-		await route.fulfill({ json: handler[1]() });
+		await route.fulfill({ json: handler[1](path) });
 	});
 }

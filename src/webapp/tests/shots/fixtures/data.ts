@@ -1,4 +1,5 @@
 import type {
+	CommentList,
 	CourseAnalytics,
 	CourseDetail,
 	CourseList,
@@ -8,6 +9,7 @@ import type {
 	RatingsWithUserList,
 	Session,
 	StudentRatingsDetailed,
+	StudentRatingsLight,
 } from "../../../src/lib/api/generated";
 
 // Every value here is invented: no real students, teachers or reviews.
@@ -285,3 +287,99 @@ export const MY_GRADES = COURSES.slice(0, 8).map((course, index) => ({
 				},
 	can_rate: true,
 })) satisfies StudentRatingsDetailed[];
+
+export const EMPTY_COMMENT_LIST = {
+	items: [],
+	filters: {},
+	page: 1,
+	page_size: 5,
+	total: 0,
+	total_pages: 0,
+	next_page: null,
+	previous_page: null,
+} satisfies CommentList;
+
+// The fixture student attends COURSE and may rate the offering: this is what
+// enables the rate button on the course page (see useUserCourseRating).
+export const MY_COURSES = [
+	{
+		id: COURSE.id,
+		offerings: [
+			{
+				id: "offering-1",
+				course_id: COURSE.id,
+				year: 2026,
+				season: "SPRING",
+				can_rate: true,
+				rated: null,
+			},
+		],
+	},
+] satisfies StudentRatingsLight[];
+
+// Thread under the first review (rating-0): two top-level comments, the first
+// with a single reply served from COMMENT_REPLIES.
+export const RATING_COMMENTS = {
+	items: [
+		{
+			id: "comment-c1",
+			parent_id: null,
+			rating_id: "rating-0",
+			content: "Повністю згодна, лабораторні справді найцінніша частина курсу.",
+			user_id: 11,
+			user_name: "Марта К.",
+			user_avatar_url: null,
+			is_anonymous: false,
+			can_manage: false,
+			created_at: hoursAgo(30),
+			replies_count: 1,
+		},
+		{
+			id: "comment-c2",
+			parent_id: null,
+			rating_id: "rating-0",
+			content:
+				"А як із навантаженням наприкінці семестру? Кажуть, останні дві домашки дуже обʼємні.",
+			user_id: null,
+			user_name: null,
+			user_avatar_url: null,
+			is_anonymous: true,
+			can_manage: false,
+			created_at: hoursAgo(20),
+			replies_count: 0,
+		},
+	],
+	filters: {},
+	page: 1,
+	page_size: 5,
+	total: 2,
+	total_pages: 1,
+	next_page: null,
+	previous_page: null,
+} satisfies CommentList;
+
+export const COMMENT_REPLIES = {
+	items: [
+		{
+			id: "comment-c1-r1",
+			parent_id: "comment-c1",
+			rating_id: "rating-0",
+			content:
+				"Так, останні дві домашки обʼємні, але їх можна здавати частинами. Раджу починати заздалегідь.",
+			user_id: 12,
+			user_name: "Остап Л.",
+			user_avatar_url: null,
+			is_anonymous: false,
+			can_manage: false,
+			created_at: hoursAgo(18),
+			replies_count: 0,
+		},
+	],
+	filters: {},
+	page: 1,
+	page_size: 5,
+	total: 1,
+	total_pages: 1,
+	next_page: null,
+	previous_page: null,
+} satisfies CommentList;

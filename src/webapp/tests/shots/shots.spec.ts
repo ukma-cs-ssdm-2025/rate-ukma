@@ -135,6 +135,65 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.getByText("Лекції насичені").first().waitFor();
 		},
 	},
+	{
+		name: "rating-modal",
+		note: "Course page with the rating form open",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rateable" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("heading", { level: 1, name: COURSE.title })
+				.waitFor();
+			const rate = page.getByTestId("course-details-rate-button");
+			if (await rate.isVisible()) await rate.click({ timeout: 5_000 });
+			await page.getByTestId("rating-modal").waitFor();
+		},
+	},
+	{
+		name: "course-comments",
+		note: "Course page with the first review's comment thread expanded",
+		run: async (page) => {
+			await mockBackend(page, { comments: "thread" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.getByText("Лекції насичені").first().waitFor();
+			const toggle = page.getByTestId("rating-comments-toggle-button").first();
+			if (await toggle.isVisible()) await toggle.click({ timeout: 5_000 });
+			await page.getByTestId("rating-comments-item").first().waitFor();
+			const replies = page.getByRole("button", { name: /відповідь/ }).first();
+			if (await replies.isVisible()) await replies.click({ timeout: 5_000 });
+			await page
+				.getByText("останні дві домашки обʼємні", { exact: false })
+				.waitFor();
+		},
+	},
+	{
+		name: "filters-drawer",
+		note: "Home page with the mobile filters drawer open (desktop shows the filters panel)",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/");
+			await page.getByText(COURSE.title).first().waitFor();
+			const trigger = page.getByTestId("filters-drawer-trigger");
+			if (await trigger.isVisible()) {
+				await trigger.click({ timeout: 5_000 });
+				await page.getByTestId("filters-drawer").waitFor();
+			} else {
+				await page.getByTestId("filters-panel").scrollIntoViewIfNeeded();
+				await page.getByTestId("filters-panel").waitFor();
+			}
+		},
+	},
+	{
+		name: "explore",
+		note: "/explore with the scatter plot",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/explore");
+			await page
+				.getByLabel("Діаграма розподілу курсів за корисністю та складністю")
+				.waitFor();
+		},
+	},
 ];
 const STATES = ALL_STATES.filter((state) => !only || only.test(state.name));
 
