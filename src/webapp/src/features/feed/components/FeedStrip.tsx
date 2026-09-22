@@ -110,14 +110,18 @@ export function FeedStrip() {
 					</div>
 				))}
 
-				<Link
-					to="/feed"
-					aria-label="Переглянути всю стрічку"
-					className="flex w-[140px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-3 text-center text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-				>
-					<ArrowRight className="size-5" />
-					Переглянути всі
-				</Link>
+				{/* Rendered only with items: a lone tile becomes the snap target
+				    while loading, and the browser keeps it in view once cards arrive. */}
+				{items.length > 0 && (
+					<Link
+						to="/feed"
+						aria-label="Переглянути всю стрічку"
+						className="flex w-[140px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-3 text-center text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+					>
+						<ArrowRight className="size-5" />
+						Переглянути всі
+					</Link>
+				)}
 			</div>
 		</section>
 	);
