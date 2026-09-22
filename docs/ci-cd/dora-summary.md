@@ -1,17 +1,17 @@
 # DORA Metrics Report
 
-**Generated:** 2026-09-15 09:05:20
+**Generated:** 2026-09-22 09:05:27
 
 ## Summary
 
 |Metric|Value|Category|
 | --- | --- | --- |
-| Deployment Frequency | 7.64/week | Elite |
-| Lead Time for Changes | 8m 50s | Elite |
+| Deployment Frequency | 14.08/week | Elite |
+| Lead Time for Changes | 8m 4s | Elite |
 | Change Failure Rate | 0.0% | Elite |
-| Time to Restore | 2h 36m | High |
+| Time to Restore | 2h 29m | High |
 
-**Total Runs:** 7 | **Successful:** 7 (100.0%) | **Failed:** 0 (0.0%)
+**Total Runs:** 10 | **Successful:** 10 (100.0%) | **Failed:** 0 (0.0%)
 
 ---
 
@@ -21,7 +21,7 @@
 
 ```mermaid
 pie title Workflow Run Outcomes
-    "Success" : 7
+    "Success" : 10
 ```
 
 ### Lead Time Trend
@@ -31,12 +31,12 @@ xychart-beta
     title "Average Lead Time by Week"
     x-axis ["May 11", "May 18", "May 25", "Jun 01", "Jun 08", "Jun 15", "Jun 22", "Jun 29", "Jul 06", "Jul 20", "Aug 03", "Aug 10", "Aug 24", "Aug 31", "Sep 07", "Sep 14"]
     y-axis "Duration (minutes)" 0 --> 13
-    bar [6.88, 7.57, 10.99, 3.80, 6.97, 7.72, 7.67, 7.87, 7.66, 7.90, 8.04, 8.70, 8.02, 8.89, 8.69, 9.22]
+    bar [6.82, 7.57, 10.99, 3.80, 6.97, 7.72, 7.67, 7.87, 7.66, 7.90, 8.04, 8.70, 8.02, 8.89, 8.69, 8.27]
 ```
 
 | Week Starting | Avg Lead Time | Deployments |
 |---------------|---------------|-------------|
-| May 11 | 6m 53s | 13 |
+| May 11 | 6m 49s | 11 |
 | May 18 | 7m 34s | 10 |
 | May 25 | 10m 59s | 5 |
 | Jun 01 | 3m 48s | 2 |
@@ -51,7 +51,7 @@ xychart-beta
 | Aug 24 | 8m 1s | 1 |
 | Aug 31 | 8m 53s | 11 |
 | Sep 07 | 8m 41s | 5 |
-| Sep 14 | 9m 14s | 2 |
+| Sep 14 | 8m 16s | 12 |
 
 ### Deployment Frequency Trend
 
@@ -59,13 +59,13 @@ xychart-beta
 xychart-beta
     title "Deployment Frequency Trend"
     x-axis ["May 11", "May 18", "May 25", "Jun 01", "Jun 08", "Jun 15", "Jun 22", "Jun 29", "Jul 06", "Jul 20", "Aug 03", "Aug 10", "Aug 24", "Aug 31", "Sep 07", "Sep 14"]
-    y-axis "Number of Deployments" 0 --> 15
-    bar [13.00, 10.00, 5.00, 2.00, 4.00, 2.00, 4.00, 2.00, 3.00, 1.00, 2.00, 7.00, 1.00, 11.00, 5.00, 2.00]
+    y-axis "Number of Deployments" 0 --> 14
+    bar [11.00, 10.00, 5.00, 2.00, 4.00, 2.00, 4.00, 2.00, 3.00, 1.00, 2.00, 7.00, 1.00, 11.00, 5.00, 12.00]
 ```
 
 **Deployment Cadence Analysis:**
-- **Average per week:** 4.6 deployments
-- **Most active week:** 13 deployments
+- **Average per week:** 5.1 deployments
+- **Most active week:** 12 deployments
 - **Least active week:** 1 deployments
 - **Consistency:** Low (irregular release pattern)
 
@@ -76,12 +76,12 @@ xychart-beta
     title "Change Failure Rate Trend"
     x-axis ["May 11", "May 18", "May 25", "Jun 01", "Jun 08", "Jun 15", "Jun 22", "Jun 29", "Jul 06", "Jul 20", "Aug 03", "Aug 10", "Aug 24", "Aug 31", "Sep 07", "Sep 14"]
     y-axis "Failure Rate (%)" 0 --> 100
-    bar [25.00, 20.00, 0.00, 0.00, 20.00, 33.33, 33.33, 0.00, 0.00, 0.00, 0.00, 22.22, 0.00, 0.00, 0.00, 0.00]
+    bar [27.78, 20.00, 0.00, 0.00, 20.00, 33.33, 33.33, 0.00, 0.00, 0.00, 0.00, 22.22, 0.00, 0.00, 0.00, 0.00]
 ```
 
 | Week Starting | Total Runs | Failed | CFR |
 |---------------|------------|--------|-----|
-| May 11 | 28 | 7 | 25.0% |
+| May 11 | 18 | 5 | 27.8% |
 | May 18 | 15 | 3 | 20.0% |
 | May 25 | 5 | 0 | 0.0% |
 | Jun 01 | 2 | 0 | 0.0% |
@@ -96,7 +96,7 @@ xychart-beta
 | Aug 24 | 1 | 0 | 0.0% |
 | Aug 31 | 11 | 0 | 0.0% |
 | Sep 07 | 5 | 0 | 0.0% |
-| Sep 14 | 2 | 0 | 0.0% |
+| Sep 14 | 12 | 0 | 0.0% |
 **DORA Performance Tiers:**
 - Elite: ≤ 15%
 - High: 16-30%
