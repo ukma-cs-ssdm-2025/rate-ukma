@@ -784,7 +784,6 @@ function CourseFiltersContent({
 	);
 }
 
-
 function getTotalActiveCount(data: CourseFiltersData): number {
 	return (
 		data.groups.rating.config.activeCount +
