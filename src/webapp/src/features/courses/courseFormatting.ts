@@ -27,14 +27,14 @@ export function getDifficultyTone(value?: number | null): string {
 	}
 
 	if (value >= 4) {
-		return "text-[var(--destructive)] dark:text-[var(--destructive-foreground)]";
+		return "text-destructive";
 	}
 
 	if (value >= 3) {
-		return "text-[var(--chart-5)] dark:text-[var(--chart-5)]";
+		return "text-chart-5";
 	}
 
-	return "text-[var(--primary)]";
+	return "text-primary";
 }
 
 export function getUsefulnessTone(value?: number | null): string {
@@ -43,14 +43,14 @@ export function getUsefulnessTone(value?: number | null): string {
 	}
 
 	if (value >= 4) {
-		return "text-[var(--primary)]";
+		return "text-primary";
 	}
 
 	if (value >= 3) {
-		return "text-[var(--chart-2)] dark:text-[var(--chart-2)]";
+		return "text-chart-2";
 	}
 
-	return "text-[var(--muted-foreground)]";
+	return "text-muted-foreground";
 }
 
 const EDUCATION_LEVEL_LABELS: Record<string, string> = {

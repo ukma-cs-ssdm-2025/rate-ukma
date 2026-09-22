@@ -89,10 +89,9 @@ describe("courseFormatting", () => {
 
 	describe("getDifficultyTone", () => {
 		const TONES = {
-			DESTRUCTIVE:
-				"text-[var(--destructive)] dark:text-[var(--destructive-foreground)]",
-			MEDIUM: "text-[var(--chart-5)] dark:text-[var(--chart-5)]",
-			PRIMARY: "text-[var(--primary)]",
+			DESTRUCTIVE: "text-destructive",
+			MEDIUM: "text-chart-5",
+			PRIMARY: "text-primary",
 			MUTED: "text-muted-foreground",
 		};
 
@@ -117,9 +116,9 @@ describe("courseFormatting", () => {
 
 	describe("getUsefulnessTone", () => {
 		const TONES = {
-			PRIMARY: "text-[var(--primary)]",
-			MEDIUM: "text-[var(--chart-2)] dark:text-[var(--chart-2)]",
-			LOW: "text-[var(--muted-foreground)]",
+			PRIMARY: "text-primary",
+			MEDIUM: "text-chart-2",
+			LOW: "text-muted-foreground",
 			MUTED: "text-muted-foreground",
 		};
 
