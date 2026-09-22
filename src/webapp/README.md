@@ -83,6 +83,26 @@ BASE_URL=http://localhost:3000  # optional, defaults to http://localhost:3000
 
 Copy from `src/.env.sample` if you haven't set up your `.env` file yet.
 
+### Screenshots
+
+`pnpm shots` renders every app state (courses with the feed strip, feed, empty and error states, my ratings, a course page) at 1440x900 and 390x844 in light and dark, and writes the PNGs plus an `index.html` contact sheet to `shots/`. Every API call is answered from invented fixtures in `tests/shots/fixtures/`, so no backend or login is needed; an endpoint without a fixture is logged as `[shots] unmocked`.
+
+```bash
+pnpm shots                                 # build, preview, shoot into shots/
+SHOT_ONLY=feed pnpm shots                  # only states whose name matches
+SHOT_DIR=/tmp/after SHOT_BEFORE_DIR=/tmp/before pnpm shots   # index.html pairs before | after
+SHOT_BASE_URL=http://127.0.0.1:4175 pnpm shots               # shoot a server that is already running
+```
+
+Before/after for a branch: build `main` separately and point `SHOT_BASE_URL` at it for the "before" run.
+
+```bash
+mkdir -p /tmp/main && git archive origin/main src/webapp | tar -x -C /tmp/main
+ln -s "$PWD/node_modules" /tmp/main/src/webapp/node_modules
+cp -R src/lib/api/generated /tmp/main/src/webapp/src/lib/api/
+(cd /tmp/main/src/webapp && VITE_API_BASE_URL=http://localhost:9 npx vite build && npx vite preview --port 4175)
+```
+
 ### Code Quality
 
 ```bash

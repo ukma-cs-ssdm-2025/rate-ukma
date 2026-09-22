@@ -27,7 +27,8 @@
 		"security:audit": "pnpm audit --audit-level high",
 		"security:update": "pnpm up --interactive",
 		"test:e2e": "dotenv -e ../.env -- playwright test",
-		"test:e2e:ui": "dotenv -e ../.env -- cross-env HEADLESS=false playwright test"
+		"test:e2e:ui": "dotenv -e ../.env -- cross-env HEADLESS=false playwright test",
+		"shots": "SHOT_DIR=${SHOT_DIR:-shots} playwright test --config playwright.shots.config.ts && (orca tab create --url \"file://$(cd ${SHOT_DIR:-shots} && pwd)/index.html\" --json >/dev/null 2>&1 || true)"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.7.1",
