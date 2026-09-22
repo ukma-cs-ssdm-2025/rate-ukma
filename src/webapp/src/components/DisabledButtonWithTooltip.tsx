@@ -1,5 +1,11 @@
 import * as React from "react";
 
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
+
 interface Props {
 	readonly children: React.ReactElement<
 		React.ButtonHTMLAttributes<HTMLButtonElement>
@@ -15,8 +21,6 @@ export function DisabledButtonWithTooltip({
 	className,
 	forceDisable = true,
 }: Readonly<Props>) {
-	const tooltipId = React.useId();
-
 	const childDisabledProp = children.props.disabled === true;
 	const shouldBeDisabled = forceDisable || childDisabledProp;
 
@@ -24,7 +28,6 @@ export function DisabledButtonWithTooltip({
 	const mergedClassName = [
 		existingClassName,
 		shouldBeDisabled ? "cursor-not-allowed" : "",
-		tooltip ? "peer" : "",
 	]
 		.filter(Boolean)
 		.join(" ");
@@ -35,7 +38,6 @@ export function DisabledButtonWithTooltip({
 			event.stopPropagation();
 			return;
 		}
-
 		if (typeof children.props.onClick === "function") {
 			children.props.onClick(event);
 		}
@@ -44,24 +46,29 @@ export function DisabledButtonWithTooltip({
 	const renderedChild = React.cloneElement(children, {
 		className: mergedClassName,
 		"aria-disabled": shouldBeDisabled || undefined,
-		disabled: tooltip ? undefined : shouldBeDisabled,
-		...(tooltip ? { "aria-describedby": tooltipId } : {}),
+		disabled: shouldBeDisabled,
 		onClick: handleClick,
 	});
 
+	if (!tooltip) {
+		return (
+			<div className={`inline-block ${className ?? ""}`}>{renderedChild}</div>
+		);
+	}
+
 	return (
-		<div className={`relative inline-block ${className ?? ""}`}>
-			{renderedChild}
-			{tooltip ? (
-				<div
-					id={tooltipId}
-					role="tooltip"
-					className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md shadow-lg opacity-0 invisible peer-hover:opacity-100 peer-focus-visible:opacity-100 peer-hover:visible peer-focus-visible:visible transition-all duration-200 whitespace-nowrap pointer-events-none z-10"
-				>
-					{tooltip}
-					<div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
-				</div>
-			) : null}
+		<div className={`inline-block ${className ?? ""}`}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					{/* span keeps the tooltip reachable on a disabled native button */}
+					<span className="inline-block" tabIndex={0}>
+						{renderedChild}
+					</span>
+				</TooltipTrigger>
+				<TooltipContent>
+					<p>{tooltip}</p>
+				</TooltipContent>
+			</Tooltip>
 		</div>
 	);
 }

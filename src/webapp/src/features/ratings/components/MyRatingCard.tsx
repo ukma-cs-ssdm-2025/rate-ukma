@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Pencil, PenLine, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import {
 	Tooltip,
 	TooltipContent,
@@ -26,26 +27,11 @@ interface MyRatingCardProps {
 	course: StudentRatingsDetailed;
 	onRatingChanged: () => undefined | Promise<unknown>;
 }
-
-function getCardClassName(
-	hasRating: boolean,
-	canRate: boolean,
-	hasAccent: boolean,
-): string {
-	if (hasRating) {
-		return hasAccent
-			? "border-l-4 border-border/50 bg-card hover:border-border"
-			: "border-border/50 bg-card hover:border-border";
+function getCardClassName(hasRating: boolean, canRate: boolean): string {
+	if (hasRating || canRate) {
+		return "shadow-sm";
 	}
-	if (canRate && !hasAccent) {
-		return "border-l-4 border-l-primary border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
-	}
-	if (canRate) {
-		return "border-l-4 border-y-border/50 border-r-border/50 bg-primary/[0.02] hover:bg-primary/[0.05]";
-	}
-	return hasAccent
-		? "border-l-4 border-dashed border-border/70 bg-muted/30 opacity-80"
-		: "border-dashed border-border/70 bg-muted/30 opacity-80";
+	return "border-dashed bg-muted/30 opacity-80 shadow-none";
 }
 
 export function MyRatingCard({
@@ -68,32 +54,33 @@ export function MyRatingCard({
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
 	return (
-		<div
+		<Card
 			className={cn(
-				"group flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border px-4 py-3 transition-all",
-				getCardClassName(hasRating, canRate, accent !== null),
+				"flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center",
+				accent && "border-l-4",
+				getCardClassName(hasRating, canRate),
 			)}
 			style={accent ? { borderLeftColor: accent.background } : undefined}
 			data-testid={testIds.myRatings.card}
 		>
-			<div className="flex-1 min-w-0">
+			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-2">
 					{courseId ? (
 						<Link
 							to="/courses/$courseId"
 							params={{ courseId }}
-							className="font-medium text-foreground hover:underline decoration-dotted underline-offset-4 truncate"
+							className="truncate font-medium text-foreground underline-offset-4 decoration-dotted hover:underline"
 							data-testid={testIds.myRatings.courseTitleLink}
 						>
 							{course.course_title ?? "Курс"}
 						</Link>
 					) : (
-						<span className="font-medium text-foreground truncate">
+						<span className="truncate font-medium text-foreground">
 							{course.course_title ?? "Курс"}
 						</span>
 					)}
 					{course.course_code && (
-						<span className="text-xs text-muted-foreground shrink-0">
+						<span className="shrink-0 text-xs text-muted-foreground">
 							{course.course_code}
 						</span>
 					)}
@@ -101,7 +88,7 @@ export function MyRatingCard({
 			</div>
 
 			{hasRating && rating ? (
-				<div className="hidden sm:flex items-center gap-4 text-sm shrink-0">
+				<div className="hidden shrink-0 items-center gap-4 text-sm sm:flex">
 					<div className="flex items-center gap-1.5">
 						<span className="text-xs text-muted-foreground">Складність</span>
 						<span
@@ -127,7 +114,7 @@ export function MyRatingCard({
 				</div>
 			) : null}
 
-			<div className="flex items-center gap-1 shrink-0">
+			<div className="flex shrink-0 items-center gap-1">
 				<CardActions
 					canModify={canModify}
 					hasRating={hasRating}
@@ -161,7 +148,7 @@ export function MyRatingCard({
 					onSuccess={onRatingChanged}
 				/>
 			)}
-		</div>
+		</Card>
 	);
 }
 
@@ -190,21 +177,20 @@ function CardActions({
 		return (
 			<>
 				<Button
-					size="sm"
+					size="icon-sm"
 					variant="ghost"
 					onClick={onEdit}
 					aria-label="Редагувати оцінку"
-					className="size-8 p-0"
 					data-testid={testIds.myRatings.editButton}
 				>
 					<Pencil className="size-3.5" />
 				</Button>
 				<Button
-					size="sm"
+					size="icon-sm"
 					variant="ghost"
 					onClick={onDelete}
 					aria-label="Видалити оцінку"
-					className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+					className="text-destructive hover:text-destructive hover:bg-destructive/10"
 					data-testid={testIds.myRatings.deleteButton}
 				>
 					<Trash2 className="size-3.5" />
@@ -221,15 +207,11 @@ function CardActions({
 		return (
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<span>
+					<span className="inline-block" tabIndex={0}>
 						<Button
 							variant="secondary"
 							size="sm"
 							disabled
-							className={cn(
-								"opacity-50 cursor-not-allowed",
-								accent && "border-transparent",
-							)}
 							style={
 								accent
 									? {
@@ -239,7 +221,7 @@ function CardActions({
 									: undefined
 							}
 						>
-							<PenLine className="size-3.5 mr-1.5" />
+							<PenLine className="size-3.5" />
 							Оцінити
 						</Button>
 					</span>
@@ -256,7 +238,7 @@ function CardActions({
 			<Button
 				variant="default"
 				size="sm"
-				className={cn("h-8 px-4 shadow-sm", accent && "hover:brightness-90")}
+				className={cn(accent && "hover:brightness-90")}
 				style={
 					accent
 						? { backgroundColor: accent.background, color: accent.foreground }
@@ -265,17 +247,16 @@ function CardActions({
 				onClick={onEdit}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
-				<PenLine className="size-3.5 mr-1.5" />
+				<PenLine className="size-3.5" />
 				Оцінити
 			</Button>
 		);
 	}
-
 	return (
 		<Button
 			variant="default"
 			size="sm"
-			className={cn("h-8 px-4 shadow-sm", accent && "hover:brightness-90")}
+			className={cn(accent && "hover:brightness-90")}
 			style={
 				accent
 					? { backgroundColor: accent.background, color: accent.foreground }
@@ -289,7 +270,7 @@ function CardActions({
 				search={{ openRating: true }}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
-				<PenLine className="size-3.5 mr-1.5" />
+				<PenLine className="size-3.5" />
 				Оцінити
 			</Link>
 		</Button>

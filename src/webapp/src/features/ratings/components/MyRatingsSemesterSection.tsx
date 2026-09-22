@@ -71,16 +71,16 @@ export function MyRatingsSemesterSection({
 	return (
 		<Collapsible open={isOpen} onOpenChange={onToggle}>
 			<CollapsibleTrigger
-				className="group flex items-center justify-between py-2 w-full hover:bg-muted/50 rounded-md transition-colors cursor-pointer text-left px-1"
+				className="group flex w-full cursor-pointer items-center justify-between rounded-md px-1 py-2 text-left transition-colors hover:bg-muted/50"
 				data-testid={testIds.myRatings.semesterTrigger}
 			>
-				<div className="flex items-center gap-2 min-w-0">
+				<div className="flex min-w-0 items-center gap-2">
 					{isOpen ? (
-						<ChevronDown className="size-4 text-muted-foreground shrink-0" />
+						<ChevronDown className="size-4 shrink-0 text-muted-foreground" />
 					) : (
-						<ChevronRight className="size-4 text-muted-foreground shrink-0" />
+						<ChevronRight className="size-4 shrink-0 text-muted-foreground" />
 					)}
-					<span className="font-medium text-foreground truncate">
+					<span className="truncate font-medium text-foreground">
 						{seasonGroup.label}
 					</span>
 				</div>
@@ -128,70 +128,50 @@ function SemesterBadges({
 	isFuture,
 }: Readonly<SemesterBadgesProps>) {
 	return (
-		<div className="flex items-center gap-3 shrink-0 px-1">
-			<div className="flex items-center gap-2">
-				{percentage < 100 && unratedRateableCount > 0 && (
-					<div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-						<CircularProgress value={percentage} size={14} strokeWidth={2.5} />
-						<span className="text-[10px] text-muted-foreground font-medium">
-							{percentage}%
-						</span>
-					</div>
-				)}
-				{unratedRateableCount > 0 && (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Badge
-								variant="secondary"
-								className="h-5 px-1.5 text-[10px] bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 cursor-help"
-							>
-								Ще {unratedRateableCount} оцінити
-							</Badge>
-						</TooltipTrigger>
-						<TooltipContent side="top" className="text-[11px] px-2 py-1">
-							Твої оцінки допоможуть іншим студентам зробити кращий вибір
-						</TooltipContent>
-					</Tooltip>
-				)}
-				{percentage === 100 && (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Badge
-								variant="outline"
-								className="h-5 px-1.5 text-[10px] text-green-600 border-green-200 bg-green-50/30 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 cursor-default"
-							>
-								Все оцінено
-							</Badge>
-						</TooltipTrigger>
-						<TooltipContent side="top" className="text-[11px] px-2 py-1">
-							Дякуємо, що оцінили всі курси цього семестру!
-						</TooltipContent>
-					</Tooltip>
-				)}
-				{!hasRateableCourses && hasUnratedButNotRateable && !isFuture && (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Badge
-								variant="outline"
-								className="h-5 px-1.5 text-[10px] text-muted-foreground border-muted-foreground/20 bg-muted/5 cursor-help"
-							>
-								Оцінювання невдовзі
-							</Badge>
-						</TooltipTrigger>
-						<TooltipContent side="top" className="text-[11px] px-2 py-1">
-							{CANNOT_RATE_TOOLTIP_TEXT}
-						</TooltipContent>
-					</Tooltip>
-				)}
-			</div>
-			{isFuture && (
-				<Badge
-					variant="outline"
-					className="h-5 px-1.5 text-[10px] text-muted-foreground border-muted-foreground/20 bg-muted/5"
-				>
-					Ще не розпочався
-				</Badge>
+		<div className="flex shrink-0 items-center gap-2 px-1">
+			{percentage < 100 && unratedRateableCount > 0 && (
+				<div className="flex items-center gap-1.5 opacity-80 transition-opacity group-hover:opacity-100">
+					<CircularProgress value={percentage} size={14} strokeWidth={2.5} />
+					<span className="text-xs font-medium text-muted-foreground">
+						{percentage}%
+					</span>
+				</div>
 			)}
+			{unratedRateableCount > 0 && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge variant="soft" className="cursor-help">
+							Ще {unratedRateableCount} оцінити
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent side="top">
+						Твої оцінки допоможуть іншим студентам зробити кращий вибір
+					</TooltipContent>
+				</Tooltip>
+			)}
+			{percentage === 100 && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge variant="success" className="cursor-default">
+							Все оцінено
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent side="top">
+						Дякуємо, що оцінили всі курси цього семестру!
+					</TooltipContent>
+				</Tooltip>
+			)}
+			{!hasRateableCourses && hasUnratedButNotRateable && !isFuture && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge variant="outline" className="cursor-help">
+							Оцінювання невдовзі
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent side="top">{CANNOT_RATE_TOOLTIP_TEXT}</TooltipContent>
+				</Tooltip>
+			)}
+			{isFuture && <Badge variant="outline">Ще не розпочався</Badge>}
 		</div>
 	);
 }

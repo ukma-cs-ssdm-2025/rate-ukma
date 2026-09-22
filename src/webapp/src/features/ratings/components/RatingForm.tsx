@@ -1,12 +1,12 @@
 import * as React from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Star } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch, type Control } from "react-hook-form";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { DialogFooter } from "@/components/ui/Dialog";
 import {
 	Form,
 	FormControl,
@@ -17,14 +17,16 @@ import {
 	FormMessage,
 } from "@/components/ui/Form";
 import { Textarea } from "@/components/ui/Textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { cn } from "@/lib/utils";
 import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
 } from "../definitions/ratingDefinitions";
+
+const COMMENT_MAX_LENGTH = 2000;
 
 const ratingSchema = z.object({
 	difficulty: z
@@ -48,7 +50,7 @@ const ratingSchema = z.object({
 
 export type RatingFormData = z.infer<typeof ratingSchema>;
 
-function StarRatingInput({
+function ScoreInput({
 	value,
 	onChange,
 	onBlur,
@@ -65,82 +67,35 @@ function StarRatingInput({
 	"aria-describedby"?: string;
 	"aria-invalid"?: boolean;
 }>) {
-	const [hovered, setHovered] = React.useState<number | null>(null);
-	const [dragOrigin, setDragOrigin] = React.useState<number | null>(null);
-	const [dragTarget, setDragTarget] = React.useState<number | null>(null);
-	const dragging = dragOrigin !== null;
-	const displayValue = hovered ?? value;
-
-	const handlePointerDown = (star: number) => {
-		setDragOrigin(star);
-		setDragTarget(star);
-		onChange(star);
-	};
-
-	const handlePointerEnter = (star: number) => {
-		setHovered(star);
-		if (dragging) {
-			setDragTarget(star);
-			onChange(star);
-		}
-	};
-
-	React.useEffect(() => {
-		if (!dragging) return;
-		const up = () => {
-			setDragOrigin(null);
-			setDragTarget(null);
-		};
-		globalThis.addEventListener("pointerup", up);
-		return () => globalThis.removeEventListener("pointerup", up);
-	}, [dragging]);
-
 	return (
 		<div data-testid={dataTestId}>
-			<fieldset
-				aria-label="Оцінка"
-				className="flex gap-0.5 select-none touch-none border-none p-0 m-0"
-				onMouseLeave={() => {
-					if (!dragging) setHovered(null);
+			<ToggleGroup
+				type="single"
+				variant="outline"
+				value={String(value)}
+				onValueChange={(next) => {
+					if (next) {
+						onChange(Number(next));
+					}
 				}}
 				onBlur={onBlur}
+				aria-label="Оцінка"
+				className="w-full"
 				{...rest}
 			>
-				{[1, 2, 3, 4, 5].map((star) => {
-					const isFilled = star <= displayValue;
-					const isPressed =
-						dragging &&
-						dragOrigin !== null &&
-						dragTarget !== null &&
-						star >= Math.min(dragOrigin, dragTarget) &&
-						star <= Math.max(dragOrigin, dragTarget);
-
-					return (
-						<button
-							key={star}
-							type="button"
-							className={cn(
-								"rounded-md p-1 transition-transform duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-								isPressed ? "scale-90" : "hover:scale-110 active:scale-95",
-							)}
-							onPointerDown={() => handlePointerDown(star)}
-							onPointerEnter={() => handlePointerEnter(star)}
-							aria-label={`${star} з 5`}
-						>
-							<Star
-								className={cn(
-									"h-7 w-7 transition-colors duration-100",
-									isFilled
-										? "fill-primary text-primary drop-shadow-sm"
-										: "fill-transparent text-muted-foreground/30",
-								)}
-							/>
-						</button>
-					);
-				})}
-			</fieldset>
-			<p className="mt-1.5 text-xs text-muted-foreground min-h-8">
-				{descriptions[displayValue as keyof typeof descriptions] ?? ""}
+				{[1, 2, 3, 4, 5].map((score) => (
+					<ToggleGroupItem
+						key={score}
+						value={String(score)}
+						aria-label={`${score} з 5`}
+						className="flex-1"
+					>
+						{score}
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+			<p className="mt-1.5 min-h-8 text-xs text-muted-foreground">
+				{descriptions[value as keyof typeof descriptions] ?? ""}
 			</p>
 		</div>
 	);
@@ -153,12 +108,14 @@ function RatingFormFields({
 	initialInstructors,
 	legacyInstructor,
 }: Readonly<{
-	control: ReturnType<typeof useForm<RatingFormData>>["control"];
+	control: Control<RatingFormData>;
 	offeringId?: string;
 	courseId?: string;
 	initialInstructors?: readonly Instructor[];
 	legacyInstructor?: string;
 }>) {
+	const comment = useWatch({ control, name: "comment" }) ?? "";
+
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -169,7 +126,7 @@ function RatingFormFields({
 						<FormItem>
 							<FormLabel>Складність</FormLabel>
 							<FormControl>
-								<StarRatingInput
+								<ScoreInput
 									value={field.value ?? 3}
 									onChange={field.onChange}
 									onBlur={field.onBlur}
@@ -189,7 +146,7 @@ function RatingFormFields({
 						<FormItem>
 							<FormLabel>Корисність</FormLabel>
 							<FormControl>
-								<StarRatingInput
+								<ScoreInput
 									value={field.value ?? 3}
 									onChange={field.onChange}
 									onBlur={field.onBlur}
@@ -249,13 +206,19 @@ function RatingFormFields({
 								className="field-sizing-fixed min-h-32 max-h-[40dvh] resize-y overflow-y-auto"
 								placeholder="Поділіться будь-якими думками про цей курс..."
 								rows={6}
+								maxLength={COMMENT_MAX_LENGTH}
 								{...field}
 								data-testid={testIds.rating.commentTextarea}
 							/>
 						</FormControl>
-						<FormDescription>
-							Допоможіть іншим студентам, розказавши про свій досвід
-						</FormDescription>
+						<div className="flex items-center justify-between gap-2">
+							<FormDescription>
+								Допоможіть іншим студентам, розказавши про свій досвід
+							</FormDescription>
+							<span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+								{comment.length} / {COMMENT_MAX_LENGTH}
+							</span>
+						</div>
 						<FormMessage />
 					</FormItem>
 				)}
@@ -265,22 +228,20 @@ function RatingFormFields({
 				control={control}
 				name="is_anonymous"
 				render={({ field }) => (
-					<FormItem className="space-y-1">
+					<FormItem>
 						<div className="flex items-center gap-2">
 							<FormControl className="flex-none">
 								<Checkbox
 									checked={field.value}
 									onCheckedChange={(checked) =>
-										field.onChange(checked ?? false)
+										field.onChange(checked === true)
 									}
 									data-testid={testIds.rating.anonymousCheckbox}
 								/>
 							</FormControl>
-							<FormLabel className="m-0 text-sm font-medium">
-								Анонімне повідомлення
-							</FormLabel>
+							<FormLabel>Анонімне повідомлення</FormLabel>
 						</div>
-						<FormDescription className="text-sm">
+						<FormDescription>
 							Ваше ім'я не відображатиметься в огляді
 						</FormDescription>
 						<FormMessage />
@@ -345,34 +306,32 @@ export function RatingForm({
 					legacyInstructor={initialData?.instructor?.trim() || undefined}
 				/>
 
-				<div className="shrink-0 border-t bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-					<div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-						<Button
-							type="button"
-							variant="outline"
-							onClick={onCancel}
-							disabled={isLoading}
-							data-testid={testIds.rating.cancelButton}
-						>
-							Скасувати
-						</Button>
-						<Button
-							type="submit"
-							disabled={isLoading}
-							data-testid={testIds.rating.submitButton}
-						>
-							{(() => {
-								if (isLoading) {
-									return "Надсилання...";
-								}
-								if (isEditMode) {
-									return "Зберегти зміни";
-								}
-								return "Надіслати оцінку";
-							})()}
-						</Button>
-					</div>
-				</div>
+				<DialogFooter className="shrink-0 border-t px-6 py-4">
+					<Button
+						type="button"
+						variant="secondary"
+						onClick={onCancel}
+						disabled={isLoading}
+						data-testid={testIds.rating.cancelButton}
+					>
+						Скасувати
+					</Button>
+					<Button
+						type="submit"
+						disabled={isLoading}
+						data-testid={testIds.rating.submitButton}
+					>
+						{(() => {
+							if (isLoading) {
+								return "Надсилання...";
+							}
+							if (isEditMode) {
+								return "Зберегти зміни";
+							}
+							return "Надіслати оцінку";
+						})()}
+					</Button>
+				</DialogFooter>
 			</form>
 		</Form>
 	);

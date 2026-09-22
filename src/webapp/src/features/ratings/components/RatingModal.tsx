@@ -162,11 +162,9 @@ export function RatingModal({
 				data-testid={testIds.rating.modal}
 			>
 				<DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4 pr-12 text-left">
-					<div className="flex items-center justify-between">
-						<DialogTitle data-testid={testIds.rating.modalTitle}>
-							{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
-						</DialogTitle>
-					</div>
+					<DialogTitle data-testid={testIds.rating.modalTitle}>
+						{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
+					</DialogTitle>
 					{courseName && (
 						<DialogDescription>
 							{isEditMode
