@@ -1,5 +1,6 @@
 import { ListCollapse, ListFilter } from "lucide-react";
 
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { CircularProgress } from "@/components/ui/CircularProgress";
 import {
@@ -45,98 +46,101 @@ export function MyRatingsHeader({
 	];
 
 	return (
-		<div data-testid={testIds.myRatings.header} className="space-y-6">
-			<div className="flex items-center justify-between flex-wrap gap-4">
-				<div className="flex items-center gap-3">
-					<h1 className="text-2xl font-bold tracking-tight">Мої оцінки</h1>
-					{!isLoading && totalCourses > 0 && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<div className="flex items-center gap-2 cursor-default">
-									<CircularProgress
-										value={percentage}
-										size={28}
-										strokeWidth={3}
-									/>
-									<span className="text-sm text-muted-foreground">
-										{percentage}%
-									</span>
-								</div>
-							</TooltipTrigger>
-							<TooltipContent>
-								{ratedCourses} з {totalCourses} оцінено
-							</TooltipContent>
-						</Tooltip>
-					)}
-				</div>
-
-				{!isLoading && totalCourses > 0 && (
-					<div className="flex items-center gap-4">
-						<div className="hidden sm:flex items-center rounded-lg border bg-muted/30 p-1">
+		<div data-testid={testIds.myRatings.header}>
+			<PageHeader
+				title={
+					<span className="inline-flex items-center gap-3">
+						Мої оцінки
+						{!isLoading && totalCourses > 0 && (
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-8 px-2 rounded-md hover:bg-transparent text-muted-foreground hover:text-foreground"
-										onClick={onToggleExpandAll}
-										aria-label={
-											isAllExpanded ? "Згорнути все" : "Розгорнути все"
-										}
-										aria-pressed={isAllExpanded}
-									>
-										{isAllExpanded ? (
-											<ListCollapse className="size-4" />
-										) : (
-											<ListFilter className="size-4" />
-										)}
-									</Button>
+									<span className="inline-flex items-center gap-2 cursor-default">
+										<CircularProgress
+											value={percentage}
+											size={28}
+											strokeWidth={3}
+										/>
+										<span className="text-sm font-normal text-muted-foreground">
+											{percentage}%
+										</span>
+									</span>
 								</TooltipTrigger>
 								<TooltipContent>
-									{isAllExpanded ? "Згорнути все" : "Розгорнути все"}
+									{ratedCourses} з {totalCourses} оцінено
 								</TooltipContent>
 							</Tooltip>
-						</div>
+						)}
+					</span>
+				}
+				actions={
+					!isLoading && totalCourses > 0 ? (
+						<>
+							<div className="hidden sm:flex items-center rounded-lg border bg-muted/30 p-1">
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-8 px-2 rounded-md hover:bg-transparent text-muted-foreground hover:text-foreground"
+											onClick={onToggleExpandAll}
+											aria-label={
+												isAllExpanded ? "Згорнути все" : "Розгорнути все"
+											}
+											aria-pressed={isAllExpanded}
+										>
+											{isAllExpanded ? (
+												<ListCollapse className="size-4" />
+											) : (
+												<ListFilter className="size-4" />
+											)}
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>
+										{isAllExpanded ? "Згорнути все" : "Розгорнути все"}
+									</TooltipContent>
+								</Tooltip>
+							</div>
 
-						<div className="flex items-center rounded-lg border bg-muted/30 p-1">
-							{filters.map(({ value, label }) => {
-								const countByFilter: Record<RatingFilter, number> = {
-									all: totalCourses,
-									rated: ratedCourses,
-									unrated: unratedCount,
-								};
-								const count = countByFilter[value];
-								return (
-									<Button
-										key={value}
-										variant="ghost"
-										size="sm"
-										onClick={() => onFilterChange(value)}
-										className={cn(
-											"h-8 px-3 text-sm font-medium rounded-md transition-all",
-											filter === value
-												? "bg-background shadow-sm text-foreground"
-												: "text-muted-foreground hover:text-foreground hover:bg-transparent",
-										)}
-									>
-										{label}
-										<span
+							<div className="flex items-center rounded-lg border bg-muted/30 p-1">
+								{filters.map(({ value, label }) => {
+									const countByFilter: Record<RatingFilter, number> = {
+										all: totalCourses,
+										rated: ratedCourses,
+										unrated: unratedCount,
+									};
+									const count = countByFilter[value];
+									return (
+										<Button
+											key={value}
+											variant="ghost"
+											size="sm"
+											onClick={() => onFilterChange(value)}
 											className={cn(
-												"ml-1.5 text-xs",
+												"h-8 px-3 text-sm font-medium rounded-md transition-all",
 												filter === value
-													? "text-muted-foreground"
-													: "text-muted-foreground/60",
+													? "bg-background shadow-sm text-foreground"
+													: "text-muted-foreground hover:text-foreground hover:bg-transparent",
 											)}
 										>
-											{count}
-										</span>
-									</Button>
-								);
-							})}
-						</div>
-					</div>
-				)}
-			</div>
+											{label}
+											<span
+												className={cn(
+													"ml-1.5 text-xs",
+													filter === value
+														? "text-muted-foreground"
+														: "text-muted-foreground/60",
+												)}
+											>
+												{count}
+											</span>
+										</Button>
+									);
+								})}
+							</div>
+						</>
+					) : undefined
+				}
+			/>
 		</div>
 	);
 }
