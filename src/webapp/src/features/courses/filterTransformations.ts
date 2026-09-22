@@ -51,7 +51,7 @@ export function transformFiltersToApiParams(
 export function transformSortingToApiParams(
 	sortingId: string,
 	isDescending: boolean,
-): Record<string, "asc" | "desc"> {
+) {
 	if (sortingId === "avg_difficulty") {
 		return {
 			avg_difficulty_order: isDescending ? "desc" : "asc",

@@ -24,7 +24,7 @@ import { RatingModal } from "./RatingModal";
 
 interface MyRatingCardProps {
 	course: StudentRatingsDetailed;
-	onRatingChanged: () => undefined | Promise<unknown>;
+	onRatingChanged: () => void;
 }
 
 function getCardClassName(

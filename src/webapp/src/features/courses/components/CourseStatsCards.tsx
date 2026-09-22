@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/Skeleton";
+import { dictionaryLookup } from "@/lib/dictionary";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import {
@@ -46,7 +47,7 @@ function getDetailedDescription(
 	const roundedValue = Math.round(value);
 	const descriptions =
 		type === "difficulty" ? difficultyDescriptions : usefulnessDescriptions;
-	return descriptions[roundedValue as keyof typeof descriptions] || "";
+	return dictionaryLookup(descriptions, roundedValue) || "";
 }
 
 function getBarColor(

@@ -1,17 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen } from "@/test-utils/render";
+import * as infiniteHooks from "../hooks/useInfiniteInstructors";
 import { InstructorFilterSelect } from "./InstructorFilterSelect";
-import { useInfiniteInstructors } from "../hooks/useInfiniteInstructors";
-
-vi.mock("../hooks/useInfiniteInstructors", () => ({
-	useInfiniteInstructors: vi.fn(),
-}));
-
-const mockedHook = vi.mocked(useInfiniteInstructors);
 
 function mockHook() {
-	mockedHook.mockReturnValue({
+	vi.spyOn(infiniteHooks, "useInfiniteInstructors").mockReturnValue({
 		allInstructors: [],
 		total: 0,
 		hasMore: false,
@@ -33,16 +27,16 @@ describe("InstructorFilterSelect", () => {
 		);
 
 		expect(screen.getByRole("combobox")).toBeInTheDocument();
-		expect(mockedHook).toHaveBeenCalledWith(
-			expect.objectContaining({ mentionedOnly: true }),
-		);
+		expect(
+			vi.mocked(infiniteHooks.useInfiniteInstructors),
+		).toHaveBeenCalledWith(expect.objectContaining({ mentionedOnly: true }));
 	});
 
 	it("should not scope the query by default", () => {
 		render(<InstructorFilterSelect value="" onChange={vi.fn()} />);
 
-		expect(mockedHook).toHaveBeenCalledWith(
-			expect.objectContaining({ mentionedOnly: false }),
-		);
+		expect(
+			vi.mocked(infiniteHooks.useInfiniteInstructors),
+		).toHaveBeenCalledWith(expect.objectContaining({ mentionedOnly: false }));
 	});
 });

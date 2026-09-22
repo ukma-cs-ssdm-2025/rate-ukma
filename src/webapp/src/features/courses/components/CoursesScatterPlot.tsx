@@ -694,7 +694,7 @@ export function CoursesScatterPlot({
 					course.avg_usefulness != null && course.avg_difficulty != null,
 			)
 			.map((course) => {
-				const ratingsCount = course.ratings_count ?? 0;
+				const ratingsCount = course.ratings_count;
 				const radius = Math.max(
 					POINT_MIN_RADIUS,
 					Math.min(
@@ -704,13 +704,13 @@ export function CoursesScatterPlot({
 				);
 
 				return {
-					id: course.id ?? "unknown",
-					name: course.name ?? "Курс",
+					id: course.id,
+					name: course.name,
 					x: course.avg_usefulness ?? USEFULNESS_RANGE[0],
 					y: course.avg_difficulty ?? DIFFICULTY_RANGE[0],
 					radius,
-					color: facultyColorMap.get(course.faculty_name ?? "") ?? "#6b7280",
-					facultyName: course.faculty_name ?? "Інше",
+					color: facultyColorMap.get(course.faculty_name) ?? "#6b7280",
+					facultyName: course.faculty_name,
 					ratingsCount,
 				};
 			});

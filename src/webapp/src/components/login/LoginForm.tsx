@@ -26,32 +26,33 @@ const loginSchema = z.object({
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
 type LoginFormProps = {
-	loginWithDjango: (username: string, password: string) => Promise<unknown>;
+	loginWithDjango: (username: string, password: string) => Promise<void>;
 	onCancel: () => void;
 };
 
-function mapErrorToMessage(error: unknown): string {
-	if (!isAxiosError(error)) {
+const errorDetailSchema = z.union([z.string(), z.array(z.unknown())]);
+
+function mapErrorToMessage(cause: unknown): string {
+	if (!isAxiosError(cause)) {
 		return "Something went wrong. Please try again.";
 	}
 
-	if (error.code === "ERR_NETWORK") {
+	if (cause.code === "ERR_NETWORK") {
 		return "Cannot reach the server. Check your connection and try again.";
 	}
 
-	const { status, data } = error.response ?? {};
-	const detail = data?.detail;
-
-	if (typeof detail === "string" && detail.trim().length > 0) {
-		return detail;
-	}
-
-	if (Array.isArray(detail)) {
-		const firstDetail = detail.find(
-			(item): item is string => typeof item === "string",
-		);
-		if (firstDetail) {
-			return firstDetail;
+	const { status, data } = cause.response ?? {};
+	const detail = errorDetailSchema.safeParse(data?.detail);
+	if (detail.success) {
+		if (Array.isArray(detail.data)) {
+			const firstDetail = detail.data.find(
+				(item): item is string => typeof item === "string" && item.length > 0,
+			);
+			if (firstDetail) {
+				return firstDetail;
+			}
+		} else if (detail.data.trim().length > 0) {
+			return detail.data;
 		}
 	}
 

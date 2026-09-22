@@ -15,13 +15,13 @@ export const TEST_ACADEMIC_YEARS = {
 
 export const TEST_RANGES = {
 	// Difficulty/usefulness are in [1, 5].
-	lowDifficulty: [1, 1.5] as [number, number],
-	highDifficulty: [4, 5] as [number, number],
-	moderateDifficulty: [2, 4] as [number, number],
+	lowDifficulty: [1, 1.5],
+	highDifficulty: [4, 5],
+	moderateDifficulty: [2, 4],
 
-	highUsefulness: [4, 5] as [number, number],
-	veryHighUsefulness: [4.8, 5] as [number, number],
-	moderateUsefulness: [2.5, 4] as [number, number],
+	highUsefulness: [4, 5],
+	veryHighUsefulness: [4.8, 5],
+	moderateUsefulness: [2.5, 4],
 } as const;
 
 export const TEST_COMBINATIONS = {

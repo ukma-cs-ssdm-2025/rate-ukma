@@ -219,7 +219,7 @@ R_COURSE_OFFERING = {
 }
 
 R_VOTE_LIST = {
-    200: OpenApiResponse(description="Vote listed successfully"),
+    200: OpenApiResponse(RatingVoteReadSerializer(many=True), "Vote listed successfully"),
     **common_errors(include_404=True),
 }
 
@@ -263,10 +263,12 @@ R_NOTIFICATION_GROUP_MARK_READ = {
 
 R_FLAGS = {
     200: OpenApiResponse(forced_singular_serializer(FeatureFlagsSerializer), "OK"),
+    **common_errors(include_400=False, include_404=False),
 }
 
 R_PROMO_BANNER = {
     200: OpenApiResponse(forced_singular_serializer(PromoBannerResponseSerializer), "OK"),
+    **common_errors(include_400=False, include_404=False),
 }
 
 R_FEED = {

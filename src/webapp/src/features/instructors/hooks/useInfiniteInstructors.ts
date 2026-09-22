@@ -34,17 +34,22 @@ export function useInfiniteInstructors({
 	pageSize = DEFAULT_PAGE_SIZE,
 	enabled = true,
 }: UseInfiniteInstructorsOptions = {}): UseInfiniteInstructorsReturn {
-	const params = useMemo<InstructorsListParams>(
-		() => ({
-			page_size: pageSize,
-			...(search ? { search } : {}),
-			...(courseOfferingId ? { course_offering_id: courseOfferingId } : {}),
-			...(courseId ? { course_id: courseId } : {}),
-			...(specialityId ? { speciality_id: specialityId } : {}),
-			...(mentionedOnly ? { mentioned_only: true } : {}),
-		}),
-		[search, courseOfferingId, courseId, specialityId, mentionedOnly, pageSize],
-	);
+	const params = useMemo<InstructorsListParams>(() => {
+		const next: InstructorsListParams = { page_size: pageSize };
+		if (search) next.search = search;
+		if (courseOfferingId) next.course_offering_id = courseOfferingId;
+		if (courseId) next.course_id = courseId;
+		if (specialityId) next.speciality_id = specialityId;
+		if (mentionedOnly) next.mentioned_only = true;
+		return next;
+	}, [
+		search,
+		courseOfferingId,
+		courseId,
+		specialityId,
+		mentionedOnly,
+		pageSize,
+	]);
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
 		useInstructorsListInfinite(params, {
@@ -60,7 +65,11 @@ export function useInfiniteInstructors({
 
 	const loaderRef = useRef<HTMLDivElement | null>(null);
 	const fetchNextPageRef = useRef(fetchNextPage);
-	fetchNextPageRef.current = fetchNextPage;
+	// Latest-ref for the observer callback: reassigned in an effect so the
+	// closure stays fresh without re-subscribing, and never writes during render.
+	useEffect(() => {
+		fetchNextPageRef.current = fetchNextPage;
+	});
 
 	useEffect(() => {
 		if (!hasNextPage || allInstructors.length === 0) {

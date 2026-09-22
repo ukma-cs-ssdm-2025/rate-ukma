@@ -2,79 +2,82 @@ import type { ReactNode } from "react";
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import * as LayoutModule from "@/components/Layout";
 import {
 	DEFAULT_COURSE_FILTERS_PARAMS,
-	useCourseFiltersParams,
+	type CourseFiltersParamsSetter,
+	type CourseFiltersParamsState,
 } from "@/features/courses/courseFiltersParams";
-import { useCoursesList } from "@/lib/api/generated";
+import * as filtersParams from "@/features/courses/courseFiltersParams";
+import * as CoursesTableModule from "@/features/courses/components/CoursesTable";
+import * as FeedStripModule from "@/features/feed/components/FeedStrip";
+import * as PromoBannerModule from "@/features/promo/components/PromoBanner";
+import type { CourseListResponse } from "@/lib/api/generated";
+import * as generated from "@/lib/api/generated";
+import { emptyCourseFilters } from "@/test-utils/factories";
 import { CoursesRoute } from "./index";
 
-vi.mock("@/components/Layout", () => {
-	return {
-		default: ({ children }: { children: ReactNode }) => <>{children}</>,
-	};
-});
+interface CoursesListStub {
+	data: CourseListResponse | undefined;
+	isFetching: boolean;
+	isError: boolean;
+	refetch: ((...args: any[]) => any) | ReturnType<typeof vi.fn>;
+}
 
-vi.mock("@/features/courses/components/CoursesTable", () => {
-	return {
-		CoursesTable: ({ params }: { params: { q: string } }) => (
-			<div>
-				<div data-testid="courses-table" />
-				<input data-testid="courses-search-input" readOnly value={params.q} />
-			</div>
-		),
-	};
-});
+function coursesListStub(
+	data: CourseListResponse | undefined,
+	isError: boolean,
+	refetch: ReturnType<typeof vi.fn>,
+): CoursesListStub {
+	return { data, isFetching: false, isError, refetch };
+}
 
-// Covered by its own test; stubbed here so this file needs no flags provider.
-vi.mock("@/features/promo/components/PromoBanner", () => {
-	return {
-		PromoBanner: () => null,
-	};
-});
-
-// Covered by its own test; stubbed here so this file needs no flags provider.
-vi.mock("@/features/feed/components/FeedStrip", () => {
-	return {
-		FeedStrip: () => null,
-	};
-});
-
-vi.mock("@/features/courses/courseFiltersParams", async () => {
-	const actual = await vi.importActual<
-		typeof import("@/features/courses/courseFiltersParams")
-	>("@/features/courses/courseFiltersParams");
-
-	return {
-		...actual,
-		useCourseFiltersParams: vi.fn(),
-	};
-});
-
-vi.mock("@/lib/api/generated", () => {
-	return {
-		useCoursesList: vi.fn(),
-	};
-});
+function mockFiltersParams(
+	params: Partial<CourseFiltersParamsState>,
+	setParams: ReturnType<typeof vi.fn>,
+) {
+	vi.spyOn(filtersParams, "useCourseFiltersParams").mockReturnValue(
+		// SAFETY: the route only reads the state and calls setParams.
+		[{ ...DEFAULT_COURSE_FILTERS_PARAMS, ...params }, setParams] as [
+			CourseFiltersParamsState,
+			CourseFiltersParamsSetter,
+		],
+	);
+}
 
 describe("CoursesRoute", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.spyOn(LayoutModule, "default").mockImplementation(
+			({ children }: { children: ReactNode }) => <>{children}</>,
+		);
+		vi.spyOn(CoursesTableModule, "CoursesTable").mockImplementation(
+			({ params }: { params: { q: string } }) => (
+				<div>
+					<div data-testid="courses-table" />
+					<input data-testid="courses-search-input" readOnly value={params.q} />
+				</div>
+			),
+		);
+		// Covered by its own test; stubbed here so this file needs no flags provider.
+		vi.spyOn(PromoBannerModule, "PromoBanner").mockImplementation(() => null);
+		vi.spyOn(FeedStripModule, "FeedStrip").mockImplementation(() => null);
+	});
+
 	it("renders error state and calls refetch on retry", async () => {
 		const user = userEvent.setup();
 		const setParams = vi.fn();
-		vi.mocked(useCourseFiltersParams).mockReturnValue([
-			{ ...DEFAULT_COURSE_FILTERS_PARAMS, q: "test" },
-			setParams,
-		]);
+		mockFiltersParams({ q: "test" }, setParams);
 
 		const refetch = vi.fn();
-		vi.mocked(useCoursesList).mockReturnValue({
-			data: undefined,
-			isFetching: false,
-			isError: true,
-			refetch,
-		} as unknown as ReturnType<typeof useCoursesList>);
+		vi.spyOn(generated, "useCoursesList").mockReturnValue(
+			// SAFETY: CoursesRoute only reads data/isFetching/isError/refetch.
+			coursesListStub(undefined, true, refetch) as ReturnType<
+				typeof generated.useCoursesList
+			>,
+		);
 
 		render(<CoursesRoute />);
 
@@ -87,30 +90,32 @@ describe("CoursesRoute", () => {
 
 	it("renders courses table when query succeeds", () => {
 		const setParams = vi.fn();
-		vi.mocked(useCourseFiltersParams).mockReturnValue([
-			{ ...DEFAULT_COURSE_FILTERS_PARAMS, q: "persisted" },
-			setParams,
-		]);
+		mockFiltersParams({ q: "persisted" }, setParams);
 
-		vi.mocked(useCoursesList).mockReturnValue({
-			data: {
-				items: [],
-				page: 1,
-				page_size: 10,
-				total: 0,
-				total_pages: 0,
-			},
-			isFetching: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as unknown as ReturnType<typeof useCoursesList>);
+		vi.spyOn(generated, "useCoursesList").mockReturnValue(
+			// SAFETY: CoursesRoute only reads data/isFetching/isError/refetch.
+			coursesListStub(
+				{
+					items: [],
+					page: 1,
+					page_size: 10,
+					total: 0,
+					total_pages: 0,
+					filters: emptyCourseFilters(),
+					next_page: null,
+					previous_page: null,
+				},
+				false,
+				vi.fn(),
+			) as ReturnType<typeof generated.useCoursesList>,
+		);
 
 		render(<CoursesRoute />);
 
 		expect(screen.queryByTestId("courses-error-state")).not.toBeInTheDocument();
 		expect(screen.getByTestId("courses-table")).toBeInTheDocument();
 		expect(screen.getByTestId("courses-search-input")).toHaveValue("persisted");
-		expect(vi.mocked(useCoursesList)).toHaveBeenCalledWith(
+		expect(vi.mocked(generated.useCoursesList)).toHaveBeenCalledWith(
 			expect.objectContaining({ last_review_order: undefined }),
 			expect.anything(),
 		);
@@ -118,21 +123,29 @@ describe("CoursesRoute", () => {
 
 	it("uses newest review sorting when explicitly selected", () => {
 		const setParams = vi.fn();
-		vi.mocked(useCourseFiltersParams).mockReturnValue([
-			{ ...DEFAULT_COURSE_FILTERS_PARAMS, reviewSort: "newest" },
-			setParams,
-		]);
+		mockFiltersParams({ reviewSort: "newest" }, setParams);
 
-		vi.mocked(useCoursesList).mockReturnValue({
-			data: { items: [], page: 1, page_size: 10, total: 0, total_pages: 0 },
-			isFetching: false,
-			isError: false,
-			refetch: vi.fn(),
-		} as unknown as ReturnType<typeof useCoursesList>);
+		vi.spyOn(generated, "useCoursesList").mockReturnValue(
+			// SAFETY: CoursesRoute only reads data/isFetching/isError/refetch.
+			coursesListStub(
+				{
+					items: [],
+					page: 1,
+					page_size: 10,
+					total: 0,
+					total_pages: 0,
+					filters: emptyCourseFilters(),
+					next_page: null,
+					previous_page: null,
+				},
+				false,
+				vi.fn(),
+			) as ReturnType<typeof generated.useCoursesList>,
+		);
 
 		render(<CoursesRoute />);
 
-		expect(vi.mocked(useCoursesList)).toHaveBeenCalledWith(
+		expect(vi.mocked(generated.useCoursesList)).toHaveBeenCalledWith(
 			expect.objectContaining({ last_review_order: "desc" }),
 			expect.anything(),
 		);

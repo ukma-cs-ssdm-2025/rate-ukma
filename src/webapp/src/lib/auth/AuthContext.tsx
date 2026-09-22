@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
 import { env } from "@/env";
+import { getHttpErrorStatus } from "@/lib/api/networkError";
 import { setSessionExpiryListener } from "./sessionExpiry";
 import {
 	useAuthLoginCreate,
@@ -60,12 +61,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			refetchInterval: false,
 			refetchOnReconnect: false,
 			// Don't retry on 401 errors - they're intentional
-			retry: (failureCount, error) => {
-				const errorStatus =
-					(error as { response?: { status?: number }; status?: number })
-						?.response?.status ||
-					(error as { response?: { status?: number }; status?: number })
-						?.status;
+			retry: (failureCount, cause) => {
+				const errorStatus = getHttpErrorStatus(cause);
 				return errorStatus !== 401 && failureCount < 1;
 			},
 			staleTime: 5 * 60 * 1000,

@@ -13,8 +13,8 @@ import { FeedSkeleton } from "@/features/feed/components/FeedSkeleton";
 import { isCommentItem, isPromoItem } from "@/features/feed/feedTypes";
 import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import { useFeed } from "@/features/feed/hooks/useFeed";
-import { withAuth } from "@/lib/auth";
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { withAuth } from "@/lib/auth/withAuth";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 import { testIds } from "@/lib/test-ids";
 
 export function FeedRoute() {

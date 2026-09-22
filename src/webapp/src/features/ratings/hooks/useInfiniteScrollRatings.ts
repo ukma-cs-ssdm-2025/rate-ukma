@@ -50,7 +50,7 @@ export function useInfiniteScrollRatings(
 		useInfiniteQuery({
 			queryKey: getCoursesRatingsListQueryKey(courseId, params),
 			queryFn: ({ pageParam }) =>
-				coursesRatingsList(courseId, { ...params, page: pageParam as number }),
+				coursesRatingsList(courseId, { ...params, page: pageParam }),
 			getNextPageParam: (lastPage) =>
 				lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
 			initialPageParam: 1,
@@ -62,7 +62,11 @@ export function useInfiniteScrollRatings(
 
 	const loaderRef = useRef<HTMLDivElement | null>(null);
 	const fetchNextPageRef = useRef(fetchNextPage);
-	fetchNextPageRef.current = fetchNextPage;
+	// Latest-ref for the observer callback: reassigned in an effect so the
+	// closure stays fresh without re-subscribing, and never writes during render.
+	useEffect(() => {
+		fetchNextPageRef.current = fetchNextPage;
+	});
 
 	useEffect(() => {
 		if (!hasNextPage || (allRatings.length === 0 && !userRating)) {

@@ -26,7 +26,7 @@ import { MyRatingCard } from "./MyRatingCard";
 
 interface MyRatingsSemesterSectionProps {
 	seasonGroup: SemesterGroup;
-	onRatingChanged: () => undefined | Promise<unknown>;
+	onRatingChanged: () => void;
 	isOpen?: boolean;
 	onToggle: (open: boolean) => void;
 }

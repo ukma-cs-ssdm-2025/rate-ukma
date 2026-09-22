@@ -10,11 +10,10 @@ import {
 import type {
 	CommentAuthor,
 	InlineRating,
-	RatingInstructor,
 	RatingRead,
 	RatingVoteStrType,
 } from "@/lib/api/generated";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { testIds } from "@/lib/test-ids";
 import { RatingCardBody } from "./RatingCardBody";
 
@@ -24,7 +23,6 @@ interface ExtendedRating extends InlineRating {
 	viewer_vote?: RatingVoteStrType | null;
 	comments_count?: number;
 	comment_authors?: CommentAuthor[];
-	instructors?: RatingInstructor[];
 }
 
 interface UserRatingCardProps {
@@ -100,7 +98,7 @@ export function UserRatingCard({
 
 			<RatingCardBody
 				displayName={displayName}
-				isAnonymous={rating.is_anonymous ?? false}
+				isAnonymous={rating.is_anonymous}
 				avatarUrl={!rating.is_anonymous ? user?.avatarUrl : undefined}
 				createdAt={rating.created_at}
 				courseOfferingLabel={courseOfferingLabel}
@@ -108,7 +106,7 @@ export function UserRatingCard({
 				usefulness={rating.usefulness}
 				comment={rating.comment}
 				instructor={rating.instructor}
-				instructors={rating.instructors ?? []}
+				instructors={rating.instructors}
 				commentEmptyMessage="Ви не залишили коментар."
 				ratingId={rating.id}
 				courseId={courseId}

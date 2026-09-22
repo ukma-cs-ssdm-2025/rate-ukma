@@ -36,16 +36,14 @@ export function DisabledButtonWithTooltip({
 			return;
 		}
 
-		if (typeof children.props.onClick === "function") {
-			children.props.onClick(event);
-		}
+		children.props.onClick?.(event);
 	};
 
 	const renderedChild = React.cloneElement(children, {
 		className: mergedClassName,
 		"aria-disabled": shouldBeDisabled || undefined,
 		disabled: tooltip ? undefined : shouldBeDisabled,
-		...(tooltip ? { "aria-describedby": tooltipId } : {}),
+		"aria-describedby": tooltip ? tooltipId : undefined,
 		onClick: handleClick,
 	});
 

@@ -3,12 +3,14 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import * as generated from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import {
 	createMockCourse,
 	createMockFilterOptions,
 } from "@/test-utils/factories";
-import { renderWithProviders } from "@/test-utils/render";
+import { Providers } from "@/test-utils/render";
+import { createTestRouter, renderWithCustomRouter } from "@/test-utils/router";
 import { CoursesTable } from "./CoursesTable";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
@@ -17,61 +19,17 @@ import {
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
 
-// Mock TanStack Router hooks
-const mockNavigate = vi.fn();
-vi.mock("@tanstack/react-router", async () => {
-	const actual = await vi.importActual("@tanstack/react-router");
-	return {
-		...actual,
-		useNavigate: vi.fn(function () {
-			return mockNavigate;
-		}),
-		Link: ({
-			to,
-			params,
-			children,
-			className,
-		}: {
-			to: string;
-			params?: Record<string, string>;
-			children: React.ReactNode;
-			className?: string;
-		}) => (
-			<a href={to} data-params={JSON.stringify(params)} className={className}>
-				{children}
-			</a>
-		),
-	};
-});
+// Real router + provider spies instead of module mocks.
 
-// Mock the filter options API hook
-vi.mock("@/lib/api/generated", async () => {
-	const actual = await vi.importActual("@/lib/api/generated");
-	return {
-		...actual,
-		useCoursesFilterOptionsRetrieve: vi.fn(function () {
-			return {
-				data: createMockFilterOptions(),
-				isLoading: false,
-				error: null,
-			};
-		}),
-		useAnalyticsList: vi.fn(function () {
-			return {
-				data: [],
-				isLoading: false,
-				error: null,
-			};
-		}),
-		useStudentsMeCoursesRetrieve: vi.fn(function () {
-			return {
-				data: [],
-				isLoading: false,
-				error: null,
-			};
-		}),
-	};
-});
+interface QueryStub<TData> {
+	data: TData;
+	isLoading: boolean;
+	error: null;
+}
+
+function queryStub<TData>(data: TData): QueryStub<TData> {
+	return { data, isLoading: false, error: null };
+}
 
 const defaultParams: CourseFiltersParamsState = {
 	q: "",
@@ -104,14 +62,35 @@ const defaultProps = {
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	mockNavigate.mockClear();
 	vi.useRealTimers();
+	vi.spyOn(generated, "useCoursesFilterOptionsRetrieve").mockReturnValue(
+		// SAFETY: CoursesTable only reads data/isLoading/error from this query.
+		queryStub(createMockFilterOptions()) as ReturnType<
+			typeof generated.useCoursesFilterOptionsRetrieve
+		>,
+	);
+	vi.spyOn(generated, "useAnalyticsList").mockReturnValue(
+		// SAFETY: CoursesTable only reads data/isLoading/error from this query.
+		queryStub([]) as ReturnType<typeof generated.useAnalyticsList>,
+	);
+	vi.spyOn(generated, "useStudentsMeCoursesRetrieve").mockReturnValue(
+		// SAFETY: CoursesTable only reads data/isLoading/error from this query.
+		queryStub([]) as ReturnType<typeof generated.useStudentsMeCoursesRetrieve>,
+	);
 });
 
+async function renderTable(ui: React.ReactNode) {
+	await renderWithCustomRouter(createTestRouter(ui));
+}
+
 describe("Initial Rendering", () => {
-	it("should render search input", () => {
+	it("should render search input", async () => {
 		// Arrange & Act
-		renderWithProviders(<CoursesTable {...defaultProps} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} />
+			</Providers>,
+		);
 
 		// Assert
 		expect(
@@ -119,35 +98,49 @@ describe("Initial Rendering", () => {
 		).toBeInTheDocument();
 	});
 
-	it("should render filter panel on desktop", () => {
+	it("should render filter panel on desktop", async () => {
 		// Arrange & Act
-		renderWithProviders(<CoursesTable {...defaultProps} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} />
+			</Providers>,
+		);
 
 		// Assert
 		expect(screen.getByText("Фільтри")).toBeInTheDocument();
 	});
 
-	it("should render mobile filter button", () => {
+	it("should render mobile filter button", async () => {
 		// Arrange & Act
-		renderWithProviders(<CoursesTable {...defaultProps} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} />
+			</Providers>,
+		);
 
 		// Assert
 		const filterButton = screen.getByRole("button", { name: /фільтри/i });
 		expect(filterButton).toBeInTheDocument();
 	});
 
-	it("should render skeleton when initial loading", () => {
+	it("should render skeleton when initial loading", async () => {
 		// Arrange & Act
-		renderWithProviders(<CoursesTable {...defaultProps} isLoading={true} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} isLoading={true} />
+			</Providers>,
+		);
 
 		// Assert
 		expect(screen.getByRole("table")).toBeInTheDocument();
 	});
 
-	it("should render empty state when no data and not loading", () => {
+	it("should render empty state when no data and not loading", async () => {
 		// Arrange & Act
-		renderWithProviders(
-			<CoursesTable {...defaultProps} data={[]} isLoading={false} />,
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={[]} isLoading={false} />
+			</Providers>,
 		);
 
 		// Assert
@@ -156,7 +149,7 @@ describe("Initial Rendering", () => {
 		).toBeInTheDocument();
 	});
 
-	it("should render data table when data is present", () => {
+	it("should render data table when data is present", async () => {
 		// Arrange
 		const courses = [
 			createMockCourse({ title: "React Programming" }),
@@ -164,7 +157,11 @@ describe("Initial Rendering", () => {
 		];
 
 		// Act
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
 
 		// Assert
 		expect(screen.getByText("React Programming")).toBeInTheDocument();
@@ -176,7 +173,11 @@ describe("Search Filter", () => {
 	it("should update search query when typing in search input", async () => {
 		// Arrange
 		const user = userEvent.setup();
-		renderWithProviders(<CoursesTable {...defaultProps} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} />
+			</Providers>,
+		);
 
 		// Act
 		const searchInput = screen.getByPlaceholderText(
@@ -190,7 +191,11 @@ describe("Search Filter", () => {
 
 	it("should call setParams with search query after debounce", async () => {
 		const user = userEvent.setup();
-		renderWithProviders(<CoursesTable {...defaultProps} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} />
+			</Providers>,
+		);
 
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук курсів за назвою...",
@@ -207,9 +212,13 @@ describe("Search Filter", () => {
 		);
 	});
 
-	it("should disable search input when initial loading", () => {
+	it("should disable search input when initial loading", async () => {
 		// Arrange & Act
-		renderWithProviders(<CoursesTable {...defaultProps} isLoading={true} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} isLoading={true} />
+			</Providers>,
+		);
 
 		// Assert
 		const searchInput = screen.getByPlaceholderText(
@@ -220,7 +229,7 @@ describe("Search Filter", () => {
 });
 
 describe("Pagination", () => {
-	it("should initialize pagination with server pagination values", () => {
+	it("should initialize pagination with server pagination values", async () => {
 		// Arrange
 		const pagination = {
 			page: 2,
@@ -230,12 +239,14 @@ describe("Pagination", () => {
 		};
 
 		// Act
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				pagination={pagination}
-				data={[createMockCourse()]}
-			/>,
+		await renderTable(
+			<Providers>
+				<CoursesTable
+					{...defaultProps}
+					pagination={pagination}
+					data={[createMockCourse()]}
+				/>
+			</Providers>,
 		);
 
 		// Assert
@@ -254,14 +265,16 @@ describe("Pagination", () => {
 			totalPages: 5,
 		};
 
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				params={{ ...defaultParams, page: 1, size: 20 }}
-				setParams={setParams}
-				data={courses}
-				pagination={pagination}
-			/>,
+		await renderTable(
+			<Providers>
+				<CoursesTable
+					{...defaultProps}
+					params={{ ...defaultParams, page: 1, size: 20 }}
+					setParams={setParams}
+					data={courses}
+					pagination={pagination}
+				/>
+			</Providers>,
 		);
 
 		const nextButton = screen.getByRole("button", { name: /next/i });
@@ -283,14 +296,16 @@ describe("Pagination", () => {
 			totalPages: 5,
 		};
 
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				params={{ ...defaultParams, page: 3, size: 20 }}
-				setParams={setParams}
-				data={courses}
-				pagination={pagination}
-			/>,
+		await renderTable(
+			<Providers>
+				<CoursesTable
+					{...defaultProps}
+					params={{ ...defaultParams, page: 3, size: 20 }}
+					setParams={setParams}
+					data={courses}
+					pagination={pagination}
+				/>
+			</Providers>,
 		);
 
 		const searchInput = screen.getByPlaceholderText(
@@ -310,7 +325,7 @@ describe("Pagination", () => {
 });
 
 describe("Filter Options Loading", () => {
-	it("should show filter panel title regardless of loading state", () => {
+	it("should show filter panel title regardless of loading state", async () => {
 		// Arrange
 		const queryClient = new QueryClient({
 			defaultOptions: {
@@ -319,9 +334,11 @@ describe("Filter Options Loading", () => {
 		});
 
 		// Act
-		renderWithProviders(<CoursesTable {...defaultProps} />, {
-			queryClient,
-		});
+		await renderTable(
+			<Providers queryClient={queryClient}>
+				<CoursesTable {...defaultProps} />
+			</Providers>,
+		);
 
 		// Assert
 		expect(screen.getByText("Фільтри")).toBeInTheDocument();
@@ -333,12 +350,14 @@ describe("Reset Filters", () => {
 		const user = userEvent.setup();
 		const setParams = vi.fn();
 
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				params={{ ...defaultParams, q: "Test", page: 2, size: 20 }}
-				setParams={setParams}
-			/>,
+		await renderTable(
+			<Providers>
+				<CoursesTable
+					{...defaultProps}
+					params={{ ...defaultParams, q: "Test", page: 2, size: 20 }}
+					setParams={setParams}
+				/>
+			</Providers>,
 		);
 
 		const resetButton = screen.getByRole("button", { name: /скинути/i });
@@ -370,7 +389,11 @@ describe("Mobile Filter Drawer", () => {
 	it("should open drawer when filter button is clicked", async () => {
 		// Arrange
 		const user = userEvent.setup();
-		renderWithProviders(<CoursesTable {...defaultProps} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} />
+			</Providers>,
+		);
 
 		// Act
 		const filterButton = screen.getByRole("button", { name: /фільтри/i });
@@ -385,27 +408,27 @@ describe("Mobile Filter Drawer", () => {
 });
 
 describe("Row Click Handling", () => {
-	it("should render course title as a link", () => {
+	it("should render course title as a link", async () => {
 		// Arrange
 		const course = createMockCourse({
 			id: "test-course-id",
 			title: "React Programming",
 		});
-		renderWithProviders(<CoursesTable {...defaultProps} data={[course]} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={[course]} />
+			</Providers>,
+		);
 
 		// Assert
 		const link = screen.getByRole("link", { name: "React Programming" });
 		expect(link).toBeInTheDocument();
-		expect(link).toHaveAttribute("href", "/courses/$courseId");
-		expect(link).toHaveAttribute(
-			"data-params",
-			JSON.stringify({ courseId: "test-course-id" }),
-		);
+		expect(link).toHaveAttribute("href", "/courses/test-course-id");
 	});
 });
 
 describe("Course Display", () => {
-	it("should display course titles", () => {
+	it("should display course titles", async () => {
 		// Arrange
 		const courses = [
 			createMockCourse({ title: "Algorithms and Data Structures" }),
@@ -413,7 +436,11 @@ describe("Course Display", () => {
 		];
 
 		// Act
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
 
 		// Assert
 		expect(
@@ -422,48 +449,60 @@ describe("Course Display", () => {
 		expect(screen.getByText("Web Development")).toBeInTheDocument();
 	});
 
-	it("should display course ratings count", () => {
+	it("should display course ratings count", async () => {
 		// Arrange
 		const courses = [
 			createMockCourse({ title: "Test Course", ratings_count: 42 }),
 		];
 
 		// Act
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
 
 		// Assert
 		expect(screen.getByText("42")).toBeInTheDocument();
 	});
 
-	it("should display average difficulty", () => {
+	it("should display average difficulty", async () => {
 		// Arrange
 		const courses = [
 			createMockCourse({ title: "Test Course", avg_difficulty: 3.5 }),
 		];
 
 		// Act
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
 
 		// Assert
 		const difficultyElements = screen.getAllByText("3.5");
 		expect(difficultyElements.length).toBeGreaterThan(0);
 	});
 
-	it("should display average usefulness", () => {
+	it("should display average usefulness", async () => {
 		// Arrange
 		const courses = [
 			createMockCourse({ title: "Test Course", avg_usefulness: 4.2 }),
 		];
 
 		// Act
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
 
 		// Assert
 		const usefulnessElements = screen.getAllByText("4.2");
 		expect(usefulnessElements.length).toBeGreaterThan(0);
 	});
 
-	it("should display speciality badge", () => {
+	it("should display speciality badge", async () => {
 		// Arrange
 		const courses = [
 			createMockCourse({
@@ -472,6 +511,9 @@ describe("Course Display", () => {
 					{
 						speciality_id: "spec-1",
 						speciality_title: "Інженерія програмного забезпечення",
+						speciality_alias: "ІПЗ",
+						faculty_name: "Факультет інформатики",
+						faculty_id: "faculty-1",
 						type_kind: "COMPULSORY" as const,
 					},
 				],
@@ -479,7 +521,11 @@ describe("Course Display", () => {
 		];
 
 		// Act
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
 
 		// Assert
 		expect(screen.getByText("ІПЗ")).toBeInTheDocument();
@@ -487,9 +533,13 @@ describe("Course Display", () => {
 });
 
 describe("Accessibility", () => {
-	it("should have accessible search input", () => {
+	it("should have accessible search input", async () => {
 		// Arrange & Act
-		renderWithProviders(<CoursesTable {...defaultProps} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} />
+			</Providers>,
+		);
 
 		// Assert
 		const searchInput = screen.getByPlaceholderText(
@@ -499,9 +549,13 @@ describe("Accessibility", () => {
 		expect(searchInput.tagName.toLowerCase()).toBe("input");
 	});
 
-	it("should have accessible filter button with aria-label", () => {
+	it("should have accessible filter button with aria-label", async () => {
 		// Arrange & Act
-		renderWithProviders(<CoursesTable {...defaultProps} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} />
+			</Providers>,
+		);
 
 		// Assert
 		const filterButton = screen.getByRole("button", { name: /фільтри/i });
@@ -512,17 +566,15 @@ describe("Accessibility", () => {
 describe("Attended Courses Highlighting", () => {
 	it("should highlight attended course rows", async () => {
 		// Arrange
-		const { useStudentsMeCoursesRetrieve } =
-			await import("@/lib/api/generated");
-		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
 		const attendedCourseId = "course-attended-1";
 		const nonAttendedCourseId = "course-non-attended-2";
 
-		mockedHook.mockReturnValue({
-			data: [{ id: attendedCourseId, offerings: [] }],
-			isLoading: false,
-			error: null,
-		} as ReturnType<typeof useStudentsMeCoursesRetrieve>);
+		vi.spyOn(generated, "useStudentsMeCoursesRetrieve").mockReturnValue(
+			// SAFETY: CoursesTable only reads data/isLoading/error from this query.
+			queryStub([{ id: attendedCourseId, offerings: [] }]) as ReturnType<
+				typeof generated.useStudentsMeCoursesRetrieve
+			>,
+		);
 
 		const courses = [
 			createMockCourse({ id: attendedCourseId, title: "Attended Course" }),
@@ -533,7 +585,11 @@ describe("Attended Courses Highlighting", () => {
 		];
 
 		// Act
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
 
 		// Assert
 		const attendedRow = screen.getByText("Attended Course").closest("tr");
@@ -547,15 +603,12 @@ describe("Attended Courses Highlighting", () => {
 
 	it("should not highlight any rows when no attended courses", async () => {
 		// Arrange
-		const { useStudentsMeCoursesRetrieve } =
-			await import("@/lib/api/generated");
-		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
-
-		mockedHook.mockReturnValue({
-			data: [],
-			isLoading: false,
-			error: null,
-		} as ReturnType<typeof useStudentsMeCoursesRetrieve>);
+		vi.spyOn(generated, "useStudentsMeCoursesRetrieve").mockReturnValue(
+			// SAFETY: CoursesTable only reads data/isLoading/error from this query.
+			queryStub([]) as ReturnType<
+				typeof generated.useStudentsMeCoursesRetrieve
+			>,
+		);
 
 		const courses = [
 			createMockCourse({ id: "course-1", title: "Course One" }),
@@ -563,7 +616,11 @@ describe("Attended Courses Highlighting", () => {
 		];
 
 		// Act
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		await renderTable(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
 
 		// Assert
 		const rows = screen.getAllByRole("row").filter((row) => {
@@ -584,28 +641,37 @@ describe("Course Row Navigation", () => {
 
 		const courses = [createMockCourse({ id: courseId, title: courseTitle })];
 
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		const router = createTestRouter(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
+		const navigateSpy = vi.spyOn(router, "navigate");
+		await renderWithCustomRouter(router);
 
 		const row = screen.getByText(courseTitle).closest("tr");
-		expect(row).not.toBeNull();
+		if (!row) throw new Error("Course row not found");
 
-		await user.click(row as HTMLElement);
+		await user.click(row);
 
-		expect(mockNavigate).toHaveBeenCalledWith({
-			to: "/courses/$courseId",
-			params: { courseId },
-		});
+		expect(navigateSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				to: "/courses/$courseId",
+				params: { courseId },
+			}),
+		);
 	});
 
 	it("should not navigate when '+N більше' is clicked", async () => {
 		const user = userEvent.setup();
 		const courseId = "course-2";
 		const courseTitle = "Badges Course";
-
 		const specialities = Array.from({ length: 7 }, (_, i) => ({
 			speciality_id: `spec-${i + 1}`,
 			speciality_title: `Speciality ${i + 1}`,
+			speciality_alias: `S${i + 1}`,
 			faculty_name: "Факультет інформатики",
+			faculty_id: "faculty-1",
 			type_kind: "COMPULSORY" as const,
 		}));
 
@@ -617,11 +683,17 @@ describe("Course Row Navigation", () => {
 			}),
 		];
 
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		const router = createTestRouter(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
+		const navigateSpy = vi.spyOn(router, "navigate");
+		await renderWithCustomRouter(router);
 
 		await user.click(screen.getByText("+2 більше"));
 
-		expect(mockNavigate).not.toHaveBeenCalled();
+		expect(navigateSpy).not.toHaveBeenCalled();
 	});
 
 	it("should not navigate when selecting text", async () => {
@@ -634,19 +706,26 @@ describe("Course Row Navigation", () => {
 			isCollapsed: false,
 			toString: () => courseTitle,
 		} satisfies Partial<Selection>;
+		// SAFETY: the stub covers every Selection member getSelection is asserted with.
 		const getSelectionSpy = vi
 			.spyOn(globalThis, "getSelection")
 			.mockReturnValue(selection as Selection);
 
 		const courses = [createMockCourse({ id: courseId, title: courseTitle })];
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
+		const router = createTestRouter(
+			<Providers>
+				<CoursesTable {...defaultProps} data={courses} />
+			</Providers>,
+		);
+		const navigateSpy = vi.spyOn(router, "navigate");
+		await renderWithCustomRouter(router);
 
 		const row = screen.getByText(courseTitle).closest("tr");
-		expect(row).not.toBeNull();
+		if (!row) throw new Error("Course row not found");
 
-		await user.click(row as HTMLElement);
+		await user.click(row);
 
-		expect(mockNavigate).not.toHaveBeenCalled();
+		expect(navigateSpy).not.toHaveBeenCalled();
 		getSelectionSpy.mockRestore();
 	});
 });
@@ -663,14 +742,16 @@ describe("Sorting", () => {
 		};
 		const courses = Array.from({ length: 10 }, () => createMockCourse());
 
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				data={courses}
-				pagination={pagination}
-				params={{ ...defaultParams, page: 3 }}
-				setParams={setParams}
-			/>,
+		await renderTable(
+			<Providers>
+				<CoursesTable
+					{...defaultProps}
+					data={courses}
+					pagination={pagination}
+					params={{ ...defaultParams, page: 3 }}
+					setParams={setParams}
+				/>
+			</Providers>,
 		);
 
 		const sortButton = screen.getByTestId(
@@ -698,14 +779,16 @@ describe("Sorting", () => {
 		};
 		const courses = Array.from({ length: 10 }, () => createMockCourse());
 
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				data={courses}
-				pagination={pagination}
-				params={{ ...defaultParams, page: 2 }}
-				setParams={setParams}
-			/>,
+		await renderTable(
+			<Providers>
+				<CoursesTable
+					{...defaultProps}
+					data={courses}
+					pagination={pagination}
+					params={{ ...defaultParams, page: 2 }}
+					setParams={setParams}
+				/>
+			</Providers>,
 		);
 
 		const sortButton = screen.getByTestId(
@@ -727,13 +810,15 @@ describe("Sorting", () => {
 		const setParams = vi.fn();
 		const courses = Array.from({ length: 3 }, () => createMockCourse());
 
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				data={courses}
-				params={{ ...defaultParams, diffOrder: "asc" }}
-				setParams={setParams}
-			/>,
+		await renderTable(
+			<Providers>
+				<CoursesTable
+					{...defaultProps}
+					data={courses}
+					params={{ ...defaultParams, diffOrder: "asc" }}
+					setParams={setParams}
+				/>
+			</Providers>,
 		);
 
 		await user.click(
@@ -754,13 +839,15 @@ describe("Sorting", () => {
 		const setParams = vi.fn();
 		const courses = Array.from({ length: 3 }, () => createMockCourse());
 
-		renderWithProviders(
-			<CoursesTable
-				{...defaultProps}
-				data={courses}
-				params={{ ...defaultParams, useOrder: "desc" }}
-				setParams={setParams}
-			/>,
+		await renderTable(
+			<Providers>
+				<CoursesTable
+					{...defaultProps}
+					data={courses}
+					params={{ ...defaultParams, useOrder: "desc" }}
+					setParams={setParams}
+				/>
+			</Providers>,
 		);
 
 		await user.click(

@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import {
@@ -141,7 +141,7 @@ function StarRatingInput({
 				})}
 			</fieldset>
 			<p className="mt-1.5 text-xs text-muted-foreground min-h-8">
-				{descriptions[displayValue as keyof typeof descriptions] ?? ""}
+				{descriptions[displayValue] ?? ""}
 			</p>
 		</div>
 	);

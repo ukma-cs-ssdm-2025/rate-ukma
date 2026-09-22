@@ -1,3 +1,4 @@
+import { AxiosError, type AxiosResponse } from "axios";
 import { describe, expect, it } from "vitest";
 
 import { getContext, shouldRetryQuery } from "./RootProvider";
@@ -20,6 +21,18 @@ describe("RootProvider", () => {
 	});
 
 	describe("shouldRetryQuery", () => {
+		// SAFETY: shouldRetryQuery only reads response.status off the error.
+		const axiosError = (status: number) =>
+			new AxiosError(
+				"Request failed",
+				"ERR_BAD_RESPONSE",
+				undefined,
+				undefined,
+				{
+					status,
+				} as AxiosResponse,
+			);
+
 		it("never retries failures without an HTTP response (timeout, offline)", () => {
 			expect(shouldRetryQuery(0, { code: "ECONNABORTED" })).toBe(false);
 			expect(shouldRetryQuery(0, new TypeError("fetch failed"))).toBe(false);
@@ -27,12 +40,12 @@ describe("RootProvider", () => {
 		});
 
 		it("never retries 401 or 403", () => {
-			expect(shouldRetryQuery(0, { response: { status: 401 } })).toBe(false);
-			expect(shouldRetryQuery(2, { response: { status: 403 } })).toBe(false);
+			expect(shouldRetryQuery(0, axiosError(401))).toBe(false);
+			expect(shouldRetryQuery(2, axiosError(403))).toBe(false);
 		});
 
 		it("retries 5xx up to three attempts, then stops", () => {
-			const serverError = { response: { status: 502 } };
+			const serverError = axiosError(502);
 
 			expect(
 				[0, 1, 2].map((count) => shouldRetryQuery(count, serverError)),

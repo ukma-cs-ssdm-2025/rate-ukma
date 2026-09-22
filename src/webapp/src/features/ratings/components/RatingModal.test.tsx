@@ -1,36 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-	useCoursesRatingsCreate,
-	useCoursesRatingsPartialUpdate,
-} from "@/lib/api/generated";
+import * as generated from "@/lib/api/generated";
+import { createMutationStub } from "@/test-utils/mutation-stub";
 import { render } from "@/test-utils/render";
 import { RatingModal, type RatingFormData } from "./RatingModal";
+import * as RatingFormModule from "./RatingForm";
 
-vi.mock("@/lib/api/generated", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("@/lib/api/generated")>();
-
-	return {
-		...actual,
-		useCoursesRatingsCreate: vi.fn(),
-		useCoursesRatingsPartialUpdate: vi.fn(),
-	};
-});
-
-let capturedSubmit: ((data: RatingFormData) => Promise<void>) | undefined;
-
-vi.mock("./RatingForm", () => {
-	return {
-		RatingForm: ({
-			onSubmit,
-		}: {
-			onSubmit: (data: RatingFormData) => Promise<void>;
-		}) => {
-			capturedSubmit = onSubmit;
-			return <div data-testid="rating-form-stub" />;
-		},
-	};
-});
+let mockCreate: ReturnType<typeof vi.spyOn>;
+let mockPartialUpdate: ReturnType<typeof vi.spyOn>;
+let capturedSubmit:
+	| ((data: RatingFormData) => void | Promise<void>)
+	| undefined;
 
 const EXISTING = {
 	id: "11111111-1111-1111-1111-111111111111",
@@ -56,14 +36,18 @@ function formData(over: Partial<RatingFormData>): RatingFormData {
 
 function renderModal(flags: Record<string, boolean>) {
 	const mutateAsync = vi.fn().mockResolvedValue({});
-	vi.mocked(useCoursesRatingsPartialUpdate).mockReturnValue({
-		mutateAsync,
-		isPending: false,
-	} as unknown as ReturnType<typeof useCoursesRatingsPartialUpdate>);
-	vi.mocked(useCoursesRatingsCreate).mockReturnValue({
-		mutateAsync: vi.fn().mockResolvedValue({}),
-		isPending: false,
-	} as unknown as ReturnType<typeof useCoursesRatingsCreate>);
+	mockPartialUpdate.mockReturnValue(
+		// SAFETY: RatingModal only reads mutateAsync and isPending from the result.
+		createMutationStub({ mutateAsync }) as ReturnType<
+			typeof generated.useCoursesRatingsPartialUpdate
+		>,
+	);
+	mockCreate.mockReturnValue(
+		// SAFETY: RatingModal only reads mutateAsync and isPending from the result.
+		createMutationStub({
+			mutateAsync: vi.fn().mockResolvedValue({}),
+		}) as ReturnType<typeof generated.useCoursesRatingsCreate>,
+	);
 
 	render(
 		<RatingModal
@@ -79,6 +63,19 @@ function renderModal(flags: Record<string, boolean>) {
 }
 
 describe("RatingModal instructor write path", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		capturedSubmit = undefined;
+		mockCreate = vi.spyOn(generated, "useCoursesRatingsCreate");
+		mockPartialUpdate = vi.spyOn(generated, "useCoursesRatingsPartialUpdate");
+		vi.spyOn(RatingFormModule, "RatingForm").mockImplementation(
+			({ onSubmit }) => {
+				capturedSubmit = onSubmit;
+				return <div data-testid="rating-form-stub" />;
+			},
+		);
+	});
+
 	it("clears the legacy text when instructors are selected with the flag on", async () => {
 		const mutateAsync = renderModal({ fe_instructor_multiselect: true });
 

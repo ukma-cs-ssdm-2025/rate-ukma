@@ -1,3 +1,5 @@
+import type { MockInstance } from "vitest";
+
 import {
 	act,
 	fireEvent,
@@ -7,7 +9,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { env } from "@/env";
+import * as LogoModule from "@/components/Logo";
+import * as ModeToggleModule from "@/components/ModeToggle";
+import * as EnvModule from "@/env";
+import * as generated from "@/lib/api/generated";
 import {
 	ConnectionErrorPage,
 	MAX_AUTO_RETURN_BOUNCES,
@@ -16,32 +21,10 @@ import {
 	withBounceCount,
 } from "./connection-error";
 
-const { sessionRetrieveMock } = vi.hoisted(() => ({
-	sessionRetrieveMock: vi.fn(),
-}));
-
-vi.mock("@/lib/api/generated", async () => ({
-	...(await vi.importActual("@/lib/api/generated")),
-	authSessionRetrieve: sessionRetrieveMock,
-}));
-
-vi.mock("@/components/ModeToggle", () => ({
-	ModeToggle: () => null,
-}));
-
-vi.mock("@/components/Logo", () => ({
-	Logo: () => null,
-}));
-
-vi.mock("@/env", async () => {
-	const actual = await vi.importActual<{ env: typeof env }>("@/env");
-	return {
-		...actual,
-		env: { ...actual.env, VITE_SKIP_OFFLINE_CHECK: false },
-	};
-});
+let sessionRetrieveMock: MockInstance<typeof generated.authSessionRetrieve>;
 
 const stubNavigatorOnline = (onLine = true) =>
+	// SAFETY: only the onLine facet is read by the page's offline checks.
 	vi.stubGlobal("navigator", { onLine } as Navigator);
 
 const stubLocation = () => {
@@ -68,8 +51,17 @@ const settle = async () => {
 };
 
 beforeEach(() => {
-	sessionRetrieveMock.mockReset();
-	sessionRetrieveMock.mockResolvedValue({});
+	vi.clearAllMocks();
+	vi.spyOn(ModeToggleModule, "ModeToggle").mockImplementation(() => <></>);
+	vi.spyOn(LogoModule, "Logo").mockImplementation(() => <></>);
+	EnvModule.env.VITE_SKIP_OFFLINE_CHECK = false;
+	sessionRetrieveMock = vi
+		.spyOn(generated, "authSessionRetrieve")
+		.mockResolvedValue({
+			is_authenticated: true,
+			user: null,
+			is_student: false,
+		});
 });
 
 afterEach(() => {
@@ -236,6 +228,7 @@ describe("ConnectionErrorPage manual retry", () => {
 		);
 
 		await waitFor(() => expect(replace).toHaveBeenCalledOnce());
+		// SAFETY: the page redirects with a same-origin string built via getSafeRedirectTarget.
 		const loginUrl = new URL(replace.mock.calls[0][0] as string);
 		expect(loginUrl.pathname).toBe("/login");
 		expect(loginUrl.searchParams.get("redirect")).toBe("/courses");

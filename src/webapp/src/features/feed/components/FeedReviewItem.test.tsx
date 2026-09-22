@@ -1,19 +1,15 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
+import { renderWithRouter } from "@/test-utils/router";
 import type { FeedReviewItem as FeedReviewItemType } from "../feedTypes";
 import { FeedReviewItem } from "./FeedReviewItem";
-
-vi.mock("@tanstack/react-router", async () => ({
-	...(await vi.importActual("@tanstack/react-router")),
-	Link: (await import("@/test-utils/router")).MockLink,
-}));
 
 const baseItem: FeedReviewItemType = {
 	kind: "review",
 	id: "r1",
 	createdAt: new Date().toISOString(),
-	courseId: "course-1",
+	courseId: "course-7f3a",
 	courseTitle: "Алгоритми та структури даних",
 	difficulty: 4.2,
 	usefulness: 4.8,
@@ -25,22 +21,18 @@ const baseItem: FeedReviewItemType = {
 };
 
 describe("FeedReviewItem", () => {
-	it("leads with the course as a link to the course page", () => {
-		render(<FeedReviewItem item={baseItem} />);
+	it("leads with the course as a link to the course page", async () => {
+		await renderWithRouter(<FeedReviewItem item={baseItem} />);
 
 		expect(screen.getByText(/Новий відгук на/)).toBeInTheDocument();
 		const link = screen.getByRole("link", {
 			name: "Алгоритми та структури даних",
 		});
-		expect(link).toHaveAttribute("href", "/courses/$courseId");
-		expect(link).toHaveAttribute(
-			"data-params",
-			JSON.stringify({ courseId: "course-1" }),
-		);
+		expect(link).toHaveAttribute("href", "/courses/course-7f3a");
 	});
 
-	it("shows an arrow when the score differs from the course average", () => {
-		render(
+	it("shows an arrow when the score differs from the course average", async () => {
+		await renderWithRouter(
 			<FeedReviewItem
 				item={{ ...baseItem, difficulty: 5, courseAvgDifficulty: 3 }}
 			/>,
@@ -49,10 +41,10 @@ describe("FeedReviewItem", () => {
 		expect(screen.getByLabelText(/вище за середнє/)).toBeInTheDocument();
 	});
 
-	it("shows no arrow when the score matches the course average", () => {
+	it("shows no arrow when the score matches the course average", async () => {
 		// A course whose only rating is this one ties by construction, so an
 		// arrow here would be arbitrary.
-		render(
+		await renderWithRouter(
 			<FeedReviewItem
 				item={{
 					...baseItem,
@@ -67,16 +59,18 @@ describe("FeedReviewItem", () => {
 		expect(screen.queryByLabelText(/за середнє/)).not.toBeInTheDocument();
 	});
 
-	it("renders difficulty, usefulness and the comment", () => {
-		render(<FeedReviewItem item={baseItem} />);
+	it("renders difficulty, usefulness and the comment", async () => {
+		await renderWithRouter(<FeedReviewItem item={baseItem} />);
 
 		expect(screen.getByText("4.2")).toBeInTheDocument();
 		expect(screen.getByText("4.8")).toBeInTheDocument();
 		expect(screen.getByText("Складно, але корисно.")).toBeInTheDocument();
 	});
 
-	it("omits the comment paragraph when there is no comment", () => {
-		render(<FeedReviewItem item={{ ...baseItem, comment: "" }} />);
+	it("omits the comment paragraph when there is no comment", async () => {
+		await renderWithRouter(
+			<FeedReviewItem item={{ ...baseItem, comment: "" }} />,
+		);
 
 		expect(screen.queryByText("Складно, але корисно.")).not.toBeInTheDocument();
 	});
