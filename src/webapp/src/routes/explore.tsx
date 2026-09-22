@@ -104,7 +104,7 @@ function ExploreRoute() {
 						<div className="flex items-center gap-2">
 							<ButtonGroup
 								aria-label="Перемикання режиму перегляду"
-								className="rounded-lg border bg-card p-1 shadow-sm"
+								className="p-1 shadow-none"
 							>
 								<Button asChild variant="ghost" size="sm">
 									<Link to="/" search={() => searchParams}>
@@ -121,9 +121,8 @@ function ExploreRoute() {
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button
-										variant="ghost"
-										size="sm"
-										className="h-8 w-8 border bg-card p-0 shadow-sm"
+										variant="outline"
+										size="icon-sm"
 										aria-label="Налаштування візуалізації"
 									>
 										<MoreHorizontal className="h-4 w-4" />
@@ -135,7 +134,7 @@ function ExploreRoute() {
 										onCheckedChange={handleToggleShowAllLabels}
 									>
 										<div className="flex flex-col gap-0.5">
-											<span className="font-medium text-foreground">
+											<span className="font-medium">
 												Завжди показувати підписи
 											</span>
 											<span className="text-xs text-muted-foreground">
@@ -150,9 +149,9 @@ function ExploreRoute() {
 
 					<div className="absolute right-3 top-3 z-20">
 						<Button
-							variant="ghost"
+							variant="outline"
 							size="sm"
-							className="gap-2 border bg-card/90 shadow-sm backdrop-blur"
+							className="bg-card/90 backdrop-blur"
 							onClick={() => setIsFiltersOpen(true)}
 							aria-label="Відкрити фільтри"
 						>
