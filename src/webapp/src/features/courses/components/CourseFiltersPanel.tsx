@@ -50,8 +50,10 @@ import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import { CREDITS_RANGE, formatDecimalValue } from "../courseFormatting";
 import {
 	areFiltersActive,
+	type CourseFiltersData,
 	type EducationLevelToggle,
 	type FilterGroupConfig,
+	type FilterPreset,
 	type FilterPresetId,
 	getPresetFilters,
 	getPresetResetFilters,
@@ -179,11 +181,13 @@ function FilterSlider({
 
 	return (
 		<div className="space-y-3">
-			<Label className="text-sm font-medium inline-flex items-center gap-1.5">
-				{label}: {formatDecimalValue(localValue[0], { fallback: "0" })} -{" "}
-				{formatDecimalValue(localValue[1], { fallback: "0" })}
+			<div className="flex items-center justify-between gap-2">
+				<Label className="text-sm font-medium">
+					{label}: {formatDecimalValue(localValue[0], { fallback: "0" })} -{" "}
+					{formatDecimalValue(localValue[1], { fallback: "0" })}
+				</Label>
 				{disabledMessage && <InfoHint message={disabledMessage} />}
-			</Label>
+			</div>
 			{showInputs && (
 				<div className="flex items-center gap-2">
 					<Input
@@ -283,17 +287,14 @@ function FilterGroup({
 			<CollapsibleTrigger asChild>
 				<button
 					type="button"
-					className="flex w-full items-center justify-between py-2.5 text-sm font-semibold hover:text-foreground/80 transition-colors"
+					className="flex w-full items-center justify-between py-2 text-sm font-medium transition-colors hover:text-foreground/80"
 					data-testid={testId}
 				>
 					<span className="flex items-center gap-2">
 						{Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
 						{config.label}
 						{config.activeCount > 0 && (
-							<Badge
-								variant="secondary"
-								className="h-5 min-w-5 px-1.5 text-[10px]"
-							>
+							<Badge variant="soft" className="h-5 min-w-5 px-1.5">
 								{config.activeCount}
 							</Badge>
 						)}
@@ -306,7 +307,7 @@ function FilterGroup({
 					/>
 				</button>
 			</CollapsibleTrigger>
-			<CollapsibleContent className="space-y-4 pt-2 pb-1">
+			<CollapsibleContent className="space-y-4 pt-3">
 				{children}
 			</CollapsibleContent>
 		</Collapsible>
@@ -320,32 +321,33 @@ function FilterPresets({
 	activePresetIds,
 	onTogglePreset,
 }: Readonly<{
-	presets: ReturnType<typeof useCourseFiltersData>["presets"];
+	presets: readonly FilterPreset[];
 	activePresetIds: FilterPresetId[];
 	onTogglePreset: (presetId: FilterPresetId) => void;
 }>) {
 	return (
 		<div
-			className="flex flex-wrap gap-1.5"
+			className="flex flex-wrap gap-2"
 			data-testid={testIds.filters.presetsSection}
 		>
 			{presets.map((preset) => {
 				const isActive = activePresetIds.includes(preset.id);
 				return (
-					<button
+					<Button
 						key={preset.id}
 						type="button"
+						variant="outline"
+						size="sm"
+						aria-pressed={isActive}
 						onClick={() => onTogglePreset(preset.id)}
 						className={cn(
-							"inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-							isActive
-								? "border-primary bg-primary/10 text-primary"
-								: "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+							isActive &&
+								"border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
 						)}
 						data-testid={testIds.filters.presetButton}
 					>
 						{preset.label}
-					</button>
+					</Button>
 				);
 			})}
 		</div>
@@ -421,7 +423,7 @@ function SemesterTermToggleControl({
 					<ToggleGroupItem
 						key={option.value}
 						value={option.value}
-						className="flex-1 text-xs"
+						className="flex-1"
 					>
 						{option.label}
 					</ToggleGroupItem>
@@ -455,7 +457,7 @@ function EducationLevelToggleControl({
 					<ToggleGroupItem
 						key={option.value}
 						value={option.value}
-						className="flex-1 text-xs"
+						className="flex-1"
 					>
 						{option.label}
 					</ToggleGroupItem>
@@ -573,7 +575,7 @@ function CourseFiltersContent({
 }: Readonly<{
 	params: CourseFiltersParamsState;
 	setParams: (updates: Partial<CourseFiltersParamsState>) => void;
-	data: ReturnType<typeof useCourseFiltersData>;
+	data: CourseFiltersData;
 }>) {
 	const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
 		const stored = localStorageAdapter.getItem<Record<string, boolean>>(
@@ -718,14 +720,14 @@ function CourseFiltersContent({
 	const { groups } = data;
 
 	return (
-		<div className="space-y-4">
+		<div className="space-y-6">
 			<FilterPresets
 				presets={data.presets}
 				activePresetIds={data.activePresetIds}
 				onTogglePreset={handleTogglePreset}
 			/>
 
-			<div className="space-y-1 divide-y">
+			<div className="space-y-1">
 				<FilterGroup
 					config={groups.rating.config}
 					open={openGroups.rating}
@@ -782,18 +784,40 @@ function CourseFiltersContent({
 	);
 }
 
-// --- Reset button ---
+
+function getTotalActiveCount(data: CourseFiltersData): number {
+	return (
+		data.groups.rating.config.activeCount +
+		data.groups.semester.config.activeCount +
+		data.groups.structure.config.activeCount
+	);
+}
+
+function FiltersHeading({ count }: Readonly<{ count: number }>) {
+	return (
+		<>
+			<Filter className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+			Фільтри
+			{count > 0 && (
+				<Badge variant="soft" className="h-5 min-w-5 px-1.5">
+					{count}
+				</Badge>
+			)}
+		</>
+	);
+}
 
 function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
 	return (
-		<button
+		<Button
 			type="button"
+			variant="ghost"
+			size="sm"
 			onClick={onReset}
-			className="text-sm text-muted-foreground hover:text-foreground transition-colors"
 			data-testid={testIds.filters.resetButton}
 		>
 			Скинути
-		</button>
+		</Button>
 	);
 }
 
@@ -816,14 +840,14 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 
 	if (variant === "plain") {
 		const showHeader = showTitle || hasActiveFilters;
+		const totalActive = getTotalActiveCount(data);
 		return (
 			<div className={cn("space-y-6", className)}>
 				{showHeader && (
-					<div className="flex items-center justify-between">
+					<div className="flex items-center justify-between gap-2">
 						{showTitle && (
-							<div className="flex items-center gap-2 text-sm font-semibold">
-								<Filter className="h-4 w-4" />
-								<span>Фільтри</span>
+							<div className="flex items-center gap-2 text-base font-semibold">
+								<FiltersHeading count={totalActive} />
 							</div>
 						)}
 						{hasActiveFilters && <ResetButton onReset={onReset} />}
@@ -838,16 +862,17 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 		);
 	}
 
+	const totalActive = getTotalActiveCount(data);
+
 	return (
 		<Card
-			className={cn("sticky top-6", className)}
+			className={cn("sticky top-6 shadow-sm", className)}
 			data-testid={testIds.filters.panel}
 		>
 			<CardHeader className="pb-4">
-				<div className="flex items-center justify-between">
-					<CardTitle className="text-lg flex items-center gap-2">
-						<Filter className="h-5 w-5" />
-						Фільтри
+				<div className="flex items-center justify-between gap-2">
+					<CardTitle className="flex items-center gap-2 text-base font-semibold">
+						<FiltersHeading count={totalActive} />
 					</CardTitle>
 					{hasActiveFilters && <ResetButton onReset={onReset} />}
 				</div>
@@ -877,19 +902,22 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 		return <CourseFiltersPanelSkeleton />;
 	}
 
+	const totalActive = getTotalActiveCount(data);
+
 	return (
 		<div
 			className={cn("space-y-6", className)}
 			data-testid={testIds.filters.drawer}
 		>
-			<div className="flex items-center justify-between">
-				<span className="text-lg font-semibold">Фільтри</span>
+			<div className="flex items-center justify-between gap-2">
+				<span className="flex items-center gap-2 text-base font-semibold">
+					<FiltersHeading count={totalActive} />
+				</span>
 				<div className="flex items-center gap-2">
 					{hasActiveFilters && <ResetButton onReset={onReset} />}
 					<Button
 						variant="ghost"
 						size="icon"
-						className="h-9 w-9 rounded-full p-0"
 						onClick={onClose}
 						aria-label="Закрити фільтри"
 						data-testid={testIds.filters.drawerCloseButton}
