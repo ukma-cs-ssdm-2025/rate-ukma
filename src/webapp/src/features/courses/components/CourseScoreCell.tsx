@@ -16,8 +16,10 @@ export function CourseScoreCell({
 }: Readonly<CourseScoreCellProps>) {
 	if (!value) {
 		return (
-			<div className="flex items-center justify-center">
-				<span className="font-medium text-muted-foreground">-</span>
+			<div className="flex items-center justify-end">
+				<span className="font-medium tabular-nums text-muted-foreground">
+					-
+				</span>
 			</div>
 		);
 	}
@@ -28,8 +30,10 @@ export function CourseScoreCell({
 			: getUsefulnessTone(value);
 
 	return (
-		<div className="flex items-center justify-center">
-			<span className={cn("text-base font-semibold md:text-lg", tone)}>
+		<div className="flex items-center justify-end">
+			<span
+				className={cn("font-semibold tabular-nums text-base md:text-lg", tone)}
+			>
 				{formatDecimalValue(value, { fallback: "-" })}
 			</span>
 		</div>

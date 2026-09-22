@@ -127,12 +127,12 @@ export function DataTable<TData>({
 
 	return (
 		<div
-			className={cn("flex w-full flex-col gap-2.5 overflow-auto", className)}
+			className={cn("flex w-full flex-col gap-4 overflow-auto", className)}
 			data-testid={tableTestId}
 			{...props}
 		>
 			{children}
-			<div className="overflow-hidden rounded-md border">
+			<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
 				<Table>
 					<TableHeader>
 						{table.getHeaderGroups().map((headerGroup) => (
@@ -201,7 +201,7 @@ export function DataTable<TData>({
 							<TableRow>
 								<TableCell
 									colSpan={table.getAllColumns().length}
-									className="h-24 text-center"
+									className="h-24 text-center text-muted-foreground"
 									data-testid={emptyStateTestId}
 								>
 									{emptyStateMessage}

@@ -88,7 +88,7 @@ export function CourseColumnHeader<TData, TValue>({
 			type="button"
 			variant="ghost"
 			size="sm"
-			className="-ml-2 inline-flex h-8 items-center gap-2 px-2 text-sm font-medium"
+			className="-ml-2 inline-flex h-8 items-center gap-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0"
 			onClick={handleClick}
 			disabled={!column.getCanSort()}
 			title={sortHintText}

@@ -16,16 +16,11 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import {
-	BookOpen,
-	ChevronDown,
-	Filter,
-	Loader2,
-	Maximize2,
-} from "lucide-react";
+import { BookOpen, ChevronDown, Filter, Maximize2 } from "lucide-react";
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
 	Collapsible,
@@ -34,6 +29,7 @@ import {
 } from "@/components/ui/Collapsible";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
+import { Spinner } from "@/components/ui/Spinner";
 import {
 	Tooltip,
 	TooltipContent,
@@ -94,7 +90,7 @@ function ScatterPlotPreviewCard({
 }: ScatterPlotPreviewCardProps) {
 	const containerClass = cn(
 		"relative w-full overflow-hidden",
-		showHeader ? "rounded-lg border bg-card shadow-sm" : "bg-transparent",
+		showHeader ? "rounded-xl border bg-card shadow-sm" : "bg-transparent",
 		heightClass,
 	);
 
@@ -105,12 +101,10 @@ function ScatterPlotPreviewCard({
 			</div>
 
 			{showHeader && (
-				<div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 px-4 py-3 bg-gradient-to-b from-background/95 via-background/70 to-transparent">
-					<div className="max-w-[70%] space-y-1">
-						<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-							{title}
-						</p>
-						<p className="text-sm text-foreground/80">{subtitle}</p>
+				<div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 bg-gradient-to-b from-background/80 to-transparent px-4 py-3">
+					<div className="max-w-[70%] space-y-0.5">
+						<p className="text-xs font-medium text-muted-foreground">{title}</p>
+						<p className="text-sm text-muted-foreground">{subtitle}</p>
 					</div>
 					<Button
 						size="sm"
@@ -162,22 +156,25 @@ function buildCoursesTableColumns({
 							<Link
 								to="/courses/$courseId"
 								params={{ courseId }}
-								className="font-semibold text-sm transition-colors hover:text-primary hover:underline md:text-base"
+								className="text-sm font-medium transition-colors hover:text-primary hover:underline md:text-base"
 								data-testid={testIds.courses.tableTitleLink}
 							>
 								{course.title}
 							</Link>
 						) : (
-							<span className="font-semibold text-sm md:text-base">
+							<span className="text-sm font-medium md:text-base">
 								{course.title}
 							</span>
 						)}
 						{course.education_level === EducationLevelEnum.MASTER && (
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<span className="inline-flex shrink-0 cursor-default items-center rounded-sm border px-1 py-px text-[10px] font-medium leading-tight text-muted-foreground">
+									<Badge
+										variant="outline"
+										className="shrink-0 cursor-default px-1.5"
+									>
 										М
-									</span>
+									</Badge>
 								</TooltipTrigger>
 								<TooltipContent side="top">Магістр</TooltipContent>
 							</Tooltip>
@@ -211,7 +208,7 @@ function buildCoursesTableColumns({
 				const count = row.getValue("ratings_count") as number;
 				return (
 					<div className="hidden sm:flex items-center justify-center">
-						<span className="text-sm font-medium text-muted-foreground md:text-base">
+						<span className="text-sm font-medium tabular-nums text-muted-foreground md:text-base">
 							{count}
 						</span>
 					</div>
@@ -229,7 +226,7 @@ function buildCoursesTableColumns({
 			accessorKey: "avg_difficulty",
 			header: ({ column }) => (
 				<>
-					<div className="md:hidden">
+					<div className="flex justify-end md:hidden">
 						<CourseColumnHeader
 							column={column}
 							title="Склад."
@@ -237,7 +234,7 @@ function buildCoursesTableColumns({
 							testId={testIds.courses.difficultySortButtonMobile}
 						/>
 					</div>
-					<div className="hidden md:block">
+					<div className="hidden justify-end md:flex">
 						<CourseColumnHeader
 							column={column}
 							title="Складність"
@@ -260,7 +257,7 @@ function buildCoursesTableColumns({
 				placeholder: "Фільтр за складністю...",
 				variant: "number",
 				range: DIFFICULTY_RANGE,
-				align: "center",
+				align: "right",
 			},
 		},
 		{
@@ -268,7 +265,7 @@ function buildCoursesTableColumns({
 			accessorKey: "avg_usefulness",
 			header: ({ column }) => (
 				<>
-					<div className="md:hidden">
+					<div className="flex justify-end md:hidden">
 						<CourseColumnHeader
 							column={column}
 							title="Корисн."
@@ -276,7 +273,7 @@ function buildCoursesTableColumns({
 							testId={testIds.courses.usefulnessSortButtonMobile}
 						/>
 					</div>
-					<div className="hidden md:block">
+					<div className="hidden justify-end md:flex">
 						<CourseColumnHeader
 							column={column}
 							title="Корисність"
@@ -299,7 +296,7 @@ function buildCoursesTableColumns({
 				placeholder: "Фільтр за корисністю...",
 				variant: "number",
 				range: USEFULNESS_RANGE,
-				align: "center",
+				align: "right",
 			},
 		},
 	];
@@ -341,9 +338,7 @@ function DebouncedInput({
 				onChange={(e) => setValue(e.target.value)}
 			/>
 			{isLoading && (
-				<div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-					<Loader2 className="h-4 w-4 animate-spin" />
-				</div>
+				<Spinner className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 			)}
 		</div>
 	);
@@ -611,37 +606,35 @@ export function CoursesTable({
 	return (
 		<>
 			<div className="flex flex-col gap-6 md:flex-row">
-				<div className="flex-1 min-w-0 space-y-4">
-					<div className="flex items-center gap-4">
-						<div className="relative flex-1">
-							<BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 z-10 text-muted-foreground" />
-							<DebouncedInput
-								placeholder="Пошук курсів за назвою..."
-								value={params.q}
-								onChange={(value) => {
-									setParams({ q: String(value), page: 1 });
-								}}
-								className="pl-10 h-12 text-base"
-								disabled={isInitialLoading}
-								isLoading={isLoading}
-								data-testid={testIds.courses.searchInput}
-							/>
-						</div>
+				<div className="min-w-0 flex-1 space-y-4">
+					<div className="relative flex-1">
+						<BookOpen className="absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+						<DebouncedInput
+							placeholder="Пошук курсів за назвою..."
+							value={params.q}
+							onChange={(value) => {
+								setParams({ q: String(value), page: 1 });
+							}}
+							className="h-12 pl-10 text-base"
+							disabled={isInitialLoading}
+							isLoading={isLoading}
+							data-testid={testIds.courses.searchInput}
+						/>
 					</div>
 
 					{isDesktop ? (
 						<Collapsible
 							open={isScatterPlotOpen}
 							onOpenChange={setIsScatterPlotOpen}
-							className="border rounded-lg overflow-hidden bg-card shadow-sm"
+							className="overflow-hidden rounded-xl border bg-card shadow-sm"
 						>
-							<div className="px-4 py-3 border-b bg-muted/20 flex items-center justify-between">
-								<h3 className="font-medium text-sm">Карта курсів</h3>
+							<div className="flex items-center justify-between gap-2 px-4 py-2.5">
+								<h3 className="text-sm font-medium">Карта курсів</h3>
 								<div className="flex items-center gap-2">
 									<Button
 										variant="ghost"
 										size="sm"
-										className="h-8 gap-2 text-muted-foreground hover:text-foreground"
+										className="h-8 gap-2 text-muted-foreground"
 										onClick={openExploreWithAnimation}
 										data-testid={testIds.courses.scatterPlotFullscreenButton}
 									>
@@ -681,7 +674,7 @@ export function CoursesTable({
 					{renderTableContent()}
 				</div>
 
-				<div className="hidden lg:block w-80 shrink-0">
+				<div className="hidden w-80 shrink-0 lg:block">
 					<CourseFiltersPanel
 						params={params}
 						setParams={setParams}
@@ -692,16 +685,17 @@ export function CoursesTable({
 				</div>
 			</div>
 
-			<button
+			<Button
 				type="button"
-				className="fixed right-0 z-40 grid h-10 w-10 items-center justify-center rounded-l-2xl border border-border bg-background shadow-lg shadow-black/20 transition hover:bg-accent hover:text-accent-foreground lg:hidden"
-				style={{ top: "35%" }}
+				variant="outline"
+				size="icon"
+				className="fixed right-0 top-[35%] z-40 h-10 w-10 rounded-l-2xl rounded-r-none shadow-lg lg:hidden"
 				onClick={toggleFiltersDrawer}
 				aria-label="Фільтри"
 				data-testid={testIds.filters.drawerTrigger}
 			>
-				<Filter className="h-6 w-6" />
-			</button>
+				<Filter className="h-5 w-5" />
+			</Button>
 
 			<Drawer
 				open={isFiltersDrawerOpen}

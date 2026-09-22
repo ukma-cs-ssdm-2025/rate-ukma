@@ -37,7 +37,7 @@ export function DataTableSkeleton({
 
 	return (
 		<div
-			className={cn("flex w-full flex-col gap-2.5 overflow-auto", className)}
+			className={cn("flex w-full flex-col gap-4 overflow-auto", className)}
 			{...props}
 		>
 			<div className="flex w-full items-center justify-between gap-2 overflow-auto p-1">
@@ -55,7 +55,7 @@ export function DataTableSkeleton({
 					<Skeleton className="ml-auto hidden h-7 w-[4.5rem] lg:flex" />
 				) : null}
 			</div>
-			<div className="rounded-md border">
+			<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
 				<Table>
 					<TableHeader>
 						{Array.from({ length: 1 }).map((_, i) => (
@@ -71,7 +71,7 @@ export function DataTableSkeleton({
 											minWidth: shrinkZero ? cozyCellWidths[j] : "auto",
 										}}
 									>
-										<Skeleton className="h-6 w-full" />
+										<Skeleton className="h-5 w-24" />
 									</TableHead>
 								))}
 							</TableRow>
@@ -91,7 +91,9 @@ export function DataTableSkeleton({
 											minWidth: shrinkZero ? cozyCellWidths[j] : "auto",
 										}}
 									>
-										<Skeleton className="h-6 w-full" />
+										<Skeleton
+											className={j === 0 ? "h-5 w-3/4" : "mx-auto h-6 w-12"}
+										/>
 									</TableCell>
 								))}
 							</TableRow>

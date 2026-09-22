@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import {
 	Tooltip,
 	TooltipContent,
@@ -88,10 +89,8 @@ export function CourseSpecialityBadges({
 							<Badge
 								variant="secondary"
 								className={cn(
-									"font-medium cursor-default border",
-									size === "sm"
-										? "text-[11px] px-1.5 py-0"
-										: "text-xs px-2 py-0.5",
+									"cursor-default border text-xs",
+									size === "sm" ? "px-1.5 py-0" : "px-2 py-0.5",
 									colors.bg,
 									colors.text,
 									colors.border,
@@ -112,9 +111,11 @@ export function CourseSpecialityBadges({
 				);
 			})}
 			{hasHiddenBadges && (
-				<button
+				<Button
 					type="button"
-					className="text-xs text-muted-foreground font-semibold px-2 py-0.5 rounded-md hover:bg-muted hover:text-foreground transition-colors cursor-pointer speciality-badges-trigger"
+					variant="ghost"
+					size="sm"
+					className="h-5 px-1.5 font-medium text-muted-foreground hover:text-foreground"
 					aria-expanded={isExpanded}
 					aria-label={
 						isExpanded
@@ -129,7 +130,7 @@ export function CourseSpecialityBadges({
 					}}
 				>
 					{isExpanded ? "Менше" : `+${hiddenCount} більше`}
-				</button>
+				</Button>
 			)}
 		</span>
 	);
