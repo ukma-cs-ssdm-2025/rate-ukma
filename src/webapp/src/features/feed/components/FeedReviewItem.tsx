@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, MessageSquareText } from "lucide-react";
 
+import { Badge } from "@/components/ui/Badge";
 import {
 	getDifficultyTone,
 	getSemesterDisplay,
@@ -9,18 +10,13 @@ import {
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import { cn } from "@/lib/utils";
 import type { FeedReviewItem as FeedReviewItemType } from "../feedTypes";
+import { FeedCard } from "./FeedCard";
 
 interface FeedReviewItemProps {
 	readonly item: FeedReviewItemType;
 }
 
-/**
- * How this score sits against the course average.
- *
- * Ties are real — a course whose only rating is this one has `average ===
- * score` — so equality renders nothing rather than an arbitrary arrow. The
- * epsilon keeps float noise from reading as a difference.
- */
+/** Ties render nothing; the epsilon keeps float noise from reading as a difference. */
 const TIE_EPSILON = 0.05;
 
 function ComparisonArrow({
@@ -39,76 +35,33 @@ function ComparisonArrow({
 	return <Icon className="size-3 text-muted-foreground" aria-label={label} />;
 }
 
-/**
- * Auto-populated feed entry: a compact summary of a recent rating.
- * Reviews are anonymous in the feed.
- */
-export function FeedReviewItem({ item }: FeedReviewItemProps) {
+/** A recent rating; anonymous in the feed. */
+export function FeedReviewItem({ item }: Readonly<FeedReviewItemProps>) {
 	const semesterLabel =
 		item.semesterYear != null && item.semesterTerm
 			? getSemesterDisplay(item.semesterYear, item.semesterTerm)
 			: undefined;
 
 	return (
-		<article className="flex gap-3 py-4">
-			<span
-				className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
-				aria-hidden
-			>
-				<MessageSquareText className="size-4" />
-			</span>
-			<div className="min-w-0 flex-1">
-				<p className="text-sm leading-snug">
-					<span className="text-muted-foreground">Новий відгук на </span>
-					<Link
-						to="/courses/$courseId"
-						params={{ courseId: item.courseId }}
-						className="font-medium text-foreground transition-colors hover:text-primary hover:underline"
-					>
-						{item.courseTitle}
-					</Link>
-				</p>
-
-				<div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-					<span className="flex items-center gap-1">
-						<span className="text-muted-foreground">Складність</span>
-						<span
-							className={cn(
-								"font-semibold tabular-nums",
-								getDifficultyTone(item.difficulty),
-							)}
-						>
-							{item.difficulty.toFixed(1)}
-						</span>
-						<ComparisonArrow
-							score={item.difficulty}
-							average={item.courseAvgDifficulty}
-						/>
-					</span>
-					<span className="flex items-center gap-1">
-						<span className="text-muted-foreground">Корисність</span>
-						<span
-							className={cn(
-								"font-semibold tabular-nums",
-								getUsefulnessTone(item.usefulness),
-							)}
-						>
-							{item.usefulness.toFixed(1)}
-						</span>
-						<ComparisonArrow
-							score={item.usefulness}
-							average={item.courseAvgUsefulness}
-						/>
-					</span>
-				</div>
-
-				{item.comment && (
-					<p className="mt-2.5 line-clamp-2 text-sm text-muted-foreground">
-						{item.comment}
-					</p>
-				)}
-
-				<div className="mt-2.5 flex items-center gap-2 text-xs text-muted-foreground">
+		<FeedCard
+			badge={
+				<Badge variant="outline">
+					<MessageSquareText className="size-3" aria-hidden="true" />
+					Відгук
+				</Badge>
+			}
+			pinned={item.pinned}
+			title={
+				<Link
+					to="/courses/$courseId"
+					params={{ courseId: item.courseId }}
+					className="transition-colors hover:text-primary hover:underline"
+				>
+					{item.courseTitle}
+				</Link>
+			}
+			footer={
+				<div className="flex items-center gap-2 text-xs text-muted-foreground">
 					<time>{formatRelativeTime(item.createdAt)}</time>
 					{semesterLabel && (
 						<>
@@ -117,7 +70,46 @@ export function FeedReviewItem({ item }: FeedReviewItemProps) {
 						</>
 					)}
 				</div>
+			}
+		>
+			<div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+				<span className="flex items-center gap-1">
+					<span className="text-muted-foreground">Складність</span>
+					<span
+						className={cn(
+							"font-semibold tabular-nums",
+							getDifficultyTone(item.difficulty),
+						)}
+					>
+						{item.difficulty.toFixed(1)}
+					</span>
+					<ComparisonArrow
+						score={item.difficulty}
+						average={item.courseAvgDifficulty}
+					/>
+				</span>
+				<span className="flex items-center gap-1">
+					<span className="text-muted-foreground">Корисність</span>
+					<span
+						className={cn(
+							"font-semibold tabular-nums",
+							getUsefulnessTone(item.usefulness),
+						)}
+					>
+						{item.usefulness.toFixed(1)}
+					</span>
+					<ComparisonArrow
+						score={item.usefulness}
+						average={item.courseAvgUsefulness}
+					/>
+				</span>
 			</div>
-		</article>
+
+			{item.comment && (
+				<p className="line-clamp-2 text-sm text-muted-foreground">
+					{item.comment}
+				</p>
+			)}
+		</FeedCard>
 	);
 }

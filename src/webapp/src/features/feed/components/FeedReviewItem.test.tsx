@@ -28,7 +28,7 @@ describe("FeedReviewItem", () => {
 	it("leads with the course as a link to the course page", () => {
 		render(<FeedReviewItem item={baseItem} />);
 
-		expect(screen.getByText(/Новий відгук на/)).toBeInTheDocument();
+		expect(screen.getByText("Відгук")).toBeInTheDocument();
 		const link = screen.getByRole("link", {
 			name: "Алгоритми та структури даних",
 		});

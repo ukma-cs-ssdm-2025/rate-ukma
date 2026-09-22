@@ -23,9 +23,7 @@ describe("FeedCommentItem", () => {
 	it("leads with the course as a link to the course page", () => {
 		render(<FeedCommentItem item={baseItem} />);
 
-		expect(
-			screen.getByText(/Новий коментар до відгуку на/),
-		).toBeInTheDocument();
+		expect(screen.getByText("Коментар")).toBeInTheDocument();
 		const link = screen.getByRole("link", {
 			name: "Алгоритми та структури даних",
 		});
