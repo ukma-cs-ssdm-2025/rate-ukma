@@ -3801,10 +3801,6 @@ components:
     PublicFeatureFlags:
       type: object
       properties:
-        fe_instructor_multiselect:
-          type: boolean
-          description: Whether `fe_instructor_multiselect` is enabled for the current
-            user.
         fe_feed:
           type: boolean
           description: Whether `fe_feed` is enabled for the current user.
@@ -3814,7 +3810,6 @@ components:
       required:
       - fe_faculty_colors
       - fe_feed
-      - fe_instructor_multiselect
     RatingCreateRequest:
       properties:
         course_offering:

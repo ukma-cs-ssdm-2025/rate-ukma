@@ -176,9 +176,9 @@ convenience affordance, **not** a security boundary.
 
 **From the browser console** (helpers exposed on `window`):
 ```js
-featureFlags.set("fe_instructor_multiselect", true)   // force on,  then reload
-featureFlags.set("fe_instructor_multiselect", false)  // force off, then reload
-featureFlags.clear("fe_instructor_multiselect")        // back to the server value
+featureFlags.set("fe_feed", true)   // force on,  then reload
+featureFlags.set("fe_feed", false)  // force off, then reload
+featureFlags.clear("fe_feed")        // back to the server value
 featureFlags.clearAll()                                // drop all overrides
 featureFlags.list()                                    // inspect current overrides
 ```
@@ -187,12 +187,12 @@ featureFlags.list()                                    // inspect current overri
 ```ts
 import { setFeatureFlagOverride } from "../shared/feature-flags";
 
-await setFeatureFlagOverride(page, "fe_instructor_multiselect", true);
+await setFeatureFlagOverride(page, "fe_feed", true);
 await page.goto(...);
 ```
-Cover both variants by setting the flag on in one spec and off in another (see
-`tests/e2e/ratings/instructor-multiselect.spec.ts` for the on path and
-`instructor-legacy.spec.ts` for the legacy off path).
+Cover both variants by setting the flag on in one case and off in another (see
+`src/webapp/src/features/feed/components/FeedStrip.test.tsx` for the `fe_feed`
+on/off pair).
 
 ## Test
 
@@ -208,14 +208,14 @@ Cover both variants by setting the flag on in one spec and off in another (see
   Always test **both** states. See `src/backend/rating_app/views/test_flags.py`.
 
 The flag gates what the UI renders, not what the API accepts: the backend does
-not check it, so a rating can carry instructor links while the flag is off.
+not check it.
 - **Frontend** — pass `flags` to `renderWithProviders`, which seeds the
   `FeatureFlagsContext` directly (no network, no mock):
   ```tsx
-  render(<RatingForm />, { flags: { fe_instructor_multiselect: true } });
+  render(<FeedStrip />, { flags: { fe_feed: true } });
   ```
-  Default is all-off. Test **both** states (see `RatingForm.test.tsx` /
-  `RatingCardBody.test.tsx`). For hook/provider internals, mirror
+  Default is all-off. Test **both** states (see `FeedStrip.test.tsx`). For
+  hook/provider internals, mirror
   `src/webapp/src/lib/feature-flags/FeatureFlagsContext.test.tsx`.
 
 ## Remove a flag (do not skip)

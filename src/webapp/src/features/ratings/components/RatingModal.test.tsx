@@ -54,7 +54,7 @@ function formData(over: Partial<RatingFormData>): RatingFormData {
 	};
 }
 
-function renderModal(flags: Record<string, boolean>) {
+function renderModal() {
 	const mutateAsync = vi.fn().mockResolvedValue({});
 	vi.mocked(useCoursesRatingsPartialUpdate).mockReturnValue({
 		mutateAsync,
@@ -72,15 +72,14 @@ function renderModal(flags: Record<string, boolean>) {
 			courseId="22222222-2222-2222-2222-222222222222"
 			existingRating={EXISTING}
 		/>,
-		{ flags },
 	);
 
 	return mutateAsync;
 }
 
 describe("RatingModal instructor write path", () => {
-	it("clears the legacy text when instructors are selected with the flag on", async () => {
-		const mutateAsync = renderModal({ fe_instructor_multiselect: true });
+	it("clears the legacy text when instructors are selected", async () => {
+		const mutateAsync = renderModal();
 
 		await capturedSubmit?.(
 			formData({ instructor_ids: ["33333333-3333-3333-3333-333333333333"] }),
@@ -93,24 +92,12 @@ describe("RatingModal instructor write path", () => {
 	});
 
 	it("leaves the legacy text untouched when nothing is selected", async () => {
-		const mutateAsync = renderModal({ fe_instructor_multiselect: true });
+		const mutateAsync = renderModal();
 
 		await capturedSubmit?.(formData({ instructor_ids: [] }));
 
 		const { data } = mutateAsync.mock.calls[0][0];
 		expect(data.instructor_ids).toEqual([]);
 		expect(data).not.toHaveProperty("instructor");
-	});
-
-	it("writes only the legacy text when the flag is off", async () => {
-		const mutateAsync = renderModal({});
-
-		await capturedSubmit?.(
-			formData({ instructor_ids: ["33333333-3333-3333-3333-333333333333"] }),
-		);
-
-		const { data } = mutateAsync.mock.calls[0][0];
-		expect(data.instructor).toBe("Сегін");
-		expect(data).not.toHaveProperty("instructor_ids");
 	});
 });
