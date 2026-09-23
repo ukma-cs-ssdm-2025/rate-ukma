@@ -1,9 +1,11 @@
 import * as React from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
+import { CircleCheck } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 
 import Layout from "@/components/Layout";
+import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { CourseAbout } from "@/features/course-offerings/components/CourseAbout";
 import {
@@ -27,6 +29,7 @@ import {
 import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
 import { RatingButton } from "@/features/ratings/components/RatingButton";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
 	useCoursesOfferingsList,
@@ -82,7 +85,7 @@ function CourseDetailsRoute() {
 	}
 
 	const offerings = courseOfferings?.course_offerings ?? [];
-	const canShowCta = hasAttendedCourse && selectedOffering && !ratedOffering;
+	const canRateNow = Boolean(selectedOffering?.can_rate);
 	const latestOffering = getLatestOffering(offerings);
 	const termLoads =
 		offerings.length > 0 ? getLatestOfferingLoads(offerings) : [];
@@ -91,15 +94,43 @@ function CourseDetailsRoute() {
 		course.avg_usefulness ?? null,
 		course.ratings_count ?? null,
 	);
-	const rateAction = canShowCta ? (
-		<RatingButton
-			canRate={Boolean(selectedOffering?.can_rate)}
-			onClick={() => setIsRatingModalOpen(true)}
-			size="default"
-		>
-			Оцінити цей курс
-		</RatingButton>
-	) : null;
+	// Attendees always see where they stand: rated, rateable, or waiting for midterm.
+	let rateAction: React.ReactNode = null;
+	if (ratedOffering) {
+		rateAction = (
+			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+				<span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+					<CircleCheck className="size-4 text-primary" aria-hidden="true" />
+					Ви оцінили цей курс
+				</span>
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-9"
+					onClick={() => setIsRatingModalOpen(true)}
+				>
+					Змінити оцінку
+				</Button>
+			</div>
+		);
+	} else if (hasAttendedCourse && selectedOffering) {
+		rateAction = (
+			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+				{canRateNow ? null : (
+					<span className="text-sm text-muted-foreground">
+						{CANNOT_RATE_TOOLTIP_TEXT}
+					</span>
+				)}
+				<RatingButton
+					canRate={canRateNow}
+					onClick={() => setIsRatingModalOpen(true)}
+					size="default"
+				>
+					Оцінити цей курс
+				</RatingButton>
+			</div>
+		);
+	}
 	const about = (
 		<CourseAbout
 			description={course.description}

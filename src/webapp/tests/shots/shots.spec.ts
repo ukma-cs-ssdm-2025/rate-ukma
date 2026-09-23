@@ -138,12 +138,11 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-caz",
-		note: "Course page with every САЗ year shown and one multi-record year open",
+		note: "Course page with every САЗ year shown with a multi-speciality year",
 		run: async (page) => {
 			await mockBackend(page);
 			await page.goto(`/courses/${COURSE.id}`);
 			await page.getByRole("button", { name: /^ще \d/ }).click();
-			await page.getByRole("button", { name: /3 записи/ }).click();
 			await page.getByText("2020–2021").first().waitFor();
 		},
 	},
@@ -173,6 +172,24 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.waitFor();
 			await page.getByTestId("course-details-rate-button").click();
 			await page.getByTestId("rating-modal").waitFor();
+		},
+	},
+	{
+		name: "course-rate-soon",
+		note: "Attendee before midterm: rating opens later, the reason is visible",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "not-yet" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.getByText("Оцінювання стане доступним").waitFor();
+		},
+	},
+	{
+		name: "course-rated",
+		note: "Attendee who already rated: status and edit next to the scores",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rated" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.getByText("Ви оцінили цей курс").waitFor();
 		},
 	},
 	{

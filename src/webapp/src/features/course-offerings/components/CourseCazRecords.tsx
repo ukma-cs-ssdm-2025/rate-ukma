@@ -1,12 +1,7 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { ChevronDown, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@/components/ui/Collapsible";
 import {
 	formatAcademicYearLabel,
 	formatCredits,
@@ -113,16 +108,6 @@ function specialitiesLabel(offering: CourseOffering): string {
 		.join(", ");
 }
 
-const pluralRules = new Intl.PluralRules("uk");
-const RECORD_FORMS: Partial<Record<Intl.LDMLPluralRule, string>> = {
-	one: "запис",
-	few: "записи",
-};
-
-function recordsLabel(count: number): string {
-	return `${count} ${RECORD_FORMS[pluralRules.select(count)] ?? "записів"}`;
-}
-
 interface YearGroup {
 	key: string;
 	year: string;
@@ -148,20 +133,28 @@ function groupByYear(sorted: readonly CourseOffering[]): YearGroup[] {
 	return [...groups.values()];
 }
 
-// Labels for records inside one year: speciality first, then whatever else
-// differs between them; the code is the last resort for identical streams.
-export function recordLabels(records: readonly CourseOffering[]): string[] {
+// Labels for one year's records. A course taught to several specialities leads
+// with the speciality and adds the load only where it changes; otherwise the
+// load is the useful per-year fact. The code is the last resort for otherwise
+// identical streams.
+export function recordLabels(
+	records: readonly CourseOffering[],
+	bySpeciality: boolean,
+	latestLoad = "",
+): string[] {
 	const varies = (pick: (offering: CourseOffering) => unknown) =>
 		new Set(records.map(pick)).size > 1;
 	const showStudyYear = varies((offering) => offering.study_year);
-	const showLoad = varies(loadSignature);
+	const loadVaries = varies(loadSignature);
 	const labels = records.map((offering) =>
 		[
-			specialitiesLabel(offering),
+			bySpeciality ? specialitiesLabel(offering) : null,
 			showStudyYear && offering.study_year
 				? `${offering.study_year} курс`
 				: null,
-			showLoad ? loadSignature(offering) : null,
+			!bySpeciality || loadVaries || loadSignature(offering) !== latestLoad
+				? loadSignature(offering)
+				: null,
 		]
 			.filter(Boolean)
 			.join(", "),
@@ -179,34 +172,25 @@ function RecordLink({
 	code,
 	label,
 	ariaLabel,
-	children,
-}: Readonly<{
-	code?: string;
-	label: ReactNode;
-	ariaLabel: string;
-	children?: ReactNode;
-}>) {
-	const content = (
-		<>
-			<span className="inline-flex items-center gap-1">
-				{label}
-				{code ? (
-					<ExternalLink className="size-3 shrink-0" aria-hidden="true" />
-				) : null}
-			</span>
-			{children}
-		</>
-	);
-	if (!code) return <div>{content}</div>;
+}: Readonly<{ code?: string; label: string; ariaLabel: string }>) {
+	if (!code) return <span>{label}</span>;
 	return (
 		<a
 			href={`${BASE_CAZ_URL}${encodeURIComponent(code)}`}
 			target="_blank"
 			rel="noopener noreferrer"
 			aria-label={`${ariaLabel}, відкрити запис у САЗ`}
-			className="block underline-offset-4 transition-colors hover:underline"
+			className="underline-offset-4 transition-colors hover:text-primary hover:underline"
 		>
-			{content}
+			{/* Glue the icon to the last word so it never wraps onto its own line. */}
+			{label.slice(0, label.lastIndexOf(" ") + 1)}
+			<span className="whitespace-nowrap">
+				{label.slice(label.lastIndexOf(" ") + 1)}
+				<ExternalLink
+					className="ml-1 inline size-3 align-baseline"
+					aria-hidden="true"
+				/>
+			</span>
 		</a>
 	);
 }
@@ -214,65 +198,38 @@ function RecordLink({
 function YearRow({
 	group,
 	showTerm,
+	bySpeciality,
 	latestLoad,
-}: Readonly<{ group: YearGroup; showTerm: boolean; latestLoad: string }>) {
-	const [open, setOpen] = useState(false);
+}: Readonly<{
+	group: YearGroup;
+	showTerm: boolean;
+	bySpeciality: boolean;
+	latestLoad: string;
+}>) {
 	const termLabel = showTerm || group.terms.includes(",") ? group.terms : "";
-	const heading = (
-		<span className="font-medium tabular-nums">{group.year}</span>
-	);
-
-	if (group.records.length === 1) {
-		const [record] = group.records;
-		const load = loadSignature(record);
-		const details = [termLabel, load === latestLoad ? null : load]
-			.filter(Boolean)
-			.join(", ");
-		return (
-			<RecordLink
-				code={record.code}
-				label={heading}
-				ariaLabel={[group.year, details].filter(Boolean).join(", ")}
-			>
-				{details ? (
-					<span className="block text-muted-foreground">{details}</span>
-				) : null}
-			</RecordLink>
-		);
-	}
-
-	const labels = recordLabels(group.records);
+	const labels = recordLabels(group.records, bySpeciality, latestLoad);
 	return (
-		<Collapsible open={open} onOpenChange={setOpen}>
-			<CollapsibleTrigger className="group flex w-full items-baseline gap-2 text-left">
-				{heading}
-				<span className="inline-flex items-center gap-0.5 text-muted-foreground transition-colors group-hover:text-foreground">
-					{[termLabel, recordsLabel(group.records.length)]
-						.filter(Boolean)
-						.join(", ")}
-					<ChevronDown
-						className="size-3.5 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none"
-						aria-hidden="true"
-					/>
-				</span>
-			</CollapsibleTrigger>
-			<CollapsibleContent>
-				<ul className="mt-1.5 space-y-1.5 border-l pl-3">
-					{group.records.map((record, index) => (
-						<li
-							key={record.id ?? record.code}
-							className="min-w-0 break-words text-muted-foreground"
-						>
-							<RecordLink
-								code={record.code}
-								label={labels[index]}
-								ariaLabel={`${group.year}, ${labels[index]}`}
-							/>
-						</li>
-					))}
-				</ul>
-			</CollapsibleContent>
-		</Collapsible>
+		<div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3">
+			<div>
+				<div className="font-medium tabular-nums">{group.year}</div>
+				{termLabel ? (
+					<div className="text-xs text-muted-foreground">{termLabel}</div>
+				) : null}
+			</div>
+			<ul className="space-y-1">
+				{group.records.map((record, index) => (
+					<li key={record.id ?? record.code} className="break-words">
+						<RecordLink
+							code={record.code}
+							label={labels[index] || "Запис у САЗ"}
+							ariaLabel={[group.year, termLabel, labels[index]]
+								.filter(Boolean)
+								.join(", ")}
+						/>
+					</li>
+				))}
+			</ul>
+		</div>
 	);
 }
 
@@ -294,18 +251,20 @@ export function CourseCazRecords({
 	}
 
 	const showTerm = !runsInOneTerm(courseOfferings);
+	const bySpeciality = new Set(courseOfferings.map(specialitiesLabel)).size > 1;
 	const latestLoad = loadSignature(groups[0].records[0]);
 	const shown = expanded ? groups : groups.slice(0, initialVisible);
 	const hiddenCount = groups.length - shown.length;
 
 	return (
 		<div>
-			<ul className="space-y-2">
+			<ul className="space-y-3">
 				{shown.map((group) => (
 					<li key={group.key} className="min-w-0 text-sm">
 						<YearRow
 							group={group}
 							showTerm={showTerm}
+							bySpeciality={bySpeciality}
 							latestLoad={latestLoad}
 						/>
 					</li>

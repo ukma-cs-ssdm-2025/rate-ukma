@@ -10,7 +10,8 @@ import {
 	EMPTY_COMMENT_LIST,
 	FEED_ITEMS,
 	FILTER_OPTIONS,
-	MY_COURSES,
+	myCourses as myCoursesFor,
+	type MyCourseState,
 	MY_GRADES,
 	NOTIFICATIONS,
 	RATING_COMMENTS,
@@ -21,7 +22,7 @@ export interface MockOptions {
 	readonly feed?: "items" | "empty" | "error";
 	readonly courses?: "items" | "error";
 	readonly grades?: "items" | "empty";
-	readonly myCourses?: "none" | "rateable";
+	readonly myCourses?: "none" | MyCourseState;
 	readonly comments?: "empty" | "thread";
 	readonly notifications?: "none" | "items";
 }
@@ -122,7 +123,7 @@ export async function mockBackend(
 			],
 			[
 				/^\/students\/me\/courses\/$/,
-				() => (myCourses === "rateable" ? MY_COURSES : []),
+				() => (myCourses === "none" ? [] : myCoursesFor(myCourses)),
 			],
 		];
 	const failing: ReadonlyArray<RegExp> = [

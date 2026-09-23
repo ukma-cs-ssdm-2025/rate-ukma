@@ -402,23 +402,39 @@ export const EMPTY_COMMENT_LIST = {
 	previous_page: null,
 } satisfies CommentList;
 
-// The fixture student attends COURSE and may rate the offering: this is what
-// enables the rate button on the course page (see useUserCourseRating).
-export const MY_COURSES = [
-	{
-		id: COURSE.id,
-		offerings: [
-			{
-				id: "offering-1",
-				course_id: COURSE.id,
-				year: 2026,
-				season: "SPRING",
-				can_rate: true,
-				rated: null,
-			},
-		],
-	},
-] satisfies StudentRatingsLight[];
+// The fixture student attends COURSE; the offering's state decides what the
+// course page offers next to the scores (see useUserCourseRating).
+export type MyCourseState = "rateable" | "not-yet" | "rated";
+
+export const myCourses = (state: MyCourseState) =>
+	[
+		{
+			id: COURSE.id,
+			offerings: [
+				{
+					id: "offering-1",
+					course_id: COURSE.id,
+					year: 2026,
+					season: "SPRING",
+					can_rate: state !== "not-yet",
+					rated:
+						state === "rated"
+							? {
+									id: "my-rating-course",
+									difficulty: 4,
+									usefulness: 5,
+									comment:
+										"Складно, але після курсу значно впевненіше пишу код.",
+									instructor: null,
+									instructors: [],
+									created_at: hoursAgo(24 * 20),
+									is_anonymous: false,
+								}
+							: null,
+				},
+			],
+		},
+	] satisfies StudentRatingsLight[];
 
 // Thread under the first review (rating-0): two top-level comments, the first
 // with a single reply served from COMMENT_REPLIES.

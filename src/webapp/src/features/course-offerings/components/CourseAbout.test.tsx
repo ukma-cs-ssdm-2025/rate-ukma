@@ -182,7 +182,7 @@ describe("CourseCazRecords", () => {
 		).not.toBeInTheDocument();
 	});
 
-	it("hides the load where it matches the latest offering", () => {
+	it("shows each year's load when the course has one speciality", () => {
 		render(
 			<CourseCazRecords
 				courseOfferings={[
@@ -204,8 +204,12 @@ describe("CourseCazRecords", () => {
 			/>,
 		);
 
-		expect(screen.getByText("4 ECTS, 3 год")).toBeInTheDocument();
-		expect(screen.queryByText("5 ECTS, 4 год")).not.toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: /2025–2026.*5 ECTS, 4 год/ }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: /2020–2021.*4 ECTS, 3 год/ }),
+		).toBeInTheDocument();
 	});
 
 	const spec = (title: string) => ({
@@ -214,8 +218,7 @@ describe("CourseCazRecords", () => {
 		speciality_alias: "",
 	});
 
-	it("folds several САЗ records of one year into one row", async () => {
-		const user = userEvent.setup();
+	it("lists every record of a year by speciality, without a toggle", () => {
 		render(
 			<CourseCazRecords
 				courseOfferings={[
@@ -229,10 +232,7 @@ describe("CourseCazRecords", () => {
 			/>,
 		);
 
-		const trigger = screen.getByRole("button", { name: /2 записи/ });
-		expect(screen.queryByRole("link")).not.toBeInTheDocument();
-
-		await user.click(trigger);
+		expect(screen.queryByRole("button")).not.toBeInTheDocument();
 
 		expect(screen.getByRole("link", { name: /Право/ })).toHaveAttribute(
 			"href",
@@ -246,17 +246,25 @@ describe("CourseCazRecords", () => {
 
 	it("labels records by speciality, then by what differs, then by code", () => {
 		expect(
-			recordLabels([
-				offering({ code: "900001", specialities: [spec("Право")] }),
-				offering({ code: "900002", specialities: [spec("Право")] }),
-				offering({ code: "900003", specialities: [spec("Економіка")] }),
-			]),
+			recordLabels(
+				[
+					offering({ code: "900001", specialities: [spec("Право")] }),
+					offering({ code: "900002", specialities: [spec("Право")] }),
+					offering({ code: "900003", specialities: [spec("Економіка")] }),
+				],
+				true,
+				"5 ECTS, 4 год",
+			),
 		).toEqual(["Право, код 900001", "Право, код 900002", "Економіка"]);
 		expect(
-			recordLabels([
-				offering({ study_year: 2, specialities: [spec("Право")] }),
-				offering({ study_year: 3, specialities: [spec("Право")] }),
-			]),
+			recordLabels(
+				[
+					offering({ study_year: 2, specialities: [spec("Право")] }),
+					offering({ study_year: 3, specialities: [spec("Право")] }),
+				],
+				true,
+				"5 ECTS, 4 год",
+			),
 		).toEqual(["Право, 2 курс", "Право, 3 курс"]);
 	});
 
