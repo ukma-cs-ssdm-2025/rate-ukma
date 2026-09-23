@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { ExternalLink } from "lucide-react";
+import { ChevronDown, ExternalLink } from "lucide-react";
 
 import { TermBadge } from "@/components/TermBadge";
 import { Button } from "@/components/ui/Button";
@@ -45,20 +45,22 @@ function sortTerms(terms: readonly CourseOfferingTerm[]): CourseOfferingTerm[] {
 	});
 }
 
-export function getLatestOfferingTerms(
+export interface OfferingTermLoad {
+	term: string;
+	load: string;
+}
+
+export function getLatestOfferingLoads(
 	offerings: readonly CourseOffering[],
-): string[] {
+): OfferingTermLoad[] {
 	const latest = sortOfferings(offerings)[0];
 	if (!latest) return [];
-	const terms = latest.terms ?? [];
-	const ordered =
-		terms.length > 0
-			? sortTerms(terms).map((term) => term.semester_term)
-			: [latest.semester_term];
-	return ordered.filter(
-		(term, index): term is string =>
-			Boolean(term) && ordered.indexOf(term) === index,
-	);
+	const seen = new Set<string>();
+	return offeringTerms(latest).flatMap((term) => {
+		if (!term.semester_term || seen.has(term.semester_term)) return [];
+		seen.add(term.semester_term);
+		return [{ term: term.semester_term, load: formatLoad(term) }];
+	});
 }
 
 function formatLoad(term: CourseOfferingTerm | undefined): string {
@@ -133,7 +135,10 @@ function OfferingYearLink({
 	);
 }
 
-function OfferingGroupItem({ group }: Readonly<{ group: OfferingGroup }>) {
+function OfferingGroupItem({
+	group,
+	showSpecialities,
+}: Readonly<{ group: OfferingGroup; showSpecialities: boolean }>) {
 	const [expanded, setExpanded] = useState(false);
 	const [first] = group.offerings;
 	const hiddenCount = group.offerings.length - VISIBLE_YEARS;
@@ -153,7 +158,9 @@ function OfferingGroupItem({ group }: Readonly<{ group: OfferingGroup }>) {
 						<span className="text-muted-foreground">{formatLoad(term)}</span>
 					</span>
 				))}
-				<CourseSpecialityBadges specialities={first.specialities} size="sm" />
+				{showSpecialities && (
+					<CourseSpecialityBadges specialities={first.specialities} size="sm" />
+				)}
 			</div>
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
 				{visible.map((offering) => (
@@ -187,13 +194,18 @@ export function CourseCazYearsSection({
 	courseOfferings: CourseOffering[];
 	className?: string;
 }>) {
+	const [open, setOpen] = useState(false);
 	const [showAllGroups, setShowAllGroups] = useState(false);
-	const groups = useMemo(
-		() => groupOfferings(sortOfferings(courseOfferings)),
+	const sorted = useMemo(
+		() => sortOfferings(courseOfferings),
 		[courseOfferings],
 	);
+	const groups = useMemo(() => groupOfferings(sorted), [sorted]);
+	// The header already lists the course specialities; repeat them per group only when groups differ.
+	const showSpecialities =
+		new Set(groups.map((group) => group.key.split("#")[1])).size > 1;
 
-	if (!courseOfferings || courseOfferings.length === 0) {
+	if (sorted.length === 0) {
 		return null;
 	}
 
@@ -203,26 +215,49 @@ export function CourseCazYearsSection({
 
 	return (
 		<section aria-label="Записи в САЗ" className={cn("space-y-3", className)}>
-			<h2 className="text-sm font-semibold">
-				Записи в САЗ
-				<span className="ml-1.5 font-normal text-muted-foreground">
-					{courseOfferings.length}
-				</span>
-			</h2>
-			<ul className="space-y-5">
-				{visibleGroups.map((group) => (
-					<OfferingGroupItem key={group.key} group={group} />
-				))}
-			</ul>
-			{!showAllGroups && groups.length > VISIBLE_GROUPS && (
-				<Button
-					variant="ghost"
-					size="sm"
-					className="-ml-2"
-					onClick={() => setShowAllGroups(true)}
-				>
-					Показати всі
-				</Button>
+			<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+				<span className="text-muted-foreground">САЗ</span>
+				<OfferingYearLink offering={sorted[0]} />
+				{sorted.length > 1 && (
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-auto gap-1 px-1.5 py-0.5 text-muted-foreground"
+						aria-expanded={open}
+						onClick={() => setOpen((value) => !value)}
+					>
+						Усі записи ({sorted.length})
+						<ChevronDown
+							className={cn(
+								"size-3.5 transition-transform",
+								open && "rotate-180",
+							)}
+						/>
+					</Button>
+				)}
+			</div>
+			{open && (
+				<>
+					<ul className="space-y-4">
+						{visibleGroups.map((group) => (
+							<OfferingGroupItem
+								key={group.key}
+								group={group}
+								showSpecialities={showSpecialities}
+							/>
+						))}
+					</ul>
+					{!showAllGroups && groups.length > VISIBLE_GROUPS && (
+						<Button
+							variant="ghost"
+							size="sm"
+							className="-ml-2"
+							onClick={() => setShowAllGroups(true)}
+						>
+							Показати всі
+						</Button>
+					)}
+				</>
 			)}
 		</section>
 	);

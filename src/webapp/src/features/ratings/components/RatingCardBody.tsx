@@ -1,6 +1,5 @@
 import { Info } from "lucide-react";
 
-import { TermBadge } from "@/components/TermBadge";
 import { UserAvatar } from "@/components/UserAvatar";
 import {
 	Tooltip,
@@ -25,7 +24,6 @@ interface RatingCardBodyProps {
 	readonly avatarUrl?: string | null;
 	readonly createdAt?: string | null;
 	readonly courseOfferingLabel?: string;
-	readonly courseOfferingTerm?: string | null;
 	readonly difficulty: number | undefined;
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
@@ -49,7 +47,6 @@ export function RatingCardBody({
 	avatarUrl,
 	createdAt,
 	courseOfferingLabel,
-	courseOfferingTerm,
 	difficulty,
 	usefulness,
 	comment,
@@ -81,21 +78,14 @@ export function RatingCardBody({
 						<span className="min-w-0 truncate text-sm font-medium">
 							{displayName}
 						</span>
-						{courseOfferingLabel ? (
-							courseOfferingTerm ? (
-								<TermBadge term={courseOfferingTerm}>
-									{courseOfferingLabel}
-								</TermBadge>
-							) : (
-								<span className="shrink-0 text-xs text-muted-foreground">
-									{courseOfferingLabel}
-								</span>
-							)
-						) : null}
-						{createdAt && (
-							<time className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">
-								{formatDate(createdAt)}
-							</time>
+						{(courseOfferingLabel || createdAt) && (
+							<span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">
+								{courseOfferingLabel}
+								{courseOfferingLabel && createdAt && ", "}
+								{createdAt && (
+									<time dateTime={createdAt}>{formatDate(createdAt)}</time>
+								)}
+							</span>
 						)}
 					</div>
 				</div>

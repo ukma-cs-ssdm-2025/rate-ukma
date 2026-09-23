@@ -33,7 +33,7 @@ vi.mock("@/components/ui/Skeleton", () => ({
 
 vi.mock("@/features/course-offerings/components/CourseCazYearsSection", () => ({
 	CourseCazYearsSection: () => <div data-testid="course-offerings" />,
-	getLatestOfferingTerms: vi.fn(() => []),
+	getLatestOfferingLoads: vi.fn(() => []),
 }));
 
 vi.mock("@/features/courses/components/CourseDetailsHeader", () => ({

@@ -717,7 +717,7 @@ export function RatingComments({
 		<div className="min-w-0 w-full">
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex flex-wrap items-center gap-2">
-					{hasComments ? (
+					{hasComments && (
 						<Button
 							type="button"
 							variant="ghost"
@@ -739,16 +739,15 @@ export function RatingComments({
 								)}
 							</span>
 						</Button>
-					) : (
-						<span className="flex h-8 items-center text-xs font-medium text-muted-foreground">
-							Коментарі {formatCount(displayedCount)}
-						</span>
 					)}
 					<Button
 						type="button"
 						variant="ghost"
 						size="sm"
-						className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:bg-transparent hover:text-primary"
+						className={cn(
+							"h-8 px-2 text-xs font-semibold text-muted-foreground hover:bg-transparent hover:text-primary",
+							!hasComments && "-ml-2",
+						)}
 						onClick={handleStartComment}
 					>
 						Відповісти

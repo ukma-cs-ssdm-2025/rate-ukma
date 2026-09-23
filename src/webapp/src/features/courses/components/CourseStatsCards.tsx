@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { testIds } from "@/lib/test-ids";
@@ -21,6 +23,7 @@ interface CourseStatsHeroProps {
 	difficulty: number | null;
 	usefulness: number | null;
 	ratingsCount: number | null;
+	action?: ReactNode;
 }
 
 function getDescription(
@@ -110,6 +113,7 @@ export function CourseStatsHero({
 	difficulty,
 	usefulness,
 	ratingsCount,
+	action,
 }: Readonly<CourseStatsHeroProps>) {
 	// Only scores in the valid range are meaningful; treat the rest as missing
 	const diff =
@@ -154,36 +158,50 @@ export function CourseStatsHero({
 	return (
 		<div data-testid={testIds.courseDetails.statsCards}>
 			<Card className="shadow-sm">
-				<CardContent className="space-y-5 p-4 sm:p-5">
-					{panels.map((panel) => (
-						<div
-							key={panel.title}
-							title={
-								panel.value !== null
-									? getDetailedDescription(panel.value, panel.type)
-									: undefined
-							}
-						>
-							<p className="text-sm font-medium text-muted-foreground">
-								{panel.title}
-							</p>
-							<p
-								className={cn(
-									"mt-1 text-3xl font-bold tabular-nums sm:text-4xl",
-									panel.value != null ? panel.accent : "text-muted-foreground",
-								)}
+				<CardContent className="p-5 sm:p-6">
+					<div className="grid grid-cols-2 gap-6 sm:gap-10">
+						{panels.map((panel) => (
+							<div
+								key={panel.title}
+								title={
+									panel.value !== null
+										? getDetailedDescription(panel.value, panel.type)
+										: undefined
+								}
 							>
-								{panel.formatted}
-							</p>
-							<div className="mt-2.5">
-								<ScaleBar value={panel.value} accent={panel.barColor} />
+								<p className="text-sm font-medium text-muted-foreground">
+									{panel.title}
+								</p>
+								<p className="mt-1 flex items-baseline gap-1.5">
+									<span
+										className={cn(
+											"text-4xl font-bold tabular-nums sm:text-5xl",
+											panel.value != null
+												? panel.accent
+												: "text-muted-foreground",
+										)}
+									>
+										{panel.formatted}
+									</span>
+									<span className="text-sm text-muted-foreground">з 5</span>
+								</p>
+								<div className="mt-3">
+									<ScaleBar value={panel.value} accent={panel.barColor} />
+								</div>
+								<p className="mt-2 text-sm text-muted-foreground">
+									{getDescription(panel.value, panel.type)}
+								</p>
 							</div>
-							<p className="mt-2 text-xs text-muted-foreground">
-								{getDescription(panel.value, panel.type)}
-							</p>
+						))}
+					</div>
+					{(basis || action) && (
+						<div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+							{basis && (
+								<p className="text-sm text-muted-foreground">{basis}</p>
+							)}
+							{action}
 						</div>
-					))}
-					{basis && <p className="text-xs text-muted-foreground">{basis}</p>}
+					)}
 				</CardContent>
 			</Card>
 		</div>
@@ -194,17 +212,17 @@ export function CourseStatsHeroSkeleton() {
 	return (
 		<div>
 			<Card className="shadow-sm" aria-hidden="true">
-				<CardContent className="space-y-5 p-4 sm:p-5">
+				<CardContent className="grid grid-cols-2 gap-6 p-5 sm:gap-10 sm:p-6">
 					{[0, 1].map((i) => (
 						<div key={`stats-skeleton-${i}`}>
 							<Skeleton className="h-4 w-24" />
-							<Skeleton className="mt-1 h-10 w-16 sm:h-12" />
-							<div className="mt-2.5 flex gap-1">
+							<Skeleton className="mt-1 h-10 w-20 sm:h-12" />
+							<div className="mt-3 flex gap-1">
 								{SCALE_KEYS.map((key) => (
 									<Skeleton key={key} className="h-1.5 flex-1 rounded-full" />
 								))}
 							</div>
-							<Skeleton className="mt-2 h-3 w-32" />
+							<Skeleton className="mt-2 h-4 w-32" />
 						</div>
 					))}
 				</CardContent>
