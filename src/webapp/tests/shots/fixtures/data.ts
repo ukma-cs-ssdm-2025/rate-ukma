@@ -93,6 +93,7 @@ export const FILTER_OPTIONS = {
 	semester_terms: [
 		{ value: "FALL", label: "Fall" },
 		{ value: "SPRING", label: "Spring" },
+		{ value: "SUMMER", label: "Summer" },
 	],
 	semester_years: [{ value: "2025–2026", label: "2025–2026" }],
 	course_types: [

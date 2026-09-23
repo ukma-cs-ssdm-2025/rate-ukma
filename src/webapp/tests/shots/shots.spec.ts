@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+import { testIds } from "../../src/lib/test-ids";
 import { COURSE } from "./fixtures/data";
 import { mockBackend } from "./fixtures/mockBackend";
 
@@ -173,14 +174,23 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/");
 			await page.getByText(COURSE.title).first().waitFor();
-			const trigger = page.getByTestId("filters-drawer-trigger");
+			const trigger = page.getByTestId(testIds.filters.drawerTrigger);
 			if (await trigger.isVisible()) {
 				await trigger.click({ timeout: 5_000 });
-				await page.getByTestId("filters-drawer").waitFor();
+				await page.getByTestId(testIds.filters.drawer).waitFor();
 			} else {
-				await page.getByTestId("filters-panel").scrollIntoViewIfNeeded();
-				await page.getByTestId("filters-panel").waitFor();
+				await page.getByTestId(testIds.filters.panel).scrollIntoViewIfNeeded();
+				await page.getByTestId(testIds.filters.panel).waitFor();
 			}
+		},
+	},
+	{
+		name: "home-filtered",
+		note: "Home page with difficulty 1–3 and autumn filters applied",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/?diff=1-3&term=FALL");
+			await page.getByText(COURSE.title).first().waitFor();
 		},
 	},
 	{
@@ -192,6 +202,20 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page
 				.getByLabel("Діаграма розподілу курсів за корисністю та складністю")
 				.waitFor();
+		},
+	},
+	{
+		name: "explore-zoomed",
+		note: "/explore after one press of the zoom-in control",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/explore");
+			await page
+				.getByLabel("Діаграма розподілу курсів за корисністю та складністю")
+				.waitFor();
+			const zoomIn = page.getByRole("button", { name: /Збільшити|Наблизити/ });
+			if (await zoomIn.first().isVisible())
+				await zoomIn.first().click({ timeout: 5_000 });
 		},
 	},
 ];
