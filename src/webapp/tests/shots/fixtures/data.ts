@@ -3,9 +3,11 @@ import type {
 	CourseAnalytics,
 	CourseDetail,
 	CourseList,
+	CourseOffering,
 	CourseOfferingListResponse,
 	FeedItem,
 	FilterOptions,
+	NotificationGroup,
 	RatingsWithUserList,
 	Session,
 	StudentRatingsDetailed,
@@ -204,7 +206,7 @@ export const COURSE_RATINGS = {
 			student_name: RATING_AUTHORS[index],
 			student_avatar_url: null,
 			course: COURSE.id,
-			course_offering: "offering-1",
+			course_offering: "offering-2026-SPRING",
 			course_offering_term: "SPRING",
 			course_offering_year: 2026,
 			difficulty: 4 + (index % 2),
@@ -236,43 +238,107 @@ export const COURSE_RATINGS = {
 	previous_page: null,
 } satisfies RatingsWithUserList;
 
-export const COURSE_OFFERINGS = {
-	course_offerings: [
+const offering = (
+	year: number,
+	term: "SPRING" | "FALL",
+	credits: string,
+	weeklyHours: number,
+): CourseOffering => ({
+	id: `offering-${year}-${term}`,
+	course_id: COURSE.id,
+	course_title: COURSE.title,
+	semester_id: `semester-${year}-${term.toLowerCase()}`,
+	semester_year: year,
+	semester_term: term === "SPRING" ? "Spring" : "Fall",
+	code: `9000${year % 100}`,
+	exam_type: "EXAM",
+	study_year: 2,
+	max_students: 90,
+	max_groups: 3,
+	group_size_min: 10,
+	group_size_max: 30,
+	instructors: [
 		{
-			id: "offering-1",
-			course_id: COURSE.id,
-			course_title: COURSE.title,
-			semester_id: "semester-2026-spring",
-			semester_year: 2026,
-			semester_term: "Spring",
-			code: "900001",
-			exam_type: "EXAM",
-			study_year: 2,
-			max_students: 90,
-			max_groups: 3,
-			group_size_min: 10,
-			group_size_max: 30,
-			instructors: [
-				{
-					id: "i-1",
-					first_name: "Олена",
-					patronymic: "Петрівна",
-					last_name: "Демченко",
-				},
-			],
-			specialities: COURSE.specialities,
-			terms: [
-				{
-					id: "t-1",
-					semester_year: 2026,
-					semester_term: "SPRING",
-					credits: "5.0",
-					weekly_hours: 4,
-				},
-			],
+			id: "i-1",
+			first_name: "Олена",
+			patronymic: "Петрівна",
+			last_name: "Демченко",
 		},
 	],
+	specialities: COURSE.specialities,
+	terms: [
+		{
+			id: `t-${year}-${term}`,
+			semester_year: year,
+			semester_term: term,
+			credits,
+			weekly_hours: weeklyHours,
+		},
+	],
+});
+
+// Four identical years collapse into one group; the older, lighter run is a second.
+export const COURSE_OFFERINGS = {
+	course_offerings: [
+		offering(2026, "SPRING", "5.0", 4),
+		offering(2025, "SPRING", "5.0", 4),
+		offering(2024, "SPRING", "5.0", 4),
+		offering(2023, "SPRING", "5.0", 4),
+		offering(2021, "FALL", "4.0", 3),
+	],
 } satisfies CourseOfferingListResponse;
+
+export const NOTIFICATIONS = [
+	{
+		group_key: "RATING_UPVOTED:rating-0",
+		event_type: "RATING_UPVOTED",
+		latest_notification_id: "n-1",
+		source_object_id: "vote-1",
+		count: 1,
+		latest_created_at: hoursAgo(0.3),
+		is_unread: true,
+		message: "Хтось вподобав ваш відгук",
+		rating_id: "rating-0",
+		course_id: COURSE.id,
+	},
+	{
+		group_key: "RATING_COMMENT_CREATED:rating-0",
+		event_type: "RATING_COMMENT_CREATED",
+		latest_notification_id: "n-2",
+		source_object_id: "comment-1",
+		count: 1,
+		latest_created_at: hoursAgo(3),
+		is_unread: true,
+		message:
+			"Хтось прокоментував ваш відгук: «Згодна, лабораторні справді об'ємні, але корисні»",
+		rating_id: "rating-0",
+		course_id: COURSE.id,
+	},
+	{
+		group_key: "RATING_DOWNVOTED:rating-0",
+		event_type: "RATING_DOWNVOTED",
+		latest_notification_id: "n-3",
+		source_object_id: "vote-2",
+		count: 2,
+		latest_created_at: hoursAgo(26),
+		is_unread: false,
+		message: "2 людей не вподобали ваш відгук",
+		rating_id: "rating-0",
+		course_id: COURSE.id,
+	},
+	{
+		group_key: "RATING_UPVOTED:rating-1",
+		event_type: "RATING_UPVOTED",
+		latest_notification_id: "n-4",
+		source_object_id: "vote-3",
+		count: 5,
+		latest_created_at: hoursAgo(96),
+		is_unread: false,
+		message: "5 людей вподобали ваш відгук",
+		rating_id: "rating-1",
+		course_id: COURSE.id,
+	},
+] satisfies NotificationGroup[];
 
 export const MY_GRADES = COURSES.slice(0, 8).map((course, index) => ({
 	course_id: course.id,

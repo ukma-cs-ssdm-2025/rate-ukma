@@ -137,6 +137,31 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "course-caz",
+		note: "Course page with every САЗ record expanded, grouped by load",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.getByRole("button", { name: /Усі записи/ }).click();
+			await page.getByText("2021–2022").first().waitFor();
+		},
+	},
+	{
+		name: "notifications",
+		note: "Notifications open: two new, two earlier",
+		run: async (page) => {
+			await mockBackend(page, { notifications: "items" });
+			await page.goto("/");
+			if ((page.viewportSize()?.width ?? 0) < 768) {
+				await page.getByRole("button", { name: "Відкрити меню" }).click();
+				await page.getByRole("button", { name: "Відкрити сповіщення" }).click();
+			} else {
+				await page.getByRole("button", { name: /^Сповіщення/ }).click();
+			}
+			await page.getByText("Хтось вподобав ваш відгук").waitFor();
+		},
+	},
+	{
 		name: "rating-modal",
 		note: "Course page with the rating form open",
 		run: async (page) => {

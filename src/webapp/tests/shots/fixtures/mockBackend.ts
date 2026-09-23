@@ -12,6 +12,7 @@ import {
 	FILTER_OPTIONS,
 	MY_COURSES,
 	MY_GRADES,
+	NOTIFICATIONS,
 	RATING_COMMENTS,
 	SESSION,
 } from "./data";
@@ -22,6 +23,7 @@ export interface MockOptions {
 	readonly grades?: "items" | "empty";
 	readonly myCourses?: "none" | "rateable";
 	readonly comments?: "empty" | "thread";
+	readonly notifications?: "none" | "items";
 }
 
 const courseList = {
@@ -48,6 +50,7 @@ export async function mockBackend(
 		grades = "items",
 		myCourses = "none",
 		comments = "empty",
+		notifications = "none",
 	}: MockOptions = {},
 ): Promise<void> {
 	const handlers: ReadonlyArray<readonly [RegExp, (path: string) => unknown]> =
@@ -59,8 +62,19 @@ export async function mockBackend(
 				() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
 			],
 			[/^\/promo-banner\/$/, () => ({ banner: null })],
-			[/^\/notifications\/unread-count\/$/, () => ({ count: 0 })],
-			[/^\/notifications\/$/, () => []],
+			[
+				/^\/notifications\/unread-count\/$/,
+				() => ({
+					count:
+						notifications === "items"
+							? NOTIFICATIONS.filter((item) => item.is_unread).length
+							: 0,
+				}),
+			],
+			[
+				/^\/notifications\/$/,
+				() => (notifications === "items" ? NOTIFICATIONS : []),
+			],
 			[
 				/^\/feed\/$/,
 				() => ({
