@@ -375,13 +375,12 @@ function ScatterPlotContent({
 
 	return (
 		<>
-			{/* Axis bars and point halos paint the surface colour; a host card sets
-			--plot-surface so the chart reads as one plane with it. */}
 			{/* Interactive chart with aria-label, title element not suitable for this interaction model */}
 			<svg
 				ref={svgRef}
 				width={width}
 				height={height}
+				// A host card sets --plot-surface so the axis bars and point halos match it.
 				className="cursor-grab bg-[var(--plot-surface,var(--color-background))] active:cursor-grabbing"
 				aria-label="Діаграма розподілу курсів за корисністю та складністю"
 			>
