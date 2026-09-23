@@ -13,7 +13,7 @@ export function CourseFiltersPanelSkeleton() {
 	] as const;
 
 	return (
-		<div className="sticky top-6 space-y-6" aria-hidden="true">
+		<div className="sticky top-22 space-y-6" aria-hidden="true">
 			<div className="flex min-h-10 items-center justify-between gap-2">
 				<Skeleton className="h-5 w-16" />
 			</div>

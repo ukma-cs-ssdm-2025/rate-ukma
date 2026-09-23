@@ -57,7 +57,7 @@ export function FeedPromoItem({
 									href={item.ctaHref}
 									target="_blank"
 									rel="noopener noreferrer"
-									className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline"
+									className="inline-flex items-center gap-0.5 font-medium text-primary underline-offset-4 hover:underline"
 								>
 									{item.ctaLabel}
 									<ExternalLink className="size-3.5" aria-hidden />

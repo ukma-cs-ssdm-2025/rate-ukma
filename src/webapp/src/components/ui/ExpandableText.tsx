@@ -90,7 +90,7 @@ export function ExpandableText({
 					}}
 					aria-expanded={isExpanded}
 					aria-controls={textId}
-					className="mt-1.5 text-sm text-primary hover:underline"
+					className="mt-1.5 text-sm text-primary underline-offset-4 hover:underline"
 				>
 					{isExpanded ? "Згорнути" : "Читати далі"}
 				</button>

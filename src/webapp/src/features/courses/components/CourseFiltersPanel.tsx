@@ -757,7 +757,7 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 
 	return (
 		<aside
-			className={cn("sticky top-6 space-y-3", className)}
+			className={cn("sticky top-22 space-y-3", className)}
 			data-testid={testIds.filters.panel}
 		>
 			<FiltersHeader

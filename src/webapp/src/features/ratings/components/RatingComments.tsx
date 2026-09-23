@@ -765,14 +765,17 @@ export function RatingComments({
 					<div className="mt-2 mb-1 w-full space-y-3 border-l-2 border-border pl-3">
 						<Collapsible open={isCreating} className="empty:hidden">
 							<CollapsibleContent>
-								<CommentForm
-									placeholder="Напишіть коментар"
-									submitLabel="Коментувати"
-									isSubmitting={createComment.isPending}
-									onSubmit={handleCreate}
-									onCancel={handleCancelCreate}
-									autoFocus
-								/>
+								{/* Room for the textarea focus ring, which the height clip would cut. */}
+								<div className="pt-1">
+									<CommentForm
+										placeholder="Напишіть коментар"
+										submitLabel="Коментувати"
+										isSubmitting={createComment.isPending}
+										onSubmit={handleCreate}
+										onCancel={handleCancelCreate}
+										autoFocus
+									/>
+								</div>
 							</CollapsibleContent>
 						</Collapsible>
 

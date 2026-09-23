@@ -16,7 +16,7 @@ import type {
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
-import { RatingVotes } from "./RatingVotes";
+import { RatingVotes, type RatingVotesProps } from "./RatingVotes";
 
 interface RatingCardBodyProps {
 	readonly displayName: string;
@@ -39,6 +39,7 @@ interface RatingCardBodyProps {
 	readonly commentAuthors?: readonly CommentAuthor[];
 	readonly votesReadOnly?: boolean;
 	readonly votesDisabledMessage?: string;
+	readonly onVoteSettled?: RatingVotesProps["onVoteSettled"];
 }
 
 export function RatingCardBody({
@@ -62,6 +63,7 @@ export function RatingCardBody({
 	commentAuthors = [],
 	votesReadOnly = false,
 	votesDisabledMessage,
+	onVoteSettled,
 }: RatingCardBodyProps) {
 	const instructorNames = instructors.map(formatInstructorName).filter(Boolean);
 	return (
@@ -138,6 +140,7 @@ export function RatingCardBody({
 								readOnly={votesReadOnly}
 								disabledMessage={votesDisabledMessage}
 								inline
+								onVoteSettled={onVoteSettled}
 							/>
 						}
 					/>

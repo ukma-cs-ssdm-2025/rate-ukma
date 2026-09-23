@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 import { MessageSquare } from "lucide-react";
 
@@ -24,6 +24,8 @@ import {
 	CANNOT_VOTE_WITHOUT_ATTENDING_TEXT,
 } from "../definitions/ratingDefinitions";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
+import { orderByPopularity, type VoteCounts } from "../ratingPopularity";
+import type { RatingVotesProps } from "./RatingVotes";
 
 const SKELETON_RATINGS_COUNT = 3;
 const SKELETON_KEYS = Array.from(
@@ -56,6 +58,8 @@ interface RatingsContentProps {
 	disabledMessage?: string;
 	courseId: string;
 	singleTerm: boolean;
+	listRef: React.RefObject<HTMLDivElement | null>;
+	onVoteSettled?: RatingVotesProps["onVoteSettled"];
 }
 
 function emptyDescription(hasAttended: boolean, canRate: boolean): string {
@@ -114,13 +118,15 @@ function RatingsContent({
 	disabledMessage,
 	courseId,
 	singleTerm,
+	listRef,
+	onVoteSettled,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0 && hasUserRating) {
 		return null;
 	}
 
 	return (
-		<div className="divide-y divide-border/30">
+		<div ref={listRef} className="divide-y divide-border/30">
 			{allRatings.map((rating) => (
 				<RatingCard
 					key={rating.id}
@@ -129,6 +135,7 @@ function RatingsContent({
 					singleTerm={singleTerm}
 					readOnly={!canVote}
 					disabledMessage={disabledMessage}
+					onVoteSettled={onVoteSettled}
 				/>
 			))}
 
@@ -203,6 +210,55 @@ export function CourseRatingsList({
 		...sortParams,
 	});
 
+	// Settled local votes re-rank the loaded reviews without waiting for a refetch.
+	const [voteOverrides, setVoteOverrides] = useState<
+		Record<string, VoteCounts>
+	>({});
+	const listRef = useRef<HTMLDivElement>(null);
+	const positionsBeforeVote = useRef<Map<string, number> | null>(null);
+
+	const handleVoteSettled = useCallback(
+		(ratingId: string, counts: VoteCounts) => {
+			const positions = new Map<string, number>();
+			for (const node of listRef.current?.querySelectorAll<HTMLElement>(
+				"[data-rating-id]",
+			) ?? []) {
+				positions.set(
+					node.dataset.ratingId ?? "",
+					node.getBoundingClientRect().top,
+				);
+			}
+			positionsBeforeVote.current = positions;
+			setVoteOverrides((prev) => ({ ...prev, [ratingId]: counts }));
+		},
+		[],
+	);
+
+	const orderedRatings =
+		sortOption === "most-popular"
+			? orderByPopularity(allRatings, voteOverrides)
+			: allRatings;
+
+	// FLIP: reviews that swapped places glide from where they were.
+	useLayoutEffect(() => {
+		const before = positionsBeforeVote.current;
+		positionsBeforeVote.current = null;
+		if (!before) return;
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		for (const node of listRef.current?.querySelectorAll<HTMLElement>(
+			"[data-rating-id]",
+		) ?? []) {
+			const from = before.get(node.dataset.ratingId ?? "");
+			if (from == null) continue;
+			const delta = from - node.getBoundingClientRect().top;
+			if (Math.abs(delta) < 1) continue;
+			node.animate(
+				[{ transform: `translateY(${delta}px)` }, { transform: "none" }],
+				{ duration: 450, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+			);
+		}
+	}, [voteOverrides]);
+
 	const userRating = userRatingFromApi ?? userRatingProp;
 	const displayCount = totalRatings ?? 0;
 	const hasNoReviews = displayCount === 0 && !userRating;
@@ -261,7 +317,7 @@ export function CourseRatingsList({
 				/>
 			) : (
 				<RatingsContent
-					allRatings={allRatings}
+					allRatings={orderedRatings}
 					hasMoreRatings={hasMoreRatings}
 					isLoadingMore={isFetchingNextPage}
 					loaderRef={loaderRef}
@@ -270,6 +326,8 @@ export function CourseRatingsList({
 					disabledMessage={disabledMessage}
 					courseId={courseId}
 					singleTerm={singleTerm}
+					listRef={listRef}
+					onVoteSettled={handleVoteSettled}
 				/>
 			)}
 		</div>

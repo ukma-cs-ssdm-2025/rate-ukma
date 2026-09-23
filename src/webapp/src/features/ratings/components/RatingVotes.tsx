@@ -20,7 +20,7 @@ import {
 	useCoursesRatingsVotesDestroy,
 } from "../hooks/useVoteMutations";
 
-interface RatingVotesProps {
+export interface RatingVotesProps {
 	ratingId: string;
 	courseId?: string;
 	initialUpvotes?: number;
@@ -29,6 +29,11 @@ interface RatingVotesProps {
 	readOnly?: boolean;
 	disabledMessage?: string;
 	inline?: boolean;
+	/** Called once the server has accepted a vote, with the resulting counts. */
+	onVoteSettled?: (
+		ratingId: string,
+		counts: { upvotes: number; downvotes: number },
+	) => void;
 }
 
 interface VoteProps {
@@ -59,7 +64,9 @@ function Vote({
 			aria-label={`${isUpvote ? "За" : "Проти"}: ${count}`}
 			className={cn(
 				"h-8 gap-1.5 px-2 disabled:opacity-100",
-				active ? "bg-primary/10 text-primary" : "text-muted-foreground",
+				active
+					? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+					: "text-muted-foreground hover:bg-primary/10 hover:text-primary",
 			)}
 		>
 			<Icon className={cn("size-5", active && "fill-current")} />
@@ -94,6 +101,7 @@ export function RatingVotes({
 	readOnly = false,
 	disabledMessage,
 	inline = false,
+	onVoteSettled,
 }: Readonly<RatingVotesProps>) {
 	const queryClient = useQueryClient();
 	// The "optimistic" vote state - updates immediately on click
@@ -118,15 +126,22 @@ export function RatingVotes({
 		deleteVoteRef.current = deleteVote.mutateAsync;
 	}, [createVote.mutateAsync, deleteVote.mutateAsync]);
 
-	// Derived counts based on initial props and optimistic userVote
-	const upvotes =
-		initialUpvotes +
-		(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
-		(userVote === RatingVoteStrType.UPVOTE ? 1 : 0);
-	const downvotes =
-		initialDownvotes +
-		(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
-		(userVote === RatingVoteStrType.DOWNVOTE ? 1 : 0);
+	// Counts derive from the server snapshot minus its own vote plus the local one.
+	const countsFor = (vote: RatingVoteStrType | null) => ({
+		upvotes:
+			initialUpvotes +
+			(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
+			(vote === RatingVoteStrType.UPVOTE ? 1 : 0),
+		downvotes:
+			initialDownvotes +
+			(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
+			(vote === RatingVoteStrType.DOWNVOTE ? 1 : 0),
+	});
+	const { upvotes, downvotes } = countsFor(userVote);
+	const countsForRef = useRef(countsFor);
+	countsForRef.current = countsFor;
+	const onVoteSettledRef = useRef(onVoteSettled);
+	onVoteSettledRef.current = onVoteSettled;
 
 	// Sync local state with props if they change (e.g. after a re-fetch from elsewhere)
 	useEffect(() => {
@@ -153,6 +168,7 @@ export function RatingVotes({
 				// Sync authority state on success only if still mounted
 				if (isMounted) {
 					setServerVote(userVote);
+					onVoteSettledRef.current?.(ratingId, countsForRef.current(userVote));
 					if (courseId) {
 						queryClient.invalidateQueries({
 							queryKey: getCoursesRatingsListQueryKey(courseId),

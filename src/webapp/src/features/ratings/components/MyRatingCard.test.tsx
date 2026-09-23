@@ -63,7 +63,7 @@ describe("MyRatingCard", () => {
 		).not.toBeInTheDocument();
 	});
 
-	it("clamps the rated comment under the scores", () => {
+	it("shows the rated comment under the scores", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
@@ -78,10 +78,9 @@ describe("MyRatingCard", () => {
 			/>,
 		);
 
-		const comment = screen.getByText(
-			"Багато практики, але саме вона вчить думати",
-		);
-		expect(comment).toHaveClass("line-clamp-2");
+		expect(
+			screen.getByText("Багато практики, але саме вона вчить думати"),
+		).toBeInTheDocument();
 	});
 
 	it("shows edit and delete actions for rated courses", () => {

@@ -24,7 +24,7 @@ export function FeedCommentItem({
 				<Link
 					to="/courses/$courseId"
 					params={{ courseId: item.courseId }}
-					className="transition-colors hover:text-primary hover:underline"
+					className="underline-offset-4 transition-colors hover:text-primary hover:underline"
 				>
 					{item.courseTitle}
 				</Link>

@@ -196,7 +196,7 @@ function buildCoursesTableColumns({
 							<Link
 								to="/courses/$courseId"
 								params={{ courseId }}
-								className="line-clamp-2 text-sm font-medium transition-colors motion-reduce:transition-none hover:text-primary hover:underline md:text-base"
+								className="line-clamp-2 text-sm font-medium transition-colors motion-reduce:transition-none underline-offset-4 hover:text-primary hover:underline md:text-base"
 								data-testid={testIds.courses.tableTitleLink}
 							>
 								{course.title}

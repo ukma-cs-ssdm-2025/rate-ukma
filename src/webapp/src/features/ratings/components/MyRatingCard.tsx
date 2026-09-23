@@ -1,9 +1,10 @@
 import { useState } from "react";
 
 import { Link } from "@tanstack/react-router";
-import { Pencil, Trash2 } from "lucide-react";
+import { PenLine, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { ExpandableText } from "@/components/ui/ExpandableText";
 import {
 	Tooltip,
 	TooltipContent,
@@ -51,7 +52,7 @@ export function MyRatingCard({
 						<Link
 							to="/courses/$courseId"
 							params={{ courseId }}
-							className="truncate font-medium text-foreground underline-offset-4 decoration-dotted hover:underline"
+							className="truncate font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
 							data-testid={testIds.myRatings.courseTitleLink}
 						>
 							{course.course_title ?? "Курс"}
@@ -89,9 +90,14 @@ export function MyRatingCard({
 					</div>
 				) : null}
 				{rating?.comment?.trim() ? (
-					<p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-						{rating.comment}
-					</p>
+					<div className="mt-0.5">
+						<ExpandableText
+							lines={2}
+							className="text-xs whitespace-pre-wrap text-muted-foreground"
+						>
+							{rating.comment}
+						</ExpandableText>
+					</div>
 				) : null}
 			</div>
 
@@ -215,6 +221,7 @@ function RateAction({
 				<TooltipTrigger asChild>
 					<span className="inline-block" tabIndex={0}>
 						<Button variant="secondary" size="sm" disabled>
+							<PenLine className="size-3.5" />
 							Оцінити
 						</Button>
 					</span>
@@ -235,6 +242,7 @@ function RateAction({
 				className="min-h-10 px-4 sm:min-h-0"
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
+				<PenLine className="size-3.5" />
 				Оцінити
 			</Button>
 		);
@@ -252,6 +260,7 @@ function RateAction({
 				search={{ openRating: true }}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
+				<PenLine className="size-3.5" />
 				Оцінити
 			</Link>
 		</Button>
