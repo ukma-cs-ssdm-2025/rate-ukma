@@ -1,5 +1,3 @@
-import { GraduationCap } from "lucide-react";
-
 import { Badge } from "@/components/ui/Badge";
 import type { CourseOfferingSpecialityInline } from "@/lib/api/generated";
 import { getTypeKindLabel, getTypeKindVariant } from "../courseFormatting";
@@ -22,14 +20,11 @@ export function CourseSpecialities({
 				{specialities.map((item, index) => (
 					<div
 						key={`${item.speciality_title}-${item.type_kind}-${index}`}
-						className="flex items-center justify-between py-3 px-4 rounded-lg border border-border/50 bg-card/50"
+						className="flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-card/50 px-4 py-3"
 					>
-						<div className="flex items-center gap-2">
-							<GraduationCap className="h-4 w-4 text-muted-foreground/60" />
-							<p className="text-sm font-medium">
-								{item.speciality_title ?? "—"}
-							</p>
-						</div>
+						<p className="text-sm font-medium">
+							{item.speciality_title ?? "—"}
+						</p>
 						{item.type_kind && (
 							<Badge variant={getTypeKindVariant(item.type_kind)}>
 								{getTypeKindLabel(item.type_kind)}

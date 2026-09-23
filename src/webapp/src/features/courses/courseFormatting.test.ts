@@ -2,8 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
 	DIFFICULTY_RANGE,
+	formatAcademicYearLabel,
+	formatCredits,
 	formatDate,
 	formatDecimalValue,
+	formatRatingsBasis,
+	formatWeeklyHours,
+	getAcademicStartYear,
 	getCourseTypeDisplay,
 	getDifficultyTone,
 	getFacultyAbbreviation,
@@ -14,6 +19,7 @@ import {
 	getTypeKindLabel,
 	getTypeKindVariant,
 	getUsefulnessTone,
+	hasCourseScores,
 	USEFULNESS_RANGE,
 } from "./courseFormatting";
 
@@ -320,6 +326,99 @@ describe("courseFormatting", () => {
 
 		it("should return fallback when value is missing", () => {
 			expect(formatDecimalValue(null, { fallback: "N/A" })).toBe("N/A");
+		});
+	});
+
+	describe("formatCredits", () => {
+		it("should format integer credits without decimals", () => {
+			expect(formatCredits("5")).toBe("5 ECTS");
+		});
+
+		it("should keep one decimal for fractional credits", () => {
+			expect(formatCredits("4.5")).toBe("4.5 ECTS");
+		});
+
+		it("should pass through unparsable credits with the ECTS suffix", () => {
+			expect(formatCredits("багато")).toBe("багато ECTS");
+		});
+
+		it("should return null when credits are missing", () => {
+			expect(formatCredits(undefined)).toBeNull();
+			expect(formatCredits(null)).toBeNull();
+			expect(formatCredits("")).toBeNull();
+		});
+	});
+
+	describe("formatWeeklyHours", () => {
+		it("should format weekly hours with the hour label", () => {
+			expect(formatWeeklyHours(4)).toBe("4 год");
+		});
+
+		it("should return null when hours are missing", () => {
+			expect(formatWeeklyHours(undefined)).toBeNull();
+			expect(formatWeeklyHours(null)).toBeNull();
+		});
+	});
+
+	describe("getAcademicStartYear", () => {
+		it("should keep the calendar year for an autumn term", () => {
+			expect(getAcademicStartYear(2026, "FALL")).toBe(2026);
+		});
+
+		it("should map spring and summer terms to the previous year", () => {
+			expect(getAcademicStartYear(2026, "SPRING")).toBe(2025);
+			expect(getAcademicStartYear(2026, "SUMMER")).toBe(2025);
+		});
+
+		it("should return null for unknown terms or missing values", () => {
+			expect(getAcademicStartYear(2026, "WINTER")).toBeNull();
+			expect(getAcademicStartYear(null, "FALL")).toBeNull();
+			expect(getAcademicStartYear(2026, null)).toBeNull();
+		});
+	});
+
+	describe("formatAcademicYearLabel", () => {
+		it("should label an autumn offering with the current and next year", () => {
+			expect(formatAcademicYearLabel(2025, "FALL")).toBe("2025–2026");
+		});
+
+		it("should label a spring offering with the previous and current year", () => {
+			expect(formatAcademicYearLabel(2026, "SPRING")).toBe("2025–2026");
+		});
+
+		it("should return an em dash when the year cannot be derived", () => {
+			expect(formatAcademicYearLabel(null, "FALL")).toBe("—");
+		});
+	});
+
+	describe("formatRatingsBasis", () => {
+		it("should use the singular form for a single rating", () => {
+			expect(formatRatingsBasis(1)).toBe("На основі 1 оцінки");
+		});
+
+		it("should use the plural form for multiple ratings", () => {
+			expect(formatRatingsBasis(4)).toBe("На основі 4 оцінок");
+		});
+
+		it("should return null when there are no ratings", () => {
+			expect(formatRatingsBasis(0)).toBeNull();
+			expect(formatRatingsBasis(null)).toBeNull();
+		});
+	});
+
+	describe("hasCourseScores", () => {
+		it("should be true when the ratings count is positive", () => {
+			expect(hasCourseScores(null, null, 4)).toBe(true);
+		});
+
+		it("should be true when either score is in range", () => {
+			expect(hasCourseScores(4.6, null, 0)).toBe(true);
+			expect(hasCourseScores(null, 4.8, null)).toBe(true);
+		});
+
+		it("should be false when everything is missing or out of range", () => {
+			expect(hasCourseScores(null, null, null)).toBe(false);
+			expect(hasCourseScores(9, 0, 0)).toBe(false);
 		});
 	});
 });

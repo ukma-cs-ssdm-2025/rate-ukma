@@ -1,6 +1,6 @@
+import { TermBadge } from "@/components/TermBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { OfferingMetaBadge } from "@/features/course-offerings/components/CourseCazYearsSection";
 import type { EducationLevelEnum, TypeKindEnum } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
@@ -19,8 +19,7 @@ interface CourseDetailsHeaderProps {
 	}> | null;
 	departmentName?: string | null;
 	facultyName?: string | null;
-	offeringBadges?: OfferingMetaBadge[];
-	cazButton?: React.ReactNode;
+	terms?: ReadonlyArray<string | null | undefined>;
 }
 
 export function CourseDetailsHeader({
@@ -29,25 +28,24 @@ export function CourseDetailsHeader({
 	specialities,
 	departmentName,
 	facultyName,
-	offeringBadges,
-	cazButton,
+	terms,
 }: Readonly<CourseDetailsHeaderProps>) {
 	const educationLevelLabel = getEducationLevelDisplay(educationLevel);
 	const metaItems = [facultyName, departmentName].filter(
 		(value): value is string => Boolean(value),
 	);
+	const visibleTerms = (terms ?? []).filter((term): term is string =>
+		Boolean(term),
+	);
 
 	return (
-		<header className="space-y-3">
-			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-				<h1
-					className="max-w-4xl text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl"
-					data-testid={testIds.courseDetails.title}
-				>
-					{title}
-				</h1>
-				{cazButton}
-			</div>
+		<header className="min-w-0 space-y-3">
+			<h1
+				className="max-w-4xl text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl"
+				data-testid={testIds.courseDetails.title}
+			>
+				{title}
+			</h1>
 
 			{(metaItems.length > 0 || educationLevelLabel) && (
 				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -60,14 +58,11 @@ export function CourseDetailsHeader({
 				</div>
 			)}
 
-			{((specialities?.length ?? 0) > 0 ||
-				(offeringBadges?.length ?? 0) > 0) && (
-				<div className="flex flex-wrap items-center gap-1.5">
+			{((specialities?.length ?? 0) > 0 || visibleTerms.length > 0) && (
+				<div className="flex max-w-4xl flex-wrap items-center gap-1.5">
 					<CourseSpecialityBadges specialities={specialities} />
-					{offeringBadges?.map((badge) => (
-						<Badge key={badge.label} variant="outline" className="font-normal">
-							{badge.label}
-						</Badge>
+					{visibleTerms.map((term) => (
+						<TermBadge key={term} term={term} />
 					))}
 				</div>
 			)}
@@ -77,11 +72,8 @@ export function CourseDetailsHeader({
 
 export function CourseDetailsHeaderSkeleton() {
 	return (
-		<header className="space-y-3">
-			<div className="flex flex-wrap items-center gap-3">
-				<Skeleton className="h-9 w-2/3" />
-				<Skeleton className="h-7 w-28" />
-			</div>
+		<header className="min-w-0 space-y-3">
+			<Skeleton className="h-9 w-2/3" />
 			<Skeleton className="h-4 w-48" />
 			<div className="flex gap-1.5">
 				<Skeleton className="h-5 w-12" />

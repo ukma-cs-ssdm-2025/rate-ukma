@@ -8,9 +8,10 @@ import {
 } from "../../ratings/definitions/ratingDefinitions";
 import {
 	DIFFICULTY_RANGE,
+	formatRatingsBasis,
+	USEFULNESS_RANGE,
 	getDifficultyTone,
 	getUsefulnessTone,
-	USEFULNESS_RANGE,
 } from "../courseFormatting";
 
 const SCALE_STEPS = 5;
@@ -130,6 +131,7 @@ export function CourseStatsHero({
 		return null;
 	}
 
+	const basis = formatRatingsBasis(ratingsCount);
 	const panels = [
 		{
 			title: "Складність",
@@ -150,65 +152,63 @@ export function CourseStatsHero({
 	];
 
 	return (
-		<div
-			data-testid={testIds.courseDetails.statsCards}
-			className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4"
-		>
-			{panels.map((panel) => (
-				<Card key={panel.title} className="shadow-sm">
-					<CardContent
-						className="p-4 sm:p-5"
-						title={
-							panel.value !== null
-								? getDetailedDescription(panel.value, panel.type)
-								: undefined
-						}
-					>
-						<p className="text-sm font-medium text-muted-foreground">
-							{panel.title}
-						</p>
-						<p
-							className={cn(
-								"mt-1 text-3xl font-bold tabular-nums sm:text-4xl lg:text-5xl",
-								panel.value != null ? panel.accent : "text-muted-foreground",
-							)}
+		<div data-testid={testIds.courseDetails.statsCards}>
+			<Card className="shadow-sm">
+				<CardContent className="space-y-5 p-4 sm:p-5">
+					{panels.map((panel) => (
+						<div
+							key={panel.title}
+							title={
+								panel.value !== null
+									? getDetailedDescription(panel.value, panel.type)
+									: undefined
+							}
 						>
-							{panel.formatted}
-						</p>
-						<div className="mt-2.5">
-							<ScaleBar value={panel.value} accent={panel.barColor} />
+							<p className="text-sm font-medium text-muted-foreground">
+								{panel.title}
+							</p>
+							<p
+								className={cn(
+									"mt-1 text-3xl font-bold tabular-nums sm:text-4xl",
+									panel.value != null ? panel.accent : "text-muted-foreground",
+								)}
+							>
+								{panel.formatted}
+							</p>
+							<div className="mt-2.5">
+								<ScaleBar value={panel.value} accent={panel.barColor} />
+							</div>
+							<p className="mt-2 text-xs text-muted-foreground">
+								{getDescription(panel.value, panel.type)}
+							</p>
 						</div>
-						<p className="mt-2 text-xs text-muted-foreground">
-							{getDescription(panel.value, panel.type)}
-						</p>
-					</CardContent>
-				</Card>
-			))}
+					))}
+					{basis && <p className="text-xs text-muted-foreground">{basis}</p>}
+				</CardContent>
+			</Card>
 		</div>
 	);
 }
 
 export function CourseStatsHeroSkeleton() {
 	return (
-		<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-			{[0, 1].map((i) => (
-				<Card
-					key={`stats-skeleton-${i}`}
-					className="shadow-sm"
-					aria-hidden="true"
-				>
-					<CardContent className="p-4 sm:p-5">
-						<Skeleton className="h-4 w-24" />
-						<Skeleton className="mt-1 h-10 w-16 sm:h-12" />
-						<div className="mt-2.5 flex gap-1">
-							{SCALE_KEYS.map((key) => (
-								<Skeleton key={key} className="h-1.5 flex-1 rounded-full" />
-							))}
+		<div>
+			<Card className="shadow-sm" aria-hidden="true">
+				<CardContent className="space-y-5 p-4 sm:p-5">
+					{[0, 1].map((i) => (
+						<div key={`stats-skeleton-${i}`}>
+							<Skeleton className="h-4 w-24" />
+							<Skeleton className="mt-1 h-10 w-16 sm:h-12" />
+							<div className="mt-2.5 flex gap-1">
+								{SCALE_KEYS.map((key) => (
+									<Skeleton key={key} className="h-1.5 flex-1 rounded-full" />
+								))}
+							</div>
+							<Skeleton className="mt-2 h-3 w-32" />
 						</div>
-						<Skeleton className="mt-2 h-3 w-32" />
-					</CardContent>
-				</Card>
-			))}
+					))}
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

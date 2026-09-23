@@ -9,7 +9,7 @@ import { ExpandableText } from "@/components/ui/ExpandableText";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
 	CourseCazYearsSection,
-	getLatestOfferingMeta,
+	getLatestOfferingTerms,
 } from "@/features/course-offerings/components/CourseCazYearsSection";
 import {
 	CourseDetailsHeader,
@@ -19,12 +19,14 @@ import {
 	CourseStatsHero,
 	CourseStatsHeroSkeleton,
 } from "@/features/courses/components/CourseStatsCards";
+import { hasCourseScores } from "@/features/courses/courseFormatting";
 import {
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
 import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
+import { RatingButton } from "@/features/ratings/components/RatingButton";
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
 	useCoursesOfferingsList,
@@ -89,8 +91,14 @@ function CourseDetailsRoute() {
 
 	const offerings = courseOfferings?.course_offerings ?? [];
 	const canShowCta = hasAttendedCourse && selectedOffering && !ratedOffering;
-	const offeringMeta =
-		offerings.length > 0 ? getLatestOfferingMeta(offerings) : null;
+	const headerTerms =
+		offerings.length > 0 ? getLatestOfferingTerms(offerings) : [];
+	const showStats = hasCourseScores(
+		course.avg_difficulty ?? null,
+		course.avg_usefulness ?? null,
+		course.ratings_count ?? null,
+	);
+	const showAside = offerings.length > 0 || Boolean(canShowCta) || showStats;
 	const canonicalUrl = `${window.location.origin + window.location.pathname}`;
 	const ogDescription = buildCourseOgDescription(course);
 
@@ -107,42 +115,56 @@ function CourseDetailsRoute() {
 					<meta name="twitter:description" content={ogDescription} />
 				</Helmet>
 			)}
-			<div className="space-y-8 pb-16">
+			<div className="grid gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
 				<CourseDetailsHeader
 					title={course.title ?? ""}
 					educationLevel={course.education_level}
 					specialities={course.specialities ?? []}
 					departmentName={course.department_name ?? ""}
 					facultyName={course.faculty_name ?? ""}
-					offeringBadges={offeringMeta ?? undefined}
-					cazButton={
-						offerings.length > 0 ? (
+					terms={headerTerms}
+				/>
+
+				{showAside && (
+					<aside className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:row-span-2">
+						<CourseStatsHero
+							difficulty={course.avg_difficulty ?? null}
+							usefulness={course.avg_usefulness ?? null}
+							ratingsCount={course.ratings_count ?? null}
+						/>
+						{canShowCta && (
+							<RatingButton
+								canRate={Boolean(selectedOffering?.can_rate)}
+								onClick={() => setIsRatingModalOpen(true)}
+								size="lg"
+							>
+								Оцінити цей курс
+							</RatingButton>
+						)}
+						{offerings.length > 0 && (
 							<CourseCazYearsSection courseOfferings={offerings} />
-						) : undefined
-					}
-				/>
+						)}
+					</aside>
+				)}
 
-				{course.description && <CourseDescription text={course.description} />}
+				<div className="min-w-0 space-y-8">
+					{course.description && (
+						<CourseDescription text={course.description} />
+					)}
 
-				<CourseStatsHero
-					difficulty={course.avg_difficulty ?? null}
-					usefulness={course.avg_usefulness ?? null}
-					ratingsCount={course.ratings_count ?? null}
-				/>
-
-				{/* Reviews — CTA is anchored here */}
-				<CourseRatingsList
-					courseId={courseId}
-					userRating={userRating}
-					onEditUserRating={() => setIsRatingModalOpen(true)}
-					onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
-					canVote={hasAttendedCourse && Boolean(selectedOffering?.can_rate)}
-					hasAttended={hasAttendedCourse}
-					canRate={Boolean(selectedOffering?.can_rate)}
-					showCta={Boolean(canShowCta)}
-					canRateButton={Boolean(selectedOffering?.can_rate)}
-					onRate={() => setIsRatingModalOpen(true)}
-				/>
+					<CourseRatingsList
+						courseId={courseId}
+						userRating={userRating}
+						onEditUserRating={() => setIsRatingModalOpen(true)}
+						onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
+						hasAttended={hasAttendedCourse}
+						canRate={Boolean(selectedOffering?.can_rate)}
+						// The aside owns the single rate CTA, so the list must not render its own.
+						showCta={false}
+						canRateButton={Boolean(selectedOffering?.can_rate)}
+						onRate={() => setIsRatingModalOpen(true)}
+					/>
+				</div>
 			</div>
 
 			{selectedOffering?.id && attendedCourseId && (
@@ -170,11 +192,15 @@ function CourseDetailsRoute() {
 
 function CourseDetailsSkeleton() {
 	return (
-		<div className="space-y-8 pb-16">
+		<div className="grid gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
 			<CourseDetailsHeaderSkeleton />
-			<Skeleton className="h-10 w-full max-w-2xl" />
-			<CourseStatsHeroSkeleton />
-			<CourseRatingsListSkeleton />
+			<div className="min-w-0 lg:row-span-2">
+				<CourseStatsHeroSkeleton />
+			</div>
+			<div className="min-w-0 space-y-8">
+				<Skeleton className="h-10 w-full max-w-2xl" />
+				<CourseRatingsListSkeleton />
+			</div>
 		</div>
 	);
 }
