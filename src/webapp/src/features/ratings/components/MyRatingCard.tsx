@@ -61,11 +61,6 @@ export function MyRatingCard({
 							{course.course_title ?? "Курс"}
 						</span>
 					)}
-					{course.course_code && (
-						<span className="shrink-0 text-xs text-muted-foreground">
-							{course.course_code}
-						</span>
-					)}
 				</div>
 				{hasRating && rating ? (
 					<div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs">
