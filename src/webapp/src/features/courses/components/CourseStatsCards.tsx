@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { testIds } from "@/lib/test-ids";
@@ -23,7 +21,6 @@ interface CourseStatsHeroProps {
 	difficulty: number | null;
 	usefulness: number | null;
 	ratingsCount: number | null;
-	action?: ReactNode;
 }
 
 function getDescription(
@@ -113,7 +110,6 @@ export function CourseStatsHero({
 	difficulty,
 	usefulness,
 	ratingsCount,
-	action,
 }: Readonly<CourseStatsHeroProps>) {
 	// Only scores in the valid range are meaningful; treat the rest as missing
 	const diff =
@@ -195,12 +191,7 @@ export function CourseStatsHero({
 					</Card>
 				))}
 			</div>
-			{(basis || action) && (
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					{basis && <p className="text-sm text-muted-foreground">{basis}</p>}
-					{action}
-				</div>
-			)}
+			{basis && <p className="text-sm text-muted-foreground">{basis}</p>}
 		</div>
 	);
 }

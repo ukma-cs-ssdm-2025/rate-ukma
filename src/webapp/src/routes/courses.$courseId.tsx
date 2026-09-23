@@ -115,12 +115,7 @@ function CourseDetailsRoute() {
 		);
 	} else if (hasAttendedCourse && selectedOffering) {
 		rateAction = (
-			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-				{canRateNow ? null : (
-					<span className="text-sm text-muted-foreground">
-						{CANNOT_RATE_TOOLTIP_TEXT}
-					</span>
-				)}
+			<div className="flex flex-col gap-1.5 sm:items-end">
 				<RatingButton
 					canRate={canRateNow}
 					onClick={() => setIsRatingModalOpen(true)}
@@ -128,6 +123,11 @@ function CourseDetailsRoute() {
 				>
 					Оцінити цей курс
 				</RatingButton>
+				{canRateNow ? null : (
+					<span className="max-w-64 text-xs text-muted-foreground sm:text-right">
+						{CANNOT_RATE_TOOLTIP_TEXT}
+					</span>
+				)}
 			</div>
 		);
 	}
@@ -155,32 +155,28 @@ function CourseDetailsRoute() {
 				</Helmet>
 			)}
 			<div className="space-y-8 pb-16">
-				<CourseDetailsHeader
-					title={course.title ?? ""}
-					educationLevel={course.education_level}
-					specialities={course.specialities ?? []}
-					departmentName={course.department_name ?? ""}
-					facultyName={course.faculty_name ?? ""}
-					termLoads={termLoads}
-				/>
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+					<CourseDetailsHeader
+						title={course.title ?? ""}
+						educationLevel={course.education_level}
+						specialities={course.specialities ?? []}
+						departmentName={course.department_name ?? ""}
+						facultyName={course.faculty_name ?? ""}
+						termLoads={termLoads}
+					/>
+					{rateAction ? (
+						<div className="shrink-0 sm:pt-2">{rateAction}</div>
+					) : null}
+				</div>
 
 				<div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
 					<div className="min-w-0 space-y-8">
-						{showStats || rateAction ? (
-							<div>
-								{showStats ? (
-									<CourseStatsHero
-										difficulty={course.avg_difficulty ?? null}
-										usefulness={course.avg_usefulness ?? null}
-										ratingsCount={course.ratings_count ?? null}
-										action={rateAction}
-									/>
-								) : (
-									<div className="flex flex-wrap items-center justify-between gap-3">
-										{rateAction}
-									</div>
-								)}
-							</div>
+						{showStats ? (
+							<CourseStatsHero
+								difficulty={course.avg_difficulty ?? null}
+								usefulness={course.avg_usefulness ?? null}
+								ratingsCount={course.ratings_count ?? null}
+							/>
 						) : null}
 
 						{/* Phones read one column: scores, then «Про курс», then reviews. */}
