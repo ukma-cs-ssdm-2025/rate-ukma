@@ -36,10 +36,7 @@ export function offeringFacts(
 	const lectures = formatHours(term?.lecture_count);
 	if (lectures) facts.push({ label: "Лекції", value: lectures });
 	const practices = formatHours(term?.practice_count);
-	if (practices) {
-		const label = term?.practice_type === "SEMINAR" ? "Семінари" : "Практичні";
-		facts.push({ label, value: practices });
-	}
+	if (practices) facts.push({ label: "Практичні/семінари", value: practices });
 	const examType = term?.exam_type ?? offering.exam_type;
 	const exam = getExamTypeDisplay(examType ?? null, "");
 	if (exam) facts.push({ label: "Форма контролю", value: exam });

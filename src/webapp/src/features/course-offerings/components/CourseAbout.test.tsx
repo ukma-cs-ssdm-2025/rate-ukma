@@ -41,7 +41,7 @@ describe("offeringFacts", () => {
 			{ label: "Кредити", value: "5 ECTS" },
 			{ label: "Годин на тиждень", value: "4 год" },
 			{ label: "Лекції", value: "30 год" },
-			{ label: "Практичні", value: "30 год" },
+			{ label: "Практичні/семінари", value: "30 год" },
 			{ label: "Форма контролю", value: "Іспит" },
 		]);
 	});
@@ -86,25 +86,6 @@ describe("offeringFacts", () => {
 			label: "Форма контролю",
 			value: "Залік",
 		});
-	});
-
-	it("names seminar hours as seminars", () => {
-		const facts = offeringFacts(
-			offering({
-				terms: [
-					{
-						semester_year: 2026,
-						semester_term: "SPRING",
-						credits: "3.0",
-						weekly_hours: 2,
-						practice_count: 14,
-						practice_type: "SEMINAR",
-					},
-				],
-			}),
-		);
-
-		expect(facts).toContainEqual({ label: "Семінари", value: "14 год" });
 	});
 });
 
