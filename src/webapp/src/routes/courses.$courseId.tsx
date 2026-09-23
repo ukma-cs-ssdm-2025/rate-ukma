@@ -136,7 +136,7 @@ function CourseDetailsRoute() {
 				<div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
 					<div className="min-w-0 space-y-8">
 						{showStats || rateAction ? (
-							<div className="max-w-3xl">
+							<div>
 								{showStats ? (
 									<CourseStatsHero
 										difficulty={course.avg_difficulty ?? null}

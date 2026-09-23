@@ -8,7 +8,6 @@ import {
 	formatWeeklyHours,
 	getSemesterTermDisplay,
 } from "@/features/courses/courseFormatting";
-import { formatInstructorName } from "@/features/instructors/formatInstructorName";
 import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
 
 const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
@@ -84,75 +83,88 @@ export function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {
 	return terms.size <= 1;
 }
 
-// Signatures of an offering's first term and instructor list. Rows matching
-// the latest offering hide that bit so only real changes stand out.
+// Rows matching the latest offering's load hide it so only real changes stand out.
 function loadSignature(offering: CourseOffering): string {
 	return formatLoad(offeringTerms(offering)[0]);
 }
 
-function instructorSignature(offering: CourseOffering): string {
-	return (offering.instructors ?? [])
-		.map((instructor) =>
-			formatInstructorName({
-				last_name: instructor.last_name ?? undefined,
-				first_name: instructor.first_name ?? undefined,
-				patronymic: instructor.patronymic ?? undefined,
-			}),
-		)
+function yearKey(offering: CourseOffering): string {
+	return `${offering.semester_year}-${offering.semester_term}`;
+}
+
+// One САЗ page can span several terms (e.g. fall and spring on one code).
+function termsLabel(offering: CourseOffering): string {
+	const seasons = new Set(
+		offeringTerms(offering).map((term) => term.semester_term ?? ""),
+	);
+	return [...seasons]
 		.filter(Boolean)
+		.map((season) => getSemesterTermDisplay(season))
 		.join(", ");
+}
+
+// САЗ can list the same course twice in one year under different codes; the
+// study year (or the code itself) tells the rows apart.
+function discriminator(
+	offering: CourseOffering,
+	siblings: readonly CourseOffering[],
+): string | null {
+	if (siblings.length < 2) return null;
+	const studyYears = new Set(siblings.map((item) => item.study_year));
+	if (studyYears.size === siblings.length && offering.study_year) {
+		return `${offering.study_year} курс`;
+	}
+	return offering.code ? `код ${offering.code}` : null;
 }
 
 function CazRecordRow({
 	offering,
 	showTerm,
 	showLoad,
-	showInstructors,
+	siblings,
 }: Readonly<{
 	offering: CourseOffering;
 	showTerm: boolean;
 	showLoad: boolean;
-	showInstructors: boolean;
+	siblings: readonly CourseOffering[];
 }>) {
 	const year = formatAcademicYearLabel(
 		offering.semester_year,
 		offering.semester_term,
 	);
-	const termLabel =
-		showTerm && offering.semester_term
-			? getSemesterTermDisplay(offering.semester_term)
-			: null;
-	const load = showLoad ? loadSignature(offering) : null;
-	const details = [termLabel, load].filter(Boolean).join(", ");
-	const instructors = showInstructors ? instructorSignature(offering) : "";
+	const terms = termsLabel(offering);
+	const multiTerm = terms.includes(",");
+	const details = [
+		showTerm || multiTerm ? terms : null,
+		discriminator(offering, siblings),
+		showLoad ? loadSignature(offering) : null,
+	]
+		.filter(Boolean)
+		.join(", ");
 	const content = (
 		<>
-			<p className="inline-flex items-center gap-1 font-medium tabular-nums">
+			<span className="inline-flex items-center gap-1 font-medium tabular-nums">
 				{year}
 				{offering.code ? (
 					<ExternalLink className="size-3 shrink-0" aria-hidden="true" />
 				) : null}
-			</p>
-			{details ? <p className="text-muted-foreground">{details}</p> : null}
-			{instructors ? (
-				<p className="min-w-0 break-words text-muted-foreground">
-					{instructors}
-				</p>
+			</span>
+			{details ? (
+				<span className="block text-muted-foreground">{details}</span>
 			) : null}
 		</>
 	);
 
 	if (!offering.code) {
-		return <span title={details || undefined}>{content}</span>;
+		return <div>{content}</div>;
 	}
 	return (
 		<a
 			href={`${BASE_CAZ_URL}${encodeURIComponent(offering.code)}`}
 			target="_blank"
 			rel="noopener noreferrer"
-			title={details || undefined}
 			aria-label={`${year}${details ? `, ${details}` : ""}, відкрити запис у САЗ`}
-			className="underline-offset-4 transition-colors hover:underline"
+			className="block underline-offset-4 transition-colors hover:underline"
 		>
 			{content}
 		</a>
@@ -178,7 +190,11 @@ export function CourseCazRecords({
 
 	const showTerm = !runsInOneTerm(sorted);
 	const latestLoad = loadSignature(sorted[0]);
-	const latestInstructors = instructorSignature(sorted[0]);
+	const byYear = new Map<string, CourseOffering[]>();
+	for (const offering of sorted) {
+		const key = yearKey(offering);
+		byYear.set(key, [...(byYear.get(key) ?? []), offering]);
+	}
 	const shown = expanded ? sorted : sorted.slice(0, initialVisible);
 	const hiddenCount = sorted.length - shown.length;
 
@@ -194,9 +210,7 @@ export function CourseCazRecords({
 							offering={offering}
 							showTerm={showTerm}
 							showLoad={loadSignature(offering) !== latestLoad}
-							showInstructors={
-								instructorSignature(offering) !== latestInstructors
-							}
+							siblings={byYear.get(yearKey(offering)) ?? []}
 						/>
 					</li>
 				))}

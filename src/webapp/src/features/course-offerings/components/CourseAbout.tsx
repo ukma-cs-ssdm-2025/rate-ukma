@@ -4,7 +4,6 @@ import {
 	formatWeeklyHours,
 	getExamTypeDisplay,
 } from "@/features/courses/courseFormatting";
-import { formatInstructorName } from "@/features/instructors/formatInstructorName";
 import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { CourseCazRecords } from "./CourseCazRecords";
@@ -45,18 +44,6 @@ export function offeringFacts(
 	return facts;
 }
 
-function offeringInstructorNames(offering: CourseOffering): string[] {
-	return (offering.instructors ?? [])
-		.map((instructor) =>
-			formatInstructorName({
-				last_name: instructor.last_name ?? undefined,
-				first_name: instructor.first_name ?? undefined,
-				patronymic: instructor.patronymic ?? undefined,
-			}),
-		)
-		.filter(Boolean);
-}
-
 interface CourseAboutProps {
 	description?: string | null;
 	latestOffering?: CourseOffering;
@@ -70,9 +57,6 @@ export function CourseAbout({
 }: Readonly<CourseAboutProps>) {
 	const isPhone = !useMediaQuery("(min-width: 1024px)");
 	const facts = offeringFacts(latestOffering);
-	const instructors = latestOffering
-		? offeringInstructorNames(latestOffering)
-		: [];
 
 	return (
 		<section aria-label="Про курс" className="min-w-0 space-y-5">
@@ -96,12 +80,6 @@ export function CourseAbout({
 						</div>
 					))}
 				</dl>
-			) : null}
-			{instructors.length > 0 ? (
-				<p className="text-sm">
-					<span className="text-muted-foreground">Викладачі: </span>
-					{instructors.join(", ")}
-				</p>
 			) : null}
 			{courseOfferings.length > 0 ? (
 				<div className="space-y-2 pt-1">

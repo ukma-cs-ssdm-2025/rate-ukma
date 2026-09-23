@@ -70,7 +70,10 @@ function MyRatings() {
 	if (totalCourses === 0) {
 		return (
 			<Layout>
-				<MyRatingsEmptyState />
+				<div className="space-y-6">
+					<MyRatingsHeader totalCourses={0} ratedCourses={0} />
+					<MyRatingsEmptyState />
+				</div>
 			</Layout>
 		);
 	}

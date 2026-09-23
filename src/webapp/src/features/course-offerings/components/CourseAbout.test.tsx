@@ -91,20 +91,11 @@ describe("offeringFacts", () => {
 });
 
 describe("CourseAbout", () => {
-	it("renders facts, instructors, and САЗ rows inline", () => {
+	it("renders facts and САЗ rows inline", () => {
 		render(
 			<CourseAbout
 				description="Короткий опис курсу."
-				latestOffering={offering({
-					instructors: [
-						{
-							id: "i-1",
-							first_name: "Олена",
-							patronymic: "Петрівна",
-							last_name: "Демченко",
-						},
-					],
-				})}
+				latestOffering={offering()}
 				courseOfferings={[offering()]}
 			/>,
 		);
@@ -113,23 +104,21 @@ describe("CourseAbout", () => {
 			screen.getByRole("heading", { name: "Про курс" }),
 		).toBeInTheDocument();
 		expect(screen.getByText("Форма контролю")).toBeInTheDocument();
-		expect(screen.getByText("Демченко Олена Петрівна")).toBeInTheDocument();
 		expect(
 			screen.getByRole("heading", { name: "Записи в САЗ" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: /2025–2026/ })).toBeInTheDocument();
 	});
 
-	it("never renders an empty instructor placeholder", () => {
+	it("renders nothing for САЗ when the course has no offerings", () => {
 		render(
 			<CourseAbout
 				description={null}
-				latestOffering={offering({ instructors: [] })}
+				latestOffering={undefined}
 				courseOfferings={[]}
 			/>,
 		);
 
-		expect(screen.queryByText(/Викладачі/)).not.toBeInTheDocument();
 		expect(screen.queryByText("Записи в САЗ")).not.toBeInTheDocument();
 	});
 });
@@ -201,44 +190,55 @@ describe("CourseCazRecords", () => {
 		expect(screen.queryByText("5 ECTS, 4 год")).not.toBeInTheDocument();
 	});
 
-	it("shows a row's instructors only when they differ from the latest", () => {
-		const demchenko = {
-			id: "i-1",
-			first_name: "Олена",
-			patronymic: "Петрівна",
-			last_name: "Демченко",
-		};
-		const kovalenko = {
-			id: "i-2",
-			first_name: "Анна",
-			last_name: "Коваленко",
-		};
+	it("tells apart two САЗ records of the same year by study year", () => {
+		render(
+			<CourseCazRecords
+				courseOfferings={[
+					offering({ id: "a", code: "900001", study_year: 2 }),
+					offering({ id: "b", code: "900002", study_year: 3 }),
+				]}
+			/>,
+		);
+
+		expect(screen.getByRole("link", { name: /2 курс/ })).toHaveAttribute(
+			"href",
+			"https://my.ukma.edu.ua/course/900001",
+		);
+		expect(screen.getByRole("link", { name: /3 курс/ })).toHaveAttribute(
+			"href",
+			"https://my.ukma.edu.ua/course/900002",
+		);
+	});
+
+	it("falls back to the code when same-year records share a study year", () => {
+		render(
+			<CourseCazRecords
+				courseOfferings={[
+					offering({ id: "a", code: "900001", study_year: 2 }),
+					offering({ id: "b", code: "900002", study_year: 2 }),
+				]}
+			/>,
+		);
+
+		expect(screen.getByText("код 900001")).toBeInTheDocument();
+		expect(screen.getByText("код 900002")).toBeInTheDocument();
+	});
+
+	it("labels one record spanning two terms with both terms", () => {
 		render(
 			<CourseCazRecords
 				courseOfferings={[
 					offering({
-						id: "new",
-						semester_year: 2026,
-						instructors: [demchenko],
-					}),
-					offering({
-						id: "same",
-						semester_year: 2025,
-						instructors: [demchenko],
-					}),
-					offering({
-						id: "changed",
-						semester_year: 2024,
-						instructors: [kovalenko],
+						terms: [
+							{ semester_year: 2025, semester_term: "FALL", credits: "3.0" },
+							{ semester_year: 2026, semester_term: "SPRING", credits: "3.0" },
+						],
 					}),
 				]}
-				initialVisible={5}
 			/>,
 		);
 
-		expect(screen.getByText("Коваленко Анна")).toBeInTheDocument();
-		expect(
-			screen.queryByText("Демченко Олена Петрівна"),
-		).not.toBeInTheDocument();
+		expect(screen.getByText("Осінь, Весна")).toBeInTheDocument();
+		expect(screen.getAllByRole("link")).toHaveLength(1);
 	});
 });

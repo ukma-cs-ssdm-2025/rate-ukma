@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Star } from "lucide-react";
+import { BookOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -20,16 +20,17 @@ export function MyRatingsEmptyState() {
 		>
 			<EmptyHeader>
 				<EmptyMedia variant="icon">
-					<Star />
+					<BookOpen />
 				</EmptyMedia>
-				<EmptyTitle>Ще немає оцінок</EmptyTitle>
+				<EmptyTitle>Курсів поки немає</EmptyTitle>
 				<EmptyDescription>
-					Знайдіть курс у каталозі та залиште свою першу оцінку.
+					Тут з'являться курси, які ви слухаєте, щойно вони будуть у системі. А
+					поки можна почитати відгуки інших студентів.
 				</EmptyDescription>
 			</EmptyHeader>
 			<EmptyContent>
 				<Button asChild>
-					<Link to="/">Перейти до курсів</Link>
+					<Link to="/">Переглянути курси</Link>
 				</Button>
 			</EmptyContent>
 		</Empty>

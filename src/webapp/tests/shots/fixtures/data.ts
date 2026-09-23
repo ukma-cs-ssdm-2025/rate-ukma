@@ -68,7 +68,12 @@ export const COURSES = COURSE_SEEDS.map(
 
 export const COURSE = COURSES[0];
 
-export const COURSE_DETAIL = COURSE satisfies CourseDetail;
+// Real САЗ descriptions run several paragraphs, so the detail page gets a long one.
+export const COURSE_DETAIL = {
+	...COURSE,
+	description:
+		"Курс знайомить з базовими структурами даних (масиви, списки, стеки, черги, хеш-таблиці, дерева, графи) та алгоритмами роботи з ними. Студенти вчаться оцінювати складність алгоритмів, обирати структуру даних під задачу та доводити коректність розв'язків.\n\nПрактична частина складається з щотижневих лабораторних робіт мовою C++ або Java та двох контрольних робіт. Для успішного проходження курсу потрібні знання дискретної математики та основ програмування. Підсумкова оцінка складається з лабораторних (40%), контрольних (20%) та іспиту (40%).",
+} satisfies CourseDetail;
 
 export const ANALYTICS = COURSES.map((course) => ({
 	id: course.id,
@@ -257,14 +262,8 @@ const offering = (
 	max_groups: 3,
 	group_size_min: 10,
 	group_size_max: 30,
-	instructors: [
-		{
-			id: "i-1",
-			first_name: "Олена",
-			patronymic: "Петрівна",
-			last_name: "Демченко",
-		},
-	],
+	// Prod never fills offering instructors (CourseInstructor is empty).
+	instructors: [],
 	specialities: COURSE.specialities,
 	terms: [
 		{
@@ -280,11 +279,18 @@ const offering = (
 	],
 });
 
-// Four identical years collapse into one group; the older, lighter run is a second.
+// Newest first; the 2021 run carries a lighter load so its row shows it.
 export const COURSE_OFFERINGS = {
 	course_offerings: [
 		offering(2026, "SPRING", "5.0", 4),
 		offering(2025, "SPRING", "5.0", 4),
+		// САЗ sometimes lists the same year twice under different codes.
+		{
+			...offering(2025, "SPRING", "5.0", 4),
+			id: "offering-2025-SPRING-b",
+			code: "900125",
+			study_year: 3,
+		},
 		offering(2024, "SPRING", "5.0", 4),
 		offering(2023, "SPRING", "5.0", 4),
 		offering(2021, "SPRING", "4.0", 3),
