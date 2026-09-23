@@ -84,12 +84,13 @@ function shouldShowLabels(
 }
 
 function shouldSkipLabeling(params: {
+	variant: "default" | "mini";
 	width: number;
 	height: number;
 	dataLength: number;
 }): boolean {
-	const { width, height, dataLength } = params;
-	return width < 10 || height < 10 || dataLength === 0;
+	const { variant, width, height, dataLength } = params;
+	return variant === "mini" || width < 10 || height < 10 || dataLength === 0;
 }
 
 function resolveMinDistance(
@@ -128,6 +129,7 @@ function shouldPlaceLabel(params: {
 
 export function computeLabelPoints(params: {
 	chartData: CourseDataPoint[];
+	variant: "default" | "mini";
 	width: number;
 	height: number;
 	innerWidth: number;
@@ -140,6 +142,7 @@ export function computeLabelPoints(params: {
 }): LabelPoint[] {
 	const {
 		chartData,
+		variant,
 		width,
 		height,
 		innerWidth,
@@ -155,6 +158,7 @@ export function computeLabelPoints(params: {
 
 	if (
 		shouldSkipLabeling({
+			variant,
 			width,
 			height,
 			dataLength: sortedByImportance.length,

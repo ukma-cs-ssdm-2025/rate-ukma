@@ -15,13 +15,17 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { ChartScatter, Filter, Search, Table2 } from "lucide-react";
+import { ChevronDown, Filter, Maximize2, Search } from "lucide-react";
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ButtonGroup } from "@/components/ui/ButtonGroup";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/Collapsible";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -30,19 +34,23 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import type { CourseList } from "@/lib/api/generated";
+import type { CourseList, CoursesListParams } from "@/lib/api/generated";
 import {
 	EducationLevelEnum,
 	useCoursesFilterOptionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import { ActiveFilterChips } from "./ActiveFilterChips";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
+import { CoursesScatterPlot } from "./CoursesScatterPlot";
 import {
 	CoursesReviewsSortMenu,
 	type CoursesReviewsSortOption,
@@ -54,6 +62,7 @@ import {
 	DEFAULT_COURSE_FILTERS_PARAMS,
 } from "../courseFiltersParams";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+import { transformFiltersToApiParams } from "../filterTransformations";
 import { useCourseFiltersData } from "../hooks/useCourseFiltersData";
 
 interface PaginationInfo {
@@ -69,6 +78,104 @@ interface CoursesTableProps {
 	params: CourseFiltersParamsState;
 	setParams: CourseFiltersParamsSetter;
 	pagination?: PaginationInfo;
+}
+
+const MAP_COLLAPSED_STORAGE_KEY = "courses-map-collapsed";
+
+function CoursesMapCard({
+	filters,
+	onOpenFullscreen,
+}: Readonly<{
+	filters: CoursesListParams;
+	onOpenFullscreen: () => void;
+}>) {
+	const [collapsed, setCollapsed] = useState<boolean>(
+		() =>
+			localStorageAdapter.getItem<boolean>(MAP_COLLAPSED_STORAGE_KEY) ?? false,
+	);
+	const isDesktop = useMediaQuery("(min-width: 768px)");
+
+	useEffect(() => {
+		localStorageAdapter.setItem(MAP_COLLAPSED_STORAGE_KEY, collapsed);
+	}, [collapsed]);
+
+	if (!isDesktop) {
+		return (
+			<section
+				aria-label="Карта курсів"
+				className="overflow-hidden rounded-xl border bg-card shadow-sm md:hidden"
+			>
+				<div className="flex items-center justify-between gap-2 px-4 pt-3">
+					<h3 className="text-sm font-semibold">Карта курсів</h3>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-8 gap-2 text-muted-foreground"
+						onClick={onOpenFullscreen}
+						data-testid={testIds.courses.scatterPlotFullscreenButton}
+					>
+						<Maximize2 className="size-4" />
+						Відкрити
+					</Button>
+				</div>
+				<div className="relative mb-2 h-44">
+					<div inert className="pointer-events-none absolute inset-0">
+						<CoursesScatterPlot filters={filters} variant="mini" />
+					</div>
+					<button
+						type="button"
+						className="absolute inset-0 h-full w-full cursor-pointer"
+						onClick={onOpenFullscreen}
+						aria-label="Відкрити карту курсів"
+					/>
+				</div>
+			</section>
+		);
+	}
+
+	return (
+		<Collapsible
+			open={!collapsed}
+			onOpenChange={(open) => setCollapsed(!open)}
+			className="hidden overflow-hidden rounded-xl border bg-card shadow-sm md:block"
+		>
+			<div className="flex min-h-10 items-center justify-between gap-2 px-4 py-1">
+				<h3 className="text-sm font-semibold">Карта курсів</h3>
+				<div className="flex items-center gap-2">
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-8 gap-2 text-muted-foreground"
+						onClick={onOpenFullscreen}
+						data-testid={testIds.courses.scatterPlotFullscreenButton}
+					>
+						<Maximize2 className="size-4" />
+						Повний екран
+					</Button>
+					<CollapsibleTrigger asChild>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-8 w-8 p-0"
+							aria-label={collapsed ? "Розгорнути карту" : "Згорнути карту"}
+						>
+							<ChevronDown
+								className={cn(
+									"size-4 transition-transform duration-200",
+									!collapsed && "rotate-180",
+								)}
+							/>
+						</Button>
+					</CollapsibleTrigger>
+				</div>
+			</div>
+			<CollapsibleContent>
+				<div className="mb-2 h-64">
+					<CoursesScatterPlot filters={filters} variant="mini" />
+				</div>
+			</CollapsibleContent>
+		</Collapsible>
+	);
 }
 
 function buildCoursesTableColumns({
@@ -416,10 +523,17 @@ export function CoursesTable({
 		filterGroups.semester.config.activeCount +
 		filterGroups.structure.config.activeCount;
 
-	const searchParams = useMemo(
-		() => courseFiltersStateToSearchParams(params),
+	const apiFilters = useMemo(
+		() => transformFiltersToApiParams(params),
 		[params],
 	);
+
+	const openExplore = useCallback(() => {
+		navigate({
+			to: "/explore",
+			search: courseFiltersStateToSearchParams(params),
+		});
+	}, [navigate, params]);
 
 	const columns = useMemo(
 		() =>
@@ -497,43 +611,19 @@ export function CoursesTable({
 		<>
 			<div className="flex flex-col gap-6 md:flex-row">
 				<div className="min-w-0 flex-1 space-y-4">
-					<div className="flex items-center gap-2">
-						<div className="relative min-h-10 min-w-0 flex-1">
-							<Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-							<DebouncedInput
-								placeholder="Пошук курсів за назвою..."
-								value={params.q}
-								onChange={(value) => {
-									setParams({ q: String(value), page: 1 });
-								}}
-								className="h-10 pl-10 text-sm"
-								disabled={isInitialLoading}
-								isLoading={isLoading}
-								data-testid={testIds.courses.searchInput}
-							/>
-						</div>
-						<ButtonGroup
-							aria-label="Перемикання режиму перегляду"
-							className="h-10 shrink-0"
-						>
-							<Button asChild variant="secondary" size="sm" className="h-full">
-								<Link to="/" search={() => searchParams} aria-label="Таблиця">
-									<Table2 className="size-4 sm:hidden" />
-									<span className="hidden sm:inline">Таблиця</span>
-								</Link>
-							</Button>
-							<Button asChild variant="ghost" size="sm" className="h-full">
-								<Link
-									to="/explore"
-									search={() => searchParams}
-									aria-label="Візуалізація"
-									data-testid={testIds.courses.scatterPlotFullscreenButton}
-								>
-									<ChartScatter className="size-4 sm:hidden" />
-									<span className="hidden sm:inline">Візуалізація</span>
-								</Link>
-							</Button>
-						</ButtonGroup>
+					<div className="relative min-h-10 flex-1">
+						<Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+						<DebouncedInput
+							placeholder="Пошук курсів за назвою..."
+							value={params.q}
+							onChange={(value) => {
+								setParams({ q: String(value), page: 1 });
+							}}
+							className="h-10 pl-10 text-sm"
+							disabled={isInitialLoading}
+							isLoading={isLoading}
+							data-testid={testIds.courses.searchInput}
+						/>
 					</div>
 
 					{/* Phones only: the drawer covers the page while this row appears. */}
@@ -543,6 +633,8 @@ export function CoursesTable({
 						filterOptions={filterOptions}
 						className="lg:hidden"
 					/>
+
+					<CoursesMapCard filters={apiFilters} onOpenFullscreen={openExplore} />
 
 					{renderTableContent()}
 				</div>
