@@ -147,6 +147,19 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "course-speciality-tooltip",
+		note: "Hovering a САЗ speciality badge names the speciality and its type",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.locator('[data-slot="tooltip-trigger"]', { hasText: /^ІПЗ/ })
+				.first()
+				.hover();
+			await page.getByRole("tooltip").waitFor();
+		},
+	},
+	{
 		name: "notifications",
 		note: "Notifications open: two new, two earlier",
 		run: async (page) => {
@@ -172,6 +185,23 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.waitFor();
 			await page.getByTestId("course-details-rate-button").click();
 			await page.getByTestId("rating-modal").waitFor();
+		},
+	},
+	{
+		name: "rating-modal-scrolled",
+		note: "Rating form scrolled to the end: only the header divider shows (phone; the desktop form fits, so no lines)",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rateable" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.getByTestId("course-details-rate-button").click();
+			const form = page.getByTestId("rating-form");
+			await form.waitFor();
+			await form
+				.locator("> div")
+				.first()
+				.evaluate((el) => {
+					el.scrollTop = el.scrollHeight;
+				});
 		},
 	},
 	{
@@ -201,15 +231,22 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.getByText("Ви оцінили цей курс").waitFor();
 		},
 	},
-	{
-		name: "course-no-reviews",
-		note: "Unreviewed course seen by an attendee before midterm: no call to be first",
-		run: async (page) => {
-			await mockBackend(page, { myCourses: "not-yet", reviews: "empty" });
+	...(
+		[
+			["guest", "none", "a student who never took it: who leaves reviews"],
+			["soon", "not-yet", "an attendee before midterm: when reviews open"],
+			["rateable", "rateable", "an attendee who can rate: invited to go first"],
+		] as const
+	).map(([suffix, myCourses, who]) => ({
+		name: `course-no-reviews-${suffix}`,
+		note: `Unreviewed course seen by ${who}`,
+		run: async (page: Page) => {
+			await mockBackend(page, { myCourses, reviews: "empty" });
 			await page.goto(`/courses/${COURSE.id}`);
-			await page.getByText("Відгуків ще немає").waitFor();
+			// Phones stack «Про курс» above the reviews, so bring the empty state up.
+			await page.getByText("Відгуків ще немає").scrollIntoViewIfNeeded();
 		},
-	},
+	})),
 	{
 		name: "course-comments",
 		note: "Course page with the first review's comment thread expanded",
