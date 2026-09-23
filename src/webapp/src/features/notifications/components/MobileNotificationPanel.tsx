@@ -56,11 +56,11 @@ export function MobileNotificationPanel({
 			className="flex h-full flex-col"
 			data-testid={testIds.notifications.mobilePanel}
 		>
-			<div className="flex items-center gap-1 pb-1">
+			<div className="flex items-center gap-1 px-1 py-2">
 				<Button
 					variant="ghost"
 					size="icon"
-					className="size-9 shrink-0"
+					className="size-10 shrink-0"
 					onClick={onBack}
 					aria-label="Назад"
 				>
@@ -71,7 +71,7 @@ export function MobileNotificationPanel({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="text-muted-foreground hover:text-foreground"
+						className="h-10 text-muted-foreground hover:text-foreground"
 						onClick={handleMarkAllRead}
 						disabled={isPending}
 						data-testid={testIds.notifications.markReadButton}

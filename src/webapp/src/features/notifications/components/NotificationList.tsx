@@ -107,7 +107,7 @@ export function NotificationList({
 				data-testid={testIds.notifications.list}
 			>
 				{showGroups && (
-					<li className="px-3 pt-1 text-xs font-medium text-muted-foreground">
+					<li className="px-3 pt-2 text-xs font-medium text-muted-foreground">
 						Нові
 					</li>
 				)}
@@ -119,7 +119,7 @@ export function NotificationList({
 					/>
 				))}
 				{showGroups && (
-					<li className="px-3 pt-1 text-xs font-medium text-muted-foreground">
+					<li className="px-3 pt-2.5 text-xs font-medium text-muted-foreground">
 						Раніше
 					</li>
 				)}
@@ -196,14 +196,14 @@ function NotificationItem({
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 				<p
 					className={cn(
-						"line-clamp-2 text-sm leading-snug text-foreground",
+						"line-clamp-2 text-sm leading-snug break-words text-foreground",
 						isUnread && "font-medium",
 					)}
 				>
 					{title}
 				</p>
 				{quote && (
-					<p className="line-clamp-1 text-sm text-muted-foreground">{quote}</p>
+					<p className="line-clamp-2 text-sm break-words text-muted-foreground">{quote}</p>
 				)}
 				{notification.latest_created_at && (
 					<time className="text-xs text-muted-foreground">

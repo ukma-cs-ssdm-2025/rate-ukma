@@ -19,7 +19,6 @@ export function FeedCommentItem({
 	return (
 		<FeedCard
 			variant={variant}
-			badge={<Badge variant="success">Коментар</Badge>}
 			pinned={item.pinned}
 			title={
 				<Link
@@ -31,15 +30,16 @@ export function FeedCommentItem({
 				</Link>
 			}
 			footer={
-				<p className="text-xs text-muted-foreground">
-					<time>{formatRelativeTime(item.createdAt)}</time>
-				</p>
+				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+					<Badge variant="success">Коментар</Badge>
+					<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
+				</div>
 			}
 		>
 			<p
 				className={
 					isBanner
-						? "line-clamp-2 text-sm text-muted-foreground"
+						? "line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90"
 						: "line-clamp-2 flex-1 text-sm text-muted-foreground"
 				}
 			>

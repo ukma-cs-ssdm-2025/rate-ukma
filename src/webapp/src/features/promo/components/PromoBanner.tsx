@@ -56,6 +56,7 @@ export function PromoBanner() {
 			<Button
 				variant="ghost"
 				size="icon-sm"
+				className="size-10 shrink-0"
 				onClick={dismiss}
 				aria-label="Сховати оголошення"
 				data-testid={testIds.promo.dismissButton}

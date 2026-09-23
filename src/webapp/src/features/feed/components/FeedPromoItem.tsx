@@ -42,11 +42,13 @@ export function FeedPromoItem({
 		return (
 			<FeedCard
 				variant="card"
-				badge={<Badge variant={accent}>{label}</Badge>}
 				pinned={item.pinned}
 				title={item.title}
 				footer={
 					<p className="truncate text-xs text-muted-foreground">
+						<Badge variant={accent} className="mr-1.5">
+							{label}
+						</Badge>
 						<time>{formatRelativeTime(item.createdAt)}</time>
 						{hasCta && (
 							<>
@@ -75,19 +77,21 @@ export function FeedPromoItem({
 	return (
 		<FeedCard
 			variant="banner"
-			badge={<Badge variant={accent}>{label}</Badge>}
 			pinned={item.pinned}
 			title={item.title}
 			footer={
-				/* A label without an href goes nowhere, so the CTA needs both halves. */
-				hasCta && (
-					<Button asChild size="sm" variant="outline" className="gap-1.5">
-						<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
-							{item.ctaLabel}
-							<ExternalLink className="size-4" aria-hidden />
-						</a>
-					</Button>
-				)
+				<div className="flex flex-wrap items-center gap-2">
+					<Badge variant={accent}>{label}</Badge>
+					{/* A label without an href goes nowhere, so the CTA needs both halves. */}
+					{hasCta && (
+						<Button asChild size="sm" variant="outline" className="gap-1.5">
+							<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
+								{item.ctaLabel}
+								<ExternalLink className="size-4" aria-hidden />
+							</a>
+						</Button>
+					)}
+				</div>
 			}
 		>
 			{/* Banner only: the strip cards are too narrow to carry an image. */}

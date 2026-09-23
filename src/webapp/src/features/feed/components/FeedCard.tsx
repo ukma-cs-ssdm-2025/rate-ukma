@@ -5,7 +5,6 @@ import { Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FeedCardProps {
-	readonly badge: ReactNode;
 	readonly pinned?: boolean;
 	readonly title: ReactNode;
 	readonly children?: ReactNode;
@@ -15,9 +14,12 @@ interface FeedCardProps {
 	readonly variant?: "card" | "banner";
 }
 
-/** One card shell for every feed entry, in the strip and on `/feed`. */
+/**
+ * One card shell for every feed entry, in the strip and on `/feed`.
+ * The course (or announcement) title leads so each item scans as
+ * course → scores → text → meta; the kind badge lives in the footer meta.
+ */
 export function FeedCard({
-	badge,
 	pinned,
 	title,
 	children,
@@ -34,26 +36,25 @@ export function FeedCard({
 				className,
 			)}
 		>
-			<div className="flex items-center justify-between gap-2">
-				{badge}
+			<div className="flex items-start justify-between gap-2">
+				<h3
+					className={cn(
+						"font-semibold leading-snug line-clamp-2",
+						!isBanner && "text-sm",
+					)}
+				>
+					{title}
+				</h3>
 				{pinned && (
 					<span
 						role="img"
 						aria-label="Закріплено"
-						className="inline-flex shrink-0 text-muted-foreground"
+						className="mt-1 inline-flex shrink-0 text-muted-foreground"
 					>
 						<Pin className="size-3.5" aria-hidden />
 					</span>
 				)}
 			</div>
-			<h3
-				className={cn(
-					"font-semibold leading-snug line-clamp-2",
-					!isBanner && "text-sm",
-				)}
-			>
-				{title}
-			</h3>
 			{children}
 			{footer && <div className="mt-auto">{footer}</div>}
 		</article>

@@ -41,7 +41,10 @@ function ComparisonArrow({
 	);
 }
 
-/** A recent rating; anonymous in the feed. */
+/**
+ * A recent rating; anonymous in the feed. Scans as course → scores → text →
+ * meta, mirroring the course page review cards (RatingStats + RatingComment).
+ */
 export function FeedReviewItem({
 	item,
 	variant = "card",
@@ -52,73 +55,9 @@ export function FeedReviewItem({
 			: undefined;
 	const isBanner = variant === "banner";
 
-	if (!isBanner) {
-		return (
-			<FeedCard
-				variant="card"
-				badge={<Badge variant="soft">Відгук</Badge>}
-				pinned={item.pinned}
-				title={
-					<Link
-						to="/courses/$courseId"
-						params={{ courseId: item.courseId }}
-						className="transition-colors hover:text-primary hover:underline"
-					>
-						{item.courseTitle}
-					</Link>
-				}
-				footer={
-					<p className="truncate text-xs text-muted-foreground">
-						<time>{formatRelativeTime(item.createdAt)}</time>
-						{semesterLabel && <span>, {semesterLabel}</span>}
-					</p>
-				}
-			>
-				<p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-					<span className="inline-flex items-center gap-1 whitespace-nowrap">
-						<span className="text-muted-foreground">Складність</span>{" "}
-						<span
-							className={cn(
-								"font-semibold tabular-nums",
-								getDifficultyTone(item.difficulty),
-							)}
-						>
-							{item.difficulty.toFixed(1)}
-						</span>{" "}
-						<ComparisonArrow
-							score={item.difficulty}
-							average={item.courseAvgDifficulty}
-						/>
-					</span>
-					<span className="inline-flex items-center gap-1 whitespace-nowrap">
-						<span className="text-muted-foreground">Корисність</span>{" "}
-						<span
-							className={cn(
-								"font-semibold tabular-nums",
-								getUsefulnessTone(item.usefulness),
-							)}
-						>
-							{item.usefulness.toFixed(1)}
-						</span>{" "}
-						<ComparisonArrow
-							score={item.usefulness}
-							average={item.courseAvgUsefulness}
-						/>
-					</span>
-				</p>
-				{item.comment && (
-					<p className="line-clamp-2 flex-1 text-sm text-muted-foreground">
-						{item.comment}
-					</p>
-				)}
-			</FeedCard>
-		);
-	}
-
 	return (
 		<FeedCard
-			variant="banner"
-			badge={<Badge variant="soft">Відгук</Badge>}
+			variant={variant}
 			pinned={item.pinned}
 			title={
 				<Link
@@ -130,15 +69,21 @@ export function FeedReviewItem({
 				</Link>
 			}
 			footer={
-				<div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-					<time>{formatRelativeTime(item.createdAt)}</time>
-					{semesterLabel && <span>{semesterLabel}</span>}
+				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+					<Badge variant="soft">Відгук</Badge>
+					<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
+					{semesterLabel && <span className="ml-auto shrink-0">{semesterLabel}</span>}
 				</div>
 			}
 		>
-			<div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-				<span className="flex items-center gap-1">
-					<span className="text-muted-foreground">Складність</span>
+			<p
+				className={cn(
+					"flex flex-wrap items-center gap-x-4 gap-y-1 leading-none",
+					isBanner ? "text-sm" : "text-xs",
+				)}
+			>
+				<span className="flex items-center gap-1.5 whitespace-nowrap">
+					<span className="text-muted-foreground">Складність</span>{" "}
 					<span
 						className={cn(
 							"font-semibold tabular-nums",
@@ -146,14 +91,14 @@ export function FeedReviewItem({
 						)}
 					>
 						{item.difficulty.toFixed(1)}
-					</span>
+					</span>{" "}
 					<ComparisonArrow
 						score={item.difficulty}
 						average={item.courseAvgDifficulty}
 					/>
 				</span>
-				<span className="flex items-center gap-1">
-					<span className="text-muted-foreground">Корисність</span>
+				<span className="flex items-center gap-1.5 whitespace-nowrap">
+					<span className="text-muted-foreground">Корисність</span>{" "}
 					<span
 						className={cn(
 							"font-semibold tabular-nums",
@@ -161,16 +106,21 @@ export function FeedReviewItem({
 						)}
 					>
 						{item.usefulness.toFixed(1)}
-					</span>
+					</span>{" "}
 					<ComparisonArrow
 						score={item.usefulness}
 						average={item.courseAvgUsefulness}
 					/>
 				</span>
-			</div>
-
+			</p>
 			{item.comment && (
-				<p className="line-clamp-2 text-sm text-muted-foreground">
+				<p
+					className={
+						isBanner
+							? "line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90"
+							: "line-clamp-2 flex-1 text-sm text-muted-foreground"
+					}
+				>
 					{item.comment}
 				</p>
 			)}
