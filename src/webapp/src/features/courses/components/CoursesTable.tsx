@@ -667,6 +667,7 @@ export function CoursesTable({
 
 			<Drawer
 				open={isFiltersDrawerOpen}
+				side="bottom"
 				onOpenChange={(open) => setIsFiltersDrawerOpen(open)}
 				ariaLabel="Фільтри курсів"
 				closeButtonLabel="Закрити фільтри"

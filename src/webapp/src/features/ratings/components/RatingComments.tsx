@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { Collapsible, CollapsibleContent } from "@/components/ui/Collapsible";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Label } from "@/components/ui/Label";
 import { Spinner } from "@/components/ui/Spinner";
@@ -756,38 +757,40 @@ export function RatingComments({
 				{trailingContent && <div className="shrink-0">{trailingContent}</div>}
 			</div>
 
-			{isExpanded && (
-				<div className="mt-2 w-full space-y-3 border-l-2 border-border pl-3">
-					{isCreating && (
-						<CommentForm
-							placeholder="Напишіть коментар"
-							submitLabel="Коментувати"
-							isSubmitting={createComment.isPending}
-							onSubmit={handleCreate}
-							onCancel={handleCancelCreate}
-							autoFocus
-						/>
-					)}
+			<Collapsible open={isExpanded}>
+				<CollapsibleContent>
+					<div className="mt-2 mb-1 w-full space-y-3 border-l-2 border-border pl-3">
+						{isCreating && (
+							<CommentForm
+								placeholder="Напишіть коментар"
+								submitLabel="Коментувати"
+								isSubmitting={createComment.isPending}
+								onSubmit={handleCreate}
+								onCancel={handleCancelCreate}
+								autoFocus
+							/>
+						)}
 
-					{commentsContent}
+						{commentsContent}
 
-					{commentsQuery.hasNextPage && (
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							className="w-full"
-							onClick={() => commentsQuery.fetchNextPage()}
-							disabled={commentsQuery.isFetchingNextPage}
-						>
-							{commentsQuery.isFetchingNextPage && (
-								<Spinner className="size-3.5" />
-							)}
-							Показати ще
-						</Button>
-					)}
-				</div>
-			)}
+						{commentsQuery.hasNextPage && (
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className="w-full"
+								onClick={() => commentsQuery.fetchNextPage()}
+								disabled={commentsQuery.isFetchingNextPage}
+							>
+								{commentsQuery.isFetchingNextPage && (
+									<Spinner className="size-3.5" />
+								)}
+								Показати ще
+							</Button>
+						)}
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 		</div>
 	);
 }

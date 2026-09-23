@@ -25,6 +25,7 @@ import {
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { localStorageAdapter } from "@/lib/storage";
 
 const SHOW_ALL_LABELS_STORAGE_KEY = "explore:show-all-labels";
@@ -71,6 +72,7 @@ function ExploreRoute() {
 	}, [params]);
 
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+	const isPhone = !useMediaQuery("(min-width: 768px)");
 	const [showAllLabels, setShowAllLabels] = useState<boolean>(() => {
 		const stored = localStorageAdapter.getItem<boolean>(
 			SHOW_ALL_LABELS_STORAGE_KEY,
@@ -171,6 +173,7 @@ function ExploreRoute() {
 
 				<Drawer
 					open={isFiltersOpen}
+					side={isPhone ? "bottom" : "right"}
 					onOpenChange={setIsFiltersOpen}
 					ariaLabel="Фільтри курсів"
 					closeButtonLabel="Закрити фільтри"

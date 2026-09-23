@@ -653,21 +653,23 @@ function CourseFiltersContent({
 						/>
 					</button>
 				</CollapsibleTrigger>
-				<CollapsibleContent className="space-y-4 pt-4">
-					{instructorSelect && (
-						<SelectFilters
-							filters={[instructorSelect]}
-							getSelectValue={getSelectValue}
-							onSelectChange={handleSelectChange}
-						/>
-					)}
-					{typeSelect && (
-						<SelectFilters
-							filters={[typeSelect]}
-							getSelectValue={getSelectValue}
-							onSelectChange={handleSelectChange}
-						/>
-					)}
+				<CollapsibleContent>
+					<div className="space-y-4 pt-4 pb-1">
+						{instructorSelect && (
+							<SelectFilters
+								filters={[instructorSelect]}
+								getSelectValue={getSelectValue}
+								onSelectChange={handleSelectChange}
+							/>
+						)}
+						{typeSelect && (
+							<SelectFilters
+								filters={[typeSelect]}
+								getSelectValue={getSelectValue}
+								onSelectChange={handleSelectChange}
+							/>
+						)}
+					</div>
 				</CollapsibleContent>
 			</Collapsible>
 		</div>
@@ -795,7 +797,7 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 
 	return (
 		<div
-			className={cn("flex h-full flex-col", className)}
+			className={cn("flex h-full min-h-0 flex-col", className)}
 			data-testid={testIds.filters.drawer}
 		>
 			<div className="flex min-h-10 items-center justify-between gap-2">
