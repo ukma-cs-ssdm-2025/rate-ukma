@@ -7,10 +7,10 @@ import Layout from "@/components/Layout";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ExpandableText } from "@/components/ui/ExpandableText";
 import {
-	CourseCazCard,
+	CourseCazRecords,
 	getLatestOfferingLoads,
 	runsInOneTerm,
-} from "@/features/course-offerings/components/CourseCazCard";
+} from "@/features/course-offerings/components/CourseCazRecords";
 import {
 	CourseDetailsHeader,
 	CourseDetailsHeaderSkeleton,
@@ -107,6 +107,10 @@ function CourseDetailsRoute() {
 			Оцінити цей курс
 		</RatingButton>
 	) : null;
+	const cazRecords =
+		offerings.length > 0 ? (
+			<CourseCazRecords courseOfferings={offerings} />
+		) : null;
 	const canonicalUrl = `${window.location.origin + window.location.pathname}`;
 	const ogDescription = buildCourseOgDescription(course);
 
@@ -133,22 +137,22 @@ function CourseDetailsRoute() {
 					termLoads={termLoads}
 				/>
 
-				<div className="grid items-start gap-3 sm:gap-4 lg:grid-cols-3">
-					{(showStats || rateAction) && (
-						<div className="space-y-3 lg:col-span-2">
-							{showStats && (
-								<CourseStatsHero
-									difficulty={course.avg_difficulty ?? null}
-									usefulness={course.avg_usefulness ?? null}
-									ratingsCount={course.ratings_count ?? null}
-									action={rateAction}
-								/>
-							)}
-							{!showStats && rateAction}
-						</div>
-					)}
-					{offerings.length > 0 && (
-						<CourseCazCard courseOfferings={offerings} />
+				<div className="max-w-3xl">
+					{showStats ? (
+						<CourseStatsHero
+							difficulty={course.avg_difficulty ?? null}
+							usefulness={course.avg_usefulness ?? null}
+							ratingsCount={course.ratings_count ?? null}
+							action={rateAction}
+							meta={cazRecords}
+						/>
+					) : (
+						(cazRecords || rateAction) && (
+							<div className="flex flex-wrap items-center justify-between gap-3">
+								{cazRecords}
+								{rateAction}
+							</div>
+						)
 					)}
 				</div>
 

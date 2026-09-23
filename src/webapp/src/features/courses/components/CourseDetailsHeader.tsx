@@ -1,6 +1,6 @@
 import { TermBadge } from "@/components/TermBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { OfferingTermLoad } from "@/features/course-offerings/components/CourseCazCard";
+import type { OfferingTermLoad } from "@/features/course-offerings/components/CourseCazRecords";
 import type { EducationLevelEnum, TypeKindEnum } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";

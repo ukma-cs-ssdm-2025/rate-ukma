@@ -31,8 +31,8 @@ vi.mock("@/components/ui/Skeleton", () => ({
 	Skeleton: () => <div data-testid="skeleton" />,
 }));
 
-vi.mock("@/features/course-offerings/components/CourseCazCard", () => ({
-	CourseCazCard: () => <div data-testid="course-offerings" />,
+vi.mock("@/features/course-offerings/components/CourseCazRecords", () => ({
+	CourseCazRecords: () => <div data-testid="course-offerings" />,
 	getLatestOfferingLoads: vi.fn(() => []),
 	runsInOneTerm: vi.fn(() => true),
 }));
