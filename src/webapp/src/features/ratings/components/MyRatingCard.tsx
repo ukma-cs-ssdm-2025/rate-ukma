@@ -182,6 +182,7 @@ function CardActions({
 			offeringId={offeringId}
 			canRate={canRate}
 			onRate={onEdit}
+			variant="outline"
 		/>
 	);
 }
