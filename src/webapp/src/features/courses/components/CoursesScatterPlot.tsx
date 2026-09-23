@@ -593,11 +593,6 @@ function ScatterPlotContent({
 			)}
 
 			{variant === "default" && (
-				<div className="pointer-events-none absolute bottom-16 left-3 max-w-[calc(100%-6rem)] rounded-full border bg-card/90 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur">
-					Колір — факультет, розмір — кількість відгуків
-				</div>
-			)}
-			{variant === "default" && (
 				<div className="absolute bottom-16 right-3 overflow-hidden rounded-full border bg-card/90 shadow-sm backdrop-blur">
 					<ButtonGroup
 						orientation="vertical"

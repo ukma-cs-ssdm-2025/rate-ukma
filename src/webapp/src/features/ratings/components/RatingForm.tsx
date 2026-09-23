@@ -21,7 +21,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { cn } from "@/lib/utils";
 import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
@@ -53,11 +52,6 @@ export type RatingFormData = z.infer<typeof ratingSchema>;
 
 const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
 
-const DIFFICULTY_SELECTED_CLASSNAME =
-	"data-[state=on]:border-transparent data-[state=on]:bg-difficulty data-[state=on]:text-difficulty-foreground data-[state=on]:hover:bg-difficulty data-[state=on]:hover:text-difficulty-foreground";
-const USEFULNESS_SELECTED_CLASSNAME =
-	"data-[state=on]:border-transparent data-[state=on]:bg-usefulness data-[state=on]:text-usefulness-foreground data-[state=on]:hover:bg-usefulness data-[state=on]:hover:text-usefulness-foreground";
-
 // Descriptions read as "Коротко - детальніше"; the scale shows the short head.
 function getShortDescription(
 	descriptions: Record<number, string>,
@@ -73,7 +67,6 @@ function ScoreInput({
 	onChange,
 	onBlur,
 	descriptions,
-	selectedClassName,
 	scaleLabel,
 	"data-testid": dataTestId,
 	...rest
@@ -82,7 +75,6 @@ function ScoreInput({
 	onChange: (value: number) => void;
 	onBlur?: () => void;
 	descriptions: Record<number, string>;
-	selectedClassName: string;
 	scaleLabel: string;
 	"data-testid"?: string;
 	id?: string;
@@ -110,7 +102,7 @@ function ScoreInput({
 						key={score}
 						value={String(score)}
 						aria-label={`${score} з 5`}
-						className={cn("h-11 flex-1 text-base", selectedClassName)}
+						className="h-11 flex-1 text-base"
 					>
 						{score}
 					</ToggleGroupItem>
@@ -168,7 +160,6 @@ function RatingFormFields({
 										onChange={field.onChange}
 										onBlur={field.onBlur}
 										descriptions={difficultyDescriptions}
-										selectedClassName={DIFFICULTY_SELECTED_CLASSNAME}
 										scaleLabel="Складність"
 										data-testid={testIds.rating.difficultySlider}
 									/>
@@ -202,7 +193,6 @@ function RatingFormFields({
 										onChange={field.onChange}
 										onBlur={field.onBlur}
 										descriptions={usefulnessDescriptions}
-										selectedClassName={USEFULNESS_SELECTED_CLASSNAME}
 										scaleLabel="Корисність"
 										data-testid={testIds.rating.usefulnessSlider}
 									/>
