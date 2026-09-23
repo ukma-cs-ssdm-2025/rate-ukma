@@ -188,6 +188,14 @@ function casesFor(mode: "light" | "dark"): ContrastCase[] {
 			min: TEXT,
 			why: "success badges (bg-success/10 text-success)",
 		},
+		...(["term-fall", "term-spring", "term-summer"] as const).map((term) => ({
+			fg: term,
+			bg: term,
+			bgAlphaOver: "background",
+			alpha: 0.12,
+			min: TEXT,
+			why: "term badges (bg-term-*/12 text-term-*)",
+		})),
 	);
 	// Destructive buttons/badges render full-strength destructive in light
 	// mode (covered by the canonical pair above) and bg-destructive/60 in
