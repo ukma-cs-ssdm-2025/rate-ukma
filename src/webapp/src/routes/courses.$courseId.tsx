@@ -7,11 +7,10 @@ import Layout from "@/components/Layout";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ExpandableText } from "@/components/ui/ExpandableText";
 import {
-	CazRecordsToggle,
-	CourseCazYearsSection,
+	CourseCazCard,
 	getLatestOfferingLoads,
 	runsInOneTerm,
-} from "@/features/course-offerings/components/CourseCazYearsSection";
+} from "@/features/course-offerings/components/CourseCazCard";
 import {
 	CourseDetailsHeader,
 	CourseDetailsHeaderSkeleton,
@@ -38,7 +37,7 @@ import { withAuth } from "@/lib/auth";
 
 function CourseDescription({ text }: Readonly<{ text: string }>) {
 	return (
-		<ExpandableText className="text-base leading-relaxed text-muted-foreground">
+		<ExpandableText className="max-w-3xl text-base leading-relaxed text-muted-foreground">
 			{text}
 		</ExpandableText>
 	);
@@ -60,7 +59,6 @@ function CourseDetailsRoute() {
 
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-	const [isCazOpen, setIsCazOpen] = React.useState(false);
 
 	const {
 		rating: userRating,
@@ -125,37 +123,34 @@ function CourseDetailsRoute() {
 					<meta name="twitter:description" content={ogDescription} />
 				</Helmet>
 			)}
-			<div className="mx-auto max-w-4xl space-y-8 pb-16">
-				<div className="space-y-4">
-					<CourseDetailsHeader
-						title={course.title ?? ""}
-						educationLevel={course.education_level}
-						specialities={course.specialities ?? []}
-						departmentName={course.department_name ?? ""}
-						facultyName={course.faculty_name ?? ""}
-						termLoads={termLoads}
-					>
-						{offerings.length > 0 && (
-							<CazRecordsToggle
-								count={offerings.length}
-								open={isCazOpen}
-								onToggle={() => setIsCazOpen((open) => !open)}
-							/>
-						)}
-					</CourseDetailsHeader>
-					{isCazOpen && <CourseCazYearsSection courseOfferings={offerings} />}
-				</div>
+			<div className="space-y-8 pb-16">
+				<CourseDetailsHeader
+					title={course.title ?? ""}
+					educationLevel={course.education_level}
+					specialities={course.specialities ?? []}
+					departmentName={course.department_name ?? ""}
+					facultyName={course.faculty_name ?? ""}
+					termLoads={termLoads}
+				/>
 
-				{showStats ? (
-					<CourseStatsHero
-						difficulty={course.avg_difficulty ?? null}
-						usefulness={course.avg_usefulness ?? null}
-						ratingsCount={course.ratings_count ?? null}
-						action={rateAction}
-					/>
-				) : (
-					rateAction
-				)}
+				<div className="grid items-start gap-3 sm:gap-4 lg:grid-cols-3">
+					{(showStats || rateAction) && (
+						<div className="space-y-3 lg:col-span-2">
+							{showStats && (
+								<CourseStatsHero
+									difficulty={course.avg_difficulty ?? null}
+									usefulness={course.avg_usefulness ?? null}
+									ratingsCount={course.ratings_count ?? null}
+									action={rateAction}
+								/>
+							)}
+							{!showStats && rateAction}
+						</div>
+					)}
+					{offerings.length > 0 && (
+						<CourseCazCard courseOfferings={offerings} />
+					)}
+				</div>
 
 				{course.description && <CourseDescription text={course.description} />}
 
@@ -199,7 +194,7 @@ function CourseDetailsRoute() {
 
 function CourseDetailsSkeleton() {
 	return (
-		<div className="mx-auto max-w-4xl space-y-8 pb-16">
+		<div className="space-y-8 pb-16">
 			<CourseDetailsHeaderSkeleton />
 			<CourseStatsHeroSkeleton />
 			<CourseRatingsListSkeleton />

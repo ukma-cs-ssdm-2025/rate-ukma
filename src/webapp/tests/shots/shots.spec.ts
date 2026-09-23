@@ -142,7 +142,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page) => {
 			await mockBackend(page);
 			await page.goto(`/courses/${COURSE.id}`);
-			await page.getByRole("button", { name: /Записи в САЗ/ }).click();
+			await page.getByRole("button", { name: /^Усі \d/ }).click();
 			await page.getByText("2020–2021").first().waitFor();
 		},
 	},

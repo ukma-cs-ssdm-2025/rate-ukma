@@ -1,8 +1,6 @@
-import type { ReactNode } from "react";
-
 import { TermBadge } from "@/components/TermBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { OfferingTermLoad } from "@/features/course-offerings/components/CourseCazYearsSection";
+import type { OfferingTermLoad } from "@/features/course-offerings/components/CourseCazCard";
 import type { EducationLevelEnum, TypeKindEnum } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
@@ -22,7 +20,6 @@ interface CourseDetailsHeaderProps {
 	departmentName?: string | null;
 	facultyName?: string | null;
 	termLoads?: readonly OfferingTermLoad[];
-	children?: ReactNode;
 }
 
 export function CourseDetailsHeader({
@@ -32,7 +29,6 @@ export function CourseDetailsHeader({
 	departmentName,
 	facultyName,
 	termLoads = [],
-	children,
 }: Readonly<CourseDetailsHeaderProps>) {
 	const meta = [
 		getEducationLevelDisplay(educationLevel),
@@ -53,9 +49,7 @@ export function CourseDetailsHeader({
 				<p className="text-sm text-muted-foreground">{meta.join(", ")}</p>
 			)}
 
-			{((specialities?.length ?? 0) > 0 ||
-				termLoads.length > 0 ||
-				children) && (
+			{((specialities?.length ?? 0) > 0 || termLoads.length > 0) && (
 				<div className="flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
 					<CourseSpecialityBadges specialities={specialities} />
 					{termLoads.map(({ term, load }) => (
@@ -64,7 +58,6 @@ export function CourseDetailsHeader({
 							{load && <span className="text-muted-foreground">{load}</span>}
 						</span>
 					))}
-					{children}
 				</div>
 			)}
 		</header>
