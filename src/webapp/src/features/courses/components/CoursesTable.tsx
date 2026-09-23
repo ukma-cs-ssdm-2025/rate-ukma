@@ -16,7 +16,7 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { BookOpen, ChevronDown, Filter, Maximize2 } from "lucide-react";
+import { ChevronDown, Filter, Maximize2, Search } from "lucide-react";
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
@@ -46,6 +46,7 @@ import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
+import { ActiveFilterChips } from "./ActiveFilterChips";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
@@ -63,6 +64,7 @@ import {
 } from "../courseFiltersParams";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import { transformFiltersToApiParams } from "../filterTransformations";
+import { getActiveFilterChips } from "../hooks/useCourseFiltersData";
 
 interface PaginationInfo {
 	page: number;
@@ -76,7 +78,6 @@ type ScatterPlotPreviewCardProps = Readonly<{
 	onOpenFullscreen?: () => void;
 	heightClass: string;
 	title?: string;
-	subtitle?: string;
 	showHeader?: boolean;
 }>;
 
@@ -85,7 +86,6 @@ function ScatterPlotPreviewCard({
 	onOpenFullscreen,
 	heightClass,
 	title = "Карта курсів",
-	subtitle = "Корисність та складність курсів",
 	showHeader = true,
 }: ScatterPlotPreviewCardProps) {
 	const containerClass = cn(
@@ -101,20 +101,16 @@ function ScatterPlotPreviewCard({
 			</div>
 
 			{showHeader && (
-				<div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 bg-gradient-to-b from-background/80 to-transparent px-4 py-3">
-					<div className="max-w-[70%] space-y-0.5">
-						<p className="text-xs font-medium text-muted-foreground">{title}</p>
-						<p className="text-sm text-muted-foreground">{subtitle}</p>
-					</div>
+				<div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-3 bg-gradient-to-b from-background/80 to-transparent px-4 py-2">
+					<p className="text-sm font-semibold">{title}</p>
 					<Button
 						size="sm"
-						variant="secondary"
-						className="gap-2 shadow-sm"
+						variant="ghost"
+						className="h-8 gap-2"
 						onClick={onOpenFullscreen}
 					>
 						<Maximize2 className="h-4 w-4" />
-						<span className="hidden sm:inline">Повний екран</span>
-						<span className="sm:hidden">Відкрити</span>
+						<span>Відкрити</span>
 					</Button>
 				</div>
 			)}
@@ -189,7 +185,6 @@ function buildCoursesTableColumns({
 				label: "Назва курсу",
 				placeholder: "Пошук курсів...",
 				variant: "text",
-				icon: BookOpen,
 				align: "left",
 			},
 		},
@@ -197,7 +192,7 @@ function buildCoursesTableColumns({
 			id: "ratings_count",
 			accessorKey: "ratings_count",
 			header: () => (
-				<div className="hidden sm:block">
+				<div className="hidden text-muted-foreground sm:block">
 					<CoursesReviewsSortMenu
 						value={reviewsSortValue}
 						onValueChange={onReviewsSortChange}
@@ -232,6 +227,7 @@ function buildCoursesTableColumns({
 							title="Склад."
 							initialSortDirection="asc"
 							testId={testIds.courses.difficultySortButtonMobile}
+							align="right"
 						/>
 					</div>
 					<div className="hidden justify-end md:flex">
@@ -240,6 +236,7 @@ function buildCoursesTableColumns({
 							title="Складність"
 							initialSortDirection="asc"
 							testId={testIds.courses.difficultySortButtonDesktop}
+							align="right"
 						/>
 					</div>
 				</>
@@ -271,6 +268,7 @@ function buildCoursesTableColumns({
 							title="Корисн."
 							initialSortDirection="desc"
 							testId={testIds.courses.usefulnessSortButtonMobile}
+							align="right"
 						/>
 					</div>
 					<div className="hidden justify-end md:flex">
@@ -279,6 +277,7 @@ function buildCoursesTableColumns({
 							title="Корисність"
 							initialSortDirection="desc"
 							testId={testIds.courses.usefulnessSortButtonDesktop}
+							align="right"
 						/>
 					</div>
 				</>
@@ -483,6 +482,11 @@ export function CoursesTable({
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
 
+	const activeFilterCount = useMemo(
+		() => getActiveFilterChips(params, filterOptions).length,
+		[params, filterOptions],
+	);
+
 	useEffect(() => {
 		localStorageAdapter.setItem(
 			SCATTER_COLLAPSE_STORAGE_KEY,
@@ -607,20 +611,27 @@ export function CoursesTable({
 		<>
 			<div className="flex flex-col gap-6 md:flex-row">
 				<div className="min-w-0 flex-1 space-y-4">
-					<div className="relative flex-1">
-						<BookOpen className="absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+					<div className="relative min-h-10 flex-1">
+						<Search className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 						<DebouncedInput
 							placeholder="Пошук курсів за назвою..."
 							value={params.q}
 							onChange={(value) => {
 								setParams({ q: String(value), page: 1 });
 							}}
-							className="h-12 pl-10 text-base"
+							className="h-10 pl-10 text-sm"
 							disabled={isInitialLoading}
 							isLoading={isLoading}
 							data-testid={testIds.courses.searchInput}
 						/>
 					</div>
+
+					<ActiveFilterChips
+						params={params}
+						setParams={setParams}
+						filterOptions={filterOptions}
+						onReset={handleResetFilters}
+					/>
 
 					{isDesktop ? (
 						<Collapsible
@@ -628,8 +639,8 @@ export function CoursesTable({
 							onOpenChange={setIsScatterPlotOpen}
 							className="overflow-hidden rounded-xl border bg-card shadow-sm"
 						>
-							<div className="flex items-center justify-between gap-2 px-4 py-2.5">
-								<h3 className="text-sm font-medium">Карта курсів</h3>
+							<div className="flex min-h-10 items-center justify-between gap-2 px-4 py-1">
+								<h3 className="text-sm font-semibold">Карта курсів</h3>
 								<div className="flex items-center gap-2">
 									<Button
 										variant="ghost"
@@ -642,13 +653,21 @@ export function CoursesTable({
 										<span className="hidden sm:inline">Повний екран</span>
 									</Button>
 									<CollapsibleTrigger asChild>
-										<Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-8 w-8 p-0"
+											aria-label={
+												isScatterPlotOpen
+													? "Згорнути карту курсів"
+													: "Розгорнути карту курсів"
+											}
+										>
 											<ChevronDown
 												className={`h-4 w-4 transition-transform duration-200 ${
 													isScatterPlotOpen ? "rotate-180" : ""
 												}`}
 											/>
-											<span className="sr-only">Toggle</span>
 										</Button>
 									</CollapsibleTrigger>
 								</div>
@@ -667,7 +686,6 @@ export function CoursesTable({
 							onOpenFullscreen={openExploreWithAnimation}
 							heightClass="h-[260px]"
 							title="Карта курсів"
-							subtitle="Торкніться, щоб розкрити на весь екран"
 						/>
 					)}
 
@@ -685,17 +703,23 @@ export function CoursesTable({
 				</div>
 			</div>
 
-			<Button
-				type="button"
-				variant="outline"
-				size="icon"
-				className="fixed right-0 top-[35%] z-40 h-10 w-10 rounded-l-2xl rounded-r-none shadow-lg lg:hidden"
-				onClick={toggleFiltersDrawer}
-				aria-label="Фільтри"
-				data-testid={testIds.filters.drawerTrigger}
-			>
-				<Filter className="h-5 w-5" />
-			</Button>
+			<div className="fixed inset-x-0 bottom-6 z-40 flex justify-center pb-[env(safe-area-inset-bottom)] lg:hidden">
+				<Button
+					type="button"
+					className="h-10 gap-2 rounded-full px-5 shadow-lg"
+					onClick={toggleFiltersDrawer}
+					aria-label="Фільтри"
+					data-testid={testIds.filters.drawerTrigger}
+				>
+					<Filter className="h-4 w-4" aria-hidden="true" />
+					Фільтри
+					{activeFilterCount > 0 && (
+						<Badge className="border-transparent bg-primary-foreground text-primary">
+							{activeFilterCount}
+						</Badge>
+					)}
+				</Button>
+			</div>
 
 			<Drawer
 				open={isFiltersDrawerOpen}

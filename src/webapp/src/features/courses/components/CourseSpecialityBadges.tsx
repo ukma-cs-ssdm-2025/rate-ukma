@@ -2,11 +2,6 @@ import { useId, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/Tooltip";
 import type { TypeKindEnum } from "@/lib/api/generated";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { cn } from "@/lib/utils";
@@ -84,30 +79,30 @@ export function CourseSpecialityBadges({
 				const colors = getFacultyColors(speciality.faculty_name || "");
 
 				return (
-					<Tooltip key={speciality.speciality_id}>
-						<TooltipTrigger asChild>
-							<Badge
-								variant="secondary"
-								className={cn(
-									"cursor-default border text-xs",
-									size === "sm" ? "px-1.5 py-0" : "px-2 py-0.5",
-									colors.bg,
-									colors.text,
-									colors.border,
-								)}
-							>
-								{abbreviation}
-							</Badge>
-						</TooltipTrigger>
-						<TooltipContent side="top" className="max-w-xs">
-							<div className="text-center">
-								<div className="font-medium">{speciality.speciality_title}</div>
-								<div className="font-medium">
-									{getCourseTypeDisplay(speciality.type_kind ?? "", "")}
-								</div>
-							</div>
-						</TooltipContent>
-					</Tooltip>
+					<span
+						key={speciality.speciality_id}
+						className="inline-flex items-center"
+					>
+						<Badge
+							variant="secondary"
+							className={cn(
+								"cursor-default border text-xs",
+								size === "sm" ? "px-1.5 py-0" : "px-2 py-0.5",
+								colors.bg,
+								colors.text,
+								colors.border,
+							)}
+							title={speciality.speciality_title}
+						>
+							{abbreviation}
+						</Badge>
+						<span className="sr-only">
+							{speciality.speciality_title}
+							{getCourseTypeDisplay(speciality.type_kind ?? "", "")
+								? `, ${getCourseTypeDisplay(speciality.type_kind ?? "", "")}`
+								: ""}
+						</span>
+					</span>
 				);
 			})}
 			{hasHiddenBadges && (

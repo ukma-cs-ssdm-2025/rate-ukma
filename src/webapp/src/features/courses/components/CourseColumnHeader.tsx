@@ -4,12 +4,14 @@ import type { Column } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 interface CourseColumnHeaderProps<TData, TValue> {
 	column: Column<TData, TValue>;
 	title: string;
 	initialSortDirection?: "asc" | "desc";
 	testId?: string;
+	align?: "left" | "right";
 }
 
 export function CourseColumnHeader<TData, TValue>({
@@ -17,16 +19,50 @@ export function CourseColumnHeader<TData, TValue>({
 	title,
 	initialSortDirection = "asc",
 	testId,
+	align = "left",
 }: Readonly<CourseColumnHeaderProps<TData, TValue>>) {
+	if (!column.getCanSort()) {
+		return (
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
+				className={cn(
+					"inline-flex h-8 items-center gap-1.5 px-2 text-sm font-medium text-muted-foreground disabled:opacity-100",
+					align === "right" ? "-mr-2" : "-ml-2",
+				)}
+				disabled
+				aria-label={title}
+				data-testid={testId}
+			>
+				<span>{title}</span>
+			</Button>
+		);
+	}
+
 	const sortState = column.getIsSorted() as false | "asc" | "desc";
+	const isInitialAsc = initialSortDirection === "asc";
+	const Icon =
+		sortState === "asc"
+			? ArrowUp
+			: sortState === "desc"
+				? ArrowDown
+				: ArrowUpDown;
+	const sortHintText =
+		sortState === false
+			? isInitialAsc
+				? "Сортувати за зростанням"
+				: "Сортувати за спаданням"
+			: sortState === "asc"
+				? isInitialAsc
+					? "Сортувати за спаданням"
+					: "Скинути сортування"
+				: isInitialAsc
+					? "Скинути сортування"
+					: "Сортувати за зростанням";
 
 	const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-		if (!column.getCanSort()) {
-			return;
-		}
-
 		const isMultiSort = event.shiftKey;
-		const isInitialAsc = initialSortDirection === "asc";
 
 		if (sortState === false) {
 			column.toggleSorting(!isInitialAsc, isMultiSort);
@@ -51,44 +87,15 @@ export function CourseColumnHeader<TData, TValue>({
 		}
 	};
 
-	const getSortIcon = () => {
-		if (sortState === "asc") return ArrowUp;
-		if (sortState === "desc") return ArrowDown;
-		return ArrowUpDown;
-	};
-
-	const getSortHintText = () => {
-		const isInitialAsc = initialSortDirection === "asc";
-
-		if (sortState === false) {
-			if (isInitialAsc) {
-				return "Сортувати за зростанням";
-			}
-			return "Сортувати за спаданням";
-		}
-
-		if (sortState === "asc") {
-			if (isInitialAsc) {
-				return "Сортувати за спаданням";
-			}
-			return "Скинути сортування";
-		}
-
-		if (isInitialAsc) {
-			return "Скинути сортування";
-		}
-		return "Сортувати за зростанням";
-	};
-
-	const Icon = getSortIcon();
-	const sortHintText = getSortHintText();
-
 	return (
 		<Button
 			type="button"
 			variant="ghost"
 			size="sm"
-			className="-ml-2 inline-flex h-8 items-center gap-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0"
+			className={cn(
+				"inline-flex h-8 items-center gap-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0",
+				align === "right" ? "-mr-2" : "-ml-2",
+			)}
 			onClick={handleClick}
 			disabled={!column.getCanSort()}
 			title={sortHintText}
