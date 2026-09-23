@@ -32,12 +32,14 @@ export function offeringFacts(
 	if (credits) facts.push({ label: "Кредити", value: credits });
 	const weekly = formatWeeklyHours(term?.weekly_hours);
 	if (weekly) facts.push({ label: "Годин на тиждень", value: weekly });
-	const total = formatHours(term?.total_hours);
-	if (total) facts.push({ label: "Всього годин", value: total });
-	if (term?.lecture_count != null)
-		facts.push({ label: "Лекції", value: `${term.lecture_count}` });
-	if (term?.practice_count != null)
-		facts.push({ label: "Практики", value: `${term.practice_count}` });
+	// САЗ stores lecture/practice hours per term; total hours is just credits × 30.
+	const lectures = formatHours(term?.lecture_count);
+	if (lectures) facts.push({ label: "Лекції", value: lectures });
+	const practices = formatHours(term?.practice_count);
+	if (practices) {
+		const label = term?.practice_type === "SEMINAR" ? "Семінари" : "Практичні";
+		facts.push({ label, value: practices });
+	}
 	const examType = term?.exam_type ?? offering.exam_type;
 	const exam = getExamTypeDisplay(examType ?? null, "");
 	if (exam) facts.push({ label: "Форма контролю", value: exam });

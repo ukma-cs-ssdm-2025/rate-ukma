@@ -243,6 +243,15 @@ export const COURSE_RATINGS = {
 	previous_page: null,
 } satisfies RatingsWithUserList;
 
+const offeringSpeciality = (title: string) => ({
+	speciality_id: `spec-${title.length}`,
+	speciality_title: title,
+	speciality_alias: null,
+	faculty_id: FACULTIES[0].id,
+	faculty_name: FACULTIES[0].name,
+	type_kind: "COMPULSORY" as const,
+});
+
 const offering = (
 	year: number,
 	term: "SPRING" | "FALL",
@@ -284,12 +293,19 @@ export const COURSE_OFFERINGS = {
 	course_offerings: [
 		offering(2026, "SPRING", "5.0", 4),
 		offering(2025, "SPRING", "5.0", 4),
-		// САЗ sometimes lists the same year twice under different codes.
+		// Prod САЗ holds one record per stream, so a year can carry several,
+		// mostly split by speciality.
 		{
 			...offering(2025, "SPRING", "5.0", 4),
 			id: "offering-2025-SPRING-b",
 			code: "900125",
-			study_year: 3,
+			specialities: [offeringSpeciality("Інженерія програмного забезпечення")],
+		},
+		{
+			...offering(2025, "SPRING", "5.0", 4),
+			id: "offering-2025-SPRING-c",
+			code: "900225",
+			specialities: [offeringSpeciality("Комп'ютерні науки")],
 		},
 		offering(2024, "SPRING", "5.0", 4),
 		offering(2023, "SPRING", "5.0", 4),

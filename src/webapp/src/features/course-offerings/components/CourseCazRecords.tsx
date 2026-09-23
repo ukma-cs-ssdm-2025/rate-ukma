@@ -1,7 +1,12 @@
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
-import { ExternalLink } from "lucide-react";
+import { ChevronDown, ExternalLink } from "lucide-react";
 
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/Collapsible";
 import {
 	formatAcademicYearLabel,
 	formatCredits,
@@ -83,13 +88,8 @@ export function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {
 	return terms.size <= 1;
 }
 
-// Rows matching the latest offering's load hide it so only real changes stand out.
 function loadSignature(offering: CourseOffering): string {
 	return formatLoad(offeringTerms(offering)[0]);
-}
-
-function yearKey(offering: CourseOffering): string {
-	return `${offering.semester_year}-${offering.semester_term}`;
 }
 
 // One САЗ page can span several terms (e.g. fall and spring on one code).
@@ -103,71 +103,176 @@ function termsLabel(offering: CourseOffering): string {
 		.join(", ");
 }
 
-// САЗ can list the same course twice in one year under different codes; the
-// study year (or the code itself) tells the rows apart.
-function discriminator(
-	offering: CourseOffering,
-	siblings: readonly CourseOffering[],
-): string | null {
-	if (siblings.length < 2) return null;
-	const studyYears = new Set(siblings.map((item) => item.study_year));
-	if (studyYears.size === siblings.length && offering.study_year) {
-		return `${offering.study_year} курс`;
-	}
-	return offering.code ? `код ${offering.code}` : null;
-}
-
-function CazRecordRow({
-	offering,
-	showTerm,
-	showLoad,
-	siblings,
-}: Readonly<{
-	offering: CourseOffering;
-	showTerm: boolean;
-	showLoad: boolean;
-	siblings: readonly CourseOffering[];
-}>) {
-	const year = formatAcademicYearLabel(
-		offering.semester_year,
-		offering.semester_term,
-	);
-	const terms = termsLabel(offering);
-	const multiTerm = terms.includes(",");
-	const details = [
-		showTerm || multiTerm ? terms : null,
-		discriminator(offering, siblings),
-		showLoad ? loadSignature(offering) : null,
-	]
+function specialitiesLabel(offering: CourseOffering): string {
+	return (offering.specialities ?? [])
+		.map(
+			(speciality) =>
+				speciality.speciality_alias || speciality.speciality_title,
+		)
 		.filter(Boolean)
 		.join(", ");
+}
+
+const pluralRules = new Intl.PluralRules("uk");
+const RECORD_FORMS: Partial<Record<Intl.LDMLPluralRule, string>> = {
+	one: "запис",
+	few: "записи",
+};
+
+function recordsLabel(count: number): string {
+	return `${count} ${RECORD_FORMS[pluralRules.select(count)] ?? "записів"}`;
+}
+
+interface YearGroup {
+	key: string;
+	year: string;
+	terms: string;
+	records: CourseOffering[];
+}
+
+// САЗ lists a course once per stream, so one academic year can hold several
+// records (up to nine in prod), mostly split by speciality.
+function groupByYear(sorted: readonly CourseOffering[]): YearGroup[] {
+	const groups = new Map<string, YearGroup>();
+	for (const offering of sorted) {
+		const year = formatAcademicYearLabel(
+			offering.semester_year,
+			offering.semester_term,
+		);
+		const terms = termsLabel(offering);
+		const key = `${year}|${terms}`;
+		const group = groups.get(key);
+		if (group) group.records.push(offering);
+		else groups.set(key, { key, year, terms, records: [offering] });
+	}
+	return [...groups.values()];
+}
+
+// Labels for records inside one year: speciality first, then whatever else
+// differs between them; the code is the last resort for identical streams.
+export function recordLabels(records: readonly CourseOffering[]): string[] {
+	const varies = (pick: (offering: CourseOffering) => unknown) =>
+		new Set(records.map(pick)).size > 1;
+	const showStudyYear = varies((offering) => offering.study_year);
+	const showLoad = varies(loadSignature);
+	const labels = records.map((offering) =>
+		[
+			specialitiesLabel(offering),
+			showStudyYear && offering.study_year
+				? `${offering.study_year} курс`
+				: null,
+			showLoad ? loadSignature(offering) : null,
+		]
+			.filter(Boolean)
+			.join(", "),
+	);
+	return labels.map((label, index) => {
+		const code = records[index].code;
+		const collides =
+			!label || labels.some((other, i) => i !== index && other === label);
+		if (!collides || !code) return label;
+		return label ? `${label}, код ${code}` : `код ${code}`;
+	});
+}
+
+function RecordLink({
+	code,
+	label,
+	ariaLabel,
+	children,
+}: Readonly<{
+	code?: string;
+	label: ReactNode;
+	ariaLabel: string;
+	children?: ReactNode;
+}>) {
 	const content = (
 		<>
-			<span className="inline-flex items-center gap-1 font-medium tabular-nums">
-				{year}
-				{offering.code ? (
+			<span className="inline-flex items-center gap-1">
+				{label}
+				{code ? (
 					<ExternalLink className="size-3 shrink-0" aria-hidden="true" />
 				) : null}
 			</span>
-			{details ? (
-				<span className="block text-muted-foreground">{details}</span>
-			) : null}
+			{children}
 		</>
 	);
-
-	if (!offering.code) {
-		return <div>{content}</div>;
-	}
+	if (!code) return <div>{content}</div>;
 	return (
 		<a
-			href={`${BASE_CAZ_URL}${encodeURIComponent(offering.code)}`}
+			href={`${BASE_CAZ_URL}${encodeURIComponent(code)}`}
 			target="_blank"
 			rel="noopener noreferrer"
-			aria-label={`${year}${details ? `, ${details}` : ""}, відкрити запис у САЗ`}
+			aria-label={`${ariaLabel}, відкрити запис у САЗ`}
 			className="block underline-offset-4 transition-colors hover:underline"
 		>
 			{content}
 		</a>
+	);
+}
+
+function YearRow({
+	group,
+	showTerm,
+	latestLoad,
+}: Readonly<{ group: YearGroup; showTerm: boolean; latestLoad: string }>) {
+	const [open, setOpen] = useState(false);
+	const termLabel = showTerm || group.terms.includes(",") ? group.terms : "";
+	const heading = (
+		<span className="font-medium tabular-nums">{group.year}</span>
+	);
+
+	if (group.records.length === 1) {
+		const [record] = group.records;
+		const load = loadSignature(record);
+		const details = [termLabel, load === latestLoad ? null : load]
+			.filter(Boolean)
+			.join(", ");
+		return (
+			<RecordLink
+				code={record.code}
+				label={heading}
+				ariaLabel={[group.year, details].filter(Boolean).join(", ")}
+			>
+				{details ? (
+					<span className="block text-muted-foreground">{details}</span>
+				) : null}
+			</RecordLink>
+		);
+	}
+
+	const labels = recordLabels(group.records);
+	return (
+		<Collapsible open={open} onOpenChange={setOpen}>
+			<CollapsibleTrigger className="group flex w-full items-baseline gap-2 text-left">
+				{heading}
+				<span className="inline-flex items-center gap-0.5 text-muted-foreground transition-colors group-hover:text-foreground">
+					{[termLabel, recordsLabel(group.records.length)]
+						.filter(Boolean)
+						.join(", ")}
+					<ChevronDown
+						className="size-3.5 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none"
+						aria-hidden="true"
+					/>
+				</span>
+			</CollapsibleTrigger>
+			<CollapsibleContent>
+				<ul className="mt-1.5 space-y-1.5 border-l pl-3">
+					{group.records.map((record, index) => (
+						<li
+							key={record.id ?? record.code}
+							className="min-w-0 break-words text-muted-foreground"
+						>
+							<RecordLink
+								code={record.code}
+								label={labels[index]}
+								ariaLabel={`${group.year}, ${labels[index]}`}
+							/>
+						</li>
+					))}
+				</ul>
+			</CollapsibleContent>
+		</Collapsible>
 	);
 }
 
@@ -179,38 +284,29 @@ export function CourseCazRecords({
 	initialVisible?: number;
 }>) {
 	const [expanded, setExpanded] = useState(false);
-	const sorted = useMemo(
-		() => sortOfferings(courseOfferings),
+	const groups = useMemo(
+		() => groupByYear(sortOfferings(courseOfferings)),
 		[courseOfferings],
 	);
 
-	if (sorted.length === 0) {
+	if (groups.length === 0) {
 		return null;
 	}
 
-	const showTerm = !runsInOneTerm(sorted);
-	const latestLoad = loadSignature(sorted[0]);
-	const byYear = new Map<string, CourseOffering[]>();
-	for (const offering of sorted) {
-		const key = yearKey(offering);
-		byYear.set(key, [...(byYear.get(key) ?? []), offering]);
-	}
-	const shown = expanded ? sorted : sorted.slice(0, initialVisible);
-	const hiddenCount = sorted.length - shown.length;
+	const showTerm = !runsInOneTerm(courseOfferings);
+	const latestLoad = loadSignature(groups[0].records[0]);
+	const shown = expanded ? groups : groups.slice(0, initialVisible);
+	const hiddenCount = groups.length - shown.length;
 
 	return (
 		<div>
 			<ul className="space-y-2">
-				{shown.map((offering) => (
-					<li
-						key={offering.id ?? offering.code ?? offering.semester_year}
-						className="min-w-0 space-y-0.5 text-sm"
-					>
-						<CazRecordRow
-							offering={offering}
+				{shown.map((group) => (
+					<li key={group.key} className="min-w-0 text-sm">
+						<YearRow
+							group={group}
 							showTerm={showTerm}
-							showLoad={loadSignature(offering) !== latestLoad}
-							siblings={byYear.get(yearKey(offering)) ?? []}
+							latestLoad={latestLoad}
 						/>
 					</li>
 				))}

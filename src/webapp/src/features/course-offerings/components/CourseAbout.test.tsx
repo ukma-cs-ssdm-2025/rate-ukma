@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { render, screen } from "@/test-utils/render";
 import { CourseAbout, offeringFacts } from "./CourseAbout";
-import { CourseCazRecords } from "./CourseCazRecords";
+import { CourseCazRecords, recordLabels } from "./CourseCazRecords";
 import type { CourseOffering } from "@/lib/api/generated";
 import userEvent from "@testing-library/user-event";
 
@@ -40,9 +40,8 @@ describe("offeringFacts", () => {
 		expect(facts).toEqual([
 			{ label: "Кредити", value: "5 ECTS" },
 			{ label: "Годин на тиждень", value: "4 год" },
-			{ label: "Всього годин", value: "150 год" },
-			{ label: "Лекції", value: "30" },
-			{ label: "Практики", value: "30" },
+			{ label: "Лекції", value: "30 год" },
+			{ label: "Практичні", value: "30 год" },
 			{ label: "Форма контролю", value: "Іспит" },
 		]);
 	});
@@ -87,6 +86,25 @@ describe("offeringFacts", () => {
 			label: "Форма контролю",
 			value: "Залік",
 		});
+	});
+
+	it("names seminar hours as seminars", () => {
+		const facts = offeringFacts(
+			offering({
+				terms: [
+					{
+						semester_year: 2026,
+						semester_term: "SPRING",
+						credits: "3.0",
+						weekly_hours: 2,
+						practice_count: 14,
+						practice_type: "SEMINAR",
+					},
+				],
+			}),
+		);
+
+		expect(facts).toContainEqual({ label: "Семінари", value: "14 год" });
 	});
 });
 
@@ -190,38 +208,56 @@ describe("CourseCazRecords", () => {
 		expect(screen.queryByText("5 ECTS, 4 год")).not.toBeInTheDocument();
 	});
 
-	it("tells apart two САЗ records of the same year by study year", () => {
+	const spec = (title: string) => ({
+		speciality_id: title,
+		speciality_title: title,
+		speciality_alias: "",
+	});
+
+	it("folds several САЗ records of one year into one row", async () => {
+		const user = userEvent.setup();
 		render(
 			<CourseCazRecords
 				courseOfferings={[
-					offering({ id: "a", code: "900001", study_year: 2 }),
-					offering({ id: "b", code: "900002", study_year: 3 }),
+					offering({ id: "a", code: "900001", specialities: [spec("Право")] }),
+					offering({
+						id: "b",
+						code: "900002",
+						specialities: [spec("Економіка")],
+					}),
 				]}
 			/>,
 		);
 
-		expect(screen.getByRole("link", { name: /2 курс/ })).toHaveAttribute(
+		const trigger = screen.getByRole("button", { name: /2 записи/ });
+		expect(screen.queryByRole("link")).not.toBeInTheDocument();
+
+		await user.click(trigger);
+
+		expect(screen.getByRole("link", { name: /Право/ })).toHaveAttribute(
 			"href",
 			"https://my.ukma.edu.ua/course/900001",
 		);
-		expect(screen.getByRole("link", { name: /3 курс/ })).toHaveAttribute(
+		expect(screen.getByRole("link", { name: /Економіка/ })).toHaveAttribute(
 			"href",
 			"https://my.ukma.edu.ua/course/900002",
 		);
 	});
 
-	it("falls back to the code when same-year records share a study year", () => {
-		render(
-			<CourseCazRecords
-				courseOfferings={[
-					offering({ id: "a", code: "900001", study_year: 2 }),
-					offering({ id: "b", code: "900002", study_year: 2 }),
-				]}
-			/>,
-		);
-
-		expect(screen.getByText("код 900001")).toBeInTheDocument();
-		expect(screen.getByText("код 900002")).toBeInTheDocument();
+	it("labels records by speciality, then by what differs, then by code", () => {
+		expect(
+			recordLabels([
+				offering({ code: "900001", specialities: [spec("Право")] }),
+				offering({ code: "900002", specialities: [spec("Право")] }),
+				offering({ code: "900003", specialities: [spec("Економіка")] }),
+			]),
+		).toEqual(["Право, код 900001", "Право, код 900002", "Економіка"]);
+		expect(
+			recordLabels([
+				offering({ study_year: 2, specialities: [spec("Право")] }),
+				offering({ study_year: 3, specialities: [spec("Право")] }),
+			]),
+		).toEqual(["Право, 2 курс", "Право, 3 курс"]);
 	});
 
 	it("labels one record spanning two terms with both terms", () => {
