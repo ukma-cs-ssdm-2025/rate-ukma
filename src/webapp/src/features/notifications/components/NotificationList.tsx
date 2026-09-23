@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bell } from "lucide-react";
+import { Bell, MessageSquare, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -25,6 +25,14 @@ interface NotificationListProps {
 	isLoadingMore?: boolean;
 	onLoadMore?: () => void;
 }
+
+const EVENT_ICONS: Record<string, { icon: typeof ThumbsUp; tone: string }> = {
+	RATING_UPVOTED: { icon: ThumbsUp, tone: "text-primary" },
+	RATING_DOWNVOTED: { icon: ThumbsDown, tone: "text-muted-foreground" },
+	RATING_COMMENT_CREATED: { icon: MessageSquare, tone: "text-foreground" },
+};
+
+const FALLBACK_EVENT = { icon: Bell, tone: "text-muted-foreground" };
 
 export function NotificationList({
 	notifications,
@@ -88,19 +96,41 @@ export function NotificationList({
 		);
 	}
 
+	const unread = notifications.filter((notification) => notification.is_unread);
+	const read = notifications.filter((notification) => !notification.is_unread);
+	const showGroups = unread.length > 0 && read.length > 0;
+
 	return (
 		<div className="flex flex-col gap-0.5">
 			<ul
 				className="flex flex-col gap-0.5"
 				data-testid={testIds.notifications.list}
 			>
-				{notifications.map((notification) => (
+				{showGroups && (
+					<li className="px-3 pt-1 text-xs font-medium text-muted-foreground">
+						Нові
+					</li>
+				)}
+				{(showGroups ? unread : notifications).map((notification) => (
 					<NotificationItem
 						key={notification.group_key}
 						notification={notification}
 						onClick={onNotificationClick}
 					/>
 				))}
+				{showGroups && (
+					<li className="px-3 pt-1 text-xs font-medium text-muted-foreground">
+						Раніше
+					</li>
+				)}
+				{showGroups &&
+					read.map((notification) => (
+						<NotificationItem
+							key={notification.group_key}
+							notification={notification}
+							onClick={onNotificationClick}
+						/>
+					))}
 			</ul>
 			{hasMore && (
 				<Button
@@ -119,6 +149,24 @@ export function NotificationList({
 	);
 }
 
+// Comment notifications may carry the comment text as a trailing quoted
+// segment of the message; split it off so the headline stays short.
+function splitCommentQuote(message: string): {
+	title: string;
+	quote?: string;
+} {
+	const match = message.match(/^(.*?)\s*[«"“](.+?)[»"”]\s*$/u);
+	if (!match) {
+		return { title: message };
+	}
+	const title = match[1].trim().replace(/[:—–-]\s*$/, "");
+	const quote = match[2].trim();
+	if (!title || !quote) {
+		return { title: message };
+	}
+	return { title, quote };
+}
+
 function NotificationItem({
 	notification,
 	onClick,
@@ -127,20 +175,36 @@ function NotificationItem({
 	onClick?: (groupKey: string) => void;
 }>) {
 	const courseId = notification.course_id;
+	const isUnread = notification.is_unread ?? false;
+	const { icon: Icon, tone } =
+		EVENT_ICONS[notification.event_type ?? ""] ?? FALLBACK_EVENT;
+
+	const { title, quote } =
+		notification.event_type === "RATING_COMMENT_CREATED" && notification.message
+			? splitCommentQuote(notification.message)
+			: { title: notification.message };
 
 	const content = (
 		<>
-			<span
+			<Icon
 				aria-hidden
 				className={cn(
-					"mt-1.5 size-1.5 shrink-0 rounded-full",
-					notification.is_unread ? "bg-primary" : "bg-transparent",
+					"mt-0.5 size-4 shrink-0",
+					isUnread ? tone : "text-muted-foreground",
 				)}
 			/>
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-				<p className="line-clamp-2 text-sm leading-snug text-foreground">
-					{notification.message}
+				<p
+					className={cn(
+						"line-clamp-2 text-sm leading-snug text-foreground",
+						isUnread && "font-medium",
+					)}
+				>
+					{title}
 				</p>
+				{quote && (
+					<p className="line-clamp-1 text-sm text-muted-foreground">{quote}</p>
+				)}
 				{notification.latest_created_at && (
 					<time className="text-xs text-muted-foreground">
 						{formatRelativeTime(notification.latest_created_at)}
@@ -150,8 +214,10 @@ function NotificationItem({
 		</>
 	);
 
-	const itemClass =
-		"flex items-start gap-2.5 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted";
+	const itemClass = cn(
+		"flex items-start gap-2.5 rounded-lg px-3 py-2.5 transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring",
+		isUnread && "bg-primary/5",
+	);
 
 	if (courseId) {
 		return (

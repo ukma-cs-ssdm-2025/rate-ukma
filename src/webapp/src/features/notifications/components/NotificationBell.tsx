@@ -85,6 +85,7 @@ export function NotificationBell() {
 						<Button
 							variant="ghost"
 							size="sm"
+							className="text-muted-foreground hover:text-foreground"
 							onClick={handleMarkAllRead}
 							disabled={isPending}
 							data-testid={testIds.notifications.markReadButton}
