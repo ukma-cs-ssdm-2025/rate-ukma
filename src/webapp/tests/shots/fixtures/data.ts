@@ -284,7 +284,7 @@ export const COURSE_OFFERINGS = {
 		offering(2025, "SPRING", "5.0", 4),
 		offering(2024, "SPRING", "5.0", 4),
 		offering(2023, "SPRING", "5.0", 4),
-		offering(2021, "FALL", "4.0", 3),
+		offering(2021, "SPRING", "4.0", 3),
 	],
 } satisfies CourseOfferingListResponse;
 
