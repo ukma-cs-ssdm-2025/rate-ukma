@@ -38,7 +38,7 @@ export function RatingCard({
 
 	return (
 		<article
-			className="py-4 first:pt-1 last:pb-1"
+			className="px-4 py-4 first:pt-1 last:pb-1 sm:px-5"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
 			<RatingCardBody

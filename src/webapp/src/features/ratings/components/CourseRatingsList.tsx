@@ -280,7 +280,7 @@ export function CourseRatingsListSkeleton() {
 	return (
 		<div className="divide-y divide-border/30">
 			{SKELETON_KEYS.map((key) => (
-				<div key={key} className="py-4 space-y-2">
+				<div key={key} className="space-y-2 px-4 py-4 sm:px-5">
 					<div className="flex items-center justify-between gap-3">
 						<div className="flex items-center gap-2.5">
 							<Skeleton className="size-8 rounded-full" />
