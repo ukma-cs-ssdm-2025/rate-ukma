@@ -124,7 +124,7 @@ function RatingsContent({
 				>
 					{isLoadingMore ? (
 						<div className="flex items-center gap-2 text-muted-foreground">
-							<Spinner className="h-4 w-4" />
+							<Spinner className="size-4" />
 							<span className="text-xs">Завантаження...</span>
 						</div>
 					) : (
@@ -269,7 +269,7 @@ export function CourseRatingsListSkeleton() {
 				<div key={key} className="py-4 space-y-2">
 					<div className="flex items-center justify-between gap-3">
 						<div className="flex items-center gap-2.5">
-							<Skeleton className="h-8 w-8 rounded-full" />
+							<Skeleton className="size-8 rounded-full" />
 							<div className="space-y-1">
 								<Skeleton className="h-3.5 w-24" />
 								<Skeleton className="h-3 w-20" />

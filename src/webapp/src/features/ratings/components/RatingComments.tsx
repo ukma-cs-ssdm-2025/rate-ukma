@@ -1,7 +1,7 @@
 import { type FormEvent, type ReactNode, useId, useState } from "react";
 
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Pencil, Reply, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/Button";
@@ -575,7 +575,6 @@ function RatingCommentItem({
 						className="h-7 px-2 text-xs text-muted-foreground"
 						onClick={() => setIsReplying((value) => !value)}
 					>
-						<Reply className="size-3.5" />
 						Відповісти
 					</Button>
 				</div>

@@ -51,7 +51,7 @@ export function withAuth<P extends object>(
 		if (status === "loading") {
 			return (
 				<div className="flex min-h-screen flex-col items-center justify-center space-y-6">
-					<Spinner className="h-8 w-8" />
+					<Spinner className="size-8" />
 					<p className="text-lg font-medium text-muted-foreground">
 						{loadingText}
 					</p>

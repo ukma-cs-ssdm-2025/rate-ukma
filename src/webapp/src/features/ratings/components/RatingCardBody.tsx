@@ -75,7 +75,7 @@ export function RatingCardBody({
 						name={displayName}
 						avatarUrl={avatarUrl}
 						isAnonymous={isAnonymous}
-						className="h-8 w-8 shrink-0 text-xs font-semibold"
+						className="size-8 shrink-0 text-xs font-semibold"
 					/>
 					<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
 						<span className="min-w-0 truncate text-sm font-medium">
@@ -119,7 +119,7 @@ export function RatingCardBody({
 						<span className="min-w-0 break-words">{instructor}</span>
 						<Tooltip>
 							<TooltipTrigger asChild>
-								<Info className="h-3.5 w-3.5 shrink-0 cursor-help text-muted-foreground/60" />
+								<Info className="size-3.5 shrink-0 cursor-help text-muted-foreground/60" />
 							</TooltipTrigger>
 							<TooltipContent>Вказано студентом, не перевірено</TooltipContent>
 						</Tooltip>

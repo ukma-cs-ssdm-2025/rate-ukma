@@ -135,7 +135,7 @@ export function CourseCazYearsSection({
 										aria-label="Відкрити запис у САЗ"
 										className="text-muted-foreground transition-colors hover:text-foreground"
 									>
-										<ExternalLink className="h-3.5 w-3.5" />
+										<ExternalLink className="size-3.5" />
 									</a>
 								) : null}
 							</div>

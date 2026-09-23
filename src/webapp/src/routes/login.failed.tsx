@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter, useSearch } from "@tanstack/react-router";
-import { AlertCircle, RotateCcw } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 
@@ -26,7 +26,7 @@ function LoginFailedPage() {
 	return (
 		<>
 			<div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
-				<AlertCircle className="h-8 w-8 text-destructive" />
+				<AlertCircle className="size-8 text-destructive" />
 			</div>
 
 			<div className="space-y-4 mb-6">
@@ -45,7 +45,6 @@ function LoginFailedPage() {
 				className="w-full gap-3 h-12 text-base font-medium shadow-lg hover:shadow-xl transition-all duration-200"
 				size="lg"
 			>
-				<RotateCcw className="h-5 w-5" />
 				Спробувати знову
 			</Button>
 		</>

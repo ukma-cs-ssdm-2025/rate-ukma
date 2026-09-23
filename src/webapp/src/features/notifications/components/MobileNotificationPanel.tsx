@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { ArrowLeft, Bell, Check } from "lucide-react";
+import { ArrowLeft, Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { testIds } from "@/lib/test-ids";
@@ -60,11 +60,11 @@ export function MobileNotificationPanel({
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-9 w-9 shrink-0 rounded-full"
+					className="size-9 shrink-0 rounded-full"
 					onClick={onBack}
 					aria-label="Назад"
 				>
-					<ArrowLeft className="h-5 w-5" />
+					<ArrowLeft className="size-5" />
 				</Button>
 				<h3 className="flex-1 text-sm font-semibold">Сповіщення</h3>
 				{unreadCount > 0 && (
@@ -76,7 +76,6 @@ export function MobileNotificationPanel({
 						disabled={isPending}
 						data-testid={testIds.notifications.markReadButton}
 					>
-						<Check className="mr-1 h-3 w-3" />
 						Прочитати все
 					</Button>
 				)}
@@ -118,7 +117,7 @@ export function MobileNotificationRow({
 				variant="ghost"
 				size="icon"
 				onClick={onOpen}
-				className="relative h-9 w-9"
+				className="relative size-9"
 				aria-label="Відкрити сповіщення"
 			>
 				<Bell className="h-[1.2rem] w-[1.2rem]" />

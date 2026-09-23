@@ -1,11 +1,5 @@
 import type { Column } from "@tanstack/react-table";
-import {
-	ChevronDown,
-	ChevronsUpDown,
-	ChevronUp,
-	EyeOff,
-	X,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, EyeOff, X } from "lucide-react";
 
 import {
 	DropdownMenu,
@@ -37,12 +31,12 @@ export function DataTableColumnHeader<TData, TValue>({
 	const getSortIcon = () => {
 		const sortDirection = column.getIsSorted();
 		if (sortDirection === "desc") {
-			return <ChevronDown />;
+			return <ArrowDown />;
 		}
 		if (sortDirection === "asc") {
-			return <ChevronUp />;
+			return <ArrowUp />;
 		}
-		return <ChevronsUpDown />;
+		return <ArrowUpDown />;
 	};
 
 	return (
@@ -65,7 +59,7 @@ export function DataTableColumnHeader<TData, TValue>({
 							checked={column.getIsSorted() === "asc"}
 							onClick={() => column.toggleSorting(false)}
 						>
-							<ChevronUp />
+							<ArrowUp />
 							Asc
 						</DropdownMenuCheckboxItem>
 						<DropdownMenuCheckboxItem
@@ -73,7 +67,7 @@ export function DataTableColumnHeader<TData, TValue>({
 							checked={column.getIsSorted() === "desc"}
 							onClick={() => column.toggleSorting(true)}
 						>
-							<ChevronDown />
+							<ArrowDown />
 							Desc
 						</DropdownMenuCheckboxItem>
 						{column.getIsSorted() && (

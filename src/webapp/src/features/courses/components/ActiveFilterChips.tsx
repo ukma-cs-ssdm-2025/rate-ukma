@@ -43,7 +43,7 @@ export const ActiveFilterChips = memo(function ActiveFilterChips({
 						onClick={() => setParams({ ...chip.clear, page: 1 })}
 						className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					>
-						<X className="h-3 w-3" aria-hidden="true" />
+						<X className="size-3" aria-hidden="true" />
 					</button>
 				</Badge>
 			))}

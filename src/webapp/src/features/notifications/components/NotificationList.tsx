@@ -60,7 +60,7 @@ export function NotificationList({
 				className="flex flex-col items-center justify-center gap-2 py-8"
 				data-testid={testIds.notifications.error}
 			>
-				<AlertTriangle className="h-8 w-8 text-destructive/50" />
+				<AlertTriangle className="size-8 text-destructive/50" />
 				<span className="text-sm text-muted-foreground">
 					Не вдалося завантажити
 				</span>
@@ -85,7 +85,7 @@ export function NotificationList({
 				className="flex flex-col items-center justify-center gap-2 py-8"
 				data-testid={testIds.notifications.empty}
 			>
-				<Bell className="h-8 w-8 text-muted-foreground/50" />
+				<Bell className="size-8 text-muted-foreground/50" />
 				<span className="text-sm text-muted-foreground">Немає сповіщень</span>
 			</div>
 		);
@@ -113,7 +113,7 @@ export function NotificationList({
 						data-testid={testIds.notifications.loadMore}
 					>
 						{isLoadingMore ? (
-							<Loader2 className="mr-1 h-3 w-3 animate-spin" />
+							<Loader2 className="mr-1 size-3 animate-spin" />
 						) : null}
 						Завантажити ще
 					</Button>
@@ -138,13 +138,13 @@ function NotificationItem({
 		<>
 			<div
 				className={cn(
-					"mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+					"mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full",
 					isUpvote
 						? "bg-primary/10 text-primary"
 						: "bg-destructive/10 text-destructive",
 				)}
 			>
-				<Icon className="h-4 w-4" />
+				<Icon className="size-4" />
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 				<p className="text-sm leading-snug">{notification.message}</p>
@@ -155,7 +155,7 @@ function NotificationItem({
 				)}
 			</div>
 			{notification.is_unread && (
-				<span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
+				<span className="mt-2 size-2 shrink-0 rounded-full bg-primary" />
 			)}
 		</>
 	);

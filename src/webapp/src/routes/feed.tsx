@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { Newspaper } from "lucide-react";
 
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -25,7 +24,6 @@ export function FeedRoute() {
 				<PageHeader
 					title="Стрічка оновлень"
 					description="Останні відгуки та оголошення Могилянки"
-					icon={Newspaper}
 				/>
 
 				{resolveContent({ isReady, enabled, feed })}

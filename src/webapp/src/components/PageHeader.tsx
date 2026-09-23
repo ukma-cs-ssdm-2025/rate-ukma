@@ -1,13 +1,10 @@
 import type { ReactNode } from "react";
 
-import type { LucideIcon } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
 	readonly title: ReactNode;
 	readonly description?: ReactNode;
-	readonly icon?: LucideIcon;
 	readonly actions?: ReactNode;
 	readonly className?: string;
 }
@@ -15,7 +12,6 @@ interface PageHeaderProps {
 export function PageHeader({
 	title,
 	description,
-	icon: Icon,
 	actions,
 	className,
 }: Readonly<PageHeaderProps>) {
@@ -28,12 +24,6 @@ export function PageHeader({
 		>
 			<div>
 				<h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-					{Icon ? (
-						<Icon
-							aria-hidden
-							className="mr-2 inline size-6 text-muted-foreground"
-						/>
-					) : null}
 					{title}
 				</h1>
 				{description ? (

@@ -136,7 +136,7 @@ function ExploreRoute() {
 								aria-label="Завжди показувати підписи"
 								className="h-9 bg-card/90 backdrop-blur"
 							>
-								<Type className="h-4 w-4" />
+								<Type className="size-4" />
 								<span className="hidden sm:inline">Підписи</span>
 							</Toggle>
 
@@ -146,7 +146,7 @@ function ExploreRoute() {
 								onClick={() => setIsFiltersOpen(true)}
 								aria-label="Відкрити фільтри"
 							>
-								<Filter className="h-4 w-4" />
+								<Filter className="size-4" />
 								<span className="hidden sm:inline">Фільтри</span>
 								{hasActiveFilters && activeFilterCount > 0 && (
 									<Badge variant="soft" className="h-5 min-w-5 px-1.5">

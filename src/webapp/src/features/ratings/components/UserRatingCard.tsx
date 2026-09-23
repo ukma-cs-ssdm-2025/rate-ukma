@@ -1,4 +1,4 @@
-import { Pencil, Star, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { getSemesterDisplay } from "@/features/courses/courseFormatting";
@@ -71,7 +71,6 @@ export function UserRatingCard({
 		>
 			<div className="mb-2 flex items-center justify-between">
 				<div className="flex items-center gap-2 text-xs">
-					<Star className="h-3.5 w-3.5 fill-primary text-primary" />
 					<span className="font-medium text-primary">Ваша оцінка</span>
 				</div>
 				<div className="flex items-center gap-1">
@@ -80,20 +79,20 @@ export function UserRatingCard({
 						variant="ghost"
 						onClick={onEdit}
 						aria-label="Редагувати оцінку"
-						className="h-7 w-7 p-0 text-muted-foreground"
+						className="size-7 p-0 text-muted-foreground"
 						data-testid={testIds.courseDetails.editUserRatingButton}
 					>
-						<Pencil className="h-3.5 w-3.5" />
+						<Pencil className="size-3.5" />
 					</Button>
 					<Button
 						size="sm"
 						variant="ghost"
 						onClick={onDelete}
 						aria-label="Видалити оцінку"
-						className="h-7 w-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+						className="size-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
 						data-testid={testIds.rating.deleteButton}
 					>
-						<Trash2 className="h-3.5 w-3.5" />
+						<Trash2 className="size-3.5" />
 					</Button>
 				</div>
 			</div>

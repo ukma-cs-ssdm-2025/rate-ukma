@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { Bell, Check } from "lucide-react";
+import { Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -90,7 +90,6 @@ export function NotificationBell() {
 							disabled={isPending}
 							data-testid={testIds.notifications.markReadButton}
 						>
-							<Check className="mr-1 h-3 w-3" />
 							Прочитати все
 						</Button>
 					)}

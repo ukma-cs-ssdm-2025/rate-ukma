@@ -62,7 +62,7 @@ function Vote({
 				active ? "bg-primary/10 text-primary" : "text-muted-foreground",
 			)}
 		>
-			<Icon className={cn("h-5 w-5", active && "fill-current")} />
+			<Icon className={cn("size-5", active && "fill-current")} />
 			<span className="text-xs font-semibold tabular-nums">{count}</span>
 		</Button>
 	);

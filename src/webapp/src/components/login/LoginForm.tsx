@@ -113,7 +113,7 @@ export function LoginForm({
 							className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive/10 p-3"
 							data-testid={testIds.login.errorMessage}
 						>
-							<AlertCircle className="h-4 w-4 flex-shrink-0 text-destructive" />
+							<AlertCircle className="size-4 flex-shrink-0 text-destructive" />
 							<p className="text-sm text-destructive">{formError}</p>
 						</div>
 					)}
@@ -168,9 +168,9 @@ export function LoginForm({
 										data-testid={testIds.login.togglePasswordButton}
 									>
 										{showPassword ? (
-											<EyeOff className="h-4 w-4" />
+											<EyeOff className="size-4" />
 										) : (
-											<Eye className="h-4 w-4" />
+											<Eye className="size-4" />
 										)}
 									</button>
 								</div>
@@ -187,7 +187,7 @@ export function LoginForm({
 							data-testid={testIds.login.submitButton}
 						>
 							{isSubmitting ? (
-								<Loader2 className="h-4 w-4 animate-spin" />
+								<Loader2 className="size-4 animate-spin" />
 							) : null}
 							Login
 						</Button>

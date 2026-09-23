@@ -161,7 +161,7 @@ export function ConnectionErrorPage({
 				>
 					{isChecking ? (
 						<>
-							<Loader2 className="h-5 w-5 animate-spin" />
+							<Loader2 className="size-5 animate-spin" />
 							Перевірка...
 						</>
 					) : (
@@ -308,5 +308,5 @@ const getReasonIcon = (reason: ConnectionIssueReason) => {
 			break;
 	}
 
-	return <Icon className="h-8 w-8 text-destructive" />;
+	return <Icon className="size-8 text-destructive" />;
 };

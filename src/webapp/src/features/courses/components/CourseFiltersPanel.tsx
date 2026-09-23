@@ -647,7 +647,7 @@ function CourseFiltersContent({
 						</span>
 						<ChevronDown
 							className={cn(
-								"h-4 w-4 text-muted-foreground transition-transform duration-200",
+								"size-4 text-muted-foreground transition-transform duration-200",
 								moreExpanded && "rotate-180",
 							)}
 						/>
@@ -811,7 +811,7 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 						aria-label="Закрити фільтри"
 						data-testid={testIds.filters.drawerCloseButton}
 					>
-						<X className="h-4 w-4" />
+						<X className="size-4" />
 					</Button>
 				</div>
 			</div>
