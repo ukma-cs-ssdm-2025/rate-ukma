@@ -113,9 +113,7 @@ export function CourseSpecialityBadges({
 					className="h-5 px-1.5 font-medium text-muted-foreground hover:text-foreground"
 					aria-expanded={isExpanded}
 					aria-label={
-						isExpanded
-							? "Приховати додаткові спеціальності"
-							: `Показати ще ${hiddenCount} спеціальностей`
+						isExpanded ? "Згорнути спеціальності" : "Показати всі спеціальності"
 					}
 					aria-controls={badgesId}
 					onClick={(e) => {
@@ -124,7 +122,7 @@ export function CourseSpecialityBadges({
 						setIsExpanded(!isExpanded);
 					}}
 				>
-					{isExpanded ? "Менше" : `+${hiddenCount} більше`}
+					{isExpanded ? "Згорнути" : `ще ${hiddenCount}`}
 				</Button>
 			)}
 		</span>

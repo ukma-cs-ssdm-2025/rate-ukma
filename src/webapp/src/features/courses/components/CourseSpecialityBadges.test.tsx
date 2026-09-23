@@ -26,7 +26,7 @@ describe("CourseSpecialityBadges", () => {
 
 		// Button should be visible
 		const button = screen.getByRole("button");
-		expect(button).toHaveTextContent("+1 більше");
+		expect(button).toHaveTextContent("ще 1");
 
 		// Click to expand
 		await user.click(button);
@@ -35,14 +35,14 @@ describe("CourseSpecialityBadges", () => {
 		expect(screen.getByText("SF")).toBeInTheDocument();
 
 		// Button text changes
-		expect(button).toHaveTextContent("Менше");
+		expect(button).toHaveTextContent("Згорнути");
 
 		// Click to collapse
 		await user.click(button);
 
 		// SF should be hidden again
 		expect(screen.queryByText("SF")).not.toBeInTheDocument();
-		expect(button).toHaveTextContent("+1 більше");
+		expect(button).toHaveTextContent("ще 1");
 	});
 
 	it("should not show badges for elective specialities", () => {

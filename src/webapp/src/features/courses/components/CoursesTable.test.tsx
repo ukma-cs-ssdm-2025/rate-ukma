@@ -644,7 +644,7 @@ describe("Course Row Navigation", () => {
 		});
 	});
 
-	it("should not navigate when '+N більше' is clicked", async () => {
+	it("should not navigate when 'ще N' is clicked", async () => {
 		const user = userEvent.setup();
 		const courseId = "course-2";
 		const courseTitle = "Badges Course";
@@ -666,7 +666,7 @@ describe("Course Row Navigation", () => {
 
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
-		await user.click(screen.getByText("+2 більше"));
+		await user.click(screen.getByText("ще 2"));
 
 		expect(mockNavigate).not.toHaveBeenCalled();
 	});
