@@ -158,17 +158,14 @@ describe("useCourseFiltersData", () => {
 			expect(difficultyFilter?.range).toEqual([1, 5]);
 		});
 
-		it("should include captions for range filters", () => {
+		it("should use half-step increments for the credits slider", () => {
 			// Act
 			const { result } = renderFiltersHook();
 
 			// Assert
 			const ranges = allRangeFilters(result.current);
-			const difficultyFilter = ranges.find((f) => f.key === "diff");
-			expect(difficultyFilter?.captions).toEqual(["Легко", "Складно"]);
-
-			const usefulnessFilter = ranges.find((f) => f.key === "use");
-			expect(usefulnessFilter?.captions).toEqual(["Низька", "Висока"]);
+			const creditsFilter = ranges.find((f) => f.key === "credits");
+			expect(creditsFilter?.step).toBe(0.5);
 		});
 	});
 

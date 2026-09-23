@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { testIds } from "@/lib/test-ids";
 import { createMockFilterOptions } from "@/test-utils/factories";
 import { render, screen, within } from "@/test-utils/render";
+import { ActiveFilterChips } from "./ActiveFilterChips";
 import { CourseFiltersPanel } from "./CourseFiltersPanel";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
@@ -97,18 +98,19 @@ describe("CourseFiltersPanel", () => {
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText(/Складність:/)).toBeInTheDocument();
-			expect(screen.getByText(/Корисність:/)).toBeInTheDocument();
+			expect(screen.getByText("Складність")).toBeInTheDocument();
+			expect(screen.getByText("Корисність")).toBeInTheDocument();
 		});
 
-		it("should render all filter group headers", () => {
+		it("should render all filter section headers", () => {
 			// Arrange & Act
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText("Рейтинг")).toBeInTheDocument();
+			expect(screen.getByText("Оцінки")).toBeInTheDocument();
 			expect(screen.getByText("Семестр")).toBeInTheDocument();
-			expect(screen.getByText("Структура")).toBeInTheDocument();
+			expect(screen.getByText("Навчання")).toBeInTheDocument();
+			expect(screen.getByText("Більше фільтрів")).toBeInTheDocument();
 		});
 
 		it("should render filter presets", () => {
@@ -134,7 +136,7 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByText(/Складність: 2\.5 - 4\.5/)).toBeInTheDocument();
+			expect(screen.getByText("2.5–4.5")).toBeInTheDocument();
 		});
 
 		it("should display current usefulness range values", () => {
@@ -149,20 +151,10 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByText(/Корисність: 3 - 5/)).toBeInTheDocument();
+			expect(screen.getByText("3–5")).toBeInTheDocument();
 		});
 
-		it("should display range captions", () => {
-			// Arrange & Act
-			render(<TestWrapper />);
-
-			// Assert
-			expect(screen.getByText("Легко")).toBeInTheDocument();
-			expect(screen.getByText("Складно")).toBeInTheDocument();
-			expect(screen.getByText("Низька")).toBeInTheDocument();
-			expect(screen.getByText("Висока")).toBeInTheDocument();
-		});
-		it("should render credits inputs with half-step increments", () => {
+		it("should display credits value readout", () => {
 			// Arrange & Act
 			render(
 				<TestWrapper
@@ -175,42 +167,8 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByLabelText(/ECTS minimum/)).toHaveAttribute(
-				"step",
-				"0.5",
-			);
-			expect(screen.getByLabelText(/ECTS maximum/)).toHaveAttribute(
-				"step",
-				"0.5",
-			);
-			expect(screen.getByLabelText(/ECTS minimum/)).toHaveValue(4);
-			expect(screen.getByLabelText(/ECTS maximum/)).toHaveValue(5.5);
-		});
-
-		it("should snap credits input values to valid half-step increments", async () => {
-			// Arrange
-			const user = userEvent.setup();
-			const setParams = vi.fn();
-			render(
-				<TestWrapper
-					initialParams={{
-						...DEFAULT_PARAMS,
-						year: "2024",
-						credits: [4, 6],
-					}}
-					setParams={setParams}
-				/>,
-			);
-
-			// Act
-			const minimumInput = screen.getByLabelText(/ECTS minimum/);
-			await user.clear(minimumInput);
-			await user.type(minimumInput, "4.27");
-			await user.tab();
-
-			// Assert
-			expect(setParams).toHaveBeenCalledWith({ credits: [4.5, 6], page: 1 });
-			expect(minimumInput).toHaveValue(4.5);
+			expect(screen.getByText("Кредити ECTS")).toBeInTheDocument();
+			expect(screen.getByText(/4.*5\.5/)).toBeInTheDocument();
 		});
 	});
 
@@ -234,14 +192,14 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — groups are open by default
+			// Act — essentials are always visible
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
 			const facultyLabel = screen.getByText("Факультет");
 			expect(facultyLabel).toBeInTheDocument();
 			const selectContainer = assertElement(
-				facultyLabel.closest(".space-y-3"),
+				facultyLabel.closest(".space-y-2"),
 				"Faculty select container not found",
 			);
 			const facultySelect = within(selectContainer).getByRole("combobox");
@@ -249,16 +207,17 @@ describe("CourseFiltersPanel", () => {
 			expect(facultySelect).not.toBeDisabled();
 		});
 
-		it("should render semester term toggle group with options when expanded", () => {
+		it("should render one toggle per term option in FALL, SPRING, SUMMER order", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
 				semester_terms: [
+					{ value: "SUMMER", label: "Літо" },
 					{ value: "FALL", label: "Осінь" },
 					{ value: "SPRING", label: "Весна" },
 				],
 			});
 
-			// Act — groups are open by default
+			// Act — essentials are always visible
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
@@ -267,13 +226,14 @@ describe("CourseFiltersPanel", () => {
 			expect(toggleGroup).toHaveAttribute("role", "group");
 
 			const toggleButtons = within(toggleGroup).getAllByRole("button");
-			expect(toggleButtons).toHaveLength(2);
+			expect(toggleButtons).toHaveLength(3);
 			expect(toggleButtons[0]).toHaveTextContent("Осінь");
 			expect(toggleButtons[1]).toHaveTextContent("Весна");
+			expect(toggleButtons[2]).toHaveTextContent("Літо");
 		});
 
 		it("should disable credits slider when year is not selected", () => {
-			// Act — semester group is open by default
+			// Act — credits live in the disclosure, mounted via forceMount
 			render(<TestWrapper />);
 
 			// Assert
@@ -281,6 +241,34 @@ describe("CourseFiltersPanel", () => {
 				"data-disabled",
 				"",
 			);
+		});
+
+		it("should show the year hint under credits until a year is selected", () => {
+			// Arrange & Act
+			render(<TestWrapper />);
+
+			// Assert
+			expect(
+				screen.getByText("Спочатку оберіть навчальний рік"),
+			).toBeInTheDocument();
+		});
+
+		it("should auto-open the disclosure when a filter inside is active", () => {
+			// Arrange & Act
+			render(
+				<TestWrapper
+					initialParams={{
+						...DEFAULT_PARAMS,
+						instructor: "instructor-1",
+					}}
+				/>,
+			);
+
+			// Assert
+			expect(screen.getByText("Більше фільтрів")).toBeInTheDocument();
+			expect(
+				screen.getByTestId(testIds.filters.instructorSelect),
+			).toBeVisible();
 		});
 	});
 
@@ -354,14 +342,14 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — structure group is open by default
+			// Act — essentials are always visible
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
 			const deptLabel = screen.getByText("Кафедра");
 			expect(deptLabel).toBeInTheDocument();
 			const selectContainer = assertElement(
-				deptLabel.closest(".space-y-3"),
+				deptLabel.closest(".space-y-2"),
 				"Department select container not found",
 			);
 			const deptSelect = within(selectContainer).getByRole("combobox");
@@ -371,13 +359,13 @@ describe("CourseFiltersPanel", () => {
 	});
 
 	describe("Accessibility", () => {
-		it("should have proper ARIA labels for range filters", () => {
+		it("should have proper labels for range filters", () => {
 			// Arrange & Act
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText(/Складність:/)).toBeInTheDocument();
-			expect(screen.getByText(/Корисність:/)).toBeInTheDocument();
+			expect(screen.getByText("Складність")).toBeInTheDocument();
+			expect(screen.getByText("Корисність")).toBeInTheDocument();
 		});
 
 		it("should have reset button with proper text", () => {
@@ -395,5 +383,55 @@ describe("CourseFiltersPanel", () => {
 			const resetButton = screen.getByRole("button", { name: /скинути/i });
 			expect(resetButton).toHaveAttribute("type", "button");
 		});
+	});
+});
+
+describe("ActiveFilterChips", () => {
+	it("should render null when no filter is active", () => {
+		// Arrange & Act
+		const { container } = render(
+			<ActiveFilterChips
+				params={DEFAULT_PARAMS}
+				setParams={vi.fn()}
+				filterOptions={createMockFilterOptions()}
+				onReset={vi.fn()}
+			/>,
+		);
+
+		// Assert
+		expect(container).toBeEmptyDOMElement();
+	});
+
+	it("should render a removable chip per active filter plus a reset button", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const setParams = vi.fn();
+		const onReset = vi.fn();
+		render(
+			<ActiveFilterChips
+				params={{
+					...DEFAULT_PARAMS,
+					diff: [1, 2.5],
+					term: ["FALL"],
+				}}
+				setParams={setParams}
+				filterOptions={createMockFilterOptions()}
+				onReset={onReset}
+			/>,
+		);
+
+		// Assert
+		expect(screen.getByText("Складність 1–2.5")).toBeInTheDocument();
+		expect(screen.getByText("Осінь")).toBeInTheDocument();
+
+		// Act
+		await user.click(
+			screen.getByRole("button", { name: "Прибрати фільтр Осінь" }),
+		);
+
+		// Assert
+		expect(setParams).toHaveBeenCalledWith({ term: [], page: 1 });
+		await user.click(screen.getByRole("button", { name: "Скинути все" }));
+		expect(onReset).toHaveBeenCalledTimes(1);
 	});
 });

@@ -1,25 +1,15 @@
 import { memo, useCallback, useEffect, useState } from "react";
 
-import {
-	Building2,
-	CalendarDays,
-	ChevronDown,
-	Filter,
-	Info,
-	Star,
-	X,
-} from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/Collapsible";
 import { Combobox } from "@/components/ui/Combobox";
-import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import {
 	Select,
@@ -28,13 +18,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/Select";
+import { Separator } from "@/components/ui/Separator";
 import { Slider } from "@/components/ui/Slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/Tooltip";
 import { InstructorFilterSelect } from "@/features/instructors/components/InstructorFilterSelect";
 import type {
 	CoursesListSemesterTermsItem,
@@ -42,7 +28,6 @@ import type {
 	EducationLevelEnum,
 	FilterOptions,
 } from "@/lib/api/generated";
-import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
@@ -52,7 +37,6 @@ import {
 	areFiltersActive,
 	type CourseFiltersData,
 	type EducationLevelToggle,
-	type FilterGroupConfig,
 	type FilterPreset,
 	type FilterPresetId,
 	getPresetFilters,
@@ -86,32 +70,11 @@ export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
 
 // --- Primitive filter controls ---
 
-function InfoHint({ message }: Readonly<{ message: string }>) {
-	return (
-		<Tooltip delayDuration={0}>
-			<TooltipTrigger asChild>
-				<button
-					type="button"
-					aria-label={message}
-					className="shrink-0 text-muted-foreground"
-				>
-					<Info className="h-3.5 w-3.5" aria-hidden="true" />
-				</button>
-			</TooltipTrigger>
-			<TooltipContent side="top" sideOffset={4}>
-				<p>{message}</p>
-			</TooltipContent>
-		</Tooltip>
-	);
-}
-
 function FilterSlider({
 	label,
 	value,
 	range,
-	captions,
 	step = 0.1,
-	showInputs = false,
 	testId,
 	disabled,
 	disabledMessage,
@@ -120,197 +83,72 @@ function FilterSlider({
 	label: string;
 	value: [number, number];
 	range: [number, number];
-	captions: [string, string];
 	step?: number;
-	showInputs?: boolean;
 	testId?: string;
 	disabled?: boolean;
 	disabledMessage?: string;
 	onValueChange: (value: [number, number]) => void;
 }>) {
 	const [localValue, setLocalValue] = useState(value);
-	const [inputValue, setInputValue] = useState<[string, string]>([
-		formatDecimalValue(value[0], { fallback: "0" }),
-		formatDecimalValue(value[1], { fallback: "0" }),
-	]);
 
 	useEffect(() => {
-		setLocalValue((currentValue) => {
-			if (currentValue[0] === value[0] && currentValue[1] === value[1]) {
-				return currentValue;
-			}
-
-			setInputValue([
-				formatDecimalValue(value[0], { fallback: "0" }),
-				formatDecimalValue(value[1], { fallback: "0" }),
-			]);
-			return value;
-		});
+		setLocalValue((currentValue) =>
+			currentValue[0] === value[0] && currentValue[1] === value[1]
+				? currentValue
+				: value,
+		);
 	}, [value]);
 
-	const clampToStep = useCallback(
-		(nextValue: number) => {
-			const [min, max] = range;
-			const clamped = Math.min(Math.max(nextValue, min), max);
-			const stepped = Math.round((clamped - min) / step) * step + min;
-			return Number(stepped.toFixed(2));
-		},
-		[range, step],
-	);
-
-	const commitInputValue = useCallback(
-		(index: 0 | 1) => {
-			const parsed = Number.parseFloat(inputValue[index]);
-			const nextValue = Number.isFinite(parsed)
-				? clampToStep(parsed)
-				: localValue[index];
-			const next: [number, number] =
-				index === 0
-					? [Math.min(nextValue, localValue[1]), localValue[1]]
-					: [localValue[0], Math.max(nextValue, localValue[0])];
-
-			setLocalValue(next);
-			setInputValue([
-				formatDecimalValue(next[0], { fallback: "0" }),
-				formatDecimalValue(next[1], { fallback: "0" }),
-			]);
-			onValueChange(next);
-		},
-		[clampToStep, inputValue, localValue, onValueChange],
-	);
-
 	return (
-		<div className="space-y-3">
+		<div className="space-y-2">
 			<div className="flex items-center justify-between gap-2">
-				<Label className="text-sm font-medium">
-					{label}: {formatDecimalValue(localValue[0], { fallback: "0" })} -{" "}
+				<Label className="text-sm font-medium">{label}</Label>
+				<span className="text-sm text-muted-foreground tabular-nums">
+					{formatDecimalValue(localValue[0], { fallback: "0" })}–
 					{formatDecimalValue(localValue[1], { fallback: "0" })}
-				</Label>
-				{disabledMessage && <InfoHint message={disabledMessage} />}
+				</span>
 			</div>
-			{showInputs && (
-				<div className="flex items-center gap-2">
-					<Input
-						type="number"
-						min={range[0]}
-						max={localValue[1]}
-						step={step}
-						value={inputValue[0]}
-						onChange={(event) =>
-							setInputValue([event.target.value, inputValue[1]])
-						}
-						onBlur={() => commitInputValue(0)}
-						onKeyDown={(event) => {
-							if (event.key === "Enter") {
-								event.currentTarget.blur();
-							}
-						}}
-						disabled={disabled}
-						aria-label={`${label} minimum`}
-						className="h-10"
-					/>
-					<span className="text-sm text-muted-foreground">-</span>
-					<Input
-						type="number"
-						min={localValue[0]}
-						max={range[1]}
-						step={step}
-						value={inputValue[1]}
-						onChange={(event) =>
-							setInputValue([inputValue[0], event.target.value])
-						}
-						onBlur={() => commitInputValue(1)}
-						onKeyDown={(event) => {
-							if (event.key === "Enter") {
-								event.currentTarget.blur();
-							}
-						}}
-						disabled={disabled}
-						aria-label={`${label} maximum`}
-						className="h-10"
-					/>
-				</div>
-			)}
 			<Slider
 				min={range[0]}
 				max={range[1]}
 				step={step}
 				value={localValue}
 				onValueChange={(val) => {
-					const next = val as [number, number];
-					setLocalValue(next);
-					setInputValue([
-						formatDecimalValue(next[0], { fallback: "0" }),
-						formatDecimalValue(next[1], { fallback: "0" }),
-					]);
+					setLocalValue(val as [number, number]);
 				}}
 				onValueCommit={(val) => onValueChange(val as [number, number])}
 				disabled={disabled}
 				data-testid={testId}
 				className="w-full"
 			/>
-			<div className="flex justify-between text-xs text-muted-foreground">
-				<span>{captions[0]}</span>
-				<span>{captions[1]}</span>
-			</div>
+			{disabledMessage && (
+				<p className="text-xs text-muted-foreground">{disabledMessage}</p>
+			)}
 		</div>
 	);
 }
 
-// --- Filter Group ---
-
-const GROUP_ICONS: Record<string, React.ElementType> = {
-	rating: Star,
-	semester: CalendarDays,
-	structure: Building2,
-};
-
-const STORAGE_KEY_FILTER_GROUPS = "filters:open-groups";
-
-function FilterGroup({
-	config,
-	open,
-	onOpenChange,
+function FilterSection({
+	title,
+	activeCount,
 	testId,
 	children,
 }: Readonly<{
-	config: FilterGroupConfig;
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
+	title: string;
+	activeCount?: number;
 	testId?: string;
 	children: React.ReactNode;
 }>) {
-	const Icon = GROUP_ICONS[config.id];
-
 	return (
-		<Collapsible open={open} onOpenChange={onOpenChange}>
-			<CollapsibleTrigger asChild>
-				<button
-					type="button"
-					className="flex w-full items-center justify-between py-2 text-sm font-medium transition-colors hover:text-foreground/80"
-					data-testid={testId}
-				>
-					<span className="flex items-center gap-2">
-						{Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
-						{config.label}
-						{config.activeCount > 0 && (
-							<Badge variant="soft" className="h-5 min-w-5 px-1.5">
-								{config.activeCount}
-							</Badge>
-						)}
-					</span>
-					<ChevronDown
-						className={cn(
-							"h-4 w-4 text-muted-foreground transition-transform duration-200",
-							open && "rotate-180",
-						)}
-					/>
-				</button>
-			</CollapsibleTrigger>
-			<CollapsibleContent className="space-y-4 pt-3">
-				{children}
-			</CollapsibleContent>
-		</Collapsible>
+		<section className="space-y-3" data-testid={testId}>
+			<div className="flex items-center gap-2">
+				<h3 className="text-sm font-medium">{title}</h3>
+				{activeCount != null && activeCount > 0 && (
+					<Badge variant="soft">{activeCount}</Badge>
+				)}
+			</div>
+			<div className="space-y-4">{children}</div>
+		</section>
 	);
 }
 
@@ -423,7 +261,15 @@ function SemesterTermToggleControl({
 					<ToggleGroupItem
 						key={option.value}
 						value={option.value}
-						className="flex-1"
+						className={cn(
+							"flex-1",
+							option.value === "FALL" &&
+								"data-[state=on]:bg-term-fall/12 data-[state=on]:text-term-fall",
+							option.value === "SPRING" &&
+								"data-[state=on]:bg-term-spring/12 data-[state=on]:text-term-spring",
+							option.value === "SUMMER" &&
+								"data-[state=on]:bg-term-summer/12 data-[state=on]:text-term-summer",
+						)}
 					>
 						{option.label}
 					</ToggleGroupItem>
@@ -495,11 +341,8 @@ function SelectFilters({
 
 					if (key === "instructor") {
 						return (
-							<div key={key} className="space-y-3">
-								<Label className="text-sm font-medium inline-flex items-center gap-1.5">
-									{label}
-									{disabledMessage && <InfoHint message={disabledMessage} />}
-								</Label>
+							<div key={key} className="space-y-2">
+								<Label className="text-sm font-medium">{label}</Label>
 								<InstructorFilterSelect
 									value={currentValue}
 									onChange={(nextValue) => onSelectChange(key, nextValue)}
@@ -552,12 +395,14 @@ function SelectFilters({
 					);
 
 					return (
-						<div key={key} className="space-y-3">
-							<Label className="text-sm font-medium inline-flex items-center gap-1.5">
-								{label}
-								{disabledMessage && <InfoHint message={disabledMessage} />}
-							</Label>
+						<div key={key} className="space-y-2">
+							<Label className="text-sm font-medium">{label}</Label>
 							{selectElement}
+							{disabledMessage && (
+								<p className="text-xs text-muted-foreground">
+									{disabledMessage}
+								</p>
+							)}
 						</div>
 					);
 				},
@@ -577,20 +422,13 @@ function CourseFiltersContent({
 	setParams: (updates: Partial<CourseFiltersParamsState>) => void;
 	data: CourseFiltersData;
 }>) {
-	const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-		const stored = localStorageAdapter.getItem<Record<string, boolean>>(
-			STORAGE_KEY_FILTER_GROUPS,
-		);
-		return stored ?? { rating: true, semester: true, structure: true };
-	});
+	const [moreOpen, setMoreOpen] = useState(false);
 
-	const setGroupOpen = useCallback((groupId: string, open: boolean) => {
-		setOpenGroups((prev) => {
-			const next = { ...prev, [groupId]: open };
-			localStorageAdapter.setItem(STORAGE_KEY_FILTER_GROUPS, next);
-			return next;
-		});
-	}, []);
+	const moreActive =
+		params.instructor !== "" ||
+		params.type !== null ||
+		params.credits[0] !== CREDITS_RANGE[0] ||
+		params.credits[1] !== CREDITS_RANGE[1];
 
 	const setWithPageReset = useCallback(
 		(updates: Partial<CourseFiltersParamsState>) => {
@@ -707,17 +545,33 @@ function CourseFiltersContent({
 				setWithPageReset(getPresetResetFilters(presetId));
 			} else {
 				setWithPageReset(getPresetFilters(presetId));
-
-				const preset = data.presets.find((p) => p.id === presetId);
-				if (preset?.expandsGroup) {
-					setGroupOpen(preset.expandsGroup, true);
-				}
 			}
 		},
-		[data.activePresetIds, data.presets, setWithPageReset, setGroupOpen],
+		[data.activePresetIds, setWithPageReset],
 	);
 
 	const { groups } = data;
+	const moreCount =
+		(params.instructor !== "" ? 1 : 0) +
+		(params.type !== null ? 1 : 0) +
+		(params.credits[0] !== CREDITS_RANGE[0] ||
+		params.credits[1] !== CREDITS_RANGE[1]
+			? 1
+			: 0);
+	const moreExpanded = moreOpen || moreActive;
+
+	const semesterSelect = groups.semester.selectFilters.find(
+		(filter) => filter.key === "year",
+	);
+	const facultySelects = groups.structure.selectFilters.filter((filter) =>
+		["faculty", "dept", "spec"].includes(filter.key),
+	);
+	const typeSelect = groups.structure.selectFilters.find(
+		(filter) => filter.key === "type",
+	);
+	const instructorSelect = groups.structure.selectFilters.find(
+		(filter) => filter.key === "instructor",
+	);
 
 	return (
 		<div className="space-y-6">
@@ -727,59 +581,100 @@ function CourseFiltersContent({
 				onTogglePreset={handleTogglePreset}
 			/>
 
-			<div className="space-y-1">
-				<FilterGroup
-					config={groups.rating.config}
-					open={openGroups.rating}
-					onOpenChange={(open) => setGroupOpen("rating", open)}
-					testId={testIds.filters.groupRating}
-				>
-					<RangeFilters
-						filters={groups.rating.rangeFilters}
-						params={params}
-						onRangeChange={handleRangeChange}
-					/>
-				</FilterGroup>
+			<FilterSection
+				title="Оцінки"
+				activeCount={groups.rating.config.activeCount}
+				testId={testIds.filters.groupRating}
+			>
+				<RangeFilters
+					filters={groups.rating.rangeFilters}
+					params={params}
+					onRangeChange={handleRangeChange}
+				/>
+			</FilterSection>
 
-				<FilterGroup
-					config={groups.semester.config}
-					open={openGroups.semester}
-					onOpenChange={(open) => setGroupOpen("semester", open)}
-					testId={testIds.filters.groupSemester}
-				>
+			<Separator />
+
+			<FilterSection
+				title="Семестр"
+				activeCount={groups.semester.config.activeCount - moreCount}
+				testId={testIds.filters.groupSemester}
+			>
+				{semesterSelect && (
 					<SelectFilters
-						filters={groups.semester.selectFilters}
+						filters={[semesterSelect]}
 						getSelectValue={getSelectValue}
 						onSelectChange={handleSelectChange}
 					/>
-					<SemesterTermToggleControl
-						toggle={groups.semester.semesterTermToggle}
-						onTermToggle={handleTermToggle}
-					/>
+				)}
+				<SemesterTermToggleControl
+					toggle={groups.semester.semesterTermToggle}
+					onTermToggle={handleTermToggle}
+				/>
+			</FilterSection>
+
+			<Separator />
+
+			<FilterSection
+				title="Навчання"
+				activeCount={
+					groups.structure.config.activeCount -
+					(params.instructor !== "" ? 1 : 0) -
+					(params.type !== null ? 1 : 0)
+				}
+				testId={testIds.filters.groupStructure}
+			>
+				<EducationLevelToggleControl
+					toggle={groups.structure.educationLevelToggle}
+					onToggle={handleEducationLevelToggle}
+				/>
+				<SelectFilters
+					filters={facultySelects}
+					getSelectValue={getSelectValue}
+					onSelectChange={handleSelectChange}
+				/>
+			</FilterSection>
+
+			<Collapsible open={moreExpanded} onOpenChange={setMoreOpen}>
+				<CollapsibleTrigger asChild>
+					<button
+						type="button"
+						className="flex w-full items-center justify-between py-1 text-sm font-medium"
+					>
+						<span className="flex items-center gap-2">
+							Більше фільтрів
+							{moreCount > 0 && <Badge variant="soft">{moreCount}</Badge>}
+						</span>
+						<ChevronDown
+							className={cn(
+								"h-4 w-4 text-muted-foreground transition-transform duration-200",
+								moreExpanded && "rotate-180",
+							)}
+						/>
+					</button>
+				</CollapsibleTrigger>
+				<CollapsibleContent forceMount className="space-y-4 pt-4">
+					{instructorSelect && (
+						<SelectFilters
+							filters={[instructorSelect]}
+							getSelectValue={getSelectValue}
+							onSelectChange={handleSelectChange}
+						/>
+					)}
+					{typeSelect && (
+						<SelectFilters
+							filters={[typeSelect]}
+							getSelectValue={getSelectValue}
+							onSelectChange={handleSelectChange}
+						/>
+					)}
 					<RangeFilters
 						filters={groups.semester.rangeFilters}
 						params={params}
 						onRangeChange={handleRangeChange}
 					/>
-				</FilterGroup>
-
-				<FilterGroup
-					config={groups.structure.config}
-					open={openGroups.structure}
-					onOpenChange={(open) => setGroupOpen("structure", open)}
-					testId={testIds.filters.groupStructure}
-				>
-					<EducationLevelToggleControl
-						toggle={groups.structure.educationLevelToggle}
-						onToggle={handleEducationLevelToggle}
-					/>
-					<SelectFilters
-						filters={groups.structure.selectFilters}
-						getSelectValue={getSelectValue}
-						onSelectChange={handleSelectChange}
-					/>
-				</FilterGroup>
-			</div>
+				</CollapsibleContent>
+			</Collapsible>
 		</div>
 	);
 }
@@ -795,13 +690,8 @@ function getTotalActiveCount(data: CourseFiltersData): number {
 function FiltersHeading({ count }: Readonly<{ count: number }>) {
 	return (
 		<>
-			<Filter className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
 			Фільтри
-			{count > 0 && (
-				<Badge variant="soft" className="h-5 min-w-5 px-1.5">
-					{count}
-				</Badge>
-			)}
+			{count > 0 && <Badge variant="soft">{count}</Badge>}
 		</>
 	);
 }
@@ -820,7 +710,24 @@ function ResetButton({ onReset }: Readonly<{ onReset: () => void }>) {
 	);
 }
 
-// --- Panel variants ---
+function FiltersHeader({
+	count,
+	hasActiveFilters,
+	onReset,
+}: Readonly<{
+	count: number;
+	hasActiveFilters: boolean;
+	onReset: () => void;
+}>) {
+	return (
+		<div className="flex min-h-10 items-center justify-between gap-2">
+			<div className="flex items-center gap-2 text-sm font-semibold">
+				<FiltersHeading count={count} />
+			</div>
+			{hasActiveFilters && <ResetButton onReset={onReset} />}
+		</div>
+	);
+}
 
 export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 	onReset,
@@ -837,21 +744,9 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 		return <CourseFiltersPanelSkeleton />;
 	}
 
-	if (variant === "plain") {
-		const showHeader = showTitle || hasActiveFilters;
-		const totalActive = getTotalActiveCount(data);
+	if (variant === "plain" && !showTitle && !hasActiveFilters) {
 		return (
 			<div className={cn("space-y-6", className)}>
-				{showHeader && (
-					<div className="flex items-center justify-between gap-2">
-						{showTitle && (
-							<div className="flex items-center gap-2 text-base font-semibold">
-								<FiltersHeading count={totalActive} />
-							</div>
-						)}
-						{hasActiveFilters && <ResetButton onReset={onReset} />}
-					</div>
-				)}
 				<CourseFiltersContent
 					params={baseProps.params}
 					setParams={baseProps.setParams}
@@ -864,26 +759,21 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 	const totalActive = getTotalActiveCount(data);
 
 	return (
-		<Card
-			className={cn("sticky top-6 shadow-sm", className)}
+		<aside
+			className={cn("sticky top-6 space-y-3", className)}
 			data-testid={testIds.filters.panel}
 		>
-			<CardHeader className="pb-4">
-				<div className="flex items-center justify-between gap-2">
-					<CardTitle className="flex items-center gap-2 text-base font-semibold">
-						<FiltersHeading count={totalActive} />
-					</CardTitle>
-					{hasActiveFilters && <ResetButton onReset={onReset} />}
-				</div>
-			</CardHeader>
-			<CardContent>
-				<CourseFiltersContent
-					params={baseProps.params}
-					setParams={baseProps.setParams}
-					data={data}
-				/>
-			</CardContent>
-		</Card>
+			<FiltersHeader
+				count={totalActive}
+				hasActiveFilters={hasActiveFilters}
+				onReset={onReset}
+			/>
+			<CourseFiltersContent
+				params={baseProps.params}
+				setParams={baseProps.setParams}
+				data={data}
+			/>
+		</aside>
 	);
 });
 
@@ -905,14 +795,14 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 
 	return (
 		<div
-			className={cn("space-y-6", className)}
+			className={cn("flex h-full flex-col", className)}
 			data-testid={testIds.filters.drawer}
 		>
-			<div className="flex items-center justify-between gap-2">
-				<span className="flex items-center gap-2 text-base font-semibold">
+			<div className="flex min-h-10 items-center justify-between gap-2">
+				<span className="flex items-center gap-2 text-sm font-semibold">
 					<FiltersHeading count={totalActive} />
 				</span>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-1">
 					{hasActiveFilters && <ResetButton onReset={onReset} />}
 					<Button
 						variant="ghost"
@@ -925,11 +815,21 @@ export const CourseFiltersDrawer = memo(function CourseFiltersDrawer({
 					</Button>
 				</div>
 			</div>
-			<CourseFiltersContent
-				params={baseProps.params}
-				setParams={baseProps.setParams}
-				data={data}
-			/>
+			<div className="min-h-0 flex-1 space-y-6 overflow-y-auto pb-2">
+				<CourseFiltersContent
+					params={baseProps.params}
+					setParams={baseProps.setParams}
+					data={data}
+				/>
+			</div>
+			<div className="flex items-center justify-between gap-2 border-t border-border pt-4">
+				<Button type="button" variant="ghost" onClick={onReset}>
+					Скинути
+				</Button>
+				<Button type="button" onClick={onClose}>
+					Показати
+				</Button>
+			</div>
 		</div>
 	);
 });

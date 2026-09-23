@@ -8,7 +8,8 @@ interface DrawerProps {
 	onOpenChange: (open: boolean) => void;
 	children: React.ReactNode;
 	ariaLabel: string;
-	closeButtonLabel: string;
+	/** Kept for callers; the scrim is no longer a labelled button. */
+	closeButtonLabel?: string;
 	"data-testid"?: string;
 }
 
@@ -19,7 +20,6 @@ export function Drawer({
 	onOpenChange,
 	children,
 	ariaLabel,
-	closeButtonLabel,
 	"data-testid": testId,
 }: Readonly<DrawerProps>) {
 	const [isMounted, setIsMounted] = useState(open);
@@ -39,6 +39,21 @@ export function Drawer({
 	}, [open]);
 
 	const close = useCallback(() => onOpenChange(false), [onOpenChange]);
+
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				close();
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+		return () => document.removeEventListener("keydown", handleKeyDown);
+	}, [open, close]);
 
 	useEffect(() => {
 		if (!open) {
@@ -68,15 +83,14 @@ export function Drawer({
 			className="fixed inset-0 z-50 m-0 h-full w-full overflow-hidden border-none bg-transparent p-0 backdrop:bg-transparent"
 			data-testid={testId}
 		>
-			<button
-				type="button"
+			<div
 				className={cn(
 					"fixed inset-0 z-0 bg-background/80 backdrop-blur transition-opacity",
 					open ? "opacity-100" : "opacity-0 pointer-events-none",
 				)}
 				style={{ transitionDuration: `${TRANSITION_DURATION_MS}ms` }}
 				onClick={close}
-				aria-label={closeButtonLabel}
+				aria-hidden="true"
 			/>
 			<aside
 				className={cn(
