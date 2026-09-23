@@ -258,7 +258,15 @@ export const COURSE_OFFERINGS = {
 				},
 			],
 			specialities: COURSE.specialities,
-			terms: [],
+			terms: [
+				{
+					id: "t-1",
+					semester_year: 2026,
+					semester_term: "SPRING",
+					credits: "5.0",
+					weekly_hours: 4,
+				},
+			],
 		},
 	],
 } satisfies CourseOfferingListResponse;
