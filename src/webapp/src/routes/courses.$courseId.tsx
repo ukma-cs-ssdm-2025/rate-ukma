@@ -37,6 +37,7 @@ import {
 } from "@/lib/api/generated";
 import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
@@ -54,6 +55,7 @@ function CourseDetailsRoute() {
 
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+	const isDesktop = useMediaQuery("(min-width: 1024px)");
 
 	const {
 		rating: userRating,
@@ -98,15 +100,14 @@ function CourseDetailsRoute() {
 	let rateAction: React.ReactNode = null;
 	if (ratedOffering) {
 		rateAction = (
-			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-				<span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+			<div className="space-y-2">
+				<p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
 					<CircleCheck className="size-4 text-primary" aria-hidden="true" />
 					Ви оцінили цей курс
-				</span>
+				</p>
 				<Button
 					variant="outline"
-					size="sm"
-					className="h-9"
+					className="w-full max-w-md"
 					onClick={() => setIsRatingModalOpen(true)}
 				>
 					Змінити оцінку
@@ -115,18 +116,17 @@ function CourseDetailsRoute() {
 		);
 	} else if (hasAttendedCourse && selectedOffering) {
 		rateAction = (
-			<div className="flex flex-col gap-1.5 sm:items-end">
+			<div className="space-y-2">
 				<RatingButton
 					canRate={canRateNow}
 					onClick={() => setIsRatingModalOpen(true)}
-					size="default"
 				>
 					Оцінити цей курс
 				</RatingButton>
 				{canRateNow ? null : (
-					<span className="max-w-64 text-xs text-muted-foreground sm:text-right">
+					<p className="text-sm text-muted-foreground">
 						{CANNOT_RATE_TOOLTIP_TEXT}
-					</span>
+					</p>
 				)}
 			</div>
 		);
@@ -155,22 +155,20 @@ function CourseDetailsRoute() {
 				</Helmet>
 			)}
 			<div className="space-y-8 pb-16">
-				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-					<CourseDetailsHeader
-						title={course.title ?? ""}
-						educationLevel={course.education_level}
-						specialities={course.specialities ?? []}
-						departmentName={course.department_name ?? ""}
-						facultyName={course.faculty_name ?? ""}
-						termLoads={termLoads}
-					/>
-					{rateAction ? (
-						<div className="shrink-0 sm:pt-2">{rateAction}</div>
-					) : null}
-				</div>
-
-				<div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
+				<div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_320px]">
 					<div className="min-w-0 space-y-8">
+						<CourseDetailsHeader
+							title={course.title ?? ""}
+							educationLevel={course.education_level}
+							specialities={course.specialities ?? []}
+							departmentName={course.department_name ?? ""}
+							facultyName={course.faculty_name ?? ""}
+							termLoads={termLoads}
+						/>
+
+						{/* Rendered once: the rate button's test id must stay unique. */}
+						{isDesktop ? null : rateAction}
+
 						{showStats ? (
 							<CourseStatsHero
 								difficulty={course.avg_difficulty ?? null}
@@ -180,7 +178,7 @@ function CourseDetailsRoute() {
 						) : null}
 
 						{/* Phones read one column: scores, then «Про курс», then reviews. */}
-						<div className="lg:hidden">{about}</div>
+						{isDesktop ? null : about}
 
 						<CourseRatingsList
 							courseId={courseId}
@@ -197,9 +195,14 @@ function CourseDetailsRoute() {
 						/>
 					</div>
 
-					<aside className="hidden min-w-0 lg:block">
-						<div className="lg:sticky lg:top-24">{about}</div>
-					</aside>
+					{isDesktop ? (
+						<aside className="min-w-0">
+							<div className="space-y-8 lg:sticky lg:top-24">
+								{rateAction}
+								{about}
+							</div>
+						</aside>
+					) : null}
 				</div>
 			</div>
 

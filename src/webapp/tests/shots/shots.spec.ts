@@ -175,6 +175,15 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "course-rateable",
+		note: "Attendee who can rate and has not yet: primary rate action",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rateable" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.getByTestId("course-details-rate-button").waitFor();
+		},
+	},
+	{
 		name: "course-rate-soon",
 		note: "Attendee before midterm: rating opens later, the reason is visible",
 		run: async (page) => {
