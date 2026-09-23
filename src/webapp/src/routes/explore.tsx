@@ -1,18 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Filter, MoreHorizontal } from "lucide-react";
+import { Filter, Type } from "lucide-react";
 
 import Layout from "@/components/Layout";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import { Drawer } from "@/components/ui/Drawer";
-import {
-	DropdownMenu,
-	DropdownMenuCheckboxItem,
-	DropdownMenuContent,
-	DropdownMenuTrigger,
-} from "@/components/ui/DropdownMenu";
+import { Toggle } from "@/components/ui/Toggle";
 import { CourseFiltersDrawer } from "@/features/courses/components/CourseFiltersPanel";
 import { CoursesScatterPlot } from "@/features/courses/components/CoursesScatterPlot";
 import {
@@ -20,6 +16,7 @@ import {
 	DEFAULT_COURSE_FILTERS_PARAMS,
 	useCourseFiltersParams,
 } from "@/features/courses/courseFiltersParams";
+import { useCourseFiltersData } from "@/features/courses/hooks/useCourseFiltersData";
 import {
 	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
@@ -89,8 +86,16 @@ function ExploreRoute() {
 		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
 	}, [setParams]);
 
-	const handleToggleShowAllLabels = (checked: boolean | "indeterminate") => {
-		setShowAllLabels(checked === true);
+	const { groups: filterGroups, hasActiveFilters } = useCourseFiltersData({
+		params,
+	});
+	const activeFilterCount =
+		filterGroups.rating.config.activeCount +
+		filterGroups.semester.config.activeCount +
+		filterGroups.structure.config.activeCount;
+
+	const handleToggleShowAllLabels = (pressed: boolean) => {
+		setShowAllLabels(pressed);
 	};
 
 	return (
@@ -100,64 +105,56 @@ function ExploreRoute() {
 				style={{ viewTransitionName: "scatter" }}
 			>
 				<div className="relative h-full w-full">
-					<div className="absolute left-1/2 top-4 z-20 -translate-x-1/2">
-						<div className="flex items-center gap-2">
+					<div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-3">
+						<div className="pointer-events-auto flex h-9 items-center gap-2">
 							<ButtonGroup
 								aria-label="Перемикання режиму перегляду"
-								className="p-1 shadow-none"
+								className="h-9 bg-card/90 shadow-sm backdrop-blur"
 							>
-								<Button asChild variant="ghost" size="sm">
+								<Button asChild variant="ghost" size="sm" className="h-full">
 									<Link to="/" search={() => searchParams}>
 										Таблиця
 									</Link>
 								</Button>
-								<Button asChild variant="secondary" size="sm">
+								<Button
+									asChild
+									variant="secondary"
+									size="sm"
+									className="h-full"
+								>
 									<Link to="/explore" search={() => searchParams}>
 										Візуалізація
 									</Link>
 								</Button>
 							</ButtonGroup>
 
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="outline"
-										size="icon-sm"
-										aria-label="Налаштування візуалізації"
-									>
-										<MoreHorizontal className="h-4 w-4" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end" className="w-56">
-									<DropdownMenuCheckboxItem
-										checked={showAllLabels}
-										onCheckedChange={handleToggleShowAllLabels}
-									>
-										<div className="flex flex-col gap-0.5">
-											<span className="font-medium">
-												Завжди показувати підписи
-											</span>
-											<span className="text-xs text-muted-foreground">
-												Може перекривати точки, якщо їх багато
-											</span>
-										</div>
-									</DropdownMenuCheckboxItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						</div>
-					</div>
+							<Toggle
+								variant="outline"
+								pressed={showAllLabels}
+								onPressedChange={handleToggleShowAllLabels}
+								title="Може перекривати точки, якщо їх багато"
+								aria-label="Завжди показувати підписи"
+								className="h-9 bg-card/90 backdrop-blur"
+							>
+								<Type className="h-4 w-4" />
+								<span className="hidden sm:inline">Підписи</span>
+							</Toggle>
 
-					<div className="absolute right-3 top-3 z-20">
-						<Button
-							variant="outline"
-							size="sm"
-							className="bg-card/90 backdrop-blur"
-							onClick={() => setIsFiltersOpen(true)}
-							aria-label="Відкрити фільтри"
-						>
-							<Filter className="h-4 w-4" />
-							<span className="hidden md:inline">Фільтри</span>
-						</Button>
+							<Button
+								variant="outline"
+								className="h-9 bg-card/90 backdrop-blur"
+								onClick={() => setIsFiltersOpen(true)}
+								aria-label="Відкрити фільтри"
+							>
+								<Filter className="h-4 w-4" />
+								<span className="hidden sm:inline">Фільтри</span>
+								{hasActiveFilters && activeFilterCount > 0 && (
+									<Badge variant="soft" className="h-5 min-w-5 px-1.5">
+										{activeFilterCount}
+									</Badge>
+								)}
+							</Button>
+						</div>
 					</div>
 
 					<div className="absolute inset-0">

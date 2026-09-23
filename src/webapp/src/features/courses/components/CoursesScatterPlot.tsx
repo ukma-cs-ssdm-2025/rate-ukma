@@ -142,6 +142,8 @@ function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
 }
 
 const margin: Margin = { top: 40, right: 40, bottom: 60, left: 60 };
+// Extra headroom so the floating explore toolbar never covers top points.
+const EXPLORE_MARGIN: Margin = { ...margin, top: 76 };
 
 // Axis styling constants
 const AXIS_TICK_FONT_SIZE = 12;
@@ -246,9 +248,9 @@ function ScatterPlotContent({
 	> | null>(null);
 	const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
 	const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
-
-	const innerWidth = width - margin.left - margin.right;
-	const innerHeight = height - margin.top - margin.bottom;
+	const plotMargin = variant === "default" ? EXPLORE_MARGIN : margin;
+	const innerWidth = width - plotMargin.left - plotMargin.right;
+	const innerHeight = height - plotMargin.top - plotMargin.bottom;
 
 	const xScale = useMemo(
 		() =>
@@ -344,7 +346,7 @@ function ScatterPlotContent({
 				height,
 				innerWidth,
 				innerHeight,
-				margin,
+				margin: plotMargin,
 				transform,
 				xScale,
 				yScale,
@@ -379,7 +381,7 @@ function ScatterPlotContent({
 				aria-label="Діаграма розподілу курсів за корисністю та складністю"
 			>
 				<Group
-					transform={`translate(${margin.left + transform.x}, ${margin.top + transform.y}) scale(${transform.k})`}
+					transform={`translate(${plotMargin.left + transform.x}, ${plotMargin.top + transform.y}) scale(${transform.k})`}
 				>
 					<Grid
 						xScale={xScale}
@@ -463,21 +465,21 @@ function ScatterPlotContent({
 						))}
 				</Group>
 
-				<Group left={margin.left} top={margin.top}>
+				<Group left={plotMargin.left} top={plotMargin.top}>
 					{/* X-axis background bar */}
 					<rect
-						x={-margin.left}
+						x={-plotMargin.left}
 						y={innerHeight}
-						width={innerWidth + margin.left}
-						height={margin.bottom}
+						width={innerWidth + plotMargin.left}
+						height={plotMargin.bottom}
 						fill="var(--color-background)"
 					/>
 
 					{/* Y-axis background bar */}
 					<rect
-						x={-margin.left}
+						x={-plotMargin.left}
 						y={-AXIS_BG_TOP_EXTENSION}
-						width={margin.left}
+						width={plotMargin.left}
 						height={innerHeight + AXIS_BG_TOP_EXTENSION}
 						fill="var(--color-background)"
 					/>
@@ -591,10 +593,16 @@ function ScatterPlotContent({
 			)}
 
 			{variant === "default" && (
-				<div className="absolute bottom-16 right-3">
+				<div className="pointer-events-none absolute bottom-16 left-3 max-w-[calc(100%-6rem)] rounded-full border bg-card/90 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur">
+					Колір — факультет, розмір — кількість відгуків
+				</div>
+			)}
+			{variant === "default" && (
+				<div className="absolute bottom-16 right-3 overflow-hidden rounded-full border bg-card/90 shadow-sm backdrop-blur">
 					<ButtonGroup
 						orientation="vertical"
 						aria-label="Керування масштабом графіка"
+						className="border-0 bg-transparent shadow-none"
 					>
 						<Button
 							variant="ghost"
