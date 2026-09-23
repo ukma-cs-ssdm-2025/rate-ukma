@@ -202,6 +202,15 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "course-no-reviews",
+		note: "Unreviewed course seen by an attendee before midterm: no call to be first",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "not-yet", reviews: "empty" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.getByText("Відгуків ще немає").waitFor();
+		},
+	},
+	{
 		name: "course-comments",
 		note: "Course page with the first review's comment thread expanded",
 		run: async (page) => {

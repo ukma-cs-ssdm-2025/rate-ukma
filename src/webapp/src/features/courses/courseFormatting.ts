@@ -262,21 +262,6 @@ export function formatAcademicYearLabel(
 	return `${startYear}–${startYear + 1}`;
 }
 
-export function formatRatingsBasis(count?: number | null): string | null {
-	if (count == null || count <= 0) {
-		return null;
-	}
-	// Same 1 / 2–4 / 11–14 rule as formatReply in RatingComments: both the
-	// lone and the few form surface as genitive singular "оцінки" here.
-	const lastDigit = count % 10;
-	const lastTwoDigits = count % 100;
-	const plural =
-		(lastTwoDigits >= 11 && lastTwoDigits <= 14) ||
-		lastDigit === 0 ||
-		lastDigit >= 5;
-	return `На основі ${count} ${plural ? "оцінок" : "оцінки"}`;
-}
-
 export function hasCourseScores(
 	difficulty?: number | null,
 	usefulness?: number | null,

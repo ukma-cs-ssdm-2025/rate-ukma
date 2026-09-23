@@ -8,7 +8,6 @@ import {
 } from "../../ratings/definitions/ratingDefinitions";
 import {
 	DIFFICULTY_RANGE,
-	formatRatingsBasis,
 	USEFULNESS_RANGE,
 	getDifficultyTone,
 	getUsefulnessTone,
@@ -131,7 +130,6 @@ export function CourseStatsHero({
 		return null;
 	}
 
-	const basis = formatRatingsBasis(ratingsCount);
 	const panels = [
 		{
 			title: "Складність",
@@ -152,46 +150,44 @@ export function CourseStatsHero({
 	];
 
 	return (
-		<div data-testid={testIds.courseDetails.statsCards} className="space-y-3">
-			<div className="grid grid-cols-2 gap-3 sm:gap-4">
-				{panels.map((panel) => (
-					<Card
-						key={panel.title}
-						className="shadow-sm"
-						title={
-							panel.value !== null
-								? getDetailedDescription(panel.value, panel.type)
-								: undefined
-						}
-					>
-						<CardContent className="p-4 sm:p-5">
-							<p className="text-sm font-medium text-muted-foreground">
-								{panel.title}
-							</p>
-							<p className="mt-1 flex items-baseline gap-1.5">
-								<span
-									className={cn(
-										"text-4xl font-bold tabular-nums sm:text-5xl",
-										panel.value != null
-											? panel.accent
-											: "text-muted-foreground",
-									)}
-								>
-									{panel.formatted}
-								</span>
-								<span className="text-sm text-muted-foreground">з 5</span>
-							</p>
-							<div className="mt-3">
-								<ScaleBar value={panel.value} accent={panel.barColor} />
-							</div>
-							<p className="mt-2 text-sm text-muted-foreground">
-								{getDescription(panel.value, panel.type)}
-							</p>
-						</CardContent>
-					</Card>
-				))}
-			</div>
-			{basis && <p className="text-sm text-muted-foreground">{basis}</p>}
+		<div
+			data-testid={testIds.courseDetails.statsCards}
+			className="grid grid-cols-2 gap-3 sm:gap-4"
+		>
+			{panels.map((panel) => (
+				<Card
+					key={panel.title}
+					className="shadow-sm"
+					title={
+						panel.value !== null
+							? getDetailedDescription(panel.value, panel.type)
+							: undefined
+					}
+				>
+					<CardContent className="p-4 sm:p-5">
+						<p className="text-sm font-medium text-muted-foreground">
+							{panel.title}
+						</p>
+						<p className="mt-1 flex items-baseline gap-1.5">
+							<span
+								className={cn(
+									"text-4xl font-bold tabular-nums sm:text-5xl",
+									panel.value != null ? panel.accent : "text-muted-foreground",
+								)}
+							>
+								{panel.formatted}
+							</span>
+							<span className="text-sm text-muted-foreground">з 5</span>
+						</p>
+						<div className="mt-3">
+							<ScaleBar value={panel.value} accent={panel.barColor} />
+						</div>
+						<p className="mt-2 text-sm text-muted-foreground">
+							{getDescription(panel.value, panel.type)}
+						</p>
+					</CardContent>
+				</Card>
+			))}
 		</div>
 	);
 }

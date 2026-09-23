@@ -6,7 +6,6 @@ import {
 	formatCredits,
 	formatDate,
 	formatDecimalValue,
-	formatRatingsBasis,
 	formatWeeklyHours,
 	getAcademicStartYear,
 	getCourseTypeDisplay,
@@ -408,34 +407,6 @@ describe("courseFormatting", () => {
 
 		it("should return an em dash when the year cannot be derived", () => {
 			expect(formatAcademicYearLabel(null, "FALL")).toBe("—");
-		});
-	});
-
-	describe("formatRatingsBasis", () => {
-		it("should use the singular form for a single rating", () => {
-			expect(formatRatingsBasis(1)).toBe("На основі 1 оцінки");
-		});
-
-		it("should use the plural form for multiple ratings", () => {
-			expect(formatRatingsBasis(5)).toBe("На основі 5 оцінок");
-		});
-
-		it.each([
-			[1, "На основі 1 оцінки"],
-			[21, "На основі 21 оцінки"],
-			[31, "На основі 31 оцінки"],
-			[2, "На основі 2 оцінки"],
-			[4, "На основі 4 оцінки"],
-			[5, "На основі 5 оцінок"],
-			[11, "На основі 11 оцінок"],
-			[111, "На основі 111 оцінок"],
-		])("formats %i ratings as %s", (count, expected) => {
-			expect(formatRatingsBasis(count)).toBe(expected);
-		});
-
-		it("should return null when there are no ratings", () => {
-			expect(formatRatingsBasis(0)).toBeNull();
-			expect(formatRatingsBasis(null)).toBeNull();
 		});
 	});
 

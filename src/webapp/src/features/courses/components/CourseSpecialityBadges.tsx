@@ -2,6 +2,11 @@ import { useId, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import type { TypeKindEnum } from "@/lib/api/generated";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { cn } from "@/lib/utils";
@@ -17,6 +22,8 @@ interface CourseSpecialityBadgesProps {
 		readonly type_kind?: TypeKindEnum;
 	}> | null;
 	size?: "default" | "sm";
+	/** САЗ records keep elective streams; the course header hides them. */
+	includeElective?: boolean;
 }
 
 function getSpecialityAlias(
@@ -47,6 +54,7 @@ const MAX_VISIBLE_BADGES = 5;
 export function CourseSpecialityBadges({
 	specialities,
 	size = "default",
+	includeElective = false,
 }: Readonly<CourseSpecialityBadgesProps>) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const badgesId = useId();
@@ -56,7 +64,10 @@ export function CourseSpecialityBadges({
 	}
 
 	const validSpecialities = specialities.filter(
-		(s) => s.speciality_id && s.speciality_title && s.type_kind !== "ELECTIVE",
+		(s) =>
+			s.speciality_id &&
+			s.speciality_title &&
+			(includeElective || s.type_kind !== "ELECTIVE"),
 	);
 
 	if (validSpecialities.length === 0) {
@@ -78,31 +89,32 @@ export function CourseSpecialityBadges({
 				);
 				const colors = getFacultyColors(speciality.faculty_name || "");
 
+				const kind = getCourseTypeDisplay(speciality.type_kind ?? "", "");
+
 				return (
-					<span
-						key={speciality.speciality_id}
-						className="inline-flex items-center"
-					>
-						<Badge
-							variant="secondary"
-							className={cn(
-								"cursor-default border text-xs",
-								size === "sm" ? "px-1.5 py-0" : "px-2 py-0.5",
-								colors.bg,
-								colors.text,
-								colors.border,
-							)}
-							title={speciality.speciality_title}
-						>
-							{abbreviation}
-						</Badge>
-						<span className="sr-only">
-							{speciality.speciality_title}
-							{getCourseTypeDisplay(speciality.type_kind ?? "", "")
-								? `, ${getCourseTypeDisplay(speciality.type_kind ?? "", "")}`
-								: ""}
-						</span>
-					</span>
+					<Tooltip key={speciality.speciality_id}>
+						<TooltipTrigger asChild>
+							<Badge
+								variant="secondary"
+								className={cn(
+									"cursor-default border text-xs",
+									size === "sm" ? "px-1.5 py-0" : "px-2 py-0.5",
+									colors.bg,
+									colors.text,
+									colors.border,
+								)}
+							>
+								{abbreviation}
+								<span className="sr-only">
+									{`: ${speciality.speciality_title}${kind ? `, ${kind}` : ""}`}
+								</span>
+							</Badge>
+						</TooltipTrigger>
+						<TooltipContent side="top" className="max-w-xs text-center">
+							<p className="font-medium">{speciality.speciality_title}</p>
+							{kind ? <p>{kind}</p> : null}
+						</TooltipContent>
+					</Tooltip>
 				);
 			})}
 			{hasHiddenBadges && (

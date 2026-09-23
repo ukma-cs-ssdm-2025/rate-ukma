@@ -24,6 +24,7 @@ export interface MockOptions {
 	readonly grades?: "items" | "empty";
 	readonly myCourses?: "none" | MyCourseState;
 	readonly comments?: "empty" | "thread";
+	readonly reviews?: "items" | "empty";
 	readonly notifications?: "none" | "items";
 }
 
@@ -51,6 +52,7 @@ export async function mockBackend(
 		grades = "items",
 		myCourses = "none",
 		comments = "empty",
+		reviews = "items",
 		notifications = "none",
 	}: MockOptions = {},
 ): Promise<void> {
@@ -86,8 +88,29 @@ export async function mockBackend(
 			[/^\/courses\/filter-options\/$/, () => FILTER_OPTIONS],
 			[/^\/courses\/$/, () => courseList],
 			[/^\/courses\/[^/]+\/offerings\/$/, () => COURSE_OFFERINGS],
-			[/^\/courses\/[^/]+\/ratings\/$/, () => COURSE_RATINGS],
-			[/^\/courses\/[^/]+\/$/, () => COURSE_DETAIL],
+			[
+				/^\/courses\/[^/]+\/ratings\/$/,
+				() =>
+					reviews === "empty"
+						? {
+								...COURSE_RATINGS,
+								items: { ratings: [], user_ratings: null },
+								total: 0,
+							}
+						: COURSE_RATINGS,
+			],
+			[
+				/^\/courses\/[^/]+\/$/,
+				() =>
+					reviews === "empty"
+						? {
+								...COURSE_DETAIL,
+								avg_difficulty: null,
+								avg_usefulness: null,
+								ratings_count: 0,
+							}
+						: COURSE_DETAIL,
+			],
 			[
 				/^\/ratings\/[^/]+\/comments\/$/,
 				(path) =>

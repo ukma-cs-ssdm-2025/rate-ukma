@@ -201,9 +201,44 @@ function RatingFormFields({
 	const comment = useWatch({ control, name: "comment" }) ?? "";
 	const difficultyLabelId = React.useId();
 	const usefulnessLabelId = React.useId();
+	const scrollRef = React.useRef<HTMLDivElement>(null);
+	const [edges, setEdges] = React.useState({
+		scrolled: false,
+		moreBelow: false,
+	});
+
+	// Dividers only mark content hidden under the header or footer, so they
+	// follow the scroll position instead of always framing the form.
+	const updateEdges = React.useCallback(() => {
+		const el = scrollRef.current;
+		if (!el) return;
+		const scrolled = el.scrollTop > 0;
+		const moreBelow = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+		setEdges((prev) =>
+			prev.scrolled === scrolled && prev.moreBelow === moreBelow
+				? prev
+				: { scrolled, moreBelow },
+		);
+	}, []);
+
+	React.useEffect(() => {
+		const el = scrollRef.current;
+		if (!el) return;
+		updateEdges();
+		const observer = new ResizeObserver(updateEdges);
+		observer.observe(el);
+		for (const child of el.children) observer.observe(child);
+		return () => observer.disconnect();
+	}, [updateEdges]);
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5 sm:gap-6 sm:py-4">
+		<div
+			ref={scrollRef}
+			onScroll={updateEdges}
+			data-scrolled={edges.scrolled || undefined}
+			data-more-below={edges.moreBelow || undefined}
+			className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5 sm:gap-6 sm:py-4"
+		>
 			<div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
 				<FormField<RatingFormData, "difficulty">
 					control={control}
@@ -386,7 +421,7 @@ export function RatingForm({
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit(onSubmit)}
-				className="flex min-h-0 flex-1 flex-col overflow-hidden"
+				className="group/rating-form flex min-h-0 flex-1 flex-col overflow-hidden"
 				data-testid={testIds.rating.form}
 			>
 				<RatingFormFields
@@ -397,7 +432,7 @@ export function RatingForm({
 					legacyInstructor={initialData?.instructor?.trim() || undefined}
 				/>
 
-				<DialogFooter className="shrink-0 border-t px-6 py-4">
+				<DialogFooter className="shrink-0 border-t border-transparent px-6 py-4 transition-colors motion-reduce:transition-none group-has-[[data-more-below]]/rating-form:border-border">
 					<Button
 						type="button"
 						variant="ghost"

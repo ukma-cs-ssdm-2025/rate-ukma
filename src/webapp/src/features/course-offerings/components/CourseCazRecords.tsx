@@ -8,6 +8,7 @@ import {
 	formatWeeklyHours,
 	getSemesterTermDisplay,
 } from "@/features/courses/courseFormatting";
+import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpecialityBadges";
 import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
 
 const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
@@ -195,6 +196,14 @@ function RecordLink({
 	);
 }
 
+// The badges already name the speciality, so the link keeps only what else
+// tells the streams apart.
+function withoutSpeciality(label: string, offering: CourseOffering): string {
+	const speciality = specialitiesLabel(offering);
+	if (!speciality || !label.startsWith(speciality)) return label;
+	return label.slice(speciality.length).replace(/^, /, "");
+}
+
 function YearRow({
 	group,
 	showTerm,
@@ -216,18 +225,37 @@ function YearRow({
 					<div className="text-xs text-muted-foreground">{termLabel}</div>
 				) : null}
 			</div>
-			<ul className="space-y-1">
-				{group.records.map((record, index) => (
-					<li key={record.id ?? record.code} className="break-words">
-						<RecordLink
-							code={record.code}
-							label={labels[index] || "Запис у САЗ"}
-							ariaLabel={[group.year, termLabel, labels[index]]
-								.filter(Boolean)
-								.join(", ")}
-						/>
-					</li>
-				))}
+			<ul className="space-y-1.5">
+				{group.records.map((record, index) => {
+					const label = labels[index] || "Запис у САЗ";
+					const ariaLabel = [group.year, termLabel, labels[index]]
+						.filter(Boolean)
+						.join(", ");
+					return (
+						<li key={record.id ?? record.code} className="break-words">
+							{bySpeciality ? (
+								<span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+									<CourseSpecialityBadges
+										specialities={record.specialities}
+										size="sm"
+										includeElective
+									/>
+									<RecordLink
+										code={record.code}
+										label={withoutSpeciality(label, record) || "у САЗ"}
+										ariaLabel={ariaLabel}
+									/>
+								</span>
+							) : (
+								<RecordLink
+									code={record.code}
+									label={label}
+									ariaLabel={ariaLabel}
+								/>
+							)}
+						</li>
+					);
+				})}
 			</ul>
 		</div>
 	);

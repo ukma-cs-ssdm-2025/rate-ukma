@@ -58,14 +58,26 @@ interface RatingsContentProps {
 	singleTerm: boolean;
 }
 
+function emptyDescription(hasAttended: boolean, canRate: boolean): string {
+	if (!hasAttended) return "Їх залишають студенти, які слухали цей курс.";
+	if (!canRate) {
+		return "Перші відгуки з'являться, коли відкриється оцінювання.";
+	}
+	return "Ваш відгук може стати першим.";
+}
+
 function EmptyState({
 	showCta,
 	canRateButton,
 	onRate,
+	hasAttended,
+	canRate,
 }: Readonly<{
 	showCta: boolean;
 	canRateButton: boolean;
 	onRate?: () => void;
+	hasAttended: boolean;
+	canRate: boolean;
 }>) {
 	return (
 		<Empty
@@ -76,9 +88,9 @@ function EmptyState({
 				<EmptyMedia variant="icon">
 					<MessageSquare />
 				</EmptyMedia>
-				<EmptyTitle>Будь першим, хто оцінить цей курс</EmptyTitle>
+				<EmptyTitle>Відгуків ще немає</EmptyTitle>
 				<EmptyDescription>
-					Твій відгук допоможе іншим студентам зробити усвідомлений вибір
+					{emptyDescription(hasAttended, canRate)}
 				</EmptyDescription>
 			</EmptyHeader>
 			{showCta && (
@@ -244,6 +256,8 @@ export function CourseRatingsList({
 					showCta={showCta}
 					canRateButton={canRateButton}
 					onRate={onRate}
+					hasAttended={hasAttended}
+					canRate={canRate}
 				/>
 			) : (
 				<RatingsContent

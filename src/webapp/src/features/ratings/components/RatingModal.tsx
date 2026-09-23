@@ -158,10 +158,10 @@ export function RatingModal({
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
 			<DialogContent
-				className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[500px]"
+				className="group/rating-modal flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[500px]"
 				data-testid={testIds.rating.modal}
 			>
-				<DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4 text-left">
+				<DialogHeader className="shrink-0 border-b border-transparent px-6 pt-6 pb-4 text-left transition-colors motion-reduce:transition-none group-has-[[data-scrolled]]/rating-modal:border-border">
 					<DialogTitle data-testid={testIds.rating.modalTitle}>
 						{courseName?.trim() ||
 							(isEditMode ? "Редагувати оцінку" : "Оцінити курс")}

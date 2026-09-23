@@ -73,8 +73,10 @@ export function UserRatingCard({
 			: undefined;
 
 	return (
+		// Negative margin lets the tint bleed past the column so the text lines up
+		// with the reviews below.
 		<article
-			className="rounded-xl border bg-card-user px-4 py-4 shadow-sm"
+			className="-mx-3 rounded-xl bg-card-user px-3 py-3 sm:-mx-4 sm:px-4 sm:py-4"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
 			<div className="mb-2 flex items-center justify-between">
