@@ -56,11 +56,11 @@ export function MobileNotificationPanel({
 			className="flex h-full flex-col"
 			data-testid={testIds.notifications.mobilePanel}
 		>
-			<div className="flex items-center gap-2 border-b border-border/40 pb-3">
+			<div className="flex items-center gap-1 pb-1">
 				<Button
 					variant="ghost"
 					size="icon"
-					className="size-9 shrink-0 rounded-full"
+					className="size-9 shrink-0"
 					onClick={onBack}
 					aria-label="Назад"
 				>
@@ -71,7 +71,6 @@ export function MobileNotificationPanel({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-auto px-2 py-1 text-xs"
 						onClick={handleMarkAllRead}
 						disabled={isPending}
 						data-testid={testIds.notifications.markReadButton}
@@ -120,9 +119,9 @@ export function MobileNotificationRow({
 				className="relative size-9"
 				aria-label="Відкрити сповіщення"
 			>
-				<Bell className="h-[1.2rem] w-[1.2rem]" />
+				<Bell className="size-5" />
 				{count > 0 && (
-					<span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+					<span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
 						{count > 99 ? "99+" : count}
 					</span>
 				)}

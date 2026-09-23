@@ -1,14 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import {
-	AlertTriangle,
-	Bell,
-	Loader2,
-	MessageSquare,
-	ThumbsDown,
-	ThumbsUp,
-} from "lucide-react";
+import { Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import {
+	Empty,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/Empty";
+import { Spinner } from "@/components/ui/Spinner";
 import type { NotificationGroup } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
@@ -26,12 +26,6 @@ interface NotificationListProps {
 	onLoadMore?: () => void;
 }
 
-const EVENT_ICONS: Record<string, typeof ThumbsUp> = {
-	RATING_UPVOTED: ThumbsUp,
-	RATING_DOWNVOTED: ThumbsDown,
-	RATING_COMMENT_CREATED: MessageSquare,
-};
-
 export function NotificationList({
 	notifications,
 	isLoading,
@@ -46,9 +40,10 @@ export function NotificationList({
 	if (isLoading) {
 		return (
 			<div
-				className="flex items-center justify-center py-8"
+				className="flex items-center justify-center gap-2 py-8"
 				data-testid={testIds.notifications.loading}
 			>
+				<Spinner />
 				<span className="text-sm text-muted-foreground">Завантаження...</span>
 			</div>
 		);
@@ -60,7 +55,6 @@ export function NotificationList({
 				className="flex flex-col items-center justify-center gap-2 py-8"
 				data-testid={testIds.notifications.error}
 			>
-				<AlertTriangle className="size-8 text-destructive/50" />
 				<span className="text-sm text-muted-foreground">
 					Не вдалося завантажити
 				</span>
@@ -68,7 +62,6 @@ export function NotificationList({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-auto px-2 py-1 text-xs"
 						onClick={onRetry}
 						disabled={isRetrying}
 					>
@@ -81,19 +74,26 @@ export function NotificationList({
 
 	if (notifications.length === 0) {
 		return (
-			<div
-				className="flex flex-col items-center justify-center gap-2 py-8"
+			<Empty
+				className="border-0 py-8"
 				data-testid={testIds.notifications.empty}
 			>
-				<Bell className="size-8 text-muted-foreground/50" />
-				<span className="text-sm text-muted-foreground">Немає сповіщень</span>
-			</div>
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<Bell />
+					</EmptyMedia>
+					<EmptyTitle className="text-sm">Немає сповіщень</EmptyTitle>
+				</EmptyHeader>
+			</Empty>
 		);
 	}
 
 	return (
-		<div>
-			<ul className="flex flex-col" data-testid={testIds.notifications.list}>
+		<div className="flex flex-col gap-0.5">
+			<ul
+				className="flex flex-col gap-0.5"
+				data-testid={testIds.notifications.list}
+			>
 				{notifications.map((notification) => (
 					<NotificationItem
 						key={notification.group_key}
@@ -103,21 +103,17 @@ export function NotificationList({
 				))}
 			</ul>
 			{hasMore && (
-				<div className="flex justify-center py-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-auto w-full px-2 py-2 text-xs text-muted-foreground"
-						onClick={onLoadMore}
-						disabled={isLoadingMore}
-						data-testid={testIds.notifications.loadMore}
-					>
-						{isLoadingMore ? (
-							<Loader2 className="mr-1 size-3 animate-spin" />
-						) : null}
-						Завантажити ще
-					</Button>
-				</div>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="mt-0.5 w-full text-muted-foreground"
+					onClick={onLoadMore}
+					disabled={isLoadingMore}
+					data-testid={testIds.notifications.loadMore}
+				>
+					{isLoadingMore ? <Spinner className="mr-1" /> : null}
+					Завантажити ще
+				</Button>
 			)}
 		</div>
 	);
@@ -130,42 +126,32 @@ function NotificationItem({
 	notification: NotificationGroup;
 	onClick?: (groupKey: string) => void;
 }>) {
-	const Icon = EVENT_ICONS[notification.event_type ?? ""] ?? Bell;
-	const isUpvote = notification.event_type === "RATING_UPVOTED";
 	const courseId = notification.course_id;
 
 	const content = (
 		<>
-			<div
+			<span
+				aria-hidden
 				className={cn(
-					"mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full",
-					isUpvote
-						? "bg-primary/10 text-primary"
-						: "bg-destructive/10 text-destructive",
+					"mt-1.5 size-1.5 shrink-0 rounded-full",
+					notification.is_unread ? "bg-primary" : "bg-transparent",
 				)}
-			>
-				<Icon className="size-4" />
-			</div>
+			/>
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-				<p className="text-sm leading-snug">{notification.message}</p>
+				<p className="line-clamp-2 text-sm leading-snug text-foreground">
+					{notification.message}
+				</p>
 				{notification.latest_created_at && (
 					<time className="text-xs text-muted-foreground">
 						{formatRelativeTime(notification.latest_created_at)}
 					</time>
 				)}
 			</div>
-			{notification.is_unread && (
-				<span className="mt-2 size-2 shrink-0 rounded-full bg-primary" />
-			)}
 		</>
 	);
 
-	const itemClass = cn(
-		"flex items-start gap-3 border-b border-border/40 px-1 py-3 last:border-b-0",
-		notification.is_unread && "bg-accent/30",
-		courseId &&
-			"cursor-pointer rounded-md transition-colors hover:bg-accent/50",
-	);
+	const itemClass =
+		"flex items-start gap-2.5 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted";
 
 	if (courseId) {
 		return (
