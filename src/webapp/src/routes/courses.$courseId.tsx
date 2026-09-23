@@ -34,6 +34,7 @@ import {
 } from "@/lib/api/generated";
 import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 function CourseDescription({ text }: Readonly<{ text: string }>) {
 	return (
@@ -115,7 +116,15 @@ function CourseDetailsRoute() {
 					<meta name="twitter:description" content={ogDescription} />
 				</Helmet>
 			)}
-			<div className="grid gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+			<div
+				className={cn(
+					"grid gap-8 pb-16 lg:items-start",
+					// The aside spans both rows; the 1fr row absorbs its extra height so
+					// the header row never stretches.
+					showAside &&
+						"lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr]",
+				)}
+			>
 				<CourseDetailsHeader
 					title={course.title ?? ""}
 					educationLevel={course.education_level}
@@ -126,7 +135,7 @@ function CourseDetailsRoute() {
 				/>
 
 				{showAside && (
-					<aside className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:row-span-2">
+					<aside className="min-w-0 max-lg:contents lg:sticky lg:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:space-y-6">
 						<CourseStatsHero
 							difficulty={course.avg_difficulty ?? null}
 							usefulness={course.avg_usefulness ?? null}
@@ -142,12 +151,15 @@ function CourseDetailsRoute() {
 							</RatingButton>
 						)}
 						{offerings.length > 0 && (
-							<CourseCazYearsSection courseOfferings={offerings} />
+							<CourseCazYearsSection
+								courseOfferings={offerings}
+								className="max-lg:order-last"
+							/>
 						)}
 					</aside>
 				)}
 
-				<div className="min-w-0 space-y-8">
+				<div className="min-w-0 space-y-8 lg:col-start-1">
 					{course.description && (
 						<CourseDescription text={course.description} />
 					)}
@@ -192,12 +204,12 @@ function CourseDetailsRoute() {
 
 function CourseDetailsSkeleton() {
 	return (
-		<div className="grid gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+		<div className="grid gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] lg:items-start">
 			<CourseDetailsHeaderSkeleton />
-			<div className="min-w-0 lg:row-span-2">
+			<div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
 				<CourseStatsHeroSkeleton />
 			</div>
-			<div className="min-w-0 space-y-8">
+			<div className="min-w-0 space-y-8 lg:col-start-1">
 				<Skeleton className="h-10 w-full max-w-2xl" />
 				<CourseRatingsListSkeleton />
 			</div>
