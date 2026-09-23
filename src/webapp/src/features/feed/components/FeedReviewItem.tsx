@@ -52,44 +52,11 @@ export function FeedReviewItem({
 			: undefined;
 	const isBanner = variant === "banner";
 
-	// Compact strip tile: the body is the comment (or the scores when there
-	// is none) and the footer is one muted line, so nothing repeats.
-	const scoreNodes = (
-		<>
-			<span>Складність</span>{" "}
-			<span
-				className={cn(
-					"font-semibold tabular-nums",
-					getDifficultyTone(item.difficulty),
-				)}
-			>
-				{item.difficulty.toFixed(1)}
-			</span>{" "}
-			<ComparisonArrow
-				score={item.difficulty}
-				average={item.courseAvgDifficulty}
-			/>{" "}
-			<span>Корисність</span>{" "}
-			<span
-				className={cn(
-					"font-semibold tabular-nums",
-					getUsefulnessTone(item.usefulness),
-				)}
-			>
-				{item.usefulness.toFixed(1)}
-			</span>{" "}
-			<ComparisonArrow
-				score={item.usefulness}
-				average={item.courseAvgUsefulness}
-			/>
-		</>
-	);
-
 	if (!isBanner) {
 		return (
 			<FeedCard
 				variant="card"
-				badge={<Badge variant="outline">Відгук</Badge>}
+				badge={<Badge variant="soft">Відгук</Badge>}
 				pinned={item.pinned}
 				title={
 					<Link
@@ -104,13 +71,46 @@ export function FeedReviewItem({
 					<p className="truncate text-xs text-muted-foreground">
 						<time>{formatRelativeTime(item.createdAt)}</time>
 						{semesterLabel && <span>, {semesterLabel}</span>}
-						{item.comment && <span>, {scoreNodes}</span>}
 					</p>
 				}
 			>
-				<p className="truncate text-sm text-muted-foreground">
-					{item.comment ? item.comment : scoreNodes}
+				<p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+					<span className="inline-flex items-center gap-1 whitespace-nowrap">
+						<span className="text-muted-foreground">Складність</span>{" "}
+						<span
+							className={cn(
+								"font-semibold tabular-nums",
+								getDifficultyTone(item.difficulty),
+							)}
+						>
+							{item.difficulty.toFixed(1)}
+						</span>{" "}
+						<ComparisonArrow
+							score={item.difficulty}
+							average={item.courseAvgDifficulty}
+						/>
+					</span>
+					<span className="inline-flex items-center gap-1 whitespace-nowrap">
+						<span className="text-muted-foreground">Корисність</span>{" "}
+						<span
+							className={cn(
+								"font-semibold tabular-nums",
+								getUsefulnessTone(item.usefulness),
+							)}
+						>
+							{item.usefulness.toFixed(1)}
+						</span>{" "}
+						<ComparisonArrow
+							score={item.usefulness}
+							average={item.courseAvgUsefulness}
+						/>
+					</span>
 				</p>
+				{item.comment && (
+					<p className="line-clamp-2 flex-1 text-sm text-muted-foreground">
+						{item.comment}
+					</p>
+				)}
 			</FeedCard>
 		);
 	}
@@ -118,7 +118,7 @@ export function FeedReviewItem({
 	return (
 		<FeedCard
 			variant="banner"
-			badge={<Badge variant="outline">Відгук</Badge>}
+			badge={<Badge variant="soft">Відгук</Badge>}
 			pinned={item.pinned}
 			title={
 				<Link

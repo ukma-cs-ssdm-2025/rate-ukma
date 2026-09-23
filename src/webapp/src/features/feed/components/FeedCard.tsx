@@ -11,7 +11,7 @@ interface FeedCardProps {
 	readonly children?: ReactNode;
 	readonly footer?: ReactNode;
 	readonly className?: string;
-	/** `card` is the ~120px strip tile; `banner` keeps the roomy `/feed` layout. */
+	/** `card` is the strip tile; `banner` keeps the roomy `/feed` layout. */
 	readonly variant?: "card" | "banner";
 }
 
@@ -30,7 +30,7 @@ export function FeedCard({
 		<article
 			className={cn(
 				"flex h-full flex-col rounded-xl border bg-card text-card-foreground shadow-sm",
-				isBanner ? "gap-3 p-4" : "gap-1 px-3 py-2.5",
+				isBanner ? "gap-3 p-4" : "gap-1.5 px-3 py-2.5",
 				className,
 			)}
 		>
@@ -48,8 +48,8 @@ export function FeedCard({
 			</div>
 			<h3
 				className={cn(
-					"font-semibold leading-snug",
-					isBanner ? "line-clamp-2" : "text-sm line-clamp-1",
+					"font-semibold leading-snug line-clamp-2",
+					!isBanner && "text-sm",
 				)}
 			>
 				{title}

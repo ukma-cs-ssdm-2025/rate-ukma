@@ -19,7 +19,7 @@ export function FeedCommentItem({
 	return (
 		<FeedCard
 			variant={variant}
-			badge={<Badge variant="outline">Коментар</Badge>}
+			badge={<Badge variant="success">Коментар</Badge>}
 			pinned={item.pinned}
 			title={
 				<Link
@@ -40,7 +40,7 @@ export function FeedCommentItem({
 				className={
 					isBanner
 						? "line-clamp-2 text-sm text-muted-foreground"
-						: "truncate text-sm text-muted-foreground"
+						: "line-clamp-2 flex-1 text-sm text-muted-foreground"
 				}
 			>
 				{item.content}

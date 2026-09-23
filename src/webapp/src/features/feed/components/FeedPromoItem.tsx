@@ -65,7 +65,9 @@ export function FeedPromoItem({
 					</p>
 				}
 			>
-				<p className="truncate text-sm text-muted-foreground">{item.body}</p>
+				<p className="line-clamp-2 flex-1 text-sm text-muted-foreground">
+					{item.body}
+				</p>
 			</FeedCard>
 		);
 	}
