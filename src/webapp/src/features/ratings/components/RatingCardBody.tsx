@@ -69,7 +69,7 @@ export function RatingCardBody({
 	const instructorNames = instructors.map(formatInstructorName).filter(Boolean);
 	return (
 		<>
-			<div className="flex items-center justify-between gap-3">
+			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
 				<div className="flex min-w-0 flex-1 items-center gap-2.5">
 					<UserAvatar
 						name={displayName}

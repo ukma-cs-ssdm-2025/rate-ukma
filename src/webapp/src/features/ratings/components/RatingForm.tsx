@@ -67,7 +67,7 @@ function ScoreInput({
 	onChange,
 	onBlur,
 	descriptions,
-	scaleLabel,
+	labelId,
 	"data-testid": dataTestId,
 	...rest
 }: Readonly<{
@@ -75,7 +75,7 @@ function ScoreInput({
 	onChange: (value: number) => void;
 	onBlur?: () => void;
 	descriptions: Record<number, string>;
-	scaleLabel: string;
+	labelId: string;
 	"data-testid"?: string;
 	id?: string;
 	"aria-describedby"?: string;
@@ -93,7 +93,7 @@ function ScoreInput({
 					}
 				}}
 				onBlur={onBlur}
-				aria-label={scaleLabel}
+				aria-labelledby={labelId}
 				className="w-full"
 				{...rest}
 			>
@@ -133,6 +133,8 @@ function RatingFormFields({
 	legacyInstructor?: string;
 }>) {
 	const comment = useWatch({ control, name: "comment" }) ?? "";
+	const difficultyLabelId = React.useId();
+	const usefulnessLabelId = React.useId();
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
@@ -145,7 +147,7 @@ function RatingFormFields({
 						return (
 							<FormItem>
 								<div className="flex items-baseline justify-between gap-3">
-									<FormLabel>Складність</FormLabel>
+									<FormLabel id={difficultyLabelId}>Складність</FormLabel>
 									<span
 										aria-live="polite"
 										className="text-right text-xs text-muted-foreground tabular-nums"
@@ -160,7 +162,7 @@ function RatingFormFields({
 										onChange={field.onChange}
 										onBlur={field.onBlur}
 										descriptions={difficultyDescriptions}
-										scaleLabel="Складність"
+										labelId={difficultyLabelId}
 										data-testid={testIds.rating.difficultySlider}
 									/>
 								</FormControl>
@@ -178,7 +180,7 @@ function RatingFormFields({
 						return (
 							<FormItem>
 								<div className="flex items-baseline justify-between gap-3">
-									<FormLabel>Корисність</FormLabel>
+									<FormLabel id={usefulnessLabelId}>Корисність</FormLabel>
 									<span
 										aria-live="polite"
 										className="text-right text-xs text-muted-foreground tabular-nums"
@@ -193,7 +195,7 @@ function RatingFormFields({
 										onChange={field.onChange}
 										onBlur={field.onBlur}
 										descriptions={usefulnessDescriptions}
-										scaleLabel="Корисність"
+										labelId={usefulnessLabelId}
 										data-testid={testIds.rating.usefulnessSlider}
 									/>
 								</FormControl>

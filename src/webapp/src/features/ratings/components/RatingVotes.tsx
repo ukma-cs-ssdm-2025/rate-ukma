@@ -56,7 +56,7 @@ function Vote({
 			disabled={disabled}
 			onClick={onClick}
 			aria-pressed={active}
-			aria-label={isUpvote ? "За" : "Проти"}
+			aria-label={`${isUpvote ? "За" : "Проти"}: ${count}`}
 			className={cn(
 				"h-8 gap-1.5 px-2 disabled:opacity-100",
 				active ? "bg-primary/10 text-primary" : "text-muted-foreground",
@@ -74,7 +74,9 @@ function Vote({
 	return (
 		<Tooltip delayDuration={0}>
 			<TooltipTrigger asChild>
-				<span className="inline-flex">{button}</span>
+				<span className="inline-flex" tabIndex={0}>
+					{button}
+				</span>
 			</TooltipTrigger>
 			<TooltipContent side="top" sideOffset={4}>
 				<p>{disabledMessage}</p>

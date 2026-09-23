@@ -145,8 +145,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page
 				.getByRole("heading", { level: 1, name: COURSE.title })
 				.waitFor();
-			const rate = page.getByTestId("course-details-rate-button");
-			if (await rate.isVisible()) await rate.click({ timeout: 5_000 });
+			await page.getByTestId("course-details-rate-button").click();
 			await page.getByTestId("rating-modal").waitFor();
 		},
 	},

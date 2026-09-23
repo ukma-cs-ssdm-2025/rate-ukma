@@ -397,7 +397,20 @@ describe("courseFormatting", () => {
 		});
 
 		it("should use the plural form for multiple ratings", () => {
-			expect(formatRatingsBasis(4)).toBe("На основі 4 оцінок");
+			expect(formatRatingsBasis(5)).toBe("На основі 5 оцінок");
+		});
+
+		it.each([
+			[1, "На основі 1 оцінки"],
+			[21, "На основі 21 оцінки"],
+			[31, "На основі 31 оцінки"],
+			[2, "На основі 2 оцінки"],
+			[4, "На основі 4 оцінки"],
+			[5, "На основі 5 оцінок"],
+			[11, "На основі 11 оцінок"],
+			[111, "На основі 111 оцінок"],
+		])("formats %i ratings as %s", (count, expected) => {
+			expect(formatRatingsBasis(count)).toBe(expected);
 		});
 
 		it("should return null when there are no ratings", () => {

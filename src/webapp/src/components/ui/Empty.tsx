@@ -67,9 +67,9 @@ function EmptyMedia({
 function EmptyTitle({
 	className,
 	...props
-}: Readonly<React.ComponentProps<"div">>) {
+}: Readonly<React.ComponentProps<"h3">>) {
 	return (
-		<div
+		<h3
 			data-slot="empty-title"
 			className={cn("text-lg font-medium tracking-tight", className)}
 			{...props}
@@ -82,7 +82,7 @@ function EmptyDescription({
 	...props
 }: Readonly<React.ComponentProps<"p">>) {
 	return (
-		<div
+		<p
 			data-slot="empty-description"
 			className={cn(
 				"text-sm/relaxed text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",

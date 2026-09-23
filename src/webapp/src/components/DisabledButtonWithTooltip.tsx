@@ -56,6 +56,19 @@ export function DisabledButtonWithTooltip({
 		);
 	}
 
+	if (!shouldBeDisabled) {
+		return (
+			<div className={`inline-block ${className ?? ""}`}>
+				<Tooltip>
+					<TooltipTrigger asChild>{renderedChild}</TooltipTrigger>
+					<TooltipContent>
+						<p>{tooltip}</p>
+					</TooltipContent>
+				</Tooltip>
+			</div>
+		);
+	}
+
 	return (
 		<div className={`inline-block ${className ?? ""}`}>
 			<Tooltip>

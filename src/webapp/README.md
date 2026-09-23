@@ -97,7 +97,8 @@ SHOT_BASE_URL=http://127.0.0.1:4175 pnpm shots               # shoot a server th
 Before/after for a branch: build `main` separately and point `SHOT_BASE_URL` at it for the "before" run.
 
 ```bash
-mkdir -p /tmp/main && git archive origin/main src/webapp | tar -x -C /tmp/main
+# run from src/webapp
+mkdir -p /tmp/main && git -C "$(git rev-parse --show-toplevel)" archive origin/main src/webapp | tar -x -C /tmp/main
 ln -s "$PWD/node_modules" /tmp/main/src/webapp/node_modules
 cp -R src/lib/api/generated /tmp/main/src/webapp/src/lib/api/
 (cd /tmp/main/src/webapp && VITE_API_BASE_URL=http://localhost:9 npx vite build && npx vite preview --port 4175)
