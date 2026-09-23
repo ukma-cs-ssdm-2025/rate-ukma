@@ -159,14 +159,14 @@ function ScoreInput({
 									onChange(score);
 								}
 							}}
-							className="rounded-md p-1 transition-transform duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:scale-110 active:scale-95"
+							className="min-h-10 min-w-10 rounded-md p-1 transition-transform duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none sm:min-h-0 sm:min-w-0 [@media(hover:hover)]:hover:scale-110 active:scale-95 motion-reduce:transform-none"
 						>
 							<Star
 								aria-hidden="true"
 								className={
 									isFilled
-										? "size-8 fill-primary text-primary drop-shadow-sm transition-colors duration-100 sm:size-7"
-										: "size-8 fill-transparent text-muted-foreground/40 transition-colors duration-100 sm:size-7"
+										? "size-8 fill-primary text-primary transition-colors duration-100 motion-reduce:transition-none sm:size-7"
+										: "size-8 fill-transparent text-muted-foreground/40 transition-colors duration-100 motion-reduce:transition-none sm:size-7"
 								}
 							/>
 						</button>
@@ -203,8 +203,8 @@ function RatingFormFields({
 	const usefulnessLabelId = React.useId();
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+		<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5 sm:gap-6 sm:py-4">
+			<div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
 				<FormField<RatingFormData, "difficulty">
 					control={control}
 					name="difficulty"
@@ -403,13 +403,16 @@ export function RatingForm({
 						variant="ghost"
 						onClick={onCancel}
 						disabled={isLoading}
+						className="w-full sm:w-auto"
 						data-testid={testIds.rating.cancelButton}
 					>
 						Скасувати
 					</Button>
 					<Button
 						type="submit"
+						size="lg"
 						disabled={isLoading}
+						className="w-full sm:w-auto"
 						data-testid={testIds.rating.submitButton}
 					>
 						{(() => {

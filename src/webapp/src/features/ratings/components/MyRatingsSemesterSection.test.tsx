@@ -87,6 +87,24 @@ describe("MyRatingsSemesterSection", () => {
 		expect(screen.getByText("Курс 2")).toBeInTheDocument();
 	});
 
+	it("lists unrated courses before rated ones", () => {
+		renderWithProviders(
+			<MyRatingsSemesterSection
+				seasonGroup={makeSemester([
+					makeCourse(1, {
+						rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
+					}),
+					makeCourse(2),
+				])}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		const cards = screen.getAllByTestId(testIds.myRatings.card);
+		expect(cards[0]).toHaveTextContent("Курс 2");
+		expect(cards[1]).toHaveTextContent("Курс 1");
+	});
+
 	it("opens the rating modal from an unrated row", async () => {
 		const user = userEvent.setup();
 		renderWithProviders(
@@ -102,7 +120,7 @@ describe("MyRatingsSemesterSection", () => {
 		);
 	});
 
-	it("uses a quiet outline action for unrated rows", () => {
+	it("uses the primary action for unrated rows", () => {
 		renderWithProviders(
 			<MyRatingsSemesterSection
 				seasonGroup={makeSemester([makeCourse(1)])}
@@ -112,7 +130,6 @@ describe("MyRatingsSemesterSection", () => {
 
 		const action = screen.getByTestId(testIds.myRatings.leaveReviewLink);
 		expect(action.tagName).toBe("BUTTON");
-		expect(action.className).toContain("outline");
-		expect(action.className).not.toContain("bg-primary");
+		expect(action.className).not.toContain("bg-secondary");
 	});
 });

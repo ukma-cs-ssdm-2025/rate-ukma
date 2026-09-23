@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { Link } from "@tanstack/react-router";
-import { Pencil, PenLine, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -68,7 +68,7 @@ export function MyRatingCard({
 							Складність{" "}
 							<span
 								className={cn(
-									"font-semibold",
+									"font-semibold tabular-nums",
 									getDifficultyTone(rating.difficulty),
 								)}
 							>
@@ -79,7 +79,7 @@ export function MyRatingCard({
 							Корисність{" "}
 							<span
 								className={cn(
-									"font-semibold",
+									"font-semibold tabular-nums",
 									getUsefulnessTone(rating.usefulness),
 								)}
 							>
@@ -87,6 +87,11 @@ export function MyRatingCard({
 							</span>
 						</span>
 					</div>
+				) : null}
+				{rating?.comment?.trim() ? (
+					<p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+						{rating.comment}
+					</p>
 				) : null}
 			</div>
 
@@ -154,19 +159,20 @@ function CardActions({
 					variant="ghost"
 					onClick={onEdit}
 					aria-label="Редагувати оцінку"
+					className="text-muted-foreground hover:text-foreground"
 					data-testid={testIds.myRatings.editButton}
 				>
-					<Pencil className="size-3.5" />
+					<Pencil className="size-4" />
 				</Button>
 				<Button
 					size="icon-sm"
 					variant="ghost"
 					onClick={onDelete}
 					aria-label="Видалити оцінку"
-					className="text-destructive hover:text-destructive hover:bg-destructive/10"
+					className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 					data-testid={testIds.myRatings.deleteButton}
 				>
-					<Trash2 className="size-3.5" />
+					<Trash2 className="size-4" />
 				</Button>
 			</>
 		);
@@ -182,7 +188,7 @@ function CardActions({
 			offeringId={offeringId}
 			canRate={canRate}
 			onRate={onEdit}
-			variant="outline"
+			variant="default"
 		/>
 	);
 }
@@ -203,14 +209,12 @@ export function RateAction({
 	variant = "default",
 }: Readonly<RateActionProps>) {
 	if (!courseId) return null;
-
 	if (!canRate) {
 		return (
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<span className="inline-block" tabIndex={0}>
 						<Button variant="secondary" size="sm" disabled>
-							<PenLine className="size-3.5" />
 							Оцінити
 						</Button>
 					</span>
@@ -228,22 +232,26 @@ export function RateAction({
 				variant={variant}
 				size="sm"
 				onClick={onRate}
+				className="min-h-10 px-4 sm:min-h-0"
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
-				<PenLine className="size-3.5" />
 				Оцінити
 			</Button>
 		);
 	}
 	return (
-		<Button variant={variant} size="sm" asChild>
+		<Button
+			variant={variant}
+			size="sm"
+			className="min-h-10 px-4 sm:min-h-0"
+			asChild
+		>
 			<Link
 				to="/courses/$courseId"
 				params={{ courseId }}
 				search={{ openRating: true }}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
-				<PenLine className="size-3.5" />
 				Оцінити
 			</Link>
 		</Button>

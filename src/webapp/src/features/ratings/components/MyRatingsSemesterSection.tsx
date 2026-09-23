@@ -15,9 +15,13 @@ export function MyRatingsSemesterSection({
 	onRatingChanged,
 }: Readonly<MyRatingsSemesterSectionProps>) {
 	const sortedItems = useMemo(() => {
-		return [...seasonGroup.items].sort((a, b) =>
-			(a.course_title ?? "").localeCompare(b.course_title ?? ""),
-		);
+		// What is left to rate scans first; rated rows stay alphabetical after it.
+		return [...seasonGroup.items].sort((a, b) => {
+			const pendingA = a.rated ? 1 : 0;
+			const pendingB = b.rated ? 1 : 0;
+			if (pendingA !== pendingB) return pendingA - pendingB;
+			return (a.course_title ?? "").localeCompare(b.course_title ?? "");
+		});
 	}, [seasonGroup.items]);
 
 	if (sortedItems.length === 0) return null;
@@ -25,7 +29,7 @@ export function MyRatingsSemesterSection({
 	return (
 		<section aria-label={seasonGroup.description} className="space-y-2">
 			<div
-				className="flex flex-wrap items-center gap-2 py-1"
+				className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 py-1"
 				data-testid={testIds.myRatings.semesterTrigger}
 			>
 				{seasonGroup.seasonRaw ? (
@@ -37,7 +41,7 @@ export function MyRatingsSemesterSection({
 						{seasonGroup.label}
 					</span>
 				)}
-				<span className="text-xs text-muted-foreground">
+				<span className="text-sm text-muted-foreground tabular-nums">
 					{seasonGroup.ratedCount} з {seasonGroup.totalCount}
 				</span>
 			</div>

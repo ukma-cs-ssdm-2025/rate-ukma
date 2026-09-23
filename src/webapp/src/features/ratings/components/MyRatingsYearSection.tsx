@@ -17,7 +17,7 @@ export function MyRatingsYearSection({
 		<div className="space-y-3">
 			<SectionHeader title={yearGroup.label} />
 
-			<div className="space-y-6">
+			<div className="space-y-5">
 				{yearGroup.seasons.map((seasonGroup) => (
 					<MyRatingsSemesterSection
 						key={seasonGroup.key}

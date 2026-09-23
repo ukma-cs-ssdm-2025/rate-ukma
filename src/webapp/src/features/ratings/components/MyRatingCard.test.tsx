@@ -63,6 +63,27 @@ describe("MyRatingCard", () => {
 		).not.toBeInTheDocument();
 	});
 
+	it("clamps the rated comment under the scores", () => {
+		renderWithProviders(
+			<MyRatingCard
+				course={makeCourse({
+					rated: {
+						id: "rating-1",
+						difficulty: 4,
+						usefulness: 5,
+						comment: "Багато практики, але саме вона вчить думати",
+					},
+				})}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		const comment = screen.getByText(
+			"Багато практики, але саме вона вчить думати",
+		);
+		expect(comment).toHaveClass("line-clamp-2");
+	});
+
 	it("shows edit and delete actions for rated courses", () => {
 		renderWithProviders(
 			<MyRatingCard

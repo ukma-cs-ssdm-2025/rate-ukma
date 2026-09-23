@@ -20,7 +20,9 @@ export function MyRatingsHeader({
 				description={
 					totalCourses > 0 ? (
 						<>
-							Оцінено {ratedCourses} з {totalCourses}
+							<span className="tabular-nums">
+								Оцінено {ratedCourses} з {totalCourses}
+							</span>
 							<span className="mt-2 block h-1.5 w-48 overflow-hidden rounded-full bg-muted">
 								<span
 									className="block h-full rounded-full bg-primary"

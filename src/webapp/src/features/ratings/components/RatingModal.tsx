@@ -161,7 +161,7 @@ export function RatingModal({
 				className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[500px]"
 				data-testid={testIds.rating.modal}
 			>
-				<DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4 pr-12 text-left">
+				<DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4 text-left">
 					<DialogTitle data-testid={testIds.rating.modalTitle}>
 						{courseName?.trim() ||
 							(isEditMode ? "Редагувати оцінку" : "Оцінити курс")}
