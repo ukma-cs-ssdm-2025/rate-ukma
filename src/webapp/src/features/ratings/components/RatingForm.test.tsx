@@ -66,31 +66,28 @@ describe("RatingForm", () => {
 		});
 	});
 
-	describe("score scales", () => {
-		it("shows the chosen value's meaning next to each criterion", () => {
+	describe("score inputs", () => {
+		it("labels each star group and shows the chosen value with its meaning", () => {
 			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
-			expect(screen.getByText("3 — Помірно")).toBeInTheDocument();
-			expect(screen.getByText("3 — Достатньо корисно")).toBeInTheDocument();
-		});
-
-		it("labels each scale's ends with the app's wording", () => {
-			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
-
-			expect(screen.getByText("Дуже легко")).toBeInTheDocument();
-			expect(screen.getByText("Дуже складно")).toBeInTheDocument();
-			expect(screen.getByText("Не корисно")).toBeInTheDocument();
-			expect(screen.getByText("Надзвичайно корисно")).toBeInTheDocument();
+			expect(
+				screen.getByRole("radiogroup", { name: "Складність" }),
+			).toBeInTheDocument();
+			expect(
+				screen.getByRole("radiogroup", { name: "Корисність" }),
+			).toBeInTheDocument();
+			expect(screen.getByText("Помірно")).toBeInTheDocument();
+			expect(screen.getByText("Достатньо корисно")).toBeInTheDocument();
 		});
 
 		it("keeps the announced meaning in sync when the score changes", async () => {
 			const user = userEvent.setup();
 			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
 			await user.click(screen.getAllByRole("radio", { name: "4 з 5" })[0]);
-			expect(screen.getAllByText("4 — Складно").length).toBeGreaterThan(0);
+			expect(screen.getByText("Складно")).toBeInTheDocument();
 		});
 
-		it("submits the chosen scores", async () => {
+		it("submits the scores chosen by clicking stars", async () => {
 			const user = userEvent.setup();
 			const onSubmit = vi.fn();
 			render(<RatingForm onSubmit={onSubmit} onCancel={vi.fn()} />);
@@ -103,6 +100,25 @@ describe("RatingForm", () => {
 			expect(onSubmit.mock.calls[0][0]).toMatchObject({
 				difficulty: 5,
 				usefulness: 1,
+			});
+		});
+
+		it("changes the score with arrow keys", async () => {
+			const user = userEvent.setup();
+			const onSubmit = vi.fn();
+			render(<RatingForm onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+			screen.getAllByRole("radio", { name: "3 з 5" })[0].focus();
+			await user.keyboard("{ArrowRight}");
+
+			expect(
+				screen.getAllByRole("radio", { name: "4 з 5" })[0],
+			).toHaveAttribute("aria-checked", "true");
+			await user.click(screen.getByTestId(testIds.rating.submitButton));
+			expect(onSubmit).toHaveBeenCalled();
+			expect(onSubmit.mock.calls[0][0]).toMatchObject({
+				difficulty: 4,
+				usefulness: 3,
 			});
 		});
 	});

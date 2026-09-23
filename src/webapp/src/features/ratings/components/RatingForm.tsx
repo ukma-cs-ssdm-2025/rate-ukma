@@ -1,9 +1,9 @@
 import * as React from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Star } from "lucide-react";
 import { useForm, useWatch, type Control } from "react-hook-form";
 import * as z from "zod";
-
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { DialogFooter } from "@/components/ui/Dialog";
@@ -17,10 +17,14 @@ import {
 	FormMessage,
 } from "@/components/ui/Form";
 import { Textarea } from "@/components/ui/Textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
+import {
+	getDifficultyTone,
+	getUsefulnessTone,
+} from "@/features/courses/courseFormatting";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
@@ -52,7 +56,7 @@ export type RatingFormData = z.infer<typeof ratingSchema>;
 
 const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
 
-// Descriptions read as "Коротко - детальніше"; the scale shows the short head.
+// Descriptions read as "Коротко - детальніше"; the input shows the short head.
 function getShortDescription(
 	descriptions: Record<number, string>,
 	value: number,
@@ -68,6 +72,7 @@ function ScoreInput({
 	onBlur,
 	descriptions,
 	labelId,
+	getTone,
 	"data-testid": dataTestId,
 	...rest
 }: Readonly<{
@@ -76,49 +81,118 @@ function ScoreInput({
 	onBlur?: () => void;
 	descriptions: Record<number, string>;
 	labelId: string;
+	getTone: (value: number | null | undefined) => string;
 	"data-testid"?: string;
 	id?: string;
 	"aria-describedby"?: string;
 	"aria-invalid"?: boolean;
 }>) {
+	const [hovered, setHovered] = React.useState<number | null>(null);
+	const [dragging, setDragging] = React.useState(false);
+	const buttons = React.useRef<Array<HTMLButtonElement | null>>([]);
+	const shown = hovered ?? value;
+
+	React.useEffect(() => {
+		if (!dragging) return;
+		const stop = () => setDragging(false);
+		globalThis.addEventListener("pointerup", stop);
+		return () => globalThis.removeEventListener("pointerup", stop);
+	}, [dragging]);
+
+	const select = (next: number) => {
+		onChange(next);
+		buttons.current[next - 1]?.focus();
+	};
+
+	const onGroupKeyDown = (event: React.KeyboardEvent) => {
+		switch (event.key) {
+			case "ArrowRight":
+			case "ArrowUp":
+				event.preventDefault();
+				select(Math.min(5, value + 1));
+				break;
+			case "ArrowLeft":
+			case "ArrowDown":
+				event.preventDefault();
+				select(Math.max(1, value - 1));
+				break;
+			case "Home":
+				event.preventDefault();
+				select(1);
+				break;
+			case "End":
+				event.preventDefault();
+				select(5);
+				break;
+		}
+	};
+
 	return (
 		<div data-testid={dataTestId}>
-			<ToggleGroup
-				type="single"
-				variant="outline"
-				value={String(value)}
-				onValueChange={(next) => {
-					if (next) {
-						onChange(Number(next));
-					}
-				}}
-				onBlur={onBlur}
+			<div
+				role="radiogroup"
 				aria-labelledby={labelId}
-				className="w-full"
+				onBlur={onBlur}
+				onKeyDown={onGroupKeyDown}
+				onPointerLeave={() => {
+					setHovered(null);
+					setDragging(false);
+				}}
+				onPointerUp={() => setDragging(false)}
+				className="flex touch-none select-none gap-0.5"
 				{...rest}
 			>
-				{SCORE_OPTIONS.map((score) => (
-					<ToggleGroupItem
-						key={score}
-						value={String(score)}
-						aria-label={`${score} з 5`}
-						className="h-11 flex-1 text-base"
-					>
-						{score}
-					</ToggleGroupItem>
-				))}
-			</ToggleGroup>
-			<div
-				aria-hidden="true"
-				className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground"
-			>
-				<span>{getShortDescription(descriptions, 1)}</span>
-				<span>{getShortDescription(descriptions, 5)}</span>
+				{SCORE_OPTIONS.map((score) => {
+					const isFilled = score <= shown;
+					return (
+						<button
+							key={score}
+							ref={(node) => {
+								buttons.current[score - 1] = node;
+							}}
+							type="button"
+							role="radio"
+							aria-checked={score === value}
+							aria-label={`${score} з 5`}
+							tabIndex={score === value ? 0 : -1}
+							onClick={() => onChange(score)}
+							onPointerDown={() => {
+								setDragging(true);
+								onChange(score);
+							}}
+							onPointerEnter={() => {
+								setHovered(score);
+								if (dragging) {
+									onChange(score);
+								}
+							}}
+							className="rounded-md p-1 transition-transform duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:scale-110 active:scale-95"
+						>
+							<Star
+								aria-hidden="true"
+								className={cn(
+									"size-8 transition-colors duration-100 sm:size-7",
+									isFilled
+										? cn("fill-current drop-shadow-sm", getTone(shown))
+										: "fill-transparent text-muted-foreground/40",
+								)}
+							/>
+						</button>
+					);
+				})}
 			</div>
+			<p
+				aria-live="polite"
+				className="mt-1.5 flex items-baseline gap-2 text-sm text-muted-foreground"
+			>
+				<span className="font-medium text-foreground tabular-nums">
+					{shown}
+				</span>
+				<span>{getShortDescription(descriptions, shown)}</span>
+			</p>
 		</div>
 	);
 }
-
 function RatingFormFields({
 	control,
 	offeringId,
@@ -146,16 +220,7 @@ function RatingFormFields({
 						const current = field.value ?? 3;
 						return (
 							<FormItem>
-								<div className="flex items-baseline justify-between gap-3">
-									<FormLabel id={difficultyLabelId}>Складність</FormLabel>
-									<span
-										aria-live="polite"
-										className="text-right text-xs text-muted-foreground tabular-nums"
-									>
-										{current} —{" "}
-										{getShortDescription(difficultyDescriptions, current)}
-									</span>
-								</div>
+								<FormLabel id={difficultyLabelId}>Складність</FormLabel>
 								<FormControl>
 									<ScoreInput
 										value={current}
@@ -163,6 +228,7 @@ function RatingFormFields({
 										onBlur={field.onBlur}
 										descriptions={difficultyDescriptions}
 										labelId={difficultyLabelId}
+										getTone={getDifficultyTone}
 										data-testid={testIds.rating.difficultySlider}
 									/>
 								</FormControl>
@@ -179,16 +245,7 @@ function RatingFormFields({
 						const current = field.value ?? 3;
 						return (
 							<FormItem>
-								<div className="flex items-baseline justify-between gap-3">
-									<FormLabel id={usefulnessLabelId}>Корисність</FormLabel>
-									<span
-										aria-live="polite"
-										className="text-right text-xs text-muted-foreground tabular-nums"
-									>
-										{current} —{" "}
-										{getShortDescription(usefulnessDescriptions, current)}
-									</span>
-								</div>
+								<FormLabel id={usefulnessLabelId}>Корисність</FormLabel>
 								<FormControl>
 									<ScoreInput
 										value={current}
@@ -196,6 +253,7 @@ function RatingFormFields({
 										onBlur={field.onBlur}
 										descriptions={usefulnessDescriptions}
 										labelId={usefulnessLabelId}
+										getTone={getUsefulnessTone}
 										data-testid={testIds.rating.usefulnessSlider}
 									/>
 								</FormControl>
