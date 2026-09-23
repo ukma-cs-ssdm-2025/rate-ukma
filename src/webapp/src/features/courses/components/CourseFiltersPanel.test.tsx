@@ -232,39 +232,13 @@ describe("CourseFiltersPanel", () => {
 			expect(toggleButtons[2]).toHaveTextContent("Літо");
 		});
 
-		it("should keep credits hidden until the disclosure is opened", async () => {
-			// Arrange
-			const user = userEvent.setup();
+		it("should show credits without opening Більше фільтрів, disabled until a year is chosen", () => {
 			render(<TestWrapper />);
 
-			// Assert — credits start collapsed
-			expect(
-				screen.queryByTestId(testIds.filters.creditsSelect),
-			).not.toBeInTheDocument();
-
-			// Act
-			await user.click(
-				screen.getByRole("button", { name: /більше фільтрів/i }),
-			);
-
-			// Assert
 			expect(screen.getByTestId(testIds.filters.creditsSelect)).toHaveAttribute(
 				"data-disabled",
 				"",
 			);
-		});
-
-		it("should show the year hint under credits once opened", async () => {
-			// Arrange
-			const user = userEvent.setup();
-			render(<TestWrapper />);
-
-			// Act
-			await user.click(
-				screen.getByRole("button", { name: /більше фільтрів/i }),
-			);
-
-			// Assert
 			expect(
 				screen.getByText("Спочатку оберіть навчальний рік"),
 			).toBeInTheDocument();

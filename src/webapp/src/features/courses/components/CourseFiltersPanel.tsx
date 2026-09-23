@@ -423,11 +423,7 @@ function CourseFiltersContent({
 	setParams: (updates: Partial<CourseFiltersParamsState>) => void;
 	data: CourseFiltersData;
 }>) {
-	const moreActive =
-		params.instructor !== "" ||
-		params.type !== null ||
-		params.credits[0] !== CREDITS_RANGE[0] ||
-		params.credits[1] !== CREDITS_RANGE[1];
+	const moreActive = params.instructor !== "" || params.type !== null;
 	const [moreOpen, setMoreOpen] = useState(moreActive);
 
 	useEffect(() => {
@@ -555,13 +551,8 @@ function CourseFiltersContent({
 	);
 
 	const { groups } = data;
-	const creditsActive =
-		params.credits[0] !== CREDITS_RANGE[0] ||
-		params.credits[1] !== CREDITS_RANGE[1];
 	const moreCount =
-		(params.instructor !== "" ? 1 : 0) +
-		(params.type !== null ? 1 : 0) +
-		(creditsActive ? 1 : 0);
+		(params.instructor !== "" ? 1 : 0) + (params.type !== null ? 1 : 0);
 	const moreExpanded = moreOpen;
 
 	const semesterSelect = groups.semester.selectFilters.find(
@@ -601,9 +592,7 @@ function CourseFiltersContent({
 
 			<FilterSection
 				title="Семестр"
-				activeCount={
-					groups.semester.config.activeCount - (creditsActive ? 1 : 0)
-				}
+				activeCount={groups.semester.config.activeCount}
 				testId={testIds.filters.groupSemester}
 			>
 				{semesterSelect && (
@@ -616,6 +605,11 @@ function CourseFiltersContent({
 				<SemesterTermToggleControl
 					toggle={groups.semester.semesterTermToggle}
 					onTermToggle={handleTermToggle}
+				/>
+				<RangeFilters
+					filters={groups.semester.rangeFilters}
+					params={params}
+					onRangeChange={handleRangeChange}
 				/>
 			</FilterSection>
 
@@ -674,11 +668,6 @@ function CourseFiltersContent({
 							onSelectChange={handleSelectChange}
 						/>
 					)}
-					<RangeFilters
-						filters={groups.semester.rangeFilters}
-						params={params}
-						onRangeChange={handleRangeChange}
-					/>
 				</CollapsibleContent>
 			</Collapsible>
 		</div>
