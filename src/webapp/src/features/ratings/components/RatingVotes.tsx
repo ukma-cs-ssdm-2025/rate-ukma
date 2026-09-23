@@ -35,54 +35,51 @@ interface VoteProps {
 	readonly isUpvote: boolean;
 	readonly count: number;
 	readonly active: boolean;
+	readonly disabled?: boolean;
+	readonly disabledMessage?: string;
 	readonly onClick?: () => void;
-	readonly asButton?: boolean;
 }
 
 function Vote({
 	isUpvote,
 	count,
 	active,
+	disabled = false,
+	disabledMessage,
 	onClick,
-	asButton = false,
 }: Readonly<VoteProps>) {
 	const Icon = isUpvote ? ArrowBigUp : ArrowBigDown;
-	if (asButton) {
-		return (
-			<Button
-				variant="ghost"
-				size="sm"
-				onClick={onClick}
-				aria-pressed={active}
-				className={cn(
-					"h-8 gap-1.5 px-2",
-					active ? "bg-primary/10 text-primary" : "text-muted-foreground",
-				)}
-				aria-label={isUpvote ? "За" : "Проти"}
-			>
-				<Icon className={cn("h-5 w-5", active && "fill-current")} />
-				<span className="text-xs font-semibold tabular-nums">{count}</span>
-			</Button>
-		);
+	const button = (
+		<Button
+			variant="ghost"
+			size="sm"
+			disabled={disabled}
+			onClick={onClick}
+			aria-pressed={active}
+			aria-label={isUpvote ? "За" : "Проти"}
+			className={cn(
+				"h-8 gap-1.5 px-2 disabled:opacity-100",
+				active ? "bg-primary/10 text-primary" : "text-muted-foreground",
+			)}
+		>
+			<Icon className={cn("h-5 w-5", active && "fill-current")} />
+			<span className="text-xs font-semibold tabular-nums">{count}</span>
+		</Button>
+	);
+
+	if (!disabledMessage) {
+		return button;
 	}
 
 	return (
-		<div className="flex h-8 items-center gap-1.5 px-2">
-			<Icon
-				className={cn(
-					"h-5 w-5",
-					active ? "fill-current text-primary" : "text-muted-foreground/40",
-				)}
-			/>
-			<span
-				className={cn(
-					"text-xs font-semibold tabular-nums",
-					active ? "text-primary" : "text-muted-foreground",
-				)}
-			>
-				{count}
-			</span>
-		</div>
+		<Tooltip delayDuration={0}>
+			<TooltipTrigger asChild>
+				<span className="inline-flex">{button}</span>
+			</TooltipTrigger>
+			<TooltipContent side="top" sideOffset={4}>
+				<p>{disabledMessage}</p>
+			</TooltipContent>
+		</Tooltip>
 	);
 }
 
@@ -190,53 +187,24 @@ export function RatingVotes({
 		? "flex items-center gap-1"
 		: "flex items-center gap-1 mt-3 justify-end";
 
-	if (readOnly) {
-		if (disabledMessage) {
-			return (
-				<div className={wrapperClass}>
-					<Tooltip delayDuration={0}>
-						<TooltipTrigger>
-							<Vote isUpvote count={upvotes} active={upActive} />
-						</TooltipTrigger>
-						<TooltipContent side="top" sideOffset={4}>
-							<p>{disabledMessage}</p>
-						</TooltipContent>
-					</Tooltip>
-					<Tooltip delayDuration={0}>
-						<TooltipTrigger>
-							<Vote isUpvote={false} count={downvotes} active={downActive} />
-						</TooltipTrigger>
-						<TooltipContent side="top" sideOffset={4}>
-							<p>{disabledMessage}</p>
-						</TooltipContent>
-					</Tooltip>
-				</div>
-			);
-		}
-		return (
-			<div className={wrapperClass}>
-				<Vote isUpvote count={upvotes} active={upActive} />
-				<Vote isUpvote={false} count={downvotes} active={downActive} />
-			</div>
-		);
-	}
-
 	return (
 		<div className={wrapperClass}>
 			<Vote
 				isUpvote
 				count={upvotes}
 				active={upActive}
+				disabled={readOnly}
+				disabledMessage={readOnly ? disabledMessage : undefined}
 				onClick={() => toggleVote(RatingVoteStrType.UPVOTE)}
-				asButton
 			/>
 
 			<Vote
 				isUpvote={false}
 				count={downvotes}
 				active={downActive}
+				disabled={readOnly}
+				disabledMessage={readOnly ? disabledMessage : undefined}
 				onClick={() => toggleVote(RatingVoteStrType.DOWNVOTE)}
-				asButton
 			/>
 		</div>
 	);

@@ -42,6 +42,7 @@ export function RatingCard({
 				avatarUrl={rating.student_avatar_url}
 				createdAt={rating.created_at}
 				courseOfferingLabel={courseOfferingLabel}
+				courseOfferingTerm={rating.course_offering_term}
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}

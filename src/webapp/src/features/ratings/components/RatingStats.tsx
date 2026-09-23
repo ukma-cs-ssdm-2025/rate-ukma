@@ -14,7 +14,7 @@ export function RatingStats({ difficulty, usefulness }: RatingStatsProps) {
 	const usefulnessValue = usefulness?.toFixed(1) ?? "—";
 
 	return (
-		<div className="flex flex-wrap items-center justify-start gap-x-4 gap-y-1.5 sm:justify-end">
+		<div className="flex shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-1.5">
 			<div className="flex items-center gap-1.5 text-sm leading-none">
 				<span className="text-sm text-muted-foreground">Складність</span>
 				<span

@@ -560,7 +560,7 @@ function RatingCommentItem({
 
 			{!isEditing && (
 				<div
-					className="ml-9 flex flex-wrap items-center gap-2"
+					className="ml-9 flex flex-wrap items-center gap-1"
 					data-testid={testIds.comments.controls}
 				>
 					<RepliesPreview
@@ -594,7 +594,7 @@ function RatingCommentItem({
 				</div>
 			)}
 
-			{showReplies && <div className="ml-9 space-y-3">{repliesContent}</div>}
+			{showReplies && <div className="ml-9 space-y-2">{repliesContent}</div>}
 
 			<ConfirmDialog
 				open={isDeleteOpen}
@@ -696,7 +696,7 @@ export function RatingComments({
 
 		if (comments.length > 0) {
 			return (
-				<div className="space-y-4">
+				<div className="space-y-3">
 					{comments.map((comment) => (
 						<RatingCommentItem
 							key={comment.id}
@@ -716,7 +716,7 @@ export function RatingComments({
 
 	return (
 		<div className="min-w-0 w-full">
-			<div className="flex items-start justify-between gap-2">
+			<div className="flex items-center justify-between gap-2">
 				<div className="flex flex-wrap items-center gap-2">
 					{hasComments ? (
 						<Button
@@ -759,7 +759,7 @@ export function RatingComments({
 			</div>
 
 			{isExpanded && (
-				<div className="mt-3 w-full space-y-4 border-l-2 border-border pl-4">
+				<div className="mt-2 w-full space-y-3 border-l-2 border-border pl-3">
 					{isCreating && (
 						<CommentForm
 							placeholder="Напишіть коментар"

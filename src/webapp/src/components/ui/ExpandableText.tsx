@@ -47,7 +47,7 @@ export function ExpandableText({ children, className }: ExpandableTextProps) {
 					onClick={() => setIsExpanded((v) => !v)}
 					aria-expanded={isExpanded}
 					aria-controls={textId}
-					className="mt-1.5 text-sm font-medium text-primary transition-colors hover:underline focus-visible:underline"
+					className="mt-1.5 text-sm text-primary hover:underline"
 				>
 					{isExpanded ? "Згорнути" : "Читати далі"}
 				</button>

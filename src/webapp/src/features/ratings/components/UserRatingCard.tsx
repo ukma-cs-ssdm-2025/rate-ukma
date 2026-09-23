@@ -104,6 +104,7 @@ export function UserRatingCard({
 				avatarUrl={!rating.is_anonymous ? user?.avatarUrl : undefined}
 				createdAt={rating.created_at}
 				courseOfferingLabel={courseOfferingLabel}
+				courseOfferingTerm={courseOfferingTerm}
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}

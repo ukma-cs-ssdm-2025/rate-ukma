@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { MessageSquare, PenLine } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/Badge";
@@ -82,7 +82,6 @@ function EmptyState({
 			{showCta && (
 				<EmptyContent>
 					<RatingButton canRate={canRateButton} onClick={onRate} size="lg">
-						<PenLine className="mr-2 h-4 w-4" />
 						Оцінити цей курс
 					</RatingButton>
 				</EmptyContent>
@@ -197,7 +196,7 @@ export function CourseRatingsList({
 			data-testid={testIds.courseDetails.reviewsSection}
 		>
 			<SectionHeader
-				icon={MessageSquare}
+				className="flex-row items-center justify-between"
 				title="Відгуки студентів"
 				meta={
 					<Badge
@@ -216,7 +215,6 @@ export function CourseRatingsList({
 									onClick={onRate}
 									size="sm"
 								>
-									<PenLine className="mr-1.5 h-3.5 w-3.5" />
 									Оцінити
 								</RatingButton>
 							)}

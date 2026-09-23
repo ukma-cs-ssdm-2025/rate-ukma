@@ -1,5 +1,6 @@
 import { Info } from "lucide-react";
 
+import { TermBadge } from "@/components/TermBadge";
 import { UserAvatar } from "@/components/UserAvatar";
 import {
 	Tooltip,
@@ -24,6 +25,7 @@ interface RatingCardBodyProps {
 	readonly avatarUrl?: string | null;
 	readonly createdAt?: string | null;
 	readonly courseOfferingLabel?: string;
+	readonly courseOfferingTerm?: string | null;
 	readonly difficulty: number | undefined;
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
@@ -47,6 +49,7 @@ export function RatingCardBody({
 	avatarUrl,
 	createdAt,
 	courseOfferingLabel,
+	courseOfferingTerm,
 	difficulty,
 	usefulness,
 	comment,
@@ -66,27 +69,31 @@ export function RatingCardBody({
 	const instructorNames = instructors.map(formatInstructorName).filter(Boolean);
 	return (
 		<>
-			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-				<div className="flex min-w-0 flex-1 items-start gap-2.5">
+			<div className="flex items-center justify-between gap-3">
+				<div className="flex min-w-0 flex-1 items-center gap-2.5">
 					<UserAvatar
 						name={displayName}
 						avatarUrl={avatarUrl}
 						isAnonymous={isAnonymous}
 						className="h-8 w-8 shrink-0 text-xs font-semibold"
 					/>
-					<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-						<div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-							<span className="min-w-0 truncate text-sm font-medium">
-								{displayName}
-							</span>
-							{courseOfferingLabel && (
+					<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
+						<span className="min-w-0 truncate text-sm font-medium">
+							{displayName}
+						</span>
+						{courseOfferingLabel ? (
+							courseOfferingTerm ? (
+								<TermBadge term={courseOfferingTerm}>
+									{courseOfferingLabel}
+								</TermBadge>
+							) : (
 								<span className="shrink-0 text-xs text-muted-foreground">
 									{courseOfferingLabel}
 								</span>
-							)}
-						</div>
+							)
+						) : null}
 						{createdAt && (
-							<time className="text-xs text-muted-foreground">
+							<time className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">
 								{formatDate(createdAt)}
 							</time>
 						)}
