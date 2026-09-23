@@ -188,23 +188,6 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
-		name: "rating-modal-scrolled",
-		note: "Rating form scrolled to the end: only the header divider shows (phone; the desktop form fits, so no lines)",
-		run: async (page) => {
-			await mockBackend(page, { myCourses: "rateable" });
-			await page.goto(`/courses/${COURSE.id}`);
-			await page.getByTestId("course-details-rate-button").click();
-			const form = page.getByTestId("rating-form");
-			await form.waitFor();
-			await form
-				.locator("> div")
-				.first()
-				.evaluate((el) => {
-					el.scrollTop = el.scrollHeight;
-				});
-		},
-	},
-	{
 		name: "course-rateable",
 		note: "Attendee who can rate and has not yet: primary rate action",
 		run: async (page) => {
@@ -279,6 +262,19 @@ const ALL_STATES: ReadonlyArray<State> = [
 				await page.getByTestId(testIds.filters.panel).scrollIntoViewIfNeeded();
 				await page.getByTestId(testIds.filters.panel).waitFor();
 			}
+		},
+	},
+	{
+		name: "course-reply",
+		note: "Reply form opened under a comment with «Відповісти»",
+		run: async (page) => {
+			await mockBackend(page, { comments: "thread" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.getByText("Лекції насичені").first().waitFor();
+			await page.getByTestId("rating-comments-toggle-button").first().click();
+			const comment = page.getByTestId("rating-comments-item").first();
+			await comment.getByRole("button", { name: "Відповісти" }).click();
+			await page.getByPlaceholder("Напишіть відповідь").waitFor();
 		},
 	},
 	{

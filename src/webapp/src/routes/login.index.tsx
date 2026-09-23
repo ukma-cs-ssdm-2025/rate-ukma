@@ -68,10 +68,12 @@ function LoginPage() {
 			</div>
 
 			{showAdminLogin ? (
-				<LoginForm
-					loginWithDjango={loginWithDjango}
-					onCancel={() => setShowAdminLogin(false)}
-				/>
+				<div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-200 motion-reduce:animate-none">
+					<LoginForm
+						loginWithDjango={loginWithDjango}
+						onCancel={() => setShowAdminLogin(false)}
+					/>
+				</div>
 			) : (
 				<MicrosoftLoginButton
 					className="h-11 w-full text-base font-medium"

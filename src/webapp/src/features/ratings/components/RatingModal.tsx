@@ -20,6 +20,7 @@ import {
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
 interface ExistingRating {
@@ -158,7 +159,11 @@ export function RatingModal({
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
 			<DialogContent
-				className="group/rating-modal flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[500px]"
+				className={cn(
+					"group/rating-modal flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[500px]",
+					// Phones get the whole screen, rising as a sheet instead of zooming.
+					"max-sm:inset-0 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:data-[state=closed]:slide-out-to-bottom max-sm:data-[state=closed]:zoom-out-100 max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=open]:zoom-in-100 motion-reduce:animate-none!",
+				)}
 				data-testid={testIds.rating.modal}
 			>
 				<DialogHeader className="shrink-0 border-b border-transparent px-6 pt-6 pb-4 text-left transition-colors motion-reduce:transition-none group-has-[[data-scrolled]]/rating-modal:border-border">

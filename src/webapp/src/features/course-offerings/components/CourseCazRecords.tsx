@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import { ExternalLink } from "lucide-react";
 
+import { Collapsible, CollapsibleContent } from "@/components/ui/Collapsible";
 import {
 	formatAcademicYearLabel,
 	formatCredits,
@@ -304,27 +305,36 @@ export function CourseCazRecords({
 	const showTerm = !runsInOneTerm(courseOfferings);
 	const bySpeciality = new Set(courseOfferings.map(specialitiesLabel)).size > 1;
 	const latestLoad = loadSignature(groups[0].records[0]);
-	const shown = expanded ? groups : groups.slice(0, initialVisible);
-	const hiddenCount = groups.length - shown.length;
+	const renderGroup = (group: YearGroup) => (
+		<li key={group.key} className="col-span-3 grid min-w-0 grid-cols-subgrid">
+			<YearRow
+				group={group}
+				showTerm={showTerm}
+				bySpeciality={bySpeciality}
+				latestLoad={latestLoad}
+			/>
+		</li>
+	);
+	const rest = groups.slice(initialVisible);
+	const hiddenCount = expanded ? 0 : rest.length;
 
 	return (
 		<div>
 			{/* One grid for every year, so badges and links line up down the list. */}
-			<ul className="grid grid-cols-[5.5rem_fit-content(10rem)_minmax(0,1fr)] gap-x-3 gap-y-3 text-sm">
-				{shown.map((group) => (
-					<li
-						key={group.key}
-						className="col-span-3 grid min-w-0 grid-cols-subgrid"
-					>
-						<YearRow
-							group={group}
-							showTerm={showTerm}
-							bySpeciality={bySpeciality}
-							latestLoad={latestLoad}
-						/>
-					</li>
-				))}
-			</ul>
+			<Collapsible open={expanded} asChild>
+				<ul className="grid grid-cols-[5.5rem_fit-content(10rem)_minmax(0,1fr)] gap-x-3 gap-y-3 text-sm">
+					{groups.slice(0, initialVisible).map(renderGroup)}
+					{rest.length > 0 ? (
+						<CollapsibleContent asChild className="mx-0 px-0">
+							<li className="col-span-3 grid grid-cols-subgrid">
+								<ul className="col-span-3 grid grid-cols-subgrid gap-y-3">
+									{rest.map(renderGroup)}
+								</ul>
+							</li>
+						</CollapsibleContent>
+					) : null}
+				</ul>
+			</Collapsible>
 			{hiddenCount > 0 && (
 				<button
 					type="button"

@@ -1,9 +1,10 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import { ArrowLeft, Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import { NotificationList } from "./NotificationList";
 import {
 	useMarkAllRead,
@@ -37,6 +38,17 @@ export function MobileNotificationPanel({
 	const { markGroupRead } = useMarkGroupRead();
 
 	const unreadCount = unreadData?.count ?? 0;
+	const [isLeaving, setIsLeaving] = useState(false);
+
+	// The menu swaps this panel out on back, so it slides away first and only
+	// then hands control back; reduced motion skips straight to the swap.
+	const handleBack = useCallback(() => {
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+			onBack();
+			return;
+		}
+		setIsLeaving(true);
+	}, [onBack]);
 
 	const handleNotificationClick = useCallback(
 		(groupKey: string) => {
@@ -53,7 +65,15 @@ export function MobileNotificationPanel({
 
 	return (
 		<div
-			className="flex h-full flex-col"
+			className={cn(
+				"flex h-full flex-col duration-200 motion-reduce:animate-none",
+				isLeaving
+					? "animate-out fade-out-0 slide-out-to-right-4 fill-mode-forwards"
+					: "animate-in fade-in-0 slide-in-from-right-4",
+			)}
+			onAnimationEnd={(event) => {
+				if (isLeaving && event.target === event.currentTarget) onBack();
+			}}
 			data-testid={testIds.notifications.mobilePanel}
 		>
 			<div className="flex items-center gap-1 px-1 py-2">
@@ -61,7 +81,7 @@ export function MobileNotificationPanel({
 					variant="ghost"
 					size="icon"
 					className="size-10 shrink-0"
-					onClick={onBack}
+					onClick={handleBack}
 					aria-label="Назад"
 				>
 					<ArrowLeft className="size-5" />

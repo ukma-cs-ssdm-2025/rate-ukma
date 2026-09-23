@@ -18,6 +18,7 @@ export function ExpandableText({
 	const [isClamped, setIsClamped] = useState(false);
 	const textId = useId();
 	const elRef = useRef<HTMLParagraphElement | null>(null);
+	const heightBeforeToggle = useRef<number | null>(null);
 
 	const measureRef = useCallback((el: HTMLParagraphElement | null) => {
 		elRef.current = el;
@@ -37,6 +38,25 @@ export function ExpandableText({
 		const el = elRef.current;
 		if (el) setIsClamped(el.scrollHeight > el.clientHeight);
 	}, [isExpanded, children, lines]);
+
+	// Clamping snaps the text instantly, so the height glides between the two
+	// measured states instead.
+	useLayoutEffect(() => {
+		const el = elRef.current;
+		const from = heightBeforeToggle.current;
+		heightBeforeToggle.current = null;
+		if (!el || from == null) return;
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		const to = el.getBoundingClientRect().height;
+		if (from === to) return;
+		el.animate(
+			[
+				{ height: `${from}px`, overflow: "hidden" },
+				{ height: `${to}px`, overflow: "hidden" },
+			],
+			{ duration: 200, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+		);
+	}, [isExpanded]);
 
 	// Tailwind only generates static line-clamp utilities, so a custom count
 	// uses the equivalent inline properties; the default keeps line-clamp-4.
@@ -63,7 +83,11 @@ export function ExpandableText({
 			{isClamped && (
 				<button
 					type="button"
-					onClick={() => setIsExpanded((v) => !v)}
+					onClick={() => {
+						heightBeforeToggle.current =
+							elRef.current?.getBoundingClientRect().height ?? null;
+						setIsExpanded((v) => !v);
+					}}
 					aria-expanded={isExpanded}
 					aria-controls={textId}
 					className="mt-1.5 text-sm text-primary hover:underline"

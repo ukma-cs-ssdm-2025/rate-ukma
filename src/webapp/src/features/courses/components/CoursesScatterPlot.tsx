@@ -375,12 +375,14 @@ function ScatterPlotContent({
 
 	return (
 		<>
+			{/* Axis bars and point halos paint the surface colour; a host card sets
+			--plot-surface so the chart reads as one plane with it. */}
 			{/* Interactive chart with aria-label, title element not suitable for this interaction model */}
 			<svg
 				ref={svgRef}
 				width={width}
 				height={height}
-				className="bg-background cursor-grab active:cursor-grabbing"
+				className="cursor-grab bg-[var(--plot-surface,var(--color-background))] active:cursor-grabbing"
 				aria-label="Діаграма розподілу курсів за корисністю та складністю"
 			>
 				<Group
@@ -417,7 +419,11 @@ function ScatterPlotContent({
 										? POINT_HOVER_FILL_OPACITY
 										: POINT_DEFAULT_FILL_OPACITY
 								}
-								stroke={isHovered ? point.color : "var(--color-background)"}
+								stroke={
+									isHovered
+										? point.color
+										: "var(--plot-surface, var(--color-background))"
+								}
 								strokeWidth={strokeWidth}
 								onMouseEnter={() => setHoveredPointId(point.id)}
 								onMouseMove={(event) => handleMouseMove(event, point)}
@@ -475,7 +481,7 @@ function ScatterPlotContent({
 						y={innerHeight}
 						width={innerWidth + plotMargin.left}
 						height={plotMargin.bottom}
-						fill="var(--color-background)"
+						fill="var(--plot-surface, var(--color-background))"
 					/>
 
 					{/* Y-axis background bar */}
@@ -484,7 +490,7 @@ function ScatterPlotContent({
 						y={-AXIS_BG_TOP_EXTENSION}
 						width={plotMargin.left}
 						height={innerHeight + AXIS_BG_TOP_EXTENSION}
-						fill="var(--color-background)"
+						fill="var(--plot-surface, var(--color-background))"
 					/>
 
 					{/* X-axis tick labels */}

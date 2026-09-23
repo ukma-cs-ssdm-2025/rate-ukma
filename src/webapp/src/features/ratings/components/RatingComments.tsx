@@ -526,10 +526,7 @@ function RatingCommentItem({
 
 	return (
 		<div
-			className={cn(
-				"space-y-2",
-				comment.parent_id && "border-l-2 border-border pl-3",
-			)}
+			className={cn(comment.parent_id && "border-l-2 border-border pl-3")}
 			data-testid={testIds.comments.item}
 		>
 			<div className="flex items-start gap-2.5">
@@ -561,7 +558,7 @@ function RatingCommentItem({
 
 			{!isEditing && (
 				<div
-					className="ml-9 flex flex-wrap items-center gap-1"
+					className="mt-2 ml-9 flex flex-wrap items-center gap-1"
 					data-testid={testIds.comments.controls}
 				>
 					<RepliesPreview
@@ -581,20 +578,26 @@ function RatingCommentItem({
 				</div>
 			)}
 
-			{isReplying && (
-				<div className="ml-9">
-					<CommentForm
-						placeholder="Напишіть відповідь"
-						submitLabel="Відповісти"
-						isSubmitting={createComment.isPending}
-						onSubmit={handleReply}
-						onCancel={() => setIsReplying(false)}
-						autoFocus
-					/>
-				</div>
-			)}
+			<Collapsible open={isReplying}>
+				<CollapsibleContent>
+					<div className="ml-9 pt-2">
+						<CommentForm
+							placeholder="Напишіть відповідь"
+							submitLabel="Відповісти"
+							isSubmitting={createComment.isPending}
+							onSubmit={handleReply}
+							onCancel={() => setIsReplying(false)}
+							autoFocus
+						/>
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 
-			{showReplies && <div className="ml-9 space-y-2">{repliesContent}</div>}
+			<Collapsible open={showReplies}>
+				<CollapsibleContent>
+					<div className="ml-9 space-y-2 pt-2">{repliesContent}</div>
+				</CollapsibleContent>
+			</Collapsible>
 
 			<ConfirmDialog
 				open={isDeleteOpen}
@@ -760,16 +763,18 @@ export function RatingComments({
 			<Collapsible open={isExpanded}>
 				<CollapsibleContent>
 					<div className="mt-2 mb-1 w-full space-y-3 border-l-2 border-border pl-3">
-						{isCreating && (
-							<CommentForm
-								placeholder="Напишіть коментар"
-								submitLabel="Коментувати"
-								isSubmitting={createComment.isPending}
-								onSubmit={handleCreate}
-								onCancel={handleCancelCreate}
-								autoFocus
-							/>
-						)}
+						<Collapsible open={isCreating} className="empty:hidden">
+							<CollapsibleContent>
+								<CommentForm
+									placeholder="Напишіть коментар"
+									submitLabel="Коментувати"
+									isSubmitting={createComment.isPending}
+									onSubmit={handleCreate}
+									onCancel={handleCancelCreate}
+									autoFocus
+								/>
+							</CollapsibleContent>
+						</Collapsible>
 
 						{commentsContent}
 

@@ -82,7 +82,7 @@ export function CourseSpecialityBadges({
 
 	return (
 		<span id={badgesId} className="inline-flex flex-wrap gap-1.5">
-			{displayedSpecialities.map((speciality) => {
+			{displayedSpecialities.map((speciality, index) => {
 				const abbreviation = getSpecialityAlias(
 					speciality.speciality_title || "",
 					speciality.speciality_alias,
@@ -98,6 +98,8 @@ export function CourseSpecialityBadges({
 								variant="secondary"
 								className={cn(
 									"cursor-default border text-xs",
+									index >= MAX_VISIBLE_BADGES &&
+										"animate-in fade-in-0 duration-200 motion-reduce:animate-none",
 									size === "sm" ? "px-1.5 py-0" : "px-2 py-0.5",
 									colors.bg,
 									colors.text,
