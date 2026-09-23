@@ -11,6 +11,7 @@ interface FeedItemProps {
 
 export function FeedItem({ item, variant = "card" }: Readonly<FeedItemProps>) {
 	if (isPromoItem(item)) return <FeedPromoItem item={item} variant={variant} />;
-	if (isCommentItem(item)) return <FeedCommentItem item={item} />;
-	return <FeedReviewItem item={item} />;
+	if (isCommentItem(item))
+		return <FeedCommentItem item={item} variant={variant} />;
+	return <FeedReviewItem item={item} variant={variant} />;
 }

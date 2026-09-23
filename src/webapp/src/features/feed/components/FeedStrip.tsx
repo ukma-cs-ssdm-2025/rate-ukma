@@ -1,7 +1,7 @@
 import { useId } from "react";
 
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ChevronLeft, ChevronRight, Newspaper } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { useFeatureFlagState } from "@/lib/feature-flags";
@@ -50,12 +50,9 @@ export function FeedStrip() {
 	if (!isLoading && items.length === 0) return null;
 
 	return (
-		<section aria-label="Стрічка оновлень" className="space-y-3">
+		<section aria-label="Стрічка оновлень" className="space-y-2">
 			<div className="flex items-center justify-between gap-2">
-				<div className="flex items-center gap-2">
-					<Newspaper className="size-4 text-muted-foreground" />
-					<h2 className="text-sm font-semibold">Стрічка оновлень</h2>
-				</div>
+				<h2 className="text-sm font-semibold">Стрічка оновлень</h2>
 				<div className="flex items-center gap-1">
 					<Button
 						variant="outline"
@@ -104,7 +101,7 @@ export function FeedStrip() {
 				{items.map((item) => (
 					<div
 						key={`${item.kind}:${item.id}`}
-						className="w-[260px] shrink-0 snap-start sm:w-[280px]"
+						className="h-30 w-[260px] shrink-0 snap-start overflow-hidden sm:w-[280px]"
 					>
 						<FeedItem item={item} />
 					</div>
@@ -116,7 +113,7 @@ export function FeedStrip() {
 					<Link
 						to="/feed"
 						aria-label="Переглянути всю стрічку"
-						className="flex w-[140px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-3 text-center text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						className="flex h-30 w-[140px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-3 text-center text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 					>
 						<ArrowRight className="size-5" />
 						Переглянути всі

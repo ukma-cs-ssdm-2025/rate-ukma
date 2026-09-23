@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, MessageSquareText } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -14,6 +14,7 @@ import { FeedCard } from "./FeedCard";
 
 interface FeedReviewItemProps {
 	readonly item: FeedReviewItemType;
+	readonly variant?: "card" | "banner";
 }
 
 /** Ties render nothing; the epsilon keeps float noise from reading as a difference. */
@@ -32,24 +33,92 @@ function ComparisonArrow({
 	const Icon = delta > 0 ? ArrowUp : ArrowDown;
 	const label = `${delta > 0 ? "вище" : "нижче"} за середнє (${average.toFixed(1)})`;
 
-	return <Icon className="size-3 text-muted-foreground" aria-label={label} />;
+	return (
+		<Icon
+			className="inline size-3 align-baseline text-muted-foreground"
+			aria-label={label}
+		/>
+	);
 }
 
 /** A recent rating; anonymous in the feed. */
-export function FeedReviewItem({ item }: Readonly<FeedReviewItemProps>) {
+export function FeedReviewItem({
+	item,
+	variant = "card",
+}: Readonly<FeedReviewItemProps>) {
 	const semesterLabel =
 		item.semesterYear != null && item.semesterTerm
 			? getSemesterDisplay(item.semesterYear, item.semesterTerm)
 			: undefined;
+	const isBanner = variant === "banner";
+
+	// Compact strip tile: the body is the comment (or the scores when there
+	// is none) and the footer is one muted line, so nothing repeats.
+	const scoreNodes = (
+		<>
+			<span>Складність</span>{" "}
+			<span
+				className={cn(
+					"font-semibold tabular-nums",
+					getDifficultyTone(item.difficulty),
+				)}
+			>
+				{item.difficulty.toFixed(1)}
+			</span>{" "}
+			<ComparisonArrow
+				score={item.difficulty}
+				average={item.courseAvgDifficulty}
+			/>{" "}
+			<span>Корисність</span>{" "}
+			<span
+				className={cn(
+					"font-semibold tabular-nums",
+					getUsefulnessTone(item.usefulness),
+				)}
+			>
+				{item.usefulness.toFixed(1)}
+			</span>{" "}
+			<ComparisonArrow
+				score={item.usefulness}
+				average={item.courseAvgUsefulness}
+			/>
+		</>
+	);
+
+	if (!isBanner) {
+		return (
+			<FeedCard
+				variant="card"
+				badge={<Badge variant="outline">Відгук</Badge>}
+				pinned={item.pinned}
+				title={
+					<Link
+						to="/courses/$courseId"
+						params={{ courseId: item.courseId }}
+						className="transition-colors hover:text-primary hover:underline"
+					>
+						{item.courseTitle}
+					</Link>
+				}
+				footer={
+					<p className="truncate text-xs text-muted-foreground">
+						<time>{formatRelativeTime(item.createdAt)}</time>
+						{semesterLabel && <span>, {semesterLabel}</span>}
+						{item.comment && <span>, {scoreNodes}</span>}
+					</p>
+				}
+			>
+				<p className="truncate text-sm text-muted-foreground">
+					{item.comment ? item.comment : scoreNodes}
+				</p>
+			</FeedCard>
+		);
+	}
 
 	return (
 		<FeedCard
-			badge={
-				<Badge variant="outline">
-					<MessageSquareText className="size-3" aria-hidden="true" />
-					Відгук
-				</Badge>
-			}
+			variant="banner"
+			badge={<Badge variant="outline">Відгук</Badge>}
 			pinned={item.pinned}
 			title={
 				<Link

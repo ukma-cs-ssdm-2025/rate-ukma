@@ -1,10 +1,10 @@
 import type { ComponentProps } from "react";
 
-import { ArrowRight, Megaphone } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import type {
 	FeedPromoAccent,
 	FeedPromoItem as FeedPromoItemType,
@@ -34,32 +34,62 @@ export function FeedPromoItem({
 	const accent = ACCENT_BADGE[item.accent ?? "BRAND"] ?? ACCENT_BADGE.BRAND;
 	const label = item.label ?? "Оголошення";
 	const isBanner = variant === "banner";
+	const hasCta = Boolean(item.ctaLabel && item.ctaHref);
+
+	// Compact strip tile: the CTA joins the single muted meta line as a
+	// text link instead of a button block.
+	if (!isBanner) {
+		return (
+			<FeedCard
+				variant="card"
+				badge={<Badge variant={accent}>{label}</Badge>}
+				pinned={item.pinned}
+				title={item.title}
+				footer={
+					<p className="truncate text-xs text-muted-foreground">
+						<time>{formatRelativeTime(item.createdAt)}</time>
+						{hasCta && (
+							<>
+								{", "}
+								<a
+									href={item.ctaHref}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline"
+								>
+									{item.ctaLabel}
+									<ExternalLink className="size-3.5" aria-hidden />
+								</a>
+							</>
+						)}
+					</p>
+				}
+			>
+				<p className="truncate text-sm text-muted-foreground">{item.body}</p>
+			</FeedCard>
+		);
+	}
 
 	return (
 		<FeedCard
-			badge={
-				<Badge variant={accent}>
-					<Megaphone className="size-3" aria-hidden="true" />
-					{label}
-				</Badge>
-			}
+			variant="banner"
+			badge={<Badge variant={accent}>{label}</Badge>}
 			pinned={item.pinned}
 			title={item.title}
 			footer={
 				/* A label without an href goes nowhere, so the CTA needs both halves. */
-				item.ctaLabel &&
-				item.ctaHref && (
+				hasCta && (
 					<Button asChild size="sm" variant="outline" className="gap-1.5">
 						<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
 							{item.ctaLabel}
-							<ArrowRight className="size-4" aria-hidden="true" />
+							<ExternalLink className="size-4" aria-hidden />
 						</a>
 					</Button>
 				)
 			}
 		>
 			{/* Banner only: the strip cards are too narrow to carry an image. */}
-			{item.imageUrl && isBanner && (
+			{item.imageUrl && (
 				<img
 					src={item.imageUrl}
 					alt={item.title}
@@ -67,14 +97,7 @@ export function FeedPromoItem({
 					loading="lazy"
 				/>
 			)}
-			<p
-				className={cn(
-					"text-sm text-muted-foreground",
-					!isBanner && "line-clamp-2",
-				)}
-			>
-				{item.body}
-			</p>
+			<p className="text-sm text-muted-foreground">{item.body}</p>
 		</FeedCard>
 	);
 }

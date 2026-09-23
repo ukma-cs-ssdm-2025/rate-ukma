@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { MessageCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
@@ -8,18 +7,19 @@ import { FeedCard } from "./FeedCard";
 
 interface FeedCommentItemProps {
 	readonly item: FeedCommentItemType;
+	readonly variant?: "card" | "banner";
 }
 
 /** A comment left on a review; anonymous in the feed. */
-export function FeedCommentItem({ item }: Readonly<FeedCommentItemProps>) {
+export function FeedCommentItem({
+	item,
+	variant = "card",
+}: Readonly<FeedCommentItemProps>) {
+	const isBanner = variant === "banner";
 	return (
 		<FeedCard
-			badge={
-				<Badge variant="outline">
-					<MessageCircle className="size-3" aria-hidden="true" />
-					Коментар
-				</Badge>
-			}
+			variant={variant}
+			badge={<Badge variant="outline">Коментар</Badge>}
 			pinned={item.pinned}
 			title={
 				<Link
@@ -31,12 +31,18 @@ export function FeedCommentItem({ item }: Readonly<FeedCommentItemProps>) {
 				</Link>
 			}
 			footer={
-				<div className="text-xs text-muted-foreground">
+				<p className="text-xs text-muted-foreground">
 					<time>{formatRelativeTime(item.createdAt)}</time>
-				</div>
+				</p>
 			}
 		>
-			<p className="line-clamp-2 text-sm text-muted-foreground">
+			<p
+				className={
+					isBanner
+						? "line-clamp-2 text-sm text-muted-foreground"
+						: "truncate text-sm text-muted-foreground"
+				}
+			>
 				{item.content}
 			</p>
 		</FeedCard>

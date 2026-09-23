@@ -11,6 +11,8 @@ interface FeedCardProps {
 	readonly children?: ReactNode;
 	readonly footer?: ReactNode;
 	readonly className?: string;
+	/** `card` is the ~120px strip tile; `banner` keeps the roomy `/feed` layout. */
+	readonly variant?: "card" | "banner";
 }
 
 /** One card shell for every feed entry, in the strip and on `/feed`. */
@@ -21,11 +23,14 @@ export function FeedCard({
 	children,
 	footer,
 	className,
+	variant = "card",
 }: Readonly<FeedCardProps>) {
+	const isBanner = variant === "banner";
 	return (
 		<article
 			className={cn(
-				"flex h-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm",
+				"flex h-full flex-col rounded-xl border bg-card text-card-foreground shadow-sm",
+				isBanner ? "gap-3 p-4" : "gap-1 px-3 py-2.5",
 				className,
 			)}
 		>
@@ -41,7 +46,14 @@ export function FeedCard({
 					</span>
 				)}
 			</div>
-			<h3 className="font-semibold leading-snug line-clamp-2">{title}</h3>
+			<h3
+				className={cn(
+					"font-semibold leading-snug",
+					isBanner ? "line-clamp-2" : "text-sm line-clamp-1",
+				)}
+			>
+				{title}
+			</h3>
 			{children}
 			{footer && <div className="mt-auto">{footer}</div>}
 		</article>
