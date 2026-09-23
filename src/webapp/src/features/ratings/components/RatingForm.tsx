@@ -21,6 +21,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
@@ -50,11 +51,30 @@ const ratingSchema = z.object({
 
 export type RatingFormData = z.infer<typeof ratingSchema>;
 
+const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
+
+const DIFFICULTY_SELECTED_CLASSNAME =
+	"data-[state=on]:border-transparent data-[state=on]:bg-difficulty data-[state=on]:text-difficulty-foreground data-[state=on]:hover:bg-difficulty data-[state=on]:hover:text-difficulty-foreground";
+const USEFULNESS_SELECTED_CLASSNAME =
+	"data-[state=on]:border-transparent data-[state=on]:bg-usefulness data-[state=on]:text-usefulness-foreground data-[state=on]:hover:bg-usefulness data-[state=on]:hover:text-usefulness-foreground";
+
+// Descriptions read as "Коротко - детальніше"; the scale shows the short head.
+function getShortDescription(
+	descriptions: Record<number, string>,
+	value: number,
+): string {
+	const full = descriptions[value] ?? "";
+	const [head] = full.split(" - ");
+	return head?.trim() || full;
+}
+
 function ScoreInput({
 	value,
 	onChange,
 	onBlur,
 	descriptions,
+	selectedClassName,
+	scaleLabel,
 	"data-testid": dataTestId,
 	...rest
 }: Readonly<{
@@ -62,6 +82,8 @@ function ScoreInput({
 	onChange: (value: number) => void;
 	onBlur?: () => void;
 	descriptions: Record<number, string>;
+	selectedClassName: string;
+	scaleLabel: string;
 	"data-testid"?: string;
 	id?: string;
 	"aria-describedby"?: string;
@@ -79,24 +101,28 @@ function ScoreInput({
 					}
 				}}
 				onBlur={onBlur}
-				aria-label="Оцінка"
+				aria-label={scaleLabel}
 				className="w-full"
 				{...rest}
 			>
-				{[1, 2, 3, 4, 5].map((score) => (
+				{SCORE_OPTIONS.map((score) => (
 					<ToggleGroupItem
 						key={score}
 						value={String(score)}
 						aria-label={`${score} з 5`}
-						className="flex-1"
+						className={cn("h-11 flex-1 text-base", selectedClassName)}
 					>
 						{score}
 					</ToggleGroupItem>
 				))}
 			</ToggleGroup>
-			<p className="mt-1.5 min-h-8 text-xs text-muted-foreground">
-				{descriptions[value as keyof typeof descriptions] ?? ""}
-			</p>
+			<div
+				aria-hidden="true"
+				className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground"
+			>
+				<span>{getShortDescription(descriptions, 1)}</span>
+				<span>{getShortDescription(descriptions, 5)}</span>
+			</div>
 		</div>
 	);
 }
@@ -118,45 +144,73 @@ function RatingFormFields({
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+			<div className="flex flex-col gap-5">
 				<FormField<RatingFormData, "difficulty">
 					control={control}
 					name="difficulty"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Складність</FormLabel>
-							<FormControl>
-								<ScoreInput
-									value={field.value ?? 3}
-									onChange={field.onChange}
-									onBlur={field.onBlur}
-									descriptions={difficultyDescriptions}
-									data-testid={testIds.rating.difficultySlider}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
+					render={({ field }) => {
+						const current = field.value ?? 3;
+						return (
+							<FormItem>
+								<div className="flex items-baseline justify-between gap-3">
+									<FormLabel>Складність</FormLabel>
+									<span
+										aria-live="polite"
+										className="text-right text-xs text-muted-foreground tabular-nums"
+									>
+										{current} —{" "}
+										{getShortDescription(difficultyDescriptions, current)}
+									</span>
+								</div>
+								<FormControl>
+									<ScoreInput
+										value={current}
+										onChange={field.onChange}
+										onBlur={field.onBlur}
+										descriptions={difficultyDescriptions}
+										selectedClassName={DIFFICULTY_SELECTED_CLASSNAME}
+										scaleLabel="Складність"
+										data-testid={testIds.rating.difficultySlider}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						);
+					}}
 				/>
 
 				<FormField<RatingFormData, "usefulness">
 					control={control}
 					name="usefulness"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Корисність</FormLabel>
-							<FormControl>
-								<ScoreInput
-									value={field.value ?? 3}
-									onChange={field.onChange}
-									onBlur={field.onBlur}
-									descriptions={usefulnessDescriptions}
-									data-testid={testIds.rating.usefulnessSlider}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
+					render={({ field }) => {
+						const current = field.value ?? 3;
+						return (
+							<FormItem>
+								<div className="flex items-baseline justify-between gap-3">
+									<FormLabel>Корисність</FormLabel>
+									<span
+										aria-live="polite"
+										className="text-right text-xs text-muted-foreground tabular-nums"
+									>
+										{current} —{" "}
+										{getShortDescription(usefulnessDescriptions, current)}
+									</span>
+								</div>
+								<FormControl>
+									<ScoreInput
+										value={current}
+										onChange={field.onChange}
+										onBlur={field.onBlur}
+										descriptions={usefulnessDescriptions}
+										selectedClassName={USEFULNESS_SELECTED_CLASSNAME}
+										scaleLabel="Корисність"
+										data-testid={testIds.rating.usefulnessSlider}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						);
+					}}
 				/>
 			</div>
 
@@ -200,7 +254,12 @@ function RatingFormFields({
 				name="comment"
 				render={({ field }) => (
 					<FormItem>
-						<FormLabel>Додаткові коментарі (необов'язково)</FormLabel>
+						<div className="flex items-baseline justify-between gap-3">
+							<FormLabel>Додаткові коментарі (необов'язково)</FormLabel>
+							<span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+								{comment.length} / {COMMENT_MAX_LENGTH}
+							</span>
+						</div>
 						<FormControl>
 							<Textarea
 								className="field-sizing-fixed min-h-32 max-h-[40dvh] resize-y overflow-y-auto"
@@ -211,14 +270,6 @@ function RatingFormFields({
 								data-testid={testIds.rating.commentTextarea}
 							/>
 						</FormControl>
-						<div className="flex items-center justify-between gap-2">
-							<FormDescription>
-								Допоможіть іншим студентам, розказавши про свій досвід
-							</FormDescription>
-							<span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-								{comment.length} / {COMMENT_MAX_LENGTH}
-							</span>
-						</div>
 						<FormMessage />
 					</FormItem>
 				)}
@@ -309,7 +360,7 @@ export function RatingForm({
 				<DialogFooter className="shrink-0 border-t px-6 py-4">
 					<Button
 						type="button"
-						variant="secondary"
+						variant="ghost"
 						onClick={onCancel}
 						disabled={isLoading}
 						data-testid={testIds.rating.cancelButton}

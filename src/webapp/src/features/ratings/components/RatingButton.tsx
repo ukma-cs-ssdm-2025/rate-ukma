@@ -1,5 +1,8 @@
 import * as React from "react";
 
+import { Slottable } from "@radix-ui/react-slot";
+import { PenLine } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 import {
 	Tooltip,
@@ -47,6 +50,7 @@ export function RatingButton({
 								className={cn(size === "lg" && "w-full")}
 								data-testid={testIds.courseDetails.rateButton}
 							>
+								<PenLine className={size === "sm" ? "size-3.5" : "size-4"} />
 								{children}
 							</Button>
 						</span>
@@ -73,7 +77,8 @@ export function RatingButton({
 				className={cn(size === "lg" && "w-full")}
 				data-testid={testIds.courseDetails.rateButton}
 			>
-				{children}
+				<PenLine className={size === "sm" ? "size-3.5" : "size-4"} />
+				<Slottable>{children}</Slottable>
 			</Button>
 		</div>
 	);

@@ -163,15 +163,11 @@ export function RatingModal({
 			>
 				<DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4 pr-12 text-left">
 					<DialogTitle data-testid={testIds.rating.modalTitle}>
-						{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
+						{courseName ?? (isEditMode ? "Редагувати оцінку" : "Оцінити курс")}
 					</DialogTitle>
-					{courseName && (
-						<DialogDescription>
-							{isEditMode
-								? `Змініть свою оцінку для курсу ${courseName}`
-								: `Поділіться своїм досвідом про курс ${courseName}`}
-						</DialogDescription>
-					)}
+					<DialogDescription>
+						{isEditMode ? "Змініть свою оцінку" : "Поділіться своїм досвідом"}
+					</DialogDescription>
 				</DialogHeader>
 
 				<RatingForm
