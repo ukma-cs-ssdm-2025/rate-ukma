@@ -4,7 +4,6 @@ import { Link } from "@tanstack/react-router";
 import { Pencil, PenLine, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import {
 	Tooltip,
 	TooltipContent,
@@ -16,8 +15,6 @@ import {
 } from "@/features/courses/courseFormatting";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
-import { getFacultyAccent, type FacultyAccent } from "@/lib/faculty-colors";
-import { useFeatureFlag } from "@/lib/feature-flags/useFeatureFlag";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { DeleteRatingDialog } from "./DeleteRatingDialog";
@@ -26,12 +23,6 @@ import { RatingModal } from "./RatingModal";
 interface MyRatingCardProps {
 	course: StudentRatingsDetailed;
 	onRatingChanged: () => undefined | Promise<unknown>;
-}
-function getCardClassName(hasRating: boolean, canRate: boolean): string {
-	if (hasRating || canRate) {
-		return "shadow-sm";
-	}
-	return "border-dashed bg-muted/30 opacity-80 shadow-none";
 }
 
 export function MyRatingCard({
@@ -45,26 +36,17 @@ export function MyRatingCard({
 
 	const hasRating = Boolean(rating);
 	const canModify = Boolean(hasRating && rating?.id && courseId);
-	const showFacultyColors = useFeatureFlag("fe_faculty_colors");
-	const accent = showFacultyColors
-		? getFacultyAccent(course.faculty_name)
-		: null;
 
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
 	return (
-		<Card
-			className={cn(
-				"flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center",
-				accent && "border-l-4",
-				getCardClassName(hasRating, canRate),
-			)}
-			style={accent ? { borderLeftColor: accent.background } : undefined}
+		<div
+			className="flex items-center gap-3 py-3"
 			data-testid={testIds.myRatings.card}
 		>
 			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-2">
+				<div className="flex min-w-0 items-center gap-2">
 					{courseId ? (
 						<Link
 							to="/courses/$courseId"
@@ -85,34 +67,33 @@ export function MyRatingCard({
 						</span>
 					)}
 				</div>
+				{hasRating && rating ? (
+					<div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs">
+						<span className="text-muted-foreground">
+							Складність{" "}
+							<span
+								className={cn(
+									"font-semibold",
+									getDifficultyTone(rating.difficulty),
+								)}
+							>
+								{rating.difficulty?.toFixed(1) ?? "—"}
+							</span>
+						</span>
+						<span className="text-muted-foreground">
+							Корисність{" "}
+							<span
+								className={cn(
+									"font-semibold",
+									getUsefulnessTone(rating.usefulness),
+								)}
+							>
+								{rating.usefulness?.toFixed(1) ?? "—"}
+							</span>
+						</span>
+					</div>
+				) : null}
 			</div>
-
-			{hasRating && rating ? (
-				<div className="hidden shrink-0 items-center gap-4 text-sm sm:flex">
-					<div className="flex items-center gap-1.5">
-						<span className="text-xs text-muted-foreground">Складність</span>
-						<span
-							className={cn(
-								"font-semibold",
-								getDifficultyTone(rating.difficulty),
-							)}
-						>
-							{rating.difficulty?.toFixed(1) ?? "—"}
-						</span>
-					</div>
-					<div className="flex items-center gap-1.5">
-						<span className="text-xs text-muted-foreground">Корисність</span>
-						<span
-							className={cn(
-								"font-semibold",
-								getUsefulnessTone(rating.usefulness),
-							)}
-						>
-							{rating.usefulness?.toFixed(1) ?? "—"}
-						</span>
-					</div>
-				</div>
-			) : null}
 
 			<div className="flex shrink-0 items-center gap-1">
 				<CardActions
@@ -121,7 +102,6 @@ export function MyRatingCard({
 					courseId={courseId}
 					offeringId={offeringId}
 					canRate={canRate}
-					accent={accent}
 					onEdit={() => setShowRatingModal(true)}
 					onDelete={() => setShowDeleteDialog(true)}
 				/>
@@ -148,7 +128,7 @@ export function MyRatingCard({
 					onSuccess={onRatingChanged}
 				/>
 			)}
-		</Card>
+		</div>
 	);
 }
 
@@ -158,7 +138,6 @@ interface CardActionsProps {
 	courseId: string | undefined;
 	offeringId: string | undefined;
 	canRate: boolean;
-	accent: FacultyAccent | null;
 	onEdit: () => void;
 	onDelete: () => void;
 }
@@ -169,7 +148,6 @@ function CardActions({
 	courseId,
 	offeringId,
 	canRate,
-	accent,
 	onEdit,
 	onDelete,
 }: Readonly<CardActionsProps>) {
@@ -208,19 +186,7 @@ function CardActions({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<span className="inline-block" tabIndex={0}>
-						<Button
-							variant="secondary"
-							size="sm"
-							disabled
-							style={
-								accent
-									? {
-											backgroundColor: accent.background,
-											color: accent.foreground,
-										}
-									: undefined
-							}
-						>
+						<Button variant="secondary" size="sm" disabled>
 							<PenLine className="size-3.5" />
 							Оцінити
 						</Button>
@@ -238,12 +204,6 @@ function CardActions({
 			<Button
 				variant="default"
 				size="sm"
-				className={cn(accent && "hover:brightness-90")}
-				style={
-					accent
-						? { backgroundColor: accent.background, color: accent.foreground }
-						: undefined
-				}
 				onClick={onEdit}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
@@ -253,17 +213,7 @@ function CardActions({
 		);
 	}
 	return (
-		<Button
-			variant="default"
-			size="sm"
-			className={cn(accent && "hover:brightness-90")}
-			style={
-				accent
-					? { backgroundColor: accent.background, color: accent.foreground }
-					: undefined
-			}
-			asChild
-		>
+		<Button variant="default" size="sm" asChild>
 			<Link
 				to="/courses/$courseId"
 				params={{ courseId }}

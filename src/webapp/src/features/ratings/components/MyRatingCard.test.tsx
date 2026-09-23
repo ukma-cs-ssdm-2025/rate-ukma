@@ -30,110 +30,79 @@ function makeCourse(
 	};
 }
 
-describe("MyRatingCard faculty accent", () => {
-	it("paints the accent bar and Rate button in the faculty color", () => {
+describe("MyRatingCard", () => {
+	it("renders a compact row without nested card chrome", () => {
 		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({ faculty_name: "Факультет інформатики" })}
-				onRatingChanged={vi.fn()}
-			/>,
-			{ flags: { fe_faculty_colors: true } },
+			<MyRatingCard course={makeCourse()} onRatingChanged={vi.fn()} />,
 		);
 
-		expect(screen.getByTestId(testIds.myRatings.card)).toHaveStyle({
-			borderLeftColor: "#4c217a",
-		});
-
-		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
-		expect(rateButton).toHaveStyle({
-			backgroundColor: "#4c217a",
-			color: "#ffffff",
-		});
+		const card = screen.getByTestId(testIds.myRatings.card);
+		expect(card).not.toHaveClass("border-l-4");
+		expect(card.style.borderLeftColor).toBe("");
+		expect(
+			screen.getByTestId(testIds.myRatings.leaveReviewLink),
+		).toBeInTheDocument();
 	});
 
-	it("keeps the accent bar on rated cards without a Rate button", () => {
+	it("shows difficulty and usefulness values for rated courses", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					faculty_name: "Факультет природничих наук",
 					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
-			{ flags: { fe_faculty_colors: true } },
 		);
 
-		const card = screen.getByTestId(testIds.myRatings.card);
-		expect(card).toHaveStyle({ borderLeftColor: "#006e31" });
-		expect(card).toHaveClass("border-l-4");
+		expect(screen.getByText("Складність")).toBeInTheDocument();
+		expect(screen.getByText("Корисність")).toBeInTheDocument();
+		expect(screen.getByText("4.0")).toBeInTheDocument();
+		expect(screen.getByText("5.0")).toBeInTheDocument();
 		expect(
 			screen.queryByTestId(testIds.myRatings.leaveReviewLink),
 		).not.toBeInTheDocument();
 	});
 
-	it("uses dark button text on the light yellow faculty", () => {
+	it("shows edit and delete actions for rated courses", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					faculty_name: "Факультет соціальних наук і соціальних технологій",
+					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
-			{ flags: { fe_faculty_colors: true } },
 		);
 
-		expect(screen.getByTestId(testIds.myRatings.leaveReviewLink)).toHaveStyle({
-			backgroundColor: "#f6b213",
-			color: "#1a1a1a",
-		});
+		expect(
+			screen.getByTestId(testIds.myRatings.editButton),
+		).toBeInTheDocument();
+		expect(
+			screen.getByTestId(testIds.myRatings.deleteButton),
+		).toBeInTheDocument();
 	});
-	it("keeps default blue styling when the flag is off", () => {
+
+	it("renders the default rate action without faculty-colored inline styles", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({ faculty_name: "Факультет інформатики" })}
 				onRatingChanged={vi.fn()}
 			/>,
-		);
-
-		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
-		expect(rateButton.style.backgroundColor).toBe("");
-		expect(rateButton.style.color).toBe("");
-	});
-
-	it("falls back to default styling when no faculty is assigned", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({ faculty_name: null })}
-				onRatingChanged={vi.fn()}
-			/>,
-		);
-
-		expect(screen.getByTestId(testIds.myRatings.card)).not.toHaveStyle({
-			borderLeftColor: "#4c217a",
-		});
-
-		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
-		expect(rateButton.style.backgroundColor).toBe("");
-		expect(rateButton.style.color).toBe("");
-	});
-
-	it("paints the disabled button in the faculty color", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({
-					faculty_name: "Факультет інформатики",
-					can_rate: false,
-				})}
-				onRatingChanged={vi.fn()}
-			/>,
 			{ flags: { fe_faculty_colors: true } },
 		);
 
-		const rateButton = screen.getByRole("button", { name: "Оцінити" });
-		expect(rateButton).toBeDisabled();
-		expect(rateButton).toHaveStyle({
-			backgroundColor: "#4c217a",
-			color: "#ffffff",
-		});
+		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
+		expect(rateButton.style.backgroundColor).toBe("");
+		expect(rateButton.style.color).toBe("");
+	});
+
+	it("renders a disabled rate action when the course cannot be rated", () => {
+		renderWithProviders(
+			<MyRatingCard
+				course={makeCourse({ can_rate: false })}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		expect(screen.getByRole("button", { name: "Оцінити" })).toBeDisabled();
 	});
 });

@@ -1,51 +1,30 @@
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "@/components/ui/Empty";
 import { MyRatingsEmptyState } from "@/features/ratings/components/MyRatingsEmptyState";
 import { MyRatingsErrorState } from "@/features/ratings/components/MyRatingsErrorState";
 import { MyRatingsHeader } from "@/features/ratings/components/MyRatingsHeader";
 import { MyRatingsNotStudentState } from "@/features/ratings/components/MyRatingsNotStudentState";
+import { MyRatingsPendingSection } from "@/features/ratings/components/MyRatingsPendingSection";
 import { MyRatingsSkeleton } from "@/features/ratings/components/MyRatingsSkeleton";
 import { MyRatingsYearSection } from "@/features/ratings/components/MyRatingsYearSection";
 import {
 	groupRatingsByYearAndSemester,
 	type RatingFilter,
+	type YearGroup,
 } from "@/features/ratings/groupRatings";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
 import { useAuth, withAuth } from "@/lib/auth";
-import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
-
-const COLLAPSIBLE_STATE_KEY = "my-ratings-collapsible-state";
-const COLLAPSIBLE_STATE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-interface StoredWithTimestamp<T> {
-	data: T;
-	storedAt: number;
-}
-
-function getCollapsibleState(): Record<string, boolean> {
-	const stored = localStorageAdapter.getItem<
-		StoredWithTimestamp<Record<string, boolean>>
-	>(COLLAPSIBLE_STATE_KEY);
-	if (!stored) return {};
-	if (Date.now() - stored.storedAt > COLLAPSIBLE_STATE_TTL_MS) {
-		localStorageAdapter.removeItem(COLLAPSIBLE_STATE_KEY);
-		return {};
-	}
-	return stored.data ?? {};
-}
-
-function saveCollapsibleState(state: Record<string, boolean>): void {
-	const value: StoredWithTimestamp<Record<string, boolean>> = {
-		data: state,
-		storedAt: Date.now(),
-	};
-	localStorageAdapter.setItem(COLLAPSIBLE_STATE_KEY, value);
-}
 
 function MyRatings() {
 	const { isStudent } = useAuth();
@@ -71,61 +50,87 @@ function MyRatings() {
 	const totalCourses = ratings.length;
 	const isRefetching = isFetching && !isLoading;
 
+	const pendingItems = useMemo(
+		() =>
+			[...ratings]
+				.filter((course) => !course.rated && course.can_rate)
+				.sort((a, b) =>
+					(a.course_title ?? "").localeCompare(b.course_title ?? ""),
+				),
+		[ratings],
+	);
+
 	const groupedRatings = useMemo(
 		() => groupRatingsByYearAndSemester(ratings, filter),
 		[ratings, filter],
 	);
 
-	const [collapsedState, setCollapsedState] =
-		useState<Record<string, boolean>>(getCollapsibleState);
-
-	const updateCollapsedState = useCallback((key: string, isOpen: boolean) => {
-		setCollapsedState((prev) => {
-			const next = { ...prev, [key]: isOpen };
-			saveCollapsibleState(next);
-			return next;
-		});
-	}, []);
-
-	const toggleAll = useCallback(
-		(open: boolean) => {
-			const next: Record<string, boolean> = {};
-			for (const yearGroup of groupedRatings) {
-				for (const season of yearGroup.seasons) {
-					next[season.key] = open;
-				}
-			}
-			setCollapsedState(next);
-			saveCollapsibleState(next);
-		},
-		[groupedRatings],
-	);
-
-	const isAllExpanded = useMemo(() => {
-		const currentKeys = groupedRatings.flatMap((year) =>
-			year.seasons.map((s) => s.key),
+	if (!isStudent) {
+		return (
+			<Layout>
+				<MyRatingsNotStudentState />
+			</Layout>
 		);
-		if (currentKeys.length === 0) return false;
-		return currentKeys.every((key) => collapsedState[key]);
-	}, [groupedRatings, collapsedState]);
-
-	const handleToggleExpandAll = useCallback(() => {
-		toggleAll(!isAllExpanded);
-	}, [toggleAll, isAllExpanded]);
-
-	const content = resolveContent({
-		isStudent,
-		isLoading,
-		error,
-		totalCourses,
-		isRefetching,
-		refetch,
-		filter,
-		groupedRatings,
-		collapsedState,
-		updateCollapsedState,
-	});
-
+	}
+	if (isLoading) {
+		return (
+			<Layout>
+				<div className="space-y-6">
+					<MyRatingsHeader
+						totalCourses={totalCourses}
+						ratedCourses={ratedCourses}
+						isLoading={isLoading}
+						filter={filter}
+						onFilterChange={setFilter}
+					/>
+					<MyRatingsSkeleton />
+				</div>
+			</Layout>
+		);
+	}
+	if (error) {
+		return (
+			<Layout>
+				<MyRatingsErrorState onRetry={refetch} isRetrying={isRefetching} />
+			</Layout>
+		);
+	}
+	if (totalCourses === 0) {
+		return (
+			<Layout>
+				<MyRatingsEmptyState />
+			</Layout>
+		);
+	}
+	if (groupedRatings.length === 0 && filter !== "all") {
+		return (
+			<Layout>
+				<div className="space-y-6">
+					<MyRatingsHeader
+						totalCourses={totalCourses}
+						ratedCourses={ratedCourses}
+						isLoading={isLoading}
+						filter={filter}
+						onFilterChange={setFilter}
+					/>
+					<Empty className="border-0 py-12">
+						<EmptyHeader>
+							<EmptyTitle>
+								{filter === "unrated"
+									? "Всі курси оцінено!"
+									: "Поки що немає оцінок"}
+							</EmptyTitle>
+							<EmptyDescription>
+								{filter === "unrated"
+									? "Дякуємо, що оцінили всі свої курси."
+									: "Оберіть інший фільтр або оцініть перший курс зі списку."}
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
+				</div>
+			</Layout>
+		);
+	}
 	return (
 		<Layout>
 			<div className="space-y-6">
@@ -135,10 +140,13 @@ function MyRatings() {
 					isLoading={isLoading}
 					filter={filter}
 					onFilterChange={setFilter}
-					isAllExpanded={isAllExpanded}
-					onToggleExpandAll={handleToggleExpandAll}
 				/>
-				{content}
+				<MyRatingsContent
+					filter={filter}
+					pendingItems={pendingItems}
+					groupedRatings={groupedRatings}
+					refetch={refetch}
+				/>
 			</div>
 		</Layout>
 	);
@@ -148,60 +156,29 @@ export const Route = createFileRoute("/my-ratings")({
 	component: withAuth(MyRatings),
 });
 
-function resolveContent({
-	isStudent,
-	isLoading,
-	error,
-	totalCourses,
-	isRefetching,
-	refetch,
-	filter,
-	groupedRatings,
-	collapsedState,
-	updateCollapsedState,
-}: {
-	isStudent: boolean;
-	isLoading: boolean;
-	error: unknown;
-	totalCourses: number;
-	isRefetching: boolean;
-	refetch: () => undefined | Promise<unknown>;
+interface MyRatingsContentProps {
 	filter: RatingFilter;
-	groupedRatings: ReturnType<typeof groupRatingsByYearAndSemester>;
-	collapsedState: Record<string, boolean>;
-	updateCollapsedState: (key: string, isOpen: boolean) => void;
-}): ReactNode {
-	if (!isStudent) {
-		return <MyRatingsNotStudentState />;
-	}
-	if (isLoading) {
-		return <MyRatingsSkeleton />;
-	}
-	if (error) {
-		return <MyRatingsErrorState onRetry={refetch} isRetrying={isRefetching} />;
-	}
-	if (totalCourses === 0) {
-		return <MyRatingsEmptyState />;
-	}
-	if (groupedRatings.length === 0 && filter !== "all") {
-		return (
-			<div className="text-center py-12">
-				<p className="text-muted-foreground">
-					{filter === "unrated" && "Всі курси оцінено! 🎉"}
-					{filter === "rated" && "Ви ще не оцінили жодного курсу"}
-				</p>
-			</div>
-		);
-	}
+	pendingItems: StudentRatingsDetailed[];
+	groupedRatings: YearGroup[];
+	refetch: () => undefined | Promise<unknown>;
+}
+
+function MyRatingsContent({
+	filter,
+	pendingItems,
+	groupedRatings,
+	refetch,
+}: Readonly<MyRatingsContentProps>) {
 	return (
 		<div className="space-y-8" data-testid={testIds.myRatings.list}>
+			{filter !== "rated" && pendingItems.length > 0 ? (
+				<MyRatingsPendingSection items={pendingItems} />
+			) : null}
 			{groupedRatings.map((yearGroup) => (
 				<MyRatingsYearSection
 					key={yearGroup.key}
 					yearGroup={yearGroup}
 					onRatingChanged={refetch}
-					collapsedState={collapsedState}
-					onToggle={updateCollapsedState}
 				/>
 			))}
 		</div>
