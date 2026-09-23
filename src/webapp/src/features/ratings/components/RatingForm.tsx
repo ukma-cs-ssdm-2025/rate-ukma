@@ -17,14 +17,9 @@ import {
 	FormMessage,
 } from "@/components/ui/Form";
 import { Textarea } from "@/components/ui/Textarea";
-import {
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "@/features/courses/courseFormatting";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { cn } from "@/lib/utils";
 import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
@@ -72,7 +67,6 @@ function ScoreInput({
 	onBlur,
 	descriptions,
 	labelId,
-	getTone,
 	"data-testid": dataTestId,
 	...rest
 }: Readonly<{
@@ -81,7 +75,6 @@ function ScoreInput({
 	onBlur?: () => void;
 	descriptions: Record<number, string>;
 	labelId: string;
-	getTone: (value: number | null | undefined) => string;
 	"data-testid"?: string;
 	id?: string;
 	"aria-describedby"?: string;
@@ -139,7 +132,7 @@ function ScoreInput({
 					setDragging(false);
 				}}
 				onPointerUp={() => setDragging(false)}
-				className="flex touch-none select-none gap-0.5"
+				className="flex touch-pan-y select-none gap-0.5"
 				{...rest}
 			>
 				{SCORE_OPTIONS.map((score) => {
@@ -170,12 +163,11 @@ function ScoreInput({
 						>
 							<Star
 								aria-hidden="true"
-								className={cn(
-									"size-8 transition-colors duration-100 sm:size-7",
+								className={
 									isFilled
-										? cn("fill-current drop-shadow-sm", getTone(shown))
-										: "fill-transparent text-muted-foreground/40",
-								)}
+										? "size-8 fill-primary text-primary drop-shadow-sm transition-colors duration-100 sm:size-7"
+										: "size-8 fill-transparent text-muted-foreground/40 transition-colors duration-100 sm:size-7"
+								}
 							/>
 						</button>
 					);
@@ -212,7 +204,7 @@ function RatingFormFields({
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
-			<div className="flex flex-col gap-5">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<FormField<RatingFormData, "difficulty">
 					control={control}
 					name="difficulty"
@@ -228,7 +220,6 @@ function RatingFormFields({
 										onBlur={field.onBlur}
 										descriptions={difficultyDescriptions}
 										labelId={difficultyLabelId}
-										getTone={getDifficultyTone}
 										data-testid={testIds.rating.difficultySlider}
 									/>
 								</FormControl>
@@ -253,7 +244,6 @@ function RatingFormFields({
 										onBlur={field.onBlur}
 										descriptions={usefulnessDescriptions}
 										labelId={usefulnessLabelId}
-										getTone={getUsefulnessTone}
 										data-testid={testIds.rating.usefulnessSlider}
 									/>
 								</FormControl>
