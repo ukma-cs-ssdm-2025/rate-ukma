@@ -422,13 +422,16 @@ function CourseFiltersContent({
 	setParams: (updates: Partial<CourseFiltersParamsState>) => void;
 	data: CourseFiltersData;
 }>) {
-	const [moreOpen, setMoreOpen] = useState(false);
-
 	const moreActive =
 		params.instructor !== "" ||
 		params.type !== null ||
 		params.credits[0] !== CREDITS_RANGE[0] ||
 		params.credits[1] !== CREDITS_RANGE[1];
+	const [moreOpen, setMoreOpen] = useState(moreActive);
+
+	useEffect(() => {
+		if (moreActive) setMoreOpen(true);
+	}, [moreActive]);
 
 	const setWithPageReset = useCallback(
 		(updates: Partial<CourseFiltersParamsState>) => {
@@ -551,14 +554,14 @@ function CourseFiltersContent({
 	);
 
 	const { groups } = data;
+	const creditsActive =
+		params.credits[0] !== CREDITS_RANGE[0] ||
+		params.credits[1] !== CREDITS_RANGE[1];
 	const moreCount =
 		(params.instructor !== "" ? 1 : 0) +
 		(params.type !== null ? 1 : 0) +
-		(params.credits[0] !== CREDITS_RANGE[0] ||
-		params.credits[1] !== CREDITS_RANGE[1]
-			? 1
-			: 0);
-	const moreExpanded = moreOpen || moreActive;
+		(creditsActive ? 1 : 0);
+	const moreExpanded = moreOpen;
 
 	const semesterSelect = groups.semester.selectFilters.find(
 		(filter) => filter.key === "year",
@@ -597,7 +600,9 @@ function CourseFiltersContent({
 
 			<FilterSection
 				title="Семестр"
-				activeCount={groups.semester.config.activeCount - moreCount}
+				activeCount={
+					groups.semester.config.activeCount - (creditsActive ? 1 : 0)
+				}
 				testId={testIds.filters.groupSemester}
 			>
 				{semesterSelect && (
@@ -653,7 +658,7 @@ function CourseFiltersContent({
 						/>
 					</button>
 				</CollapsibleTrigger>
-				<CollapsibleContent forceMount className="space-y-4 pt-4">
+				<CollapsibleContent className="space-y-4 pt-4">
 					{instructorSelect && (
 						<SelectFilters
 							filters={[instructorSelect]}

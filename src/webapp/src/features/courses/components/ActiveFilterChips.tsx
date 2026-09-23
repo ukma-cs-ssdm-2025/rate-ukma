@@ -24,12 +24,15 @@ export const ActiveFilterChips = memo(function ActiveFilterChips({
 }>) {
 	const chips = getActiveFilterChips(params, filterOptions);
 
-	if (chips.length === 0) {
-		return null;
-	}
-
 	return (
-		<div className={cn("flex flex-wrap items-center gap-2", className)}>
+		<div
+			className={cn(
+				"flex h-8 items-center gap-2 overflow-x-auto whitespace-nowrap",
+				chips.length === 0 &&
+					"[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+				className,
+			)}
+		>
 			{chips.map((chip) => (
 				<Badge
 					key={chip.key}
@@ -47,9 +50,11 @@ export const ActiveFilterChips = memo(function ActiveFilterChips({
 					</button>
 				</Badge>
 			))}
-			<Button type="button" variant="ghost" size="sm" onClick={onReset}>
-				Скинути все
-			</Button>
+			{chips.length > 0 && (
+				<Button type="button" variant="ghost" size="sm" onClick={onReset}>
+					Скинути все
+				</Button>
+			)}
 		</div>
 	);
 });

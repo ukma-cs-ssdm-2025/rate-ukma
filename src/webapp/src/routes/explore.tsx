@@ -144,7 +144,11 @@ function ExploreRoute() {
 								variant="outline"
 								className="h-9 bg-card/90 backdrop-blur"
 								onClick={() => setIsFiltersOpen(true)}
-								aria-label="Відкрити фільтри"
+								aria-label={
+									activeFilterCount > 0
+										? `Відкрити фільтри (${activeFilterCount} активних)`
+										: "Відкрити фільтри"
+								}
 							>
 								<Filter className="size-4" />
 								<span className="hidden sm:inline">Фільтри</span>

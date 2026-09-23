@@ -232,9 +232,20 @@ describe("CourseFiltersPanel", () => {
 			expect(toggleButtons[2]).toHaveTextContent("Літо");
 		});
 
-		it("should disable credits slider when year is not selected", () => {
-			// Act — credits live in the disclosure, mounted via forceMount
+		it("should keep credits hidden until the disclosure is opened", async () => {
+			// Arrange
+			const user = userEvent.setup();
 			render(<TestWrapper />);
+
+			// Assert — credits start collapsed
+			expect(
+				screen.queryByTestId(testIds.filters.creditsSelect),
+			).not.toBeInTheDocument();
+
+			// Act
+			await user.click(
+				screen.getByRole("button", { name: /більше фільтрів/i }),
+			);
 
 			// Assert
 			expect(screen.getByTestId(testIds.filters.creditsSelect)).toHaveAttribute(
@@ -243,9 +254,15 @@ describe("CourseFiltersPanel", () => {
 			);
 		});
 
-		it("should show the year hint under credits until a year is selected", () => {
-			// Arrange & Act
+		it("should show the year hint under credits once opened", async () => {
+			// Arrange
+			const user = userEvent.setup();
 			render(<TestWrapper />);
+
+			// Act
+			await user.click(
+				screen.getByRole("button", { name: /більше фільтрів/i }),
+			);
 
 			// Assert
 			expect(
@@ -253,8 +270,34 @@ describe("CourseFiltersPanel", () => {
 			).toBeInTheDocument();
 		});
 
-		it("should auto-open the disclosure when a filter inside is active", () => {
-			// Arrange & Act
+		it("should expand and collapse the disclosure when the trigger is clicked", async () => {
+			// Arrange
+			const user = userEvent.setup();
+			render(<TestWrapper />);
+			const trigger = screen.getByRole("button", {
+				name: /більше фільтрів/i,
+			});
+
+			// Act — open
+			await user.click(trigger);
+
+			// Assert
+			expect(
+				screen.getByTestId(testIds.filters.instructorSelect),
+			).toBeVisible();
+
+			// Act — collapse again
+			await user.click(trigger);
+
+			// Assert
+			expect(
+				screen.queryByTestId(testIds.filters.instructorSelect),
+			).not.toBeInTheDocument();
+		});
+
+		it("should auto-open the disclosure when a filter inside is active, and let the user collapse it", async () => {
+			// Arrange
+			const user = userEvent.setup();
 			render(
 				<TestWrapper
 					initialParams={{
@@ -263,12 +306,23 @@ describe("CourseFiltersPanel", () => {
 					}}
 				/>,
 			);
+			const trigger = screen.getByRole("button", {
+				name: /більше фільтрів/i,
+			});
 
-			// Assert
+			// Assert — auto-opened
 			expect(screen.getByText("Більше фільтрів")).toBeInTheDocument();
 			expect(
 				screen.getByTestId(testIds.filters.instructorSelect),
 			).toBeVisible();
+
+			// Act — user collapses
+			await user.click(trigger);
+
+			// Assert
+			expect(
+				screen.queryByTestId(testIds.filters.instructorSelect),
+			).not.toBeInTheDocument();
 		});
 	});
 
@@ -387,7 +441,7 @@ describe("CourseFiltersPanel", () => {
 });
 
 describe("ActiveFilterChips", () => {
-	it("should render null when no filter is active", () => {
+	it("should render an empty fixed-height row when no filter is active", () => {
 		// Arrange & Act
 		const { container } = render(
 			<ActiveFilterChips
@@ -398,8 +452,10 @@ describe("ActiveFilterChips", () => {
 			/>,
 		);
 
-		// Assert
-		expect(container).toBeEmptyDOMElement();
+		// Assert — the row always exists so the table never shifts
+		const row = container.firstElementChild;
+		expect(row).not.toBeNull();
+		expect(row?.childElementCount).toBe(0);
 	});
 
 	it("should render a removable chip per active filter plus a reset button", async () => {

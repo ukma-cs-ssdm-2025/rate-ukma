@@ -511,6 +511,21 @@ describe("Accessibility", () => {
 		const filterButton = screen.getByRole("button", { name: /фільтри/i });
 		expect(filterButton).toHaveAttribute("aria-label", "Фільтри");
 	});
+
+	it("should include the group active count in the filter button name", () => {
+		// Arrange & Act — two terms count once, matching the panel header
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				params={{ ...defaultParams, term: ["FALL", "SPRING"] }}
+			/>,
+		);
+
+		// Assert
+		expect(
+			screen.getByRole("button", { name: "Фільтри (1 активних)" }),
+		).toBeInTheDocument();
+	});
 });
 
 describe("Attended Courses Highlighting", () => {

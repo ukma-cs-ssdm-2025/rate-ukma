@@ -54,7 +54,7 @@ import {
 	DEFAULT_COURSE_FILTERS_PARAMS,
 } from "../courseFiltersParams";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
-import { getActiveFilterChips } from "../hooks/useCourseFiltersData";
+import { useCourseFiltersData } from "../hooks/useCourseFiltersData";
 
 interface PaginationInfo {
 	page: number;
@@ -407,10 +407,14 @@ export function CoursesTable({
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
 
-	const activeFilterCount = useMemo(
-		() => getActiveFilterChips(params, filterOptions).length,
-		[params, filterOptions],
-	);
+	const { groups: filterGroups } = useCourseFiltersData({
+		params,
+		filterOptions,
+	});
+	const activeFilterCount =
+		filterGroups.rating.config.activeCount +
+		filterGroups.semester.config.activeCount +
+		filterGroups.structure.config.activeCount;
 
 	const searchParams = useMemo(
 		() => courseFiltersStateToSearchParams(params),
@@ -558,7 +562,11 @@ export function CoursesTable({
 					type="button"
 					className="h-10 gap-2 rounded-full px-5 shadow-lg"
 					onClick={toggleFiltersDrawer}
-					aria-label="Фільтри"
+					aria-label={
+						activeFilterCount > 0
+							? `Фільтри (${activeFilterCount} активних)`
+							: "Фільтри"
+					}
 					data-testid={testIds.filters.drawerTrigger}
 				>
 					<Filter className="size-4" aria-hidden="true" />

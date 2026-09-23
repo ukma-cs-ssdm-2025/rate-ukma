@@ -426,6 +426,16 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.groups.structure.config.activeCount).toBe(2);
 		});
+
+		it("should count one term selection once in the semester group", () => {
+			// Arrange & Act
+			const { result } = renderFiltersHook({
+				term: ["FALL", "SPRING"],
+			});
+
+			// Assert
+			expect(result.current.groups.semester.config.activeCount).toBe(1);
+		});
 	});
 
 	describe("Presets", () => {

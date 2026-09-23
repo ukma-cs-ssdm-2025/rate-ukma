@@ -273,6 +273,13 @@ async function applyAndAssertAllFilters({
 	});
 
 	await test.step("course type", async () => {
+		const moreTrigger = scope.getByRole("button", {
+			name: /Більше фільтрів/,
+		});
+		if (!(await scope.getByTestId(testIds.filters.typeSelect).isVisible())) {
+			await moreTrigger.scrollIntoViewIfNeeded();
+			await moreTrigger.click();
+		}
 		await selectSecondRadixSelectOption({
 			page,
 			scope,
