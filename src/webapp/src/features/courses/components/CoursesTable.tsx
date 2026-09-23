@@ -95,10 +95,6 @@ function CoursesMapCard({
 	);
 	const isDesktop = useMediaQuery("(min-width: 768px)");
 
-	useEffect(() => {
-		localStorageAdapter.setItem(MAP_COLLAPSED_STORAGE_KEY, collapsed);
-	}, [collapsed]);
-
 	if (!isDesktop) {
 		return (
 			<section
@@ -122,12 +118,6 @@ function CoursesMapCard({
 					<div inert className="pointer-events-none absolute inset-0">
 						<CoursesScatterPlot filters={filters} variant="mini" />
 					</div>
-					<button
-						type="button"
-						className="absolute inset-0 h-full w-full cursor-pointer"
-						onClick={onOpenFullscreen}
-						aria-label="Відкрити карту курсів"
-					/>
 				</div>
 			</section>
 		);
@@ -136,7 +126,10 @@ function CoursesMapCard({
 	return (
 		<Collapsible
 			open={!collapsed}
-			onOpenChange={(open) => setCollapsed(!open)}
+			onOpenChange={(open) => {
+				setCollapsed(!open);
+				localStorageAdapter.setItem(MAP_COLLAPSED_STORAGE_KEY, !open);
+			}}
 			className="hidden overflow-hidden rounded-xl border bg-card shadow-sm md:block"
 		>
 			<div className="flex min-h-10 items-center justify-between gap-2 px-4 py-1">
