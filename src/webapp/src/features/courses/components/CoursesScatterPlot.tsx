@@ -141,9 +141,8 @@ function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
 	);
 }
 
-const margin: Margin = { top: 40, right: 40, bottom: 60, left: 60 };
 // Extra headroom so the floating explore toolbar never covers top points.
-const EXPLORE_MARGIN: Margin = { ...margin, top: 76 };
+const EXPLORE_MARGIN: Margin = { top: 76, right: 40, bottom: 60, left: 60 };
 
 // Axis styling constants
 const AXIS_TICK_FONT_SIZE = 12;
@@ -208,7 +207,6 @@ type ScatterPlotContentProps = Readonly<{
 	width: number;
 	height: number;
 	chartData: CourseDataPoint[];
-	variant: "default" | "mini";
 	usefulnessDomain: [number, number];
 	difficultyDomain: [number, number];
 	onCourseClick?: (courseId: string) => void;
@@ -236,7 +234,6 @@ function ScatterPlotContent({
 	width,
 	height,
 	chartData,
-	variant,
 	usefulnessDomain,
 	difficultyDomain,
 	onCourseClick,
@@ -248,7 +245,7 @@ function ScatterPlotContent({
 	> | null>(null);
 	const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
 	const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
-	const plotMargin = variant === "default" ? EXPLORE_MARGIN : margin;
+	const plotMargin = EXPLORE_MARGIN;
 	const innerWidth = width - plotMargin.left - plotMargin.right;
 	const innerHeight = height - plotMargin.top - plotMargin.bottom;
 
@@ -341,7 +338,6 @@ function ScatterPlotContent({
 		() =>
 			computeLabelPoints({
 				chartData,
-				variant,
 				width,
 				height,
 				innerWidth,
@@ -359,7 +355,6 @@ function ScatterPlotContent({
 			innerWidth,
 			transform,
 			forceShowAllLabels,
-			variant,
 			width,
 			xScale,
 			yScale,
@@ -592,54 +587,47 @@ function ScatterPlotContent({
 				</TooltipWithBounds>
 			)}
 
-			{variant === "default" && (
-				<div className="absolute bottom-16 right-3 overflow-hidden rounded-full border bg-card/90 shadow-sm backdrop-blur">
-					<ButtonGroup
-						orientation="vertical"
-						aria-label="Керування масштабом графіка"
-						className="border-0 bg-transparent shadow-none"
+			<div className="absolute bottom-16 right-3 overflow-hidden rounded-full border bg-card/90 shadow-sm backdrop-blur">
+				<ButtonGroup
+					orientation="vertical"
+					aria-label="Керування масштабом графіка"
+					className="border-0 bg-transparent shadow-none"
+				>
+					<Button
+						variant="ghost"
+						size="icon-lg"
+						className="shadow-none"
+						onClick={() => {
+							if (!zoomRef.current || !svgRef.current) return;
+							zoomRef.current.scaleBy(select(svgRef.current), ZOOM_IN_FACTOR);
+						}}
+						aria-label="Збільшити"
 					>
-						<Button
-							variant="ghost"
-							size="icon-lg"
-							className="shadow-none"
-							onClick={() => {
-								if (!zoomRef.current || !svgRef.current) return;
-								zoomRef.current.scaleBy(select(svgRef.current), ZOOM_IN_FACTOR);
-							}}
-							aria-label="Збільшити"
-						>
-							<Plus className="h-4 w-4" />
-						</Button>
-						<Button
-							variant="ghost"
-							size="icon-lg"
-							className="shadow-none"
-							onClick={() => {
-								if (!zoomRef.current || !svgRef.current) return;
-								zoomRef.current.scaleBy(
-									select(svgRef.current),
-									ZOOM_OUT_FACTOR,
-								);
-							}}
-							aria-label="Зменшити"
-						>
-							<Minus className="h-4 w-4" />
-						</Button>
-					</ButtonGroup>
-				</div>
-			)}
+						<Plus className="size-4" />
+					</Button>
+					<Button
+						variant="ghost"
+						size="icon-lg"
+						className="shadow-none"
+						onClick={() => {
+							if (!zoomRef.current || !svgRef.current) return;
+							zoomRef.current.scaleBy(select(svgRef.current), ZOOM_OUT_FACTOR);
+						}}
+						aria-label="Зменшити"
+					>
+						<Minus className="size-4" />
+					</Button>
+				</ButtonGroup>
+			</div>
 		</>
 	);
 }
 
 export function CoursesScatterPlot({
 	filters,
-	variant = "default",
 	forceShowAllLabels = false,
 }: Readonly<{
 	filters: CoursesListParams;
-	variant?: "default" | "mini";
 	forceShowAllLabels?: boolean;
 }>) {
 	const navigate = useNavigate();
@@ -755,7 +743,6 @@ export function CoursesScatterPlot({
 						width={width}
 						height={height}
 						chartData={chartData}
-						variant={variant}
 						usefulnessDomain={usefulnessDomain}
 						difficultyDomain={difficultyDomain}
 						onCourseClick={handleCourseClick}

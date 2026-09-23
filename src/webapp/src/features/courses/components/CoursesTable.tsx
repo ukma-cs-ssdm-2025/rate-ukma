@@ -3,7 +3,6 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
-	useRef,
 	useState,
 } from "react";
 
@@ -16,17 +15,13 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, Filter, Maximize2, Search } from "lucide-react";
+import { ChartScatter, Filter, Search, Table2 } from "lucide-react";
 
 import { DataTable } from "@/components/DataTable/DataTable";
 import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@/components/ui/Collapsible";
+import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -35,17 +30,14 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import type { CourseList, CoursesListParams } from "@/lib/api/generated";
+import type { CourseList } from "@/lib/api/generated";
 import {
 	EducationLevelEnum,
 	useCoursesFilterOptionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
-import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
-import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
-import { cn } from "@/lib/utils";
 import { ActiveFilterChips } from "./ActiveFilterChips";
 import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
@@ -55,7 +47,6 @@ import {
 	CoursesReviewsSortMenu,
 	type CoursesReviewsSortOption,
 } from "./CoursesReviewsSortMenu";
-import { CoursesScatterPlot } from "./CoursesScatterPlot";
 import {
 	type CourseFiltersParamsSetter,
 	type CourseFiltersParamsState,
@@ -63,7 +54,6 @@ import {
 	DEFAULT_COURSE_FILTERS_PARAMS,
 } from "../courseFiltersParams";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
-import { transformFiltersToApiParams } from "../filterTransformations";
 import { getActiveFilterChips } from "../hooks/useCourseFiltersData";
 
 interface PaginationInfo {
@@ -73,51 +63,6 @@ interface PaginationInfo {
 	totalPages: number;
 }
 
-type ScatterPlotPreviewCardProps = Readonly<{
-	filters: CoursesListParams;
-	onOpenFullscreen?: () => void;
-	heightClass: string;
-	title?: string;
-	showHeader?: boolean;
-}>;
-
-function ScatterPlotPreviewCard({
-	filters,
-	onOpenFullscreen,
-	heightClass,
-	title = "Карта курсів",
-	showHeader = true,
-}: ScatterPlotPreviewCardProps) {
-	const containerClass = cn(
-		"relative w-full overflow-hidden",
-		showHeader ? "rounded-xl border bg-card shadow-sm" : "bg-transparent",
-		heightClass,
-	);
-
-	return (
-		<div className={containerClass}>
-			<div className="absolute inset-0">
-				<CoursesScatterPlot filters={filters} variant="mini" />
-			</div>
-
-			{showHeader && (
-				<div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-3 bg-gradient-to-b from-background/80 to-transparent px-4 py-2">
-					<p className="text-sm font-semibold">{title}</p>
-					<Button
-						size="sm"
-						variant="ghost"
-						className="h-8 gap-2"
-						onClick={onOpenFullscreen}
-					>
-						<Maximize2 className="h-4 w-4" />
-						<span>Відкрити</span>
-					</Button>
-				</div>
-			)}
-		</div>
-	);
-}
-
 interface CoursesTableProps {
 	data: CourseList[];
 	isLoading: boolean;
@@ -125,9 +70,6 @@ interface CoursesTableProps {
 	setParams: CourseFiltersParamsSetter;
 	pagination?: PaginationInfo;
 }
-
-const SCATTER_COLLAPSE_STORAGE_KEY = "courses:scatter-open";
-const FULLSCREEN_TRANSITION_DELAY_MS = 200;
 
 function buildCoursesTableColumns({
 	reviewsSortValue,
@@ -427,15 +369,6 @@ export function CoursesTable({
 	);
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
-	const isDesktop = useMediaQuery("(min-width: 768px)");
-	const [isScatterPlotOpen, setIsScatterPlotOpen] = useState<boolean>(() => {
-		const stored = localStorageAdapter.getItem<boolean>(
-			SCATTER_COLLAPSE_STORAGE_KEY,
-		);
-		return stored ?? true;
-	});
-	const hasInitializedRef = useRef(false);
-	const fullscreenTimeoutRef = useRef<number | null>(null);
 
 	const { data: studentCourses } = useStudentsMeCoursesRetrieve({
 		query: {
@@ -470,14 +403,6 @@ export function CoursesTable({
 		[navigate],
 	);
 
-	const clearFullscreenTimeout = useCallback(() => {
-		const timeoutId = fullscreenTimeoutRef.current;
-		if (timeoutId === null) return;
-
-		clearTimeout(timeoutId);
-		fullscreenTimeoutRef.current = null;
-	}, []);
-
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const filterOptions = filterOptionsQuery.data;
 	const isFilterOptionsLoading = filterOptionsQuery.isLoading;
@@ -487,51 +412,8 @@ export function CoursesTable({
 		[params, filterOptions],
 	);
 
-	useEffect(() => {
-		localStorageAdapter.setItem(
-			SCATTER_COLLAPSE_STORAGE_KEY,
-			isScatterPlotOpen,
-		);
-	}, [isScatterPlotOpen]);
-
-	useEffect(() => {
-		if (hasInitializedRef.current) return;
-		hasInitializedRef.current = true;
-
-		if (!isDesktop) setIsScatterPlotOpen(true);
-	}, [isDesktop]);
-
-	const openExploreWithAnimation = useCallback(() => {
-		const runNavigation = () =>
-			navigate({
-				to: "/explore",
-				search: courseFiltersStateToSearchParams(params),
-			});
-
-		setIsScatterPlotOpen(true);
-
-		if ("startViewTransition" in document) {
-			document.startViewTransition(runNavigation);
-			return;
-		}
-
-		clearFullscreenTimeout();
-
-		fullscreenTimeoutRef.current = globalThis.window.setTimeout(
-			runNavigation,
-			FULLSCREEN_TRANSITION_DELAY_MS,
-		);
-	}, [clearFullscreenTimeout, navigate, params]);
-
-	useEffect(
-		() => () => {
-			clearFullscreenTimeout();
-		},
-		[clearFullscreenTimeout],
-	);
-
-	const apiFilters = useMemo(
-		() => transformFiltersToApiParams(params),
+	const searchParams = useMemo(
+		() => courseFiltersStateToSearchParams(params),
 		[params],
 	);
 
@@ -611,19 +493,43 @@ export function CoursesTable({
 		<>
 			<div className="flex flex-col gap-6 md:flex-row">
 				<div className="min-w-0 flex-1 space-y-4">
-					<div className="relative min-h-10 flex-1">
-						<Search className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-						<DebouncedInput
-							placeholder="Пошук курсів за назвою..."
-							value={params.q}
-							onChange={(value) => {
-								setParams({ q: String(value), page: 1 });
-							}}
-							className="h-10 pl-10 text-sm"
-							disabled={isInitialLoading}
-							isLoading={isLoading}
-							data-testid={testIds.courses.searchInput}
-						/>
+					<div className="flex items-center gap-2">
+						<div className="relative min-h-10 min-w-0 flex-1">
+							<Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+							<DebouncedInput
+								placeholder="Пошук курсів за назвою..."
+								value={params.q}
+								onChange={(value) => {
+									setParams({ q: String(value), page: 1 });
+								}}
+								className="h-10 pl-10 text-sm"
+								disabled={isInitialLoading}
+								isLoading={isLoading}
+								data-testid={testIds.courses.searchInput}
+							/>
+						</div>
+						<ButtonGroup
+							aria-label="Перемикання режиму перегляду"
+							className="h-10 shrink-0"
+						>
+							<Button asChild variant="secondary" size="sm" className="h-full">
+								<Link to="/" search={() => searchParams} aria-label="Таблиця">
+									<Table2 className="size-4 sm:hidden" />
+									<span className="hidden sm:inline">Таблиця</span>
+								</Link>
+							</Button>
+							<Button asChild variant="ghost" size="sm" className="h-full">
+								<Link
+									to="/explore"
+									search={() => searchParams}
+									aria-label="Візуалізація"
+									data-testid={testIds.courses.scatterPlotFullscreenButton}
+								>
+									<ChartScatter className="size-4 sm:hidden" />
+									<span className="hidden sm:inline">Візуалізація</span>
+								</Link>
+							</Button>
+						</ButtonGroup>
 					</div>
 
 					<ActiveFilterChips
@@ -632,62 +538,6 @@ export function CoursesTable({
 						filterOptions={filterOptions}
 						onReset={handleResetFilters}
 					/>
-
-					{isDesktop ? (
-						<Collapsible
-							open={isScatterPlotOpen}
-							onOpenChange={setIsScatterPlotOpen}
-							className="overflow-hidden rounded-xl border bg-card shadow-sm"
-						>
-							<div className="flex min-h-10 items-center justify-between gap-2 px-4 py-1">
-								<h3 className="text-sm font-semibold">Карта курсів</h3>
-								<div className="flex items-center gap-2">
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-8 gap-2 text-muted-foreground"
-										onClick={openExploreWithAnimation}
-										data-testid={testIds.courses.scatterPlotFullscreenButton}
-									>
-										<Maximize2 className="h-4 w-4" />
-										<span className="hidden sm:inline">Повний екран</span>
-									</Button>
-									<CollapsibleTrigger asChild>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-8 w-8 p-0"
-											aria-label={
-												isScatterPlotOpen
-													? "Згорнути карту курсів"
-													: "Розгорнути карту курсів"
-											}
-										>
-											<ChevronDown
-												className={`h-4 w-4 transition-transform duration-200 ${
-													isScatterPlotOpen ? "rotate-180" : ""
-												}`}
-											/>
-										</Button>
-									</CollapsibleTrigger>
-								</div>
-							</div>
-							<CollapsibleContent>
-								<ScatterPlotPreviewCard
-									filters={apiFilters}
-									showHeader={false}
-									heightClass="h-[350px]"
-								/>
-							</CollapsibleContent>
-						</Collapsible>
-					) : (
-						<ScatterPlotPreviewCard
-							filters={apiFilters}
-							onOpenFullscreen={openExploreWithAnimation}
-							heightClass="h-[260px]"
-							title="Карта курсів"
-						/>
-					)}
 
 					{renderTableContent()}
 				</div>
@@ -711,7 +561,7 @@ export function CoursesTable({
 					aria-label="Фільтри"
 					data-testid={testIds.filters.drawerTrigger}
 				>
-					<Filter className="h-4 w-4" aria-hidden="true" />
+					<Filter className="size-4" aria-hidden="true" />
 					Фільтри
 					{activeFilterCount > 0 && (
 						<Badge className="border-transparent bg-primary-foreground text-primary">
