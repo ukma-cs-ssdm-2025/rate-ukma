@@ -24,8 +24,6 @@ interface CourseStatsHeroProps {
 	usefulness: number | null;
 	ratingsCount: number | null;
 	action?: ReactNode;
-	// Secondary course facts shown next to the ratings basis.
-	meta?: ReactNode;
 }
 
 function getDescription(
@@ -116,7 +114,6 @@ export function CourseStatsHero({
 	usefulness,
 	ratingsCount,
 	action,
-	meta,
 }: Readonly<CourseStatsHeroProps>) {
 	// Only scores in the valid range are meaningful; treat the rest as missing
 	const diff =
@@ -198,12 +195,9 @@ export function CourseStatsHero({
 					</Card>
 				))}
 			</div>
-			{(basis || action || meta) && (
+			{(basis || action) && (
 				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-						{basis && <p className="text-sm text-muted-foreground">{basis}</p>}
-						{meta}
-					</div>
+					{basis && <p className="text-sm text-muted-foreground">{basis}</p>}
 					{action}
 				</div>
 			)}

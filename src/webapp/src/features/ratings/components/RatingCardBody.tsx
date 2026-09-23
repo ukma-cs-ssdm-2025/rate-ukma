@@ -117,12 +117,12 @@ export function RatingCardBody({
 				)
 			)}
 
-			<div className="mt-3">
+			<div className="mt-2.5">
 				<RatingComment comment={comment} emptyMessage={commentEmptyMessage} />
 			</div>
 
 			{ratingId && (
-				<div className="mt-3">
+				<div className="mt-2">
 					<RatingComments
 						ratingId={ratingId}
 						courseId={courseId}

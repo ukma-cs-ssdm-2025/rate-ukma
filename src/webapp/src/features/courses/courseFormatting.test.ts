@@ -11,6 +11,7 @@ import {
 	getAcademicStartYear,
 	getCourseTypeDisplay,
 	getDifficultyTone,
+	getExamTypeDisplay,
 	getFacultyAbbreviation,
 	getSemesterDisplay,
 	getSemesterTermDisplay,
@@ -161,6 +162,25 @@ describe("courseFormatting", () => {
 
 		it("should return original value for unknown type without fallback", () => {
 			expect(getCourseTypeDisplay("UNKNOWN_TYPE")).toBe("UNKNOWN_TYPE");
+		});
+	});
+
+	describe("getExamTypeDisplay", () => {
+		it.each([
+			["EXAM", "Іспит"],
+			["CREDIT", "Залік"],
+			["exam", "Іспит"],
+		])("maps %s to a Ukrainian control-form label", (type, expected) => {
+			expect(getExamTypeDisplay(type)).toBe(expected);
+		});
+
+		it("passes unknown values through without a fallback", () => {
+			expect(getExamTypeDisplay("OFFSET")).toBe("OFFSET");
+		});
+
+		it("returns an empty label for a missing value", () => {
+			expect(getExamTypeDisplay(null)).toBe("");
+			expect(getExamTypeDisplay(undefined)).toBe("");
 		});
 	});
 

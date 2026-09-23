@@ -273,6 +273,9 @@ const offering = (
 			semester_term: term,
 			credits,
 			weekly_hours: weeklyHours,
+			total_hours: Number(credits) * 30,
+			lecture_count: Number(credits) * 6,
+			practice_count: Number(credits) * 6,
 		},
 	],
 });

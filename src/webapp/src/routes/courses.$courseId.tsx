@@ -5,9 +5,9 @@ import { Helmet } from "react-helmet-async";
 
 import Layout from "@/components/Layout";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { ExpandableText } from "@/components/ui/ExpandableText";
+import { CourseAbout } from "@/features/course-offerings/components/CourseAbout";
 import {
-	CourseCazRecords,
+	getLatestOffering,
 	getLatestOfferingLoads,
 	runsInOneTerm,
 } from "@/features/course-offerings/components/CourseCazRecords";
@@ -34,14 +34,6 @@ import {
 } from "@/lib/api/generated";
 import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
-
-function CourseDescription({ text }: Readonly<{ text: string }>) {
-	return (
-		<ExpandableText className="max-w-3xl text-base leading-relaxed text-muted-foreground">
-			{text}
-		</ExpandableText>
-	);
-}
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
@@ -91,6 +83,7 @@ function CourseDetailsRoute() {
 
 	const offerings = courseOfferings?.course_offerings ?? [];
 	const canShowCta = hasAttendedCourse && selectedOffering && !ratedOffering;
+	const latestOffering = getLatestOffering(offerings);
 	const termLoads =
 		offerings.length > 0 ? getLatestOfferingLoads(offerings) : [];
 	const showStats = hasCourseScores(
@@ -107,10 +100,13 @@ function CourseDetailsRoute() {
 			Оцінити цей курс
 		</RatingButton>
 	) : null;
-	const cazRecords =
-		offerings.length > 0 ? (
-			<CourseCazRecords courseOfferings={offerings} />
-		) : null;
+	const about = (
+		<CourseAbout
+			description={course.description}
+			latestOffering={latestOffering}
+			courseOfferings={offerings}
+		/>
+	);
 	const canonicalUrl = `${window.location.origin + window.location.pathname}`;
 	const ogDescription = buildCourseOgDescription(course);
 
@@ -137,40 +133,47 @@ function CourseDetailsRoute() {
 					termLoads={termLoads}
 				/>
 
-				<div className="max-w-3xl">
-					{showStats ? (
-						<CourseStatsHero
-							difficulty={course.avg_difficulty ?? null}
-							usefulness={course.avg_usefulness ?? null}
-							ratingsCount={course.ratings_count ?? null}
-							action={rateAction}
-							meta={cazRecords}
-						/>
-					) : (
-						(cazRecords || rateAction) && (
-							<div className="flex flex-wrap items-center justify-between gap-3">
-								{cazRecords}
-								{rateAction}
+				<div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
+					<div className="min-w-0 space-y-8">
+						{showStats || rateAction ? (
+							<div className="max-w-3xl">
+								{showStats ? (
+									<CourseStatsHero
+										difficulty={course.avg_difficulty ?? null}
+										usefulness={course.avg_usefulness ?? null}
+										ratingsCount={course.ratings_count ?? null}
+										action={rateAction}
+									/>
+								) : (
+									<div className="flex flex-wrap items-center justify-between gap-3">
+										{rateAction}
+									</div>
+								)}
 							</div>
-						)
-					)}
+						) : null}
+
+						{/* Phones read one column: scores, then «Про курс», then reviews. */}
+						<div className="lg:hidden">{about}</div>
+
+						<CourseRatingsList
+							courseId={courseId}
+							userRating={userRating}
+							onEditUserRating={() => setIsRatingModalOpen(true)}
+							onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
+							hasAttended={hasAttendedCourse}
+							canRate={Boolean(selectedOffering?.can_rate)}
+							// The page renders the single rate CTA next to the scores, so the list must not render its own.
+							showCta={false}
+							canRateButton={Boolean(selectedOffering?.can_rate)}
+							onRate={() => setIsRatingModalOpen(true)}
+							singleTerm={runsInOneTerm(offerings)}
+						/>
+					</div>
+
+					<aside className="hidden min-w-0 lg:block">
+						<div className="lg:sticky lg:top-24">{about}</div>
+					</aside>
 				</div>
-
-				{course.description && <CourseDescription text={course.description} />}
-
-				<CourseRatingsList
-					courseId={courseId}
-					userRating={userRating}
-					onEditUserRating={() => setIsRatingModalOpen(true)}
-					onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
-					hasAttended={hasAttendedCourse}
-					canRate={Boolean(selectedOffering?.can_rate)}
-					// The page renders the single rate CTA next to the scores, so the list must not render its own.
-					showCta={false}
-					canRateButton={Boolean(selectedOffering?.can_rate)}
-					onRate={() => setIsRatingModalOpen(true)}
-					singleTerm={runsInOneTerm(offerings)}
-				/>
 			</div>
 
 			{selectedOffering?.id && attendedCourseId && (

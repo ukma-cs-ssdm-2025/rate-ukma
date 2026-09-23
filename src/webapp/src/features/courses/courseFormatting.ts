@@ -82,6 +82,20 @@ export function getCourseTypeDisplay(value: string, fallback?: string): string {
 	return COURSE_TYPE_LABELS[value] ?? fallback ?? value;
 }
 
+const EXAM_TYPE_LABELS: Record<string, string> = {
+	EXAM: "Іспит",
+	CREDIT: "Залік",
+};
+
+export function getExamTypeDisplay(
+	value: string | null | undefined,
+	fallback?: string,
+): string {
+	if (!value) return fallback ?? "";
+	return EXAM_TYPE_LABELS[value.toUpperCase()] ?? fallback ?? value;
+}
+
+
 export function getSemesterTermDisplay(
 	term: string,
 	fallback?: string,

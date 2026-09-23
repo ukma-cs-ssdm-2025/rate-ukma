@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { MessageSquare } from "lucide-react";
 
-import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/Badge";
 import {
 	Empty,
@@ -201,39 +200,36 @@ export function CourseRatingsList({
 			className="space-y-4"
 			data-testid={testIds.courseDetails.reviewsSection}
 		>
-			<SectionHeader
-				className="flex-row items-center justify-between"
-				title="Відгуки студентів"
-				meta={
+			<div className="flex min-w-0 items-center justify-between gap-2">
+				<h2 className="flex min-w-0 items-center gap-2 text-lg font-semibold tracking-tight">
+					<span className="truncate">Відгуки</span>
 					<Badge
 						variant="secondary"
 						data-testid={testIds.courseDetails.ratingsCountStat}
 					>
 						{displayCount}
 					</Badge>
-				}
-				actions={
-					(showCta && !hasNoReviews) || displayCount > 0 ? (
-						<>
-							{showCta && !hasNoReviews && (
-								<RatingButton
-									canRate={canRateButton}
-									onClick={onRate}
-									size="sm"
-								>
-									Оцінити
-								</RatingButton>
-							)}
-							{displayCount > 0 && (
-								<RatingsSortSelect
-									value={sortOption}
-									onValueChange={setSortOption}
-								/>
-							)}
-						</>
-					) : undefined
-				}
-			/>
+				</h2>
+				{displayCount > 0 || (showCta && !hasNoReviews) ? (
+					<div className="flex shrink-0 items-center gap-2">
+						{showCta && !hasNoReviews && (
+							<RatingButton
+								canRate={canRateButton}
+								onClick={onRate}
+								size="sm"
+							>
+								Оцінити
+							</RatingButton>
+						)}
+						{displayCount > 0 && (
+							<RatingsSortSelect
+								value={sortOption}
+								onValueChange={setSortOption}
+							/>
+						)}
+					</div>
+				) : null}
+			</div>
 
 			{userRating && onEditUserRating && onDeleteUserRating && (
 				<UserRatingCard
