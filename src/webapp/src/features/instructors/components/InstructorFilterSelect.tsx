@@ -111,7 +111,7 @@ function InstructorFilterSelect({
 					}}
 					className={cn(
 						"cursor-pointer",
-						"border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex min-h-9 w-full items-center gap-1 rounded-md border bg-transparent px-3 py-1.5 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px]",
+						"border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex min-h-10 w-full items-center gap-1 rounded-md border bg-transparent px-3 py-1.5 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] motion-reduce:transition-none",
 						className,
 					)}
 					data-testid={testId}
@@ -127,7 +127,7 @@ function InstructorFilterSelect({
 						<button
 							type="button"
 							aria-label="Очистити викладача"
-							className="text-muted-foreground hover:text-destructive ml-auto cursor-pointer"
+							className="text-muted-foreground hover:text-destructive ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full"
 							onClick={clear}
 						>
 							<XIcon className="size-4" />

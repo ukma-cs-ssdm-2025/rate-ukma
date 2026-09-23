@@ -107,9 +107,9 @@ describe("CourseFiltersPanel", () => {
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText("Оцінки")).toBeInTheDocument();
+			expect(screen.getByText("Оцінки курсу")).toBeInTheDocument();
 			expect(screen.getByText("Семестр")).toBeInTheDocument();
-			expect(screen.getByText("Навчання")).toBeInTheDocument();
+			expect(screen.getByText("Факультет і кафедра")).toBeInTheDocument();
 			expect(screen.getByText("Більше фільтрів")).toBeInTheDocument();
 		});
 

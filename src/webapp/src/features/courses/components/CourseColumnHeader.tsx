@@ -12,6 +12,7 @@ interface CourseColumnHeaderProps<TData, TValue> {
 	initialSortDirection?: "asc" | "desc";
 	testId?: string;
 	align?: "left" | "center";
+	className?: string;
 }
 
 export function CourseColumnHeader<TData, TValue>({
@@ -20,6 +21,7 @@ export function CourseColumnHeader<TData, TValue>({
 	initialSortDirection = "asc",
 	testId,
 	align = "left",
+	className,
 }: Readonly<CourseColumnHeaderProps<TData, TValue>>) {
 	if (!column.getCanSort()) {
 		return (
@@ -30,6 +32,7 @@ export function CourseColumnHeader<TData, TValue>({
 				className={cn(
 					"inline-flex h-8 items-center gap-1.5 px-2 text-sm font-medium text-muted-foreground disabled:opacity-100",
 					align === "left" && "-ml-2",
+					className,
 				)}
 				disabled
 				aria-label={title}
@@ -95,6 +98,7 @@ export function CourseColumnHeader<TData, TValue>({
 			className={cn(
 				"inline-flex h-8 items-center gap-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0",
 				align === "left" && "-ml-2",
+				className,
 			)}
 			onClick={handleClick}
 			disabled={!column.getCanSort()}

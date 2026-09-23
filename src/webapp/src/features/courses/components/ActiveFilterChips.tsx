@@ -35,7 +35,7 @@ export const ActiveFilterChips = memo(function ActiveFilterChips({
 						type="button"
 						aria-label={`Прибрати фільтр ${chip.label}`}
 						onClick={() => setParams({ ...chip.clear, page: 1 })}
-						className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+						className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors motion-reduce:transition-none hover:bg-muted hover:text-foreground"
 					>
 						<X className="size-3" aria-hidden="true" />
 					</button>

@@ -218,15 +218,18 @@ type ScatterPlotContentProps = Readonly<{
 function ScatterPlotState({
 	title,
 	description,
+	action,
 }: Readonly<{
 	title: string;
 	description: string;
+	action?: React.ReactNode;
 }>) {
 	return (
-		<div className="w-full h-full relative flex items-center justify-center">
-			<div className="text-center space-y-2">
+		<div className="w-full h-full relative flex items-center justify-center px-6">
+			<div className="flex max-w-xs flex-col items-center gap-2 text-center">
 				<h3 className="text-lg font-medium">{title}</h3>
 				<p className="text-sm text-muted-foreground">{description}</p>
+				{action}
 			</div>
 		</div>
 	);
@@ -665,16 +668,18 @@ export function CoursesScatterPlot({
 		[filters],
 	);
 
-	const { data, isLoading, isError } = useAnalyticsList(analyticsFilters, {
-		query: {
-			placeholderData: keepPreviousData,
+	const { data, isLoading, isError, refetch } = useAnalyticsList(
+		analyticsFilters,
+		{
+			query: {
+				placeholderData: keepPreviousData,
+			},
 		},
-	});
+	);
 	const loadingMessage = useMemo(() => getRandomLoadingMessage(), []);
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const faculties = filterOptionsQuery.data?.faculties ?? [];
-
 	const facultyColorMap = useMemo(() => {
 		const map = new Map<string, string>();
 		for (const faculty of faculties) {
@@ -728,12 +733,22 @@ export function CoursesScatterPlot({
 			</div>
 		);
 	}
-
 	if (isError) {
 		return (
 			<ScatterPlotState
 				title="Не вдалося завантажити діаграму"
 				description="Спробуйте оновити сторінку"
+				action={
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="mt-2 h-10 px-4"
+						onClick={() => refetch()}
+					>
+						Спробувати знову
+					</Button>
+				}
 			/>
 		);
 	}

@@ -11,6 +11,7 @@ import {
 import { renderWithProviders } from "@/test-utils/render";
 import { CoursesTable } from "./CoursesTable";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
+import { DEFAULT_COURSE_FILTERS_PARAMS } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
@@ -156,6 +157,32 @@ describe("Initial Rendering", () => {
 		expect(
 			screen.getByText("Курсів не знайдено за вашим запитом"),
 		).toBeInTheDocument();
+	});
+
+	it("should offer a reset action when filters hide every course", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const setParams = vi.fn();
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				data={[]}
+				isLoading={false}
+				params={{ ...defaultParams, q: "хакерство" }}
+				setParams={setParams}
+			/>,
+		);
+
+		// Assert — one primary action, not prose
+		expect(
+			screen.getByText("За цими фільтрами курсів немає"),
+		).toBeInTheDocument();
+
+		// Act
+		await user.click(screen.getByRole("button", { name: "Скинути фільтри" }));
+
+		// Assert
+		expect(setParams).toHaveBeenCalledWith(DEFAULT_COURSE_FILTERS_PARAMS);
 	});
 
 	it("should render data table when data is present", () => {
@@ -345,7 +372,8 @@ describe("Reset Filters", () => {
 			/>,
 		);
 
-		const resetButton = screen.getByRole("button", { name: /скинути/i });
+		const panel = screen.getByTestId(testIds.filters.panel);
+		const resetButton = within(panel).getByRole("button", { name: /скинути/i });
 		await user.click(resetButton);
 
 		expect(setParams).toHaveBeenCalledWith({

@@ -120,7 +120,7 @@ function FilterSlider({
 				onValueCommit={(val) => onValueChange(val as [number, number])}
 				disabled={disabled}
 				data-testid={testId}
-				className="w-full"
+				className="w-full py-2"
 			/>
 			{disabledMessage && (
 				<p className="text-xs text-muted-foreground">{disabledMessage}</p>
@@ -143,7 +143,7 @@ function FilterSection({
 	return (
 		<section className="space-y-3" data-testid={testId}>
 			<div className="flex items-center gap-2">
-				<h3 className="text-sm font-medium">{title}</h3>
+				<h3 className="text-sm font-semibold">{title}</h3>
 				{activeCount != null && activeCount > 0 && (
 					<Badge variant="soft">{activeCount}</Badge>
 				)}
@@ -577,7 +577,7 @@ function CourseFiltersContent({
 			/>
 
 			<FilterSection
-				title="Оцінки"
+				title="Оцінки курсу"
 				activeCount={groups.rating.config.activeCount}
 				testId={testIds.filters.groupRating}
 			>
@@ -616,7 +616,7 @@ function CourseFiltersContent({
 			<Separator />
 
 			<FilterSection
-				title="Навчання"
+				title="Факультет і кафедра"
 				activeCount={
 					groups.structure.config.activeCount -
 					(params.instructor !== "" ? 1 : 0) -
@@ -647,7 +647,7 @@ function CourseFiltersContent({
 						</span>
 						<ChevronDown
 							className={cn(
-								"size-4 text-muted-foreground transition-transform duration-200",
+								"size-4 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
 								moreExpanded && "rotate-180",
 							)}
 						/>

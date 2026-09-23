@@ -154,7 +154,7 @@ function CoursesMapCard({
 						>
 							<ChevronDown
 								className={cn(
-									"size-4 transition-transform duration-200",
+									"size-4 transition-transform duration-200 motion-reduce:transition-none",
 									!collapsed && "rotate-180",
 								)}
 							/>
@@ -174,9 +174,11 @@ function CoursesMapCard({
 function buildCoursesTableColumns({
 	reviewsSortValue,
 	onReviewsSortChange,
+	compact,
 }: {
 	reviewsSortValue: CoursesReviewsSortOption | null;
 	onReviewsSortChange: (value: CoursesReviewsSortOption) => void;
+	compact: boolean;
 }): ColumnDef<CourseList>[] {
 	return [
 		{
@@ -194,13 +196,13 @@ function buildCoursesTableColumns({
 							<Link
 								to="/courses/$courseId"
 								params={{ courseId }}
-								className="text-sm font-medium transition-colors hover:text-primary hover:underline md:text-base"
+								className="line-clamp-2 text-sm font-medium transition-colors motion-reduce:transition-none hover:text-primary hover:underline md:text-base"
 								data-testid={testIds.courses.tableTitleLink}
 							>
 								{course.title}
 							</Link>
 						) : (
-							<span className="text-sm font-medium md:text-base">
+							<span className="line-clamp-2 text-sm font-medium md:text-base">
 								{course.title}
 							</span>
 						)}
@@ -222,7 +224,7 @@ function buildCoursesTableColumns({
 				);
 			},
 			enableSorting: false,
-			size: 300,
+			size: compact ? 160 : 300,
 			meta: {
 				label: "Назва курсу",
 				placeholder: "Пошук курсів...",
@@ -252,10 +254,11 @@ function buildCoursesTableColumns({
 				);
 			},
 			enableSorting: false,
-			size: 100,
 			meta: {
 				label: "Відгуки",
 				align: "center",
+				// Low value on a narrow screen; the sort menu is desktop-only anyway.
+				hideOnMobile: true,
 			},
 		},
 		{
@@ -270,6 +273,7 @@ function buildCoursesTableColumns({
 							initialSortDirection="asc"
 							testId={testIds.courses.difficultySortButtonMobile}
 							align="center"
+							className="h-10 whitespace-nowrap text-xs [&_svg]:size-3.5"
 						/>
 					</div>
 					<div className="hidden justify-center md:flex">
@@ -290,7 +294,7 @@ function buildCoursesTableColumns({
 				/>
 			),
 			enableSorting: true,
-			size: 100,
+			size: compact ? 80 : 100,
 			meta: {
 				label: "Складність",
 				placeholder: "Фільтр за складністю...",
@@ -307,10 +311,11 @@ function buildCoursesTableColumns({
 					<div className="flex justify-center md:hidden">
 						<CourseColumnHeader
 							column={column}
-							title="Корисн."
+							title="Корис."
 							initialSortDirection="desc"
 							testId={testIds.courses.usefulnessSortButtonMobile}
 							align="center"
+							className="h-10 whitespace-nowrap text-xs [&_svg]:size-3.5"
 						/>
 					</div>
 					<div className="hidden justify-center md:flex">
@@ -331,13 +336,12 @@ function buildCoursesTableColumns({
 				/>
 			),
 			enableSorting: true,
-			size: 100,
+			size: compact ? 80 : 100,
 			meta: {
 				label: "Корисність",
 				placeholder: "Фільтр за корисністю...",
 				variant: "number",
 				range: USEFULNESS_RANGE,
-				align: "center",
 			},
 		},
 	];
@@ -469,6 +473,8 @@ export function CoursesTable({
 	);
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
+	// Compact score columns on phones so both fit at 390px without clipping.
+	const isCompactTable = !useMediaQuery("(min-width: 640px)");
 
 	const { data: studentCourses } = useStudentsMeCoursesRetrieve({
 		query: {
@@ -533,8 +539,9 @@ export function CoursesTable({
 			buildCoursesTableColumns({
 				reviewsSortValue,
 				onReviewsSortChange: handleReviewsSortChange,
+				compact: isCompactTable,
 			}),
-		[reviewsSortValue, handleReviewsSortChange],
+		[reviewsSortValue, handleReviewsSortChange, isCompactTable],
 	);
 
 	const table = useReactTable({
@@ -567,6 +574,8 @@ export function CoursesTable({
 		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
 	}, [setParams]);
 
+	const hasActiveFilters = activeFilterCount > 0 || params.q !== "";
+
 	const toggleFiltersDrawer = useCallback(() => {
 		setIsFiltersDrawerOpen((prev) => !prev);
 	}, []);
@@ -593,8 +602,25 @@ export function CoursesTable({
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}
 				onRowClick={handleRowClick}
-				emptyStateMessage="Курсів не знайдено за вашим запитом"
+				emptyStateMessage={
+					hasActiveFilters
+						? "За цими фільтрами курсів немає"
+						: "Курсів не знайдено за вашим запитом"
+				}
 				emptyStateTestId={testIds.courses.emptyState}
+				emptyStateAction={
+					hasActiveFilters ? (
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="h-10 px-4"
+							onClick={handleResetFilters}
+						>
+							Скинути фільтри
+						</Button>
+					) : undefined
+				}
 				data-testid={testIds.courses.table}
 			/>
 		);
@@ -602,7 +628,8 @@ export function CoursesTable({
 
 	return (
 		<>
-			<div className="flex flex-col gap-6 md:flex-row">
+			{/* Room for the floating filters pill so it never covers the pagination. */}
+			<div className="flex flex-col gap-6 pb-16 md:flex-row lg:pb-0">
 				<div className="min-w-0 flex-1 space-y-4">
 					<div className="relative min-h-10 flex-1">
 						<Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
