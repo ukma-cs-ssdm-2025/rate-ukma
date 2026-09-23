@@ -95,7 +95,6 @@ export function getExamTypeDisplay(
 	return EXAM_TYPE_LABELS[value.toUpperCase()] ?? fallback ?? value;
 }
 
-
 export function getSemesterTermDisplay(
 	term: string,
 	fallback?: string,

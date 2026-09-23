@@ -30,7 +30,10 @@ function ErrorFallback({ resetErrorBoundary }: Readonly<FallbackProps>) {
 					</p>
 				</div>
 				<div className="flex flex-col gap-2">
-					<Button onClick={handleRetry} className="h-11 w-full text-base font-medium">
+					<Button
+						onClick={handleRetry}
+						className="h-11 w-full text-base font-medium"
+					>
 						Спробувати знову
 					</Button>
 					<Button

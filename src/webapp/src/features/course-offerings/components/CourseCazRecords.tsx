@@ -133,9 +133,7 @@ function CazRecordRow({
 					<ExternalLink className="size-3 shrink-0" aria-hidden="true" />
 				) : null}
 			</p>
-			{details ? (
-				<p className="text-muted-foreground">{details}</p>
-			) : null}
+			{details ? <p className="text-muted-foreground">{details}</p> : null}
 			{instructors ? (
 				<p className="min-w-0 break-words text-muted-foreground">
 					{instructors}

@@ -34,7 +34,10 @@ function LoginFailedPage() {
 						: "Тільки студенти та викладачі НаУКМА можуть використовувати цю платформу."}
 				</p>
 			</div>
-			<Button onClick={handleRetry} className="h-11 w-full text-base font-medium">
+			<Button
+				onClick={handleRetry}
+				className="h-11 w-full text-base font-medium"
+			>
 				{isTechnicalError ? "Спробувати знову" : "Повернутися до входу"}
 			</Button>
 		</div>

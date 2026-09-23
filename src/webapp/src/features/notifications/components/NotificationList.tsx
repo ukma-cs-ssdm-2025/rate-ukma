@@ -203,7 +203,9 @@ function NotificationItem({
 					{title}
 				</p>
 				{quote && (
-					<p className="line-clamp-2 text-sm break-words text-muted-foreground">{quote}</p>
+					<p className="line-clamp-2 text-sm break-words text-muted-foreground">
+						{quote}
+					</p>
 				)}
 				{notification.latest_created_at && (
 					<time className="text-xs text-muted-foreground">

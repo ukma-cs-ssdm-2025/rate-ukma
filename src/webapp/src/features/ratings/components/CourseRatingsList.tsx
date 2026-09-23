@@ -213,11 +213,7 @@ export function CourseRatingsList({
 				{displayCount > 0 || (showCta && !hasNoReviews) ? (
 					<div className="flex shrink-0 items-center gap-2">
 						{showCta && !hasNoReviews && (
-							<RatingButton
-								canRate={canRateButton}
-								onClick={onRate}
-								size="sm"
-							>
+							<RatingButton canRate={canRateButton} onClick={onRate} size="sm">
 								Оцінити
 							</RatingButton>
 						)}

@@ -151,9 +151,7 @@ describe("CourseCazRecords", () => {
 			/>,
 		);
 
-		expect(
-			screen.getByRole("link", { name: /2025–2026/ }),
-		).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: /2025–2026/ })).toBeInTheDocument();
 		expect(
 			screen.queryByRole("link", { name: /2023–2024/ }),
 		).not.toBeInTheDocument();
@@ -171,9 +169,7 @@ describe("CourseCazRecords", () => {
 
 		await user.click(screen.getByRole("button", { name: "ще 2" }));
 
-		expect(
-			screen.getByRole("link", { name: /2020–2021/ }),
-		).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: /2020–2021/ })).toBeInTheDocument();
 		expect(
 			screen.queryByRole("button", { name: /^ще \d/ }),
 		).not.toBeInTheDocument();
@@ -220,7 +216,11 @@ describe("CourseCazRecords", () => {
 		render(
 			<CourseCazRecords
 				courseOfferings={[
-					offering({ id: "new", semester_year: 2026, instructors: [demchenko] }),
+					offering({
+						id: "new",
+						semester_year: 2026,
+						instructors: [demchenko],
+					}),
 					offering({
 						id: "same",
 						semester_year: 2025,
@@ -237,6 +237,8 @@ describe("CourseCazRecords", () => {
 		);
 
 		expect(screen.getByText("Коваленко Анна")).toBeInTheDocument();
-		expect(screen.queryByText("Демченко Олена Петрівна")).not.toBeInTheDocument();
+		expect(
+			screen.queryByText("Демченко Олена Петрівна"),
+		).not.toBeInTheDocument();
 	});
 });

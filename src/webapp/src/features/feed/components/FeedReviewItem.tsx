@@ -72,7 +72,9 @@ export function FeedReviewItem({
 				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
 					<Badge variant="soft">Відгук</Badge>
 					<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
-					{semesterLabel && <span className="ml-auto shrink-0">{semesterLabel}</span>}
+					{semesterLabel && (
+						<span className="ml-auto shrink-0">{semesterLabel}</span>
+					)}
 				</div>
 			}
 		>

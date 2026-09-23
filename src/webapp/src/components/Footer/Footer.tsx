@@ -8,9 +8,7 @@ export default function Footer() {
 	return (
 		<footer className="mt-auto border-t border-border/40 bg-background">
 			<div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-2 px-6 py-5 sm:flex-row sm:justify-between">
-				<p className="text-sm text-muted-foreground">
-					{`© ${year} Rate UKMA`}
-				</p>
+				<p className="text-sm text-muted-foreground">{`© ${year} Rate UKMA`}</p>
 
 				<a
 					href={repoUrl}

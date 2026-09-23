@@ -25,7 +25,9 @@ export function offeringFacts(
 	if (!offering) return [];
 	const term: CourseOfferingTerm | undefined =
 		offering.terms?.[0] ??
-		(offering.semester_term ? { semester_term: offering.semester_term } : undefined);
+		(offering.semester_term
+			? { semester_term: offering.semester_term }
+			: undefined);
 	const facts: Array<{ label: string; value: string }> = [];
 	const credits = factText(formatCredits(term?.credits));
 	if (credits) facts.push({ label: "Кредити", value: credits });

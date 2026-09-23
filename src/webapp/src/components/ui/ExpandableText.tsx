@@ -30,25 +30,25 @@ export function ExpandableText({
 		setIsExpanded(false);
 	}, [children]);
 
-// Remeasure clamping after every transition back to the collapsed state.
-// children is a prop that signals new content
-useLayoutEffect(() => {
-	if (isExpanded) return;
-	const el = elRef.current;
-	if (el) setIsClamped(el.scrollHeight > el.clientHeight);
-}, [isExpanded, children, lines]);
+	// Remeasure clamping after every transition back to the collapsed state.
+	// children is a prop that signals new content
+	useLayoutEffect(() => {
+		if (isExpanded) return;
+		const el = elRef.current;
+		if (el) setIsClamped(el.scrollHeight > el.clientHeight);
+	}, [isExpanded, children, lines]);
 
-// Tailwind only generates static line-clamp utilities, so a custom count
-// uses the equivalent inline properties; the default keeps line-clamp-4.
-const collapsedStyle =
-	!isExpanded && lines !== 4
-		? {
-				display: "-webkit-box",
-				WebkitBoxOrient: "vertical",
-				WebkitLineClamp: lines,
-				overflow: "hidden",
-			} as const
-		: undefined;
+	// Tailwind only generates static line-clamp utilities, so a custom count
+	// uses the equivalent inline properties; the default keeps line-clamp-4.
+	const collapsedStyle =
+		!isExpanded && lines !== 4
+			? ({
+					display: "-webkit-box",
+					WebkitBoxOrient: "vertical",
+					WebkitLineClamp: lines,
+					overflow: "hidden",
+				} as const)
+			: undefined;
 
 	return (
 		<div>
