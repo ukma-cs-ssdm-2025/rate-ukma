@@ -187,7 +187,7 @@ function CourseDetailsRoute() {
 							onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
 							hasAttended={hasAttendedCourse}
 							canRate={Boolean(selectedOffering?.can_rate)}
-							// The page renders the single rate CTA next to the scores, so the list must not render its own.
+							// The page renders the single rate action, so the list must not render its own.
 							showCta={false}
 							canRateButton={Boolean(selectedOffering?.can_rate)}
 							onRate={() => setIsRatingModalOpen(true)}

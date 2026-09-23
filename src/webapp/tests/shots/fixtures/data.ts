@@ -403,7 +403,7 @@ export const EMPTY_COMMENT_LIST = {
 } satisfies CommentList;
 
 // The fixture student attends COURSE; the offering's state decides what the
-// course page offers next to the scores (see useUserCourseRating).
+// course page rate action shows (see useUserCourseRating).
 export type MyCourseState = "rateable" | "not-yet" | "rated";
 
 export const myCourses = (state: MyCourseState) =>

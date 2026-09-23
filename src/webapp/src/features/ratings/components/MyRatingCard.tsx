@@ -201,7 +201,7 @@ interface RateActionProps {
 	variant?: "default" | "outline";
 }
 
-export function RateAction({
+function RateAction({
 	courseId,
 	offeringId,
 	canRate,
