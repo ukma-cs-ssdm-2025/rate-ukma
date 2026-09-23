@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -124,7 +124,9 @@ describe("Initial Rendering", () => {
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
 		// Assert
-		expect(screen.getByText("Фільтри")).toBeInTheDocument();
+		const panel = screen.getByTestId(testIds.filters.panel);
+		expect(panel).toBeInTheDocument();
+		expect(within(panel).getByText("Фільтри")).toBeInTheDocument();
 	});
 
 	it("should render mobile filter button", () => {
@@ -324,7 +326,9 @@ describe("Filter Options Loading", () => {
 		});
 
 		// Assert
-		expect(screen.getByText("Фільтри")).toBeInTheDocument();
+		const panel = screen.getByTestId(testIds.filters.panel);
+		expect(panel).toBeInTheDocument();
+		expect(within(panel).getByText("Фільтри")).toBeInTheDocument();
 	});
 });
 
