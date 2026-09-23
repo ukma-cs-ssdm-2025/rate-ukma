@@ -1,7 +1,6 @@
 import { createFileRoute, useRouter, useSearch } from "@tanstack/react-router";
-import { AlertCircle } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 type LoginFailedSearch = {
 	technical?: string;
@@ -24,29 +23,15 @@ function LoginFailedPage() {
 	};
 
 	return (
-		<>
-			<div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
-				<AlertCircle className="size-8 text-destructive" />
-			</div>
-
-			<div className="space-y-4 mb-6">
-				<h1 className="text-3xl font-bold text-foreground">
-					{isTechnicalError ? "Технічна помилка" : "Немає доступу"}
-				</h1>
-				<p className="text-lg text-muted-foreground">
-					{isTechnicalError
-						? "Сталася технічна помилка під час спроби входу."
-						: "Тільки студенти та викладачі НаУКМА можуть використовувати цю платформу."}
-				</p>
-			</div>
-
-			<Button
-				onClick={handleRetry}
-				className="w-full gap-3 h-12 text-base font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-				size="lg"
-			>
-				Спробувати знову
-			</Button>
-		</>
+		<ErrorState
+			className="flex-none p-0"
+			title={isTechnicalError ? "Технічна помилка" : "Немає доступу"}
+			description={
+				isTechnicalError
+					? "Сталася технічна помилка під час спроби входу."
+					: "Тільки студенти та викладачі НаУКМА можуть використовувати цю платформу."
+			}
+			onRetry={handleRetry}
+		/>
 	);
 }

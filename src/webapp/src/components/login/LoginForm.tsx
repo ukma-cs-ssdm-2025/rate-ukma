@@ -95,13 +95,7 @@ export function LoginForm({
 	});
 
 	return (
-		<div className="w-full max-w-md mx-auto">
-			<div className="mb-6 text-center">
-				<p className="text-sm text-muted-foreground">
-					Admin login for administrators
-				</p>
-			</div>
-
+		<>
 			<Form {...form}>
 				<form
 					onSubmit={handleSubmit}
@@ -207,16 +201,6 @@ export function LoginForm({
 					</div>
 				</form>
 			</Form>
-
-			<div className="mt-4 border-t border-border/20 pt-4">
-				<p className="text-center text-xs text-muted-foreground">
-					Press{" "}
-					<kbd className="rounded bg-muted px-1 py-0.5 text-xs">
-						Ctrl+Shift+D
-					</kbd>{" "}
-					to return to normal login
-				</p>
-			</div>
-		</div>
+		</>
 	);
 }
