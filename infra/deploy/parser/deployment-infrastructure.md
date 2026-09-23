@@ -37,27 +37,28 @@ The parser service (currently a Django app within the monolith at `src/backend/s
 graph LR
     A["GitHub<br/>Repo + Actions"] 
     B["Build &amp; Push<br/>ghcr.io"]
-    C["GitHub Environments<br/>Secrets"]
+    C["GitHub Environments<br/>Secrets<br/>(kubeconfig,<br/>DB creds,<br/>API keys)"]
     D["Terraform<br/>Apply"]
-    E["Hetzner<br/>Object Storage"]
+    E["Hetzner<br/>Object Storage<br/>(encrypted state<br/>+ backups)"]
     
-    F["STAGING 4GB<br/>k3s or microk8s"]
-    G["PROD 16GB<br/>kubeadm"]
+    F["STAGING 4GB<br/>k3s/microk8s<br/>kube-apiserver"]
+    G["PROD 16GB<br/>kubeadm<br/>kube-apiserver"]
     
     F2["Ingress-nginx<br/>cert-manager<br/>Parser Pods<br/>PostgreSQL Op.<br/>Backup Agent"]
     G2["Ingress-nginx<br/>cert-manager<br/>Parser Pods<br/>PostgreSQL Op.<br/>Backup Agent"]
     
     A -->|code push| B
     B -->|image| A
-    C -->|read| D
-    D -->|kubectl apply| F
-    D -->|kubectl apply| G
-    F -->|state| E
-    G -->|state| E
+    C -->|read secrets| D
+    C -->|read kubeconfig| A
+    D -->|terraform state| E
+    A -->|kubectl apply<br/>least-priv SA| F
+    A -->|kubectl apply<br/>least-priv SA| G
+    F -->|state, backups| E
+    G -->|state, backups| E
     F --> F2
     G --> G2
     F2 -->|backup| E
-    G2 -->|backup| E
 ```
 
 ---
@@ -110,9 +111,9 @@ graph LR
 | **Single instance + backups** (to object storage)               | Simple, low resource cost; straightforward recovery (restore from backup). | Manual restore required; brief downtime; no automatic failover.           | ✗                |
 | **HA with standby replica** (primary + replica, auto-promotion) | Automatic failover; near-zero downtime; high availability.                 | Higher resource cost (2 Postgres pods); operator complexity; replica lag. | ✓ **Decided**    |
 
-**Decided:** HA with primary + 1 standby replica, automatic promotion on primary failure.
+**Decided:** HA with primary + 1 standby replica, automatic promotion on primary failure (pod-level HA only).
 
-**Rationale:** HA provides automatic failover and near-zero downtime, essential for a parser service handling live data ingestion. While resource cost is higher (2 Postgres pods), both the 16GB prod node and 4GB staging node can accommodate a single replica each. The operator (CloudNativePG or Zalando) handles lifecycle automation (init, backup, failover). Backup strategy remains: backups still go to Hetzner Object Storage for disaster recovery (data loss protection, not just failover).
+**Rationale:** HA provides automatic failover and near-zero downtime **for pod/container failures only** (e.g., container crash, OOM kill, process failure). Both replicas run on the same single-node cluster, so infrastructure failures (node crash, storage failure, control-plane failure) eliminate both instances simultaneously, requiring manual restore from backups. This is acceptable for a new service with unknown uptime requirements; once traffic/SLAs are known, true infrastructure-level HA requires either: (a) multi-node cluster with replicas on different nodes, or (b) cross-cluster replication. The operator (CloudNativePG or Zalando) handles pod-level lifecycle (init, backup, automatic promotion on primary pod failure). Backup strategy remains: backups still go to Hetzner Object Storage for disaster recovery (data loss protection and infrastructure failure recovery).
 
 ### 6. Container Image Build & Registry
 
@@ -128,11 +129,11 @@ graph LR
 
 | Option                                           | Pros                                                        | Cons                                                                                  | Decision      |
 | ------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------- |
-| **K8s Secrets (GitHub Env Secrets → Terraform)** | Simple, built-in; matches ADR-0007 pattern; no new tooling. | Secrets at-rest in etcd unencrypted by default (mitigated by etcd encryption config). | ✓ **Decided** |
+| **K8s Secrets (GitHub Env Secrets → Terraform)** | Simple, built-in; matches ADR-0007 pattern; no new tooling. | Secrets at-rest in API-server store (etcd) unencrypted by default; mitigated by Kubernetes API-server encryption-at-rest. | ✓ **Decided** |
 | **Sealed Secrets / SOPS**                        | Version-controlled secrets; GitOps-friendly.                | New tooling; sealing/unsealing overhead; key management.                              | ✗             |
 | **External manager (Vault, KMS)**                | Centralized; audit logs; rotation.                          | Vendor lock-in; operational overhead; new auth mechanism.                             | ✗             |
 
-**Rationale:** Reuses ADR-0007 pattern (GitHub Environment secrets + Terraform); no new tooling. Secrets stored in K8s Secrets; enable etcd encryption at rest for added confidentiality.
+**Rationale:** Reuses ADR-0007 pattern (GitHub Environment secrets + Terraform); no new tooling. Secrets stored in Kubernetes Secrets; protect at rest via **Kubernetes API-server encryption-at-rest** (encrypts etcd data on disk). **Staging encryption setup** (k3s or microk8s): k3s has no built-in encryption-at-rest by default; configure via kube-apiserver flag `--encryption-provider-config` pointing to an encryption-at-rest provider (AES-CBC or KMS). microk8s similarly requires explicit configuration. **Validation**: after cluster setup, verify encryption is active: `kubectl get secrets -A -o json | jq '.items[0].data' | head` should show unreadable binary data, not base64-decodable plaintext. Add `kubectl get --raw /api/v1/secrets/default/test-secret -o json | od -c | head` to startup checks. **Terraform state protection**: Terraform state files (stored in Hetzner Object Storage) will contain plaintext secret values. Protect state with: (1) **Encryption at rest**: enable S3-compatible server-side encryption (SSE), (2) **Access control**: least-privileged IAM/bucket policies (CI runner credentials read/write only, human access restricted), (3) **Audit logging**: enable object storage access logging to detect unauthorized reads, (4) **Backup protection**: state backups inherit encryption; retention policies follow organization standards, (5) **Never commit state locally**: CI-only state management via remote backend. If plaintext state is unacceptable, future work should evaluate `terraform-vault-backend` or other secret-aware state backends.
 
 ### 8. Ingress & TLS
 
@@ -160,7 +161,7 @@ graph LR
 | **Extend GitHub Actions workflows**          | Reuses existing CI; team familiar; minimal tooling. | Can become complex; additional workflow files to maintain.                 | ✓ **Decided** |
 | **New CI system** (GitLab CI, Jenkins, Argo) | Tailored to K8s deployments.                        | Abandons GitHub Actions investment; new tool burden; operational overhead. | ✗             |
 
-**Rationale:** Reuses mature GitHub Actions setup and team expertise. Extend existing workflows (build → push → terraform apply → kubectl rollout); no new tooling.
+**Rationale:** Reuses mature GitHub Actions setup and team expertise. Extend existing workflows (build → push → terraform apply → kubectl rollout); no new tooling. **Kubernetes access from CI**: GitHub Actions runner must reach kube-apiserver and authenticate. Approach: store kubeconfig in GitHub Secrets (per environment), mount in runner, use least-privileged service account per environment (staging + prod separate accounts). kube-apiserver can be public (restrict by source IP: GitHub Actions IP ranges) or private (via SSH tunnel through bastion or cluster egress; VPN also acceptable). Least-privilege RBAC: CI service account has `create`, `update`, `patch`, `get`, `list` on Deployments/StatefulSets/Services in its namespace only — no cluster-wide perms, no RBAC or Secrets modification. Future: consider Kubernetes OIDC to exchange GitHub Actions JWT for temporary credentials instead of long-lived kubeconfig.
 
 ---
 
@@ -172,7 +173,7 @@ graph LR
 | **Kubernetes Distro**   | k3s or microk8s (lightweight)                          | kubeadm (standard Kubernetes)                          | Lightweight distro for staging's 4GB constraint; standard full-featured K8s for prod's 16GB node.                                       |
 | **Cluster Topology**    | Single-node cluster                                    | Single-node cluster                                    | Separate clusters for blast-radius isolation.                                                                                             |
 | **Database**            | PostgreSQL (primary + 1 replica)                       | PostgreSQL (primary + 1 replica)                       | Self-hosted via operator (CloudNativePG or Zalando); HA with automatic failover. Scheduled backups to Hetzner Object Storage.            |
-| **Database HA**         | Configured: primary + 1 standby, auto-promotion       | Configured: primary + 1 standby, auto-promotion        | Automatic failover on primary failure; near-zero downtime RTO. Backups protect against data loss (disaster recovery).                  |
+| **Database HA**         | Configured: primary + 1 standby, auto-promotion (pod-level only) | Configured: primary + 1 standby, auto-promotion (pod-level only) | Automatic failover on primary **pod** failure; near-zero downtime RTO for container crashes. Node/storage/control-plane failures require manual restore from backups. Multi-node HA is a future upgrade.                  |
 | **Image Registry**      | GitHub Container Registry (ghcr.io)                    | GitHub Container Registry (ghcr.io)                    | Built via GitHub Actions, pushed per commit/release.                                                                                      |
 | **Ingress & TLS**       | ingress-nginx + cert-manager                           | ingress-nginx + cert-manager                           | Let's Encrypt certificates; automatic renewal.                                                                                            |
 | **Secrets Management**  | GitHub Env Secrets → K8s Secrets (via Terraform + CI)  | GitHub Env Secrets → K8s Secrets (via Terraform + CI)  | No new secrets tooling; reuses ADR-0007 pattern.                                                                                          |
@@ -248,13 +249,15 @@ graph LR
 
 1. **Observability**: Monitoring, logging, tracing, and alerting for the parser service are out of scope for this spec. A future ADR should detail: metrics collection (Prometheus or equivalent), log aggregation (ELK, Loki, or equivalent), distributed tracing (Jaeger or equivalent), and alerting rules (Alertmanager or equivalent). This spec assumes the service will be integrated into the rate-ukma observability stack once that is defined.
 
-2. **Disaster Recovery Procedures & Testing**: This spec defines HA with automatic failover (RTO ≈ 0), and backups to object storage. A future runbook should detail: tested backup/restore procedures (monthly testing), retention policies, RTO/RPO targets, and incident response procedures for replica lag, data corruption, or multi-region scenarios.
+2. **Infrastructure-Level HA (Future)**: This spec defines pod-level HA (automatic failover on container/pod failure). True infrastructure-level HA — protecting against node, storage, or control-plane failures — requires either: (a) multi-node Kubernetes cluster with replicas on different nodes, or (b) cross-cluster replication (active-passive standby in a separate cluster). This should be revisited once uptime/SLA requirements are known and traffic justifies the operational complexity.
 
-3. **GitOps & Continuous Deployment**: This spec describes a CI-driven deployment model (push → CI runs terraform + kubectl). A future spec could consider GitOps tooling (e.g., ArgoCD) to auto-sync desired state from git to cluster, adding additional automation and auditability.
+3. **Disaster Recovery Procedures & Testing**: This spec defines pod-level HA with automatic failover (RTO ≈ 0 for pod failures) and backups to object storage (RTO hours for infrastructure failures). A future runbook should detail: tested backup/restore procedures (monthly testing), retention policies, RTO/RPO targets, and incident response procedures for replica lag, data corruption, or infrastructure failure recovery.
 
-4. **Cost Optimization**: As the service grows, a future review should assess: pod resource requests/limits (right-sizing), node utilization, and cost vs. multi-node cluster design (could 2 smaller nodes be cheaper and more efficient than 1 large node?).
+4. **GitOps & Continuous Deployment**: This spec describes a CI-driven deployment model (push → CI runs terraform + kubectl). A future spec could consider GitOps tooling (e.g., ArgoCD) to auto-sync desired state from git to cluster, adding additional automation and auditability.
 
-5. **Multi-Region**: As the service scales and availability requirements grow, a future spec should address: data residency, replication across regions, failover strategy, and cost/complexity trade-offs.
+5. **Cost Optimization**: As the service grows, a future review should assess: pod resource requests/limits (right-sizing), node utilization, and cost vs. multi-node cluster design (could 2 smaller nodes be cheaper and more efficient than 1 large node?).
+
+6. **Multi-Region**: As the service scales and availability requirements grow, a future spec should address: data residency, replication across regions, failover strategy, and cost/complexity trade-offs.
 
 ---
 
@@ -265,4 +268,7 @@ graph LR
 - **NetworkPolicy**: Once traffic patterns are understood, Kubernetes NetworkPolicy should be configured to restrict traffic between pods (defense-in-depth).
 - **Pod Security Standards (PSS)**: Kubernetes' Pod Security Standards should be enforced (at least "restricted" mode) to harden the cluster against common misconfigurations.
 - **RBAC (Role-Based Access Control)**: Least-privilege RBAC policies should be enforced for all service accounts and admin operations.
+- **API-Server Encryption at Rest (k3s/microk8s)**: Both k3s and microk8s distributions do not enable encryption-at-rest by default. Configure `--encryption-provider-config` for kube-apiserver to encrypt etcd data on disk (use AES-CBC or KMS provider). Test encryption via `kubectl get secrets --raw` and verify output is binary, not decodable base64. Include encryption verification in cluster bootstrap automation and operational runbooks.
+- **Terraform State Security**: Enforce encryption at rest (SSE) on the Hetzner Object Storage bucket, restrict bucket access via least-privileged credentials (separate from general CI/CD credentials), enable access logging for audit trails, and document the policy: state files are managed by CI only, never committed locally or shared manually. State backups inherit encryption; automate cleanup per retention policy.
+- **CI/CD to Kubernetes Authentication**: Store kubeconfig in GitHub Secrets (separate per environment). GitHub Actions runner mounts kubeconfig from Secrets, uses least-privileged service account per cluster (staging + prod separate accounts). kube-apiserver endpoint: if public, restrict by GitHub Actions IP ranges (documented in GH docs); if private, establish tunnel (SSH bastion, VPN, or tailnet). Least-privilege RBAC: CI service account can create/update/patch/get/list Deployments/StatefulSets/Services in its namespace only — no cluster-wide permissions, no RBAC/Secrets modification. Test credentials with `kubectl auth can-i` during CI validation.
 - **Backup Testing**: Backup+restore procedures must be tested regularly (at least monthly); a runbook should document the process and expected RTOs/RPOs.
