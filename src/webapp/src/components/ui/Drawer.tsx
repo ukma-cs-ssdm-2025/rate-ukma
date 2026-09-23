@@ -42,21 +42,6 @@ export function Drawer({
 
 	useEffect(() => {
 		if (!open) {
-			return;
-		}
-
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
-				close();
-			}
-		};
-
-		document.addEventListener("keydown", handleKeyDown);
-		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [open, close]);
-
-	useEffect(() => {
-		if (!open) {
 			setShouldSlideIn(false);
 			return;
 		}
