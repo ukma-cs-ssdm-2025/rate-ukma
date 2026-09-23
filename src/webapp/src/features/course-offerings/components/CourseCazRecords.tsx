@@ -175,12 +175,26 @@ function RecordLink({
 	ariaLabel,
 }: Readonly<{ code?: string; label: string; ariaLabel: string }>) {
 	if (!code) return <span>{label}</span>;
+	const linkProps = {
+		href: `${BASE_CAZ_URL}${encodeURIComponent(code)}`,
+		target: "_blank",
+		rel: "noopener noreferrer",
+		"aria-label": `${ariaLabel}, відкрити запис у САЗ`,
+	};
+	if (!label) {
+		// The badges carry the meaning; a padded icon keeps a usable tap target.
+		return (
+			<a
+				{...linkProps}
+				className="-m-1.5 inline-flex rounded-sm p-1.5 text-muted-foreground transition-colors hover:text-primary"
+			>
+				<ExternalLink className="size-3.5" aria-hidden="true" />
+			</a>
+		);
+	}
 	return (
 		<a
-			href={`${BASE_CAZ_URL}${encodeURIComponent(code)}`}
-			target="_blank"
-			rel="noopener noreferrer"
-			aria-label={`${ariaLabel}, відкрити запис у САЗ`}
+			{...linkProps}
 			className="underline-offset-4 transition-colors hover:text-primary hover:underline"
 		>
 			{/* Glue the icon to the last word so it never wraps onto its own line. */}
@@ -218,46 +232,55 @@ function YearRow({
 	const termLabel = showTerm || group.terms.includes(",") ? group.terms : "";
 	const labels = recordLabels(group.records, bySpeciality, latestLoad);
 	return (
-		<div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3">
+		<>
 			<div>
 				<div className="font-medium tabular-nums">{group.year}</div>
 				{termLabel ? (
 					<div className="text-xs text-muted-foreground">{termLabel}</div>
 				) : null}
 			</div>
-			<ul className="space-y-1.5">
+			<ul className="col-span-2 grid grid-cols-subgrid gap-y-1.5">
 				{group.records.map((record, index) => {
 					const label = labels[index] || "Запис у САЗ";
 					const ariaLabel = [group.year, termLabel, labels[index]]
 						.filter(Boolean)
 						.join(", ");
 					return (
-						<li key={record.id ?? record.code} className="break-words">
+						<li
+							key={record.id ?? record.code}
+							className="col-span-2 grid grid-cols-subgrid items-center break-words"
+						>
 							{bySpeciality ? (
-								<span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-									<CourseSpecialityBadges
-										specialities={record.specialities}
-										size="sm"
-										includeElective
-									/>
+								<>
+									<span className="flex">
+										<CourseSpecialityBadges
+											specialities={record.specialities}
+											size="sm"
+											includeElective
+										/>
+									</span>
+									<span className="flex items-center">
+										<RecordLink
+											code={record.code}
+											label={withoutSpeciality(label, record)}
+											ariaLabel={ariaLabel}
+										/>
+									</span>
+								</>
+							) : (
+								<span className="col-span-2">
 									<RecordLink
 										code={record.code}
-										label={withoutSpeciality(label, record) || "у САЗ"}
+										label={label}
 										ariaLabel={ariaLabel}
 									/>
 								</span>
-							) : (
-								<RecordLink
-									code={record.code}
-									label={label}
-									ariaLabel={ariaLabel}
-								/>
 							)}
 						</li>
 					);
 				})}
 			</ul>
-		</div>
+		</>
 	);
 }
 
@@ -286,9 +309,13 @@ export function CourseCazRecords({
 
 	return (
 		<div>
-			<ul className="space-y-3">
+			{/* One grid for every year, so badges and links line up down the list. */}
+			<ul className="grid grid-cols-[5.5rem_fit-content(10rem)_minmax(0,1fr)] gap-x-3 gap-y-3 text-sm">
 				{shown.map((group) => (
-					<li key={group.key} className="min-w-0 text-sm">
+					<li
+						key={group.key}
+						className="col-span-3 grid min-w-0 grid-cols-subgrid"
+					>
 						<YearRow
 							group={group}
 							showTerm={showTerm}
