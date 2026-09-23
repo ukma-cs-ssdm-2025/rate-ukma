@@ -168,7 +168,7 @@ describe("CourseFiltersPanel", () => {
 
 			// Assert
 			expect(screen.getByText("Кредити ECTS")).toBeInTheDocument();
-			expect(screen.getByText(/4.*5\.5/)).toBeInTheDocument();
+			expect(screen.getByText("4–5.5")).toBeInTheDocument();
 		});
 	});
 
@@ -441,28 +441,10 @@ describe("CourseFiltersPanel", () => {
 });
 
 describe("ActiveFilterChips", () => {
-	it("should render an empty fixed-height row when no filter is active", () => {
-		// Arrange & Act
-		const { container } = render(
-			<ActiveFilterChips
-				params={DEFAULT_PARAMS}
-				setParams={vi.fn()}
-				filterOptions={createMockFilterOptions()}
-				onReset={vi.fn()}
-			/>,
-		);
-
-		// Assert — the row always exists so the table never shifts
-		const row = container.firstElementChild;
-		expect(row).not.toBeNull();
-		expect(row?.childElementCount).toBe(0);
-	});
-
-	it("should render a removable chip per active filter plus a reset button", async () => {
+	it("should render a removable chip per active filter", async () => {
 		// Arrange
 		const user = userEvent.setup();
 		const setParams = vi.fn();
-		const onReset = vi.fn();
 		render(
 			<ActiveFilterChips
 				params={{
@@ -472,7 +454,6 @@ describe("ActiveFilterChips", () => {
 				}}
 				setParams={setParams}
 				filterOptions={createMockFilterOptions()}
-				onReset={onReset}
 			/>,
 		);
 
@@ -487,7 +468,5 @@ describe("ActiveFilterChips", () => {
 
 		// Assert
 		expect(setParams).toHaveBeenCalledWith({ term: [], page: 1 });
-		await user.click(screen.getByRole("button", { name: "Скинути все" }));
-		expect(onReset).toHaveBeenCalledTimes(1);
 	});
 });

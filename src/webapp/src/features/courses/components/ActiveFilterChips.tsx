@@ -3,7 +3,6 @@ import { memo } from "react";
 import { X } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import type { FilterOptions } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import { getActiveFilterChips } from "../hooks/useCourseFiltersData";
@@ -13,26 +12,18 @@ export const ActiveFilterChips = memo(function ActiveFilterChips({
 	params,
 	setParams,
 	filterOptions,
-	onReset,
 	className,
 }: Readonly<{
 	params: CourseFiltersParamsState;
 	setParams: (updates: Partial<CourseFiltersParamsState>) => void;
 	filterOptions?: FilterOptions;
-	onReset: () => void;
 	className?: string;
 }>) {
 	const chips = getActiveFilterChips(params, filterOptions);
+	if (chips.length === 0) return null;
 
 	return (
-		<div
-			className={cn(
-				"flex h-8 items-center gap-2 overflow-x-auto whitespace-nowrap",
-				chips.length === 0 &&
-					"[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-				className,
-			)}
-		>
+		<div className={cn("flex flex-wrap items-center gap-1.5", className)}>
 			{chips.map((chip) => (
 				<Badge
 					key={chip.key}
@@ -50,11 +41,6 @@ export const ActiveFilterChips = memo(function ActiveFilterChips({
 					</button>
 				</Badge>
 			))}
-			{chips.length > 0 && (
-				<Button type="button" variant="ghost" size="sm" onClick={onReset}>
-					Скинути все
-				</Button>
-			)}
 		</div>
 	);
 });

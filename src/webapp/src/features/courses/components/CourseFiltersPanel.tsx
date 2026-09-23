@@ -30,6 +30,7 @@ import type {
 } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
+import { ActiveFilterChips } from "./ActiveFilterChips";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import { CREDITS_RANGE, formatDecimalValue } from "../courseFormatting";
@@ -772,6 +773,11 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 				count={totalActive}
 				hasActiveFilters={hasActiveFilters}
 				onReset={onReset}
+			/>
+			<ActiveFilterChips
+				params={baseProps.params}
+				setParams={baseProps.setParams}
+				filterOptions={baseProps.filterOptions}
 			/>
 			<CourseFiltersContent
 				params={baseProps.params}

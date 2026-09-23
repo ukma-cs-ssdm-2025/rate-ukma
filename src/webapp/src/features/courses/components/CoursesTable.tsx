@@ -536,11 +536,12 @@ export function CoursesTable({
 						</ButtonGroup>
 					</div>
 
+					{/* Phones only: the drawer covers the page while this row appears. */}
 					<ActiveFilterChips
 						params={params}
 						setParams={setParams}
 						filterOptions={filterOptions}
-						onReset={handleResetFilters}
+						className="lg:hidden"
 					/>
 
 					{renderTableContent()}
