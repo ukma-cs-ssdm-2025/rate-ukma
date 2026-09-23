@@ -1,7 +1,10 @@
 import { Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { getSemesterDisplay } from "@/features/courses/courseFormatting";
+import {
+	formatAcademicYearLabel,
+	getSemesterDisplay,
+} from "@/features/courses/courseFormatting";
 import {
 	ANONYMOUS_REVIEW_NAME,
 	CANNOT_VOTE_OWN_RATING_TEXT,
@@ -30,6 +33,7 @@ interface ExtendedRating extends InlineRating {
 interface UserRatingCardProps {
 	readonly rating: RatingRead | ExtendedRating;
 	readonly courseId?: string;
+	readonly singleTerm?: boolean;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
 }
@@ -37,6 +41,7 @@ interface UserRatingCardProps {
 export function UserRatingCard({
 	rating,
 	courseId,
+	singleTerm = false,
 	onEdit,
 	onDelete,
 }: UserRatingCardProps) {
@@ -61,7 +66,10 @@ export function UserRatingCard({
 		"course_offering_term" in rating ? rating.course_offering_term : undefined;
 	const courseOfferingLabel =
 		courseOfferingYear != null && courseOfferingTerm
-			? getSemesterDisplay(courseOfferingYear, courseOfferingTerm)
+			? (singleTerm ? formatAcademicYearLabel : getSemesterDisplay)(
+					courseOfferingYear,
+					courseOfferingTerm,
+				)
 			: undefined;
 
 	return (

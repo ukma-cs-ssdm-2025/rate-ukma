@@ -53,7 +53,9 @@ export function CourseDetailsHeader({
 				<p className="text-sm text-muted-foreground">{meta.join(", ")}</p>
 			)}
 
-			{((specialities?.length ?? 0) > 0 || termLoads.length > 0) && (
+			{((specialities?.length ?? 0) > 0 ||
+				termLoads.length > 0 ||
+				children) && (
 				<div className="flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
 					<CourseSpecialityBadges specialities={specialities} />
 					{termLoads.map(({ term, load }) => (
@@ -62,10 +64,9 @@ export function CourseDetailsHeader({
 							{load && <span className="text-muted-foreground">{load}</span>}
 						</span>
 					))}
+					{children}
 				</div>
 			)}
-
-			{children}
 		</header>
 	);
 }

@@ -43,6 +43,8 @@ interface CourseRatingsListProps {
 	showCta?: boolean;
 	canRateButton?: boolean;
 	onRate?: () => void;
+	// When the course only ever runs in one term, reviews show the academic year alone.
+	singleTerm?: boolean;
 }
 
 interface RatingsContentProps {
@@ -54,6 +56,7 @@ interface RatingsContentProps {
 	canVote?: boolean;
 	disabledMessage?: string;
 	courseId: string;
+	singleTerm: boolean;
 }
 
 function EmptyState({
@@ -99,6 +102,7 @@ function RatingsContent({
 	canVote = true,
 	disabledMessage,
 	courseId,
+	singleTerm,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0 && hasUserRating) {
 		return null;
@@ -111,6 +115,7 @@ function RatingsContent({
 					key={rating.id}
 					rating={rating}
 					courseId={courseId}
+					singleTerm={singleTerm}
 					readOnly={!canVote}
 					disabledMessage={disabledMessage}
 				/>
@@ -147,6 +152,7 @@ export function CourseRatingsList({
 	showCta = false,
 	canRateButton = false,
 	onRate,
+	singleTerm = false,
 }: Readonly<CourseRatingsListProps>) {
 	const separateCurrentUser = !!userRatingProp;
 	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
@@ -233,6 +239,7 @@ export function CourseRatingsList({
 				<UserRatingCard
 					rating={userRating}
 					courseId={courseId}
+					singleTerm={singleTerm}
 					onEdit={onEditUserRating}
 					onDelete={onDeleteUserRating}
 				/>
@@ -256,6 +263,7 @@ export function CourseRatingsList({
 					canVote={canVote}
 					disabledMessage={disabledMessage}
 					courseId={courseId}
+					singleTerm={singleTerm}
 				/>
 			)}
 		</div>

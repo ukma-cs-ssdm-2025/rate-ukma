@@ -7,8 +7,10 @@ import Layout from "@/components/Layout";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ExpandableText } from "@/components/ui/ExpandableText";
 import {
+	CazRecordsToggle,
 	CourseCazYearsSection,
 	getLatestOfferingLoads,
+	runsInOneTerm,
 } from "@/features/course-offerings/components/CourseCazYearsSection";
 import {
 	CourseDetailsHeader,
@@ -58,6 +60,7 @@ function CourseDetailsRoute() {
 
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+	const [isCazOpen, setIsCazOpen] = React.useState(false);
 
 	const {
 		rating: userRating,
@@ -123,18 +126,25 @@ function CourseDetailsRoute() {
 				</Helmet>
 			)}
 			<div className="mx-auto max-w-4xl space-y-8 pb-16">
-				<CourseDetailsHeader
-					title={course.title ?? ""}
-					educationLevel={course.education_level}
-					specialities={course.specialities ?? []}
-					departmentName={course.department_name ?? ""}
-					facultyName={course.faculty_name ?? ""}
-					termLoads={termLoads}
-				>
-					{offerings.length > 0 && (
-						<CourseCazYearsSection courseOfferings={offerings} />
-					)}
-				</CourseDetailsHeader>
+				<div className="space-y-4">
+					<CourseDetailsHeader
+						title={course.title ?? ""}
+						educationLevel={course.education_level}
+						specialities={course.specialities ?? []}
+						departmentName={course.department_name ?? ""}
+						facultyName={course.faculty_name ?? ""}
+						termLoads={termLoads}
+					>
+						{offerings.length > 0 && (
+							<CazRecordsToggle
+								count={offerings.length}
+								open={isCazOpen}
+								onToggle={() => setIsCazOpen((open) => !open)}
+							/>
+						)}
+					</CourseDetailsHeader>
+					{isCazOpen && <CourseCazYearsSection courseOfferings={offerings} />}
+				</div>
 
 				{showStats ? (
 					<CourseStatsHero
@@ -160,6 +170,7 @@ function CourseDetailsRoute() {
 					showCta={false}
 					canRateButton={Boolean(selectedOffering?.can_rate)}
 					onRate={() => setIsRatingModalOpen(true)}
+					singleTerm={runsInOneTerm(offerings)}
 				/>
 			</div>
 

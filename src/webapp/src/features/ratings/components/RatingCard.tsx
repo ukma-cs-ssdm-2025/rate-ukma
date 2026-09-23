@@ -1,4 +1,7 @@
-import { getSemesterDisplay } from "@/features/courses/courseFormatting";
+import {
+	formatAcademicYearLabel,
+	getSemesterDisplay,
+} from "@/features/courses/courseFormatting";
 import type { RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCardBody } from "./RatingCardBody";
@@ -10,6 +13,7 @@ import {
 interface RatingCardProps {
 	rating: RatingRead;
 	courseId?: string;
+	singleTerm?: boolean;
 	readOnly?: boolean;
 	disabledMessage?: string;
 }
@@ -17,6 +21,7 @@ interface RatingCardProps {
 export function RatingCard({
 	rating,
 	courseId,
+	singleTerm = false,
 	readOnly = false,
 	disabledMessage,
 }: Readonly<RatingCardProps>) {
@@ -25,7 +30,7 @@ export function RatingCard({
 		: rating.student_name || DEFAULT_STUDENT_NAME;
 	const courseOfferingLabel =
 		rating.course_offering_year != null && rating.course_offering_term
-			? getSemesterDisplay(
+			? (singleTerm ? formatAcademicYearLabel : getSemesterDisplay)(
 					rating.course_offering_year,
 					rating.course_offering_term,
 				)

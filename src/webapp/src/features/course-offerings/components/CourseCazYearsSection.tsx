@@ -63,6 +63,17 @@ export function getLatestOfferingLoads(
 	});
 }
 
+export function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {
+	const terms = new Set(
+		offerings.flatMap((offering) =>
+			offeringTerms(offering).map((term) =>
+				(term.semester_term ?? "").toUpperCase(),
+			),
+		),
+	);
+	return terms.size <= 1;
+}
+
 function formatLoad(term: CourseOfferingTerm | undefined): string {
 	return [formatCredits(term?.credits), formatWeeklyHours(term?.weekly_hours)]
 		.filter(Boolean)
@@ -187,25 +198,43 @@ function OfferingGroupItem({
 	);
 }
 
+export const CAZ_RECORDS_ID = "course-caz-records";
+
+export function CazRecordsToggle({
+	count,
+	open,
+	onToggle,
+}: Readonly<{ count: number; open: boolean; onToggle: () => void }>) {
+	return (
+		<Button
+			variant="ghost"
+			size="sm"
+			className="h-auto gap-1 px-1.5 py-0.5 text-muted-foreground"
+			aria-expanded={open}
+			aria-controls={CAZ_RECORDS_ID}
+			onClick={onToggle}
+		>
+			Записи в САЗ ({count})
+			<ChevronDown
+				className={cn("size-3.5 transition-transform", open && "rotate-180")}
+			/>
+		</Button>
+	);
+}
+
 export function CourseCazYearsSection({
 	courseOfferings,
-	className,
-}: Readonly<{
-	courseOfferings: CourseOffering[];
-	className?: string;
-}>) {
-	const [open, setOpen] = useState(false);
+}: Readonly<{ courseOfferings: CourseOffering[] }>) {
 	const [showAllGroups, setShowAllGroups] = useState(false);
-	const sorted = useMemo(
-		() => sortOfferings(courseOfferings),
+	const groups = useMemo(
+		() => groupOfferings(sortOfferings(courseOfferings)),
 		[courseOfferings],
 	);
-	const groups = useMemo(() => groupOfferings(sorted), [sorted]);
 	// The header already lists the course specialities; repeat them per group only when groups differ.
 	const showSpecialities =
 		new Set(groups.map((group) => group.key.split("#")[1])).size > 1;
 
-	if (sorted.length === 0) {
+	if (groups.length === 0) {
 		return null;
 	}
 
@@ -214,50 +243,29 @@ export function CourseCazYearsSection({
 		: groups.slice(0, VISIBLE_GROUPS);
 
 	return (
-		<section aria-label="Записи в САЗ" className={cn("space-y-3", className)}>
-			<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-				<span className="text-muted-foreground">САЗ</span>
-				<OfferingYearLink offering={sorted[0]} />
-				{sorted.length > 1 && (
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-auto gap-1 px-1.5 py-0.5 text-muted-foreground"
-						aria-expanded={open}
-						onClick={() => setOpen((value) => !value)}
-					>
-						Усі записи ({sorted.length})
-						<ChevronDown
-							className={cn(
-								"size-3.5 transition-transform",
-								open && "rotate-180",
-							)}
-						/>
-					</Button>
-				)}
-			</div>
-			{open && (
-				<>
-					<ul className="space-y-4">
-						{visibleGroups.map((group) => (
-							<OfferingGroupItem
-								key={group.key}
-								group={group}
-								showSpecialities={showSpecialities}
-							/>
-						))}
-					</ul>
-					{!showAllGroups && groups.length > VISIBLE_GROUPS && (
-						<Button
-							variant="ghost"
-							size="sm"
-							className="-ml-2"
-							onClick={() => setShowAllGroups(true)}
-						>
-							Показати всі
-						</Button>
-					)}
-				</>
+		<section
+			id={CAZ_RECORDS_ID}
+			aria-label="Записи в САЗ"
+			className="space-y-3"
+		>
+			<ul className="space-y-4">
+				{visibleGroups.map((group) => (
+					<OfferingGroupItem
+						key={group.key}
+						group={group}
+						showSpecialities={showSpecialities}
+					/>
+				))}
+			</ul>
+			{!showAllGroups && groups.length > VISIBLE_GROUPS && (
+				<Button
+					variant="ghost"
+					size="sm"
+					className="-ml-2"
+					onClick={() => setShowAllGroups(true)}
+				>
+					Показати всі
+				</Button>
 			)}
 		</section>
 	);
