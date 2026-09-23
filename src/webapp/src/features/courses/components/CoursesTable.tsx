@@ -163,22 +163,22 @@ function buildCoursesTableColumns({
 			accessorKey: "avg_difficulty",
 			header: ({ column }) => (
 				<>
-					<div className="flex justify-end md:hidden">
+					<div className="flex justify-center md:hidden">
 						<CourseColumnHeader
 							column={column}
 							title="Склад."
 							initialSortDirection="asc"
 							testId={testIds.courses.difficultySortButtonMobile}
-							align="right"
+							align="center"
 						/>
 					</div>
-					<div className="hidden justify-end md:flex">
+					<div className="hidden justify-center md:flex">
 						<CourseColumnHeader
 							column={column}
 							title="Складність"
 							initialSortDirection="asc"
 							testId={testIds.courses.difficultySortButtonDesktop}
-							align="right"
+							align="center"
 						/>
 					</div>
 				</>
@@ -196,7 +196,7 @@ function buildCoursesTableColumns({
 				placeholder: "Фільтр за складністю...",
 				variant: "number",
 				range: DIFFICULTY_RANGE,
-				align: "right",
+				align: "center",
 			},
 		},
 		{
@@ -204,22 +204,22 @@ function buildCoursesTableColumns({
 			accessorKey: "avg_usefulness",
 			header: ({ column }) => (
 				<>
-					<div className="flex justify-end md:hidden">
+					<div className="flex justify-center md:hidden">
 						<CourseColumnHeader
 							column={column}
 							title="Корисн."
 							initialSortDirection="desc"
 							testId={testIds.courses.usefulnessSortButtonMobile}
-							align="right"
+							align="center"
 						/>
 					</div>
-					<div className="hidden justify-end md:flex">
+					<div className="hidden justify-center md:flex">
 						<CourseColumnHeader
 							column={column}
 							title="Корисність"
 							initialSortDirection="desc"
 							testId={testIds.courses.usefulnessSortButtonDesktop}
-							align="right"
+							align="center"
 						/>
 					</div>
 				</>
@@ -237,7 +237,7 @@ function buildCoursesTableColumns({
 				placeholder: "Фільтр за корисністю...",
 				variant: "number",
 				range: USEFULNESS_RANGE,
-				align: "right",
+				align: "center",
 			},
 		},
 	];

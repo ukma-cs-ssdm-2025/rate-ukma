@@ -1,9 +1,5 @@
 import { cn } from "@/lib/utils";
-import {
-	formatDecimalValue,
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "../courseFormatting";
+import { getDifficultyTone, getUsefulnessTone } from "../courseFormatting";
 
 interface CourseScoreCellProps {
 	value?: number;
@@ -16,7 +12,7 @@ export function CourseScoreCell({
 }: Readonly<CourseScoreCellProps>) {
 	if (!value) {
 		return (
-			<div className="flex items-center justify-end">
+			<div className="flex items-center justify-center">
 				<span className="font-medium tabular-nums text-muted-foreground">
 					-
 				</span>
@@ -30,11 +26,11 @@ export function CourseScoreCell({
 			: getUsefulnessTone(value);
 
 	return (
-		<div className="flex items-center justify-end">
+		<div className="flex items-center justify-center">
 			<span
 				className={cn("font-semibold tabular-nums text-base md:text-lg", tone)}
 			>
-				{formatDecimalValue(value, { fallback: "-" })}
+				{value.toFixed(1)}
 			</span>
 		</div>
 	);
