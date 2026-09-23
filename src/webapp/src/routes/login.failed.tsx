@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter, useSearch } from "@tanstack/react-router";
 
-import { ErrorState } from "@/components/ui/ErrorState";
+import { Button } from "@/components/ui/Button";
 
 type LoginFailedSearch = {
 	technical?: string;
@@ -23,15 +23,20 @@ function LoginFailedPage() {
 	};
 
 	return (
-		<ErrorState
-			className="flex-none p-0"
-			title={isTechnicalError ? "Технічна помилка" : "Немає доступу"}
-			description={
-				isTechnicalError
-					? "Сталася технічна помилка під час спроби входу."
-					: "Тільки студенти та викладачі НаУКМА можуть використовувати цю платформу."
-			}
-			onRetry={handleRetry}
-		/>
+		<div className="w-full space-y-6">
+			<div className="space-y-2">
+				<h1 className="text-2xl font-bold tracking-tight">
+					{isTechnicalError ? "Технічна помилка" : "Немає доступу"}
+				</h1>
+				<p className="text-base text-muted-foreground">
+					{isTechnicalError
+						? "Сталася технічна помилка під час спроби входу."
+						: "Тільки студенти та викладачі НаУКМА можуть використовувати цю платформу."}
+				</p>
+			</div>
+			<Button onClick={handleRetry} className="h-11 w-full text-base font-medium">
+				{isTechnicalError ? "Спробувати знову" : "Повернутися до входу"}
+			</Button>
+		</div>
 	);
 }

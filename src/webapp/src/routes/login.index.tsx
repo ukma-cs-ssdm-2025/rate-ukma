@@ -54,10 +54,18 @@ function LoginPage() {
 	}, []);
 
 	return (
-		<>
-			<h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-				{showAdminLogin ? "Admin Panel" : "Вхід"}
-			</h1>
+		<div className="w-full space-y-6">
+			<div className="space-y-2">
+				<h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+					{showAdminLogin ? "Admin Panel" : "Вхід"}
+				</h1>
+				{showAdminLogin ? null : (
+					<p className="text-base text-muted-foreground">
+						Увійдіть через корпоративну пошту{" "}
+						<span className="font-medium text-foreground">ukma.edu.ua</span>
+					</p>
+				)}
+			</div>
 
 			{showAdminLogin ? (
 				<LoginForm
@@ -65,17 +73,11 @@ function LoginPage() {
 					onCancel={() => setShowAdminLogin(false)}
 				/>
 			) : (
-				<>
-					<MicrosoftLoginButton
-						className="w-full"
-						redirectTo={search.redirect}
-					/>
-					<p className="text-sm text-muted-foreground">
-						Доступ дозволено тільки для користувачів з корпоративною поштою{" "}
-						<span className="font-medium text-foreground">ukma.edu.ua</span>
-					</p>
-				</>
+				<MicrosoftLoginButton
+					className="h-11 w-full text-base font-medium"
+					redirectTo={search.redirect}
+				/>
 			)}
-		</>
+		</div>
 	);
 }

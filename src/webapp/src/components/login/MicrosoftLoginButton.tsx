@@ -35,7 +35,7 @@ export function MicrosoftLoginButton({
 			data-testid={testIds.login.microsoftButton}
 		>
 			{isLoading ? (
-				<Loader2 className="size-5 animate-spin" />
+				<Loader2 className="size-5 animate-spin motion-reduce:animate-none" />
 			) : (
 				<PiMicrosoftOutlookLogoFill className="size-5" />
 			)}

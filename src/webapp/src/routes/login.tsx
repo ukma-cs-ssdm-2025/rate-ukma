@@ -9,13 +9,18 @@ export const Route = createFileRoute("/login")({
 
 function LoginLayoutWrapper() {
 	return (
-		<div className="relative flex min-h-screen flex-col bg-background">
-			<div className="absolute top-4 right-4">
-				<ModeToggle />
-			</div>
-			<main className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-6 px-6 py-16 text-center">
+		<div className="flex min-h-screen flex-col bg-background">
+			<div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 py-4">
+				<span aria-hidden="true" />
 				<Logo />
-				<Outlet />
+				<span className="flex justify-end">
+					<ModeToggle />
+				</span>
+			</div>
+			<main className="flex flex-1 items-center justify-center px-6 pb-16">
+				<div className="w-full max-w-md space-y-6 rounded-2xl border bg-card p-6 text-center text-card-foreground shadow-sm md:p-8">
+					<Outlet />
+				</div>
 			</main>
 		</div>
 	);
