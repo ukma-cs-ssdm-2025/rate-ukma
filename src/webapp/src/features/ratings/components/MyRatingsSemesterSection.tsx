@@ -43,10 +43,15 @@ export function MyRatingsSemesterSection({
 	);
 
 	const sortedItems = useMemo(() => {
-		return [...seasonGroup.items].sort((a, b) => {
-			return (a.course_title ?? "").localeCompare(b.course_title ?? "");
-		});
+		// Rateable pending courses already render in MyRatingsPendingSection.
+		return seasonGroup.items
+			.filter((course) => course.rated || !course.can_rate)
+			.sort((a, b) => {
+				return (a.course_title ?? "").localeCompare(b.course_title ?? "");
+			});
 	}, [seasonGroup.items]);
+
+	if (sortedItems.length === 0) return null;
 
 	return (
 		<section aria-label={seasonGroup.description} className="space-y-1">

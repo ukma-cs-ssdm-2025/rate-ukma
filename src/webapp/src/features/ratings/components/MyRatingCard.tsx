@@ -176,6 +176,33 @@ function CardActions({
 		return null;
 	}
 
+	return (
+		<RateAction
+			courseId={courseId}
+			offeringId={offeringId}
+			canRate={canRate}
+			onRate={onEdit}
+		/>
+	);
+}
+
+interface RateActionProps {
+	courseId: string | undefined;
+	offeringId: string | undefined;
+	canRate: boolean;
+	onRate: () => void;
+	variant?: "default" | "outline";
+}
+
+export function RateAction({
+	courseId,
+	offeringId,
+	canRate,
+	onRate,
+	variant = "default",
+}: Readonly<RateActionProps>) {
+	if (!courseId) return null;
+
 	if (!canRate) {
 		return (
 			<Tooltip>
@@ -197,9 +224,9 @@ function CardActions({
 	if (offeringId) {
 		return (
 			<Button
-				variant="default"
+				variant={variant}
 				size="sm"
-				onClick={onEdit}
+				onClick={onRate}
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
 				<PenLine className="size-3.5" />
@@ -208,7 +235,7 @@ function CardActions({
 		);
 	}
 	return (
-		<Button variant="default" size="sm" asChild>
+		<Button variant={variant} size="sm" asChild>
 			<Link
 				to="/courses/$courseId"
 				params={{ courseId }}

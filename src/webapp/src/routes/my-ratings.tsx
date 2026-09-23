@@ -9,6 +9,7 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@/components/ui/Empty";
+import { compareSemesters } from "@/features/courses/courseFormatting";
 import { MyRatingsEmptyState } from "@/features/ratings/components/MyRatingsEmptyState";
 import { MyRatingsErrorState } from "@/features/ratings/components/MyRatingsErrorState";
 import { MyRatingsHeader } from "@/features/ratings/components/MyRatingsHeader";
@@ -49,14 +50,32 @@ function MyRatings() {
 
 	const totalCourses = ratings.length;
 	const isRefetching = isFetching && !isLoading;
-
 	const pendingItems = useMemo(
 		() =>
 			[...ratings]
 				.filter((course) => !course.rated && course.can_rate)
-				.sort((a, b) =>
-					(a.course_title ?? "").localeCompare(b.course_title ?? ""),
-				),
+				.sort((a, b) => {
+					const semesterA = a.semester;
+					const semesterB = b.semester;
+					if (
+						semesterA?.year != null &&
+						semesterA.season &&
+						semesterB?.year != null &&
+						semesterB.season
+					) {
+						const newestFirst = compareSemesters(
+							{ year: semesterB.year, season: semesterB.season },
+							{ year: semesterA.year, season: semesterA.season },
+						);
+						if (newestFirst !== 0) return newestFirst;
+					} else if (
+						(semesterA?.year ?? semesterA?.season) !==
+						(semesterB?.year ?? semesterB?.season)
+					) {
+						return semesterB?.year || semesterB?.season ? 1 : -1;
+					}
+					return (a.course_title ?? "").localeCompare(b.course_title ?? "");
+				}),
 		[ratings],
 	);
 
@@ -143,6 +162,7 @@ function MyRatings() {
 				/>
 				<MyRatingsContent
 					filter={filter}
+					onFilterChange={setFilter}
 					pendingItems={pendingItems}
 					groupedRatings={groupedRatings}
 					refetch={refetch}
@@ -158,6 +178,7 @@ export const Route = createFileRoute("/my-ratings")({
 
 interface MyRatingsContentProps {
 	filter: RatingFilter;
+	onFilterChange: (filter: RatingFilter) => void;
 	pendingItems: StudentRatingsDetailed[];
 	groupedRatings: YearGroup[];
 	refetch: () => undefined | Promise<unknown>;
@@ -165,14 +186,27 @@ interface MyRatingsContentProps {
 
 function MyRatingsContent({
 	filter,
+	onFilterChange,
 	pendingItems,
 	groupedRatings,
 	refetch,
 }: Readonly<MyRatingsContentProps>) {
 	return (
 		<div className="space-y-8" data-testid={testIds.myRatings.list}>
-			{filter !== "rated" && pendingItems.length > 0 ? (
-				<MyRatingsPendingSection items={pendingItems} />
+			{filter === "all" && pendingItems.length > 0 ? (
+				<MyRatingsPendingSection
+					items={pendingItems}
+					variant="preview"
+					onRatingChanged={refetch}
+					onShowAll={() => onFilterChange("unrated")}
+				/>
+			) : null}
+			{filter === "unrated" && pendingItems.length > 0 ? (
+				<MyRatingsPendingSection
+					items={pendingItems}
+					variant="grouped"
+					onRatingChanged={refetch}
+				/>
 			) : null}
 			{groupedRatings.map((yearGroup) => (
 				<MyRatingsYearSection
