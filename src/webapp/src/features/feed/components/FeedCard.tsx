@@ -10,12 +10,12 @@ interface FeedCardProps {
 	readonly children?: ReactNode;
 	readonly footer?: ReactNode;
 	readonly className?: string;
-	/** `card` is the strip tile; `banner` keeps the roomy `/feed` layout. */
+	/** `card` is the strip tile; `banner` is a plain row in the `/feed` list. */
 	readonly variant?: "card" | "banner";
 }
 
 /**
- * One card shell for every feed entry, in the strip and on `/feed`.
+ * One shell for every feed entry: a tile in the strip, a divided row on `/feed`.
  * The course (or announcement) title leads so each item scans as
  * course → scores → text → meta; the kind badge lives in the footer meta.
  */
@@ -31,8 +31,10 @@ export function FeedCard({
 	return (
 		<article
 			className={cn(
-				"flex h-full flex-col rounded-xl border bg-card text-card-foreground shadow-sm",
-				isBanner ? "gap-3 p-4" : "gap-1.5 px-3 py-2.5",
+				"flex h-full flex-col",
+				isBanner
+					? "gap-2.5 py-5"
+					: "gap-1.5 rounded-xl border bg-card px-3 py-2.5 text-card-foreground shadow-sm",
 				className,
 			)}
 		>

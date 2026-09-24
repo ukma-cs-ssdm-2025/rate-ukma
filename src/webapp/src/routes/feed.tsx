@@ -63,11 +63,16 @@ function resolveContent({
 
 	return (
 		<>
-			<div className="space-y-3" data-testid={testIds.feed.list}>
+			<div
+				className="divide-y divide-border/60 border-y border-border/60"
+				data-testid={testIds.feed.list}
+			>
 				{feed.items.map((item) => (
-					<div key={`${item.kind}:${item.id}`}>
-						<FeedItem item={item} variant="banner" />
-					</div>
+					<FeedItem
+						key={`${item.kind}:${item.id}`}
+						item={item}
+						variant="banner"
+					/>
 				))}
 			</div>
 

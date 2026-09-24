@@ -3,7 +3,6 @@ import type { ComponentProps } from "react";
 import { ExternalLink } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import type {
 	FeedPromoAccent,
@@ -80,16 +79,20 @@ export function FeedPromoItem({
 			pinned={item.pinned}
 			title={item.title}
 			footer={
-				<div className="flex flex-wrap items-center gap-2">
+				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
 					<Badge variant={accent}>{label}</Badge>
+					<time>{formatRelativeTime(item.createdAt)}</time>
 					{/* A label without an href goes nowhere, so the CTA needs both halves. */}
 					{hasCta && (
-						<Button asChild size="sm" variant="outline" className="gap-1.5">
-							<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
-								{item.ctaLabel}
-								<ExternalLink className="size-4" aria-hidden />
-							</a>
-						</Button>
+						<a
+							href={item.ctaHref}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+						>
+							{item.ctaLabel}
+							<ExternalLink className="size-3.5" aria-hidden />
+						</a>
 					)}
 				</div>
 			}
@@ -99,11 +102,11 @@ export function FeedPromoItem({
 				<img
 					src={item.imageUrl}
 					alt={item.title}
-					className="h-32 w-full rounded-lg object-cover"
+					className="aspect-[3/1] w-full rounded-lg bg-muted object-cover"
 					loading="lazy"
 				/>
 			)}
-			<p className="text-sm text-muted-foreground">{item.body}</p>
+			<p className="text-sm leading-relaxed text-foreground/90">{item.body}</p>
 		</FeedCard>
 	);
 }

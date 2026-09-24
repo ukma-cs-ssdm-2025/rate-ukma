@@ -149,6 +149,11 @@ const reviews: FeedItem[] = COURSES.slice(0, 6).map((course, index) => ({
 	course_avg_usefulness: course.avg_usefulness,
 })) satisfies FeedItem[];
 
+// Invented poster so the /feed banner image is exercised without a network fetch.
+const POSTER = `data:image/svg+xml,${encodeURIComponent(
+	'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200"><defs><linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="#0b6fb3"/><stop offset="1" stop-color="#f2b53a"/></linearGradient></defs><rect width="500" height="200" fill="url(#g)"/><circle cx="400" cy="60" r="90" fill="#ffffff" fill-opacity=".18"/></svg>',
+)}`;
+
 export const FEED_ITEMS: FeedItem[] = [
 	{
 		kind: "promo",
@@ -161,7 +166,7 @@ export const FEED_ITEMS: FeedItem[] = [
 		label: "Подія",
 		cta_label: "Зареєструватися",
 		cta_href: "https://example.invalid/hackathon",
-		image_url: null,
+		image_url: POSTER,
 	},
 	{
 		kind: "promo",
