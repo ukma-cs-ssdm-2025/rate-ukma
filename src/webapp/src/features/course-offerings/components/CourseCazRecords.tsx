@@ -48,30 +48,20 @@ function formatLoad(term: CourseOfferingTerm | undefined): string {
 		.join(", ");
 }
 
-export interface OfferingTermLoad {
-	term: string;
-	load: string;
-}
-
 export function getLatestOffering(
 	offerings: readonly CourseOffering[],
 ): CourseOffering | undefined {
 	return sortOfferings(offerings)[0];
 }
 
-export function getLatestOfferingLoads(
+// The header names the terms only; credits and hours live in the rail.
+export function getLatestOfferingTerms(
 	offerings: readonly CourseOffering[],
-): OfferingTermLoad[] {
-	// Header facts stay minimal (term + credits); the full load lives in the rail.
+): string[] {
 	const latest = sortOfferings(offerings)[0];
 	if (!latest) return [];
-	const seen = new Set<string>();
-	return offeringTerms(latest).flatMap((term) => {
-		if (!term.semester_term || seen.has(term.semester_term)) return [];
-		seen.add(term.semester_term);
-		const load = formatCredits(term.credits) ?? "";
-		return [{ term: term.semester_term, load }];
-	});
+	const terms = offeringTerms(latest).map((term) => term.semester_term);
+	return [...new Set(terms)].filter((term): term is string => Boolean(term));
 }
 
 export function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {

@@ -1,6 +1,5 @@
 import { TermBadge } from "@/components/TermBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { OfferingTermLoad } from "@/features/course-offerings/components/CourseCazRecords";
 import type { EducationLevelEnum, TypeKindEnum } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
@@ -19,7 +18,7 @@ interface CourseDetailsHeaderProps {
 	}> | null;
 	departmentName?: string | null;
 	facultyName?: string | null;
-	termLoads?: readonly OfferingTermLoad[];
+	terms?: readonly string[];
 }
 
 export function CourseDetailsHeader({
@@ -28,7 +27,7 @@ export function CourseDetailsHeader({
 	specialities,
 	departmentName,
 	facultyName,
-	termLoads = [],
+	terms = [],
 }: Readonly<CourseDetailsHeaderProps>) {
 	const meta = [
 		getEducationLevelDisplay(educationLevel),
@@ -49,14 +48,11 @@ export function CourseDetailsHeader({
 				<p className="text-sm text-muted-foreground">{meta.join(", ")}</p>
 			)}
 
-			{((specialities?.length ?? 0) > 0 || termLoads.length > 0) && (
-				<div className="flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+			{((specialities?.length ?? 0) > 0 || terms.length > 0) && (
+				<div className="flex max-w-4xl flex-wrap items-center gap-1.5">
 					<CourseSpecialityBadges specialities={specialities} />
-					{termLoads.map(({ term, load }) => (
-						<span key={term} className="inline-flex items-center gap-1.5">
-							<TermBadge term={term} />
-							{load && <span className="text-muted-foreground">{load}</span>}
-						</span>
+					{terms.map((term) => (
+						<TermBadge key={term} term={term} />
 					))}
 				</div>
 			)}

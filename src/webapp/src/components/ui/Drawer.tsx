@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { cn } from "@/lib/utils";
@@ -74,7 +75,9 @@ export function Drawer({
 		? "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
 		: "duration-200 ease-in";
 
-	return (
+	// Portaled to body: an ancestor stacking context (e.g. a view-transition
+	// name on /explore) would otherwise trap it under the sticky header.
+	return createPortal(
 		<dialog
 			open
 			aria-modal="true"
@@ -109,6 +112,7 @@ export function Drawer({
 				)}
 				{children}
 			</aside>
-		</dialog>
+		</dialog>,
+		document.body,
 	);
 }

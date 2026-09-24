@@ -132,4 +132,51 @@ describe("MyRatingsSemesterSection", () => {
 		expect(action.tagName).toBe("BUTTON");
 		expect(action.className).not.toContain("bg-secondary");
 	});
+
+	it("keeps a semester that has not started collapsed", () => {
+		renderWithProviders(
+			<MyRatingsSemesterSection
+				seasonGroup={makeSemester([makeCourse(1, { can_rate: false })], {
+					key: "FALL",
+					year: 2099,
+					unratedRateableCount: 0,
+				})}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.getByTestId(testIds.myRatings.semesterTrigger),
+		).toHaveAttribute("data-state", "closed");
+		expect(screen.getByText("Ще не розпочався")).toBeInTheDocument();
+		expect(
+			screen.queryByTestId(testIds.myRatings.card),
+		).not.toBeInTheDocument();
+	});
+
+	it("remembers a semester the student collapsed", async () => {
+		localStorage.clear();
+		const user = userEvent.setup();
+		const semester = makeSemester([makeCourse(1)]);
+		const { unmount } = renderWithProviders(
+			<MyRatingsSemesterSection
+				seasonGroup={semester}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		await user.click(screen.getByTestId(testIds.myRatings.semesterTrigger));
+		unmount();
+		renderWithProviders(
+			<MyRatingsSemesterSection
+				seasonGroup={semester}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.getByTestId(testIds.myRatings.semesterTrigger),
+		).toHaveAttribute("data-state", "closed");
+		localStorage.clear();
+	});
 });

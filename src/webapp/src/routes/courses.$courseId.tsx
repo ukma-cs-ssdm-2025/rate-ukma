@@ -10,7 +10,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { CourseAbout } from "@/features/course-offerings/components/CourseAbout";
 import {
 	getLatestOffering,
-	getLatestOfferingLoads,
+	getLatestOfferingTerms,
 	runsInOneTerm,
 } from "@/features/course-offerings/components/CourseCazRecords";
 import {
@@ -89,8 +89,7 @@ function CourseDetailsRoute() {
 	const offerings = courseOfferings?.course_offerings ?? [];
 	const canRateNow = Boolean(selectedOffering?.can_rate);
 	const latestOffering = getLatestOffering(offerings);
-	const termLoads =
-		offerings.length > 0 ? getLatestOfferingLoads(offerings) : [];
+	const terms = getLatestOfferingTerms(offerings);
 	const showStats = hasCourseScores(
 		course.avg_difficulty ?? null,
 		course.avg_usefulness ?? null,
@@ -160,7 +159,7 @@ function CourseDetailsRoute() {
 							specialities={course.specialities ?? []}
 							departmentName={course.department_name ?? ""}
 							facultyName={course.faculty_name ?? ""}
-							termLoads={termLoads}
+							terms={terms}
 						/>
 
 						{/* Rendered once: the rate button's test id must stay unique. */}

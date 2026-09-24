@@ -40,7 +40,7 @@ export function FeedCommentItem({
 				className={
 					isBanner
 						? "line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90"
-						: "line-clamp-2 flex-1 text-sm text-muted-foreground"
+						: "line-clamp-2 text-sm text-muted-foreground"
 				}
 			>
 				{item.content}

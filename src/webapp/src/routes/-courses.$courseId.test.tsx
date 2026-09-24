@@ -38,7 +38,7 @@ vi.mock("@/features/course-offerings/components/CourseAbout", () => ({
 vi.mock("@/features/course-offerings/components/CourseCazRecords", () => ({
 	CourseCazRecords: () => <div data-testid="course-offerings" />,
 	getLatestOffering: vi.fn(() => undefined),
-	getLatestOfferingLoads: vi.fn(() => []),
+	getLatestOfferingTerms: vi.fn(() => []),
 	runsInOneTerm: vi.fn(() => true),
 }));
 

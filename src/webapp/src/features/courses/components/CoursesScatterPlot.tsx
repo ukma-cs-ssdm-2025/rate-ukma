@@ -212,7 +212,6 @@ type ScatterPlotContentProps = Readonly<{
 	usefulnessDomain: [number, number];
 	difficultyDomain: [number, number];
 	onCourseClick?: (courseId: string) => void;
-	forceShowAllLabels?: boolean;
 }>;
 
 function ScatterPlotState({
@@ -243,7 +242,6 @@ function ScatterPlotContent({
 	usefulnessDomain,
 	difficultyDomain,
 	onCourseClick,
-	forceShowAllLabels = false,
 }: ScatterPlotContentProps) {
 	const svgRef = useRef<SVGSVGElement>(null);
 	const zoomRef = useRef<ReturnType<
@@ -353,7 +351,6 @@ function ScatterPlotContent({
 				transform,
 				xScale,
 				yScale,
-				forceShowAllLabels,
 			}),
 		[
 			chartData,
@@ -361,7 +358,6 @@ function ScatterPlotContent({
 			innerHeight,
 			innerWidth,
 			transform,
-			forceShowAllLabels,
 			variant,
 			width,
 			xScale,
@@ -644,11 +640,9 @@ function ScatterPlotContent({
 export function CoursesScatterPlot({
 	filters,
 	variant = "default",
-	forceShowAllLabels = false,
 }: Readonly<{
 	filters: CoursesListParams;
 	variant?: "default" | "mini";
-	forceShowAllLabels?: boolean;
 }>) {
 	const navigate = useNavigate();
 
@@ -779,7 +773,6 @@ export function CoursesScatterPlot({
 						usefulnessDomain={usefulnessDomain}
 						difficultyDomain={difficultyDomain}
 						onCourseClick={handleCourseClick}
-						forceShowAllLabels={forceShowAllLabels}
 					/>
 				)}
 			</ParentSize>

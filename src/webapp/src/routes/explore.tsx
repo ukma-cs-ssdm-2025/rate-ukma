@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Filter, Type } from "lucide-react";
+import { Filter } from "lucide-react";
 
 import Layout from "@/components/Layout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import { Drawer } from "@/components/ui/Drawer";
-import { Toggle } from "@/components/ui/Toggle";
 import { CourseFiltersDrawer } from "@/features/courses/components/CourseFiltersPanel";
 import { CoursesScatterPlot } from "@/features/courses/components/CoursesScatterPlot";
 import {
@@ -26,9 +25,6 @@ import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
-import { localStorageAdapter } from "@/lib/storage";
-
-const SHOW_ALL_LABELS_STORAGE_KEY = "explore:show-all-labels";
 
 function ExploreRoute() {
 	const [params, setParams] = useCourseFiltersParams();
@@ -73,17 +69,6 @@ function ExploreRoute() {
 
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 	const isPhone = !useMediaQuery("(min-width: 768px)");
-	const [showAllLabels, setShowAllLabels] = useState<boolean>(() => {
-		const stored = localStorageAdapter.getItem<boolean>(
-			SHOW_ALL_LABELS_STORAGE_KEY,
-		);
-		return stored !== null ? stored : false;
-	});
-
-	useEffect(() => {
-		localStorageAdapter.setItem(SHOW_ALL_LABELS_STORAGE_KEY, showAllLabels);
-	}, [showAllLabels]);
-
 	const handleResetFilters = useCallback(() => {
 		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
 	}, [setParams]);
@@ -126,18 +111,6 @@ function ExploreRoute() {
 								</Button>
 							</ButtonGroup>
 
-							<Toggle
-								variant="outline"
-								pressed={showAllLabels}
-								onPressedChange={setShowAllLabels}
-								title="Може перекривати точки, якщо їх багато"
-								aria-label="Завжди показувати підписи"
-								className="h-9 bg-card/90 backdrop-blur"
-							>
-								<Type className="size-4" />
-								<span className="hidden sm:inline">Підписи</span>
-							</Toggle>
-
 							<Button
 								variant="outline"
 								className="h-9 bg-card/90 backdrop-blur"
@@ -160,10 +133,7 @@ function ExploreRoute() {
 					</div>
 
 					<div className="absolute inset-0">
-						<CoursesScatterPlot
-							filters={apiFilters}
-							forceShowAllLabels={showAllLabels}
-						/>
+						<CoursesScatterPlot filters={apiFilters} />
 					</div>
 				</div>
 
