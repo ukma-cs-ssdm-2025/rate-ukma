@@ -1,6 +1,10 @@
 import { type FormEvent, type ReactNode, useId, useState } from "react";
 
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	infiniteQueryOptions,
+	useInfiniteQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 
 import { UserAvatar } from "@/components/UserAvatar";
@@ -388,6 +392,14 @@ function RepliesPreview({
 	);
 }
 
+// Opens a thread only once its first page is cached, so the height animation
+// runs to the real list instead of to a loading row that then jumps.
+function openWhenLoaded(load: () => Promise<unknown>, open: () => void) {
+	load()
+		.catch(() => undefined)
+		.finally(open);
+}
+
 function RatingCommentItem({
 	comment,
 	ratingId,
@@ -405,17 +417,20 @@ function RatingCommentItem({
 	const updateComment = useCommentsPartialUpdate();
 	const deleteComment = useCommentsDestroy();
 
-	const repliesQuery = useInfiniteQuery({
+	const repliesOptions = infiniteQueryOptions({
 		queryKey: getCommentsRepliesRetrieveQueryKey(commentId ?? "", {
 			page_size: REPLIES_PAGE_SIZE,
 		}),
 		queryFn: ({ pageParam }) =>
 			commentsRepliesRetrieve(commentId ?? "", {
 				page_size: REPLIES_PAGE_SIZE,
-				page: pageParam as number,
+				page: pageParam,
 			}),
 		getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
 		initialPageParam: 1,
+	});
+	const repliesQuery = useInfiniteQuery({
+		...repliesOptions,
 		enabled: showReplies && Boolean(commentId),
 	});
 
@@ -564,7 +579,14 @@ function RatingCommentItem({
 					<RepliesPreview
 						comment={comment}
 						showReplies={showReplies}
-						onToggle={() => setShowReplies((value) => !value)}
+						onToggle={() =>
+							showReplies
+								? setShowReplies(false)
+								: openWhenLoaded(
+										() => queryClient.ensureInfiniteQueryData(repliesOptions),
+										() => setShowReplies(true),
+									)
+						}
 					/>
 					<Button
 						type="button"
@@ -625,19 +647,27 @@ export function RatingComments({
 	const [isCreating, setIsCreating] = useState(false);
 	const createComment = useRatingsCommentsCreate();
 
-	const commentsQuery = useInfiniteQuery({
+	const commentsOptions = infiniteQueryOptions({
 		queryKey: getRatingsCommentsListQueryKey(ratingId, {
 			page_size: COMMENTS_PAGE_SIZE,
 		}),
 		queryFn: ({ pageParam }) =>
 			ratingsCommentsList(ratingId, {
 				page_size: COMMENTS_PAGE_SIZE,
-				page: pageParam as number,
+				page: pageParam,
 			}),
 		getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
 		initialPageParam: 1,
+	});
+	const commentsQuery = useInfiniteQuery({
+		...commentsOptions,
 		enabled: isExpanded && Boolean(ratingId),
 	});
+	const openComments = () =>
+		openWhenLoaded(
+			() => queryClient.ensureInfiniteQueryData(commentsOptions),
+			() => setIsExpanded(true),
+		);
 
 	const comments =
 		commentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
@@ -667,17 +697,17 @@ export function RatingComments({
 	};
 
 	const handleToggleComments = () => {
-		setIsExpanded((value) => {
-			if (value) {
-				setIsCreating(false);
-			}
-			return !value;
-		});
+		if (isExpanded) {
+			setIsExpanded(false);
+			setIsCreating(false);
+		} else {
+			openComments();
+		}
 	};
 
 	const handleStartComment = () => {
-		setIsExpanded(true);
 		setIsCreating(true);
+		openComments();
 	};
 
 	const handleCancelCreate = () => {
