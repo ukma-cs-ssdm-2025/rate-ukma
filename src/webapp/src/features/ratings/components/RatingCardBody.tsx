@@ -1,12 +1,18 @@
 import { Info } from "lucide-react";
 
+import { TermBadge } from "@/components/TermBadge";
 import { UserAvatar } from "@/components/UserAvatar";
+import { Badge } from "@/components/ui/Badge";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import { formatDate } from "@/features/courses/courseFormatting";
+import {
+	formatAcademicYearLabel,
+	formatDate,
+	getSemesterDisplay,
+} from "@/features/courses/courseFormatting";
 import { formatInstructorName } from "@/features/instructors/formatInstructorName";
 import type {
 	CommentAuthor,
@@ -23,7 +29,9 @@ interface RatingCardBodyProps {
 	readonly isAnonymous: boolean;
 	readonly avatarUrl?: string | null;
 	readonly createdAt?: string | null;
-	readonly courseOfferingLabel?: string;
+	readonly offeringYear?: number | null;
+	readonly offeringTerm?: string | null;
+	readonly singleTerm?: boolean;
 	readonly difficulty: number | undefined;
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
@@ -41,12 +49,37 @@ interface RatingCardBodyProps {
 	readonly onVoteSettled?: OnVoteSettled;
 }
 
+// A badge keeps the offering apart from the review date beside it.
+function OfferingBadge({
+	year,
+	term,
+	singleTerm,
+}: Readonly<{ year: number; term: string; singleTerm: boolean }>) {
+	if (singleTerm) {
+		return (
+			<Badge
+				variant="secondary"
+				className="shrink-0 font-normal text-muted-foreground tabular-nums"
+			>
+				{formatAcademicYearLabel(year, term)}
+			</Badge>
+		);
+	}
+	return (
+		<TermBadge term={term} className="shrink-0 tabular-nums">
+			{getSemesterDisplay(year, term)}
+		</TermBadge>
+	);
+}
+
 export function RatingCardBody({
 	displayName,
 	isAnonymous,
 	avatarUrl,
 	createdAt,
-	courseOfferingLabel,
+	offeringYear,
+	offeringTerm,
+	singleTerm = false,
 	difficulty,
 	usefulness,
 	comment,
@@ -78,15 +111,21 @@ export function RatingCardBody({
 						<span className="min-w-0 truncate text-sm font-medium">
 							{displayName}
 						</span>
-						{(courseOfferingLabel || createdAt) && (
-							<span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">
-								{courseOfferingLabel}
-								{courseOfferingLabel && createdAt && ", "}
-								{createdAt && (
-									<time dateTime={createdAt}>{formatDate(createdAt)}</time>
-								)}
-							</span>
-						)}
+						{offeringYear != null && offeringTerm ? (
+							<OfferingBadge
+								year={offeringYear}
+								term={offeringTerm}
+								singleTerm={singleTerm}
+							/>
+						) : null}
+						{createdAt ? (
+							<time
+								dateTime={createdAt}
+								className="shrink-0 text-xs whitespace-nowrap text-muted-foreground"
+							>
+								{formatDate(createdAt)}
+							</time>
+						) : null}
 					</div>
 				</div>
 

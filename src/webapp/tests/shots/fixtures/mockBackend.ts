@@ -26,6 +26,7 @@ export interface MockOptions {
 	readonly comments?: "empty" | "thread";
 	readonly reviews?: "items" | "empty";
 	readonly notifications?: "none" | "items";
+	readonly session?: "student" | "guest";
 }
 
 const courseList = {
@@ -54,11 +55,18 @@ export async function mockBackend(
 		comments = "empty",
 		reviews = "items",
 		notifications = "none",
+		session = "student",
 	}: MockOptions = {},
 ): Promise<void> {
 	const handlers: ReadonlyArray<readonly [RegExp, (path: string) => unknown]> =
 		[
-			[/^\/auth\/session\/$/, () => SESSION],
+			[
+				/^\/auth\/session\/$/,
+				() =>
+					session === "guest"
+						? { is_authenticated: false, user: null, expires_at: null }
+						: SESSION,
+			],
 			[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
 			[
 				/^\/flags\/$/,

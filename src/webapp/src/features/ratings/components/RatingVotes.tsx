@@ -40,6 +40,29 @@ interface VoteProps {
 	readonly onClick: () => void;
 }
 
+// The new count slides in from the side it moved towards; the first render stays still.
+function VoteCount({ count }: Readonly<{ count: number }>) {
+	const [last, setLast] = useState({ count, rose: true, changed: false });
+	if (count !== last.count) {
+		setLast({ count, rose: count > last.count, changed: true });
+	}
+	return (
+		<span className="inline-flex overflow-hidden text-xs font-semibold tabular-nums">
+			<span
+				key={count}
+				className={cn(
+					last.changed && [
+						"animate-in fade-in-0 duration-200 ease-out motion-reduce:animate-none",
+						last.rose ? "slide-in-from-bottom-3" : "slide-in-from-top-3",
+					],
+				)}
+			>
+				{count}
+			</span>
+		</span>
+	);
+}
+
 function Vote({
 	isUpvote,
 	count,
@@ -64,13 +87,19 @@ function Vote({
 			aria-pressed={active}
 			aria-label={`${isUpvote ? "За" : "Проти"}: ${count}`}
 			className={cn(
-				"h-8 gap-1.5 px-2",
+				"group/vote h-8 gap-1.5 px-2",
 				restingTone,
 				disabled ? "cursor-default" : hoverTone,
 			)}
 		>
-			<Icon className={cn("size-5", active && "fill-current")} />
-			<span className="text-xs font-semibold tabular-nums">{count}</span>
+			<Icon
+				className={cn(
+					"size-5 transition-transform duration-150 motion-reduce:transition-none",
+					active && "fill-current",
+					!disabled && "group-active/vote:scale-90",
+				)}
+			/>
+			<VoteCount count={count} />
 		</Button>
 	);
 

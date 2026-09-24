@@ -1,7 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { formatReviewOfferingLabel } from "@/features/courses/courseFormatting";
 import {
 	ANONYMOUS_REVIEW_NAME,
 	CANNOT_VOTE_OWN_RATING_TEXT,
@@ -57,13 +56,9 @@ export function UserRatingCard({
 		return DEFAULT_STUDENT_NAME;
 	};
 	const displayName = getUserDisplayName();
-	const courseOfferingLabel =
+	const offering =
 		"course_offering_year" in rating
-			? formatReviewOfferingLabel(
-					rating.course_offering_year,
-					rating.course_offering_term,
-					singleTerm,
-				)
+			? { year: rating.course_offering_year, term: rating.course_offering_term }
 			: undefined;
 
 	return (
@@ -104,7 +99,9 @@ export function UserRatingCard({
 				isAnonymous={rating.is_anonymous ?? false}
 				avatarUrl={!rating.is_anonymous ? user?.avatarUrl : undefined}
 				createdAt={rating.created_at}
-				courseOfferingLabel={courseOfferingLabel}
+				offeringYear={offering?.year}
+				offeringTerm={offering?.term}
+				singleTerm={singleTerm}
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}

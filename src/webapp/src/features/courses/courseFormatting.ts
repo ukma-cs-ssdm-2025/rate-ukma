@@ -201,17 +201,6 @@ export function formatAcademicYearLabel(
 	return `${startYear}–${startYear + 1}`;
 }
 
-// A course that only ever runs in one term labels reviews by academic year alone.
-export function formatReviewOfferingLabel(
-	year: number | null | undefined,
-	term: string | null | undefined,
-	singleTerm: boolean,
-): string | undefined {
-	if (year == null || !term) return undefined;
-	if (singleTerm) return formatAcademicYearLabel(year, term);
-	return getSemesterDisplay(year, term);
-}
-
 export function hasCourseScores(
 	difficulty?: number | null,
 	usefulness?: number | null,

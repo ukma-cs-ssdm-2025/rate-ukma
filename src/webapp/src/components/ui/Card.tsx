@@ -58,6 +58,6 @@ export function CardDescription({
 export function CardContent({
 	className,
 	...props
-}: Readonly<React.HTMLAttributes<HTMLDivElement>>) {
+}: Readonly<React.ComponentProps<"div">>) {
 	return <div className={cn("p-6 pt-0", className)} {...props} />;
 }

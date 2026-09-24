@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from "react";
+
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { testIds } from "@/lib/test-ids";
@@ -94,7 +96,11 @@ function ScaleBar({
 					>
 						{fillPercent > 0 && (
 							<div
-								className={cn("absolute inset-y-0 left-0 rounded-full", accent)}
+								data-fill
+								className={cn(
+									"absolute inset-y-0 left-0 origin-left rounded-full",
+									accent,
+								)}
 								style={{ width: `${fillPercent}%` }}
 							/>
 						)}
@@ -102,6 +108,95 @@ function ScaleBar({
 				);
 			})}
 		</div>
+	);
+}
+
+const REVEAL_MS = 700;
+
+// On arrival the score counts up from zero while the bar fills left to right.
+// It runs before paint, so the final value never flashes first.
+function useScoreReveal(value: number | null) {
+	const ref = useRef<HTMLDivElement>(null);
+	useLayoutEffect(() => {
+		const root = ref.current;
+		const text = root?.querySelector("[data-score]")?.firstChild;
+		if (!root || !text || value == null) return;
+		if (
+			!globalThis.matchMedia?.("(prefers-reduced-motion: no-preference)")
+				.matches
+		) {
+			return;
+		}
+		for (const [index, fill] of root
+			.querySelectorAll<HTMLElement>("[data-fill]")
+			.entries()) {
+			fill.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
+				duration: 240,
+				delay: index * 100,
+				easing: "cubic-bezier(0.2, 0, 0, 1)",
+				fill: "backwards",
+			});
+		}
+		const start = performance.now();
+		let frame = 0;
+		const tick = (now: number) => {
+			const progress = Math.min(1, (now - start) / REVEAL_MS);
+			text.nodeValue = (value * (1 - (1 - progress) ** 3)).toFixed(1);
+			if (progress < 1) frame = requestAnimationFrame(tick);
+		};
+		text.nodeValue = (0).toFixed(1);
+		frame = requestAnimationFrame(tick);
+		return () => {
+			cancelAnimationFrame(frame);
+			text.nodeValue = value.toFixed(1);
+		};
+	}, [value]);
+	return ref;
+}
+
+function ScorePanel({
+	title,
+	value,
+	type,
+	formatted,
+	accent,
+	barColor,
+}: Readonly<{
+	title: string;
+	value: number | null;
+	type: "difficulty" | "usefulness";
+	formatted: string;
+	accent: string;
+	barColor: string;
+}>) {
+	const ref = useScoreReveal(value);
+	return (
+		<Card
+			className="shadow-sm"
+			title={value === null ? undefined : getDetailedDescription(value, type)}
+		>
+			<CardContent ref={ref} className="p-4 sm:p-5">
+				<p className="text-sm font-medium text-muted-foreground">{title}</p>
+				<p className="mt-1 flex items-baseline gap-1.5">
+					<span
+						data-score
+						className={cn(
+							"text-4xl font-bold tabular-nums sm:text-5xl",
+							value == null ? "text-muted-foreground" : accent,
+						)}
+					>
+						{formatted}
+					</span>
+					<span className="text-sm text-muted-foreground">з 5</span>
+				</p>
+				<div className="mt-3">
+					<ScaleBar value={value} accent={barColor} />
+				</div>
+				<p className="mt-2 text-sm text-muted-foreground">
+					{getDescription(value, type)}
+				</p>
+			</CardContent>
+		</Card>
 	);
 }
 
@@ -155,38 +250,7 @@ export function CourseStatsHero({
 			className="grid grid-cols-2 gap-3 sm:gap-4"
 		>
 			{panels.map((panel) => (
-				<Card
-					key={panel.title}
-					className="shadow-sm"
-					title={
-						panel.value !== null
-							? getDetailedDescription(panel.value, panel.type)
-							: undefined
-					}
-				>
-					<CardContent className="p-4 sm:p-5">
-						<p className="text-sm font-medium text-muted-foreground">
-							{panel.title}
-						</p>
-						<p className="mt-1 flex items-baseline gap-1.5">
-							<span
-								className={cn(
-									"text-4xl font-bold tabular-nums sm:text-5xl",
-									panel.value != null ? panel.accent : "text-muted-foreground",
-								)}
-							>
-								{panel.formatted}
-							</span>
-							<span className="text-sm text-muted-foreground">з 5</span>
-						</p>
-						<div className="mt-3">
-							<ScaleBar value={panel.value} accent={panel.barColor} />
-						</div>
-						<p className="mt-2 text-sm text-muted-foreground">
-							{getDescription(panel.value, panel.type)}
-						</p>
-					</CardContent>
-				</Card>
+				<ScorePanel key={panel.title} {...panel} />
 			))}
 		</div>
 	);

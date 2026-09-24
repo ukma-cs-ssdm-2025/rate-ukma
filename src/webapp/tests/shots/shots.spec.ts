@@ -96,6 +96,15 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "login",
+		note: "Sign-in screen for a signed-out visitor",
+		run: async (page) => {
+			await mockBackend(page, { session: "guest" });
+			await page.goto("/login");
+			await page.getByRole("heading", { level: 1, name: "Вхід" }).waitFor();
+		},
+	},
+	{
 		name: "courses-error",
 		note: "Courses page when the course list answers 500",
 		run: async (page) => {
