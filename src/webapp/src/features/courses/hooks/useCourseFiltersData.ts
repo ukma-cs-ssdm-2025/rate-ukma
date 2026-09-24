@@ -99,7 +99,7 @@ export function getPresetResetFilters(
 	}
 }
 
-export type ActiveFilterChip = {
+type ActiveFilterChip = {
 	key: string;
 	label: string;
 	clear: Partial<CourseFiltersParamsState>;

@@ -1,85 +1,41 @@
-import * as React from "react";
+import type * as React from "react";
 
-import { Slottable } from "@radix-ui/react-slot";
 import { PenLine } from "lucide-react";
 
+import { DisabledButtonWithTooltip } from "@/components/DisabledButtonWithTooltip";
 import { Button } from "@/components/ui/Button";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/Tooltip";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import { testIds } from "@/lib/test-ids";
-import { cn } from "@/lib/utils";
 
 interface RatingButtonProps {
 	canRate: boolean;
-	onClick?: () => void;
+	onClick: () => void;
 	children: React.ReactNode;
-	className?: string;
-	size?: "sm" | "lg" | "default";
-	asChild?: boolean;
 }
 
 export function RatingButton({
 	canRate,
 	onClick,
 	children,
-	className = "",
-	size = "lg",
-	asChild = false,
 }: Readonly<RatingButtonProps>) {
-	if (!canRate) {
-		return (
-			<div
-				className={cn(
-					size === "lg" ? "w-full max-w-md" : "inline-block",
-					className,
-				)}
-			>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<span
-							className={size === "lg" ? "block w-full" : "inline-block"}
-							tabIndex={0}
-						>
-							<Button
-								size={size}
-								disabled
-								className={cn(size === "lg" && "w-full")}
-								data-testid={testIds.courseDetails.rateButton}
-							>
-								<PenLine className={size === "sm" ? "size-3.5" : "size-4"} />
-								{children}
-							</Button>
-						</span>
-					</TooltipTrigger>
-					<TooltipContent>
-						<p>{CANNOT_RATE_TOOLTIP_TEXT}</p>
-					</TooltipContent>
-				</Tooltip>
-			</div>
-		);
-	}
-
-	return (
-		<div
-			className={cn(
-				size === "lg" ? "w-full max-w-md" : "inline-block",
-				className,
-			)}
+	const button = (
+		<Button
+			size="lg"
+			onClick={onClick}
+			className="w-full max-w-md aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
+			data-testid={testIds.courseDetails.rateButton}
 		>
-			<Button
-				size={size}
-				onClick={onClick}
-				asChild={asChild}
-				className={cn(size === "lg" && "w-full")}
-				data-testid={testIds.courseDetails.rateButton}
-			>
-				<PenLine className={size === "sm" ? "size-3.5" : "size-4"} />
-				<Slottable>{children}</Slottable>
-			</Button>
-		</div>
+			<PenLine className="size-4" />
+			{children}
+		</Button>
+	);
+
+	if (canRate) {
+		return button;
+	}
+	return (
+		<DisabledButtonWithTooltip reason={CANNOT_RATE_TOOLTIP_TEXT}>
+			{button}
+		</DisabledButtonWithTooltip>
 	);
 }

@@ -108,7 +108,8 @@ export function CourseSpecialityBadges({
 							>
 								{abbreviation}
 								<span className="sr-only">
-									{`: ${speciality.speciality_title}${kind ? `, ${kind}` : ""}`}
+									: {speciality.speciality_title}
+									{kind ? `, ${kind}` : null}
 								</span>
 							</Badge>
 						</TooltipTrigger>

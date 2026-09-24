@@ -120,6 +120,7 @@ function FilterSlider({
 				onValueCommit={(val) => onValueChange(val as [number, number])}
 				disabled={disabled}
 				data-testid={testId}
+				thumbLabels={[`${label}, від`, `${label}, до`]}
 				className="w-full py-2"
 			/>
 			{disabledMessage && (

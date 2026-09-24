@@ -1,11 +1,8 @@
-import {
-	formatAcademicYearLabel,
-	getSemesterDisplay,
-} from "@/features/courses/courseFormatting";
+import { formatReviewOfferingLabel } from "@/features/courses/courseFormatting";
 import type { RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCardBody } from "./RatingCardBody";
-import type { RatingVotesProps } from "./RatingVotes";
+import type { OnVoteSettled } from "./RatingVotes";
 import {
 	ANONYMOUS_REVIEW_NAME,
 	DEFAULT_STUDENT_NAME,
@@ -15,29 +12,25 @@ interface RatingCardProps {
 	rating: RatingRead;
 	courseId?: string;
 	singleTerm?: boolean;
-	readOnly?: boolean;
-	disabledMessage?: string;
-	onVoteSettled?: RatingVotesProps["onVoteSettled"];
+	voteDisabledReason?: string;
+	onVoteSettled?: OnVoteSettled;
 }
 
 export function RatingCard({
 	rating,
 	courseId,
 	singleTerm = false,
-	readOnly = false,
-	disabledMessage,
+	voteDisabledReason,
 	onVoteSettled,
 }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
 		? ANONYMOUS_REVIEW_NAME
 		: rating.student_name || DEFAULT_STUDENT_NAME;
-	const courseOfferingLabel =
-		rating.course_offering_year != null && rating.course_offering_term
-			? (singleTerm ? formatAcademicYearLabel : getSemesterDisplay)(
-					rating.course_offering_year,
-					rating.course_offering_term,
-				)
-			: undefined;
+	const courseOfferingLabel = formatReviewOfferingLabel(
+		rating.course_offering_year,
+		rating.course_offering_term,
+		singleTerm,
+	);
 
 	return (
 		<article
@@ -63,8 +56,7 @@ export function RatingCard({
 				viewerVote={rating.viewer_vote ?? null}
 				commentsCount={rating.comments_count ?? 0}
 				commentAuthors={rating.comment_authors ?? []}
-				votesReadOnly={readOnly}
-				votesDisabledMessage={disabledMessage}
+				voteDisabledReason={voteDisabledReason}
 				onVoteSettled={onVoteSettled}
 			/>
 		</article>

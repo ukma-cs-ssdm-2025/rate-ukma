@@ -1,9 +1,11 @@
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { renderWithProviders } from "@/test-utils/render";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "../definitions/ratingDefinitions";
 import { MyRatingCard } from "./MyRatingCard";
 
 vi.mock("@tanstack/react-router", async () => {
@@ -115,7 +117,7 @@ describe("MyRatingCard", () => {
 		expect(rateButton.style.color).toBe("");
 	});
 
-	it("renders a disabled rate action when the course cannot be rated", () => {
+	it("explains instead of rating when the course cannot be rated yet", async () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({ can_rate: false })}
@@ -123,6 +125,12 @@ describe("MyRatingCard", () => {
 			/>,
 		);
 
-		expect(screen.getByRole("button", { name: "Оцінити" })).toBeDisabled();
+		const rate = screen.getByRole("button", { name: "Оцінити" });
+		expect(rate).toHaveAttribute("aria-disabled", "true");
+		await userEvent.click(rate);
+		expect(await screen.findByRole("tooltip")).toHaveTextContent(
+			CANNOT_RATE_TOOLTIP_TEXT,
+		);
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 	});
 });

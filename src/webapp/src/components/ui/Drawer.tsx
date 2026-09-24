@@ -18,6 +18,11 @@ interface DrawerProps {
 // Matches the exit transition below, so the panel unmounts after it has left.
 const EXIT_DURATION_MS = 220;
 
+const HIDDEN_OFFSET = {
+	right: "translate-x-full",
+	bottom: "translate-y-full",
+} as const;
+
 export function Drawer({
 	open,
 	onOpenChange,
@@ -93,11 +98,7 @@ export function Drawer({
 					side === "right"
 						? "top-0 right-0 h-full w-full max-w-sm gap-6 overflow-y-auto rounded-l-xl p-6"
 						: "inset-x-0 bottom-0 max-h-[85dvh] gap-4 overflow-hidden rounded-t-2xl border-t border-border px-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]",
-					isShown
-						? "translate-x-0 translate-y-0"
-						: side === "right"
-							? "translate-x-full"
-							: "translate-y-full",
+					isShown ? "translate-x-0 translate-y-0" : HIDDEN_OFFSET[side],
 				)}
 			>
 				{side === "bottom" && (

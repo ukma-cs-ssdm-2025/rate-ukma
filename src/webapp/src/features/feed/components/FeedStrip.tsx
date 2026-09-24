@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { useFeed } from "../hooks/useFeed";
 import { FeedItem } from "./FeedItem";
 
-/** Top "updates" strip: snap carousel with edge fades and paging arrows. */
 const STRIP_PAGE_SIZE = 8;
 
 type ScrollEdge = "both" | "left" | "right" | "none";
@@ -23,6 +22,16 @@ const EDGE_MASK: Record<ScrollEdge, string | undefined> = {
 	none: undefined,
 };
 
+function scrollEdge(
+	canScrollPrev: boolean,
+	canScrollNext: boolean,
+): ScrollEdge {
+	if (canScrollPrev && canScrollNext) return "both";
+	if (canScrollPrev) return "left";
+	if (canScrollNext) return "right";
+	return "none";
+}
+
 export function FeedStrip() {
 	const { enabled, isReady } = useFeatureFlagState("fe_feed");
 	const { items, isLoading } = useFeed({
@@ -33,13 +42,7 @@ export function FeedStrip() {
 	const { ref, canScrollPrev, canScrollNext, scrollPrev, scrollNext } =
 		useHorizontalScroll(items.length);
 	const scrollId = useId();
-	const edge: ScrollEdge = canScrollPrev
-		? canScrollNext
-			? "both"
-			: "left"
-		: canScrollNext
-			? "right"
-			: "none";
+	const edge = scrollEdge(canScrollPrev, canScrollNext);
 
 	// Gate on the flag, and stay hidden until it resolves so the feed never
 	// flashes in before a disabled flag lands.

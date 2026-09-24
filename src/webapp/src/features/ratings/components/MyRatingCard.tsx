@@ -3,13 +3,9 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { PenLine, Pencil, Trash2 } from "lucide-react";
 
+import { DisabledButtonWithTooltip } from "@/components/DisabledButtonWithTooltip";
 import { Button } from "@/components/ui/Button";
 import { ExpandableText } from "@/components/ui/ExpandableText";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/Tooltip";
 import {
 	getDifficultyTone,
 	getUsefulnessTone,
@@ -63,7 +59,7 @@ export function MyRatingCard({
 						</span>
 					)}
 				</div>
-				{hasRating && rating ? (
+				{rating ? (
 					<div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs">
 						<span className="text-muted-foreground">
 							Складність{" "}
@@ -188,57 +184,26 @@ function CardActions({
 		return null;
 	}
 
-	return (
-		<RateAction
-			courseId={courseId}
-			offeringId={offeringId}
-			canRate={canRate}
-			onRate={onEdit}
-			variant="default"
-		/>
-	);
-}
-
-interface RateActionProps {
-	courseId: string | undefined;
-	offeringId: string | undefined;
-	canRate: boolean;
-	onRate: () => void;
-	variant?: "default" | "outline";
-}
-
-function RateAction({
-	courseId,
-	offeringId,
-	canRate,
-	onRate,
-	variant = "default",
-}: Readonly<RateActionProps>) {
-	if (!courseId) return null;
 	if (!canRate) {
 		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<span className="inline-block" tabIndex={0}>
-						<Button variant="secondary" size="sm" disabled>
-							<PenLine className="size-3.5" />
-							Оцінити
-						</Button>
-					</span>
-				</TooltipTrigger>
-				<TooltipContent>
-					<p>{CANNOT_RATE_TOOLTIP_TEXT}</p>
-				</TooltipContent>
-			</Tooltip>
+			<DisabledButtonWithTooltip reason={CANNOT_RATE_TOOLTIP_TEXT}>
+				<Button
+					variant="secondary"
+					size="sm"
+					className="min-h-10 cursor-not-allowed px-4 opacity-50 hover:bg-secondary sm:min-h-0"
+				>
+					<PenLine className="size-3.5" />
+					Оцінити
+				</Button>
+			</DisabledButtonWithTooltip>
 		);
 	}
 
 	if (offeringId) {
 		return (
 			<Button
-				variant={variant}
 				size="sm"
-				onClick={onRate}
+				onClick={onEdit}
 				className="min-h-10 px-4 sm:min-h-0"
 				data-testid={testIds.myRatings.leaveReviewLink}
 			>
@@ -248,12 +213,7 @@ function RateAction({
 		);
 	}
 	return (
-		<Button
-			variant={variant}
-			size="sm"
-			className="min-h-10 px-4 sm:min-h-0"
-			asChild
-		>
+		<Button size="sm" className="min-h-10 px-4 sm:min-h-0" asChild>
 			<Link
 				to="/courses/$courseId"
 				params={{ courseId }}

@@ -88,17 +88,13 @@ function ExploreRoute() {
 		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
 	}, [setParams]);
 
-	const { groups: filterGroups, hasActiveFilters } = useCourseFiltersData({
+	const { groups: filterGroups } = useCourseFiltersData({
 		params,
 	});
 	const activeFilterCount =
 		filterGroups.rating.config.activeCount +
 		filterGroups.semester.config.activeCount +
 		filterGroups.structure.config.activeCount;
-
-	const handleToggleShowAllLabels = (pressed: boolean) => {
-		setShowAllLabels(pressed);
-	};
 
 	return (
 		<Layout showFooter={false}>
@@ -133,7 +129,7 @@ function ExploreRoute() {
 							<Toggle
 								variant="outline"
 								pressed={showAllLabels}
-								onPressedChange={handleToggleShowAllLabels}
+								onPressedChange={setShowAllLabels}
 								title="Може перекривати точки, якщо їх багато"
 								aria-label="Завжди показувати підписи"
 								className="h-9 bg-card/90 backdrop-blur"
@@ -154,7 +150,7 @@ function ExploreRoute() {
 							>
 								<Filter className="size-4" />
 								<span className="hidden sm:inline">Фільтри</span>
-								{hasActiveFilters && activeFilterCount > 0 && (
+								{activeFilterCount > 0 && (
 									<Badge variant="soft" className="h-5 min-w-5 px-1.5">
 										{activeFilterCount}
 									</Badge>

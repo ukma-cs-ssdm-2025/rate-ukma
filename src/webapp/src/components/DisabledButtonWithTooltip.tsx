@@ -7,83 +7,33 @@ import {
 } from "@/components/ui/Tooltip";
 
 interface Props {
+	readonly reason: string;
 	readonly children: React.ReactElement<
 		React.ButtonHTMLAttributes<HTMLButtonElement>
 	>;
-	readonly tooltip?: string;
-	readonly className?: string;
-	readonly forceDisable?: boolean;
 }
 
-export function DisabledButtonWithTooltip({
-	children,
-	tooltip,
-	className,
-	forceDisable = true,
-}: Readonly<Props>) {
-	const childDisabledProp = children.props.disabled === true;
-	const shouldBeDisabled = forceDisable || childDisabledProp;
-
-	const existingClassName = children.props.className ?? "";
-	const mergedClassName = [
-		existingClassName,
-		shouldBeDisabled ? "cursor-not-allowed" : "",
-	]
-		.filter(Boolean)
-		.join(" ");
-
-	const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
-		if (shouldBeDisabled) {
+// aria-disabled instead of disabled keeps the button focusable, so keyboard
+// users reach the reason; a tap opens it for touch users, who cannot hover.
+export function DisabledButtonWithTooltip({ reason, children }: Props) {
+	const [open, setOpen] = React.useState(false);
+	const button = React.cloneElement(children, {
+		"aria-disabled": true,
+		// Prevented events stop Radix from closing the tooltip on press.
+		onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) =>
+			event.preventDefault(),
+		onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
 			event.preventDefault();
-			event.stopPropagation();
-			return;
-		}
-		if (typeof children.props.onClick === "function") {
-			children.props.onClick(event);
-		}
-	};
-
-	const renderedChild = React.cloneElement(children, {
-		className: mergedClassName,
-		"aria-disabled": shouldBeDisabled || undefined,
-		disabled: shouldBeDisabled,
-		onClick: handleClick,
+			setOpen(true);
+		},
 	});
 
-	if (!tooltip) {
-		return (
-			<div className={`inline-block ${className ?? ""}`}>{renderedChild}</div>
-		);
-	}
-
-	if (!shouldBeDisabled) {
-		return (
-			<div className={`inline-block ${className ?? ""}`}>
-				<Tooltip>
-					<TooltipTrigger asChild>{renderedChild}</TooltipTrigger>
-					<TooltipContent>
-						<p>{tooltip}</p>
-					</TooltipContent>
-				</Tooltip>
-			</div>
-		);
-	}
-
 	return (
-		<div className={`inline-block ${className ?? ""}`}>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					{/* span keeps the tooltip reachable on a disabled native button */}
-					<span className="inline-block" tabIndex={0}>
-						{renderedChild}
-					</span>
-				</TooltipTrigger>
-				<TooltipContent>
-					<p>{tooltip}</p>
-				</TooltipContent>
-			</Tooltip>
-		</div>
+		<Tooltip delayDuration={0} open={open} onOpenChange={setOpen}>
+			<TooltipTrigger asChild>{button}</TooltipTrigger>
+			<TooltipContent side="top" sideOffset={4}>
+				<p>{reason}</p>
+			</TooltipContent>
+		</Tooltip>
 	);
 }
-
-export default DisabledButtonWithTooltip;

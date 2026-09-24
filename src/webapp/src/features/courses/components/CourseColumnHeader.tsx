@@ -6,6 +6,28 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
+type SortState = "asc" | "desc" | "none";
+
+const SORT_ICONS: Record<SortState, typeof ArrowUpDown> = {
+	asc: ArrowUp,
+	desc: ArrowDown,
+	none: ArrowUpDown,
+};
+
+// Clicks cycle initial direction → the other direction → unsorted.
+const SORT_HINTS: Record<"asc" | "desc", Record<SortState, string>> = {
+	asc: {
+		none: "Сортувати за зростанням",
+		asc: "Сортувати за спаданням",
+		desc: "Скинути сортування",
+	},
+	desc: {
+		none: "Сортувати за спаданням",
+		desc: "Сортувати за зростанням",
+		asc: "Скинути сортування",
+	},
+};
+
 interface CourseColumnHeaderProps<TData, TValue> {
 	column: Column<TData, TValue>;
 	title: string;
@@ -43,50 +65,17 @@ export function CourseColumnHeader<TData, TValue>({
 		);
 	}
 
-	const sortState = column.getIsSorted() as false | "asc" | "desc";
-	const isInitialAsc = initialSortDirection === "asc";
-	const Icon =
-		sortState === "asc"
-			? ArrowUp
-			: sortState === "desc"
-				? ArrowDown
-				: ArrowUpDown;
-	const sortHintText =
-		sortState === false
-			? isInitialAsc
-				? "Сортувати за зростанням"
-				: "Сортувати за спаданням"
-			: sortState === "asc"
-				? isInitialAsc
-					? "Сортувати за спаданням"
-					: "Скинути сортування"
-				: isInitialAsc
-					? "Скинути сортування"
-					: "Сортувати за зростанням";
+	const sortState = column.getIsSorted() || "none";
+	const Icon = SORT_ICONS[sortState];
+	const sortHintText = SORT_HINTS[initialSortDirection][sortState];
 
 	const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-		const isMultiSort = event.shiftKey;
-
-		if (sortState === false) {
-			column.toggleSorting(!isInitialAsc, isMultiSort);
-			return;
-		}
-
-		if (sortState === "asc") {
-			if (isInitialAsc) {
-				column.toggleSorting(true, isMultiSort);
-			} else {
-				column.clearSorting();
-			}
-			return;
-		}
-
-		if (sortState === "desc") {
-			if (isInitialAsc) {
-				column.clearSorting();
-			} else {
-				column.toggleSorting(false, isMultiSort);
-			}
+		if (sortState === "none") {
+			column.toggleSorting(initialSortDirection === "desc", event.shiftKey);
+		} else if (sortState === initialSortDirection) {
+			column.toggleSorting(sortState === "asc", event.shiftKey);
+		} else {
+			column.clearSorting();
 		}
 	};
 
@@ -101,13 +90,12 @@ export function CourseColumnHeader<TData, TValue>({
 				className,
 			)}
 			onClick={handleClick}
-			disabled={!column.getCanSort()}
 			title={sortHintText}
 			aria-label={sortHintText}
 			data-testid={testId}
 		>
 			<span>{title}</span>
-			{column.getCanSort() ? <Icon className="h-4 w-4" /> : null}
+			<Icon className="size-4" />
 		</Button>
 	);
 }

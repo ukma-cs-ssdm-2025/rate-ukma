@@ -331,7 +331,7 @@ for (const width of WIDTHS) {
 				}, theme);
 				await state.run(page);
 				await expect(page.locator("html")).toHaveClass(new RegExp(theme));
-				await page.waitForTimeout(300);
+				await page.evaluate(() => document.fonts.ready);
 				mkdirSync(out, { recursive: true });
 				await page.screenshot({
 					path: join(out, fileName(state.name, width.name, theme)),

@@ -66,6 +66,7 @@ function EmptyMedia({
 
 function EmptyTitle({
 	className,
+	children,
 	...props
 }: Readonly<React.ComponentProps<"h3">>) {
 	return (
@@ -73,7 +74,9 @@ function EmptyTitle({
 			data-slot="empty-title"
 			className={cn("text-lg font-medium tracking-tight", className)}
 			{...props}
-		/>
+		>
+			{children}
+		</h3>
 	);
 }
 

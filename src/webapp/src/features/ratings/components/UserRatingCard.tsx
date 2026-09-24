@@ -1,10 +1,7 @@
 import { Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import {
-	formatAcademicYearLabel,
-	getSemesterDisplay,
-} from "@/features/courses/courseFormatting";
+import { formatReviewOfferingLabel } from "@/features/courses/courseFormatting";
 import {
 	ANONYMOUS_REVIEW_NAME,
 	CANNOT_VOTE_OWN_RATING_TEXT,
@@ -60,15 +57,12 @@ export function UserRatingCard({
 		return DEFAULT_STUDENT_NAME;
 	};
 	const displayName = getUserDisplayName();
-	const courseOfferingYear =
-		"course_offering_year" in rating ? rating.course_offering_year : undefined;
-	const courseOfferingTerm =
-		"course_offering_term" in rating ? rating.course_offering_term : undefined;
 	const courseOfferingLabel =
-		courseOfferingYear != null && courseOfferingTerm
-			? (singleTerm ? formatAcademicYearLabel : getSemesterDisplay)(
-					courseOfferingYear,
-					courseOfferingTerm,
+		"course_offering_year" in rating
+			? formatReviewOfferingLabel(
+					rating.course_offering_year,
+					rating.course_offering_term,
+					singleTerm,
 				)
 			: undefined;
 
@@ -124,8 +118,7 @@ export function UserRatingCard({
 				viewerVote={rating.viewer_vote ?? null}
 				commentsCount={rating.comments_count ?? 0}
 				commentAuthors={rating.comment_authors ?? []}
-				votesReadOnly={true}
-				votesDisabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
+				voteDisabledReason={CANNOT_VOTE_OWN_RATING_TEXT}
 			/>
 		</article>
 	);

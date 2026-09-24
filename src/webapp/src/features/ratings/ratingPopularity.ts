@@ -1,3 +1,5 @@
+import type { RatingRead } from "@/lib/api/generated";
+
 const Z = 1.96;
 
 // Mirrors WilsonPopularityAnnotator in the backend, so a vote reorders the
@@ -12,14 +14,11 @@ export function popularityScore(upvotes: number, downvotes: number): number {
 	return (p + z2 / (2 * n) - Z * spread) / (1 + z2 / n);
 }
 
-export interface VoteCounts {
-	readonly upvotes: number;
-	readonly downvotes: number;
-}
+export type VoteCounts = Required<Pick<RatingRead, "upvotes" | "downvotes">>;
 
 // Stable: equal scores keep the server order, so untouched reviews stay put.
 export function orderByPopularity<
-	T extends { id?: string; upvotes?: number; downvotes?: number },
+	T extends Pick<RatingRead, "id" | "upvotes" | "downvotes">,
 >(ratings: readonly T[], overrides: Readonly<Record<string, VoteCounts>>): T[] {
 	const score = (rating: T) => {
 		const counts = (rating.id && overrides[rating.id]) || {

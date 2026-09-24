@@ -1,11 +1,10 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { MessageSquare } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import {
 	Empty,
-	EmptyContent,
 	EmptyDescription,
 	EmptyHeader,
 	EmptyMedia,
@@ -15,7 +14,6 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { RatingButton } from "./RatingButton";
 import { RatingCard } from "./RatingCard";
 import { RatingsSortSelect, type SortOption } from "./RatingsSortSelect";
 import { UserRatingCard } from "./UserRatingCard";
@@ -25,7 +23,7 @@ import {
 } from "../definitions/ratingDefinitions";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
 import { orderByPopularity, type VoteCounts } from "../ratingPopularity";
-import type { RatingVotesProps } from "./RatingVotes";
+import type { OnVoteSettled } from "./RatingVotes";
 
 const SKELETON_RATINGS_COUNT = 3;
 const SKELETON_KEYS = Array.from(
@@ -38,12 +36,8 @@ interface CourseRatingsListProps {
 	userRating?: InlineRating | RatingRead | null;
 	onEditUserRating?: () => void;
 	onDeleteUserRating?: () => void;
-	canVote?: boolean;
-	hasAttended?: boolean;
-	canRate?: boolean;
-	showCta?: boolean;
-	canRateButton?: boolean;
-	onRate?: () => void;
+	hasAttended: boolean;
+	canRate: boolean;
 	// When the course only ever runs in one term, reviews show the academic year alone.
 	singleTerm?: boolean;
 }
@@ -54,12 +48,11 @@ interface RatingsContentProps {
 	isLoadingMore: boolean;
 	loaderRef: React.RefObject<HTMLDivElement | null>;
 	hasUserRating: boolean;
-	canVote?: boolean;
-	disabledMessage?: string;
+	voteDisabledReason?: string;
 	courseId: string;
 	singleTerm: boolean;
 	listRef: React.RefObject<HTMLDivElement | null>;
-	onVoteSettled?: RatingVotesProps["onVoteSettled"];
+	onVoteSettled: OnVoteSettled;
 }
 
 function emptyDescription(hasAttended: boolean, canRate: boolean): string {
@@ -71,15 +64,9 @@ function emptyDescription(hasAttended: boolean, canRate: boolean): string {
 }
 
 function EmptyState({
-	showCta,
-	canRateButton,
-	onRate,
 	hasAttended,
 	canRate,
 }: Readonly<{
-	showCta: boolean;
-	canRateButton: boolean;
-	onRate?: () => void;
 	hasAttended: boolean;
 	canRate: boolean;
 }>) {
@@ -97,13 +84,6 @@ function EmptyState({
 					{emptyDescription(hasAttended, canRate)}
 				</EmptyDescription>
 			</EmptyHeader>
-			{showCta && (
-				<EmptyContent>
-					<RatingButton canRate={canRateButton} onClick={onRate} size="lg">
-						Оцінити цей курс
-					</RatingButton>
-				</EmptyContent>
-			)}
 		</Empty>
 	);
 }
@@ -114,8 +94,7 @@ function RatingsContent({
 	isLoadingMore,
 	loaderRef,
 	hasUserRating,
-	canVote = true,
-	disabledMessage,
+	voteDisabledReason,
 	courseId,
 	singleTerm,
 	listRef,
@@ -133,8 +112,7 @@ function RatingsContent({
 					rating={rating}
 					courseId={courseId}
 					singleTerm={singleTerm}
-					readOnly={!canVote}
-					disabledMessage={disabledMessage}
+					voteDisabledReason={voteDisabledReason}
 					onVoteSettled={onVoteSettled}
 				/>
 			))}
@@ -164,25 +142,16 @@ export function CourseRatingsList({
 	userRating: userRatingProp,
 	onEditUserRating,
 	onDeleteUserRating,
-	canVote = true,
-	hasAttended = true,
-	canRate = true,
-	showCta = false,
-	canRateButton = false,
-	onRate,
+	hasAttended,
+	canRate,
 	singleTerm = false,
 }: Readonly<CourseRatingsListProps>) {
 	const separateCurrentUser = !!userRatingProp;
 	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
 
-	const getDisabledMessage = () => {
-		if (canVote) return undefined;
-		if (!hasAttended) return CANNOT_VOTE_WITHOUT_ATTENDING_TEXT;
-		if (!canRate) return CANNOT_VOTE_BEFORE_MIDTERM_TEXT;
-		return undefined;
-	};
-
-	const disabledMessage = getDisabledMessage();
+	let voteDisabledReason: string | undefined;
+	if (!hasAttended) voteDisabledReason = CANNOT_VOTE_WITHOUT_ATTENDING_TEXT;
+	else if (!canRate) voteDisabledReason = CANNOT_VOTE_BEFORE_MIDTERM_TEXT;
 
 	const getSortParams = (option: SortOption) => {
 		switch (option) {
@@ -217,22 +186,19 @@ export function CourseRatingsList({
 	const listRef = useRef<HTMLDivElement>(null);
 	const positionsBeforeVote = useRef<Map<string, number> | null>(null);
 
-	const handleVoteSettled = useCallback(
-		(ratingId: string, counts: VoteCounts) => {
-			const positions = new Map<string, number>();
-			for (const node of listRef.current?.querySelectorAll<HTMLElement>(
-				"[data-rating-id]",
-			) ?? []) {
-				positions.set(
-					node.dataset.ratingId ?? "",
-					node.getBoundingClientRect().top,
-				);
-			}
-			positionsBeforeVote.current = positions;
-			setVoteOverrides((prev) => ({ ...prev, [ratingId]: counts }));
-		},
-		[],
-	);
+	const handleVoteSettled: OnVoteSettled = (ratingId, counts) => {
+		const positions = new Map<string, number>();
+		for (const node of listRef.current?.querySelectorAll<HTMLElement>(
+			"[data-rating-id]",
+		) ?? []) {
+			positions.set(
+				node.dataset.ratingId ?? "",
+				node.getBoundingClientRect().top,
+			);
+		}
+		positionsBeforeVote.current = positions;
+		setVoteOverrides((prev) => ({ ...prev, [ratingId]: counts }));
+	};
 
 	const orderedRatings =
 		sortOption === "most-popular"
@@ -278,20 +244,8 @@ export function CourseRatingsList({
 						{displayCount}
 					</Badge>
 				</h2>
-				{displayCount > 0 || (showCta && !hasNoReviews) ? (
-					<div className="flex shrink-0 items-center gap-2">
-						{showCta && !hasNoReviews && (
-							<RatingButton canRate={canRateButton} onClick={onRate} size="sm">
-								Оцінити
-							</RatingButton>
-						)}
-						{displayCount > 0 && (
-							<RatingsSortSelect
-								value={sortOption}
-								onValueChange={setSortOption}
-							/>
-						)}
-					</div>
+				{displayCount > 0 ? (
+					<RatingsSortSelect value={sortOption} onValueChange={setSortOption} />
 				) : null}
 			</div>
 
@@ -308,13 +262,7 @@ export function CourseRatingsList({
 			{isLoading ? (
 				<CourseRatingsListSkeleton />
 			) : hasNoReviews ? (
-				<EmptyState
-					showCta={showCta}
-					canRateButton={canRateButton}
-					onRate={onRate}
-					hasAttended={hasAttended}
-					canRate={canRate}
-				/>
+				<EmptyState hasAttended={hasAttended} canRate={canRate} />
 			) : (
 				<RatingsContent
 					allRatings={orderedRatings}
@@ -322,8 +270,7 @@ export function CourseRatingsList({
 					isLoadingMore={isFetchingNextPage}
 					loaderRef={loaderRef}
 					hasUserRating={!!userRating}
-					canVote={canVote}
-					disabledMessage={disabledMessage}
+					voteDisabledReason={voteDisabledReason}
 					courseId={courseId}
 					singleTerm={singleTerm}
 					listRef={listRef}

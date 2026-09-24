@@ -9,7 +9,7 @@ import {
 	EmptyTitle,
 } from "@/components/ui/Empty";
 import { Spinner } from "@/components/ui/Spinner";
-import type { NotificationGroup } from "@/lib/api/generated";
+import { EventTypeEnum, type NotificationGroup } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "../notificationFormatting";
@@ -26,10 +26,19 @@ interface NotificationListProps {
 	onLoadMore?: () => void;
 }
 
-const EVENT_ICONS: Record<string, { icon: typeof ThumbsUp; tone: string }> = {
-	RATING_UPVOTED: { icon: ThumbsUp, tone: "text-primary" },
-	RATING_DOWNVOTED: { icon: ThumbsDown, tone: "text-muted-foreground" },
-	RATING_COMMENT_CREATED: { icon: MessageSquare, tone: "text-foreground" },
+const EVENT_ICONS: Record<
+	EventTypeEnum,
+	{ icon: typeof ThumbsUp; tone: string }
+> = {
+	[EventTypeEnum.RATING_UPVOTED]: { icon: ThumbsUp, tone: "text-primary" },
+	[EventTypeEnum.RATING_DOWNVOTED]: {
+		icon: ThumbsDown,
+		tone: "text-muted-foreground",
+	},
+	[EventTypeEnum.RATING_COMMENT_CREATED]: {
+		icon: MessageSquare,
+		tone: "text-foreground",
+	},
 };
 
 const FALLBACK_EVENT = { icon: Bell, tone: "text-muted-foreground" };
@@ -155,12 +164,17 @@ function splitCommentQuote(message: string): {
 	title: string;
 	quote?: string;
 } {
-	const match = message.match(/^(.*?)\s*[«"“](.+?)[»"”]\s*$/u);
-	if (!match) {
+	const text = message.trimEnd();
+	const open = text.search(/[«"“]/u);
+	if (open < 0 || open > text.length - 3 || !/[»"”]$/u.test(text)) {
 		return { title: message };
 	}
-	const title = match[1].trim().replace(/[:—–-]\s*$/, "");
-	const quote = match[2].trim();
+	const title = text
+		.slice(0, open)
+		.trim()
+		.replace(/[:—–-]$/u, "")
+		.trimEnd();
+	const quote = text.slice(open + 1, -1).trim();
 	if (!title || !quote) {
 		return { title: message };
 	}
@@ -177,10 +191,12 @@ function NotificationItem({
 	const courseId = notification.course_id;
 	const isUnread = notification.is_unread ?? false;
 	const { icon: Icon, tone } =
-		EVENT_ICONS[notification.event_type ?? ""] ?? FALLBACK_EVENT;
+		(notification.event_type && EVENT_ICONS[notification.event_type]) ||
+		FALLBACK_EVENT;
 
 	const { title, quote } =
-		notification.event_type === "RATING_COMMENT_CREATED" && notification.message
+		notification.event_type === EventTypeEnum.RATING_COMMENT_CREATED &&
+		notification.message
 			? splitCommentQuote(notification.message)
 			: { title: notification.message };
 

@@ -3,13 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 
+import { DisabledButtonWithTooltip } from "@/components/DisabledButtonWithTooltip";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toaster";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/Tooltip";
 import {
 	getCoursesRatingsListQueryKey,
 	RatingVoteStrType,
@@ -19,54 +15,58 @@ import {
 	useCoursesRatingsVotesCreate,
 	useCoursesRatingsVotesDestroy,
 } from "../hooks/useVoteMutations";
+import type { VoteCounts } from "../ratingPopularity";
 
-export interface RatingVotesProps {
+export type OnVoteSettled = (ratingId: string, counts: VoteCounts) => void;
+
+interface RatingVotesProps {
 	ratingId: string;
 	courseId?: string;
 	initialUpvotes?: number;
 	initialDownvotes?: number;
 	initialUserVote?: RatingVoteStrType | null;
-	readOnly?: boolean;
-	disabledMessage?: string;
+	/** Set when the viewer cannot vote; shown as the arrows' tooltip. */
+	disabledReason?: string;
 	inline?: boolean;
 	/** Called once the server has accepted a vote, with the resulting counts. */
-	onVoteSettled?: (
-		ratingId: string,
-		counts: { upvotes: number; downvotes: number },
-	) => void;
+	onVoteSettled?: OnVoteSettled;
 }
 
 interface VoteProps {
 	readonly isUpvote: boolean;
 	readonly count: number;
 	readonly active: boolean;
-	readonly disabled?: boolean;
-	readonly disabledMessage?: string;
-	readonly onClick?: () => void;
+	readonly disabledReason?: string;
+	readonly onClick: () => void;
 }
 
 function Vote({
 	isUpvote,
 	count,
 	active,
-	disabled = false,
-	disabledMessage,
+	disabledReason,
 	onClick,
 }: Readonly<VoteProps>) {
 	const Icon = isUpvote ? ArrowBigUp : ArrowBigDown;
+	const disabled = disabledReason !== undefined;
+	// The resting tone doubles as the hover tone, so disabled arrows do not react.
+	const restingTone = active
+		? "bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary"
+		: "text-muted-foreground hover:bg-transparent hover:text-muted-foreground";
+	const hoverTone = active
+		? "hover:bg-primary/15"
+		: "hover:bg-primary/10 hover:text-primary";
 	const button = (
 		<Button
 			variant="ghost"
 			size="sm"
-			disabled={disabled}
 			onClick={onClick}
 			aria-pressed={active}
 			aria-label={`${isUpvote ? "За" : "Проти"}: ${count}`}
 			className={cn(
-				"h-8 gap-1.5 px-2 disabled:opacity-100",
-				active
-					? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
-					: "text-muted-foreground hover:bg-primary/10 hover:text-primary",
+				"h-8 gap-1.5 px-2",
+				restingTone,
+				disabled ? "cursor-default" : hoverTone,
 			)}
 		>
 			<Icon className={cn("size-5", active && "fill-current")} />
@@ -74,21 +74,13 @@ function Vote({
 		</Button>
 	);
 
-	if (!disabledMessage) {
+	if (!disabled) {
 		return button;
 	}
-
 	return (
-		<Tooltip delayDuration={0}>
-			<TooltipTrigger asChild>
-				<span className="inline-flex" tabIndex={0}>
-					{button}
-				</span>
-			</TooltipTrigger>
-			<TooltipContent side="top" sideOffset={4}>
-				<p>{disabledMessage}</p>
-			</TooltipContent>
-		</Tooltip>
+		<DisabledButtonWithTooltip reason={disabledReason}>
+			{button}
+		</DisabledButtonWithTooltip>
 	);
 }
 
@@ -98,8 +90,7 @@ export function RatingVotes({
 	initialUpvotes = 0,
 	initialDownvotes = 0,
 	initialUserVote = null,
-	readOnly = false,
-	disabledMessage,
+	disabledReason,
 	inline = false,
 	onVoteSettled,
 }: Readonly<RatingVotesProps>) {
@@ -194,7 +185,6 @@ export function RatingVotes({
 	}, [userVote, serverVote, ratingId, courseId, queryClient]);
 
 	const toggleVote = (target: RatingVoteStrType) => {
-		if (readOnly) return;
 		setUserVote((prev) => (prev === target ? null : target));
 	};
 
@@ -211,8 +201,7 @@ export function RatingVotes({
 				isUpvote
 				count={upvotes}
 				active={upActive}
-				disabled={readOnly}
-				disabledMessage={readOnly ? disabledMessage : undefined}
+				disabledReason={disabledReason}
 				onClick={() => toggleVote(RatingVoteStrType.UPVOTE)}
 			/>
 
@@ -220,8 +209,7 @@ export function RatingVotes({
 				isUpvote={false}
 				count={downvotes}
 				active={downActive}
-				disabled={readOnly}
-				disabledMessage={readOnly ? disabledMessage : undefined}
+				disabledReason={disabledReason}
 				onClick={() => toggleVote(RatingVoteStrType.DOWNVOTE)}
 			/>
 		</div>

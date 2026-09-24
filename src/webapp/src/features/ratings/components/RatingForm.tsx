@@ -97,7 +97,7 @@ function ScoreInput({
 		buttons.current[next - 1]?.focus();
 	};
 
-	const onGroupKeyDown = (event: React.KeyboardEvent) => {
+	const onRadioKeyDown = (event: React.KeyboardEvent) => {
 		switch (event.key) {
 			case "ArrowRight":
 			case "ArrowUp":
@@ -126,7 +126,6 @@ function ScoreInput({
 				role="radiogroup"
 				aria-labelledby={labelId}
 				onBlur={onBlur}
-				onKeyDown={onGroupKeyDown}
 				onPointerLeave={() => {
 					setHovered(null);
 					setDragging(false);
@@ -148,6 +147,7 @@ function ScoreInput({
 							aria-checked={score === value}
 							aria-label={`${score} з 5`}
 							tabIndex={score === value ? 0 : -1}
+							onKeyDown={onRadioKeyDown}
 							onClick={() => onChange(score)}
 							onPointerDown={() => {
 								setDragging(true);

@@ -155,67 +155,6 @@ export function formatDate(dateString: string): string {
 	}).format(date); // e.g. "26 жовтня 2025"
 }
 
-export type SemesterSeason = "FALL" | "SPRING" | "SUMMER";
-
-interface CurrentSemester {
-	year: number;
-	season: SemesterSeason;
-}
-
-const MONTH_TO_SEASON: Record<number, SemesterSeason> = {
-	1: "SPRING",
-	2: "SPRING",
-	3: "SPRING",
-	4: "SPRING",
-	5: "SUMMER",
-	6: "SUMMER",
-	7: "SUMMER",
-	8: "SUMMER",
-	9: "FALL",
-	10: "FALL",
-	11: "FALL",
-	12: "FALL",
-};
-
-const CALENDAR_SEASON_ORDER: Record<string, number> = {
-	SPRING: 0,
-	SUMMER: 1,
-	FALL: 2,
-};
-
-export function getCurrentSemester(now: Date = new Date()): CurrentSemester {
-	const month = now.getMonth() + 1;
-	const year = now.getFullYear();
-	return { year, season: MONTH_TO_SEASON[month] };
-}
-
-export function compareSemesters(
-	a: { year: number; season: string },
-	b: { year: number; season: string },
-): number {
-	const valueA =
-		a.year * 10 + (CALENDAR_SEASON_ORDER[a.season.toUpperCase()] ?? 5);
-	const valueB =
-		b.year * 10 + (CALENDAR_SEASON_ORDER[b.season.toUpperCase()] ?? 5);
-	return valueA - valueB;
-}
-
-export function isFutureSemester(
-	semester: { year: number; season: string },
-	current: CurrentSemester = getCurrentSemester(),
-): boolean {
-	return compareSemesters(semester, current) > 0;
-}
-
-export function isCurrentSemester(
-	semester: { year: number; season: string },
-	current: CurrentSemester = getCurrentSemester(),
-): boolean {
-	return (
-		semester.year === current.year &&
-		semester.season.toUpperCase() === current.season
-	);
-}
 export function formatCredits(credits?: string | null): string | null {
 	if (!credits) {
 		return null;
@@ -260,6 +199,17 @@ export function formatAcademicYearLabel(
 		return "—";
 	}
 	return `${startYear}–${startYear + 1}`;
+}
+
+// A course that only ever runs in one term labels reviews by academic year alone.
+export function formatReviewOfferingLabel(
+	year: number | null | undefined,
+	term: string | null | undefined,
+	singleTerm: boolean,
+): string | undefined {
+	if (year == null || !term) return undefined;
+	if (singleTerm) return formatAcademicYearLabel(year, term);
+	return getSemesterDisplay(year, term);
 }
 
 export function hasCourseScores(

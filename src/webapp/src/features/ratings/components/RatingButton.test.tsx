@@ -1,18 +1,43 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
+import { TooltipProvider } from "@/components/ui/Tooltip";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "../definitions/ratingDefinitions";
 import { RatingButton } from "./RatingButton";
 
+function renderButton(canRate: boolean, onClick = vi.fn()) {
+	render(
+		<TooltipProvider>
+			<RatingButton canRate={canRate} onClick={onClick}>
+				Оцінити цей курс
+			</RatingButton>
+		</TooltipProvider>,
+	);
+	return onClick;
+}
+
 describe("RatingButton", () => {
-	it("renders a link child as the button when asChild is set", () => {
-		render(
-			<RatingButton canRate size="sm" asChild>
-				<a href="/courses/c-algo">Оцінити</a>
-			</RatingButton>,
+	it("opens rating when the course can be rated", async () => {
+		const onClick = renderButton(true);
+
+		await userEvent.click(
+			screen.getByRole("button", { name: "Оцінити цей курс" }),
 		);
 
-		const link = screen.getByRole("link", { name: "Оцінити" });
-		expect(link).toHaveAttribute("href", "/courses/c-algo");
-		expect(link.querySelector("svg")).not.toBeNull();
+		expect(onClick).toHaveBeenCalledOnce();
+	});
+
+	it("explains why rating is closed instead of opening it", async () => {
+		const onClick = renderButton(false);
+
+		await userEvent.click(
+			screen.getByRole("button", { name: "Оцінити цей курс" }),
+		);
+
+		expect(await screen.findByRole("tooltip")).toHaveTextContent(
+			CANNOT_RATE_TOOLTIP_TEXT,
+		);
+		expect(onClick).not.toHaveBeenCalled();
 	});
 });
