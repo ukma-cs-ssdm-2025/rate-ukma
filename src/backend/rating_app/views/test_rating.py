@@ -1108,7 +1108,7 @@ def test_ratings_sort_same_popularity_by_comments_count(
     rating_factory,
     comment_factory,
 ):
-    """Ratings with equal popularity score are ordered by comment count first."""
+    """Ratings with equal popularity score and written feedback are ordered by comment count."""
     course = course_factory()
     offering = course_offering_factory(course=course)
 
@@ -1133,6 +1133,31 @@ def test_ratings_sort_same_popularity_by_comments_count(
         str(rating_without_comments.id),
     ]
     assert [item["comments_count"] for item in data["items"]["ratings"]] == [2, 1, 0]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_ratings_sort_same_popularity_puts_text_before_comments_count(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    comment_factory,
+):
+    course = course_factory()
+    offering = course_offering_factory(course=course)
+    rating_without_text = rating_factory(course_offering=offering, comment="")
+    rating_with_text = rating_factory(course_offering=offering)
+    comment_factory.create_batch(2, rating=rating_without_text)
+
+    url = reverse("course-ratings", kwargs={"course_id": str(course.id)})
+    response = token_client.get(url, {"popularity_order": "true"})
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()["items"]["ratings"]] == [
+        str(rating_with_text.id),
+        str(rating_without_text.id),
+    ]
 
 
 @pytest.mark.django_db
