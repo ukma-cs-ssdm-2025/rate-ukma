@@ -211,7 +211,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page) => {
 			await mockBackend(page, { myCourses: "rated" });
 			await page.goto(`/courses/${COURSE.id}`);
-			await page.getByText("Ви оцінили цей курс").waitFor();
+			await page.getByRole("button", { name: "Змінити оцінку" }).waitFor();
 		},
 	},
 	...(

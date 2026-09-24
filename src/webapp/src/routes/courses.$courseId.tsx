@@ -99,20 +99,17 @@ function CourseDetailsRoute() {
 	// Attendees always see where they stand: rated, rateable, or waiting for midterm.
 	let rateAction: React.ReactNode = null;
 	if (ratedOffering) {
+		// Same size as the rate button it replaces, so rating moves nothing on the page.
 		rateAction = (
-			<div className="space-y-2">
-				<p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-					<CircleCheck className="size-4 text-primary" aria-hidden="true" />
-					Ви оцінили цей курс
-				</p>
-				<Button
-					variant="outline"
-					className="w-full max-w-md"
-					onClick={() => setIsRatingModalOpen(true)}
-				>
-					Змінити оцінку
-				</Button>
-			</div>
+			<Button
+				size="lg"
+				variant="outline"
+				className="w-full max-w-md"
+				onClick={() => setIsRatingModalOpen(true)}
+			>
+				<CircleCheck className="size-4 text-primary" aria-hidden="true" />
+				Змінити оцінку
+			</Button>
 		);
 	} else if (hasAttendedCourse && selectedOffering) {
 		rateAction = (

@@ -30,7 +30,6 @@ import type {
 } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
-import { ActiveFilterChips } from "./ActiveFilterChips";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import { CREDITS_RANGE, formatDecimalValue } from "../courseFormatting";
@@ -58,8 +57,6 @@ interface CourseFiltersPanelProps extends CourseFiltersBaseProps {
 	readonly onReset: () => void;
 	readonly isLoading?: boolean;
 	readonly className?: string;
-	readonly variant?: "card" | "plain";
-	readonly showTitle?: boolean;
 }
 
 export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
@@ -123,8 +120,11 @@ function FilterSlider({
 				thumbLabels={[`${label}, від`, `${label}, до`]}
 				className="w-full py-2"
 			/>
-			{disabledMessage && (
-				<p className="text-xs text-muted-foreground">{disabledMessage}</p>
+			{/* A slider that can be disabled keeps its hint line, so enabling it moves nothing below. */}
+			{disabled === undefined ? null : (
+				<p className="min-h-4 text-xs text-muted-foreground">
+					{disabledMessage}
+				</p>
 			)}
 		</div>
 	);
@@ -143,7 +143,7 @@ function FilterSection({
 }>) {
 	return (
 		<section className="space-y-3" data-testid={testId}>
-			<div className="flex items-center gap-2">
+			<div className="flex h-6 items-center gap-2">
 				<h3 className="text-sm font-semibold">{title}</h3>
 				{activeCount != null && activeCount > 0 && (
 					<Badge variant="soft">{activeCount}</Badge>
@@ -340,6 +340,8 @@ function SelectFilters({
 					const currentValue = getSelectValue(key);
 					const testId = SELECT_FILTER_TEST_IDS[key];
 					const isDisabled = disabled || options.length === 0;
+					// Named in place, so enabling the field moves nothing below it.
+					const shownPlaceholder = disabledMessage ?? placeholder;
 
 					if (key === "instructor") {
 						return (
@@ -363,7 +365,7 @@ function SelectFilters({
 							onValueChange={(nextValue) => {
 								onSelectChange(key, nextValue);
 							}}
-							placeholder={placeholder}
+							placeholder={shownPlaceholder}
 							searchPlaceholder="Пошук..."
 							emptyText="Нічого не знайдено."
 							disabled={isDisabled}
@@ -380,13 +382,13 @@ function SelectFilters({
 							disabled={isDisabled}
 						>
 							<SelectTrigger className="w-full" data-testid={testId}>
-								<SelectValue placeholder={placeholder} />
+								<SelectValue placeholder={shownPlaceholder} />
 							</SelectTrigger>
 							<SelectContent
 								className={contentClassName}
 								data-testid={testId ? `${testId}-content` : undefined}
 							>
-								<SelectItem value="all">{placeholder}</SelectItem>
+								<SelectItem value="all">{shownPlaceholder}</SelectItem>
 								{options.map((option) => (
 									<SelectItem key={option.value} value={option.value}>
 										{option.label}
@@ -400,11 +402,6 @@ function SelectFilters({
 						<div key={key} className="space-y-2">
 							<Label className="text-sm font-medium">{label}</Label>
 							{selectElement}
-							{disabledMessage && (
-								<p className="text-xs text-muted-foreground">
-									{disabledMessage}
-								</p>
-							)}
 						</div>
 					);
 				},
@@ -731,8 +728,6 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 	onReset,
 	isLoading,
 	className,
-	variant = "card",
-	showTitle = true,
 	...baseProps
 }: Readonly<CourseFiltersPanelProps>) {
 	const data = useCourseFiltersData(baseProps);
@@ -740,18 +735,6 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 
 	if (isLoading) {
 		return <CourseFiltersPanelSkeleton />;
-	}
-
-	if (variant === "plain" && !showTitle && !hasActiveFilters) {
-		return (
-			<div className={cn("space-y-6", className)}>
-				<CourseFiltersContent
-					params={baseProps.params}
-					setParams={baseProps.setParams}
-					data={data}
-				/>
-			</div>
-		);
 	}
 
 	const totalActive = getTotalActiveCount(data);
@@ -765,11 +748,6 @@ export const CourseFiltersPanel = memo(function CourseFiltersPanel({
 				count={totalActive}
 				hasActiveFilters={hasActiveFilters}
 				onReset={onReset}
-			/>
-			<ActiveFilterChips
-				params={baseProps.params}
-				setParams={baseProps.setParams}
-				filterOptions={baseProps.filterOptions}
 			/>
 			<CourseFiltersContent
 				params={baseProps.params}
