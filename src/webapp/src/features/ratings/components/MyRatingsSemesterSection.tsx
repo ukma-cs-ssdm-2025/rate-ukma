@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { ChevronRight, CircleCheck } from "lucide-react";
 
 import { TermBadge } from "@/components/TermBadge";
-import { Badge } from "@/components/ui/Badge";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -57,6 +56,17 @@ function useSemesterOpen(key: string, defaultOpen: boolean) {
 	return [open, change] as const;
 }
 
+const UK_PLURAL = new Intl.PluralRules("uk");
+const COURSE_FORMS: Record<Intl.LDMLPluralRule, string> = {
+	zero: "курсів",
+	one: "курс",
+	two: "курси",
+	few: "курси",
+	many: "курсів",
+	other: "курсу",
+};
+
+// One status per semester, phrased as the next step while something is left to rate.
 function SemesterStatus({
 	seasonGroup,
 	timing,
@@ -64,11 +74,12 @@ function SemesterStatus({
 	if (timing === "future") {
 		return <span className="text-muted-foreground">Ще не розпочався</span>;
 	}
-	if (seasonGroup.unratedRateableCount > 0) {
+	const left = seasonGroup.unratedRateableCount;
+	if (left > 0) {
 		return (
-			<Badge variant="soft" className="tabular-nums">
-				{seasonGroup.unratedRateableCount} до оцінки
-			</Badge>
+			<span className="font-medium text-primary">
+				Оцініть ще {left} {COURSE_FORMS[UK_PLURAL.select(left)]}
+			</span>
 		);
 	}
 	if (seasonGroup.ratedCount === seasonGroup.totalCount) {
@@ -135,10 +146,7 @@ export function MyRatingsSemesterSection({
 							{seasonGroup.label}
 						</span>
 					)}
-					<span className="text-muted-foreground tabular-nums">
-						{seasonGroup.ratedCount} з {seasonGroup.totalCount}
-					</span>
-					<span className="ml-auto text-xs">
+					<span className="ml-auto text-xs sm:text-sm">
 						<SemesterStatus seasonGroup={seasonGroup} timing={timing} />
 					</span>
 				</CollapsibleTrigger>

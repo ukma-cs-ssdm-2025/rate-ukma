@@ -68,7 +68,7 @@ function makeSemester(
 }
 
 describe("MyRatingsSemesterSection", () => {
-	it("lists rated and unrated courses in one list with a rated/total count", () => {
+	it("lists rated and unrated courses and asks for the missing rating", () => {
 		renderWithProviders(
 			<MyRatingsSemesterSection
 				seasonGroup={makeSemester([
@@ -82,7 +82,7 @@ describe("MyRatingsSemesterSection", () => {
 		);
 
 		expect(screen.getAllByTestId(testIds.myRatings.card)).toHaveLength(2);
-		expect(screen.getByText("1 з 2")).toBeInTheDocument();
+		expect(screen.getByText("Оцініть ще 1 курс")).toBeInTheDocument();
 		expect(screen.getByText("Курс 1")).toBeInTheDocument();
 		expect(screen.getByText("Курс 2")).toBeInTheDocument();
 	});
