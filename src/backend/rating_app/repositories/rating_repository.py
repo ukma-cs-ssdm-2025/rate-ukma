@@ -10,6 +10,8 @@ from django.db.models import (
     CharField,
     Count,
     Exists,
+    F,
+    OrderBy,
     OuterRef,
     Prefetch,
     Q,
@@ -17,6 +19,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.functions import Cast
+from django.db.models.lookups import Exact
 
 import structlog
 
@@ -420,6 +423,7 @@ class RatingRepository(
         prefix = "" if order == "asc" else "-"
         return queryset.order_by(
             f"{prefix}popularity_score",
+            self._text_first(),
             f"{prefix}comments_count",
             f"{prefix}created_at",
             f"{prefix}id",
@@ -427,7 +431,10 @@ class RatingRepository(
 
     def _apply_time_ordering(self, queryset: QuerySet[Rating], order: str) -> QuerySet[Rating]:
         prefix = "" if order == "asc" else "-"
-        return queryset.order_by(f"{prefix}created_at", f"{prefix}id")
+        return queryset.order_by(f"{prefix}created_at", self._text_first(), f"{prefix}id")
+
+    def _text_first(self) -> OrderBy:
+        return Exact(F("comment"), "").asc()
 
     def _get_by_id_shallow(self, rating_id: str) -> Rating:
         try:
