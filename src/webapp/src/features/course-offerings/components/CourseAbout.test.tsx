@@ -165,7 +165,7 @@ describe("CourseCazRecords", () => {
 		expect(screen.getByRole("button", { name: "ще 2" })).toBeInTheDocument();
 	});
 
-	it("expands every row inline without an overlay", async () => {
+	it("expands every row inline and collapses back", async () => {
 		const user = userEvent.setup();
 		render(
 			<CourseCazRecords
@@ -177,9 +177,16 @@ describe("CourseCazRecords", () => {
 		await user.click(screen.getByRole("button", { name: "ще 2" }));
 
 		expect(screen.getByRole("link", { name: /2020–2021/ })).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Згорнути" }));
+
 		expect(
-			screen.queryByRole("button", { name: /^ще \d/ }),
+			screen.queryByRole("link", { name: /2020–2021/ }),
 		).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "ще 2" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
 	});
 
 	it("shows each year's load when the course has one speciality", () => {

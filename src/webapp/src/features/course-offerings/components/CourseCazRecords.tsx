@@ -316,7 +316,6 @@ export function CourseCazRecords({
 		</li>
 	);
 	const rest = groups.slice(initialVisible);
-	const hiddenCount = expanded ? 0 : rest.length;
 
 	return (
 		<div>
@@ -335,13 +334,14 @@ export function CourseCazRecords({
 					) : null}
 				</ul>
 			</Collapsible>
-			{hiddenCount > 0 && (
+			{rest.length > 0 && (
 				<button
 					type="button"
+					aria-expanded={expanded}
 					className="mt-2 text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-					onClick={() => setExpanded(true)}
+					onClick={() => setExpanded((open) => !open)}
 				>
-					ще {hiddenCount}
+					{expanded ? "Згорнути" : `ще ${rest.length}`}
 				</button>
 			)}
 		</div>
