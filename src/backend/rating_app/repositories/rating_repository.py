@@ -10,16 +10,15 @@ from django.db.models import (
     CharField,
     Count,
     Exists,
-    F,
     OrderBy,
     OuterRef,
     Prefetch,
     Q,
     QuerySet,
+    Value,
     When,
 )
 from django.db.models.functions import Cast
-from django.db.models.lookups import Exact
 
 import structlog
 
@@ -434,7 +433,7 @@ class RatingRepository(
         return queryset.order_by(f"{prefix}created_at", self._text_first(), f"{prefix}id")
 
     def _text_first(self) -> OrderBy:
-        return Exact(F("comment"), "").asc()
+        return OrderBy(Case(When(comment="", then=Value(1)), default=Value(0)))
 
     def _get_by_id_shallow(self, rating_id: str) -> Rating:
         try:
