@@ -15,11 +15,17 @@ import { MyRatingCard } from "./MyRatingCard";
 
 const OPEN_STATE_KEY = "my-ratings-open-semesters";
 
-// Calendar month each term starts in (0-based), matching the academic calendar.
+// Mirrors SemesterService on the backend: the term a month falls in, and the
+// month from which that term's courses can be rated.
 const TERM_START_MONTH: Record<string, number> = {
 	SPRING: 0,
 	SUMMER: 4,
 	FALL: 8,
+};
+const TERM_MIDTERM_MONTH: Record<string, number> = {
+	SPRING: 2,
+	SUMMER: 5,
+	FALL: 10,
 };
 
 type SemesterTiming = "past" | "current" | "future";
@@ -31,26 +37,40 @@ function semesterTiming(
 ): SemesterTiming {
 	const startMonth = TERM_START_MONTH[season?.toUpperCase() ?? ""];
 	if (year == null || startMonth == null) return "past";
-	const start = new Date(year, startMonth, 1);
-	const nextStart = new Date(year, startMonth + 4, 1);
-	if (now < start) return "future";
-	return now < nextStart ? "current" : "past";
+	if (now < new Date(year, startMonth, 1)) return "future";
+	return now < new Date(year, startMonth + 4, 1) ? "current" : "past";
 }
 
-function readOpenState(): Record<string, boolean> {
-	return (
-		localStorageAdapter.getItem<Record<string, boolean>>(OPEN_STATE_KEY) ?? {}
-	);
+function currentPeriod(now: Date): string {
+	const month = now.getMonth();
+	let term = "SPRING";
+	if (month >= TERM_START_MONTH.FALL) term = "FALL";
+	else if (month >= TERM_START_MONTH.SUMMER) term = "SUMMER";
+	return `${now.getFullYear()}-${term}`;
 }
 
-// Only choices the student made are stored; untouched semesters follow the default.
+interface StoredOpenState {
+	period: string;
+	open: Record<string, boolean>;
+}
+
+// Choices hold for the current term only: a new term starts from the defaults,
+// so it opens on what is newly rateable instead of last term's layout.
+function readOpenState(period: string): Record<string, boolean> {
+	const stored = localStorageAdapter.getItem<StoredOpenState>(OPEN_STATE_KEY);
+	return stored?.period === period ? stored.open : {};
+}
+
 function useSemesterOpen(key: string, defaultOpen: boolean) {
-	const [open, setOpen] = useState(() => readOpenState()[key] ?? defaultOpen);
+	const period = currentPeriod(new Date());
+	const [open, setOpen] = useState(
+		() => readOpenState(period)[key] ?? defaultOpen,
+	);
 	const change = (next: boolean) => {
 		setOpen(next);
-		localStorageAdapter.setItem(OPEN_STATE_KEY, {
-			...readOpenState(),
-			[key]: next,
+		localStorageAdapter.setItem<StoredOpenState>(OPEN_STATE_KEY, {
+			period,
+			open: { ...readOpenState(period), [key]: next },
 		});
 	};
 	return [open, change] as const;
@@ -65,17 +85,28 @@ const COURSE_FORMS: Record<Intl.LDMLPluralRule, string> = {
 	many: "курсів",
 	other: "курсу",
 };
+const DAY_MONTH = new Intl.DateTimeFormat("uk-UA", {
+	day: "numeric",
+	month: "long",
+});
 
-// One status per semester, phrased as the next step while something is left to rate.
+// One status per semester. The call to rate shows only while the semester is
+// closed: once open, each row's «Оцінити» button is the call.
 function SemesterStatus({
 	seasonGroup,
 	timing,
-}: Readonly<{ seasonGroup: SemesterGroup; timing: SemesterTiming }>) {
+	open,
+}: Readonly<{
+	seasonGroup: SemesterGroup;
+	timing: SemesterTiming;
+	open: boolean;
+}>) {
 	if (timing === "future") {
 		return <span className="text-muted-foreground">Ще не розпочався</span>;
 	}
 	const left = seasonGroup.unratedRateableCount;
 	if (left > 0) {
+		if (open) return null;
 		return (
 			<span className="font-medium text-primary">
 				Оцініть ще {left} {COURSE_FORMS[UK_PLURAL.select(left)]}
@@ -90,7 +121,16 @@ function SemesterStatus({
 			</span>
 		);
 	}
-	return <span className="text-muted-foreground">Оцінювання згодом</span>;
+	const midterm =
+		TERM_MIDTERM_MONTH[seasonGroup.seasonRaw?.toUpperCase() ?? ""];
+	if (seasonGroup.year == null || midterm == null) {
+		return <span className="text-muted-foreground">Оцінювання згодом</span>;
+	}
+	return (
+		<span className="text-muted-foreground">
+			Оцінювання з {DAY_MONTH.format(new Date(seasonGroup.year, midterm, 1))}
+		</span>
+	);
 }
 
 interface MyRatingsSemesterSectionProps {
@@ -107,7 +147,7 @@ export function MyRatingsSemesterSection({
 		seasonGroup.seasonRaw,
 		new Date(),
 	);
-	// What still needs a rating, or is under way, starts open; the rest stays out of the way.
+	// Open by default: the running semester and anything still waiting for a rating.
 	const [open, setOpen] = useSemesterOpen(
 		`${seasonGroup.year ?? "none"}-${seasonGroup.key}`,
 		timing !== "future" &&
@@ -147,7 +187,11 @@ export function MyRatingsSemesterSection({
 						</span>
 					)}
 					<span className="ml-auto text-xs sm:text-sm">
-						<SemesterStatus seasonGroup={seasonGroup} timing={timing} />
+						<SemesterStatus
+							seasonGroup={seasonGroup}
+							timing={timing}
+							open={open}
+						/>
 					</span>
 				</CollapsibleTrigger>
 				<CollapsibleContent>

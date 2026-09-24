@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
@@ -68,7 +68,7 @@ function makeSemester(
 }
 
 describe("MyRatingsSemesterSection", () => {
-	it("lists rated and unrated courses and asks for the missing rating", () => {
+	it("lists rated and unrated courses of an open semester", () => {
 		renderWithProviders(
 			<MyRatingsSemesterSection
 				seasonGroup={makeSemester([
@@ -82,7 +82,6 @@ describe("MyRatingsSemesterSection", () => {
 		);
 
 		expect(screen.getAllByTestId(testIds.myRatings.card)).toHaveLength(2);
-		expect(screen.getByText("Оцініть ще 1 курс")).toBeInTheDocument();
 		expect(screen.getByText("Курс 1")).toBeInTheDocument();
 		expect(screen.getByText("Курс 2")).toBeInTheDocument();
 	});
@@ -133,50 +132,91 @@ describe("MyRatingsSemesterSection", () => {
 		expect(action.className).not.toContain("bg-secondary");
 	});
 
-	it("keeps a semester that has not started collapsed", () => {
-		renderWithProviders(
-			<MyRatingsSemesterSection
-				seasonGroup={makeSemester([makeCourse(1, { can_rate: false })], {
-					key: "FALL",
-					year: 2099,
-					unratedRateableCount: 0,
-				})}
-				onRatingChanged={vi.fn()}
-			/>,
-		);
+	describe("which semesters start open", () => {
+		const trigger = () => screen.getByTestId(testIds.myRatings.semesterTrigger);
 
-		expect(
-			screen.getByTestId(testIds.myRatings.semesterTrigger),
-		).toHaveAttribute("data-state", "closed");
-		expect(screen.getByText("Ще не розпочався")).toBeInTheDocument();
-		expect(
-			screen.queryByTestId(testIds.myRatings.card),
-		).not.toBeInTheDocument();
-	});
+		beforeEach(() => {
+			localStorage.clear();
+			vi.useFakeTimers({ toFake: ["Date"] });
+			vi.setSystemTime(new Date(2026, 9, 10));
+		});
 
-	it("remembers a semester the student collapsed", async () => {
-		localStorage.clear();
-		const user = userEvent.setup();
-		const semester = makeSemester([makeCourse(1)]);
-		const { unmount } = renderWithProviders(
-			<MyRatingsSemesterSection
-				seasonGroup={semester}
-				onRatingChanged={vi.fn()}
-			/>,
-		);
+		afterEach(() => {
+			vi.useRealTimers();
+			localStorage.clear();
+		});
 
-		await user.click(screen.getByTestId(testIds.myRatings.semesterTrigger));
-		unmount();
-		renderWithProviders(
-			<MyRatingsSemesterSection
-				seasonGroup={semester}
-				onRatingChanged={vi.fn()}
-			/>,
-		);
+		it("keeps a semester that has not started collapsed", () => {
+			renderWithProviders(
+				<MyRatingsSemesterSection
+					seasonGroup={makeSemester([makeCourse(1, { can_rate: false })], {
+						year: 2027,
+						seasonRaw: "SPRING",
+						key: "SPRING",
+						unratedRateableCount: 0,
+					})}
+					onRatingChanged={vi.fn()}
+				/>,
+			);
 
-		expect(
-			screen.getByTestId(testIds.myRatings.semesterTrigger),
-		).toHaveAttribute("data-state", "closed");
-		localStorage.clear();
+			expect(trigger()).toHaveAttribute("data-state", "closed");
+			expect(screen.getByText("Ще не розпочався")).toBeInTheDocument();
+		});
+
+		it("opens the running semester and says when rating opens", () => {
+			renderWithProviders(
+				<MyRatingsSemesterSection
+					seasonGroup={makeSemester([makeCourse(1, { can_rate: false })], {
+						year: 2026,
+						unratedRateableCount: 0,
+					})}
+					onRatingChanged={vi.fn()}
+				/>,
+			);
+
+			expect(trigger()).toHaveAttribute("data-state", "open");
+			expect(screen.getByText("Оцінювання з 1 листопада")).toBeInTheDocument();
+		});
+
+		it("asks for ratings only while the semester is collapsed", async () => {
+			const user = userEvent.setup();
+			renderWithProviders(
+				<MyRatingsSemesterSection
+					seasonGroup={makeSemester([makeCourse(1), makeCourse(2)])}
+					onRatingChanged={vi.fn()}
+				/>,
+			);
+
+			expect(trigger()).toHaveAttribute("data-state", "open");
+			expect(screen.queryByText(/Оцініть ще/)).not.toBeInTheDocument();
+
+			await user.click(trigger());
+
+			expect(screen.getByText("Оцініть ще 2 курси")).toBeInTheDocument();
+		});
+
+		it("remembers a choice within the term and forgets it in the next", async () => {
+			const user = userEvent.setup();
+			const semester = makeSemester([makeCourse(1)]);
+			const view = () =>
+				renderWithProviders(
+					<MyRatingsSemesterSection
+						seasonGroup={semester}
+						onRatingChanged={vi.fn()}
+					/>,
+				);
+
+			const first = view();
+			await user.click(trigger());
+			first.unmount();
+
+			const second = view();
+			expect(trigger()).toHaveAttribute("data-state", "closed");
+			second.unmount();
+
+			vi.setSystemTime(new Date(2027, 0, 20));
+			view();
+			expect(trigger()).toHaveAttribute("data-state", "open");
+		});
 	});
 });
