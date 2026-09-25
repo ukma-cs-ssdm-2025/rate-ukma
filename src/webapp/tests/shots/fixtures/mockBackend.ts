@@ -13,6 +13,7 @@ import {
 	myCourses as myCoursesFor,
 	type MyCourseState,
 	MY_GRADES,
+	MY_GRADES_MANY,
 	NOTIFICATIONS,
 	RATING_COMMENTS,
 	SESSION,
@@ -21,7 +22,7 @@ import {
 export interface MockOptions {
 	readonly feed?: "items" | "empty" | "error";
 	readonly courses?: "items" | "error";
-	readonly grades?: "items" | "empty";
+	readonly grades?: "items" | "many" | "empty";
 	readonly myCourses?: "none" | MyCourseState;
 	readonly comments?: "empty" | "thread";
 	readonly reviews?: "items" | "empty";
@@ -158,7 +159,10 @@ export async function mockBackend(
 				previous_page: null,
 			}),
 		],
-		[/^\/students\/me\/grades\/$/, () => (grades === "empty" ? [] : MY_GRADES)],
+		[
+			/^\/students\/me\/grades\/$/,
+			() => ({ items: MY_GRADES, many: MY_GRADES_MANY, empty: [] })[grades],
+		],
 		[
 			/^\/students\/me\/courses\/$/,
 			() => (myCourses === "none" ? [] : myCoursesFor(myCourses)),

@@ -43,6 +43,21 @@ function MyRatings() {
 		[ratings],
 	);
 
+	const semesters = useMemo(
+		() =>
+			groupedRatings
+				.flatMap((yearGroup) =>
+					yearGroup.seasons.map((season) => ({
+						key: `${yearGroup.key}-${season.key}`,
+						label: `${season.label} ${yearGroup.label}`,
+						rated: season.ratedCount,
+						total: season.totalCount,
+					})),
+				)
+				.reverse(),
+		[groupedRatings],
+	);
+
 	if (!isStudent) {
 		return (
 			<Layout>
@@ -83,6 +98,7 @@ function MyRatings() {
 				<MyRatingsHeader
 					totalCourses={totalCourses}
 					ratedCourses={ratedCourses}
+					semesters={semesters}
 				/>
 				<div className="space-y-8" data-testid={testIds.myRatings.list}>
 					{groupedRatings.map((yearGroup) => (

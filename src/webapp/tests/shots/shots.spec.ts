@@ -156,6 +156,16 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "my-ratings-many",
+		section: "Мої оцінки",
+		note: "Four finished years of six courses a semester plus a running term",
+		run: async (page) => {
+			await mockBackend(page, { grades: "many" });
+			await page.goto("/my-ratings");
+			await page.getByTestId(testIds.myRatings.list).waitFor();
+		},
+	},
+	{
 		name: "my-ratings-empty",
 		section: "Мої оцінки",
 		note: "Мої оцінки for a student with no courses",

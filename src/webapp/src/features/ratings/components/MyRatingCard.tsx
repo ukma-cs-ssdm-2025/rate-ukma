@@ -42,7 +42,7 @@ export function MyRatingCard({
 			className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl bg-muted/50 px-4 py-3"
 			data-testid={testIds.myRatings.card}
 		>
-			<div className="min-w-0 flex-1 basis-60 space-y-1">
+			<div className="min-w-0 flex-1 basis-40 space-y-1">
 				{courseId ? (
 					<Link
 						to="/courses/$courseId"

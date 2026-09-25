@@ -1,28 +1,25 @@
 import { PageHeader } from "@/components/PageHeader";
 import { testIds } from "@/lib/test-ids";
-import { cn } from "@/lib/utils";
 
-const MAX_SEGMENTS = 40;
-const SEGMENT_KEYS = Array.from(
-	{ length: MAX_SEGMENTS },
-	(_, i) => `progress-segment-${i}`,
-);
+export interface SemesterProgress {
+	readonly key: string;
+	readonly label: string;
+	readonly rated: number;
+	readonly total: number;
+}
 
 interface MyRatingsHeaderProps {
 	totalCourses: number;
 	ratedCourses: number;
+	/** Oldest first; one segment each, as wide as its share of courses. */
+	semesters?: readonly SemesterProgress[];
 }
 
 export function MyRatingsHeader({
 	totalCourses,
 	ratedCourses,
+	semesters = [],
 }: Readonly<MyRatingsHeaderProps>) {
-	// One segment per course reads as courses left; past the cap a segment spans several.
-	const segments = Math.min(totalCourses, MAX_SEGMENTS);
-	const filled = Math.round(
-		(ratedCourses / Math.max(totalCourses, 1)) * segments,
-	);
-
 	return (
 		<div data-testid={testIds.myRatings.header}>
 			<PageHeader
@@ -33,19 +30,29 @@ export function MyRatingsHeader({
 							<span className="tabular-nums">
 								Оцінено {ratedCourses} з {totalCourses}
 							</span>
+							{/* Segments follow the semesters below, so the bar stays readable
+							    for four years of courses where one segment per course would not. */}
 							<span
-								className="mt-3 flex h-1.5 w-md max-w-full gap-1"
+								className="mt-3 flex h-1.5 w-xl max-w-full gap-1"
 								aria-hidden="true"
 							>
-								{SEGMENT_KEYS.slice(0, segments).map((key, index) => (
-									<span
-										key={key}
-										className={cn(
-											"h-full flex-1 rounded-full",
-											index < filled ? "bg-primary" : "bg-muted",
-										)}
-									/>
-								))}
+								{semesters
+									.filter((semester) => semester.total > 0)
+									.map((semester) => (
+										<span
+											key={semester.key}
+											title={`${semester.label}: ${semester.rated} з ${semester.total}`}
+											className="h-full min-w-2 basis-0 overflow-hidden rounded-full bg-muted"
+											style={{ flexGrow: semester.total }}
+										>
+											<span
+												className="block h-full bg-primary"
+												style={{
+													width: `${(semester.rated / semester.total) * 100}%`,
+												}}
+											/>
+										</span>
+									))}
 							</span>
 						</>
 					) : undefined

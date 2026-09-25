@@ -396,6 +396,45 @@ export const MY_GRADES = COURSES.slice(0, 8).map((course, index) => ({
 	can_rate: true,
 })) satisfies StudentRatingsDetailed[];
 
+// Four finished years of six courses a semester plus a term still running:
+// the scale a final-year student reaches.
+export const MY_GRADES_MANY = Array.from({ length: 52 }, (_, index) => {
+	const course = COURSES[index % COURSES.length];
+	const semesterIndex = Math.floor(index / 6);
+	const running = semesterIndex >= 8;
+	const repeat = Math.floor(index / COURSES.length);
+	return {
+		course_id: `${course.id}-many-${index}`,
+		course_title: repeat ? `${course.title} ${repeat + 1}` : course.title,
+		course_code: `91${String(index).padStart(4, "0")}`,
+		course_offering_id: `offering-many-${index}`,
+		faculty_name: course.faculty_name,
+		semester: running
+			? { year: 2026, season: "FALL" }
+			: {
+					year: 2022 + Math.floor(semesterIndex / 2),
+					season: semesterIndex % 2 === 0 ? "FALL" : "SPRING",
+				},
+		rated:
+			running || index % 7 === 3
+				? null
+				: {
+						id: `my-rating-many-${index}`,
+						difficulty: 2 + (index % 4),
+						usefulness: 5 - (index % 3),
+						comment:
+							index % 2 === 0
+								? REVIEW_COMMENTS[index % REVIEW_COMMENTS.length]
+								: "",
+						instructor: null,
+						instructors: [],
+						created_at: hoursAgo(24 * 30 * (index + 1)),
+						is_anonymous: index % 2 === 0,
+					},
+		can_rate: !running,
+	};
+}) satisfies StudentRatingsDetailed[];
+
 export const EMPTY_COMMENT_LIST = {
 	items: [],
 	filters: {},
