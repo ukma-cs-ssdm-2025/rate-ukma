@@ -1,13 +1,14 @@
 import * as React from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { CircleCheck } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 
 import Layout from "@/components/Layout";
-import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { CourseAbout } from "@/features/course-offerings/components/CourseAbout";
+import {
+	CourseAbout,
+	offeringLoad,
+} from "@/features/course-offerings/components/CourseAbout";
 import {
 	getLatestOffering,
 	getLatestOfferingTerms,
@@ -90,43 +91,32 @@ function CourseDetailsRoute() {
 	const canRateNow = Boolean(selectedOffering?.can_rate);
 	const latestOffering = getLatestOffering(offerings);
 	const terms = getLatestOfferingTerms(offerings);
+	const load = offeringLoad(latestOffering);
 	const showStats = hasCourseScores(
 		course.avg_difficulty ?? null,
 		course.avg_usefulness ?? null,
 		course.ratings_count ?? null,
 	);
-	// Attendees always see where they stand: rated, rateable, or waiting for midterm.
-	let rateAction: React.ReactNode = null;
-	if (ratedOffering) {
-		// Same size as the rate button it replaces, so rating moves nothing on the page.
-		rateAction = (
-			<Button
-				size="lg"
-				variant="outline"
-				className="w-full max-w-md"
-				onClick={() => setIsRatingModalOpen(true)}
-			>
-				<CircleCheck className="size-4 text-primary" aria-hidden="true" />
-				Змінити оцінку
-			</Button>
-		);
-	} else if (hasAttendedCourse && selectedOffering) {
-		rateAction = (
-			<div className="space-y-2">
+	// Attendees who have not rated yet see where they stand: rateable now or after midterm.
+	const rateAction =
+		!ratedOffering && hasAttendedCourse && selectedOffering ? (
+			<div className="flex flex-col gap-3 rounded-xl bg-card-user p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+				<div className="min-w-0 space-y-0.5">
+					<p className="font-medium">Ви слухали цей курс</p>
+					<p className="text-sm text-muted-foreground">
+						{canRateNow
+							? "Ваша оцінка допоможе іншим обрати"
+							: CANNOT_RATE_TOOLTIP_TEXT}
+					</p>
+				</div>
 				<RatingButton
 					canRate={canRateNow}
 					onClick={() => setIsRatingModalOpen(true)}
 				>
-					Оцінити цей курс
+					Оцінити курс
 				</RatingButton>
-				{canRateNow ? null : (
-					<p className="text-sm text-muted-foreground">
-						{CANNOT_RATE_TOOLTIP_TEXT}
-					</p>
-				)}
 			</div>
-		);
-	}
+		) : null;
 	const about = (
 		<CourseAbout
 			description={course.description}
@@ -160,10 +150,9 @@ function CourseDetailsRoute() {
 							departmentName={course.department_name ?? ""}
 							facultyName={course.faculty_name ?? ""}
 							terms={terms}
+							credits={load.credits}
+							weeklyHours={load.weeklyHours}
 						/>
-
-						{/* Rendered once: the rate button's test id must stay unique. */}
-						{isDesktop ? null : rateAction}
 
 						{showStats ? (
 							<CourseStatsHero
@@ -173,7 +162,9 @@ function CourseDetailsRoute() {
 							/>
 						) : null}
 
-						{/* Phones read one column: scores, then «Про курс», then reviews. */}
+						{/* Phones read one column: scores and the call to rate, then «Про курс»,
+						    then reviews. Rendered once: the rate button's test id must stay unique. */}
+						{isDesktop ? null : rateAction}
 						{isDesktop ? null : about}
 
 						<CourseRatingsList
@@ -181,6 +172,7 @@ function CourseDetailsRoute() {
 							userRating={userRating}
 							onEditUserRating={() => setIsRatingModalOpen(true)}
 							onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
+							rateAction={isDesktop ? rateAction : null}
 							hasAttended={hasAttendedCourse}
 							canRate={canRateNow}
 							singleTerm={runsInOneTerm(offerings)}
@@ -189,10 +181,7 @@ function CourseDetailsRoute() {
 
 					{isDesktop ? (
 						<aside className="min-w-0">
-							<div className="space-y-8 lg:sticky lg:top-24">
-								{rateAction}
-								{about}
-							</div>
+							<div className="lg:sticky lg:top-24">{about}</div>
 						</aside>
 					) : null}
 				</div>

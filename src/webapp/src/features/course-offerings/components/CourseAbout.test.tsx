@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { render, screen } from "@/test-utils/render";
-import { CourseAbout, offeringFacts } from "./CourseAbout";
+import { CourseAbout, offeringExamType, offeringLoad } from "./CourseAbout";
 import { CourseCazRecords, recordLabels } from "./CourseCazRecords";
 import type { CourseOffering } from "@/lib/api/generated";
 import userEvent from "@testing-library/user-event";
@@ -33,78 +33,27 @@ function offering(over: Partial<CourseOffering> = {}): CourseOffering {
 	};
 }
 
-describe("offeringFacts", () => {
-	it("returns only the fields the offering carries", () => {
-		const facts = offeringFacts(offering());
-
-		expect(facts).toEqual([
-			{ label: "Кредити", value: "5 ECTS" },
-			{ label: "Годин на тиждень", value: "4 год" },
-			{ label: "Лекції", value: "30 год" },
-			{ label: "Практичні", value: "30 год" },
-			{ label: "Форма контролю", value: "Іспит" },
-		]);
-	});
-
-	it("skips missing fields instead of rendering placeholders", () => {
-		const facts = offeringFacts(
-			offering({
-				exam_type: undefined,
-				terms: [
-					{
-						semester_year: 2026,
-						semester_term: "SPRING",
-						credits: "5.0",
-						weekly_hours: 4,
-					},
-				],
-			}),
-		);
-
-		expect(facts).toEqual([
-			{ label: "Кредити", value: "5 ECTS" },
-			{ label: "Годин на тиждень", value: "4 год" },
-		]);
-	});
-
-	it("maps the credit control form to a Ukrainian label", () => {
-		const facts = offeringFacts(
-			offering({
-				exam_type: "CREDIT",
-				terms: [
-					{
-						semester_year: 2026,
-						semester_term: "SPRING",
-						credits: "3.0",
-						weekly_hours: 2,
-					},
-				],
-			}),
-		);
-
-		expect(facts.at(-1)).toEqual({
-			label: "Форма контролю",
-			value: "Залік",
+describe("offering facts", () => {
+	it("reads credits and weekly hours from the first term", () => {
+		expect(offeringLoad(offering())).toEqual({
+			credits: "5 ECTS",
+			weeklyHours: "4 год",
 		});
 	});
 
-	it("names seminar hours as seminars", () => {
-		const facts = offeringFacts(
-			offering({
-				terms: [
-					{
-						semester_year: 2026,
-						semester_term: "SPRING",
-						credits: "3.0",
-						weekly_hours: 2,
-						practice_count: 14,
-						practice_type: "SEMINAR",
-					},
-				],
-			}),
-		);
+	it("leaves missing load fields empty instead of placeholders", () => {
+		expect(
+			offeringLoad(
+				offering({
+					terms: [{ semester_year: 2026, semester_term: "SPRING" }],
+				}),
+			),
+		).toEqual({ credits: null, weeklyHours: null });
+	});
 
-		expect(facts).toContainEqual({ label: "Семінари", value: "14 год" });
+	it("maps the credit control form to a Ukrainian label", () => {
+		expect(offeringExamType(offering({ exam_type: "CREDIT" }))).toBe("Залік");
+		expect(offeringExamType(offering({ exam_type: undefined }))).toBeNull();
 	});
 });
 

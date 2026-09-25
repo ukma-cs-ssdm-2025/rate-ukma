@@ -22,7 +22,7 @@ export function RatingButton({
 		<Button
 			size="lg"
 			onClick={onClick}
-			className="w-full max-w-md aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
+			className="w-full sm:w-auto aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
 			data-testid={testIds.courseDetails.rateButton}
 		>
 			<PenLine className="size-4" />

@@ -19,6 +19,8 @@ interface CourseDetailsHeaderProps {
 	departmentName?: string | null;
 	facultyName?: string | null;
 	terms?: readonly string[];
+	credits?: string | null;
+	weeklyHours?: string | null;
 }
 
 export function CourseDetailsHeader({
@@ -28,6 +30,8 @@ export function CourseDetailsHeader({
 	departmentName,
 	facultyName,
 	terms = [],
+	credits,
+	weeklyHours,
 }: Readonly<CourseDetailsHeaderProps>) {
 	const meta = [
 		getEducationLevelDisplay(educationLevel),
@@ -48,12 +52,32 @@ export function CourseDetailsHeader({
 				<p className="text-sm text-muted-foreground">{meta.join(", ")}</p>
 			)}
 
-			{((specialities?.length ?? 0) > 0 || terms.length > 0) && (
+			{((specialities?.length ?? 0) > 0 ||
+				terms.length > 0 ||
+				credits ||
+				weeklyHours) && (
 				<div className="flex max-w-4xl flex-wrap items-center gap-1.5">
 					<CourseSpecialityBadges specialities={specialities} />
 					{terms.map((term) => (
 						<TermBadge key={term} term={term} />
 					))}
+					{credits || weeklyHours ? (
+						<span className="ml-2 inline-flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+							{credits ? (
+								<span className="font-medium text-foreground tabular-nums">
+									{credits}
+								</span>
+							) : null}
+							{weeklyHours ? (
+								<span>
+									<span className="font-medium text-foreground tabular-nums">
+										{weeklyHours}
+									</span>{" "}
+									на тиждень
+								</span>
+							) : null}
+						</span>
+					) : null}
 				</div>
 			)}
 		</header>
