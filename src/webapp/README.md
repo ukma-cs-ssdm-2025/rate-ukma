@@ -104,6 +104,8 @@ SHOT_ONLY='^course' SHOT_DIR=/tmp/cmp SHOT_NO_OPEN=1 pnpm shots:compare   # scri
 
 The gallery groups states by page in a sidebar and marks each one changed, new or same (byte-identical). Keys: `1`–`4` switch width and theme, `j`/`k` step through states, `/` filters by name, `c` hides unchanged states. The URL hash keeps the view and state, so a link opens the same spot.
 
+When a UI change depends on data shape (long lists, many years, empty or missing fields, long titles), add a state for that edge to `tests/shots/shots.spec.ts` with a fixture in `tests/shots/fixtures/`, as `my-ratings-many` does for four years of courses. The state then stays in every later compare.
+
 ### Code Quality
 
 ```bash
