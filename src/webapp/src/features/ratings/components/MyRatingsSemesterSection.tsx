@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 
 import { ChevronRight, CircleCheck } from "lucide-react";
 
-import { TermBadge } from "@/components/TermBadge";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -177,15 +176,9 @@ export function MyRatingsSemesterSection({
 						className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90 motion-reduce:transition-none"
 						aria-hidden="true"
 					/>
-					{seasonGroup.seasonRaw ? (
-						<TermBadge term={seasonGroup.seasonRaw}>
-							{seasonGroup.label}
-						</TermBadge>
-					) : (
-						<span className="font-medium text-foreground">
-							{seasonGroup.label}
-						</span>
-					)}
+					<span className="text-base font-medium text-foreground">
+						{seasonGroup.label}
+					</span>
 					<span className="ml-auto text-sm">
 						<SemesterStatus
 							seasonGroup={seasonGroup}
