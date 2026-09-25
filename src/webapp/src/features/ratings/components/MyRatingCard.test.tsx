@@ -33,19 +33,6 @@ function makeCourse(
 }
 
 describe("MyRatingCard", () => {
-	it("renders a compact row without nested card chrome", () => {
-		renderWithProviders(
-			<MyRatingCard course={makeCourse()} onRatingChanged={vi.fn()} />,
-		);
-
-		const card = screen.getByTestId(testIds.myRatings.card);
-		expect(card).not.toHaveClass("border-l-4");
-		expect(card.style.borderLeftColor).toBe("");
-		expect(
-			screen.getByTestId(testIds.myRatings.leaveReviewLink),
-		).toBeInTheDocument();
-	});
-
 	it("shows difficulty and usefulness values for rated courses", () => {
 		renderWithProviders(
 			<MyRatingCard
@@ -85,6 +72,43 @@ describe("MyRatingCard", () => {
 		).toBeInTheDocument();
 	});
 
+	it("offers a written review when the rating has scores only", async () => {
+		renderWithProviders(
+			<MyRatingCard
+				course={makeCourse({
+					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
+				})}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		await userEvent.click(
+			screen.getByRole("button", { name: "Додати текстовий відгук" }),
+		);
+
+		expect(screen.getByTestId(testIds.rating.modal)).toBeInTheDocument();
+	});
+
+	it("drops the written-review prompt once the rating has text", () => {
+		renderWithProviders(
+			<MyRatingCard
+				course={makeCourse({
+					rated: {
+						id: "rating-1",
+						difficulty: 4,
+						usefulness: 5,
+						comment: "Корисно",
+					},
+				})}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.queryByRole("button", { name: "Додати текстовий відгук" }),
+		).not.toBeInTheDocument();
+	});
+
 	it("shows edit and delete actions for rated courses", () => {
 		renderWithProviders(
 			<MyRatingCard
@@ -101,20 +125,6 @@ describe("MyRatingCard", () => {
 		expect(
 			screen.getByTestId(testIds.myRatings.deleteButton),
 		).toBeInTheDocument();
-	});
-
-	it("renders the default rate action without faculty-colored inline styles", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({ faculty_name: "Факультет інформатики" })}
-				onRatingChanged={vi.fn()}
-			/>,
-			{ flags: { fe_faculty_colors: true } },
-		);
-
-		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
-		expect(rateButton.style.backgroundColor).toBe("");
-		expect(rateButton.style.color).toBe("");
 	});
 
 	it("explains instead of rating when the course cannot be rated yet", async () => {

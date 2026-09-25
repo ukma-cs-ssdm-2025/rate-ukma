@@ -115,7 +115,7 @@ function SemesterStatus({
 	}
 	if (seasonGroup.ratedCount === seasonGroup.totalCount) {
 		return (
-			<span className="inline-flex items-center gap-1 text-success">
+			<span className="inline-flex items-center gap-1 text-primary">
 				<CircleCheck className="size-4" aria-hidden="true" />
 				Усе оцінено
 			</span>
@@ -186,7 +186,7 @@ export function MyRatingsSemesterSection({
 							{seasonGroup.label}
 						</span>
 					)}
-					<span className="ml-auto text-xs sm:text-sm">
+					<span className="ml-auto text-sm">
 						<SemesterStatus
 							seasonGroup={seasonGroup}
 							timing={timing}
@@ -195,7 +195,7 @@ export function MyRatingsSemesterSection({
 					</span>
 				</CollapsibleTrigger>
 				<CollapsibleContent>
-					<div className="space-y-1 pb-2 pl-6">
+					<div className="space-y-2 pt-1 pb-3">
 						{sortedItems.map((course, index) => (
 							<MyRatingCard
 								key={

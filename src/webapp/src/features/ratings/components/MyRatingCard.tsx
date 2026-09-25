@@ -39,28 +39,47 @@ export function MyRatingCard({
 
 	return (
 		<div
-			className="flex items-center gap-3 py-3"
+			className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl bg-muted/50 px-4 py-3"
 			data-testid={testIds.myRatings.card}
 		>
-			<div className="min-w-0 flex-1">
-				<div className="flex min-w-0 items-center gap-2">
-					{courseId ? (
-						<Link
-							to="/courses/$courseId"
-							params={{ courseId }}
-							className="truncate font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-							data-testid={testIds.myRatings.courseTitleLink}
-						>
-							{course.course_title ?? "Курс"}
-						</Link>
-					) : (
-						<span className="truncate font-medium text-foreground">
-							{course.course_title ?? "Курс"}
-						</span>
-					)}
-				</div>
+			<div className="min-w-0 flex-1 basis-60 space-y-1">
+				{courseId ? (
+					<Link
+						to="/courses/$courseId"
+						params={{ courseId }}
+						className="line-clamp-2 font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+						data-testid={testIds.myRatings.courseTitleLink}
+					>
+						{course.course_title ?? "Курс"}
+					</Link>
+				) : (
+					<span className="line-clamp-2 font-medium text-foreground">
+						{course.course_title ?? "Курс"}
+					</span>
+				)}
+				{rating?.comment?.trim() ? (
+					<ExpandableText
+						lines={2}
+						className="text-sm whitespace-pre-wrap text-muted-foreground"
+					>
+						{rating.comment}
+					</ExpandableText>
+				) : null}
+				{/* Without an excerpt a scores-only rating reads the same as a written one. */}
+				{rating && !rating.comment?.trim() && canModify ? (
+					<button
+						type="button"
+						onClick={() => setShowRatingModal(true)}
+						className="text-sm text-primary underline-offset-4 hover:underline"
+					>
+						Додати текстовий відгук
+					</button>
+				) : null}
+			</div>
+
+			<div className="ml-auto flex shrink-0 items-center gap-4">
 				{rating ? (
-					<div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs">
+					<div className="flex items-center gap-4 text-sm">
 						<span className="text-muted-foreground">
 							Складність{" "}
 							<span
@@ -85,28 +104,17 @@ export function MyRatingCard({
 						</span>
 					</div>
 				) : null}
-				{rating?.comment?.trim() ? (
-					<div className="mt-0.5">
-						<ExpandableText
-							lines={2}
-							className="text-xs whitespace-pre-wrap text-muted-foreground"
-						>
-							{rating.comment}
-						</ExpandableText>
-					</div>
-				) : null}
-			</div>
-
-			<div className="flex shrink-0 items-center gap-1">
-				<CardActions
-					canModify={canModify}
-					hasRating={hasRating}
-					courseId={courseId}
-					offeringId={offeringId}
-					canRate={canRate}
-					onEdit={() => setShowRatingModal(true)}
-					onDelete={() => setShowDeleteDialog(true)}
-				/>
+				<div className="flex items-center gap-1">
+					<CardActions
+						canModify={canModify}
+						hasRating={hasRating}
+						courseId={courseId}
+						offeringId={offeringId}
+						canRate={canRate}
+						onEdit={() => setShowRatingModal(true)}
+						onDelete={() => setShowDeleteDialog(true)}
+					/>
+				</div>
 			</div>
 
 			{courseId && (offeringId || canModify) && (
