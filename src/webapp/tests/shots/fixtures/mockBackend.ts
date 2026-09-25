@@ -58,115 +58,120 @@ export async function mockBackend(
 		session = "student",
 	}: MockOptions = {},
 ): Promise<void> {
-	const handlers: ReadonlyArray<readonly [RegExp, (path: string) => unknown]> =
+	const handlers: ReadonlyArray<
+		readonly [RegExp, (path: string, url: URL) => unknown]
+	> = [
 		[
-			[
-				/^\/auth\/session\/$/,
-				() =>
-					session === "guest"
-						? { is_authenticated: false, user: null, expires_at: null }
-						: SESSION,
-			],
-			[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
-			[
-				/^\/flags\/$/,
-				() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
-			],
-			[/^\/promo-banner\/$/, () => ({ banner: null })],
-			[
-				/^\/notifications\/unread-count\/$/,
-				() => ({
-					count:
-						notifications === "items"
-							? NOTIFICATIONS.filter((item) => item.is_unread).length
-							: 0,
-				}),
-			],
-			[
-				/^\/notifications\/$/,
-				() => (notifications === "items" ? NOTIFICATIONS : []),
-			],
-			[
-				/^\/feed\/$/,
-				() => ({
-					items: feed === "empty" ? [] : FEED_ITEMS,
-					next_cursor: null,
-				}),
-			],
-			[/^\/courses\/filter-options\/$/, () => FILTER_OPTIONS],
-			[/^\/courses\/$/, () => courseList],
-			[/^\/courses\/[^/]+\/offerings\/$/, () => COURSE_OFFERINGS],
-			[
-				/^\/courses\/[^/]+\/ratings\/$/,
-				() =>
-					reviews === "empty"
-						? {
-								...COURSE_RATINGS,
-								items: { ratings: [], user_ratings: null },
-								total: 0,
-							}
-						: COURSE_RATINGS,
-			],
-			[
-				/^\/courses\/[^/]+\/$/,
-				() =>
-					reviews === "empty"
-						? {
-								...COURSE_DETAIL,
-								avg_difficulty: null,
-								avg_usefulness: null,
-								ratings_count: 0,
-							}
-						: COURSE_DETAIL,
-			],
-			[
-				/^\/ratings\/[^/]+\/comments\/$/,
-				(path) =>
-					comments === "thread" && path.endsWith("/ratings/rating-0/comments/")
-						? RATING_COMMENTS
-						: EMPTY_COMMENT_LIST,
-			],
-			[
-				/^\/comments\/[^/]+\/replies\/$/,
-				(path) =>
-					comments === "thread" &&
-					path.endsWith("/comments/comment-c1/replies/")
-						? COMMENT_REPLIES
-						: EMPTY_COMMENT_LIST,
-			],
-			[/^\/analytics\/$/, () => ANALYTICS],
-			[/^\/analytics\/[^/]+\/$/, () => ANALYTICS[0]],
-			[
-				/^\/instructors\/$/,
-				() => ({
-					items: [],
-					page: 1,
-					page_size: 20,
-					total: 0,
-					total_pages: 0,
-					next_page: null,
-					previous_page: null,
-				}),
-			],
-			[
-				/^\/students\/me\/grades\/$/,
-				() => (grades === "empty" ? [] : MY_GRADES),
-			],
-			[
-				/^\/students\/me\/courses\/$/,
-				() => (myCourses === "none" ? [] : myCoursesFor(myCourses)),
-			],
-		];
+			/^\/auth\/session\/$/,
+			() =>
+				session === "guest"
+					? { is_authenticated: false, user: null, expires_at: null }
+					: SESSION,
+		],
+		[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
+		[
+			/^\/flags\/$/,
+			() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
+		],
+		[/^\/promo-banner\/$/, () => ({ banner: null })],
+		[
+			/^\/notifications\/unread-count\/$/,
+			() => ({
+				count:
+					notifications === "items"
+						? NOTIFICATIONS.filter((item) => item.is_unread).length
+						: 0,
+			}),
+		],
+		[
+			/^\/notifications\/$/,
+			() => (notifications === "items" ? NOTIFICATIONS : []),
+		],
+		[
+			/^\/feed\/$/,
+			() => ({
+				items: feed === "empty" ? [] : FEED_ITEMS,
+				next_cursor: null,
+			}),
+		],
+		[/^\/courses\/filter-options\/$/, () => FILTER_OPTIONS],
+		[
+			/^\/courses\/$/,
+			(_path, url) => {
+				const query = url.searchParams.get("name")?.toLowerCase();
+				if (!query) return courseList;
+				const items = COURSES.filter((course) =>
+					course.title?.toLowerCase().includes(query),
+				);
+				return { ...courseList, items, total: items.length };
+			},
+		],
+		[/^\/courses\/[^/]+\/offerings\/$/, () => COURSE_OFFERINGS],
+		[
+			/^\/courses\/[^/]+\/ratings\/$/,
+			() =>
+				reviews === "empty"
+					? {
+							...COURSE_RATINGS,
+							items: { ratings: [], user_ratings: null },
+							total: 0,
+						}
+					: COURSE_RATINGS,
+		],
+		[
+			/^\/courses\/[^/]+\/$/,
+			() =>
+				reviews === "empty"
+					? {
+							...COURSE_DETAIL,
+							avg_difficulty: null,
+							avg_usefulness: null,
+							ratings_count: 0,
+						}
+					: COURSE_DETAIL,
+		],
+		[
+			/^\/ratings\/[^/]+\/comments\/$/,
+			(path) =>
+				comments === "thread" && path.endsWith("/ratings/rating-0/comments/")
+					? RATING_COMMENTS
+					: EMPTY_COMMENT_LIST,
+		],
+		[
+			/^\/comments\/[^/]+\/replies\/$/,
+			(path) =>
+				comments === "thread" && path.endsWith("/comments/comment-c1/replies/")
+					? COMMENT_REPLIES
+					: EMPTY_COMMENT_LIST,
+		],
+		[/^\/analytics\/$/, () => ANALYTICS],
+		[/^\/analytics\/[^/]+\/$/, () => ANALYTICS[0]],
+		[
+			/^\/instructors\/$/,
+			() => ({
+				items: [],
+				page: 1,
+				page_size: 20,
+				total: 0,
+				total_pages: 0,
+				next_page: null,
+				previous_page: null,
+			}),
+		],
+		[/^\/students\/me\/grades\/$/, () => (grades === "empty" ? [] : MY_GRADES)],
+		[
+			/^\/students\/me\/courses\/$/,
+			() => (myCourses === "none" ? [] : myCoursesFor(myCourses)),
+		],
+	];
 	const failing: ReadonlyArray<RegExp> = [
 		...(feed === "error" ? [/^\/feed\/$/] : []),
 		...(courses === "error" ? [/^\/courses\/$/, /^\/analytics\/$/] : []),
 	];
 
 	await page.route("**/api/v1/**", async (route: Route) => {
-		const path = new URL(route.request().url()).pathname.replace(
-			/^\/api\/v1/,
-			"",
-		);
+		const url = new URL(route.request().url());
+		const path = url.pathname.replace(/^\/api\/v1/, "");
 		if (failing.some((pattern) => pattern.test(path))) {
 			await route.fulfill({
 				status: 500,
@@ -180,6 +185,6 @@ export async function mockBackend(
 			await route.abort();
 			return;
 		}
-		await route.fulfill({ json: handler[1](path) });
+		await route.fulfill({ json: handler[1](path, url) });
 	});
 }

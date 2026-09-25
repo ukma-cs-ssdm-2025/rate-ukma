@@ -85,7 +85,7 @@ Copy from `src/.env.sample` if you haven't set up your `.env` file yet.
 
 ### Screenshots
 
-`pnpm shots` renders every app state (courses with the feed strip, feed, empty and error states, my ratings, a course page) at 1440x900 and 390x844 in light and dark, and writes the PNGs plus an `index.html` contact sheet to `shots/`. Every API call is answered from invented fixtures in `tests/shots/fixtures/`, so no backend or login is needed; an endpoint without a fixture is logged as `[shots] unmocked`.
+`pnpm shots` renders every app state (grouped by page: home, feed, course, rating, comments, my ratings, map, navigation, sign-in and errors, including open menus, dialogs and tooltips) at 1440x900 and 390x844 in light and dark, and writes the PNGs plus an `index.html` gallery to `shots/`. Every API call is answered from invented fixtures in `tests/shots/fixtures/`, so no backend or login is needed; an endpoint without a fixture is logged as `[shots] unmocked`.
 
 ```bash
 pnpm shots                                 # build, preview, shoot into shots/
@@ -94,15 +94,15 @@ SHOT_DIR=/tmp/after SHOT_BEFORE_DIR=/tmp/before pnpm shots   # index.html pairs 
 SHOT_BASE_URL=http://127.0.0.1:4175 pnpm shots               # shoot a server that is already running
 ```
 
-Before/after for a branch: build `main` separately and point `SHOT_BASE_URL` at it for the "before" run.
+`pnpm shots:compare` shoots a base ref and the working tree with the same states and opens one before | after gallery. The base is built once per commit and cached in `$TMPDIR/rate-ukma-shots`; a state the base cannot reach shows as "no before shot".
 
 ```bash
-# run from src/webapp
-mkdir -p /tmp/main && git -C "$(git rev-parse --show-toplevel)" archive origin/main src/webapp | tar -x -C /tmp/main
-ln -s "$PWD/node_modules" /tmp/main/src/webapp/node_modules
-cp -R src/lib/api/generated /tmp/main/src/webapp/src/lib/api/
-(cd /tmp/main/src/webapp && VITE_API_BASE_URL=http://localhost:9 npx vite build && npx vite preview --port 4175)
+pnpm shots:compare                         # origin/main vs working tree
+pnpm shots:compare my-branch               # any branch, tag or sha as the base
+SHOT_ONLY='^course' SHOT_DIR=/tmp/cmp SHOT_NO_OPEN=1 pnpm shots:compare   # scripted: prints the index path
 ```
+
+The gallery groups states by page in a sidebar and marks each one changed, new or same (byte-identical). Keys: `1`–`4` switch width and theme, `j`/`k` step through states, `/` filters by name, `c` hides unchanged states. The URL hash keeps the view and state, so a link opens the same spot.
 
 ### Code Quality
 
