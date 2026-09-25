@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, MessageSquareText } from "lucide-react";
 
-import { Badge } from "@/components/ui/Badge";
 import {
 	getDifficultyTone,
 	getSemesterDisplay,
@@ -58,6 +57,7 @@ export function FeedReviewItem({
 	return (
 		<FeedCard
 			variant={variant}
+			kind={{ label: "Відгук", icon: MessageSquareText, tone: "primary" }}
 			pinned={item.pinned}
 			title={
 				<Link
@@ -70,7 +70,6 @@ export function FeedReviewItem({
 			}
 			footer={
 				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-					<Badge variant="soft">Відгук</Badge>
 					<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
 					{semesterLabel && (
 						<span className="ml-auto shrink-0">{semesterLabel}</span>

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
+import { MessageCircle } from "lucide-react";
 
-import { Badge } from "@/components/ui/Badge";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import type { FeedCommentItem as FeedCommentItemType } from "../feedTypes";
 import { FeedCard } from "./FeedCard";
@@ -19,6 +19,7 @@ export function FeedCommentItem({
 	return (
 		<FeedCard
 			variant={variant}
+			kind={{ label: "Коментар", icon: MessageCircle, tone: "success" }}
 			pinned={item.pinned}
 			title={
 				<Link
@@ -31,7 +32,6 @@ export function FeedCommentItem({
 			}
 			footer={
 				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-					<Badge variant="success">Коментар</Badge>
 					<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
 				</div>
 			}

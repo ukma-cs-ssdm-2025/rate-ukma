@@ -1,24 +1,18 @@
-import type { ComponentProps } from "react";
+import { ExternalLink, Megaphone } from "lucide-react";
 
-import { ExternalLink } from "lucide-react";
-
-import { Badge } from "@/components/ui/Badge";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import type {
 	FeedPromoAccent,
 	FeedPromoItem as FeedPromoItemType,
 } from "../feedTypes";
-import { FeedCard } from "./FeedCard";
+import { FeedCard, type FeedTone } from "./FeedCard";
 
-/** Accent only tints the badge; the card shell is shared. */
-const ACCENT_BADGE = {
-	BRAND: "soft",
-	INFO: "secondary",
-	WARNING: "soft-destructive",
-} as const satisfies Record<
-	FeedPromoAccent,
-	ComponentProps<typeof Badge>["variant"]
->;
+/** Accent only picks the kind colour; the card shell is shared. */
+const ACCENT_TONE = {
+	BRAND: "primary",
+	INFO: "muted",
+	WARNING: "destructive",
+} as const satisfies Record<FeedPromoAccent, FeedTone>;
 
 interface FeedPromoItemProps {
 	readonly item: FeedPromoItemType;
@@ -30,8 +24,11 @@ export function FeedPromoItem({
 	item,
 	variant = "card",
 }: Readonly<FeedPromoItemProps>) {
-	const accent = ACCENT_BADGE[item.accent ?? "BRAND"] ?? ACCENT_BADGE.BRAND;
-	const label = item.label ?? "Оголошення";
+	const kind = {
+		label: item.label ?? "Оголошення",
+		icon: Megaphone,
+		tone: ACCENT_TONE[item.accent ?? "BRAND"] ?? ACCENT_TONE.BRAND,
+	};
 	const isBanner = variant === "banner";
 	const hasCta = Boolean(item.ctaLabel && item.ctaHref);
 
@@ -41,13 +38,11 @@ export function FeedPromoItem({
 		return (
 			<FeedCard
 				variant="card"
+				kind={kind}
 				pinned={item.pinned}
 				title={item.title}
 				footer={
 					<p className="truncate text-xs text-muted-foreground">
-						<Badge variant={accent} className="mr-1.5">
-							{label}
-						</Badge>
 						<time>{formatRelativeTime(item.createdAt)}</time>
 						{hasCta && (
 							<>
@@ -76,11 +71,11 @@ export function FeedPromoItem({
 	return (
 		<FeedCard
 			variant="banner"
+			kind={kind}
 			pinned={item.pinned}
 			title={item.title}
 			footer={
 				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-					<Badge variant={accent}>{label}</Badge>
 					<time>{formatRelativeTime(item.createdAt)}</time>
 					{/* A label without an href goes nowhere, so the CTA needs both halves. */}
 					{hasCta && (
