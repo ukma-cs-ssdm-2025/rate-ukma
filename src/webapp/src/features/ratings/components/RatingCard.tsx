@@ -1,7 +1,6 @@
 import type { RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCardBody } from "./RatingCardBody";
-import type { OnVoteSettled } from "./RatingVotes";
 import {
 	ANONYMOUS_REVIEW_NAME,
 	DEFAULT_STUDENT_NAME,
@@ -12,7 +11,6 @@ interface RatingCardProps {
 	courseId?: string;
 	singleTerm?: boolean;
 	voteDisabledReason?: string;
-	onVoteSettled?: OnVoteSettled;
 }
 
 export function RatingCard({
@@ -20,7 +18,6 @@ export function RatingCard({
 	courseId,
 	singleTerm = false,
 	voteDisabledReason,
-	onVoteSettled,
 }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
 		? ANONYMOUS_REVIEW_NAME
@@ -30,7 +27,6 @@ export function RatingCard({
 		<article
 			className="px-4 py-4 first:pt-1 last:pb-1 sm:px-5"
 			data-testid={testIds.courseDetails.reviewCard}
-			data-rating-id={rating.id}
 		>
 			<RatingCardBody
 				displayName={displayName}
@@ -53,7 +49,6 @@ export function RatingCard({
 				commentsCount={rating.comments_count ?? 0}
 				commentAuthors={rating.comment_authors ?? []}
 				voteDisabledReason={voteDisabledReason}
-				onVoteSettled={onVoteSettled}
 			/>
 		</article>
 	);

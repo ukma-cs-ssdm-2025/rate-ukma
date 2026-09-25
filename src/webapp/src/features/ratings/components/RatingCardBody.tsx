@@ -22,7 +22,7 @@ import type {
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
-import { type OnVoteSettled, RatingVotes } from "./RatingVotes";
+import { RatingVotes } from "./RatingVotes";
 
 interface RatingCardBodyProps {
 	readonly displayName: string;
@@ -46,7 +46,6 @@ interface RatingCardBodyProps {
 	readonly commentsCount?: number;
 	readonly commentAuthors?: readonly CommentAuthor[];
 	readonly voteDisabledReason?: string;
-	readonly onVoteSettled?: OnVoteSettled;
 }
 
 // A badge keeps the offering apart from the review date beside it.
@@ -94,7 +93,6 @@ export function RatingCardBody({
 	commentsCount = 0,
 	commentAuthors = [],
 	voteDisabledReason,
-	onVoteSettled,
 }: RatingCardBodyProps) {
 	const instructorNames = instructors.map(formatInstructorName).filter(Boolean);
 	return (
@@ -176,7 +174,6 @@ export function RatingCardBody({
 								initialUserVote={viewerVote}
 								disabledReason={voteDisabledReason}
 								inline
-								onVoteSettled={onVoteSettled}
 							/>
 						}
 					/>

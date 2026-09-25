@@ -15,9 +15,6 @@ import {
 	useCoursesRatingsVotesCreate,
 	useCoursesRatingsVotesDestroy,
 } from "../hooks/useVoteMutations";
-import type { VoteCounts } from "../ratingPopularity";
-
-export type OnVoteSettled = (ratingId: string, counts: VoteCounts) => void;
 
 interface RatingVotesProps {
 	ratingId: string;
@@ -28,8 +25,6 @@ interface RatingVotesProps {
 	/** Set when the viewer cannot vote; shown as the arrows' tooltip. */
 	disabledReason?: string;
 	inline?: boolean;
-	/** Called once the server has accepted a vote, with the resulting counts. */
-	onVoteSettled?: OnVoteSettled;
 }
 
 interface VoteProps {
@@ -121,7 +116,6 @@ export function RatingVotes({
 	initialUserVote = null,
 	disabledReason,
 	inline = false,
-	onVoteSettled,
 }: Readonly<RatingVotesProps>) {
 	const queryClient = useQueryClient();
 	// The "optimistic" vote state - updates immediately on click
@@ -158,10 +152,6 @@ export function RatingVotes({
 			(vote === RatingVoteStrType.DOWNVOTE ? 1 : 0),
 	});
 	const { upvotes, downvotes } = countsFor(userVote);
-	const countsForRef = useRef(countsFor);
-	countsForRef.current = countsFor;
-	const onVoteSettledRef = useRef(onVoteSettled);
-	onVoteSettledRef.current = onVoteSettled;
 
 	// Sync local state with props if they change (e.g. after a re-fetch from elsewhere)
 	useEffect(() => {
@@ -188,7 +178,6 @@ export function RatingVotes({
 				// Sync authority state on success only if still mounted
 				if (isMounted) {
 					setServerVote(userVote);
-					onVoteSettledRef.current?.(ratingId, countsForRef.current(userVote));
 					if (courseId) {
 						queryClient.invalidateQueries({
 							queryKey: getCoursesRatingsListQueryKey(courseId),
