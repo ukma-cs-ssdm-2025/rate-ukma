@@ -72,7 +72,7 @@ describe("CourseAbout", () => {
 		).toBeInTheDocument();
 		expect(screen.getByText("Форма контролю")).toBeInTheDocument();
 		expect(
-			screen.getByRole("heading", { name: "Записи в САЗ" }),
+			screen.getByRole("heading", { name: "Історія курсу" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: /2025–2026/ })).toBeInTheDocument();
 	});
@@ -86,7 +86,7 @@ describe("CourseAbout", () => {
 			/>,
 		);
 
-		expect(screen.queryByText("Записи в САЗ")).not.toBeInTheDocument();
+		expect(screen.queryByText("Історія курсу")).not.toBeInTheDocument();
 	});
 });
 
@@ -209,9 +209,12 @@ describe("CourseCazRecords", () => {
 					offering({ code: "900003", specialities: [spec("Економіка")] }),
 				],
 				true,
-				"5 ECTS, 4 год",
 			),
-		).toEqual(["Право, код 900001", "Право, код 900002", "Економіка"]);
+		).toEqual([
+			"Право, 5 ECTS, 4 год, код 900001",
+			"Право, 5 ECTS, 4 год, код 900002",
+			"Економіка, 5 ECTS, 4 год",
+		]);
 		expect(
 			recordLabels(
 				[
@@ -219,9 +222,8 @@ describe("CourseCazRecords", () => {
 					offering({ study_year: 3, specialities: [spec("Право")] }),
 				],
 				true,
-				"5 ECTS, 4 год",
 			),
-		).toEqual(["Право, 2 курс", "Право, 3 курс"]);
+		).toEqual(["Право, 2 курс, 5 ECTS, 4 год", "Право, 3 курс, 5 ECTS, 4 год"]);
 	});
 
 	it("labels one record spanning two terms with both terms", () => {

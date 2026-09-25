@@ -125,28 +125,22 @@ function groupByYear(sorted: readonly CourseOffering[]): YearGroup[] {
 	return [...groups.values()];
 }
 
-// Labels for one year's records. A course taught to several specialities leads
-// with the speciality and adds the load only where it changes; otherwise the
-// load is the useful per-year fact. The code is the last resort for otherwise
-// identical streams.
+// Labels for one year's records: speciality when the course serves several,
+// study year where it tells streams apart, then the load that year. The code is
+// the last resort for otherwise identical streams.
 export function recordLabels(
 	records: readonly CourseOffering[],
 	bySpeciality: boolean,
-	latestLoad = "",
 ): string[] {
-	const varies = (pick: (offering: CourseOffering) => unknown) =>
-		new Set(records.map(pick)).size > 1;
-	const showStudyYear = varies((offering) => offering.study_year);
-	const loadVaries = varies(loadSignature);
+	const showStudyYear =
+		new Set(records.map((offering) => offering.study_year)).size > 1;
 	const labels = records.map((offering) =>
 		[
 			bySpeciality ? specialitiesLabel(offering) : null,
 			showStudyYear && offering.study_year
 				? `${offering.study_year} курс`
 				: null,
-			!bySpeciality || loadVaries || loadSignature(offering) !== latestLoad
-				? loadSignature(offering)
-				: null,
+			loadSignature(offering),
 		]
 			.filter(Boolean)
 			.join(", "),
@@ -213,15 +207,13 @@ function YearRow({
 	group,
 	showTerm,
 	bySpeciality,
-	latestLoad,
 }: Readonly<{
 	group: YearGroup;
 	showTerm: boolean;
 	bySpeciality: boolean;
-	latestLoad: string;
 }>) {
 	const termLabel = showTerm || group.terms.includes(",") ? group.terms : "";
-	const labels = recordLabels(group.records, bySpeciality, latestLoad);
+	const labels = recordLabels(group.records, bySpeciality);
 	return (
 		<>
 			<div>
@@ -294,15 +286,9 @@ export function CourseCazRecords({
 
 	const showTerm = !runsInOneTerm(courseOfferings);
 	const bySpeciality = new Set(courseOfferings.map(specialitiesLabel)).size > 1;
-	const latestLoad = loadSignature(groups[0].records[0]);
 	const renderGroup = (group: YearGroup) => (
 		<li key={group.key} className="col-span-3 grid min-w-0 grid-cols-subgrid">
-			<YearRow
-				group={group}
-				showTerm={showTerm}
-				bySpeciality={bySpeciality}
-				latestLoad={latestLoad}
-			/>
+			<YearRow group={group} showTerm={showTerm} bySpeciality={bySpeciality} />
 		</li>
 	);
 	const rest = groups.slice(initialVisible);

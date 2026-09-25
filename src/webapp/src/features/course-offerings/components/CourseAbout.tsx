@@ -76,7 +76,7 @@ export function CourseAbout({
 			) : null}
 			{courseOfferings.length > 0 ? (
 				<div className="space-y-2 pt-1">
-					<h3 className="text-sm font-semibold">Записи в САЗ</h3>
+					<h3 className="text-sm font-semibold">Історія курсу</h3>
 					<CourseCazRecords
 						courseOfferings={courseOfferings}
 						initialVisible={isPhone ? 2 : 3}
