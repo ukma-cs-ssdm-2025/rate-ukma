@@ -37,10 +37,6 @@ import {
 	areFiltersActive,
 	type CourseFiltersData,
 	type EducationLevelToggle,
-	type FilterPreset,
-	type FilterPresetId,
-	getPresetFilters,
-	getPresetResetFilters,
 	type RangeFilterConfig,
 	type SelectFilterConfig,
 	type SemesterTermToggle,
@@ -151,46 +147,6 @@ function FilterSection({
 			</div>
 			<div className="space-y-4">{children}</div>
 		</section>
-	);
-}
-
-// --- Presets ---
-
-function FilterPresets({
-	presets,
-	activePresetIds,
-	onTogglePreset,
-}: Readonly<{
-	presets: readonly FilterPreset[];
-	activePresetIds: FilterPresetId[];
-	onTogglePreset: (presetId: FilterPresetId) => void;
-}>) {
-	return (
-		<div
-			className="flex flex-wrap gap-2"
-			data-testid={testIds.filters.presetsSection}
-		>
-			{presets.map((preset) => {
-				const isActive = activePresetIds.includes(preset.id);
-				return (
-					<Button
-						key={preset.id}
-						type="button"
-						variant="outline"
-						size="sm"
-						aria-pressed={isActive}
-						onClick={() => onTogglePreset(preset.id)}
-						className={cn(
-							isActive &&
-								"border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
-						)}
-						data-testid={testIds.filters.presetButton}
-					>
-						{preset.label}
-					</Button>
-				);
-			})}
-		</div>
 	);
 }
 
@@ -535,22 +491,8 @@ function CourseFiltersContent({
 		[setWithPageReset],
 	);
 
-	const handleTogglePreset = useCallback(
-		(presetId: FilterPresetId) => {
-			const isActive = data.activePresetIds.includes(presetId);
-
-			if (isActive) {
-				setWithPageReset(getPresetResetFilters(presetId));
-			} else {
-				setWithPageReset(getPresetFilters(presetId));
-			}
-		},
-		[data.activePresetIds, setWithPageReset],
-	);
-
 	const { groups } = data;
-	const moreCount =
-		(params.instructor !== "" ? 1 : 0) + (params.type !== null ? 1 : 0);
+	const moreCount = params.instructor === "" ? 0 : 1;
 	const moreExpanded = moreOpen;
 
 	const semesterSelect = groups.semester.selectFilters.find(
@@ -568,12 +510,6 @@ function CourseFiltersContent({
 
 	return (
 		<div className="space-y-6">
-			<FilterPresets
-				presets={data.presets}
-				activePresetIds={data.activePresetIds}
-				onTogglePreset={handleTogglePreset}
-			/>
-
 			<FilterSection
 				title="Оцінки курсу"
 				activeCount={groups.rating.config.activeCount}
@@ -615,11 +551,7 @@ function CourseFiltersContent({
 
 			<FilterSection
 				title="Факультет і кафедра"
-				activeCount={
-					groups.structure.config.activeCount -
-					(params.instructor !== "" ? 1 : 0) -
-					(params.type !== null ? 1 : 0)
-				}
+				activeCount={groups.structure.config.activeCount - moreCount}
 				testId={testIds.filters.groupStructure}
 			>
 				<EducationLevelToggleControl
@@ -627,7 +559,9 @@ function CourseFiltersContent({
 					onToggle={handleEducationLevelToggle}
 				/>
 				<SelectFilters
-					filters={facultySelects}
+					filters={
+						typeSelect ? [...facultySelects, typeSelect] : facultySelects
+					}
 					getSelectValue={getSelectValue}
 					onSelectChange={handleSelectChange}
 				/>
@@ -656,13 +590,6 @@ function CourseFiltersContent({
 						{instructorSelect && (
 							<SelectFilters
 								filters={[instructorSelect]}
-								getSelectValue={getSelectValue}
-								onSelectChange={handleSelectChange}
-							/>
-						)}
-						{typeSelect && (
-							<SelectFilters
-								filters={[typeSelect]}
 								getSelectValue={getSelectValue}
 								onSelectChange={handleSelectChange}
 							/>

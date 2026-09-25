@@ -67,38 +67,6 @@ export type SemesterTermToggle = {
 	selected: string[];
 };
 
-export type FilterPresetId = "easy" | "most-useful";
-export type FilterPreset = {
-	id: FilterPresetId;
-	label: string;
-};
-
-export const FILTER_PRESETS: readonly FilterPreset[] = [
-	{ id: "easy", label: "Легкі курси" },
-	{ id: "most-useful", label: "Найкорисніші" },
-];
-export function getPresetFilters(
-	presetId: FilterPresetId,
-): Partial<CourseFiltersParamsState> {
-	switch (presetId) {
-		case "easy":
-			return { diff: [DIFFICULTY_RANGE[0], 2.5] };
-		case "most-useful":
-			return { use: [4, USEFULNESS_RANGE[1]] };
-	}
-}
-
-export function getPresetResetFilters(
-	presetId: FilterPresetId,
-): Partial<CourseFiltersParamsState> {
-	switch (presetId) {
-		case "easy":
-			return { diff: DIFFICULTY_RANGE };
-		case "most-useful":
-			return { use: USEFULNESS_RANGE };
-	}
-}
-
 type ActiveFilterChip = {
 	key: string;
 	label: string;
@@ -259,8 +227,6 @@ export type CourseFiltersData = {
 			selectFilters: SelectFilterConfig[];
 		};
 	};
-	presets: readonly FilterPreset[];
-	activePresetIds: FilterPresetId[];
 	hasActiveFilters: boolean;
 };
 
@@ -515,20 +481,6 @@ export function useCourseFiltersData({
 		filters.instructor,
 	]);
 
-	const activePresetIds = React.useMemo(() => {
-		const ids: FilterPresetId[] = [];
-
-		if (filters.diff[0] === DIFFICULTY_RANGE[0] && filters.diff[1] === 2.5) {
-			ids.push("easy");
-		}
-
-		if (filters.use[0] === 4 && filters.use[1] === USEFULNESS_RANGE[1]) {
-			ids.push("most-useful");
-		}
-
-		return ids;
-	}, [filters.diff, filters.use]);
-
 	return {
 		groups: {
 			rating: {
@@ -562,8 +514,6 @@ export function useCourseFiltersData({
 				selectFilters: structureSelectFilters,
 			},
 		},
-		presets: FILTER_PRESETS,
-		activePresetIds,
 		hasActiveFilters: areFiltersActive(params),
 	};
 }

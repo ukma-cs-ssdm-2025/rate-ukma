@@ -112,15 +112,6 @@ describe("CourseFiltersPanel", () => {
 			expect(screen.getByText("Факультет і кафедра")).toBeInTheDocument();
 			expect(screen.getByText("Більше фільтрів")).toBeInTheDocument();
 		});
-
-		it("should render filter presets", () => {
-			// Arrange & Act
-			render(<TestWrapper />);
-
-			// Assert
-			expect(screen.getByText("Легкі курси")).toBeInTheDocument();
-			expect(screen.getByText("Найкорисніші")).toBeInTheDocument();
-		});
 	});
 
 	describe("Range Filter Interactions", () => {

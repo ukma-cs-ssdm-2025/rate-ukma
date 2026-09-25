@@ -438,36 +438,6 @@ describe("useCourseFiltersData", () => {
 		});
 	});
 
-	describe("Presets", () => {
-		it("should detect active easy preset", () => {
-			// Act
-			const { result } = renderFiltersHook({
-				diff: [1, 2.5] as [number, number],
-			});
-
-			// Assert
-			expect(result.current.activePresetIds).toContain("easy");
-		});
-
-		it("should detect active most-useful preset", () => {
-			// Act
-			const { result } = renderFiltersHook({
-				use: [4, 5] as [number, number],
-			});
-
-			// Assert
-			expect(result.current.activePresetIds).toContain("most-useful");
-		});
-
-		it("should not detect presets when filters don't match", () => {
-			// Act
-			const { result } = renderFiltersHook();
-
-			// Assert
-			expect(result.current.activePresetIds).toHaveLength(0);
-		});
-	});
-
 	describe("hasActiveFilters", () => {
 		it("should be false when using default filters", () => {
 			const { result } = renderFiltersHook();
