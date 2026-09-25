@@ -66,10 +66,12 @@ function ScoreInput({
 	onChange,
 	onBlur,
 	descriptions,
+	label,
 	labelId,
 	"data-testid": dataTestId,
 	...rest
 }: Readonly<{
+	label: React.ReactNode;
 	value: number;
 	onChange: (value: number) => void;
 	onBlur?: () => void;
@@ -121,7 +123,22 @@ function ScoreInput({
 	};
 
 	return (
-		<div data-testid={dataTestId}>
+		<div
+			className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+			data-testid={dataTestId}
+		>
+			<div className="min-w-0">
+				{label}
+				<p
+					aria-live="polite"
+					className="mt-0.5 flex items-baseline gap-1.5 text-sm text-muted-foreground"
+				>
+					<span className="font-medium text-foreground tabular-nums">
+						{shown}
+					</span>
+					<span>{getShortDescription(descriptions, shown)}</span>
+				</p>
+			</div>
 			<div
 				role="radiogroup"
 				aria-labelledby={labelId}
@@ -131,7 +148,7 @@ function ScoreInput({
 					setDragging(false);
 				}}
 				onPointerUp={() => setDragging(false)}
-				className="flex touch-pan-y select-none gap-0.5"
+				className="-ml-1 flex touch-pan-y select-none gap-0.5 sm:ml-0"
 				{...rest}
 			>
 				{SCORE_OPTIONS.map((score) => {
@@ -173,15 +190,6 @@ function ScoreInput({
 					);
 				})}
 			</div>
-			<p
-				aria-live="polite"
-				className="mt-1.5 flex items-baseline gap-2 text-sm text-muted-foreground"
-			>
-				<span className="font-medium text-foreground tabular-nums">
-					{shown}
-				</span>
-				<span>{getShortDescription(descriptions, shown)}</span>
-			</p>
 		</div>
 	);
 }
@@ -239,7 +247,7 @@ function RatingFormFields({
 			data-more-below={edges.moreBelow || undefined}
 			className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5 sm:gap-6 sm:py-4"
 		>
-			<div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
+			<div className="divide-y divide-border/60 rounded-xl bg-muted/50 px-4 [&>*]:py-3.5">
 				<FormField<RatingFormData, "difficulty">
 					control={control}
 					name="difficulty"
@@ -247,9 +255,11 @@ function RatingFormFields({
 						const current = field.value ?? 3;
 						return (
 							<FormItem>
-								<FormLabel id={difficultyLabelId}>Складність</FormLabel>
 								<FormControl>
 									<ScoreInput
+										label={
+											<FormLabel id={difficultyLabelId}>Складність</FormLabel>
+										}
 										value={current}
 										onChange={field.onChange}
 										onBlur={field.onBlur}
@@ -271,9 +281,11 @@ function RatingFormFields({
 						const current = field.value ?? 3;
 						return (
 							<FormItem>
-								<FormLabel id={usefulnessLabelId}>Корисність</FormLabel>
 								<FormControl>
 									<ScoreInput
+										label={
+											<FormLabel id={usefulnessLabelId}>Корисність</FormLabel>
+										}
 										value={current}
 										onChange={field.onChange}
 										onBlur={field.onBlur}
@@ -294,7 +306,12 @@ function RatingFormFields({
 				name="instructor_ids"
 				render={({ field }) => (
 					<FormItem>
-						<FormLabel>Викладачі (необов'язково)</FormLabel>
+						<FormLabel>
+							Викладачі
+							<span className="font-normal text-muted-foreground">
+								необов'язково
+							</span>
+						</FormLabel>
 						{legacyInstructor && (
 							<p
 								className="text-sm text-muted-foreground"
@@ -330,7 +347,12 @@ function RatingFormFields({
 				render={({ field }) => (
 					<FormItem>
 						<div className="flex items-baseline justify-between gap-3">
-							<FormLabel>Додаткові коментарі (необов'язково)</FormLabel>
+							<FormLabel>
+								Коментар
+								<span className="font-normal text-muted-foreground">
+									необов'язково
+								</span>
+							</FormLabel>
 							<span className="shrink-0 text-xs text-muted-foreground tabular-nums">
 								{comment.length} / {COMMENT_MAX_LENGTH}
 							</span>
@@ -355,8 +377,8 @@ function RatingFormFields({
 				name="is_anonymous"
 				render={({ field }) => (
 					<FormItem>
-						<div className="flex items-center gap-2">
-							<FormControl className="flex-none">
+						<div className="flex items-start gap-3">
+							<FormControl className="mt-0.5 flex-none">
 								<Checkbox
 									checked={field.value}
 									onCheckedChange={(checked) =>
@@ -365,11 +387,13 @@ function RatingFormFields({
 									data-testid={testIds.rating.anonymousCheckbox}
 								/>
 							</FormControl>
-							<FormLabel>Анонімне повідомлення</FormLabel>
+							<div className="space-y-1">
+								<FormLabel>Анонімний відгук</FormLabel>
+								<FormDescription>
+									Ваше ім'я не відображатиметься біля відгуку
+								</FormDescription>
+							</div>
 						</div>
-						<FormDescription>
-							Ваше ім'я не відображатиметься в огляді
-						</FormDescription>
 						<FormMessage />
 					</FormItem>
 				)}
