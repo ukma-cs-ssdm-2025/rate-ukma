@@ -80,6 +80,16 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "home-loading",
+		section: "Головна",
+		note: "Courses page while the list, filters and feed load",
+		run: async (page) => {
+			await mockBackend(page, { loading: true });
+			await page.goto("/");
+			await page.locator('[data-slot="skeleton"]').first().waitFor();
+		},
+	},
+	{
 		name: "home-feed-scrolled",
 		section: "Головна",
 		note: "Feed strip after one press of «Наступні» (builds without arrows show the start)",
@@ -99,6 +109,16 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/feed");
 			await page.getByTestId("feed-list").waitFor();
+		},
+	},
+	{
+		name: "feed-loading",
+		section: "Стрічка",
+		note: "/feed while items load",
+		run: async (page) => {
+			await mockBackend(page, { loading: true });
+			await page.goto("/feed");
+			await page.locator('[data-slot="skeleton"]').first().waitFor();
 		},
 	},
 	{
@@ -156,6 +176,16 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "my-ratings-loading",
+		section: "Мої оцінки",
+		note: "My ratings while grades load",
+		run: async (page) => {
+			await mockBackend(page, { loading: true });
+			await page.goto("/my-ratings");
+			await page.locator('[data-slot="skeleton"]').first().waitFor();
+		},
+	},
+	{
 		name: "my-ratings-many",
 		section: "Мої оцінки",
 		note: "Four finished years of six courses a semester plus a running term",
@@ -197,6 +227,16 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.getByRole("heading", { level: 1, name: COURSE.title })
 				.waitFor();
 			await page.getByText("Лекції насичені").first().waitFor();
+		},
+	},
+	{
+		name: "course-loading",
+		section: "Курс",
+		note: "Course page before the course and its offerings arrive",
+		run: async (page) => {
+			await mockBackend(page, { loading: true });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.locator('[data-slot="skeleton"]').first().waitFor();
 		},
 	},
 	{
@@ -695,46 +735,6 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/connection-error");
 			await page.locator("h1").first().waitFor();
-		},
-	},
-	{
-		name: "home-loading",
-		section: "Завантаження",
-		note: "Courses page while the list, filters and feed load",
-		run: async (page) => {
-			await mockBackend(page, { loading: true });
-			await page.goto("/");
-			await page.locator('[data-slot="skeleton"]').first().waitFor();
-		},
-	},
-	{
-		name: "course-loading",
-		section: "Завантаження",
-		note: "Course page before the course and its offerings arrive",
-		run: async (page) => {
-			await mockBackend(page, { loading: true });
-			await page.goto(`/courses/${COURSE.id}`);
-			await page.locator('[data-slot="skeleton"]').first().waitFor();
-		},
-	},
-	{
-		name: "my-ratings-loading",
-		section: "Завантаження",
-		note: "My ratings while grades load",
-		run: async (page) => {
-			await mockBackend(page, { loading: true });
-			await page.goto("/my-ratings");
-			await page.locator('[data-slot="skeleton"]').first().waitFor();
-		},
-	},
-	{
-		name: "feed-loading",
-		section: "Завантаження",
-		note: "/feed while items load",
-		run: async (page) => {
-			await mockBackend(page, { loading: true });
-			await page.goto("/feed");
-			await page.locator('[data-slot="skeleton"]').first().waitFor();
 		},
 	},
 ];

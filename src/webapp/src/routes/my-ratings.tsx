@@ -7,7 +7,7 @@ import { MyRatingsEmptyState } from "@/features/ratings/components/MyRatingsEmpt
 import { MyRatingsErrorState } from "@/features/ratings/components/MyRatingsErrorState";
 import { MyRatingsHeader } from "@/features/ratings/components/MyRatingsHeader";
 import { MyRatingsNotStudentState } from "@/features/ratings/components/MyRatingsNotStudentState";
-import { MyRatingsSkeleton } from "@/features/ratings/components/MyRatingsSkeleton";
+import { MyRatingsSkeleton } from "@/features/ratings/components/MyRatingsSemesterSection";
 import { MyRatingsYearSection } from "@/features/ratings/components/MyRatingsYearSection";
 import { groupRatingsByYearAndSemester } from "@/features/ratings/groupRatings";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";

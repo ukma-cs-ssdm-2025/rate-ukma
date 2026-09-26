@@ -17,8 +17,7 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown, Filter, Maximize2, Search } from "lucide-react";
 
-import { DataTable } from "@/components/DataTable/DataTable";
-import { DataTableSkeleton } from "@/components/DataTable/DataTableSkeleton";
+import { DataTable, DataTableSkeleton } from "@/components/DataTable/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {

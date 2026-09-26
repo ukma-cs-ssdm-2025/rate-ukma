@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-table";
 
 import { DataTablePagination } from "@/components/DataTable/DataTablePagination";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
 	Table,
 	TableBody,
@@ -236,6 +237,125 @@ export function DataTable<TData>({
 					table.getFilteredSelectedRowModel().rows.length > 0 &&
 					actionBar}
 			</div>
+		</div>
+	);
+}
+
+interface DataTableSkeletonProps extends React.ComponentProps<"div"> {
+	columnCount: number;
+	rowCount?: number;
+	filterCount?: number;
+	cellWidths?: string[];
+	withViewOptions?: boolean;
+	withPagination?: boolean;
+	shrinkZero?: boolean;
+}
+
+export function DataTableSkeleton({
+	columnCount,
+	rowCount = 10,
+	filterCount = 0,
+	cellWidths = ["auto"],
+	withViewOptions = true,
+	withPagination = true,
+	shrinkZero = false,
+	className,
+	...props
+}: Readonly<DataTableSkeletonProps>) {
+	const cozyCellWidths = Array.from(
+		{ length: columnCount },
+		(_, index) => cellWidths[index % cellWidths.length] ?? "auto",
+	);
+
+	return (
+		<div
+			className={cn("flex w-full flex-col gap-4 overflow-auto", className)}
+			{...props}
+		>
+			{/* An empty toolbar would push the table below where it renders. */}
+			{filterCount > 0 || withViewOptions ? (
+				<div className="flex w-full items-center justify-between gap-2 overflow-auto p-1">
+					<div className="flex flex-1 items-center gap-2">
+						{Array.from({ length: filterCount }).map((_, i) => (
+							<Skeleton
+								key={`skeleton-filter-${String(i)}`}
+								className="h-7 w-[4.5rem] border-dashed"
+							/>
+						))}
+					</div>
+					{withViewOptions ? (
+						<Skeleton className="ml-auto hidden h-7 w-[4.5rem] lg:flex" />
+					) : null}
+				</div>
+			) : null}
+			<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+				<Table>
+					<TableHeader>
+						{Array.from({ length: 1 }).map((_, i) => (
+							<TableRow
+								key={`skeleton-row-${String(i)}`}
+								className="hover:bg-transparent"
+							>
+								{Array.from({ length: columnCount }).map((_, j) => (
+									<TableHead
+										key={`skeleton-head-${String(j)}`}
+										style={{
+											width: cozyCellWidths[j],
+											minWidth: shrinkZero ? cozyCellWidths[j] : "auto",
+										}}
+									>
+										<Skeleton
+											className={j === 0 ? "h-4 w-24" : "mx-auto h-4 w-20"}
+										/>
+									</TableHead>
+								))}
+							</TableRow>
+						))}
+					</TableHeader>
+					<TableBody>
+						{Array.from({ length: rowCount }).map((_, i) => (
+							<TableRow
+								key={`skeleton-row-${String(i)}`}
+								className="hover:bg-transparent"
+							>
+								{Array.from({ length: columnCount }).map((_, j) => (
+									<TableCell
+										key={`skeleton-cell-${String(j)}`}
+										style={{
+											width: cozyCellWidths[j],
+											minWidth: shrinkZero ? cozyCellWidths[j] : "auto",
+										}}
+									>
+										<Skeleton
+											className={j === 0 ? "h-5 w-3/4" : "mx-auto h-6 w-12"}
+										/>
+									</TableCell>
+								))}
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</div>
+			{withPagination ? (
+				<div className="flex w-full items-center justify-between gap-4 overflow-auto p-1 sm:gap-8">
+					<Skeleton className="h-7 w-40 shrink-0" />
+					<div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
+						<div className="flex items-center gap-2">
+							<Skeleton className="h-7 w-24" />
+							<Skeleton className="h-7 w-[4.5rem]" />
+						</div>
+						<div className="flex items-center justify-center font-medium text-sm">
+							<Skeleton className="h-7 w-20" />
+						</div>
+						<div className="flex items-center gap-2">
+							<Skeleton className="hidden size-7 lg:block" />
+							<Skeleton className="size-7" />
+							<Skeleton className="size-7" />
+							<Skeleton className="hidden size-7 lg:block" />
+						</div>
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
 }

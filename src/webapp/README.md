@@ -85,7 +85,7 @@ Copy from `src/.env.sample` if you haven't set up your `.env` file yet.
 
 ### Screenshots
 
-`pnpm shots` renders every app state (grouped by page: home, feed, course, rating, comments, my ratings, map, navigation, sign-in and errors, including open menus, dialogs and tooltips, plus a loading group where content requests never answer so each page holds its skeleton) at 1440x900 and 390x844 in light and dark, and writes the PNGs plus an `index.html` gallery to `shots/`. Every API call is answered from invented fixtures in `tests/shots/fixtures/`, so no backend or login is needed; an endpoint without a fixture is logged as `[shots] unmocked`.
+`pnpm shots` renders every app state (grouped by page: home, feed, course, rating, comments, my ratings, map, navigation, sign-in and errors, including open menus, dialogs and tooltips; each page also has a `-loading` state whose content requests never answer, so it holds its skeleton) at 1440x900 and 390x844 in light and dark, and writes the PNGs plus an `index.html` gallery to `shots/`. Every API call is answered from invented fixtures in `tests/shots/fixtures/`, so no backend or login is needed; an endpoint without a fixture is logged as `[shots] unmocked`.
 
 ```bash
 pnpm shots                                 # build, preview, shoot into shots/

@@ -23,8 +23,8 @@ import {
 	CourseStatsHeroSkeleton,
 } from "@/features/courses/components/CourseStatsCards";
 import { hasCourseScores } from "@/features/courses/courseFormatting";
-import { Skeleton } from "@/components/ui/Skeleton";
 import {
+	CourseRatingsHeaderSkeleton,
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
@@ -217,10 +217,7 @@ function CourseDetailsSkeleton() {
 				<CourseDetailsHeaderSkeleton />
 				<CourseStatsHeroSkeleton />
 				<div className="space-y-4">
-					<div className="flex items-center justify-between">
-						<Skeleton className="h-7 w-28" />
-						<Skeleton className="h-5 w-32" />
-					</div>
+					<CourseRatingsHeaderSkeleton />
 					<CourseRatingsListSkeleton />
 				</div>
 			</div>

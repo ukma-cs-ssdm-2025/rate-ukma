@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { FeedEmptyState } from "@/features/feed/components/FeedEmptyState";
 import { FeedErrorState } from "@/features/feed/components/FeedErrorState";
 import { FeedItem } from "@/features/feed/components/FeedItem";
-import { FeedSkeleton } from "@/features/feed/components/FeedSkeleton";
+import { FeedSkeleton } from "@/features/feed/components/FeedCard";
 import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import { useFeed } from "@/features/feed/hooks/useFeed";
 import { withAuth } from "@/lib/auth";

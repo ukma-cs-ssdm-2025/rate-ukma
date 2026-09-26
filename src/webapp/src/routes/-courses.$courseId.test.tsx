@@ -59,6 +59,7 @@ vi.mock("@/features/courses/components/CourseStatsCards", () => ({
 
 vi.mock("@/features/ratings/components/CourseRatingsList", () => ({
 	CourseRatingsList: () => <div data-testid="course-ratings" />,
+	CourseRatingsHeaderSkeleton: () => null,
 	CourseRatingsListSkeleton: () => (
 		<div data-testid="course-ratings-skeleton" />
 	),

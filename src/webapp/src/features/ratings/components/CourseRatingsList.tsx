@@ -223,6 +223,16 @@ export function CourseRatingsList({
 	);
 }
 
+// The «Відгуки» title and sort menu, for the page skeleton before the list mounts.
+export function CourseRatingsHeaderSkeleton() {
+	return (
+		<div className="flex items-center justify-between">
+			<Skeleton className="h-7 w-28" />
+			<Skeleton className="h-5 w-32" />
+		</div>
+	);
+}
+
 export function CourseRatingsListSkeleton() {
 	return (
 		<div className="divide-y divide-border/30">
