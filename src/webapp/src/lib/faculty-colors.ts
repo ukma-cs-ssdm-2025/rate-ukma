@@ -40,10 +40,8 @@ const FACULTY_COLOR_MAP = {
 
 type ColorConfig = { bg: string; text: string; border: string; hex: string };
 
-// Explicit token classes (prevents purging in production). Each entry tints
-// the badge with its faculty token at 12% over the page background and sets
-// the text to the token itself, so light and dark modes both read via the
-// token values in styles.css (same pattern as TermBadge).
+// Explicit token classes (prevents purging in production); light and dark
+// values come from the faculty tokens in styles.css.
 const COLOR_CLASS_MAP: Record<string, Omit<ColorConfig, "hex">> = {
 	purple: {
 		bg: "bg-faculty-purple/12",

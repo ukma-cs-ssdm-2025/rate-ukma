@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface ExpandableTextProps {
 	readonly children: string;
 	readonly className?: string;
-	/** Collapsed line-clamp; applied only when collapsed. Defaults to 4. */
+	/** Line clamp while collapsed. */
 	readonly lines?: number;
 }
 

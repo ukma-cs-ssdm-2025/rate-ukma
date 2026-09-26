@@ -249,6 +249,7 @@ function ScatterPlotContent({
 	> | null>(null);
 	const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
 	const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
+
 	const plotMargin = variant === "default" ? EXPLORE_MARGIN : margin;
 	const innerWidth = width - plotMargin.left - plotMargin.right;
 	const innerHeight = height - plotMargin.top - plotMargin.bottom;
@@ -679,6 +680,7 @@ export function CoursesScatterPlot({
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const faculties = filterOptionsQuery.data?.faculties ?? [];
+
 	const facultyColorMap = useMemo(() => {
 		const map = new Map<string, string>();
 		for (const faculty of faculties) {
@@ -732,6 +734,7 @@ export function CoursesScatterPlot({
 			</div>
 		);
 	}
+
 	if (isError) {
 		return (
 			<ScatterPlotState

@@ -88,7 +88,6 @@ export function CourseSpecialityBadges({
 					speciality.speciality_alias,
 				);
 				const colors = getFacultyColors(speciality.faculty_name || "");
-
 				const kind = getCourseTypeDisplay(speciality.type_kind ?? "", "");
 
 				return (

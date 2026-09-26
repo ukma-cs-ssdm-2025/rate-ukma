@@ -269,53 +269,47 @@ function RatingFormFields({
 				<FormField<RatingFormData, "difficulty">
 					control={control}
 					name="difficulty"
-					render={({ field }) => {
-						const current = field.value ?? 3;
-						return (
-							<FormItem>
-								<FormControl>
-									<ScoreInput
-										label={
-											<FormLabel id={difficultyLabelId}>Складність</FormLabel>
-										}
-										value={current}
-										onChange={field.onChange}
-										onBlur={field.onBlur}
-										descriptions={difficultyDescriptions}
-										labelId={difficultyLabelId}
-										data-testid={testIds.rating.difficultySlider}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						);
-					}}
+					render={({ field }) => (
+						<FormItem>
+							<FormControl>
+								<ScoreInput
+									label={
+										<FormLabel id={difficultyLabelId}>Складність</FormLabel>
+									}
+									value={field.value ?? 3}
+									onChange={field.onChange}
+									onBlur={field.onBlur}
+									descriptions={difficultyDescriptions}
+									labelId={difficultyLabelId}
+									data-testid={testIds.rating.difficultySlider}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
 				/>
 
 				<FormField<RatingFormData, "usefulness">
 					control={control}
 					name="usefulness"
-					render={({ field }) => {
-						const current = field.value ?? 3;
-						return (
-							<FormItem>
-								<FormControl>
-									<ScoreInput
-										label={
-											<FormLabel id={usefulnessLabelId}>Корисність</FormLabel>
-										}
-										value={current}
-										onChange={field.onChange}
-										onBlur={field.onBlur}
-										descriptions={usefulnessDescriptions}
-										labelId={usefulnessLabelId}
-										data-testid={testIds.rating.usefulnessSlider}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						);
-					}}
+					render={({ field }) => (
+						<FormItem>
+							<FormControl>
+								<ScoreInput
+									label={
+										<FormLabel id={usefulnessLabelId}>Корисність</FormLabel>
+									}
+									value={field.value ?? 3}
+									onChange={field.onChange}
+									onBlur={field.onBlur}
+									descriptions={usefulnessDescriptions}
+									labelId={usefulnessLabelId}
+									data-testid={testIds.rating.usefulnessSlider}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
 				/>
 			</div>
 

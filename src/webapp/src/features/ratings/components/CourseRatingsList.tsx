@@ -188,9 +188,9 @@ export function CourseRatingsList({
 						{displayCount}
 					</Badge>
 				</h2>
-				{displayCount > 0 ? (
+				{displayCount > 0 && (
 					<RatingsSortSelect value={sortOption} onValueChange={setSortOption} />
-				) : null}
+				)}
 			</div>
 
 			{userRating && onEditUserRating && onDeleteUserRating ? (

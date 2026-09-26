@@ -15,7 +15,10 @@ interface Props {
 
 // aria-disabled instead of disabled keeps the button focusable, so keyboard
 // users reach the reason; a tap opens it for touch users, who cannot hover.
-export function DisabledButtonWithTooltip({ reason, children }: Props) {
+export function DisabledButtonWithTooltip({
+	reason,
+	children,
+}: Readonly<Props>) {
 	const [open, setOpen] = React.useState(false);
 	const button = React.cloneElement(children, {
 		"aria-disabled": true,

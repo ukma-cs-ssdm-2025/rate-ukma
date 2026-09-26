@@ -337,7 +337,7 @@ export function CourseCazRecords({
 					) : null}
 				</ul>
 			</Collapsible>
-			{rest.length > 0 && (
+			{rest.length > 0 ? (
 				<button
 					type="button"
 					aria-expanded={expanded}
@@ -346,7 +346,7 @@ export function CourseCazRecords({
 				>
 					{expanded ? "Згорнути" : `ще ${rest.length}`}
 				</button>
-			)}
+			) : null}
 		</div>
 	);
 }

@@ -1,17 +1,21 @@
 import { ArrowRight, Megaphone } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-
-import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
+import { cn } from "@/lib/utils";
 import type {
 	FeedPromoAccent,
 	FeedPromoItem as FeedPromoItemType,
 } from "../feedTypes";
 import { FeedCard, type FeedTone } from "./FeedCard";
 
-/** Badge and Button share these variant names, so one value drives both. */
-const ACCENT = {
+interface AccentStyle {
+	tone: FeedTone;
+	button: "default" | "secondary" | "destructive";
+	cta?: string;
+}
+
+const ACCENT: Record<FeedPromoAccent, AccentStyle> = {
 	BRAND: { tone: "primary", button: "default" },
 	// The secondary fill is too pale to read as a button on the tinted card.
 	INFO: {
@@ -20,14 +24,7 @@ const ACCENT = {
 		cta: "bg-muted-foreground text-background hover:bg-muted-foreground/90",
 	},
 	WARNING: { tone: "destructive", button: "destructive" },
-} as const satisfies Record<
-	FeedPromoAccent,
-	{
-		tone: FeedTone;
-		button: "default" | "secondary" | "destructive";
-		cta?: string;
-	}
->;
+};
 
 interface FeedPromoItemProps {
 	readonly item: FeedPromoItemType;
@@ -39,11 +36,7 @@ export function FeedPromoItem({
 	item,
 	variant = "card",
 }: Readonly<FeedPromoItemProps>) {
-	const accent: {
-		tone: FeedTone;
-		button: "default" | "secondary" | "destructive";
-		cta?: string;
-	} = ACCENT[item.accent ?? "BRAND"] ?? ACCENT.BRAND;
+	const accent = ACCENT[item.accent ?? "BRAND"] ?? ACCENT.BRAND;
 	const kind = {
 		label: item.label ?? "Оголошення",
 		icon: Megaphone,

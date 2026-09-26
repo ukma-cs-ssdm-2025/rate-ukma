@@ -13,8 +13,6 @@ export function MyRatingsYearSection({
 	onRatingChanged,
 	forceOpen,
 }: Readonly<MyRatingsYearSectionProps>) {
-	if (yearGroup.seasons.length === 0) return null;
-
 	// An academic-year heading over a single semester is noise, and so is one
 	// over a filtered list, so those semesters stand alone as "Весна 2026".
 	if (

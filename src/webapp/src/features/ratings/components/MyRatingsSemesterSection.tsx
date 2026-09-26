@@ -161,14 +161,12 @@ export function MyRatingsSemesterSection({
 	const sortedItems = useMemo(() => {
 		// What is left to rate scans first; rated rows stay alphabetical after it.
 		return [...seasonGroup.items].sort((a, b) => {
-			const pendingA = a.rated ? 1 : 0;
-			const pendingB = b.rated ? 1 : 0;
-			if (pendingA !== pendingB) return pendingA - pendingB;
+			const ratedA = a.rated ? 1 : 0;
+			const ratedB = b.rated ? 1 : 0;
+			if (ratedA !== ratedB) return ratedA - ratedB;
 			return (a.course_title ?? "").localeCompare(b.course_title ?? "");
 		});
 	}, [seasonGroup.items]);
-
-	if (sortedItems.length === 0) return null;
 
 	return (
 		<Collapsible open={open} onOpenChange={setOpen} asChild>

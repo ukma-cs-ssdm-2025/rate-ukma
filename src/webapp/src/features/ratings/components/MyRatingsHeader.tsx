@@ -43,10 +43,11 @@ export function MyRatingsHeader({
 	onlyUnrated = false,
 	onOnlyUnratedChange,
 }: Readonly<MyRatingsHeaderProps>) {
-	let hint: string | undefined;
 	// The «Лише неоцінені» button already counts what can be rated now.
-	if (rateableLeft === 0 && ratedCourses < totalCourses)
-		hint = "решта відкриється згодом";
+	const hint =
+		rateableLeft === 0 && ratedCourses < totalCourses
+			? "решта відкриється згодом"
+			: undefined;
 	return (
 		<div data-testid={testIds.myRatings.header}>
 			<PageHeader

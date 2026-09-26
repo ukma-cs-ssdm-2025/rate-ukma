@@ -100,9 +100,7 @@ function FilterSlider({
 				max={range[1]}
 				step={step}
 				value={localValue}
-				onValueChange={(val) => {
-					setLocalValue(val as [number, number]);
-				}}
+				onValueChange={(val) => setLocalValue(val as [number, number])}
 				onValueCommit={(val) => onValueChange(val as [number, number])}
 				data-testid={testId}
 				thumbLabels={[`${label}, від`, `${label}, до`]}

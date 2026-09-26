@@ -141,17 +141,14 @@ export function RatingVotes({
 	}, [createVote.mutateAsync, deleteVote.mutateAsync]);
 
 	// Counts derive from the server snapshot minus its own vote plus the local one.
-	const countsFor = (vote: RatingVoteStrType | null) => ({
-		upvotes:
-			initialUpvotes +
-			(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
-			(vote === RatingVoteStrType.UPVOTE ? 1 : 0),
-		downvotes:
-			initialDownvotes +
-			(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
-			(vote === RatingVoteStrType.DOWNVOTE ? 1 : 0),
-	});
-	const { upvotes, downvotes } = countsFor(userVote);
+	const upvotes =
+		initialUpvotes +
+		(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
+		(userVote === RatingVoteStrType.UPVOTE ? 1 : 0);
+	const downvotes =
+		initialDownvotes +
+		(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
+		(userVote === RatingVoteStrType.DOWNVOTE ? 1 : 0);
 
 	// Sync local state with props if they change (e.g. after a re-fetch from elsewhere)
 	useEffect(() => {

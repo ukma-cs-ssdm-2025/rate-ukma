@@ -194,7 +194,7 @@ function NotificationItem({
 	onClick?: (groupKey: string) => void;
 }>) {
 	const courseId = notification.course_id;
-	const isUnread = notification.is_unread ?? false;
+	const isUnread = notification.is_unread;
 	const { icon: Icon, tone } =
 		(notification.event_type && EVENT_ICONS[notification.event_type]) ||
 		FALLBACK_EVENT;

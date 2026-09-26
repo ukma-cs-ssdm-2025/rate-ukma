@@ -73,9 +73,7 @@ function ExploreRoute() {
 		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
 	}, [setParams]);
 
-	const { groups: filterGroups } = useCourseFiltersData({
-		params,
-	});
+	const { groups: filterGroups } = useCourseFiltersData({ params });
 	const activeFilterCount =
 		filterGroups.rating.config.activeCount +
 		filterGroups.semester.config.activeCount +
