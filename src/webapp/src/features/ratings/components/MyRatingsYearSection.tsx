@@ -13,6 +13,21 @@ export function MyRatingsYearSection({
 }: Readonly<MyRatingsYearSectionProps>) {
 	if (yearGroup.seasons.length === 0) return null;
 
+	// An academic-year heading over a single semester is noise, so a lone
+	// semester stands on its own as "Весна 2026".
+	const [onlySeason] = yearGroup.seasons;
+	if (yearGroup.seasons.length === 1 && onlySeason.year != null) {
+		return (
+			<MyRatingsSemesterSection
+				seasonGroup={{
+					...onlySeason,
+					label: `${onlySeason.label} ${onlySeason.year}`,
+				}}
+				onRatingChanged={onRatingChanged}
+			/>
+		);
+	}
+
 	return (
 		<div className="space-y-3">
 			<SectionHeader title={yearGroup.label} />
