@@ -135,7 +135,7 @@ export function getActiveFilterChips(
 			label:
 				faculties.find((faculty) => faculty.id === params.faculty)?.name ??
 				params.faculty,
-			clear: { faculty: "", dept: "", spec: "", type: null },
+			clear: { faculty: "", dept: "" },
 		});
 	}
 
@@ -168,7 +168,9 @@ export function getActiveFilterChips(
 	if (params.type) {
 		chips.push({
 			key: "type",
-			label: getCourseTypeDisplay(params.type),
+			label:
+				COURSE_TYPE_FILTER_LABELS[params.type] ??
+				getCourseTypeDisplay(params.type),
 			clear: { type: null },
 		});
 	}
@@ -197,6 +199,14 @@ export function getActiveFilterChips(
 
 	return chips;
 }
+
+// Read as the answer to "which courses of my speciality": ELECTIVE covers
+// everything that is neither compulsory nor profession-oriented for it.
+export const COURSE_TYPE_FILTER_LABELS: Record<string, string> = {
+	COMPULSORY: "Обов'язкові",
+	PROF_ORIENTED: "Професійно-орієнтовані",
+	ELECTIVE: "Вільного вибору",
+};
 
 export type EducationLevelToggle = {
 	options: Array<{ value: string; label: string }>;
@@ -265,15 +275,6 @@ export function useCourseFiltersData({
 		const selectedFaculty = faculties.find((f) => f.id === filters.faculty);
 		return selectedFaculty?.departments || [];
 	}, [faculties, filters.faculty, allDepartments]);
-
-	const filteredSpecialities = React.useMemo(() => {
-		if (!filters.faculty) {
-			return allSpecialities;
-		}
-
-		const selectedFaculty = faculties.find((f) => f.id === filters.faculty);
-		return selectedFaculty?.specialities || [];
-	}, [faculties, filters.faculty, allSpecialities]);
 
 	const ratingRangeFilters: RangeFilterConfig[] = [
 		{
@@ -389,7 +390,7 @@ export function useCourseFiltersData({
 				value: filters.spec,
 				options: [
 					{ value: "", label: "Усі спеціальності" },
-					...filteredSpecialities.map((speciality) => ({
+					...allSpecialities.map((speciality) => ({
 						value: speciality.id,
 						label: speciality.name,
 					})),
@@ -427,7 +428,7 @@ export function useCourseFiltersData({
 			courseTypes,
 			faculties,
 			filteredDepartments,
-			filteredSpecialities,
+			allSpecialities,
 			filters.faculty,
 			filters.dept,
 			filters.spec,

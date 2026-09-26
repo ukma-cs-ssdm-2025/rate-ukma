@@ -107,10 +107,13 @@ describe("CourseFiltersPanel", () => {
 			render(<TestWrapper />);
 
 			// Assert
+			expect(screen.getByText("Моя спеціальність")).toBeInTheDocument();
 			expect(screen.getByText("Оцінки курсу")).toBeInTheDocument();
 			expect(screen.getByText("Семестр")).toBeInTheDocument();
 			expect(screen.getByText("Факультет і кафедра")).toBeInTheDocument();
-			expect(screen.getByText("Більше фільтрів")).toBeInTheDocument();
+			expect(
+				screen.getByTestId(testIds.filters.instructorSelect),
+			).toBeVisible();
 		});
 	});
 
@@ -223,7 +226,7 @@ describe("CourseFiltersPanel", () => {
 			expect(toggleButtons[2]).toHaveTextContent("Літо");
 		});
 
-		it("should show credits without opening Більше фільтрів, disabled until a year is chosen", () => {
+		it("should show credits disabled until a year is chosen", () => {
 			render(<TestWrapper />);
 
 			expect(screen.getByTestId(testIds.filters.creditsSelect)).toHaveAttribute(
@@ -235,59 +238,59 @@ describe("CourseFiltersPanel", () => {
 			).toBeInTheDocument();
 		});
 
-		it("should expand and collapse the disclosure when the trigger is clicked", async () => {
-			// Arrange
-			const user = userEvent.setup();
+		it("keeps the course type locked until a speciality is chosen", () => {
 			render(<TestWrapper />);
-			const trigger = screen.getByRole("button", {
-				name: /більше фільтрів/i,
-			});
 
-			// Act — open
-			await user.click(trigger);
-
-			// Assert
+			const group = screen.getByTestId(testIds.filters.typeSelect);
+			for (const item of within(group).getAllByRole("radio")) {
+				expect(item).toBeDisabled();
+			}
 			expect(
-				screen.getByTestId(testIds.filters.instructorSelect),
-			).toBeVisible();
-
-			// Act — collapse again
-			await user.click(trigger);
-
-			// Assert
-			expect(
-				screen.queryByTestId(testIds.filters.instructorSelect),
-			).not.toBeInTheDocument();
+				screen.getByText("Спочатку оберіть спеціальність"),
+			).toBeInTheDocument();
 		});
 
-		it("should auto-open the disclosure when a filter inside is active, and let the user collapse it", async () => {
-			// Arrange
+		it("filters a speciality down to its free-choice courses in one click", async () => {
 			const user = userEvent.setup();
+			const setParams = vi.fn();
 			render(
 				<TestWrapper
+					setParams={setParams}
+					initialParams={{ ...DEFAULT_PARAMS, spec: "spec-1" }}
+				/>,
+			);
+
+			await user.click(screen.getByRole("radio", { name: "Вільного вибору" }));
+
+			expect(setParams).toHaveBeenCalledWith({ type: "ELECTIVE", page: 1 });
+		});
+
+		it("keeps the chosen speciality when the faculty changes", async () => {
+			// cmdk scrolls the active option into view; jsdom lacks this API.
+			Element.prototype.scrollIntoView = vi.fn();
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			render(
+				<TestWrapper
+					setParams={setParams}
 					initialParams={{
 						...DEFAULT_PARAMS,
-						instructor: "instructor-1",
+						spec: "spec-2",
+						type: "ELECTIVE",
 					}}
 				/>,
 			);
-			const trigger = screen.getByRole("button", {
-				name: /більше фільтрів/i,
+
+			await user.click(screen.getByTestId(testIds.filters.facultySelect));
+			await user.click(
+				await screen.findByRole("option", { name: "Факультет інформатики" }),
+			);
+
+			expect(setParams).toHaveBeenCalledWith({
+				faculty: "faculty-1",
+				dept: "",
+				page: 1,
 			});
-
-			// Assert — auto-opened
-			expect(screen.getByText("Більше фільтрів")).toBeInTheDocument();
-			expect(
-				screen.getByTestId(testIds.filters.instructorSelect),
-			).toBeVisible();
-
-			// Act — user collapses
-			await user.click(trigger);
-
-			// Assert
-			expect(
-				screen.queryByTestId(testIds.filters.instructorSelect),
-			).not.toBeInTheDocument();
 		});
 	});
 

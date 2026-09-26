@@ -1,14 +1,9 @@
 import { memo, useCallback, useEffect, useState } from "react";
 
-import { ChevronDown, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@/components/ui/Collapsible";
 import { Combobox } from "@/components/ui/Combobox";
 import { Label } from "@/components/ui/Label";
 import {
@@ -35,6 +30,7 @@ import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import { CREDITS_RANGE, formatDecimalValue } from "../courseFormatting";
 import {
 	areFiltersActive,
+	COURSE_TYPE_FILTER_LABELS,
 	type CourseFiltersData,
 	type EducationLevelToggle,
 	type RangeFilterConfig,
@@ -237,6 +233,55 @@ function SemesterTermToggleControl({
 	);
 }
 
+const COURSE_TYPE_ORDER = ["COMPULSORY", "PROF_ORIENTED", "ELECTIVE"];
+
+function CourseTypeToggleControl({
+	filter,
+	value,
+	onChange,
+}: Readonly<{
+	filter: SelectFilterConfig;
+	value: string;
+	onChange: (value: string) => void;
+}>) {
+	const options = [...filter.options].sort(
+		(a, b) =>
+			COURSE_TYPE_ORDER.indexOf(a.value) - COURSE_TYPE_ORDER.indexOf(b.value),
+	);
+	if (options.length === 0) return null;
+
+	return (
+		<div className="space-y-3">
+			<Label className="text-sm font-medium">{filter.label}</Label>
+			<ToggleGroup
+				type="single"
+				variant="outline"
+				value={value}
+				onValueChange={onChange}
+				disabled={filter.disabled}
+				spacing={1.5}
+				className="w-full flex-wrap"
+				data-testid={testIds.filters.typeSelect}
+			>
+				{options.map((option) => (
+					<ToggleGroupItem
+						key={option.value}
+						value={option.value}
+						className="flex-none px-3 data-[state=on]:border-primary/30 data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+					>
+						{COURSE_TYPE_FILTER_LABELS[option.value] ?? option.label}
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+			{filter.disabledMessage && (
+				<p className="text-xs text-muted-foreground">
+					{filter.disabledMessage}
+				</p>
+			)}
+		</div>
+	);
+}
+
 function EducationLevelToggleControl({
 	toggle,
 	onToggle,
@@ -377,13 +422,6 @@ function CourseFiltersContent({
 	setParams: (updates: Partial<CourseFiltersParamsState>) => void;
 	data: CourseFiltersData;
 }>) {
-	const moreActive = params.instructor !== "" || params.type !== null;
-	const [moreOpen, setMoreOpen] = useState(moreActive);
-
-	useEffect(() => {
-		if (moreActive) setMoreOpen(true);
-	}, [moreActive]);
-
 	const setWithPageReset = useCallback(
 		(updates: Partial<CourseFiltersParamsState>) => {
 			setParams({ ...updates, page: 1 });
@@ -452,13 +490,7 @@ function CourseFiltersContent({
 					});
 					return;
 				case "faculty":
-					setParams({
-						faculty: value,
-						dept: "",
-						spec: "",
-						type: null,
-						page: 1,
-					});
+					setWithPageReset({ faculty: value, dept: "" });
 					return;
 				case "dept":
 					setWithPageReset({ dept: value });
@@ -492,14 +524,20 @@ function CourseFiltersContent({
 	);
 
 	const { groups } = data;
-	const moreCount = params.instructor === "" ? 0 : 1;
-	const moreExpanded = moreOpen;
+	const specialityCount = (params.spec ? 1 : 0) + (params.type ? 1 : 0);
+	const structureCount =
+		(params.faculty ? 1 : 0) +
+		(params.dept ? 1 : 0) +
+		(params.eduLevel ? 1 : 0);
 
 	const semesterSelect = groups.semester.selectFilters.find(
 		(filter) => filter.key === "year",
 	);
 	const facultySelects = groups.structure.selectFilters.filter((filter) =>
-		["faculty", "dept", "spec"].includes(filter.key),
+		["faculty", "dept"].includes(filter.key),
+	);
+	const specialitySelect = groups.structure.selectFilters.find(
+		(filter) => filter.key === "spec",
 	);
 	const typeSelect = groups.structure.selectFilters.find(
 		(filter) => filter.key === "type",
@@ -510,6 +548,31 @@ function CourseFiltersContent({
 
 	return (
 		<div className="space-y-6">
+			{/* Students filter by their own programme far more than by faculty or
+			    department, so speciality and course type lead. */}
+			<FilterSection
+				title="Моя спеціальність"
+				activeCount={specialityCount}
+				testId={testIds.filters.groupStructure}
+			>
+				{specialitySelect && (
+					<SelectFilters
+						filters={[specialitySelect]}
+						getSelectValue={getSelectValue}
+						onSelectChange={handleSelectChange}
+					/>
+				)}
+				{typeSelect && (
+					<CourseTypeToggleControl
+						filter={typeSelect}
+						value={params.type ?? ""}
+						onChange={(value) => handleSelectChange("type", value)}
+					/>
+				)}
+			</FilterSection>
+
+			<Separator />
+
 			<FilterSection
 				title="Оцінки курсу"
 				activeCount={groups.rating.config.activeCount}
@@ -549,54 +612,28 @@ function CourseFiltersContent({
 
 			<Separator />
 
-			<FilterSection
-				title="Факультет і кафедра"
-				activeCount={groups.structure.config.activeCount - moreCount}
-				testId={testIds.filters.groupStructure}
-			>
+			<FilterSection title="Факультет і кафедра" activeCount={structureCount}>
+				<SelectFilters
+					filters={facultySelects}
+					getSelectValue={getSelectValue}
+					onSelectChange={handleSelectChange}
+				/>
 				<EducationLevelToggleControl
 					toggle={groups.structure.educationLevelToggle}
 					onToggle={handleEducationLevelToggle}
 				/>
-				<SelectFilters
-					filters={
-						typeSelect ? [...facultySelects, typeSelect] : facultySelects
-					}
-					getSelectValue={getSelectValue}
-					onSelectChange={handleSelectChange}
-				/>
 			</FilterSection>
 
-			<Collapsible open={moreExpanded} onOpenChange={setMoreOpen}>
-				<CollapsibleTrigger asChild>
-					<button
-						type="button"
-						className="flex w-full items-center justify-between py-1 text-sm font-medium"
-					>
-						<span className="flex items-center gap-2">
-							Більше фільтрів
-							{moreCount > 0 && <Badge variant="soft">{moreCount}</Badge>}
-						</span>
-						<ChevronDown
-							className={cn(
-								"size-4 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
-								moreExpanded && "rotate-180",
-							)}
-						/>
-					</button>
-				</CollapsibleTrigger>
-				<CollapsibleContent>
-					<div className="space-y-4 pt-4 pb-1">
-						{instructorSelect && (
-							<SelectFilters
-								filters={[instructorSelect]}
-								getSelectValue={getSelectValue}
-								onSelectChange={handleSelectChange}
-							/>
-						)}
-					</div>
-				</CollapsibleContent>
-			</Collapsible>
+			{instructorSelect && (
+				<>
+					<Separator />
+					<SelectFilters
+						filters={[instructorSelect]}
+						getSelectValue={getSelectValue}
+						onSelectChange={handleSelectChange}
+					/>
+				</>
+			)}
 		</div>
 	);
 }

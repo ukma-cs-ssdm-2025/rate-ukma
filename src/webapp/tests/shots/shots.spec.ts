@@ -384,6 +384,21 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "home-speciality-free-choice",
+		section: "Головна",
+		note: "Filters narrowed to one speciality's free-choice courses",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/?spec=f-info-spec&type=ELECTIVE");
+			await page.getByText(COURSE.title).first().waitFor();
+			const trigger = page.getByTestId(testIds.filters.drawerTrigger);
+			if (await trigger.isVisible()) {
+				await trigger.click({ timeout: 5_000 });
+				await page.getByTestId(testIds.filters.drawer).waitFor();
+			}
+		},
+	},
+	{
 		name: "home-filtered",
 		section: "Головна",
 		note: "Home page with difficulty 1–3 and autumn filters applied",

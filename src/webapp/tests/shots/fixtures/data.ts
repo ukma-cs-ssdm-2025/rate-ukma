@@ -147,6 +147,7 @@ export const FILTER_OPTIONS = {
 	],
 	course_types: [
 		{ value: "COMPULSORY", label: "Compulsory" },
+		{ value: "PROF_ORIENTED", label: "Profession-oriented" },
 		{ value: "ELECTIVE", label: "Elective" },
 	],
 } satisfies FilterOptions;
