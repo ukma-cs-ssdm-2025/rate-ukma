@@ -17,7 +17,6 @@ import {
 	FormMessage,
 } from "@/components/ui/Form";
 import { Textarea } from "@/components/ui/Textarea";
-import { UserAvatar } from "@/components/UserAvatar";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
@@ -390,79 +389,56 @@ function RatingFormFields({
 				name="is_anonymous"
 				render={({ field }) => (
 					<FormItem>
-						{/* Shows the byline other students will see, so the effect of
-						    the toggle is visible instead of described. */}
-						<div className="rounded-xl border px-3.5 py-3">
-							<div className="flex items-center gap-3">
-								<UserAvatar
-									name={signature}
-									avatarUrl={isAnonymous ? null : author?.avatarUrl}
-									isAnonymous={isAnonymous}
-									className="size-8 shrink-0 text-xs font-semibold"
-								/>
-								<div className="min-w-0 flex-1">
-									<p className="truncate text-sm font-medium">{signature}</p>
-									<FormDescription className="text-xs">
-										{isAnonymous
-											? "Ім'я та фото приховано"
-											: "Ваше ім'я буде біля відгуку"}
-									</FormDescription>
-								</div>
-								<Button
-									type="button"
-									variant="ghost"
-									size="icon"
-									className="size-8 shrink-0 text-muted-foreground"
-									aria-expanded={previewOpen}
-									aria-label={
-										previewOpen
-											? "Сховати попередній перегляд"
-											: "Переглянути, як побачать інші"
-									}
-									onClick={() => setPreviewOpen((open) => !open)}
-								>
-									{previewOpen ? (
-										<EyeOff className="size-4" aria-hidden />
-									) : (
-										<Eye className="size-4" aria-hidden />
-									)}
-								</Button>
-								<div className="flex shrink-0 items-center gap-2">
-									<FormControl>
-										<Checkbox
-											checked={field.value}
-											onCheckedChange={(checked) =>
-												field.onChange(checked === true)
-											}
-											data-testid={testIds.rating.anonymousCheckbox}
-										/>
-									</FormControl>
-									<FormLabel className="font-normal">Анонімно</FormLabel>
-								</div>
-							</div>
-							{/* The same card the course page renders, fed from the form, so
-						    the anonymous toggle shows its real effect. */}
-							{previewOpen && (
-								<div className="mt-3 border-t pt-3 animate-in fade-in-0 duration-200 motion-reduce:animate-none">
-									<p className="mb-2.5 text-xs text-muted-foreground">
-										Так відгук побачать інші студенти
-									</p>
-									<RatingCardBody
-										displayName={signature}
-										isAnonymous={isAnonymous}
-										avatarUrl={isAnonymous ? null : author?.avatarUrl}
-										createdAt={new Date().toISOString()}
-										difficulty={difficulty || undefined}
-										usefulness={usefulness || undefined}
-										comment={comment.trim() || null}
-										commentEmptyMessage="Без текстового відгуку"
-										upvotes={0}
-										downvotes={0}
-										viewerVote={null}
+						<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+							<div className="flex items-center gap-2">
+								<FormControl>
+									<Checkbox
+										checked={field.value}
+										onCheckedChange={(checked) =>
+											field.onChange(checked === true)
+										}
+										data-testid={testIds.rating.anonymousCheckbox}
 									/>
-								</div>
-							)}
+								</FormControl>
+								<FormLabel className="font-normal">Анонімний відгук</FormLabel>
+							</div>
+							<button
+								type="button"
+								aria-expanded={previewOpen}
+								onClick={() => setPreviewOpen((open) => !open)}
+								className="inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+							>
+								{previewOpen ? (
+									<EyeOff className="size-4" aria-hidden />
+								) : (
+									<Eye className="size-4" aria-hidden />
+								)}
+								Як побачать інші
+							</button>
 						</div>
+						{/* The same card the course page renders, fed from the form, so
+						    the anonymous toggle shows its real effect. */}
+						{previewOpen && (
+							<div
+								role="region"
+								aria-label="Попередній перегляд відгуку"
+								className="rounded-xl bg-muted/50 p-3.5 animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+							>
+								<RatingCardBody
+									displayName={signature}
+									isAnonymous={isAnonymous}
+									avatarUrl={isAnonymous ? null : author?.avatarUrl}
+									createdAt={new Date().toISOString()}
+									difficulty={difficulty || undefined}
+									usefulness={usefulness || undefined}
+									comment={comment.trim() || null}
+									commentEmptyMessage="Без текстового відгуку"
+									upvotes={0}
+									downvotes={0}
+									viewerVote={null}
+								/>
+							</div>
+						)}
 						<FormMessage />
 					</FormItem>
 				)}

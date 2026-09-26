@@ -137,12 +137,10 @@ describe("RatingForm", () => {
 			screen.getByTestId(testIds.rating.commentTextarea),
 			"Корисний курс",
 		);
-		await user.click(
-			screen.getByRole("button", { name: "Переглянути, як побачать інші" }),
-		);
-		const preview = screen
-			.getByText("Так відгук побачать інші студенти")
-			.closest("div") as HTMLElement;
+		await user.click(screen.getByRole("button", { name: "Як побачать інші" }));
+		const preview = screen.getByRole("region", {
+			name: "Попередній перегляд відгуку",
+		});
 		expect(preview).toHaveTextContent("Коваль Олена");
 		expect(preview).toHaveTextContent("Корисний курс");
 
