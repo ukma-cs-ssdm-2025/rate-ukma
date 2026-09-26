@@ -26,22 +26,27 @@ interface NotificationListProps {
 	onLoadMore?: () => void;
 }
 
+// Likes and dislikes read at a glance by colour, so each event keeps its tone
+// even once read; unread weight comes from the bold headline instead.
 const EVENT_ICONS: Record<
 	EventTypeEnum,
 	{ icon: typeof ThumbsUp; tone: string }
 > = {
-	[EventTypeEnum.RATING_UPVOTED]: { icon: ThumbsUp, tone: "text-primary" },
+	[EventTypeEnum.RATING_UPVOTED]: {
+		icon: ThumbsUp,
+		tone: "bg-success/10 text-success",
+	},
 	[EventTypeEnum.RATING_DOWNVOTED]: {
 		icon: ThumbsDown,
-		tone: "text-muted-foreground",
+		tone: "bg-destructive/10 text-destructive",
 	},
 	[EventTypeEnum.RATING_COMMENT_CREATED]: {
 		icon: MessageSquare,
-		tone: "text-foreground",
+		tone: "bg-primary/10 text-primary",
 	},
 };
 
-const FALLBACK_EVENT = { icon: Bell, tone: "text-muted-foreground" };
+const FALLBACK_EVENT = { icon: Bell, tone: "bg-muted text-muted-foreground" };
 
 export function NotificationList({
 	notifications,
@@ -202,13 +207,15 @@ function NotificationItem({
 
 	const content = (
 		<>
-			<Icon
+			<span
 				aria-hidden
 				className={cn(
-					"mt-0.5 size-4 shrink-0",
-					isUnread ? tone : "text-muted-foreground",
+					"flex size-7 shrink-0 items-center justify-center rounded-full",
+					tone,
 				)}
-			/>
+			>
+				<Icon className="size-3.5" />
+			</span>
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 				<p
 					className={cn(
