@@ -68,6 +68,9 @@ export const COURSES = COURSE_SEEDS.map(
 
 export const COURSE = COURSES[0];
 
+export const LONG_COURSE_TITLE =
+	"Українська мова за професійним спрямуванням для студентів природничих і технічних спеціальностей";
+
 // General courses such as Ukrainian for professional purposes list most
 // bachelor programmes; single-word titles without an alias render in full.
 const MANY_SPECIALITY_TITLES = [

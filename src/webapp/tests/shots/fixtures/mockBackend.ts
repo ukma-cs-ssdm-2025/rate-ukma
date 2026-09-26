@@ -14,6 +14,7 @@ import {
 	myCourses as myCoursesFor,
 	type MyCourseState,
 	MY_GRADES,
+	LONG_COURSE_TITLE,
 	MANY_SPECIALITIES,
 	MY_GRADES_MANY,
 	NOTIFICATIONS,
@@ -32,6 +33,8 @@ export interface MockOptions {
 	readonly session?: "student" | "guest";
 	/** `many` gives the first course twenty specialities, like a general course. */
 	readonly specialities?: "one" | "many";
+	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
+	readonly title?: "short" | "long";
 }
 
 const courseList = {
@@ -62,6 +65,7 @@ export async function mockBackend(
 		notifications = "none",
 		session = "student",
 		specialities = "one",
+		title = "short",
 	}: MockOptions = {},
 ): Promise<void> {
 	const many = specialities === "many";
@@ -70,9 +74,11 @@ export async function mockBackend(
 				index === 0 ? { ...course, specialities: MANY_SPECIALITIES } : course,
 			)
 		: COURSES;
-	const courseDetail = many
-		? { ...COURSE_DETAIL, specialities: MANY_SPECIALITIES }
-		: COURSE_DETAIL;
+	const courseDetail = {
+		...COURSE_DETAIL,
+		...(many ? { specialities: MANY_SPECIALITIES } : {}),
+		...(title === "long" ? { title: LONG_COURSE_TITLE } : {}),
+	};
 	const visibleCourseList = { ...courseList, items: courseItems };
 	const handlers: ReadonlyArray<
 		readonly [RegExp, (path: string, url: URL) => unknown]

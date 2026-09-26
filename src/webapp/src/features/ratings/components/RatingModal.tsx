@@ -175,8 +175,11 @@ export function RatingModal({
 				)}
 				data-testid={testIds.rating.modal}
 			>
-				<DialogHeader className="shrink-0 border-b border-transparent px-6 pt-6 pb-4 text-left transition-colors motion-reduce:transition-none group-has-[[data-scrolled]]/rating-modal:border-border">
-					<DialogTitle data-testid={testIds.rating.modalTitle}>
+				<DialogHeader className="shrink-0 border-b border-transparent pt-6 pr-12 pb-4 pl-6 text-left transition-colors motion-reduce:transition-none group-has-[[data-scrolled]]/rating-modal:border-border">
+					<DialogTitle
+						className="leading-snug text-balance"
+						data-testid={testIds.rating.modalTitle}
+					>
 						{courseName?.trim() ||
 							(isEditMode ? "Редагувати оцінку" : "Оцінити курс")}
 					</DialogTitle>

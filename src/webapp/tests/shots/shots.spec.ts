@@ -564,6 +564,18 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "rating-modal-long-title",
+		section: "Оцінювання",
+		note: "Rating modal for a course whose title wraps next to the close button",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rateable", title: "long" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.getByRole("heading", { level: 1 }).waitFor();
+			await page.getByTestId("course-details-rate-button").click();
+			await page.getByTestId(testIds.rating.modal).waitFor();
+		},
+	},
+	{
 		name: "course-rating-delete",
 		section: "Оцінювання",
 		note: "Deleting the own rating asks for confirmation",
