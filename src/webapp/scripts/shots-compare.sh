@@ -5,7 +5,8 @@
 #   pnpm shots:compare                        # origin/main vs working tree
 #   pnpm shots:compare <ref>                  # any branch, tag or sha as the base
 #   SHOT_ONLY='^course' pnpm shots:compare    # states whose name matches the regex
-#   SHOT_DIR=/tmp/x SHOT_NO_OPEN=1 pnpm shots:compare
+#   SHOT_DIR=/tmp/x pnpm shots:compare     # prints the gallery path
+#   SHOT_OPEN=open pnpm shots:compare         # and opens it with any command
 #
 # The base is built once per commit and cached under $SHOT_CACHE. The current
 # branch's shot states drive both builds, so a state the base cannot reach
@@ -61,6 +62,7 @@ SHOT_DIR=$out SHOT_BEFORE_DIR=$out/before \
 	pnpm exec playwright test --config playwright.shots.config.ts
 
 echo "$out/index.html"
-if [[ -z ${SHOT_NO_OPEN:-} ]]; then
-	orca tab create --url "file://$out/index.html" --json >/dev/null 2>&1 || true
+# SHOT_OPEN names any command that takes the gallery path, e.g. `open`.
+if [[ -n ${SHOT_OPEN:-} ]]; then
+	$SHOT_OPEN "$out/index.html"
 fi

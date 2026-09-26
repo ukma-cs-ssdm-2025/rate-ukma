@@ -92,14 +92,17 @@ pnpm shots                                 # build, preview, shoot into shots/
 SHOT_ONLY=feed pnpm shots                  # only states whose name matches
 SHOT_DIR=/tmp/after SHOT_BEFORE_DIR=/tmp/before pnpm shots   # index.html pairs before | after
 SHOT_BASE_URL=http://127.0.0.1:4175 pnpm shots               # shoot a server that is already running
+SHOT_OPEN=open pnpm shots                  # open the gallery afterwards with any command (xdg-open, a browser, ...)
 ```
 
-`pnpm shots:compare` shoots a base ref and the working tree with the same states and opens one before | after gallery. The base is built once per commit and cached in `$TMPDIR/rate-ukma-shots`; a state the base cannot reach shows as "no before shot".
+Both commands print the gallery path when they finish; nothing opens unless `SHOT_OPEN` is set.
+
+`pnpm shots:compare` shoots a base ref and the working tree with the same states and builds one before | after gallery. The base is built once per commit and cached in `$TMPDIR/rate-ukma-shots`; a state the base cannot reach shows as "no before shot".
 
 ```bash
 pnpm shots:compare                         # origin/main vs working tree
 pnpm shots:compare my-branch               # any branch, tag or sha as the base
-SHOT_ONLY='^course' SHOT_DIR=/tmp/cmp SHOT_NO_OPEN=1 pnpm shots:compare   # scripted: prints the index path
+SHOT_ONLY='^course' SHOT_DIR=/tmp/cmp pnpm shots:compare     # only course states, into /tmp/cmp
 ```
 
 The gallery groups states by page in a sidebar and marks each one changed, new or same (byte-identical). Section chips at the top (or the sidebar headings) show one page at a time. Keys: `1`–`4` switch width and theme, `[`/`]` step through sections, `0` shows all sections, `j`/`k` step through states, `g` toggles a thumbnail grid, `/` filters by name, `c` hides unchanged states. The URL hash keeps the view, state, section and grid, so a link opens the same spot.
