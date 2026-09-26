@@ -68,6 +68,42 @@ export const COURSES = COURSE_SEEDS.map(
 
 export const COURSE = COURSES[0];
 
+// General courses such as Ukrainian for professional purposes list most
+// bachelor programmes; single-word titles without an alias render in full.
+const MANY_SPECIALITY_TITLES = [
+	["Комп'ютерні науки", 0],
+	["Інженерія програмного забезпечення", 0],
+	["Прикладна математика", 0],
+	["Системний аналіз", 0],
+	["Економіка", 1],
+	["Фінанси, банківська справа та страхування", 1],
+	["Маркетинг", 1],
+	["Менеджмент", 1],
+	["Право", 2],
+	["Політологія", 2],
+	["Соціологія", 2],
+	["Психологія", 2],
+	["Філологія", 2],
+	["Історія та археологія", 2],
+	["Філософія", 2],
+	["Культурологія", 2],
+	["Біологія", 0],
+	["Екологія", 0],
+	["Журналістика", 2],
+	["Публічне управління та адміністрування", 1],
+] as const;
+
+export const MANY_SPECIALITIES = MANY_SPECIALITY_TITLES.map(
+	([title, faculty], index) => ({
+		speciality_id: `spec-many-${index}`,
+		speciality_title: title,
+		speciality_alias: null,
+		faculty_name: FACULTIES[faculty].name,
+		faculty_id: FACULTIES[faculty].id,
+		type_kind: "COMPULSORY" as const,
+	}),
+);
+
 // Real САЗ descriptions run several paragraphs, so the detail page gets a long one.
 export const COURSE_DETAIL = {
 	...COURSE,
@@ -315,6 +351,21 @@ export const COURSE_OFFERINGS = {
 		offering(2024, "SPRING", "5.0", 4),
 		offering(2023, "SPRING", "5.0", 4),
 		offering(2021, "SPRING", "4.0", 3),
+	],
+} satisfies CourseOfferingListResponse;
+
+// One run lists every speciality on a single record, the next splits them
+// into a record each, so both shapes of a general course show up.
+export const COURSE_OFFERINGS_MANY = {
+	course_offerings: [
+		{ ...offering(2026, "SPRING", "3.0", 2), specialities: MANY_SPECIALITIES },
+		...MANY_SPECIALITIES.map((speciality, index) => ({
+			...offering(2025, "SPRING", "3.0", 2),
+			id: `offering-2025-SPRING-many-${index}`,
+			code: `9300${index}`,
+			specialities: [speciality],
+		})),
+		{ ...offering(2024, "SPRING", "3.0", 2), specialities: MANY_SPECIALITIES },
 	],
 } satisfies CourseOfferingListResponse;
 

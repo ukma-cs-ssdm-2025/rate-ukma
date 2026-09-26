@@ -5,6 +5,7 @@ import {
 	COMMENT_REPLIES,
 	COURSE_DETAIL,
 	COURSE_OFFERINGS,
+	COURSE_OFFERINGS_MANY,
 	COURSE_RATINGS,
 	COURSES,
 	EMPTY_COMMENT_LIST,
@@ -13,6 +14,7 @@ import {
 	myCourses as myCoursesFor,
 	type MyCourseState,
 	MY_GRADES,
+	MANY_SPECIALITIES,
 	MY_GRADES_MANY,
 	NOTIFICATIONS,
 	RATING_COMMENTS,
@@ -28,6 +30,8 @@ export interface MockOptions {
 	readonly reviews?: "items" | "empty";
 	readonly notifications?: "none" | "items";
 	readonly session?: "student" | "guest";
+	/** `many` gives the first course twenty specialities, like a general course. */
+	readonly specialities?: "one" | "many";
 }
 
 const courseList = {
@@ -57,8 +61,19 @@ export async function mockBackend(
 		reviews = "items",
 		notifications = "none",
 		session = "student",
+		specialities = "one",
 	}: MockOptions = {},
 ): Promise<void> {
+	const many = specialities === "many";
+	const courseItems = many
+		? COURSES.map((course, index) =>
+				index === 0 ? { ...course, specialities: MANY_SPECIALITIES } : course,
+			)
+		: COURSES;
+	const courseDetail = many
+		? { ...COURSE_DETAIL, specialities: MANY_SPECIALITIES }
+		: COURSE_DETAIL;
+	const visibleCourseList = { ...courseList, items: courseItems };
 	const handlers: ReadonlyArray<
 		readonly [RegExp, (path: string, url: URL) => unknown]
 	> = [
@@ -100,14 +115,17 @@ export async function mockBackend(
 			/^\/courses\/$/,
 			(_path, url) => {
 				const query = url.searchParams.get("name")?.toLowerCase();
-				if (!query) return courseList;
-				const items = COURSES.filter((course) =>
+				if (!query) return visibleCourseList;
+				const items = courseItems.filter((course) =>
 					course.title?.toLowerCase().includes(query),
 				);
-				return { ...courseList, items, total: items.length };
+				return { ...visibleCourseList, items, total: items.length };
 			},
 		],
-		[/^\/courses\/[^/]+\/offerings\/$/, () => COURSE_OFFERINGS],
+		[
+			/^\/courses\/[^/]+\/offerings\/$/,
+			() => (many ? COURSE_OFFERINGS_MANY : COURSE_OFFERINGS),
+		],
 		[
 			/^\/courses\/[^/]+\/ratings\/$/,
 			() =>
@@ -124,12 +142,12 @@ export async function mockBackend(
 			() =>
 				reviews === "empty"
 					? {
-							...COURSE_DETAIL,
+							...courseDetail,
 							avg_difficulty: null,
 							avg_usefulness: null,
 							ratings_count: 0,
 						}
-					: COURSE_DETAIL,
+					: courseDetail,
 		],
 		[
 			/^\/ratings\/[^/]+\/comments\/$/,

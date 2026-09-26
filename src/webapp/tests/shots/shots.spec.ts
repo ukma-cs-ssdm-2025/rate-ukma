@@ -214,6 +214,43 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "course-many-specialities",
+		section: "Курс",
+		note: "General course with twenty specialities, one САЗ year split per speciality",
+		run: async (page) => {
+			await mockBackend(page, { specialities: "many" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("heading", { level: 1, name: COURSE.title })
+				.waitFor();
+			await page.getByText("Лекції насичені").first().waitFor();
+		},
+	},
+	{
+		name: "course-many-specialities-open",
+		section: "Курс",
+		note: "Twenty specialities expanded in the course header",
+		run: async (page) => {
+			await mockBackend(page, { specialities: "many" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("button", { name: "Показати всі спеціальності" })
+				.first()
+				.click();
+			await page.getByText("Журналістика").first().waitFor();
+		},
+	},
+	{
+		name: "home-many-specialities",
+		section: "Головна",
+		note: "Course list row for a general course with twenty specialities",
+		run: async (page) => {
+			await mockBackend(page, { specialities: "many" });
+			await page.goto("/");
+			await page.getByText(COURSE.title).first().waitFor();
+		},
+	},
+	{
 		name: "notifications",
 		section: "Навігація",
 		note: "Notifications open: two new, two earlier",
