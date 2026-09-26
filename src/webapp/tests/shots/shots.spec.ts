@@ -166,6 +166,17 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "my-ratings-unrated",
+		section: "Мої оцінки",
+		note: "Four years filtered down to courses still waiting for a rating",
+		run: async (page) => {
+			await mockBackend(page, { grades: "many" });
+			await page.goto("/my-ratings");
+			await page.getByRole("button", { name: /Лише неоцінені/ }).click();
+			await page.getByTestId(testIds.myRatings.list).waitFor();
+		},
+	},
+	{
 		name: "my-ratings-empty",
 		section: "Мої оцінки",
 		note: "Мої оцінки for a student with no courses",

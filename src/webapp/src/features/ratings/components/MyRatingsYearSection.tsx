@@ -5,26 +5,36 @@ import { MyRatingsSemesterSection } from "./MyRatingsSemesterSection";
 interface MyRatingsYearSectionProps {
 	yearGroup: YearGroup;
 	onRatingChanged: () => undefined | Promise<unknown>;
+	forceOpen?: boolean;
 }
 
 export function MyRatingsYearSection({
 	yearGroup,
 	onRatingChanged,
+	forceOpen,
 }: Readonly<MyRatingsYearSectionProps>) {
 	if (yearGroup.seasons.length === 0) return null;
 
-	// An academic-year heading over a single semester is noise, so a lone
-	// semester stands on its own as "Весна 2026".
-	const [onlySeason] = yearGroup.seasons;
-	if (yearGroup.seasons.length === 1 && onlySeason.year != null) {
+	// An academic-year heading over a single semester is noise, and so is one
+	// over a filtered list, so those semesters stand alone as "Весна 2026".
+	if (
+		(forceOpen || yearGroup.seasons.length === 1) &&
+		yearGroup.seasons.every((season) => season.year != null)
+	) {
 		return (
-			<MyRatingsSemesterSection
-				seasonGroup={{
-					...onlySeason,
-					label: `${onlySeason.label} ${onlySeason.year}`,
-				}}
-				onRatingChanged={onRatingChanged}
-			/>
+			<>
+				{yearGroup.seasons.map((seasonGroup) => (
+					<MyRatingsSemesterSection
+						key={seasonGroup.key}
+						seasonGroup={{
+							...seasonGroup,
+							label: `${seasonGroup.label} ${seasonGroup.year}`,
+						}}
+						onRatingChanged={onRatingChanged}
+						forceOpen={forceOpen}
+					/>
+				))}
+			</>
 		);
 	}
 
@@ -38,6 +48,7 @@ export function MyRatingsYearSection({
 						key={seasonGroup.key}
 						seasonGroup={seasonGroup}
 						onRatingChanged={onRatingChanged}
+						forceOpen={forceOpen}
 					/>
 				))}
 			</div>

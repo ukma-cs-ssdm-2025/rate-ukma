@@ -135,11 +135,14 @@ function SemesterStatus({
 interface MyRatingsSemesterSectionProps {
 	seasonGroup: SemesterGroup;
 	onRatingChanged: () => undefined | Promise<unknown>;
+	/** Holds the section open without touching the remembered state, e.g. under a filter. */
+	forceOpen?: boolean;
 }
 
 export function MyRatingsSemesterSection({
 	seasonGroup,
 	onRatingChanged,
+	forceOpen = false,
 }: Readonly<MyRatingsSemesterSectionProps>) {
 	const timing = semesterTiming(
 		seasonGroup.year,
@@ -147,11 +150,13 @@ export function MyRatingsSemesterSection({
 		new Date(),
 	);
 	// Open by default: the running semester and anything still waiting for a rating.
-	const [open, setOpen] = useSemesterOpen(
+	const [storedOpen, setOpen] = useSemesterOpen(
 		`${seasonGroup.year ?? "none"}-${seasonGroup.key}`,
 		timing !== "future" &&
 			(seasonGroup.unratedRateableCount > 0 || timing === "current"),
 	);
+
+	const open = forceOpen || storedOpen;
 
 	const sortedItems = useMemo(() => {
 		// What is left to rate scans first; rated rows stay alphabetical after it.

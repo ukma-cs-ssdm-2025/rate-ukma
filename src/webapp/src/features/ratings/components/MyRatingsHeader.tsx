@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 
+import { ListFilter } from "lucide-react";
+
 import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/Button";
 import { testIds } from "@/lib/test-ids";
 
 interface MyRatingsHeaderProps {
@@ -8,6 +11,8 @@ interface MyRatingsHeaderProps {
 	ratedCourses: number;
 	/** Unrated courses whose rating window is already open. */
 	rateableLeft?: number;
+	onlyUnrated?: boolean;
+	onOnlyUnratedChange?: (next: boolean) => void;
 }
 
 function ProgressBar({ share }: Readonly<{ share: number }>) {
@@ -35,6 +40,8 @@ export function MyRatingsHeader({
 	totalCourses,
 	ratedCourses,
 	rateableLeft = 0,
+	onlyUnrated = false,
+	onOnlyUnratedChange,
 }: Readonly<MyRatingsHeaderProps>) {
 	let hint: string | undefined;
 	if (rateableLeft > 0) hint = `ще ${rateableLeft} можна оцінити зараз`;
@@ -43,6 +50,23 @@ export function MyRatingsHeader({
 		<div data-testid={testIds.myRatings.header}>
 			<PageHeader
 				title="Мої оцінки"
+				actions={
+					rateableLeft > 0 && onOnlyUnratedChange ? (
+						<Button
+							variant="outline"
+							size="sm"
+							aria-pressed={onlyUnrated}
+							onClick={() => onOnlyUnratedChange(!onlyUnrated)}
+							className="gap-1.5 aria-pressed:border-primary/30 aria-pressed:bg-primary/10 aria-pressed:text-primary"
+						>
+							<ListFilter className="size-4" aria-hidden />
+							Лише неоцінені
+							<span className="tabular-nums text-muted-foreground">
+								{rateableLeft}
+							</span>
+						</Button>
+					) : undefined
+				}
 				description={
 					totalCourses > 0 ? (
 						<>

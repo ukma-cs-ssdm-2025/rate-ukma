@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -51,6 +51,19 @@ function MyRatings() {
 		[groupedRatings],
 	);
 
+	const [onlyUnrated, setOnlyUnrated] = useState(false);
+	// Rating the last pending course empties the filter, so it lets go by itself.
+	const showOnlyUnrated = onlyUnrated && rateableLeft > 0;
+	const visibleGroups = useMemo(
+		() =>
+			showOnlyUnrated
+				? groupRatingsByYearAndSemester(
+						ratings.filter((course) => !course.rated && course.can_rate),
+					)
+				: groupedRatings,
+		[showOnlyUnrated, ratings, groupedRatings],
+	);
+
 	if (!isStudent) {
 		return (
 			<Layout>
@@ -92,12 +105,18 @@ function MyRatings() {
 					totalCourses={totalCourses}
 					ratedCourses={ratedCourses}
 					rateableLeft={rateableLeft}
+					onlyUnrated={showOnlyUnrated}
+					onOnlyUnratedChange={setOnlyUnrated}
 				/>
-				<div className="space-y-8" data-testid={testIds.myRatings.list}>
-					{groupedRatings.map((yearGroup) => (
+				<div
+					className={showOnlyUnrated ? "space-y-1" : "space-y-8"}
+					data-testid={testIds.myRatings.list}
+				>
+					{visibleGroups.map((yearGroup) => (
 						<MyRatingsYearSection
 							key={yearGroup.key}
 							yearGroup={yearGroup}
+							forceOpen={showOnlyUnrated}
 							onRatingChanged={refetch}
 						/>
 					))}
