@@ -1,4 +1,5 @@
 import { TermBadge } from "@/components/TermBadge";
+import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { EducationLevelEnum, TypeKindEnum } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
@@ -52,34 +53,29 @@ export function CourseDetailsHeader({
 				<p className="text-sm text-muted-foreground">{meta.join(", ")}</p>
 			)}
 
-			{((specialities?.length ?? 0) > 0 ||
-				terms.length > 0 ||
-				credits ||
-				weeklyHours) && (
-				<div className="flex max-w-4xl flex-wrap items-center gap-1.5">
-					<CourseSpecialityBadges specialities={specialities} />
+			{/* Term and load are one fixed-size row; specialities run on their own
+			    line because general courses list twenty of them. */}
+			{(terms.length > 0 || credits || weeklyHours) && (
+				<div className="flex flex-wrap items-center gap-1.5">
 					{terms.map((term) => (
 						<TermBadge key={term} term={term} />
 					))}
-					{credits || weeklyHours ? (
-						<span className="ml-2 inline-flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-							{credits ? (
-								<span className="font-medium text-foreground tabular-nums">
-									{credits}
-								</span>
-							) : null}
-							{weeklyHours ? (
-								<span>
-									<span className="font-medium text-foreground tabular-nums">
-										{weeklyHours}
-									</span>{" "}
-									на тиждень
-								</span>
-							) : null}
-						</span>
+					{credits ? (
+						<Badge variant="outline" className="tabular-nums">
+							{credits}
+						</Badge>
+					) : null}
+					{weeklyHours ? (
+						<Badge variant="outline" className="tabular-nums">
+							{weeklyHours} на тиждень
+						</Badge>
 					) : null}
 				</div>
 			)}
+
+			<div className="max-w-4xl empty:hidden">
+				<CourseSpecialityBadges specialities={specialities} />
+			</div>
 		</header>
 	);
 }

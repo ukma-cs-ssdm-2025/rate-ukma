@@ -13,6 +13,7 @@ import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpec
 import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
 
 const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
+const MAX_RECORDS_PER_YEAR = 3;
 
 const TERM_ORDER: Record<string, number> = {
 	FALL: 0,
@@ -182,15 +183,21 @@ function RecordLink({
 			{...linkProps}
 			className="underline-offset-4 transition-colors hover:text-primary hover:underline"
 		>
-			{/* Glue the icon to the last word so it never wraps onto its own line. */}
-			{label.slice(0, label.lastIndexOf(" ") + 1)}
-			<span className="whitespace-nowrap">
-				{label.slice(label.lastIndexOf(" ") + 1)}
-				<ExternalLink
-					className="ml-1 inline size-3 align-baseline"
-					aria-hidden="true"
-				/>
-			</span>
+			{/* Break only between facts, so "5 ECTS" never splits, and keep the
+			    icon on the last one. */}
+			{label.split(", ").map((part, index, parts) => (
+				<span key={part} className="whitespace-nowrap">
+					{index > 0 ? " " : null}
+					{part}
+					{index < parts.length - 1 ? "," : null}
+					{index === parts.length - 1 ? (
+						<ExternalLink
+							className="ml-1 inline size-3 align-baseline"
+							aria-hidden="true"
+						/>
+					) : null}
+				</span>
+			))}
 		</a>
 	);
 }
@@ -212,8 +219,16 @@ function YearRow({
 	showTerm: boolean;
 	bySpeciality: boolean;
 }>) {
+	const [expanded, setExpanded] = useState(false);
 	const termLabel = showTerm || group.terms.includes(",") ? group.terms : "";
 	const labels = recordLabels(group.records, bySpeciality);
+	const hidden = group.records.length - MAX_RECORDS_PER_YEAR;
+	// A general course can split one year into twenty streams; past a few
+	// they stop telling the reader anything new.
+	const shown =
+		expanded || hidden <= 1
+			? group.records
+			: group.records.slice(0, MAX_RECORDS_PER_YEAR);
 	return (
 		<>
 			<div>
@@ -223,7 +238,7 @@ function YearRow({
 				) : null}
 			</div>
 			<ul className="col-span-2 grid grid-cols-subgrid gap-y-1.5">
-				{group.records.map((record, index) => {
+				{shown.map((record, index) => {
 					const label = labels[index] || "Запис у САЗ";
 					const ariaLabel = [group.year, termLabel, labels[index]]
 						.filter(Boolean)
@@ -262,6 +277,18 @@ function YearRow({
 						</li>
 					);
 				})}
+				{hidden > 1 ? (
+					<li className="col-span-2">
+						<button
+							type="button"
+							aria-expanded={expanded}
+							className="text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+							onClick={() => setExpanded((open) => !open)}
+						>
+							{expanded ? "Згорнути" : `ще ${hidden}`}
+						</button>
+					</li>
+				) : null}
 			</ul>
 		</>
 	);
@@ -297,7 +324,7 @@ export function CourseCazRecords({
 		<div>
 			{/* One grid for every year, so badges and links line up down the list. */}
 			<Collapsible open={expanded} asChild>
-				<ul className="grid grid-cols-[5.5rem_fit-content(10rem)_minmax(0,1fr)] gap-x-3 gap-y-3 text-sm">
+				<ul className="grid grid-cols-[5.5rem_minmax(0,max-content)_auto] gap-x-3 gap-y-3 text-sm">
 					{groups.slice(0, initialVisible).map(renderGroup)}
 					{rest.length > 0 ? (
 						<CollapsibleContent asChild className="mx-0 px-0">
