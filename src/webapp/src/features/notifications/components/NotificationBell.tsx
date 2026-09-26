@@ -66,7 +66,7 @@ export function NotificationBell() {
 					aria-label={`Сповіщення${unreadCount > 0 ? ` (${unreadCount} непрочитаних)` : ""}`}
 					data-testid={testIds.notifications.bellTrigger}
 				>
-					<Bell className="size-4.5" />
+					<Bell className="size-4" />
 					{unreadCount > 0 && (
 						<span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
 							{unreadCount > 99 ? "99+" : unreadCount}
