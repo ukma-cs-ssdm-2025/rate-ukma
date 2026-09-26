@@ -58,15 +58,21 @@ export function CourseDetailsHeader({
 			{(terms.length > 0 || credits || weeklyHours) && (
 				<div className="flex flex-wrap items-center gap-1.5">
 					{terms.map((term) => (
-						<TermBadge key={term} term={term} />
+						<TermBadge key={term} term={term} look="dot" />
 					))}
 					{credits ? (
-						<Badge variant="outline" className="tabular-nums">
+						<Badge
+							variant="outline"
+							className="border-transparent bg-muted tabular-nums"
+						>
 							{credits}
 						</Badge>
 					) : null}
 					{weeklyHours ? (
-						<Badge variant="outline" className="tabular-nums">
+						<Badge
+							variant="outline"
+							className="border-transparent bg-muted tabular-nums"
+						>
 							{weeklyHours} на тиждень
 						</Badge>
 					) : null}
