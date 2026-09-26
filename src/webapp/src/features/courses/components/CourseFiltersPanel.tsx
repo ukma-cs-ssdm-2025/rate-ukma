@@ -612,8 +612,6 @@ function CourseFiltersContent({
 				/>
 			</FilterSection>
 
-			<Separator />
-
 			<FilterSection label="Оцінки курсу" testId={testIds.filters.groupRating}>
 				<RangeFilters
 					filters={groups.rating.rangeFilters}
@@ -634,18 +632,14 @@ function CourseFiltersContent({
 					toggle={groups.structure.educationLevelToggle}
 					onToggle={handleEducationLevelToggle}
 				/>
-			</FilterSection>
-
-			{instructorSelect && (
-				<>
-					<Separator />
+				{instructorSelect && (
 					<SelectFilters
 						filters={[instructorSelect]}
 						getSelectValue={getSelectValue}
 						onSelectChange={handleSelectChange}
 					/>
-				</>
-			)}
+				)}
+			</FilterSection>
 		</div>
 	);
 }
