@@ -34,7 +34,7 @@ const EVENT_ICONS: Record<
 > = {
 	[EventTypeEnum.RATING_UPVOTED]: {
 		icon: ThumbsUp,
-		tone: "bg-success/10 text-success",
+		tone: "bg-primary/10 text-primary",
 	},
 	[EventTypeEnum.RATING_DOWNVOTED]: {
 		icon: ThumbsDown,
@@ -42,7 +42,7 @@ const EVENT_ICONS: Record<
 	},
 	[EventTypeEnum.RATING_COMMENT_CREATED]: {
 		icon: MessageSquare,
-		tone: "bg-primary/10 text-primary",
+		tone: "bg-muted text-muted-foreground",
 	},
 };
 
