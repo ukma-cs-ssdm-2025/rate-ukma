@@ -140,7 +140,7 @@ export function MobileNotificationRow({
 				className="relative size-9"
 				aria-label="Відкрити сповіщення"
 			>
-				<Bell className="size-5" />
+				<Bell className="size-4.5" />
 				{count > 0 && (
 					<span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
 						{count > 99 ? "99+" : count}
