@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useFeatureFlagState } from "@/lib/feature-flags";
 import { useHorizontalScroll } from "@/lib/hooks/useHorizontalScroll";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ import { useFeed } from "../hooks/useFeed";
 import { FeedItem } from "./FeedItem";
 
 const STRIP_PAGE_SIZE = 8;
+const LOADING_TILES = ["tile-1", "tile-2", "tile-3", "tile-4", "tile-5"];
 
 type ScrollEdge = "both" | "left" | "right" | "none";
 
@@ -101,6 +103,19 @@ export function FeedStrip() {
 					EDGE_MASK[edge],
 				)}
 			>
+				{isLoading
+					? LOADING_TILES.map((key) => (
+							<div
+								key={key}
+								aria-hidden="true"
+								className="h-[84px] w-[250px] shrink-0 space-y-2 rounded-xl border bg-card p-3"
+							>
+								<Skeleton className="h-4 w-3/4" />
+								<Skeleton className="h-3 w-full" />
+								<Skeleton className="h-3 w-1/2" />
+							</div>
+						))
+					: null}
 				{items.map((item) => (
 					<div
 						key={`${item.kind}:${item.id}`}

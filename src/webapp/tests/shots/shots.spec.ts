@@ -697,6 +697,46 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.locator("h1").first().waitFor();
 		},
 	},
+	{
+		name: "home-loading",
+		section: "Завантаження",
+		note: "Courses page while the list, filters and feed load",
+		run: async (page) => {
+			await mockBackend(page, { loading: true });
+			await page.goto("/");
+			await page.locator('[data-slot="skeleton"]').first().waitFor();
+		},
+	},
+	{
+		name: "course-loading",
+		section: "Завантаження",
+		note: "Course page before the course and its offerings arrive",
+		run: async (page) => {
+			await mockBackend(page, { loading: true });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page.locator('[data-slot="skeleton"]').first().waitFor();
+		},
+	},
+	{
+		name: "my-ratings-loading",
+		section: "Завантаження",
+		note: "My ratings while grades load",
+		run: async (page) => {
+			await mockBackend(page, { loading: true });
+			await page.goto("/my-ratings");
+			await page.locator('[data-slot="skeleton"]').first().waitFor();
+		},
+	},
+	{
+		name: "feed-loading",
+		section: "Завантаження",
+		note: "/feed while items load",
+		run: async (page) => {
+			await mockBackend(page, { loading: true });
+			await page.goto("/feed");
+			await page.locator('[data-slot="skeleton"]').first().waitFor();
+		},
+	},
 ];
 const STATES = ALL_STATES.filter((state) => !only || only.test(state.name));
 

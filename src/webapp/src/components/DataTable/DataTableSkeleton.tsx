@@ -40,21 +40,22 @@ export function DataTableSkeleton({
 			className={cn("flex w-full flex-col gap-4 overflow-auto", className)}
 			{...props}
 		>
-			<div className="flex w-full items-center justify-between gap-2 overflow-auto p-1">
-				<div className="flex flex-1 items-center gap-2">
-					{filterCount > 0
-						? Array.from({ length: filterCount }).map((_, i) => (
-								<Skeleton
-									key={`skeleton-filter-${String(i)}`}
-									className="h-7 w-[4.5rem] border-dashed"
-								/>
-							))
-						: null}
+			{/* An empty toolbar would push the table below where it renders. */}
+			{filterCount > 0 || withViewOptions ? (
+				<div className="flex w-full items-center justify-between gap-2 overflow-auto p-1">
+					<div className="flex flex-1 items-center gap-2">
+						{Array.from({ length: filterCount }).map((_, i) => (
+							<Skeleton
+								key={`skeleton-filter-${String(i)}`}
+								className="h-7 w-[4.5rem] border-dashed"
+							/>
+						))}
+					</div>
+					{withViewOptions ? (
+						<Skeleton className="ml-auto hidden h-7 w-[4.5rem] lg:flex" />
+					) : null}
 				</div>
-				{withViewOptions ? (
-					<Skeleton className="ml-auto hidden h-7 w-[4.5rem] lg:flex" />
-				) : null}
-			</div>
+			) : null}
 			<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
 				<Table>
 					<TableHeader>
@@ -71,7 +72,9 @@ export function DataTableSkeleton({
 											minWidth: shrinkZero ? cozyCellWidths[j] : "auto",
 										}}
 									>
-										<Skeleton className="h-5 w-24" />
+										<Skeleton
+											className={j === 0 ? "h-4 w-24" : "mx-auto h-4 w-20"}
+										/>
 									</TableHead>
 								))}
 							</TableRow>

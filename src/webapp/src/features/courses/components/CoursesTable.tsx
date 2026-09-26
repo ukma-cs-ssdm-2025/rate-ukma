@@ -593,7 +593,18 @@ export function CoursesTable({
 
 	const renderTableContent = () => {
 		if (isInitialLoading) {
-			return <DataTableSkeleton columnCount={4} withViewOptions={false} />;
+			return (
+				<DataTableSkeleton
+					// Phones hide the reviews column.
+					columnCount={isCompactTable ? 3 : 4}
+					cellWidths={
+						isCompactTable
+							? ["auto", "80px", "80px"]
+							: ["auto", "150px", "150px", "130px"]
+					}
+					withViewOptions={false}
+				/>
+			);
 		}
 		return (
 			<DataTable
@@ -602,6 +613,12 @@ export function CoursesTable({
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}
 				onRowClick={handleRowClick}
+				// Previous results stay on screen while new ones load; dimming
+				// them shows the filter took effect.
+				className={cn(
+					"transition-opacity duration-200 motion-reduce:transition-none",
+					isLoading && "opacity-60",
+				)}
 				emptyStateMessage={
 					hasActiveFilters
 						? "За цими фільтрами курсів немає"

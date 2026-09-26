@@ -1,4 +1,5 @@
 import { ExpandableText } from "@/components/ui/ExpandableText";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
 	formatCredits,
 	formatWeeklyHours,
@@ -84,5 +85,27 @@ export function CourseAbout({
 				</div>
 			) : null}
 		</section>
+	);
+}
+
+export function CourseAboutSkeleton() {
+	return (
+		<div className="space-y-5" aria-hidden="true">
+			<Skeleton className="h-6 w-24" />
+			<div className="space-y-2">
+				<Skeleton className="h-4 w-full" />
+				<Skeleton className="h-4 w-full" />
+				<Skeleton className="h-4 w-2/3" />
+			</div>
+			<div className="space-y-1.5">
+				<Skeleton className="h-3 w-24" />
+				<Skeleton className="h-4 w-16" />
+			</div>
+			<div className="space-y-2.5">
+				<Skeleton className="h-4 w-28" />
+				<Skeleton className="h-4 w-full" />
+				<Skeleton className="h-4 w-full" />
+			</div>
+		</div>
 	);
 }

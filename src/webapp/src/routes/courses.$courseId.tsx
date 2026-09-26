@@ -7,6 +7,7 @@ import Layout from "@/components/Layout";
 import { ErrorState } from "@/components/ui/ErrorState";
 import {
 	CourseAbout,
+	CourseAboutSkeleton,
 	offeringLoad,
 } from "@/features/course-offerings/components/CourseAbout";
 import {
@@ -22,6 +23,7 @@ import {
 	CourseStatsHeroSkeleton,
 } from "@/features/courses/components/CourseStatsCards";
 import { hasCourseScores } from "@/features/courses/courseFormatting";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
@@ -210,10 +212,21 @@ function CourseDetailsRoute() {
 
 function CourseDetailsSkeleton() {
 	return (
-		<div className="space-y-8 pb-16">
-			<CourseDetailsHeaderSkeleton />
-			<CourseStatsHeroSkeleton />
-			<CourseRatingsListSkeleton />
+		<div className="grid gap-x-10 gap-y-8 pb-16 lg:grid-cols-[minmax(0,1fr)_320px]">
+			<div className="min-w-0 space-y-8">
+				<CourseDetailsHeaderSkeleton />
+				<CourseStatsHeroSkeleton />
+				<div className="space-y-4">
+					<div className="flex items-center justify-between">
+						<Skeleton className="h-7 w-28" />
+						<Skeleton className="h-5 w-32" />
+					</div>
+					<CourseRatingsListSkeleton />
+				</div>
+			</div>
+			<aside className="hidden min-w-0 lg:block">
+				<CourseAboutSkeleton />
+			</aside>
 		</div>
 	);
 }

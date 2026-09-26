@@ -3,19 +3,21 @@ import { testIds } from "@/lib/test-ids";
 
 const SKELETON_KEYS = ["skeleton-1", "skeleton-2", "skeleton-3"];
 
-// Mirrors the feed card order: title → scores → text → meta.
+// Mirrors the feed card order: kind, title, text, time and action.
 export function FeedSkeleton() {
 	return (
 		<div className="space-y-3" data-testid={testIds.feed.skeleton}>
 			{SKELETON_KEYS.map((key) => (
 				<div key={key} className="space-y-3 rounded-xl border bg-card p-5">
-					<Skeleton className="h-5 w-3/4" />
-					<Skeleton className="h-4 w-40" />
-					<Skeleton className="h-4 w-full" />
-					<Skeleton className="h-4 w-2/3" />
 					<div className="flex items-center gap-2">
-						<Skeleton className="h-5 w-20 rounded-full" />
-						<Skeleton className="h-3 w-24" />
+						<Skeleton className="size-6 rounded-full" />
+						<Skeleton className="h-3 w-16" />
+					</div>
+					<Skeleton className="h-5 w-2/3" />
+					<Skeleton className="h-4 w-full" />
+					<div className="flex items-center justify-between pt-1">
+						<Skeleton className="h-3 w-16" />
+						<Skeleton className="h-8 w-32" />
 					</div>
 				</div>
 			))}

@@ -13,6 +13,7 @@ interface MyRatingsHeaderProps {
 	rateableLeft?: number;
 	onlyUnrated?: boolean;
 	onOnlyUnratedChange?: (next: boolean) => void;
+	isLoading?: boolean;
 }
 
 function ProgressBar({ share }: Readonly<{ share: number }>) {
@@ -42,6 +43,7 @@ export function MyRatingsHeader({
 	rateableLeft = 0,
 	onlyUnrated = false,
 	onOnlyUnratedChange,
+	isLoading = false,
 }: Readonly<MyRatingsHeaderProps>) {
 	// The «Лише неоцінені» button already counts what can be rated now.
 	const hint =
@@ -70,7 +72,13 @@ export function MyRatingsHeader({
 					) : undefined
 				}
 				description={
-					totalCourses > 0 ? (
+					isLoading ? (
+						<>
+							{/* A span: the description renders inside a paragraph. */}
+							<span className="block h-6 w-28 animate-pulse rounded-md bg-accent" />
+							<ProgressBar share={0} />
+						</>
+					) : totalCourses > 0 ? (
 						<>
 							<span className="tabular-nums">
 								Оцінено {ratedCourses} з {totalCourses}

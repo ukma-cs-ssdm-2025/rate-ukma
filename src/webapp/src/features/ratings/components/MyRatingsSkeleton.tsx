@@ -1,26 +1,30 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 
-const SKELETON_YEARS = ["skeleton-year-1", "skeleton-year-2"];
-const SKELETON_ROWS = ["skeleton-row-1", "skeleton-row-2", "skeleton-row-3"];
+const SKELETON_GROUPS = ["skeleton-group-1", "skeleton-group-2"];
+const SKELETON_CARDS = ["skeleton-card-1", "skeleton-card-2"];
 
+// Mirrors a semester group: its header row, then muted course cards.
 export function MyRatingsSkeleton() {
 	return (
-		<div className="space-y-8">
-			{SKELETON_YEARS.map((year) => (
-				<div key={year} className="space-y-3">
-					<Skeleton className="h-6 w-32" />
-					<Skeleton className="h-5 w-24" />
-					<div className="divide-y divide-border/30">
-						{SKELETON_ROWS.map((row) => (
-							<div key={row} className="flex items-center gap-3 py-3">
-								<div className="flex-1 space-y-2">
-									<Skeleton className="h-4 w-2/3" />
-									<Skeleton className="h-3 w-1/3" />
-								</div>
-								<Skeleton className="h-8 w-24" />
-							</div>
-						))}
+		<div className="space-y-6" aria-hidden="true">
+			{SKELETON_GROUPS.map((group) => (
+				<div key={group} className="space-y-2">
+					<div className="flex items-center gap-2 py-2">
+						<Skeleton className="size-4" />
+						<Skeleton className="h-5 w-28" />
 					</div>
+					{SKELETON_CARDS.map((card) => (
+						<div
+							key={card}
+							className="flex items-center gap-6 rounded-xl bg-muted/50 px-4 py-3"
+						>
+							<div className="min-w-0 flex-1 space-y-2">
+								<Skeleton className="h-5 w-1/3" />
+								<Skeleton className="h-4 w-1/2" />
+							</div>
+							<Skeleton className="h-8 w-24" />
+						</div>
+					))}
 				</div>
 			))}
 		</div>

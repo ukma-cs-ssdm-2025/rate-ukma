@@ -106,14 +106,12 @@ export function CourseDetailsHeader({
 export function CourseDetailsHeaderSkeleton() {
 	return (
 		<header className="min-w-0 space-y-3">
-			<Skeleton className="h-9 w-2/3" />
-			<Skeleton className="h-4 w-48" />
+			<Skeleton className="h-9 w-2/3 lg:h-10" />
+			<Skeleton className="h-4 w-full max-w-md" />
 			<div className="flex gap-1.5">
-				<Skeleton className="h-5 w-12" />
-				<Skeleton className="h-5 w-14" />
-				<Skeleton className="h-5 w-10" />
-				<Skeleton className="h-5 w-20" />
-				<Skeleton className="h-5 w-12" />
+				<Skeleton className="h-5 w-9 rounded-full" />
+				<Skeleton className="h-5 w-14 rounded-full" />
+				<Skeleton className="h-5 w-24 rounded-full" />
 			</div>
 		</header>
 	);

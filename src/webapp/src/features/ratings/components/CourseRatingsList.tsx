@@ -227,18 +227,20 @@ export function CourseRatingsListSkeleton() {
 	return (
 		<div className="divide-y divide-border/30">
 			{SKELETON_KEYS.map((key) => (
-				<div key={key} className="space-y-2 px-4 py-4 sm:px-5">
+				<div key={key} className="space-y-3 px-4 py-4 sm:px-5">
 					<div className="flex items-center justify-between gap-3">
 						<div className="flex items-center gap-2.5">
 							<Skeleton className="size-8 rounded-full" />
-							<div className="space-y-1">
-								<Skeleton className="h-3.5 w-24" />
-								<Skeleton className="h-3 w-20" />
-							</div>
+							<Skeleton className="h-4 w-28" />
+							<Skeleton className="hidden h-5 w-20 rounded-full sm:block" />
 						</div>
-						<Skeleton className="h-3 w-40" />
+						<Skeleton className="h-4 w-40" />
 					</div>
-					<Skeleton className="h-14 w-full" />
+					<Skeleton className="h-4 w-3/4" />
+					<div className="flex items-center justify-between">
+						<Skeleton className="h-3 w-20" />
+						<Skeleton className="h-4 w-16" />
+					</div>
 				</div>
 			))}
 		</div>

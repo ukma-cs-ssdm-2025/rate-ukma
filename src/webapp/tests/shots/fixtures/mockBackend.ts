@@ -35,6 +35,8 @@ export interface MockOptions {
 	readonly specialities?: "one" | "many";
 	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
 	readonly title?: "short" | "long";
+	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
+	readonly loading?: boolean;
 }
 
 const courseList = {
@@ -66,6 +68,7 @@ export async function mockBackend(
 		session = "student",
 		specialities = "one",
 		title = "short",
+		loading = false,
 	}: MockOptions = {},
 ): Promise<void> {
 	const many = specialities === "many";
@@ -197,9 +200,18 @@ export async function mockBackend(
 		...(courses === "error" ? [/^\/courses\/$/, /^\/analytics\/$/] : []),
 	];
 
+	const shell: ReadonlyArray<RegExp> = [
+		/^\/auth\//,
+		/^\/flags\/$/,
+		/^\/promo-banner\/$/,
+		/^\/notifications\/unread-count\/$/,
+	];
+
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = new URL(route.request().url());
 		const path = url.pathname.replace(/^\/api\/v1/, "");
+		// Left unanswered: the page stays in its loading state for the shot.
+		if (loading && !shell.some((pattern) => pattern.test(path))) return;
 		if (failing.some((pattern) => pattern.test(path))) {
 			await route.fulfill({
 				status: 500,
