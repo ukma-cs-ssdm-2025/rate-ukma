@@ -13,6 +13,15 @@ import {
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
 
+const auth = vi.hoisted(() => ({
+	speciality: null as { id: string; name: string } | null,
+}));
+
+vi.mock("@/lib/auth", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@/lib/auth")>()),
+	useAuth: () => ({ speciality: auth.speciality }),
+}));
+
 const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	q: "",
 	diff: DIFFICULTY_RANGE,
@@ -107,7 +116,7 @@ describe("CourseFiltersPanel", () => {
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText("Моя спеціальність")).toBeInTheDocument();
+			expect(screen.getByText("Спеціальність і тип курсу")).toBeInTheDocument();
 			expect(screen.getByText("Оцінки курсу")).toBeInTheDocument();
 			expect(screen.getByText("Семестр")).toBeInTheDocument();
 			expect(screen.getByText("Факультет і кафедра")).toBeInTheDocument();
@@ -263,6 +272,38 @@ describe("CourseFiltersPanel", () => {
 			await user.click(screen.getByRole("radio", { name: "Вільного вибору" }));
 
 			expect(setParams).toHaveBeenCalledWith({ type: "ELECTIVE", page: 1 });
+		});
+
+		it("offers the student's own speciality in one click and hides it once chosen", async () => {
+			auth.speciality = {
+				id: "spec-1",
+				name: "Інженерія програмного забезпечення",
+			};
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			const { rerender } = render(<TestWrapper setParams={setParams} />);
+
+			await user.click(
+				screen.getByRole("button", {
+					name: /Моя:\s*Інженерія програмного забезпечення/,
+				}),
+			);
+			expect(setParams).toHaveBeenCalledWith({
+				spec: "spec-1",
+				type: null,
+				page: 1,
+			});
+
+			rerender(
+				<TestWrapper
+					setParams={setParams}
+					initialParams={{ ...DEFAULT_PARAMS, spec: "spec-1" }}
+				/>,
+			);
+			expect(
+				screen.queryByRole("button", { name: /^Моя:/ }),
+			).not.toBeInTheDocument();
+			auth.speciality = null;
 		});
 
 		it("keeps the chosen speciality when the faculty changes", async () => {

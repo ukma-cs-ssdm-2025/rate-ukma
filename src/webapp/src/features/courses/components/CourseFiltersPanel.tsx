@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useState } from "react";
 
-import { X } from "lucide-react";
+import { UserRound, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -23,6 +23,7 @@ import type {
 	EducationLevelEnum,
 	FilterOptions,
 } from "@/lib/api/generated";
+import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { CourseFiltersPanelSkeleton } from "./CourseFiltersPanelSkeleton";
@@ -524,6 +525,7 @@ function CourseFiltersContent({
 	);
 
 	const { groups } = data;
+	const { speciality: ownSpeciality } = useAuth();
 	const specialityCount = (params.spec ? 1 : 0) + (params.type ? 1 : 0);
 	const structureCount =
 		(params.faculty ? 1 : 0) +
@@ -551,10 +553,27 @@ function CourseFiltersContent({
 			{/* Students filter by their own programme far more than by faculty or
 			    department, so speciality and course type lead. */}
 			<FilterSection
-				title="Моя спеціальність"
+				title="Спеціальність і тип курсу"
 				activeCount={specialityCount}
 				testId={testIds.filters.groupStructure}
 			>
+				{ownSpeciality && params.spec !== ownSpeciality.id && (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="h-auto w-full justify-start gap-2 py-2 text-left whitespace-normal"
+						onClick={() =>
+							setWithPageReset({ spec: ownSpeciality.id, type: null })
+						}
+					>
+						<UserRound className="size-4 shrink-0 text-primary" aria-hidden />
+						<span>
+							<span className="text-muted-foreground">Моя: </span>
+							{ownSpeciality.name}
+						</span>
+					</Button>
+				)}
 				{specialitySelect && (
 					<SelectFilters
 						filters={[specialitySelect]}

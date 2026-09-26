@@ -29,11 +29,18 @@ export interface AuthUser {
 	avatarUrl?: string | null;
 }
 
+export interface AuthSpeciality {
+	id: string;
+	name: string;
+}
+
 export interface AuthState {
 	status: AuthStatus;
 	user: AuthUser | null;
 	sessionExpired: boolean;
 	isStudent: boolean;
+	/** The signed-in student's own speciality; null for guests and staff. */
+	speciality: AuthSpeciality | null;
 }
 
 export interface AuthContextValue extends AuthState {
@@ -95,6 +102,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				user: null,
 				sessionExpired: false,
 				isStudent: false,
+				speciality: null,
 			};
 		}
 
@@ -104,6 +112,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				user: null,
 				sessionExpired: false,
 				isStudent: false,
+				speciality: null,
 			};
 		}
 
@@ -113,6 +122,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				user: null,
 				sessionExpired,
 				isStudent: false,
+				speciality: null,
 			};
 		}
 
@@ -122,6 +132,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				user: null,
 				sessionExpired,
 				isStudent: false,
+				speciality: null,
 			};
 		}
 
@@ -140,6 +151,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				: null,
 			sessionExpired: false,
 			isStudent: sessionQuery.data.is_student,
+			speciality: sessionQuery.data.speciality ?? null,
 		};
 	}, [
 		hasCheckedAuth,
