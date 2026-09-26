@@ -104,7 +104,7 @@ export function FeedStrip() {
 				{items.map((item) => (
 					<div
 						key={`${item.kind}:${item.id}`}
-						className="h-48 w-[270px] shrink-0 snap-start overflow-hidden sm:w-[330px]"
+						className="h-[84px] w-[250px] shrink-0 snap-start overflow-hidden"
 					>
 						<FeedItem item={item} />
 					</div>
@@ -116,7 +116,7 @@ export function FeedStrip() {
 					<Link
 						to="/feed"
 						aria-label="Переглянути всю стрічку"
-						className="flex h-48 w-[140px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-3 text-center text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						className="flex h-[84px] w-[120px] shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-center text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 					>
 						<ArrowRight className="size-5" />
 						Переглянути всі

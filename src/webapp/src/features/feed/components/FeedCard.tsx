@@ -10,22 +10,25 @@ export type FeedTone = "primary" | "muted" | "destructive";
 const TONE = {
 	primary: {
 		icon: "bg-primary/10 text-primary",
+		text: "text-primary",
 		rail: "bg-primary",
 		surface: "border-primary/20 bg-primary/5",
 	},
 	muted: {
 		icon: "bg-muted text-muted-foreground",
+		text: "text-muted-foreground",
 		rail: "bg-muted-foreground/60",
 		surface: "bg-accent",
 	},
 	destructive: {
 		icon: "bg-destructive/10 text-destructive",
+		text: "text-destructive",
 		rail: "bg-destructive",
 		surface: "border-destructive/20 bg-destructive/5",
 	},
 } as const satisfies Record<
 	FeedTone,
-	{ icon: string; rail: string; surface: string }
+	{ icon: string; text: string; rail: string; surface: string }
 >;
 
 interface FeedCardProps {
@@ -35,7 +38,7 @@ interface FeedCardProps {
 		readonly tone: FeedTone;
 	};
 	readonly pinned?: boolean;
-	/** Tints the whole card with the kind colour and adds a rail; kept for announcements so they stand out from the review stream. */
+	/** Tints the whole card with the kind colour (plus a rail on banners); kept for announcements so they stand out from the review stream. */
 	readonly tinted?: boolean;
 	readonly title: ReactNode;
 	readonly children?: ReactNode;
@@ -62,13 +65,50 @@ export function FeedCard({
 	const isBanner = variant === "banner";
 	const tone = TONE[kind.tone];
 	const Icon = kind.icon;
+
+	// Strip tile: three single lines, so the strip stays a glance above the
+	// course search instead of competing with it.
+	if (!isBanner) {
+		return (
+			<article
+				className={cn(
+					"flex h-full flex-col justify-between gap-1 overflow-hidden rounded-xl border px-3 py-2.5 text-card-foreground",
+					tinted ? tone.surface : "bg-card",
+					className,
+				)}
+			>
+				<div className="flex min-w-0 items-center gap-2">
+					<Icon className={cn("size-4 shrink-0", tone.text)} aria-hidden />
+					<h3 className="min-w-0 flex-1 truncate text-sm font-medium">
+						<span className="sr-only">{kind.label}</span>
+						<span className="sr-only">: </span>
+						{title}
+					</h3>
+					{pinned && (
+						<span
+							role="img"
+							aria-label="Закріплено"
+							className="inline-flex shrink-0 text-muted-foreground"
+						>
+							<Pin className="size-3.5" aria-hidden />
+						</span>
+					)}
+				</div>
+				<div className="min-w-0 truncate text-xs text-muted-foreground">
+					{children}
+				</div>
+				{footer}
+			</article>
+		);
+	}
+
 	return (
 		<article
 			className={cn(
 				"relative flex h-full flex-col overflow-hidden rounded-xl border text-card-foreground",
 				tinted ? tone.surface : "bg-card",
-				isBanner ? "gap-2.5 p-5" : "gap-1.5 px-3.5 py-2.5 shadow-sm",
-				tinted && (isBanner ? "pl-6" : "pl-4.5"),
+				"gap-2.5 p-5",
+				tinted && "pl-6",
 				className,
 			)}
 		>
@@ -101,14 +141,7 @@ export function FeedCard({
 					</span>
 				)}
 			</div>
-			<h3
-				className={cn(
-					"font-semibold leading-snug line-clamp-2",
-					!isBanner && "text-sm",
-				)}
-			>
-				{title}
-			</h3>
+			<h3 className="font-semibold leading-snug line-clamp-2">{title}</h3>
 			{children}
 			{footer && <div className="mt-auto">{footer}</div>}
 		</article>

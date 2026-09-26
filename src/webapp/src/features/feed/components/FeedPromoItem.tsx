@@ -73,11 +73,24 @@ export function FeedPromoItem({
 				kind={kind}
 				pinned={item.pinned}
 				title={item.title}
-				footer={cta && <div className="pt-2">{cta}</div>}
+				footer={
+					<div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+						<time>{formatRelativeTime(item.createdAt)}</time>
+						{item.ctaLabel && item.ctaHref ? (
+							<a
+								href={item.ctaHref}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+							>
+								<span className="truncate">{item.ctaLabel}</span>
+								<ArrowRight className="size-3.5 shrink-0" aria-hidden />
+							</a>
+						) : null}
+					</div>
+				}
 			>
-				<p className="line-clamp-2 text-sm text-muted-foreground">
-					{item.body}
-				</p>
+				{item.body}
 			</FeedCard>
 		);
 	}

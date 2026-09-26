@@ -67,17 +67,18 @@ describe("FeedReviewItem", () => {
 		expect(screen.queryByLabelText(/за середнє/)).not.toBeInTheDocument();
 	});
 
-	it("renders difficulty, usefulness and the comment", () => {
-		render(<FeedReviewItem item={baseItem} />);
+	it("renders difficulty, usefulness and the comment on the /feed banner", () => {
+		render(<FeedReviewItem item={baseItem} variant="banner" />);
 
 		expect(screen.getByText("4.2")).toBeInTheDocument();
 		expect(screen.getByText("4.8")).toBeInTheDocument();
 		expect(screen.getByText("Складно, але корисно.")).toBeInTheDocument();
 	});
 
-	it("omits the comment paragraph when there is no comment", () => {
-		render(<FeedReviewItem item={{ ...baseItem, comment: "" }} />);
+	it("keeps the strip tile to the scores and leaves the comment to /feed", () => {
+		render(<FeedReviewItem item={baseItem} />);
 
+		expect(screen.getByText("4.2")).toBeInTheDocument();
 		expect(screen.queryByText("Складно, але корисно.")).not.toBeInTheDocument();
 	});
 });

@@ -36,15 +36,13 @@ export function FeedCommentItem({
 				</div>
 			}
 		>
-			<p
-				className={
-					isBanner
-						? "line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90"
-						: "line-clamp-2 text-sm text-muted-foreground"
-				}
-			>
-				{item.content}
-			</p>
+			{isBanner ? (
+				<p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
+					{item.content}
+				</p>
+			) : (
+				item.content
+			)}
 		</FeedCard>
 	);
 }

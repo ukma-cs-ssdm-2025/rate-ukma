@@ -79,8 +79,8 @@ export function FeedReviewItem({
 		>
 			<p
 				className={cn(
-					"flex flex-wrap items-center gap-x-4 gap-y-1 leading-none",
-					isBanner ? "text-sm" : "text-xs",
+					"flex items-center gap-x-4 leading-none",
+					isBanner ? "flex-wrap gap-y-1 text-sm" : "text-xs",
 				)}
 			>
 				<span className="flex items-center gap-1.5 whitespace-nowrap">
@@ -114,14 +114,8 @@ export function FeedReviewItem({
 					/>
 				</span>
 			</p>
-			{item.comment && (
-				<p
-					className={
-						isBanner
-							? "line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90"
-							: "line-clamp-2 text-sm text-muted-foreground"
-					}
-				>
+			{isBanner && item.comment && (
+				<p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
 					{item.comment}
 				</p>
 			)}
