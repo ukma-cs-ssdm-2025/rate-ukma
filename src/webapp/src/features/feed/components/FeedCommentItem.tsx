@@ -19,7 +19,7 @@ export function FeedCommentItem({
 	return (
 		<FeedCard
 			variant={variant}
-			kind={{ label: "Коментар", icon: MessageCircle, tone: "success" }}
+			kind={{ label: "Коментар", icon: MessageCircle, tone: "muted" }}
 			pinned={item.pinned}
 			title={
 				<Link

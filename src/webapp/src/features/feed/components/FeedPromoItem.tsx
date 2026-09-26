@@ -1,5 +1,8 @@
-import { ExternalLink, Megaphone } from "lucide-react";
+import { ArrowRight, Megaphone } from "lucide-react";
 
+import { Button } from "@/components/ui/Button";
+
+import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import type {
 	FeedPromoAccent,
@@ -7,12 +10,24 @@ import type {
 } from "../feedTypes";
 import { FeedCard, type FeedTone } from "./FeedCard";
 
-/** Accent only picks the kind colour; the card shell is shared. */
-const ACCENT_TONE = {
-	BRAND: "primary",
-	INFO: "muted",
-	WARNING: "destructive",
-} as const satisfies Record<FeedPromoAccent, FeedTone>;
+/** Badge and Button share these variant names, so one value drives both. */
+const ACCENT = {
+	BRAND: { tone: "primary", button: "default" },
+	// The secondary fill is too pale to read as a button on the tinted card.
+	INFO: {
+		tone: "muted",
+		button: "secondary",
+		cta: "bg-muted-foreground text-background hover:bg-muted-foreground/90",
+	},
+	WARNING: { tone: "destructive", button: "destructive" },
+} as const satisfies Record<
+	FeedPromoAccent,
+	{
+		tone: FeedTone;
+		button: "default" | "secondary" | "destructive";
+		cta?: string;
+	}
+>;
 
 interface FeedPromoItemProps {
 	readonly item: FeedPromoItemType;
@@ -24,42 +39,41 @@ export function FeedPromoItem({
 	item,
 	variant = "card",
 }: Readonly<FeedPromoItemProps>) {
+	const accent: {
+		tone: FeedTone;
+		button: "default" | "secondary" | "destructive";
+		cta?: string;
+	} = ACCENT[item.accent ?? "BRAND"] ?? ACCENT.BRAND;
 	const kind = {
 		label: item.label ?? "Оголошення",
 		icon: Megaphone,
-		tone: ACCENT_TONE[item.accent ?? "BRAND"] ?? ACCENT_TONE.BRAND,
+		tone: accent.tone,
 	};
 	const isBanner = variant === "banner";
-	const hasCta = Boolean(item.ctaLabel && item.ctaHref);
+	// A label without an href goes nowhere, so the CTA needs both halves.
+	const cta = item.ctaLabel && item.ctaHref && (
+		<Button
+			asChild
+			size="sm"
+			variant={accent.button}
+			className={cn("gap-1.5", accent.cta)}
+		>
+			<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
+				{item.ctaLabel}
+				<ArrowRight className="size-4" aria-hidden />
+			</a>
+		</Button>
+	);
 
-	// Compact strip tile: the CTA joins the single muted meta line as a
-	// text link instead of a button block.
 	if (!isBanner) {
 		return (
 			<FeedCard
 				variant="card"
+				tinted
 				kind={kind}
 				pinned={item.pinned}
 				title={item.title}
-				footer={
-					<p className="truncate text-xs text-muted-foreground">
-						<time>{formatRelativeTime(item.createdAt)}</time>
-						{hasCta && (
-							<>
-								{", "}
-								<a
-									href={item.ctaHref}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="inline-flex items-center gap-0.5 font-medium text-primary underline-offset-4 hover:underline"
-								>
-									{item.ctaLabel}
-									<ExternalLink className="size-3.5" aria-hidden />
-								</a>
-							</>
-						)}
-					</p>
-				}
+				footer={cta && <div className="pt-2">{cta}</div>}
 			>
 				<p className="line-clamp-2 text-sm text-muted-foreground">
 					{item.body}
@@ -71,24 +85,16 @@ export function FeedPromoItem({
 	return (
 		<FeedCard
 			variant="banner"
+			tinted
 			kind={kind}
 			pinned={item.pinned}
 			title={item.title}
 			footer={
-				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-					<time>{formatRelativeTime(item.createdAt)}</time>
-					{/* A label without an href goes nowhere, so the CTA needs both halves. */}
-					{hasCta && (
-						<a
-							href={item.ctaHref}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-						>
-							{item.ctaLabel}
-							<ExternalLink className="size-3.5" aria-hidden />
-						</a>
-					)}
+				<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
+					<time className="text-xs text-muted-foreground">
+						{formatRelativeTime(item.createdAt)}
+					</time>
+					{cta}
 				</div>
 			}
 		>

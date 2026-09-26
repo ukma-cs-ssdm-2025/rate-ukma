@@ -5,24 +5,27 @@ import { Pin } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-export type FeedTone = "primary" | "success" | "muted" | "destructive";
+export type FeedTone = "primary" | "muted" | "destructive";
 
 const TONE = {
-	primary: { text: "text-primary", rail: "bg-primary", icon: "bg-primary/10" },
-	success: { text: "text-success", rail: "bg-success", icon: "bg-success/10" },
+	primary: {
+		icon: "bg-primary/10 text-primary",
+		rail: "bg-primary",
+		surface: "border-primary/20 bg-primary/5",
+	},
 	muted: {
-		text: "text-muted-foreground",
+		icon: "bg-muted text-muted-foreground",
 		rail: "bg-muted-foreground/60",
-		icon: "bg-muted",
+		surface: "bg-accent",
 	},
 	destructive: {
-		text: "text-destructive",
+		icon: "bg-destructive/10 text-destructive",
 		rail: "bg-destructive",
-		icon: "bg-destructive/10",
+		surface: "border-destructive/20 bg-destructive/5",
 	},
 } as const satisfies Record<
 	FeedTone,
-	{ text: string; rail: string; icon: string }
+	{ icon: string; rail: string; surface: string }
 >;
 
 interface FeedCardProps {
@@ -32,6 +35,8 @@ interface FeedCardProps {
 		readonly tone: FeedTone;
 	};
 	readonly pinned?: boolean;
+	/** Tints the whole card with the kind colour and adds a rail; kept for announcements so they stand out from the review stream. */
+	readonly tinted?: boolean;
 	readonly title: ReactNode;
 	readonly children?: ReactNode;
 	readonly footer?: ReactNode;
@@ -41,12 +46,13 @@ interface FeedCardProps {
 }
 
 /**
- * One shell for every feed entry. The kind leads, colour-coded with a rail, so
- * a review, a comment and an announcement tell apart before reading them.
+ * One shell for every feed entry. Only the kind icon carries colour on plain
+ * cards; tinted cards spend the colour on the whole surface instead.
  */
 export function FeedCard({
 	kind,
 	pinned,
+	tinted,
 	title,
 	children,
 	footer,
@@ -59,22 +65,21 @@ export function FeedCard({
 	return (
 		<article
 			className={cn(
-				"relative flex h-full flex-col overflow-hidden rounded-xl border bg-card text-card-foreground",
-				isBanner ? "gap-2.5 p-5 pl-6" : "gap-1.5 py-2.5 pr-3 pl-4 shadow-sm",
+				"relative flex h-full flex-col overflow-hidden rounded-xl border text-card-foreground",
+				tinted ? tone.surface : "bg-card",
+				isBanner ? "gap-2.5 p-5" : "gap-1.5 px-3.5 py-2.5 shadow-sm",
+				tinted && (isBanner ? "pl-6" : "pl-4.5"),
 				className,
 			)}
 		>
-			<span
-				className={cn("absolute inset-y-0 left-0 w-1", tone.rail)}
-				aria-hidden
-			/>
-			<div className="flex items-center justify-between gap-2">
+			{tinted && (
 				<span
-					className={cn(
-						"inline-flex items-center gap-2 text-xs font-medium",
-						tone.text,
-					)}
-				>
+					className={cn("absolute inset-y-0 left-0 w-1", tone.rail)}
+					aria-hidden
+				/>
+			)}
+			<div className="flex items-center justify-between gap-2">
+				<span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
 					<span
 						className={cn(
 							"flex size-6 items-center justify-center rounded-full",
