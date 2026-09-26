@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useState } from "react";
 
-import { UserRound, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -239,10 +239,12 @@ const COURSE_TYPE_ORDER = ["COMPULSORY", "PROF_ORIENTED", "ELECTIVE"];
 function CourseTypeToggleControl({
 	filter,
 	value,
+	disabled,
 	onChange,
 }: Readonly<{
 	filter: SelectFilterConfig;
 	value: string;
+	disabled: boolean;
 	onChange: (value: string) => void;
 }>) {
 	const options = [...filter.options].sort(
@@ -259,22 +261,21 @@ function CourseTypeToggleControl({
 				variant="outline"
 				value={value}
 				onValueChange={onChange}
-				disabled={filter.disabled}
-				spacing={1.5}
-				className="w-full flex-wrap"
+				disabled={disabled}
+				className="flex w-full items-stretch"
 				data-testid={testIds.filters.typeSelect}
 			>
 				{options.map((option) => (
 					<ToggleGroupItem
 						key={option.value}
 						value={option.value}
-						className="flex-none px-3 data-[state=on]:border-primary/30 data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+						className="h-auto min-h-9 flex-1 px-1.5 py-1.5 text-xs leading-tight whitespace-normal"
 					>
 						{COURSE_TYPE_FILTER_LABELS[option.value] ?? option.label}
 					</ToggleGroupItem>
 				))}
 			</ToggleGroup>
-			{filter.disabledMessage && (
+			{disabled && filter.disabledMessage && (
 				<p className="text-xs text-muted-foreground">
 					{filter.disabledMessage}
 				</p>
@@ -557,35 +558,42 @@ function CourseFiltersContent({
 				activeCount={specialityCount}
 				testId={testIds.filters.groupStructure}
 			>
-				{ownSpeciality && params.spec !== ownSpeciality.id && (
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						className="h-auto w-full justify-start gap-2 py-2 text-left whitespace-normal"
-						onClick={() =>
-							setWithPageReset({ spec: ownSpeciality.id, type: null })
-						}
-					>
-						<UserRound className="size-4 shrink-0 text-primary" aria-hidden />
-						<span>
-							<span className="text-muted-foreground">Моя: </span>
-							{ownSpeciality.name}
-						</span>
-					</Button>
-				)}
 				{specialitySelect && (
-					<SelectFilters
-						filters={[specialitySelect]}
-						getSelectValue={getSelectValue}
-						onSelectChange={handleSelectChange}
-					/>
+					<div className="space-y-1.5">
+						<SelectFilters
+							filters={[specialitySelect]}
+							getSelectValue={getSelectValue}
+							onSelectChange={handleSelectChange}
+						/>
+						{ownSpeciality && params.spec !== ownSpeciality.id && (
+							<button
+								type="button"
+								className="text-left text-xs text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+								onClick={() =>
+									setWithPageReset({ spec: ownSpeciality.id, type: null })
+								}
+							>
+								Обрати мою: {ownSpeciality.name}
+							</button>
+						)}
+					</div>
 				)}
 				{typeSelect && (
 					<CourseTypeToggleControl
 						filter={typeSelect}
 						value={params.type ?? ""}
-						onChange={(value) => handleSelectChange("type", value)}
+						disabled={!params.spec && !ownSpeciality}
+						onChange={(value) => {
+							// With no speciality picked, a type means "of my speciality".
+							if (!params.spec && ownSpeciality && value) {
+								setWithPageReset({
+									spec: ownSpeciality.id,
+									type: value as CoursesListTypeKind,
+								});
+								return;
+							}
+							handleSelectChange("type", value);
+						}}
 					/>
 				)}
 			</FilterSection>

@@ -285,7 +285,7 @@ describe("CourseFiltersPanel", () => {
 
 			await user.click(
 				screen.getByRole("button", {
-					name: /Моя:\s*Інженерія програмного забезпечення/,
+					name: "Обрати мою: Інженерія програмного забезпечення",
 				}),
 			);
 			expect(setParams).toHaveBeenCalledWith({
@@ -301,8 +301,24 @@ describe("CourseFiltersPanel", () => {
 				/>,
 			);
 			expect(
-				screen.queryByRole("button", { name: /^Моя:/ }),
+				screen.queryByRole("button", { name: /^Обрати мою/ }),
 			).not.toBeInTheDocument();
+			auth.speciality = null;
+		});
+
+		it("applies a course type to the student's own speciality when none is picked", async () => {
+			auth.speciality = { id: "spec-2", name: "Економіка" };
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			render(<TestWrapper setParams={setParams} />);
+
+			await user.click(screen.getByRole("radio", { name: "Вільного вибору" }));
+
+			expect(setParams).toHaveBeenCalledWith({
+				spec: "spec-2",
+				type: "ELECTIVE",
+				page: 1,
+			});
 			auth.speciality = null;
 		});
 
