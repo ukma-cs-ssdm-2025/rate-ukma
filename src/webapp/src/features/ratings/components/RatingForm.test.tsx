@@ -122,4 +122,32 @@ describe("RatingForm", () => {
 			});
 		});
 	});
+
+	it("previews the review under the author's name, then anonymously", async () => {
+		const user = userEvent.setup();
+		render(
+			<RatingForm
+				onSubmit={vi.fn()}
+				onCancel={vi.fn()}
+				author={{ name: "Коваль Олена" }}
+			/>,
+		);
+
+		await user.type(
+			screen.getByTestId(testIds.rating.commentTextarea),
+			"Корисний курс",
+		);
+		await user.click(
+			screen.getByRole("button", { name: "Переглянути, як побачать інші" }),
+		);
+		const preview = screen
+			.getByText("Так відгук побачать інші студенти")
+			.closest("div") as HTMLElement;
+		expect(preview).toHaveTextContent("Коваль Олена");
+		expect(preview).toHaveTextContent("Корисний курс");
+
+		await user.click(screen.getByTestId(testIds.rating.anonymousCheckbox));
+		expect(preview).toHaveTextContent("Анонімний відгук");
+		expect(preview).not.toHaveTextContent("Коваль Олена");
+	});
 });

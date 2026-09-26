@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Star } from "lucide-react";
+import { Eye, EyeOff, Star } from "lucide-react";
 import { useForm, useWatch, type Control } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/Button";
@@ -27,6 +27,7 @@ import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
 } from "../definitions/ratingDefinitions";
+import { RatingCardBody } from "./RatingCardBody";
 
 const COMMENT_MAX_LENGTH = 2000;
 
@@ -213,6 +214,9 @@ function RatingFormFields({
 }>) {
 	const comment = useWatch({ control, name: "comment" }) ?? "";
 	const isAnonymous = useWatch({ control, name: "is_anonymous" }) ?? false;
+	const difficulty = useWatch({ control, name: "difficulty" });
+	const usefulness = useWatch({ control, name: "usefulness" });
+	const [previewOpen, setPreviewOpen] = React.useState(false);
 	const signature = isAnonymous
 		? ANONYMOUS_REVIEW_NAME
 		: author?.name || DEFAULT_STUDENT_NAME;
@@ -388,33 +392,76 @@ function RatingFormFields({
 					<FormItem>
 						{/* Shows the byline other students will see, so the effect of
 						    the toggle is visible instead of described. */}
-						<div className="flex items-center gap-3 rounded-xl border px-3.5 py-3">
-							<UserAvatar
-								name={signature}
-								avatarUrl={isAnonymous ? null : author?.avatarUrl}
-								isAnonymous={isAnonymous}
-								className="size-8 shrink-0 text-xs font-semibold"
-							/>
-							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm font-medium">{signature}</p>
-								<FormDescription className="text-xs">
-									{isAnonymous
-										? "Ім'я та фото приховано від інших студентів"
-										: "Так інші студенти побачать ваш відгук"}
-								</FormDescription>
+						<div className="rounded-xl border px-3.5 py-3">
+							<div className="flex items-center gap-3">
+								<UserAvatar
+									name={signature}
+									avatarUrl={isAnonymous ? null : author?.avatarUrl}
+									isAnonymous={isAnonymous}
+									className="size-8 shrink-0 text-xs font-semibold"
+								/>
+								<div className="min-w-0 flex-1">
+									<p className="truncate text-sm font-medium">{signature}</p>
+									<FormDescription className="text-xs">
+										{isAnonymous
+											? "Ім'я та фото приховано"
+											: "Ваше ім'я буде біля відгуку"}
+									</FormDescription>
+								</div>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									className="size-8 shrink-0 text-muted-foreground"
+									aria-expanded={previewOpen}
+									aria-label={
+										previewOpen
+											? "Сховати попередній перегляд"
+											: "Переглянути, як побачать інші"
+									}
+									onClick={() => setPreviewOpen((open) => !open)}
+								>
+									{previewOpen ? (
+										<EyeOff className="size-4" aria-hidden />
+									) : (
+										<Eye className="size-4" aria-hidden />
+									)}
+								</Button>
+								<div className="flex shrink-0 items-center gap-2">
+									<FormControl>
+										<Checkbox
+											checked={field.value}
+											onCheckedChange={(checked) =>
+												field.onChange(checked === true)
+											}
+											data-testid={testIds.rating.anonymousCheckbox}
+										/>
+									</FormControl>
+									<FormLabel className="font-normal">Анонімно</FormLabel>
+								</div>
 							</div>
-							<div className="flex shrink-0 items-center gap-2">
-								<FormControl>
-									<Checkbox
-										checked={field.value}
-										onCheckedChange={(checked) =>
-											field.onChange(checked === true)
-										}
-										data-testid={testIds.rating.anonymousCheckbox}
+							{/* The same card the course page renders, fed from the form, so
+						    the anonymous toggle shows its real effect. */}
+							{previewOpen && (
+								<div className="mt-3 border-t pt-3 animate-in fade-in-0 duration-200 motion-reduce:animate-none">
+									<p className="mb-2.5 text-xs text-muted-foreground">
+										Так відгук побачать інші студенти
+									</p>
+									<RatingCardBody
+										displayName={signature}
+										isAnonymous={isAnonymous}
+										avatarUrl={isAnonymous ? null : author?.avatarUrl}
+										createdAt={new Date().toISOString()}
+										difficulty={difficulty || undefined}
+										usefulness={usefulness || undefined}
+										comment={comment.trim() || null}
+										commentEmptyMessage="Без текстового відгуку"
+										upvotes={0}
+										downvotes={0}
+										viewerVote={null}
 									/>
-								</FormControl>
-								<FormLabel className="font-normal">Анонімно</FormLabel>
-							</div>
+								</div>
+							)}
 						</div>
 						<FormMessage />
 					</FormItem>

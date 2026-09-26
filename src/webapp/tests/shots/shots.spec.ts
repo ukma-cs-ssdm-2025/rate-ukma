@@ -503,6 +503,45 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "course-rating-preview",
+		section: "Оцінювання",
+		note: "Rating form previewing the review as other students will see it",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rated" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByTestId(testIds.courseDetails.editUserRatingButton)
+				.click();
+			const modal = page.getByTestId(testIds.rating.modal);
+			await modal
+				.getByRole("button", { name: "Переглянути, як побачать інші" })
+				.click();
+			await modal
+				.getByText("Так відгук побачать інші студенти")
+				.scrollIntoViewIfNeeded();
+		},
+	},
+	{
+		name: "course-rating-preview-anonymous",
+		section: "Оцінювання",
+		note: "The same preview with the anonymous toggle on",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rated" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByTestId(testIds.courseDetails.editUserRatingButton)
+				.click();
+			const modal = page.getByTestId(testIds.rating.modal);
+			await modal.getByTestId(testIds.rating.anonymousCheckbox).click();
+			await modal
+				.getByRole("button", { name: "Переглянути, як побачать інші" })
+				.click();
+			await modal
+				.getByText("Так відгук побачать інші студенти")
+				.scrollIntoViewIfNeeded();
+		},
+	},
+	{
 		name: "course-rating-delete",
 		section: "Оцінювання",
 		note: "Deleting the own rating asks for confirmation",
