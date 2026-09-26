@@ -265,7 +265,7 @@ function RatingFormFields({
 			data-more-below={edges.moreBelow || undefined}
 			className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5 sm:gap-6 sm:py-4"
 		>
-			<div className="divide-y divide-border/60 rounded-xl bg-muted/50 px-4 [&>*]:py-3.5">
+			<div className="space-y-4">
 				<FormField<RatingFormData, "difficulty">
 					control={control}
 					name="difficulty"
