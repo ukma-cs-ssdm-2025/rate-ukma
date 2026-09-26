@@ -8,14 +8,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginLayoutWrapper() {
 	return (
-		<AuthShell
-			footer={
-				<p>
-					Доступ дозволено тільки для користувачів з корпоративною поштою{" "}
-					<span className="font-medium text-foreground">ukma.edu.ua</span>
-				</p>
-			}
-		>
+		<AuthShell>
 			<Outlet />
 		</AuthShell>
 	);

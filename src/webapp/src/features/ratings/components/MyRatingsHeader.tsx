@@ -1,142 +1,84 @@
-import { ListCollapse, ListFilter } from "lucide-react";
+import { useEffect, useState } from "react";
 
+import { ListFilter } from "lucide-react";
+
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { CircularProgress } from "@/components/ui/CircularProgress";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/Tooltip";
-import type { RatingFilter } from "@/features/ratings/groupRatings";
 import { testIds } from "@/lib/test-ids";
-import { cn } from "@/lib/utils";
 
 interface MyRatingsHeaderProps {
 	totalCourses: number;
 	ratedCourses: number;
-	isLoading: boolean;
-	filter: RatingFilter;
-	onFilterChange: (filter: RatingFilter) => void;
-	isAllExpanded: boolean;
-	onToggleExpandAll: () => void;
+	/** Unrated courses whose rating window is already open. */
+	rateableLeft?: number;
+	onlyUnrated?: boolean;
+	onOnlyUnratedChange?: (next: boolean) => void;
 }
 
-function getPercentage(value: number, total: number): number {
-	if (total === 0) return 0;
-	return Math.round((value / total) * 100);
+function ProgressBar({ share }: Readonly<{ share: number }>) {
+	// Starts empty and fills after the first paint so the bar sweeps in.
+	const [shown, setShown] = useState(0);
+	useEffect(() => {
+		const frame = requestAnimationFrame(() => setShown(share));
+		return () => cancelAnimationFrame(frame);
+	}, [share]);
+
+	return (
+		<span
+			className="mt-3 block h-1 w-xl max-w-full overflow-hidden rounded-full bg-muted"
+			aria-hidden="true"
+		>
+			<span
+				className="block h-full origin-left rounded-full bg-primary transition-transform duration-700 ease-out motion-reduce:transition-none"
+				style={{ transform: `scaleX(${shown})` }}
+			/>
+		</span>
+	);
 }
 
 export function MyRatingsHeader({
 	totalCourses,
 	ratedCourses,
-	isLoading,
-	filter,
-	onFilterChange,
-	isAllExpanded,
-	onToggleExpandAll,
+	rateableLeft = 0,
+	onlyUnrated = false,
+	onOnlyUnratedChange,
 }: Readonly<MyRatingsHeaderProps>) {
-	const percentage = getPercentage(ratedCourses, totalCourses);
-	const unratedCount = totalCourses - ratedCourses;
-
-	const filters: { value: RatingFilter; label: string }[] = [
-		{ value: "all", label: "Усі" },
-		{ value: "unrated", label: "Не оцінено" },
-		{ value: "rated", label: "Оцінено" },
-	];
-
+	let hint: string | undefined;
+	if (rateableLeft > 0) hint = `ще ${rateableLeft} можна оцінити зараз`;
+	else if (ratedCourses < totalCourses) hint = "решта відкриється згодом";
 	return (
-		<div data-testid={testIds.myRatings.header} className="space-y-6">
-			<div className="flex items-center justify-between flex-wrap gap-4">
-				<div className="flex items-center gap-3">
-					<h1 className="text-2xl font-bold tracking-tight">Мої оцінки</h1>
-					{!isLoading && totalCourses > 0 && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<div className="flex items-center gap-2 cursor-default">
-									<CircularProgress
-										value={percentage}
-										size={28}
-										strokeWidth={3}
-									/>
-									<span className="text-sm text-muted-foreground">
-										{percentage}%
-									</span>
-								</div>
-							</TooltipTrigger>
-							<TooltipContent>
-								{ratedCourses} з {totalCourses} оцінено
-							</TooltipContent>
-						</Tooltip>
-					)}
-				</div>
-
-				{!isLoading && totalCourses > 0 && (
-					<div className="flex items-center gap-4">
-						<div className="hidden sm:flex items-center rounded-lg border bg-muted/30 p-1">
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-8 px-2 rounded-md hover:bg-transparent text-muted-foreground hover:text-foreground"
-										onClick={onToggleExpandAll}
-										aria-label={
-											isAllExpanded ? "Згорнути все" : "Розгорнути все"
-										}
-										aria-pressed={isAllExpanded}
-									>
-										{isAllExpanded ? (
-											<ListCollapse className="size-4" />
-										) : (
-											<ListFilter className="size-4" />
-										)}
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>
-									{isAllExpanded ? "Згорнути все" : "Розгорнути все"}
-								</TooltipContent>
-							</Tooltip>
-						</div>
-
-						<div className="flex items-center rounded-lg border bg-muted/30 p-1">
-							{filters.map(({ value, label }) => {
-								const countByFilter: Record<RatingFilter, number> = {
-									all: totalCourses,
-									rated: ratedCourses,
-									unrated: unratedCount,
-								};
-								const count = countByFilter[value];
-								return (
-									<Button
-										key={value}
-										variant="ghost"
-										size="sm"
-										onClick={() => onFilterChange(value)}
-										className={cn(
-											"h-8 px-3 text-sm font-medium rounded-md transition-all",
-											filter === value
-												? "bg-background shadow-sm text-foreground"
-												: "text-muted-foreground hover:text-foreground hover:bg-transparent",
-										)}
-									>
-										{label}
-										<span
-											className={cn(
-												"ml-1.5 text-xs",
-												filter === value
-													? "text-muted-foreground"
-													: "text-muted-foreground/60",
-											)}
-										>
-											{count}
-										</span>
-									</Button>
-								);
-							})}
-						</div>
-					</div>
-				)}
-			</div>
+		<div data-testid={testIds.myRatings.header}>
+			<PageHeader
+				title="Мої оцінки"
+				actions={
+					rateableLeft > 0 && onOnlyUnratedChange ? (
+						<Button
+							variant="outline"
+							size="sm"
+							aria-pressed={onlyUnrated}
+							onClick={() => onOnlyUnratedChange(!onlyUnrated)}
+							className="gap-1.5 aria-pressed:border-primary/30 aria-pressed:bg-primary/10 aria-pressed:text-primary"
+						>
+							<ListFilter className="size-4" aria-hidden />
+							Лише неоцінені
+							<span className="tabular-nums text-muted-foreground">
+								{rateableLeft}
+							</span>
+						</Button>
+					) : undefined
+				}
+				description={
+					totalCourses > 0 ? (
+						<>
+							<span className="tabular-nums">
+								Оцінено {ratedCourses} з {totalCourses}
+								{hint ? `, ${hint}` : null}
+							</span>
+							<ProgressBar share={ratedCourses / totalCourses} />
+						</>
+					) : undefined
+				}
+			/>
 		</div>
 	);
 }

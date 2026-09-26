@@ -36,7 +36,7 @@ export function DataTablePagination<TData>({
 		<div
 			data-testid={testIds.common.pagination}
 			className={cn(
-				"flex w-full flex-col gap-3 px-1 py-2 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-0 sm:text-sm",
+				"flex w-full flex-col gap-3 px-1 py-2 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-0 sm:text-sm",
 				className,
 			)}
 			{...props}

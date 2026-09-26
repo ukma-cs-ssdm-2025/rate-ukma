@@ -22,11 +22,18 @@ class SessionUserSerializer(serializers.Serializer):
     avatar_url = serializers.CharField(allow_null=True, required=False)
 
 
+class SessionSpecialitySerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+
+
 class SessionSerializer(serializers.Serializer):
     is_authenticated = serializers.BooleanField()
     user = SessionUserSerializer(allow_null=True)
     expires_at = serializers.DateTimeField(allow_null=True, required=False)
     is_student = serializers.BooleanField()
+    # The student's own speciality, so course filters can offer it in one click.
+    speciality = SessionSpecialitySerializer(allow_null=True)
 
 
 class CSRFTokenSerializer(serializers.Serializer):

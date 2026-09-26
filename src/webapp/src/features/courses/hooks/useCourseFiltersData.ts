@@ -5,6 +5,7 @@ import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
+	formatDecimalValue,
 	getCourseTypeDisplay,
 	getEducationLevelDisplay,
 	getSemesterTermDisplay,
@@ -56,9 +57,7 @@ export type RangeFilterConfig = {
 	label: string;
 	value: [number, number];
 	range: [number, number];
-	captions: [string, string];
 	step?: number;
-	showInputs?: boolean;
 	disabled?: boolean;
 	disabledMessage?: string;
 };
@@ -68,40 +67,146 @@ export type SemesterTermToggle = {
 	selected: string[];
 };
 
-export type FilterPresetId = "easy" | "most-useful";
-
-export type FilterPreset = {
-	id: FilterPresetId;
+type ActiveFilterChip = {
+	key: string;
 	label: string;
-	expandsGroup?: "rating" | "semester" | "structure";
+	clear: Partial<CourseFiltersParamsState>;
 };
 
-export const FILTER_PRESETS: readonly FilterPreset[] = [
-	{ id: "easy", label: "Легкі курси", expandsGroup: "rating" },
-	{ id: "most-useful", label: "Найкорисніші", expandsGroup: "rating" },
-];
+export function getActiveFilterChips(
+	params: CourseFiltersParamsState,
+	filterOptions?: FilterOptions,
+): ActiveFilterChip[] {
+	const chips: ActiveFilterChip[] = [];
 
-export function getPresetFilters(
-	presetId: FilterPresetId,
-): Partial<CourseFiltersParamsState> {
-	switch (presetId) {
-		case "easy":
-			return { diff: [DIFFICULTY_RANGE[0], 2.5] };
-		case "most-useful":
-			return { use: [4, USEFULNESS_RANGE[1]] };
+	if (
+		params.diff[0] !== DIFFICULTY_RANGE[0] ||
+		params.diff[1] !== DIFFICULTY_RANGE[1]
+	) {
+		chips.push({
+			key: "diff",
+			label: `Складність ${formatDecimalValue(params.diff[0])}–${formatDecimalValue(params.diff[1])}`,
+			clear: { diff: DIFFICULTY_RANGE },
+		});
 	}
+
+	if (
+		params.use[0] !== USEFULNESS_RANGE[0] ||
+		params.use[1] !== USEFULNESS_RANGE[1]
+	) {
+		chips.push({
+			key: "use",
+			label: `Корисність ${formatDecimalValue(params.use[0])}–${formatDecimalValue(params.use[1])}`,
+			clear: { use: USEFULNESS_RANGE },
+		});
+	}
+
+	if (params.year) {
+		const yearLabel =
+			filterOptions?.semester_years.find((year) => year.value === params.year)
+				?.label ?? params.year;
+		chips.push({
+			key: "year",
+			label: yearLabel,
+			clear: { year: "", credits: CREDITS_RANGE },
+		});
+	}
+
+	for (const term of params.term) {
+		chips.push({
+			key: `term-${term}`,
+			label: getSemesterTermDisplay(term),
+			clear: { term: params.term.filter((active) => active !== term) },
+		});
+	}
+
+	if (params.eduLevel) {
+		chips.push({
+			key: "eduLevel",
+			label: getEducationLevelDisplay(params.eduLevel),
+			clear: { eduLevel: null },
+		});
+	}
+
+	const faculties = filterOptions?.faculties ?? [];
+	if (params.faculty) {
+		chips.push({
+			key: "faculty",
+			label:
+				faculties.find((faculty) => faculty.id === params.faculty)?.name ??
+				params.faculty,
+			clear: { faculty: "", dept: "" },
+		});
+	}
+
+	if (params.dept) {
+		const departments = faculties.flatMap(
+			(faculty) => faculty.departments ?? [],
+		);
+		chips.push({
+			key: "dept",
+			label:
+				departments.find((department) => department.id === params.dept)?.name ??
+				params.dept,
+			clear: { dept: "" },
+		});
+	}
+
+	if (params.spec) {
+		const specialities = faculties.flatMap(
+			(faculty) => faculty.specialities ?? [],
+		);
+		chips.push({
+			key: "spec",
+			label:
+				specialities.find((speciality) => speciality.id === params.spec)
+					?.name ?? params.spec,
+			clear: { spec: "", type: null },
+		});
+	}
+
+	if (params.type) {
+		chips.push({
+			key: "type",
+			label:
+				COURSE_TYPE_FILTER_LABELS[params.type] ??
+				getCourseTypeDisplay(params.type),
+			clear: { type: null },
+		});
+	}
+
+	if (params.instructor) {
+		chips.push({
+			key: "instructor",
+			label:
+				filterOptions?.instructors.find(
+					(instructor) => instructor.id === params.instructor,
+				)?.name ?? "Викладач",
+			clear: { instructor: "" },
+		});
+	}
+
+	if (
+		params.credits[0] !== CREDITS_RANGE[0] ||
+		params.credits[1] !== CREDITS_RANGE[1]
+	) {
+		chips.push({
+			key: "credits",
+			label: `Кредити ${formatDecimalValue(params.credits[0])}–${formatDecimalValue(params.credits[1])}`,
+			clear: { credits: CREDITS_RANGE },
+		});
+	}
+
+	return chips;
 }
 
-export function getPresetResetFilters(
-	presetId: FilterPresetId,
-): Partial<CourseFiltersParamsState> {
-	switch (presetId) {
-		case "easy":
-			return { diff: DIFFICULTY_RANGE };
-		case "most-useful":
-			return { use: USEFULNESS_RANGE };
-	}
-}
+// Read as the answer to "which courses of my speciality": ELECTIVE covers
+// everything that is neither compulsory nor profession-oriented for it.
+export const COURSE_TYPE_FILTER_LABELS: Record<string, string> = {
+	COMPULSORY: "Обов'язкові",
+	PROF_ORIENTED: "Професійно-орієнтовані",
+	ELECTIVE: "Вільного вибору",
+};
 
 export type EducationLevelToggle = {
 	options: Array<{ value: string; label: string }>;
@@ -132,8 +237,6 @@ export type CourseFiltersData = {
 			selectFilters: SelectFilterConfig[];
 		};
 	};
-	presets: readonly FilterPreset[];
-	activePresetIds: FilterPresetId[];
 	hasActiveFilters: boolean;
 };
 
@@ -173,29 +276,18 @@ export function useCourseFiltersData({
 		return selectedFaculty?.departments || [];
 	}, [faculties, filters.faculty, allDepartments]);
 
-	const filteredSpecialities = React.useMemo(() => {
-		if (!filters.faculty) {
-			return allSpecialities;
-		}
-
-		const selectedFaculty = faculties.find((f) => f.id === filters.faculty);
-		return selectedFaculty?.specialities || [];
-	}, [faculties, filters.faculty, allSpecialities]);
-
 	const ratingRangeFilters: RangeFilterConfig[] = [
 		{
 			key: "diff",
 			label: "Складність",
 			value: filters.diff,
 			range: DIFFICULTY_RANGE,
-			captions: ["Легко", "Складно"],
 		},
 		{
 			key: "use",
 			label: "Корисність",
 			value: filters.use,
 			range: USEFULNESS_RANGE,
-			captions: ["Низька", "Висока"],
 		},
 	];
 
@@ -205,9 +297,7 @@ export function useCourseFiltersData({
 			label: "Кредити ECTS",
 			value: filters.credits,
 			range: CREDITS_RANGE,
-			captions: ["Менше", "Більше"],
 			step: 0.5,
-			showInputs: true,
 			disabled: !filters.year,
 			disabledMessage: filters.year
 				? undefined
@@ -300,7 +390,7 @@ export function useCourseFiltersData({
 				value: filters.spec,
 				options: [
 					{ value: "", label: "Усі спеціальності" },
-					...filteredSpecialities.map((speciality) => ({
+					...allSpecialities.map((speciality) => ({
 						value: speciality.id,
 						label: speciality.name,
 					})),
@@ -338,7 +428,7 @@ export function useCourseFiltersData({
 			courseTypes,
 			faculties,
 			filteredDepartments,
-			filteredSpecialities,
+			allSpecialities,
 			filters.faculty,
 			filters.dept,
 			filters.spec,
@@ -392,20 +482,6 @@ export function useCourseFiltersData({
 		filters.instructor,
 	]);
 
-	const activePresetIds = React.useMemo(() => {
-		const ids: FilterPresetId[] = [];
-
-		if (filters.diff[0] === DIFFICULTY_RANGE[0] && filters.diff[1] === 2.5) {
-			ids.push("easy");
-		}
-
-		if (filters.use[0] === 4 && filters.use[1] === USEFULNESS_RANGE[1]) {
-			ids.push("most-useful");
-		}
-
-		return ids;
-	}, [filters.diff, filters.use]);
-
 	return {
 		groups: {
 			rating: {
@@ -439,8 +515,6 @@ export function useCourseFiltersData({
 				selectFilters: structureSelectFilters,
 			},
 		},
-		presets: FILTER_PRESETS,
-		activePresetIds,
 		hasActiveFilters: areFiltersActive(params),
 	};
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { Bell, Check } from "lucide-react";
+import { Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -66,9 +66,9 @@ export function NotificationBell() {
 					aria-label={`Сповіщення${unreadCount > 0 ? ` (${unreadCount} непрочитаних)` : ""}`}
 					data-testid={testIds.notifications.bellTrigger}
 				>
-					<Bell className="h-[1.2rem] w-[1.2rem]" />
+					<Bell className="size-5" />
 					{unreadCount > 0 && (
-						<span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+						<span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
 							{unreadCount > 99 ? "99+" : unreadCount}
 						</span>
 					)}
@@ -76,26 +76,25 @@ export function NotificationBell() {
 			</PopoverTrigger>
 			<PopoverContent
 				align="end"
-				className="w-80 p-0"
+				className="w-80 p-1"
 				data-testid={testIds.notifications.panel}
 			>
-				<div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+				<div className="flex items-center justify-between py-1 pr-1 pl-3">
 					<h3 className="text-sm font-semibold">Сповіщення</h3>
 					{unreadCount > 0 && (
 						<Button
 							variant="ghost"
 							size="sm"
-							className="h-auto px-2 py-1 text-xs"
+							className="text-muted-foreground hover:text-foreground"
 							onClick={handleMarkAllRead}
 							disabled={isPending}
 							data-testid={testIds.notifications.markReadButton}
 						>
-							<Check className="mr-1 h-3 w-3" />
 							Прочитати все
 						</Button>
 					)}
 				</div>
-				<div className="max-h-80 overflow-y-auto px-3">
+				<div className="max-h-80 overflow-y-auto">
 					<NotificationList
 						notifications={notifications}
 						isLoading={isLoading}

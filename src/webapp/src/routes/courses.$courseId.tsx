@@ -4,12 +4,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 
 import Layout from "@/components/Layout";
-import { ExpandableText } from "@/components/ui/ExpandableText";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 import {
-	CourseCazYearsSection,
-	getLatestOfferingMeta,
-} from "@/features/course-offerings/components/CourseCazYearsSection";
+	CourseAbout,
+	offeringLoad,
+} from "@/features/course-offerings/components/CourseAbout";
+import {
+	getLatestOffering,
+	getLatestOfferingTerms,
+	runsInOneTerm,
+} from "@/features/course-offerings/components/CourseCazRecords";
 import {
 	CourseDetailsHeader,
 	CourseDetailsHeaderSkeleton,
@@ -18,12 +22,15 @@ import {
 	CourseStatsHero,
 	CourseStatsHeroSkeleton,
 } from "@/features/courses/components/CourseStatsCards";
+import { hasCourseScores } from "@/features/courses/courseFormatting";
 import {
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
 import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
+import { RatingButton } from "@/features/ratings/components/RatingButton";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
 	useCoursesOfferingsList,
@@ -31,14 +38,7 @@ import {
 } from "@/lib/api/generated";
 import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
-
-function CourseDescription({ text }: Readonly<{ text: string }>) {
-	return (
-		<ExpandableText className="text-[15px] leading-relaxed text-muted-foreground">
-			{text}
-		</ExpandableText>
-	);
-}
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
@@ -56,6 +56,7 @@ function CourseDetailsRoute() {
 
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+	const isDesktop = useMediaQuery("(min-width: 1024px)");
 
 	const {
 		rating: userRating,
@@ -78,19 +79,51 @@ function CourseDetailsRoute() {
 	if (isCourseError || isOfferingsError || !course || !courseOfferings) {
 		return (
 			<Layout>
-				<div className="py-16 text-center" role="alert">
-					<p className="text-muted-foreground">
-						Не вдалося завантажити інформацію про курс
-					</p>
-				</div>
+				<ErrorState
+					title="Не вдалося завантажити інформацію про курс"
+					role="alert"
+				/>
 			</Layout>
 		);
 	}
 
 	const offerings = courseOfferings?.course_offerings ?? [];
-	const canShowCta = hasAttendedCourse && selectedOffering && !ratedOffering;
-	const offeringMeta =
-		offerings.length > 0 ? getLatestOfferingMeta(offerings) : null;
+	const canRateNow = Boolean(selectedOffering?.can_rate);
+	const latestOffering = getLatestOffering(offerings);
+	const terms = getLatestOfferingTerms(offerings);
+	const load = offeringLoad(latestOffering);
+	const showStats = hasCourseScores(
+		course.avg_difficulty ?? null,
+		course.avg_usefulness ?? null,
+		course.ratings_count ?? null,
+	);
+	// Attendees who have not rated yet see where they stand: rateable now or after midterm.
+	const rateAction =
+		!ratedOffering && hasAttendedCourse && selectedOffering ? (
+			<div className="flex flex-col gap-3 rounded-xl bg-card-user p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+				<div className="min-w-0 space-y-0.5">
+					<p className="font-medium">Ви слухали цей курс</p>
+					<p className="text-sm text-muted-foreground">
+						{canRateNow
+							? "Ваша оцінка допоможе іншим обрати"
+							: CANNOT_RATE_TOOLTIP_TEXT}
+					</p>
+				</div>
+				<RatingButton
+					canRate={canRateNow}
+					onClick={() => setIsRatingModalOpen(true)}
+				>
+					Оцінити курс
+				</RatingButton>
+			</div>
+		) : null;
+	const about = (
+		<CourseAbout
+			description={course.description}
+			latestOffering={latestOffering}
+			courseOfferings={offerings}
+		/>
+	);
 	const canonicalUrl = `${window.location.origin + window.location.pathname}`;
 	const ogDescription = buildCourseOgDescription(course);
 
@@ -107,48 +140,50 @@ function CourseDetailsRoute() {
 					<meta name="twitter:description" content={ogDescription} />
 				</Helmet>
 			)}
-			<div className="pb-16">
-				{/* Hero zone: title → meta → badges + offering facts → scores */}
-				<div className="space-y-6">
-					<CourseDetailsHeader
-						title={course.title ?? ""}
-						educationLevel={course.education_level}
-						specialities={course.specialities ?? []}
-						departmentName={course.department_name ?? ""}
-						facultyName={course.faculty_name ?? ""}
-						offeringBadges={offeringMeta ?? undefined}
-						cazButton={
-							offerings.length > 0 ? (
-								<CourseCazYearsSection courseOfferings={offerings} />
-							) : undefined
-						}
-					/>
+			<div className="space-y-8 pb-16">
+				<div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+					<div className="min-w-0 space-y-8">
+						<CourseDetailsHeader
+							title={course.title ?? ""}
+							educationLevel={course.education_level}
+							specialities={course.specialities ?? []}
+							departmentName={course.department_name ?? ""}
+							facultyName={course.faculty_name ?? ""}
+							terms={terms}
+							credits={load.credits}
+							weeklyHours={load.weeklyHours}
+						/>
 
-					{course.description && (
-						<CourseDescription text={course.description} />
-					)}
+						{showStats ? (
+							<CourseStatsHero
+								difficulty={course.avg_difficulty ?? null}
+								usefulness={course.avg_usefulness ?? null}
+								ratingsCount={course.ratings_count ?? null}
+							/>
+						) : null}
 
-					<CourseStatsHero
-						difficulty={course.avg_difficulty ?? null}
-						usefulness={course.avg_usefulness ?? null}
-						ratingsCount={course.ratings_count ?? null}
-					/>
-				</div>
+						{/* Phones read one column: scores and the call to rate, then «Про курс»,
+						    then reviews. Rendered once: the rate button's test id must stay unique. */}
+						{isDesktop ? null : rateAction}
+						{isDesktop ? null : about}
 
-				{/* Reviews — CTA is anchored here */}
-				<div className="mt-12">
-					<CourseRatingsList
-						courseId={courseId}
-						userRating={userRating}
-						onEditUserRating={() => setIsRatingModalOpen(true)}
-						onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
-						canVote={hasAttendedCourse && Boolean(selectedOffering?.can_rate)}
-						hasAttended={hasAttendedCourse}
-						canRate={Boolean(selectedOffering?.can_rate)}
-						showCta={Boolean(canShowCta)}
-						canRateButton={Boolean(selectedOffering?.can_rate)}
-						onRate={() => setIsRatingModalOpen(true)}
-					/>
+						<CourseRatingsList
+							courseId={courseId}
+							userRating={userRating}
+							onEditUserRating={() => setIsRatingModalOpen(true)}
+							onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
+							rateAction={isDesktop ? rateAction : null}
+							hasAttended={hasAttendedCourse}
+							canRate={canRateNow}
+							singleTerm={runsInOneTerm(offerings)}
+						/>
+					</div>
+
+					{isDesktop ? (
+						<aside className="min-w-0">
+							<div className="lg:sticky lg:top-24">{about}</div>
+						</aside>
+					) : null}
 				</div>
 			</div>
 
@@ -177,15 +212,10 @@ function CourseDetailsRoute() {
 
 function CourseDetailsSkeleton() {
 	return (
-		<div className="pb-16">
-			<div className="space-y-6">
-				<CourseDetailsHeaderSkeleton />
-				<Skeleton className="h-10 w-full max-w-2xl" />
-				<CourseStatsHeroSkeleton />
-			</div>
-			<div className="mt-12">
-				<CourseRatingsListSkeleton />
-			</div>
+		<div className="space-y-8 pb-16">
+			<CourseDetailsHeaderSkeleton />
+			<CourseStatsHeroSkeleton />
+			<CourseRatingsListSkeleton />
 		</div>
 	);
 }

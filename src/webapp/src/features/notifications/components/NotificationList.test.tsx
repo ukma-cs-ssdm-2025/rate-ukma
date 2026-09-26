@@ -202,31 +202,33 @@ describe("NotificationList", () => {
 		).not.toBeInTheDocument();
 	});
 
-	it("should show unread indicator for unread notifications", () => {
+	it("splits unread and read notifications into Нові and Раніше", () => {
 		const notifications = [
-			createNotification({ group_key: "unread", is_unread: true }),
+			createNotification({ group_key: "old", is_unread: false }),
+			createNotification({ group_key: "new", is_unread: true }),
 		];
 
 		renderWithProviders(
 			<NotificationList notifications={notifications} isLoading={false} />,
 		);
 
-		const item = screen.getByTestId(testIds.notifications.item);
-		const dot = item.querySelector(".rounded-full.bg-primary");
-		expect(dot).toBeInTheDocument();
+		const labels = screen.getAllByText(/^(Нові|Раніше)$/);
+		expect(labels.map((label) => label.textContent)).toEqual([
+			"Нові",
+			"Раніше",
+		]);
 	});
 
-	it("should not show unread indicator for read notifications", () => {
+	it("omits group labels when every notification is unread", () => {
 		const notifications = [
-			createNotification({ group_key: "read", is_unread: false }),
+			createNotification({ group_key: "a", is_unread: true }),
+			createNotification({ group_key: "b", is_unread: true }),
 		];
 
 		renderWithProviders(
 			<NotificationList notifications={notifications} isLoading={false} />,
 		);
 
-		const item = screen.getByTestId(testIds.notifications.item);
-		const dot = item.querySelector(".rounded-full.bg-primary");
-		expect(dot).not.toBeInTheDocument();
+		expect(screen.queryByText("Нові")).not.toBeInTheDocument();
 	});
 });

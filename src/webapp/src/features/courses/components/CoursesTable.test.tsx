@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +11,7 @@ import {
 import { renderWithProviders } from "@/test-utils/render";
 import { CoursesTable } from "./CoursesTable";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
+import { DEFAULT_COURSE_FILTERS_PARAMS } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
@@ -124,7 +125,9 @@ describe("Initial Rendering", () => {
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
 		// Assert
-		expect(screen.getByText("Фільтри")).toBeInTheDocument();
+		const panel = screen.getByTestId(testIds.filters.panel);
+		expect(panel).toBeInTheDocument();
+		expect(within(panel).getByText("Фільтри")).toBeInTheDocument();
 	});
 
 	it("should render mobile filter button", () => {
@@ -154,6 +157,32 @@ describe("Initial Rendering", () => {
 		expect(
 			screen.getByText("Курсів не знайдено за вашим запитом"),
 		).toBeInTheDocument();
+	});
+
+	it("should offer a reset action when filters hide every course", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const setParams = vi.fn();
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				data={[]}
+				isLoading={false}
+				params={{ ...defaultParams, q: "хакерство" }}
+				setParams={setParams}
+			/>,
+		);
+
+		// Assert — one primary action, not prose
+		expect(
+			screen.getByText("За цими фільтрами курсів немає"),
+		).toBeInTheDocument();
+
+		// Act
+		await user.click(screen.getByRole("button", { name: "Скинути фільтри" }));
+
+		// Assert
+		expect(setParams).toHaveBeenCalledWith(DEFAULT_COURSE_FILTERS_PARAMS);
 	});
 
 	it("should render data table when data is present", () => {
@@ -324,7 +353,9 @@ describe("Filter Options Loading", () => {
 		});
 
 		// Assert
-		expect(screen.getByText("Фільтри")).toBeInTheDocument();
+		const panel = screen.getByTestId(testIds.filters.panel);
+		expect(panel).toBeInTheDocument();
+		expect(within(panel).getByText("Фільтри")).toBeInTheDocument();
 	});
 });
 
@@ -341,7 +372,8 @@ describe("Reset Filters", () => {
 			/>,
 		);
 
-		const resetButton = screen.getByRole("button", { name: /скинути/i });
+		const panel = screen.getByTestId(testIds.filters.panel);
+		const resetButton = within(panel).getByRole("button", { name: /скинути/i });
 		await user.click(resetButton);
 
 		expect(setParams).toHaveBeenCalledWith({
@@ -507,6 +539,21 @@ describe("Accessibility", () => {
 		const filterButton = screen.getByRole("button", { name: /фільтри/i });
 		expect(filterButton).toHaveAttribute("aria-label", "Фільтри");
 	});
+
+	it("should include the group active count in the filter button name", () => {
+		// Arrange & Act — two terms count once, matching the panel header
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				params={{ ...defaultParams, term: ["FALL", "SPRING"] }}
+			/>,
+		);
+
+		// Assert
+		expect(
+			screen.getByRole("button", { name: "Фільтри (1 активних)" }),
+		).toBeInTheDocument();
+	});
 });
 
 describe("Attended Courses Highlighting", () => {
@@ -597,7 +644,7 @@ describe("Course Row Navigation", () => {
 		});
 	});
 
-	it("should not navigate when '+N більше' is clicked", async () => {
+	it("should not navigate when 'ще N' is clicked", async () => {
 		const user = userEvent.setup();
 		const courseId = "course-2";
 		const courseTitle = "Badges Course";
@@ -619,7 +666,7 @@ describe("Course Row Navigation", () => {
 
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
-		await user.click(screen.getByText("+2 більше"));
+		await user.click(screen.getByText("ще 2"));
 
 		expect(mockNavigate).not.toHaveBeenCalled();
 	});

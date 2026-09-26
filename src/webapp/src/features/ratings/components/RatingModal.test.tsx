@@ -4,7 +4,8 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
-import { render } from "@/test-utils/render";
+import { testIds } from "@/lib/test-ids";
+import { render, screen } from "@/test-utils/render";
 import { RatingModal, type RatingFormData } from "./RatingModal";
 
 vi.mock("@/lib/api/generated", async (importOriginal) => {
@@ -70,6 +71,30 @@ function renderModal() {
 			isOpen
 			onClose={vi.fn()}
 			courseId="22222222-2222-2222-2222-222222222222"
+			courseName="Алгоритми та структури даних"
+			existingRating={EXISTING}
+		/>,
+	);
+
+	return mutateAsync;
+}
+
+function renderModalWithoutCourseName() {
+	const mutateAsync = vi.fn().mockResolvedValue({});
+	vi.mocked(useCoursesRatingsPartialUpdate).mockReturnValue({
+		mutateAsync,
+		isPending: false,
+	} as unknown as ReturnType<typeof useCoursesRatingsPartialUpdate>);
+	vi.mocked(useCoursesRatingsCreate).mockReturnValue({
+		mutateAsync: vi.fn().mockResolvedValue({}),
+		isPending: false,
+	} as unknown as ReturnType<typeof useCoursesRatingsCreate>);
+
+	render(
+		<RatingModal
+			isOpen
+			onClose={vi.fn()}
+			courseId="22222222-2222-2222-2222-222222222222"
 			existingRating={EXISTING}
 		/>,
 	);
@@ -99,5 +124,23 @@ describe("RatingModal instructor write path", () => {
 		const { data } = mutateAsync.mock.calls[0][0];
 		expect(data.instructor_ids).toEqual([]);
 		expect(data).not.toHaveProperty("instructor");
+	});
+});
+
+describe("RatingModal title", () => {
+	it("uses the course name as the dialog title", () => {
+		renderModal();
+
+		expect(screen.getByTestId(testIds.rating.modalTitle)).toHaveTextContent(
+			"Алгоритми та структури даних",
+		);
+	});
+
+	it("falls back to the generic title when the course name is missing", () => {
+		renderModalWithoutCourseName();
+
+		expect(screen.getByTestId(testIds.rating.modalTitle)).toHaveTextContent(
+			"Редагувати оцінку",
+		);
 	});
 });

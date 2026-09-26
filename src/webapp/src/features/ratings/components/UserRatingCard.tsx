@@ -1,7 +1,6 @@
-import { Pencil, Star, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { getSemesterDisplay } from "@/features/courses/courseFormatting";
 import {
 	ANONYMOUS_REVIEW_NAME,
 	CANNOT_VOTE_OWN_RATING_TEXT,
@@ -30,6 +29,7 @@ interface ExtendedRating extends InlineRating {
 interface UserRatingCardProps {
 	readonly rating: RatingRead | ExtendedRating;
 	readonly courseId?: string;
+	readonly singleTerm?: boolean;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
 }
@@ -37,6 +37,7 @@ interface UserRatingCardProps {
 export function UserRatingCard({
 	rating,
 	courseId,
+	singleTerm = false,
 	onEdit,
 	onDelete,
 }: UserRatingCardProps) {
@@ -55,23 +56,18 @@ export function UserRatingCard({
 		return DEFAULT_STUDENT_NAME;
 	};
 	const displayName = getUserDisplayName();
-	const courseOfferingYear =
-		"course_offering_year" in rating ? rating.course_offering_year : undefined;
-	const courseOfferingTerm =
-		"course_offering_term" in rating ? rating.course_offering_term : undefined;
-	const courseOfferingLabel =
-		courseOfferingYear != null && courseOfferingTerm
-			? getSemesterDisplay(courseOfferingYear, courseOfferingTerm)
+	const offering =
+		"course_offering_year" in rating
+			? { year: rating.course_offering_year, term: rating.course_offering_term }
 			: undefined;
 
 	return (
 		<article
-			className="rounded-lg border border-primary/20 bg-card-user px-4 py-4 [--avatar-ring-color:var(--card-user)]"
+			className="rounded-xl bg-card-user p-4 sm:p-5"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
-			<div className="flex items-center justify-between mb-2">
+			<div className="mb-2 flex items-center justify-between">
 				<div className="flex items-center gap-2 text-xs">
-					<Star className="h-3.5 w-3.5 text-primary fill-primary" />
 					<span className="font-medium text-primary">Ваша оцінка</span>
 				</div>
 				<div className="flex items-center gap-1">
@@ -80,20 +76,20 @@ export function UserRatingCard({
 						variant="ghost"
 						onClick={onEdit}
 						aria-label="Редагувати оцінку"
-						className="h-7 w-7 p-0"
+						className="size-7 p-0 text-muted-foreground"
 						data-testid={testIds.courseDetails.editUserRatingButton}
 					>
-						<Pencil className="h-3.5 w-3.5" />
+						<Pencil className="size-3.5" />
 					</Button>
 					<Button
 						size="sm"
 						variant="ghost"
 						onClick={onDelete}
 						aria-label="Видалити оцінку"
-						className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+						className="size-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
 						data-testid={testIds.rating.deleteButton}
 					>
-						<Trash2 className="h-3.5 w-3.5" />
+						<Trash2 className="size-3.5" />
 					</Button>
 				</div>
 			</div>
@@ -103,7 +99,9 @@ export function UserRatingCard({
 				isAnonymous={rating.is_anonymous ?? false}
 				avatarUrl={!rating.is_anonymous ? user?.avatarUrl : undefined}
 				createdAt={rating.created_at}
-				courseOfferingLabel={courseOfferingLabel}
+				offeringYear={offering?.year}
+				offeringTerm={offering?.term}
+				singleTerm={singleTerm}
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}
@@ -117,8 +115,7 @@ export function UserRatingCard({
 				viewerVote={rating.viewer_vote ?? null}
 				commentsCount={rating.comments_count ?? 0}
 				commentAuthors={rating.comment_authors ?? []}
-				votesReadOnly={true}
-				votesDisabledMessage={CANNOT_VOTE_OWN_RATING_TEXT}
+				voteDisabledReason={CANNOT_VOTE_OWN_RATING_TEXT}
 			/>
 		</article>
 	);

@@ -31,9 +31,16 @@ vi.mock("@/components/ui/Skeleton", () => ({
 	Skeleton: () => <div data-testid="skeleton" />,
 }));
 
-vi.mock("@/features/course-offerings/components/CourseCazYearsSection", () => ({
-	CourseCazYearsSection: () => <div data-testid="course-offerings" />,
-	getLatestOfferingMeta: vi.fn(() => []),
+vi.mock("@/features/course-offerings/components/CourseAbout", () => ({
+	CourseAbout: () => <div data-testid="course-about" />,
+	offeringLoad: () => ({ credits: null, weeklyHours: null }),
+}));
+
+vi.mock("@/features/course-offerings/components/CourseCazRecords", () => ({
+	CourseCazRecords: () => <div data-testid="course-offerings" />,
+	getLatestOffering: vi.fn(() => undefined),
+	getLatestOfferingTerms: vi.fn(() => []),
+	runsInOneTerm: vi.fn(() => true),
 }));
 
 vi.mock("@/features/courses/components/CourseDetailsHeader", () => ({

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 type SliderProps = React.ComponentProps<typeof SliderPrimitive.Root> & {
 	"data-testid"?: string;
 	thumbTestIdPrefix?: string;
+	thumbLabels?: readonly string[];
 };
 
 function Slider({
@@ -17,6 +18,7 @@ function Slider({
 	max = 100,
 	"data-testid": rootTestId,
 	thumbTestIdPrefix,
+	thumbLabels,
 	...props
 }: SliderProps) {
 	const _values = React.useMemo(() => {
@@ -62,10 +64,11 @@ function Slider({
 				<SliderPrimitive.Thumb
 					data-slot="slider-thumb"
 					key={`slider-thumb-${String(index)}`}
+					aria-label={thumbLabels?.[index]}
 					data-testid={
 						thumbPrefix ? `${thumbPrefix}-thumb-${String(index)}` : undefined
 					}
-					className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+					className="border-primary block size-4 shrink-0 rounded-full border bg-background shadow-sm ring-ring/50 transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:ring-ring focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
 				/>
 			))}
 		</SliderPrimitive.Root>

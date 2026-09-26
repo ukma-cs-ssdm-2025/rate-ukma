@@ -1,126 +1,126 @@
 import { ArrowRight, Megaphone } from "lucide-react";
 
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+
 import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import type {
 	FeedPromoAccent,
 	FeedPromoItem as FeedPromoItemType,
 } from "../feedTypes";
+import { FeedCard, type FeedTone } from "./FeedCard";
 
 /** Badge and Button share these variant names, so one value drives both. */
-type AccentVariant = "default" | "secondary" | "destructive";
-
-const ACCENT_STYLES: Record<
-	FeedPromoAccent,
-	{
-		container: string;
-		rail: string;
-		variant: AccentVariant;
-		/** Darkens the CTA where the variant's own fill is too pale to read as a button. */
-		cta?: string;
-	}
-> = {
-	BRAND: {
-		container: "bg-primary/5 border-primary/20",
-		rail: "bg-primary",
-		variant: "default",
-	},
+const ACCENT = {
+	BRAND: { tone: "primary", button: "default" },
+	// The secondary fill is too pale to read as a button on the tinted card.
 	INFO: {
-		container: "bg-accent border-border",
-		rail: "bg-muted-foreground",
-		variant: "secondary",
+		tone: "muted",
+		button: "secondary",
 		cta: "bg-muted-foreground text-background hover:bg-muted-foreground/90",
 	},
-	WARNING: {
-		container: "bg-destructive/5 border-destructive/20",
-		rail: "bg-destructive",
-		variant: "destructive",
-	},
-};
+	WARNING: { tone: "destructive", button: "destructive" },
+} as const satisfies Record<
+	FeedPromoAccent,
+	{
+		tone: FeedTone;
+		button: "default" | "secondary" | "destructive";
+		cta?: string;
+	}
+>;
 
 interface FeedPromoItemProps {
 	readonly item: FeedPromoItemType;
-	/** `banner` is wider/horizontal for top-of-page placement. */
+	/** `banner` is wider for top-of-page placement and may carry an image. */
 	readonly variant?: "card" | "banner";
 }
 
-export function FeedPromoItem({ item, variant = "card" }: FeedPromoItemProps) {
-	const accent = ACCENT_STYLES[item.accent ?? "BRAND"] ?? ACCENT_STYLES.BRAND;
-	const label = item.label ?? "Оголошення";
+export function FeedPromoItem({
+	item,
+	variant = "card",
+}: Readonly<FeedPromoItemProps>) {
+	const accent: {
+		tone: FeedTone;
+		button: "default" | "secondary" | "destructive";
+		cta?: string;
+	} = ACCENT[item.accent ?? "BRAND"] ?? ACCENT.BRAND;
+	const kind = {
+		label: item.label ?? "Оголошення",
+		icon: Megaphone,
+		tone: accent.tone,
+	};
 	const isBanner = variant === "banner";
+	// A label without an href goes nowhere, so the CTA needs both halves.
+	const cta = item.ctaLabel && item.ctaHref && (
+		<Button
+			asChild
+			size="sm"
+			variant={accent.button}
+			className={cn("gap-1.5", accent.cta)}
+		>
+			<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
+				{item.ctaLabel}
+				<ArrowRight className="size-4" aria-hidden />
+			</a>
+		</Button>
+	);
+
+	if (!isBanner) {
+		return (
+			<FeedCard
+				variant="card"
+				tinted
+				kind={kind}
+				pinned={item.pinned}
+				title={item.title}
+				footer={
+					<div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+						<time>{formatRelativeTime(item.createdAt)}</time>
+						{item.ctaLabel && item.ctaHref ? (
+							<a
+								href={item.ctaHref}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+							>
+								<span className="truncate">{item.ctaLabel}</span>
+								<ArrowRight className="size-3.5 shrink-0" aria-hidden />
+							</a>
+						) : null}
+					</div>
+				}
+			>
+				{item.body}
+			</FeedCard>
+		);
+	}
 
 	return (
-		<article
-			className={cn(
-				"relative overflow-hidden rounded-xl border shadow-sm",
-				accent.container,
-				isBanner
-					? "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-					: "flex h-full flex-col p-5",
-			)}
+		<FeedCard
+			variant="banner"
+			tinted
+			kind={kind}
+			pinned={item.pinned}
+			title={item.title}
+			footer={
+				<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
+					<time className="text-xs text-muted-foreground">
+						{formatRelativeTime(item.createdAt)}
+					</time>
+					{cta}
+				</div>
+			}
 		>
-			<span
-				className={cn("absolute inset-y-0 left-0 w-1", accent.rail)}
-				aria-hidden
-			/>
-
-			{/* Banner only: the homepage strip's cards are too narrow to carry an
-			    image without crowding out the title and body. */}
-			{item.imageUrl && isBanner && (
+			{/* Banner only: the strip cards are too narrow to carry an image. */}
+			{item.imageUrl && (
 				<img
 					src={item.imageUrl}
 					alt={item.title}
-					className="ml-2 size-20 shrink-0 rounded-lg object-cover sm:size-24"
+					className="aspect-[3/1] w-full rounded-lg bg-muted object-cover"
 					loading="lazy"
 				/>
 			)}
-
-			<div className={cn("min-w-0", isBanner ? "flex-1 pl-2" : "pl-2")}>
-				<div className="flex items-center gap-2">
-					<Badge
-						variant={accent.variant}
-						className="gap-1 text-[10px] uppercase tracking-wide"
-					>
-						<Megaphone className="size-3" />
-						{label}
-					</Badge>
-				</div>
-
-				<h3 className="mt-3 font-semibold leading-tight tracking-tight">
-					{item.title}
-				</h3>
-				<p
-					className={cn(
-						"mt-2 text-sm text-muted-foreground",
-						isBanner ? "" : "line-clamp-2",
-					)}
-				>
-					{item.body}
-				</p>
-			</div>
-
-			{/* Both halves are required: a label without a real href would render a
-			    link that goes nowhere, so admin data missing one drops the CTA. */}
-			{item.ctaLabel && item.ctaHref && (
-				<div
-					className={cn(
-						isBanner ? "shrink-0 pl-2 sm:pl-0" : "mt-auto pl-2 pt-4",
-					)}
-				>
-					<Button
-						asChild
-						size="sm"
-						variant={accent.variant}
-						className={cn("gap-1.5", accent.cta)}
-					>
-						<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
-							{item.ctaLabel}
-							<ArrowRight className="size-4" />
-						</a>
-					</Button>
-				</div>
-			)}
-		</article>
+			<p className="text-sm leading-relaxed text-foreground/90">{item.body}</p>
+		</FeedCard>
 	);
 }

@@ -1,15 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import {
-	AlertTriangle,
-	Bell,
-	Loader2,
-	MessageSquare,
-	ThumbsDown,
-	ThumbsUp,
-} from "lucide-react";
+import { Bell, MessageSquare, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import type { NotificationGroup } from "@/lib/api/generated";
+import {
+	Empty,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/Empty";
+import { Spinner } from "@/components/ui/Spinner";
+import { EventTypeEnum, type NotificationGroup } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "../notificationFormatting";
@@ -26,11 +26,27 @@ interface NotificationListProps {
 	onLoadMore?: () => void;
 }
 
-const EVENT_ICONS: Record<string, typeof ThumbsUp> = {
-	RATING_UPVOTED: ThumbsUp,
-	RATING_DOWNVOTED: ThumbsDown,
-	RATING_COMMENT_CREATED: MessageSquare,
+// Likes and dislikes read at a glance by colour, so each event keeps its tone
+// even once read; unread weight comes from the bold headline instead.
+const EVENT_ICONS: Record<
+	EventTypeEnum,
+	{ icon: typeof ThumbsUp; tone: string }
+> = {
+	[EventTypeEnum.RATING_UPVOTED]: {
+		icon: ThumbsUp,
+		tone: "bg-primary/10 text-primary",
+	},
+	[EventTypeEnum.RATING_DOWNVOTED]: {
+		icon: ThumbsDown,
+		tone: "bg-destructive/10 text-destructive",
+	},
+	[EventTypeEnum.RATING_COMMENT_CREATED]: {
+		icon: MessageSquare,
+		tone: "bg-muted text-muted-foreground",
+	},
 };
+
+const FALLBACK_EVENT = { icon: Bell, tone: "bg-muted text-muted-foreground" };
 
 export function NotificationList({
 	notifications,
@@ -46,9 +62,10 @@ export function NotificationList({
 	if (isLoading) {
 		return (
 			<div
-				className="flex items-center justify-center py-8"
+				className="flex items-center justify-center gap-2 py-8"
 				data-testid={testIds.notifications.loading}
 			>
+				<Spinner />
 				<span className="text-sm text-muted-foreground">Завантаження...</span>
 			</div>
 		);
@@ -60,7 +77,6 @@ export function NotificationList({
 				className="flex flex-col items-center justify-center gap-2 py-8"
 				data-testid={testIds.notifications.error}
 			>
-				<AlertTriangle className="h-8 w-8 text-destructive/50" />
 				<span className="text-sm text-muted-foreground">
 					Не вдалося завантажити
 				</span>
@@ -68,7 +84,6 @@ export function NotificationList({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-auto px-2 py-1 text-xs"
 						onClick={onRetry}
 						disabled={isRetrying}
 					>
@@ -81,46 +96,94 @@ export function NotificationList({
 
 	if (notifications.length === 0) {
 		return (
-			<div
-				className="flex flex-col items-center justify-center gap-2 py-8"
+			<Empty
+				className="border-0 py-8"
 				data-testid={testIds.notifications.empty}
 			>
-				<Bell className="h-8 w-8 text-muted-foreground/50" />
-				<span className="text-sm text-muted-foreground">Немає сповіщень</span>
-			</div>
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<Bell />
+					</EmptyMedia>
+					<EmptyTitle className="text-sm">Немає сповіщень</EmptyTitle>
+				</EmptyHeader>
+			</Empty>
 		);
 	}
 
+	const unread = notifications.filter((notification) => notification.is_unread);
+	const read = notifications.filter((notification) => !notification.is_unread);
+	const showGroups = unread.length > 0 && read.length > 0;
+
 	return (
-		<div>
-			<ul className="flex flex-col" data-testid={testIds.notifications.list}>
-				{notifications.map((notification) => (
+		<div className="flex flex-col gap-0.5">
+			<ul
+				className="flex flex-col gap-0.5"
+				data-testid={testIds.notifications.list}
+			>
+				{showGroups && (
+					<li className="px-3 pt-2 text-xs font-medium text-muted-foreground">
+						Нові
+					</li>
+				)}
+				{(showGroups ? unread : notifications).map((notification) => (
 					<NotificationItem
 						key={notification.group_key}
 						notification={notification}
 						onClick={onNotificationClick}
 					/>
 				))}
+				{showGroups && (
+					<li className="px-3 pt-2.5 text-xs font-medium text-muted-foreground">
+						Раніше
+					</li>
+				)}
+				{showGroups &&
+					read.map((notification) => (
+						<NotificationItem
+							key={notification.group_key}
+							notification={notification}
+							onClick={onNotificationClick}
+						/>
+					))}
 			</ul>
 			{hasMore && (
-				<div className="flex justify-center py-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-auto w-full px-2 py-2 text-xs text-muted-foreground"
-						onClick={onLoadMore}
-						disabled={isLoadingMore}
-						data-testid={testIds.notifications.loadMore}
-					>
-						{isLoadingMore ? (
-							<Loader2 className="mr-1 h-3 w-3 animate-spin" />
-						) : null}
-						Завантажити ще
-					</Button>
-				</div>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="mt-0.5 w-full text-muted-foreground"
+					onClick={onLoadMore}
+					disabled={isLoadingMore}
+					data-testid={testIds.notifications.loadMore}
+				>
+					{isLoadingMore ? <Spinner className="mr-1" /> : null}
+					Завантажити ще
+				</Button>
 			)}
 		</div>
 	);
+}
+
+// Comment notifications may carry the comment text as a trailing quoted
+// segment of the message; split it off so the headline stays short.
+function splitCommentQuote(message: string): {
+	title: string;
+	quote?: string;
+} {
+	const text = message.trimEnd();
+	const open = text.search(/[«"“]/u);
+	if (open < 0 || open > text.length - 3 || !/[»"”]$/u.test(text)) {
+		return { title: message };
+	}
+	const title = text
+		.slice(0, open)
+		.trim()
+		.replace(/[:—–-]$/u, "")
+		.trimEnd();
+	const quote = text.slice(open + 1, -1).trim();
+	if (!title || !quote) {
+		return { title: message };
+	}
+	return { title, quote };
 }
 
 function NotificationItem({
@@ -130,41 +193,55 @@ function NotificationItem({
 	notification: NotificationGroup;
 	onClick?: (groupKey: string) => void;
 }>) {
-	const Icon = EVENT_ICONS[notification.event_type ?? ""] ?? Bell;
-	const isUpvote = notification.event_type === "RATING_UPVOTED";
 	const courseId = notification.course_id;
+	const isUnread = notification.is_unread ?? false;
+	const { icon: Icon, tone } =
+		(notification.event_type && EVENT_ICONS[notification.event_type]) ||
+		FALLBACK_EVENT;
+
+	const { title, quote } =
+		notification.event_type === EventTypeEnum.RATING_COMMENT_CREATED &&
+		notification.message
+			? splitCommentQuote(notification.message)
+			: { title: notification.message };
 
 	const content = (
 		<>
-			<div
+			<span
+				aria-hidden
 				className={cn(
-					"mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-					isUpvote
-						? "bg-primary/10 text-primary"
-						: "bg-destructive/10 text-destructive",
+					"flex size-7 shrink-0 items-center justify-center rounded-full",
+					tone,
 				)}
 			>
-				<Icon className="h-4 w-4" />
-			</div>
+				<Icon className="size-3.5" />
+			</span>
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-				<p className="text-sm leading-snug">{notification.message}</p>
+				<p
+					className={cn(
+						"line-clamp-2 text-sm leading-snug break-words text-foreground",
+						isUnread && "font-medium",
+					)}
+				>
+					{title}
+				</p>
+				{quote && (
+					<p className="line-clamp-2 text-sm break-words text-muted-foreground">
+						{quote}
+					</p>
+				)}
 				{notification.latest_created_at && (
 					<time className="text-xs text-muted-foreground">
 						{formatRelativeTime(notification.latest_created_at)}
 					</time>
 				)}
 			</div>
-			{notification.is_unread && (
-				<span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-			)}
 		</>
 	);
 
 	const itemClass = cn(
-		"flex items-start gap-3 border-b border-border/40 px-1 py-3 last:border-b-0",
-		notification.is_unread && "bg-accent/30",
-		courseId &&
-			"cursor-pointer rounded-md transition-colors hover:bg-accent/50",
+		"flex items-start gap-2.5 rounded-lg px-3 py-2.5 transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring",
+		isUnread && "bg-primary/5",
 	);
 
 	if (courseId) {

@@ -49,6 +49,8 @@ declare module "@tanstack/react-table" {
 		variant?: "text" | "number";
 		icon?: React.ComponentType<{ className?: string }>;
 		range?: [number, number];
+		// Hides the whole column below the sm breakpoint (CSS only, keeps DOM for tests).
+		hideOnMobile?: boolean;
 	}
 }
 
@@ -105,6 +107,7 @@ interface DataTableProps<TData> extends ComponentProps<"div"> {
 	serverPageCount?: number;
 	emptyStateMessage: string;
 	emptyStateTestId?: string;
+	emptyStateAction?: ReactNode;
 	onRowClick?: (row: TData) => void;
 	isRowHighlighted?: (row: TData) => boolean;
 }
@@ -118,6 +121,7 @@ export function DataTable<TData>({
 	serverPageCount,
 	emptyStateMessage,
 	emptyStateTestId,
+	emptyStateAction,
 	onRowClick,
 	isRowHighlighted,
 	"data-testid": tableTestId,
@@ -127,12 +131,12 @@ export function DataTable<TData>({
 
 	return (
 		<div
-			className={cn("flex w-full flex-col gap-2.5 overflow-auto", className)}
+			className={cn("flex w-full flex-col gap-4 overflow-auto", className)}
 			data-testid={tableTestId}
 			{...props}
 		>
 			{children}
-			<div className="overflow-hidden rounded-md border">
+			<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
 				<Table>
 					<TableHeader>
 						{table.getHeaderGroups().map((headerGroup) => (
@@ -144,7 +148,12 @@ export function DataTable<TData>({
 										style={{
 											...getCommonPinningStyles({ column: header.column }),
 										}}
-										className={getAlignmentClass(header.column.columnDef.meta)}
+										className={cn(
+											getAlignmentClass(header.column.columnDef.meta),
+											"max-sm:px-2",
+											header.column.columnDef.meta?.hideOnMobile &&
+												"hidden sm:table-cell",
+										)}
 									>
 										{header.isPlaceholder
 											? null
@@ -184,8 +193,11 @@ export function DataTable<TData>({
 												style={{
 													...getCommonPinningStyles({ column: cell.column }),
 												}}
-												className={getAlignmentClass(
-													cell.column.columnDef.meta,
+												className={cn(
+													getAlignmentClass(cell.column.columnDef.meta),
+													"max-sm:p-2",
+													cell.column.columnDef.meta?.hideOnMobile &&
+														"hidden sm:table-cell",
 												)}
 											>
 												{flexRender(
@@ -201,10 +213,13 @@ export function DataTable<TData>({
 							<TableRow>
 								<TableCell
 									colSpan={table.getAllColumns().length}
-									className="h-24 text-center"
+									className="text-center"
 									data-testid={emptyStateTestId}
 								>
-									{emptyStateMessage}
+									<div className="flex flex-col items-center gap-3 px-2 py-8">
+										<p className="text-muted-foreground">{emptyStateMessage}</p>
+										{emptyStateAction}
+									</div>
 								</TableCell>
 							</TableRow>
 						)}

@@ -1,12 +1,12 @@
 import * as React from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Star } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Eye, EyeOff, Star } from "lucide-react";
+import { useForm, useWatch, type Control } from "react-hook-form";
 import * as z from "zod";
-
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { DialogFooter } from "@/components/ui/Dialog";
 import {
 	Form,
 	FormControl,
@@ -20,20 +20,22 @@ import { Textarea } from "@/components/ui/Textarea";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { cn } from "@/lib/utils";
 import {
+	ANONYMOUS_REVIEW_NAME,
+	DEFAULT_STUDENT_NAME,
 	difficultyDescriptions,
 	usefulnessDescriptions,
 } from "../definitions/ratingDefinitions";
+import { RatingCardBody } from "./RatingCardBody";
 
 const ratingSchema = z.object({
 	difficulty: z
 		.number()
-		.min(1, "Оцінка складності є обов'язковою")
+		.min(1, "Оцініть складність")
 		.max(5, "Оцінка складності повинна бути від 1 до 5"),
 	usefulness: z
 		.number()
-		.min(1, "Оцінка корисності є обов'язковою")
+		.min(1, "Оцініть корисність")
 		.max(5, "Оцінка корисності повинна бути від 1 до 5"),
 	comment: z
 		.string()
@@ -48,158 +50,272 @@ const ratingSchema = z.object({
 
 export type RatingFormData = z.infer<typeof ratingSchema>;
 
-function StarRatingInput({
+const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
+
+// Descriptions read as "Коротко - детальніше"; the input shows the short head.
+function getShortDescription(
+	descriptions: Record<number, string>,
+	value: number,
+): string {
+	const full = descriptions[value] ?? "";
+	const [head] = full.split(" - ");
+	return head?.trim() || full;
+}
+
+function ScoreInput({
 	value,
 	onChange,
 	onBlur,
 	descriptions,
+	label,
+	labelId,
 	"data-testid": dataTestId,
 	...rest
 }: Readonly<{
+	label: React.ReactNode;
 	value: number;
 	onChange: (value: number) => void;
 	onBlur?: () => void;
 	descriptions: Record<number, string>;
+	labelId: string;
 	"data-testid"?: string;
 	id?: string;
 	"aria-describedby"?: string;
 	"aria-invalid"?: boolean;
 }>) {
 	const [hovered, setHovered] = React.useState<number | null>(null);
-	const [dragOrigin, setDragOrigin] = React.useState<number | null>(null);
-	const [dragTarget, setDragTarget] = React.useState<number | null>(null);
-	const dragging = dragOrigin !== null;
-	const displayValue = hovered ?? value;
-
-	const handlePointerDown = (star: number) => {
-		setDragOrigin(star);
-		setDragTarget(star);
-		onChange(star);
-	};
-
-	const handlePointerEnter = (star: number) => {
-		setHovered(star);
-		if (dragging) {
-			setDragTarget(star);
-			onChange(star);
-		}
-	};
+	const [dragging, setDragging] = React.useState(false);
+	const buttons = React.useRef<Array<HTMLButtonElement | null>>([]);
+	const shown = hovered ?? value;
 
 	React.useEffect(() => {
 		if (!dragging) return;
-		const up = () => {
-			setDragOrigin(null);
-			setDragTarget(null);
-		};
-		globalThis.addEventListener("pointerup", up);
-		return () => globalThis.removeEventListener("pointerup", up);
+		const stop = () => setDragging(false);
+		globalThis.addEventListener("pointerup", stop);
+		return () => globalThis.removeEventListener("pointerup", stop);
 	}, [dragging]);
 
+	const select = (next: number) => {
+		onChange(next);
+		buttons.current[next - 1]?.focus();
+	};
+
+	const onRadioKeyDown = (event: React.KeyboardEvent) => {
+		switch (event.key) {
+			case "ArrowRight":
+			case "ArrowUp":
+				event.preventDefault();
+				select(Math.min(5, value + 1));
+				break;
+			case "ArrowLeft":
+			case "ArrowDown":
+				event.preventDefault();
+				select(Math.max(1, value - 1));
+				break;
+			case "Home":
+				event.preventDefault();
+				select(1);
+				break;
+			case "End":
+				event.preventDefault();
+				select(5);
+				break;
+		}
+	};
+
 	return (
-		<div data-testid={dataTestId}>
-			<fieldset
-				aria-label="Оцінка"
-				className="flex gap-0.5 select-none touch-none border-none p-0 m-0"
-				onMouseLeave={() => {
-					if (!dragging) setHovered(null);
-				}}
+		<div
+			className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+			data-testid={dataTestId}
+		>
+			<div className="min-w-0">
+				{label}
+				<p
+					aria-live="polite"
+					className="mt-0.5 flex items-baseline gap-1.5 text-sm text-muted-foreground"
+				>
+					{/* No default score: a preset 3 anchors people and lets them submit
+					    a verdict they never made. */}
+					{shown > 0 ? (
+						<>
+							<span className="font-medium text-foreground tabular-nums">
+								{shown}
+							</span>
+							<span>{getShortDescription(descriptions, shown)}</span>
+						</>
+					) : (
+						<span>Оберіть від 1 до 5</span>
+					)}
+				</p>
+			</div>
+			<div
+				role="radiogroup"
+				aria-labelledby={labelId}
 				onBlur={onBlur}
+				onPointerLeave={() => {
+					setHovered(null);
+					setDragging(false);
+				}}
+				onPointerUp={() => setDragging(false)}
+				className="-ml-1 flex touch-pan-y select-none gap-0.5 sm:ml-0"
 				{...rest}
 			>
-				{[1, 2, 3, 4, 5].map((star) => {
-					const isFilled = star <= displayValue;
-					const isPressed =
-						dragging &&
-						dragOrigin !== null &&
-						dragTarget !== null &&
-						star >= Math.min(dragOrigin, dragTarget) &&
-						star <= Math.max(dragOrigin, dragTarget);
-
+				{SCORE_OPTIONS.map((score) => {
+					const isFilled = score <= shown;
 					return (
 						<button
-							key={star}
+							key={score}
+							ref={(node) => {
+								buttons.current[score - 1] = node;
+							}}
 							type="button"
-							className={cn(
-								"rounded-md p-1 transition-transform duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-								isPressed ? "scale-90" : "hover:scale-110 active:scale-95",
-							)}
-							onPointerDown={() => handlePointerDown(star)}
-							onPointerEnter={() => handlePointerEnter(star)}
-							aria-label={`${star} з 5`}
+							role="radio"
+							aria-checked={score === value}
+							aria-label={`${score} з 5`}
+							tabIndex={score === (value || 1) ? 0 : -1}
+							onKeyDown={onRadioKeyDown}
+							onClick={() => onChange(score)}
+							onPointerDown={() => {
+								setDragging(true);
+								onChange(score);
+							}}
+							onPointerEnter={() => {
+								setHovered(score);
+								if (dragging) {
+									onChange(score);
+								}
+							}}
+							className="min-h-10 min-w-10 rounded-md p-1 transition-transform duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none sm:min-h-0 sm:min-w-0 [@media(hover:hover)]:hover:scale-110 active:scale-95 motion-reduce:transform-none"
 						>
 							<Star
-								className={cn(
-									"h-7 w-7 transition-colors duration-100",
+								aria-hidden="true"
+								className={
 									isFilled
-										? "fill-primary text-primary drop-shadow-sm"
-										: "fill-transparent text-muted-foreground/30",
-								)}
+										? "size-8 fill-primary text-primary transition-colors duration-100 motion-reduce:transition-none sm:size-7"
+										: "size-8 fill-transparent text-muted-foreground/40 transition-colors duration-100 motion-reduce:transition-none sm:size-7"
+								}
 							/>
 						</button>
 					);
 				})}
-			</fieldset>
-			<p className="mt-1.5 text-xs text-muted-foreground min-h-8">
-				{descriptions[displayValue as keyof typeof descriptions] ?? ""}
-			</p>
+			</div>
 		</div>
 	);
 }
-
 function RatingFormFields({
 	control,
 	offeringId,
 	courseId,
 	initialInstructors,
 	legacyInstructor,
+	author,
 }: Readonly<{
-	control: ReturnType<typeof useForm<RatingFormData>>["control"];
+	control: Control<RatingFormData>;
+	author?: RatingAuthor;
 	offeringId?: string;
 	courseId?: string;
 	initialInstructors?: readonly Instructor[];
 	legacyInstructor?: string;
 }>) {
+	const comment = useWatch({ control, name: "comment" }) ?? "";
+	const isAnonymous = useWatch({ control, name: "is_anonymous" }) ?? false;
+	const difficulty = useWatch({ control, name: "difficulty" });
+	const usefulness = useWatch({ control, name: "usefulness" });
+	const [previewOpen, setPreviewOpen] = React.useState(false);
+	const signature = isAnonymous
+		? ANONYMOUS_REVIEW_NAME
+		: author?.name || DEFAULT_STUDENT_NAME;
+	const difficultyLabelId = React.useId();
+	const usefulnessLabelId = React.useId();
+	const scrollRef = React.useRef<HTMLDivElement>(null);
+	const [edges, setEdges] = React.useState({
+		scrolled: false,
+		moreBelow: false,
+	});
+
+	// Dividers only mark content hidden under the header or footer, so they
+	// follow the scroll position instead of always framing the form.
+	const updateEdges = React.useCallback(() => {
+		const el = scrollRef.current;
+		if (!el) return;
+		const scrolled = el.scrollTop > 0;
+		const moreBelow = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+		setEdges((prev) =>
+			prev.scrolled === scrolled && prev.moreBelow === moreBelow
+				? prev
+				: { scrolled, moreBelow },
+		);
+	}, []);
+
+	React.useEffect(() => {
+		const el = scrollRef.current;
+		if (!el) return;
+		updateEdges();
+		const observer = new ResizeObserver(updateEdges);
+		observer.observe(el);
+		for (const child of el.children) observer.observe(child);
+		return () => observer.disconnect();
+	}, [updateEdges]);
+
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+		<div
+			ref={scrollRef}
+			onScroll={updateEdges}
+			data-scrolled={edges.scrolled || undefined}
+			data-more-below={edges.moreBelow || undefined}
+			className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5 sm:gap-6 sm:py-4"
+		>
+			<div className="divide-y divide-border/60 rounded-xl bg-muted/50 px-4 [&>*]:py-3.5">
 				<FormField<RatingFormData, "difficulty">
 					control={control}
 					name="difficulty"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Складність</FormLabel>
-							<FormControl>
-								<StarRatingInput
-									value={field.value ?? 3}
-									onChange={field.onChange}
-									onBlur={field.onBlur}
-									descriptions={difficultyDescriptions}
-									data-testid={testIds.rating.difficultySlider}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
+					render={({ field }) => {
+						const current = field.value ?? 3;
+						return (
+							<FormItem>
+								<FormControl>
+									<ScoreInput
+										label={
+											<FormLabel id={difficultyLabelId}>Складність</FormLabel>
+										}
+										value={current}
+										onChange={field.onChange}
+										onBlur={field.onBlur}
+										descriptions={difficultyDescriptions}
+										labelId={difficultyLabelId}
+										data-testid={testIds.rating.difficultySlider}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						);
+					}}
 				/>
 
 				<FormField<RatingFormData, "usefulness">
 					control={control}
 					name="usefulness"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Корисність</FormLabel>
-							<FormControl>
-								<StarRatingInput
-									value={field.value ?? 3}
-									onChange={field.onChange}
-									onBlur={field.onBlur}
-									descriptions={usefulnessDescriptions}
-									data-testid={testIds.rating.usefulnessSlider}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
+					render={({ field }) => {
+						const current = field.value ?? 3;
+						return (
+							<FormItem>
+								<FormControl>
+									<ScoreInput
+										label={
+											<FormLabel id={usefulnessLabelId}>Корисність</FormLabel>
+										}
+										value={current}
+										onChange={field.onChange}
+										onBlur={field.onBlur}
+										descriptions={usefulnessDescriptions}
+										labelId={usefulnessLabelId}
+										data-testid={testIds.rating.usefulnessSlider}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						);
+					}}
 				/>
 			</div>
 
@@ -208,7 +324,12 @@ function RatingFormFields({
 				name="instructor_ids"
 				render={({ field }) => (
 					<FormItem>
-						<FormLabel>Викладачі (необов'язково)</FormLabel>
+						<FormLabel>
+							Викладачі
+							<span className="font-normal text-muted-foreground">
+								необов'язково
+							</span>
+						</FormLabel>
 						{legacyInstructor && (
 							<p
 								className="text-sm text-muted-foreground"
@@ -243,7 +364,12 @@ function RatingFormFields({
 				name="comment"
 				render={({ field }) => (
 					<FormItem>
-						<FormLabel>Додаткові коментарі (необов'язково)</FormLabel>
+						<FormLabel>
+							Коментар
+							<span className="font-normal text-muted-foreground">
+								необов'язково
+							</span>
+						</FormLabel>
 						<FormControl>
 							<Textarea
 								className="field-sizing-fixed min-h-32 max-h-[40dvh] resize-y overflow-y-auto"
@@ -253,9 +379,6 @@ function RatingFormFields({
 								data-testid={testIds.rating.commentTextarea}
 							/>
 						</FormControl>
-						<FormDescription>
-							Допоможіть іншим студентам, розказавши про свій досвід
-						</FormDescription>
 						<FormMessage />
 					</FormItem>
 				)}
@@ -265,30 +388,68 @@ function RatingFormFields({
 				control={control}
 				name="is_anonymous"
 				render={({ field }) => (
-					<FormItem className="space-y-1">
-						<div className="flex items-center gap-2">
-							<FormControl className="flex-none">
-								<Checkbox
-									checked={field.value}
-									onCheckedChange={(checked) =>
-										field.onChange(checked ?? false)
-									}
-									data-testid={testIds.rating.anonymousCheckbox}
-								/>
-							</FormControl>
-							<FormLabel className="m-0 text-sm font-medium">
-								Анонімне повідомлення
-							</FormLabel>
+					<FormItem>
+						<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+							<div className="flex items-center gap-2">
+								<FormControl>
+									<Checkbox
+										checked={field.value}
+										onCheckedChange={(checked) =>
+											field.onChange(checked === true)
+										}
+										data-testid={testIds.rating.anonymousCheckbox}
+									/>
+								</FormControl>
+								<FormLabel className="font-normal">Анонімний відгук</FormLabel>
+							</div>
+							<button
+								type="button"
+								aria-expanded={previewOpen}
+								onClick={() => setPreviewOpen((open) => !open)}
+								className="inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+							>
+								{previewOpen ? (
+									<EyeOff className="size-4" aria-hidden />
+								) : (
+									<Eye className="size-4" aria-hidden />
+								)}
+								Як побачать інші
+							</button>
 						</div>
-						<FormDescription className="text-sm">
-							Ваше ім'я не відображатиметься в огляді
-						</FormDescription>
+						{/* The same card the course page renders, fed from the form, so
+						    the anonymous toggle shows its real effect. */}
+						{previewOpen && (
+							<div
+								role="region"
+								aria-label="Попередній перегляд відгуку"
+								className="rounded-xl bg-muted/50 p-3.5 animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+							>
+								<RatingCardBody
+									displayName={signature}
+									isAnonymous={isAnonymous}
+									avatarUrl={isAnonymous ? null : author?.avatarUrl}
+									createdAt={new Date().toISOString()}
+									difficulty={difficulty || undefined}
+									usefulness={usefulness || undefined}
+									comment={comment.trim() || null}
+									commentEmptyMessage="Без текстового відгуку"
+									upvotes={0}
+									downvotes={0}
+									viewerVote={null}
+								/>
+							</div>
+						)}
 						<FormMessage />
 					</FormItem>
 				)}
 			/>
 		</div>
 	);
+}
+
+export interface RatingAuthor {
+	readonly name: string;
+	readonly avatarUrl?: string | null;
 }
 
 interface RatingFormProps {
@@ -300,6 +461,8 @@ interface RatingFormProps {
 	readonly offeringId?: string;
 	readonly courseId?: string;
 	readonly initialInstructors?: readonly Instructor[];
+	/** Signed-in student, for the byline preview. */
+	readonly author?: RatingAuthor;
 }
 
 export function RatingForm({
@@ -311,12 +474,13 @@ export function RatingForm({
 	offeringId,
 	courseId,
 	initialInstructors,
+	author,
 }: RatingFormProps) {
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
 		defaultValues: initialData || {
-			difficulty: 3,
-			usefulness: 3,
+			difficulty: 0,
+			usefulness: 0,
 			comment: "",
 			instructor_ids: [],
 			instructor: "",
@@ -334,7 +498,7 @@ export function RatingForm({
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit(onSubmit)}
-				className="flex min-h-0 flex-1 flex-col overflow-hidden"
+				className="group/rating-form flex min-h-0 flex-1 flex-col overflow-hidden"
 				data-testid={testIds.rating.form}
 			>
 				<RatingFormFields
@@ -343,36 +507,38 @@ export function RatingForm({
 					courseId={courseId}
 					initialInstructors={initialInstructors}
 					legacyInstructor={initialData?.instructor?.trim() || undefined}
+					author={author}
 				/>
 
-				<div className="shrink-0 border-t bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-					<div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-						<Button
-							type="button"
-							variant="outline"
-							onClick={onCancel}
-							disabled={isLoading}
-							data-testid={testIds.rating.cancelButton}
-						>
-							Скасувати
-						</Button>
-						<Button
-							type="submit"
-							disabled={isLoading}
-							data-testid={testIds.rating.submitButton}
-						>
-							{(() => {
-								if (isLoading) {
-									return "Надсилання...";
-								}
-								if (isEditMode) {
-									return "Зберегти зміни";
-								}
-								return "Надіслати оцінку";
-							})()}
-						</Button>
-					</div>
-				</div>
+				<DialogFooter className="shrink-0 border-t border-transparent px-6 py-4 transition-colors motion-reduce:transition-none group-has-[[data-more-below]]/rating-form:border-border">
+					<Button
+						type="button"
+						variant="ghost"
+						onClick={onCancel}
+						disabled={isLoading}
+						className="w-full sm:w-auto"
+						data-testid={testIds.rating.cancelButton}
+					>
+						Скасувати
+					</Button>
+					<Button
+						type="submit"
+						size="lg"
+						disabled={isLoading}
+						className="w-full sm:w-auto"
+						data-testid={testIds.rating.submitButton}
+					>
+						{(() => {
+							if (isLoading) {
+								return "Надсилання...";
+							}
+							if (isEditMode) {
+								return "Зберегти зміни";
+							}
+							return "Надіслати оцінку";
+						})()}
+					</Button>
+				</DialogFooter>
 			</form>
 		</Form>
 	);

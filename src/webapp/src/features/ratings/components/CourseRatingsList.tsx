@@ -1,12 +1,19 @@
 import { useState } from "react";
 
-import { MessageSquare, PenLine } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
+import { Badge } from "@/components/ui/Badge";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/Empty";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { RatingButton } from "./RatingButton";
 import { RatingCard } from "./RatingCard";
 import { RatingsSortSelect, type SortOption } from "./RatingsSortSelect";
 import { UserRatingCard } from "./UserRatingCard";
@@ -27,12 +34,12 @@ interface CourseRatingsListProps {
 	userRating?: InlineRating | RatingRead | null;
 	onEditUserRating?: () => void;
 	onDeleteUserRating?: () => void;
-	canVote?: boolean;
-	hasAttended?: boolean;
-	canRate?: boolean;
-	showCta?: boolean;
-	canRateButton?: boolean;
-	onRate?: () => void;
+	// Sits where the user's own review appears once they rate.
+	rateAction?: React.ReactNode;
+	hasAttended: boolean;
+	canRate: boolean;
+	// When the course only ever runs in one term, reviews show the academic year alone.
+	singleTerm?: boolean;
 }
 
 interface RatingsContentProps {
@@ -41,46 +48,41 @@ interface RatingsContentProps {
 	isLoadingMore: boolean;
 	loaderRef: React.RefObject<HTMLDivElement | null>;
 	hasUserRating: boolean;
-	canVote?: boolean;
-	disabledMessage?: string;
+	voteDisabledReason?: string;
 	courseId: string;
+	singleTerm: boolean;
+}
+
+function emptyDescription(hasAttended: boolean, canRate: boolean): string {
+	if (!hasAttended) return "Їх залишають студенти, які слухали цей курс.";
+	if (!canRate) {
+		return "Перші відгуки з'являться, коли відкриється оцінювання.";
+	}
+	return "Ваш відгук може стати першим.";
 }
 
 function EmptyState({
-	showCta,
-	canRateButton,
-	onRate,
+	hasAttended,
+	canRate,
 }: Readonly<{
-	showCta: boolean;
-	canRateButton: boolean;
-	onRate?: () => void;
+	hasAttended: boolean;
+	canRate: boolean;
 }>) {
 	return (
-		<div
-			className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border/60 bg-muted/30 py-12 px-6 text-center"
+		<Empty
+			className="border-0 py-16"
 			data-testid={testIds.courseDetails.noReviewsMessage}
 		>
-			<MessageSquare className="h-10 w-10 text-muted-foreground/40" />
-			<div className="space-y-1">
-				<p className="text-base font-medium text-foreground">
-					Будь першим, хто оцінить цей курс
-				</p>
-				<p className="text-sm text-muted-foreground">
-					Твій відгук допоможе іншим студентам зробити усвідомлений вибір
-				</p>
-			</div>
-			{showCta && (
-				<RatingButton
-					canRate={canRateButton}
-					onClick={onRate}
-					size="lg"
-					className="mt-2"
-				>
-					<PenLine className="mr-2 h-4 w-4" />
-					Оцінити цей курс
-				</RatingButton>
-			)}
-		</div>
+			<EmptyHeader>
+				<EmptyMedia variant="icon">
+					<MessageSquare />
+				</EmptyMedia>
+				<EmptyTitle>Відгуків ще немає</EmptyTitle>
+				<EmptyDescription>
+					{emptyDescription(hasAttended, canRate)}
+				</EmptyDescription>
+			</EmptyHeader>
+		</Empty>
 	);
 }
 
@@ -90,9 +92,9 @@ function RatingsContent({
 	isLoadingMore,
 	loaderRef,
 	hasUserRating,
-	canVote = true,
-	disabledMessage,
+	voteDisabledReason,
 	courseId,
+	singleTerm,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0 && hasUserRating) {
 		return null;
@@ -105,8 +107,8 @@ function RatingsContent({
 					key={rating.id}
 					rating={rating}
 					courseId={courseId}
-					readOnly={!canVote}
-					disabledMessage={disabledMessage}
+					singleTerm={singleTerm}
+					voteDisabledReason={voteDisabledReason}
 				/>
 			))}
 
@@ -118,7 +120,7 @@ function RatingsContent({
 				>
 					{isLoadingMore ? (
 						<div className="flex items-center gap-2 text-muted-foreground">
-							<Spinner className="h-4 w-4" />
+							<Spinner className="size-4" />
 							<span className="text-xs">Завантаження...</span>
 						</div>
 					) : (
@@ -135,24 +137,17 @@ export function CourseRatingsList({
 	userRating: userRatingProp,
 	onEditUserRating,
 	onDeleteUserRating,
-	canVote = true,
-	hasAttended = true,
-	canRate = true,
-	showCta = false,
-	canRateButton = false,
-	onRate,
+	rateAction,
+	hasAttended,
+	canRate,
+	singleTerm = false,
 }: Readonly<CourseRatingsListProps>) {
 	const separateCurrentUser = !!userRatingProp;
 	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
 
-	const getDisabledMessage = () => {
-		if (canVote) return undefined;
-		if (!hasAttended) return CANNOT_VOTE_WITHOUT_ATTENDING_TEXT;
-		if (!canRate) return CANNOT_VOTE_BEFORE_MIDTERM_TEXT;
-		return undefined;
-	};
-
-	const disabledMessage = getDisabledMessage();
+	let voteDisabledReason: string | undefined;
+	if (!hasAttended) voteDisabledReason = CANNOT_VOTE_WITHOUT_ATTENDING_TEXT;
+	else if (!canRate) voteDisabledReason = CANNOT_VOTE_BEFORE_MIDTERM_TEXT;
 
 	const getSortParams = (option: SortOption) => {
 		switch (option) {
@@ -189,50 +184,37 @@ export function CourseRatingsList({
 			className="space-y-4"
 			data-testid={testIds.courseDetails.reviewsSection}
 		>
-			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<div className="flex items-center gap-2">
-					<MessageSquare className="h-5 w-5" />
-					<h2 className="text-xl font-semibold">Відгуки студентів</h2>
-					<span
-						className="inline-flex h-5 items-center rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground"
+			<div className="flex min-w-0 items-center justify-between gap-2">
+				<h2 className="flex min-w-0 items-center gap-2 text-lg font-semibold tracking-tight">
+					<span className="truncate">Відгуки</span>
+					<Badge
+						variant="secondary"
 						data-testid={testIds.courseDetails.ratingsCountStat}
 					>
 						{displayCount}
-					</span>
-				</div>
-				<div className="flex items-center gap-2">
-					{showCta && !hasNoReviews && (
-						<RatingButton canRate={canRateButton} onClick={onRate} size="sm">
-							<PenLine className="mr-1.5 h-3.5 w-3.5" />
-							Оцінити
-						</RatingButton>
-					)}
-					{displayCount > 0 && (
-						<RatingsSortSelect
-							value={sortOption}
-							onValueChange={setSortOption}
-						/>
-					)}
-				</div>
+					</Badge>
+				</h2>
+				{displayCount > 0 ? (
+					<RatingsSortSelect value={sortOption} onValueChange={setSortOption} />
+				) : null}
 			</div>
 
-			{userRating && onEditUserRating && onDeleteUserRating && (
+			{userRating && onEditUserRating && onDeleteUserRating ? (
 				<UserRatingCard
 					rating={userRating}
 					courseId={courseId}
+					singleTerm={singleTerm}
 					onEdit={onEditUserRating}
 					onDelete={onDeleteUserRating}
 				/>
+			) : (
+				rateAction
 			)}
 
 			{isLoading ? (
 				<CourseRatingsListSkeleton />
 			) : hasNoReviews ? (
-				<EmptyState
-					showCta={showCta}
-					canRateButton={canRateButton}
-					onRate={onRate}
-				/>
+				<EmptyState hasAttended={hasAttended} canRate={canRate} />
 			) : (
 				<RatingsContent
 					allRatings={allRatings}
@@ -240,9 +222,9 @@ export function CourseRatingsList({
 					isLoadingMore={isFetchingNextPage}
 					loaderRef={loaderRef}
 					hasUserRating={!!userRating}
-					canVote={canVote}
-					disabledMessage={disabledMessage}
+					voteDisabledReason={voteDisabledReason}
 					courseId={courseId}
+					singleTerm={singleTerm}
 				/>
 			)}
 		</div>
@@ -253,10 +235,10 @@ export function CourseRatingsListSkeleton() {
 	return (
 		<div className="divide-y divide-border/30">
 			{SKELETON_KEYS.map((key) => (
-				<div key={key} className="py-4 space-y-2">
+				<div key={key} className="space-y-2 px-4 py-4 sm:px-5">
 					<div className="flex items-center justify-between gap-3">
 						<div className="flex items-center gap-2.5">
-							<Skeleton className="h-8 w-8 rounded-full" />
+							<Skeleton className="size-8 rounded-full" />
 							<div className="space-y-1">
 								<Skeleton className="h-3.5 w-24" />
 								<Skeleton className="h-3 w-20" />

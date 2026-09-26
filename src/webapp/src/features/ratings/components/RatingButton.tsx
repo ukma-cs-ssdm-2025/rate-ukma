@@ -1,74 +1,41 @@
-import * as React from "react";
+import type * as React from "react";
 
+import { PenLine } from "lucide-react";
+
+import { DisabledButtonWithTooltip } from "@/components/DisabledButtonWithTooltip";
 import { Button } from "@/components/ui/Button";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import { testIds } from "@/lib/test-ids";
 
 interface RatingButtonProps {
 	canRate: boolean;
-	onClick?: () => void;
+	onClick: () => void;
 	children: React.ReactNode;
-	className?: string;
-	size?: "sm" | "lg" | "default";
-	asChild?: boolean;
 }
 
 export function RatingButton({
 	canRate,
 	onClick,
 	children,
-	className = "",
-	size = "lg",
-	asChild = false,
 }: Readonly<RatingButtonProps>) {
-	const [showTooltip, setShowTooltip] = React.useState(false);
-	const tooltipId = React.useId();
-
-	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-		if (!canRate) {
-			e.preventDefault();
-			return;
-		}
-		onClick?.();
-	};
-
-	return (
-		<div
-			className={`relative ${size === "lg" ? "w-full max-w-md" : "inline-block"}`}
+	const button = (
+		<Button
+			size="lg"
+			onClick={onClick}
+			className="w-full sm:w-auto aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
+			data-testid={testIds.courseDetails.rateButton}
 		>
-			<Button
-				size={size}
-				aria-disabled={!canRate}
-				tabIndex={0}
-				onClick={handleClick}
-				onMouseEnter={() => !canRate && setShowTooltip(true)}
-				onMouseLeave={() => setShowTooltip(false)}
-				onFocus={() => !canRate && setShowTooltip(true)}
-				onBlur={() => setShowTooltip(false)}
-				asChild={canRate ? asChild : false}
-				aria-describedby={canRate ? undefined : tooltipId}
-				className={`${size === "lg" ? "w-full" : ""} ${
-					canRate
-						? ""
-						: "!bg-gray-400 !text-white hover:!bg-gray-400 disabled:opacity-100"
-				} ${className}`}
-				data-testid={testIds.courseDetails.rateButton}
-			>
-				{children}
-			</Button>
-			{!canRate && (
-				<div
-					id={tooltipId}
-					role="tooltip"
-					aria-hidden={!showTooltip}
-					className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md shadow-lg whitespace-nowrap pointer-events-none z-10 transition-all duration-200 ${
-						showTooltip ? "opacity-100 visible" : "opacity-0 invisible"
-					}`}
-				>
-					{CANNOT_RATE_TOOLTIP_TEXT}
-					<div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
-				</div>
-			)}
-		</div>
+			<PenLine className="size-4" />
+			{children}
+		</Button>
+	);
+
+	if (canRate) {
+		return button;
+	}
+	return (
+		<DisabledButtonWithTooltip reason={CANNOT_RATE_TOOLTIP_TEXT}>
+			{button}
+		</DisabledButtonWithTooltip>
 	);
 }

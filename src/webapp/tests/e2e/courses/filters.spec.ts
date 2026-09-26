@@ -112,7 +112,7 @@ test.describe("Courses filters", () => {
 		await expect(panel.getByTestId(testIds.filters.resetButton)).toBeVisible();
 	});
 
-	test("changing faculty clears department and speciality params", async ({
+	test("changing faculty clears the department but keeps the speciality", async ({
 		page,
 	}) => {
 		const coursesPage = new CoursesPage(page);
@@ -136,9 +136,10 @@ test.describe("Courses filters", () => {
 		});
 
 		const initialFaculty = getSearchParam(page, "faculty");
+		const chosenSpeciality = getSearchParam(page, "spec");
 		expect(initialFaculty).not.toBe("");
 		expect(getSearchParam(page, "dept")).not.toBe("");
-		expect(getSearchParam(page, "spec")).not.toBe("");
+		expect(chosenSpeciality).not.toBe("");
 
 		const trigger = panel.getByTestId(testIds.filters.facultySelect);
 		await trigger.scrollIntoViewIfNeeded();
@@ -160,7 +161,9 @@ test.describe("Courses filters", () => {
 			.not.toBe(initialFaculty);
 
 		await expect.poll(() => getSearchParam(page, "dept")).toBe("");
-		await expect.poll(() => getSearchParam(page, "spec")).toBe("");
+		// Speciality stands on its own now: free-choice courses of one
+		// speciality can be narrowed to another faculty.
+		expect(getSearchParam(page, "spec")).toBe(chosenSpeciality);
 	});
 
 	test("active filters persist on page reload", async ({ page }) => {
@@ -273,12 +276,10 @@ async function applyAndAssertAllFilters({
 	});
 
 	await test.step("course type", async () => {
-		await selectSecondRadixSelectOption({
-			page,
-			scope,
-			triggerTestId: testIds.filters.typeSelect,
-			uiParamKey: "type",
-		});
+		const typeGroup = scope.getByTestId(testIds.filters.typeSelect);
+		await typeGroup.scrollIntoViewIfNeeded();
+		await typeGroup.getByRole("radio").nth(1).click();
+		await expect.poll(() => getSearchParam(page, "type")).not.toBe("");
 	});
 
 	await expect(scope.getByTestId(testIds.filters.resetButton)).toBeVisible();

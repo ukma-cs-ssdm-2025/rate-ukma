@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import {
 	Tooltip,
 	TooltipContent,
@@ -21,6 +22,8 @@ interface CourseSpecialityBadgesProps {
 		readonly type_kind?: TypeKindEnum;
 	}> | null;
 	size?: "default" | "sm";
+	/** САЗ records keep elective streams; the course header hides them. */
+	includeElective?: boolean;
 }
 
 function getSpecialityAlias(
@@ -51,6 +54,7 @@ const MAX_VISIBLE_BADGES = 5;
 export function CourseSpecialityBadges({
 	specialities,
 	size = "default",
+	includeElective = false,
 }: Readonly<CourseSpecialityBadgesProps>) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const badgesId = useId();
@@ -60,7 +64,10 @@ export function CourseSpecialityBadges({
 	}
 
 	const validSpecialities = specialities.filter(
-		(s) => s.speciality_id && s.speciality_title && s.type_kind !== "ELECTIVE",
+		(s) =>
+			s.speciality_id &&
+			s.speciality_title &&
+			(includeElective || s.type_kind !== "ELECTIVE"),
 	);
 
 	if (validSpecialities.length === 0) {
@@ -75,12 +82,14 @@ export function CourseSpecialityBadges({
 
 	return (
 		<span id={badgesId} className="inline-flex flex-wrap gap-1.5">
-			{displayedSpecialities.map((speciality) => {
+			{displayedSpecialities.map((speciality, index) => {
 				const abbreviation = getSpecialityAlias(
 					speciality.speciality_title || "",
 					speciality.speciality_alias,
 				);
 				const colors = getFacultyColors(speciality.faculty_name || "");
+
+				const kind = getCourseTypeDisplay(speciality.type_kind ?? "", "");
 
 				return (
 					<Tooltip key={speciality.speciality_id}>
@@ -88,38 +97,38 @@ export function CourseSpecialityBadges({
 							<Badge
 								variant="secondary"
 								className={cn(
-									"font-medium cursor-default border",
-									size === "sm"
-										? "text-[11px] px-1.5 py-0"
-										: "text-xs px-2 py-0.5",
+									"cursor-default border text-xs",
+									index >= MAX_VISIBLE_BADGES &&
+										"animate-in fade-in-0 duration-200 motion-reduce:animate-none",
+									size === "sm" ? "px-1.5 py-0" : "px-2 py-0.5",
 									colors.bg,
 									colors.text,
 									colors.border,
 								)}
 							>
 								{abbreviation}
+								<span className="sr-only">
+									: {speciality.speciality_title}
+									{kind ? `, ${kind}` : null}
+								</span>
 							</Badge>
 						</TooltipTrigger>
-						<TooltipContent side="top" className="max-w-xs">
-							<div className="text-center">
-								<div className="font-medium">{speciality.speciality_title}</div>
-								<div className="font-medium">
-									{getCourseTypeDisplay(speciality.type_kind ?? "", "")}
-								</div>
-							</div>
+						<TooltipContent side="top" className="max-w-xs text-center">
+							<p className="font-medium">{speciality.speciality_title}</p>
+							{kind ? <p>{kind}</p> : null}
 						</TooltipContent>
 					</Tooltip>
 				);
 			})}
 			{hasHiddenBadges && (
-				<button
+				<Button
 					type="button"
-					className="text-xs text-muted-foreground font-semibold px-2 py-0.5 rounded-md hover:bg-muted hover:text-foreground transition-colors cursor-pointer speciality-badges-trigger"
+					variant="ghost"
+					size="sm"
+					className="h-5 px-1.5 font-medium text-muted-foreground hover:text-foreground"
 					aria-expanded={isExpanded}
 					aria-label={
-						isExpanded
-							? "Приховати додаткові спеціальності"
-							: `Показати ще ${hiddenCount} спеціальностей`
+						isExpanded ? "Згорнути спеціальності" : "Показати всі спеціальності"
 					}
 					aria-controls={badgesId}
 					onClick={(e) => {
@@ -128,8 +137,8 @@ export function CourseSpecialityBadges({
 						setIsExpanded(!isExpanded);
 					}}
 				>
-					{isExpanded ? "Менше" : `+${hiddenCount} більше`}
-				</button>
+					{isExpanded ? "Згорнути" : `ще ${hiddenCount}`}
+				</Button>
 			)}
 		</span>
 	);

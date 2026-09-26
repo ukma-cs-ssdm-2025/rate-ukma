@@ -158,17 +158,14 @@ describe("useCourseFiltersData", () => {
 			expect(difficultyFilter?.range).toEqual([1, 5]);
 		});
 
-		it("should include captions for range filters", () => {
+		it("should use half-step increments for the credits slider", () => {
 			// Act
 			const { result } = renderFiltersHook();
 
 			// Assert
 			const ranges = allRangeFilters(result.current);
-			const difficultyFilter = ranges.find((f) => f.key === "diff");
-			expect(difficultyFilter?.captions).toEqual(["Легко", "Складно"]);
-
-			const usefulnessFilter = ranges.find((f) => f.key === "use");
-			expect(usefulnessFilter?.captions).toEqual(["Низька", "Висока"]);
+			const creditsFilter = ranges.find((f) => f.key === "credits");
+			expect(creditsFilter?.step).toBe(0.5);
 		});
 	});
 
@@ -429,35 +426,15 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			expect(result.current.groups.structure.config.activeCount).toBe(2);
 		});
-	});
 
-	describe("Presets", () => {
-		it("should detect active easy preset", () => {
-			// Act
+		it("should count one term selection once in the semester group", () => {
+			// Arrange & Act
 			const { result } = renderFiltersHook({
-				diff: [1, 2.5] as [number, number],
+				term: ["FALL", "SPRING"],
 			});
 
 			// Assert
-			expect(result.current.activePresetIds).toContain("easy");
-		});
-
-		it("should detect active most-useful preset", () => {
-			// Act
-			const { result } = renderFiltersHook({
-				use: [4, 5] as [number, number],
-			});
-
-			// Assert
-			expect(result.current.activePresetIds).toContain("most-useful");
-		});
-
-		it("should not detect presets when filters don't match", () => {
-			// Act
-			const { result } = renderFiltersHook();
-
-			// Assert
-			expect(result.current.activePresetIds).toHaveLength(0);
+			expect(result.current.groups.semester.config.activeCount).toBe(1);
 		});
 	});
 

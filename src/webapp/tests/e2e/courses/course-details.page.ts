@@ -21,7 +21,6 @@ export class CourseDetailsPage {
 
 	// Empty state
 	private readonly noReviewsMessage: Locator;
-	private readonly insufficientDataMessages: Locator;
 	private readonly courseDetailsUrlPattern: RegExp;
 
 	constructor(page: Page) {
@@ -54,12 +53,6 @@ export class CourseDetailsPage {
 		this.noReviewsMessage = page.getByTestId(
 			testIds.courseDetails.noReviewsMessage,
 		);
-		this.insufficientDataMessages = this.statsCardsContainer
-			.locator("span")
-			.filter({
-				hasText: /Недостатньо даних/,
-			});
-
 		this.courseDetailsUrlPattern = /\/courses\/[0-9a-fA-F-]{36}$/;
 	}
 
@@ -99,16 +92,9 @@ export class CourseDetailsPage {
 			return false;
 		}
 
-		const spans = this.statsCardsContainer.locator("span");
-		const texts = await spans.allTextContents();
-		const values = texts
-			.map((t) => Number(t.trim()))
-			.filter((n) => !Number.isNaN(n));
-
-		// 1 ≤ n ≤ 5
-		const ratings = values.filter((n) => n >= 1 && n <= 5);
-
-		return ratings.length >= 2;
+		// Scores render as one-decimal values (e.g. "4.6"); an unrated course shows "—".
+		const text = await this.statsCardsContainer.innerText();
+		return (text.match(/\b[1-5]\.\d\b/g) ?? []).length >= 2;
 	}
 
 	async getReviewsCount(): Promise<number> {
@@ -127,13 +113,6 @@ export class CourseDetailsPage {
 
 	async expectNoReviewsMessageVisible(): Promise<void> {
 		await expect(this.noReviewsMessage).toBeVisible();
-	}
-
-	async getInsufficientDataMessagesCount(): Promise<number> {
-		if (!(await this.statsCardsContainer.isVisible())) {
-			return 0;
-		}
-		return await this.insufficientDataMessages.count();
 	}
 
 	async findReviewCardByText(text: string): Promise<Locator> {

@@ -3,13 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 
+import { DisabledButtonWithTooltip } from "@/components/DisabledButtonWithTooltip";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toaster";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/Tooltip";
 import {
 	getCoursesRatingsListQueryKey,
 	RatingVoteStrType,
@@ -26,8 +22,8 @@ interface RatingVotesProps {
 	initialUpvotes?: number;
 	initialDownvotes?: number;
 	initialUserVote?: RatingVoteStrType | null;
-	readOnly?: boolean;
-	disabledMessage?: string;
+	/** Set when the viewer cannot vote; shown as the arrows' tooltip. */
+	disabledReason?: string;
 	inline?: boolean;
 }
 
@@ -35,56 +31,80 @@ interface VoteProps {
 	readonly isUpvote: boolean;
 	readonly count: number;
 	readonly active: boolean;
-	readonly onClick?: () => void;
-	readonly asButton?: boolean;
+	readonly disabledReason?: string;
+	readonly onClick: () => void;
+}
+
+// The new count slides in from the side it moved towards; the first render stays still.
+function VoteCount({ count }: Readonly<{ count: number }>) {
+	const [last, setLast] = useState({ count, rose: true, changed: false });
+	if (count !== last.count) {
+		setLast({ count, rose: count > last.count, changed: true });
+	}
+	return (
+		<span className="inline-flex overflow-hidden text-xs font-semibold tabular-nums">
+			<span
+				key={count}
+				className={cn(
+					last.changed && [
+						"animate-in fade-in-0 duration-200 ease-out motion-reduce:animate-none",
+						last.rose ? "slide-in-from-bottom-3" : "slide-in-from-top-3",
+					],
+				)}
+			>
+				{count}
+			</span>
+		</span>
+	);
 }
 
 function Vote({
 	isUpvote,
 	count,
 	active,
+	disabledReason,
 	onClick,
-	asButton = false,
 }: Readonly<VoteProps>) {
 	const Icon = isUpvote ? ArrowBigUp : ArrowBigDown;
-	if (asButton) {
-		return (
-			<Button
-				variant="ghost"
-				size="sm"
-				onClick={onClick}
-				className={cn(
-					"h-8 px-2 gap-1.5 transition-all duration-200",
-					"hover:bg-[#0076BB]/10 hover:text-[#0076BB]",
-					active
-						? "text-[#0076BB] bg-[#0076BB]/10 ring-1 ring-inset ring-[#0076BB]/20"
-						: "text-muted-foreground",
-				)}
-				aria-label={isUpvote ? "За" : "Проти"}
-			>
-				<Icon className={cn("h-5 w-5", active && "fill-current")} />
-				<span className="text-xs font-bold">{count}</span>
-			</Button>
-		);
-	}
-
-	return (
-		<div className="flex items-center gap-1.5 h-8 px-2 transition-colors">
+	const disabled = disabledReason !== undefined;
+	// The resting tone doubles as the hover tone, so disabled arrows do not react.
+	const restingTone = active
+		? "bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary"
+		: "text-muted-foreground hover:bg-transparent hover:text-muted-foreground";
+	const hoverTone = active
+		? "hover:bg-primary/15"
+		: "hover:bg-primary/10 hover:text-primary";
+	const button = (
+		<Button
+			variant="ghost"
+			size="sm"
+			onClick={onClick}
+			aria-pressed={active}
+			aria-label={`${isUpvote ? "За" : "Проти"}: ${count}`}
+			className={cn(
+				"group/vote h-8 gap-1.5 px-2",
+				restingTone,
+				disabled ? "cursor-default" : hoverTone,
+			)}
+		>
 			<Icon
 				className={cn(
-					"h-5 w-5",
-					active ? "fill-current text-[#0076BB]" : "text-muted-foreground/40",
+					"size-5 transition-transform duration-150 motion-reduce:transition-none",
+					active && "fill-current",
+					!disabled && "group-active/vote:scale-90",
 				)}
 			/>
-			<span
-				className={cn(
-					"text-xs font-bold",
-					active ? "text-[#0076BB]" : "text-muted-foreground",
-				)}
-			>
-				{count}
-			</span>
-		</div>
+			<VoteCount count={count} />
+		</Button>
+	);
+
+	if (!disabled) {
+		return button;
+	}
+	return (
+		<DisabledButtonWithTooltip reason={disabledReason}>
+			{button}
+		</DisabledButtonWithTooltip>
 	);
 }
 
@@ -94,8 +114,7 @@ export function RatingVotes({
 	initialUpvotes = 0,
 	initialDownvotes = 0,
 	initialUserVote = null,
-	readOnly = false,
-	disabledMessage,
+	disabledReason,
 	inline = false,
 }: Readonly<RatingVotesProps>) {
 	const queryClient = useQueryClient();
@@ -121,15 +140,18 @@ export function RatingVotes({
 		deleteVoteRef.current = deleteVote.mutateAsync;
 	}, [createVote.mutateAsync, deleteVote.mutateAsync]);
 
-	// Derived counts based on initial props and optimistic userVote
-	const upvotes =
-		initialUpvotes +
-		(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
-		(userVote === RatingVoteStrType.UPVOTE ? 1 : 0);
-	const downvotes =
-		initialDownvotes +
-		(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
-		(userVote === RatingVoteStrType.DOWNVOTE ? 1 : 0);
+	// Counts derive from the server snapshot minus its own vote plus the local one.
+	const countsFor = (vote: RatingVoteStrType | null) => ({
+		upvotes:
+			initialUpvotes +
+			(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
+			(vote === RatingVoteStrType.UPVOTE ? 1 : 0),
+		downvotes:
+			initialDownvotes +
+			(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
+			(vote === RatingVoteStrType.DOWNVOTE ? 1 : 0),
+	});
+	const { upvotes, downvotes } = countsFor(userVote);
 
 	// Sync local state with props if they change (e.g. after a re-fetch from elsewhere)
 	useEffect(() => {
@@ -181,7 +203,6 @@ export function RatingVotes({
 	}, [userVote, serverVote, ratingId, courseId, queryClient]);
 
 	const toggleVote = (target: RatingVoteStrType) => {
-		if (readOnly) return;
 		setUserVote((prev) => (prev === target ? null : target));
 	};
 
@@ -192,53 +213,22 @@ export function RatingVotes({
 		? "flex items-center gap-1"
 		: "flex items-center gap-1 mt-3 justify-end";
 
-	if (readOnly) {
-		if (disabledMessage) {
-			return (
-				<div className={wrapperClass}>
-					<Tooltip delayDuration={0}>
-						<TooltipTrigger>
-							<Vote isUpvote count={upvotes} active={upActive} />
-						</TooltipTrigger>
-						<TooltipContent side="top" sideOffset={4}>
-							<p>{disabledMessage}</p>
-						</TooltipContent>
-					</Tooltip>
-					<Tooltip delayDuration={0}>
-						<TooltipTrigger>
-							<Vote isUpvote={false} count={downvotes} active={downActive} />
-						</TooltipTrigger>
-						<TooltipContent side="top" sideOffset={4}>
-							<p>{disabledMessage}</p>
-						</TooltipContent>
-					</Tooltip>
-				</div>
-			);
-		}
-		return (
-			<div className={wrapperClass}>
-				<Vote isUpvote count={upvotes} active={upActive} />
-				<Vote isUpvote={false} count={downvotes} active={downActive} />
-			</div>
-		);
-	}
-
 	return (
 		<div className={wrapperClass}>
 			<Vote
 				isUpvote
 				count={upvotes}
 				active={upActive}
+				disabledReason={disabledReason}
 				onClick={() => toggleVote(RatingVoteStrType.UPVOTE)}
-				asButton
 			/>
 
 			<Vote
 				isUpvote={false}
 				count={downvotes}
 				active={downActive}
+				disabledReason={disabledReason}
 				onClick={() => toggleVote(RatingVoteStrType.DOWNVOTE)}
-				asButton
 			/>
 		</div>
 	);

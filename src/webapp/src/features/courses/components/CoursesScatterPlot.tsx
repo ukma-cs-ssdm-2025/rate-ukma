@@ -8,6 +8,7 @@ import { ParentSize } from "@visx/responsive";
 import { scaleLinear } from "@visx/scale";
 import { Text } from "@visx/text";
 import { TooltipWithBounds, useTooltip } from "@visx/tooltip";
+import { Minus, Plus } from "lucide-react";
 import { select } from "d3-selection";
 import { zoom as d3Zoom, type ZoomTransform, zoomIdentity } from "d3-zoom";
 
@@ -128,10 +129,10 @@ function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
 			<div className="flex flex-col items-center gap-3 text-center text-muted-foreground">
 				<Spinner className="text-muted-foreground" />
 				<div className="space-y-1">
-					<div className="text-sm font-semibold text-foreground">
+					<div className="text-sm font-medium text-foreground">
 						{message.title}
 					</div>
-					<div className="text-xs text-muted-foreground/90">
+					<div className="text-sm text-muted-foreground">
 						{message.description}
 					</div>
 				</div>
@@ -140,11 +141,13 @@ function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
 	);
 }
 
-const margin: Margin = { top: 40, right: 40, bottom: 60, left: 60 };
+const margin: Margin = { top: 16, right: 24, bottom: 56, left: 52 };
+// Extra headroom so the floating explore toolbar never covers top points.
+const EXPLORE_MARGIN: Margin = { top: 76, right: 40, bottom: 60, left: 60 };
 
 // Axis styling constants
 const AXIS_TICK_FONT_SIZE = 12;
-const AXIS_LABEL_FONT_SIZE = 14;
+const AXIS_LABEL_FONT_SIZE = 12;
 const AXIS_LABEL_FONT_WEIGHT = 500;
 
 // Axis positioning constants
@@ -155,7 +158,7 @@ const Y_AXIS_TICK_X_OFFSET = 10; // Distance of tick labels from axis
 const Y_AXIS_LABEL_X_OFFSET = 35; // Distance of axis label from axis
 
 // Grid styling constants
-const GRID_STROKE_OPACITY = 0.3;
+const GRID_STROKE_OPACITY = 0.2;
 const GRID_STROKE_DASHARRAY = "3,3";
 
 // Point styling constants
@@ -168,7 +171,7 @@ const POINT_DEFAULT_FILL_OPACITY = 0.8;
 const POINT_TRANSITION_DURATION_MS = 200;
 
 // Label styling constants
-const LABEL_FONT_SIZE = 11;
+const LABEL_FONT_SIZE = 12;
 const LABEL_Y_OFFSET = 4; // Distance from point radius
 
 // Zoom constants
@@ -193,12 +196,7 @@ function FacultyBadge({ name }: Readonly<{ name: string }>) {
 	return (
 		<Badge
 			variant="secondary"
-			className={[
-				"font-medium text-xs px-2 py-0.5 border",
-				colors.bg,
-				colors.text,
-				colors.border,
-			].join(" ")}
+			className={[colors.bg, colors.text, colors.border].join(" ")}
 			title={name}
 		>
 			{name}
@@ -214,21 +212,23 @@ type ScatterPlotContentProps = Readonly<{
 	usefulnessDomain: [number, number];
 	difficultyDomain: [number, number];
 	onCourseClick?: (courseId: string) => void;
-	forceShowAllLabels?: boolean;
 }>;
 
 function ScatterPlotState({
 	title,
 	description,
+	action,
 }: Readonly<{
 	title: string;
 	description: string;
+	action?: React.ReactNode;
 }>) {
 	return (
-		<div className="w-full h-full relative flex items-center justify-center">
-			<div className="text-center space-y-2">
-				<h3 className="text-lg font-semibold">{title}</h3>
+		<div className="w-full h-full relative flex items-center justify-center px-6">
+			<div className="flex max-w-xs flex-col items-center gap-2 text-center">
+				<h3 className="text-lg font-medium">{title}</h3>
 				<p className="text-sm text-muted-foreground">{description}</p>
+				{action}
 			</div>
 		</div>
 	);
@@ -242,7 +242,6 @@ function ScatterPlotContent({
 	usefulnessDomain,
 	difficultyDomain,
 	onCourseClick,
-	forceShowAllLabels = false,
 }: ScatterPlotContentProps) {
 	const svgRef = useRef<SVGSVGElement>(null);
 	const zoomRef = useRef<ReturnType<
@@ -250,9 +249,9 @@ function ScatterPlotContent({
 	> | null>(null);
 	const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
 	const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
-
-	const innerWidth = width - margin.left - margin.right;
-	const innerHeight = height - margin.top - margin.bottom;
+	const plotMargin = variant === "default" ? EXPLORE_MARGIN : margin;
+	const innerWidth = width - plotMargin.left - plotMargin.right;
+	const innerHeight = height - plotMargin.top - plotMargin.bottom;
 
 	const xScale = useMemo(
 		() =>
@@ -348,11 +347,10 @@ function ScatterPlotContent({
 				height,
 				innerWidth,
 				innerHeight,
-				margin,
+				margin: plotMargin,
 				transform,
 				xScale,
 				yScale,
-				forceShowAllLabels,
 			}),
 		[
 			chartData,
@@ -360,7 +358,6 @@ function ScatterPlotContent({
 			innerHeight,
 			innerWidth,
 			transform,
-			forceShowAllLabels,
 			variant,
 			width,
 			xScale,
@@ -379,11 +376,12 @@ function ScatterPlotContent({
 				ref={svgRef}
 				width={width}
 				height={height}
-				className="bg-background cursor-grab active:cursor-grabbing"
+				// A host card sets --plot-surface so the axis bars and point halos match it.
+				className="cursor-grab bg-[var(--plot-surface,var(--color-background))] active:cursor-grabbing"
 				aria-label="Діаграма розподілу курсів за корисністю та складністю"
 			>
 				<Group
-					transform={`translate(${margin.left + transform.x}, ${margin.top + transform.y}) scale(${transform.k})`}
+					transform={`translate(${plotMargin.left + transform.x}, ${plotMargin.top + transform.y}) scale(${transform.k})`}
 				>
 					<Grid
 						xScale={xScale}
@@ -416,7 +414,11 @@ function ScatterPlotContent({
 										? POINT_HOVER_FILL_OPACITY
 										: POINT_DEFAULT_FILL_OPACITY
 								}
-								stroke={isHovered ? point.color : "var(--color-background)"}
+								stroke={
+									isHovered
+										? point.color
+										: "var(--plot-surface, var(--color-background))"
+								}
 								strokeWidth={strokeWidth}
 								onMouseEnter={() => setHoveredPointId(point.id)}
 								onMouseMove={(event) => handleMouseMove(event, point)}
@@ -467,23 +469,23 @@ function ScatterPlotContent({
 						))}
 				</Group>
 
-				<Group left={margin.left} top={margin.top}>
+				<Group left={plotMargin.left} top={plotMargin.top}>
 					{/* X-axis background bar */}
 					<rect
-						x={-margin.left}
+						x={-plotMargin.left}
 						y={innerHeight}
-						width={innerWidth + margin.left}
-						height={margin.bottom}
-						fill="var(--color-background)"
+						width={innerWidth + plotMargin.left}
+						height={plotMargin.bottom}
+						fill="var(--plot-surface, var(--color-background))"
 					/>
 
 					{/* Y-axis background bar */}
 					<rect
-						x={-margin.left}
+						x={-plotMargin.left}
 						y={-AXIS_BG_TOP_EXTENSION}
-						width={margin.left}
+						width={plotMargin.left}
 						height={innerHeight + AXIS_BG_TOP_EXTENSION}
-						fill="var(--color-background)"
+						fill="var(--plot-surface, var(--color-background))"
 					/>
 
 					{/* X-axis tick labels */}
@@ -526,7 +528,7 @@ function ScatterPlotContent({
 					<text
 						x={innerWidth / 2}
 						y={innerHeight + X_AXIS_LABEL_Y_OFFSET}
-						fill="var(--color-foreground)"
+						fill="var(--color-muted-foreground)"
 						fontSize={AXIS_LABEL_FONT_SIZE}
 						fontWeight={AXIS_LABEL_FONT_WEIGHT}
 						textAnchor="middle"
@@ -539,7 +541,7 @@ function ScatterPlotContent({
 					<text
 						x={-Y_AXIS_LABEL_X_OFFSET}
 						y={innerHeight / 2}
-						fill="var(--color-foreground)"
+						fill="var(--color-muted-foreground)"
 						fontSize={AXIS_LABEL_FONT_SIZE}
 						fontWeight={AXIS_LABEL_FONT_WEIGHT}
 						textAnchor="middle"
@@ -559,9 +561,9 @@ function ScatterPlotContent({
 					unstyled
 					applyPositionStyle
 				>
-					<div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm max-w-lg">
+					<div className="bg-popover text-popover-foreground border rounded-md shadow-md p-3 text-sm max-w-xs">
 						<div className="flex flex-wrap items-start gap-2 mb-2">
-							<div className="font-semibold text-foreground leading-tight">
+							<div className="font-medium leading-tight">
 								{tooltipData.name}
 							</div>
 							<FacultyBadge name={tooltipData.facultyName} />
@@ -595,28 +597,28 @@ function ScatterPlotContent({
 			)}
 
 			{variant === "default" && (
-				<div className="absolute bottom-16 right-3">
+				<div className="absolute bottom-16 right-3 overflow-hidden rounded-full border bg-card/90 shadow-sm backdrop-blur">
 					<ButtonGroup
 						orientation="vertical"
 						aria-label="Керування масштабом графіка"
-						className="rounded-md border border-border bg-transparent shadow-none backdrop-blur"
+						className="border-0 bg-transparent shadow-none"
 					>
 						<Button
 							variant="ghost"
-							size="sm"
-							className="h-10 w-10 shadow-none"
+							size="icon-lg"
+							className="shadow-none"
 							onClick={() => {
 								if (!zoomRef.current || !svgRef.current) return;
 								zoomRef.current.scaleBy(select(svgRef.current), ZOOM_IN_FACTOR);
 							}}
 							aria-label="Збільшити"
 						>
-							+
+							<Plus className="size-4" />
 						</Button>
 						<Button
 							variant="ghost"
-							size="sm"
-							className="h-10 w-10 shadow-none"
+							size="icon-lg"
+							className="shadow-none"
 							onClick={() => {
 								if (!zoomRef.current || !svgRef.current) return;
 								zoomRef.current.scaleBy(
@@ -626,7 +628,7 @@ function ScatterPlotContent({
 							}}
 							aria-label="Зменшити"
 						>
-							-
+							<Minus className="size-4" />
 						</Button>
 					</ButtonGroup>
 				</div>
@@ -638,11 +640,9 @@ function ScatterPlotContent({
 export function CoursesScatterPlot({
 	filters,
 	variant = "default",
-	forceShowAllLabels = false,
 }: Readonly<{
 	filters: CoursesListParams;
 	variant?: "default" | "mini";
-	forceShowAllLabels?: boolean;
 }>) {
 	const navigate = useNavigate();
 
@@ -667,16 +667,18 @@ export function CoursesScatterPlot({
 		[filters],
 	);
 
-	const { data, isLoading, isError } = useAnalyticsList(analyticsFilters, {
-		query: {
-			placeholderData: keepPreviousData,
+	const { data, isLoading, isError, refetch } = useAnalyticsList(
+		analyticsFilters,
+		{
+			query: {
+				placeholderData: keepPreviousData,
+			},
 		},
-	});
+	);
 	const loadingMessage = useMemo(() => getRandomLoadingMessage(), []);
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
 	const faculties = filterOptionsQuery.data?.faculties ?? [];
-
 	const facultyColorMap = useMemo(() => {
 		const map = new Map<string, string>();
 		for (const faculty of faculties) {
@@ -725,17 +727,27 @@ export function CoursesScatterPlot({
 
 	if (isLoading) {
 		return (
-			<div className="relative h-full w-full overflow-hidden bg-card">
+			<div className="relative h-full w-full overflow-hidden">
 				<ScatterPlotLoader message={loadingMessage} />
 			</div>
 		);
 	}
-
 	if (isError) {
 		return (
 			<ScatterPlotState
 				title="Не вдалося завантажити діаграму"
 				description="Спробуйте оновити сторінку"
+				action={
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="mt-2 h-10 px-4"
+						onClick={() => refetch()}
+					>
+						Спробувати знову
+					</Button>
+				}
 			/>
 		);
 	}
@@ -761,7 +773,6 @@ export function CoursesScatterPlot({
 						usefulnessDomain={usefulnessDomain}
 						difficultyDomain={difficultyDomain}
 						onCourseClick={handleCourseClick}
-						forceShowAllLabels={forceShowAllLabels}
 					/>
 				)}
 			</ParentSize>

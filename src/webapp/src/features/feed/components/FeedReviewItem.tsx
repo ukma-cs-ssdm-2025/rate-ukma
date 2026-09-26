@@ -9,18 +9,14 @@ import {
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import { cn } from "@/lib/utils";
 import type { FeedReviewItem as FeedReviewItemType } from "../feedTypes";
+import { FeedCard } from "./FeedCard";
 
 interface FeedReviewItemProps {
 	readonly item: FeedReviewItemType;
+	readonly variant?: "card" | "banner";
 }
 
-/**
- * How this score sits against the course average.
- *
- * Ties are real — a course whose only rating is this one has `average ===
- * score` — so equality renders nothing rather than an arbitrary arrow. The
- * epsilon keeps float noise from reading as a difference.
- */
+/** Ties render nothing; the epsilon keeps float noise from reading as a difference. */
 const TIE_EPSILON = 0.05;
 
 function ComparisonArrow({
@@ -36,88 +32,100 @@ function ComparisonArrow({
 	const Icon = delta > 0 ? ArrowUp : ArrowDown;
 	const label = `${delta > 0 ? "вище" : "нижче"} за середнє (${average.toFixed(1)})`;
 
-	return <Icon className="size-3 text-muted-foreground" aria-label={label} />;
+	return (
+		<Icon
+			className="inline size-3 align-baseline text-muted-foreground"
+			aria-label={label}
+		/>
+	);
 }
 
 /**
- * Auto-populated feed entry: a compact summary of a recent rating.
- * Reviews are anonymous in the feed.
+ * A recent rating; anonymous in the feed. Scans as course → scores → text →
+ * meta, mirroring the course page review cards (RatingStats + RatingComment).
  */
-export function FeedReviewItem({ item }: FeedReviewItemProps) {
+export function FeedReviewItem({
+	item,
+	variant = "card",
+}: Readonly<FeedReviewItemProps>) {
 	const semesterLabel =
 		item.semesterYear != null && item.semesterTerm
 			? getSemesterDisplay(item.semesterYear, item.semesterTerm)
 			: undefined;
+	const isBanner = variant === "banner";
+	// The strip tile has one text line: the review text wins it when there is
+	// one, and the scores drop to the meta line in place of the time.
+	const tileText = !isBanner && item.comment ? item.comment : undefined;
+	const scores = (
+		<p
+			className={cn(
+				"flex items-center gap-x-4 leading-none",
+				isBanner ? "flex-wrap gap-y-1 text-sm" : "overflow-hidden text-xs",
+			)}
+		>
+			<span className="flex items-center gap-1.5 whitespace-nowrap">
+				<span className="text-muted-foreground">Складність</span>{" "}
+				<span
+					className={cn(
+						"font-semibold tabular-nums",
+						getDifficultyTone(item.difficulty),
+					)}
+				>
+					{item.difficulty.toFixed(1)}
+				</span>{" "}
+				<ComparisonArrow
+					score={item.difficulty}
+					average={item.courseAvgDifficulty}
+				/>
+			</span>
+			<span className="flex items-center gap-1.5 whitespace-nowrap">
+				<span className="text-muted-foreground">Корисність</span>{" "}
+				<span
+					className={cn(
+						"font-semibold tabular-nums",
+						getUsefulnessTone(item.usefulness),
+					)}
+				>
+					{item.usefulness.toFixed(1)}
+				</span>{" "}
+				<ComparisonArrow
+					score={item.usefulness}
+					average={item.courseAvgUsefulness}
+				/>
+			</span>
+		</p>
+	);
+	const meta = (
+		<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+			<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
+			{semesterLabel && (
+				<span className="ml-auto shrink-0">{semesterLabel}</span>
+			)}
+		</div>
+	);
 
 	return (
-		<article className="flex gap-3 py-4">
-			<span
-				className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
-				aria-hidden
-			>
-				<MessageSquareText className="size-4" />
-			</span>
-			<div className="min-w-0 flex-1">
-				<p className="text-sm leading-snug">
-					<span className="text-muted-foreground">Новий відгук на </span>
-					<Link
-						to="/courses/$courseId"
-						params={{ courseId: item.courseId }}
-						className="font-medium text-foreground transition-colors hover:text-primary hover:underline"
-					>
-						{item.courseTitle}
-					</Link>
+		<FeedCard
+			variant={variant}
+			kind={{ label: "Відгук", icon: MessageSquareText, tone: "primary" }}
+			pinned={item.pinned}
+			title={
+				<Link
+					to="/courses/$courseId"
+					params={{ courseId: item.courseId }}
+					className="underline-offset-4 transition-colors hover:text-primary hover:underline"
+				>
+					{item.courseTitle}
+				</Link>
+			}
+			footer={tileText ? scores : meta}
+		>
+			{tileText ?? scores}
+			{isBanner && item.comment && (
+				<p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
+					{item.comment}
 				</p>
-
-				<div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-					<span className="flex items-center gap-1">
-						<span className="text-muted-foreground">Складність</span>
-						<span
-							className={cn(
-								"font-semibold tabular-nums",
-								getDifficultyTone(item.difficulty),
-							)}
-						>
-							{item.difficulty.toFixed(1)}
-						</span>
-						<ComparisonArrow
-							score={item.difficulty}
-							average={item.courseAvgDifficulty}
-						/>
-					</span>
-					<span className="flex items-center gap-1">
-						<span className="text-muted-foreground">Корисність</span>
-						<span
-							className={cn(
-								"font-semibold tabular-nums",
-								getUsefulnessTone(item.usefulness),
-							)}
-						>
-							{item.usefulness.toFixed(1)}
-						</span>
-						<ComparisonArrow
-							score={item.usefulness}
-							average={item.courseAvgUsefulness}
-						/>
-					</span>
-				</div>
-
-				{item.comment && (
-					<p className="mt-2.5 line-clamp-2 text-sm text-muted-foreground">
-						{item.comment}
-					</p>
-				)}
-
-				<div className="mt-2.5 flex items-center gap-2 text-xs text-muted-foreground">
-					<time>{formatRelativeTime(item.createdAt)}</time>
-					{semesterLabel && (
-						<>
-							<span aria-hidden>·</span>
-							<span>{semesterLabel}</span>
-						</>
-					)}
-				</div>
-			</div>
-		</article>
+			)}
+		</FeedCard>
 	);
 }

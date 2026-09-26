@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { testIds } from "@/lib/test-ids";
 import { createMockFilterOptions } from "@/test-utils/factories";
 import { render, screen, within } from "@/test-utils/render";
+import { ActiveFilterChips } from "./ActiveFilterChips";
 import { CourseFiltersPanel } from "./CourseFiltersPanel";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
@@ -11,6 +12,15 @@ import {
 	DIFFICULTY_RANGE,
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
+
+const auth = vi.hoisted(() => ({
+	speciality: null as { id: string; name: string } | null,
+}));
+
+vi.mock("@/lib/auth", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@/lib/auth")>()),
+	useAuth: () => ({ speciality: auth.speciality }),
+}));
 
 const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	q: "",
@@ -97,27 +107,22 @@ describe("CourseFiltersPanel", () => {
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText(/Складність:/)).toBeInTheDocument();
-			expect(screen.getByText(/Корисність:/)).toBeInTheDocument();
+			expect(screen.getByText("Складність")).toBeInTheDocument();
+			expect(screen.getByText("Корисність")).toBeInTheDocument();
 		});
 
-		it("should render all filter group headers", () => {
+		it("should render all filter section headers", () => {
 			// Arrange & Act
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText("Рейтинг")).toBeInTheDocument();
+			expect(screen.getByText("Спеціальність і тип курсу")).toBeInTheDocument();
+			expect(screen.getByText("Оцінки курсу")).toBeInTheDocument();
 			expect(screen.getByText("Семестр")).toBeInTheDocument();
-			expect(screen.getByText("Структура")).toBeInTheDocument();
-		});
-
-		it("should render filter presets", () => {
-			// Arrange & Act
-			render(<TestWrapper />);
-
-			// Assert
-			expect(screen.getByText("Легкі курси")).toBeInTheDocument();
-			expect(screen.getByText("Найкорисніші")).toBeInTheDocument();
+			expect(screen.getByText("Факультет і кафедра")).toBeInTheDocument();
+			expect(
+				screen.getByTestId(testIds.filters.instructorSelect),
+			).toBeVisible();
 		});
 	});
 
@@ -134,7 +139,7 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByText(/Складність: 2\.5 - 4\.5/)).toBeInTheDocument();
+			expect(screen.getByText("2.5–4.5")).toBeInTheDocument();
 		});
 
 		it("should display current usefulness range values", () => {
@@ -149,20 +154,10 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByText(/Корисність: 3 - 5/)).toBeInTheDocument();
+			expect(screen.getByText("3–5")).toBeInTheDocument();
 		});
 
-		it("should display range captions", () => {
-			// Arrange & Act
-			render(<TestWrapper />);
-
-			// Assert
-			expect(screen.getByText("Легко")).toBeInTheDocument();
-			expect(screen.getByText("Складно")).toBeInTheDocument();
-			expect(screen.getByText("Низька")).toBeInTheDocument();
-			expect(screen.getByText("Висока")).toBeInTheDocument();
-		});
-		it("should render credits inputs with half-step increments", () => {
+		it("should display credits value readout", () => {
 			// Arrange & Act
 			render(
 				<TestWrapper
@@ -175,42 +170,8 @@ describe("CourseFiltersPanel", () => {
 			);
 
 			// Assert
-			expect(screen.getByLabelText(/ECTS minimum/)).toHaveAttribute(
-				"step",
-				"0.5",
-			);
-			expect(screen.getByLabelText(/ECTS maximum/)).toHaveAttribute(
-				"step",
-				"0.5",
-			);
-			expect(screen.getByLabelText(/ECTS minimum/)).toHaveValue(4);
-			expect(screen.getByLabelText(/ECTS maximum/)).toHaveValue(5.5);
-		});
-
-		it("should snap credits input values to valid half-step increments", async () => {
-			// Arrange
-			const user = userEvent.setup();
-			const setParams = vi.fn();
-			render(
-				<TestWrapper
-					initialParams={{
-						...DEFAULT_PARAMS,
-						year: "2024",
-						credits: [4, 6],
-					}}
-					setParams={setParams}
-				/>,
-			);
-
-			// Act
-			const minimumInput = screen.getByLabelText(/ECTS minimum/);
-			await user.clear(minimumInput);
-			await user.type(minimumInput, "4.27");
-			await user.tab();
-
-			// Assert
-			expect(setParams).toHaveBeenCalledWith({ credits: [4.5, 6], page: 1 });
-			expect(minimumInput).toHaveValue(4.5);
+			expect(screen.getByText("Кредити ECTS")).toBeInTheDocument();
+			expect(screen.getByText("4–5.5")).toBeInTheDocument();
 		});
 	});
 
@@ -234,14 +195,14 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — groups are open by default
+			// Act — essentials are always visible
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
 			const facultyLabel = screen.getByText("Факультет");
 			expect(facultyLabel).toBeInTheDocument();
 			const selectContainer = assertElement(
-				facultyLabel.closest(".space-y-3"),
+				facultyLabel.closest(".space-y-2"),
 				"Faculty select container not found",
 			);
 			const facultySelect = within(selectContainer).getByRole("combobox");
@@ -249,16 +210,17 @@ describe("CourseFiltersPanel", () => {
 			expect(facultySelect).not.toBeDisabled();
 		});
 
-		it("should render semester term toggle group with options when expanded", () => {
+		it("should render one toggle per term option in FALL, SPRING, SUMMER order", () => {
 			// Arrange
 			const filterOptions = createMockFilterOptions({
 				semester_terms: [
+					{ value: "SUMMER", label: "Літо" },
 					{ value: "FALL", label: "Осінь" },
 					{ value: "SPRING", label: "Весна" },
 				],
 			});
 
-			// Act — groups are open by default
+			// Act — essentials are always visible
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
@@ -267,20 +229,125 @@ describe("CourseFiltersPanel", () => {
 			expect(toggleGroup).toHaveAttribute("role", "group");
 
 			const toggleButtons = within(toggleGroup).getAllByRole("button");
-			expect(toggleButtons).toHaveLength(2);
+			expect(toggleButtons).toHaveLength(3);
 			expect(toggleButtons[0]).toHaveTextContent("Осінь");
 			expect(toggleButtons[1]).toHaveTextContent("Весна");
+			expect(toggleButtons[2]).toHaveTextContent("Літо");
 		});
 
-		it("should disable credits slider when year is not selected", () => {
-			// Act — semester group is open by default
+		it("should show credits disabled until a year is chosen", () => {
 			render(<TestWrapper />);
 
-			// Assert
 			expect(screen.getByTestId(testIds.filters.creditsSelect)).toHaveAttribute(
 				"data-disabled",
 				"",
 			);
+			expect(
+				screen.getByText("Спочатку оберіть навчальний рік"),
+			).toBeInTheDocument();
+		});
+
+		it("keeps the course type locked until a speciality is chosen", () => {
+			render(<TestWrapper />);
+
+			const group = screen.getByTestId(testIds.filters.typeSelect);
+			for (const item of within(group).getAllByRole("radio")) {
+				expect(item).toBeDisabled();
+			}
+			expect(
+				screen.getByText("Спочатку оберіть спеціальність"),
+			).toBeInTheDocument();
+		});
+
+		it("filters a speciality down to its free-choice courses in one click", async () => {
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			render(
+				<TestWrapper
+					setParams={setParams}
+					initialParams={{ ...DEFAULT_PARAMS, spec: "spec-1" }}
+				/>,
+			);
+
+			await user.click(screen.getByRole("radio", { name: "Вільного вибору" }));
+
+			expect(setParams).toHaveBeenCalledWith({ type: "ELECTIVE", page: 1 });
+		});
+
+		it("offers the student's own speciality in one click and hides it once chosen", async () => {
+			auth.speciality = {
+				id: "spec-1",
+				name: "Інженерія програмного забезпечення",
+			};
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			const { rerender } = render(<TestWrapper setParams={setParams} />);
+
+			await user.click(
+				screen.getByRole("button", {
+					name: "Обрати мою: Інженерія програмного забезпечення",
+				}),
+			);
+			expect(setParams).toHaveBeenCalledWith({
+				spec: "spec-1",
+				type: null,
+				page: 1,
+			});
+
+			rerender(
+				<TestWrapper
+					setParams={setParams}
+					initialParams={{ ...DEFAULT_PARAMS, spec: "spec-1" }}
+				/>,
+			);
+			expect(
+				screen.queryByRole("button", { name: /^Обрати мою/ }),
+			).not.toBeInTheDocument();
+			auth.speciality = null;
+		});
+
+		it("applies a course type to the student's own speciality when none is picked", async () => {
+			auth.speciality = { id: "spec-2", name: "Економіка" };
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			render(<TestWrapper setParams={setParams} />);
+
+			await user.click(screen.getByRole("radio", { name: "Вільного вибору" }));
+
+			expect(setParams).toHaveBeenCalledWith({
+				spec: "spec-2",
+				type: "ELECTIVE",
+				page: 1,
+			});
+			auth.speciality = null;
+		});
+
+		it("keeps the chosen speciality when the faculty changes", async () => {
+			// cmdk scrolls the active option into view; jsdom lacks this API.
+			Element.prototype.scrollIntoView = vi.fn();
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			render(
+				<TestWrapper
+					setParams={setParams}
+					initialParams={{
+						...DEFAULT_PARAMS,
+						spec: "spec-2",
+						type: "ELECTIVE",
+					}}
+				/>,
+			);
+
+			await user.click(screen.getByTestId(testIds.filters.facultySelect));
+			await user.click(
+				await screen.findByRole("option", { name: "Факультет інформатики" }),
+			);
+
+			expect(setParams).toHaveBeenCalledWith({
+				faculty: "faculty-1",
+				dept: "",
+				page: 1,
+			});
 		});
 	});
 
@@ -354,14 +421,14 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — structure group is open by default
+			// Act — essentials are always visible
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
 			const deptLabel = screen.getByText("Кафедра");
 			expect(deptLabel).toBeInTheDocument();
 			const selectContainer = assertElement(
-				deptLabel.closest(".space-y-3"),
+				deptLabel.closest(".space-y-2"),
 				"Department select container not found",
 			);
 			const deptSelect = within(selectContainer).getByRole("combobox");
@@ -371,13 +438,13 @@ describe("CourseFiltersPanel", () => {
 	});
 
 	describe("Accessibility", () => {
-		it("should have proper ARIA labels for range filters", () => {
+		it("should have proper labels for range filters", () => {
 			// Arrange & Act
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText(/Складність:/)).toBeInTheDocument();
-			expect(screen.getByText(/Корисність:/)).toBeInTheDocument();
+			expect(screen.getByText("Складність")).toBeInTheDocument();
+			expect(screen.getByText("Корисність")).toBeInTheDocument();
 		});
 
 		it("should have reset button with proper text", () => {
@@ -395,5 +462,36 @@ describe("CourseFiltersPanel", () => {
 			const resetButton = screen.getByRole("button", { name: /скинути/i });
 			expect(resetButton).toHaveAttribute("type", "button");
 		});
+	});
+});
+
+describe("ActiveFilterChips", () => {
+	it("should render a removable chip per active filter", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const setParams = vi.fn();
+		render(
+			<ActiveFilterChips
+				params={{
+					...DEFAULT_PARAMS,
+					diff: [1, 2.5],
+					term: ["FALL"],
+				}}
+				setParams={setParams}
+				filterOptions={createMockFilterOptions()}
+			/>,
+		);
+
+		// Assert
+		expect(screen.getByText("Складність 1–2.5")).toBeInTheDocument();
+		expect(screen.getByText("Осінь")).toBeInTheDocument();
+
+		// Act
+		await user.click(
+			screen.getByRole("button", { name: "Прибрати фільтр Осінь" }),
+		);
+
+		// Assert
+		expect(setParams).toHaveBeenCalledWith({ term: [], page: 1 });
 	});
 });

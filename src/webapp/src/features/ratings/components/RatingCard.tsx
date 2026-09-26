@@ -1,4 +1,3 @@
-import { getSemesterDisplay } from "@/features/courses/courseFormatting";
 import type { RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCardBody } from "./RatingCardBody";
@@ -10,30 +9,23 @@ import {
 interface RatingCardProps {
 	rating: RatingRead;
 	courseId?: string;
-	readOnly?: boolean;
-	disabledMessage?: string;
+	singleTerm?: boolean;
+	voteDisabledReason?: string;
 }
 
 export function RatingCard({
 	rating,
 	courseId,
-	readOnly = false,
-	disabledMessage,
+	singleTerm = false,
+	voteDisabledReason,
 }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
 		? ANONYMOUS_REVIEW_NAME
 		: rating.student_name || DEFAULT_STUDENT_NAME;
-	const courseOfferingLabel =
-		rating.course_offering_year != null && rating.course_offering_term
-			? getSemesterDisplay(
-					rating.course_offering_year,
-					rating.course_offering_term,
-				)
-			: undefined;
 
 	return (
 		<article
-			className="px-4 py-4"
+			className="px-4 py-4 first:pt-1 last:pb-1 sm:px-5"
 			data-testid={testIds.courseDetails.reviewCard}
 		>
 			<RatingCardBody
@@ -41,7 +33,9 @@ export function RatingCard({
 				isAnonymous={rating.is_anonymous ?? false}
 				avatarUrl={rating.student_avatar_url}
 				createdAt={rating.created_at}
-				courseOfferingLabel={courseOfferingLabel}
+				offeringYear={rating.course_offering_year}
+				offeringTerm={rating.course_offering_term}
+				singleTerm={singleTerm}
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}
@@ -54,8 +48,7 @@ export function RatingCard({
 				viewerVote={rating.viewer_vote ?? null}
 				commentsCount={rating.comments_count ?? 0}
 				commentAuthors={rating.comment_authors ?? []}
-				votesReadOnly={readOnly}
-				votesDisabledMessage={disabledMessage}
+				voteDisabledReason={voteDisabledReason}
 			/>
 		</article>
 	);

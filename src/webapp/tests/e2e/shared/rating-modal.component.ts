@@ -139,8 +139,9 @@ export class RatingModal {
 
 	private async getStarValue(container: Locator): Promise<number> {
 		await expect(container).toBeVisible();
-		const filledStars = container.locator("button:has(svg.fill-primary)");
-		return await filledStars.count();
+		const selected = container.locator('[data-state="on"]');
+		if ((await selected.count()) === 0) return 0;
+		return Number((await selected.first().innerText()).trim());
 	}
 
 	private async setStarValue(
@@ -155,7 +156,9 @@ export class RatingModal {
 			);
 		}
 
-		const starButton = container.locator("button").nth(targetValue - 1);
+		const starButton = container.getByRole("radio", {
+			name: `${targetValue} з 5`,
+		});
 		await starButton.click();
 	}
 

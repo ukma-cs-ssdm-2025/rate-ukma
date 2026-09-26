@@ -1,16 +1,13 @@
 import type { ReactNode } from "react";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { Newspaper, Pin } from "lucide-react";
 
 import Layout from "@/components/Layout";
+import { PageHeader } from "@/components/PageHeader";
 import { FeedEmptyState } from "@/features/feed/components/FeedEmptyState";
 import { FeedErrorState } from "@/features/feed/components/FeedErrorState";
-import { FeedCommentItem } from "@/features/feed/components/FeedCommentItem";
-import { FeedPromoItem } from "@/features/feed/components/FeedPromoItem";
-import { FeedReviewItem } from "@/features/feed/components/FeedReviewItem";
+import { FeedItem } from "@/features/feed/components/FeedItem";
 import { FeedSkeleton } from "@/features/feed/components/FeedSkeleton";
-import { isCommentItem, isPromoItem } from "@/features/feed/feedTypes";
 import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import { useFeed } from "@/features/feed/hooks/useFeed";
 import { withAuth } from "@/lib/auth";
@@ -24,15 +21,10 @@ export function FeedRoute() {
 	return (
 		<Layout>
 			<div className="mx-auto max-w-2xl space-y-6">
-				<header className="space-y-1">
-					<h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-						<Newspaper className="size-6 text-muted-foreground" />
-						Стрічка оновлень
-					</h1>
-					<p className="text-muted-foreground">
-						Останні відгуки та оголошення Могилянки
-					</p>
-				</header>
+				<PageHeader
+					title="Стрічка оновлень"
+					description="Останні відгуки та оголошення Могилянки"
+				/>
 
 				{resolveContent({ isReady, enabled, feed })}
 			</div>
@@ -73,24 +65,11 @@ function resolveContent({
 		<>
 			<div className="space-y-3" data-testid={testIds.feed.list}>
 				{feed.items.map((item) => (
-					<div key={`${item.kind}:${item.id}`} className="relative">
-						{item.pinned && (
-							<span className="absolute right-3 top-3 z-10 inline-flex items-center rounded-full border bg-background/90 p-1 text-muted-foreground shadow-sm backdrop-blur">
-								<Pin className="size-3" />
-							</span>
-						)}
-						{isPromoItem(item) ? (
-							<FeedPromoItem item={item} variant="banner" />
-						) : (
-							<div className="rounded-xl border bg-card px-4 shadow-sm">
-								{isCommentItem(item) ? (
-									<FeedCommentItem item={item} />
-								) : (
-									<FeedReviewItem item={item} />
-								)}
-							</div>
-						)}
-					</div>
+					<FeedItem
+						key={`${item.kind}:${item.id}`}
+						item={item}
+						variant="banner"
+					/>
 				))}
 			</div>
 

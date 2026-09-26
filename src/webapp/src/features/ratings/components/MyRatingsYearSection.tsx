@@ -1,33 +1,54 @@
+import { SectionHeader } from "@/components/SectionHeader";
 import type { YearGroup } from "@/features/ratings/groupRatings";
 import { MyRatingsSemesterSection } from "./MyRatingsSemesterSection";
 
 interface MyRatingsYearSectionProps {
 	yearGroup: YearGroup;
 	onRatingChanged: () => undefined | Promise<unknown>;
-	collapsedState: Record<string, boolean>;
-	onToggle: (key: string, isOpen: boolean) => void;
+	forceOpen?: boolean;
 }
 
 export function MyRatingsYearSection({
 	yearGroup,
 	onRatingChanged,
-	collapsedState,
-	onToggle,
+	forceOpen,
 }: Readonly<MyRatingsYearSectionProps>) {
+	if (yearGroup.seasons.length === 0) return null;
+
+	// An academic-year heading over a single semester is noise, and so is one
+	// over a filtered list, so those semesters stand alone as "Весна 2026".
+	if (
+		(forceOpen || yearGroup.seasons.length === 1) &&
+		yearGroup.seasons.every((season) => season.year != null)
+	) {
+		return (
+			<>
+				{yearGroup.seasons.map((seasonGroup) => (
+					<MyRatingsSemesterSection
+						key={seasonGroup.key}
+						seasonGroup={{
+							...seasonGroup,
+							label: `${seasonGroup.label} ${seasonGroup.year}`,
+						}}
+						onRatingChanged={onRatingChanged}
+						forceOpen={forceOpen}
+					/>
+				))}
+			</>
+		);
+	}
+
 	return (
 		<div className="space-y-3">
-			<h2 className="text-xl font-semibold text-foreground">
-				{yearGroup.label}
-			</h2>
+			<SectionHeader title={yearGroup.label} />
 
-			<div className="space-y-1">
+			<div className="space-y-0.5">
 				{yearGroup.seasons.map((seasonGroup) => (
 					<MyRatingsSemesterSection
 						key={seasonGroup.key}
 						seasonGroup={seasonGroup}
 						onRatingChanged={onRatingChanged}
-						isOpen={collapsedState[seasonGroup.key]}
-						onToggle={(open) => onToggle(seasonGroup.key, open)}
+						forceOpen={forceOpen}
 					/>
 				))}
 			</div>

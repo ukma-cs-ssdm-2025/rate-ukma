@@ -1,12 +1,18 @@
 import { Info } from "lucide-react";
 
+import { TermBadge } from "@/components/TermBadge";
 import { UserAvatar } from "@/components/UserAvatar";
+import { Badge } from "@/components/ui/Badge";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import { formatDate } from "@/features/courses/courseFormatting";
+import {
+	formatAcademicYearLabel,
+	formatDate,
+	getSemesterDisplay,
+} from "@/features/courses/courseFormatting";
 import { formatInstructorName } from "@/features/instructors/formatInstructorName";
 import type {
 	CommentAuthor,
@@ -23,7 +29,9 @@ interface RatingCardBodyProps {
 	readonly isAnonymous: boolean;
 	readonly avatarUrl?: string | null;
 	readonly createdAt?: string | null;
-	readonly courseOfferingLabel?: string;
+	readonly offeringYear?: number | null;
+	readonly offeringTerm?: string | null;
+	readonly singleTerm?: boolean;
 	readonly difficulty: number | undefined;
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
@@ -37,8 +45,30 @@ interface RatingCardBodyProps {
 	readonly viewerVote: RatingVoteStrType | null;
 	readonly commentsCount?: number;
 	readonly commentAuthors?: readonly CommentAuthor[];
-	readonly votesReadOnly?: boolean;
-	readonly votesDisabledMessage?: string;
+	readonly voteDisabledReason?: string;
+}
+
+// A badge keeps the offering apart from the review date beside it.
+function OfferingBadge({
+	year,
+	term,
+	singleTerm,
+}: Readonly<{ year: number; term: string; singleTerm: boolean }>) {
+	if (singleTerm) {
+		return (
+			<Badge
+				variant="secondary"
+				className="shrink-0 font-normal text-muted-foreground tabular-nums"
+			>
+				{formatAcademicYearLabel(year, term)}
+			</Badge>
+		);
+	}
+	return (
+		<TermBadge term={term} className="shrink-0 tabular-nums">
+			{getSemesterDisplay(year, term)}
+		</TermBadge>
+	);
 }
 
 export function RatingCardBody({
@@ -46,7 +76,9 @@ export function RatingCardBody({
 	isAnonymous,
 	avatarUrl,
 	createdAt,
-	courseOfferingLabel,
+	offeringYear,
+	offeringTerm,
+	singleTerm = false,
 	difficulty,
 	usefulness,
 	comment,
@@ -60,36 +92,38 @@ export function RatingCardBody({
 	viewerVote,
 	commentsCount = 0,
 	commentAuthors = [],
-	votesReadOnly = false,
-	votesDisabledMessage,
+	voteDisabledReason,
 }: RatingCardBodyProps) {
 	const instructorNames = instructors.map(formatInstructorName).filter(Boolean);
 	return (
 		<>
-			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-				<div className="flex min-w-0 items-start gap-2.5">
+			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+				<div className="flex min-w-0 flex-1 items-center gap-2.5">
 					<UserAvatar
 						name={displayName}
 						avatarUrl={avatarUrl}
 						isAnonymous={isAnonymous}
-						className="h-8 w-8 shrink-0 text-xs font-semibold"
+						className="size-8 shrink-0 text-xs font-semibold"
 					/>
-					<div className="flex min-w-0 flex-col flex-1">
-						<div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-							<span className="min-w-0 truncate text-sm font-medium">
-								{displayName}
-							</span>
-							{courseOfferingLabel && (
-								<span className="shrink-0 text-xs text-muted-foreground">
-									{courseOfferingLabel}
-								</span>
-							)}
-						</div>
-						{createdAt && (
-							<time className="text-xs text-muted-foreground">
+					<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
+						<span className="min-w-0 truncate text-sm font-medium">
+							{displayName}
+						</span>
+						{offeringYear != null && offeringTerm ? (
+							<OfferingBadge
+								year={offeringYear}
+								term={offeringTerm}
+								singleTerm={singleTerm}
+							/>
+						) : null}
+						{createdAt ? (
+							<time
+								dateTime={createdAt}
+								className="shrink-0 text-xs whitespace-nowrap text-muted-foreground"
+							>
 								{formatDate(createdAt)}
 							</time>
-						)}
+						) : null}
 					</div>
 				</div>
 
@@ -112,7 +146,7 @@ export function RatingCardBody({
 						<span className="min-w-0 break-words">{instructor}</span>
 						<Tooltip>
 							<TooltipTrigger asChild>
-								<Info className="h-3.5 w-3.5 shrink-0 cursor-help text-muted-foreground/60" />
+								<Info className="size-3.5 shrink-0 cursor-help text-muted-foreground/60" />
 							</TooltipTrigger>
 							<TooltipContent>Вказано студентом, не перевірено</TooltipContent>
 						</Tooltip>
@@ -120,12 +154,12 @@ export function RatingCardBody({
 				)
 			)}
 
-			<div className="mt-3">
+			<div className="mt-2.5">
 				<RatingComment comment={comment} emptyMessage={commentEmptyMessage} />
 			</div>
 
-			<div className="mt-3 flex flex-col gap-3">
-				{ratingId && (
+			{ratingId && (
+				<div className="mt-2">
 					<RatingComments
 						ratingId={ratingId}
 						courseId={courseId}
@@ -138,14 +172,13 @@ export function RatingCardBody({
 								initialUpvotes={upvotes}
 								initialDownvotes={downvotes}
 								initialUserVote={viewerVote}
-								readOnly={votesReadOnly}
-								disabledMessage={votesDisabledMessage}
+								disabledReason={voteDisabledReason}
 								inline
 							/>
 						}
 					/>
-				)}
-			</div>
+				</div>
+			)}
 		</>
 	);
 }
