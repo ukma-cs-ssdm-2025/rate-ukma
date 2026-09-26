@@ -126,8 +126,16 @@ export function RatingCardBody({
 						<span className="shrink-0 font-medium">Викладач:</span>
 						<span className="min-w-0 break-words">{instructor}</span>
 						<Tooltip>
+							{/* h-5 matches the text-sm line, so the icon centres on the
+							    first line instead of riding above it. */}
 							<TooltipTrigger asChild>
-								<Info className="size-3.5 shrink-0 cursor-help text-muted-foreground/60" />
+								<button
+									type="button"
+									aria-label="Вказано студентом, не перевірено"
+									className="flex h-5 shrink-0 cursor-help items-center rounded-sm text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+								>
+									<Info className="size-3.5" />
+								</button>
 							</TooltipTrigger>
 							<TooltipContent>Вказано студентом, не перевірено</TooltipContent>
 						</Tooltip>

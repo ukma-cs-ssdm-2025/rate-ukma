@@ -266,7 +266,8 @@ export const COURSE_RATINGS = {
 			difficulty: 4 + (index % 2),
 			usefulness: 5 - (index % 2),
 			comment,
-			instructor: null,
+			// One free-text instructor, typed by the student and shown unverified.
+			instructor: index === 1 ? "Олена Демченко" : null,
 			instructors: [],
 			is_anonymous: RATING_AUTHORS[index] === "Анонім",
 			created_at: hoursAgo(24 * (index + 1)),

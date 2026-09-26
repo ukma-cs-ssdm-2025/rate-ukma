@@ -545,6 +545,19 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "course-instructor-tooltip",
+		section: "Курс",
+		note: "A student-typed instructor with its «not verified» hint",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("button", { name: "Вказано студентом, не перевірено" })
+				.hover();
+			await page.getByRole("tooltip").waitFor();
+		},
+	},
+	{
 		name: "course-rating-edit",
 		section: "Оцінювання",
 		note: "Own rating reopened for editing",
