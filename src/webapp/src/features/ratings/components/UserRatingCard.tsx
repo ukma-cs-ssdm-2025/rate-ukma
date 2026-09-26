@@ -29,7 +29,6 @@ interface ExtendedRating extends InlineRating {
 interface UserRatingCardProps {
 	readonly rating: RatingRead | ExtendedRating;
 	readonly courseId?: string;
-	readonly singleTerm?: boolean;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
 }
@@ -37,7 +36,6 @@ interface UserRatingCardProps {
 export function UserRatingCard({
 	rating,
 	courseId,
-	singleTerm = false,
 	onEdit,
 	onDelete,
 }: UserRatingCardProps) {
@@ -101,7 +99,6 @@ export function UserRatingCard({
 				createdAt={rating.created_at}
 				offeringYear={offering?.year}
 				offeringTerm={offering?.term}
-				singleTerm={singleTerm}
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}

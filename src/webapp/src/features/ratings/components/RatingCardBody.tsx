@@ -2,14 +2,12 @@ import { Info } from "lucide-react";
 
 import { TermBadge } from "@/components/TermBadge";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Badge } from "@/components/ui/Badge";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import {
-	formatAcademicYearLabel,
 	formatDate,
 	getSemesterDisplay,
 } from "@/features/courses/courseFormatting";
@@ -31,7 +29,6 @@ interface RatingCardBodyProps {
 	readonly createdAt?: string | null;
 	readonly offeringYear?: number | null;
 	readonly offeringTerm?: string | null;
-	readonly singleTerm?: boolean;
 	readonly difficulty: number | undefined;
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
@@ -52,18 +49,7 @@ interface RatingCardBodyProps {
 function OfferingBadge({
 	year,
 	term,
-	singleTerm,
-}: Readonly<{ year: number; term: string; singleTerm: boolean }>) {
-	if (singleTerm) {
-		return (
-			<Badge
-				variant="secondary"
-				className="shrink-0 font-normal text-muted-foreground tabular-nums"
-			>
-				{formatAcademicYearLabel(year, term)}
-			</Badge>
-		);
-	}
+}: Readonly<{ year: number; term: string }>) {
 	return (
 		<TermBadge term={term} className="shrink-0 tabular-nums">
 			{getSemesterDisplay(year, term)}
@@ -78,7 +64,6 @@ export function RatingCardBody({
 	createdAt,
 	offeringYear,
 	offeringTerm,
-	singleTerm = false,
 	difficulty,
 	usefulness,
 	comment,
@@ -110,11 +95,7 @@ export function RatingCardBody({
 							{displayName}
 						</span>
 						{offeringYear != null && offeringTerm ? (
-							<OfferingBadge
-								year={offeringYear}
-								term={offeringTerm}
-								singleTerm={singleTerm}
-							/>
+							<OfferingBadge year={offeringYear} term={offeringTerm} />
 						) : null}
 						{createdAt ? (
 							<time

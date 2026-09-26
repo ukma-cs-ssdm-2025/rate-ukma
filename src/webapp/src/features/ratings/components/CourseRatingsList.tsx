@@ -38,8 +38,6 @@ interface CourseRatingsListProps {
 	rateAction?: React.ReactNode;
 	hasAttended: boolean;
 	canRate: boolean;
-	// When the course only ever runs in one term, reviews show the academic year alone.
-	singleTerm?: boolean;
 }
 
 interface RatingsContentProps {
@@ -50,7 +48,6 @@ interface RatingsContentProps {
 	hasUserRating: boolean;
 	voteDisabledReason?: string;
 	courseId: string;
-	singleTerm: boolean;
 }
 
 function emptyDescription(hasAttended: boolean, canRate: boolean): string {
@@ -94,7 +91,6 @@ function RatingsContent({
 	hasUserRating,
 	voteDisabledReason,
 	courseId,
-	singleTerm,
 }: Readonly<RatingsContentProps>) {
 	if (allRatings.length === 0 && hasUserRating) {
 		return null;
@@ -107,7 +103,6 @@ function RatingsContent({
 					key={rating.id}
 					rating={rating}
 					courseId={courseId}
-					singleTerm={singleTerm}
 					voteDisabledReason={voteDisabledReason}
 				/>
 			))}
@@ -140,7 +135,6 @@ export function CourseRatingsList({
 	rateAction,
 	hasAttended,
 	canRate,
-	singleTerm = false,
 }: Readonly<CourseRatingsListProps>) {
 	const separateCurrentUser = !!userRatingProp;
 	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
@@ -203,7 +197,6 @@ export function CourseRatingsList({
 				<UserRatingCard
 					rating={userRating}
 					courseId={courseId}
-					singleTerm={singleTerm}
 					onEdit={onEditUserRating}
 					onDelete={onDeleteUserRating}
 				/>
@@ -224,7 +217,6 @@ export function CourseRatingsList({
 					hasUserRating={!!userRating}
 					voteDisabledReason={voteDisabledReason}
 					courseId={courseId}
-					singleTerm={singleTerm}
 				/>
 			)}
 		</div>

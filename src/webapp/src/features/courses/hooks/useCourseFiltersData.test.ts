@@ -244,26 +244,6 @@ describe("useCourseFiltersData", () => {
 				expect(filter.options).toEqual([]);
 			});
 		});
-
-		it("should disable credits filter until year is selected", () => {
-			// Act
-			const { result } = renderFiltersHook({ year: "" });
-
-			// Assert
-			const ranges = allRangeFilters(result.current);
-			const creditsFilter = ranges.find((filter) => filter.key === "credits");
-			expect(creditsFilter?.disabled).toBe(true);
-		});
-
-		it("should enable credits filter when year is selected", () => {
-			// Act
-			const { result } = renderFiltersHook({ year: "2024–2025" });
-
-			// Assert
-			const ranges = allRangeFilters(result.current);
-			const creditsFilter = ranges.find((filter) => filter.key === "credits");
-			expect(creditsFilter?.disabled).toBe(false);
-		});
 	});
 
 	describe("Department Filtering by Faculty", () => {

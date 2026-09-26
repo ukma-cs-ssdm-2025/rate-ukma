@@ -65,7 +65,7 @@ export function getLatestOfferingTerms(
 	return [...new Set(terms)].filter((term): term is string => Boolean(term));
 }
 
-export function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {
+function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {
 	const terms = new Set(
 		offerings.flatMap((offering) =>
 			offeringTerms(offering).map((term) =>

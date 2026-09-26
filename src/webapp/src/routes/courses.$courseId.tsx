@@ -12,7 +12,6 @@ import {
 import {
 	getLatestOffering,
 	getLatestOfferingTerms,
-	runsInOneTerm,
 } from "@/features/course-offerings/components/CourseCazRecords";
 import {
 	CourseDetailsHeader,
@@ -175,7 +174,6 @@ function CourseDetailsRoute() {
 							rateAction={isDesktop ? rateAction : null}
 							hasAttended={hasAttendedCourse}
 							canRate={canRateNow}
-							singleTerm={runsInOneTerm(offerings)}
 						/>
 					</div>
 

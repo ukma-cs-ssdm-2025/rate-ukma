@@ -67,8 +67,6 @@ function FilterSlider({
 	range,
 	step = 0.1,
 	testId,
-	disabled,
-	disabledMessage,
 	onValueChange,
 }: Readonly<{
 	label: string;
@@ -76,8 +74,6 @@ function FilterSlider({
 	range: [number, number];
 	step?: number;
 	testId?: string;
-	disabled?: boolean;
-	disabledMessage?: string;
 	onValueChange: (value: [number, number]) => void;
 }>) {
 	const [localValue, setLocalValue] = useState(value);
@@ -108,42 +104,33 @@ function FilterSlider({
 					setLocalValue(val as [number, number]);
 				}}
 				onValueCommit={(val) => onValueChange(val as [number, number])}
-				disabled={disabled}
 				data-testid={testId}
 				thumbLabels={[`${label}, від`, `${label}, до`]}
 				className="w-full py-2"
 			/>
-			{/* A slider that can be disabled keeps its hint line, so enabling it moves nothing below. */}
-			{disabled === undefined ? null : (
-				<p className="min-h-4 text-xs text-muted-foreground">
-					{disabledMessage}
-				</p>
-			)}
 		</div>
 	);
 }
 
+// No visible heading: the field labels inside already say what the group is.
 function FilterSection({
-	title,
-	activeCount,
+	label,
 	testId,
 	children,
 }: Readonly<{
-	title: string;
-	activeCount?: number;
+	label: string;
 	testId?: string;
 	children: React.ReactNode;
 }>) {
 	return (
-		<section className="space-y-3" data-testid={testId}>
-			<div className="flex h-6 items-center gap-2">
-				<h3 className="text-sm font-semibold">{title}</h3>
-				{activeCount != null && activeCount > 0 && (
-					<Badge variant="soft">{activeCount}</Badge>
-				)}
-			</div>
-			<div className="space-y-4">{children}</div>
-		</section>
+		<div
+			role="group"
+			aria-label={label}
+			className="space-y-4"
+			data-testid={testId}
+		>
+			{children}
+		</div>
 	);
 }
 
@@ -202,7 +189,7 @@ function SemesterTermToggleControl({
 
 	return (
 		<div className="space-y-3">
-			<Label className="text-sm font-medium">Семестровий період</Label>
+			<Label className="text-sm font-medium">Семестр</Label>
 			<ToggleGroup
 				type="multiple"
 				variant="outline"
@@ -431,17 +418,29 @@ function CourseFiltersContent({
 		[setParams],
 	);
 
+	// Credits are stored per academic year, so the API needs one; the newest
+	// is what a student choosing a course by load means.
+	const latestYear = data.groups.semester.selectFilters
+		.find((filter) => filter.key === "year")
+		?.options.map((option) => option.value)
+		.sort()
+		.at(-1);
+
 	const handleRangeChange = useCallback(
 		(key: "diff" | "use" | "credits", value: [number, number]) => {
 			if (key === "credits") {
-				setWithPageReset({ credits: value });
+				setWithPageReset(
+					params.year || !latestYear
+						? { credits: value }
+						: { credits: value, year: latestYear },
+				);
 			} else if (key === "diff") {
 				setWithPageReset({ diff: value });
 			} else {
 				setWithPageReset({ use: value });
 			}
 		},
-		[setWithPageReset],
+		[setWithPageReset, params.year, latestYear],
 	);
 
 	const handleTermToggle = useCallback(
@@ -527,11 +526,6 @@ function CourseFiltersContent({
 
 	const { groups } = data;
 	const { speciality: ownSpeciality } = useAuth();
-	const specialityCount = (params.spec ? 1 : 0) + (params.type ? 1 : 0);
-	const structureCount =
-		(params.faculty ? 1 : 0) +
-		(params.dept ? 1 : 0) +
-		(params.eduLevel ? 1 : 0);
 
 	const semesterSelect = groups.semester.selectFilters.find(
 		(filter) => filter.key === "year",
@@ -554,8 +548,7 @@ function CourseFiltersContent({
 			{/* Students filter by their own programme far more than by faculty or
 			    department, so speciality and course type lead. */}
 			<FilterSection
-				title="Спеціальність і тип курсу"
-				activeCount={specialityCount}
+				label="Спеціальність і тип курсу"
 				testId={testIds.filters.groupStructure}
 			>
 				{specialitySelect && (
@@ -600,25 +593,9 @@ function CourseFiltersContent({
 
 			<Separator />
 
-			<FilterSection
-				title="Оцінки курсу"
-				activeCount={groups.rating.config.activeCount}
-				testId={testIds.filters.groupRating}
-			>
-				<RangeFilters
-					filters={groups.rating.rangeFilters}
-					params={params}
-					onRangeChange={handleRangeChange}
-				/>
-			</FilterSection>
-
-			<Separator />
-
-			<FilterSection
-				title="Семестр"
-				activeCount={groups.semester.config.activeCount}
-				testId={testIds.filters.groupSemester}
-			>
+			{/* Year, term and credits describe one offering, so they stay
+			    together, above the scores. */}
+			<FilterSection label="Семестр" testId={testIds.filters.groupSemester}>
 				{semesterSelect && (
 					<SelectFilters
 						filters={[semesterSelect]}
@@ -639,7 +616,17 @@ function CourseFiltersContent({
 
 			<Separator />
 
-			<FilterSection title="Факультет і кафедра" activeCount={structureCount}>
+			<FilterSection label="Оцінки курсу" testId={testIds.filters.groupRating}>
+				<RangeFilters
+					filters={groups.rating.rangeFilters}
+					params={params}
+					onRangeChange={handleRangeChange}
+				/>
+			</FilterSection>
+
+			<Separator />
+
+			<FilterSection label="Факультет і кафедра">
 				<SelectFilters
 					filters={facultySelects}
 					getSelectValue={getSelectValue}

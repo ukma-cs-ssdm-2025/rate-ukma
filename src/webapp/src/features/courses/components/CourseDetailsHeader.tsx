@@ -57,20 +57,13 @@ export function CourseDetailsHeader({
 			{terms.map((term) => (
 				<TermBadge key={term} term={term} />
 			))}
-			{credits ? (
+			{credits || weeklyHours ? (
 				<Badge
 					variant="outline"
 					className="border-transparent bg-muted tabular-nums"
 				>
-					{credits}
-				</Badge>
-			) : null}
-			{weeklyHours ? (
-				<Badge
-					variant="outline"
-					className="border-transparent bg-muted tabular-nums"
-				>
-					{weeklyHours} на тиждень
+					{[credits, weeklyHours].filter(Boolean).join(" / ")}
+					{weeklyHours ? <span className="sr-only"> на тиждень</span> : null}
 				</Badge>
 			) : null}
 		</span>

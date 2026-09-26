@@ -111,15 +111,19 @@ describe("CourseFiltersPanel", () => {
 			expect(screen.getByText("Корисність")).toBeInTheDocument();
 		});
 
-		it("should render all filter section headers", () => {
+		it("should render all filter groups", () => {
 			// Arrange & Act
 			render(<TestWrapper />);
 
 			// Assert
-			expect(screen.getByText("Спеціальність і тип курсу")).toBeInTheDocument();
-			expect(screen.getByText("Оцінки курсу")).toBeInTheDocument();
-			expect(screen.getByText("Семестр")).toBeInTheDocument();
-			expect(screen.getByText("Факультет і кафедра")).toBeInTheDocument();
+			for (const name of [
+				"Спеціальність і тип курсу",
+				"Семестр",
+				"Оцінки курсу",
+				"Факультет і кафедра",
+			]) {
+				expect(screen.getByRole("group", { name })).toBeInTheDocument();
+			}
 			expect(
 				screen.getByTestId(testIds.filters.instructorSelect),
 			).toBeVisible();
@@ -235,16 +239,35 @@ describe("CourseFiltersPanel", () => {
 			expect(toggleButtons[2]).toHaveTextContent("Літо");
 		});
 
-		it("should show credits disabled until a year is chosen", () => {
-			render(<TestWrapper />);
+		it("picks the newest academic year when credits move without one", async () => {
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			render(<TestWrapper setParams={setParams} />);
 
-			expect(screen.getByTestId(testIds.filters.creditsSelect)).toHaveAttribute(
-				"data-disabled",
-				"",
+			screen.getByRole("slider", { name: "Кредити ECTS, від" }).focus();
+			await user.keyboard("{ArrowRight}");
+
+			expect(setParams).toHaveBeenLastCalledWith(
+				expect.objectContaining({ year: "2025", page: 1 }),
 			);
-			expect(
-				screen.getByText("Спочатку оберіть навчальний рік"),
-			).toBeInTheDocument();
+		});
+
+		it("keeps the chosen academic year when credits move", async () => {
+			const user = userEvent.setup();
+			const setParams = vi.fn();
+			render(
+				<TestWrapper
+					setParams={setParams}
+					initialParams={{ ...DEFAULT_PARAMS, year: "2024" }}
+				/>,
+			);
+
+			screen.getByRole("slider", { name: "Кредити ECTS, від" }).focus();
+			await user.keyboard("{ArrowRight}");
+
+			expect(setParams).toHaveBeenLastCalledWith(
+				expect.not.objectContaining({ year: expect.anything() }),
+			);
 		});
 
 		it("keeps the course type locked until a speciality is chosen", () => {

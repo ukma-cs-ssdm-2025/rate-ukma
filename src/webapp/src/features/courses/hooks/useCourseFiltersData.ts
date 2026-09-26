@@ -58,8 +58,6 @@ export type RangeFilterConfig = {
 	value: [number, number];
 	range: [number, number];
 	step?: number;
-	disabled?: boolean;
-	disabledMessage?: string;
 };
 
 export type SemesterTermToggle = {
@@ -298,10 +296,6 @@ export function useCourseFiltersData({
 			value: filters.credits,
 			range: CREDITS_RANGE,
 			step: 0.5,
-			disabled: !filters.year,
-			disabledMessage: filters.year
-				? undefined
-				: "Спочатку оберіть навчальний рік",
 		},
 	];
 

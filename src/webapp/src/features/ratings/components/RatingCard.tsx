@@ -9,14 +9,12 @@ import {
 interface RatingCardProps {
 	rating: RatingRead;
 	courseId?: string;
-	singleTerm?: boolean;
 	voteDisabledReason?: string;
 }
 
 export function RatingCard({
 	rating,
 	courseId,
-	singleTerm = false,
 	voteDisabledReason,
 }: Readonly<RatingCardProps>) {
 	const displayName = rating.is_anonymous
@@ -35,7 +33,6 @@ export function RatingCard({
 				createdAt={rating.created_at}
 				offeringYear={rating.course_offering_year}
 				offeringTerm={rating.course_offering_term}
-				singleTerm={singleTerm}
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}
