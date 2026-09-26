@@ -102,7 +102,7 @@ pnpm shots:compare my-branch               # any branch, tag or sha as the base
 SHOT_ONLY='^course' SHOT_DIR=/tmp/cmp SHOT_NO_OPEN=1 pnpm shots:compare   # scripted: prints the index path
 ```
 
-The gallery groups states by page in a sidebar and marks each one changed, new or same (byte-identical). Keys: `1`–`4` switch width and theme, `j`/`k` step through states, `/` filters by name, `c` hides unchanged states. The URL hash keeps the view and state, so a link opens the same spot.
+The gallery groups states by page in a sidebar and marks each one changed, new or same (byte-identical). Section chips at the top (or the sidebar headings) show one page at a time. Keys: `1`–`4` switch width and theme, `[`/`]` step through sections, `0` shows all sections, `j`/`k` step through states, `g` toggles a thumbnail grid, `/` filters by name, `c` hides unchanged states. The URL hash keeps the view, state, section and grid, so a link opens the same spot.
 
 When a UI change depends on data shape (long lists, many years, empty or missing fields, long titles), add a state for that edge to `tests/shots/shots.spec.ts` with a fixture in `tests/shots/fixtures/`, as `my-ratings-many` does for four years of courses. The state then stays in every later compare.
 

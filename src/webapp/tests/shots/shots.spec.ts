@@ -513,11 +513,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.getByTestId(testIds.courseDetails.editUserRatingButton)
 				.click();
 			const modal = page.getByTestId(testIds.rating.modal);
+			await modal.getByRole("button", { name: "Як побачать інші" }).click();
 			await modal
-				.getByRole("button", { name: "Переглянути, як побачать інші" })
-				.click();
-			await modal
-				.getByText("Так відгук побачать інші студенти")
+				.getByRole("region", { name: "Попередній перегляд відгуку" })
 				.scrollIntoViewIfNeeded();
 		},
 	},
@@ -533,11 +531,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.click();
 			const modal = page.getByTestId(testIds.rating.modal);
 			await modal.getByTestId(testIds.rating.anonymousCheckbox).click();
+			await modal.getByRole("button", { name: "Як побачать інші" }).click();
 			await modal
-				.getByRole("button", { name: "Переглянути, як побачать інші" })
-				.click();
-			await modal
-				.getByText("Так відгук побачать інші студенти")
+				.getByRole("region", { name: "Попередній перегляд відгуку" })
 				.scrollIntoViewIfNeeded();
 		},
 	},
@@ -700,7 +696,7 @@ test.afterAll(() => {
 	const nav = sections
 		.map(
 			(section) =>
-				`<li><p>${section}</p><ul>${STATES.filter(
+				`<li data-section="${escape(section)}"><p><button type="button" data-pick-section="${escape(section)}">${section}</button></p><ul>${STATES.filter(
 					(state) => state.section === section,
 				)
 					.map(
@@ -710,6 +706,13 @@ test.afterAll(() => {
 					.join("")}</ul></li>`,
 		)
 		.join("");
+	const sectionChips = [
+		`<button type="button" data-pick-section="" aria-pressed="true"><kbd>0</kbd> all ${STATES.length}</button>`,
+		...sections.map(
+			(section) =>
+				`<button type="button" data-pick-section="${escape(section)}" aria-pressed="false">${section} ${STATES.filter((state) => state.section === section).length}</button>`,
+		),
+	].join("");
 	const panels = views
 		.map((view, index) => {
 			const body = sections
@@ -730,7 +733,7 @@ test.afterAll(() => {
 										: figure(`before/${name}`, "before")) +
 									figure(name, "after")
 								: figure(name, `${view.width.name}, ${view.theme}`);
-							return `<section class="state" data-state="${state.name}" data-status="${mark}"><h3>${state.name}${mark ? ` <span class="mark ${mark}">${mark}</span>` : ""}</h3><p>${state.note}</p><div class="row${beforeDir ? " pair" : ""}">${row}</div></section>`;
+							return `<section class="state" data-state="${state.name}" data-section="${escape(section)}" data-status="${mark}"><h3>${state.name}${mark ? ` <span class="mark ${mark}">${mark}</span>` : ""}</h3><p>${state.note}</p><div class="row${beforeDir ? " pair" : ""}">${row}</div></section>`;
 						})
 						.join("\n");
 					return rows ? `<h2>${section}</h2>${rows}` : "";
@@ -757,7 +760,9 @@ nav{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 80px);over
 nav ul{list-style:none;margin:0;padding:0}nav>ul>li>p{margin:12px 0 4px;font-weight:600}
 nav a{display:block;padding:2px 8px;border-radius:6px;color:inherit;text-decoration:none}nav a:hover{background:#e4e4e7}
 nav a.current{background:#1c1c1e;color:#fff}nav a[data-status=changed]::after{content:" ●";color:#d97706}nav a[data-status=new]::after{content:" ●";color:#2563eb}
-nav a.gone{display:none}
+nav a.gone{display:none}nav li.gone{display:none}nav p button{all:unset;cursor:pointer}nav p button:hover{text-decoration:underline}
+.sections{display:flex;flex-wrap:wrap;gap:4px;flex-basis:100%}.sections button{border:1px solid #ddd;background:#fff;border-radius:999px;padding:3px 10px;font:12px system-ui;cursor:pointer}.sections button[aria-pressed=true]{background:#1c1c1e;color:#fff;border-color:#1c1c1e}
+main.grid [role=tabpanel]{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:0 20px;align-items:start}main.grid [role=tabpanel][hidden]{display:none}main.grid h2{grid-column:1/-1}main.grid img{max-height:55vh}main.grid .state>p{display:none}
 h2{margin:32px 0 8px;font-size:18px}h3{margin:0 0 2px;font-size:15px}.state{padding:12px 0;border-top:1px solid #e4e4e7;scroll-margin-top:80px}.state>p{margin:0 0 8px;color:#555}
 .mark{font:600 11px system-ui;padding:2px 8px;border-radius:999px;vertical-align:middle}.mark.changed{background:#fef3c7;color:#92400e}.mark.new{background:#dbeafe;color:#1e40af}.mark.same{background:#e4e4e7;color:#555}
 .row{display:flex;flex-direction:column;gap:16px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
@@ -765,9 +770,11 @@ figure{margin:0;min-width:0}img{max-width:100%;max-height:85vh;border:1px solid 
 @media(max-width:900px){.layout{grid-template-columns:1fr}nav{display:none}.pair{grid-template-columns:1fr}}
 </style>
 <header>
-<h1>rate-ukma shots</h1><span class="sub">${STATES.length} states${beforeDir ? ", before | after" : ""}. Keys: 1–${views.length} view, j/k state, / filter${beforeDir ? ", c changed only" : ""}.</span>
+<h1>rate-ukma shots</h1><span class="sub">${STATES.length} states${beforeDir ? ", before | after" : ""}. Keys: 1–${views.length} view, [ ] section, 0 all sections, j/k state, g grid, / filter${beforeDir ? ", c changed only" : ""}.</span>
 <div role="tablist" aria-label="View">${tabs}</div>
 <input type="search" placeholder="Filter states" aria-label="Filter states">
+<label><input type="checkbox" id="grid"> grid</label>
+<div class="sections" role="group" aria-label="Section">${sectionChips}</div>
 ${beforeDir ? '<label><input type="checkbox" id="changed"> changed only</label><span class="sub" id="counts"></span>' : ""}
 </header>
 <div class="layout"><nav aria-label="States"><ul>${nav}</ul></nav><main>${panels}</main></div>
@@ -778,13 +785,16 @@ const links=[...document.querySelectorAll('nav a')];
 const filter=document.querySelector('input[type=search]');
 const changedOnly=document.getElementById('changed');
 const counts=document.getElementById('counts');
-let view=0;
+const grid=document.getElementById('grid');
+const chips=[...document.querySelectorAll('.sections [data-pick-section]')];
+const sectionNames=chips.map(c=>c.dataset.pickSection);
+let view=0,section='';
 const panel=()=>panels[view];
 const visible=()=>[...panel().querySelectorAll('.state')].filter(s=>!s.hidden);
 function apply(){
   const q=filter.value.trim().toLowerCase();
   for(const s of panel().querySelectorAll('.state')){
-    s.hidden=(q&&!s.dataset.state.includes(q))||(changedOnly?.checked&&s.dataset.status==='same');
+    s.hidden=(q&&!s.dataset.state.includes(q))||(changedOnly?.checked&&s.dataset.status==='same')||(section&&s.dataset.section!==section);
   }
   for(const h of panel().querySelectorAll('h2')){
     let n=h.nextElementSibling,any=false;
@@ -793,6 +803,8 @@ function apply(){
   }
   const byState=new Map([...panel().querySelectorAll('.state')].map(s=>[s.dataset.state,s]));
   for(const a of links){const s=byState.get(a.dataset.state);a.classList.toggle('gone',!s||s.hidden);a.dataset.status=s?.dataset.status??''}
+  for(const li of document.querySelectorAll('nav li[data-section]'))li.classList.toggle('gone',!li.querySelector('a:not(.gone)'));
+  chips.forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.pickSection===section)));
   if(counts){const all=[...panel().querySelectorAll('.state')];counts.textContent=['changed','new','same'].map(k=>all.filter(s=>s.dataset.status===k).length+' '+k).join(', ')}
 }
 function pick(i){
@@ -804,8 +816,12 @@ function go(state,smooth){
   const s=panel().querySelector('.state[data-state="'+state+'"]');if(!s)return;
   s.scrollIntoView({behavior:smooth?'smooth':'auto'});mark(state);
 }
-function mark(state){links.forEach(a=>a.classList.toggle('current',a.dataset.state===state));history.replaceState(null,'','#'+tabs[view].dataset.view+'/'+(state??''))}
-function syncHash(state){if(state)go(state);else history.replaceState(null,'','#'+tabs[view].dataset.view+'/')}
+const hash=state=>'#'+tabs[view].dataset.view+'/'+(state??'')+(section?'/'+encodeURIComponent(section):'')+(grid.checked?'/grid':'');
+function mark(state){links.forEach(a=>a.classList.toggle('current',a.dataset.state===state));history.replaceState(null,'',hash(state))}
+function syncHash(state){if(state)go(state);else history.replaceState(null,'',hash())}
+function pickSection(name){section=name;apply();scrollTo({top:0});history.replaceState(null,'',hash())}
+function stepSection(d){const i=sectionNames.indexOf(section);pickSection(sectionNames[(i+d+sectionNames.length)%sectionNames.length])}
+function setGrid(on){grid.checked=on;document.querySelector('main').classList.toggle('grid',on);history.replaceState(null,'',hash(document.querySelector('nav a.current:not(.gone)')?.dataset.state))}
 function step(d){
   const list=visible();const top=list.findIndex(s=>s.getBoundingClientRect().top>90);
   const at=top<0?list.length:top;const next=list[Math.max(0,Math.min(list.length-1,d>0?at:at-2))];
@@ -814,6 +830,8 @@ function step(d){
 tabs.forEach((t,i)=>t.addEventListener('click',()=>pick(i)));
 links.forEach(a=>a.addEventListener('click',e=>{e.preventDefault();go(a.dataset.state,true)}));
 filter.addEventListener('input',apply);changedOnly?.addEventListener('change',apply);
+document.querySelectorAll('[data-pick-section]').forEach(b=>b.addEventListener('click',()=>pickSection(b.dataset.pickSection)));
+grid.addEventListener('change',()=>setGrid(grid.checked));
 addEventListener('keydown',e=>{
   if(e.target===filter){if(e.key==='Escape')filter.blur();return}
   if(e.metaKey||e.ctrlKey||e.altKey)return;
@@ -821,11 +839,17 @@ addEventListener('keydown',e=>{
   if(e.key==='j'||e.key==='ArrowDown'&&e.shiftKey){e.preventDefault();step(1)}
   if(e.key==='k'||e.key==='ArrowUp'&&e.shiftKey){e.preventDefault();step(-1)}
   if(e.key==='/'){e.preventDefault();filter.focus()}
+  if(e.key==='0'){pickSection('')}
+  if(e.key===']'){stepSection(1)}
+  if(e.key==='['){stepSection(-1)}
+  if(e.key==='g'){setGrid(!grid.checked)}
   if(e.key==='c'&&changedOnly){changedOnly.checked=!changedOnly.checked;apply()}
 });
 const io=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting&&!e.target.closest('[hidden]'))links.forEach(a=>a.classList.toggle('current',a.dataset.state===e.target.dataset.state))},{rootMargin:'-80px 0px -70% 0px'});
 document.querySelectorAll('.state').forEach(s=>io.observe(s));
-const [hv,hs]=location.hash.slice(1).split('/');const start=tabs.findIndex(t=>t.dataset.view===hv);
+const [hv,hs,hsec,hg]=location.hash.slice(1).split('/');const start=tabs.findIndex(t=>t.dataset.view===hv);
+const hashSection=decodeURIComponent(hsec??'');section=sectionNames.includes(hashSection)?hashSection:'';
+if(hsec==='grid'||hg==='grid')setGrid(true);
 pick(start>=0?start:0);if(hs)go(decodeURIComponent(hs));
 </script>`,
 	);
