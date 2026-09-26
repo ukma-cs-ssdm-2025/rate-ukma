@@ -28,16 +28,14 @@ import {
 } from "../definitions/ratingDefinitions";
 import { RatingCardBody } from "./RatingCardBody";
 
-const COMMENT_MAX_LENGTH = 2000;
-
 const ratingSchema = z.object({
 	difficulty: z
 		.number()
-		.min(1, "Оцінка складності є обов'язковою")
+		.min(1, "Оцініть складність")
 		.max(5, "Оцінка складності повинна бути від 1 до 5"),
 	usefulness: z
 		.number()
-		.min(1, "Оцінка корисності є обов'язковою")
+		.min(1, "Оцініть корисність")
 		.max(5, "Оцінка корисності повинна бути від 1 до 5"),
 	comment: z
 		.string()
@@ -136,10 +134,18 @@ function ScoreInput({
 					aria-live="polite"
 					className="mt-0.5 flex items-baseline gap-1.5 text-sm text-muted-foreground"
 				>
-					<span className="font-medium text-foreground tabular-nums">
-						{shown}
-					</span>
-					<span>{getShortDescription(descriptions, shown)}</span>
+					{/* No default score: a preset 3 anchors people and lets them submit
+					    a verdict they never made. */}
+					{shown > 0 ? (
+						<>
+							<span className="font-medium text-foreground tabular-nums">
+								{shown}
+							</span>
+							<span>{getShortDescription(descriptions, shown)}</span>
+						</>
+					) : (
+						<span>Оберіть від 1 до 5</span>
+					)}
 				</p>
 			</div>
 			<div
@@ -166,7 +172,7 @@ function ScoreInput({
 							role="radio"
 							aria-checked={score === value}
 							aria-label={`${score} з 5`}
-							tabIndex={score === value ? 0 : -1}
+							tabIndex={score === (value || 1) ? 0 : -1}
 							onKeyDown={onRadioKeyDown}
 							onClick={() => onChange(score)}
 							onPointerDown={() => {
@@ -358,23 +364,17 @@ function RatingFormFields({
 				name="comment"
 				render={({ field }) => (
 					<FormItem>
-						<div className="flex items-baseline justify-between gap-3">
-							<FormLabel>
-								Коментар
-								<span className="font-normal text-muted-foreground">
-									необов'язково
-								</span>
-							</FormLabel>
-							<span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-								{comment.length} / {COMMENT_MAX_LENGTH}
+						<FormLabel>
+							Коментар
+							<span className="font-normal text-muted-foreground">
+								необов'язково
 							</span>
-						</div>
+						</FormLabel>
 						<FormControl>
 							<Textarea
 								className="field-sizing-fixed min-h-32 max-h-[40dvh] resize-y overflow-y-auto"
 								placeholder="Поділіться будь-якими думками про цей курс..."
 								rows={6}
-								maxLength={COMMENT_MAX_LENGTH}
 								{...field}
 								data-testid={testIds.rating.commentTextarea}
 							/>
@@ -479,8 +479,8 @@ export function RatingForm({
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
 		defaultValues: initialData || {
-			difficulty: 3,
-			usefulness: 3,
+			difficulty: 0,
+			usefulness: 0,
 			comment: "",
 			instructor_ids: [],
 			instructor: "",

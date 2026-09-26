@@ -67,7 +67,7 @@ describe("RatingForm", () => {
 	});
 
 	describe("score inputs", () => {
-		it("labels each star group and shows the chosen value with its meaning", () => {
+		it("labels each star group and starts with no score chosen", () => {
 			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
 			expect(
@@ -76,8 +76,22 @@ describe("RatingForm", () => {
 			expect(
 				screen.getByRole("radiogroup", { name: "Корисність" }),
 			).toBeInTheDocument();
-			expect(screen.getByText("Помірно")).toBeInTheDocument();
-			expect(screen.getByText("Достатньо корисно")).toBeInTheDocument();
+			expect(screen.getAllByText("Оберіть від 1 до 5")).toHaveLength(2);
+			for (const radio of screen.getAllByRole("radio")) {
+				expect(radio).toHaveAttribute("aria-checked", "false");
+			}
+		});
+
+		it("does not submit until both scores are chosen", async () => {
+			const user = userEvent.setup();
+			const onSubmit = vi.fn();
+			render(<RatingForm onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+			await user.click(screen.getAllByRole("radio", { name: "4 з 5" })[0]);
+			await user.click(screen.getByTestId(testIds.rating.submitButton));
+
+			expect(onSubmit).not.toHaveBeenCalled();
+			expect(await screen.findByText("Оцініть корисність")).toBeInTheDocument();
 		});
 
 		it("keeps the announced meaning in sync when the score changes", async () => {
@@ -108,16 +122,17 @@ describe("RatingForm", () => {
 			const onSubmit = vi.fn();
 			render(<RatingForm onSubmit={onSubmit} onCancel={vi.fn()} />);
 
-			screen.getAllByRole("radio", { name: "3 з 5" })[0].focus();
-			await user.keyboard("{ArrowRight}");
+			screen.getAllByRole("radio", { name: "1 з 5" })[0].focus();
+			await user.keyboard("{ArrowRight}{ArrowRight}");
 
 			expect(
-				screen.getAllByRole("radio", { name: "4 з 5" })[0],
+				screen.getAllByRole("radio", { name: "2 з 5" })[0],
 			).toHaveAttribute("aria-checked", "true");
+			await user.click(screen.getAllByRole("radio", { name: "3 з 5" })[1]);
 			await user.click(screen.getByTestId(testIds.rating.submitButton));
 			expect(onSubmit).toHaveBeenCalled();
 			expect(onSubmit.mock.calls[0][0]).toMatchObject({
-				difficulty: 4,
+				difficulty: 2,
 				usefulness: 3,
 			});
 		});

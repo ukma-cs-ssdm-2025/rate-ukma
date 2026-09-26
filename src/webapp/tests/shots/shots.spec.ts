@@ -540,7 +540,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "course-rating-preview-long",
 		section: "Оцінювання",
-		note: "Preview of a long multi-paragraph review, clamped as on the course page",
+		note: "Preview of a review longer than the longest on record, clamped as on the course page",
 		run: async (page) => {
 			await mockBackend(page, { myCourses: "rated" });
 			await page.goto(`/courses/${COURSE.id}`);
@@ -552,7 +552,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.getByTestId(testIds.rating.commentTextarea)
 				.fill(
 					Array.from(
-						{ length: 6 },
+						{ length: 20 },
 						(_, index) =>
 							`Абзац ${index + 1}. Лекції щільні, але логічні: кожна тема спирається на попередню, тож пропуски дорого коштують. Лабораторні займають вечір-два на тиждень, зате після них код пишеться помітно впевненіше.`,
 					).join("\n\n"),
@@ -561,6 +561,23 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await modal
 				.getByRole("region", { name: "Попередній перегляд відгуку" })
 				.scrollIntoViewIfNeeded();
+		},
+	},
+	{
+		name: "rating-modal-missing-score",
+		section: "Оцінювання",
+		note: "Submitting the rating form before choosing both scores",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rateable" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("heading", { level: 1, name: COURSE.title })
+				.waitFor();
+			await page.getByTestId("course-details-rate-button").click();
+			const modal = page.getByTestId(testIds.rating.modal);
+			await modal.getByRole("radio", { name: "4 з 5" }).first().click();
+			await modal.getByTestId(testIds.rating.submitButton).click();
+			await modal.getByText("Оцініть корисність").waitFor();
 		},
 	},
 	{

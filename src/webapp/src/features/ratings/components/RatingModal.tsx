@@ -184,7 +184,9 @@ export function RatingModal({
 							(isEditMode ? "Редагувати оцінку" : "Оцінити курс")}
 					</DialogTitle>
 					<DialogDescription>
-						{isEditMode ? "Змініть свою оцінку" : "Поділіться своїм досвідом"}
+						{isEditMode
+							? "Змініть свою оцінку"
+							: "Оцінку й відгук можна змінити будь-коли"}
 					</DialogDescription>
 				</DialogHeader>
 
