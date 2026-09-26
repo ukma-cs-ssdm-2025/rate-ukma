@@ -53,6 +53,56 @@ export function FeedReviewItem({
 			? getSemesterDisplay(item.semesterYear, item.semesterTerm)
 			: undefined;
 	const isBanner = variant === "banner";
+	// The strip tile has one text line: the review text wins it when there is
+	// one, and the scores drop to the meta line in place of the time.
+	const tileText = !isBanner && item.comment ? item.comment : undefined;
+	const scores = (
+		<p
+			className={cn(
+				"flex items-center gap-x-4 leading-none",
+				isBanner ? "flex-wrap gap-y-1 text-sm" : "overflow-hidden text-xs",
+			)}
+		>
+			<span className="flex items-center gap-1.5 whitespace-nowrap">
+				<span className="text-muted-foreground">Складність</span>{" "}
+				<span
+					className={cn(
+						"font-semibold tabular-nums",
+						getDifficultyTone(item.difficulty),
+					)}
+				>
+					{item.difficulty.toFixed(1)}
+				</span>{" "}
+				<ComparisonArrow
+					score={item.difficulty}
+					average={item.courseAvgDifficulty}
+				/>
+			</span>
+			<span className="flex items-center gap-1.5 whitespace-nowrap">
+				<span className="text-muted-foreground">Корисність</span>{" "}
+				<span
+					className={cn(
+						"font-semibold tabular-nums",
+						getUsefulnessTone(item.usefulness),
+					)}
+				>
+					{item.usefulness.toFixed(1)}
+				</span>{" "}
+				<ComparisonArrow
+					score={item.usefulness}
+					average={item.courseAvgUsefulness}
+				/>
+			</span>
+		</p>
+	);
+	const meta = (
+		<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+			<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
+			{semesterLabel && (
+				<span className="ml-auto shrink-0">{semesterLabel}</span>
+			)}
+		</div>
+	);
 
 	return (
 		<FeedCard
@@ -68,52 +118,9 @@ export function FeedReviewItem({
 					{item.courseTitle}
 				</Link>
 			}
-			footer={
-				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-					<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
-					{semesterLabel && (
-						<span className="ml-auto shrink-0">{semesterLabel}</span>
-					)}
-				</div>
-			}
+			footer={tileText ? scores : meta}
 		>
-			<p
-				className={cn(
-					"flex items-center gap-x-4 leading-none",
-					isBanner ? "flex-wrap gap-y-1 text-sm" : "text-xs",
-				)}
-			>
-				<span className="flex items-center gap-1.5 whitespace-nowrap">
-					<span className="text-muted-foreground">Складність</span>{" "}
-					<span
-						className={cn(
-							"font-semibold tabular-nums",
-							getDifficultyTone(item.difficulty),
-						)}
-					>
-						{item.difficulty.toFixed(1)}
-					</span>{" "}
-					<ComparisonArrow
-						score={item.difficulty}
-						average={item.courseAvgDifficulty}
-					/>
-				</span>
-				<span className="flex items-center gap-1.5 whitespace-nowrap">
-					<span className="text-muted-foreground">Корисність</span>{" "}
-					<span
-						className={cn(
-							"font-semibold tabular-nums",
-							getUsefulnessTone(item.usefulness),
-						)}
-					>
-						{item.usefulness.toFixed(1)}
-					</span>{" "}
-					<ComparisonArrow
-						score={item.usefulness}
-						average={item.courseAvgUsefulness}
-					/>
-				</span>
-			</p>
+			{tileText ?? scores}
 			{isBanner && item.comment && (
 				<p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
 					{item.comment}
