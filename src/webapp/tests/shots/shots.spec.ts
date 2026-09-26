@@ -538,6 +538,32 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "course-rating-preview-long",
+		section: "Оцінювання",
+		note: "Preview of a long multi-paragraph review, clamped as on the course page",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rated" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByTestId(testIds.courseDetails.editUserRatingButton)
+				.click();
+			const modal = page.getByTestId(testIds.rating.modal);
+			await modal
+				.getByTestId(testIds.rating.commentTextarea)
+				.fill(
+					Array.from(
+						{ length: 6 },
+						(_, index) =>
+							`Абзац ${index + 1}. Лекції щільні, але логічні: кожна тема спирається на попередню, тож пропуски дорого коштують. Лабораторні займають вечір-два на тиждень, зате після них код пишеться помітно впевненіше.`,
+					).join("\n\n"),
+				);
+			await modal.getByRole("button", { name: "Як побачать інші" }).click();
+			await modal
+				.getByRole("region", { name: "Попередній перегляд відгуку" })
+				.scrollIntoViewIfNeeded();
+		},
+	},
+	{
 		name: "course-rating-delete",
 		section: "Оцінювання",
 		note: "Deleting the own rating asks for confirmation",
