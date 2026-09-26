@@ -19,6 +19,7 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
+import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { RatingForm, type RatingFormData } from "./RatingForm";
@@ -54,6 +55,14 @@ export function RatingModal({
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
 	const queryClient = useQueryClient();
+	const { user } = useAuth();
+	// Matches the backend byline, which is "last first".
+	const author = user
+		? {
+				name: [user.lastName, user.firstName].filter(Boolean).join(" "),
+				avatarUrl: user.avatarUrl,
+			}
+		: undefined;
 
 	const createMutation = useCoursesRatingsCreate();
 	const updateMutation = useCoursesRatingsPartialUpdate();
@@ -185,6 +194,7 @@ export function RatingModal({
 					offeringId={offeringId}
 					courseId={courseId}
 					initialInstructors={initialInstructors}
+					author={author}
 				/>
 			</DialogContent>
 		</Dialog>

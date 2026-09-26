@@ -17,10 +17,13 @@ import {
 	FormMessage,
 } from "@/components/ui/Form";
 import { Textarea } from "@/components/ui/Textarea";
+import { UserAvatar } from "@/components/UserAvatar";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import {
+	ANONYMOUS_REVIEW_NAME,
+	DEFAULT_STUDENT_NAME,
 	difficultyDescriptions,
 	usefulnessDescriptions,
 } from "../definitions/ratingDefinitions";
@@ -199,14 +202,20 @@ function RatingFormFields({
 	courseId,
 	initialInstructors,
 	legacyInstructor,
+	author,
 }: Readonly<{
 	control: Control<RatingFormData>;
+	author?: RatingAuthor;
 	offeringId?: string;
 	courseId?: string;
 	initialInstructors?: readonly Instructor[];
 	legacyInstructor?: string;
 }>) {
 	const comment = useWatch({ control, name: "comment" }) ?? "";
+	const isAnonymous = useWatch({ control, name: "is_anonymous" }) ?? false;
+	const signature = isAnonymous
+		? ANONYMOUS_REVIEW_NAME
+		: author?.name || DEFAULT_STUDENT_NAME;
 	const difficultyLabelId = React.useId();
 	const usefulnessLabelId = React.useId();
 	const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -377,21 +386,34 @@ function RatingFormFields({
 				name="is_anonymous"
 				render={({ field }) => (
 					<FormItem>
-						<div className="flex items-start gap-3">
-							<FormControl className="mt-0.5 flex-none">
-								<Checkbox
-									checked={field.value}
-									onCheckedChange={(checked) =>
-										field.onChange(checked === true)
-									}
-									data-testid={testIds.rating.anonymousCheckbox}
-								/>
-							</FormControl>
-							<div className="space-y-1">
-								<FormLabel>Анонімний відгук</FormLabel>
-								<FormDescription>
-									Ваше ім'я не відображатиметься біля відгуку
+						{/* Shows the byline other students will see, so the effect of
+						    the toggle is visible instead of described. */}
+						<div className="flex items-center gap-3 rounded-xl border px-3.5 py-3">
+							<UserAvatar
+								name={signature}
+								avatarUrl={isAnonymous ? null : author?.avatarUrl}
+								isAnonymous={isAnonymous}
+								className="size-8 shrink-0 text-xs font-semibold"
+							/>
+							<div className="min-w-0 flex-1">
+								<p className="truncate text-sm font-medium">{signature}</p>
+								<FormDescription className="text-xs">
+									{isAnonymous
+										? "Ім'я та фото приховано від інших студентів"
+										: "Так інші студенти побачать ваш відгук"}
 								</FormDescription>
+							</div>
+							<div className="flex shrink-0 items-center gap-2">
+								<FormControl>
+									<Checkbox
+										checked={field.value}
+										onCheckedChange={(checked) =>
+											field.onChange(checked === true)
+										}
+										data-testid={testIds.rating.anonymousCheckbox}
+									/>
+								</FormControl>
+								<FormLabel className="font-normal">Анонімно</FormLabel>
 							</div>
 						</div>
 						<FormMessage />
@@ -400,6 +422,11 @@ function RatingFormFields({
 			/>
 		</div>
 	);
+}
+
+export interface RatingAuthor {
+	readonly name: string;
+	readonly avatarUrl?: string | null;
 }
 
 interface RatingFormProps {
@@ -411,6 +438,8 @@ interface RatingFormProps {
 	readonly offeringId?: string;
 	readonly courseId?: string;
 	readonly initialInstructors?: readonly Instructor[];
+	/** Signed-in student, for the byline preview. */
+	readonly author?: RatingAuthor;
 }
 
 export function RatingForm({
@@ -422,6 +451,7 @@ export function RatingForm({
 	offeringId,
 	courseId,
 	initialInstructors,
+	author,
 }: RatingFormProps) {
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
@@ -454,6 +484,7 @@ export function RatingForm({
 					courseId={courseId}
 					initialInstructors={initialInstructors}
 					legacyInstructor={initialData?.instructor?.trim() || undefined}
+					author={author}
 				/>
 
 				<DialogFooter className="shrink-0 border-t border-transparent px-6 py-4 transition-colors motion-reduce:transition-none group-has-[[data-more-below]]/rating-form:border-border">
