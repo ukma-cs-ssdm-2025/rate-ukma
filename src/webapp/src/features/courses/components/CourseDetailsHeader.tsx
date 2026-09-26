@@ -6,6 +6,8 @@ import { testIds } from "@/lib/test-ids";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import { getEducationLevelDisplay } from "../courseFormatting";
 
+const SINGLE_LINE_SPECIALITIES = 4;
+
 interface CourseDetailsHeaderProps {
 	title: string;
 	educationLevel?: EducationLevelEnum | null;
@@ -40,6 +42,40 @@ export function CourseDetailsHeader({
 		departmentName,
 	].filter(Boolean);
 
+	const specialityCount = (specialities ?? []).filter(
+		(speciality) =>
+			speciality.speciality_id &&
+			speciality.speciality_title &&
+			speciality.type_kind !== "ELECTIVE",
+	).length;
+	const specialityBadges = (
+		<CourseSpecialityBadges specialities={specialities} />
+	);
+	const hasFacts = terms.length > 0 || Boolean(credits) || Boolean(weeklyHours);
+	const facts = hasFacts ? (
+		<span className="inline-flex flex-wrap items-center gap-1.5">
+			{terms.map((term) => (
+				<TermBadge key={term} term={term} />
+			))}
+			{credits ? (
+				<Badge
+					variant="outline"
+					className="border-transparent bg-muted tabular-nums"
+				>
+					{credits}
+				</Badge>
+			) : null}
+			{weeklyHours ? (
+				<Badge
+					variant="outline"
+					className="border-transparent bg-muted tabular-nums"
+				>
+					{weeklyHours} на тиждень
+				</Badge>
+			) : null}
+		</span>
+	) : null;
+
 	return (
 		<header className="min-w-0 space-y-3">
 			<h1
@@ -53,35 +89,23 @@ export function CourseDetailsHeader({
 				<p className="text-sm text-muted-foreground">{meta.join(", ")}</p>
 			)}
 
-			{/* Term and load are one fixed-size row; specialities run on their own
-			    line because general courses list twenty of them. */}
-			{(terms.length > 0 || credits || weeklyHours) && (
-				<div className="flex flex-wrap items-center gap-1.5">
-					{terms.map((term) => (
-						<TermBadge key={term} term={term} look="dot" />
-					))}
-					{credits ? (
-						<Badge
-							variant="outline"
-							className="border-transparent bg-muted tabular-nums"
-						>
-							{credits}
-						</Badge>
-					) : null}
-					{weeklyHours ? (
-						<Badge
-							variant="outline"
-							className="border-transparent bg-muted tabular-nums"
-						>
-							{weeklyHours} на тиждень
-						</Badge>
-					) : null}
+			{(specialityCount > 0 || facts) && (
+				<div className="max-w-4xl space-y-2">
+					{/* One line while it fits; general courses list up to twenty
+					    specialities, so those get their own line under the facts. */}
+					{specialityCount > SINGLE_LINE_SPECIALITIES ? (
+						<>
+							{facts}
+							<div>{specialityBadges}</div>
+						</>
+					) : (
+						<div className="flex flex-wrap items-center gap-1.5">
+							{specialityBadges}
+							{facts}
+						</div>
+					)}
 				</div>
 			)}
-
-			<div className="max-w-4xl empty:hidden">
-				<CourseSpecialityBadges specialities={specialities} />
-			</div>
 		</header>
 	);
 }
