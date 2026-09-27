@@ -95,11 +95,13 @@ export function FeedStrip() {
 				</div>
 			</div>
 
+			{/* relative: the tiles' sr-only labels are absolute; without a positioned
+			    scroller they resolve against the page and widen it horizontally. */}
 			<div
 				ref={ref}
 				id={scrollId}
 				className={cn(
-					"-mx-1 flex gap-3 overflow-x-auto overscroll-x-contain scroll-px-1 snap-x snap-mandatory px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+					"relative -mx-1 flex gap-3 overflow-x-auto overscroll-x-contain scroll-px-1 snap-x snap-mandatory px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
 					EDGE_MASK[edge],
 				)}
 			>
