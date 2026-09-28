@@ -7,7 +7,7 @@ import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import { createMockFeedState } from "@/test-utils/factories";
 import { renderWithProviders, screen } from "@/test-utils/render";
 import { testIds } from "@/lib/test-ids";
-import { FeedRoute } from "./feed";
+import { FeedPage } from "./FeedPage";
 
 const { feedState } = vi.hoisted(() => ({
 	feedState: { current: null as UseFeedReturn | null },
@@ -52,15 +52,15 @@ beforeEach(async () => {
 	await setFeed();
 });
 
-describe("FeedRoute", () => {
+describe("FeedPage", () => {
 	it("shows an unavailable message when the feed flag is off", () => {
-		renderWithProviders(<FeedRoute />, { flags: { fe_feed: false } });
+		renderWithProviders(<FeedPage />, { flags: { fe_feed: false } });
 
 		expect(screen.getByText("Стрічка наразі недоступна.")).toBeInTheDocument();
 	});
 
 	it("renders the heading and feed items when the flag is on", () => {
-		renderWithProviders(<FeedRoute />, { flags: { fe_feed: true } });
+		renderWithProviders(<FeedPage />, { flags: { fe_feed: true } });
 
 		expect(
 			screen.getByRole("heading", { name: /Стрічка оновлень/ }),
@@ -77,7 +77,7 @@ describe("FeedRoute", () => {
 	// also pins that the state replaces only the content beneath it.
 	it("shows the skeleton while the first page loads", async () => {
 		await setFeed({ items: [], isLoading: true });
-		renderWithProviders(<FeedRoute />, { flags: { fe_feed: true } });
+		renderWithProviders(<FeedPage />, { flags: { fe_feed: true } });
 
 		expect(screen.getByTestId(testIds.feed.skeleton)).toBeInTheDocument();
 		expect(screen.queryByTestId(testIds.feed.list)).not.toBeInTheDocument();
@@ -89,7 +89,7 @@ describe("FeedRoute", () => {
 	it("shows the error state and retries on click", async () => {
 		const refetch = vi.fn();
 		await setFeed({ items: [], isError: true, refetch });
-		renderWithProviders(<FeedRoute />, { flags: { fe_feed: true } });
+		renderWithProviders(<FeedPage />, { flags: { fe_feed: true } });
 
 		expect(screen.getByTestId(testIds.feed.errorState)).toBeInTheDocument();
 
@@ -100,14 +100,14 @@ describe("FeedRoute", () => {
 
 	it("disables the retry button while a retry is in flight", async () => {
 		await setFeed({ items: [], isError: true, isRefetching: true });
-		renderWithProviders(<FeedRoute />, { flags: { fe_feed: true } });
+		renderWithProviders(<FeedPage />, { flags: { fe_feed: true } });
 
 		expect(screen.getByTestId(testIds.feed.retryButton)).toBeDisabled();
 	});
 
 	it("shows the empty state when the feed has no items", async () => {
 		await setFeed({ items: [] });
-		renderWithProviders(<FeedRoute />, { flags: { fe_feed: true } });
+		renderWithProviders(<FeedPage />, { flags: { fe_feed: true } });
 
 		expect(screen.getByTestId(testIds.feed.emptyState)).toBeInTheDocument();
 		expect(screen.queryByTestId(testIds.feed.list)).not.toBeInTheDocument();
@@ -115,7 +115,7 @@ describe("FeedRoute", () => {
 
 	it("prefers the skeleton over the empty state on the first load", async () => {
 		await setFeed({ items: [], isLoading: true });
-		renderWithProviders(<FeedRoute />, { flags: { fe_feed: true } });
+		renderWithProviders(<FeedPage />, { flags: { fe_feed: true } });
 
 		expect(screen.getByTestId(testIds.feed.skeleton)).toBeInTheDocument();
 		expect(

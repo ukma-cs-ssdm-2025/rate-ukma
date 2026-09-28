@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FeedStrip } from "@/features/feed/components/FeedStrip";
-import { FeedRoute } from "@/routes/feed";
+import { FeedPage } from "@/features/feed/components/FeedPage";
 import { renderWithProviders, screen, waitFor } from "@/test-utils/render";
 
 const { fetcherMock } = vi.hoisted(() => ({
@@ -49,14 +49,14 @@ describe("feed flag gating", () => {
 	});
 
 	it("issues no request from the feed route when the feed flag is off", async () => {
-		renderWithProviders(<FeedRoute />, { flags: { fe_feed: false } });
+		renderWithProviders(<FeedPage />, { flags: { fe_feed: false } });
 
 		expect(screen.getByText("Стрічка наразі недоступна.")).toBeInTheDocument();
 		await waitFor(() => expect(fetcherMock).not.toHaveBeenCalled());
 	});
 
 	it("requests the feed once the flag is on", async () => {
-		renderWithProviders(<FeedRoute />, { flags: { fe_feed: true } });
+		renderWithProviders(<FeedPage />, { flags: { fe_feed: true } });
 
 		await waitFor(() => expect(fetcherMock).toHaveBeenCalled());
 	});
