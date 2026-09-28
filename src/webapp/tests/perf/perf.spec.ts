@@ -49,12 +49,17 @@ type Sample = {
 
 declare global {
 	interface Window {
-		__perf: { lcp: number; long: number[]; cls: number; events: number[] };
+		__perf: {
+			lcp: number;
+			long: number[];
+			cls: number;
+			interactions: Record<number, number>;
+		};
 	}
 }
 
 function observe() {
-	window.__perf = { lcp: 0, long: [], cls: 0, events: [] };
+	window.__perf = { lcp: 0, long: [], cls: 0, interactions: {} };
 	const on = (type: string, fn: (e: PerformanceEntry) => void, extra = {}) =>
 		new PerformanceObserver((list) => list.getEntries().forEach(fn)).observe({
 			type,
@@ -70,9 +75,20 @@ function observe() {
 		};
 		if (!shift.hadRecentInput) window.__perf.cls += shift.value;
 	});
-	on("event", (e) => window.__perf.events.push(e.duration), {
-		durationThreshold: 16,
-	});
+	// INP counts interactions, not events: a keystroke fires keydown, keypress
+	// and keyup under one interactionId, and the slowest of them is its latency.
+	on(
+		"event",
+		(e) => {
+			const { interactionId } = e as PerformanceEntry & {
+				interactionId: number;
+			};
+			if (!interactionId) return;
+			const seen = window.__perf.interactions[interactionId] ?? 0;
+			window.__perf.interactions[interactionId] = Math.max(seen, e.duration);
+		},
+		{ durationThreshold: 16 },
+	);
 }
 
 async function measure(page: Page, scenario: Scenario): Promise<Sample> {
@@ -110,12 +126,14 @@ async function measure(page: Page, scenario: Scenario): Promise<Sample> {
 	}
 
 	const vitals = await page.evaluate(() => {
-		const { lcp, long, cls, events } = window.__perf;
+		const { lcp, long, cls, interactions } = window.__perf;
 		return {
 			lcp,
 			cls,
 			tbt: long.reduce((sum, d) => sum + Math.max(0, d - 50), 0),
-			inp: Math.max(0, ...events),
+			// Below 50 interactions INP is the slowest one. None recorded means
+			// every interaction beat the 16 ms observer threshold, not 0 ms.
+			inp: Math.max(0, ...Object.values(interactions)),
 		};
 	});
 	if (!vitals.lcp) throw new Error(`${scenario.path} never painted content`);
@@ -156,7 +174,11 @@ for (const scenario of SCENARIOS) {
 			"LCP ms": Math.round(pick("lcp")),
 			"TBT ms": Math.round(pick("tbt")),
 			CLS: Number(pick("cls").toFixed(3)),
-			"INP ms": scenario.interact ? Math.round(pick("inp")) : "",
+			"INP ms": !scenario.interact
+				? ""
+				: pick("inp")
+					? Math.round(pick("inp"))
+					: "<16",
 			"JS kB": Math.round(pick("jsKB")),
 			"JS files": pick("jsFiles"),
 			"API calls": pick("api"),
