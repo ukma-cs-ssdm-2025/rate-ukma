@@ -31,6 +31,9 @@ export function FeatureFlagsProvider({ children }: PropsWithChildren) {
 	const { data, isSuccess, isError } = useFlagsList({
 		query: {
 			queryKey: [...getFlagsListQueryKey(), status, userId],
+			// A response for the "loading" identity is thrown away as soon as the
+			// session settles, so waiting for it saves a request per page load.
+			enabled: status !== "loading",
 			staleTime: FLAGS_STALE_TIME,
 			refetchInterval: FLAGS_REFETCH_INTERVAL,
 			refetchOnWindowFocus: true,
