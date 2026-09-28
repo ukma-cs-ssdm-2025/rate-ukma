@@ -430,6 +430,25 @@ export const NOTIFICATIONS = [
 	},
 ] satisfies NotificationGroup[];
 
+// A review pasted from a text editor: long, with hard line breaks mid-sentence,
+// the shape that makes the expanded card much taller than its scores.
+const LONG_PASTED_COMMENT = [
+	"Курс починається з класів і об'єктів, але вже на третьому тижні переходить до",
+	"наслідування, інтерфейсів і композиції. Лектор щоразу пояснює, чому одне рішення",
+	"краще за інше, а не просто показує синтаксис.",
+	"Лабораторні будуються одна на одній: спершу маленька модель бібліотеки, потім до неї",
+	"додаються патерни, тести й обробка помилок. Якщо пропустити одну, наступну робити",
+	"значно важче, тож краще не відкладати.",
+	"Захист лабораторних суворий: викладач просить змінити код просто на парі й пояснити,",
+	"що зміниться в поведінці. Спершу це лякає, але саме тут найбільше вчишся.",
+	"Теоретичні тести короткі, проте питання хитрі, особливо про поліморфізм і",
+	"життєвий цикл об'єктів. Конспект лекцій дуже допомагає, бо слайди неповні.",
+	"Підсумковий проєкт командний, на три-чотири людини, і тут курс вчить не лише",
+	"програмувати, а й ділити задачі, робити рев'ю коду й домовлятися про інтерфейси.",
+	"Навантаження відчутне, але рівномірне: якщо працювати щотижня, авралу під кінець",
+	"семестру немає. Рекомендую всім, хто хоче писати код, який потім не соромно читати.",
+].join("\n");
+
 export const MY_GRADES = COURSES.slice(0, 8).map((course, index) => ({
 	course_id: course.id,
 	course_title: course.title,
@@ -447,7 +466,10 @@ export const MY_GRADES = COURSES.slice(0, 8).map((course, index) => ({
 					id: `my-rating-${index}`,
 					difficulty: 3 + (index % 3),
 					usefulness: 5 - (index % 2),
-					comment: REVIEW_COMMENTS[index % REVIEW_COMMENTS.length],
+					comment:
+						index === 0
+							? LONG_PASTED_COMMENT
+							: REVIEW_COMMENTS[index % REVIEW_COMMENTS.length],
 					instructor: null,
 					instructors: [],
 					created_at: hoursAgo(24 * 30 * (index + 1)),

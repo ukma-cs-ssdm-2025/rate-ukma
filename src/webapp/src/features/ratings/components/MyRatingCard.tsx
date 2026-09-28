@@ -33,13 +33,17 @@ export function MyRatingCard({
 
 	const hasRating = Boolean(rating);
 	const canModify = Boolean(hasRating && rating?.id && courseId);
+	const comment = rating?.comment?.trim();
 
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
 	return (
 		<div
-			className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl bg-muted/50 px-4 py-3"
+			className={cn(
+				"flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-muted/50 px-4 py-3",
+				rating ? "items-start" : "items-center",
+			)}
 			data-testid={testIds.myRatings.card}
 		>
 			<div className="min-w-0 flex-1 basis-40 space-y-1">
@@ -57,16 +61,16 @@ export function MyRatingCard({
 						{course.course_title ?? "Курс"}
 					</span>
 				)}
-				{rating?.comment?.trim() ? (
+				{comment ? (
 					<ExpandableText
 						lines={2}
 						className="text-sm whitespace-pre-wrap text-muted-foreground"
 					>
-						{rating.comment}
+						{comment}
 					</ExpandableText>
 				) : null}
 				{/* Without an excerpt a scores-only rating reads the same as a written one. */}
-				{rating && !rating.comment?.trim() && canModify ? (
+				{rating && !comment && canModify ? (
 					<button
 						type="button"
 						onClick={() => setShowRatingModal(true)}
@@ -77,7 +81,15 @@ export function MyRatingCard({
 				) : null}
 			</div>
 
-			<div className="ml-auto flex shrink-0 items-center gap-4">
+			{/* A rated card has lines under the title, and a review can expand to many:
+			    pinned to the title line, scores and actions do not slide to the card's
+			    middle. -my-1 centres the 32px buttons on the 24px title line. */}
+			<div
+				className={cn(
+					"ml-auto flex shrink-0 items-center gap-4",
+					rating && "-my-1",
+				)}
+			>
 				{rating ? (
 					<div className="flex items-center gap-4 text-sm">
 						<span className="text-muted-foreground">

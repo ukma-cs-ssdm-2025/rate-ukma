@@ -686,6 +686,16 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "my-ratings-long-expanded",
+		section: "Мої оцінки",
+		note: "A long pasted review expanded: scores and actions stay beside the title",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/my-ratings");
+			await page.getByRole("button", { name: "Читати далі" }).first().click();
+		},
+	},
+	{
 		name: "my-ratings-edit",
 		section: "Мої оцінки",
 		note: "Editing a rating from Мої оцінки",
