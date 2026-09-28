@@ -109,6 +109,18 @@ The gallery groups states by page in a sidebar and marks each one changed, new o
 
 When a UI change depends on data shape (long lists, many years, empty or missing fields, long titles), add a state for that edge to `tests/shots/shots.spec.ts` with a fixture in `tests/shots/fixtures/`, as `my-ratings-many` does for four years of courses. The state then stays in every later compare.
 
+### Performance bench
+
+`pnpm perf` builds and previews the app like `pnpm shots`, with the same mocked API, then loads each page (home on desktop and phone, course, my ratings, feed) several times in a fresh browser under CPU throttling. It prints a table of medians: LCP, TBT, CLS, INP for typing a search on home, JS downloaded, and API calls, with any call made twice listed. The API costs nothing here, so compare builds with each other rather than with prod.
+
+```bash
+pnpm perf                                  # 3 runs per page, CPU 4x slower
+PERF_RUNS=5 PERF_CPU=6 pnpm perf           # more runs, slower CPU
+PERF_ONLY='^home' pnpm perf                # only pages whose name matches
+PERF_OUT=/tmp/perf.json pnpm perf          # also write the table as JSON
+PERF_BASE_URL=http://127.0.0.1:4175 pnpm perf   # measure a build already being served, e.g. main's
+```
+
 ### Code Quality
 
 ```bash
