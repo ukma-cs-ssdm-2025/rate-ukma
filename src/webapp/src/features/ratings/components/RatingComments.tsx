@@ -1,11 +1,16 @@
 import { type FormEvent, type ReactNode, useId, useState } from "react";
 
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Pencil, Reply, Trash2 } from "lucide-react";
+import {
+	infiniteQueryOptions,
+	useInfiniteQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { Collapsible, CollapsibleContent } from "@/components/ui/Collapsible";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Label } from "@/components/ui/Label";
 import { Spinner } from "@/components/ui/Spinner";
@@ -298,7 +303,7 @@ function CommentAvatar({ comment }: Readonly<{ comment: CommentRead }>) {
 			name={getCommentAuthor(comment)}
 			avatarUrl={comment.user_avatar_url}
 			isAnonymous={comment.is_anonymous ?? false}
-			className="size-7 shrink-0 text-[11px] font-semibold"
+			className="size-7 shrink-0 text-xs font-semibold"
 		/>
 	);
 }
@@ -314,16 +319,14 @@ function PreviewAuthorAvatar({
 		<span
 			className={cn(
 				"relative flex size-6 shrink-0 rounded-full",
-				index > 0 && "-ml-2",
-				index > 0 &&
-					"before:absolute before:-inset-0.5 before:rounded-full before:bg-[var(--avatar-ring-color)] before:content-['']",
+				index > 0 && "-ml-2 ring-2 ring-background",
 			)}
 		>
 			<UserAvatar
 				name={getAuthorName(author)}
 				avatarUrl={author.user_avatar_url}
 				isAnonymous={author.is_anonymous ?? false}
-				className="relative size-full text-[10px] font-semibold"
+				className="relative size-full text-xs font-semibold"
 			/>
 		</span>
 	);
@@ -389,6 +392,14 @@ function RepliesPreview({
 	);
 }
 
+// Opens a thread only once its first page is cached, so the height animation
+// runs to the real list instead of to a loading row that then jumps.
+function openWhenLoaded(load: () => Promise<unknown>, open: () => void) {
+	load()
+		.catch(() => undefined)
+		.finally(open);
+}
+
 function RatingCommentItem({
 	comment,
 	ratingId,
@@ -406,17 +417,20 @@ function RatingCommentItem({
 	const updateComment = useCommentsPartialUpdate();
 	const deleteComment = useCommentsDestroy();
 
-	const repliesQuery = useInfiniteQuery({
+	const repliesOptions = infiniteQueryOptions({
 		queryKey: getCommentsRepliesRetrieveQueryKey(commentId ?? "", {
 			page_size: REPLIES_PAGE_SIZE,
 		}),
 		queryFn: ({ pageParam }) =>
 			commentsRepliesRetrieve(commentId ?? "", {
 				page_size: REPLIES_PAGE_SIZE,
-				page: pageParam as number,
+				page: pageParam,
 			}),
 		getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
 		initialPageParam: 1,
+	});
+	const repliesQuery = useInfiniteQuery({
+		...repliesOptions,
 		enabled: showReplies && Boolean(commentId),
 	});
 
@@ -508,7 +522,7 @@ function RatingCommentItem({
 							type="button"
 							variant="ghost"
 							size="sm"
-							className="h-7 px-2 text-xs text-muted-foreground"
+							className="h-7 px-2 text-xs font-medium text-muted-foreground"
 							onClick={() => repliesQuery.fetchNextPage()}
 							disabled={repliesQuery.isFetchingNextPage}
 						>
@@ -527,10 +541,7 @@ function RatingCommentItem({
 
 	return (
 		<div
-			className={cn(
-				"space-y-2",
-				comment.parent_id && "border-l border-border/60 pl-3",
-			)}
+			className={cn(comment.parent_id && "border-l-2 border-border pl-3")}
 			data-testid={testIds.comments.item}
 		>
 			<div className="flex items-start gap-2.5">
@@ -562,13 +573,20 @@ function RatingCommentItem({
 
 			{!isEditing && (
 				<div
-					className="ml-9 flex flex-wrap items-center gap-2"
+					className="mt-2 ml-9 flex flex-wrap items-center gap-1"
 					data-testid={testIds.comments.controls}
 				>
 					<RepliesPreview
 						comment={comment}
 						showReplies={showReplies}
-						onToggle={() => setShowReplies((value) => !value)}
+						onToggle={() =>
+							showReplies
+								? setShowReplies(false)
+								: openWhenLoaded(
+										() => queryClient.ensureInfiniteQueryData(repliesOptions),
+										() => setShowReplies(true),
+									)
+						}
 					/>
 					<Button
 						type="button"
@@ -577,26 +595,31 @@ function RatingCommentItem({
 						className="h-7 px-2 text-xs text-muted-foreground"
 						onClick={() => setIsReplying((value) => !value)}
 					>
-						<Reply className="size-3.5" />
 						Відповісти
 					</Button>
 				</div>
 			)}
 
-			{isReplying && (
-				<div className="ml-9">
-					<CommentForm
-						placeholder="Напишіть відповідь"
-						submitLabel="Відповісти"
-						isSubmitting={createComment.isPending}
-						onSubmit={handleReply}
-						onCancel={() => setIsReplying(false)}
-						autoFocus
-					/>
-				</div>
-			)}
+			<Collapsible open={isReplying}>
+				<CollapsibleContent>
+					<div className="ml-9 pt-2">
+						<CommentForm
+							placeholder="Напишіть відповідь"
+							submitLabel="Відповісти"
+							isSubmitting={createComment.isPending}
+							onSubmit={handleReply}
+							onCancel={() => setIsReplying(false)}
+							autoFocus
+						/>
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 
-			{showReplies && <div className="ml-9 space-y-3">{repliesContent}</div>}
+			<Collapsible open={showReplies}>
+				<CollapsibleContent>
+					<div className="ml-9 space-y-2 pt-2">{repliesContent}</div>
+				</CollapsibleContent>
+			</Collapsible>
 
 			<ConfirmDialog
 				open={isDeleteOpen}
@@ -624,19 +647,27 @@ export function RatingComments({
 	const [isCreating, setIsCreating] = useState(false);
 	const createComment = useRatingsCommentsCreate();
 
-	const commentsQuery = useInfiniteQuery({
+	const commentsOptions = infiniteQueryOptions({
 		queryKey: getRatingsCommentsListQueryKey(ratingId, {
 			page_size: COMMENTS_PAGE_SIZE,
 		}),
 		queryFn: ({ pageParam }) =>
 			ratingsCommentsList(ratingId, {
 				page_size: COMMENTS_PAGE_SIZE,
-				page: pageParam as number,
+				page: pageParam,
 			}),
 		getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
 		initialPageParam: 1,
+	});
+	const commentsQuery = useInfiniteQuery({
+		...commentsOptions,
 		enabled: isExpanded && Boolean(ratingId),
 	});
+	const openComments = () =>
+		openWhenLoaded(
+			() => queryClient.ensureInfiniteQueryData(commentsOptions),
+			() => setIsExpanded(true),
+		);
 
 	const comments =
 		commentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
@@ -666,17 +697,17 @@ export function RatingComments({
 	};
 
 	const handleToggleComments = () => {
-		setIsExpanded((value) => {
-			if (value) {
-				setIsCreating(false);
-			}
-			return !value;
-		});
+		if (isExpanded) {
+			setIsExpanded(false);
+			setIsCreating(false);
+		} else {
+			openComments();
+		}
 	};
 
 	const handleStartComment = () => {
-		setIsExpanded(true);
 		setIsCreating(true);
+		openComments();
 	};
 
 	const handleCancelCreate = () => {
@@ -698,7 +729,7 @@ export function RatingComments({
 
 		if (comments.length > 0) {
 			return (
-				<div className="space-y-4">
+				<div className="space-y-3">
 					{comments.map((comment) => (
 						<RatingCommentItem
 							key={comment.id}
@@ -718,9 +749,9 @@ export function RatingComments({
 
 	return (
 		<div className="min-w-0 w-full">
-			<div className="flex items-start justify-between gap-2">
+			<div className="flex items-center justify-between gap-2">
 				<div className="flex flex-wrap items-center gap-2">
-					{hasComments ? (
+					{hasComments && (
 						<Button
 							type="button"
 							variant="ghost"
@@ -742,16 +773,15 @@ export function RatingComments({
 								)}
 							</span>
 						</Button>
-					) : (
-						<span className="flex h-8 items-center text-xs font-medium text-muted-foreground">
-							Коментарі {formatCount(displayedCount)}
-						</span>
 					)}
 					<Button
 						type="button"
 						variant="ghost"
 						size="sm"
-						className="h-8 px-2 text-xs font-semibold text-muted-foreground hover:bg-transparent hover:text-primary"
+						className={cn(
+							"h-8 px-2 text-xs font-semibold text-muted-foreground hover:bg-transparent hover:text-primary",
+							!hasComments && "-ml-2",
+						)}
 						onClick={handleStartComment}
 					>
 						Відповісти
@@ -760,38 +790,45 @@ export function RatingComments({
 				{trailingContent && <div className="shrink-0">{trailingContent}</div>}
 			</div>
 
-			{isExpanded && (
-				<div className="mt-3 w-full space-y-4 rounded-lg border border-border/50 bg-background p-3">
-					{isCreating && (
-						<CommentForm
-							placeholder="Напишіть коментар"
-							submitLabel="Коментувати"
-							isSubmitting={createComment.isPending}
-							onSubmit={handleCreate}
-							onCancel={handleCancelCreate}
-							autoFocus
-						/>
-					)}
+			<Collapsible open={isExpanded}>
+				<CollapsibleContent>
+					<div className="mt-2 mb-1 w-full space-y-3 border-l-2 border-border pl-3">
+						<Collapsible open={isCreating} className="empty:hidden">
+							<CollapsibleContent>
+								{/* Room for the textarea focus ring, which the height clip would cut. */}
+								<div className="pt-1">
+									<CommentForm
+										placeholder="Напишіть коментар"
+										submitLabel="Коментувати"
+										isSubmitting={createComment.isPending}
+										onSubmit={handleCreate}
+										onCancel={handleCancelCreate}
+										autoFocus
+									/>
+								</div>
+							</CollapsibleContent>
+						</Collapsible>
 
-					{commentsContent}
+						{commentsContent}
 
-					{commentsQuery.hasNextPage && (
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							className="w-full"
-							onClick={() => commentsQuery.fetchNextPage()}
-							disabled={commentsQuery.isFetchingNextPage}
-						>
-							{commentsQuery.isFetchingNextPage && (
-								<Spinner className="size-3.5" />
-							)}
-							Показати ще
-						</Button>
-					)}
-				</div>
-			)}
+						{commentsQuery.hasNextPage && (
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className="w-full"
+								onClick={() => commentsQuery.fetchNextPage()}
+								disabled={commentsQuery.isFetchingNextPage}
+							>
+								{commentsQuery.isFetchingNextPage && (
+									<Spinner className="size-3.5" />
+								)}
+								Показати ще
+							</Button>
+						)}
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 		</div>
 	);
 }

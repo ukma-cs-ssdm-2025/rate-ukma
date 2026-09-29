@@ -4074,10 +4074,26 @@ components:
           nullable: true
         is_student:
           type: boolean
+        speciality:
+          allOf:
+          - $ref: '#/components/schemas/SessionSpeciality'
+          nullable: true
       required:
       - is_authenticated
       - is_student
+      - speciality
       - user
+    SessionSpeciality:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+      - id
+      - name
     SessionUser:
       type: object
       properties:

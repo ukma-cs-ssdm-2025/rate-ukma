@@ -27,14 +27,14 @@ export function getDifficultyTone(value?: number | null): string {
 	}
 
 	if (value >= 4) {
-		return "text-[var(--destructive)] dark:text-[var(--destructive-foreground)]";
+		return "text-destructive";
 	}
 
 	if (value >= 3) {
-		return "text-[var(--chart-5)] dark:text-[var(--chart-5)]";
+		return "text-chart-5";
 	}
 
-	return "text-[var(--primary)]";
+	return "text-primary";
 }
 
 export function getUsefulnessTone(value?: number | null): string {
@@ -43,14 +43,14 @@ export function getUsefulnessTone(value?: number | null): string {
 	}
 
 	if (value >= 4) {
-		return "text-[var(--primary)]";
+		return "text-primary";
 	}
 
 	if (value >= 3) {
-		return "text-[var(--chart-2)] dark:text-[var(--chart-2)]";
+		return "text-chart-2";
 	}
 
-	return "text-[var(--muted-foreground)]";
+	return "text-muted-foreground";
 }
 
 const EDUCATION_LEVEL_LABELS: Record<string, string> = {
@@ -80,6 +80,19 @@ const SEMESTER_TERM_LABELS: Record<string, string> = {
 
 export function getCourseTypeDisplay(value: string, fallback?: string): string {
 	return COURSE_TYPE_LABELS[value] ?? fallback ?? value;
+}
+
+const EXAM_TYPE_LABELS: Record<string, string> = {
+	EXAM: "Іспит",
+	CREDIT: "Залік",
+};
+
+export function getExamTypeDisplay(
+	value: string | null | undefined,
+	fallback?: string,
+): string {
+	if (!value) return fallback ?? "";
+	return EXAM_TYPE_LABELS[value.toUpperCase()] ?? fallback ?? value;
 }
 
 export function getSemesterTermDisplay(
@@ -142,64 +155,67 @@ export function formatDate(dateString: string): string {
 	}).format(date); // e.g. "26 жовтня 2025"
 }
 
-export type SemesterSeason = "FALL" | "SPRING" | "SUMMER";
-
-interface CurrentSemester {
-	year: number;
-	season: SemesterSeason;
+export function formatCredits(credits?: string | null): string | null {
+	if (!credits) {
+		return null;
+	}
+	const parsed = Number.parseFloat(credits);
+	if (!Number.isFinite(parsed)) {
+		return `${credits} ECTS`;
+	}
+	return `${Number.isInteger(parsed) ? parsed.toFixed(0) : parsed.toFixed(1)} ECTS`;
 }
 
-const MONTH_TO_SEASON: Record<number, SemesterSeason> = {
-	1: "SPRING",
-	2: "SPRING",
-	3: "SPRING",
-	4: "SPRING",
-	5: "SUMMER",
-	6: "SUMMER",
-	7: "SUMMER",
-	8: "SUMMER",
-	9: "FALL",
-	10: "FALL",
-	11: "FALL",
-	12: "FALL",
-};
-
-const CALENDAR_SEASON_ORDER: Record<string, number> = {
-	SPRING: 0,
-	SUMMER: 1,
-	FALL: 2,
-};
-
-export function getCurrentSemester(now: Date = new Date()): CurrentSemester {
-	const month = now.getMonth() + 1;
-	const year = now.getFullYear();
-	return { year, season: MONTH_TO_SEASON[month] };
+export function formatWeeklyHours(hours?: number | null): string | null {
+	if (hours == null) {
+		return null;
+	}
+	return `${hours} год`;
 }
 
-export function compareSemesters(
-	a: { year: number; season: string },
-	b: { year: number; season: string },
-): number {
-	const valueA =
-		a.year * 10 + (CALENDAR_SEASON_ORDER[a.season.toUpperCase()] ?? 5);
-	const valueB =
-		b.year * 10 + (CALENDAR_SEASON_ORDER[b.season.toUpperCase()] ?? 5);
-	return valueA - valueB;
+export function getAcademicStartYear(
+	year?: number | null,
+	term?: string | null,
+): number | null {
+	if (year == null || !term) {
+		return null;
+	}
+	const normalized = term.toUpperCase();
+	if (normalized === "FALL") {
+		return year;
+	}
+	if (normalized === "SPRING" || normalized === "SUMMER") {
+		return year - 1;
+	}
+	return null;
 }
 
-export function isFutureSemester(
-	semester: { year: number; season: string },
-	current: CurrentSemester = getCurrentSemester(),
+export function formatAcademicYearLabel(
+	year?: number | null,
+	term?: string | null,
+): string {
+	const startYear = getAcademicStartYear(year, term);
+	if (startYear == null) {
+		return "—";
+	}
+	return `${startYear}–${startYear + 1}`;
+}
+
+export function hasCourseScores(
+	difficulty?: number | null,
+	usefulness?: number | null,
+	ratingsCount?: number | null,
 ): boolean {
-	return compareSemesters(semester, current) > 0;
-}
-
-export function isCurrentSemester(
-	semester: { year: number; season: string },
-	current: CurrentSemester = getCurrentSemester(),
-): boolean {
-	return (
-		semester.year === current.year &&
-		semester.season.toUpperCase() === current.season
-	);
+	if ((ratingsCount ?? 0) > 0) {
+		return true;
+	}
+	const difficultyInRange =
+		difficulty != null &&
+		difficulty >= DIFFICULTY_RANGE[0] &&
+		difficulty <= DIFFICULTY_RANGE[1];
+	const usefulnessInRange =
+		usefulness != null &&
+		usefulness >= USEFULNESS_RANGE[0] &&
+		usefulness <= USEFULNESS_RANGE[1];
+	return difficultyInRange || usefulnessInRange;
 }

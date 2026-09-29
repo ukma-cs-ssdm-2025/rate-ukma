@@ -46,7 +46,7 @@ export function PromoBanner() {
 				href={banner.href}
 				target="_blank"
 				rel="noreferrer noopener"
-				className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
+				className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
 				data-testid={testIds.promo.link}
 			>
 				{banner.cta_label}
@@ -56,6 +56,7 @@ export function PromoBanner() {
 			<Button
 				variant="ghost"
 				size="icon-sm"
+				className="size-10 shrink-0"
 				onClick={dismiss}
 				aria-label="Сховати оголошення"
 				data-testid={testIds.promo.dismissButton}

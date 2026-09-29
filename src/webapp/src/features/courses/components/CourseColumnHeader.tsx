@@ -4,12 +4,37 @@ import type { Column } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+
+type SortState = "asc" | "desc" | "none";
+
+const SORT_ICONS: Record<SortState, typeof ArrowUpDown> = {
+	asc: ArrowUp,
+	desc: ArrowDown,
+	none: ArrowUpDown,
+};
+
+// Clicks cycle initial direction → the other direction → unsorted.
+const SORT_HINTS: Record<"asc" | "desc", Record<SortState, string>> = {
+	asc: {
+		none: "Сортувати за зростанням",
+		asc: "Сортувати за спаданням",
+		desc: "Скинути сортування",
+	},
+	desc: {
+		none: "Сортувати за спаданням",
+		desc: "Сортувати за зростанням",
+		asc: "Скинути сортування",
+	},
+};
 
 interface CourseColumnHeaderProps<TData, TValue> {
 	column: Column<TData, TValue>;
 	title: string;
 	initialSortDirection?: "asc" | "desc";
 	testId?: string;
+	align?: "left" | "center";
+	className?: string;
 }
 
 export function CourseColumnHeader<TData, TValue>({
@@ -17,86 +42,60 @@ export function CourseColumnHeader<TData, TValue>({
 	title,
 	initialSortDirection = "asc",
 	testId,
+	align = "left",
+	className,
 }: Readonly<CourseColumnHeaderProps<TData, TValue>>) {
-	const sortState = column.getIsSorted() as false | "asc" | "desc";
+	if (!column.getCanSort()) {
+		return (
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
+				className={cn(
+					"inline-flex h-8 items-center gap-1.5 px-2 text-sm font-medium text-muted-foreground disabled:opacity-100",
+					align === "left" && "-ml-2",
+					className,
+				)}
+				disabled
+				aria-label={title}
+				data-testid={testId}
+			>
+				<span>{title}</span>
+			</Button>
+		);
+	}
+
+	const sortState = column.getIsSorted() || "none";
+	const Icon = SORT_ICONS[sortState];
+	const sortHintText = SORT_HINTS[initialSortDirection][sortState];
 
 	const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-		if (!column.getCanSort()) {
-			return;
-		}
-
-		const isMultiSort = event.shiftKey;
-		const isInitialAsc = initialSortDirection === "asc";
-
-		if (sortState === false) {
-			column.toggleSorting(!isInitialAsc, isMultiSort);
-			return;
-		}
-
-		if (sortState === "asc") {
-			if (isInitialAsc) {
-				column.toggleSorting(true, isMultiSort);
-			} else {
-				column.clearSorting();
-			}
-			return;
-		}
-
-		if (sortState === "desc") {
-			if (isInitialAsc) {
-				column.clearSorting();
-			} else {
-				column.toggleSorting(false, isMultiSort);
-			}
+		if (sortState === "none") {
+			column.toggleSorting(initialSortDirection === "desc", event.shiftKey);
+		} else if (sortState === initialSortDirection) {
+			column.toggleSorting(sortState === "asc", event.shiftKey);
+		} else {
+			column.clearSorting();
 		}
 	};
-
-	const getSortIcon = () => {
-		if (sortState === "asc") return ArrowUp;
-		if (sortState === "desc") return ArrowDown;
-		return ArrowUpDown;
-	};
-
-	const getSortHintText = () => {
-		const isInitialAsc = initialSortDirection === "asc";
-
-		if (sortState === false) {
-			if (isInitialAsc) {
-				return "Сортувати за зростанням";
-			}
-			return "Сортувати за спаданням";
-		}
-
-		if (sortState === "asc") {
-			if (isInitialAsc) {
-				return "Сортувати за спаданням";
-			}
-			return "Скинути сортування";
-		}
-
-		if (isInitialAsc) {
-			return "Скинути сортування";
-		}
-		return "Сортувати за зростанням";
-	};
-
-	const Icon = getSortIcon();
-	const sortHintText = getSortHintText();
 
 	return (
 		<Button
 			type="button"
 			variant="ghost"
 			size="sm"
-			className="-ml-2 inline-flex h-8 items-center gap-2 px-2 text-sm font-medium"
+			className={cn(
+				"inline-flex h-8 items-center gap-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0",
+				align === "left" && "-ml-2",
+				className,
+			)}
 			onClick={handleClick}
-			disabled={!column.getCanSort()}
 			title={sortHintText}
 			aria-label={sortHintText}
 			data-testid={testId}
 		>
 			<span>{title}</span>
-			{column.getCanSort() ? <Icon className="h-4 w-4" /> : null}
+			<Icon className="size-4" />
 		</Button>
 	);
 }

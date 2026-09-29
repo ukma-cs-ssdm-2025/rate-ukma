@@ -4,8 +4,8 @@ import { Star } from "lucide-react";
 import { testIds } from "@/lib/test-ids";
 
 const logoConfig = {
-	container: "h-7 w-7 md:h-9 md:w-9",
-	icon: "h-4 w-4 md:h-5 md:w-5",
+	container: "size-7 md:h-9 md:w-9",
+	icon: "size-4 md:size-5",
 	text: "text-base font-bold md:text-lg",
 };
 
@@ -22,7 +22,7 @@ export function Logo() {
 				<Star
 					className={`${logoConfig.icon} text-primary-foreground`}
 					fill="currentColor"
-					aria-label="Зірочка рейтингу"
+					aria-hidden="true"
 				/>
 			</div>
 			<span className={logoConfig.text}>

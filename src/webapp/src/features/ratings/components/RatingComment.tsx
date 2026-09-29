@@ -18,7 +18,5 @@ export function RatingComment({
 		);
 	}
 
-	return (
-		<p className="text-xs italic text-muted-foreground/60">{emptyMessage}</p>
-	);
+	return <p className="text-xs text-muted-foreground italic">{emptyMessage}</p>;
 }

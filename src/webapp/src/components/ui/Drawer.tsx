@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { cn } from "@/lib/utils";
@@ -8,22 +9,31 @@ interface DrawerProps {
 	onOpenChange: (open: boolean) => void;
 	children: React.ReactNode;
 	ariaLabel: string;
-	closeButtonLabel: string;
+	/** `bottom` rises as a sheet; use it for panels opened from a bottom control. */
+	side?: "right" | "bottom";
+	/** Kept for callers; the scrim is no longer a labelled button. */
+	closeButtonLabel?: string;
 	"data-testid"?: string;
 }
 
-const TRANSITION_DURATION_MS = 300;
+// Matches the exit transition below, so the panel unmounts after it has left.
+const EXIT_DURATION_MS = 220;
+
+const HIDDEN_OFFSET = {
+	right: "translate-x-full",
+	bottom: "translate-y-full",
+} as const;
 
 export function Drawer({
 	open,
 	onOpenChange,
 	children,
 	ariaLabel,
-	closeButtonLabel,
+	side = "right",
 	"data-testid": testId,
 }: Readonly<DrawerProps>) {
 	const [isMounted, setIsMounted] = useState(open);
-	const [shouldSlideIn, setShouldSlideIn] = useState(open);
+	const [isShown, setIsShown] = useState(false);
 
 	useEffect(() => {
 		if (open) {
@@ -31,36 +41,43 @@ export function Drawer({
 			return;
 		}
 
+		setIsShown(false);
 		const timer = globalThis.window.setTimeout(
 			() => setIsMounted(false),
-			TRANSITION_DURATION_MS,
+			EXIT_DURATION_MS,
 		);
 		return () => globalThis.window.clearTimeout(timer);
 	}, [open]);
 
-	const close = useCallback(() => onOpenChange(false), [onOpenChange]);
-
+	// The panel must paint once off-screen before it can transition in, so the
+	// flip waits two frames after mount.
 	useEffect(() => {
-		if (!open) {
-			setShouldSlideIn(false);
-			return;
-		}
+		if (!open || !isMounted) return;
+		let frame = requestAnimationFrame(() => {
+			frame = requestAnimationFrame(() => setIsShown(true));
+		});
+		return () => cancelAnimationFrame(frame);
+	}, [open, isMounted]);
 
-		const unlockScroll = lockBodyScroll();
+	// Unlocking only after unmount keeps the page from jumping mid-exit.
+	useEffect(() => {
+		if (!isMounted) return;
+		return lockBodyScroll();
+	}, [isMounted]);
 
-		const frame = requestAnimationFrame(() => setShouldSlideIn(true));
-
-		return () => {
-			unlockScroll();
-			cancelAnimationFrame(frame);
-		};
-	}, [open]);
+	const close = useCallback(() => onOpenChange(false), [onOpenChange]);
 
 	if (!isMounted) {
 		return null;
 	}
 
-	return (
+	const motion = isShown
+		? "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+		: "duration-200 ease-in";
+
+	// Portaled to body: an ancestor stacking context (e.g. a view-transition
+	// name on /explore) would otherwise trap it under the sticky header.
+	return createPortal(
 		<dialog
 			open
 			aria-modal="true"
@@ -68,28 +85,34 @@ export function Drawer({
 			className="fixed inset-0 z-50 m-0 h-full w-full overflow-hidden border-none bg-transparent p-0 backdrop:bg-transparent"
 			data-testid={testId}
 		>
-			<button
-				type="button"
+			<div
 				className={cn(
-					"fixed inset-0 z-0 bg-background/80 backdrop-blur transition-opacity",
-					open ? "opacity-100" : "opacity-0 pointer-events-none",
+					"fixed inset-0 z-0 bg-background/80 backdrop-blur transition-opacity motion-reduce:transition-none",
+					motion,
+					isShown ? "opacity-100" : "pointer-events-none opacity-0",
 				)}
-				style={{ transitionDuration: `${TRANSITION_DURATION_MS}ms` }}
 				onClick={close}
-				aria-label={closeButtonLabel}
+				aria-hidden="true"
 			/>
 			<aside
 				className={cn(
-					"fixed right-0 top-0 h-full z-10 w-full max-w-sm flex flex-col gap-6 overflow-y-auto rounded-tl-[32px] rounded-bl-0 bg-card/95 p-6 pb-6 shadow-[0_20px_45px_rgba(15,23,42,0.35)] backdrop-blur-sm text-card-foreground",
+					"fixed z-10 flex flex-col bg-card text-card-foreground shadow-xl transition-transform will-change-transform motion-reduce:transition-none",
+					motion,
+					side === "right"
+						? "top-0 right-0 h-full w-full max-w-sm gap-6 overflow-y-auto rounded-l-xl p-6"
+						: "inset-x-0 bottom-0 max-h-[85dvh] gap-4 overflow-hidden rounded-t-2xl border-t border-border px-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]",
+					isShown ? "translate-x-0 translate-y-0" : HIDDEN_OFFSET[side],
 				)}
-				style={{
-					transition: `transform ${TRANSITION_DURATION_MS}ms ease, opacity ${TRANSITION_DURATION_MS}ms ease`,
-					transform: shouldSlideIn ? "translateX(0)" : "translateX(100%)",
-					opacity: shouldSlideIn ? 1 : 0,
-				}}
 			>
+				{side === "bottom" && (
+					<div
+						className="mx-auto h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30"
+						aria-hidden="true"
+					/>
+				)}
 				{children}
 			</aside>
-		</dialog>
+		</dialog>,
+		document.body,
 	);
 }

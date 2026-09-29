@@ -135,18 +135,14 @@ export function ConnectionErrorPage({
 	};
 
 	return (
-		<AuthShell
-			footer={
-				<p className="text-xs text-muted-foreground">{getFooterText(reason)}</p>
-			}
-		>
+		<AuthShell>
 			<div className="space-y-6">
-				<div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
+				<div aria-hidden="true" className="flex justify-center">
 					{getReasonIcon(reason)}
 				</div>
 
 				<div className="space-y-2">
-					<h1 className="text-2xl font-bold text-foreground">
+					<h1 className="text-2xl font-bold tracking-tight text-foreground">
 						Проблема з'єднання
 					</h1>
 					<p className="text-base text-muted-foreground">
@@ -156,12 +152,12 @@ export function ConnectionErrorPage({
 
 				<Button
 					onClick={handleRetry}
-					className="w-full gap-2 h-12 text-base font-medium"
+					className="h-11 w-full text-base font-medium"
 					disabled={isChecking}
 				>
 					{isChecking ? (
 						<>
-							<Loader2 className="h-5 w-5 animate-spin" />
+							<Loader2 className="size-5 animate-spin motion-reduce:animate-none" />
 							Перевірка...
 						</>
 					) : (
@@ -187,17 +183,6 @@ function getDescription(reason: ConnectionIssueReason) {
 			"Сервер тимчасово недоступний або не відповідає. Спробуйте повторити запит трохи пізніше.",
 		unknown:
 			"Не вдалося підключитися до сервера. Перевірте з'єднання та натисніть кнопку нижче.",
-	}[reason];
-}
-
-function getFooterText(reason: ConnectionIssueReason) {
-	return {
-		offline:
-			"Переконайтеся, що ви підключені до Wi‑Fi або мобільної мережі, і повторіть спробу.",
-		server:
-			"Якщо проблема триває, повідомте адміністратора або спробуйте пізніше – можливо, йде технічне обслуговування.",
-		unknown:
-			"Якщо ситуація не змінюється, перевірте підключення та зверніться до підтримки при необхідності.",
 	}[reason];
 }
 
@@ -308,5 +293,5 @@ const getReasonIcon = (reason: ConnectionIssueReason) => {
 			break;
 	}
 
-	return <Icon className="h-8 w-8 text-destructive" />;
+	return <Icon className="size-8 text-muted-foreground" aria-hidden="true" />;
 };

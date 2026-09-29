@@ -19,7 +19,9 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
+import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
 interface ExistingRating {
@@ -53,6 +55,14 @@ export function RatingModal({
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
 	const queryClient = useQueryClient();
+	const { user } = useAuth();
+	// Matches the backend byline, which is "last first".
+	const author = user
+		? {
+				name: [user.lastName, user.firstName].filter(Boolean).join(" "),
+				avatarUrl: user.avatarUrl,
+			}
+		: undefined;
 
 	const createMutation = useCoursesRatingsCreate();
 	const updateMutation = useCoursesRatingsPartialUpdate();
@@ -158,22 +168,26 @@ export function RatingModal({
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
 			<DialogContent
-				className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[500px]"
+				className={cn(
+					"group/rating-modal flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[500px]",
+					// Phones get the whole screen, rising as a sheet instead of zooming.
+					"max-sm:inset-0 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:data-[state=closed]:slide-out-to-bottom max-sm:data-[state=closed]:zoom-out-100 max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=open]:zoom-in-100 motion-reduce:animate-none!",
+				)}
 				data-testid={testIds.rating.modal}
 			>
-				<DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4 pr-12 text-left">
-					<div className="flex items-center justify-between">
-						<DialogTitle data-testid={testIds.rating.modalTitle}>
-							{isEditMode ? "Редагувати оцінку" : "Оцінити курс"}
-						</DialogTitle>
-					</div>
-					{courseName && (
-						<DialogDescription>
-							{isEditMode
-								? `Змініть свою оцінку для курсу ${courseName}`
-								: `Поділіться своїм досвідом про курс ${courseName}`}
-						</DialogDescription>
-					)}
+				<DialogHeader className="shrink-0 border-b border-transparent pt-6 pr-12 pb-4 pl-6 text-left transition-colors motion-reduce:transition-none group-has-[[data-scrolled]]/rating-modal:border-border">
+					<DialogTitle
+						className="leading-snug text-balance"
+						data-testid={testIds.rating.modalTitle}
+					>
+						{courseName?.trim() ||
+							(isEditMode ? "Редагувати оцінку" : "Оцінити курс")}
+					</DialogTitle>
+					<DialogDescription>
+						{isEditMode
+							? "Змініть свою оцінку"
+							: "Оцінку й відгук можна змінити будь-коли"}
+					</DialogDescription>
 				</DialogHeader>
 
 				<RatingForm
@@ -185,6 +199,7 @@ export function RatingModal({
 					offeringId={offeringId}
 					courseId={courseId}
 					initialInstructors={initialInstructors}
+					author={author}
 				/>
 			</DialogContent>
 		</Dialog>

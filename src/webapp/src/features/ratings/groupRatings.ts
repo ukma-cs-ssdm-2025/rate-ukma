@@ -1,8 +1,6 @@
 import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 
-export type RatingFilter = "all" | "unrated" | "rated";
-
 export interface SemesterGroup {
 	key: string;
 	label: string;
@@ -100,19 +98,9 @@ function resolveSeasonInfo(
 	};
 }
 
-function matchesRatingFilter(
-	course: StudentRatingsDetailed,
-	filter: RatingFilter,
-): boolean {
-	if (filter === "all") return true;
-	const isRated = Boolean(course.rated);
-	return filter === "rated" ? isRated : !isRated;
-}
-
 function updateSeasonCounts(
 	group: SemesterGroup,
 	course: StudentRatingsDetailed,
-	matchesFilter: boolean,
 ): void {
 	group.totalCount++;
 	if (course.rated) {
@@ -120,9 +108,7 @@ function updateSeasonCounts(
 	} else if (course.can_rate) {
 		group.unratedRateableCount++;
 	}
-	if (matchesFilter) {
-		group.items.push(course);
-	}
+	group.items.push(course);
 }
 
 type YearAccumulator = {
@@ -158,7 +144,6 @@ function toYearGroups(years: Map<string, YearAccumulator>): YearGroup[] {
 
 export function groupRatingsByYearAndSemester(
 	allRatings: StudentRatingsDetailed[],
-	filter: RatingFilter = "all",
 ): YearGroup[] {
 	const years = new Map<string, YearAccumulator>();
 
@@ -202,11 +187,7 @@ export function groupRatingsByYearAndSemester(
 		const seasonGroup = yearEntry.seasons.get(seasonInfo.key);
 		if (!seasonGroup) continue;
 
-		updateSeasonCounts(
-			seasonGroup,
-			course,
-			matchesRatingFilter(course, filter),
-		);
+		updateSeasonCounts(seasonGroup, course);
 	}
 
 	return toYearGroups(years);

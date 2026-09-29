@@ -179,6 +179,14 @@ def session(request):
         },
         "expires_at": _get_session_expiry(request),
         "is_student": bool(student_profile),
+        "speciality": (
+            {
+                "id": student_profile.speciality_id,
+                "name": student_profile.speciality.name,
+            }
+            if student_profile
+            else None
+        ),
     }
 
     serializer = SessionSerializer(data=data)

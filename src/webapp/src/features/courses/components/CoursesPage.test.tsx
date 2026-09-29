@@ -9,7 +9,7 @@ import {
 	useCourseFiltersParams,
 } from "@/features/courses/courseFiltersParams";
 import { useCoursesList } from "@/lib/api/generated";
-import { CoursesRoute } from "./index";
+import { CoursesPage } from "./CoursesPage";
 
 vi.mock("@/components/Layout", () => {
 	return {
@@ -59,7 +59,7 @@ vi.mock("@/lib/api/generated", () => {
 	};
 });
 
-describe("CoursesRoute", () => {
+describe("CoursesPage", () => {
 	it("renders error state and calls refetch on retry", async () => {
 		const user = userEvent.setup();
 		const setParams = vi.fn();
@@ -76,7 +76,7 @@ describe("CoursesRoute", () => {
 			refetch,
 		} as unknown as ReturnType<typeof useCoursesList>);
 
-		render(<CoursesRoute />);
+		render(<CoursesPage />);
 
 		const retryButton = screen.getByTestId("courses-retry-button");
 		await user.click(retryButton);
@@ -105,7 +105,7 @@ describe("CoursesRoute", () => {
 			refetch: vi.fn(),
 		} as unknown as ReturnType<typeof useCoursesList>);
 
-		render(<CoursesRoute />);
+		render(<CoursesPage />);
 
 		expect(screen.queryByTestId("courses-error-state")).not.toBeInTheDocument();
 		expect(screen.getByTestId("courses-table")).toBeInTheDocument();
@@ -130,7 +130,7 @@ describe("CoursesRoute", () => {
 			refetch: vi.fn(),
 		} as unknown as ReturnType<typeof useCoursesList>);
 
-		render(<CoursesRoute />);
+		render(<CoursesPage />);
 
 		expect(vi.mocked(useCoursesList)).toHaveBeenCalledWith(
 			expect.objectContaining({ last_review_order: "desc" }),

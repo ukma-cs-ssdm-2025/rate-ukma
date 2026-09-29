@@ -126,7 +126,7 @@ def test_session_returns_is_student_true_for_student_user(
 ):
     # Arrange
     user = user_factory(email="student@ukma.edu.ua")
-    student_factory(user=user)
+    student = student_factory(user=user)
     api_client.force_authenticate(user=user)
 
     # Act
@@ -138,6 +138,10 @@ def test_session_returns_is_student_true_for_student_user(
     assert data["is_authenticated"] is True
     assert data["is_student"] is True
     assert data["user"]["email"] == user.email
+    assert data["speciality"] == {
+        "id": str(student.speciality_id),
+        "name": student.speciality.name,
+    }
 
 
 @pytest.mark.django_db
@@ -155,6 +159,7 @@ def test_session_returns_is_student_false_for_non_student_user(api_client, user_
     data = response.json()
     assert data["is_authenticated"] is True
     assert data["is_student"] is False
+    assert data["speciality"] is None
     assert data["user"]["email"] == user.email
 
 

@@ -1,3 +1,4 @@
+import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -28,7 +29,7 @@ describe("FeedReviewItem", () => {
 	it("leads with the course as a link to the course page", () => {
 		render(<FeedReviewItem item={baseItem} />);
 
-		expect(screen.getByText(/Новий відгук на/)).toBeInTheDocument();
+		expect(screen.getByText("Відгук")).toBeInTheDocument();
 		const link = screen.getByRole("link", {
 			name: "Алгоритми та структури даних",
 		});
@@ -67,17 +68,28 @@ describe("FeedReviewItem", () => {
 		expect(screen.queryByLabelText(/за середнє/)).not.toBeInTheDocument();
 	});
 
-	it("renders difficulty, usefulness and the comment", () => {
-		render(<FeedReviewItem item={baseItem} />);
+	it("renders difficulty, usefulness and the comment on the /feed banner", () => {
+		render(<FeedReviewItem item={baseItem} variant="banner" />);
 
 		expect(screen.getByText("4.2")).toBeInTheDocument();
 		expect(screen.getByText("4.8")).toBeInTheDocument();
 		expect(screen.getByText("Складно, але корисно.")).toBeInTheDocument();
 	});
 
-	it("omits the comment paragraph when there is no comment", () => {
+	it("gives the strip tile the review text and keeps the scores", () => {
+		render(<FeedReviewItem item={baseItem} />);
+
+		expect(screen.getByText("Складно, але корисно.")).toBeInTheDocument();
+		expect(screen.getByText("4.2")).toBeInTheDocument();
+		expect(screen.getByText("4.8")).toBeInTheDocument();
+	});
+
+	it("falls back to scores and time in the strip tile without review text", () => {
 		render(<FeedReviewItem item={{ ...baseItem, comment: "" }} />);
 
-		expect(screen.queryByText("Складно, але корисно.")).not.toBeInTheDocument();
+		expect(screen.getByText("4.2")).toBeInTheDocument();
+		expect(
+			screen.getByText(formatRelativeTime(baseItem.createdAt)),
+		).toBeInTheDocument();
 	});
 });

@@ -1,9 +1,11 @@
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { renderWithProviders } from "@/test-utils/render";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "../definitions/ratingDefinitions";
 import { MyRatingCard } from "./MyRatingCard";
 
 vi.mock("@tanstack/react-router", async () => {
@@ -30,111 +32,115 @@ function makeCourse(
 	};
 }
 
-describe("MyRatingCard faculty accent", () => {
-	it("paints the accent bar and Rate button in the faculty color", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({ faculty_name: "Факультет інформатики" })}
-				onRatingChanged={vi.fn()}
-			/>,
-			{ flags: { fe_faculty_colors: true } },
-		);
-
-		expect(screen.getByTestId(testIds.myRatings.card)).toHaveStyle({
-			borderLeftColor: "#4c217a",
-		});
-
-		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
-		expect(rateButton).toHaveStyle({
-			backgroundColor: "#4c217a",
-			color: "#ffffff",
-		});
-	});
-
-	it("keeps the accent bar on rated cards without a Rate button", () => {
+describe("MyRatingCard", () => {
+	it("shows difficulty and usefulness values for rated courses", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					faculty_name: "Факультет природничих наук",
 					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
-			{ flags: { fe_faculty_colors: true } },
 		);
 
-		const card = screen.getByTestId(testIds.myRatings.card);
-		expect(card).toHaveStyle({ borderLeftColor: "#006e31" });
-		expect(card).toHaveClass("border-l-4");
+		expect(screen.getByText("Складність")).toBeInTheDocument();
+		expect(screen.getByText("Корисність")).toBeInTheDocument();
+		expect(screen.getByText("4.0")).toBeInTheDocument();
+		expect(screen.getByText("5.0")).toBeInTheDocument();
 		expect(
 			screen.queryByTestId(testIds.myRatings.leaveReviewLink),
 		).not.toBeInTheDocument();
 	});
 
-	it("uses dark button text on the light yellow faculty", () => {
+	it("shows the rated comment under the scores", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					faculty_name: "Факультет соціальних наук і соціальних технологій",
+					rated: {
+						id: "rating-1",
+						difficulty: 4,
+						usefulness: 5,
+						comment: "Багато практики, але саме вона вчить думати",
+					},
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
-			{ flags: { fe_faculty_colors: true } },
 		);
 
-		expect(screen.getByTestId(testIds.myRatings.leaveReviewLink)).toHaveStyle({
-			backgroundColor: "#f6b213",
-			color: "#1a1a1a",
-		});
-	});
-	it("keeps default blue styling when the flag is off", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({ faculty_name: "Факультет інформатики" })}
-				onRatingChanged={vi.fn()}
-			/>,
-		);
-
-		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
-		expect(rateButton.style.backgroundColor).toBe("");
-		expect(rateButton.style.color).toBe("");
+		expect(
+			screen.getByText("Багато практики, але саме вона вчить думати"),
+		).toBeInTheDocument();
 	});
 
-	it("falls back to default styling when no faculty is assigned", () => {
-		renderWithProviders(
-			<MyRatingCard
-				course={makeCourse({ faculty_name: null })}
-				onRatingChanged={vi.fn()}
-			/>,
-		);
-
-		expect(screen.getByTestId(testIds.myRatings.card)).not.toHaveStyle({
-			borderLeftColor: "#4c217a",
-		});
-
-		const rateButton = screen.getByTestId(testIds.myRatings.leaveReviewLink);
-		expect(rateButton.style.backgroundColor).toBe("");
-		expect(rateButton.style.color).toBe("");
-	});
-
-	it("paints the disabled button in the faculty color", () => {
+	it("offers a written review when the rating has scores only", async () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					faculty_name: "Факультет інформатики",
-					can_rate: false,
+					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
-			{ flags: { fe_faculty_colors: true } },
 		);
 
-		const rateButton = screen.getByRole("button", { name: "Оцінити" });
-		expect(rateButton).toBeDisabled();
-		expect(rateButton).toHaveClass("opacity-50");
-		expect(rateButton).toHaveStyle({
-			backgroundColor: "#4c217a",
-			color: "#ffffff",
-		});
+		await userEvent.click(
+			screen.getByRole("button", { name: "Додати текстовий відгук" }),
+		);
+
+		expect(screen.getByTestId(testIds.rating.modal)).toBeInTheDocument();
+	});
+
+	it("drops the written-review prompt once the rating has text", () => {
+		renderWithProviders(
+			<MyRatingCard
+				course={makeCourse({
+					rated: {
+						id: "rating-1",
+						difficulty: 4,
+						usefulness: 5,
+						comment: "Корисно",
+					},
+				})}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.queryByRole("button", { name: "Додати текстовий відгук" }),
+		).not.toBeInTheDocument();
+	});
+
+	it("shows edit and delete actions for rated courses", () => {
+		renderWithProviders(
+			<MyRatingCard
+				course={makeCourse({
+					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
+				})}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.getByTestId(testIds.myRatings.editButton),
+		).toBeInTheDocument();
+		expect(
+			screen.getByTestId(testIds.myRatings.deleteButton),
+		).toBeInTheDocument();
+	});
+
+	it("explains instead of rating when the course cannot be rated yet", async () => {
+		renderWithProviders(
+			<MyRatingCard
+				course={makeCourse({ can_rate: false })}
+				onRatingChanged={vi.fn()}
+			/>,
+		);
+
+		const rate = screen.getByRole("button", { name: "Оцінити" });
+		expect(rate).toHaveAttribute("aria-disabled", "true");
+		await userEvent.click(rate);
+		expect(await screen.findByRole("tooltip")).toHaveTextContent(
+			CANNOT_RATE_TOOLTIP_TEXT,
+		);
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 	});
 });

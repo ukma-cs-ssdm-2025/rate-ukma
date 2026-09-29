@@ -95,128 +95,108 @@ export function LoginForm({
 	});
 
 	return (
-		<div className="w-full max-w-md mx-auto">
-			<div className="mb-6 text-center">
-				<p className="text-sm text-muted-foreground">
-					Admin login for administrators
-				</p>
-			</div>
+		<Form {...form}>
+			<form
+				onSubmit={handleSubmit}
+				className="space-y-4"
+				data-testid={testIds.login.form}
+			>
+				{formError && (
+					<div
+						className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive/10 p-3"
+						data-testid={testIds.login.errorMessage}
+					>
+						<AlertCircle className="size-4 flex-shrink-0 text-destructive" />
+						<p className="text-sm text-destructive">{formError}</p>
+					</div>
+				)}
 
-			<Form {...form}>
-				<form
-					onSubmit={handleSubmit}
-					className="space-y-4"
-					data-testid={testIds.login.form}
-				>
-					{formError && (
-						<div
-							className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive/10 p-3"
-							data-testid={testIds.login.errorMessage}
-						>
-							<AlertCircle className="h-4 w-4 flex-shrink-0 text-destructive" />
-							<p className="text-sm text-destructive">{formError}</p>
-						</div>
+				<FormField
+					control={form.control}
+					name="username"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Username</FormLabel>
+							<FormControl>
+								<Input
+									{...field}
+									type="text"
+									placeholder="Enter username"
+									autoComplete="username"
+									disabled={isSubmitting}
+									data-testid={testIds.login.usernameInput}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
 					)}
+				/>
 
-					<FormField
-						control={form.control}
-						name="username"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Username</FormLabel>
+				<FormField
+					control={form.control}
+					name="password"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Password</FormLabel>
+							<div className="relative">
 								<FormControl>
 									<Input
 										{...field}
-										type="text"
-										placeholder="Enter username"
-										autoComplete="username"
+										type={showPassword ? "text" : "password"}
+										placeholder="Enter password"
+										autoComplete="current-password"
 										disabled={isSubmitting}
-										data-testid={testIds.login.usernameInput}
+										className="pr-10"
+										data-testid={testIds.login.passwordInput}
 									/>
 								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+								<button
+									type="button"
+									onClick={() => setShowPassword((prev) => !prev)}
+									className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+									disabled={isSubmitting}
+									aria-label={showPassword ? "Hide password" : "Show password"}
+									data-testid={testIds.login.togglePasswordButton}
+								>
+									{showPassword ? (
+										<EyeOff className="size-4" />
+									) : (
+										<Eye className="size-4" />
+									)}
+								</button>
+							</div>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
 
-					<FormField
-						control={form.control}
-						name="password"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Password</FormLabel>
-								<div className="relative">
-									<FormControl>
-										<Input
-											{...field}
-											type={showPassword ? "text" : "password"}
-											placeholder="Enter password"
-											autoComplete="current-password"
-											disabled={isSubmitting}
-											className="pr-10"
-											data-testid={testIds.login.passwordInput}
-										/>
-									</FormControl>
-									<button
-										type="button"
-										onClick={() => setShowPassword((prev) => !prev)}
-										className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-										disabled={isSubmitting}
-										aria-label={
-											showPassword ? "Hide password" : "Show password"
-										}
-										data-testid={testIds.login.togglePasswordButton}
-									>
-										{showPassword ? (
-											<EyeOff className="h-4 w-4" />
-										) : (
-											<Eye className="h-4 w-4" />
-										)}
-									</button>
-								</div>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-
-					<div className="flex gap-3">
-						<Button
-							type="submit"
-							className="flex-1 gap-2"
-							disabled={isSubmitting}
-							data-testid={testIds.login.submitButton}
-						>
-							{isSubmitting ? (
-								<Loader2 className="h-4 w-4 animate-spin" />
-							) : null}
-							Login
-						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => {
-								form.reset();
-								setFormError(null);
-								onCancel();
-							}}
-							disabled={isSubmitting}
-							data-testid={testIds.login.backButton}
-						>
-							Back
-						</Button>
-					</div>
-				</form>
-			</Form>
-
-			<div className="mt-4 border-t border-border/20 pt-4">
-				<p className="text-center text-xs text-muted-foreground">
-					Press{" "}
-					<kbd className="rounded bg-muted px-1 py-0.5 text-xs">
-						Ctrl+Shift+D
-					</kbd>{" "}
-					to return to normal login
-				</p>
-			</div>
-		</div>
+				<div className="flex gap-3">
+					<Button
+						type="submit"
+						className="flex-1 gap-2"
+						disabled={isSubmitting}
+						data-testid={testIds.login.submitButton}
+					>
+						{isSubmitting ? (
+							<Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
+						) : null}
+						Login
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => {
+							form.reset();
+							setFormError(null);
+							onCancel();
+						}}
+						disabled={isSubmitting}
+						data-testid={testIds.login.backButton}
+					>
+						Back
+					</Button>
+				</div>
+			</form>
+		</Form>
 	);
 }

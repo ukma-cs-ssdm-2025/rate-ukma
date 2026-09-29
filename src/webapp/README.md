@@ -83,6 +83,44 @@ BASE_URL=http://localhost:3000  # optional, defaults to http://localhost:3000
 
 Copy from `src/.env.sample` if you haven't set up your `.env` file yet.
 
+### Screenshots
+
+`pnpm shots` renders every app state (grouped by page: home, feed, course, rating, comments, my ratings, map, navigation, sign-in and errors, including open menus, dialogs and tooltips; each page also has a `-loading` state whose content requests never answer, so it holds its skeleton) at 1440x900 and 390x844 in light and dark, and writes the PNGs plus an `index.html` gallery to `shots/`. Every API call is answered from invented fixtures in `tests/shots/fixtures/`, so no backend or login is needed; an endpoint without a fixture is logged as `[shots] unmocked`.
+
+```bash
+pnpm shots                                 # build, preview, shoot into shots/
+SHOT_ONLY=feed pnpm shots                  # only states whose name matches
+SHOT_DIR=/tmp/after SHOT_BEFORE_DIR=/tmp/before pnpm shots   # index.html pairs before | after
+SHOT_BASE_URL=http://127.0.0.1:4175 pnpm shots               # shoot a server that is already running
+SHOT_OPEN=open pnpm shots                  # open the gallery afterwards with any command (xdg-open, a browser, ...)
+```
+
+Both commands print the gallery path when they finish; nothing opens unless `SHOT_OPEN` is set.
+
+`pnpm shots:compare` shoots a base ref and the working tree with the same states and builds one before | after gallery. The base is built once per commit and cached in `$TMPDIR/rate-ukma-shots`; a state the base cannot reach shows as "no before shot".
+
+```bash
+pnpm shots:compare                         # origin/main vs working tree
+pnpm shots:compare my-branch               # any branch, tag or sha as the base
+SHOT_ONLY='^course' SHOT_DIR=/tmp/cmp pnpm shots:compare     # only course states, into /tmp/cmp
+```
+
+The gallery groups states by page in a sidebar and marks each one changed, new or same (byte-identical). Section chips at the top (or the sidebar headings) show one page at a time. Keys: `1`–`4` switch width and theme, `[`/`]` step through sections, `0` shows all sections, `j`/`k` step through states, `g` toggles a thumbnail grid, `/` filters by name, `c` hides unchanged states. The URL hash keeps the view, state, section and grid, so a link opens the same spot.
+
+When a UI change depends on data shape (long lists, many years, empty or missing fields, long titles), add a state for that edge to `tests/shots/shots.spec.ts` with a fixture in `tests/shots/fixtures/`, as `my-ratings-many` does for four years of courses. The state then stays in every later compare.
+
+### Performance bench
+
+`pnpm perf` builds and previews the app like `pnpm shots`, with the same mocked API, then loads each page (home on desktop and phone, course, my ratings, feed) several times in a fresh browser under CPU throttling. It prints a table of medians: LCP, TBT, CLS, INP for typing a search on home, JS downloaded, and API calls, with any call made twice listed. The API costs nothing here, so compare builds with each other rather than with prod.
+
+```bash
+pnpm perf                                  # 3 runs per page, CPU 4x slower
+PERF_RUNS=5 PERF_CPU=6 pnpm perf           # more runs, slower CPU
+PERF_ONLY='^home' pnpm perf                # only pages whose name matches
+PERF_OUT=/tmp/perf.json pnpm perf          # also write the table as JSON
+PERF_BASE_URL=http://127.0.0.1:4175 pnpm perf   # measure a build already being served, e.g. main's
+```
+
 ### Code Quality
 
 ```bash

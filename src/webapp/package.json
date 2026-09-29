@@ -27,7 +27,10 @@
 		"security:audit": "pnpm audit --audit-level high",
 		"security:update": "pnpm up --interactive",
 		"test:e2e": "dotenv -e ../.env -- playwright test",
-		"test:e2e:ui": "dotenv -e ../.env -- cross-env HEADLESS=false playwright test"
+		"test:e2e:ui": "dotenv -e ../.env -- cross-env HEADLESS=false playwright test",
+		"shots": "SHOT_DIR=${SHOT_DIR:-shots} playwright test --config playwright.shots.config.ts && sh scripts/shots-open.sh \"${SHOT_DIR:-shots}\"",
+		"shots:compare": "bash scripts/shots-compare.sh",
+		"perf": "playwright test --config playwright.perf.config.ts"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.7.1",
