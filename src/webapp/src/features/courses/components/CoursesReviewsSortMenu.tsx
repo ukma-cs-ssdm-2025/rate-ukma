@@ -5,7 +5,6 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
 import {
@@ -33,8 +32,7 @@ const SORT_OPTIONS: ReadonlyArray<{
 	{ value: "newest", label: "Найновіші" },
 ];
 
-export const COURSES_SORT_HINT =
-	"«За кількістю» — спочатку курси з найбільшою кількістю відгуків, «Найновіші» — за датою останнього відгуку. Курси без відгуків завжди внизу. Сортування за складністю або корисністю замінює сортування за відгуками.";
+export const COURSES_SORT_HINT = "Курси без відгуків завжди внизу.";
 
 export function CoursesReviewsSortMenu({
 	value,
@@ -60,13 +58,12 @@ export function CoursesReviewsSortMenu({
 							isMobile ? testIds.courses.reviewsSortButtonMobile : undefined
 						}
 					>
-						<span>{isMobile ? "Назва · відгуки" : "Відгуки"}</span>
+						<span>Відгуки</span>
 						<ChevronDown className="h-4 w-4" />
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
 					align={isMobile ? "start" : "center"}
-					className={cn(isMobile && "max-w-72")}
 					onCloseAutoFocus={(event) => event.preventDefault()}
 				>
 					{SORT_OPTIONS.map((option) => {
@@ -82,18 +79,6 @@ export function CoursesReviewsSortMenu({
 							</DropdownMenuItem>
 						);
 					})}
-					{/* Touch has no hover, so the hint lives in the menu on phones. */}
-					{isMobile && (
-						<>
-							<DropdownMenuSeparator />
-							<p
-								className="px-2 py-1.5 text-xs leading-snug text-muted-foreground"
-								data-testid={testIds.courses.sortInfoHintMobile}
-							>
-								{COURSES_SORT_HINT}
-							</p>
-						</>
-					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 			{!isMobile && (

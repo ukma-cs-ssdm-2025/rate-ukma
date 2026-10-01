@@ -29,20 +29,10 @@ describe("CoursesReviewsSortMenu sort hint", () => {
 			expect.stringContaining("без відгуків завжди внизу"),
 		);
 	});
-
-	it("states column sorts replace the review sort", () => {
-		render(<CoursesReviewsSortMenu value="by-count" onValueChange={vi.fn()} />);
-
-		expect(screen.getByTestId(testIds.courses.sortInfoHint)).toHaveAttribute(
-			"aria-label",
-			expect.stringContaining("замінює сортування за відгуками"),
-		);
-	});
 });
 
 describe("CoursesReviewsSortMenu mobile variant", () => {
-	it("puts the hint inside the menu instead of a hover tooltip", async () => {
-		const user = userEvent.setup();
+	it("keeps the label short and leaves the hint to desktop", () => {
 		render(
 			<CoursesReviewsSortMenu
 				value="by-count"
@@ -51,15 +41,10 @@ describe("CoursesReviewsSortMenu mobile variant", () => {
 			/>,
 		);
 
-		expect(screen.queryByTestId(testIds.courses.sortInfoHint)).toBeNull();
-
-		await user.click(
-			screen.getByTestId(testIds.courses.reviewsSortButtonMobile),
-		);
-
 		expect(
-			await screen.findByTestId(testIds.courses.sortInfoHintMobile),
-		).toHaveTextContent(COURSES_SORT_HINT);
+			screen.getByTestId(testIds.courses.reviewsSortButtonMobile),
+		).toHaveTextContent(/^Відгуки$/);
+		expect(screen.queryByTestId(testIds.courses.sortInfoHint)).toBeNull();
 	});
 
 	it("still switches the sort from the menu", async () => {
