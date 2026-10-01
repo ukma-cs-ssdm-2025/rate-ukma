@@ -822,21 +822,4 @@ describe("Sorting", () => {
 			page: 1,
 		});
 	});
-
-	it("shows each course's review count under its title on phones", () => {
-		const courses = [
-			createMockCourse({ ratings_count: 0 }),
-			createMockCourse({ ratings_count: 1 }),
-			createMockCourse({ ratings_count: 3 }),
-			createMockCourse({ ratings_count: 12 }),
-		];
-
-		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
-
-		expect(
-			screen
-				.getAllByTestId(testIds.courses.tableReviewsCountMobile)
-				.map((node) => node.textContent),
-		).toEqual(["Без відгуків", "1 відгук", "3 відгуки", "12 відгуків"]);
-	});
 });

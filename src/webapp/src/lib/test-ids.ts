@@ -104,7 +104,6 @@ export const testIds = {
 		usefulnessSortButtonMobile: "courses-usefulness-sort-button-mobile",
 		sortInfoHint: "courses-sort-info-hint",
 		reviewsSortButtonMobile: "courses-reviews-sort-button-mobile",
-		tableReviewsCountMobile: "courses-table-reviews-count-mobile",
 		scatterPlot: "courses-scatter-plot",
 		scatterPlotFullscreenButton: "courses-scatter-plot-fullscreen-button",
 		emptyState: "courses-empty-state",

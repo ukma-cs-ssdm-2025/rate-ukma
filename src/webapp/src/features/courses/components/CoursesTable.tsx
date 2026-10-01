@@ -79,21 +79,6 @@ interface CoursesTableProps {
 	pagination?: PaginationInfo;
 }
 
-const UK_PLURAL = new Intl.PluralRules("uk");
-const REVIEW_FORMS: Record<Intl.LDMLPluralRule, string> = {
-	zero: "відгуків",
-	one: "відгук",
-	two: "відгуки",
-	few: "відгуки",
-	many: "відгуків",
-	other: "відгуку",
-};
-
-function formatReviewsCount(count: number): string {
-	if (count === 0) return "Без відгуків";
-	return `${count} ${REVIEW_FORMS[UK_PLURAL.select(count)]}`;
-}
-
 const MAP_COLLAPSED_STORAGE_KEY = "courses-map-collapsed";
 
 function CoursesMapCard({
@@ -242,12 +227,6 @@ function buildCoursesTableColumns({
 							</Tooltip>
 						)}
 						<CourseSpecialityBadges specialities={course.specialities} />
-						<span
-							className="basis-full text-xs tabular-nums text-muted-foreground sm:hidden"
-							data-testid={testIds.courses.tableReviewsCountMobile}
-						>
-							{formatReviewsCount(course.ratings_count ?? 0)}
-						</span>
 					</span>
 				);
 			},
@@ -286,7 +265,7 @@ function buildCoursesTableColumns({
 			meta: {
 				label: "Відгуки",
 				align: "center",
-				// Phones show the count under the title and the sort in its header.
+				// Low value on a narrow screen; phones get the sort in the title header.
 				hideOnMobile: true,
 			},
 		},
