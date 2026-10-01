@@ -46,8 +46,7 @@ The AI acted as a sceptical tech lead and found 13 risks. We left its wording un
 | 4 | Users and reviews skew toward the Faculty of Informatics *(speculative)* | **Act on** | Cheap to check with one database query. |
 | 5 | A small group of students writes most ratings | **Act on** | ~1.4 ratings per user. We will check the distribution. |
 | 6 | The САЗ data pipeline is fragile | **Reject in part** | The pipeline works and needs only periodic updates. We agree the data is not refreshed often enough. |
-| 7 | The administration can switch the product off | **Act on in part** | We are in contact with the САЗ team, and there are no problems. We will ask for written approval. |
-| 8 | Personal data of students who never signed up | **Under discussion** | We will consider a privacy policy. |
+| 7 | The administration can switch the product off | **Reject** | We are already in contact with the САЗ team, they know about the product, and there are no problems.| 8 | Personal data of students who never signed up | **Under discussion** | We will consider a privacy policy. |
 | 9 | Anonymity breaks in small groups | **Under discussion** | The team does not yet see a real risk here. |
 | 10 | No reporting or moderation for reviews about named teachers | **Under discussion** | We agree with the idea of moderation and will decide on its form. |
 | 11 | The planner misses March 2027 | **Reject** | The planner is part of the semester milestone on 1 December, well before registration. |
