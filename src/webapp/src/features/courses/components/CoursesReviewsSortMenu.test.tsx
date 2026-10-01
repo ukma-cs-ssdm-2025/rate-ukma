@@ -9,32 +9,24 @@ import {
 } from "./CoursesReviewsSortMenu";
 
 describe("CoursesReviewsSortMenu sort hint", () => {
-	it("explains the real ordering rule on hover", async () => {
+	it("shows the ordering hint inside the open menu", async () => {
 		const user = userEvent.setup();
 		render(<CoursesReviewsSortMenu value="by-count" onValueChange={vi.fn()} />);
 
-		const hint = screen.getByTestId(testIds.courses.sortInfoHint);
-		expect(hint).toHaveAttribute("aria-label", COURSES_SORT_HINT);
+		expect(screen.queryByTestId(testIds.courses.sortInfoHint)).toBeNull();
 
-		await user.hover(hint);
-
-		expect(await screen.findByRole("tooltip")).toHaveTextContent(
-			COURSES_SORT_HINT,
+		await user.click(
+			screen.getByRole("button", { name: "Сортування за відгуками" }),
 		);
-	});
 
-	it("states unrated courses always sort last", () => {
-		render(<CoursesReviewsSortMenu value="newest" onValueChange={vi.fn()} />);
-
-		expect(screen.getByTestId(testIds.courses.sortInfoHint)).toHaveAttribute(
-			"aria-label",
-			expect.stringContaining("без відгуків завжди внизу"),
-		);
+		expect(
+			await screen.findByTestId(testIds.courses.sortInfoHint),
+		).toHaveTextContent(COURSES_SORT_HINT);
 	});
 });
 
 describe("CoursesReviewsSortMenu mobile variant", () => {
-	it("keeps the label short and leaves the hint to desktop", () => {
+	it("keeps the label short", () => {
 		render(
 			<CoursesReviewsSortMenu
 				value="by-count"
@@ -46,7 +38,6 @@ describe("CoursesReviewsSortMenu mobile variant", () => {
 		expect(
 			screen.getByTestId(testIds.courses.reviewsSortButtonMobile),
 		).toHaveTextContent(/^Відгуки$/);
-		expect(screen.queryByTestId(testIds.courses.sortInfoHint)).toBeNull();
 	});
 
 	it("still switches the sort from the menu", async () => {
