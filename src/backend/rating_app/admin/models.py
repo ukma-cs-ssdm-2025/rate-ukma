@@ -495,6 +495,11 @@ class FeedPostAdmin(VersionAdmin):
             "Content",
             {
                 "fields": ("title", "body", "label", "cta_label", "cta_href", "accent"),
+                "description": (
+                    "`body` is Markdown and may be long-form: headings, lists, links "
+                    "and emphasis are rendered (raw HTML is not). The feed shows the "
+                    'first few lines as plain text with a "read more" dialog.'
+                ),
             },
         ),
         (
