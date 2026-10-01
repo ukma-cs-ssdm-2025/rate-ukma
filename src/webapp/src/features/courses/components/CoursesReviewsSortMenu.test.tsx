@@ -18,7 +18,9 @@ describe("CoursesReviewsSortMenu sort hint", () => {
 
 		await user.hover(hint);
 
-		expect(await screen.findByText(COURSES_SORT_HINT)).toBeInTheDocument();
+		expect(await screen.findByRole("tooltip")).toHaveTextContent(
+			COURSES_SORT_HINT,
+		);
 	});
 
 	it("states unrated courses always sort last", () => {
