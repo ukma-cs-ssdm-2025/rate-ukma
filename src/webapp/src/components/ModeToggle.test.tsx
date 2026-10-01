@@ -18,7 +18,7 @@ function renderToggle() {
 
 beforeEach(() => {
 	localStorage.clear();
-	document.documentElement.classList.remove("light", "dark");
+	delete document.documentElement.dataset.colorScheme;
 });
 
 describe("ModeToggle", () => {
@@ -39,9 +39,11 @@ describe("ModeToggle", () => {
 		).toHaveTextContent("Система");
 	});
 
-	it("selecting System persists the choice and follows the OS theme", async () => {
+	it("selecting System persists the choice and hands the scheme to CSS", async () => {
+		localStorage.setItem(STORAGE_KEY, "dark");
 		const user = userEvent.setup();
 		renderToggle();
+		expect(document.documentElement.dataset.colorScheme).toBe("dark");
 
 		await user.click(screen.getByTestId(testIds.header.themeToggle));
 		await user.click(
@@ -49,8 +51,7 @@ describe("ModeToggle", () => {
 		);
 
 		expect(localStorage.getItem(STORAGE_KEY)).toBe("system");
-		// Global matchMedia mock reports light OS theme.
-		expect(document.documentElement.classList.contains("light")).toBe(true);
+		expect(document.documentElement.dataset.colorScheme).toBeUndefined();
 	});
 
 	it("selecting Dark applies it instantly without a reload", async () => {
@@ -63,6 +64,6 @@ describe("ModeToggle", () => {
 		);
 
 		expect(localStorage.getItem(STORAGE_KEY)).toBe("dark");
-		expect(document.documentElement.classList.contains("dark")).toBe(true);
+		expect(document.documentElement.dataset.colorScheme).toBe("dark");
 	});
 });

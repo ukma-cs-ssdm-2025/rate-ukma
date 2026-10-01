@@ -1,41 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { act } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { ThemeProvider, useTheme } from "./ThemeProvider";
-
-type ChangeListener = (event: { matches: boolean }) => void;
-
-function mockMatchMedia(initialMatches: boolean) {
-	let matches = initialMatches;
-	const listeners = new Set<ChangeListener>();
-	const mql = {
-		get matches() {
-			return matches;
-		},
-		media: "(prefers-color-scheme: dark)",
-		addEventListener: vi.fn((_type: string, listener: ChangeListener) => {
-			listeners.add(listener);
-		}),
-		removeEventListener: vi.fn((_type: string, listener: ChangeListener) => {
-			listeners.delete(listener);
-		}),
-		addListener: vi.fn(),
-		removeListener: vi.fn(),
-		dispatchEvent: vi.fn(),
-	};
-	vi.mocked(globalThis.matchMedia).mockReturnValue(
-		mql as unknown as MediaQueryList,
-	);
-	return {
-		setMatches(next: boolean) {
-			matches = next;
-			for (const listener of listeners) listener({ matches: next });
-		},
-		mql,
-	};
-}
 
 function ThemeProbe() {
 	const { theme, setTheme } = useTheme();
@@ -60,148 +27,72 @@ function ThemeProbe() {
 
 const STORAGE_KEY = "rate-ukma-theme";
 
+function colorScheme() {
+	return document.documentElement.dataset.colorScheme;
+}
+
+function renderProvider() {
+	return render(
+		<ThemeProvider>
+			<ThemeProbe />
+		</ThemeProvider>,
+	);
+}
+
 beforeEach(() => {
 	localStorage.clear();
-	document.documentElement.classList.remove("light", "dark");
+	delete document.documentElement.dataset.colorScheme;
 });
 
 describe("ThemeProvider", () => {
-	it("follows the OS dark theme when nothing is stored", () => {
-		mockMatchMedia(true);
-
-		render(
-			<ThemeProvider>
-				<ThemeProbe />
-			</ThemeProvider>,
-		);
+	it("defaults to System and leaves the scheme to CSS", () => {
+		renderProvider();
 
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
-		expect(document.documentElement.classList.contains("dark")).toBe(true);
+		expect(colorScheme()).toBeUndefined();
 	});
 
-	it("falls back to the OS theme when the stored value is invalid", () => {
-		mockMatchMedia(false);
+	it("falls back to System when the stored value is invalid", () => {
 		localStorage.setItem(STORAGE_KEY, "banana");
 
-		render(
-			<ThemeProvider>
-				<ThemeProbe />
-			</ThemeProvider>,
-		);
+		renderProvider();
 
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
-		expect(document.documentElement.classList.contains("light")).toBe(true);
+		expect(colorScheme()).toBeUndefined();
 	});
 
-	it("keeps an explicit choice even when the OS theme differs", () => {
-		mockMatchMedia(true);
+	it("applies a stored explicit choice to <html>", () => {
 		localStorage.setItem(STORAGE_KEY, "light");
 
-		render(
-			<ThemeProvider>
-				<ThemeProbe />
-			</ThemeProvider>,
-		);
+		renderProvider();
 
-		expect(document.documentElement.classList.contains("light")).toBe(true);
-		expect(document.documentElement.classList.contains("dark")).toBe(false);
-	});
-
-	it("applies the OS change instantly while System is selected", () => {
-		const { setMatches } = mockMatchMedia(false);
-
-		render(
-			<ThemeProvider>
-				<ThemeProbe />
-			</ThemeProvider>,
-		);
-
-		expect(document.documentElement.classList.contains("light")).toBe(true);
-
-		act(() => {
-			setMatches(true);
-		});
-
-		expect(document.documentElement.classList.contains("dark")).toBe(true);
-		expect(document.documentElement.classList.contains("light")).toBe(false);
-	});
-
-	it("ignores OS changes while an explicit theme is selected", () => {
-		const { setMatches } = mockMatchMedia(false);
-		localStorage.setItem(STORAGE_KEY, "light");
-
-		render(
-			<ThemeProvider>
-				<ThemeProbe />
-			</ThemeProvider>,
-		);
-
-		act(() => {
-			setMatches(true);
-		});
-
-		expect(document.documentElement.classList.contains("light")).toBe(true);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("light");
+		expect(colorScheme()).toBe("light");
 	});
 
 	it("persists the choice and ends rapid toggling on the last value", async () => {
-		mockMatchMedia(false);
 		const user = userEvent.setup();
-
-		render(
-			<ThemeProvider>
-				<ThemeProbe />
-			</ThemeProvider>,
-		);
+		renderProvider();
 
 		await user.click(screen.getByRole("button", { name: "to-light" }));
+		expect(colorScheme()).toBe("light");
 		await user.click(screen.getByRole("button", { name: "to-dark" }));
+		expect(colorScheme()).toBe("dark");
 		await user.click(screen.getByRole("button", { name: "to-system" }));
 
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 		expect(localStorage.getItem(STORAGE_KEY)).toBe("system");
-		expect(document.documentElement.classList.contains("light")).toBe(true);
+		expect(colorScheme()).toBeUndefined();
 	});
 
 	it("ignores invalid theme values passed to setTheme", async () => {
-		mockMatchMedia(false);
 		const user = userEvent.setup();
-
-		render(
-			<ThemeProvider>
-				<ThemeProbe />
-			</ThemeProvider>,
-		);
+		renderProvider();
 
 		await user.click(screen.getByRole("button", { name: "to-invalid" }));
 
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
-	});
-
-	it("picks up an OS flip between init and effect subscription", () => {
-		let calls = 0;
-		vi.mocked(globalThis.matchMedia).mockImplementation(((query: string) => {
-			calls += 1;
-			// The OS flips to dark after lazy init but before the effect runs.
-			const matches = calls > 1;
-			return {
-				matches,
-				media: query,
-				addEventListener: vi.fn(),
-				removeEventListener: vi.fn(),
-				addListener: vi.fn(),
-				removeListener: vi.fn(),
-				dispatchEvent: vi.fn(),
-			};
-		}) as typeof globalThis.matchMedia);
-
-		render(
-			<ThemeProvider>
-				<ThemeProbe />
-			</ThemeProvider>,
-		);
-
-		expect(document.documentElement.classList.contains("dark")).toBe(true);
-		expect(document.documentElement.classList.contains("light")).toBe(false);
+		expect(colorScheme()).toBeUndefined();
 	});
 });

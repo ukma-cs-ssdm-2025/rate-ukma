@@ -26,24 +26,14 @@
 		<meta name="twitter:card" content="summary" />
 		<link rel="manifest" href="/manifest.json" />
 		<title>Rate UKMA - Оцінюй. Відгукуйся. Обирай найкращі курси НаУКМА</title>
-		<!-- Set the theme class before first paint to avoid a flash (mirrors ThemeProvider defaults). -->
+		<meta name="color-scheme" content="light dark" />
+		<!-- Apply an explicit theme pick before first paint (mirrors ThemeProvider). "System" needs no script: CSS follows prefers-color-scheme. -->
 		<script>
 			try {
-				var storedTheme = localStorage.getItem("rate-ukma-theme") || "system";
-				if (
-					storedTheme !== "light" &&
-					storedTheme !== "dark" &&
-					storedTheme !== "system"
-				) {
-					storedTheme = "system";
+				var storedTheme = localStorage.getItem("rate-ukma-theme");
+				if (storedTheme === "light" || storedTheme === "dark") {
+					document.documentElement.dataset.colorScheme = storedTheme;
 				}
-				var resolvedTheme =
-					storedTheme === "system"
-						? matchMedia("(prefers-color-scheme: dark)").matches
-							? "dark"
-							: "light"
-						: storedTheme;
-				document.documentElement.classList.add(resolvedTheme);
 			} catch (error) {}
 		</script>
 	</head>

@@ -27,14 +27,8 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
-const SYSTEM_THEME_QUERY = "(prefers-color-scheme: dark)";
-
 function isTheme(value: string | null): value is Theme {
 	return value === "dark" || value === "light" || value === "system";
-}
-
-function resolveSystemTheme(): "dark" | "light" {
-	return globalThis.matchMedia(SYSTEM_THEME_QUERY).matches ? "dark" : "light";
 }
 
 export function ThemeProvider({
@@ -47,28 +41,17 @@ export function ThemeProvider({
 		const stored = localStorage.getItem(storageKey);
 		return isTheme(stored) ? stored : defaultTheme;
 	});
-	const [systemTheme, setSystemTheme] = useState<"dark" | "light">(
-		resolveSystemTheme,
-	);
 
-	// Follow the OS theme while "System" is selected so the switch is instant.
-	useEffect(() => {
-		const mediaQuery = globalThis.matchMedia(SYSTEM_THEME_QUERY);
-		const handleChange = (event: MediaQueryListEvent) => {
-			setSystemTheme(event.matches ? "dark" : "light");
-		};
-		mediaQuery.addEventListener("change", handleChange);
-		// Re-sync: the OS theme may have flipped between init and subscribe.
-		setSystemTheme(mediaQuery.matches ? "dark" : "light");
-		return () => mediaQuery.removeEventListener("change", handleChange);
-	}, []);
-
+	// CSS resolves "system" via prefers-color-scheme (see styles.css), so only
+	// an explicit pick is written to <html>; OS changes need no JS.
 	useEffect(() => {
 		const root = globalThis.document.documentElement;
-
-		root.classList.remove("light", "dark");
-		root.classList.add(theme === "system" ? systemTheme : theme);
-	}, [theme, systemTheme]);
+		if (theme === "system") {
+			delete root.dataset.colorScheme;
+		} else {
+			root.dataset.colorScheme = theme;
+		}
+	}, [theme]);
 
 	const setTheme = useCallback(
 		(newTheme: Theme) => {
