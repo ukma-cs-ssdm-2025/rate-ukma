@@ -104,12 +104,14 @@ export function FeedPromoItem({
 				</div>
 			}
 		>
-			{/* Banner only: the strip cards are too narrow to carry an image. */}
+			{/* Banner only: the strip cards are too narrow to carry an image.
+			    Promo images are often square logos, so keep their own shape and
+			    never upscale them past their natural size. */}
 			{item.imageUrl && (
 				<img
 					src={item.imageUrl}
 					alt={item.title}
-					className="aspect-[3/1] w-full rounded-lg bg-muted object-cover"
+					className="h-auto max-h-64 w-auto max-w-full self-start rounded-lg object-contain"
 					loading="lazy"
 				/>
 			)}

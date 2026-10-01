@@ -181,7 +181,11 @@ function CourseDetailsRoute() {
 
 					{isDesktop ? (
 						<aside className="min-w-0">
-							<div className="lg:sticky lg:top-24">{about}</div>
+							{/* Capped to the viewport so a rail taller than the screen scrolls
+							    on its own instead of hiding its end until the page bottom. */}
+							<div className="lg:sticky lg:top-24 lg:-mr-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pr-3 lg:[scrollbar-gutter:stable] lg:[scrollbar-width:thin]">
+								{about}
+							</div>
 						</aside>
 					) : null}
 				</div>

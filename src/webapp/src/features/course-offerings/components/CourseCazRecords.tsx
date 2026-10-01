@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
 import { ExternalLink } from "lucide-react";
 
@@ -186,17 +186,20 @@ function RecordLink({
 			{/* Break only between facts, so "5 ECTS" never splits, and keep the
 			    icon on the last one. */}
 			{label.split(", ").map((part, index, parts) => (
-				<span key={part} className="whitespace-nowrap">
+				<Fragment key={part}>
+					{/* The space sits outside the nowrap span, or nothing could break. */}
 					{index > 0 ? " " : null}
-					{part}
-					{index < parts.length - 1 ? "," : null}
-					{index === parts.length - 1 ? (
-						<ExternalLink
-							className="ml-1 inline size-3 align-baseline"
-							aria-hidden="true"
-						/>
-					) : null}
-				</span>
+					<span className="whitespace-nowrap">
+						{part}
+						{index < parts.length - 1 ? "," : null}
+						{index === parts.length - 1 ? (
+							<ExternalLink
+								className="ml-1 inline size-3 align-baseline"
+								aria-hidden="true"
+							/>
+						) : null}
+					</span>
+				</Fragment>
 			))}
 		</a>
 	);
@@ -324,7 +327,7 @@ export function CourseCazRecords({
 		<div>
 			{/* One grid for every year, so badges and links line up down the list. */}
 			<Collapsible open={expanded} asChild>
-				<ul className="grid grid-cols-[5.5rem_minmax(0,max-content)_auto] gap-x-3 gap-y-3 text-sm">
+				<ul className="grid grid-cols-[5.5rem_fit-content(6rem)_minmax(min-content,1fr)] gap-x-3 gap-y-3 text-sm">
 					{groups.slice(0, initialVisible).map(renderGroup)}
 					{rest.length > 0 ? (
 						<CollapsibleContent asChild className="mx-0 px-0">
