@@ -79,6 +79,21 @@ interface CoursesTableProps {
 	pagination?: PaginationInfo;
 }
 
+const UK_PLURAL = new Intl.PluralRules("uk");
+const REVIEW_FORMS: Record<Intl.LDMLPluralRule, string> = {
+	zero: "відгуків",
+	one: "відгук",
+	two: "відгуки",
+	few: "відгуки",
+	many: "відгуків",
+	other: "відгуку",
+};
+
+function formatReviewsCount(count: number): string {
+	if (count === 0) return "Без відгуків";
+	return `${count} ${REVIEW_FORMS[UK_PLURAL.select(count)]}`;
+}
+
 const MAP_COLLAPSED_STORAGE_KEY = "courses-map-collapsed";
 
 function CoursesMapCard({
@@ -183,9 +198,17 @@ function buildCoursesTableColumns({
 		{
 			id: "title",
 			accessorKey: "title",
-			header: ({ column }) => (
-				<CourseColumnHeader column={column} title="Назва курсу" />
-			),
+			header: ({ column }) =>
+				// One sort menu in the DOM: phones get it here, wider screens in «Відгуки».
+				compact ? (
+					<CoursesReviewsSortMenu
+						value={reviewsSortValue}
+						onValueChange={onReviewsSortChange}
+						variant="mobile"
+					/>
+				) : (
+					<CourseColumnHeader column={column} title="Назва курсу" />
+				),
 			cell: ({ row }) => {
 				const course = row.original;
 				const courseId = course.id;
@@ -219,6 +242,12 @@ function buildCoursesTableColumns({
 							</Tooltip>
 						)}
 						<CourseSpecialityBadges specialities={course.specialities} />
+						<span
+							className="basis-full text-xs tabular-nums text-muted-foreground sm:hidden"
+							data-testid={testIds.courses.tableReviewsCountMobile}
+						>
+							{formatReviewsCount(course.ratings_count ?? 0)}
+						</span>
 					</span>
 				);
 			},
@@ -234,14 +263,15 @@ function buildCoursesTableColumns({
 		{
 			id: "ratings_count",
 			accessorKey: "ratings_count",
-			header: () => (
-				<div className="hidden text-muted-foreground sm:block">
-					<CoursesReviewsSortMenu
-						value={reviewsSortValue}
-						onValueChange={onReviewsSortChange}
-					/>
-				</div>
-			),
+			header: () =>
+				compact ? null : (
+					<div className="text-muted-foreground">
+						<CoursesReviewsSortMenu
+							value={reviewsSortValue}
+							onValueChange={onReviewsSortChange}
+						/>
+					</div>
+				),
 			cell: ({ row }) => {
 				const count = row.getValue("ratings_count") as number;
 				return (
@@ -256,7 +286,7 @@ function buildCoursesTableColumns({
 			meta: {
 				label: "Відгуки",
 				align: "center",
-				// Low value on a narrow screen; the sort menu is desktop-only anyway.
+				// Phones show the count under the title and the sort in its header.
 				hideOnMobile: true,
 			},
 		},

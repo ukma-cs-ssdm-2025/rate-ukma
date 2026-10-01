@@ -39,3 +39,45 @@ describe("CoursesReviewsSortMenu sort hint", () => {
 		);
 	});
 });
+
+describe("CoursesReviewsSortMenu mobile variant", () => {
+	it("puts the hint inside the menu instead of a hover tooltip", async () => {
+		const user = userEvent.setup();
+		render(
+			<CoursesReviewsSortMenu
+				value="by-count"
+				onValueChange={vi.fn()}
+				variant="mobile"
+			/>,
+		);
+
+		expect(screen.queryByTestId(testIds.courses.sortInfoHint)).toBeNull();
+
+		await user.click(
+			screen.getByTestId(testIds.courses.reviewsSortButtonMobile),
+		);
+
+		expect(
+			await screen.findByTestId(testIds.courses.sortInfoHintMobile),
+		).toHaveTextContent(COURSES_SORT_HINT);
+	});
+
+	it("still switches the sort from the menu", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn();
+		render(
+			<CoursesReviewsSortMenu
+				value="by-count"
+				onValueChange={onValueChange}
+				variant="mobile"
+			/>,
+		);
+
+		await user.click(
+			screen.getByTestId(testIds.courses.reviewsSortButtonMobile),
+		);
+		await user.click(screen.getByRole("menuitem", { name: "Найновіші" }));
+
+		expect(onValueChange).toHaveBeenCalledWith("newest");
+	});
+});
