@@ -66,8 +66,8 @@ export const FEATURE_FLAG_OVERRIDES_STORAGE_KEY = STORAGE_KEY;
 /**
  * Expose `window.featureFlags` helpers in non-live environments so a flag can
  * be flipped straight from the browser console:
- *   featureFlags.set("fe_instructor_multiselect", true)
- *   featureFlags.clear("fe_instructor_multiselect")
+ *   featureFlags.set("fe_feed", true)
+ *   featureFlags.clear("fe_feed")
  *   featureFlags.list()
  */
 export function installFeatureFlagConsoleHelpers(): void {

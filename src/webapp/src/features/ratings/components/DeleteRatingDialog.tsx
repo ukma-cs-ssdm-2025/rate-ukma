@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/Toaster";
 import {
 	getCoursesRatingsListQueryKey,
 	getCoursesRetrieveQueryKey,
+	getFeedListInfiniteQueryKey,
 	getStudentsMeCoursesRetrieveQueryKey,
 	getStudentsMeGradesRetrieveQueryKey,
 	useCoursesRatingsDestroy,
@@ -50,6 +51,9 @@ export function DeleteRatingDialog({
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getCoursesRetrieveQueryKey(courseId),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getFeedListInfiniteQueryKey(),
 			}),
 		]);
 	};

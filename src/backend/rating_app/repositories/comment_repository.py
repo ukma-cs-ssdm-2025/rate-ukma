@@ -1,3 +1,4 @@
+import uuid
 from typing import Any, Literal, overload
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -15,6 +16,7 @@ from rating_app.application_schemas.comment import (
     CommentPutParams,
     CommentUpsertParams,
 )
+from rating_app.application_schemas.feed import FeedCommentItem as FeedCommentItemDTO
 from rating_app.application_schemas.pagination import PaginationFilters, PaginationResult
 from rating_app.exception.comment_exception import (
     CommentNotFoundError,
@@ -33,9 +35,11 @@ class CommentRepository(
     def __init__(
         self,
         mapper: IProcessor[[Comment], CommentDTO],
+        feed_mapper: IProcessor[[Comment], FeedCommentItemDTO],
         paginator: GenericQuerysetPaginator[Comment],
     ):
         self.mapper = mapper
+        self.feed_mapper = feed_mapper
         self.paginator = paginator
 
     def get_all(self) -> list[CommentDTO]:
@@ -216,6 +220,12 @@ class CommentRepository(
         comments = self._build_base_queryset()
         comments = self._apply_filters(comments, criteria)
         return comments
+
+    def get_feed_items_by_ids(self, ids: list[uuid.UUID]) -> list[FeedCommentItemDTO]:
+        comments = Comment.objects.select_related("rating__course_offering__course").filter(
+            id__in=ids
+        )
+        return [self.feed_mapper.process(comment) for comment in comments]
 
     def _build_base_queryset(self) -> QuerySet[Comment]:
         return (

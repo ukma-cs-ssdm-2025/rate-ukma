@@ -2,7 +2,12 @@ import datetime
 import uuid
 from decimal import Decimal
 
-from rating_app.application_schemas.feed import FeedPage, FeedPromoItem, FeedReviewItem
+from rating_app.application_schemas.feed import (
+    FeedCommentItem,
+    FeedPage,
+    FeedPromoItem,
+    FeedReviewItem,
+)
 from rating_app.models.choices import FeedPostAccent, SemesterTerm
 from rating_app.serializers.feed import FeedPageSerializer
 
@@ -37,6 +42,18 @@ def _promo(**overrides) -> FeedPromoItem:
     )
 
 
+def _comment(**overrides) -> FeedCommentItem:
+    return FeedCommentItem(
+        id=uuid.uuid4(),
+        occurred_at=NOW,
+        rating_id=uuid.uuid4(),
+        course_id=uuid.uuid4(),
+        course_title="Дискретна математика",
+        content="Погоджуюсь",
+        **overrides,
+    )
+
+
 def _serialize(*items) -> list[dict]:
     return FeedPageSerializer(FeedPage(items=list(items))).data["items"]
 
@@ -47,6 +64,21 @@ def test_review_items_are_tagged_review():
 
 def test_promo_items_are_tagged_promo():
     assert _serialize(_promo())[0]["kind"] == "promo"
+
+
+def test_comment_items_are_tagged_comment():
+    item = _serialize(_comment())[0]
+
+    assert item["kind"] == "comment"
+    assert set(item) == {
+        "kind",
+        "id",
+        "occurred_at",
+        "rating_id",
+        "course_id",
+        "course_title",
+        "content",
+    }
 
 
 def test_course_averages_serialize_as_numbers_not_strings():

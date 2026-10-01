@@ -2,10 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.core.management import call_command
 
-import pytest
 
-
-@pytest.mark.django_db
 @patch("scraper.management.commands.insert_scraped.courses_ingestion")
 def test_insert_scraped_success(mock_ingestion):
     # Arrange
@@ -20,7 +17,6 @@ def test_insert_scraped_success(mock_ingestion):
     mock_operation.execute.assert_called_once()
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.insert_scraped.courses_ingestion")
 def test_insert_scraped_with_batch_size(mock_ingestion):
     # Arrange
@@ -37,7 +33,6 @@ def test_insert_scraped_with_batch_size(mock_ingestion):
     assert call_args.kwargs["batch_size"] == 50
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.insert_scraped.courses_ingestion")
 def test_insert_scraped_dry_run(mock_ingestion):
     # Arrange

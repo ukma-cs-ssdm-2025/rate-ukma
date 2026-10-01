@@ -3,6 +3,8 @@ import uuid
 from dataclasses import dataclass, field
 from decimal import Decimal
 
+from django.contrib.contenttypes.models import ContentType
+
 from pydantic import BaseModel, Field
 from pydantic.alias_generators import to_snake
 
@@ -11,7 +13,7 @@ from rating_app.constants import (
     MAX_PAGE_SIZE,
     MIN_PAGE_SIZE,
 )
-from rating_app.models.choices import FeedPostAccent, SemesterTerm
+from rating_app.models.choices import FeedEventType, FeedPostAccent, SemesterTerm
 
 
 @dataclass(frozen=True)
@@ -48,8 +50,42 @@ class FeedPromoItem(FeedItemBase):
 
 
 @dataclass(frozen=True)
+class FeedCommentItem(FeedItemBase):
+    rating_id: uuid.UUID
+    course_id: uuid.UUID
+    course_title: str
+    content: str
+
+
+FeedItem = FeedReviewItem | FeedPromoItem | FeedCommentItem
+
+
+@dataclass(frozen=True, slots=True)
+class FeedEventRow:
+    # an index entry
+    # object_id is the key of the source feed item
+
+    id: uuid.UUID
+    event_type: FeedEventType
+    occurred_at: datetime.datetime
+    object_id: uuid.UUID
+
+
+@dataclass(frozen=True)
+class FeedEventUpsertData:
+    # key: (content_type, object_id)
+
+    event_type: FeedEventType
+    content_type: ContentType
+    object_id: uuid.UUID
+    occurred_at: datetime.datetime
+    is_visible: bool = True
+    pinned: bool = False
+
+
+@dataclass(frozen=True)
 class FeedPage:
-    items: list[FeedReviewItem | FeedPromoItem] = field(default_factory=list)
+    items: list[FeedItem] = field(default_factory=list)
     next_cursor: str | None = None
 
 

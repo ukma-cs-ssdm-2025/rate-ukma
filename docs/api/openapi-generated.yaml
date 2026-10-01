@@ -1857,6 +1857,11 @@ paths:
           format: uuid
         description: Boost instructors most mentioned on this course offering
       - in: query
+        name: mentioned_only
+        schema:
+          type: boolean
+        description: Only return instructors mentioned in at least one rating
+      - in: query
         name: page
         schema:
           type: integer
@@ -2992,32 +2997,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/ExamTypeEnum'
           readOnly: true
-        practice_type:
-          allOf:
-          - $ref: '#/components/schemas/PracticeTypeEnum'
-          readOnly: true
-          nullable: true
-        credits:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,3}(?:\.\d{0,1})?$
-          readOnly: true
-        weekly_hours:
-          type: integer
-          readOnly: true
-        total_hours:
-          type: integer
-          readOnly: true
-          nullable: true
         study_year:
-          type: integer
-          readOnly: true
-          nullable: true
-        lecture_count:
-          type: integer
-          readOnly: true
-          nullable: true
-        practice_count:
           type: integer
           readOnly: true
           nullable: true
@@ -3272,15 +3252,50 @@ components:
           description: Enabled state of each public feature flag for the current user.
       required:
       - flags
+    FeedCommentItem:
+      type: object
+      properties:
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/FeedCommentItemKindEnum'
+          readOnly: true
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+        rating_id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_title:
+          type: string
+          readOnly: true
+        content:
+          type: string
+          readOnly: true
+    FeedCommentItemKindEnum:
+      type: string
+      enum:
+      - comment
     FeedItem:
       oneOf:
       - $ref: '#/components/schemas/FeedReviewItem'
       - $ref: '#/components/schemas/FeedPromoItem'
+      - $ref: '#/components/schemas/FeedCommentItem'
       discriminator:
         propertyName: kind
         mapping:
           review: '#/components/schemas/FeedReviewItem'
           promo: '#/components/schemas/FeedPromoItem'
+          comment: '#/components/schemas/FeedCommentItem'
     FeedPage:
       type: object
       properties:
@@ -3761,16 +3776,15 @@ components:
     PublicFeatureFlags:
       type: object
       properties:
-        fe_instructor_multiselect:
-          type: boolean
-          description: Whether `fe_instructor_multiselect` is enabled for the current
-            user.
         fe_feed:
           type: boolean
           description: Whether `fe_feed` is enabled for the current user.
+        fe_faculty_colors:
+          type: boolean
+          description: Whether `fe_faculty_colors` is enabled for the current user.
       required:
+      - fe_faculty_colors
       - fe_feed
-      - fe_instructor_multiselect
     RatingCreateRequest:
       properties:
         course_offering:
@@ -4060,10 +4074,26 @@ components:
           nullable: true
         is_student:
           type: boolean
+        speciality:
+          allOf:
+          - $ref: '#/components/schemas/SessionSpeciality'
+          nullable: true
       required:
       - is_authenticated
       - is_student
+      - speciality
       - user
+    SessionSpeciality:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+      - id
+      - name
     SessionUser:
       type: object
       properties:
@@ -4120,6 +4150,10 @@ components:
         course_offering_id:
           type: string
           readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
+          nullable: true
         semester:
           allOf:
           - $ref: '#/components/schemas/InlineSemester'

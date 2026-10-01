@@ -2,6 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from django.db import transaction
+
 import structlog
 
 from rateukma.caching.decorators import rcached
@@ -41,6 +43,7 @@ from rating_app.repositories import (
 from rating_app.repositories.instructor_repository import InstructorRepository
 from rating_app.services.comment_normalizer import CommentNormalizer
 from rating_app.services.course_offering_service import CourseOfferingService
+from rating_app.services.rating_events import RatingAction, RatingEvent
 from rating_app.services.semester_service import SemesterService
 
 logger = structlog.get_logger(__name__)
@@ -56,7 +59,7 @@ def _ratings_course_namespace(
     return course_ratings_namespace(str(filters.course_id))
 
 
-class RatingService(IObservable[RatingDTO]):
+class RatingService(IObservable[RatingEvent]):
     def __init__(
         self,
         rating_repository: RatingRepository,
@@ -76,15 +79,15 @@ class RatingService(IObservable[RatingDTO]):
         self.vote_mapper = vote_mapper
         self.comment_normalizer = comment_normalizer
         self.instructor_repository = instructor_repository
-        self._listeners: list[IEventListener[RatingDTO]] = []
+        self._listeners: list[IEventListener[RatingEvent]] = []
 
     @implements
-    def notify(self, event: RatingDTO, *args, **kwargs) -> None:
+    def notify(self, event: RatingEvent, *args, **kwargs) -> None:
         for listener in self._listeners:
             listener.on_event(event, *args, **kwargs)
 
     @implements
-    def add_observer(self, observer: IEventListener[RatingDTO]) -> None:
+    def add_observer(self, observer: IEventListener[RatingEvent]) -> None:
         self._listeners.append(observer)
 
     def get_rating(self, rating_id: str) -> RatingDTO:
@@ -144,14 +147,6 @@ class RatingService(IObservable[RatingDTO]):
             applied_filters=applied_filters,
         )
 
-    def _create_single_page_metadata(self, total: int) -> PaginationMetadata:
-        return PaginationMetadata(
-            page=1,
-            page_size=total,
-            total=total,
-            total_pages=1,
-        )
-
     def create_rating(self, params: RatingCreateParams) -> RatingDTO:
         student_id = str(params.student)
         offering_id = str(params.course_offering)
@@ -177,8 +172,13 @@ class RatingService(IObservable[RatingDTO]):
         params.comment = self.comment_normalizer.normalize_comment(params.comment)
         self._validate_instructor_ids(params.instructor_ids)
 
-        rating = self.rating_repository.create(params)
-        self.notify(rating)
+        # Listeners write derived state (course aggregates, the feed index); a
+        # failure in any of them must take the rating with it, not leave it half
+        # applied. Autocommit would otherwise commit the row before they run.
+        with transaction.atomic():
+            rating = self.rating_repository.create(params)
+            self.notify(RatingEvent(rating=rating, action=RatingAction.CREATED))
+
         return rating
 
     def update_rating(
@@ -186,31 +186,15 @@ class RatingService(IObservable[RatingDTO]):
     ) -> RatingDTO:
         update_data.comment = self.comment_normalizer.normalize_comment(update_data.comment)
         self._validate_instructor_ids(update_data.instructor_ids)
-        updated_rating = self.rating_repository.update(rating, update_data)
-        self.notify(updated_rating)
+        with transaction.atomic():
+            updated_rating = self.rating_repository.update(rating, update_data)
+            self.notify(RatingEvent(rating=updated_rating, action=RatingAction.UPDATED))
         return updated_rating
 
-    def _validate_instructor_ids(self, instructor_ids: list[uuid.UUID] | None) -> None:
-        """Reject ids that do not reference an existing Instructor.
-
-        Django's M2M ``.set()`` silently ignores unknown primary keys, which
-        would let a client persist a rating with fewer instructors than it asked
-        for and no error. Fail loudly with a 400 instead.
-        """
-        if not instructor_ids:
-            return
-
-        unique_ids = set(instructor_ids)
-        found = self.instructor_repository.get_many_by_ids(list(unique_ids))
-        missing = unique_ids - {instructor.id for instructor in found}
-        if missing:
-            raise InvalidInstructorIdsError(
-                detail=f"Unknown instructor ids: {sorted(str(i) for i in missing)}"
-            )
-
     def delete_rating(self, rating: RatingDTO) -> None:
-        self.rating_repository.delete(str(rating.id))
-        self.notify(rating)
+        with transaction.atomic():
+            self.rating_repository.delete(str(rating.id))
+            self.notify(RatingEvent(rating=rating, action=RatingAction.DELETED))
 
     def is_semester_open_for_rating(
         self,
@@ -239,3 +223,29 @@ class RatingService(IObservable[RatingDTO]):
 
     def _format_applied_filters(self, filters: RatingFilterCriteria) -> dict[str, Any]:
         return filters.model_dump(by_alias=True, exclude={"page", "page_size"}, exclude_none=True)
+
+    def _create_single_page_metadata(self, total: int) -> PaginationMetadata:
+        return PaginationMetadata(
+            page=1,
+            page_size=total,
+            total=total,
+            total_pages=1,
+        )
+
+    def _validate_instructor_ids(self, instructor_ids: list[uuid.UUID] | None) -> None:
+        """Reject ids that do not reference an existing Instructor.
+
+        Django's M2M ``.set()`` silently ignores unknown primary keys, which
+        would let a client persist a rating with fewer instructors than it asked
+        for and no error. Fail loudly with a 400 instead.
+        """
+        if not instructor_ids:
+            return
+
+        unique_ids = set(instructor_ids)
+        found = self.instructor_repository.get_many_by_ids(list(unique_ids))
+        missing = unique_ids - {instructor.id for instructor in found}
+        if missing:
+            raise InvalidInstructorIdsError(
+                detail=f"Unknown instructor ids: {sorted(str(i) for i in missing)}"
+            )

@@ -12,6 +12,8 @@ from rating_app.repositories.to_domain_mappers import (
     DepartmentMapper,
     EnrollmentMapper,
     FacultyMapper,
+    FeedCommentMapper,
+    FeedEventRowMapper,
     FeedPostMapper,
     FeedReviewMapper,
     InstructorMapper,
@@ -33,6 +35,7 @@ from ..repositories import (
     DepartmentRepository,
     EnrollmentRepository,
     FacultyRepository,
+    FeedEventRepository,
     FeedPostRepository,
     InstructorRepository,
     PromoBannerRepository,
@@ -144,6 +147,16 @@ def feed_post_repository() -> FeedPostRepository:
 
 
 @once
+def feed_event_row_mapper() -> FeedEventRowMapper:
+    return FeedEventRowMapper()
+
+
+@once
+def feed_event_repository() -> FeedEventRepository:
+    return FeedEventRepository(mapper=feed_event_row_mapper())
+
+
+@once
 def course_repository() -> CourseRepository:
     paginator = GenericQuerysetPaginator[Course]()
     return CourseRepository(mapper=course_mapper(), paginator=paginator)
@@ -206,7 +219,16 @@ def rating_repository() -> RatingRepository:
 
 @once
 def comment_repository() -> CommentRepository:
-    return CommentRepository(paginator=GenericQuerysetPaginator(), mapper=CommentMapper())
+    return CommentRepository(
+        paginator=GenericQuerysetPaginator(),
+        mapper=CommentMapper(),
+        feed_mapper=feed_comment_mapper(),
+    )
+
+
+@once
+def feed_comment_mapper() -> FeedCommentMapper:
+    return FeedCommentMapper()
 
 
 @once

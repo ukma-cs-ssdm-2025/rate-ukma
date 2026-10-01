@@ -1,10 +1,13 @@
 import uuid
 
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 
 
 class Comment(models.Model):
+    rating_id: uuid.UUID
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     content = models.TextField()
     rating = models.ForeignKey(
@@ -25,6 +28,9 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name="comments",
     )
+    # Reverse side of `FeedEvent.source`: lets the collector cascade the index
+    # entry on every delete path, including the cascade from a deleted rating.
+    feed_events = GenericRelation("rating_app.FeedEvent")
 
     class Meta:
         indexes = [

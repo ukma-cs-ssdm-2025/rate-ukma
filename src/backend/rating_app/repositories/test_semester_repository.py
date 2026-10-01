@@ -6,7 +6,6 @@ from rating_app.application_schemas.semester import Semester as SemesterDTO
 from rating_app.models.choices import SemesterTerm
 from rating_app.repositories.semester_repository import SemesterRepository
 from rating_app.repositories.to_domain_mappers import SemesterMapper
-from rating_app.tests.factories import SemesterFactory
 
 
 @pytest.fixture
@@ -16,8 +15,10 @@ def repo():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_create_creates_different_semester_with_same_year_different_term(repo):
-    existing = SemesterFactory(year=2024, term=SemesterTerm.FALL)
+def test_get_or_create_creates_different_semester_with_same_year_different_term(
+    repo, semester_factory
+):
+    existing = semester_factory(year=2024, term=SemesterTerm.FALL)
 
     semester_dto = SemesterDTO(
         id=uuid.uuid4(),
@@ -35,8 +36,10 @@ def test_get_or_create_creates_different_semester_with_same_year_different_term(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_create_creates_different_semester_with_same_term_different_year(repo):
-    existing = SemesterFactory(year=2024, term=SemesterTerm.FALL)
+def test_get_or_create_creates_different_semester_with_same_term_different_year(
+    repo, semester_factory
+):
+    existing = semester_factory(year=2024, term=SemesterTerm.FALL)
 
     semester_dto = SemesterDTO(
         id=uuid.uuid4(),

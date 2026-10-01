@@ -10,7 +10,7 @@ def test_course_page_returns_og_tags_with_course_title(
 ):
     settings.STATIC_ROOT = tmp_path
     (tmp_path / "index.html").write_text(_MINIMAL_INDEX)
-    course = course_factory.create()
+    course = course_factory()
 
     response = api_client.get(f"/courses/{course.id}/")
 

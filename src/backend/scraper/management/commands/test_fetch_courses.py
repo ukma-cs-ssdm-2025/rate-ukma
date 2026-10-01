@@ -6,7 +6,6 @@ from django.core.management.base import CommandError
 import pytest
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.fetch_courses.with_authenticated_context")
 @patch("scraper.management.commands.fetch_courses.Path")
 def test_fetch_courses_success(mock_path, mock_auth_context):
@@ -26,7 +25,6 @@ def test_fetch_courses_success(mock_path, mock_auth_context):
     mock_decorated.assert_called_once()
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.fetch_courses.Path")
 def test_fetch_courses_file_not_found(mock_path):
     # Arrange
@@ -39,7 +37,6 @@ def test_fetch_courses_file_not_found(mock_path):
         call_command("fetch_courses", "nonexistent.jsonl")
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.fetch_courses.with_authenticated_context")
 @patch("scraper.management.commands.fetch_courses.Path")
 def test_fetch_courses_with_concurrency(mock_path, mock_auth_context):
@@ -59,7 +56,6 @@ def test_fetch_courses_with_concurrency(mock_path, mock_auth_context):
     mock_decorated.assert_called_once()
 
 
-@pytest.mark.django_db
 @patch("scraper.management.commands.fetch_courses.with_authenticated_context")
 @patch("scraper.management.commands.fetch_courses.Path")
 def test_fetch_courses_no_resume(mock_path, mock_auth_context):

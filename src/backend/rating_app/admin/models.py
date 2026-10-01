@@ -148,15 +148,12 @@ class CourseOfferingAdmin(VersionAdmin):
         "id",
         "course",
         "semester",
-        "credits",
-        "weekly_hours",
         "exam_type",
-        "practice_type",
         "instructors_count",
         "enrollments_count",
     )
     list_select_related = ("course", "semester")
-    list_filter = ("semester", "exam_type", "practice_type", "course__department")
+    list_filter = ("semester", "exam_type", "course__department")
     search_fields = ("course__title", "course__department__name")
     ordering = ("-semester__year", "-semester__term", "course__title")
 

@@ -114,6 +114,16 @@ describe("feature flags", () => {
 		expect(lastQueryKey()).toEqual([...FLAGS_QUERY_KEY, "authenticated", 1]);
 	});
 
+	it("waits for the session before requesting flags", () => {
+		authState.current = { status: "loading", user: null };
+		const { rerender } = renderHook(() => useFeatureFlags(), { wrapper });
+		expect(mockUseFlagsList.mock.calls.at(-1)?.[0]?.query?.enabled).toBe(false);
+
+		authState.current = { status: "authenticated", user: { id: 1 } };
+		rerender();
+		expect(mockUseFlagsList.mock.calls.at(-1)?.[0]?.query?.enabled).toBe(true);
+	});
+
 	it("throws when used outside the provider", () => {
 		expect(() => renderHook(() => useFeatureFlag(FE_EXAMPLE))).toThrow(
 			/within a FeatureFlagsProvider/,

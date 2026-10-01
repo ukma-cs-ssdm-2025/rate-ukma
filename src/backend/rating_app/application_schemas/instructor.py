@@ -40,6 +40,10 @@ class InstructorListParams(BaseModel):
         default=None,
         description="Boost instructors most mentioned on this speciality",
     )
+    mentioned_only: bool = Field(
+        default=False,
+        description="Only return instructors mentioned in at least one rating",
+    )
 
 
 @dataclass(frozen=True)

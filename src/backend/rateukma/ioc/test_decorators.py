@@ -109,11 +109,11 @@ def test_exception_propagation_and_retry():
         raise ValueError("Service unavailable")
 
     # Act
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Service unavailable"):
         faulty_init()
     assert call_count == 1, "The function was not called on the first attempt."
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Service unavailable"):
         faulty_init()
 
     # Assert

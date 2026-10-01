@@ -87,12 +87,7 @@ class DeduplicatedCourseOfferingTerm(BaseModel):
 class DeduplicatedCourseOffering(BaseModel):
     code: str
     semester: DeduplicatedSemester
-    credits: float
-    weekly_hours: int
     study_year: int | None = None
-    lecture_count: int | None = None
-    practice_count: int | None = None
-    practice_type: PracticeType | None = None
     exam_type: ExamType
     max_students: int | None = None
     max_groups: int | None = None

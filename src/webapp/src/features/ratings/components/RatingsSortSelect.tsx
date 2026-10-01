@@ -43,7 +43,7 @@ export function RatingsSortSelect({
 
 	return (
 		<Select value={value} onValueChange={onValueChange}>
-			<SelectTrigger className="h-9 w-fit border-none shadow-none bg-transparent hover:bg-accent/50 transition-colors">
+			<SelectTrigger className="h-9 w-fit border-0 bg-transparent shadow-none">
 				<SelectValue placeholder={selectedOption?.label} />
 			</SelectTrigger>
 			<SelectContent>

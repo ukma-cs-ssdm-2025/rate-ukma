@@ -6,6 +6,7 @@ from .choices import InstructorRole
 
 
 class CourseInstructor(models.Model):
+    # NOTE: prod-empty — scraper never populates this table (#664, removal: #687).
     instructor_id: uuid.UUID
     course_offering_id: uuid.UUID
 

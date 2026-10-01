@@ -1,0 +1,246 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { render, screen } from "@/test-utils/render";
+import { CourseAbout, offeringExamType, offeringLoad } from "./CourseAbout";
+import { CourseCazRecords, recordLabels } from "./CourseCazRecords";
+import type { CourseOffering } from "@/lib/api/generated";
+import userEvent from "@testing-library/user-event";
+
+vi.mock("@/lib/hooks/useMediaQuery", () => ({
+	useMediaQuery: () => true,
+}));
+
+function offering(over: Partial<CourseOffering> = {}): CourseOffering {
+	return {
+		id: "offering-1",
+		semester_year: 2026,
+		semester_term: "Spring",
+		code: "900026",
+		exam_type: "EXAM",
+		instructors: [],
+		terms: [
+			{
+				semester_year: 2026,
+				semester_term: "SPRING",
+				credits: "5.0",
+				weekly_hours: 4,
+				total_hours: 150,
+				lecture_count: 30,
+				practice_count: 30,
+			},
+		],
+		...over,
+	};
+}
+
+describe("offering facts", () => {
+	it("reads credits and weekly hours from the first term", () => {
+		expect(offeringLoad(offering())).toEqual({
+			credits: "5 ECTS",
+			weeklyHours: "4 год",
+		});
+	});
+
+	it("leaves missing load fields empty instead of placeholders", () => {
+		expect(
+			offeringLoad(
+				offering({
+					terms: [{ semester_year: 2026, semester_term: "SPRING" }],
+				}),
+			),
+		).toEqual({ credits: null, weeklyHours: null });
+	});
+
+	it("maps the credit control form to a Ukrainian label", () => {
+		expect(offeringExamType(offering({ exam_type: "CREDIT" }))).toBe("Залік");
+		expect(offeringExamType(offering({ exam_type: undefined }))).toBeNull();
+	});
+});
+
+describe("CourseAbout", () => {
+	it("renders facts and САЗ rows inline", () => {
+		render(
+			<CourseAbout
+				description="Короткий опис курсу."
+				latestOffering={offering()}
+				courseOfferings={[offering()]}
+			/>,
+		);
+
+		expect(
+			screen.getByRole("heading", { name: "Про курс" }),
+		).toBeInTheDocument();
+		expect(screen.getByText("Форма контролю")).toBeInTheDocument();
+		expect(
+			screen.getByRole("heading", { name: "Історія курсу" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: /2025–2026/ })).toBeInTheDocument();
+	});
+
+	it("renders nothing for САЗ when the course has no offerings", () => {
+		render(
+			<CourseAbout
+				description={null}
+				latestOffering={undefined}
+				courseOfferings={[]}
+			/>,
+		);
+
+		expect(screen.queryByText("Історія курсу")).not.toBeInTheDocument();
+	});
+});
+
+describe("CourseCazRecords", () => {
+	const rows = (years: number[]) =>
+		years.map((year) =>
+			offering({
+				id: `offering-${year}`,
+				semester_year: year,
+			}),
+		);
+
+	it("shows the first rows and an inline expand for the rest", () => {
+		render(
+			<CourseCazRecords
+				courseOfferings={rows([2026, 2025, 2024, 2023])}
+				initialVisible={2}
+			/>,
+		);
+
+		expect(screen.getByRole("link", { name: /2025–2026/ })).toBeInTheDocument();
+		expect(
+			screen.queryByRole("link", { name: /2023–2024/ }),
+		).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "ще 2" })).toBeInTheDocument();
+	});
+
+	it("expands every row inline and collapses back", async () => {
+		const user = userEvent.setup();
+		render(
+			<CourseCazRecords
+				courseOfferings={rows([2026, 2025, 2024, 2023, 2021])}
+				initialVisible={3}
+			/>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "ще 2" }));
+
+		expect(screen.getByRole("link", { name: /2020–2021/ })).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Згорнути" }));
+
+		expect(
+			screen.queryByRole("link", { name: /2020–2021/ }),
+		).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "ще 2" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+	});
+
+	it("shows each year's load when the course has one speciality", () => {
+		render(
+			<CourseCazRecords
+				courseOfferings={[
+					offering({ id: "new", semester_year: 2026 }),
+					offering({
+						id: "old",
+						semester_year: 2021,
+						terms: [
+							{
+								semester_year: 2021,
+								semester_term: "SPRING",
+								credits: "4.0",
+								weekly_hours: 3,
+							},
+						],
+					}),
+				]}
+				initialVisible={5}
+			/>,
+		);
+
+		expect(
+			screen.getByRole("link", { name: /2025–2026.*5 ECTS, 4 год/ }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: /2020–2021.*4 ECTS, 3 год/ }),
+		).toBeInTheDocument();
+	});
+
+	const spec = (title: string) => ({
+		speciality_id: title,
+		speciality_title: title,
+		speciality_alias: "",
+	});
+
+	it("lists every record of a year by speciality, without a toggle", () => {
+		render(
+			<CourseCazRecords
+				courseOfferings={[
+					offering({ id: "a", code: "900001", specialities: [spec("Право")] }),
+					offering({
+						id: "b",
+						code: "900002",
+						specialities: [spec("Економіка")],
+					}),
+				]}
+			/>,
+		);
+
+		expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+		expect(screen.getByRole("link", { name: /Право/ })).toHaveAttribute(
+			"href",
+			"https://my.ukma.edu.ua/course/900001",
+		);
+		expect(screen.getByRole("link", { name: /Економіка/ })).toHaveAttribute(
+			"href",
+			"https://my.ukma.edu.ua/course/900002",
+		);
+	});
+
+	it("labels records by speciality, then by what differs, then by code", () => {
+		expect(
+			recordLabels(
+				[
+					offering({ code: "900001", specialities: [spec("Право")] }),
+					offering({ code: "900002", specialities: [spec("Право")] }),
+					offering({ code: "900003", specialities: [spec("Економіка")] }),
+				],
+				true,
+			),
+		).toEqual([
+			"Право, 5 ECTS, 4 год, код 900001",
+			"Право, 5 ECTS, 4 год, код 900002",
+			"Економіка, 5 ECTS, 4 год",
+		]);
+		expect(
+			recordLabels(
+				[
+					offering({ study_year: 2, specialities: [spec("Право")] }),
+					offering({ study_year: 3, specialities: [spec("Право")] }),
+				],
+				true,
+			),
+		).toEqual(["Право, 2 курс, 5 ECTS, 4 год", "Право, 3 курс, 5 ECTS, 4 год"]);
+	});
+
+	it("labels one record spanning two terms with both terms", () => {
+		render(
+			<CourseCazRecords
+				courseOfferings={[
+					offering({
+						terms: [
+							{ semester_year: 2025, semester_term: "FALL", credits: "3.0" },
+							{ semester_year: 2026, semester_term: "SPRING", credits: "3.0" },
+						],
+					}),
+				]}
+			/>,
+		);
+
+		expect(screen.getByText("Осінь, Весна")).toBeInTheDocument();
+		expect(screen.getAllByRole("link")).toHaveLength(1);
+	});
+});

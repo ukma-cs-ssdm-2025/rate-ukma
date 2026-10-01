@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from rating_app.models.rating_vote import RatingVote
 from rating_app.services.notification_service import (
     DEFAULT_NOTIFICATION_PAGE_SIZE,
     NotificationService,
@@ -80,9 +81,8 @@ class TestNotificationService:
         cursor_repository.advance_cursor.assert_called_once_with(user_id)
 
     @pytest.mark.django_db
+    @pytest.mark.integration
     def test_create_notification_delegates_to_repository(self, service, notification_repository):
-        from rating_app.models.rating_vote import RatingVote
-
         notification_repository.create.return_value = MagicMock()
 
         service.create_notification(

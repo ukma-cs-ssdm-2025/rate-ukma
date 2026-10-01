@@ -49,15 +49,7 @@ class CourseOfferingSerializer(serializers.Serializer):
     semester_term = serializers.CharField(read_only=True, allow_null=True)
     code = serializers.CharField(read_only=True)
     exam_type = serializers.ChoiceField(choices=ExamType.choices, read_only=True)
-    practice_type = serializers.ChoiceField(
-        choices=PracticeType.choices, read_only=True, allow_null=True
-    )
-    credits = serializers.DecimalField(max_digits=4, decimal_places=1, read_only=True)
-    weekly_hours = serializers.IntegerField(read_only=True)
-    total_hours = serializers.IntegerField(read_only=True, allow_null=True)
     study_year = serializers.IntegerField(read_only=True, allow_null=True)
-    lecture_count = serializers.IntegerField(read_only=True, allow_null=True)
-    practice_count = serializers.IntegerField(read_only=True, allow_null=True)
     max_students = serializers.IntegerField(read_only=True, allow_null=True)
     max_groups = serializers.IntegerField(read_only=True, allow_null=True)
     group_size_min = serializers.IntegerField(read_only=True, allow_null=True)

@@ -5,6 +5,8 @@ from django.db import transaction
 
 import structlog
 
+from rating_app.ioc_container.services import feed_update_service
+
 logger = structlog.get_logger(__name__)
 
 
@@ -62,6 +64,7 @@ class Command(BaseCommand):
             CourseInstructor,
             CourseOffering,
             CourseOfferingSpeciality,
+            CourseOfferingTerm,
             Department,
             Faculty,
             Instructor,
@@ -742,16 +745,21 @@ class Command(BaseCommand):
                     code=code,
                     course=course,
                     semester=semester,
-                    credits=random.choice([3.0, 4.0, 5.0, 6.0]),
-                    weekly_hours=random.randint(2, 6),
-                    lecture_count=random.randint(15, 30),
-                    practice_count=random.randint(10, 25),
-                    practice_type=random.choice([PracticeType.PRACTICE, PracticeType.SEMINAR]),
                     exam_type=random.choice([ExamType.EXAM, ExamType.CREDIT]),
                     max_students=random.randint(25, 120),
                     max_groups=random.randint(2, 6),
                     group_size_min=random.randint(12, 18),
                     group_size_max=random.randint(18, 25),
+                )
+                CourseOfferingTerm.objects.create(
+                    offering=offering,
+                    semester=semester,
+                    credits=random.choice([3.0, 4.0, 5.0, 6.0]),
+                    weekly_hours=random.randint(2, 6),
+                    lecture_count=random.randint(15, 30),
+                    practice_count=random.randint(10, 25),
+                    practice_type=random.choice([PracticeType.PRACTICE, PracticeType.SEMINAR]),
+                    exam_type=offering.exam_type,
                 )
 
                 for speciality in course_specialities[course.id]:
@@ -817,6 +825,9 @@ class Command(BaseCommand):
                     ratings.append(rating)
 
         logger.info("ratings_created", count=len(ratings))
+
+        # `Rating.objects.create` bypasses RatingService, so nothing indexed these.
+        feed_update_service().rebuild()
 
         logger.info(
             "mock_data_generation_complete",

@@ -64,3 +64,5 @@ scripts/dora-metrics/results/*
 
 # local profiling results
 src/backend/rateukma/profiling/*
+# agent config: skills live in .agents/skills, .claude/skills/* symlinks to them
+.claude/settings.local.json

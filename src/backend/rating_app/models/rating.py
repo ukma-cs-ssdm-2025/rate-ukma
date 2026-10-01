@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
+from django.contrib.contenttypes.fields import GenericRelation
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
@@ -44,6 +45,7 @@ class Rating(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     is_anonymous = models.BooleanField(default=False)
+    feed_events = GenericRelation("rating_app.FeedEvent")
 
     class Meta:
         unique_together = ("student", "course_offering")
@@ -54,11 +56,11 @@ class Rating(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=Q(difficulty__gte=1, difficulty__lte=5),
+                condition=Q(difficulty__gte=1, difficulty__lte=5),
                 name="rating_difficulty_1_5",
             ),
             models.CheckConstraint(
-                check=Q(usefulness__gte=1, usefulness__lte=5),
+                condition=Q(usefulness__gte=1, usefulness__lte=5),
                 name="rating_usefulness_1_5",
             ),
         ]

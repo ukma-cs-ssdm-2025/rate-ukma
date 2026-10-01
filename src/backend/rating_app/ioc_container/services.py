@@ -7,6 +7,7 @@ from rating_app.ioc_container.repositories import (
     department_repository,
     enrollment_repository,
     faculty_repository,
+    feed_event_repository,
     feed_post_repository,
     instructor_mapper,
     instructor_repository,
@@ -22,6 +23,7 @@ from rating_app.ioc_container.repositories import (
     user_repository,
     vote_repository,
 )
+from rating_app.models.choices import FeedEventType
 from rating_app.pagination.paginator import GenericQuerysetPaginator
 from rating_app.services import (
     CommentNormalizer,
@@ -50,10 +52,16 @@ from rating_app.services.domain_event_listeners.cache_invalidator import (
 from rating_app.services.domain_event_listeners.comment_notification import (
     CommentNotificationObserver,
 )
+from rating_app.services.domain_event_listeners.feed_update import (
+    CommentFeedUpdateObserver,
+    RatingFeedUpdateObserver,
+)
 from rating_app.services.domain_event_listeners.vote_notification import (
     VoteNotificationObserver,
 )
+from rating_app.services.feed_item_provider import FeedItemProvider
 from rating_app.services.feed_service import FeedService
+from rating_app.services.feed_update_service import FeedUpdateService
 from rating_app.services.notification_service import NotificationService
 
 
@@ -149,10 +157,26 @@ def promo_banner_service() -> PromoBannerService:
 
 
 @once
+def feed_update_service() -> FeedUpdateService:
+    return FeedUpdateService(feed_event_repository=feed_event_repository())
+
+
+@once
+def feed_item_provider() -> FeedItemProvider:
+    return FeedItemProvider(
+        sources={
+            FeedEventType.REVIEW_PUBLISHED: rating_repository(),
+            FeedEventType.POST_PUBLISHED: feed_post_repository(),
+            FeedEventType.COMMENT_PUBLISHED: comment_repository(),
+        }
+    )
+
+
+@once
 def feed_service() -> FeedService:
     return FeedService(
-        feed_post_repository=feed_post_repository(),
-        rating_repository=rating_repository(),
+        feed_event_repository=feed_event_repository(),
+        item_provider=feed_item_provider(),
         cache_manager=redis_cache_manager(),
     )
 
@@ -225,11 +249,23 @@ def comment_notification_observer() -> CommentNotificationObserver:
     )
 
 
+@once
+def rating_feed_update_observer() -> RatingFeedUpdateObserver:
+    return RatingFeedUpdateObserver(feed_update_service=feed_update_service())
+
+
+@once
+def comment_feed_update_observer() -> CommentFeedUpdateObserver:
+    return CommentFeedUpdateObserver(feed_update_service=feed_update_service())
+
+
 def register_observers() -> None:
     rating_service().add_observer(course_model_aggregates_update_observer())
     rating_service().add_observer(rating_cache_invalidator())
+    rating_service().add_observer(rating_feed_update_observer())
     comment_service().add_observer(comment_cache_invalidator())
     comment_service().add_observer(comment_notification_observer())
+    comment_service().add_observer(comment_feed_update_observer())
     vote_service().add_observer(rating_vote_cache_invalidator())
     vote_service().add_observer(vote_notification_observer())
 

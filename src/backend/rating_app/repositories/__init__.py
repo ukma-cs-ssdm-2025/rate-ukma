@@ -5,6 +5,7 @@ from .course_repository import CourseRepository
 from .department_repository import DepartmentRepository
 from .enrollment_repository import EnrollmentRepository
 from .faculty_repository import FacultyRepository
+from .feed_event_repository import FeedEventRepository
 from .feed_post_repository import FeedPostRepository
 from .instructor_repository import InstructorRepository
 from .notification_repository import (
@@ -21,6 +22,7 @@ from .to_domain_mappers import (
     CommentMapper,
     CourseMapper,
     CourseOfferingMapper,
+    FeedCommentMapper,
     FeedPostMapper,
     FeedReviewMapper,
     InstructorMapper,
@@ -58,6 +60,8 @@ __all__ = [
     "NotificationCursorRepository",
     "NotificationGroupMapper",
     "PromoBannerRepository",
+    "FeedEventRepository",
+    "FeedCommentMapper",
     "PromoBannerMapper",
     "FeedPostRepository",
     "FeedPostMapper",

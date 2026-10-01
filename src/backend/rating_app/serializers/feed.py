@@ -4,11 +4,17 @@ from rest_framework import serializers
 
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
 
-from rating_app.application_schemas.feed import FeedPromoItem, FeedReviewItem
+from rating_app.application_schemas.feed import (
+    FeedCommentItem,
+    FeedItem,
+    FeedPromoItem,
+    FeedReviewItem,
+)
 from rating_app.models.choices import FeedPostAccent, SemesterTerm
 
 REVIEW_KIND = "review"
 PROMO_KIND = "promo"
+COMMENT_KIND = "comment"
 
 
 class FeedReviewItemSerializer(serializers.Serializer):
@@ -48,12 +54,34 @@ class FeedPromoItemSerializer(serializers.Serializer):
         return PROMO_KIND
 
 
+class FeedCommentItemSerializer(serializers.Serializer):
+    kind = serializers.SerializerMethodField()
+    id = serializers.UUIDField(read_only=True)
+    occurred_at = serializers.DateTimeField(read_only=True)
+    rating_id = serializers.UUIDField(read_only=True)
+    course_id = serializers.UUIDField(read_only=True)
+    course_title = serializers.CharField(read_only=True)
+    content = serializers.CharField(read_only=True)
+
+    @extend_schema_field({"type": "string", "enum": [COMMENT_KIND]})
+    def get_kind(self, _obj) -> str:
+        return COMMENT_KIND
+
+
+# TODO: potentially refactor
+SERIALIZER_BY_ITEM_TYPE: dict[type[FeedItem], type[serializers.Serializer]] = {
+    FeedReviewItem: FeedReviewItemSerializer,
+    FeedPromoItem: FeedPromoItemSerializer,
+    FeedCommentItem: FeedCommentItemSerializer,
+}
+
 FeedItemSerializer = PolymorphicProxySerializer(
     component_name="FeedItem",
     resource_type_field_name="kind",
     serializers={
         REVIEW_KIND: FeedReviewItemSerializer,
         PROMO_KIND: FeedPromoItemSerializer,
+        COMMENT_KIND: FeedCommentItemSerializer,
     },
     many=True,
 )
@@ -69,8 +97,6 @@ class FeedPageSerializer(serializers.Serializer):
         # dispatch on the DTO type instead.
         return [self._serialize(item) for item in page.items]
 
-    def _serialize(self, item: FeedReviewItem | FeedPromoItem) -> dict[str, Any]:
-        serializer = (
-            FeedPromoItemSerializer if isinstance(item, FeedPromoItem) else FeedReviewItemSerializer
-        )
+    def _serialize(self, item: FeedItem) -> dict[str, Any]:
+        serializer = SERIALIZER_BY_ITEM_TYPE[type(item)]
         return cast(dict[str, Any], serializer(item).data)

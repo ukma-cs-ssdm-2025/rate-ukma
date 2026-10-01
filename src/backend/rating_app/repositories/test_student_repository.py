@@ -7,7 +7,6 @@ from rating_app.models import Student
 from rating_app.models.choices import EducationLevel
 from rating_app.repositories.student_repository import StudentRepository
 from rating_app.repositories.to_domain_mappers import StudentMapper
-from rating_app.tests.factories import SpecialityFactory, StudentFactory
 
 
 @pytest.fixture
@@ -15,8 +14,6 @@ def repo():
     return StudentRepository(mapper=StudentMapper())
 
 
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_get_by_email_returns_none_and_logs_warning_when_multiple_students_found(repo):
     with (
         patch(
@@ -35,8 +32,8 @@ def test_get_by_email_returns_none_and_logs_warning_when_multiple_students_found
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_all_prefetches_related_speciality(repo, django_assert_num_queries):
-    StudentFactory.create_batch(3)
+def test_get_all_prefetches_related_speciality(repo, django_assert_num_queries, student_factory):
+    student_factory.create_batch(3)
 
     result = repo.get_all()
 
@@ -48,9 +45,11 @@ def test_get_all_prefetches_related_speciality(repo, django_assert_num_queries):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_create_updates_email_when_student_exists_without_email(repo):
-    speciality = SpecialityFactory()
-    existing = StudentFactory(
+def test_get_or_create_updates_email_when_student_exists_without_email(
+    repo, speciality_factory, student_factory
+):
+    speciality = speciality_factory()
+    existing = student_factory(
         first_name="John",
         last_name="Doe",
         patronymic="Smith",
@@ -79,9 +78,11 @@ def test_get_or_create_updates_email_when_student_exists_without_email(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_create_does_not_update_email_when_student_has_email(repo):
-    speciality = SpecialityFactory()
-    existing = StudentFactory(
+def test_get_or_create_does_not_update_email_when_student_has_email(
+    repo, speciality_factory, student_factory
+):
+    speciality = speciality_factory()
+    existing = student_factory(
         first_name="John",
         last_name="Doe",
         patronymic="Smith",
@@ -109,8 +110,8 @@ def test_get_or_create_does_not_update_email_when_student_has_email(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_student_mapper_normalizes_empty_education_level_to_none():
-    student = StudentFactory(education_level="")
+def test_student_mapper_normalizes_empty_education_level_to_none(student_factory):
+    student = student_factory(education_level="")
     mapper = StudentMapper()
     result = mapper.process(student)
     assert result.education_level is None
@@ -118,10 +119,12 @@ def test_student_mapper_normalizes_empty_education_level_to_none():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_upsert_prefers_email_match_and_updates_student_fields(repo):
-    original_speciality = SpecialityFactory(name="Original Speciality")
-    updated_speciality = SpecialityFactory(name="Updated Speciality")
-    existing = StudentFactory(
+def test_get_or_upsert_prefers_email_match_and_updates_student_fields(
+    repo, speciality_factory, student_factory
+):
+    original_speciality = speciality_factory(name="Original Speciality")
+    updated_speciality = speciality_factory(name="Updated Speciality")
+    existing = student_factory(
         first_name="John",
         last_name="Doe",
         patronymic="Smith",
@@ -154,9 +157,9 @@ def test_get_or_upsert_prefers_email_match_and_updates_student_fields(repo):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_get_or_upsert_keeps_earliest_program_start_year(repo):
-    speciality = SpecialityFactory()
-    existing = StudentFactory(
+def test_get_or_upsert_keeps_earliest_program_start_year(repo, speciality_factory, student_factory):
+    speciality = speciality_factory()
+    existing = student_factory(
         first_name="Iryna",
         last_name="Example",
         patronymic="Studentivna",

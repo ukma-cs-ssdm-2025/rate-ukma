@@ -19,22 +19,26 @@ function ErrorFallback({ resetErrorBoundary }: Readonly<FallbackProps>) {
 	};
 
 	return (
-		<div className="flex min-h-screen flex-col items-center justify-center px-4">
-			<div className="text-center max-w-md">
-				<h2 className="text-2xl font-bold text-foreground mb-4">
-					Щось пішло не так
-				</h2>
-				<p className="text-muted-foreground mb-6">
-					Виникла помилка під час завантаження сторінки. Спробуйте ще раз або
-					поверніться пізніше.
-				</p>
-				<div className="flex gap-3 justify-center">
-					<Button onClick={handleRetry} className="min-w-[120px]">
+		<div className="flex min-h-screen items-center justify-center bg-background px-6 py-8">
+			<div className="w-full max-w-md space-y-6 rounded-2xl border bg-card p-6 text-center text-card-foreground shadow-sm md:p-8">
+				<div className="space-y-2">
+					<h1 className="text-2xl font-bold tracking-tight">
+						Щось пішло не так
+					</h1>
+					<p className="text-base text-muted-foreground">
+						Виникла помилка під час завантаження сторінки.
+					</p>
+				</div>
+				<div className="flex flex-col gap-2">
+					<Button
+						onClick={handleRetry}
+						className="h-11 w-full text-base font-medium"
+					>
 						Спробувати знову
 					</Button>
 					<Button
 						onClick={handleGoHome}
-						className="min-w-[120px]"
+						className="h-11 w-full"
 						variant="outline"
 					>
 						На головну

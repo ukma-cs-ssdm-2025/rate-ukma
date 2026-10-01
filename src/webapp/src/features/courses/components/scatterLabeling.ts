@@ -62,15 +62,9 @@ function computeLabelDensityMeta(params: {
 }
 
 function shouldShowLabels(
-	params: LabelDensityMeta & {
-		transformK: number;
-		forceShowAllLabels: boolean;
-	},
+	params: LabelDensityMeta & { transformK: number },
 ): boolean {
-	const { forceShowAllLabels, transformK, isDenseDataset, canShowWithoutZoom } =
-		params;
-
-	if (forceShowAllLabels) return true;
+	const { transformK, isDenseDataset, canShowWithoutZoom } = params;
 
 	if (!canShowWithoutZoom && transformK < LABEL_ZOOM_THRESHOLD) {
 		return false;
@@ -94,12 +88,10 @@ function shouldSkipLabeling(params: {
 }
 
 function resolveMinDistance(
-	forceShowAllLabels: boolean,
 	labelDensity: LabelDensityMeta,
 	zoomLevel: number,
 ): number {
-	const useSparseDistance =
-		forceShowAllLabels || labelDensity.canShowWithoutZoom;
+	const useSparseDistance = labelDensity.canShowWithoutZoom;
 
 	const baseDistance = useSparseDistance
 		? MIN_LABEL_BASE_DISTANCE_SPARSE
@@ -138,7 +130,6 @@ export function computeLabelPoints(params: {
 	transform: ZoomTransform;
 	xScale: LinearScale;
 	yScale: LinearScale;
-	forceShowAllLabels?: boolean;
 }): LabelPoint[] {
 	const {
 		chartData,
@@ -151,7 +142,6 @@ export function computeLabelPoints(params: {
 		transform,
 		xScale,
 		yScale,
-		forceShowAllLabels = false,
 	} = params;
 
 	const sortedByImportance = [...chartData].sort((a, b) => b.radius - a.radius);
@@ -177,25 +167,17 @@ export function computeLabelPoints(params: {
 		!shouldShowLabels({
 			...labelDensity,
 			transformK: transform.k,
-			forceShowAllLabels,
 		})
 	) {
 		return [];
 	}
 
-	const maxLabels = forceShowAllLabels
-		? Number.POSITIVE_INFINITY
-		: AUTO_LABEL_LIMIT;
-	const minDistance = resolveMinDistance(
-		forceShowAllLabels,
-		labelDensity,
-		transform.k,
-	);
+	const minDistance = resolveMinDistance(labelDensity, transform.k);
 
 	const placed: LabelPoint[] = [];
 
 	for (const point of sortedByImportance) {
-		if (placed.length >= maxLabels) break;
+		if (placed.length >= AUTO_LABEL_LIMIT) break;
 
 		const cx = xScale(point.x);
 		const cy = yScale(point.y);

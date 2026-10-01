@@ -10,6 +10,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import connection
+from django.db.models import Sum
 from django.test.utils import CaptureQueriesContext
 
 from rateukma.caching.cache_manager import InMemoryCacheManager
@@ -21,8 +22,19 @@ from rating_app.ioc_container.repositories import (
     rating_repository,
 )
 from rating_app.ioc_container.services import course_service, rating_service
-from rating_app.models import Course, CourseOfferingSpeciality, Rating, Student
+from rating_app.models import Course, CourseOfferingSpeciality, CourseOfferingTerm, Rating, Student
 from rating_app.models.choices import SemesterTerm
+
+
+def credits_range_payload(offering) -> dict[str, Any]:
+    # Termless offerings have no computable credit sum (#558): omit the
+    # range so validation (credits gt=0) never sees a synthetic 0.
+    total = CourseOfferingTerm.objects.filter(offering=offering).aggregate(total=Sum("credits"))[
+        "total"
+    ]
+    if total is None:
+        return {}
+    return {"credits_min": total, "credits_max": total}
 
 
 @dataclass(frozen=True)
@@ -347,8 +359,7 @@ class Command(BaseCommand):
             "speciality": sample.speciality_id,
             "semester_year": year,
             "semester_terms": [semester.term],
-            "credits_min": offering.credits,
-            "credits_max": offering.credits,
+            **credits_range_payload(offering),
         }
         if sample.type_kind:
             payload["type_kind"] = sample.type_kind
