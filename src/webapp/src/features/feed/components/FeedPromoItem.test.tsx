@@ -1,6 +1,8 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { testIds } from "@/lib/test-ids";
 import type { FeedPromoItem as FeedPromoItemType } from "../feedTypes";
 import { FeedPromoItem } from "./FeedPromoItem";
 
@@ -84,6 +86,100 @@ describe("FeedPromoItem", () => {
 
 		expect(screen.queryByRole("link")).not.toBeInTheDocument();
 		expect(screen.queryByText("Зареєструватися")).not.toBeInTheDocument();
+	});
+
+	describe("long-form body in the banner variant", () => {
+		const longBody = Array.from(
+			{ length: 10 },
+			() =>
+				"## Перший абзац\n\n**Другий** абзац з [посиланням](https://example.com/more).",
+		).join("\n\n");
+		const originalScrollHeight = Object.getOwnPropertyDescriptor(
+			HTMLElement.prototype,
+			"scrollHeight",
+		);
+
+		// jsdom does no layout, so fake the overflow the clamp measures.
+		beforeEach(() => {
+			Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+				configurable: true,
+				value: 200,
+			});
+		});
+
+		afterEach(() => {
+			if (originalScrollHeight) {
+				Object.defineProperty(
+					HTMLElement.prototype,
+					"scrollHeight",
+					originalScrollHeight,
+				);
+			} else {
+				Reflect.deleteProperty(HTMLElement.prototype, "scrollHeight");
+			}
+		});
+
+		it("clamps the body and opens the full post in a dialog", async () => {
+			const user = userEvent.setup();
+
+			render(
+				<FeedPromoItem
+					item={{
+						...baseItem,
+						body: longBody,
+						imageUrl: "https://example.com/promo.png",
+					}}
+					variant="banner"
+				/>,
+			);
+
+			// Preview is plain text: markup stripped, nothing rendered as elements.
+			const body = screen.getByText(/Перший абзац/u);
+			expect(body).toHaveClass("line-clamp-3");
+			expect(body).toHaveClass("whitespace-pre-wrap");
+			expect(body).toHaveTextContent(
+				/^Перший абзац\s+Другий абзац з посиланням/u,
+			);
+			expect(body).not.toHaveTextContent(/[#*[\]]/u);
+			expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+			await user.click(screen.getByTestId(testIds.feed.readMoreButton));
+
+			// The dialog renders the markdown.
+			const dialog = screen.getByRole("dialog", { name: baseItem.title });
+			expect(
+				within(dialog).getAllByRole("heading", { name: "Перший абзац" }),
+			).toHaveLength(10);
+			expect(within(dialog).getAllByRole("strong")[0]).toHaveTextContent(
+				"Другий",
+			);
+			const inlineLink = within(dialog).getAllByRole("link", {
+				name: "посиланням",
+			})[0];
+			expect(inlineLink).toHaveAttribute("href", "https://example.com/more");
+			expect(inlineLink).toHaveAttribute("target", "_blank");
+			expect(inlineLink).toHaveAttribute("rel", "noopener noreferrer");
+			expect(within(dialog).getByText("Подія")).toBeInTheDocument();
+			expect(
+				within(dialog).getByRole("link", { name: /Зареєструватися/ }),
+			).toHaveAttribute("href", "https://example.com/hack");
+			expect(
+				within(dialog).getByRole("img", { name: baseItem.title }),
+			).toBeInTheDocument();
+
+			await user.keyboard("{Escape}");
+
+			expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+		});
+
+		it("shows read-more button on the truncated strip card", () => {
+			render(<FeedPromoItem item={{ ...baseItem, body: longBody }} />);
+
+			expect(screen.getByText(/Перший абзац/u)).toHaveClass("line-clamp-2");
+			expect(screen.getByTestId(testIds.feed.readMoreButton)).toHaveTextContent(
+				"Читати більше",
+			);
+		});
 	});
 
 	// A server-side accent this bundle predates is a plain object miss, not
