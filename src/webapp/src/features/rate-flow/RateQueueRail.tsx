@@ -20,7 +20,7 @@ function StatusDot({
 				"flex size-5 shrink-0 items-center justify-center rounded-full border border-muted-foreground/30",
 				state.kind === "done" &&
 					"border-primary bg-primary text-primary-foreground",
-				state.kind === "skipped" && "border-dashed",
+				state.kind === "skipped" && "border-dashed border-muted-foreground/60",
 				active && state.kind !== "done" && "border-2 border-primary",
 			)}
 		>
@@ -34,7 +34,7 @@ function StatusDot({
 const STATE_LABEL: Record<ItemState["kind"], string | null> = {
 	todo: null,
 	done: "оцінено",
-	skipped: "пропущено",
+	skipped: "Пропущено",
 };
 
 function QueueList({
@@ -67,16 +67,22 @@ function QueueList({
 											"flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none",
 											active && "bg-card-user font-medium hover:bg-card-user",
 											!active &&
-												state.kind !== "todo" &&
+												state.kind === "done" &&
 												"text-muted-foreground",
 										)}
 									>
 										<StatusDot state={state} active={active} />
-										<span className="line-clamp-2 min-w-0 flex-1">
-											{item.title}
-											{STATE_LABEL[state.kind] ? (
-												<span className="sr-only">
-													, {STATE_LABEL[state.kind]}
+										<span className="min-w-0 flex-1">
+											<span className="line-clamp-2">
+												{item.title}
+												{state.kind === "done" ? (
+													<span className="sr-only">, {STATE_LABEL.done}</span>
+												) : null}
+											</span>
+											{state.kind === "skipped" ? (
+												<span className="block text-xs font-normal text-muted-foreground">
+													<span className="sr-only">, </span>
+													{STATE_LABEL.skipped}
 												</span>
 											) : null}
 										</span>

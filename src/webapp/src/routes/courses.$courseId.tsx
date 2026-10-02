@@ -31,6 +31,7 @@ import {
 import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
 import { RatingButton } from "@/features/ratings/components/RatingButton";
+import { RateNextLine } from "@/features/rate-flow/RatePrompt";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
@@ -39,7 +40,6 @@ import {
 } from "@/lib/api/generated";
 import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
-import { RateNextLine } from "@/features/rate-flow/RatePrompt";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
 function CourseDetailsRoute() {
@@ -102,24 +102,21 @@ function CourseDetailsRoute() {
 	// Attendees who have not rated yet see where they stand: rateable now or after midterm.
 	const rateAction =
 		!ratedOffering && hasAttendedCourse && selectedOffering ? (
-			<div className="space-y-2">
-				<div className="flex flex-col gap-3 rounded-xl bg-card-user p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-					<div className="min-w-0 space-y-0.5">
-						<p className="font-medium">Ви слухали цей курс</p>
-						<p className="text-sm text-muted-foreground">
-							{canRateNow
-								? "Ваша оцінка допоможе іншим обрати"
-								: CANNOT_RATE_TOOLTIP_TEXT}
-						</p>
-					</div>
-					<RatingButton
-						canRate={canRateNow}
-						onClick={() => setIsRatingModalOpen(true)}
-					>
-						Оцінити курс
-					</RatingButton>
+			<div className="flex flex-col gap-3 rounded-xl bg-card-user p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+				<div className="min-w-0 space-y-0.5">
+					<p className="font-medium">Ви слухали цей курс</p>
+					<p className="text-sm text-muted-foreground">
+						{canRateNow
+							? "Ваша оцінка допоможе іншим обрати"
+							: CANNOT_RATE_TOOLTIP_TEXT}
+					</p>
 				</div>
-				<RateNextLine excludeOfferingId={selectedOffering.id} />
+				<RatingButton
+					canRate={canRateNow}
+					onClick={() => setIsRatingModalOpen(true)}
+				>
+					Оцінити курс
+				</RatingButton>
 			</div>
 		) : null;
 	const about = (
@@ -204,6 +201,7 @@ function CourseDetailsRoute() {
 					offeringId={selectedOffering.id}
 					courseName={course.title}
 					existingRating={ratedOffering?.rated || null}
+					offerTheRest={false}
 				/>
 			)}
 

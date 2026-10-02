@@ -26,6 +26,8 @@ interface ExistingRating {
 }
 
 interface RatingModalProps {
+	/** Offer the rest of the student's courses in the success toast. Off where the page already does. */
+	readonly offerTheRest?: boolean;
 	readonly isOpen: boolean;
 	readonly onClose: () => void;
 	readonly courseId: string;
@@ -43,6 +45,7 @@ export function RatingModal({
 	courseName,
 	existingRating,
 	onSuccess,
+	offerTheRest = true,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
 	const author = useRatingAuthor();
@@ -50,7 +53,7 @@ export function RatingModal({
 	const { isStudent } = useAuth();
 	// A fresh rating is the moment to offer the rest of the student's courses.
 	const { data: grades } = useStudentsMeGradesRetrieve({
-		query: { enabled: isOpen && isStudent && !isEditMode },
+		query: { enabled: isOpen && isStudent && !isEditMode && offerTheRest },
 	});
 	const othersLeft = (Array.isArray(grades) ? grades : []).filter(
 		(row) =>
@@ -61,9 +64,9 @@ export function RatingModal({
 		offeringId,
 		ratingId: isEditMode ? existingRating?.id : undefined,
 		successAction:
-			!isEditMode && othersLeft > 0
+			offerTheRest && !isEditMode && othersLeft > 0
 				? {
-						label: `Оцінити ще ${othersLeft}`,
+						label: "Оцінити решту",
 						onClick: () => navigate({ to: "/rate" }),
 					}
 				: undefined,

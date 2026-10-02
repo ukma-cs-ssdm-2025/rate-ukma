@@ -48,6 +48,11 @@ vi.mock("@/features/rate-flow/RatePrompt", () => {
 		RateFeedTile: () => null,
 	};
 });
+vi.mock("@/features/rate-flow/useRateableCount", () => {
+	return {
+		useRateableCountState: () => ({ count: 0, isPending: false }),
+	};
+});
 
 vi.mock("@/features/courses/courseFiltersParams", async () => {
 	const actual = await vi.importActual<

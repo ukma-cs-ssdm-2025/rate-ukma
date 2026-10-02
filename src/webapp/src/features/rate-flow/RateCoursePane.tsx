@@ -5,10 +5,8 @@ import {
 	getLatestOfferingTerms,
 } from "@/features/course-offerings/components/CourseCazRecords";
 import { offeringLoad } from "@/features/course-offerings/components/CourseAbout";
-import {
-	CourseDetailsHeader,
-	CourseDetailsHeaderSkeleton,
-} from "@/features/courses/components/CourseDetailsHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { CourseDetailsHeader } from "@/features/courses/components/CourseDetailsHeader";
 import {
 	RatingForm,
 	type RatingFormData,
@@ -47,6 +45,8 @@ interface RateCoursePaneProps {
 	readonly anonymous: boolean;
 	/** Courses still waiting after this one. */
 	readonly remaining: number;
+	/** Opened by moving through the queue: start at the top, focus on the course. */
+	readonly focusOnMount?: boolean;
 	readonly onSaved: (scores: Scores, anonymous: boolean) => void;
 	readonly onSkip: () => void;
 	readonly onNext: () => void;
@@ -63,6 +63,7 @@ export function RateCoursePane({
 	savedScores,
 	anonymous,
 	remaining,
+	focusOnMount = false,
 	onSaved,
 	onSkip,
 	onNext,
@@ -79,6 +80,15 @@ export function RateCoursePane({
 	});
 	const [saved, setSaved] = useState<Scores | null>(savedScores ?? null);
 	const nextRef = useRef<HTMLButtonElement>(null);
+	const headRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!focusOnMount) return;
+		// The previous course's button is gone: without this the keyboard lands
+		// on the page body and the new course opens wherever the result was.
+		globalThis.scrollTo({ top: 0 });
+		headRef.current?.focus({ preventScroll: true });
+	}, [focusOnMount]);
 
 	// Same shape the modal passes when editing: an empty verdict, the student's
 	// last anonymity choice.
@@ -107,12 +117,21 @@ export function RateCoursePane({
 
 	return (
 		<div className="min-w-0 space-y-8">
-			<div className="space-y-3">
-				<p className="text-sm text-muted-foreground">
-					Ви слухали цей курс у семестрі «{item.semesterLabel}»
-				</p>
+			<div ref={headRef} tabIndex={-1} className="outline-none">
 				{isCourseLoading ? (
-					<CourseDetailsHeaderSkeleton />
+					// The queue already knows the title and faculty: show them at once
+					// and hold only the chips' line, so nothing moves when the course lands.
+					<header className="min-w-0 space-y-3">
+						<h1 className="max-w-4xl text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+							{item.title}
+						</h1>
+						<p className="text-sm text-muted-foreground">{item.facultyName}</p>
+						<div className="flex gap-1.5" aria-hidden="true">
+							<Skeleton className="h-5 w-9 rounded-full" />
+							<Skeleton className="h-5 w-14 rounded-full" />
+							<Skeleton className="h-5 w-24 rounded-full" />
+						</div>
+					</header>
 				) : (
 					<CourseDetailsHeader
 						title={course?.title ?? item.title}

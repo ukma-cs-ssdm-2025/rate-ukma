@@ -845,7 +845,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue", myCourses: "rated" });
 			await page.goto(`/courses/${COURSE.id}`);
-			await page.getByText("Оцінити по черзі").waitFor();
+			await page.getByText("Оцінити решту").waitFor();
 		},
 	},
 	{
@@ -864,11 +864,11 @@ const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "rate-entry",
 		section: "Оцінити семестр",
-		note: "Мої оцінки after the spring exams: «Оцінити всі» opens the flow",
+		note: "Мої оцінки after the spring exams: «Оцінити решту» opens the flow",
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/my-ratings");
-			await page.getByRole("link", { name: "Оцінити всі" }).waitFor();
+			await page.getByRole("link", { name: "Оцінити решту" }).waitFor();
 		},
 	},
 	{
@@ -947,7 +947,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.goto("/my-ratings");
 			await page.getByRole("button", { name: "Оцінити" }).first().click();
 			await rateCurrent(page, 4, 4);
-			await page.getByRole("button", { name: /Оцінити ще/ }).waitFor();
+			await page.getByRole("button", { name: "Оцінити решту" }).waitFor();
 		},
 	},
 ];

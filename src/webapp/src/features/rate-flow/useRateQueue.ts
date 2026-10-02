@@ -56,7 +56,8 @@ function toQueueItem(item: StudentRatingsDetailed): QueueItem {
  * queue instead of the refetch pulling it out from under the student.
  */
 export function useRateQueue() {
-	const { data, isLoading } = useStudentsMeGradesRetrieve();
+	const { data, isLoading, isError, refetch, isRefetching } =
+		useStudentsMeGradesRetrieve();
 
 	const fresh = useMemo<QueueItem[]>(() => {
 		const rows = Array.isArray(data) ? data : data ? [data] : [];
@@ -118,6 +119,9 @@ export function useRateQueue() {
 		items,
 		semesters,
 		isLoading,
+		isError,
+		refetch,
+		isRefetching,
 		stateOf,
 		markDone,
 		skip,

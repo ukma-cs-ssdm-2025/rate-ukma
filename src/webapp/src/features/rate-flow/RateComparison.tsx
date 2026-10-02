@@ -55,15 +55,6 @@ function ratingsWord(count: number): string {
 	return mod10 === 1 && mod100 !== 11 ? "оцінкою" : "оцінками";
 }
 
-function coursesLeft(count: number): string {
-	const mod10 = count % 10;
-	const mod100 = count % 100;
-	if (mod10 === 1 && mod100 !== 11) return `Ще ${count} курс`;
-	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14))
-		return `Ще ${count} курси`;
-	return `Ще ${count} курсів`;
-}
-
 /**
  * The others' average without the student's own score: the course detail
  * already counts the rating that was just saved.
@@ -107,7 +98,8 @@ function BarRow({
 	label: string;
 	value: number | null;
 	accent: string;
-	display: string;
+	/** The number at the end; the student's own row has its big number instead. */
+	display?: string;
 }>) {
 	return (
 		<div className="flex items-center gap-3">
@@ -159,17 +151,12 @@ function AxisPanel({
 							tone(mine),
 						)}
 					>
-						{mine.toFixed(1)}
+						{mine}
 					</span>
 					<span className="text-sm text-muted-foreground">ваша оцінка</span>
 				</p>
 				<div className="space-y-2">
-					<BarRow
-						label="Ви"
-						value={mine}
-						accent={getBarColor(axis, mine)}
-						display={String(mine)}
-					/>
+					<BarRow label="Ви" value={mine} accent={getBarColor(axis, mine)} />
 					{others == null ? null : (
 						<BarRow
 							label="Інші"
@@ -223,7 +210,7 @@ export function RateComparison({
 				</p>
 				<h2
 					id="rate-result"
-					className="text-2xl font-bold tracking-tight text-balance sm:text-3xl"
+					className="text-xl font-semibold tracking-tight text-balance sm:text-2xl"
 				>
 					{hasOthers ? verdict(scores, others) : "Ви оцінили цей курс першими"}
 				</h2>
@@ -254,11 +241,6 @@ export function RateComparison({
 					</Link>
 				</Button>
 				<div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-4">
-					{remaining > 0 ? (
-						<span className="text-center text-sm text-muted-foreground sm:text-left">
-							{coursesLeft(remaining)}
-						</span>
-					) : null}
 					<Button
 						ref={nextRef}
 						size="lg"

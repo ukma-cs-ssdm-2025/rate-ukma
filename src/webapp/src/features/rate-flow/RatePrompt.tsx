@@ -42,7 +42,7 @@ export function RateFeedTile() {
 						tabIndex={-1}
 						className="inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
 					>
-						Оцінити по черзі
+						Оцінити решту
 						<ArrowRight className="size-3.5" aria-hidden="true" />
 					</Link>
 				}
@@ -54,14 +54,11 @@ export function RateFeedTile() {
 }
 
 /**
- * Course page: one line under the student's own rating block, never on a
- * course they did not take. The course on screen has its own button, so it
- * is left out of the count.
+ * Course page: one line under the student's own rating of this course, the
+ * moment they have just shown they will rate.
  */
-export function RateNextLine({
-	excludeOfferingId,
-}: Readonly<{ excludeOfferingId?: string }>) {
-	const count = useRateableCount(excludeOfferingId);
+export function RateNextLine() {
+	const count = useRateableCount();
 	if (count === 0) return null;
 
 	return (
@@ -71,7 +68,7 @@ export function RateNextLine({
 				to="/rate"
 				className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
 			>
-				Оцінити по черзі
+				Оцінити решту
 				<ArrowRight className="size-4" aria-hidden="true" />
 			</Link>
 		</p>

@@ -12,12 +12,14 @@ import {
 } from "@/features/courses/courseFormatting";
 import { FeedStrip } from "@/features/feed/components/FeedStrip";
 import { RateFeedTile } from "@/features/rate-flow/RatePrompt";
+import { useRateableCountState } from "@/features/rate-flow/useRateableCount";
 import { PromoBanner } from "@/features/promo/components/PromoBanner";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 
 export function CoursesPage() {
 	const [params, setParams] = useCourseFiltersParams();
+	const rateable = useRateableCountState();
 
 	const apiFilters: CoursesListParams = {
 		page: params.page,
@@ -69,7 +71,7 @@ export function CoursesPage() {
 		<Layout>
 			<div className="space-y-8">
 				<PromoBanner />
-				<FeedStrip lead={<RateFeedTile />} />
+				<FeedStrip lead={<RateFeedTile />} leadPending={rateable.isPending} />
 				{isError ? (
 					<CoursesErrorState onRetry={handleRetry} />
 				) : (

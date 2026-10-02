@@ -528,7 +528,10 @@ export function RatingForm({
 				<DialogFooter
 					className={cn(
 						"shrink-0 border-t border-transparent px-6 py-4 transition-colors motion-reduce:transition-none group-has-[[data-more-below]]/rating-form:border-border",
-						inline && "sticky bottom-0 border-border bg-background px-0",
+						// One row on phones too: two stacked full-width buttons pin a
+						// tall slab over the page.
+						inline &&
+							"sticky bottom-0 flex-row border-border bg-background px-0",
 					)}
 				>
 					<Button
@@ -536,7 +539,7 @@ export function RatingForm({
 						variant="ghost"
 						onClick={onCancel}
 						disabled={isLoading}
-						className="w-full sm:w-auto"
+						className={inline ? "w-auto" : "w-full sm:w-auto"}
 						data-testid={testIds.rating.cancelButton}
 					>
 						{cancelLabel}
@@ -545,7 +548,7 @@ export function RatingForm({
 						type="submit"
 						size="lg"
 						disabled={isLoading}
-						className="w-full sm:w-auto"
+						className={inline ? "flex-1 sm:flex-none" : "w-full sm:w-auto"}
 						data-testid={testIds.rating.submitButton}
 					>
 						{(() => {

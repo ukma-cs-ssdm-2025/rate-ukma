@@ -72,7 +72,7 @@ export function MyRatingsHeader({
 								</span>
 							</Button>
 							<Button size="sm" asChild>
-								<Link to="/rate">Оцінити всі</Link>
+								<Link to="/rate">Оцінити решту</Link>
 							</Button>
 						</div>
 					) : undefined

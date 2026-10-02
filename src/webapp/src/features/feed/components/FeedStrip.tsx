@@ -40,16 +40,20 @@ function scrollEdge(
 
 export function FeedStrip({
 	lead,
+	leadPending = false,
 }: Readonly<{
 	/** A tile shown before the feed items, sized with `FEED_TILE_CLASS`. */
 	lead?: ReactNode;
+	/** Keeps the loading tiles up until the lead is known, so it never pushes the feed aside. */
+	leadPending?: boolean;
 }>) {
 	const { enabled, isReady } = useFeatureFlagState("fe_feed");
-	const { items, isLoading } = useFeed({
+	const { items, isLoading: isFeedLoading } = useFeed({
 		limit: STRIP_PAGE_SIZE,
 		infinite: false,
 		enabled: isReady && enabled,
 	});
+	const isLoading = isFeedLoading || leadPending;
 	const { ref, canScrollPrev, canScrollNext, scrollPrev, scrollNext } =
 		useHorizontalScroll(items.length);
 	const scrollId = useId();
@@ -127,16 +131,18 @@ export function FeedStrip({
 							</div>
 						))
 					: null}
-				{items.length > 0 ? lead : null}
-				{items.map((item) => (
-					<div key={`${item.kind}:${item.id}`} className={FEED_TILE_CLASS}>
-						<FeedItem item={item} />
-					</div>
-				))}
+				{isLoading ? null : lead}
+				{isLoading
+					? null
+					: items.map((item) => (
+							<div key={`${item.kind}:${item.id}`} className={FEED_TILE_CLASS}>
+								<FeedItem item={item} />
+							</div>
+						))}
 
 				{/* Rendered only with items: a lone tile becomes the snap target
 				    while loading, and the browser keeps it in view once cards arrive. */}
-				{items.length > 0 && (
+				{!isLoading && items.length > 0 && (
 					<Link
 						to="/feed"
 						aria-label="Переглянути всю стрічку"
