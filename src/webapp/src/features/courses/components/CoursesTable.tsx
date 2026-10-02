@@ -653,8 +653,7 @@ export function CoursesTable({
 
 	return (
 		<>
-			{/* Room for the floating filters pill so it never covers the pagination. */}
-			<div className="flex flex-col gap-6 pb-16 md:flex-row lg:pb-0">
+			<div className="flex flex-col gap-6 md:flex-row">
 				<div className="min-w-0 flex-1 space-y-4">
 					<div className="relative min-h-10 flex-1">
 						<Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -695,7 +694,9 @@ export function CoursesTable({
 				</div>
 			</div>
 
-			<div className="fixed inset-x-0 bottom-6 z-40 flex justify-center pb-[env(safe-area-inset-bottom)] lg:hidden">
+			{/* Sticky, not fixed: the pill floats while the list scrolls, then
+			    parks below the pagination so it never covers the footer links. */}
+			<div className="sticky bottom-6 z-40 mx-auto flex w-fit pb-[env(safe-area-inset-bottom)] lg:hidden">
 				<Button
 					type="button"
 					className="h-10 gap-2 rounded-full px-5 shadow-lg"
