@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/Form";
 import { Textarea } from "@/components/ui/Textarea";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
+import { InstructorQuickPicks } from "@/features/instructors/components/InstructorQuickPicks";
+import { pickCourseInstructors } from "@/features/instructors/courseInstructorPicks";
 import type { Instructor } from "@/lib/api/generated";
+import { useCoursesInstructorsRetrieve } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import {
 	ANONYMOUS_REVIEW_NAME,
@@ -221,7 +224,25 @@ function RatingFormFields({
 	const isAnonymous = useWatch({ control, name: "is_anonymous" }) ?? false;
 	const difficulty = useWatch({ control, name: "difficulty" });
 	const usefulness = useWatch({ control, name: "usefulness" });
+	const instructorIds = useWatch({ control, name: "instructor_ids" });
 	const [previewOpen, setPreviewOpen] = React.useState(false);
+	const { data: courseInstructors } = useCoursesInstructorsRetrieve(
+		courseId ?? "",
+		offeringId ? { offering_id: offeringId } : undefined,
+		{ query: { enabled: Boolean(courseId) } },
+	);
+	const quickPicks = pickCourseInstructors(
+		courseInstructors?.items ?? [],
+		instructorIds ?? [],
+	).map((item) => item.instructor);
+	// Picked chips need names before the picker has loaded its own list.
+	const instructorOptions = React.useMemo(
+		() => [
+			...(initialInstructors ?? []),
+			...(courseInstructors?.items ?? []).map((item) => item.instructor),
+		],
+		[initialInstructors, courseInstructors],
+	);
 	const signature = isAnonymous
 		? ANONYMOUS_REVIEW_NAME
 		: author?.name || DEFAULT_STUDENT_NAME;
@@ -337,17 +358,24 @@ function RatingFormFields({
 							<InstructorMultiSelect
 								value={field.value ?? []}
 								onChange={field.onChange}
-								initialOptions={initialInstructors}
+								initialOptions={instructorOptions}
 								courseOfferingId={offeringId}
 								courseId={courseId}
 								data-testid={testIds.rating.instructorMultiSelect}
 							/>
 						</FormControl>
-						<FormDescription>
-							{legacyInstructor
-								? "Оберіть викладачів зі списку — вони замінять текстовий запис"
-								: "Можна обрати кількох викладачів, які вели курс"}
-						</FormDescription>
+						{quickPicks.length > 0 && !legacyInstructor ? (
+							<InstructorQuickPicks
+								instructors={quickPicks}
+								onPick={(id) => field.onChange([...(field.value ?? []), id])}
+							/>
+						) : (
+							<FormDescription>
+								{legacyInstructor
+									? "Оберіть викладачів зі списку — вони замінять текстовий запис"
+									: "Можна обрати кількох викладачів, які вели курс"}
+							</FormDescription>
+						)}
 						<FormMessage />
 					</FormItem>
 				)}
