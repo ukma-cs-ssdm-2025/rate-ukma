@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 
-import { createFileRoute, Link, useBlocker } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	useBlocker,
+	useNavigate,
+} from "@tanstack/react-router";
 import { CircleCheck } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 
@@ -20,6 +25,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { CourseDetailsHeaderSkeleton } from "@/features/courses/components/CourseDetailsHeader";
 import { RateCoursePane } from "@/features/rate-flow/RateCoursePane";
 import { RateLeaveDialog } from "@/features/rate-flow/RateLeaveDialog";
+import { RateSemesterDone } from "@/features/rate-flow/RateSemesterDone";
 import { RateSummary } from "@/features/rate-flow/RateSummary";
 import {
 	RateQueueBar,
@@ -27,6 +33,7 @@ import {
 } from "@/features/rate-flow/RateQueueRail";
 import {
 	type QueueItem,
+	type SemesterBucket,
 	useRateQueue,
 } from "@/features/rate-flow/useRateQueue";
 import { MyRatingsErrorState } from "@/features/ratings/components/MyRatingsErrorState";
@@ -117,19 +124,40 @@ function RatePage() {
 	const [activeShare, setActiveShare] = useState(0);
 	// Asked once per visit: a second try to leave goes straight through.
 	const [askedToStay, setAskedToStay] = useState(false);
+	// The semester just finished, shown before the next one starts.
+	const [pause, setPause] = useState<SemesterBucket | null>(null);
+	// «Зробити перерву» is a choice already made; no dialog to confirm it.
+	const leaving = useRef(false);
+	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
 	const current = finished ? null : (picked ?? queue.nextTodo());
 	const pick = (item: QueueItem) => {
 		setFinished(false);
+		setPause(null);
 		setMoved(true);
 		setPicked(item);
 	};
 	const goNext = () => {
 		const after = current ? queue.nextTodo(current) : null;
 		setMoved(true);
+		setActiveShare(0);
 		setPicked(after);
 		if (!after) setFinished(true);
+		if (current && after) setPause(closedSemester(current, after));
+	};
+	/** The current course's semester, if this step leaves it fully answered. */
+	const closedSemester = (from: QueueItem, to: QueueItem) => {
+		if (from.semesterKey === to.semesterKey) return null;
+		const bucket = queue.semesters.find((b) => b.key === from.semesterKey);
+		if (!bucket || bucket.items.length < 2) return null;
+		const open = bucket.items.some(
+			(item) => item !== from && queue.stateOf(item).kind === "todo",
+		);
+		const rated = bucket.items.some(
+			(item) => queue.stateOf(item).kind === "done",
+		);
+		return open || !rated ? null : bucket;
 	};
 
 	const next = current ? queue.nextTodo(current) : null;
@@ -150,10 +178,13 @@ function RatePage() {
 	const blocker = useBlocker({
 		// «Відгуки про курс» is a look the student asked for, not leaving.
 		shouldBlockFn: ({ next: to }) =>
-			shouldAsk && !to.pathname.startsWith("/courses/"),
+			shouldAsk && !leaving.current && !to.pathname.startsWith("/courses/"),
 		enableBeforeUnload: () => hasDraft,
 		withResolver: true,
 	});
+	useEffect(() => {
+		if (pause) globalThis.scrollTo({ top: 0 });
+	}, [pause]);
 	useEffect(() => {
 		// The next course is one click away: have it ready so its header and
 		// form open without a loading frame.
@@ -205,7 +236,19 @@ function RatePage() {
 	}
 
 	let body: React.ReactNode;
-	if (!current && queue.items.length > 0) {
+	if (pause) {
+		body = (
+			<RateSemesterDone
+				queue={queue}
+				semester={pause}
+				onContinue={() => setPause(null)}
+				onBreak={() => {
+					leaving.current = true;
+					void navigate({ to: "/my-ratings" });
+				}}
+			/>
+		);
+	} else if (!current && queue.items.length > 0) {
 		body = (
 			<RateSummary
 				queue={queue}
@@ -278,7 +321,7 @@ function RatePage() {
 				{showQueue && !isDesktop ? (
 					<RateQueueBar
 						queue={queue}
-						current={current}
+						current={pause ? null : current}
 						activeShare={activeShare}
 						onPick={pick}
 						open={listOpen}
@@ -291,7 +334,7 @@ function RatePage() {
 							<div className="lg:sticky lg:top-24 lg:-ml-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
 								<RateQueueRail
 									queue={queue}
-									current={current}
+									current={pause ? null : current}
 									activeShare={activeShare}
 									onPick={pick}
 								/>

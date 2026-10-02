@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { CountBadge } from "@/components/ui/CountBadge";
 import { useRateableCount } from "./useRateableCount";
+import { pluralUk } from "./plural";
 
 const PULSED_KEY = "rate-ukma-rate-badge-pulsed";
 
@@ -31,12 +32,7 @@ function usePulseOnce(active: boolean): boolean {
 }
 
 function coursesWord(count: number): string {
-	const mod10 = count % 10;
-	const mod100 = count % 100;
-	if (mod10 === 1 && mod100 !== 11) return "курс чекає";
-	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14))
-		return "курси чекають";
-	return "курсів чекають";
+	return pluralUk(count, ["курс чекає", "курси чекають", "курсів чекають"]);
 }
 
 /** Unrated courses next to «Мої оцінки»; renders nothing when there are none. */

@@ -32,6 +32,8 @@ import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDi
 import { RatingModal } from "@/features/ratings/components/RatingModal";
 import { RatingButton } from "@/features/ratings/components/RatingButton";
 import { RateSideCard } from "@/features/rate-flow/RatePrompt";
+import { RateResumeBar } from "@/features/rate-flow/RateResumeBar";
+import { useSavedRateProgress } from "@/features/rate-flow/useRateQueue";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
@@ -59,6 +61,7 @@ function CourseDetailsRoute() {
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 	const isDesktop = useMediaQuery("(min-width: 1024px)");
+	const resumingQueue = useSavedRateProgress() !== null;
 
 	const {
 		rating: userRating,
@@ -119,8 +122,9 @@ function CourseDetailsRoute() {
 				</RatingButton>
 			</div>
 		) : null;
-	// The student's other courses waiting for a rating, under «Про курс».
-	const ratePrompt = (
+	// The student's other courses waiting for a rating, under «Про курс»;
+	// mid-queue the floating bar says it instead.
+	const ratePrompt = resumingQueue ? null : (
 		<RateSideCard
 			leaveOutCurrent={!ratedOffering && hasAttendedCourse && canRateNow}
 			more={Boolean(ratedOffering) || (hasAttendedCourse && canRateNow)}
@@ -202,6 +206,8 @@ function CourseDetailsRoute() {
 					) : null}
 				</div>
 			</div>
+
+			<RateResumeBar />
 
 			{selectedOffering?.id && attendedCourseId && (
 				<RatingModal

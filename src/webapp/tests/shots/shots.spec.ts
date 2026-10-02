@@ -970,10 +970,49 @@ const ALL_STATES: ReadonlyArray<State> = [
 				await rateCurrent(page, 3, 4);
 				await page.getByRole("button", { name: "Наступний курс" }).click();
 			}
-			for (let index = 0; index < 6; index++) {
+			for (let index = 0; index < 4; index++) {
+				await page.getByRole("button", { name: "Пропустити" }).click();
+			}
+			await page.getByRole("button", { name: "Продовжити" }).click();
+			for (let index = 0; index < 2; index++) {
 				await page.getByRole("button", { name: "Пропустити" }).click();
 			}
 			await page.getByText(/Дякуємо, ви оцінили/).waitFor();
+		},
+	},
+	{
+		name: "rate-semester",
+		section: "Оцінити семестр",
+		note: "Spring answered: a thank-you, the term's closed rings, then the fall",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate");
+			for (let index = 0; index < 3; index++) {
+				await rateCurrent(page, 3, 4);
+				await page.getByRole("button", { name: "Наступний курс" }).click();
+			}
+			for (let index = 0; index < 2; index++) {
+				await page.getByRole("button", { name: "Пропустити" }).click();
+			}
+			await rateCurrent(page, 4, 4);
+			await page.getByRole("button", { name: "Наступний курс" }).click();
+			await page.getByRole("button", { name: "Продовжити" }).waitFor();
+			await page.waitForTimeout(900);
+		},
+	},
+	{
+		name: "rate-resume",
+		section: "Оцінити семестр",
+		note: "Reviews opened mid-queue: a floating bar leads back to the next course",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate");
+			await rateCurrent(page, 4, 5);
+			await page.getByRole("link", { name: "Відгуки про курс" }).click();
+			await page
+				.getByRole("complementary", { name: "Оцінювання курсів" })
+				.waitFor();
+			await page.waitForTimeout(900);
 		},
 	},
 	{

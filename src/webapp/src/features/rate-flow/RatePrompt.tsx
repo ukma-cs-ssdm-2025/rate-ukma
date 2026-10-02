@@ -5,22 +5,14 @@ import { Button } from "@/components/ui/Button";
 import { FeedCard } from "@/features/feed/components/FeedCard";
 import { FEED_TILE_CLASS } from "@/features/feed/components/FeedStrip";
 import { useRateableCount } from "./useRateableCount";
-
-function coursesNoun(count: number): string {
-	const mod10 = count % 10;
-	const mod100 = count % 100;
-	if (mod10 === 1 && mod100 !== 11) return "курс";
-	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "курси";
-	return "курсів";
-}
+import { coursesNoun, pluralUk } from "./plural";
 
 function waitingText(count: number, more = false, short = false): string {
-	const mod10 = count % 10;
-	const mod100 = count % 100;
-	let noun = "курсів чекають";
-	if (mod10 === 1 && mod100 !== 11) noun = "курс чекає";
-	else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14))
-		noun = "курси чекають";
+	const noun = pluralUk(count, [
+		"курс чекає",
+		"курси чекають",
+		"курсів чекають",
+	]);
 	return `${more ? "Ще " : ""}${count} ${noun} на ${short ? "" : "вашу "}оцінку`;
 }
 

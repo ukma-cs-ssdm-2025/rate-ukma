@@ -16,7 +16,7 @@ const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
  * A ring per course: empty to start, filling a quarter for each answer on
  * the course being rated, closed once saved, dashed when skipped.
  */
-function StatusRing({
+export function StatusRing({
 	state,
 	share,
 }: Readonly<{ state: ItemState; share: number }>) {

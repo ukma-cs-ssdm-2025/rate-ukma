@@ -17,6 +17,7 @@ import {
 import { useCoursesRetrieve } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import type { Scores } from "./useRateQueue";
+import { pluralUk } from "./plural";
 
 // Closer than this to the others' average reads as "the same".
 const SAME_THRESHOLD = 0.5;
@@ -50,9 +51,7 @@ const AXIS_COPY: Record<
 };
 
 function ratingsWord(count: number): string {
-	const mod10 = count % 10;
-	const mod100 = count % 100;
-	return mod10 === 1 && mod100 !== 11 ? "оцінкою" : "оцінками";
+	return pluralUk(count, ["оцінкою", "оцінками", "оцінками"]);
 }
 
 /**
