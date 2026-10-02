@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import {
 	copyFileSync,
@@ -67,6 +67,30 @@ async function openNotifications(page: Page) {
 const feedStrip = (page: Page) =>
 	page.getByRole("region", { name: "Стрічка оновлень" });
 
+/** Bottom of the courses page; the footer GitHub link must stay tappable (#728). */
+async function scrollToFooterLink(page: Page) {
+	await mockBackend(page);
+	await page.goto("/");
+	await page.getByText(COURSE.title).first().waitFor();
+	await page.evaluate(() =>
+		window.scrollTo(0, document.documentElement.scrollHeight),
+	);
+	await expectUncovered(page.getByTestId(testIds.footer.repoLink));
+}
+
+/** Fails when another element (e.g. a floating button) covers the target's centre. */
+async function expectUncovered(target: Locator) {
+	const uncovered = await target.evaluate((el) => {
+		const r = el.getBoundingClientRect();
+		const hit = document.elementFromPoint(
+			r.x + r.width / 2,
+			r.y + r.height / 2,
+		);
+		return el.contains(hit);
+	});
+	expect(uncovered).toBe(true);
+}
+
 const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "home",
@@ -100,6 +124,12 @@ const ALL_STATES: ReadonlyArray<State> = [
 			const next = page.getByRole("button", { name: "Наступні" });
 			if (await next.isVisible()) await next.click({ timeout: 5_000 });
 		},
+	},
+	{
+		name: "home-footer",
+		section: "Головна",
+		note: "Courses page scrolled to the footer: the GitHub link stays tappable",
+		run: scrollToFooterLink,
 	},
 	{
 		name: "feed",
