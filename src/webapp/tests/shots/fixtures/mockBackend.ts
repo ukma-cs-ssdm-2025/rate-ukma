@@ -209,9 +209,9 @@ export async function mockBackend(
 					empty: [],
 					queue: MY_GRADES_QUEUE,
 				}[grades] as ReadonlyArray<{ can_rate?: boolean; rated?: unknown }>;
-				return {
-					count: rows.filter((row) => row.can_rate && !row.rated).length,
-				};
+				// Each rating saved in the shot takes one off, as the real count would.
+				const open = rows.filter((row) => row.can_rate && !row.rated).length;
+				return { count: Math.max(0, open - savedRatings) };
 			},
 		],
 		[
@@ -219,6 +219,7 @@ export async function mockBackend(
 			() => (myCourses === "none" ? [] : myCoursesFor(myCourses)),
 		],
 	];
+	let savedRatings = 0;
 	const failing: ReadonlyArray<RegExp> = [
 		...(feed === "error" ? [/^\/feed\/$/] : []),
 		...(courses === "error" ? [/^\/courses\/$/, /^\/analytics\/$/] : []),
@@ -243,6 +244,11 @@ export async function mockBackend(
 			});
 			return;
 		}
+		if (
+			route.request().method() === "POST" &&
+			/^\/courses\/[^/]+\/ratings\/$/.test(path)
+		)
+			savedRatings += 1;
 		const handler = handlers.find(([pattern]) => pattern.test(path));
 		if (!handler) {
 			console.warn(`[shots] unmocked ${route.request().method()} ${path}`);

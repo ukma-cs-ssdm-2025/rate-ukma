@@ -29,7 +29,7 @@ function FormHeading({
 	// Mirrors the rating modal's header, so the form reads as the same dialog.
 	return (
 		<div className="space-y-1.5">
-			<h2 id="rate-form-title" className="text-lg font-semibold leading-snug">
+			<h2 id="rate-form-title" className="text-lg font-semibold tracking-tight">
 				{title}
 			</h2>
 			<p className="text-sm text-muted-foreground">{description}</p>
@@ -47,6 +47,8 @@ interface RateCoursePaneProps {
 	readonly remaining: number;
 	/** Opened by moving through the queue: start at the top, focus on the course. */
 	readonly focusOnMount?: boolean;
+	/** Share of the form answered so far, for the course's ring in the list. */
+	readonly onProgressChange?: (share: number) => void;
 	readonly onSaved: (scores: Scores, anonymous: boolean) => void;
 	readonly onSkip: () => void;
 	readonly onNext: () => void;
@@ -64,6 +66,7 @@ export function RateCoursePane({
 	anonymous,
 	remaining,
 	focusOnMount = false,
+	onProgressChange,
 	onSaved,
 	onSkip,
 	onNext,
@@ -179,6 +182,7 @@ export function RateCoursePane({
 						submitLabel="Зберегти"
 						cancelLabel="Пропустити"
 						inline
+						onProgressChange={onProgressChange}
 					/>
 				</section>
 			)}

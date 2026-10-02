@@ -72,7 +72,9 @@ export function MyRatingsHeader({
 								</span>
 							</Button>
 							<Button size="sm" asChild>
-								<Link to="/rate">Оцінити решту</Link>
+								<Link to="/rate">
+									{ratedCourses > 0 ? "Оцінити решту" : "Оцінити курси"}
+								</Link>
 							</Button>
 						</div>
 					) : undefined

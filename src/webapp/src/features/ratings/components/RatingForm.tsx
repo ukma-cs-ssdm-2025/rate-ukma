@@ -471,6 +471,30 @@ interface RatingFormProps {
 	 * so the buttons stick to the bottom of the viewport.
 	 */
 	readonly inline?: boolean;
+	/** Share of the four answers given so far (two scores, instructors, comment), 0 to 1. */
+	readonly onProgressChange?: (share: number) => void;
+}
+
+function useAnsweredShare(control: Control<RatingFormData>): number {
+	const [difficulty, usefulness, instructorIds, instructor, comment] = useWatch(
+		{
+			control,
+			name: [
+				"difficulty",
+				"usefulness",
+				"instructor_ids",
+				"instructor",
+				"comment",
+			],
+		},
+	);
+	const answered = [
+		difficulty > 0,
+		usefulness > 0,
+		(instructorIds?.length ?? 0) > 0 || Boolean(instructor?.trim()),
+		Boolean(comment?.trim()),
+	].filter(Boolean).length;
+	return answered / 4;
 }
 
 export function RatingForm({
@@ -486,6 +510,7 @@ export function RatingForm({
 	submitLabel,
 	cancelLabel = "Скасувати",
 	inline = false,
+	onProgressChange,
 }: RatingFormProps) {
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
@@ -498,6 +523,11 @@ export function RatingForm({
 			is_anonymous: false,
 		},
 	});
+
+	const answeredShare = useAnsweredShare(form.control);
+	React.useEffect(() => {
+		onProgressChange?.(answeredShare);
+	}, [answeredShare, onProgressChange]);
 
 	React.useEffect(() => {
 		if (initialData && !form.formState.isSubmitting) {

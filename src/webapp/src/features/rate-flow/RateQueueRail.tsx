@@ -1,4 +1,4 @@
-import { Check, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import {
 	Collapsible,
@@ -9,25 +9,49 @@ import { ProgressBar } from "@/features/ratings/components/MyRatingsHeader";
 import { cn } from "@/lib/utils";
 import type { ItemState, QueueItem, RateQueue } from "./useRateQueue";
 
-function StatusDot({
+const RING_RADIUS = 8;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+
+/**
+ * A ring per course: empty to start, filling a quarter for each answer on
+ * the course being rated, closed once saved, dashed when skipped.
+ */
+function StatusRing({
 	state,
-	active,
-}: Readonly<{ state: ItemState; active: boolean }>) {
+	share,
+}: Readonly<{ state: ItemState; share: number }>) {
+	const filled = state.kind === "done" ? 1 : share;
 	return (
-		<span
+		<svg
+			viewBox="0 0 20 20"
 			aria-hidden="true"
-			className={cn(
-				"flex size-5 shrink-0 items-center justify-center rounded-full border border-muted-foreground/30",
-				state.kind === "done" &&
-					"border-primary bg-primary text-primary-foreground",
-				state.kind === "skipped" && "border-dashed border-muted-foreground/60",
-				active && state.kind !== "done" && "border-2 border-primary",
-			)}
+			className="size-5 shrink-0 -rotate-90"
 		>
-			{state.kind === "done" ? (
-				<Check className="size-3" strokeWidth={3} />
-			) : null}
-		</span>
+			<circle
+				cx="10"
+				cy="10"
+				r={RING_RADIUS}
+				fill="none"
+				strokeWidth="2"
+				className={cn(
+					"stroke-muted-foreground/25",
+					state.kind === "skipped" && "stroke-muted-foreground/60",
+				)}
+				strokeDasharray={state.kind === "skipped" ? "2.5 2.5" : undefined}
+			/>
+			<circle
+				cx="10"
+				cy="10"
+				r={RING_RADIUS}
+				fill="none"
+				strokeWidth="2"
+				strokeLinecap="round"
+				className="stroke-primary transition-[stroke-dashoffset] duration-500 ease-out motion-reduce:transition-none"
+				strokeDasharray={RING_LENGTH}
+				strokeDashoffset={RING_LENGTH * (1 - filled)}
+				opacity={filled > 0 ? 1 : 0}
+			/>
+		</svg>
 	);
 }
 
@@ -40,10 +64,12 @@ const STATE_LABEL: Record<ItemState["kind"], string | null> = {
 function QueueList({
 	queue,
 	current,
+	activeShare,
 	onPick,
 }: Readonly<{
 	queue: RateQueue;
 	current: QueueItem | null;
+	activeShare: number;
 	onPick: (item: QueueItem) => void;
 }>) {
 	return (
@@ -71,7 +97,10 @@ function QueueList({
 												"text-muted-foreground",
 										)}
 									>
-										<StatusDot state={state} active={active} />
+										<StatusRing
+											state={state}
+											share={active ? activeShare : 0}
+										/>
 										<span className="min-w-0 flex-1">
 											<span className="line-clamp-2">
 												{item.title}
@@ -112,6 +141,8 @@ function Progress({ queue }: Readonly<{ queue: RateQueue }>) {
 interface RateQueueRailProps {
 	readonly queue: RateQueue;
 	readonly current: QueueItem | null;
+	/** How much of the open course's form is answered, 0 to 1. */
+	readonly activeShare: number;
 	readonly onPick: (item: QueueItem) => void;
 }
 
@@ -119,6 +150,7 @@ interface RateQueueRailProps {
 export function RateQueueRail({
 	queue,
 	current,
+	activeShare,
 	onPick,
 }: Readonly<RateQueueRailProps>) {
 	return (
@@ -129,7 +161,12 @@ export function RateQueueRail({
 				</h2>
 				<Progress queue={queue} />
 			</div>
-			<QueueList queue={queue} current={current} onPick={onPick} />
+			<QueueList
+				queue={queue}
+				current={current}
+				activeShare={activeShare}
+				onPick={onPick}
+			/>
 		</nav>
 	);
 }
@@ -138,6 +175,7 @@ export function RateQueueRail({
 export function RateQueueBar({
 	queue,
 	current,
+	activeShare,
 	onPick,
 	open,
 	onOpenChange,
@@ -167,6 +205,7 @@ export function RateQueueBar({
 						<QueueList
 							queue={queue}
 							current={current}
+							activeShare={activeShare}
 							onPick={(item) => {
 								onPick(item);
 								onOpenChange(false);

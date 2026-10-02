@@ -104,6 +104,15 @@ export function useRateQueue() {
 		setStates((prev) => ({ ...prev, [item.offeringId]: { kind: "skipped" } }));
 	}, []);
 
+	/** Back to the start of the skipped courses, for the end screen. */
+	const unskipAll = useCallback(() => {
+		setStates((prev) =>
+			Object.fromEntries(
+				Object.entries(prev).filter(([, state]) => state.kind !== "skipped"),
+			),
+		);
+	}, []);
+
 	const doneCount = items.filter(
 		(item) => stateOf(item).kind === "done",
 	).length;
@@ -125,6 +134,7 @@ export function useRateQueue() {
 		stateOf,
 		markDone,
 		skip,
+		unskipAll,
 		doneCount,
 		nextTodo,
 	};

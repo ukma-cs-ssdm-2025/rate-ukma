@@ -882,6 +882,24 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "rate-progress",
+		section: "Оцінити семестр",
+		note: "Two of four answers given: the course's ring in the list is half full",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate");
+			const form = page.getByTestId(testIds.rating.form);
+			await form
+				.getByTestId(testIds.rating.difficultySlider)
+				.getByRole("radio", { name: "3 з 5" })
+				.click();
+			await form
+				.getByTestId(testIds.rating.usefulnessSlider)
+				.getByRole("radio", { name: "4 з 5" })
+				.click();
+		},
+	},
+	{
 		name: "rate-reveal",
 		section: "Оцінити семестр",
 		note: "After «Зберегти»: your scores, then how others rated it",
@@ -935,7 +953,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			for (let index = 0; index < 6; index++) {
 				await page.getByRole("button", { name: "Пропустити" }).click();
 			}
-			await page.getByText(/Готово, оцінено/).waitFor();
+			await page.getByText(/Дякуємо, ви оцінили/).waitFor();
 		},
 	},
 	{

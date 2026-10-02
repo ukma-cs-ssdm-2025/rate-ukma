@@ -37,14 +37,17 @@ export function RateFeedTile() {
 					</Link>
 				}
 				footer={
-					<Link
-						to="/rate"
-						tabIndex={-1}
-						className="inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
-					>
-						Оцінити решту
-						<ArrowRight className="size-3.5" aria-hidden="true" />
-					</Link>
+					// The strip's promo tiles end on the right with their action.
+					<div className="flex justify-end text-xs">
+						<Link
+							to="/rate"
+							tabIndex={-1}
+							className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+						>
+							<span className="truncate">Оцінити курси</span>
+							<ArrowRight className="size-3.5 shrink-0" aria-hidden="true" />
+						</Link>
+					</div>
 				}
 			>
 				Допоможіть іншим обрати курси
@@ -62,7 +65,7 @@ export function RateNextLine() {
 	if (count === 0) return null;
 
 	return (
-		<p className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-sm text-muted-foreground">
+		<p className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-muted-foreground">
 			<span>{waitingText(count, true)}</span>
 			<Link
 				to="/rate"

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CircleCheck, PartyPopper } from "lucide-react";
+import { CircleCheck } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 
 import Layout from "@/components/Layout";
@@ -19,6 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CourseDetailsHeaderSkeleton } from "@/features/courses/components/CourseDetailsHeader";
 import { RateCoursePane } from "@/features/rate-flow/RateCoursePane";
+import { RateSummary } from "@/features/rate-flow/RateSummary";
 import {
 	RateQueueBar,
 	RateQueueRail,
@@ -37,30 +38,18 @@ import { formatPageTitle } from "@/lib/app-metadata";
 import { useAuth, withAuth } from "@/lib/auth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
-function AllDone({
-	rated,
-	skipped,
-}: Readonly<{ rated: number; skipped: number }>) {
-	let title = "Усі курси оцінено";
-	let description = "Нові з'являться після наступної сесії";
-	if (rated > 0) {
-		title = `Готово, оцінено ${rated}`;
-		description =
-			skipped > 0
-				? "Пропущені курси чекатимуть у «Моїх оцінках»"
-				: "Дякуємо! Ваші оцінки допоможуть іншим обрати";
-	} else if (skipped > 0) {
-		title = "Курси пропущено";
-		description = "Вони чекатимуть у «Моїх оцінках»";
-	}
+/** Opened with nothing to rate: everything is rated, or nothing is open yet. */
+function AllDone() {
 	return (
 		<Empty className="border-0 py-16">
 			<EmptyHeader>
 				<EmptyMedia variant="icon">
-					{rated > 0 ? <PartyPopper /> : <CircleCheck />}
+					<CircleCheck />
 				</EmptyMedia>
-				<EmptyTitle>{title}</EmptyTitle>
-				<EmptyDescription>{description}</EmptyDescription>
+				<EmptyTitle>Усі курси оцінено</EmptyTitle>
+				<EmptyDescription>
+					Нові з'являться, коли відкриється оцінювання наступного семестру.
+				</EmptyDescription>
 			</EmptyHeader>
 			<EmptyContent>
 				<Button asChild>
@@ -124,6 +113,7 @@ function RatePage() {
 	const [anonymous, setAnonymous] = useState(false);
 	const [listOpen, setListOpen] = useState(false);
 	const [moved, setMoved] = useState(false);
+	const [activeShare, setActiveShare] = useState(0);
 	const queryClient = useQueryClient();
 
 	const current = finished ? null : (picked ?? queue.nextTodo());
@@ -138,9 +128,6 @@ function RatePage() {
 		setPicked(after);
 		if (!after) setFinished(true);
 	};
-	const skipped = queue.items.filter(
-		(item) => queue.stateOf(item).kind === "skipped",
-	).length;
 
 	const next = current ? queue.nextTodo(current) : null;
 	useEffect(() => {
@@ -194,8 +181,23 @@ function RatePage() {
 	}
 
 	let body: React.ReactNode;
-	if (!current) {
-		body = <AllDone rated={queue.doneCount} skipped={skipped} />;
+	if (!current && queue.items.length > 0) {
+		body = (
+			<RateSummary
+				queue={queue}
+				onReturnToSkipped={() => {
+					const first = queue.items.find(
+						(item) => queue.stateOf(item).kind === "skipped",
+					);
+					queue.unskipAll();
+					setFinished(false);
+					setMoved(true);
+					setPicked(first ?? null);
+				}}
+			/>
+		);
+	} else if (!current) {
+		body = <AllDone />;
 	} else {
 		const state = queue.stateOf(current);
 		body = (
@@ -210,6 +212,7 @@ function RatePage() {
 					).length
 				}
 				focusOnMount={moved}
+				onProgressChange={setActiveShare}
 				onSaved={(scores, isAnonymous) => {
 					// Pin the course so the result stays up until «Наступний курс».
 					setPicked(current);
@@ -236,6 +239,7 @@ function RatePage() {
 					<RateQueueBar
 						queue={queue}
 						current={current}
+						activeShare={activeShare}
 						onPick={pick}
 						open={listOpen}
 						onOpenChange={setListOpen}
@@ -245,7 +249,12 @@ function RatePage() {
 					{showQueue && isDesktop ? (
 						<aside className="min-w-0">
 							<div className="lg:sticky lg:top-24 lg:-ml-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
-								<RateQueueRail queue={queue} current={current} onPick={pick} />
+								<RateQueueRail
+									queue={queue}
+									current={current}
+									activeShare={activeShare}
+									onPick={pick}
+								/>
 							</div>
 						</aside>
 					) : null}

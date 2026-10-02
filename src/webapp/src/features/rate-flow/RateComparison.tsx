@@ -35,15 +35,15 @@ const AXIS_COPY: Record<
 > = {
 	difficulty: {
 		title: "Складність",
-		lower: "Легше",
-		higher: "Складніше",
+		lower: "легше",
+		higher: "складніше",
 		verdictLower: "легшим",
 		verdictHigher: "складнішим",
 	},
 	usefulness: {
 		title: "Корисність",
-		lower: "Менш корисно",
-		higher: "Корисніше",
+		lower: "менш корисно",
+		higher: "корисніше",
 		verdictLower: "менш корисним",
 		verdictHigher: "кориснішим",
 	},
@@ -66,6 +66,21 @@ function othersAverage(
 ): number | null {
 	if (average == null || count < 2) return null;
 	return (average * count - mine) / (count - 1);
+}
+
+// Beyond this the gap reads as clear rather than slight.
+const CLEAR_THRESHOLD = 1.25;
+
+/** The gap in words: a 0.6 on a 1 to 5 scale means little to a reader as a number. */
+function differenceText(
+	mine: number,
+	others: number,
+	copy: { lower: string; higher: string },
+): string {
+	const word = mine > others ? copy.higher : copy.lower;
+	const degree =
+		Math.abs(mine - others) >= CLEAR_THRESHOLD ? "Помітно" : "Трохи";
+	return `${degree} ${word}`;
 }
 
 function direction(mine: number, others: number | null): -1 | 0 | 1 {
@@ -103,7 +118,7 @@ function BarRow({
 }>) {
 	return (
 		<div className="flex items-center gap-3">
-			<span className="w-9 shrink-0 text-xs text-muted-foreground">
+			<span className="w-7 shrink-0 text-xs text-muted-foreground sm:w-9">
 				{label}
 			</span>
 			<div className="min-w-0 flex-1">
@@ -126,24 +141,21 @@ function AxisPanel({
 	const copy = AXIS_COPY[axis];
 	const tone = axis === "difficulty" ? getDifficultyTone : getUsefulnessTone;
 	const dir = direction(mine, others);
-	const delta = others == null ? 0 : Math.abs(mine - others);
 
 	return (
 		<Card className="shadow-sm">
-			<CardContent ref={ref} className="space-y-4 p-4 sm:p-5">
-				<div className="flex items-start justify-between gap-3">
+			<CardContent ref={ref} className="space-y-4 p-3 sm:p-5">
+				<div className="flex flex-col items-start gap-1.5 sm:flex-row sm:justify-between sm:gap-3">
 					<p className="text-sm font-medium text-muted-foreground">
 						{copy.title}
 					</p>
 					{others == null ? null : (
 						<Badge variant={dir === 0 ? "secondary" : "soft"}>
-							{dir === 0
-								? "Як у інших"
-								: `${dir > 0 ? copy.higher : copy.lower} на ${formatDecimalValue(delta)}`}
+							{dir === 0 ? "Як у інших" : differenceText(mine, others, copy)}
 						</Badge>
 					)}
 				</div>
-				<p className="flex items-baseline gap-1.5">
+				<p className="flex flex-wrap items-baseline gap-x-1.5">
 					<span
 						data-score
 						className={cn(
@@ -151,7 +163,7 @@ function AxisPanel({
 							tone(mine),
 						)}
 					>
-						{mine}
+						{mine.toFixed(1)}
 					</span>
 					<span className="text-sm text-muted-foreground">ваша оцінка</span>
 				</p>
@@ -204,13 +216,13 @@ export function RateComparison({
 	return (
 		<section aria-labelledby="rate-result" className="space-y-6">
 			<div className="space-y-2">
-				<p className="flex items-center gap-1.5 text-sm font-medium text-success">
+				<p className="flex items-center gap-1.5 text-sm font-medium text-primary">
 					<CircleCheck className="size-4" aria-hidden="true" />
 					Оцінку збережено
 				</p>
 				<h2
 					id="rate-result"
-					className="text-xl font-semibold tracking-tight text-balance sm:text-2xl"
+					className="text-lg font-semibold tracking-tight text-balance"
 				>
 					{hasOthers ? verdict(scores, others) : "Ви оцінили цей курс першими"}
 				</h2>
@@ -221,7 +233,7 @@ export function RateComparison({
 				</p>
 			</div>
 
-			<div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+			<div className="grid grid-cols-2 gap-3 sm:gap-4">
 				<AxisPanel
 					axis="difficulty"
 					mine={scores.difficulty}
