@@ -790,6 +790,99 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.locator("h1").first().waitFor();
 		},
 	},
+	{
+		name: "rate-today",
+		section: "Оцінити семестр",
+		note: "Today: Мої оцінки filtered to unrated after the spring exams",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/my-ratings");
+			await page.getByRole("button", { name: /Лише неоцінені/ }).click();
+			await page.getByTestId(testIds.myRatings.list).waitFor();
+		},
+	},
+	{
+		name: "rate-split",
+		section: "Оцінити семестр",
+		note: "A: queue left, course and form right; one saved, second picked",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate?v=split");
+			const pick = async (group: string, score: number) =>
+				page
+					.getByRole("radiogroup", { name: group })
+					.getByRole("radio", { name: `${score} з 5` })
+					.click();
+			await pick("Складність", 5);
+			await pick("Корисність", 5);
+			await page.getByRole("button", { name: "Зберегти і далі" }).click();
+			await page.getByRole("heading", { name: "Бази даних" }).waitFor();
+			await pick("Складність", 2);
+			await pick("Корисність", 4);
+			await page.mouse.move(0, 0);
+		},
+	},
+	{
+		name: "rate-split-list",
+		section: "Оцінити семестр",
+		note: "A on a phone with the course list opened",
+		widths: ["phone"],
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate?v=split");
+			await page.getByRole("button", { name: "Усі курси" }).click();
+		},
+	},
+	{
+		name: "rate-focus",
+		section: "Оцінити семестр",
+		note: "B: one course at a time, others' scores locked until you rate",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate?v=focus");
+			await page.getByText("Відкриється, коли поставиш свою оцінку").waitFor();
+		},
+	},
+	{
+		name: "rate-focus-revealed",
+		section: "Оцінити семестр",
+		note: "B after picking both scores: others revealed next to yours",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate?v=focus");
+			await page
+				.getByRole("radiogroup", { name: "Складність" })
+				.getByRole("radio", { name: "3" })
+				.click();
+			await page
+				.getByRole("radiogroup", { name: "Корисність" })
+				.getByRole("radio", { name: "5" })
+				.click();
+			await page.getByText("Інші студенти").waitFor();
+			await page.mouse.move(0, 0);
+		},
+	},
+	{
+		name: "rate-map",
+		section: "Оцінити семестр",
+		note: "C: place the semester's courses on the map, compared with others",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate?v=map");
+			const cell = (d: number, u: number) =>
+				page
+					.getByRole("button", {
+						name: `Складність ${d}, корисність ${u}`,
+					})
+					.click();
+			await cell(5, 5);
+			await cell(3, 4);
+			await cell(2, 4);
+			await cell(4, 2);
+			await page.getByText("Показати, як оцінили інші").click();
+			await page.mouse.move(0, 0);
+		},
+	},
 ];
 const STATES = ALL_STATES.filter((state) => !only || only.test(state.name));
 

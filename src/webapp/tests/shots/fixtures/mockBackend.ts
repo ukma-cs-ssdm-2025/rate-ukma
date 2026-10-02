@@ -17,6 +17,7 @@ import {
 	LONG_COURSE_TITLE,
 	MANY_SPECIALITIES,
 	MY_GRADES_MANY,
+	MY_GRADES_QUEUE,
 	NOTIFICATIONS,
 	RATING_COMMENTS,
 	SESSION,
@@ -25,7 +26,7 @@ import {
 export interface MockOptions {
 	readonly feed?: "items" | "empty" | "error";
 	readonly courses?: "items" | "error";
-	readonly grades?: "items" | "many" | "empty";
+	readonly grades?: "items" | "many" | "empty" | "queue";
 	readonly myCourses?: "none" | MyCourseState;
 	readonly comments?: "empty" | "thread";
 	readonly reviews?: "items" | "empty";
@@ -148,8 +149,11 @@ export async function mockBackend(
 		],
 		[
 			/^\/courses\/[^/]+\/$/,
-			() =>
-				reviews === "empty"
+			(path) =>
+				grades === "queue"
+					? (COURSES.find((course) => path === `/courses/${course.id}/`) ??
+						courseDetail)
+					: reviews === "empty"
 					? {
 							...courseDetail,
 							avg_difficulty: null,
@@ -188,7 +192,12 @@ export async function mockBackend(
 		],
 		[
 			/^\/students\/me\/grades\/$/,
-			() => ({ items: MY_GRADES, many: MY_GRADES_MANY, empty: [] })[grades],
+			() => ({
+					items: MY_GRADES,
+					many: MY_GRADES_MANY,
+					empty: [],
+					queue: MY_GRADES_QUEUE,
+				})[grades],
 		],
 		[
 			/^\/students\/me\/courses\/$/,

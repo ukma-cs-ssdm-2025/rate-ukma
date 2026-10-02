@@ -62,7 +62,7 @@ function getShortDescription(
 	return head?.trim() || full;
 }
 
-function ScoreInput({
+export function ScoreInput({
 	value,
 	onChange,
 	onBlur,

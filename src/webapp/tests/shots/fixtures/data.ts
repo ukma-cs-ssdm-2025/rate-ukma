@@ -628,3 +628,47 @@ export const COMMENT_REPLIES = {
 	next_page: null,
 	previous_page: null,
 } satisfies CommentList;
+
+// A third-year student right after the spring exams: the whole spring term and
+// two fall courses still waiting for a rating, the fall term already running.
+const QUEUE_PLAN: ReadonlyArray<
+	readonly [string, number, "FALL" | "SPRING", boolean]
+> = [
+	["c-algo", 2026, "SPRING", false],
+	["c-db", 2026, "SPRING", false],
+	["c-micro", 2026, "SPRING", false],
+	["c-arch", 2026, "SPRING", false],
+	["c-hist", 2026, "SPRING", false],
+	["c-phil", 2026, "SPRING", false],
+	["c-ml", 2025, "FALL", false],
+	["c-lit", 2025, "FALL", false],
+	["c-discrete", 2025, "FALL", true],
+	["c-invest", 2025, "FALL", true],
+];
+
+export const MY_GRADES_QUEUE = QUEUE_PLAN.map(
+	([courseId, year, season, rated], index) => {
+		const course = COURSES.find((item) => item.id === courseId) ?? COURSE;
+		return {
+			course_id: course.id,
+			course_title: course.title,
+			course_code: `92000${index}`,
+			course_offering_id: `offering-queue-${course.id}`,
+			faculty_name: course.faculty_name,
+			semester: { year, season },
+			rated: rated
+				? {
+						id: `my-rating-queue-${index}`,
+						difficulty: 4,
+						usefulness: 4,
+						comment: "",
+						instructor: null,
+						instructors: [],
+						created_at: hoursAgo(24 * 120),
+						is_anonymous: true,
+					}
+				: null,
+			can_rate: true,
+		};
+	},
+) satisfies StudentRatingsDetailed[];
