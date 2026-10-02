@@ -59,9 +59,10 @@ class InstructorViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Suggest instructors for a search",
         description=(
-            "Up to `limit` rated instructors whose name matches `q`, for the "
-            "course search dropdown. Ranked for the calling student: mentions "
-            "on their speciality first, then on their study year, then overall."
+            "Up to `limit` rated instructors whose name matches `q` (course "
+            "search) and/or who are mentioned on `course_id` (rating form). "
+            "Ranked for the calling student: mentions on `course_offering_id`, "
+            "then on their speciality, then on their study year, then overall."
         ),
         parameters=to_openapi((InstructorSuggestionParams, OpenApiParameter.QUERY)),
         responses=R_INSTRUCTOR_SUGGESTIONS,

@@ -50,6 +50,8 @@ class InstructorService(IFilterable):
     ) -> list[InstructorSuggestion]:
         qs = self.instructor_repository.suggest(
             search=params.q,
+            course_id=params.course_id,
+            course_offering_id=params.course_offering_id,
             speciality_id=student.speciality_id if student else None,
             study_year=_study_year(student),
             education_level=student.education_level if student else None,

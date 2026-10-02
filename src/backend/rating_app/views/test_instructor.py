@@ -309,3 +309,38 @@ def test_suggestions_reject_one_letter_query(token_client):
     response = token_client.get(reverse("instructor-suggestions"), {"q": "a"})
 
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_suggestions_for_a_course_rank_this_offering_first(
+    token_client, instructor_factory, rating_factory, course_offering_factory
+):
+    offering = course_offering_factory()
+    older = course_offering_factory(course=offering.course)
+    this_term = instructor_factory(last_name="Цьогорічна", email="a@x.ua")
+    last_year = instructor_factory(last_name="Минулорічний", email="b@x.ua")
+    elsewhere = instructor_factory(last_name="Сторонній", email="c@x.ua")
+    rating_factory(course_offering=offering).instructors.add(this_term)
+    for _ in range(2):
+        rating_factory(course_offering=older).instructors.add(last_year)
+    rating_factory().instructors.add(elsewhere)
+
+    response = token_client.get(
+        reverse("instructor-suggestions"),
+        {"course_id": str(offering.course_id), "course_offering_id": str(offering.id)},
+    )
+
+    assert response.status_code == 200
+    assert [i["last_name"] for i in response.json()["items"]] == [
+        "Цьогорічна",
+        "Минулорічний",
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_suggestions_need_a_query_or_a_course(token_client):
+    response = token_client.get(reverse("instructor-suggestions"))
+
+    assert response.status_code == 400

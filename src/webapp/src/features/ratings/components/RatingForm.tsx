@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/Form";
 import { Textarea } from "@/components/ui/Textarea";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
+import { InstructorQuickPicks } from "@/features/instructors/components/InstructorQuickPicks";
 import type { Instructor } from "@/lib/api/generated";
+import { useInstructorsSuggestionsRetrieve } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import {
 	ANONYMOUS_REVIEW_NAME,
@@ -202,6 +204,9 @@ function ScoreInput({
 		</div>
 	);
 }
+// Teachers named on this course, offered one tap away under the picker.
+const QUICK_PICKS = 2;
+
 function RatingFormFields({
 	control,
 	offeringId,
@@ -221,7 +226,19 @@ function RatingFormFields({
 	const isAnonymous = useWatch({ control, name: "is_anonymous" }) ?? false;
 	const difficulty = useWatch({ control, name: "difficulty" });
 	const usefulness = useWatch({ control, name: "usefulness" });
+	const instructorIds = useWatch({ control, name: "instructor_ids" });
 	const [previewOpen, setPreviewOpen] = React.useState(false);
+	const { data: courseInstructors } = useInstructorsSuggestionsRetrieve(
+		{ course_id: courseId, course_offering_id: offeringId, limit: 4 },
+		{ query: { enabled: Boolean(courseId) } },
+	);
+	const quickPicks = (courseInstructors?.items ?? [])
+		.filter((instructor) => !instructorIds?.includes(instructor.id))
+		.slice(0, QUICK_PICKS);
+	const instructorOptions = React.useMemo(
+		() => [...(initialInstructors ?? []), ...(courseInstructors?.items ?? [])],
+		[initialInstructors, courseInstructors],
+	);
 	const signature = isAnonymous
 		? ANONYMOUS_REVIEW_NAME
 		: author?.name || DEFAULT_STUDENT_NAME;
@@ -337,17 +354,26 @@ function RatingFormFields({
 							<InstructorMultiSelect
 								value={field.value ?? []}
 								onChange={field.onChange}
-								initialOptions={initialInstructors}
+								initialOptions={instructorOptions}
 								courseOfferingId={offeringId}
 								courseId={courseId}
 								data-testid={testIds.rating.instructorMultiSelect}
 							/>
 						</FormControl>
-						<FormDescription>
-							{legacyInstructor
-								? "Оберіть викладачів зі списку — вони замінять текстовий запис"
-								: "Можна обрати кількох викладачів, які вели курс"}
-						</FormDescription>
+						{quickPicks.length > 0 && !legacyInstructor ? (
+							<InstructorQuickPicks
+								items={quickPicks}
+								onPick={(instructor) =>
+									field.onChange([...(field.value ?? []), instructor.id])
+								}
+							/>
+						) : (
+							<FormDescription>
+								{legacyInstructor
+									? "Оберіть викладачів зі списку — вони замінять текстовий запис"
+									: "Можна обрати кількох викладачів, які вели курс"}
+							</FormDescription>
+						)}
 						<FormMessage />
 					</FormItem>
 				)}

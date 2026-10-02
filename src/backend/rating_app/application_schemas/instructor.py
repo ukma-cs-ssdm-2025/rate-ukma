@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic.alias_generators import to_snake
 
 from rating_app.application_schemas.pagination import PaginationMetadata
@@ -52,12 +52,27 @@ class InstructorSuggestionParams(BaseModel):
         "populate_by_name": True,
     }
 
-    q: str = Field(
+    q: str | None = Field(
+        default=None,
         min_length=2,
         max_length=100,
         description="What the student typed; every word must match a name part",
     )
+    course_id: uuid.UUID | None = Field(
+        default=None,
+        description="Only instructors mentioned on this course (the rating form)",
+    )
+    course_offering_id: uuid.UUID | None = Field(
+        default=None,
+        description="Rank instructors mentioned on this offering first",
+    )
     limit: int = Field(default=5, ge=1, le=10, description="Max suggestions")
+
+    @model_validator(mode="after")
+    def _require_query_or_course(self) -> "InstructorSuggestionParams":
+        if not self.q and not self.course_id:
+            raise ValueError("Pass q, course_id, or both")
+        return self
 
 
 @dataclass(frozen=True)

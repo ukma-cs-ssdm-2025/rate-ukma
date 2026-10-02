@@ -5,7 +5,9 @@ from typing import Literal, overload
 from django.db.models import (
     Case,
     Count,
+    Exists,
     IntegerField,
+    OuterRef,
     Q,
     QuerySet,
     Subquery,
@@ -17,6 +19,7 @@ from django.db.models.functions import Lower
 from rating_app.application_schemas.instructor import Instructor, InstructorInput
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
 from rating_app.models import Instructor as InstructorModel
+from rating_app.models import Rating as RatingModel
 from rating_app.models import Student as StudentModel
 from rating_app.models.choices import EducationLevel
 from rating_app.repositories.protocol import IDomainOrmRepository
@@ -164,21 +167,25 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     def suggest(
         self,
         *,
-        search: str,
+        search: str | None = None,
+        course_id: uuid.UUID | None = None,
+        course_offering_id: uuid.UUID | None = None,
         speciality_id: uuid.UUID | None = None,
         study_year: int | None = None,
         education_level: str | None = None,
         limit: int = 5,
     ) -> QuerySet[InstructorModel]:
-        """Rated instructors whose name matches ``search``, for the course search.
+        """Rated instructors for the course search (``search``) or the rating
+        form (``course_id``: only those mentioned on that course).
 
         Ordering, closest to the student first (each scoped count is zero when
         its argument is omitted):
 
-        1. mentions on offerings of the student's speciality, DESC
-        2. mentions on offerings of the student's study year (and level), DESC
-        3. global mentions, DESC
-        4. last_name, first_name, id
+        1. mentions on ``course_offering_id``, DESC
+        2. mentions on offerings of the student's speciality, DESC
+        3. mentions on offerings of the student's study year (and level), DESC
+        4. global mentions, DESC
+        5. last_name, first_name, id
 
         Never-rated instructors are left out: picking one filters courses by
         mentions (#664), so they would lead to an empty course list.
@@ -194,15 +201,32 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             if education_level:
                 year_filter &= Q(ratings__course_offering__course__education_level=education_level)
 
+        offering_filter = (
+            Q(ratings__course_offering_id=course_offering_id)
+            if course_offering_id
+            else Q(pk__in=[])
+        )
+
         qs = InstructorModel.objects.annotate(
+            offering_mentions=Count("ratings", filter=offering_filter, distinct=True),
             speciality_mentions=Count("ratings", filter=speciality_filter, distinct=True),
             year_mentions=Count("ratings", filter=year_filter, distinct=True),
             global_mentions=Count("ratings", distinct=True),
             courses_count=Count("ratings__course_offering__course", distinct=True),
         ).filter(global_mentions__gt=0)
-        qs = _filter_by_name(qs, search)
+        if course_id:
+            qs = qs.filter(
+                Exists(
+                    RatingModel.objects.filter(
+                        instructors=OuterRef("pk"), course_offering__course_id=course_id
+                    )
+                )
+            )
+        if search:
+            qs = _filter_by_name(qs, search)
 
         return qs.order_by(
+            "-offering_mentions",
             "-speciality_mentions",
             "-year_mentions",
             "-global_mentions",

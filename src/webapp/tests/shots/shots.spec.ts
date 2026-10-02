@@ -357,6 +357,27 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "rating-modal-teacher-picked",
+		section: "Оцінювання",
+		note: "Rating form after tapping a suggested teacher under «Викладачі»",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rateable" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("heading", { level: 1, name: COURSE.title })
+				.waitFor();
+			await page.getByTestId("course-details-rate-button").click();
+			await page
+				.getByTestId(testIds.rating.instructorQuickPicks)
+				.getByRole("button", { name: "Демченко Олена Петрівна" })
+				.click();
+			await page
+				.getByTestId(testIds.rating.instructorMultiSelect)
+				.getByText("Демченко Олена Петрівна")
+				.waitFor();
+		},
+	},
+	{
 		name: "course-rateable",
 		section: "Оцінювання",
 		note: "Attendee who can rate and has not yet: primary rate action",

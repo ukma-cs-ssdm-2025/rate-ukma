@@ -5,6 +5,19 @@ import { render, screen } from "@/test-utils/render";
 import { RatingForm } from "./RatingForm";
 import userEvent from "@testing-library/user-event";
 
+vi.mock("@/lib/api/generated", async () => {
+	const actual = await vi.importActual("@/lib/api/generated");
+	return {
+		...actual,
+		useInstructorsSuggestionsRetrieve: vi.fn(function () {
+			return { data: undefined };
+		}),
+	};
+});
+
+const { useInstructorsSuggestionsRetrieve } =
+	await import("@/lib/api/generated");
+
 describe("RatingForm", () => {
 	it("uses a viewport-safe layout for long reviews", () => {
 		render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
@@ -38,6 +51,40 @@ describe("RatingForm", () => {
 			expect(
 				screen.getByTestId(testIds.rating.instructorMultiSelect),
 			).toBeInTheDocument();
+		});
+
+		it("offers teachers named on this course one tap away", async () => {
+			const user = userEvent.setup();
+			vi.mocked(useInstructorsSuggestionsRetrieve).mockReturnValue({
+				data: {
+					items: [
+						{
+							id: "i-1",
+							first_name: "Олена",
+							patronymic: "Петрівна",
+							last_name: "Демченко",
+							courses_count: 2,
+						},
+					],
+				},
+			} as unknown as ReturnType<typeof useInstructorsSuggestionsRetrieve>);
+			render(
+				<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} courseId="c-1" />,
+			);
+
+			await user.click(
+				screen.getByRole("button", { name: "Демченко Олена Петрівна" }),
+			);
+
+			expect(
+				screen.getByTestId(testIds.rating.instructorMultiSelect),
+			).toHaveTextContent("Демченко Олена Петрівна");
+			expect(
+				screen.queryByTestId(testIds.rating.instructorQuickPicks),
+			).not.toBeInTheDocument();
+			vi.mocked(useInstructorsSuggestionsRetrieve).mockReturnValue({
+				data: undefined,
+			} as unknown as ReturnType<typeof useInstructorsSuggestionsRetrieve>);
 		});
 
 		it("shows the previous free-text instructor read-only next to the multi-select", () => {
