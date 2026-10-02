@@ -841,11 +841,13 @@ const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "entry-course",
 		section: "Оцінити семестр",
-		note: "Course page: one line under the student's own rating",
+		note: "Course page: a small card above «Про курс»",
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue", myCourses: "rated" });
 			await page.goto(`/courses/${COURSE.id}`);
-			await page.getByText("Оцінити решту").waitFor();
+			await page
+				.getByRole("complementary", { name: "Курси без оцінки" })
+				.waitFor();
 		},
 	},
 	{
@@ -937,6 +939,24 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.getByRole("button", { name: "Наступний курс" }).click();
 			await page.getByRole("button", { name: "Усі курси" }).click();
 			await page.evaluate(() => window.scrollTo(0, 0));
+		},
+	},
+	{
+		name: "rate-leave",
+		section: "Оцінити семестр",
+		note: "Leaving mid-queue asks once, with staying as the easy choice",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate");
+			await rateCurrent(page, 3, 4);
+			await page.getByRole("button", { name: "Наступний курс" }).click();
+			const menu = page.getByRole("button", { name: "Відкрити меню" });
+			if (await menu.isVisible()) await menu.click();
+			await page
+				.getByRole("link", { name: "Курси", exact: true })
+				.first()
+				.click();
+			await page.getByRole("alertdialog").waitFor();
 		},
 	},
 	{

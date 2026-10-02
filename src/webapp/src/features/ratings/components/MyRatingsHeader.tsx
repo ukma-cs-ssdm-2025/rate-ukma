@@ -6,6 +6,7 @@ import { ListFilter } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 
 interface MyRatingsHeaderProps {
 	totalCourses: number;
@@ -17,7 +18,10 @@ interface MyRatingsHeaderProps {
 	isLoading?: boolean;
 }
 
-export function ProgressBar({ share }: Readonly<{ share: number }>) {
+export function ProgressBar({
+	share,
+	className,
+}: Readonly<{ share: number; className?: string }>) {
 	// Starts empty and fills after the first paint so the bar sweeps in.
 	const [shown, setShown] = useState(0);
 	useEffect(() => {
@@ -27,7 +31,10 @@ export function ProgressBar({ share }: Readonly<{ share: number }>) {
 
 	return (
 		<span
-			className="mt-3 block h-1 w-xl max-w-full overflow-hidden rounded-full bg-muted"
+			className={cn(
+				"mt-3 block h-1 w-xl max-w-full overflow-hidden rounded-full bg-muted",
+				className,
+			)}
 			aria-hidden="true"
 		>
 			<span

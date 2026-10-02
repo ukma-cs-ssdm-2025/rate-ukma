@@ -31,7 +31,7 @@ import {
 import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
 import { RatingButton } from "@/features/ratings/components/RatingButton";
-import { RateNextLine } from "@/features/rate-flow/RatePrompt";
+import { RateSideCard } from "@/features/rate-flow/RatePrompt";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
@@ -119,6 +119,13 @@ function CourseDetailsRoute() {
 				</RatingButton>
 			</div>
 		) : null;
+	// The student's other courses waiting for a rating, beside «Про курс».
+	const ratePrompt = (
+		<RateSideCard
+			leaveOutCurrent={!ratedOffering && hasAttendedCourse && canRateNow}
+			more={Boolean(ratedOffering) || (hasAttendedCourse && canRateNow)}
+		/>
+	);
 	const about = (
 		<CourseAbout
 			description={course.description}
@@ -168,6 +175,7 @@ function CourseDetailsRoute() {
 						    then reviews. Rendered once: the rate button's test id must stay unique. */}
 						{isDesktop ? null : rateAction}
 						{isDesktop ? null : about}
+						{isDesktop ? null : ratePrompt}
 
 						<CourseRatingsList
 							courseId={courseId}
@@ -177,7 +185,6 @@ function CourseDetailsRoute() {
 							rateAction={isDesktop ? rateAction : null}
 							hasAttended={hasAttendedCourse}
 							canRate={canRateNow}
-							userRatingFooter={<RateNextLine />}
 						/>
 					</div>
 
@@ -186,7 +193,10 @@ function CourseDetailsRoute() {
 							{/* Capped to the viewport so a rail taller than the screen scrolls
 							    on its own instead of hiding its end until the page bottom. */}
 							<div className="lg:sticky lg:top-24 lg:-mr-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pr-3 lg:[scrollbar-gutter:stable] lg:[scrollbar-width:thin]">
-								{about}
+								<div className="space-y-8">
+									{ratePrompt}
+									{about}
+								</div>
 							</div>
 						</aside>
 					) : null}

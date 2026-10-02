@@ -62,7 +62,11 @@ export function CountBadge({
 					className="absolute inset-0 animate-ping rounded-full bg-inherit opacity-60 [animation-iteration-count:3] motion-reduce:hidden"
 				/>
 			) : null}
-			<span className="relative">{count > max ? `${max}+` : count}</span>
+			{/* Trimmed to the digits' own height: line boxes keep room for
+			    descenders, which digits lack, so a plain box sits them high. */}
+			<span className="relative [text-box:trim-both_cap_alphabetic]">
+				{count > max ? `${max}+` : count}
+			</span>
 		</span>
 	);
 }

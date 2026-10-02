@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Star } from "lucide-react";
 
+import { Button } from "@/components/ui/Button";
 import { FeedCard } from "@/features/feed/components/FeedCard";
 import { FEED_TILE_CLASS } from "@/features/feed/components/FeedStrip";
 import { useRateableCount } from "./useRateableCount";
@@ -57,23 +58,38 @@ export function RateFeedTile() {
 }
 
 /**
- * Course page: one line under the student's own rating of this course, the
- * moment they have just shown they will rate.
+ * Course page: a small card at the top of the right column. The course on
+ * screen has its own «Оцінити курс» block, so it is left out of the count.
  */
-export function RateNextLine() {
-	const count = useRateableCount();
+export function RateSideCard({
+	leaveOutCurrent = false,
+	more = false,
+}: Readonly<{
+	/** This course is open and unrated, with its own button on the page. */
+	leaveOutCurrent?: boolean;
+	/** The student rated or can rate this course: «Ще N». */
+	more?: boolean;
+}>) {
+	const count = useRateableCount(leaveOutCurrent);
 	if (count === 0) return null;
 
 	return (
-		<p className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-muted-foreground">
-			<span>{waitingText(count, true)}</span>
-			<Link
-				to="/rate"
-				className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
-			>
-				Оцінити решту
-				<ArrowRight className="size-4" aria-hidden="true" />
-			</Link>
-		</p>
+		<aside
+			aria-label="Курси без оцінки"
+			className="space-y-3 rounded-xl bg-muted/50 p-4"
+		>
+			<div className="space-y-0.5">
+				<p className="font-medium">{waitingText(count, more)}</p>
+				<p className="text-sm text-muted-foreground">
+					По одному курсу на екрані, без пошуку
+				</p>
+			</div>
+			<Button size="sm" variant="outline" asChild>
+				<Link to="/rate">
+					Оцінити курси
+					<ArrowRight aria-hidden="true" />
+				</Link>
+			</Button>
+		</aside>
 	);
 }

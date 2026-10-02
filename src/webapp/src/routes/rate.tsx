@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useBlocker } from "@tanstack/react-router";
 import { CircleCheck } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 
@@ -19,6 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CourseDetailsHeaderSkeleton } from "@/features/courses/components/CourseDetailsHeader";
 import { RateCoursePane } from "@/features/rate-flow/RateCoursePane";
+import { RateLeaveDialog } from "@/features/rate-flow/RateLeaveDialog";
 import { RateSummary } from "@/features/rate-flow/RateSummary";
 import {
 	RateQueueBar,
@@ -114,6 +115,8 @@ function RatePage() {
 	const [listOpen, setListOpen] = useState(false);
 	const [moved, setMoved] = useState(false);
 	const [activeShare, setActiveShare] = useState(0);
+	// Asked once per visit: a second try to leave goes straight through.
+	const [askedToStay, setAskedToStay] = useState(false);
 	const queryClient = useQueryClient();
 
 	const current = finished ? null : (picked ?? queue.nextTodo());
@@ -130,6 +133,27 @@ function RatePage() {
 	};
 
 	const next = current ? queue.nextTodo(current) : null;
+	const remainingTodo = queue.items.filter(
+		(item) => queue.stateOf(item).kind === "todo",
+	).length;
+	const hasDraft =
+		activeShare > 0 &&
+		current != null &&
+		queue.stateOf(current).kind === "todo";
+	// Only once the student has started: a glance at the page leaves freely.
+	const shouldAsk =
+		isStudent &&
+		!askedToStay &&
+		!finished &&
+		remainingTodo > 0 &&
+		(queue.doneCount > 0 || hasDraft);
+	const blocker = useBlocker({
+		// «Відгуки про курс» is a look the student asked for, not leaving.
+		shouldBlockFn: ({ next: to }) =>
+			shouldAsk && !to.pathname.startsWith("/courses/"),
+		enableBeforeUnload: () => hasDraft,
+		withResolver: true,
+	});
 	useEffect(() => {
 		// The next course is one click away: have it ready so its header and
 		// form open without a loading frame.
@@ -231,9 +255,25 @@ function RatePage() {
 	// One course needs no list beside it.
 	const showQueue = queue.items.length > 1;
 
+	const leaveDialog = (
+		<RateLeaveDialog
+			open={blocker.status === "blocked"}
+			rated={queue.doneCount}
+			total={queue.items.length}
+			remaining={remainingTodo}
+			hasDraft={hasDraft}
+			onStay={() => {
+				setAskedToStay(true);
+				blocker.reset?.();
+			}}
+			onLeave={() => blocker.proceed?.()}
+		/>
+	);
+
 	return (
 		<Layout>
 			{title}
+			{leaveDialog}
 			<div className="space-y-6 pb-16">
 				{showQueue && !isDesktop ? (
 					<RateQueueBar

@@ -38,7 +38,7 @@ vi.mock("@/features/course-offerings/components/CourseAbout", () => ({
 }));
 
 vi.mock("@/features/rate-flow/RatePrompt", () => ({
-	RateNextLine: () => null,
+	RateSideCard: () => null,
 }));
 
 vi.mock("@/features/course-offerings/components/CourseCazRecords", () => ({
