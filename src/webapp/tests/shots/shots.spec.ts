@@ -74,6 +74,17 @@ async function openCourses(page: Page, path = "/") {
 	await page.getByText(COURSE.title).first().waitFor();
 }
 
+/** Bottom of the courses page; the footer GitHub link must stay tappable (#728). */
+async function scrollToFooterLink(page: Page) {
+	await openCourses(page);
+	await page.evaluate(() =>
+		window.scrollTo(0, document.documentElement.scrollHeight),
+	);
+	const link = page.getByTestId(testIds.footer.repoLink);
+	await link.waitFor();
+	await expectUncovered(link);
+}
+
 /** Fails when another element (e.g. a floating button) covers the target's centre. */
 async function expectUncovered(target: Locator) {
 	const uncovered = await target.evaluate((el) => {
@@ -125,15 +136,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		name: "home-footer",
 		section: "Головна",
 		note: "Courses page scrolled to the footer: the GitHub link stays tappable",
-		run: async (page) => {
-			await openCourses(page);
-			await page.evaluate(() =>
-				window.scrollTo(0, document.documentElement.scrollHeight),
-			);
-			const link = page.getByTestId(testIds.footer.repoLink);
-			await link.waitFor();
-			await expectUncovered(link);
-		},
+		run: scrollToFooterLink,
 	},
 	{
 		name: "feed",
