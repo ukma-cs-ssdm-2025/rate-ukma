@@ -119,7 +119,7 @@ function CourseDetailsRoute() {
 				</RatingButton>
 			</div>
 		) : null;
-	// The student's other courses waiting for a rating, beside «Про курс».
+	// The student's other courses waiting for a rating, under «Про курс».
 	const ratePrompt = (
 		<RateSideCard
 			leaveOutCurrent={!ratedOffering && hasAttendedCourse && canRateNow}
@@ -194,8 +194,8 @@ function CourseDetailsRoute() {
 							    on its own instead of hiding its end until the page bottom. */}
 							<div className="lg:sticky lg:top-24 lg:-mr-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pr-3 lg:[scrollbar-gutter:stable] lg:[scrollbar-width:thin]">
 								<div className="space-y-8">
-									{ratePrompt}
 									{about}
+									{ratePrompt}
 								</div>
 							</div>
 						</aside>

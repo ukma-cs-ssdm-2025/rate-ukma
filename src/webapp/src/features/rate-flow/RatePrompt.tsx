@@ -6,6 +6,14 @@ import { FeedCard } from "@/features/feed/components/FeedCard";
 import { FEED_TILE_CLASS } from "@/features/feed/components/FeedStrip";
 import { useRateableCount } from "./useRateableCount";
 
+function coursesNoun(count: number): string {
+	const mod10 = count % 10;
+	const mod100 = count % 100;
+	if (mod10 === 1 && mod100 !== 11) return "курс";
+	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "курси";
+	return "курсів";
+}
+
 function waitingText(count: number, more = false, short = false): string {
 	const mod10 = count % 10;
 	const mod100 = count % 100;
@@ -58,7 +66,7 @@ export function RateFeedTile() {
 }
 
 /**
- * Course page: a small card at the top of the right column. The course on
+ * Course page: a one-line card under «Про курс». The course on
  * screen has its own «Оцінити курс» block, so it is left out of the count.
  */
 export function RateSideCard({
@@ -76,19 +84,13 @@ export function RateSideCard({
 	return (
 		<aside
 			aria-label="Курси без оцінки"
-			className="space-y-3 rounded-xl bg-muted/50 p-4"
+			className="flex items-center justify-between gap-4 rounded-xl bg-muted/50 px-4 py-3"
 		>
-			<div className="space-y-0.5">
-				<p className="font-medium">{waitingText(count, more)}</p>
-				<p className="text-sm text-muted-foreground">
-					По одному курсу на екрані, без пошуку
-				</p>
-			</div>
-			<Button size="sm" variant="outline" asChild>
-				<Link to="/rate">
-					Оцінити курси
-					<ArrowRight aria-hidden="true" />
-				</Link>
+			<p className="min-w-0 text-sm font-medium">
+				{`${more ? "Ще " : ""}${count} ${coursesNoun(count)} без оцінки`}
+			</p>
+			<Button size="sm" variant="outline" asChild className="shrink-0">
+				<Link to="/rate">Оцінити</Link>
 			</Button>
 		</aside>
 	);
