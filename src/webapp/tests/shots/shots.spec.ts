@@ -105,6 +105,19 @@ async function rateCurrent(page: Page, difficulty: number, usefulness: number) {
 	await form.getByTestId(testIds.rating.submitButton).click();
 }
 
+/** Waits until every finite animation and transition on the page has ended. */
+async function settled(page: Page) {
+	await page.waitForFunction(() =>
+		document
+			.getAnimations()
+			.every(
+				(animation) =>
+					animation.playState !== "running" ||
+					animation.effect?.getComputedTiming().endTime === Infinity,
+			),
+	);
+}
+
 const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "home",
@@ -834,7 +847,13 @@ const ALL_STATES: ReadonlyArray<State> = [
 			// The gallery shot freezes animations, so the pulse is also kept as
 			// frames of the header, zoomed in.
 			for (const ms of [150, 450, 750]) {
-				await page.waitForTimeout(ms === 150 ? 150 : 300);
+				// Each frame is the ping held at that moment, not a timed guess.
+				await page.evaluate((at) => {
+					for (const animation of document.getAnimations()) {
+						animation.pause();
+						animation.currentTime = at;
+					}
+				}, ms);
 				await page.screenshot({
 					path: join(out, `entry-header-pulse-frame-${ms}.png`),
 					clip: { x: 560, y: 0, width: 320, height: 64 },
@@ -935,7 +954,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.goto("/rate");
 			await rateCurrent(page, 4, 5);
 			await page.getByRole("button", { name: "Наступна дисципліна" }).waitFor();
-			await page.waitForTimeout(900);
+			await settled(page);
 		},
 	},
 	{
@@ -1018,6 +1037,29 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "rate-all-done",
+		section: "Оцінити семестр",
+		note: "End of the queue with every course rated, both semesters",
+		run: async (page) => {
+			await mockBackend(page, {
+				flags: ["fe_rate_flow"],
+				grades: "queue",
+			});
+			await page.goto("/rate");
+			// Six spring courses, the semester pause, then two fall ones.
+			for (let index = 0; index < 8; index++) {
+				await rateCurrent(page, (index % 5) + 1, 5 - (index % 3));
+				await page
+					.getByRole("button", { name: /Наступна дисципліна|Завершити/ })
+					.click();
+				if (index === 5)
+					await page.getByRole("button", { name: "Продовжити" }).click();
+			}
+			await page.getByText(/Дякуємо, ви оцінили/).waitFor();
+			await settled(page);
+		},
+	},
+	{
 		name: "rate-semester",
 		section: "Оцінити семестр",
 		note: "Spring answered: a thank-you, the term's closed rings, then the fall",
@@ -1037,7 +1079,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await rateCurrent(page, 4, 4);
 			await page.getByRole("button", { name: "Наступна дисципліна" }).click();
 			await page.getByRole("button", { name: "Продовжити" }).waitFor();
-			await page.waitForTimeout(900);
+			await settled(page);
 		},
 	},
 	{
@@ -1055,7 +1097,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page
 				.getByRole("complementary", { name: "Оцінювання дисциплін" })
 				.waitFor();
-			await page.waitForTimeout(900);
+			await settled(page);
 		},
 	},
 	{

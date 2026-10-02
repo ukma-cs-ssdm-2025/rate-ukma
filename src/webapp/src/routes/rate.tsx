@@ -35,6 +35,7 @@ import {
 } from "@/features/rate-flow/RateQueueRail";
 import {
 	type QueueItem,
+	type RateQueue,
 	type SemesterBucket,
 	useRateQueue,
 } from "@/features/rate-flow/useRateQueue";
@@ -115,6 +116,31 @@ function RatePageSkeleton({ isDesktop }: Readonly<{ isDesktop: boolean }>) {
 	);
 }
 
+/** Courses still waiting for an answer, leaving out `except`. */
+function countTodo(queue: RateQueue, except?: QueueItem) {
+	return queue.items.filter(
+		(item) => item !== except && queue.stateOf(item).kind === "todo",
+	).length;
+}
+
+/** The course's semester, if stepping from it to `to` leaves it fully answered. */
+function closedSemester(
+	queue: RateQueue,
+	from: QueueItem,
+	to: QueueItem,
+): SemesterBucket | null {
+	if (from.semesterKey === to.semesterKey) return null;
+	const bucket = queue.semesters.find((b) => b.key === from.semesterKey);
+	if (!bucket || bucket.items.length < 2) return null;
+	const open = bucket.items.some(
+		(item) => item !== from && queue.stateOf(item).kind === "todo",
+	);
+	const rated = bucket.items.some(
+		(item) => queue.stateOf(item).kind === "done",
+	);
+	return open || !rated ? null : bucket;
+}
+
 const GRID =
 	"grid gap-x-10 gap-y-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-x-12";
 
@@ -124,86 +150,6 @@ function RatePage() {
 	const flow = useRateFlow();
 	const isDesktop = useMediaQuery("(min-width: 1024px)");
 	const queue = useRateQueue();
-	const [picked, setPicked] = useState<QueueItem | null>(null);
-	const [finished, setFinished] = useState(false);
-	const [anonymous, setAnonymous] = useState(false);
-	const [listOpen, setListOpen] = useState(false);
-	const [moved, setMoved] = useState(false);
-	const [activeShare, setActiveShare] = useState(0);
-	// Asked once per visit: a second try to leave goes straight through.
-	const [askedToStay, setAskedToStay] = useState(false);
-	// The semester just finished, shown before the next one starts.
-	const [pause, setPause] = useState<SemesterBucket | null>(null);
-	// «Зробити перерву» is a choice already made; no dialog to confirm it.
-	const leaving = useRef(false);
-	const navigate = useNavigate();
-	const queryClient = useQueryClient();
-
-	const current = finished ? null : (picked ?? queue.nextTodo());
-	const pick = (item: QueueItem) => {
-		setFinished(false);
-		setPause(null);
-		setMoved(true);
-		setPicked(item);
-	};
-	const goNext = () => {
-		const after = current ? queue.nextTodo(current) : null;
-		setMoved(true);
-		setActiveShare(0);
-		setPicked(after);
-		if (!after) setFinished(true);
-		if (current && after) setPause(closedSemester(current, after));
-	};
-	/** The current course's semester, if this step leaves it fully answered. */
-	const closedSemester = (from: QueueItem, to: QueueItem) => {
-		if (from.semesterKey === to.semesterKey) return null;
-		const bucket = queue.semesters.find((b) => b.key === from.semesterKey);
-		if (!bucket || bucket.items.length < 2) return null;
-		const open = bucket.items.some(
-			(item) => item !== from && queue.stateOf(item).kind === "todo",
-		);
-		const rated = bucket.items.some(
-			(item) => queue.stateOf(item).kind === "done",
-		);
-		return open || !rated ? null : bucket;
-	};
-
-	const next = current ? queue.nextTodo(current) : null;
-	const remainingTodo = queue.items.filter(
-		(item) => queue.stateOf(item).kind === "todo",
-	).length;
-	const hasDraft =
-		activeShare > 0 &&
-		current != null &&
-		queue.stateOf(current).kind === "todo";
-	// Only once the student has started: a glance at the page leaves freely.
-	const shouldAsk =
-		isStudent &&
-		!askedToStay &&
-		!finished &&
-		remainingTodo > 0 &&
-		(queue.doneCount > 0 || hasDraft);
-	const blocker = useBlocker({
-		// «Відгуки про дисципліну» is a look the student asked for, not leaving.
-		shouldBlockFn: ({ next: to }) =>
-			shouldAsk && !leaving.current && !to.pathname.startsWith("/courses/"),
-		enableBeforeUnload: () => hasDraft,
-		withResolver: true,
-	});
-	useEffect(() => {
-		if (pause) globalThis.scrollTo({ top: 0 });
-	}, [pause]);
-	useEffect(() => {
-		// The next course is one click away: have it ready so its header and
-		// form open without a loading frame.
-		if (!next) return;
-		void queryClient.prefetchQuery(
-			getCoursesRetrieveQueryOptions(next.courseId),
-		);
-		void queryClient.prefetchQuery(
-			getCoursesOfferingsListQueryOptions(next.courseId),
-		);
-	}, [next?.courseId, queryClient]);
 
 	const title = (
 		<Helmet>
@@ -249,6 +195,87 @@ function RatePage() {
 		);
 	}
 
+	return <RateFlow queue={queue} isDesktop={isDesktop} title={title} />;
+}
+
+interface RateFlowProps {
+	readonly queue: RateQueue;
+	readonly isDesktop: boolean;
+	readonly title: React.ReactNode;
+}
+
+/** The loaded queue: one course at a time, with the list beside it. */
+function RateFlow({ queue, isDesktop, title }: RateFlowProps) {
+	const [picked, setPicked] = useState<QueueItem | null>(null);
+	const [finished, setFinished] = useState(false);
+	const [anonymous, setAnonymous] = useState(false);
+	const [moved, setMoved] = useState(false);
+	const [activeShare, setActiveShare] = useState(0);
+	// Asked once per visit: a second try to leave goes straight through.
+	const [askedToStay, setAskedToStay] = useState(false);
+	// The semester just finished, shown before the next one starts.
+	const [pause, setPause] = useState<SemesterBucket | null>(null);
+	// «Зробити перерву» is a choice already made; no dialog to confirm it.
+	const leaving = useRef(false);
+	const navigate = useNavigate();
+	const queryClient = useQueryClient();
+
+	const current = finished ? null : (picked ?? queue.nextTodo());
+	const pick = (item: QueueItem) => {
+		setFinished(false);
+		setPause(null);
+		setMoved(true);
+		setPicked(item);
+	};
+	const returnToSkipped = () => {
+		const first = queue.items.find(
+			(item) => queue.stateOf(item).kind === "skipped",
+		);
+		queue.unskipAll();
+		setFinished(false);
+		setMoved(true);
+		setPicked(first ?? null);
+	};
+	const goNext = () => {
+		const after = current ? queue.nextTodo(current) : null;
+		setMoved(true);
+		setActiveShare(0);
+		setPicked(after);
+		if (!after) setFinished(true);
+		if (current && after) setPause(closedSemester(queue, current, after));
+	};
+
+	const next = current ? queue.nextTodo(current) : null;
+	const remainingTodo = countTodo(queue);
+	const hasDraft =
+		activeShare > 0 &&
+		current != null &&
+		queue.stateOf(current).kind === "todo";
+	// Only once the student has started: a glance at the page leaves freely.
+	const started = queue.doneCount > 0 || hasDraft;
+	const shouldAsk = !askedToStay && !finished && remainingTodo > 0 && started;
+	const blocker = useBlocker({
+		// «Відгуки про дисципліну» is a look the student asked for, not leaving.
+		shouldBlockFn: ({ next: to }) =>
+			shouldAsk && !leaving.current && !to.pathname.startsWith("/courses/"),
+		enableBeforeUnload: () => hasDraft,
+		withResolver: true,
+	});
+	useEffect(() => {
+		if (pause) globalThis.scrollTo({ top: 0 });
+	}, [pause]);
+	useEffect(() => {
+		// The next course is one click away: have it ready so its header and
+		// form open without a loading frame.
+		if (!next) return;
+		void queryClient.prefetchQuery(
+			getCoursesRetrieveQueryOptions(next.courseId),
+		);
+		void queryClient.prefetchQuery(
+			getCoursesOfferingsListQueryOptions(next.courseId),
+		);
+	}, [next?.courseId, queryClient]);
+
 	let body: React.ReactNode;
 	if (pause) {
 		body = (
@@ -263,20 +290,7 @@ function RatePage() {
 			/>
 		);
 	} else if (!current && queue.items.length > 0) {
-		body = (
-			<RateSummary
-				queue={queue}
-				onReturnToSkipped={() => {
-					const first = queue.items.find(
-						(item) => queue.stateOf(item).kind === "skipped",
-					);
-					queue.unskipAll();
-					setFinished(false);
-					setMoved(true);
-					setPicked(first ?? null);
-				}}
-			/>
-		);
+		body = <RateSummary queue={queue} onReturnToSkipped={returnToSkipped} />;
 	} else if (!current) {
 		body = <AllDone />;
 	} else {
@@ -287,11 +301,7 @@ function RatePage() {
 				item={current}
 				savedScores={state.kind === "done" ? state.scores : undefined}
 				anonymous={anonymous}
-				remaining={
-					queue.items.filter(
-						(item) => item !== current && queue.stateOf(item).kind === "todo",
-					).length
-				}
+				remaining={countTodo(queue, current)}
 				focusOnMount={moved}
 				onProgressChange={setActiveShare}
 				onSaved={(scores, isAnonymous) => {
@@ -309,57 +319,84 @@ function RatePage() {
 		);
 	}
 
-	// One course needs no list beside it.
-	const showQueue = queue.items.length > 1;
-
-	const leaveDialog = (
-		<RateLeaveDialog
-			open={blocker.status === "blocked"}
-			rated={queue.doneCount}
-			total={queue.items.length}
-			remaining={remainingTodo}
-			hasDraft={hasDraft}
-			onStay={() => {
-				setAskedToStay(true);
-				blocker.reset?.();
-			}}
-			onLeave={() => blocker.proceed?.()}
-		/>
-	);
-
 	return (
 		<Layout>
 			{title}
-			{leaveDialog}
-			<div className="space-y-6 pb-16">
-				{showQueue && !isDesktop ? (
-					<RateQueueBar
-						queue={queue}
-						current={pause ? null : current}
-						activeShare={activeShare}
-						onPick={pick}
-						open={listOpen}
-						onOpenChange={setListOpen}
-					/>
-				) : null}
-				<div className={showQueue ? GRID : undefined}>
-					{showQueue && isDesktop ? (
-						<aside className="min-w-0">
-							<div className="lg:sticky lg:top-24 lg:-ml-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
-								<RateQueueRail
-									queue={queue}
-									current={pause ? null : current}
-									activeShare={activeShare}
-									onPick={pick}
-								/>
-							</div>
-						</aside>
-					) : null}
-					{/* The form's line length, like the rating modal; the page keeps the app's edges. */}
-					<div className="min-w-0 max-w-3xl lg:col-start-2">{body}</div>
-				</div>
-			</div>
+			<RateLeaveDialog
+				open={blocker.status === "blocked"}
+				rated={queue.doneCount}
+				total={queue.items.length}
+				remaining={remainingTodo}
+				hasDraft={hasDraft}
+				onStay={() => {
+					setAskedToStay(true);
+					blocker.reset?.();
+				}}
+				onLeave={() => blocker.proceed?.()}
+			/>
+			<RateLayout
+				queue={queue}
+				current={pause ? null : current}
+				activeShare={activeShare}
+				onPick={pick}
+				isDesktop={isDesktop}
+			>
+				{body}
+			</RateLayout>
 		</Layout>
+	);
+}
+
+interface RateLayoutProps {
+	readonly queue: RateQueue;
+	readonly current: QueueItem | null;
+	readonly activeShare: number;
+	readonly onPick: (item: QueueItem) => void;
+	readonly isDesktop: boolean;
+	readonly children: React.ReactNode;
+}
+
+/** The course list beside the pane on desktop, folded above it on phones. */
+function RateLayout({
+	queue,
+	current,
+	activeShare,
+	onPick,
+	isDesktop,
+	children,
+}: RateLayoutProps) {
+	const [listOpen, setListOpen] = useState(false);
+	// One course needs no list beside it.
+	const showQueue = queue.items.length > 1;
+	return (
+		<div className="space-y-6 pb-16">
+			{showQueue && !isDesktop ? (
+				<RateQueueBar
+					queue={queue}
+					current={current}
+					activeShare={activeShare}
+					onPick={onPick}
+					open={listOpen}
+					onOpenChange={setListOpen}
+				/>
+			) : null}
+			<div className={showQueue ? GRID : undefined}>
+				{showQueue && isDesktop ? (
+					<aside className="min-w-0">
+						<div className="lg:sticky lg:top-24 lg:-ml-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
+							<RateQueueRail
+								queue={queue}
+								current={current}
+								activeShare={activeShare}
+								onPick={onPick}
+							/>
+						</div>
+					</aside>
+				) : null}
+				{/* The form's line length, like the rating modal; the page keeps the app's edges. */}
+				<div className="min-w-0 max-w-3xl lg:col-start-2">{children}</div>
+			</div>
+		</div>
 	);
 }
 

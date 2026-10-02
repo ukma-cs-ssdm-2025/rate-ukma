@@ -159,18 +159,20 @@ export async function mockBackend(
 		],
 		[
 			/^\/courses\/[^/]+\/$/,
-			(path) =>
-				grades === "queue"
-					? (COURSES.find((course) => path === `/courses/${course.id}/`) ??
-						courseDetail)
-					: reviews === "empty"
-						? {
-								...courseDetail,
-								avg_difficulty: null,
-								avg_usefulness: null,
-								ratings_count: 0,
-							}
-						: courseDetail,
+			(path) => {
+				if (grades === "queue")
+					return (
+						COURSES.find((course) => path === `/courses/${course.id}/`) ??
+						courseDetail
+					);
+				if (reviews !== "empty") return courseDetail;
+				return {
+					...courseDetail,
+					avg_difficulty: null,
+					avg_usefulness: null,
+					ratings_count: 0,
+				};
+			},
 		],
 		[
 			/^\/ratings\/[^/]+\/comments\/$/,

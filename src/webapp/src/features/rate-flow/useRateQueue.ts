@@ -136,6 +136,12 @@ function restore(saved: SavedQueue | null, fresh: QueueItem[]): QueueItem[] {
 	return [...kept, ...fresh.filter((item) => !known.has(item.offeringId))];
 }
 
+/** The grades endpoint returns one row or a list; either way, a list. */
+function toRows<T>(data: T | T[] | undefined): T[] {
+	if (Array.isArray(data)) return data;
+	return data ? [data] : [];
+}
+
 /**
  * Every course the student took and can rate but has not, newest term first.
  * The list is frozen on first load so rating a course keeps its place in the
@@ -145,13 +151,14 @@ export function useRateQueue() {
 	const { data, isLoading, isError, refetch, isRefetching } =
 		useStudentsMeGradesRetrieve();
 
-	const fresh = useMemo<QueueItem[]>(() => {
-		const rows = Array.isArray(data) ? data : data ? [data] : [];
-		return rows
-			.filter((row) => row.can_rate && !row.rated)
-			.sort((a, b) => semesterRank(b) - semesterRank(a))
-			.map(toQueueItem);
-	}, [data]);
+	const fresh = useMemo<QueueItem[]>(
+		() =>
+			toRows(data)
+				.filter((row) => row.can_rate && !row.rated)
+				.sort((a, b) => semesterRank(b) - semesterRank(a))
+				.map(toQueueItem),
+		[data],
+	);
 
 	// A visit to a course's reviews mid-queue comes back to the same place.
 	const [saved] = useState(readSaved);
