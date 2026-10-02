@@ -112,7 +112,18 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.evaluate(() =>
 				window.scrollTo(0, document.documentElement.scrollHeight),
 			);
-			await page.getByTestId(testIds.footer.repoLink).waitFor();
+			const link = page.getByTestId(testIds.footer.repoLink);
+			await link.waitFor();
+			// Nothing floating (the filters pill) may sit on top of the link.
+			const onTop = await link.evaluate((el) => {
+				const r = el.getBoundingClientRect();
+				const hit = document.elementFromPoint(
+					r.x + r.width / 2,
+					r.y + r.height / 2,
+				);
+				return el.contains(hit);
+			});
+			expect(onTop).toBe(true);
 		},
 	},
 	{
