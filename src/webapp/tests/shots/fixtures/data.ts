@@ -7,6 +7,7 @@ import type {
 	CourseOfferingListResponse,
 	FeedItem,
 	FilterOptions,
+	InstructorSuggestion,
 	NotificationGroup,
 	RatingsWithUserList,
 	Session,
@@ -122,6 +123,31 @@ export const ANALYTICS = COURSES.map((course) => ({
 	ratings_count: course.ratings_count,
 	faculty_name: course.faculty_name,
 })) satisfies CourseAnalytics[];
+
+// Rated teachers the course search suggests, already in the student's ranking order.
+export const INSTRUCTOR_SUGGESTIONS = [
+	{
+		id: "i-1",
+		first_name: "Олена",
+		patronymic: "Петрівна",
+		last_name: "Демченко",
+		courses_count: 4,
+	},
+	{
+		id: "i-2",
+		first_name: "Дмитро",
+		patronymic: "Олегович",
+		last_name: "Демчук",
+		courses_count: 2,
+	},
+	{
+		id: "i-3",
+		first_name: "Андрій",
+		patronymic: "",
+		last_name: "Демченко",
+		courses_count: 1,
+	},
+] satisfies InstructorSuggestion[];
 
 export const FILTER_OPTIONS = {
 	instructors: [{ id: "i-1", name: "Олена Демченко", department: null }],

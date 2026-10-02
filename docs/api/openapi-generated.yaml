@@ -2005,6 +2005,74 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/instructors/suggestions/:
+    get:
+      operationId: instructors_suggestions_retrieve
+      description: 'Up to `limit` rated instructors whose name matches `q`, for the
+        course search dropdown. Ranked for the calling student: mentions on their
+        speciality first, then on their study year, then overall.'
+      summary: Suggest instructors for a search
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Max suggestions
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: What the student typed; every word must match a name part
+        required: true
+      tags:
+      - instructors
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorSuggestionList'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/notifications/:
     get:
       operationId: notifications_list
@@ -3622,6 +3690,37 @@ components:
       required:
       - id
       - name
+    InstructorSuggestion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        patronymic:
+          type: string
+        last_name:
+          type: string
+        courses_count:
+          type: integer
+          description: Distinct courses whose ratings mention this instructor
+      required:
+      - courses_count
+      - first_name
+      - id
+      - last_name
+      - patronymic
+    InstructorSuggestionList:
+      type: object
+      description: Schema for GET /api/v1/instructors/suggestions/.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstructorSuggestion'
+      required:
+      - items
     Login:
       type: object
       properties:

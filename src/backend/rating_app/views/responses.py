@@ -12,6 +12,7 @@ from rating_app.serializers import (
     FilterOptionsSerializer,
     InstructorListResponseSerializer,
     InstructorSerializer,
+    InstructorSuggestionListSerializer,
     PromoBannerResponseSerializer,
     RatingReadSerializer,
     RatingsWithUserListSerializer,
@@ -191,6 +192,11 @@ R_INSTRUCTOR = {
 
 R_INSTRUCTOR_LIST = {
     200: OpenApiResponse(forced_singular_serializer(InstructorListResponseSerializer), "OK"),
+    **common_errors(include_404=False),
+}
+
+R_INSTRUCTOR_SUGGESTIONS = {
+    200: OpenApiResponse(InstructorSuggestionListSerializer, "OK"),
     **common_errors(include_404=False),
 }
 

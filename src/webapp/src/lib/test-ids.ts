@@ -95,6 +95,7 @@ export const testIds = {
 	// Courses page
 	courses: {
 		searchInput: "courses-search-input",
+		instructorSuggestions: "courses-instructor-suggestions",
 		table: "courses-table",
 		tableRow: "courses-table-row",
 		tableTitleLink: "courses-table-title-link",

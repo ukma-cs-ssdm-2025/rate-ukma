@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { testIds } from "@/lib/test-ids";
 import {
@@ -71,8 +71,14 @@ vi.mock("@/lib/api/generated", async () => {
 				error: null,
 			};
 		}),
+		useInstructorsSuggestionsRetrieve: vi.fn(function () {
+			return { data: undefined };
+		}),
 	};
 });
+
+const { useInstructorsSuggestionsRetrieve } =
+	await import("@/lib/api/generated");
 
 const defaultParams: CourseFiltersParamsState = {
 	q: "",
@@ -245,6 +251,95 @@ describe("Search Filter", () => {
 			"Пошук курсів за назвою...",
 		);
 		expect(searchInput).toBeDisabled();
+	});
+});
+
+describe("Instructor suggestions", () => {
+	const suggestion = {
+		id: "instr-1",
+		first_name: "Олена",
+		patronymic: "Петрівна",
+		last_name: "Демченко",
+		courses_count: 3,
+	};
+
+	beforeEach(() => {
+		vi.mocked(useInstructorsSuggestionsRetrieve).mockReturnValue({
+			data: { items: [suggestion] },
+		} as unknown as ReturnType<typeof useInstructorsSuggestionsRetrieve>);
+	});
+
+	afterEach(() => {
+		vi.mocked(useInstructorsSuggestionsRetrieve).mockReturnValue({
+			data: undefined,
+		} as unknown as ReturnType<typeof useInstructorsSuggestionsRetrieve>);
+	});
+
+	it("should show matching teachers while the search box has focus", async () => {
+		const user = userEvent.setup();
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				params={{ ...defaultParams, q: "Демч" }}
+			/>,
+		);
+
+		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+		await user.click(screen.getByPlaceholderText("Пошук курсів за назвою..."));
+
+		expect(
+			screen.getByText("Можливо, ви шукали викладача"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("option", { name: /Демченко Олена Петрівна/ }),
+		).toHaveTextContent("3 курси");
+	});
+
+	it("should swap the query for the instructor filter on pick", async () => {
+		const user = userEvent.setup();
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				params={{ ...defaultParams, q: "Демч" }}
+			/>,
+		);
+
+		await user.click(screen.getByPlaceholderText("Пошук курсів за назвою..."));
+		await user.click(screen.getByRole("option", { name: /Демченко/ }));
+
+		expect(defaultSetParams).toHaveBeenCalledWith({
+			instructor: "instr-1",
+			q: "",
+			page: 1,
+		});
+	});
+
+	it("should pick with arrow keys and Enter", async () => {
+		const user = userEvent.setup();
+		renderWithProviders(
+			<CoursesTable
+				{...defaultProps}
+				params={{ ...defaultParams, q: "Демч" }}
+			/>,
+		);
+
+		await user.click(screen.getByPlaceholderText("Пошук курсів за назвою..."));
+		await user.keyboard("{ArrowDown}{Enter}");
+
+		expect(defaultSetParams).toHaveBeenCalledWith(
+			expect.objectContaining({ instructor: "instr-1" }),
+		);
+	});
+
+	it("should not ask for suggestions on a one-letter query", () => {
+		renderWithProviders(
+			<CoursesTable {...defaultProps} params={{ ...defaultParams, q: "Д" }} />,
+		);
+
+		expect(useInstructorsSuggestionsRetrieve).toHaveBeenLastCalledWith(
+			{ q: "Д", limit: 5 },
+			{ query: { enabled: false } },
+		);
 	});
 });
 

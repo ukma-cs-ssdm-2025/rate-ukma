@@ -4,6 +4,8 @@ from django.urls import reverse
 
 import pytest
 
+from rating_app.repositories.instructor_repository import current_academic_year_start
+
 
 @pytest.mark.django_db
 @pytest.mark.integration
@@ -242,3 +244,68 @@ def test_list_instructors_without_mentioned_only_keeps_unrated(
     data = response.json()
     ids = {item["id"] for item in data["items"]}
     assert {str(rated.id), str(unrated.id)} <= ids
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_suggestions_rank_speciality_then_year_then_mentions(
+    token_client,
+    instructor_factory,
+    rating_factory,
+    course_offering_factory,
+    course_offering_speciality_factory,
+    speciality_factory,
+    student_factory,
+):
+    # The caller studies speciality `own` and is in their 2nd year.
+    own = speciality_factory()
+    student_factory(
+        user=token_client.user,
+        speciality=own,
+        program_start_academic_year_start=current_academic_year_start() - 1,
+    )
+    own_offering = course_offering_factory(study_year=4)
+    course_offering_speciality_factory(offering=own_offering, speciality=own)
+
+    popular = instructor_factory(first_name="Олена", last_name="Коваль", email="a@x.ua")
+    same_year = instructor_factory(first_name="Олег", last_name="Коваленко", email="b@x.ua")
+    same_spec = instructor_factory(first_name="Ольга", last_name="Ковальчук", email="c@x.ua")
+    instructor_factory(first_name="Оксана", last_name="Ковалик", email="d@x.ua")  # never rated
+
+    for _ in range(3):
+        rating_factory(course_offering=course_offering_factory(study_year=4)).instructors.add(
+            popular
+        )
+    rating_factory(course_offering=course_offering_factory(study_year=2)).instructors.add(same_year)
+    rating_factory(course_offering=own_offering).instructors.add(same_spec)
+
+    # SQLite folds ASCII case only, so the query keeps the capital К.
+    response = token_client.get(reverse("instructor-suggestions"), {"q": "Ковал"})
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert [i["last_name"] for i in items] == ["Ковальчук", "Коваленко", "Коваль"]
+    assert items[2]["courses_count"] == 3
+    assert "email" not in items[0]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_suggestions_match_every_word_and_respect_limit(
+    token_client, instructor_factory, rating_factory
+):
+    for n in range(4):
+        instr = instructor_factory(first_name="Ivan", last_name=f"Petrenko{n}", email=f"i{n}@x.ua")
+        rating_factory().instructors.add(instr)
+
+    url = reverse("instructor-suggestions")
+    assert len(token_client.get(url, {"q": "petr ivan", "limit": 2}).json()["items"]) == 2
+    assert token_client.get(url, {"q": "petr anna"}).json()["items"] == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_suggestions_reject_one_letter_query(token_client):
+    response = token_client.get(reverse("instructor-suggestions"), {"q": "a"})
+
+    assert response.status_code == 400

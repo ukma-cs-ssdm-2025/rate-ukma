@@ -4,10 +4,14 @@ from rating_app.application_schemas.instructor import (
     Instructor,
     InstructorListParams,
     InstructorListResult,
+    InstructorSuggestion,
+    InstructorSuggestionParams,
 )
 from rating_app.application_schemas.pagination import PaginationFilters
+from rating_app.application_schemas.student import Student
 from rating_app.pagination.paginator import GenericQuerysetPaginator
 from rating_app.repositories import InstructorRepository
+from rating_app.repositories.instructor_repository import current_academic_year_start
 from rating_app.repositories.to_domain_mappers import InstructorMapper
 from rating_app.services.protocols import IFilterable
 
@@ -41,6 +45,27 @@ class InstructorService(IFilterable):
         items = [self.mapper.process(obj) for obj in paginated.page_objects]
         return InstructorListResult(items=items, pagination=paginated.metadata)
 
+    def suggest_instructors(
+        self, params: InstructorSuggestionParams, student: Student | None
+    ) -> list[InstructorSuggestion]:
+        qs = self.instructor_repository.suggest(
+            search=params.q,
+            speciality_id=student.speciality_id if student else None,
+            study_year=_study_year(student),
+            education_level=student.education_level if student else None,
+            limit=params.limit,
+        )
+        return [
+            InstructorSuggestion(
+                id=obj.id,
+                first_name=obj.first_name,
+                patronymic=obj.patronymic,
+                last_name=obj.last_name,
+                courses_count=obj.courses_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
+            )
+            for obj in qs
+        ]
+
     def get_filter_options(self) -> list[dict[str, Any]]:
         instructors = self.instructor_repository.get_all(ordered=True)
         return [
@@ -51,3 +76,11 @@ class InstructorService(IFilterable):
             }
             for instructor in instructors
         ]
+
+
+def _study_year(student: Student | None) -> int | None:
+    """The student's current year of study (1-based), when their programme start is known."""
+    if student is None or student.program_start_academic_year_start is None:
+        return None
+    year = current_academic_year_start() - student.program_start_academic_year_start + 1
+    return year if year >= 1 else None

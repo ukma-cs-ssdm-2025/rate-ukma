@@ -7,13 +7,19 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rating_app.application_schemas.instructor import (
     InstructorListParams,
     InstructorReadParams,
+    InstructorSuggestionParams,
 )
+from rating_app.exception.student_exceptions import StudentNotFoundError
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
-from rating_app.serializers import InstructorListResponseSerializer, InstructorSerializer
-from rating_app.services import InstructorService
+from rating_app.serializers import (
+    InstructorListResponseSerializer,
+    InstructorSerializer,
+    InstructorSuggestionListSerializer,
+)
+from rating_app.services import InstructorService, StudentService
 from rating_app.views.rating_viewset import ModelValidationError
 
-from .responses import R_INSTRUCTOR, R_INSTRUCTOR_LIST
+from .responses import R_INSTRUCTOR, R_INSTRUCTOR_LIST, R_INSTRUCTOR_SUGGESTIONS
 
 to_openapi = pydantic_to_openapi_request_mapper().map
 
@@ -21,6 +27,7 @@ to_openapi = pydantic_to_openapi_request_mapper().map
 @extend_schema(tags=["instructors"])
 class InstructorViewSet(viewsets.ViewSet):
     instructor_service: InstructorService | None = None
+    student_service: StudentService | None = None
 
     @extend_schema(
         summary="List instructors",
@@ -47,6 +54,34 @@ class InstructorViewSet(viewsets.ViewSet):
                 **result.pagination.model_dump(),
             }
         )
+        return Response(payload.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Suggest instructors for a search",
+        description=(
+            "Up to `limit` rated instructors whose name matches `q`, for the "
+            "course search dropdown. Ranked for the calling student: mentions "
+            "on their speciality first, then on their study year, then overall."
+        ),
+        parameters=to_openapi((InstructorSuggestionParams, OpenApiParameter.QUERY)),
+        responses=R_INSTRUCTOR_SUGGESTIONS,
+    )
+    def suggestions(self, request, *args, **kwargs) -> Response:
+        assert self.instructor_service is not None
+        assert self.student_service is not None
+
+        try:
+            params = InstructorSuggestionParams.model_validate(request.query_params.dict())
+        except ModelValidationError as e:
+            raise ValidationError(detail=e.errors()) from e
+
+        try:
+            student = self.student_service.get_student_by_user_id(request.user.id)
+        except StudentNotFoundError:
+            student = None
+
+        items = self.instructor_service.suggest_instructors(params, student)
+        payload = InstructorSuggestionListSerializer({"items": items})
         return Response(payload.data, status=status.HTTP_200_OK)
 
     @extend_schema(

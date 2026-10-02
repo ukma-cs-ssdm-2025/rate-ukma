@@ -40,6 +40,16 @@ def current_academic_year_start(today: date | None = None) -> int:
     return today.year if today.month >= 9 else today.year - 1
 
 
+def _filter_by_name(qs: QuerySet[InstructorModel], search: str) -> QuerySet[InstructorModel]:
+    for token in search.split():
+        qs = qs.filter(
+            Q(first_name__icontains=token)
+            | Q(last_name__icontains=token)
+            | Q(patronymic__icontains=token)
+        )
+    return qs
+
+
 class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     def __init__(self, mapper: InstructorMapper) -> None:
         self.mapper = mapper
@@ -138,12 +148,7 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         if mentioned_only:
             qs = qs.filter(global_mentions__gt=0)
         if search:
-            for token in search.split():
-                qs = qs.filter(
-                    Q(first_name__icontains=token)
-                    | Q(last_name__icontains=token)
-                    | Q(patronymic__icontains=token)
-                )
+            qs = _filter_by_name(qs, search)
 
         return qs.order_by(
             "-offering_mentions",
@@ -155,6 +160,56 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             "first_name",
             "id",
         )
+
+    def suggest(
+        self,
+        *,
+        search: str,
+        speciality_id: uuid.UUID | None = None,
+        study_year: int | None = None,
+        education_level: str | None = None,
+        limit: int = 5,
+    ) -> QuerySet[InstructorModel]:
+        """Rated instructors whose name matches ``search``, for the course search.
+
+        Ordering, closest to the student first (each scoped count is zero when
+        its argument is omitted):
+
+        1. mentions on offerings of the student's speciality, DESC
+        2. mentions on offerings of the student's study year (and level), DESC
+        3. global mentions, DESC
+        4. last_name, first_name, id
+
+        Never-rated instructors are left out: picking one filters courses by
+        mentions (#664), so they would lead to an empty course list.
+        """
+        speciality_filter = (
+            Q(ratings__course_offering__specialities__id=speciality_id)
+            if speciality_id
+            else Q(pk__in=[])
+        )
+        year_filter = Q(pk__in=[])
+        if study_year:
+            year_filter = Q(ratings__course_offering__study_year=study_year)
+            if education_level:
+                year_filter &= Q(ratings__course_offering__course__education_level=education_level)
+
+        qs = InstructorModel.objects.annotate(
+            speciality_mentions=Count("ratings", filter=speciality_filter, distinct=True),
+            year_mentions=Count("ratings", filter=year_filter, distinct=True),
+            global_mentions=Count("ratings", distinct=True),
+            courses_count=Count("ratings__course_offering__course", distinct=True),
+        ).filter(global_mentions__gt=0)
+        qs = _filter_by_name(qs, search)
+
+        return qs.order_by(
+            "-speciality_mentions",
+            "-year_mentions",
+            "-global_mentions",
+            "last_name",
+            "first_name",
+            "id",
+        )[:limit]
 
     def get_many_by_ids(self, ids: list[uuid.UUID]) -> list[InstructorModel]:
         if not ids:

@@ -11,6 +11,7 @@ import {
 	EMPTY_COMMENT_LIST,
 	FEED_ITEMS,
 	FILTER_OPTIONS,
+	INSTRUCTOR_SUGGESTIONS,
 	myCourses as myCoursesFor,
 	type MyCourseState,
 	MY_GRADES,
@@ -124,6 +125,11 @@ export async function mockBackend(
 			/^\/courses\/$/,
 			(_path, url) => {
 				const query = url.searchParams.get("name")?.toLowerCase();
+				// A teacher's mentions cover a few courses, not the whole list.
+				if (url.searchParams.get("instructor")) {
+					const items = courseItems.slice(0, 4);
+					return { ...visibleCourseList, items, total: items.length };
+				}
 				if (!query) return visibleCourseList;
 				const items = courseItems.filter((course) =>
 					course.title?.toLowerCase().includes(query),
@@ -174,6 +180,33 @@ export async function mockBackend(
 		],
 		[/^\/analytics\/$/, () => ANALYTICS],
 		[/^\/analytics\/[^/]+\/$/, () => ANALYTICS[0]],
+		[
+			/^\/instructors\/suggestions\/$/,
+			(_path, url) => {
+				const words = (url.searchParams.get("q") ?? "")
+					.toLowerCase()
+					.split(/\s+/)
+					.filter(Boolean);
+				const items = INSTRUCTOR_SUGGESTIONS.filter((instructor) => {
+					const name = [
+						instructor.last_name,
+						instructor.first_name,
+						instructor.patronymic,
+					]
+						.join(" ")
+						.toLowerCase();
+					return words.every((word) => name.includes(word));
+				});
+				return { items };
+			},
+		],
+		[
+			/^\/instructors\/[^/]+$/,
+			(path) =>
+				INSTRUCTOR_SUGGESTIONS.find((instructor) =>
+					path.endsWith(`/${instructor.id}`),
+				) ?? INSTRUCTOR_SUGGESTIONS[0],
+		],
 		[
 			/^\/instructors\/$/,
 			() => ({

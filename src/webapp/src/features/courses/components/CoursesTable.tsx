@@ -1,7 +1,9 @@
 import {
 	type ComponentProps,
+	type KeyboardEvent,
 	useCallback,
 	useEffect,
+	useId,
 	useMemo,
 	useState,
 } from "react";
@@ -33,10 +35,19 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import type { CourseList, CoursesListParams } from "@/lib/api/generated";
+import {
+	InstructorSuggestions,
+	instructorSuggestionOptionId,
+} from "@/features/instructors/components/InstructorSuggestions";
+import type {
+	CourseList,
+	CoursesListParams,
+	InstructorSuggestion,
+} from "@/lib/api/generated";
 import {
 	EducationLevelEnum,
 	useCoursesFilterOptionsRetrieve,
+	useInstructorsSuggestionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
@@ -388,6 +399,104 @@ function DebouncedInput({
 	);
 }
 
+const MIN_SUGGESTION_QUERY = 2;
+
+/** Course search box; while it has focus, teachers whose name matches the query
+ * drop down under it, and picking one switches to the instructor filter. */
+function CourseSearch({
+	params,
+	setParams,
+	disabled,
+	isLoading,
+}: Readonly<{
+	params: CourseFiltersParamsState;
+	setParams: CourseFiltersParamsSetter;
+	disabled: boolean;
+	isLoading: boolean;
+}>) {
+	const listId = useId();
+	const [focused, setFocused] = useState(false);
+	const [dismissed, setDismissed] = useState(false);
+	const [activeIndex, setActiveIndex] = useState(-1);
+	const query = params.q.trim();
+
+	// A new query brings the list back after Escape or a pick.
+	useEffect(() => {
+		setDismissed(false);
+		setActiveIndex(-1);
+	}, [query]);
+
+	const { data } = useInstructorsSuggestionsRetrieve(
+		{ q: query, limit: 5 },
+		{ query: { enabled: query.length >= MIN_SUGGESTION_QUERY } },
+	);
+	const suggestions =
+		query.length >= MIN_SUGGESTION_QUERY ? (data?.items ?? []) : [];
+	const open = focused && !dismissed && suggestions.length > 0;
+
+	const pick = (instructor: InstructorSuggestion) => {
+		setDismissed(true);
+		setParams({ instructor: instructor.id, q: "", page: 1 });
+	};
+
+	const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (!open) return;
+		if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+			event.preventDefault();
+			const step = event.key === "ArrowDown" ? 1 : -1;
+			setActiveIndex(
+				(index) => (index + step + suggestions.length) % suggestions.length,
+			);
+		} else if (event.key === "Enter" && activeIndex >= 0) {
+			event.preventDefault();
+			pick(suggestions[activeIndex]);
+		} else if (event.key === "Escape") {
+			setDismissed(true);
+		}
+	};
+
+	return (
+		<div
+			className="relative min-h-10 flex-1"
+			onFocus={() => setFocused(true)}
+			onBlur={() => setFocused(false)}
+			onKeyDown={handleKeyDown}
+		>
+			<Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+			<DebouncedInput
+				placeholder="Пошук курсів за назвою..."
+				value={params.q}
+				onChange={(value) => {
+					setParams({ q: String(value), page: 1 });
+				}}
+				className="h-10 pl-10 text-sm"
+				disabled={disabled}
+				isLoading={isLoading}
+				role="combobox"
+				aria-autocomplete="list"
+				aria-expanded={open}
+				aria-controls={open ? listId : undefined}
+				aria-activedescendant={
+					open && activeIndex >= 0
+						? instructorSuggestionOptionId(listId, activeIndex)
+						: undefined
+				}
+				data-testid={testIds.courses.searchInput}
+			/>
+			{open && (
+				<InstructorSuggestions
+					id={listId}
+					items={suggestions}
+					activeIndex={activeIndex}
+					onPick={pick}
+					onHover={setActiveIndex}
+					className="absolute inset-x-0 top-full z-30 mt-1"
+				/>
+			)}
+		</div>
+	);
+}
+
 export function CoursesTable({
 	data,
 	isLoading,
@@ -646,20 +755,12 @@ export function CoursesTable({
 		<>
 			<div className="flex flex-col gap-6 md:flex-row">
 				<div className="min-w-0 flex-1 space-y-4">
-					<div className="relative min-h-10 flex-1">
-						<Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-						<DebouncedInput
-							placeholder="Пошук курсів за назвою..."
-							value={params.q}
-							onChange={(value) => {
-								setParams({ q: String(value), page: 1 });
-							}}
-							className="h-10 pl-10 text-sm"
-							disabled={isInitialLoading}
-							isLoading={isLoading}
-							data-testid={testIds.courses.searchInput}
-						/>
-					</div>
+					<CourseSearch
+						params={params}
+						setParams={setParams}
+						disabled={isInitialLoading}
+						isLoading={isLoading}
+					/>
 
 					{/* Phones only: the drawer covers the page while this row appears. */}
 					<ActiveFilterChips

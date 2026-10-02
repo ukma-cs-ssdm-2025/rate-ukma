@@ -440,6 +440,37 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "search-instructor-suggestions",
+		section: "Головна",
+		note: "Course search typed with a teacher's surname: «Можливо, ви шукали викладача»",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/");
+			await page.getByText(COURSE.title).first().waitFor();
+			await page.getByTestId(testIds.courses.searchInput).fill("Демч");
+			await page.getByTestId(testIds.courses.instructorSuggestions).waitFor();
+		},
+	},
+	{
+		name: "search-instructor-picked",
+		section: "Головна",
+		note: "After picking a suggested teacher: the instructor filter replaces the query",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/");
+			await page.getByText(COURSE.title).first().waitFor();
+			await page.getByTestId(testIds.courses.searchInput).fill("Демч");
+			await page
+				.getByRole("option", { name: /Демченко Олена Петрівна/ })
+				.click();
+			await page.getByTestId(testIds.courses.instructorSuggestions).waitFor({
+				state: "detached",
+			});
+			await page.waitForURL(/instructor=i-1/);
+			await page.getByText(COURSE.title).first().waitFor();
+		},
+	},
+	{
 		name: "course-reply",
 		section: "Коментарі",
 		note: "Reply form opened under a comment with «Відповісти»",

@@ -46,6 +46,29 @@ class InstructorListParams(BaseModel):
     )
 
 
+class InstructorSuggestionParams(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    q: str = Field(
+        min_length=2,
+        max_length=100,
+        description="What the student typed; every word must match a name part",
+    )
+    limit: int = Field(default=5, ge=1, le=10, description="Max suggestions")
+
+
+@dataclass(frozen=True)
+class InstructorSuggestion:
+    id: uuid.UUID
+    first_name: str
+    patronymic: str
+    last_name: str
+    courses_count: int
+
+
 @dataclass(frozen=True)
 class InstructorInput:
     first_name: str
