@@ -67,22 +67,15 @@ async function openNotifications(page: Page) {
 const feedStrip = (page: Page) =>
 	page.getByRole("region", { name: "Стрічка оновлень" });
 
-/** Courses page on the default mocked backend, with the list rendered. */
-async function openCourses(page: Page, path = "/") {
-	await mockBackend(page);
-	await page.goto(path);
-	await page.getByText(COURSE.title).first().waitFor();
-}
-
 /** Bottom of the courses page; the footer GitHub link must stay tappable (#728). */
 async function scrollToFooterLink(page: Page) {
-	await openCourses(page);
+	await mockBackend(page);
+	await page.goto("/");
+	await page.getByText(COURSE.title).first().waitFor();
 	await page.evaluate(() =>
 		window.scrollTo(0, document.documentElement.scrollHeight),
 	);
-	const link = page.getByTestId(testIds.footer.repoLink);
-	await link.waitFor();
-	await expectUncovered(link);
+	await expectUncovered(page.getByTestId(testIds.footer.repoLink));
 }
 
 /** Fails when another element (e.g. a floating button) covers the target's centre. */
@@ -433,7 +426,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Home page with the mobile filters drawer open (desktop shows the filters panel)",
 		run: async (page) => {
-			await openCourses(page);
+			await mockBackend(page);
+			await page.goto("/");
+			await page.getByText(COURSE.title).first().waitFor();
 			const trigger = page.getByTestId(testIds.filters.drawerTrigger);
 			if (await trigger.isVisible()) {
 				await trigger.click({ timeout: 5_000 });
@@ -463,7 +458,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Filters narrowed to one speciality's free-choice courses",
 		run: async (page) => {
-			await openCourses(page, "/?spec=f-info-spec&type=ELECTIVE");
+			await mockBackend(page);
+			await page.goto("/?spec=f-info-spec&type=ELECTIVE");
+			await page.getByText(COURSE.title).first().waitFor();
 			const trigger = page.getByTestId(testIds.filters.drawerTrigger);
 			if (await trigger.isVisible()) {
 				await trigger.click({ timeout: 5_000 });
@@ -476,7 +473,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Home page with difficulty 1–3 and autumn filters applied",
 		run: async (page) => {
-			await openCourses(page, "/?diff=1-3&term=FALL");
+			await mockBackend(page);
+			await page.goto("/?diff=1-3&term=FALL");
+			await page.getByText(COURSE.title).first().waitFor();
 		},
 	},
 	{
@@ -511,7 +510,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Course search narrowed to one title",
 		run: async (page) => {
-			await openCourses(page);
+			await mockBackend(page);
+			await page.goto("/");
+			await page.getByText(COURSE.title).first().waitFor();
 			await page.getByPlaceholder("Пошук курсів за назвою...").fill("Бази");
 			await expect(page.getByTestId(testIds.courses.tableRow)).toHaveCount(1);
 		},
@@ -521,7 +522,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Course search that matches nothing",
 		run: async (page) => {
-			await openCourses(page);
+			await mockBackend(page);
+			await page.goto("/");
+			await page.getByText(COURSE.title).first().waitFor();
 			await page
 				.getByPlaceholder("Пошук курсів за назвою...")
 				.fill("квантова хромодинаміка");
