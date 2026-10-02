@@ -805,6 +805,68 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "entry-home",
+		section: "Оцінити семестр",
+		note: "Home: the count by «Мої оцінки» and a closable bar above the feed",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/");
+			await page
+				.getByRole("complementary", { name: "Курси без оцінки" })
+				.waitFor();
+			await page.getByText(COURSE.title).first().waitFor();
+		},
+	},
+	{
+		name: "entry-header-pulse",
+		section: "Оцінити семестр",
+		note: "The badge's pulse mid-flight; it runs three times once per session",
+		widths: ["desktop"],
+		run: async (page) => {
+			await page.emulateMedia({ reducedMotion: "no-preference" });
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/");
+			await page.getByText("8 курсів чекають на оцінку").waitFor();
+			// The gallery shot freezes animations, so the pulse is also kept as
+			// frames of the header, zoomed in.
+			for (const ms of [150, 450, 750]) {
+				await page.waitForTimeout(ms === 150 ? 150 : 300);
+				await page.screenshot({
+					path: join(out, `entry-header-pulse-frame-${ms}.png`),
+					clip: { x: 560, y: 0, width: 320, height: 64 },
+					animations: "allow",
+					scale: "device",
+				});
+			}
+		},
+	},
+	{
+		name: "entry-course",
+		section: "Оцінити семестр",
+		note: "Course page: the student's other unrated courses under «Про курс»",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue", myCourses: "rated" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("complementary", { name: "Курси без оцінки" })
+				.waitFor();
+		},
+	},
+	{
+		name: "entry-mobile-menu",
+		section: "Оцінити семестр",
+		note: "Phones: a dot on the menu button, the count inside the menu",
+		widths: ["phone"],
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/");
+			await page
+				.getByRole("complementary", { name: "Курси без оцінки" })
+				.waitFor();
+			await page.getByRole("button", { name: "Відкрити меню" }).click();
+		},
+	},
+	{
 		name: "rate-entry",
 		section: "Оцінити семестр",
 		note: "Мої оцінки after the spring exams: «Оцінити всі» opens the flow",

@@ -37,6 +37,10 @@ vi.mock("@/features/course-offerings/components/CourseAbout", () => ({
 	offeringLoad: () => ({ credits: null, weeklyHours: null }),
 }));
 
+vi.mock("@/features/rate-flow/RatePrompt", () => ({
+	RatePromptCard: () => null,
+}));
+
 vi.mock("@/features/course-offerings/components/CourseCazRecords", () => ({
 	CourseCazRecords: () => <div data-testid="course-offerings" />,
 	getLatestOffering: vi.fn(() => undefined),

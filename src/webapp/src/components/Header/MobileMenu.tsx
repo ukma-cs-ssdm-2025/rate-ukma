@@ -8,6 +8,7 @@ import {
 	MobileNotificationPanel,
 	MobileNotificationRow,
 } from "@/features/notifications/components/MobileNotificationPanel";
+import { RateCountBadge } from "@/features/rate-flow/RateCountBadge";
 import type { AuthUser } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import type { NavigationItem, ThemeOption } from "./navigationData";
@@ -41,6 +42,7 @@ function NavigationLinks({
 				>
 					<Link to={item.href} onClick={onClose}>
 						{item.label}
+						{item.href === "/my-ratings" ? <RateCountBadge /> : null}
 					</Link>
 				</Button>
 			))}

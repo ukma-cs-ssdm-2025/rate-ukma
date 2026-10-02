@@ -42,6 +42,13 @@ vi.mock("@/features/feed/components/FeedStrip", () => {
 	};
 });
 
+// Reads the student's grades; stubbed so this file needs no auth provider.
+vi.mock("@/features/rate-flow/RatePrompt", () => {
+	return {
+		RatePromptBar: () => null,
+	};
+});
+
 vi.mock("@/features/courses/courseFiltersParams", async () => {
 	const actual = await vi.importActual<
 		typeof import("@/features/courses/courseFiltersParams")

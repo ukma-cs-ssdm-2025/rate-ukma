@@ -39,6 +39,7 @@ import {
 } from "@/lib/api/generated";
 import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
+import { RatePromptCard } from "@/features/rate-flow/RatePrompt";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
 function CourseDetailsRoute() {
@@ -118,6 +119,13 @@ function CourseDetailsRoute() {
 				</RatingButton>
 			</div>
 		) : null;
+	const ratePrompt = (
+		<RatePromptCard
+			excludeOfferingId={
+				!ratedOffering && hasAttendedCourse ? selectedOffering?.id : undefined
+			}
+		/>
+	);
 	const about = (
 		<CourseAbout
 			description={course.description}
@@ -167,6 +175,7 @@ function CourseDetailsRoute() {
 						    then reviews. Rendered once: the rate button's test id must stay unique. */}
 						{isDesktop ? null : rateAction}
 						{isDesktop ? null : about}
+						{isDesktop ? null : ratePrompt}
 
 						<CourseRatingsList
 							courseId={courseId}
@@ -184,7 +193,10 @@ function CourseDetailsRoute() {
 							{/* Capped to the viewport so a rail taller than the screen scrolls
 							    on its own instead of hiding its end until the page bottom. */}
 							<div className="lg:sticky lg:top-24 lg:-mr-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pr-3 lg:[scrollbar-gutter:stable] lg:[scrollbar-width:thin]">
-								{about}
+								<div className="space-y-8">
+									{about}
+									{ratePrompt}
+								</div>
 							</div>
 						</aside>
 					) : null}

@@ -4,6 +4,10 @@ import { Menu } from "lucide-react";
 
 import { useTheme } from "@/components/ThemeProvider";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import {
+	RateCountBadge,
+	RateCountDot,
+} from "@/features/rate-flow/RateCountBadge";
 import { useAuth } from "@/lib/auth";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { testIds } from "@/lib/test-ids";
@@ -61,6 +65,7 @@ export default function Header() {
 					<div className="flex items-center justify-center flex-1">
 						<HeaderNav
 							items={navigationItems}
+							trailing={{ "/my-ratings": <RateCountBadge pulse /> }}
 							className="hidden md:flex"
 							data-testid={testIds.header.nav}
 						/>
@@ -80,12 +85,13 @@ export default function Header() {
 						<div className="md:hidden">
 							<Button
 								variant="ghost"
-								className="h-9 w-9 rounded-full p-0"
+								className="relative h-9 w-9 rounded-full p-0"
 								aria-label="Відкрити меню"
 								onClick={openMobileMenu}
 								data-testid={testIds.header.mobileMenuButton}
 							>
 								<Menu className="h-5 w-5" />
+								<RateCountDot />
 							</Button>
 						</div>
 
