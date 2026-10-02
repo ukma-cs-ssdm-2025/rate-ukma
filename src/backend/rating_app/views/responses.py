@@ -16,6 +16,7 @@ from rating_app.serializers import (
     RatingReadSerializer,
     RatingsWithUserListSerializer,
     RatingVoteReadSerializer,
+    StudentRateableCountSerializer,
     StudentRatingsDetailedSerializer,
     StudentRatingsLightSerializer,
 )
@@ -201,6 +202,10 @@ R_STUDENT_RATINGS = {
 
 R_STUDENT_RATINGS_DETAILED = {
     200: OpenApiResponse(StudentRatingsDetailedSerializer, "OK"),
+    **common_errors(),
+}
+R_STUDENT_RATEABLE_COUNT = {
+    200: OpenApiResponse(StudentRateableCountSerializer, "OK"),
     **common_errors(),
 }
 R_ANALYTICS = {

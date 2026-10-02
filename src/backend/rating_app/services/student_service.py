@@ -67,6 +67,14 @@ class StudentService:
             )
         return result
 
+    def get_rateable_count(self, student_id: str) -> int:
+        # Reuses the cached grades, so the header's badge costs no extra query.
+        return sum(
+            1
+            for course in self.get_ratings_detail(student_id)
+            if course["can_rate"] and not course["rated"]
+        )
+
     def link_student_to_user(self, student: StudentDTO) -> bool:
         if not student.email:
             return False

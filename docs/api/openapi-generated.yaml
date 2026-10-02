@@ -2606,6 +2606,62 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/students/me/grades/rateable-count/:
+    get:
+      operationId: students_me_grades_rateable_count_retrieve
+      description: A light count for the header badge and rating prompts; the same
+        rule as `can_rate` and `rated` on /students/me/grades/.
+      summary: How many of the student's courses can be rated now but are not.
+      tags:
+      - student
+      - courses
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRateableCount'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /courses/{course_id}/:
     get:
       operationId: courses_retrieve_2
@@ -4134,6 +4190,12 @@ components:
         * `PLANNED` - Planned
         * `ACTIVE` - Active
         * `FINISHED` - Finished
+    StudentRateableCount:
+      type: object
+      properties:
+        count:
+          type: integer
+          readOnly: true
     StudentRatingsDetailed:
       type: object
       properties:

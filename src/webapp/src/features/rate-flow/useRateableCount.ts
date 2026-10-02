@@ -1,33 +1,26 @@
-import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
+import { useStudentsMeGradesRateableCountRetrieve } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 
 /**
- * How many of the student's courses can be rated now but are not. Shares the
- * cache with My grades and the rate flow, so the header, the home prompt and
- * the course page cost one request between them.
+ * How many of the student's courses can be rated now but are not, from the
+ * light count endpoint: the header, the home tile and the course page share
+ * one small request instead of the full grades list.
  */
-export function useRateableCount(excludeOfferingId?: string): number {
-	return useRateableCountState(excludeOfferingId).count;
+export function useRateableCount(): number {
+	return useRateableCountState().count;
 }
 
 /** The count plus whether it is still on its way, for places that must not shift when it lands. */
-export function useRateableCountState(excludeOfferingId?: string): {
+export function useRateableCountState(): {
 	count: number;
 	isPending: boolean;
 } {
 	const { isStudent } = useAuth();
-	const { data, isPending } = useStudentsMeGradesRetrieve({
+	const { data, isPending } = useStudentsMeGradesRateableCountRetrieve({
 		query: { enabled: isStudent, staleTime: FIVE_MINUTES },
 	});
 	if (!isStudent) return { count: 0, isPending: false };
-	if (!Array.isArray(data)) return { count: 0, isPending };
-	const count = data.filter(
-		(row) =>
-			row.can_rate &&
-			!row.rated &&
-			row.course_offering_id !== excludeOfferingId,
-	).length;
-	return { count, isPending: false };
+	return { count: data?.count ?? 0, isPending };
 }

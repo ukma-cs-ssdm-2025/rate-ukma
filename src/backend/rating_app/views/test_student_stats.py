@@ -645,3 +645,57 @@ def test_get_grades_requires_student_record_when_caller_not_student(token_client
     # Assert
     assert response.status_code == 403
     assert response.json()["detail"] == "Only students can perform this action."
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_AFTER_MIDTERM_DATE)
+def test_rateable_count_counts_open_unrated_courses_only(
+    token_client,
+    student_factory,
+    course_factory,
+    semester_factory,
+    course_offering_factory,
+    enrollment_factory,
+    rating_factory,
+):
+    # Arrange: two open courses, one already rated
+    student = student_factory(user=token_client.user)
+    semester = semester_factory(term=DEFAULT_TERM, year=DEFAULT_YEAR)
+    unrated = course_offering_factory(course=course_factory(title="Unrated"), semester=semester)
+    rated = course_offering_factory(course=course_factory(title="Rated"), semester=semester)
+    enrollment_factory(student=student, offering=unrated)
+    enrollment_factory(student=student, offering=rated)
+    rating_factory(student=student, course_offering=rated)
+
+    # Act
+    response = token_client.get(reverse("student-rateable-count"))
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == {"count": 1}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(DEFAULT_INVALID_DATE)  # Before midpoint
+def test_rateable_count_is_zero_before_rating_opens(token_client, create_student_course_setup):
+    # Arrange
+    create_student_course_setup()
+
+    # Act
+    response = token_client.get(reverse("student-rateable-count"))
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == {"count": 0}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_rateable_count_requires_student_record(token_client):
+    # Act
+    response = token_client.get(reverse("student-rateable-count"))
+
+    # Assert
+    assert response.status_code == 403

@@ -128,6 +128,13 @@ def course_detailed_rating_stats():
 
 
 @once
+def student_rateable_count_view():
+    return StudentStatisticsViewSet.as_view(
+        {"get": "get_rateable_count"}, student_service=student_service()
+    )
+
+
+@once
 def instructor_detail_view():
     return InstructorViewSet.as_view({"get": "retrieve"}, instructor_service=instructor_service())
 
@@ -334,6 +341,11 @@ def rest_urlpatterns() -> list:
             "students/me/grades/",
             course_detailed_rating_stats(),
             name="student-courses-grades",
+        ),
+        path(
+            "students/me/grades/rateable-count/",
+            student_rateable_count_view(),
+            name="student-rateable-count",
         ),
         path(
             "instructors/",

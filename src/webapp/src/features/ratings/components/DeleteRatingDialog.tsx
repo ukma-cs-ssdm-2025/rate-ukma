@@ -9,6 +9,7 @@ import {
 	getCoursesRetrieveQueryKey,
 	getFeedListInfiniteQueryKey,
 	getStudentsMeCoursesRetrieveQueryKey,
+	getStudentsMeGradesRateableCountRetrieveQueryKey,
 	getStudentsMeGradesRetrieveQueryKey,
 	useCoursesRatingsDestroy,
 } from "@/lib/api/generated";
@@ -45,6 +46,9 @@ export function DeleteRatingDialog({
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getStudentsMeGradesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeGradesRateableCountRetrieveQueryKey(),
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getCoursesRatingsListQueryKey(courseId),

@@ -19,6 +19,10 @@ class InlineSemesterSerializer(serializers.Serializer):
     season = serializers.CharField(read_only=True)
 
 
+class StudentRateableCountSerializer(serializers.Serializer):
+    count = serializers.IntegerField(read_only=True)
+
+
 class StudentRatingsDetailedSerializer(serializers.Serializer):
     course_id = serializers.CharField(read_only=True)
     course_title = serializers.CharField(read_only=True)

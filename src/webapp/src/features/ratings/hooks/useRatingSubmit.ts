@@ -7,6 +7,7 @@ import {
 	getCoursesRetrieveQueryKey,
 	getFeedListInfiniteQueryKey,
 	getStudentsMeCoursesRetrieveQueryKey,
+	getStudentsMeGradesRateableCountRetrieveQueryKey,
 	getStudentsMeGradesRetrieveQueryKey,
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
@@ -50,6 +51,9 @@ export function useRatingSubmit({
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getStudentsMeGradesRetrieveQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeGradesRateableCountRetrieveQueryKey(),
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getCoursesRatingsListQueryKey(courseId),

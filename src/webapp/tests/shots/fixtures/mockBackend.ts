@@ -201,6 +201,20 @@ export async function mockBackend(
 				})[grades],
 		],
 		[
+			/^\/students\/me\/grades\/rateable-count\/$/,
+			() => {
+				const rows = {
+					items: MY_GRADES,
+					many: MY_GRADES_MANY,
+					empty: [],
+					queue: MY_GRADES_QUEUE,
+				}[grades] as ReadonlyArray<{ can_rate?: boolean; rated?: unknown }>;
+				return {
+					count: rows.filter((row) => row.can_rate && !row.rated).length,
+				};
+			},
+		],
+		[
 			/^\/students\/me\/courses\/$/,
 			() => (myCourses === "none" ? [] : myCoursesFor(myCourses)),
 		],

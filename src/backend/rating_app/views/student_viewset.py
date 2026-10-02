@@ -4,11 +4,15 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 
 from rating_app.models import Student
-from rating_app.serializers import StudentRatingsDetailedSerializer, StudentRatingsLightSerializer
+from rating_app.serializers import (
+    StudentRateableCountSerializer,
+    StudentRatingsDetailedSerializer,
+    StudentRatingsLightSerializer,
+)
 from rating_app.services import StudentService
 from rating_app.views.decorators import require_student
 
-from .responses import R_STUDENT_RATINGS, R_STUDENT_RATINGS_DETAILED
+from .responses import R_STUDENT_RATEABLE_COUNT, R_STUDENT_RATINGS, R_STUDENT_RATINGS_DETAILED
 
 
 @extend_schema(tags=["student", "courses"])
@@ -43,4 +47,19 @@ class StudentStatisticsViewSet(viewsets.ViewSet):
         items = self.student_service.get_ratings_detail(student_id=str(student.id))
 
         serializer = StudentRatingsDetailedSerializer(items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="How many of the student's courses can be rated now but are not.",
+        description="A light count for the header badge and rating prompts; "
+        "the same rule as `can_rate` and `rated` on /students/me/grades/.",
+        responses=R_STUDENT_RATEABLE_COUNT,
+    )
+    @require_student
+    def get_rateable_count(self, request, student: Student) -> Response:
+        assert self.student_service is not None
+
+        count = self.student_service.get_rateable_count(student_id=str(student.id))
+
+        serializer = StudentRateableCountSerializer({"count": count})
         return Response(serializer.data, status=status.HTTP_200_OK)

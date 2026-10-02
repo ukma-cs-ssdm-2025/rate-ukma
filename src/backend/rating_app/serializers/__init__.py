@@ -16,7 +16,10 @@ from .rating_list_resp import RatingsWithUserListSerializer
 from .rating_read import RatingReadSerializer
 from .rating_vote import RatingVoteReadSerializer
 from .student_ratings import StudentRatingsLightSerializer
-from .student_ratings_detailed import StudentRatingsDetailedSerializer
+from .student_ratings_detailed import (
+    StudentRateableCountSerializer,
+    StudentRatingsDetailedSerializer,
+)
 
 __all__ = [
     "CourseAnalyticsSerializer",
@@ -28,6 +31,7 @@ __all__ = [
     "CourseListResponseSerializer",
     "StudentRatingsLightSerializer",
     "StudentRatingsDetailedSerializer",
+    "StudentRateableCountSerializer",
     "InstructorSerializer",
     "InstructorListResponseSerializer",
     "ErrorEnvelopeSerializer",
