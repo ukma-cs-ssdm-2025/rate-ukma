@@ -4,8 +4,10 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+// 11px digits are 8px tall, leaving 4px above and below in the 16px badge.
+// At 10px they are 7px tall, so the odd spare pixel lands on top.
 const countBadgeVariants = cva(
-	"flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold tabular-nums",
+	"flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[11px] leading-none font-bold tabular-nums",
 	{
 		variants: {
 			tone: {
