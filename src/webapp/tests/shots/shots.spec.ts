@@ -102,6 +102,20 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "home-footer",
+		section: "Головна",
+		note: "Courses page scrolled to the footer: the GitHub link stays tappable",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/");
+			await page.getByText(COURSE.title).first().waitFor();
+			await page.evaluate(() =>
+				window.scrollTo(0, document.documentElement.scrollHeight),
+			);
+			await page.getByTestId(testIds.footer.repoLink).waitFor();
+		},
+	},
+	{
 		name: "feed",
 		section: "Стрічка",
 		note: "/feed with banner promos, reviews and a comment",
