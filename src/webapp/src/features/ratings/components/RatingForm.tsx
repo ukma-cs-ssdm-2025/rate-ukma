@@ -267,8 +267,8 @@ function RatingFormFields({
 			data-scrolled={edges.scrolled || undefined}
 			data-more-below={edges.moreBelow || undefined}
 			className={cn(
-				"flex flex-col gap-5 px-6 py-5 sm:gap-6 sm:py-4",
-				!inline && "min-h-0 flex-1 overflow-y-auto",
+				"flex flex-col gap-5 py-5 sm:gap-6 sm:py-4",
+				inline ? "px-0" : "min-h-0 flex-1 overflow-y-auto px-6",
 			)}
 		>
 			<div className="space-y-4">
@@ -528,7 +528,7 @@ export function RatingForm({
 				<DialogFooter
 					className={cn(
 						"shrink-0 border-t border-transparent px-6 py-4 transition-colors motion-reduce:transition-none group-has-[[data-more-below]]/rating-form:border-border",
-						inline && "sticky bottom-0 rounded-b-xl border-border bg-card",
+						inline && "sticky bottom-0 border-border bg-background px-0",
 					)}
 				>
 					<Button

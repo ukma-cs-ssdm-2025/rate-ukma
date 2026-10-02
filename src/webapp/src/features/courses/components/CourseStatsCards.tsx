@@ -115,7 +115,7 @@ const REVEAL_MS = 700;
 
 // On arrival the score counts up from zero while the bar fills left to right.
 // It runs before paint, so the final value never flashes first.
-function useScoreReveal(value: number | null) {
+export function useScoreReveal(value: number | null) {
 	const ref = useRef<HTMLDivElement>(null);
 	useLayoutEffect(() => {
 		const root = ref.current;

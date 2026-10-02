@@ -111,7 +111,11 @@ function RatePage() {
 				item={current}
 				savedScores={state.kind === "done" ? state.scores : undefined}
 				anonymous={anonymous}
-				hasNext={queue.nextTodo(current) !== null}
+				remaining={
+					queue.items.filter(
+						(item) => item !== current && queue.stateOf(item).kind === "todo",
+					).length
+				}
 				onSaved={(scores, isAnonymous) => {
 					// Pin the course so the result stays up until «Наступний курс».
 					setPicked(current);
@@ -131,7 +135,8 @@ function RatePage() {
 
 	return (
 		<Layout>
-			<div className="space-y-6 pb-16">
+			{/* A focused task: narrower than the course page, centred. */}
+			<div className="mx-auto max-w-5xl space-y-6 pb-16">
 				<BackLink />
 				{hasQueue && !isDesktop ? (
 					<RateQueueBar
@@ -142,7 +147,7 @@ function RatePage() {
 						onOpenChange={setListOpen}
 					/>
 				) : null}
-				<div className="grid gap-x-10 gap-y-8 lg:grid-cols-[260px_minmax(0,1fr)]">
+				<div className="grid gap-x-10 gap-y-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-x-12">
 					{hasQueue && isDesktop ? (
 						<aside className="min-w-0">
 							<div className="lg:sticky lg:top-24 lg:-ml-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">

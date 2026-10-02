@@ -1,11 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CircleCheck } from "lucide-react";
 
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import {
 	getBarColor,
 	ScaleBar,
+	useScoreReveal,
 } from "@/features/courses/components/CourseStatsCards";
 import {
 	formatDecimalValue,
@@ -19,11 +21,47 @@ import type { Scores } from "./useRateQueue";
 // Closer than this to the others' average reads as "the same".
 const SAME_THRESHOLD = 0.5;
 
+type Axis = "difficulty" | "usefulness";
+
+const AXIS_COPY: Record<
+	Axis,
+	{
+		title: string;
+		lower: string;
+		higher: string;
+		verdictLower: string;
+		verdictHigher: string;
+	}
+> = {
+	difficulty: {
+		title: "Складність",
+		lower: "Легше",
+		higher: "Складніше",
+		verdictLower: "легшим",
+		verdictHigher: "складнішим",
+	},
+	usefulness: {
+		title: "Корисність",
+		lower: "Менш корисно",
+		higher: "Корисніше",
+		verdictLower: "менш корисним",
+		verdictHigher: "кориснішим",
+	},
+};
+
 function ratingsWord(count: number): string {
 	const mod10 = count % 10;
 	const mod100 = count % 100;
-	if (mod10 === 1 && mod100 !== 11) return "оцінкою";
-	return "оцінками";
+	return mod10 === 1 && mod100 !== 11 ? "оцінкою" : "оцінками";
+}
+
+function coursesLeft(count: number): string {
+	const mod10 = count % 10;
+	const mod100 = count % 100;
+	if (mod10 === 1 && mod100 !== 11) return `Ще ${count} курс`;
+	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14))
+		return `Ще ${count} курси`;
+	return `Ще ${count} курсів`;
 }
 
 /**
@@ -39,169 +77,199 @@ function othersAverage(
 	return (average * count - mine) / (count - 1);
 }
 
-function compare(mine: number, others: number): -1 | 0 | 1 {
+function direction(mine: number, others: number | null): -1 | 0 | 1 {
+	if (others == null) return 0;
 	const diff = mine - others;
 	if (Math.abs(diff) < SAME_THRESHOLD) return 0;
 	return diff > 0 ? 1 : -1;
 }
 
-function verdict(difficulty: -1 | 0 | 1, usefulness: -1 | 0 | 1): string {
-	const parts = [
-		{ [-1]: "легшим", 0: null, 1: "складнішим" }[difficulty],
-		{ [-1]: "менш корисним", 0: null, 1: "кориснішим" }[usefulness],
-	].filter(Boolean);
+function verdict(scores: Scores, others: Record<Axis, number | null>): string {
+	const parts = (["difficulty", "usefulness"] as const)
+		.map((axis) => {
+			const dir = direction(scores[axis], others[axis]);
+			if (dir === 0) return null;
+			return dir > 0
+				? AXIS_COPY[axis].verdictHigher
+				: AXIS_COPY[axis].verdictLower;
+		})
+		.filter(Boolean);
 	if (parts.length === 0) return "Ви оцінили курс так само, як інші";
 	return `Вам курс здався ${parts.join(" і ")}, ніж іншим`;
 }
 
-/** Where ScaleBar's segment for a whole score ends: five segments, 4px gaps. */
-function segmentEnd(score: number): string {
-	return `calc(${(score / 5) * 100}% + ${0.8 * score - 4}px)`;
-}
-
-/** Marks a score on the course page's scale bar. */
-function YouMarker({ className }: Readonly<{ className?: string }>) {
+function BarRow({
+	label,
+	value,
+	accent,
+	display,
+}: Readonly<{
+	label: string;
+	value: number | null;
+	accent: string;
+	display: string;
+}>) {
 	return (
-		<span
-			aria-hidden="true"
-			className={cn(
-				"block size-3 rounded-full border-2 border-background bg-foreground shadow-sm",
-				className,
-			)}
-		/>
+		<div className="flex items-center gap-3">
+			<span className="w-9 shrink-0 text-xs text-muted-foreground">
+				{label}
+			</span>
+			<div className="min-w-0 flex-1">
+				<ScaleBar value={value} accent={accent} />
+			</div>
+			<span className="w-7 shrink-0 text-right text-xs font-medium tabular-nums">
+				{display}
+			</span>
+		</div>
 	);
 }
 
-function ComparisonRow({
-	label,
+function AxisPanel({
+	axis,
 	mine,
 	others,
-	type,
-}: Readonly<{
-	label: string;
-	mine: number;
-	others: number | null;
-	type: "difficulty" | "usefulness";
-}>) {
-	const tone = type === "difficulty" ? getDifficultyTone : getUsefulnessTone;
+}: Readonly<{ axis: Axis; mine: number; others: number | null }>) {
+	// The course page's count-up and bar sweep, run on the student's own score.
+	const ref = useScoreReveal(mine);
+	const copy = AXIS_COPY[axis];
+	const tone = axis === "difficulty" ? getDifficultyTone : getUsefulnessTone;
+	const dir = direction(mine, others);
+	const delta = others == null ? 0 : Math.abs(mine - others);
+
 	return (
-		<div className="space-y-2.5">
-			<div className="flex items-baseline justify-between gap-4">
-				<p className="text-sm font-medium">{label}</p>
-				<p className="flex items-center gap-4 text-sm text-muted-foreground">
-					<span className="flex items-center gap-1.5">
-						<YouMarker />
-						Ви
-						<span className={cn("font-semibold tabular-nums", tone(mine))}>
-							{mine}
-						</span>
+		<Card className="shadow-sm">
+			<CardContent ref={ref} className="space-y-4 p-4 sm:p-5">
+				<div className="flex items-start justify-between gap-3">
+					<p className="text-sm font-medium text-muted-foreground">
+						{copy.title}
+					</p>
+					{others == null ? null : (
+						<Badge variant={dir === 0 ? "secondary" : "soft"}>
+							{dir === 0
+								? "Як у інших"
+								: `${dir > 0 ? copy.higher : copy.lower} на ${formatDecimalValue(delta)}`}
+						</Badge>
+					)}
+				</div>
+				<p className="flex items-baseline gap-1.5">
+					<span
+						data-score
+						className={cn(
+							"text-4xl font-bold tabular-nums sm:text-5xl",
+							tone(mine),
+						)}
+					>
+						{mine.toFixed(1)}
 					</span>
-					{others != null ? (
-						<span>
-							Інші{" "}
-							<span className="font-semibold text-foreground tabular-nums">
-								{formatDecimalValue(others)}
-							</span>
-						</span>
-					) : null}
+					<span className="text-sm text-muted-foreground">ваша оцінка</span>
 				</p>
-			</div>
-			<div className="relative">
-				<ScaleBar value={others} accent={getBarColor(type, others)} />
-				{/* Segments end at whole scores, so a 4 sits where the fourth ends. */}
-				<span
-					aria-hidden="true"
-					className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
-					style={{ left: segmentEnd(mine) }}
-				>
-					<YouMarker />
-				</span>
-			</div>
-		</div>
+				<div className="space-y-2">
+					<BarRow
+						label="Ви"
+						value={mine}
+						accent={getBarColor(axis, mine)}
+						display={String(mine)}
+					/>
+					{others == null ? null : (
+						<BarRow
+							label="Інші"
+							value={others}
+							accent="bg-muted-foreground/40"
+							display={formatDecimalValue(others)}
+						/>
+					)}
+				</div>
+			</CardContent>
+		</Card>
 	);
 }
 
 interface RateComparisonProps {
 	readonly courseId: string;
 	readonly scores: Scores;
-	readonly hasNext: boolean;
+	/** Courses still waiting after this one. */
+	readonly remaining: number;
 	readonly onNext: () => void;
 	readonly nextRef?: React.Ref<HTMLButtonElement>;
 }
 
 /**
- * Shown once the student saves: their scores against everyone else's on the
- * course page's own scale, so the reveal says something the course page cannot.
+ * Shown once the student saves: their scores against everyone else's, in the
+ * course page's own score cards and animation, so the reveal tells them
+ * something the course page cannot.
  */
 export function RateComparison({
 	courseId,
 	scores,
-	hasNext,
+	remaining,
 	onNext,
 	nextRef,
 }: Readonly<RateComparisonProps>) {
 	const { data: course } = useCoursesRetrieve(courseId);
 	const count = course?.ratings_count ?? 0;
+	const others = {
+		difficulty: othersAverage(course?.avg_difficulty, count, scores.difficulty),
+		usefulness: othersAverage(course?.avg_usefulness, count, scores.usefulness),
+	};
 	const othersCount = Math.max(0, count - 1);
-	const othersDifficulty = othersAverage(
-		course?.avg_difficulty,
-		count,
-		scores.difficulty,
-	);
-	const othersUsefulness = othersAverage(
-		course?.avg_usefulness,
-		count,
-		scores.usefulness,
-	);
-	const hasOthers = othersDifficulty != null && othersUsefulness != null;
+	const hasOthers = others.difficulty != null && others.usefulness != null;
 
 	return (
-		<Card className="shadow-sm">
-			<div className="space-y-6 p-6">
-				<div className="space-y-1.5">
-					<h2 className="text-lg font-semibold leading-snug">
-						{hasOthers
-							? verdict(
-									compare(scores.difficulty, othersDifficulty),
-									compare(scores.usefulness, othersUsefulness),
-								)
-							: "Ви оцінили цей курс першими"}
-					</h2>
-					<p className="text-sm text-muted-foreground">
-						{hasOthers
-							? `Порівняно з ${othersCount} ${ratingsWord(othersCount)} інших студентів`
-							: "Ваша оцінка вже допомагає тим, хто обиратиме"}
-					</p>
-				</div>
-				<ComparisonRow
-					label="Складність"
+		<section aria-labelledby="rate-result" className="space-y-6">
+			<div className="space-y-2">
+				<p className="flex items-center gap-1.5 text-sm font-medium text-success">
+					<CircleCheck className="size-4" aria-hidden="true" />
+					Оцінку збережено
+				</p>
+				<h2
+					id="rate-result"
+					className="text-2xl font-bold tracking-tight text-balance sm:text-3xl"
+				>
+					{hasOthers ? verdict(scores, others) : "Ви оцінили цей курс першими"}
+				</h2>
+				<p className="text-muted-foreground">
+					{hasOthers
+						? `Порівняно з ${othersCount} ${ratingsWord(othersCount)} інших студентів`
+						: "Ваша оцінка вже допоможе тим, хто обиратиме"}
+				</p>
+			</div>
+
+			<div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+				<AxisPanel
+					axis="difficulty"
 					mine={scores.difficulty}
-					others={othersDifficulty}
-					type="difficulty"
+					others={others.difficulty}
 				/>
-				<ComparisonRow
-					label="Корисність"
+				<AxisPanel
+					axis="usefulness"
 					mine={scores.usefulness}
-					others={othersUsefulness}
-					type="usefulness"
+					others={others.usefulness}
 				/>
 			</div>
-			<div className="flex flex-col-reverse gap-2 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+
+			<div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<Button variant="ghost" asChild className="w-full sm:w-auto">
 					<Link to="/courses/$courseId" params={{ courseId }}>
 						Відгуки про курс
 					</Link>
 				</Button>
-				<Button
-					ref={nextRef}
-					size="lg"
-					onClick={onNext}
-					className="w-full sm:w-auto"
-				>
-					{hasNext ? "Наступний курс" : "Завершити"}
-					<ArrowRight aria-hidden="true" />
-				</Button>
+				<div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-4">
+					{remaining > 0 ? (
+						<span className="text-center text-sm text-muted-foreground sm:text-left">
+							{coursesLeft(remaining)}
+						</span>
+					) : null}
+					<Button
+						ref={nextRef}
+						size="lg"
+						onClick={onNext}
+						className="w-full sm:w-auto"
+					>
+						{remaining > 0 ? "Наступний курс" : "Завершити"}
+						<ArrowRight aria-hidden="true" />
+					</Button>
+				</div>
 			</div>
-		</Card>
+		</section>
 	);
 }

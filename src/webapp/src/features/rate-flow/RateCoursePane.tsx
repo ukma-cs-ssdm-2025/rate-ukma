@@ -1,15 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Card } from "@/components/ui/Card";
 import {
 	getLatestOffering,
 	getLatestOfferingTerms,
 } from "@/features/course-offerings/components/CourseCazRecords";
-import {
-	CourseAbout,
-	CourseAboutSkeleton,
-	offeringLoad,
-} from "@/features/course-offerings/components/CourseAbout";
+import { offeringLoad } from "@/features/course-offerings/components/CourseAbout";
 import {
 	CourseDetailsHeader,
 	CourseDetailsHeaderSkeleton,
@@ -29,14 +24,16 @@ import {
 import { RateComparison } from "./RateComparison";
 import type { QueueItem, Scores } from "./useRateQueue";
 
-function CardHeading({
+function FormHeading({
 	title,
 	description,
 }: Readonly<{ title: string; description: string }>) {
 	// Mirrors the rating modal's header, so the form reads as the same dialog.
 	return (
-		<div className="space-y-1.5 px-6 pt-6 pb-1">
-			<h2 className="text-lg font-semibold leading-snug">{title}</h2>
+		<div className="space-y-1.5">
+			<h2 id="rate-form-title" className="text-lg font-semibold leading-snug">
+				{title}
+			</h2>
 			<p className="text-sm text-muted-foreground">{description}</p>
 		</div>
 	);
@@ -48,15 +45,16 @@ interface RateCoursePaneProps {
 	readonly savedScores?: Scores;
 	/** Carried over from the previous course, so anonymity is picked once. */
 	readonly anonymous: boolean;
-	readonly hasNext: boolean;
+	/** Courses still waiting after this one. */
+	readonly remaining: number;
 	readonly onSaved: (scores: Scores, anonymous: boolean) => void;
 	readonly onSkip: () => void;
 	readonly onNext: () => void;
 }
 
 /**
- * One course of the queue, laid out like its course page: the header, the
- * rating modal's own form where the scores would be, and «Про курс» beside it.
+ * One course of the queue, laid out like its course page: the header, then
+ * the rating modal's own form where the scores would be.
  * Others' scores stay hidden until the student has rated, so the average
  * cannot pull their answer towards it; then the form turns into a comparison.
  */
@@ -64,7 +62,7 @@ export function RateCoursePane({
 	item,
 	savedScores,
 	anonymous,
-	hasNext,
+	remaining,
 	onSaved,
 	onSkip,
 	onNext,
@@ -94,7 +92,13 @@ export function RateCoursePane({
 	}));
 
 	useEffect(() => {
-		if (saved && !savedScores) nextRef.current?.focus();
+		if (!saved || savedScores) return;
+		// The verdict replaces a long form: bring it to the top, keep the
+		// keyboard on «Наступний курс».
+		globalThis.document
+			.getElementById("rate-result")
+			?.scrollIntoView({ block: "center" });
+		nextRef.current?.focus({ preventScroll: true });
 	}, [saved, savedScores]);
 
 	const offerings = offeringsData?.course_offerings ?? [];
@@ -102,79 +106,63 @@ export function RateCoursePane({
 	const load = offeringLoad(latestOffering);
 
 	return (
-		<div className="grid min-w-0 gap-x-10 gap-y-8 xl:grid-cols-[minmax(0,1fr)_300px]">
-			<div className="min-w-0 space-y-8">
-				<div className="space-y-3">
-					<p className="text-sm text-muted-foreground">
-						Ви слухали цей курс у семестрі «{item.semesterLabel}»
-					</p>
-					{isCourseLoading ? (
-						<CourseDetailsHeaderSkeleton />
-					) : (
-						<CourseDetailsHeader
-							title={course?.title ?? item.title}
-							educationLevel={course?.education_level}
-							specialities={course?.specialities ?? []}
-							departmentName={course?.department_name ?? ""}
-							facultyName={course?.faculty_name ?? item.facultyName}
-							terms={getLatestOfferingTerms(offerings)}
-							credits={load.credits}
-							weeklyHours={load.weeklyHours}
-						/>
-					)}
-				</div>
-
-				{saved ? (
-					<RateComparison
-						courseId={item.courseId}
-						scores={saved}
-						hasNext={hasNext}
-						onNext={onNext}
-						nextRef={nextRef}
-					/>
+		<div className="min-w-0 space-y-8">
+			<div className="space-y-3">
+				<p className="text-sm text-muted-foreground">
+					Ви слухали цей курс у семестрі «{item.semesterLabel}»
+				</p>
+				{isCourseLoading ? (
+					<CourseDetailsHeaderSkeleton />
 				) : (
-					<Card className="shadow-sm">
-						<CardHeading
-							title="Ваша оцінка"
-							description="Після збереження порівняєте її з оцінками інших"
-						/>
-						<RatingForm
-							onSubmit={async (data) => {
-								if (!(await submit(data))) return;
-								const scores = {
-									difficulty: data.difficulty,
-									usefulness: data.usefulness,
-								};
-								setSaved(scores);
-								onSaved(scores, data.is_anonymous);
-							}}
-							onCancel={onSkip}
-							isLoading={isLoading}
-							initialData={initialData}
-							offeringId={item.offeringId}
-							courseId={item.courseId}
-							author={author}
-							submitLabel="Зберегти"
-							cancelLabel="Пропустити"
-							inline
-						/>
-					</Card>
+					<CourseDetailsHeader
+						title={course?.title ?? item.title}
+						educationLevel={course?.education_level}
+						specialities={course?.specialities ?? []}
+						departmentName={course?.department_name ?? ""}
+						facultyName={course?.faculty_name ?? item.facultyName}
+						terms={getLatestOfferingTerms(offerings)}
+						credits={load.credits}
+						weeklyHours={load.weeklyHours}
+					/>
 				)}
 			</div>
 
-			<aside className="min-w-0">
-				{/* The course page's own rail: the description and history jog the
-				    memory of a course taken months ago. */}
-				{offeringsData && !isCourseLoading ? (
-					<CourseAbout
-						description={course?.description}
-						latestOffering={latestOffering}
-						courseOfferings={offerings}
+			{saved ? (
+				<RateComparison
+					courseId={item.courseId}
+					scores={saved}
+					remaining={remaining}
+					onNext={onNext}
+					nextRef={nextRef}
+				/>
+			) : (
+				<section aria-labelledby="rate-form-title" className="space-y-1">
+					<FormHeading
+						title="Ваша оцінка"
+						description="Після збереження порівняєте її з оцінками інших"
 					/>
-				) : (
-					<CourseAboutSkeleton />
-				)}
-			</aside>
+					<RatingForm
+						onSubmit={async (data) => {
+							if (!(await submit(data))) return;
+							const scores = {
+								difficulty: data.difficulty,
+								usefulness: data.usefulness,
+							};
+							setSaved(scores);
+							onSaved(scores, data.is_anonymous);
+						}}
+						onCancel={onSkip}
+						isLoading={isLoading}
+						initialData={initialData}
+						offeringId={item.offeringId}
+						courseId={item.courseId}
+						author={author}
+						submitLabel="Зберегти"
+						cancelLabel="Пропустити"
+						inline
+					/>
+				</section>
+			)}
 		</div>
 	);
 }
