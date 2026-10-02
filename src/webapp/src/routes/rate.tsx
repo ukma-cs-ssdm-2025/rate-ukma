@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
 	createFileRoute,
 	Link,
+	Navigate,
 	useBlocker,
 	useNavigate,
 } from "@tanstack/react-router";
@@ -25,6 +26,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { CourseDetailsHeaderSkeleton } from "@/features/courses/components/CourseDetailsHeader";
 import { RateCoursePane } from "@/features/rate-flow/RateCoursePane";
 import { RateLeaveDialog } from "@/features/rate-flow/RateLeaveDialog";
+import { useRateFlow } from "@/features/rate-flow/useRateFlow";
 import { RateSemesterDone } from "@/features/rate-flow/RateSemesterDone";
 import { RateSummary } from "@/features/rate-flow/RateSummary";
 import {
@@ -114,6 +116,7 @@ const GRID =
 
 function RatePage() {
 	const { isStudent } = useAuth();
+	const flow = useRateFlow();
 	const isDesktop = useMediaQuery("(min-width: 1024px)");
 	const queue = useRateQueue();
 	const [picked, setPicked] = useState<QueueItem | null>(null);
@@ -203,6 +206,10 @@ function RatePage() {
 		</Helmet>
 	);
 
+	// Behind a flag: nobody lands here by an old link while it is off.
+	if (flow.isReady && !flow.enabled)
+		return <Navigate to="/my-ratings" replace />;
+
 	if (!isStudent) {
 		return (
 			<Layout>
@@ -212,7 +219,7 @@ function RatePage() {
 		);
 	}
 
-	if (queue.isLoading) {
+	if (queue.isLoading || !flow.isReady) {
 		return (
 			<Layout>
 				{title}

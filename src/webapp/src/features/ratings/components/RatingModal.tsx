@@ -8,6 +8,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/Dialog";
 import type { Instructor, RatingInstructor } from "@/lib/api/generated";
+import { useRateFlow } from "@/features/rate-flow/useRateFlow";
 import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
@@ -45,12 +46,14 @@ export function RatingModal({
 	courseName,
 	existingRating,
 	onSuccess,
-	offerTheRest = true,
+	offerTheRest: offerTheRestProp = true,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
 	const author = useRatingAuthor();
 	const navigate = useNavigate();
 	const { isStudent } = useAuth();
+	const rateFlow = useRateFlow();
+	const offerTheRest = offerTheRestProp && rateFlow.enabled;
 	// A fresh rating is the moment to offer the rest of the student's courses.
 	const { data: grades } = useStudentsMeGradesRetrieve({
 		query: { enabled: isOpen && isStudent && !isEditMode && offerTheRest },

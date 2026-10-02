@@ -36,6 +36,8 @@ export interface MockOptions {
 	readonly specialities?: "one" | "many";
 	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
 	readonly title?: "short" | "long";
+	/** Flagged features to turn on, besides the feed and faculty colours. */
+	readonly flags?: ReadonlyArray<"fe_rate_flow" | "fe_discipline_term">;
 	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
 }
@@ -68,6 +70,7 @@ export async function mockBackend(
 		notifications = "none",
 		session = "student",
 		specialities = "one",
+		flags = [],
 		title = "short",
 		loading = false,
 	}: MockOptions = {},
@@ -97,7 +100,15 @@ export async function mockBackend(
 		[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
 		[
 			/^\/flags\/$/,
-			() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
+			() => ({
+				flags: {
+					fe_feed: true,
+					fe_faculty_colors: true,
+					fe_rate_flow: false,
+					fe_discipline_term: false,
+					...Object.fromEntries(flags.map((name) => [name, true])),
+				},
+			}),
 		],
 		[/^\/promo-banner\/$/, () => ({ banner: null })],
 		[

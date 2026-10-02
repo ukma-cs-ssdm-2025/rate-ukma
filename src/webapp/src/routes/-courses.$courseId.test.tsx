@@ -41,6 +41,10 @@ vi.mock("@/features/rate-flow/RatePrompt", () => ({
 	RateSideCard: () => null,
 }));
 
+vi.mock("@/features/rate-flow/RateResumeBar", () => ({
+	RateResumeBar: () => null,
+}));
+
 vi.mock("@/features/course-offerings/components/CourseCazRecords", () => ({
 	CourseCazRecords: () => <div data-testid="course-offerings" />,
 	getLatestOffering: vi.fn(() => undefined),

@@ -5,6 +5,7 @@ import { ListFilter } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { useRateFlow } from "@/features/rate-flow/useRateFlow";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ export function MyRatingsHeader({
 	onOnlyUnratedChange,
 	isLoading = false,
 }: Readonly<MyRatingsHeaderProps>) {
+	const rateFlow = useRateFlow();
 	// The «Лише неоцінені» button already counts what can be rated now.
 	const hint =
 		rateableLeft === 0 && ratedCourses < totalCourses
@@ -78,11 +80,13 @@ export function MyRatingsHeader({
 									{rateableLeft}
 								</span>
 							</Button>
-							<Button size="sm" asChild>
-								<Link to="/rate">
-									{ratedCourses > 0 ? "Оцінити решту" : "Оцінити дисципліни"}
-								</Link>
-							</Button>
+							{rateFlow.enabled ? (
+								<Button size="sm" asChild>
+									<Link to="/rate">
+										{ratedCourses > 0 ? "Оцінити решту" : "Оцінити дисципліни"}
+									</Link>
+								</Button>
+							) : null}
 						</div>
 					) : undefined
 				}

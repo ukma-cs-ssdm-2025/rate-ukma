@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/features/ratings/components/MyRatingsHeader";
+import { useRateFlow } from "./useRateFlow";
 import { useSavedRateProgress } from "./useRateQueue";
 
 /**
@@ -13,8 +14,9 @@ import { useSavedRateProgress } from "./useRateQueue";
  */
 export function RateResumeBar() {
 	const progress = useSavedRateProgress();
+	const { enabled } = useRateFlow();
 	const [hidden, setHidden] = useState(false);
-	if (!progress || hidden) return null;
+	if (!enabled || !progress || hidden) return null;
 
 	return (
 		<>
