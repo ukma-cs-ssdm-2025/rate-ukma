@@ -107,7 +107,7 @@ export function RateCoursePane({
 	useEffect(() => {
 		if (!saved || savedScores) return;
 		// The verdict replaces a long form: bring it to the top, keep the
-		// keyboard on «Наступний курс».
+		// keyboard on «Наступна дисципліна».
 		globalThis.document
 			.getElementById("rate-result")
 			?.scrollIntoView({ block: "center" });

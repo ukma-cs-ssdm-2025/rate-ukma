@@ -22,15 +22,15 @@ export function MyRatingsEmptyState() {
 				<EmptyMedia variant="icon">
 					<BookOpen />
 				</EmptyMedia>
-				<EmptyTitle>Курсів поки немає</EmptyTitle>
+				<EmptyTitle>Дисциплін поки немає</EmptyTitle>
 				<EmptyDescription>
-					Тут з'являться курси, які ви слухаєте, щойно вони будуть у системі. А
-					поки можна почитати відгуки інших студентів.
+					Тут з'являться дисципліни, які ви слухаєте, щойно вони будуть у
+					системі. А поки можна почитати відгуки інших студентів.
 				</EmptyDescription>
 			</EmptyHeader>
 			<EmptyContent>
 				<Button asChild>
-					<Link to="/">Переглянути курси</Link>
+					<Link to="/">Переглянути дисципліни</Link>
 				</Button>
 			</EmptyContent>
 		</Empty>

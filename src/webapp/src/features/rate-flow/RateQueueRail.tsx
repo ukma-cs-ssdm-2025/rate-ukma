@@ -154,10 +154,10 @@ export function RateQueueRail({
 	onPick,
 }: Readonly<RateQueueRailProps>) {
 	return (
-		<nav aria-label="Курси до оцінки" className="space-y-6">
+		<nav aria-label="Дисципліни до оцінки" className="space-y-6">
 			<div className="space-y-1 px-3">
 				<h2 className="text-lg font-semibold tracking-tight">
-					Курси до оцінки
+					Дисципліни до оцінки
 				</h2>
 				<Progress queue={queue} />
 			</div>
@@ -187,14 +187,17 @@ export function RateQueueBar({
 >) {
 	return (
 		<Collapsible open={open} onOpenChange={onOpenChange}>
-			<nav aria-label="Курси до оцінки" className="rounded-xl bg-muted/50 p-4">
+			<nav
+				aria-label="Дисципліни до оцінки"
+				className="rounded-xl bg-muted/50 p-4"
+			>
 				{/* Count and toggle on one line, the bar under them edge to edge. */}
 				<div className="flex items-center justify-between gap-3">
 					<p className="text-sm font-medium tabular-nums">
 						Оцінено {queue.doneCount} з {queue.items.length}
 					</p>
 					<CollapsibleTrigger className="group -m-1 flex items-center gap-1 rounded-md p-1 text-sm font-medium text-primary">
-						Усі курси
+						Усі дисципліни
 						<ChevronDown
 							className="size-4 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none"
 							aria-hidden="true"

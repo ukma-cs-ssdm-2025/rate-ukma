@@ -32,7 +32,11 @@ function usePulseOnce(active: boolean): boolean {
 }
 
 function coursesWord(count: number): string {
-	return pluralUk(count, ["курс чекає", "курси чекають", "курсів чекають"]);
+	return pluralUk(count, [
+		"дисципліна чекає",
+		"дисципліни чекають",
+		"дисциплін чекають",
+	]);
 }
 
 /** Unrated courses next to «Мої оцінки»; renders nothing when there are none. */

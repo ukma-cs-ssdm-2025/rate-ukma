@@ -11,4 +11,4 @@ export function pluralUk(
 }
 
 export const coursesNoun = (count: number) =>
-	pluralUk(count, ["курс", "курси", "курсів"]);
+	pluralUk(count, ["дисципліна", "дисципліни", "дисциплін"]);

@@ -139,7 +139,7 @@ function ExploreRoute() {
 					open={isFiltersOpen}
 					side={isPhone ? "bottom" : "right"}
 					onOpenChange={setIsFiltersOpen}
-					ariaLabel="Фільтри курсів"
+					ariaLabel="Фільтри дисциплін"
 					closeButtonLabel="Закрити фільтри"
 				>
 					<CourseFiltersDrawer

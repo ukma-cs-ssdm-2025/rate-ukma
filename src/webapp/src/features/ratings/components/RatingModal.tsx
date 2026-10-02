@@ -115,7 +115,7 @@ export function RatingModal({
 						data-testid={testIds.rating.modalTitle}
 					>
 						{courseName?.trim() ||
-							(isEditMode ? "Редагувати оцінку" : "Оцінити курс")}
+							(isEditMode ? "Редагувати оцінку" : "Оцінити дисципліну")}
 					</DialogTitle>
 					<DialogDescription>
 						{isEditMode

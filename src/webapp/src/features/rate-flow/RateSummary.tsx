@@ -33,10 +33,10 @@ export function RateSummary({
 	const title =
 		rated > 0
 			? `Дякуємо, ви оцінили ${rated} ${coursesNoun(rated)}`
-			: "Курси пропущено";
+			: "Дисципліни пропущено";
 	const description =
 		rated > 0
-			? "Ваші оцінки вже бачать студенти, які обирають ці курси"
+			? "Ваші оцінки вже бачать студенти, які обирають ці дисципліни"
 			: "Вони чекатимуть у «Моїх оцінках», поки ви не повернетеся";
 
 	return (
@@ -70,7 +70,7 @@ export function RateSummary({
 
 			<div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
 				<Button variant="ghost" asChild>
-					<Link to="/">До курсів</Link>
+					<Link to="/">До дисциплін</Link>
 				</Button>
 				<Button size="lg" asChild>
 					<Link to="/my-ratings">

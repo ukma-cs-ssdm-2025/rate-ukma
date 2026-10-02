@@ -55,7 +55,7 @@ export function RateSemesterDone({
 				</span>
 				<PageHeader
 					title={`${semester.label} позаду`}
-					description={`Дякуємо! ${ratedHere} ${pluralUk(ratedHere, ["ваша оцінка", "ваші оцінки", "ваших оцінок"])} вже допомагають іншим обирати курси.`}
+					description={`Дякуємо! ${ratedHere} ${pluralUk(ratedHere, ["ваша оцінка", "ваші оцінки", "ваших оцінок"])} вже допомагають іншим обирати дисципліни.`}
 				/>
 			</div>
 

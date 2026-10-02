@@ -38,15 +38,15 @@ const AXIS_COPY: Record<
 		title: "Складність",
 		lower: "легше",
 		higher: "складніше",
-		verdictLower: "легшим",
-		verdictHigher: "складнішим",
+		verdictLower: "легшою",
+		verdictHigher: "складнішою",
 	},
 	usefulness: {
 		title: "Корисність",
 		lower: "менш корисно",
 		higher: "корисніше",
-		verdictLower: "менш корисним",
-		verdictHigher: "кориснішим",
+		verdictLower: "менш корисною",
+		verdictHigher: "кориснішою",
 	},
 };
 
@@ -99,8 +99,8 @@ function verdict(scores: Scores, others: Record<Axis, number | null>): string {
 				: AXIS_COPY[axis].verdictLower;
 		})
 		.filter(Boolean);
-	if (parts.length === 0) return "Ви оцінили курс так само, як інші";
-	return `Вам курс здався ${parts.join(" і ")}, ніж іншим`;
+	if (parts.length === 0) return "Ви оцінили дисципліну так само, як інші";
+	return `Вам дисципліна здалася ${parts.join(" і ")}, ніж іншим`;
 }
 
 function BarRow({
@@ -223,7 +223,9 @@ export function RateComparison({
 					id="rate-result"
 					className="text-lg font-semibold tracking-tight text-balance"
 				>
-					{hasOthers ? verdict(scores, others) : "Ви оцінили цей курс першими"}
+					{hasOthers
+						? verdict(scores, others)
+						: "Ви оцінили цю дисципліну першими"}
 				</h2>
 				<p className="text-muted-foreground">
 					{hasOthers
@@ -248,7 +250,7 @@ export function RateComparison({
 			<div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<Button variant="ghost" asChild className="w-full sm:w-auto">
 					<Link to="/courses/$courseId" params={{ courseId }}>
-						Відгуки про курс
+						Відгуки про дисципліну
 					</Link>
 				</Button>
 				<div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-4">
@@ -258,7 +260,7 @@ export function RateComparison({
 						onClick={onNext}
 						className="w-full sm:w-auto"
 					>
-						{remaining > 0 ? "Наступний курс" : "Завершити"}
+						{remaining > 0 ? "Наступна дисципліна" : "Завершити"}
 						<ArrowRight aria-hidden="true" />
 					</Button>
 				</div>

@@ -22,7 +22,7 @@ export function RateResumeBar() {
 			<div aria-hidden="true" className="h-6" />
 			<div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
 				<aside
-					aria-label="Оцінювання курсів"
+					aria-label="Оцінювання дисциплін"
 					className="pointer-events-auto flex w-full max-w-md animate-in items-center gap-3 rounded-xl border bg-background py-2 pr-2 pl-4 shadow-lg duration-300 fade-in-0 slide-in-from-bottom-4 motion-reduce:animate-none"
 				>
 					<div className="min-w-0 flex-1">

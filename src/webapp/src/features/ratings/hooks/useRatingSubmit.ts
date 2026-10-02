@@ -92,7 +92,7 @@ export function useRatingSubmit({
 			} else {
 				if (!offeringId) {
 					toast.error(
-						"Не вдалося створити оцінку: відсутній ідентифікатор курсу",
+						"Не вдалося створити оцінку: відсутній ідентифікатор дисципліни",
 					);
 					return false;
 				}

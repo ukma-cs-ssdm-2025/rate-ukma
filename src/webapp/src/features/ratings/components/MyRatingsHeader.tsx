@@ -80,7 +80,7 @@ export function MyRatingsHeader({
 							</Button>
 							<Button size="sm" asChild>
 								<Link to="/rate">
-									{ratedCourses > 0 ? "Оцінити решту" : "Оцінити курси"}
+									{ratedCourses > 0 ? "Оцінити решту" : "Оцінити дисципліни"}
 								</Link>
 							</Button>
 						</div>

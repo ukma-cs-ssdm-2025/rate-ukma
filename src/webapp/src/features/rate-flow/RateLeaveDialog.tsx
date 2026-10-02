@@ -12,7 +12,7 @@ import { ProgressBar } from "@/features/ratings/components/MyRatingsHeader";
 import { pluralUk } from "./plural";
 
 function coursesWaiting(count: number): string {
-	return `Ще ${count} ${pluralUk(count, ["курс чекає", "курси чекають", "курсів чекають"])}`;
+	return `Ще ${count} ${pluralUk(count, ["дисципліна чекає", "дисципліни чекають", "дисциплін чекають"])}`;
 }
 
 interface RateLeaveDialogProps {
@@ -47,8 +47,8 @@ export function RateLeaveDialog({
 					<AlertDialogTitle>Зупинитися на цьому?</AlertDialogTitle>
 					<AlertDialogDescription>
 						{hasDraft
-							? "Відповіді до цього курсу не збережуться."
-							: `${coursesWaiting(remaining)} на оцінку, по хвилині на кожен.`}
+							? "Відповіді до цієї дисципліни не збережуться."
+							: `${coursesWaiting(remaining)} на оцінку, по хвилині на кожну.`}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<div className="text-center text-sm text-muted-foreground tabular-nums sm:text-left">

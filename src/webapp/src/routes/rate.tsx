@@ -54,7 +54,7 @@ function AllDone() {
 				<EmptyMedia variant="icon">
 					<CircleCheck />
 				</EmptyMedia>
-				<EmptyTitle>Усі курси оцінено</EmptyTitle>
+				<EmptyTitle>Усі дисципліни оцінено</EmptyTitle>
 				<EmptyDescription>
 					Нові з'являться, коли відкриється оцінювання наступного семестру.
 				</EmptyDescription>
@@ -176,7 +176,7 @@ function RatePage() {
 		remainingTodo > 0 &&
 		(queue.doneCount > 0 || hasDraft);
 	const blocker = useBlocker({
-		// «Відгуки про курс» is a look the student asked for, not leaving.
+		// «Відгуки про дисципліну» is a look the student asked for, not leaving.
 		shouldBlockFn: ({ next: to }) =>
 			shouldAsk && !leaving.current && !to.pathname.startsWith("/courses/"),
 		enableBeforeUnload: () => hasDraft,
@@ -199,7 +199,7 @@ function RatePage() {
 
 	const title = (
 		<Helmet>
-			<title>{formatPageTitle("Оцінити курси")}</title>
+			<title>{formatPageTitle("Оцінити дисципліни")}</title>
 		</Helmet>
 	);
 
@@ -281,7 +281,7 @@ function RatePage() {
 				focusOnMount={moved}
 				onProgressChange={setActiveShare}
 				onSaved={(scores, isAnonymous) => {
-					// Pin the course so the result stays up until «Наступний курс».
+					// Pin the course so the result stays up until «Наступна дисципліна».
 					setPicked(current);
 					queue.markDone(current, scores);
 					setAnonymous(isAnonymous);

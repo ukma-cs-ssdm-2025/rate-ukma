@@ -413,7 +413,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page: Page) => {
 			await mockBackend(page, { myCourses, reviews: "empty" });
 			await page.goto(`/courses/${COURSE.id}`);
-			// Phones stack «Про курс» above the reviews, so bring the empty state up.
+			// Phones stack «Про дисципліну» above the reviews, so bring the empty state up.
 			await page.getByText("Відгуків ще немає").scrollIntoViewIfNeeded();
 		},
 	})),
@@ -500,7 +500,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/explore");
 			await page
-				.getByLabel("Діаграма розподілу курсів за корисністю та складністю")
+				.getByLabel("Діаграма розподілу дисциплін за корисністю та складністю")
 				.waitFor();
 		},
 	},
@@ -512,7 +512,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/explore");
 			await page
-				.getByLabel("Діаграма розподілу курсів за корисністю та складністю")
+				.getByLabel("Діаграма розподілу дисциплін за корисністю та складністю")
 				.waitFor();
 			const zoomIn = page.getByRole("button", { name: /Збільшити|Наблизити/ });
 			if (await zoomIn.first().isVisible())
@@ -527,7 +527,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/");
 			await page.getByText(COURSE.title).first().waitFor();
-			await page.getByPlaceholder("Пошук курсів за назвою...").fill("Бази");
+			await page.getByPlaceholder("Пошук дисциплін за назвою...").fill("Бази");
 			await expect(page.getByTestId(testIds.courses.tableRow)).toHaveCount(1);
 		},
 	},
@@ -540,7 +540,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.goto("/");
 			await page.getByText(COURSE.title).first().waitFor();
 			await page
-				.getByPlaceholder("Пошук курсів за назвою...")
+				.getByPlaceholder("Пошук дисциплін за назвою...")
 				.fill("квантова хромодинаміка");
 			await page
 				.getByTestId(testIds.courses.emptyState)
@@ -811,7 +811,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/");
-			await page.getByText("Допоможіть іншим обрати курси").waitFor();
+			await page.getByText("Допоможіть іншим обрати дисципліни").waitFor();
 			await page.getByText(COURSE.title).first().waitFor();
 		},
 	},
@@ -824,7 +824,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.emulateMedia({ reducedMotion: "no-preference" });
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/");
-			await page.getByText("Допоможіть іншим обрати курси").waitFor();
+			await page.getByText("Допоможіть іншим обрати дисципліни").waitFor();
 			// The gallery shot freezes animations, so the pulse is also kept as
 			// frames of the header, zoomed in.
 			for (const ms of [150, 450, 750]) {
@@ -841,12 +841,12 @@ const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "entry-course",
 		section: "Оцінити семестр",
-		note: "Course page: a small card above «Про курс»",
+		note: "Course page: a small card above «Про дисципліну»",
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue", myCourses: "rated" });
 			await page.goto(`/courses/${COURSE.id}`);
 			await page
-				.getByRole("complementary", { name: "Курси без оцінки" })
+				.getByRole("complementary", { name: "Дисципліни без оцінки" })
 				.waitFor();
 		},
 	},
@@ -858,7 +858,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/");
-			await page.getByText("Допоможіть іншим обрати курси").waitFor();
+			await page.getByText("Допоможіть іншим обрати дисципліни").waitFor();
 			await page.getByRole("button", { name: "Відкрити меню" }).click();
 			await page.getByRole("dialog").getByText("Мої оцінки").waitFor();
 		},
@@ -909,7 +909,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/rate");
 			await rateCurrent(page, 4, 5);
-			await page.getByRole("button", { name: "Наступний курс" }).waitFor();
+			await page.getByRole("button", { name: "Наступна дисципліна" }).waitFor();
 			await page.waitForTimeout(900);
 		},
 	},
@@ -921,7 +921,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/rate");
 			await rateCurrent(page, 4, 5);
-			await page.getByRole("button", { name: "Наступний курс" }).click();
+			await page.getByRole("button", { name: "Наступна дисципліна" }).click();
 			await page
 				.getByRole("heading", { level: 1, name: "Бази даних" })
 				.waitFor();
@@ -936,8 +936,8 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/rate");
 			await rateCurrent(page, 2, 3);
-			await page.getByRole("button", { name: "Наступний курс" }).click();
-			await page.getByRole("button", { name: "Усі курси" }).click();
+			await page.getByRole("button", { name: "Наступна дисципліна" }).click();
+			await page.getByRole("button", { name: "Усі дисципліни" }).click();
 			await page.evaluate(() => window.scrollTo(0, 0));
 		},
 	},
@@ -949,11 +949,11 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/rate");
 			await rateCurrent(page, 3, 4);
-			await page.getByRole("button", { name: "Наступний курс" }).click();
+			await page.getByRole("button", { name: "Наступна дисципліна" }).click();
 			const menu = page.getByRole("button", { name: "Відкрити меню" });
 			if (await menu.isVisible()) await menu.click();
 			await page
-				.getByRole("link", { name: "Курси", exact: true })
+				.getByRole("link", { name: "Дисципліни", exact: true })
 				.first()
 				.click();
 			await page.getByRole("alertdialog").waitFor();
@@ -968,7 +968,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.goto("/rate");
 			for (let index = 0; index < 2; index++) {
 				await rateCurrent(page, 3, 4);
-				await page.getByRole("button", { name: "Наступний курс" }).click();
+				await page.getByRole("button", { name: "Наступна дисципліна" }).click();
 			}
 			for (let index = 0; index < 4; index++) {
 				await page.getByRole("button", { name: "Пропустити" }).click();
@@ -989,13 +989,13 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.goto("/rate");
 			for (let index = 0; index < 3; index++) {
 				await rateCurrent(page, 3, 4);
-				await page.getByRole("button", { name: "Наступний курс" }).click();
+				await page.getByRole("button", { name: "Наступна дисципліна" }).click();
 			}
 			for (let index = 0; index < 2; index++) {
 				await page.getByRole("button", { name: "Пропустити" }).click();
 			}
 			await rateCurrent(page, 4, 4);
-			await page.getByRole("button", { name: "Наступний курс" }).click();
+			await page.getByRole("button", { name: "Наступна дисципліна" }).click();
 			await page.getByRole("button", { name: "Продовжити" }).waitFor();
 			await page.waitForTimeout(900);
 		},
@@ -1008,9 +1008,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/rate");
 			await rateCurrent(page, 4, 5);
-			await page.getByRole("link", { name: "Відгуки про курс" }).click();
+			await page.getByRole("link", { name: "Відгуки про дисципліну" }).click();
 			await page
-				.getByRole("complementary", { name: "Оцінювання курсів" })
+				.getByRole("complementary", { name: "Оцінювання дисциплін" })
 				.waitFor();
 			await page.waitForTimeout(900);
 		},

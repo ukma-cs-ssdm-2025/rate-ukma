@@ -97,11 +97,11 @@ function CoursesMapCard({
 	if (!isDesktop) {
 		return (
 			<section
-				aria-label="Карта курсів"
+				aria-label="Карта дисциплін"
 				className="overflow-hidden rounded-xl border bg-card shadow-sm [--plot-surface:var(--color-card)] md:hidden"
 			>
 				<div className="flex items-center justify-between gap-2 px-4 pt-3">
-					<h3 className="text-sm font-semibold">Карта курсів</h3>
+					<h3 className="text-sm font-semibold">Карта дисциплін</h3>
 					<Button
 						variant="ghost"
 						size="sm"
@@ -132,7 +132,7 @@ function CoursesMapCard({
 			className="hidden overflow-hidden rounded-xl border bg-card shadow-sm [--plot-surface:var(--color-card)] md:block"
 		>
 			<div className="flex min-h-10 items-center justify-between gap-2 px-4 py-1">
-				<h3 className="text-sm font-semibold">Карта курсів</h3>
+				<h3 className="text-sm font-semibold">Карта дисциплін</h3>
 				<div className="flex items-center gap-2">
 					<Button
 						variant="ghost"
@@ -184,7 +184,7 @@ function buildCoursesTableColumns({
 			id: "title",
 			accessorKey: "title",
 			header: ({ column }) => (
-				<CourseColumnHeader column={column} title="Назва курсу" />
+				<CourseColumnHeader column={column} title="Назва дисципліни" />
 			),
 			cell: ({ row }) => {
 				const course = row.original;
@@ -225,8 +225,8 @@ function buildCoursesTableColumns({
 			enableSorting: false,
 			size: compact ? 160 : 300,
 			meta: {
-				label: "Назва курсу",
-				placeholder: "Пошук курсів...",
+				label: "Назва дисципліни",
+				placeholder: "Пошук дисциплін...",
 				variant: "text",
 				align: "left",
 			},
@@ -620,8 +620,8 @@ export function CoursesTable({
 				)}
 				emptyStateMessage={
 					hasActiveFilters
-						? "За цими фільтрами курсів немає"
-						: "Курсів не знайдено за вашим запитом"
+						? "За цими фільтрами дисциплін немає"
+						: "Дисциплін не знайдено за вашим запитом"
 				}
 				emptyStateTestId={testIds.courses.emptyState}
 				emptyStateAction={
@@ -649,7 +649,7 @@ export function CoursesTable({
 					<div className="relative min-h-10 flex-1">
 						<Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
 						<DebouncedInput
-							placeholder="Пошук курсів за назвою..."
+							placeholder="Пошук дисциплін за назвою..."
 							value={params.q}
 							onChange={(value) => {
 								setParams({ q: String(value), page: 1 });
@@ -713,7 +713,7 @@ export function CoursesTable({
 				open={isFiltersDrawerOpen}
 				side="bottom"
 				onOpenChange={(open) => setIsFiltersDrawerOpen(open)}
-				ariaLabel="Фільтри курсів"
+				ariaLabel="Фільтри дисциплін"
 				closeButtonLabel="Закрити фільтри"
 			>
 				<CourseFiltersDrawer

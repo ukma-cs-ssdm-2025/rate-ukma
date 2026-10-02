@@ -5,16 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { FeedCard } from "@/features/feed/components/FeedCard";
 import { FEED_TILE_CLASS } from "@/features/feed/components/FeedStrip";
 import { useRateableCount } from "./useRateableCount";
-import { coursesNoun, pluralUk } from "./plural";
-
-function waitingText(count: number, more = false, short = false): string {
-	const noun = pluralUk(count, [
-		"курс чекає",
-		"курси чекають",
-		"курсів чекають",
-	]);
-	return `${more ? "Ще " : ""}${count} ${noun} на ${short ? "" : "вашу "}оцінку`;
-}
+import { coursesNoun } from "./plural";
 
 /**
  * Home: the first tile of the feed strip, in the feed's own card, so the
@@ -28,13 +19,13 @@ export function RateFeedTile() {
 		<div className={FEED_TILE_CLASS}>
 			<FeedCard
 				tinted
-				kind={{ label: "Ваші курси", icon: Star, tone: "primary" }}
+				kind={{ label: "Ваші дисципліни", icon: Star, tone: "primary" }}
 				title={
 					<Link
 						to="/rate"
 						className="underline-offset-4 transition-colors hover:text-primary hover:underline"
 					>
-						{waitingText(count, false, true)}
+						{`${count} ${coursesNoun(count)} без оцінки`}
 					</Link>
 				}
 				footer={
@@ -45,21 +36,21 @@ export function RateFeedTile() {
 							tabIndex={-1}
 							className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
 						>
-							<span className="truncate">Оцінити курси</span>
+							<span className="truncate">Оцінити дисципліни</span>
 							<ArrowRight className="size-3.5 shrink-0" aria-hidden="true" />
 						</Link>
 					</div>
 				}
 			>
-				Допоможіть іншим обрати курси
+				Допоможіть іншим обрати дисципліни
 			</FeedCard>
 		</div>
 	);
 }
 
 /**
- * Course page: a one-line card under «Про курс». The course on
- * screen has its own «Оцінити курс» block, so it is left out of the count.
+ * Course page: a one-line card under «Про дисципліну». The course on
+ * screen has its own «Оцінити дисципліну» block, so it is left out of the count.
  */
 export function RateSideCard({
 	leaveOutCurrent = false,
@@ -75,7 +66,7 @@ export function RateSideCard({
 
 	return (
 		<aside
-			aria-label="Курси без оцінки"
+			aria-label="Дисципліни без оцінки"
 			className="flex items-center justify-between gap-4 rounded-xl bg-muted/50 px-4 py-3"
 		>
 			<p className="min-w-0 text-sm font-medium">
