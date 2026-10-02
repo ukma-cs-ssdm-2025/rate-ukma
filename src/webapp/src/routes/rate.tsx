@@ -142,15 +142,15 @@ function RatePage() {
 						onOpenChange={setListOpen}
 					/>
 				) : null}
-				<div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-					{body}
+				<div className="grid gap-x-10 gap-y-8 lg:grid-cols-[260px_minmax(0,1fr)]">
 					{hasQueue && isDesktop ? (
 						<aside className="min-w-0">
-							<div className="lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
+							<div className="lg:sticky lg:top-24 lg:-ml-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
 								<RateQueueRail queue={queue} current={current} onPick={pick} />
 							</div>
 						</aside>
 					) : null}
+					<div className="min-w-0 lg:col-start-2">{body}</div>
 				</div>
 			</div>
 		</Layout>

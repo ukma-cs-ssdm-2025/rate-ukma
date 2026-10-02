@@ -5,10 +5,6 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/Collapsible";
-import {
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "@/features/courses/courseFormatting";
 import { ProgressBar } from "@/features/ratings/components/MyRatingsHeader";
 import { cn } from "@/lib/utils";
 import type { ItemState, QueueItem, RateQueue } from "./useRateQueue";
@@ -35,25 +31,11 @@ function StatusDot({
 	);
 }
 
-function RowTrailing({ state }: Readonly<{ state: ItemState }>) {
-	if (state.kind === "skipped") {
-		return <span className="text-xs text-muted-foreground">Пропущено</span>;
-	}
-	if (state.kind !== "done") return null;
-	const { difficulty, usefulness } = state.scores;
-	return (
-		<span className="flex gap-2 text-xs font-semibold tabular-nums">
-			<span className={getDifficultyTone(difficulty)}>
-				<span className="sr-only">Складність </span>
-				{difficulty}
-			</span>
-			<span className={getUsefulnessTone(usefulness)}>
-				<span className="sr-only">Корисність </span>
-				{usefulness}
-			</span>
-		</span>
-	);
-}
+const STATE_LABEL: Record<ItemState["kind"], string | null> = {
+	todo: null,
+	done: "оцінено",
+	skipped: "пропущено",
+};
 
 function QueueList({
 	queue,
@@ -68,9 +50,9 @@ function QueueList({
 		<div className="space-y-5">
 			{queue.semesters.map((semester) => (
 				<section key={semester.key} aria-label={semester.label}>
-					<h2 className="mb-1 px-3 text-sm font-medium text-muted-foreground">
+					<h3 className="mb-1 px-3 text-sm font-medium text-muted-foreground">
 						{semester.label}
-					</h2>
+					</h3>
 					<ul className="space-y-0.5">
 						{semester.items.map((item) => {
 							const state = queue.stateOf(item);
@@ -82,7 +64,7 @@ function QueueList({
 										onClick={() => onPick(item)}
 										aria-current={active ? "step" : undefined}
 										className={cn(
-											"flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none",
+											"flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none",
 											active && "bg-card-user font-medium hover:bg-card-user",
 											!active &&
 												state.kind !== "todo" &&
@@ -90,10 +72,14 @@ function QueueList({
 										)}
 									>
 										<StatusDot state={state} active={active} />
-										<span className="min-w-0 flex-1 truncate">
+										<span className="line-clamp-2 min-w-0 flex-1">
 											{item.title}
+											{STATE_LABEL[state.kind] ? (
+												<span className="sr-only">
+													, {STATE_LABEL[state.kind]}
+												</span>
+											) : null}
 										</span>
-										<RowTrailing state={state} />
 									</button>
 								</li>
 							);
@@ -109,7 +95,7 @@ function Progress({ queue }: Readonly<{ queue: RateQueue }>) {
 	const total = queue.items.length;
 	return (
 		<div>
-			<p className="text-sm font-medium tabular-nums">
+			<p className="text-sm text-muted-foreground tabular-nums">
 				Оцінено {queue.doneCount} з {total}
 			</p>
 			<ProgressBar share={total ? queue.doneCount / total : 0} />
@@ -130,8 +116,11 @@ export function RateQueueRail({
 	onPick,
 }: Readonly<RateQueueRailProps>) {
 	return (
-		<nav aria-label="Курси до оцінки" className="space-y-5">
-			<div className="px-3">
+		<nav aria-label="Курси до оцінки" className="space-y-6">
+			<div className="space-y-1 px-3">
+				<h2 className="text-lg font-semibold tracking-tight">
+					Курси до оцінки
+				</h2>
 				<Progress queue={queue} />
 			</div>
 			<QueueList queue={queue} current={current} onPick={onPick} />

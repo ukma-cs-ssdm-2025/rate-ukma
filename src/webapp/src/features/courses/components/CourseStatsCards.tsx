@@ -52,7 +52,7 @@ function getDetailedDescription(
 	return descriptions[roundedValue as keyof typeof descriptions] || "";
 }
 
-function getBarColor(
+export function getBarColor(
 	type: "difficulty" | "usefulness",
 	value: number | null,
 ): string {
@@ -72,7 +72,7 @@ function getBarColor(
  * Fractional scale bar: for 3.4/5, segments 1-3 are fully filled,
  * segment 4 is 40% filled, segment 5 is empty.
  */
-function ScaleBar({
+export function ScaleBar({
 	value,
 	accent,
 }: Readonly<{ value: number | null; accent: string }>) {

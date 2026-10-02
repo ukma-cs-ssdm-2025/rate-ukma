@@ -1,27 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
-
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
 	getLatestOffering,
 	getLatestOfferingTerms,
 } from "@/features/course-offerings/components/CourseCazRecords";
-import { offeringLoad } from "@/features/course-offerings/components/CourseAbout";
+import {
+	CourseAbout,
+	CourseAboutSkeleton,
+	offeringLoad,
+} from "@/features/course-offerings/components/CourseAbout";
 import {
 	CourseDetailsHeader,
 	CourseDetailsHeaderSkeleton,
 } from "@/features/courses/components/CourseDetailsHeader";
-import {
-	CourseStatsHero,
-	CourseStatsHeroSkeleton,
-} from "@/features/courses/components/CourseStatsCards";
-import {
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "@/features/courses/courseFormatting";
 import {
 	RatingForm,
 	type RatingFormData,
@@ -34,6 +26,7 @@ import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
 } from "@/lib/api/generated";
+import { RateComparison } from "./RateComparison";
 import type { QueueItem, Scores } from "./useRateQueue";
 
 function CardHeading({
@@ -46,30 +39,6 @@ function CardHeading({
 			<h2 className="text-lg font-semibold leading-snug">{title}</h2>
 			<p className="text-sm text-muted-foreground">{description}</p>
 		</div>
-	);
-}
-
-function MyScores({ scores }: Readonly<{ scores: Scores }>) {
-	return (
-		<p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-			<span>Ваша оцінка</span>
-			<span>
-				Складність{" "}
-				<span
-					className={`font-semibold tabular-nums ${getDifficultyTone(scores.difficulty)}`}
-				>
-					{scores.difficulty}
-				</span>
-			</span>
-			<span>
-				Корисність{" "}
-				<span
-					className={`font-semibold tabular-nums ${getUsefulnessTone(scores.usefulness)}`}
-				>
-					{scores.usefulness}
-				</span>
-			</span>
-		</p>
 	);
 }
 
@@ -86,9 +55,10 @@ interface RateCoursePaneProps {
 }
 
 /**
- * One course of the queue: the course page's own header, the rating modal's
- * own form, and, once saved, the course's scores. They stay hidden until the
- * student has rated, so the average cannot pull their answer towards it.
+ * One course of the queue, laid out like its course page: the header, the
+ * rating modal's own form where the scores would be, and «Про курс» beside it.
+ * Others' scores stay hidden until the student has rated, so the average
+ * cannot pull their answer towards it; then the form turns into a comparison.
  */
 export function RateCoursePane({
 	item,
@@ -128,78 +98,45 @@ export function RateCoursePane({
 	}, [saved, savedScores]);
 
 	const offerings = offeringsData?.course_offerings ?? [];
-	const load = offeringLoad(getLatestOffering(offerings));
-	const othersCount = Math.max(0, (course?.ratings_count ?? 1) - 1);
+	const latestOffering = getLatestOffering(offerings);
+	const load = offeringLoad(latestOffering);
 
 	return (
-		<div className="min-w-0 space-y-8">
-			<div className="space-y-3">
-				<p className="text-sm text-muted-foreground">
-					Ви слухали цей курс у семестрі «{item.semesterLabel}»
-				</p>
-				{isCourseLoading ? (
-					<CourseDetailsHeaderSkeleton />
-				) : (
-					<CourseDetailsHeader
-						title={course?.title ?? item.title}
-						educationLevel={course?.education_level}
-						specialities={course?.specialities ?? []}
-						departmentName={course?.department_name ?? ""}
-						facultyName={course?.faculty_name ?? item.facultyName}
-						terms={getLatestOfferingTerms(offerings)}
-						credits={load.credits}
-						weeklyHours={load.weeklyHours}
-					/>
-				)}
-			</div>
+		<div className="grid min-w-0 gap-x-10 gap-y-8 xl:grid-cols-[minmax(0,1fr)_300px]">
+			<div className="min-w-0 space-y-8">
+				<div className="space-y-3">
+					<p className="text-sm text-muted-foreground">
+						Ви слухали цей курс у семестрі «{item.semesterLabel}»
+					</p>
+					{isCourseLoading ? (
+						<CourseDetailsHeaderSkeleton />
+					) : (
+						<CourseDetailsHeader
+							title={course?.title ?? item.title}
+							educationLevel={course?.education_level}
+							specialities={course?.specialities ?? []}
+							departmentName={course?.department_name ?? ""}
+							facultyName={course?.faculty_name ?? item.facultyName}
+							terms={getLatestOfferingTerms(offerings)}
+							credits={load.credits}
+							weeklyHours={load.weeklyHours}
+						/>
+					)}
+				</div>
 
-			<Card className="max-w-2xl shadow-sm">
 				{saved ? (
-					<div className="space-y-5 p-6">
-						<div className="space-y-1.5">
-							<h2 className="text-lg font-semibold leading-snug">
-								{othersCount > 0
-									? "Дякуємо! Ось як оцінили інші"
-									: "Дякуємо! Ви оцінили цей курс першими"}
-							</h2>
-							<MyScores scores={saved} />
-						</div>
-						{othersCount > 0 ? (
-							course ? (
-								<CourseStatsHero
-									difficulty={course.avg_difficulty ?? null}
-									usefulness={course.avg_usefulness ?? null}
-									ratingsCount={course.ratings_count ?? null}
-								/>
-							) : (
-								<CourseStatsHeroSkeleton />
-							)
-						) : null}
-						<div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:items-center sm:justify-between">
-							<Button variant="ghost" asChild className="w-full sm:w-auto">
-								<Link
-									to="/courses/$courseId"
-									params={{ courseId: item.courseId }}
-								>
-									Відгуки про курс
-								</Link>
-							</Button>
-							<Button
-								ref={nextRef}
-								size="lg"
-								onClick={onNext}
-								className="w-full sm:w-auto"
-							>
-								{hasNext ? "Наступний курс" : "Завершити"}
-								<ArrowRight aria-hidden="true" />
-							</Button>
-						</div>
-					</div>
+					<RateComparison
+						courseId={item.courseId}
+						scores={saved}
+						hasNext={hasNext}
+						onNext={onNext}
+						nextRef={nextRef}
+					/>
 				) : (
-					<>
+					<Card className="shadow-sm">
 						<CardHeading
 							title="Ваша оцінка"
-							description="Після збереження побачите, як курс оцінили інші"
+							description="Після збереження порівняєте її з оцінками інших"
 						/>
 						<RatingForm
 							onSubmit={async (data) => {
@@ -221,9 +158,23 @@ export function RateCoursePane({
 							cancelLabel="Пропустити"
 							inline
 						/>
-					</>
+					</Card>
 				)}
-			</Card>
+			</div>
+
+			<aside className="min-w-0">
+				{/* The course page's own rail: the description and history jog the
+				    memory of a course taken months ago. */}
+				{offeringsData && !isCourseLoading ? (
+					<CourseAbout
+						description={course?.description}
+						latestOffering={latestOffering}
+						courseOfferings={offerings}
+					/>
+				) : (
+					<CourseAboutSkeleton />
+				)}
+			</aside>
 		</div>
 	);
 }
