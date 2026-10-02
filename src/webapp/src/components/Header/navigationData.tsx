@@ -4,13 +4,15 @@ import { Monitor, Moon, Sun } from "lucide-react";
 
 export type NavigationItem = {
 	label: string;
+	/** The label in «дисципліна» wording, behind `fe_discipline_term`. */
+	disciplineLabel?: string;
 	href: string;
 };
 
 export type ThemeOption = "light" | "dark" | "system";
 
 export const navigationItems: NavigationItem[] = [
-	{ label: "Дисципліни", href: "/" },
+	{ label: "Курси", disciplineLabel: "Дисципліни", href: "/" },
 	{ label: "Мої оцінки", href: "/my-ratings" },
 ];
 

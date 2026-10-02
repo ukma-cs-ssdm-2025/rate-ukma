@@ -500,7 +500,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/explore");
 			await page
-				.getByLabel("Діаграма розподілу дисциплін за корисністю та складністю")
+				.getByLabel("Діаграма розподілу курсів за корисністю та складністю")
 				.waitFor();
 		},
 	},
@@ -512,7 +512,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/explore");
 			await page
-				.getByLabel("Діаграма розподілу дисциплін за корисністю та складністю")
+				.getByLabel("Діаграма розподілу курсів за корисністю та складністю")
 				.waitFor();
 			const zoomIn = page.getByRole("button", { name: /Збільшити|Наблизити/ });
 			if (await zoomIn.first().isVisible())
@@ -527,7 +527,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/");
 			await page.getByText(COURSE.title).first().waitFor();
-			await page.getByPlaceholder("Пошук дисциплін за назвою...").fill("Бази");
+			await page.getByPlaceholder("Пошук курсів за назвою...").fill("Бази");
 			await expect(page.getByTestId(testIds.courses.tableRow)).toHaveCount(1);
 		},
 	},
@@ -540,7 +540,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.goto("/");
 			await page.getByText(COURSE.title).first().waitFor();
 			await page
-				.getByPlaceholder("Пошук дисциплін за назвою...")
+				.getByPlaceholder("Пошук курсів за назвою...")
 				.fill("квантова хромодинаміка");
 			await page
 				.getByTestId(testIds.courses.emptyState)
@@ -809,7 +809,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "Home: the count by «Мої оцінки» and the first tile of the feed strip",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/");
 			await page.getByText("Допоможіть іншим обрати дисципліни").waitFor();
 			await page.getByText(COURSE.title).first().waitFor();
@@ -822,7 +825,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		widths: ["desktop"],
 		run: async (page) => {
 			await page.emulateMedia({ reducedMotion: "no-preference" });
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/");
 			await page.getByText("Допоможіть іншим обрати дисципліни").waitFor();
 			// The gallery shot freezes animations, so the pulse is also kept as
@@ -844,7 +850,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Course page: a small card above «Про дисципліну»",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow"],
+				flags: ["fe_rate_flow", "fe_discipline_term"],
 				grades: "queue",
 				myCourses: "rated",
 			});
@@ -860,7 +866,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Phones: the count on the menu button and inside the menu",
 		widths: ["phone"],
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/");
 			await page.getByText("Допоможіть іншим обрати дисципліни").waitFor();
 			await page.getByRole("button", { name: "Відкрити меню" }).click();
@@ -872,7 +881,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "Мої оцінки after the spring exams: «Оцінити решту» opens the flow",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/my-ratings");
 			await page.getByRole("link", { name: "Оцінити решту" }).waitFor();
 		},
@@ -882,7 +894,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "First course: the course header and the modal's own form, scores hidden",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/rate");
 			await page.getByTestId(testIds.rating.form).waitFor();
 		},
@@ -892,7 +907,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "Two of four answers given: the course's ring in the list is half full",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/rate");
 			const form = page.getByTestId(testIds.rating.form);
 			await form
@@ -910,7 +928,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "After «Зберегти»: your scores, then how others rated it",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/rate");
 			await rateCurrent(page, 4, 5);
 			await page.getByRole("button", { name: "Наступна дисципліна" }).waitFor();
@@ -922,7 +943,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "Second course: the first is ticked in the list with its scores",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/rate");
 			await rateCurrent(page, 4, 5);
 			await page.getByRole("button", { name: "Наступна дисципліна" }).click();
@@ -937,7 +961,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Phones: the course list unfolds under the progress",
 		widths: ["phone"],
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/rate");
 			await rateCurrent(page, 2, 3);
 			await page.getByRole("button", { name: "Наступна дисципліна" }).click();
@@ -950,7 +977,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "Leaving mid-queue asks once, with staying as the easy choice",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/rate");
 			await rateCurrent(page, 3, 4);
 			await page.getByRole("button", { name: "Наступна дисципліна" }).click();
@@ -968,7 +998,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "End of the queue with two rated and the rest skipped",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/rate");
 			for (let index = 0; index < 2; index++) {
 				await rateCurrent(page, 3, 4);
@@ -989,7 +1022,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "Spring answered: a thank-you, the term's closed rings, then the fall",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/rate");
 			for (let index = 0; index < 3; index++) {
 				await rateCurrent(page, 3, 4);
@@ -1009,7 +1045,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "Reviews opened mid-queue: a floating bar leads back to the next course",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/rate");
 			await rateCurrent(page, 4, 5);
 			await page.getByRole("link", { name: "Відгуки про дисципліну" }).click();
@@ -1024,7 +1063,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Оцінити семестр",
 		note: "Rating one course from Мої оцінки offers the rest in the toast",
 		run: async (page) => {
-			await mockBackend(page, { flags: ["fe_rate_flow"], grades: "queue" });
+			await mockBackend(page, {
+				flags: ["fe_rate_flow", "fe_discipline_term"],
+				grades: "queue",
+			});
 			await page.goto("/my-ratings");
 			await page.getByRole("button", { name: "Оцінити" }).first().click();
 			await rateCurrent(page, 4, 4);

@@ -25,8 +25,10 @@ import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesFilterOptionsRetrieve } from "@/lib/api/generated";
 import { withAuth } from "@/lib/auth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { useCourseTerm } from "@/lib/course-term";
 
 function ExploreRoute() {
+	const term = useCourseTerm();
 	const [params, setParams] = useCourseFiltersParams();
 	const searchParams = useMemo(
 		() => courseFiltersStateToSearchParams(params),
@@ -139,7 +141,7 @@ function ExploreRoute() {
 					open={isFiltersOpen}
 					side={isPhone ? "bottom" : "right"}
 					onOpenChange={setIsFiltersOpen}
-					ariaLabel="Фільтри дисциплін"
+					ariaLabel={term("Фільтри курсів", "Фільтри дисциплін")}
 					closeButtonLabel="Закрити фільтри"
 				>
 					<CourseFiltersDrawer

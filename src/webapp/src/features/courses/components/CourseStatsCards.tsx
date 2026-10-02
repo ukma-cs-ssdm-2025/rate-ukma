@@ -14,6 +14,7 @@ import {
 	getDifficultyTone,
 	getUsefulnessTone,
 } from "../courseFormatting";
+import { type CourseTerm, useCourseTerm } from "@/lib/course-term";
 
 const SCALE_STEPS = 5;
 const SCALE_KEYS = Array.from({ length: SCALE_STEPS }, (_, i) => `s-${i}`);
@@ -27,18 +28,20 @@ interface CourseStatsHeroProps {
 function getDescription(
 	value: number | null,
 	type: "difficulty" | "usefulness",
+	term: CourseTerm,
 ): string {
 	if (value == null) return "Недостатньо оцінок";
 
 	if (type === "difficulty") {
-		if (value < 2.5) return "Легша за більшість дисциплін";
+		if (value < 2.5)
+			return term("Легше багатьох курсів", "Легша за більшість дисциплін");
 		if (value < 3.5) return "Стандартне навантаження";
 		return "Потребує більше часу";
 	}
 
 	if (value < 2.5) return "Можна покращити";
 	if (value < 3.5) return "Знання застосовні";
-	return "Дуже корисна дисципліна";
+	return term("Дуже корисний курс", "Дуже корисна дисципліна");
 }
 
 function getDetailedDescription(
@@ -169,6 +172,7 @@ function ScorePanel({
 	accent: string;
 	barColor: string;
 }>) {
+	const term = useCourseTerm();
 	const ref = useScoreReveal(value);
 	return (
 		<Card
@@ -193,7 +197,7 @@ function ScorePanel({
 					<ScaleBar value={value} accent={barColor} />
 				</div>
 				<p className="mt-2 text-sm text-muted-foreground">
-					{getDescription(value, type)}
+					{getDescription(value, type, term)}
 				</p>
 			</CardContent>
 		</Card>

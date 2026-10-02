@@ -11,8 +11,10 @@ import {
 	EmptyTitle,
 } from "@/components/ui/Empty";
 import { testIds } from "@/lib/test-ids";
+import { useCourseTerm } from "@/lib/course-term";
 
 export function FeedEmptyState() {
+	const term = useCourseTerm();
 	return (
 		<Empty className="border-0 py-16" data-testid={testIds.feed.emptyState}>
 			<EmptyHeader>
@@ -26,7 +28,9 @@ export function FeedEmptyState() {
 			</EmptyHeader>
 			<EmptyContent>
 				<Button asChild>
-					<Link to="/">Перейти до дисциплін</Link>
+					<Link to="/">
+						{term("Перейти до курсів", "Перейти до дисциплін")}
+					</Link>
 				</Button>
 			</EmptyContent>
 		</Empty>

@@ -4,8 +4,12 @@ import { PenLine } from "lucide-react";
 
 import { DisabledButtonWithTooltip } from "@/components/DisabledButtonWithTooltip";
 import { Button } from "@/components/ui/Button";
-import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
+import {
+	CANNOT_RATE_TOOLTIP_TEXT,
+	CANNOT_RATE_TOOLTIP_TEXT_DISCIPLINE,
+} from "@/features/ratings/definitions/ratingDefinitions";
 import { testIds } from "@/lib/test-ids";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface RatingButtonProps {
 	canRate: boolean;
@@ -18,6 +22,7 @@ export function RatingButton({
 	onClick,
 	children,
 }: Readonly<RatingButtonProps>) {
+	const term = useCourseTerm();
 	const button = (
 		<Button
 			size="lg"
@@ -34,7 +39,12 @@ export function RatingButton({
 		return button;
 	}
 	return (
-		<DisabledButtonWithTooltip reason={CANNOT_RATE_TOOLTIP_TEXT}>
+		<DisabledButtonWithTooltip
+			reason={term(
+				CANNOT_RATE_TOOLTIP_TEXT,
+				CANNOT_RATE_TOOLTIP_TEXT_DISCIPLINE,
+			)}
+		>
 			{button}
 		</DisabledButtonWithTooltip>
 	);

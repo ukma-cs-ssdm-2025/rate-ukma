@@ -9,11 +9,8 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/AlertDialog";
 import { ProgressBar } from "@/features/ratings/components/MyRatingsHeader";
-import { pluralUk } from "./plural";
-
-function coursesWaiting(count: number): string {
-	return `Ще ${count} ${pluralUk(count, ["дисципліна чекає", "дисципліни чекають", "дисциплін чекають"])}`;
-}
+import { coursesWaiting } from "./plural";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface RateLeaveDialogProps {
 	readonly open: boolean;
@@ -40,6 +37,7 @@ export function RateLeaveDialog({
 	onStay,
 	onLeave,
 }: Readonly<RateLeaveDialogProps>) {
+	const term = useCourseTerm();
 	return (
 		<AlertDialog open={open} onOpenChange={(next) => !next && onStay()}>
 			<AlertDialogContent>
@@ -47,8 +45,11 @@ export function RateLeaveDialog({
 					<AlertDialogTitle>Зупинитися на цьому?</AlertDialogTitle>
 					<AlertDialogDescription>
 						{hasDraft
-							? "Відповіді до цієї дисципліни не збережуться."
-							: `${coursesWaiting(remaining)} на оцінку, по хвилині на кожну.`}
+							? term(
+									"Відповіді до цього курсу не збережуться.",
+									"Відповіді до цієї дисципліни не збережуться.",
+								)
+							: `Ще ${remaining} ${coursesWaiting(remaining, term)} на оцінку, по хвилині на кожну.`}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<div className="text-center text-sm text-muted-foreground tabular-nums sm:text-left">

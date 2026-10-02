@@ -10,12 +10,16 @@ import {
 	getDifficultyTone,
 	getUsefulnessTone,
 } from "@/features/courses/courseFormatting";
-import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
+import {
+	CANNOT_RATE_TOOLTIP_TEXT,
+	CANNOT_RATE_TOOLTIP_TEXT_DISCIPLINE,
+} from "@/features/ratings/definitions/ratingDefinitions";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { DeleteRatingDialog } from "./DeleteRatingDialog";
 import { RatingModal } from "./RatingModal";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface MyRatingCardProps {
 	course: StudentRatingsDetailed;
@@ -26,6 +30,7 @@ export function MyRatingCard({
 	course,
 	onRatingChanged,
 }: Readonly<MyRatingCardProps>) {
+	const term = useCourseTerm();
 	const courseId = course.course_id;
 	const offeringId = course.course_offering_id;
 	const rating = course.rated ?? null;
@@ -54,11 +59,11 @@ export function MyRatingCard({
 						className="line-clamp-2 font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
 						data-testid={testIds.myRatings.courseTitleLink}
 					>
-						{course.course_title ?? "Дисципліна"}
+						{course.course_title ?? term("Курс", "Дисципліна")}
 					</Link>
 				) : (
 					<span className="line-clamp-2 font-medium text-foreground">
-						{course.course_title ?? "Дисципліна"}
+						{course.course_title ?? term("Курс", "Дисципліна")}
 					</span>
 				)}
 				{comment ? (
@@ -173,6 +178,7 @@ function CardActions({
 	onEdit,
 	onDelete,
 }: Readonly<CardActionsProps>) {
+	const term = useCourseTerm();
 	if (canModify) {
 		return (
 			<>
@@ -206,7 +212,12 @@ function CardActions({
 
 	if (!canRate) {
 		return (
-			<DisabledButtonWithTooltip reason={CANNOT_RATE_TOOLTIP_TEXT}>
+			<DisabledButtonWithTooltip
+				reason={term(
+					CANNOT_RATE_TOOLTIP_TEXT,
+					CANNOT_RATE_TOOLTIP_TEXT_DISCIPLINE,
+				)}
+			>
 				<Button
 					variant="secondary"
 					size="sm"

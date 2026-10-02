@@ -9,6 +9,7 @@ import {
 	NavigationMenuLink,
 	NavigationMenuList,
 } from "../ui/NavigationMenu";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface HeaderNavProps {
 	className?: string;
@@ -24,6 +25,7 @@ export function HeaderNav({
 	trailing,
 	"data-testid": testId,
 }: Readonly<HeaderNavProps>) {
+	const term = useCourseTerm();
 	return (
 		<NavigationMenu className={className} data-testid={testId}>
 			<NavigationMenuList className="gap-2">
@@ -34,7 +36,7 @@ export function HeaderNav({
 							className="group relative inline-flex h-10 flex-row items-center justify-center rounded-lg px-6 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
 						>
 							<Link to={item.href}>
-								{item.label}
+								{term(item.label, item.disciplineLabel ?? item.label)}
 								{/* Out of the flow, in the link's own padding: a count that
 								    lands after the page must not slide the centred nav. */}
 								{trailing?.[item.href] ? (

@@ -34,7 +34,11 @@ import { RatingButton } from "@/features/ratings/components/RatingButton";
 import { RateSideCard } from "@/features/rate-flow/RatePrompt";
 import { RateResumeBar } from "@/features/rate-flow/RateResumeBar";
 import { useSavedRateProgress } from "@/features/rate-flow/useRateQueue";
-import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
+import {
+	CANNOT_RATE_TOOLTIP_TEXT,
+	CANNOT_RATE_TOOLTIP_TEXT_DISCIPLINE,
+} from "@/features/ratings/definitions/ratingDefinitions";
+import { useCourseTerm } from "@/lib/course-term";
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
 	useCoursesOfferingsList,
@@ -61,6 +65,7 @@ function CourseDetailsRoute() {
 	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 	const isDesktop = useMediaQuery("(min-width: 1024px)");
+	const term = useCourseTerm();
 	const resumingQueue = useSavedRateProgress() !== null;
 
 	const {
@@ -85,7 +90,10 @@ function CourseDetailsRoute() {
 		return (
 			<Layout>
 				<ErrorState
-					title="Не вдалося завантажити інформацію про дисципліну"
+					title={term(
+						"Не вдалося завантажити інформацію про курс",
+						"Не вдалося завантажити інформацію про дисципліну",
+					)}
 					role="alert"
 				/>
 			</Layout>
@@ -107,18 +115,23 @@ function CourseDetailsRoute() {
 		!ratedOffering && hasAttendedCourse && selectedOffering ? (
 			<div className="flex flex-col gap-3 rounded-xl bg-card-user p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
 				<div className="min-w-0 space-y-0.5">
-					<p className="font-medium">Ви слухали цю дисципліну</p>
+					<p className="font-medium">
+						{term("Ви слухали цей курс", "Ви слухали цю дисципліну")}
+					</p>
 					<p className="text-sm text-muted-foreground">
 						{canRateNow
 							? "Ваша оцінка допоможе іншим обрати"
-							: CANNOT_RATE_TOOLTIP_TEXT}
+							: term(
+									CANNOT_RATE_TOOLTIP_TEXT,
+									CANNOT_RATE_TOOLTIP_TEXT_DISCIPLINE,
+								)}
 					</p>
 				</div>
 				<RatingButton
 					canRate={canRateNow}
 					onClick={() => setIsRatingModalOpen(true)}
 				>
-					Оцінити дисципліну
+					{term("Оцінити курс", "Оцінити дисципліну")}
 				</RatingButton>
 			</div>
 		) : null;

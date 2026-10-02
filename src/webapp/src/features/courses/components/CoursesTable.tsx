@@ -63,6 +63,7 @@ import {
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import { transformFiltersToApiParams } from "../filterTransformations";
 import { useCourseFiltersData } from "../hooks/useCourseFiltersData";
+import { type CourseTerm, useCourseTerm } from "@/lib/course-term";
 
 interface PaginationInfo {
 	page: number;
@@ -88,6 +89,7 @@ function CoursesMapCard({
 	filters: CoursesListParams;
 	onOpenFullscreen: () => void;
 }>) {
+	const term = useCourseTerm();
 	const [collapsed, setCollapsed] = useState<boolean>(
 		() =>
 			localStorageAdapter.getItem<boolean>(MAP_COLLAPSED_STORAGE_KEY) ?? false,
@@ -97,11 +99,13 @@ function CoursesMapCard({
 	if (!isDesktop) {
 		return (
 			<section
-				aria-label="Карта дисциплін"
+				aria-label={term("Карта курсів", "Карта дисциплін")}
 				className="overflow-hidden rounded-xl border bg-card shadow-sm [--plot-surface:var(--color-card)] md:hidden"
 			>
 				<div className="flex items-center justify-between gap-2 px-4 pt-3">
-					<h3 className="text-sm font-semibold">Карта дисциплін</h3>
+					<h3 className="text-sm font-semibold">
+						{term("Карта курсів", "Карта дисциплін")}
+					</h3>
 					<Button
 						variant="ghost"
 						size="sm"
@@ -132,7 +136,9 @@ function CoursesMapCard({
 			className="hidden overflow-hidden rounded-xl border bg-card shadow-sm [--plot-surface:var(--color-card)] md:block"
 		>
 			<div className="flex min-h-10 items-center justify-between gap-2 px-4 py-1">
-				<h3 className="text-sm font-semibold">Карта дисциплін</h3>
+				<h3 className="text-sm font-semibold">
+					{term("Карта курсів", "Карта дисциплін")}
+				</h3>
 				<div className="flex items-center gap-2">
 					<Button
 						variant="ghost"
@@ -174,17 +180,22 @@ function buildCoursesTableColumns({
 	reviewsSortValue,
 	onReviewsSortChange,
 	compact,
+	term,
 }: {
 	reviewsSortValue: CoursesReviewsSortOption | null;
 	onReviewsSortChange: (value: CoursesReviewsSortOption) => void;
 	compact: boolean;
+	term: CourseTerm;
 }): ColumnDef<CourseList>[] {
 	return [
 		{
 			id: "title",
 			accessorKey: "title",
 			header: ({ column }) => (
-				<CourseColumnHeader column={column} title="Назва дисципліни" />
+				<CourseColumnHeader
+					column={column}
+					title={term("Назва курсу", "Назва дисципліни")}
+				/>
 			),
 			cell: ({ row }) => {
 				const course = row.original;
@@ -225,8 +236,8 @@ function buildCoursesTableColumns({
 			enableSorting: false,
 			size: compact ? 160 : 300,
 			meta: {
-				label: "Назва дисципліни",
-				placeholder: "Пошук дисциплін...",
+				label: term("Назва курсу", "Назва дисципліни"),
+				placeholder: term("Пошук курсів...", "Пошук дисциплін..."),
 				variant: "text",
 				align: "left",
 			},
@@ -395,6 +406,7 @@ export function CoursesTable({
 	setParams,
 	pagination: serverPagination,
 }: Readonly<CoursesTableProps>) {
+	const term = useCourseTerm();
 	const navigate = useNavigate({ from: "/" });
 	const { isStudent } = useAuth();
 
@@ -539,8 +551,9 @@ export function CoursesTable({
 				reviewsSortValue,
 				onReviewsSortChange: handleReviewsSortChange,
 				compact: isCompactTable,
+				term,
 			}),
-		[reviewsSortValue, handleReviewsSortChange, isCompactTable],
+		[reviewsSortValue, handleReviewsSortChange, isCompactTable, term],
 	);
 
 	const table = useReactTable({
@@ -620,8 +633,14 @@ export function CoursesTable({
 				)}
 				emptyStateMessage={
 					hasActiveFilters
-						? "За цими фільтрами дисциплін немає"
-						: "Дисциплін не знайдено за вашим запитом"
+						? term(
+								"За цими фільтрами курсів немає",
+								"За цими фільтрами дисциплін немає",
+							)
+						: term(
+								"Курсів не знайдено за вашим запитом",
+								"Дисциплін не знайдено за вашим запитом",
+							)
 				}
 				emptyStateTestId={testIds.courses.emptyState}
 				emptyStateAction={
@@ -649,7 +668,10 @@ export function CoursesTable({
 					<div className="relative min-h-10 flex-1">
 						<Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
 						<DebouncedInput
-							placeholder="Пошук дисциплін за назвою..."
+							placeholder={term(
+								"Пошук курсів за назвою...",
+								"Пошук дисциплін за назвою...",
+							)}
 							value={params.q}
 							onChange={(value) => {
 								setParams({ q: String(value), page: 1 });
@@ -713,7 +735,7 @@ export function CoursesTable({
 				open={isFiltersDrawerOpen}
 				side="bottom"
 				onOpenChange={(open) => setIsFiltersDrawerOpen(open)}
-				ariaLabel="Фільтри дисциплін"
+				ariaLabel={term("Фільтри курсів", "Фільтри дисциплін")}
 				closeButtonLabel="Закрити фільтри"
 			>
 				<CourseFiltersDrawer

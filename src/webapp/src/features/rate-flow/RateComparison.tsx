@@ -18,6 +18,7 @@ import { useCoursesRetrieve } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import type { Scores } from "./useRateQueue";
 import { pluralUk } from "./plural";
+import { type CourseTerm, useCourseTerm } from "@/lib/course-term";
 
 // Closer than this to the others' average reads as "the same".
 const SAME_THRESHOLD = 0.5;
@@ -30,23 +31,24 @@ const AXIS_COPY: Record<
 		title: string;
 		lower: string;
 		higher: string;
-		verdictLower: string;
-		verdictHigher: string;
+		/** «курс» then «дисципліна» agreement: легшим / легшою. */
+		verdictLower: readonly [string, string];
+		verdictHigher: readonly [string, string];
 	}
 > = {
 	difficulty: {
 		title: "Складність",
 		lower: "легше",
 		higher: "складніше",
-		verdictLower: "легшою",
-		verdictHigher: "складнішою",
+		verdictLower: ["легшим", "легшою"],
+		verdictHigher: ["складнішим", "складнішою"],
 	},
 	usefulness: {
 		title: "Корисність",
 		lower: "менш корисно",
 		higher: "корисніше",
-		verdictLower: "менш корисною",
-		verdictHigher: "кориснішою",
+		verdictLower: ["менш корисним", "менш корисною"],
+		verdictHigher: ["кориснішим", "кориснішою"],
 	},
 };
 
@@ -89,18 +91,32 @@ function direction(mine: number, others: number | null): -1 | 0 | 1 {
 	return diff > 0 ? 1 : -1;
 }
 
-function verdict(scores: Scores, others: Record<Axis, number | null>): string {
+function verdict(
+	scores: Scores,
+	others: Record<Axis, number | null>,
+	term: CourseTerm,
+): string {
 	const parts = (["difficulty", "usefulness"] as const)
 		.map((axis) => {
 			const dir = direction(scores[axis], others[axis]);
 			if (dir === 0) return null;
-			return dir > 0
-				? AXIS_COPY[axis].verdictHigher
-				: AXIS_COPY[axis].verdictLower;
+			return term(
+				...(dir > 0
+					? AXIS_COPY[axis].verdictHigher
+					: AXIS_COPY[axis].verdictLower),
+			);
 		})
 		.filter(Boolean);
-	if (parts.length === 0) return "Ви оцінили дисципліну так само, як інші";
-	return `Вам дисципліна здалася ${parts.join(" і ")}, ніж іншим`;
+	if (parts.length === 0)
+		return term(
+			"Ви оцінили курс так само, як інші",
+			"Ви оцінили дисципліну так само, як інші",
+		);
+	const joined = parts.join(" і ");
+	return term(
+		`Вам курс здався ${joined}, ніж іншим`,
+		`Вам дисципліна здалася ${joined}, ніж іншим`,
+	);
 }
 
 function BarRow({
@@ -203,6 +219,7 @@ export function RateComparison({
 	onNext,
 	nextRef,
 }: Readonly<RateComparisonProps>) {
+	const term = useCourseTerm();
 	const { data: course } = useCoursesRetrieve(courseId);
 	const count = course?.ratings_count ?? 0;
 	const others = {
@@ -224,8 +241,11 @@ export function RateComparison({
 					className="text-lg font-semibold tracking-tight text-balance"
 				>
 					{hasOthers
-						? verdict(scores, others)
-						: "Ви оцінили цю дисципліну першими"}
+						? verdict(scores, others, term)
+						: term(
+								"Ви оцінили цей курс першими",
+								"Ви оцінили цю дисципліну першими",
+							)}
 				</h2>
 				<p className="text-muted-foreground">
 					{hasOthers
@@ -250,7 +270,7 @@ export function RateComparison({
 			<div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<Button variant="ghost" asChild className="w-full sm:w-auto">
 					<Link to="/courses/$courseId" params={{ courseId }}>
-						Відгуки про дисципліну
+						{term("Відгуки про курс", "Відгуки про дисципліну")}
 					</Link>
 				</Button>
 				<div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-4">
@@ -260,7 +280,9 @@ export function RateComparison({
 						onClick={onNext}
 						className="w-full sm:w-auto"
 					>
-						{remaining > 0 ? "Наступна дисципліна" : "Завершити"}
+						{remaining > 0
+							? term("Наступний курс", "Наступна дисципліна")
+							: "Завершити"}
 						<ArrowRight aria-hidden="true" />
 					</Button>
 				</div>

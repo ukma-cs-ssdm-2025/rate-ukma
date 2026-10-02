@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/features/ratings/components/MyRatingsHeader";
 import { useRateFlow } from "./useRateFlow";
 import { useSavedRateProgress } from "./useRateQueue";
+import { useCourseTerm } from "@/lib/course-term";
 
 /**
  * Floats over a course page the student opened mid-queue, so reading its
  * reviews is a detour, not the end of rating.
  */
 export function RateResumeBar() {
+	const term = useCourseTerm();
 	const progress = useSavedRateProgress();
 	const { enabled } = useRateFlow();
 	const [hidden, setHidden] = useState(false);
@@ -24,7 +26,7 @@ export function RateResumeBar() {
 			<div aria-hidden="true" className="h-6" />
 			<div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
 				<aside
-					aria-label="Оцінювання дисциплін"
+					aria-label={term("Оцінювання курсів", "Оцінювання дисциплін")}
 					className="pointer-events-auto flex w-full max-w-md animate-in items-center gap-3 rounded-xl border bg-background py-2 pr-2 pl-4 shadow-lg duration-300 fade-in-0 slide-in-from-bottom-4 motion-reduce:animate-none"
 				>
 					<div className="min-w-0 flex-1">

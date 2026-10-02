@@ -14,6 +14,7 @@ import { testIds } from "@/lib/test-ids";
 import type { NavigationItem, ThemeOption } from "./navigationData";
 import { Logo } from "../Logo";
 import { Button } from "../ui/Button";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface MobileMenuProps {
 	isOpen: boolean;
@@ -30,6 +31,7 @@ function NavigationLinks({
 	navigationItems,
 	onClose,
 }: Readonly<Pick<MobileMenuProps, "navigationItems" | "onClose">>) {
+	const term = useCourseTerm();
 	return (
 		<nav className="mt-3 flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
 			{navigationItems.map((item) => (
@@ -41,7 +43,7 @@ function NavigationLinks({
 					className="w-full justify-start rounded-xl px-0 py-3 text-base font-medium text-popover-foreground transition hover:bg-accent/10 focus-visible:bg-accent/10"
 				>
 					<Link to={item.href} onClick={onClose}>
-						{item.label}
+						{term(item.label, item.disciplineLabel ?? item.label)}
 						{item.href === "/my-ratings" ? <RateCountBadge /> : null}
 					</Link>
 				</Button>

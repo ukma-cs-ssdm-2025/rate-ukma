@@ -116,7 +116,7 @@ describe("Initial Rendering", () => {
 
 		// Assert
 		expect(
-			screen.getByPlaceholderText("Пошук дисциплін за назвою..."),
+			screen.getByPlaceholderText("Пошук курсів за назвою..."),
 		).toBeInTheDocument();
 	});
 
@@ -155,7 +155,7 @@ describe("Initial Rendering", () => {
 
 		// Assert
 		expect(
-			screen.getByText("Дисциплін не знайдено за вашим запитом"),
+			screen.getByText("Курсів не знайдено за вашим запитом"),
 		).toBeInTheDocument();
 	});
 
@@ -175,7 +175,7 @@ describe("Initial Rendering", () => {
 
 		// Assert — one primary action, not prose
 		expect(
-			screen.getByText("За цими фільтрами дисциплін немає"),
+			screen.getByText("За цими фільтрами курсів немає"),
 		).toBeInTheDocument();
 
 		// Act
@@ -209,7 +209,7 @@ describe("Search Filter", () => {
 
 		// Act
 		const searchInput = screen.getByPlaceholderText(
-			"Пошук дисциплін за назвою...",
+			"Пошук курсів за назвою...",
 		);
 		await user.type(searchInput, "React");
 
@@ -222,7 +222,7 @@ describe("Search Filter", () => {
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
 		const searchInput = screen.getByPlaceholderText(
-			"Пошук дисциплін за назвою...",
+			"Пошук курсів за назвою...",
 		);
 		await user.type(searchInput, "Database");
 
@@ -242,7 +242,7 @@ describe("Search Filter", () => {
 
 		// Assert
 		const searchInput = screen.getByPlaceholderText(
-			"Пошук дисциплін за назвою...",
+			"Пошук курсів за назвою...",
 		);
 		expect(searchInput).toBeDisabled();
 	});
@@ -269,9 +269,7 @@ describe("Pagination", () => {
 
 		// Assert
 		expect(screen.getByRole("table")).toBeInTheDocument();
-		expect(
-			screen.queryByText("Дисципліни не знайдено"),
-		).not.toBeInTheDocument();
+		expect(screen.queryByText("Курси не знайдено")).not.toBeInTheDocument();
 	});
 
 	it("should update page params when pagination changes", async () => {
@@ -325,7 +323,7 @@ describe("Pagination", () => {
 		);
 
 		const searchInput = screen.getByPlaceholderText(
-			"Пошук дисциплін за назвою...",
+			"Пошук курсів за назвою...",
 		);
 		await user.type(searchInput, "Test");
 
@@ -527,7 +525,7 @@ describe("Accessibility", () => {
 
 		// Assert
 		const searchInput = screen.getByPlaceholderText(
-			"Пошук дисциплін за назвою...",
+			"Пошук курсів за назвою...",
 		);
 		expect(searchInput).toBeInTheDocument();
 		expect(searchInput.tagName.toLowerCase()).toBe("input");

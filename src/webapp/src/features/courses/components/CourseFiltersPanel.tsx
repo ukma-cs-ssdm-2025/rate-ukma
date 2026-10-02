@@ -39,6 +39,7 @@ import {
 	type SemesterTermToggle,
 	useCourseFiltersData,
 } from "../hooks/useCourseFiltersData";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface CourseFiltersBaseProps {
 	readonly params: CourseFiltersParamsState;
@@ -409,6 +410,7 @@ function CourseFiltersContent({
 	setParams: (updates: Partial<CourseFiltersParamsState>) => void;
 	data: CourseFiltersData;
 }>) {
+	const term = useCourseTerm();
 	const setWithPageReset = useCallback(
 		(updates: Partial<CourseFiltersParamsState>) => {
 			setParams({ ...updates, page: 1 });
@@ -546,7 +548,10 @@ function CourseFiltersContent({
 			{/* Students filter by their own programme far more than by faculty or
 			    department, so speciality and course type lead. */}
 			<FilterSection
-				label="Спеціальність і тип дисципліни"
+				label={term(
+					"Спеціальність і тип курсу",
+					"Спеціальність і тип дисципліни",
+				)}
 				testId={testIds.filters.groupStructure}
 			>
 				{specialitySelect && (
@@ -613,7 +618,7 @@ function CourseFiltersContent({
 			</FilterSection>
 
 			<FilterSection
-				label="Оцінки дисципліни"
+				label={term("Оцінки курсу", "Оцінки дисципліни")}
 				testId={testIds.filters.groupRating}
 			>
 				<RangeFilters

@@ -11,8 +11,10 @@ import {
 	EmptyTitle,
 } from "@/components/ui/Empty";
 import { testIds } from "@/lib/test-ids";
+import { useCourseTerm } from "@/lib/course-term";
 
 export function MyRatingsEmptyState() {
+	const term = useCourseTerm();
 	return (
 		<Empty
 			className="border-0 py-16"
@@ -22,15 +24,22 @@ export function MyRatingsEmptyState() {
 				<EmptyMedia variant="icon">
 					<BookOpen />
 				</EmptyMedia>
-				<EmptyTitle>Дисциплін поки немає</EmptyTitle>
+				<EmptyTitle>
+					{term("Курсів поки немає", "Дисциплін поки немає")}
+				</EmptyTitle>
 				<EmptyDescription>
-					Тут з'являться дисципліни, які ви слухаєте, щойно вони будуть у
-					системі. А поки можна почитати відгуки інших студентів.
+					{term(
+						"Тут з'являться курси, які ви слухаєте, щойно вони будуть у системі.",
+						"Тут з'являться дисципліни, які ви слухаєте, щойно вони будуть у системі.",
+					)}{" "}
+					А поки можна почитати відгуки інших студентів.
 				</EmptyDescription>
 			</EmptyHeader>
 			<EmptyContent>
 				<Button asChild>
-					<Link to="/">Переглянути дисципліни</Link>
+					<Link to="/">
+						{term("Переглянути курси", "Переглянути дисципліни")}
+					</Link>
 				</Button>
 			</EmptyContent>
 		</Empty>

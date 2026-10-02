@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { useRateFlow } from "@/features/rate-flow/useRateFlow";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface MyRatingsHeaderProps {
 	totalCourses: number;
@@ -54,6 +55,7 @@ export function MyRatingsHeader({
 	onOnlyUnratedChange,
 	isLoading = false,
 }: Readonly<MyRatingsHeaderProps>) {
+	const term = useCourseTerm();
 	const rateFlow = useRateFlow();
 	// The «Лише неоцінені» button already counts what can be rated now.
 	const hint =
@@ -83,7 +85,9 @@ export function MyRatingsHeader({
 							{rateFlow.enabled ? (
 								<Button size="sm" asChild>
 									<Link to="/rate">
-										{ratedCourses > 0 ? "Оцінити решту" : "Оцінити дисципліни"}
+										{ratedCourses > 0
+											? "Оцінити решту"
+											: term("Оцінити курси", "Оцінити дисципліни")}
 									</Link>
 								</Button>
 							) : null}

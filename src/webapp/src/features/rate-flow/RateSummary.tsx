@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { RatingStats } from "@/features/ratings/components/RatingStats";
 import type { QueueItem, RateQueue, Scores } from "./useRateQueue";
 import { coursesNoun } from "./plural";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface RateSummaryProps {
 	readonly queue: RateQueue;
@@ -21,6 +22,7 @@ export function RateSummary({
 	queue,
 	onReturnToSkipped,
 }: Readonly<RateSummaryProps>) {
+	const term = useCourseTerm();
 	const done = queue.items.flatMap((item) => {
 		const state = queue.stateOf(item);
 		return state.kind === "done" ? [{ item, scores: state.scores }] : [];
@@ -32,11 +34,14 @@ export function RateSummary({
 
 	const title =
 		rated > 0
-			? `Дякуємо, ви оцінили ${rated} ${coursesNoun(rated)}`
-			: "Дисципліни пропущено";
+			? `Дякуємо, ви оцінили ${rated} ${coursesNoun(rated, term)}`
+			: term("Курси пропущено", "Дисципліни пропущено");
 	const description =
 		rated > 0
-			? "Ваші оцінки вже бачать студенти, які обирають ці дисципліни"
+			? term(
+					"Ваші оцінки вже бачать студенти, які обирають ці курси",
+					"Ваші оцінки вже бачать студенти, які обирають ці дисципліни",
+				)
 			: "Вони чекатимуть у «Моїх оцінках», поки ви не повернетеся";
 
 	return (
@@ -56,7 +61,7 @@ export function RateSummary({
 				<div className="flex flex-col gap-3 rounded-xl border border-dashed p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
 					<div className="min-w-0 space-y-0.5">
 						<p className="font-medium">
-							Пропущено {skipped} {coursesNoun(skipped)}
+							Пропущено {skipped} {coursesNoun(skipped, term)}
 						</p>
 						<p className="text-sm text-muted-foreground">
 							Можна оцінити зараз або пізніше в «Моїх оцінках»
@@ -70,7 +75,7 @@ export function RateSummary({
 
 			<div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
 				<Button variant="ghost" asChild>
-					<Link to="/">До дисциплін</Link>
+					<Link to="/">{term("До курсів", "До дисциплін")}</Link>
 				</Button>
 				<Button size="lg" asChild>
 					<Link to="/my-ratings">

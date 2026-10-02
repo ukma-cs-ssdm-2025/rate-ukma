@@ -37,29 +37,38 @@ import {
 	getUsefulnessTone,
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
+import { useCourseTerm } from "@/lib/course-term";
 
 const PLOT_LOADING_MESSAGES = [
 	{
 		title: "Розкладаємо координатну сітку…",
-		description: "Підтягуємо дисципліни в потрібні квадранти.",
+		description: "Підтягуємо курси в потрібні квадранти.",
 	},
 	{
 		title: "Згущуємо точки на графіку 🫧",
 		description: "Чекаємо, поки дані зберуться в хмарку.",
 	},
 	{
-		title: "Підписуємо найголовніші дисципліни ✍️",
+		title: "Підписуємо найголовніші курси ✍️",
 		description: "Вирішуємо, хто отримає свою мітку першим.",
 	},
 	{
 		title: "Обчислюємо складність й корисність…",
-		description: "Дисципліни вже розміщуються по осях.",
+		description: "Курси вже розміщуються по осях.",
 	},
 	{
 		title: "Наводимо красу ✨",
 		description: "Ще мить — і графік буде готовий.",
 	},
 ] as const;
+
+// The loading lines that name courses, in «дисципліна» wording.
+const DISCIPLINE_LOADING_COPY: Record<string, string> = {
+	"Підтягуємо курси в потрібні квадранти.":
+		"Підтягуємо дисципліни в потрібні квадранти.",
+	"Підписуємо найголовніші курси ✍️": "Підписуємо найголовніші дисципліни ✍️",
+	"Курси вже розміщуються по осях.": "Дисципліни вже розміщуються по осях.",
+};
 
 function normalizeAnalyticsFilters(
 	filters: Readonly<CoursesListParams>,
@@ -124,16 +133,24 @@ function computeDomain(
 }
 
 function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
+	const term = useCourseTerm();
 	return (
 		<div className="absolute inset-0 grid place-items-center">
 			<div className="flex flex-col items-center gap-3 text-center text-muted-foreground">
 				<Spinner className="text-muted-foreground" />
 				<div className="space-y-1">
 					<div className="text-sm font-medium text-foreground">
-						{message.title}
+						{term(
+							message.title,
+							DISCIPLINE_LOADING_COPY[message.title] ?? message.title,
+						)}
 					</div>
 					<div className="text-sm text-muted-foreground">
-						{message.description}
+						{term(
+							message.description,
+							DISCIPLINE_LOADING_COPY[message.description] ??
+								message.description,
+						)}
 					</div>
 				</div>
 			</div>
@@ -243,6 +260,7 @@ function ScatterPlotContent({
 	difficultyDomain,
 	onCourseClick,
 }: ScatterPlotContentProps) {
+	const term = useCourseTerm();
 	const svgRef = useRef<SVGSVGElement>(null);
 	const zoomRef = useRef<ReturnType<
 		typeof d3Zoom<SVGSVGElement, unknown>
@@ -379,7 +397,10 @@ function ScatterPlotContent({
 				height={height}
 				// A host card sets --plot-surface so the axis bars and point halos match it.
 				className="cursor-grab bg-[var(--plot-surface,var(--color-background))] active:cursor-grabbing"
-				aria-label="Діаграма розподілу дисциплін за корисністю та складністю"
+				aria-label={term(
+					"Діаграма розподілу курсів за корисністю та складністю",
+					"Діаграма розподілу дисциплін за корисністю та складністю",
+				)}
 			>
 				<Group
 					transform={`translate(${plotMargin.left + transform.x}, ${plotMargin.top + transform.y}) scale(${transform.k})`}
@@ -645,6 +666,7 @@ export function CoursesScatterPlot({
 	filters: CoursesListParams;
 	variant?: "default" | "mini";
 }>) {
+	const term = useCourseTerm();
 	const navigate = useNavigate();
 
 	const usefulnessDomain = useMemo<[number, number]>(() => {
@@ -709,7 +731,7 @@ export function CoursesScatterPlot({
 
 				return {
 					id: course.id ?? "unknown",
-					name: course.name ?? "Дисципліна",
+					name: course.name ?? term("Курс", "Дисципліна"),
 					x: course.avg_usefulness ?? USEFULNESS_RANGE[0],
 					y: course.avg_difficulty ?? DIFFICULTY_RANGE[0],
 					radius,
@@ -759,7 +781,10 @@ export function CoursesScatterPlot({
 		return (
 			<ScatterPlotState
 				title="Немає даних"
-				description="Змініть фільтри, щоб побачити дисципліни"
+				description={term(
+					"Змініть фільтри, щоб побачити курси",
+					"Змініть фільтри, щоб побачити дисципліни",
+				)}
 			/>
 		);
 	}

@@ -11,6 +11,7 @@ import {
 	getSemesterTermDisplay,
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
+import { useCourseTerm } from "@/lib/course-term";
 
 const SEMESTER_TERM_ORDER = ["FALL", "SPRING", "SUMMER"];
 export function areFiltersActive(params: CourseFiltersParamsState): boolean {
@@ -245,6 +246,7 @@ export function useCourseFiltersData({
 	params: CourseFiltersParamsState;
 	filterOptions?: FilterOptions;
 }): CourseFiltersData {
+	const term = useCourseTerm();
 	const filters = params;
 
 	const {
@@ -394,8 +396,8 @@ export function useCourseFiltersData({
 			},
 			{
 				key: "type",
-				label: "Тип дисципліни",
-				placeholder: "Усі типи дисциплін",
+				label: term("Тип курсу", "Тип дисципліни"),
+				placeholder: term("Усі типи курсів", "Усі типи дисциплін"),
 				value: filters.type ?? "",
 				options: courseTypes.map((type) => ({
 					value: type.value,

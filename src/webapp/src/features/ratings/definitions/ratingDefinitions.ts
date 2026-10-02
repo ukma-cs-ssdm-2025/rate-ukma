@@ -15,15 +15,21 @@ export const usefulnessDescriptions = {
 } as const;
 
 export const CANNOT_RATE_TOOLTIP_TEXT =
+	"Оцінювання стане доступним з середини семестру курсу";
+export const CANNOT_RATE_TOOLTIP_TEXT_DISCIPLINE =
 	"Оцінювання стане доступним з середини семестру дисципліни";
 
 export const CANNOT_VOTE_OWN_RATING_TEXT =
 	"Ви не можете додавати реакцію на власний відгук";
 
 export const CANNOT_VOTE_WITHOUT_ATTENDING_TEXT =
+	"Ви не можете додавати реакцію на відгук з курсу, який не прослуховували";
+export const CANNOT_VOTE_WITHOUT_ATTENDING_TEXT_DISCIPLINE =
 	"Ви не можете додавати реакцію на відгук до дисципліни, яку ви не прослуховували";
 
 export const CANNOT_VOTE_BEFORE_MIDTERM_TEXT =
+	"Реакції стануть доступними з середини семестру курсу";
+export const CANNOT_VOTE_BEFORE_MIDTERM_TEXT_DISCIPLINE =
 	"Реакції стануть доступними з середини семестру дисципліни";
 
 export const ANONYMOUS_REVIEW_NAME = "Анонімний відгук";

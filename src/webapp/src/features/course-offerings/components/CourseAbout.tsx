@@ -8,6 +8,7 @@ import {
 import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { CourseCazRecords } from "./CourseCazRecords";
+import { useCourseTerm } from "@/lib/course-term";
 
 function factText(value: string | null): string | null {
 	return value && value !== "—" ? value : null;
@@ -55,12 +56,18 @@ export function CourseAbout({
 	latestOffering,
 	courseOfferings,
 }: Readonly<CourseAboutProps>) {
+	const term = useCourseTerm();
 	const isPhone = !useMediaQuery("(min-width: 1024px)");
 	const exam = offeringExamType(latestOffering);
 
 	return (
-		<section aria-label="Про дисципліну" className="min-w-0 space-y-5">
-			<h2 className="text-lg font-semibold tracking-tight">Про дисципліну</h2>
+		<section
+			aria-label={term("Про курс", "Про дисципліну")}
+			className="min-w-0 space-y-5"
+		>
+			<h2 className="text-lg font-semibold tracking-tight">
+				{term("Про курс", "Про дисципліну")}
+			</h2>
 			{description ? (
 				<ExpandableText
 					lines={isPhone ? 3 : 4}
@@ -77,7 +84,9 @@ export function CourseAbout({
 			) : null}
 			{courseOfferings.length > 0 ? (
 				<div className="space-y-2 pt-1">
-					<h3 className="text-sm font-semibold">Історія дисципліни</h3>
+					<h3 className="text-sm font-semibold">
+						{term("Історія курсу", "Історія дисципліни")}
+					</h3>
 					<CourseCazRecords
 						courseOfferings={courseOfferings}
 						initialVisible={isPhone ? 2 : 3}

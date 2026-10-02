@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { coursesNoun, pluralUk } from "./plural";
 import { StatusRing } from "./RateQueueRail";
 import type { RateQueue, SemesterBucket } from "./useRateQueue";
+import { useCourseTerm } from "@/lib/course-term";
 
 /** One line that changes as the queue shrinks, so each stop reads new. */
 function encouragement(rated: number, total: number, semestersLeft: number) {
@@ -32,6 +33,7 @@ export function RateSemesterDone({
 	onContinue,
 	onBreak,
 }: Readonly<RateSemesterDoneProps>) {
+	const term = useCourseTerm();
 	const ratedHere = semester.items.filter(
 		(item) => queue.stateOf(item).kind === "done",
 	).length;
@@ -55,7 +57,7 @@ export function RateSemesterDone({
 				</span>
 				<PageHeader
 					title={`${semester.label} позаду`}
-					description={`Дякуємо! ${ratedHere} ${pluralUk(ratedHere, ["ваша оцінка", "ваші оцінки", "ваших оцінок"])} вже допомагають іншим обирати дисципліни.`}
+					description={`Дякуємо! ${ratedHere} ${pluralUk(ratedHere, ["ваша оцінка", "ваші оцінки", "ваших оцінок"])} вже допомагають іншим обирати ${term("курси", "дисципліни")}.`}
 				/>
 			</div>
 
@@ -86,7 +88,7 @@ export function RateSemesterDone({
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 					<div className="min-w-0 space-y-0.5">
 						<p className="font-medium">
-							{`Далі ${next.label}, ${nextCount} ${coursesNoun(nextCount)}`}
+							{`Далі ${next.label}, ${nextCount} ${coursesNoun(nextCount, term)}`}
 						</p>
 						<p className="text-sm text-muted-foreground">
 							{encouragement(queue.doneCount, queue.items.length, ahead.length)}

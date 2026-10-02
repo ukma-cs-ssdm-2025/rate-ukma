@@ -6,12 +6,14 @@ import { FeedCard } from "@/features/feed/components/FeedCard";
 import { FEED_TILE_CLASS } from "@/features/feed/components/FeedStrip";
 import { useRateableCount } from "./useRateableCount";
 import { coursesNoun } from "./plural";
+import { useCourseTerm } from "@/lib/course-term";
 
 /**
  * Home: the first tile of the feed strip, in the feed's own card, so the
  * prompt costs no extra row on the page.
  */
 export function RateFeedTile() {
+	const term = useCourseTerm();
 	const count = useRateableCount();
 	if (count === 0) return null;
 
@@ -19,13 +21,17 @@ export function RateFeedTile() {
 		<div className={FEED_TILE_CLASS}>
 			<FeedCard
 				tinted
-				kind={{ label: "Ваші дисципліни", icon: Star, tone: "primary" }}
+				kind={{
+					label: term("Ваші курси", "Ваші дисципліни"),
+					icon: Star,
+					tone: "primary",
+				}}
 				title={
 					<Link
 						to="/rate"
 						className="underline-offset-4 transition-colors hover:text-primary hover:underline"
 					>
-						{`${count} ${coursesNoun(count)} без оцінки`}
+						{`${count} ${coursesNoun(count, term)} без оцінки`}
 					</Link>
 				}
 				footer={
@@ -36,13 +42,18 @@ export function RateFeedTile() {
 							tabIndex={-1}
 							className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
 						>
-							<span className="truncate">Оцінити дисципліни</span>
+							<span className="truncate">
+								{term("Оцінити курси", "Оцінити дисципліни")}
+							</span>
 							<ArrowRight className="size-3.5 shrink-0" aria-hidden="true" />
 						</Link>
 					</div>
 				}
 			>
-				Допоможіть іншим обрати дисципліни
+				{term(
+					"Допоможіть іншим обрати курси",
+					"Допоможіть іншим обрати дисципліни",
+				)}
 			</FeedCard>
 		</div>
 	);
@@ -61,16 +72,17 @@ export function RateSideCard({
 	/** The student rated or can rate this course: «Ще N». */
 	more?: boolean;
 }>) {
+	const term = useCourseTerm();
 	const count = useRateableCount(leaveOutCurrent);
 	if (count === 0) return null;
 
 	return (
 		<aside
-			aria-label="Дисципліни без оцінки"
+			aria-label={term("Курси без оцінки", "Дисципліни без оцінки")}
 			className="flex items-center justify-between gap-4 rounded-xl bg-muted/50 px-4 py-3"
 		>
 			<p className="min-w-0 text-sm font-medium">
-				{`${more ? "Ще " : ""}${count} ${coursesNoun(count)} без оцінки`}
+				{`${more ? "Ще " : ""}${count} ${coursesNoun(count, term)} без оцінки`}
 			</p>
 			<Button size="sm" variant="outline" asChild className="shrink-0">
 				<Link to="/rate">Оцінити</Link>

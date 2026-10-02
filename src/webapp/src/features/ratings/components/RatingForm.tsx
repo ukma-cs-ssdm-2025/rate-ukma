@@ -28,6 +28,7 @@ import {
 	usefulnessDescriptions,
 } from "../definitions/ratingDefinitions";
 import { RatingCardBody } from "./RatingCardBody";
+import { useCourseTerm } from "@/lib/course-term";
 
 const ratingSchema = z.object({
 	difficulty: z
@@ -220,6 +221,7 @@ function RatingFormFields({
 	initialInstructors?: readonly Instructor[];
 	legacyInstructor?: string;
 }>) {
+	const term = useCourseTerm();
 	const comment = useWatch({ control, name: "comment" }) ?? "";
 	const isAnonymous = useWatch({ control, name: "is_anonymous" }) ?? false;
 	const difficulty = useWatch({ control, name: "difficulty" });
@@ -352,7 +354,10 @@ function RatingFormFields({
 						<FormDescription>
 							{legacyInstructor
 								? "Оберіть викладачів зі списку — вони замінять текстовий запис"
-								: "Можна обрати кількох викладачів, які вели дисципліну"}
+								: term(
+										"Можна обрати кількох викладачів, які вели курс",
+										"Можна обрати кількох викладачів, які вели дисципліну",
+									)}
 						</FormDescription>
 						<FormMessage />
 					</FormItem>
@@ -373,7 +378,10 @@ function RatingFormFields({
 						<FormControl>
 							<Textarea
 								className="field-sizing-fixed min-h-32 max-h-[40dvh] resize-y overflow-y-auto"
-								placeholder="Поділіться будь-якими думками про цю дисципліну..."
+								placeholder={term(
+									"Поділіться будь-якими думками про цей курс...",
+									"Поділіться будь-якими думками про цю дисципліну...",
+								)}
 								rows={6}
 								{...field}
 								data-testid={testIds.rating.commentTextarea}

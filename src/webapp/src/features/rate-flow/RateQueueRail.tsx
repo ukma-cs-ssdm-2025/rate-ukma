@@ -8,6 +8,7 @@ import {
 import { ProgressBar } from "@/features/ratings/components/MyRatingsHeader";
 import { cn } from "@/lib/utils";
 import type { ItemState, QueueItem, RateQueue } from "./useRateQueue";
+import { useCourseTerm } from "@/lib/course-term";
 
 const RING_RADIUS = 8;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
@@ -153,11 +154,15 @@ export function RateQueueRail({
 	activeShare,
 	onPick,
 }: Readonly<RateQueueRailProps>) {
+	const term = useCourseTerm();
 	return (
-		<nav aria-label="Дисципліни до оцінки" className="space-y-6">
+		<nav
+			aria-label={term("Курси до оцінки", "Дисципліни до оцінки")}
+			className="space-y-6"
+		>
 			<div className="space-y-1 px-3">
 				<h2 className="text-lg font-semibold tracking-tight">
-					Дисципліни до оцінки
+					{term("Курси до оцінки", "Дисципліни до оцінки")}
 				</h2>
 				<Progress queue={queue} />
 			</div>
@@ -185,10 +190,11 @@ export function RateQueueBar({
 		onOpenChange: (open: boolean) => void;
 	}
 >) {
+	const term = useCourseTerm();
 	return (
 		<Collapsible open={open} onOpenChange={onOpenChange}>
 			<nav
-				aria-label="Дисципліни до оцінки"
+				aria-label={term("Курси до оцінки", "Дисципліни до оцінки")}
 				className="rounded-xl bg-muted/50 p-4"
 			>
 				{/* Count and toggle on one line, the bar under them edge to edge. */}
@@ -197,7 +203,7 @@ export function RateQueueBar({
 						Оцінено {queue.doneCount} з {queue.items.length}
 					</p>
 					<CollapsibleTrigger className="group -m-1 flex items-center gap-1 rounded-md p-1 text-sm font-medium text-primary">
-						Усі дисципліни
+						{term("Усі курси", "Усі дисципліни")}
 						<ChevronDown
 							className="size-4 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none"
 							aria-hidden="true"

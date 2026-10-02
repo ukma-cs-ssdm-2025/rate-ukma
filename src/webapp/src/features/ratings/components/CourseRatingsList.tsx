@@ -19,9 +19,12 @@ import { RatingsSortSelect, type SortOption } from "./RatingsSortSelect";
 import { UserRatingCard } from "./UserRatingCard";
 import {
 	CANNOT_VOTE_BEFORE_MIDTERM_TEXT,
+	CANNOT_VOTE_BEFORE_MIDTERM_TEXT_DISCIPLINE,
 	CANNOT_VOTE_WITHOUT_ATTENDING_TEXT,
+	CANNOT_VOTE_WITHOUT_ATTENDING_TEXT_DISCIPLINE,
 } from "../definitions/ratingDefinitions";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
+import { type CourseTerm, useCourseTerm } from "@/lib/course-term";
 
 const SKELETON_RATINGS_COUNT = 3;
 const SKELETON_KEYS = Array.from(
@@ -50,8 +53,16 @@ interface RatingsContentProps {
 	courseId: string;
 }
 
-function emptyDescription(hasAttended: boolean, canRate: boolean): string {
-	if (!hasAttended) return "Їх залишають студенти, які слухали цю дисципліну.";
+function emptyDescription(
+	hasAttended: boolean,
+	canRate: boolean,
+	term: CourseTerm,
+): string {
+	if (!hasAttended)
+		return term(
+			"Їх залишають студенти, які слухали цей курс.",
+			"Їх залишають студенти, які слухали цю дисципліну.",
+		);
 	if (!canRate) {
 		return "Перші відгуки з'являться, коли відкриється оцінювання.";
 	}
@@ -65,6 +76,7 @@ function EmptyState({
 	hasAttended: boolean;
 	canRate: boolean;
 }>) {
+	const term = useCourseTerm();
 	return (
 		<Empty
 			className="border-0 py-16"
@@ -76,7 +88,7 @@ function EmptyState({
 				</EmptyMedia>
 				<EmptyTitle>Відгуків ще немає</EmptyTitle>
 				<EmptyDescription>
-					{emptyDescription(hasAttended, canRate)}
+					{emptyDescription(hasAttended, canRate, term)}
 				</EmptyDescription>
 			</EmptyHeader>
 		</Empty>
@@ -136,12 +148,21 @@ export function CourseRatingsList({
 	hasAttended,
 	canRate,
 }: Readonly<CourseRatingsListProps>) {
+	const term = useCourseTerm();
 	const separateCurrentUser = !!userRatingProp;
 	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
 
 	let voteDisabledReason: string | undefined;
-	if (!hasAttended) voteDisabledReason = CANNOT_VOTE_WITHOUT_ATTENDING_TEXT;
-	else if (!canRate) voteDisabledReason = CANNOT_VOTE_BEFORE_MIDTERM_TEXT;
+	if (!hasAttended)
+		voteDisabledReason = term(
+			CANNOT_VOTE_WITHOUT_ATTENDING_TEXT,
+			CANNOT_VOTE_WITHOUT_ATTENDING_TEXT_DISCIPLINE,
+		);
+	else if (!canRate)
+		voteDisabledReason = term(
+			CANNOT_VOTE_BEFORE_MIDTERM_TEXT,
+			CANNOT_VOTE_BEFORE_MIDTERM_TEXT_DISCIPLINE,
+		);
 
 	const getSortParams = (option: SortOption) => {
 		switch (option) {

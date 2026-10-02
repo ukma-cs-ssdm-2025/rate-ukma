@@ -12,6 +12,7 @@ import type { SemesterGroup } from "@/features/ratings/groupRatings";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { MyRatingCard } from "./MyRatingCard";
+import { useCourseTerm } from "@/lib/course-term";
 
 const OPEN_STATE_KEY = "my-ratings-open-semesters";
 
@@ -78,6 +79,14 @@ function useSemesterOpen(key: string, defaultOpen: boolean) {
 
 const UK_PLURAL = new Intl.PluralRules("uk");
 const COURSE_FORMS: Record<Intl.LDMLPluralRule, string> = {
+	zero: "курсів",
+	one: "курс",
+	two: "курси",
+	few: "курси",
+	many: "курсів",
+	other: "курсу",
+};
+const DISCIPLINE_FORMS: Record<Intl.LDMLPluralRule, string> = {
 	zero: "дисциплін",
 	one: "дисципліна",
 	two: "дисципліни",
@@ -101,6 +110,7 @@ function SemesterStatus({
 	timing: SemesterTiming;
 	open: boolean;
 }>) {
+	const term = useCourseTerm();
 	if (timing === "future") {
 		return <span className="text-muted-foreground">Ще не розпочався</span>;
 	}
@@ -109,7 +119,8 @@ function SemesterStatus({
 		if (open) return null;
 		return (
 			<span className="font-medium text-primary">
-				Оцініть ще {left} {COURSE_FORMS[UK_PLURAL.select(left)]}
+				Оцініть ще {left}{" "}
+				{term(COURSE_FORMS, DISCIPLINE_FORMS)[UK_PLURAL.select(left)]}
 			</span>
 		);
 	}

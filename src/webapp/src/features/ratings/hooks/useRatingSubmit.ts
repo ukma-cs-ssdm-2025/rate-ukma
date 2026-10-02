@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import type { RatingAuthor, RatingFormData } from "../components/RatingForm";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface UseRatingSubmitOptions {
 	readonly courseId: string;
@@ -40,6 +41,7 @@ export function useRatingSubmit({
 	toastOnSuccess = true,
 	successAction,
 }: UseRatingSubmitOptions) {
+	const term = useCourseTerm();
 	const queryClient = useQueryClient();
 	const createMutation = useCoursesRatingsCreate();
 	const updateMutation = useCoursesRatingsPartialUpdate();
@@ -92,7 +94,10 @@ export function useRatingSubmit({
 			} else {
 				if (!offeringId) {
 					toast.error(
-						"Не вдалося створити оцінку: відсутній ідентифікатор дисципліни",
+						term(
+							"Не вдалося створити оцінку: відсутній ідентифікатор курсу",
+							"Не вдалося створити оцінку: відсутній ідентифікатор дисципліни",
+						),
 					);
 					return false;
 				}

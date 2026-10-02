@@ -15,6 +15,7 @@ import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { useRatingAuthor, useRatingSubmit } from "../hooks/useRatingSubmit";
 import { RatingForm, type RatingFormData } from "./RatingForm";
+import { useCourseTerm } from "@/lib/course-term";
 
 interface ExistingRating {
 	id?: string;
@@ -48,6 +49,7 @@ export function RatingModal({
 	onSuccess,
 	offerTheRest: offerTheRestProp = true,
 }: RatingModalProps) {
+	const term = useCourseTerm();
 	const isEditMode = !!existingRating;
 	const author = useRatingAuthor();
 	const navigate = useNavigate();
@@ -118,7 +120,9 @@ export function RatingModal({
 						data-testid={testIds.rating.modalTitle}
 					>
 						{courseName?.trim() ||
-							(isEditMode ? "Редагувати оцінку" : "Оцінити дисципліну")}
+							(isEditMode
+								? "Редагувати оцінку"
+								: term("Оцінити курс", "Оцінити дисципліну"))}
 					</DialogTitle>
 					<DialogDescription>
 						{isEditMode

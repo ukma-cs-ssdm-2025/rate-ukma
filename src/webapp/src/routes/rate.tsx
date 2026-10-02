@@ -47,16 +47,20 @@ import {
 import { formatPageTitle } from "@/lib/app-metadata";
 import { useAuth, withAuth } from "@/lib/auth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { useCourseTerm } from "@/lib/course-term";
 
 /** Opened with nothing to rate: everything is rated, or nothing is open yet. */
 function AllDone() {
+	const term = useCourseTerm();
 	return (
 		<Empty className="border-0 py-16">
 			<EmptyHeader>
 				<EmptyMedia variant="icon">
 					<CircleCheck />
 				</EmptyMedia>
-				<EmptyTitle>Усі дисципліни оцінено</EmptyTitle>
+				<EmptyTitle>
+					{term("Усі курси оцінено", "Усі дисципліни оцінено")}
+				</EmptyTitle>
 				<EmptyDescription>
 					Нові з'являться, коли відкриється оцінювання наступного семестру.
 				</EmptyDescription>
@@ -115,6 +119,7 @@ const GRID =
 	"grid gap-x-10 gap-y-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-x-12";
 
 function RatePage() {
+	const term = useCourseTerm();
 	const { isStudent } = useAuth();
 	const flow = useRateFlow();
 	const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -202,7 +207,9 @@ function RatePage() {
 
 	const title = (
 		<Helmet>
-			<title>{formatPageTitle("Оцінити дисципліни")}</title>
+			<title>
+				{formatPageTitle(term("Оцінити курси", "Оцінити дисципліни"))}
+			</title>
 		</Helmet>
 	);
 

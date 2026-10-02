@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 
 import { CountBadge } from "@/components/ui/CountBadge";
 import { useRateableCount } from "./useRateableCount";
-import { pluralUk } from "./plural";
+import { coursesWaiting } from "./plural";
+import { useCourseTerm } from "@/lib/course-term";
 
 const PULSED_KEY = "rate-ukma-rate-badge-pulsed";
 
@@ -31,14 +32,6 @@ function usePulseOnce(active: boolean): boolean {
 	return pulse;
 }
 
-function coursesWord(count: number): string {
-	return pluralUk(count, [
-		"дисципліна чекає",
-		"дисципліни чекають",
-		"дисциплін чекають",
-	]);
-}
-
 /** Unrated courses next to «Мої оцінки»; renders nothing when there are none. */
 export function RateCountBadge({
 	className,
@@ -48,6 +41,7 @@ export function RateCountBadge({
 	/** Only the desktop header pulses; the phone menu has its own badge. */
 	pulse?: boolean;
 }>) {
+	const term = useCourseTerm();
 	const count = useRateableCount();
 	const pulse = usePulseOnce(canPulse && count > 0);
 	if (count === 0) return null;
@@ -63,7 +57,7 @@ export function RateCountBadge({
 				className={className}
 			/>
 			<span className="sr-only">
-				{count} {coursesWord(count)} на оцінку
+				{count} {coursesWaiting(count, term)} на оцінку
 			</span>
 		</>
 	);
