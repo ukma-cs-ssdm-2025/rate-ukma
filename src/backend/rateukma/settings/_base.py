@@ -323,5 +323,4 @@ PUBLIC_FEATURE_FLAGS = [
     "fe_feed",
     "fe_faculty_colors",
     "fe_rate_flow",
-    "fe_discipline_term",
 ]

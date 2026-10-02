@@ -422,6 +422,7 @@ export function useCourseFiltersData({
 		],
 		[
 			courseTypes,
+			term,
 			faculties,
 			filteredDepartments,
 			allSpecialities,

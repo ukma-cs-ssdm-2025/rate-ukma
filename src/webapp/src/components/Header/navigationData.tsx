@@ -4,7 +4,7 @@ import { Monitor, Moon, Sun } from "lucide-react";
 
 export type NavigationItem = {
 	label: string;
-	/** The label in «дисципліна» wording, behind `fe_discipline_term`. */
+	/** The label in «дисципліна» wording, behind `fe_rate_flow`. */
 	disciplineLabel?: string;
 	href: string;
 };

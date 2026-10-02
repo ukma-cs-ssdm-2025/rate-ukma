@@ -9,7 +9,7 @@ import { FeatureFlagsContext } from "./feature-flags/FeatureFlagsContext";
 function withFlag(on: boolean) {
 	return ({ children }: { children: ReactNode }) => (
 		<FeatureFlagsContext.Provider
-			value={{ flags: { fe_discipline_term: on }, isReady: true }}
+			value={{ flags: { fe_rate_flow: on }, isReady: true }}
 		>
 			{children}
 		</FeatureFlagsContext.Provider>

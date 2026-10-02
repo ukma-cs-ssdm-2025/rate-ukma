@@ -740,7 +740,7 @@ export function CoursesScatterPlot({
 					ratingsCount,
 				};
 			});
-	}, [data, facultyColorMap]);
+	}, [data, facultyColorMap, term]);
 
 	const handleCourseClick = useCallback(
 		(courseId: string) => {

@@ -810,7 +810,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Home: the count by «Мої оцінки» and the first tile of the feed strip",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/");
@@ -826,7 +826,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page) => {
 			await page.emulateMedia({ reducedMotion: "no-preference" });
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/");
@@ -850,7 +850,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Course page: a small card above «Про дисципліну»",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 				myCourses: "rated",
 			});
@@ -867,7 +867,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		widths: ["phone"],
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/");
@@ -882,7 +882,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Мої оцінки after the spring exams: «Оцінити решту» opens the flow",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/my-ratings");
@@ -895,7 +895,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "First course: the course header and the modal's own form, scores hidden",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/rate");
@@ -908,7 +908,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Two of four answers given: the course's ring in the list is half full",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/rate");
@@ -929,7 +929,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "After «Зберегти»: your scores, then how others rated it",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/rate");
@@ -944,7 +944,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Second course: the first is ticked in the list with its scores",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/rate");
@@ -962,7 +962,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		widths: ["phone"],
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/rate");
@@ -978,7 +978,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Leaving mid-queue asks once, with staying as the easy choice",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/rate");
@@ -999,7 +999,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "End of the queue with two rated and the rest skipped",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/rate");
@@ -1023,7 +1023,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Spring answered: a thank-you, the term's closed rings, then the fall",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/rate");
@@ -1046,7 +1046,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Reviews opened mid-queue: a floating bar leads back to the next course",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/rate");
@@ -1064,7 +1064,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		note: "Rating one course from Мої оцінки offers the rest in the toast",
 		run: async (page) => {
 			await mockBackend(page, {
-				flags: ["fe_rate_flow", "fe_discipline_term"],
+				flags: ["fe_rate_flow"],
 				grades: "queue",
 			});
 			await page.goto("/my-ratings");
