@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
@@ -13,6 +13,10 @@ import { FeedItem } from "./FeedItem";
 
 const STRIP_PAGE_SIZE = 8;
 const LOADING_TILES = ["tile-1", "tile-2", "tile-3", "tile-4", "tile-5"];
+
+/** One tile's box in the strip, for tiles passed in from outside the feed. */
+export const FEED_TILE_CLASS =
+	"h-[84px] w-[250px] shrink-0 snap-start overflow-hidden";
 
 type ScrollEdge = "both" | "left" | "right" | "none";
 
@@ -34,7 +38,12 @@ function scrollEdge(
 	return "none";
 }
 
-export function FeedStrip() {
+export function FeedStrip({
+	lead,
+}: Readonly<{
+	/** A tile shown before the feed items, sized with `FEED_TILE_CLASS`. */
+	lead?: ReactNode;
+}>) {
 	const { enabled, isReady } = useFeatureFlagState("fe_feed");
 	const { items, isLoading } = useFeed({
 		limit: STRIP_PAGE_SIZE,
@@ -118,11 +127,9 @@ export function FeedStrip() {
 							</div>
 						))
 					: null}
+				{items.length > 0 ? lead : null}
 				{items.map((item) => (
-					<div
-						key={`${item.kind}:${item.id}`}
-						className="h-[84px] w-[250px] shrink-0 snap-start overflow-hidden"
-					>
+					<div key={`${item.kind}:${item.id}`} className={FEED_TILE_CLASS}>
 						<FeedItem item={item} />
 					</div>
 				))}

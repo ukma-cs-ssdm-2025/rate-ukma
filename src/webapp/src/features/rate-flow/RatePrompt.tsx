@@ -1,118 +1,79 @@
-import { useState } from "react";
-
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Star, X } from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
-import { localStorageAdapter } from "@/lib/storage";
+import { FeedCard } from "@/features/feed/components/FeedCard";
+import { FEED_TILE_CLASS } from "@/features/feed/components/FeedStrip";
 import { useRateableCount } from "./useRateableCount";
 
-const SNOOZE_KEY = "rate-ukma-rate-prompt-snoozed";
-const SNOOZE_DAYS = 7;
-
-interface Snooze {
-	until: number;
-	count: number;
-}
-
-function waitingText(count: number, more = false): string {
+function waitingText(count: number, more = false, short = false): string {
 	const mod10 = count % 10;
 	const mod100 = count % 100;
 	let noun = "курсів чекають";
 	if (mod10 === 1 && mod100 !== 11) noun = "курс чекає";
 	else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14))
 		noun = "курси чекають";
-	return `${more ? "Ще " : ""}${count} ${noun} на вашу оцінку`;
+	return `${more ? "Ще " : ""}${count} ${noun} на ${short ? "" : "вашу "}оцінку`;
 }
 
-// Closing the bar hides it for a week, or until another course becomes
-// rateable: the end of a semester is exactly when it should come back.
-function useSnooze(count: number) {
-	const [snooze, setSnooze] = useState<Snooze | null>(() =>
-		localStorageAdapter.getItem<Snooze>(SNOOZE_KEY),
-	);
-	const snoozed =
-		snooze != null && Date.now() < snooze.until && count <= snooze.count;
-	const dismiss = () => {
-		const next = {
-			until: Date.now() + SNOOZE_DAYS * 24 * 60 * 60 * 1000,
-			count,
-		};
-		localStorageAdapter.setItem(SNOOZE_KEY, next);
-		setSnooze(next);
-	};
-	return { snoozed, dismiss };
-}
-
-/** Home page: a slim bar in the promo banner's shape, closable for a week. */
-export function RatePromptBar() {
+/**
+ * Home: the first tile of the feed strip, in the feed's own card, so the
+ * prompt costs no extra row on the page.
+ */
+export function RateFeedTile() {
 	const count = useRateableCount();
-	const { snoozed, dismiss } = useSnooze(count);
-	if (count === 0 || snoozed) return null;
+	if (count === 0) return null;
 
 	return (
-		<aside
-			aria-label="Курси без оцінки"
-			className="flex items-center gap-3 rounded-lg border bg-card-user px-4 py-3 shadow-sm"
-		>
-			<span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-				<Star className="size-4 fill-current" aria-hidden="true" />
-			</span>
-			<p className="min-w-0 flex-1 text-sm">
-				<span className="font-medium">{waitingText(count)}</span>
-				<span className="ml-2 hidden text-muted-foreground sm:inline">
-					Вони допоможуть іншим обрати курси
-				</span>
-			</p>
-			<Link
-				to="/rate"
-				className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+		<div className={FEED_TILE_CLASS}>
+			<FeedCard
+				tinted
+				kind={{ label: "Ваші курси", icon: Star, tone: "primary" }}
+				title={
+					<Link
+						to="/rate"
+						className="underline-offset-4 transition-colors hover:text-primary hover:underline"
+					>
+						{waitingText(count, false, true)}
+					</Link>
+				}
+				footer={
+					<Link
+						to="/rate"
+						tabIndex={-1}
+						className="inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
+					>
+						Оцінити по черзі
+						<ArrowRight className="size-3.5" aria-hidden="true" />
+					</Link>
+				}
 			>
-				Оцінити
-				<ArrowRight className="size-4" aria-hidden="true" />
-			</Link>
-			<Button
-				variant="ghost"
-				size="icon-sm"
-				className="size-10 shrink-0"
-				onClick={dismiss}
-				aria-label="Сховати на тиждень"
-			>
-				<X className="size-4" />
-			</Button>
-		</aside>
+				Допоможіть іншим обрати курси
+			</FeedCard>
+		</div>
 	);
 }
 
 /**
- * Course page: the student's other unrated courses, beside «Про курс». The
- * course on screen has its own «Оцінити курс» block, so it is left out.
+ * Course page: one line under the student's own rating block, never on a
+ * course they did not take. The course on screen has its own button, so it
+ * is left out of the count.
  */
-export function RatePromptCard({
+export function RateNextLine({
 	excludeOfferingId,
 }: Readonly<{ excludeOfferingId?: string }>) {
 	const count = useRateableCount(excludeOfferingId);
 	if (count === 0) return null;
 
 	return (
-		<aside
-			aria-label="Курси без оцінки"
-			className="space-y-3 rounded-xl bg-muted/50 p-4"
-		>
-			<div className="space-y-0.5">
-				<p className="font-medium">
-					{waitingText(count, Boolean(excludeOfferingId))}
-				</p>
-				<p className="text-sm text-muted-foreground">
-					По одному екрану на курс, без пошуку
-				</p>
-			</div>
-			<Button size="sm" variant="outline" asChild>
-				<Link to="/rate">
-					Оцінити по черзі
-					<ArrowRight aria-hidden="true" />
-				</Link>
-			</Button>
-		</aside>
+		<p className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-sm text-muted-foreground">
+			<span>{waitingText(count, true)}</span>
+			<Link
+				to="/rate"
+				className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+			>
+				Оцінити по черзі
+				<ArrowRight className="size-4" aria-hidden="true" />
+			</Link>
+		</p>
 	);
 }

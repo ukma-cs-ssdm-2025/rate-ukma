@@ -807,13 +807,11 @@ const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "entry-home",
 		section: "Оцінити семестр",
-		note: "Home: the count by «Мої оцінки» and a closable bar above the feed",
+		note: "Home: the count by «Мої оцінки» and the first tile of the feed strip",
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/");
-			await page
-				.getByRole("complementary", { name: "Курси без оцінки" })
-				.waitFor();
+			await page.getByText("Допоможіть іншим обрати курси").waitFor();
 			await page.getByText(COURSE.title).first().waitFor();
 		},
 	},
@@ -826,7 +824,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.emulateMedia({ reducedMotion: "no-preference" });
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/");
-			await page.getByText("8 курсів чекають на оцінку").waitFor();
+			await page.getByText("Допоможіть іншим обрати курси").waitFor();
 			// The gallery shot freezes animations, so the pulse is also kept as
 			// frames of the header, zoomed in.
 			for (const ms of [150, 450, 750]) {
@@ -843,27 +841,24 @@ const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "entry-course",
 		section: "Оцінити семестр",
-		note: "Course page: the student's other unrated courses under «Про курс»",
+		note: "Course page: one line under the student's own rating",
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue", myCourses: "rated" });
 			await page.goto(`/courses/${COURSE.id}`);
-			await page
-				.getByRole("complementary", { name: "Курси без оцінки" })
-				.waitFor();
+			await page.getByText("Оцінити по черзі").waitFor();
 		},
 	},
 	{
 		name: "entry-mobile-menu",
 		section: "Оцінити семестр",
-		note: "Phones: a dot on the menu button, the count inside the menu",
+		note: "Phones: the count on the menu button and inside the menu",
 		widths: ["phone"],
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/");
-			await page
-				.getByRole("complementary", { name: "Курси без оцінки" })
-				.waitFor();
+			await page.getByText("Допоможіть іншим обрати курси").waitFor();
 			await page.getByRole("button", { name: "Відкрити меню" }).click();
+			await page.getByRole("dialog").getByText("Мої оцінки").waitFor();
 		},
 	},
 	{

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { cn } from "@/lib/utils";
+import { CountBadge } from "@/components/ui/CountBadge";
 import { useRateableCount } from "./useRateableCount";
 
 const PULSED_KEY = "rate-ukma-rate-badge-pulsed";
@@ -45,7 +45,7 @@ export function RateCountBadge({
 	pulse: canPulse = false,
 }: Readonly<{
 	className?: string;
-	/** Only the desktop header pulses; the phone menu has its own dot. */
+	/** Only the desktop header pulses; the phone menu has its own badge. */
 	pulse?: boolean;
 }>) {
 	const count = useRateableCount();
@@ -53,31 +53,24 @@ export function RateCountBadge({
 	if (count === 0) return null;
 
 	return (
-		<span className={cn("relative inline-flex", className)}>
-			{pulse ? (
-				<span
-					aria-hidden="true"
-					className="absolute inset-0 animate-ping rounded-full bg-primary/50 [animation-iteration-count:3] motion-reduce:hidden"
-				/>
-			) : null}
-			<span className="relative flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground tabular-nums">
-				{count > 99 ? "99+" : count}
-			</span>
+		<>
+			<CountBadge
+				count={count}
+				tone="primary"
+				placement="inline"
+				pulse={pulse}
+				aria-hidden="true"
+				className={className}
+			/>
 			<span className="sr-only">
 				{count} {coursesWord(count)} на оцінку
 			</span>
-		</span>
+		</>
 	);
 }
 
-/** A dot on the phone menu button while something waits for a rating. */
-export function RateCountDot() {
+/** The same count on the phone menu button, where the bell keeps its own. */
+export function RateCountMenuBadge() {
 	const count = useRateableCount();
-	if (count === 0) return null;
-	return (
-		<span
-			aria-hidden="true"
-			className="absolute top-1 right-1 size-2 rounded-full bg-primary ring-2 ring-background"
-		/>
-	);
+	return <CountBadge count={count} tone="primary" aria-hidden="true" />;
 }

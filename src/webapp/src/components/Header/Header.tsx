@@ -6,7 +6,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import {
 	RateCountBadge,
-	RateCountDot,
+	RateCountMenuBadge,
 } from "@/features/rate-flow/RateCountBadge";
 import { useAuth } from "@/lib/auth";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
@@ -91,7 +91,7 @@ export default function Header() {
 								data-testid={testIds.header.mobileMenuButton}
 							>
 								<Menu className="h-5 w-5" />
-								<RateCountDot />
+								<RateCountMenuBadge />
 							</Button>
 						</div>
 

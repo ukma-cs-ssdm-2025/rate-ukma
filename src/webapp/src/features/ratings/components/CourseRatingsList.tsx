@@ -37,6 +37,8 @@ interface CourseRatingsListProps {
 	// Sits where the user's own review appears once they rate.
 	rateAction?: React.ReactNode;
 	hasAttended: boolean;
+	/** Under the student's own rating: a way on to their other courses. */
+	userRatingFooter?: React.ReactNode;
 	canRate: boolean;
 }
 
@@ -135,6 +137,7 @@ export function CourseRatingsList({
 	rateAction,
 	hasAttended,
 	canRate,
+	userRatingFooter,
 }: Readonly<CourseRatingsListProps>) {
 	const separateCurrentUser = !!userRatingProp;
 	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
@@ -194,12 +197,15 @@ export function CourseRatingsList({
 			</div>
 
 			{userRating && onEditUserRating && onDeleteUserRating ? (
-				<UserRatingCard
-					rating={userRating}
-					courseId={courseId}
-					onEdit={onEditUserRating}
-					onDelete={onDeleteUserRating}
-				/>
+				<div className="space-y-2">
+					<UserRatingCard
+						rating={userRating}
+						courseId={courseId}
+						onEdit={onEditUserRating}
+						onDelete={onDeleteUserRating}
+					/>
+					{userRatingFooter}
+				</div>
 			) : (
 				rateAction
 			)}

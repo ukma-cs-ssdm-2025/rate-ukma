@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { ArrowLeft, Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { CountBadge } from "@/components/ui/CountBadge";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { NotificationList } from "./NotificationList";
@@ -141,11 +142,7 @@ export function MobileNotificationRow({
 				aria-label="Відкрити сповіщення"
 			>
 				<Bell className="size-4" />
-				{count > 0 && (
-					<span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-						{count > 99 ? "99+" : count}
-					</span>
-				)}
+				<CountBadge count={count} />
 			</Button>
 		</div>
 	);
