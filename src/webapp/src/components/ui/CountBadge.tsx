@@ -11,7 +11,7 @@ const countBadgeVariants = cva(
 	{
 		variants: {
 			tone: {
-				// Something went wrong or is unread: notifications.
+				// Something went wrong or is unread.
 				destructive: "bg-destructive text-destructive-foreground",
 				// Something is waiting on the user: courses to rate.
 				primary: "bg-primary text-primary-foreground",
