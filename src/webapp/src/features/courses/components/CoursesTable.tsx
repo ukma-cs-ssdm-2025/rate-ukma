@@ -687,10 +687,10 @@ export function CoursesTable({
 
 			{/* Sticky, not fixed: the pill floats while the list scrolls, then
 			    parks below the pagination so it never covers the footer links. */}
-			<div className="pointer-events-none sticky bottom-6 z-40 flex justify-center pb-[env(safe-area-inset-bottom)] lg:hidden">
+			<div className="sticky bottom-6 z-40 mx-auto flex w-fit pb-[env(safe-area-inset-bottom)] lg:hidden">
 				<Button
 					type="button"
-					className="pointer-events-auto h-10 gap-2 rounded-full px-5 shadow-lg"
+					className="h-10 gap-2 rounded-full px-5 shadow-lg"
 					onClick={toggleFiltersDrawer}
 					aria-label={
 						activeFilterCount > 0
