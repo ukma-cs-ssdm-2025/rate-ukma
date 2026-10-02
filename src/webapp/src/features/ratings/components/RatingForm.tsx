@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { InstructorMultiSelect } from "@/features/instructors/components/InstructorMultiSelect";
 import type { Instructor } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import {
 	ANONYMOUS_REVIEW_NAME,
 	DEFAULT_STUDENT_NAME,
@@ -62,7 +63,7 @@ function getShortDescription(
 	return head?.trim() || full;
 }
 
-export function ScoreInput({
+function ScoreInput({
 	value,
 	onChange,
 	onBlur,
@@ -203,6 +204,7 @@ export function ScoreInput({
 	);
 }
 function RatingFormFields({
+	inline = false,
 	control,
 	offeringId,
 	courseId,
@@ -210,6 +212,7 @@ function RatingFormFields({
 	legacyInstructor,
 	author,
 }: Readonly<{
+	inline?: boolean;
 	control: Control<RatingFormData>;
 	author?: RatingAuthor;
 	offeringId?: string;
@@ -263,7 +266,10 @@ function RatingFormFields({
 			onScroll={updateEdges}
 			data-scrolled={edges.scrolled || undefined}
 			data-more-below={edges.moreBelow || undefined}
-			className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5 sm:gap-6 sm:py-4"
+			className={cn(
+				"flex flex-col gap-5 px-6 py-5 sm:gap-6 sm:py-4",
+				!inline && "min-h-0 flex-1 overflow-y-auto",
+			)}
 		>
 			<div className="space-y-4">
 				<FormField<RatingFormData, "difficulty">
@@ -457,6 +463,14 @@ interface RatingFormProps {
 	readonly initialInstructors?: readonly Instructor[];
 	/** Signed-in student, for the byline preview. */
 	readonly author?: RatingAuthor;
+	/** Overrides for flows where the buttons mean more than send and close. */
+	readonly submitLabel?: string;
+	readonly cancelLabel?: string;
+	/**
+	 * Laid out in the page instead of a dialog: the page scrolls, not the form,
+	 * so the buttons stick to the bottom of the viewport.
+	 */
+	readonly inline?: boolean;
 }
 
 export function RatingForm({
@@ -469,6 +483,9 @@ export function RatingForm({
 	courseId,
 	initialInstructors,
 	author,
+	submitLabel,
+	cancelLabel = "Скасувати",
+	inline = false,
 }: RatingFormProps) {
 	const form = useForm<RatingFormData>({
 		resolver: zodResolver(ratingSchema),
@@ -492,10 +509,14 @@ export function RatingForm({
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit(onSubmit)}
-				className="group/rating-form flex min-h-0 flex-1 flex-col overflow-hidden"
+				className={cn(
+					"group/rating-form flex flex-col",
+					!inline && "min-h-0 flex-1 overflow-hidden",
+				)}
 				data-testid={testIds.rating.form}
 			>
 				<RatingFormFields
+					inline={inline}
 					control={form.control}
 					offeringId={offeringId}
 					courseId={courseId}
@@ -504,7 +525,12 @@ export function RatingForm({
 					author={author}
 				/>
 
-				<DialogFooter className="shrink-0 border-t border-transparent px-6 py-4 transition-colors motion-reduce:transition-none group-has-[[data-more-below]]/rating-form:border-border">
+				<DialogFooter
+					className={cn(
+						"shrink-0 border-t border-transparent px-6 py-4 transition-colors motion-reduce:transition-none group-has-[[data-more-below]]/rating-form:border-border",
+						inline && "sticky bottom-0 rounded-b-xl border-border bg-card",
+					)}
+				>
 					<Button
 						type="button"
 						variant="ghost"
@@ -513,7 +539,7 @@ export function RatingForm({
 						className="w-full sm:w-auto"
 						data-testid={testIds.rating.cancelButton}
 					>
-						Скасувати
+						{cancelLabel}
 					</Button>
 					<Button
 						type="submit"
@@ -525,6 +551,9 @@ export function RatingForm({
 						{(() => {
 							if (isLoading) {
 								return "Надсилання...";
+							}
+							if (submitLabel) {
+								return submitLabel;
 							}
 							if (isEditMode) {
 								return "Зберегти зміни";

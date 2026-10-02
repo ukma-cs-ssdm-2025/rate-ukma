@@ -154,13 +154,13 @@ export async function mockBackend(
 					? (COURSES.find((course) => path === `/courses/${course.id}/`) ??
 						courseDetail)
 					: reviews === "empty"
-					? {
-							...courseDetail,
-							avg_difficulty: null,
-							avg_usefulness: null,
-							ratings_count: 0,
-						}
-					: courseDetail,
+						? {
+								...courseDetail,
+								avg_difficulty: null,
+								avg_usefulness: null,
+								ratings_count: 0,
+							}
+						: courseDetail,
 		],
 		[
 			/^\/ratings\/[^/]+\/comments\/$/,
@@ -192,7 +192,8 @@ export async function mockBackend(
 		],
 		[
 			/^\/students\/me\/grades\/$/,
-			() => ({
+			() =>
+				({
 					items: MY_GRADES,
 					many: MY_GRADES_MANY,
 					empty: [],

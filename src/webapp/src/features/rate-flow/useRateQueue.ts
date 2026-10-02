@@ -1,14 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { useQueryClient } from "@tanstack/react-query";
-
 import { getSemesterDisplay } from "@/features/courses/courseFormatting";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
-import {
-	getStudentsMeGradesRetrieveQueryKey,
-	useCoursesRatingsCreate,
-	useStudentsMeGradesRetrieve,
-} from "@/lib/api/generated";
+import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
 
 export interface QueueItem {
 	readonly offeringId: string;
@@ -62,9 +56,7 @@ function toQueueItem(item: StudentRatingsDetailed): QueueItem {
  * queue instead of the refetch pulling it out from under the student.
  */
 export function useRateQueue() {
-	const queryClient = useQueryClient();
 	const { data, isLoading } = useStudentsMeGradesRetrieve();
-	const createRating = useCoursesRatingsCreate();
 
 	const fresh = useMemo<QueueItem[]>(() => {
 		const rows = Array.isArray(data) ? data : data ? [data] : [];
@@ -100,41 +92,16 @@ export function useRateQueue() {
 		return [...buckets.values()];
 	}, [items]);
 
-	const save = useCallback(
-		async (
-			item: QueueItem,
-			scores: Scores,
-			extra: { comment?: string; isAnonymous?: boolean } = {},
-		) => {
-			await createRating.mutateAsync({
-				courseId: item.courseId,
-				data: {
-					course_offering: item.offeringId,
-					difficulty: scores.difficulty,
-					usefulness: scores.usefulness,
-					comment: extra.comment?.trim() || undefined,
-					is_anonymous: extra.isAnonymous ?? true,
-				},
-			});
-			setStates((prev) => ({
-				...prev,
-				[item.offeringId]: { kind: "done", scores },
-			}));
-		},
-		[createRating],
-	);
+	const markDone = useCallback((item: QueueItem, scores: Scores) => {
+		setStates((prev) => ({
+			...prev,
+			[item.offeringId]: { kind: "done", scores },
+		}));
+	}, []);
 
 	const skip = useCallback((item: QueueItem) => {
 		setStates((prev) => ({ ...prev, [item.offeringId]: { kind: "skipped" } }));
 	}, []);
-
-	const finish = useCallback(
-		() =>
-			queryClient.invalidateQueries({
-				queryKey: getStudentsMeGradesRetrieveQueryKey(),
-			}),
-		[queryClient],
-	);
 
 	const doneCount = items.filter(
 		(item) => stateOf(item).kind === "done",
@@ -151,11 +118,9 @@ export function useRateQueue() {
 		items,
 		semesters,
 		isLoading,
-		isSaving: createRating.isPending,
 		stateOf,
-		save,
+		markDone,
 		skip,
-		finish,
 		doneCount,
 		nextTodo,
 	};

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { Link } from "@tanstack/react-router";
 import { ListFilter } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
@@ -16,7 +17,7 @@ interface MyRatingsHeaderProps {
 	isLoading?: boolean;
 }
 
-function ProgressBar({ share }: Readonly<{ share: number }>) {
+export function ProgressBar({ share }: Readonly<{ share: number }>) {
 	// Starts empty and fills after the first paint so the bar sweeps in.
 	const [shown, setShown] = useState(0);
 	useEffect(() => {
@@ -56,19 +57,24 @@ export function MyRatingsHeader({
 				title="Мої оцінки"
 				actions={
 					rateableLeft > 0 && onOnlyUnratedChange ? (
-						<Button
-							variant="outline"
-							size="sm"
-							aria-pressed={onlyUnrated}
-							onClick={() => onOnlyUnratedChange(!onlyUnrated)}
-							className="gap-1.5 aria-pressed:border-primary/30 aria-pressed:bg-primary/10 aria-pressed:text-primary"
-						>
-							<ListFilter className="size-4" aria-hidden />
-							Лише неоцінені
-							<span className="tabular-nums text-muted-foreground">
-								{rateableLeft}
-							</span>
-						</Button>
+						<div className="flex flex-wrap items-center gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								aria-pressed={onlyUnrated}
+								onClick={() => onOnlyUnratedChange(!onlyUnrated)}
+								className="gap-1.5 aria-pressed:border-primary/30 aria-pressed:bg-primary/10 aria-pressed:text-primary"
+							>
+								<ListFilter className="size-4" aria-hidden />
+								Лише неоцінені
+								<span className="tabular-nums text-muted-foreground">
+									{rateableLeft}
+								</span>
+							</Button>
+							<Button size="sm" asChild>
+								<Link to="/rate">Оцінити всі</Link>
+							</Button>
+						</div>
 					) : undefined
 				}
 				description={

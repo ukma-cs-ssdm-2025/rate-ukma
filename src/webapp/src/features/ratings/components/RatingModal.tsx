@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
 import {
 	Dialog,
@@ -7,21 +7,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/Dialog";
-import { toast } from "@/components/ui/Toaster";
 import type { Instructor, RatingInstructor } from "@/lib/api/generated";
-import {
-	getCoursesListQueryKey,
-	getCoursesRatingsListQueryKey,
-	getCoursesRetrieveQueryKey,
-	getFeedListInfiniteQueryKey,
-	getStudentsMeCoursesRetrieveQueryKey,
-	getStudentsMeGradesRetrieveQueryKey,
-	useCoursesRatingsCreate,
-	useCoursesRatingsPartialUpdate,
-} from "@/lib/api/generated";
+import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
+import { useRatingAuthor, useRatingSubmit } from "../hooks/useRatingSubmit";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 
 interface ExistingRating {
@@ -54,92 +45,34 @@ export function RatingModal({
 	onSuccess,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
-	const queryClient = useQueryClient();
-	const { user } = useAuth();
-	// Matches the backend byline, which is "last first".
-	const author = user
-		? {
-				name: [user.lastName, user.firstName].filter(Boolean).join(" "),
-				avatarUrl: user.avatarUrl,
-			}
-		: undefined;
-
-	const createMutation = useCoursesRatingsCreate();
-	const updateMutation = useCoursesRatingsPartialUpdate();
-
-	const invalidateRatingQueries = async () => {
-		await Promise.all([
-			queryClient.invalidateQueries({
-				queryKey: getStudentsMeCoursesRetrieveQueryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getStudentsMeGradesRetrieveQueryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getCoursesRatingsListQueryKey(courseId),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getCoursesRetrieveQueryKey(courseId),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getCoursesListQueryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getFeedListInfiniteQueryKey(),
-			}),
-		]);
-	};
+	const author = useRatingAuthor();
+	const navigate = useNavigate();
+	const { isStudent } = useAuth();
+	// A fresh rating is the moment to offer the rest of the student's courses.
+	const { data: grades } = useStudentsMeGradesRetrieve({
+		query: { enabled: isOpen && isStudent && !isEditMode },
+	});
+	const othersLeft = (Array.isArray(grades) ? grades : []).filter(
+		(row) =>
+			row.can_rate && !row.rated && row.course_offering_id !== offeringId,
+	).length;
+	const { submit, isLoading } = useRatingSubmit({
+		courseId,
+		offeringId,
+		ratingId: isEditMode ? existingRating?.id : undefined,
+		successAction:
+			!isEditMode && othersLeft > 0
+				? {
+						label: `Оцінити ще ${othersLeft}`,
+						onClick: () => navigate({ to: "/rate" }),
+					}
+				: undefined,
+	});
 
 	const handleSubmit = async (data: RatingFormData) => {
-		// A non-empty selection supersedes the legacy text; an empty one leaves it,
-		// rather than dropping the rating's only instructor.
-		const instructorPayload = {
-			instructor_ids: data.instructor_ids,
-			...(data.instructor_ids.length > 0 ? { instructor: "" } : {}),
-		};
-		try {
-			if (isEditMode && existingRating?.id) {
-				await updateMutation.mutateAsync({
-					courseId: courseId,
-					ratingId: existingRating.id,
-					data: {
-						difficulty: data.difficulty,
-						usefulness: data.usefulness,
-						comment: data.comment ?? "",
-						...instructorPayload,
-						is_anonymous: data.is_anonymous,
-					},
-				});
-			} else {
-				if (!offeringId) {
-					toast.error(
-						"Не вдалося створити оцінку: відсутній ідентифікатор курсу",
-					);
-					return;
-				}
-				await createMutation.mutateAsync({
-					courseId: courseId,
-					data: {
-						course_offering: offeringId,
-						difficulty: data.difficulty,
-						usefulness: data.usefulness,
-						comment: data.comment ?? undefined,
-						...instructorPayload,
-						is_anonymous: data.is_anonymous,
-					},
-				});
-			}
-
-			toast.success(
-				isEditMode ? "Оцінку успішно оновлено" : "Оцінку успішно додано",
-			);
-			await invalidateRatingQueries();
-			onSuccess?.();
-			onClose();
-		} catch (error) {
-			console.error("Failed to submit rating:", error);
-			toast.error("Не вдалося зберегти оцінку. Спробуйте ще раз");
-		}
+		if (!(await submit(data))) return;
+		onSuccess?.();
+		onClose();
 	};
 
 	const existingInstructors = (existingRating?.instructors ?? []).filter(
@@ -162,8 +95,6 @@ export function RatingModal({
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
 		: undefined;
-
-	const isLoading = createMutation.isPending || updateMutation.isPending;
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>

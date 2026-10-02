@@ -91,6 +91,20 @@ async function expectUncovered(target: Locator) {
 	expect(uncovered).toBe(true);
 }
 
+/** Picks both scores in the visible rating form and submits it. */
+async function rateCurrent(page: Page, difficulty: number, usefulness: number) {
+	const form = page.getByTestId(testIds.rating.form);
+	await form
+		.getByTestId(testIds.rating.difficultySlider)
+		.getByRole("radio", { name: `${difficulty} з 5` })
+		.click();
+	await form
+		.getByTestId(testIds.rating.usefulnessSlider)
+		.getByRole("radio", { name: `${usefulness} з 5` })
+		.click();
+	await form.getByTestId(testIds.rating.submitButton).click();
+}
+
 const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "home",
@@ -791,96 +805,92 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
-		name: "rate-today",
+		name: "rate-entry",
 		section: "Оцінити семестр",
-		note: "Today: Мої оцінки filtered to unrated after the spring exams",
+		note: "Мої оцінки after the spring exams: «Оцінити всі» opens the flow",
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
 			await page.goto("/my-ratings");
-			await page.getByRole("button", { name: /Лише неоцінені/ }).click();
-			await page.getByTestId(testIds.myRatings.list).waitFor();
+			await page.getByRole("link", { name: "Оцінити всі" }).waitFor();
 		},
 	},
 	{
-		name: "rate-split",
+		name: "rate-form",
 		section: "Оцінити семестр",
-		note: "A: queue left, course and form right; one saved, second picked",
+		note: "First course: the course header and the modal's own form, scores hidden",
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
-			await page.goto("/rate?v=split");
-			const pick = async (group: string, score: number) =>
-				page
-					.getByRole("radiogroup", { name: group })
-					.getByRole("radio", { name: `${score} з 5` })
-					.click();
-			await pick("Складність", 5);
-			await pick("Корисність", 5);
-			await page.getByRole("button", { name: "Зберегти і далі" }).click();
-			await page.getByRole("heading", { name: "Бази даних" }).waitFor();
-			await pick("Складність", 2);
-			await pick("Корисність", 4);
-			await page.mouse.move(0, 0);
+			await page.goto("/rate");
+			await page.getByTestId(testIds.rating.form).waitFor();
 		},
 	},
 	{
-		name: "rate-split-list",
+		name: "rate-reveal",
 		section: "Оцінити семестр",
-		note: "A on a phone with the course list opened",
+		note: "After «Зберегти»: your scores, then how others rated it",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate");
+			await rateCurrent(page, 4, 5);
+			await page.getByRole("button", { name: "Наступний курс" }).waitFor();
+			await page.waitForTimeout(900);
+		},
+	},
+	{
+		name: "rate-next",
+		section: "Оцінити семестр",
+		note: "Second course: the first is ticked in the list with its scores",
+		run: async (page) => {
+			await mockBackend(page, { grades: "queue" });
+			await page.goto("/rate");
+			await rateCurrent(page, 4, 5);
+			await page.getByRole("button", { name: "Наступний курс" }).click();
+			await page
+				.getByRole("heading", { level: 1, name: "Бази даних" })
+				.waitFor();
+		},
+	},
+	{
+		name: "rate-list",
+		section: "Оцінити семестр",
+		note: "Phones: the course list unfolds under the progress",
 		widths: ["phone"],
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
-			await page.goto("/rate?v=split");
+			await page.goto("/rate");
+			await rateCurrent(page, 2, 3);
+			await page.getByRole("button", { name: "Наступний курс" }).click();
 			await page.getByRole("button", { name: "Усі курси" }).click();
+			await page.evaluate(() => window.scrollTo(0, 0));
 		},
 	},
 	{
-		name: "rate-focus",
+		name: "rate-done",
 		section: "Оцінити семестр",
-		note: "B: one course at a time, others' scores locked until you rate",
+		note: "End of the queue with two rated and the rest skipped",
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
-			await page.goto("/rate?v=focus");
-			await page.getByText("Відкриється, коли поставиш свою оцінку").waitFor();
+			await page.goto("/rate");
+			for (let index = 0; index < 2; index++) {
+				await rateCurrent(page, 3, 4);
+				await page.getByRole("button", { name: "Наступний курс" }).click();
+			}
+			for (let index = 0; index < 6; index++) {
+				await page.getByRole("button", { name: "Пропустити" }).click();
+			}
+			await page.getByText(/Готово, оцінено/).waitFor();
 		},
 	},
 	{
-		name: "rate-focus-revealed",
+		name: "rate-modal-toast",
 		section: "Оцінити семестр",
-		note: "B after picking both scores: others revealed next to yours",
+		note: "Rating one course from Мої оцінки offers the rest in the toast",
 		run: async (page) => {
 			await mockBackend(page, { grades: "queue" });
-			await page.goto("/rate?v=focus");
-			await page
-				.getByRole("radiogroup", { name: "Складність" })
-				.getByRole("radio", { name: "3" })
-				.click();
-			await page
-				.getByRole("radiogroup", { name: "Корисність" })
-				.getByRole("radio", { name: "5" })
-				.click();
-			await page.getByText("Інші студенти").waitFor();
-			await page.mouse.move(0, 0);
-		},
-	},
-	{
-		name: "rate-map",
-		section: "Оцінити семестр",
-		note: "C: place the semester's courses on the map, compared with others",
-		run: async (page) => {
-			await mockBackend(page, { grades: "queue" });
-			await page.goto("/rate?v=map");
-			const cell = (d: number, u: number) =>
-				page
-					.getByRole("button", {
-						name: `Складність ${d}, корисність ${u}`,
-					})
-					.click();
-			await cell(5, 5);
-			await cell(3, 4);
-			await cell(2, 4);
-			await cell(4, 2);
-			await page.getByText("Показати, як оцінили інші").click();
-			await page.mouse.move(0, 0);
+			await page.goto("/my-ratings");
+			await page.getByRole("button", { name: "Оцінити" }).first().click();
+			await rateCurrent(page, 4, 4);
+			await page.getByRole("button", { name: /Оцінити ще/ }).waitFor();
 		},
 	},
 ];
