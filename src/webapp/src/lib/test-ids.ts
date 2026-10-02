@@ -102,7 +102,6 @@ export const testIds = {
 		difficultySortButtonMobile: "courses-difficulty-sort-button-mobile",
 		usefulnessSortButtonDesktop: "courses-usefulness-sort-button-desktop",
 		usefulnessSortButtonMobile: "courses-usefulness-sort-button-mobile",
-		sortInfoHint: "courses-sort-info-hint",
 		reviewsSortButtonMobile: "courses-reviews-sort-button-mobile",
 		scatterPlot: "courses-scatter-plot",
 		scatterPlotFullscreenButton: "courses-scatter-plot-fullscreen-button",

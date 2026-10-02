@@ -15,7 +15,7 @@ export type CoursesReviewsSortOption = "by-count" | "newest";
 interface CoursesReviewsSortMenuProps {
 	value: CoursesReviewsSortOption | null;
 	onValueChange: (value: CoursesReviewsSortOption) => void;
-	/** Phones have no reviews column, so the menu sits in the title header. */
+	/** Compact header to match the abbreviated score columns on phones. */
 	variant?: "desktop" | "mobile";
 }
 
@@ -26,8 +26,6 @@ const SORT_OPTIONS: ReadonlyArray<{
 	{ value: "by-count", label: "За кількістю" },
 	{ value: "newest", label: "Найновіші" },
 ];
-
-export const COURSES_SORT_HINT = "Курси без відгуків завжди внизу.";
 
 export function CoursesReviewsSortMenu({
 	value,
@@ -45,19 +43,19 @@ export function CoursesReviewsSortMenu({
 					className={cn(
 						"-ml-2 inline-flex h-8 items-center gap-2 px-2 text-sm font-medium",
 						isMobile &&
-							"h-10 gap-1 whitespace-nowrap text-xs text-muted-foreground [&_svg]:size-3.5",
+							"ml-0 h-10 gap-0.5 px-1 has-[>svg]:px-1 whitespace-nowrap text-xs text-muted-foreground [&_svg]:size-3",
 					)}
 					aria-label="Сортування за відгуками"
 					data-testid={
 						isMobile ? testIds.courses.reviewsSortButtonMobile : undefined
 					}
 				>
-					<span>Відгуки</span>
+					<span>{isMobile ? "Відг." : "Відгуки"}</span>
 					<ChevronDown className="h-4 w-4" />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
-				align={isMobile ? "start" : "center"}
+				align={isMobile ? "end" : "center"}
 				onCloseAutoFocus={(event) => event.preventDefault()}
 			>
 				{SORT_OPTIONS.map((option) => {
@@ -73,12 +71,6 @@ export function CoursesReviewsSortMenu({
 						</DropdownMenuItem>
 					);
 				})}
-				<p
-					className="max-w-56 px-2 pt-1 pb-1.5 text-xs text-muted-foreground"
-					data-testid={testIds.courses.sortInfoHint}
-				>
-					{COURSES_SORT_HINT}
-				</p>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
