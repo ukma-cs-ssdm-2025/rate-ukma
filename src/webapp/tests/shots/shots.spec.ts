@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import {
 	copyFileSync,
@@ -67,6 +67,26 @@ async function openNotifications(page: Page) {
 const feedStrip = (page: Page) =>
 	page.getByRole("region", { name: "Стрічка оновлень" });
 
+/** Courses page on the default mocked backend, with the list rendered. */
+async function openCourses(page: Page, path = "/") {
+	await mockBackend(page);
+	await page.goto(path);
+	await page.getByText(COURSE.title).first().waitFor();
+}
+
+/** Fails when another element (e.g. a floating button) covers the target's centre. */
+async function expectUncovered(target: Locator) {
+	const uncovered = await target.evaluate((el) => {
+		const r = el.getBoundingClientRect();
+		const hit = document.elementFromPoint(
+			r.x + r.width / 2,
+			r.y + r.height / 2,
+		);
+		return el.contains(hit);
+	});
+	expect(uncovered).toBe(true);
+}
+
 const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "home",
@@ -106,24 +126,13 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Courses page scrolled to the footer: the GitHub link stays tappable",
 		run: async (page) => {
-			await mockBackend(page);
-			await page.goto("/");
-			await page.getByText(COURSE.title).first().waitFor();
+			await openCourses(page);
 			await page.evaluate(() =>
 				window.scrollTo(0, document.documentElement.scrollHeight),
 			);
 			const link = page.getByTestId(testIds.footer.repoLink);
 			await link.waitFor();
-			// Nothing floating (the filters pill) may sit on top of the link.
-			const onTop = await link.evaluate((el) => {
-				const r = el.getBoundingClientRect();
-				const hit = document.elementFromPoint(
-					r.x + r.width / 2,
-					r.y + r.height / 2,
-				);
-				return el.contains(hit);
-			});
-			expect(onTop).toBe(true);
+			await expectUncovered(link);
 		},
 	},
 	{
@@ -421,9 +430,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Home page with the mobile filters drawer open (desktop shows the filters panel)",
 		run: async (page) => {
-			await mockBackend(page);
-			await page.goto("/");
-			await page.getByText(COURSE.title).first().waitFor();
+			await openCourses(page);
 			const trigger = page.getByTestId(testIds.filters.drawerTrigger);
 			if (await trigger.isVisible()) {
 				await trigger.click({ timeout: 5_000 });
@@ -453,9 +460,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Filters narrowed to one speciality's free-choice courses",
 		run: async (page) => {
-			await mockBackend(page);
-			await page.goto("/?spec=f-info-spec&type=ELECTIVE");
-			await page.getByText(COURSE.title).first().waitFor();
+			await openCourses(page, "/?spec=f-info-spec&type=ELECTIVE");
 			const trigger = page.getByTestId(testIds.filters.drawerTrigger);
 			if (await trigger.isVisible()) {
 				await trigger.click({ timeout: 5_000 });
@@ -468,9 +473,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Home page with difficulty 1–3 and autumn filters applied",
 		run: async (page) => {
-			await mockBackend(page);
-			await page.goto("/?diff=1-3&term=FALL");
-			await page.getByText(COURSE.title).first().waitFor();
+			await openCourses(page, "/?diff=1-3&term=FALL");
 		},
 	},
 	{
@@ -505,9 +508,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Course search narrowed to one title",
 		run: async (page) => {
-			await mockBackend(page);
-			await page.goto("/");
-			await page.getByText(COURSE.title).first().waitFor();
+			await openCourses(page);
 			await page.getByPlaceholder("Пошук курсів за назвою...").fill("Бази");
 			await expect(page.getByTestId(testIds.courses.tableRow)).toHaveCount(1);
 		},
@@ -517,9 +518,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Головна",
 		note: "Course search that matches nothing",
 		run: async (page) => {
-			await mockBackend(page);
-			await page.goto("/");
-			await page.getByText(COURSE.title).first().waitFor();
+			await openCourses(page);
 			await page
 				.getByPlaceholder("Пошук курсів за назвою...")
 				.fill("квантова хромодинаміка");
