@@ -10,7 +10,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule. It serv
 
 - Rate UKMA already parses course cards, their terms, rosters and course history since 2018. A developer runs that scraper by hand, 2 to 3 hours each time, and the last enrolment import was on 2026-07-05.
 - Rate UKMA has no teacher on any offering: the course-instructor table has 0 rows.
-- UKMA Schedule crawls the same САЗ pages on its own, and the study-plan constructor and analytics need the same data but have nowhere to read it. One service crawls once for all of them.
+- UKMA Schedule crawls the same САЗ pages on its own, every hour. One service crawls once for both, and Rate UKMA's planner and analytics read the same data through Rate UKMA.
 
 ## Proposal
 
@@ -94,7 +94,7 @@ Lists use cursor pagination. Every response says when its data was last updated.
 | `runs:trigger` | `POST /v1/runs` |
 | `admin` | admin pages: keys, audit log, overrides, page snapshots; includes every other scope |
 
-- Example keys. Rate UKMA: `catalog:read`, `instructors:read`, `students:read`, `runs:trigger`. Another project: `catalog:read`, `instructors:read`. A team member: `admin`.
+- Example keys. Rate UKMA: `catalog:read`, `instructors:read`, `students:read`, `runs:trigger`. UKMA Schedule: `catalog:read`, `students:read`. A team member: `admin`.
 
 - The audit log records key changes, extra runs, overrides and every read that needs `students:read`. It never stores data values.
 - Page snapshots stay internal: only `admin` sees them, because roster snapshots carry student names.
