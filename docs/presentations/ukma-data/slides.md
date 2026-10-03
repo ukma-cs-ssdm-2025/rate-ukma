@@ -267,38 +267,20 @@ lang: uk
 
 <p class="big">Список це частина сторінки курсу: 17 полів на кожного студента, разом з ПІБ і email.</p>
 
-<div class="cols">
-<div>
+<style scoped>table { font-size: 18px; } td { padding-top: 6px; padding-bottom: 6px; }</style>
 
-<p class="muted small">САЗ віддає</p>
-
-<p class="small">name, email, cdoc, grade, specName, group, status, statusLabel, isStudentActive, isEnrolled, isUnenrolled, isForced, type, typeLabel, createdAt, updatedAt, statusDescription</p>
-
-</div>
-<div>
-
-<p class="muted small">Ми зберігаємо, значення вигадані</p>
-
-```json
-{
-  "email": "o.testenko@ukma.edu.ua",
-  "lastName": "Тестенко",
-  "firstName": "Олена",
-  "middleName": "Іванівна",
-  "status": "ENROLLED",
-  "kind": "ELECTIVE",
-  "group": "1",
-  "programme": "prg_01k6..."
-}
-```
-
-</div>
-</div>
+| Поля САЗ | Що це | У нашій моделі |
+|---|---|---|
+| `name`, `email`, `cdoc` | ПІБ одним рядком, пошта, номер студента в САЗ | `lastName`, `firstName`, `middleName`, `email` |
+| `specName`, `grade`, `group` | програма, курс навчання (не оцінка), група | `programme`, `group` |
+| `type`, `typeLabel` | обов'язкова чи вибіркова для його програми | `kind` |
+| `status`, `statusLabel`, `statusDescription`, `isEnrolled`, `isUnenrolled`, `isForced`, `isStudentActive` | записано, виписано, примусово або вже не навчається | `status` |
+| `createdAt`, `updatedAt` | коли записався і коли запис змінився | тільки в знімку |
 
 <p class="doing">Зберігаємо всю відповідь, а ПІБ і email віддаємо тільки ключам з правом students:read.</p>
 
 <!--
-Список записаних. САЗ віддає сімнадцять полів на кожного студента: ПІБ, email, програму, рік, групу, статус, тип запису і час. Ми зберігаємо всю відповідь як є, а з неї будуємо студента з прізвищем, ім'ям і по батькові та його записи на курси. Так само, як Rate UKMA зберігає зараз. Оскільки це дані майже всіх студентів, віддаємо їх тільки ключам з правом students:read, і кожне таке читання видно в аудиті.
+Список записаних. САЗ віддає сімнадцять полів на кожного студента: ПІБ, email, програму, рік, групу, статус, тип запису і час. Поле grade тут означає курс навчання, а не оцінку. Сім полів описують один статус: записано, виписано, примусово записано або вже не навчається. Ми зберігаємо всю відповідь як є, а з неї будуємо студента з прізвищем, ім'ям і по батькові та його записи на курси. Так само, як Rate UKMA зберігає зараз. Оскільки це дані майже всіх студентів, віддаємо їх тільки ключам з правом students:read, і кожне таке читання видно в аудиті.
 -->
 
 ---
