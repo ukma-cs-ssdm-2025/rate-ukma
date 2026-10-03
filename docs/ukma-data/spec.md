@@ -116,4 +116,4 @@ Lists use cursor pagination. Every response says when its data was last updated.
 
 ## Out of scope
 
-Keys that students create, Microsoft sign-in for a key portal, schedule files, write endpoints other than an extra run, live seat counts.
+Keys that students create, Microsoft sign-in for a key portal, САЗ schedule files, write endpoints other than an extra run, live seat counts.
