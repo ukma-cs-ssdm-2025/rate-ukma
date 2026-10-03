@@ -151,7 +151,7 @@ test("suggestion error still confirms a successful save", async ({ page }) => {
 	});
 	await page.goto(`/courses/${COURSE.id}`);
 	await page
-		.getByRole("button", { name: /^Оцінити курс$/ })
+		.getByRole("button", { name: /^Оцінити дисципліну$/ })
 		.first()
 		.click();
 	await score(page);
@@ -242,7 +242,9 @@ test("course refresh is visible before the delayed thank-you popup", async ({
 		myCourses: "rateable",
 	});
 	await page.goto(`/courses/${COURSE.id}`);
-	await page.getByRole("button", { name: "Оцінити курс", exact: true }).click();
+	await page
+		.getByRole("button", { name: "Оцінити дисципліну", exact: true })
+		.click();
 	await score(page);
 	const saved = page.waitForResponse(
 		(response) =>
@@ -287,11 +289,16 @@ test("navigating during the pause cancels the thank-you popup", async ({
 		myCourses: "rateable",
 	});
 	await page.goto(`/courses/${COURSE.id}`);
-	await page.getByRole("button", { name: "Оцінити курс", exact: true }).click();
+	await page
+		.getByRole("button", { name: "Оцінити дисципліну", exact: true })
+		.click();
 	await score(page);
 	await page.getByTestId(testIds.rating.submitButton).click();
 	await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible();
-	await page.getByRole("link", { name: "Курси", exact: true }).first().click();
+	await page
+		.getByRole("link", { name: "Дисципліни", exact: true })
+		.first()
+		.click();
 	await expect(page).toHaveURL(/\/$/);
 	await page.clock.install();
 	await page.clock.fastForward(1000);

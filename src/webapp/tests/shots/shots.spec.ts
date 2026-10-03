@@ -248,7 +248,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "Course page with offerings and reviews",
 		run: async (page) => {
 			await mockBackend(page);
@@ -261,7 +261,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-loading",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "Course page before the course and its offerings arrive",
 		run: async (page) => {
 			await mockBackend(page, { loading: true });
@@ -271,7 +271,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-caz",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "Course page with every САЗ year shown with a multi-speciality year",
 		run: async (page) => {
 			await mockBackend(page);
@@ -282,7 +282,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-speciality-tooltip",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "Hovering a САЗ speciality badge names the speciality and its type",
 		run: async (page) => {
 			await mockBackend(page);
@@ -296,7 +296,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-many-specialities",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "General course with twenty specialities, one САЗ year split per speciality",
 		run: async (page) => {
 			await mockBackend(page, { specialities: "many" });
@@ -309,7 +309,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-many-specialities-open",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "Twenty specialities expanded in the course header",
 		run: async (page) => {
 			await mockBackend(page, { specialities: "many" });
@@ -399,7 +399,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page: Page) => {
 			await mockBackend(page, { myCourses, reviews: "empty" });
 			await page.goto(`/courses/${COURSE.id}`);
-			// Phones stack «Про курс» above the reviews, so bring the empty state up.
+			// Phones stack «Про дисципліну» above the reviews, so bring the empty state up.
 			await page.getByText("Відгуків ще немає").scrollIntoViewIfNeeded();
 		},
 	})),
@@ -486,7 +486,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/explore");
 			await page
-				.getByLabel("Діаграма розподілу курсів за корисністю та складністю")
+				.getByLabel("Діаграма розподілу дисциплін за корисністю та складністю")
 				.waitFor();
 		},
 	},
@@ -498,7 +498,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/explore");
 			await page
-				.getByLabel("Діаграма розподілу курсів за корисністю та складністю")
+				.getByLabel("Діаграма розподілу дисциплін за корисністю та складністю")
 				.waitFor();
 			const zoomIn = page.getByRole("button", { name: /Збільшити|Наблизити/ });
 			if (await zoomIn.first().isVisible())
@@ -513,7 +513,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/");
 			await page.getByText(COURSE.title).first().waitFor();
-			await page.getByPlaceholder("Пошук курсів за назвою...").fill("Бази");
+			await page.getByPlaceholder("Пошук дисциплін за назвою...").fill("Бази");
 			await expect(page.getByTestId(testIds.courses.tableRow)).toHaveCount(1);
 		},
 	},
@@ -526,7 +526,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.goto("/");
 			await page.getByText(COURSE.title).first().waitFor();
 			await page
-				.getByPlaceholder("Пошук курсів за назвою...")
+				.getByPlaceholder("Пошук дисциплін за назвою...")
 				.fill("квантова хромодинаміка");
 			await page
 				.getByTestId(testIds.courses.emptyState)
@@ -535,7 +535,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-about-expanded",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "Course description opened with «Читати далі»",
 		run: async (page) => {
 			await mockBackend(page);
@@ -546,7 +546,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-sort-menu",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "Review sort menu open",
 		run: async (page) => {
 			await mockBackend(page);
@@ -561,7 +561,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-vote-tooltip",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "A non-attendee hovering a vote sees why voting is off",
 		run: async (page) => {
 			await mockBackend(page);
@@ -576,7 +576,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 	},
 	{
 		name: "course-instructor-tooltip",
-		section: "Курс",
+		section: "Дисципліна",
 		note: "A student-typed instructor with its «not verified» hint",
 		run: async (page) => {
 			await mockBackend(page);

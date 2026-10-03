@@ -192,7 +192,7 @@ describe("MyRatingsSemesterSection", () => {
 
 			await user.click(trigger());
 
-			expect(screen.getByText("Оцініть ще 2 курси")).toBeInTheDocument();
+			expect(screen.getByText("Оцініть ще 2 дисципліни")).toBeInTheDocument();
 		});
 
 		it("remembers a choice within the term and forgets it in the next", async () => {

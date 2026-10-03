@@ -68,11 +68,11 @@ describe("CourseAbout", () => {
 		);
 
 		expect(
-			screen.getByRole("heading", { name: "Про курс" }),
+			screen.getByRole("heading", { name: "Про дисципліну" }),
 		).toBeInTheDocument();
 		expect(screen.getByText("Форма контролю")).toBeInTheDocument();
 		expect(
-			screen.getByRole("heading", { name: "Історія курсу" }),
+			screen.getByRole("heading", { name: "Історія дисципліни" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: /2025–2026/ })).toBeInTheDocument();
 	});
@@ -86,7 +86,7 @@ describe("CourseAbout", () => {
 			/>,
 		);
 
-		expect(screen.queryByText("Історія курсу")).not.toBeInTheDocument();
+		expect(screen.queryByText("Історія дисципліни")).not.toBeInTheDocument();
 	});
 });
 
