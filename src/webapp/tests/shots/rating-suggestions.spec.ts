@@ -289,7 +289,9 @@ test("delete confirmation during the pause is not interrupted by thanks", async 
 		myCourses: "rateable",
 	});
 	await page.goto(`/courses/${COURSE.id}`);
-	await page.getByRole("button", { name: "Оцінити дисципліну", exact: true }).click();
+	await page
+		.getByRole("button", { name: "Оцінити дисципліну", exact: true })
+		.click();
 	await score(page);
 	await page.clock.install();
 	await page.clock.pauseAt(new Date(Date.now() + 100));
