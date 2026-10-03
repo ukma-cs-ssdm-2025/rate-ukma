@@ -93,7 +93,7 @@ export function RatingModal({
 			} else {
 				if (!offeringId) {
 					toast.error(
-						"Не вдалося створити оцінку: відсутній ідентифікатор курсу",
+						"Не вдалося створити оцінку: відсутній ідентифікатор дисципліни",
 					);
 					return;
 				}
@@ -177,7 +177,7 @@ export function RatingModal({
 						data-testid={testIds.rating.modalTitle}
 					>
 						{courseName?.trim() ||
-							(isEditMode ? "Редагувати оцінку" : "Оцінити курс")}
+							(isEditMode ? "Редагувати оцінку" : "Оцінити дисципліну")}
 					</DialogTitle>
 					<DialogDescription>
 						{isEditMode

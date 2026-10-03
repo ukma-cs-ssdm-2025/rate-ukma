@@ -546,7 +546,7 @@ function CourseFiltersContent({
 			{/* Students filter by their own programme far more than by faculty or
 			    department, so speciality and course type lead. */}
 			<FilterSection
-				label="Спеціальність і тип курсу"
+				label="Спеціальність і тип дисципліни"
 				testId={testIds.filters.groupStructure}
 			>
 				{specialitySelect && (
@@ -612,7 +612,10 @@ function CourseFiltersContent({
 				/>
 			</FilterSection>
 
-			<FilterSection label="Оцінки курсу" testId={testIds.filters.groupRating}>
+			<FilterSection
+				label="Оцінки дисципліни"
+				testId={testIds.filters.groupRating}
+			>
 				<RangeFilters
 					filters={groups.rating.rangeFilters}
 					params={params}

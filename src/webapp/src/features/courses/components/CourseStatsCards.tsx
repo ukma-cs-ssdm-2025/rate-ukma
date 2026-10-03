@@ -31,14 +31,14 @@ function getDescription(
 	if (value == null) return "Недостатньо оцінок";
 
 	if (type === "difficulty") {
-		if (value < 2.5) return "Легше багатьох курсів";
+		if (value < 2.5) return "Легше багатьох дисциплін";
 		if (value < 3.5) return "Стандартне навантаження";
 		return "Потребує більше часу";
 	}
 
 	if (value < 2.5) return "Можна покращити";
 	if (value < 3.5) return "Знання застосовні";
-	return "Дуже корисний курс";
+	return "Дуже корисна дисципліна";
 }
 
 function getDetailedDescription(

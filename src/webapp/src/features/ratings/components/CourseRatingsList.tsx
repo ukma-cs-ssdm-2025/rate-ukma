@@ -51,7 +51,7 @@ interface RatingsContentProps {
 }
 
 function emptyDescription(hasAttended: boolean, canRate: boolean): string {
-	if (!hasAttended) return "Їх залишають студенти, які слухали цей курс.";
+	if (!hasAttended) return "Їх залишають студенти, які слухали цю дисципліну.";
 	if (!canRate) {
 		return "Перші відгуки з'являться, коли відкриється оцінювання.";
 	}

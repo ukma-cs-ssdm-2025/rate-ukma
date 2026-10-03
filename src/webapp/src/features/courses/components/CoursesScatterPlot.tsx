@@ -41,19 +41,19 @@ import {
 const PLOT_LOADING_MESSAGES = [
 	{
 		title: "Розкладаємо координатну сітку…",
-		description: "Підтягуємо курси в потрібні квадранти.",
+		description: "Підтягуємо дисципліни в потрібні квадранти.",
 	},
 	{
 		title: "Згущуємо точки на графіку 🫧",
 		description: "Чекаємо, поки дані зберуться в хмарку.",
 	},
 	{
-		title: "Підписуємо найголовніші курси ✍️",
+		title: "Підписуємо найголовніші дисципліни ✍️",
 		description: "Вирішуємо, хто отримає свою мітку першим.",
 	},
 	{
 		title: "Обчислюємо складність й корисність…",
-		description: "Курси вже розміщуються по осях.",
+		description: "Дисципліни вже розміщуються по осях.",
 	},
 	{
 		title: "Наводимо красу ✨",
@@ -379,7 +379,7 @@ function ScatterPlotContent({
 				height={height}
 				// A host card sets --plot-surface so the axis bars and point halos match it.
 				className="cursor-grab bg-[var(--plot-surface,var(--color-background))] active:cursor-grabbing"
-				aria-label="Діаграма розподілу курсів за корисністю та складністю"
+				aria-label="Діаграма розподілу дисциплін за корисністю та складністю"
 			>
 				<Group
 					transform={`translate(${plotMargin.left + transform.x}, ${plotMargin.top + transform.y}) scale(${transform.k})`}
@@ -709,7 +709,7 @@ export function CoursesScatterPlot({
 
 				return {
 					id: course.id ?? "unknown",
-					name: course.name ?? "Курс",
+					name: course.name ?? "Дисципліна",
 					x: course.avg_usefulness ?? USEFULNESS_RANGE[0],
 					y: course.avg_difficulty ?? DIFFICULTY_RANGE[0],
 					radius,
@@ -759,7 +759,7 @@ export function CoursesScatterPlot({
 		return (
 			<ScatterPlotState
 				title="Немає даних"
-				description="Змініть фільтри, щоб побачити курси"
+				description="Змініть фільтри, щоб побачити дисципліни"
 			/>
 		);
 	}
