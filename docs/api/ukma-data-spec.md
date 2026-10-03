@@ -1,6 +1,6 @@
 # UKMA Data: service and public API spec
 
-Draft 0.3, 2026-10-03. Issues: #703 (service), #704 (API). Deployment: [deployment-infrastructure.md](../../infra/deploy/parser/deployment-infrastructure.md) (#705). Slides: [ukma-data deck](../presentations/ukma-data/slides.md).
+Draft 0.4, 2026-10-03. Issues: #703 (service), #704 (API). Deployment: [deployment-infrastructure.md](../../infra/deploy/parser/deployment-infrastructure.md) (#705). Slides: [ukma-data deck](../presentations/ukma-data/slides.md).
 
 ## Summary
 
@@ -38,16 +38,20 @@ UKMA Data collects NaUKMA data from САЗ (my.ukma.edu.ua) and smart.ukma on a 
 - **Instructor**: a teacher from smart.ukma, linked to offerings.
 - **Enrolment**: one student on one offering, with a status.
 - **Run**: one pass of the worker over one part of a source.
+- **Raw page**: a page or API response exactly as the source returned it.
+- **Override**: an admin decision on grouping or teacher links, stored as its own row.
 
 ### Rules
 
 1. Ids are ours and permanent: a type prefix plus a time-ordered id (`off_01k6...`). Source ids, like the САЗ code, are only lookup keys.
-2. Nothing is deleted. A row that leaves its source is marked as removed.
-3. Every change goes into a change log. Readers sync from it, and it includes removals.
-4. A run that looks broken is held for an admin and not published. Example: it sees far fewer offerings than the last run.
-5. An offering's terms are the truth. An offering has no single "semester".
-6. Course grouping starts from Rate UKMA's current courses. The service never moves an offering to another course on its own. Merge and split are admin actions and appear in the change log.
-7. Adding a source needs no change to the database schema.
+2. The worker stores each raw page first, only when its hash changed, and parses the stored copy. A parser fix or a new field re-parses stored pages and sends no request to the source.
+3. Nothing is deleted. A row that leaves its source is marked as removed.
+4. Every change goes into a change log. Readers sync from it, and it includes removals.
+5. A run that looks broken is held for an admin and not published. Example: it sees far fewer offerings than the last run.
+6. An offering's terms are the truth. An offering has no single "semester".
+7. Course groups and teacher links are computed from stored fields plus overrides. Each offering keeps its own title, department and level, so a new rule is a recompute, not a crawl.
+8. Course grouping starts from Rate UKMA's current courses. The service never moves an offering to another course on its own: a recompute that would move one becomes a proposal for an admin. Merges and splits appear in the change log.
+9. Adding a source needs no change to the database schema.
 
 ### API
 
@@ -70,7 +74,8 @@ Lists use cursor pagination. Every response says when its data was last updated.
 - A key is sent in a header, shown once, stored as a hash, has an expiry date and can be revoked.
 - Scope tiers. Open: catalog, teachers, runs. Restricted: enrolments, teacher emails. Admin: keys, audit log, starting a run.
 - The audit log records key changes, runs started by hand, overrides and every restricted read. It never stores data values.
-- Enrolments keep student email and status only. The parser drops names. Raw rosters are never stored.
+- Enrolments keep student email and status only. The parser drops names before anything is stored, so rosters are the one exception to rule 2.
+- Raw pages stay internal: the API never serves them.
 - No real student data in fixtures, logs, screenshots or issues.
 - An admin page shows runs, their changes, keys and the audit log.
 
@@ -79,6 +84,8 @@ Lists use cursor pagination. Every response says when its data was last updated.
 - [ ] A key with the catalog scope reads `/v1/offerings`; a key without it gets 403.
 - [ ] Every САЗ code that Rate UKMA holds for 2018 to 2025 exists in the service.
 - [ ] A run that sees less than 80% of the previous run's offerings is held and changes nothing.
+- [ ] Re-parsing every stored САЗ page sends no request to САЗ.
+- [ ] Recomputing course groups keeps every admin override.
 - [ ] `/v1/changes` returns additions, changes and removals in order.
 - [ ] No student name is stored: a test feeds a roster fixture and checks the database.
 - [ ] Rate UKMA data is less than one day old, and `src/backend/scraper` is deleted.
