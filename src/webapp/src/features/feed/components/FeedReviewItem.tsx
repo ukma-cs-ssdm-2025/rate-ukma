@@ -1,15 +1,20 @@
+import { useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, MessageSquareText } from "lucide-react";
 
+import { Button } from "@/components/ui/Button";
 import {
 	getDifficultyTone,
 	getSemesterDisplay,
 	getUsefulnessTone,
 } from "@/features/courses/courseFormatting";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
+import { truncateText } from "@/lib/markdown";
+import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import type { FeedReviewItem as FeedReviewItemType } from "../feedTypes";
 import { FeedCard } from "./FeedCard";
+import { FeedReviewDialog } from "./FeedReviewDialog";
 
 interface FeedReviewItemProps {
 	readonly item: FeedReviewItemType;
@@ -48,14 +53,23 @@ export function FeedReviewItem({
 	item,
 	variant = "card",
 }: Readonly<FeedReviewItemProps>) {
+	const [dialogOpen, setDialogOpen] = useState(false);
 	const semesterLabel =
 		item.semesterYear != null && item.semesterTerm
 			? getSemesterDisplay(item.semesterYear, item.semesterTerm)
 			: undefined;
 	const isBanner = variant === "banner";
+	const { truncated, isTruncated } = item.comment
+		? truncateText(item.comment, 300, { addEllipsis: true })
+		: { truncated: "", isTruncated: false };
+
+	const handleOpenDialog = useCallback(() => {
+		setDialogOpen(true);
+	}, []);
+
 	// The strip tile has one text line: the review text wins it when there is
 	// one, and the scores drop to the meta line in place of the time.
-	const tileText = !isBanner && item.comment ? item.comment : undefined;
+	const tileText = !isBanner && item.comment ? truncated : undefined;
 	const scores = (
 		<p
 			className={cn(
@@ -96,36 +110,72 @@ export function FeedReviewItem({
 		</p>
 	);
 	const meta = (
-		<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-			<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
-			{semesterLabel && (
-				<span className="ml-auto shrink-0">{semesterLabel}</span>
+		<div className="flex flex-col gap-2 text-xs text-muted-foreground">
+			{isTruncated && (
+				<Button
+					onClick={handleOpenDialog}
+					variant="ghost"
+					size="sm"
+					className="h-auto w-fit p-0 text-xs font-medium text-primary"
+					data-testid={testIds.feed.readMoreButton}
+				>
+					Читати більше
+				</Button>
 			)}
+			<div className="flex items-center justify-between gap-2">
+				<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
+				{semesterLabel && <span className="shrink-0">{semesterLabel}</span>}
+			</div>
 		</div>
+	);
+	const footer = tileText ? (
+		<div className="flex flex-col gap-2">
+			{isTruncated && (
+				<Button
+					onClick={handleOpenDialog}
+					variant="ghost"
+					size="sm"
+					className="h-auto w-fit p-0 text-xs font-medium text-primary"
+					data-testid={testIds.feed.readMoreButton}
+				>
+					Читати більше
+				</Button>
+			)}
+			{scores}
+		</div>
+	) : (
+		meta
 	);
 
 	return (
-		<FeedCard
-			variant={variant}
-			kind={{ label: "Відгук", icon: MessageSquareText, tone: "primary" }}
-			pinned={item.pinned}
-			title={
-				<Link
-					to="/courses/$courseId"
-					params={{ courseId: item.courseId }}
-					className="underline-offset-4 transition-colors hover:text-primary hover:underline"
-				>
-					{item.courseTitle}
-				</Link>
-			}
-			footer={tileText ? scores : meta}
-		>
-			{tileText ?? scores}
-			{isBanner && item.comment && (
-				<p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
-					{item.comment}
-				</p>
-			)}
-		</FeedCard>
+		<>
+			<FeedCard
+				variant={variant}
+				kind={{ label: "Відгук", icon: MessageSquareText, tone: "primary" }}
+				pinned={item.pinned}
+				title={
+					<Link
+						to="/courses/$courseId"
+						params={{ courseId: item.courseId }}
+						className="underline-offset-4 transition-colors hover:text-primary hover:underline"
+					>
+						{item.courseTitle}
+					</Link>
+				}
+				footer={footer}
+			>
+				{tileText ?? scores}
+				{isBanner && item.comment && (
+					<p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
+						{truncated}
+					</p>
+				)}
+			</FeedCard>
+			<FeedReviewDialog
+				item={item}
+				open={dialogOpen}
+				onOpenChange={setDialogOpen}
+			/>
+		</>
 	);
 }

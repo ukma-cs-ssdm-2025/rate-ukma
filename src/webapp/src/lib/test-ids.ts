@@ -204,6 +204,10 @@ export const testIds = {
 		errorState: "feed-error-state",
 		retryButton: "feed-retry-button",
 		unavailableState: "feed-unavailable-state",
+		readMoreButton: "feed-read-more-button",
+		postDialog: "feed-post-dialog",
+		reviewDialog: "feed-review-dialog",
+		commentDialog: "feed-comment-dialog",
 	},
 
 	// Notifications
