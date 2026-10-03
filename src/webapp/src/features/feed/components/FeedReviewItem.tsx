@@ -128,6 +128,24 @@ export function FeedReviewItem({
 			</div>
 		</div>
 	);
+	const footer = tileText ? (
+		<div className="flex flex-col gap-2">
+			{isTruncated && (
+				<Button
+					onClick={handleOpenDialog}
+					variant="ghost"
+					size="sm"
+					className="h-auto w-fit p-0 text-xs font-medium text-primary"
+					data-testid={testIds.feed.readMoreButton}
+				>
+					Читати більше
+				</Button>
+			)}
+			{scores}
+		</div>
+	) : (
+		meta
+	);
 
 	return (
 		<>
@@ -144,7 +162,7 @@ export function FeedReviewItem({
 						{item.courseTitle}
 					</Link>
 				}
-				footer={tileText ? scores : meta}
+				footer={footer}
 			>
 				{tileText ?? scores}
 				{isBanner && item.comment && (

@@ -1,12 +1,12 @@
 import type { Components } from "react-markdown";
+import type React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { cn } from "@/lib/utils";
 
-interface MarkdownProps {
+interface MarkdownProps extends React.HTMLAttributes<HTMLDivElement> {
 	readonly children: string;
-	readonly className?: string;
 }
 
 /**
@@ -121,9 +121,9 @@ const components: Components = {
 	),
 };
 
-export function Markdown({ children, className }: MarkdownProps) {
+export function Markdown({ children, className, ...props }: MarkdownProps) {
 	return (
-		<div className={className}>
+		<div className={className} {...props}>
 			<ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
 				{children}
 			</ReactMarkdown>
