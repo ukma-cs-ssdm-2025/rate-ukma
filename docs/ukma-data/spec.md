@@ -1,6 +1,6 @@
 # UKMA Data: service and public API spec
 
-Draft 0.6, 2026-10-03. Issues: #703 (service), #704 (API), #705 (deployment). Deployment: [deployment-infrastructure.md](deployment-infrastructure.md). Slides: [ukma-data deck](../presentations/ukma-data/slides.md).
+Draft 0.7, 2026-10-03. Issues: #703 (service), #704 (API), #705 (deployment). Deployment: [deployment-infrastructure.md](deployment-infrastructure.md). Slides: [ukma-data deck](../presentations/ukma-data/slides.md).
 
 ## Summary
 
@@ -26,7 +26,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule. It serv
 | Rate UKMA monorepo, own folder, own database (#703). | Shared context and CI. HTTP is the only link to Rate UKMA. |
 | Kubernetes on Hetzner through Terraform (#705). | See the deployment spec. |
 | A subdomain of rateukma.com, `data.rateukma.com` (name proposed, #703). | `rateukma.com/api/` is already Rate UKMA's own API. |
-| Access is role-based: a key has one role, a role is a set of scopes, and the code checks scopes only (#703). | A new reader gets an existing role, and a new role needs no new checks in the code. |
+| Each key carries its own list of scopes, and each request checks one scope (#703). No roles. | With a few keys, roles only add a second concept. Any mix of scopes is a new key, not a code change. |
 | Only admins create keys, and every request needs a key. Which reads become public without a key is decided later. | Nobody has asked for self-service keys or public reads yet. |
 | The worker signs in to САЗ and smart.ukma with a team member's own account. | There is no service account yet; one replaces it later. |
 | smart.ukma teachers are linked to САЗ offerings by title, department, term and credits, and admins fix the rest. | `optimaCode` cannot join the two sources. |
@@ -48,8 +48,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule. It serv
 - **Run**: one pass of the worker over one part of a source, for example САЗ courses of 2026-27.
 - **Page snapshot**: every field of an HTML page as text, without interpretation, or a JSON response as it came.
 - **Override**: an admin decision on grouping or teacher links, stored as its own row.
-- **Scope**: one permission, written `resource:action`, for example `students:read`.
-- **Role**: a named set of scopes. Each key has exactly one role.
+- **Scope**: one permission on a key, for example `students:read`.
 
 ### Rules
 
@@ -76,8 +75,8 @@ JSON under `/v1`, read-only except `POST /v1/runs`. The OpenAPI file is generate
 | `GET /v1/instructors`, `/v1/offerings/{id}/instructors` | teachers, their emails, and who teaches what | `instructors:read` |
 | `GET /v1/students?email=`, `/v1/students/{id}` | students with full name and email | `students:read` |
 | `GET /v1/enrollments?offering=&student=` | enrolments, all or filtered | `students:read` |
-| `GET /v1/changes?after=<seq>` | change log, only entities the key's scopes can read | any |
-| `GET /v1/runs` | runs and data freshness | `runs:read` |
+| `GET /v1/changes?after=<seq>` | change log, only entities the key's scopes can read | any key |
+| `GET /v1/runs` | runs and data freshness | any key |
 | `POST /v1/runs` | an extra run of one source part | `runs:trigger` |
 
 Lists use cursor pagination. Every response says when its data was last updated.
@@ -85,22 +84,26 @@ Lists use cursor pagination. Every response says when its data was last updated.
 ### Access and personal data
 
 - A key is sent in a header, shown once, stored as a hash, has an expiry date and can be revoked.
-- Roles live in the code. Changing a role is a reviewed PR and applies to all its keys at once.
+- An admin picks the scopes when creating a key. To change them, issue a new key and revoke the old one.
 
-| Role | Scopes | For |
-| --- | --- | --- |
-| `reader` | `catalog:read`, `instructors:read`, `runs:read` | other projects |
-| `sync` | the `reader` scopes, `students:read`, `runs:trigger` | Rate UKMA |
-| `admin` | every scope, also `keys:manage`, `audit:read`, `overrides:write`, `snapshots:read` | the team |
+| Scope | Gives |
+| --- | --- |
+| `catalog:read` | terms, faculties, departments, programmes, courses, offerings |
+| `instructors:read` | teachers, their emails, who teaches what |
+| `students:read` | students and enrolments |
+| `runs:trigger` | `POST /v1/runs` |
+| `admin` | admin pages: keys, audit log, overrides, page snapshots; includes every other scope |
+
+- Example keys. Rate UKMA: `catalog:read`, `instructors:read`, `students:read`, `runs:trigger`. Another project: `catalog:read`, `instructors:read`. A team member: `admin`.
 
 - The audit log records key changes, extra runs, overrides and every read that needs `students:read`. It never stores data values.
-- Page snapshots stay internal: only `snapshots:read` sees them, because roster snapshots carry student names.
+- Page snapshots stay internal: only `admin` sees them, because roster snapshots carry student names.
 - No real student data in fixtures, logs, screenshots or issues.
 - Admin pages show runs, their changes, keys and the audit log. Every value in them is HTML-escaped.
 
 ## Acceptance criteria
 
-- [ ] A `reader` key reads `/v1/offerings` and gets 403 on `/v1/students`; the 403 names the missing scope.
+- [ ] A key with only `catalog:read` reads `/v1/offerings` and gets 403 on `/v1/students`; the 403 names the missing scope.
 - [ ] A key without `students:read` gets no student name or email from any endpoint, `/v1/changes` included.
 - [ ] Every САЗ code that Rate UKMA holds for 2018 to 2025 exists in the service.
 - [ ] A run that sees less than 80% of the previous run's offerings is held and changes nothing.
