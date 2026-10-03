@@ -40,7 +40,8 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 			if (cancelled) return;
 			timer = setTimeout(() => {
 				// Do not interrupt another action started during the pause.
-				if (!document.querySelector('[role="dialog"]')) setVisible(true);
+				if (!document.querySelector('[role="dialog"], [role="alertdialog"]'))
+					setVisible(true);
 			}, 500);
 		});
 		return () => {
