@@ -37,6 +37,8 @@ export interface MockOptions {
 	readonly title?: "short" | "long";
 	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
+	readonly ratingSuggestions?: "items" | "empty" | "error";
+	readonly saveRating?: "success" | "error";
 }
 
 const courseList = {
@@ -69,20 +71,77 @@ export async function mockBackend(
 		specialities = "one",
 		title = "short",
 		loading = false,
+		ratingSuggestions = "empty",
+		saveRating = "success",
 	}: MockOptions = {},
 ): Promise<void> {
+	const saved = new Set<string>();
+	const savedRatings = new Map<
+		string,
+		{
+			id: string;
+			difficulty: number;
+			usefulness: number;
+			comment: string;
+			is_anonymous: boolean;
+			instructors: [];
+		}
+	>();
+	const suggestions = [
+		{
+			course_id: "c-db",
+			course_offering_id: "offering-c-db",
+			course_title: "Бази даних",
+			semester: { year: 2026, season: "SPRING" },
+			ratings_count: 0,
+		},
+		{
+			course_id: "c-ml",
+			course_offering_id: "offering-c-ml",
+			course_title: "Машинне навчання",
+			semester: { year: 2026, season: "SPRING" },
+			ratings_count: 2,
+		},
+		{
+			course_id: "c-discrete",
+			course_offering_id: "offering-c-discrete",
+			course_title: "Дискретна математика",
+			semester: { year: 2026, season: "SPRING" },
+			ratings_count: 14,
+		},
+		{
+			course_id: "c-arch",
+			course_offering_id: "offering-c-arch",
+			course_title: "Архітектура комп’ютерів",
+			semester: { year: 2025, season: "FALL" },
+			ratings_count: 0,
+		},
+	];
 	const many = specialities === "many";
 	const courseItems = many
 		? COURSES.map((course, index) =>
 				index === 0 ? { ...course, specialities: MANY_SPECIALITIES } : course,
 			)
 		: COURSES;
+	const suggestedCourseItems =
+		ratingSuggestions === "items"
+			? courseItems.map((course) => {
+					const item = suggestions.find((item) => item.course_id === course.id);
+					return item
+						? {
+								...course,
+								title: item.course_title,
+								ratings_count: item.ratings_count,
+							}
+						: course;
+				})
+			: courseItems;
 	const courseDetail = {
 		...COURSE_DETAIL,
 		...(many ? { specialities: MANY_SPECIALITIES } : {}),
 		...(title === "long" ? { title: LONG_COURSE_TITLE } : {}),
 	};
-	const visibleCourseList = { ...courseList, items: courseItems };
+	const visibleCourseList = { ...courseList, items: suggestedCourseItems };
 	const handlers: ReadonlyArray<
 		readonly [RegExp, (path: string, url: URL) => unknown]
 	> = [
@@ -92,6 +151,19 @@ export async function mockBackend(
 				session === "guest"
 					? { is_authenticated: false, user: null, expires_at: null }
 					: SESSION,
+		],
+		[
+			/^\/students\/me\/rating-suggestions\/$/,
+			(_path, url) =>
+				ratingSuggestions === "items"
+					? suggestions
+							.filter(
+								(item) =>
+									!saved.has(item.course_id) &&
+									item.course_id !== url.searchParams.get("exclude_course"),
+							)
+							.slice(0, 3)
+					: [],
 		],
 		[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
 		[
@@ -125,7 +197,7 @@ export async function mockBackend(
 			(_path, url) => {
 				const query = url.searchParams.get("name")?.toLowerCase();
 				if (!query) return visibleCourseList;
-				const items = courseItems.filter((course) =>
+				const items = suggestedCourseItems.filter((course) =>
 					course.title?.toLowerCase().includes(query),
 				);
 				return { ...visibleCourseList, items, total: items.length };
@@ -137,26 +209,78 @@ export async function mockBackend(
 		],
 		[
 			/^\/courses\/[^/]+\/ratings\/$/,
-			() =>
-				reviews === "empty"
-					? {
-							...COURSE_RATINGS,
-							items: { ratings: [], user_ratings: null },
-							total: 0,
-						}
-					: COURSE_RATINGS,
+			(path) => {
+				const courseId = path.split("/")[2];
+				const suggestion =
+					ratingSuggestions === "items"
+						? suggestions.find((item) => item.course_id === courseId)
+						: undefined;
+				const rating = savedRatings.get(courseId);
+				const count =
+					reviews === "empty"
+						? 0
+						: (suggestion?.ratings_count ?? COURSE_RATINGS.total);
+				return {
+					...COURSE_RATINGS,
+					total: count + (rating ? 1 : 0),
+					items: {
+						ratings:
+							count === 0 ? [] : COURSE_RATINGS.items.ratings.slice(0, count),
+						user_ratings: rating
+							? [
+									{
+										...rating,
+										student_id: "student-me",
+										course: courseId,
+										course_offering_year: 2026,
+										course_offering_term: "SPRING",
+									},
+								]
+							: null,
+					},
+				};
+			},
 		],
 		[
 			/^\/courses\/[^/]+\/$/,
-			() =>
-				reviews === "empty"
+			(path) => {
+				const courseId = path.split("/")[2];
+				const suggested =
+					ratingSuggestions === "items"
+						? suggestedCourseItems.find((item) => item.id === courseId)
+						: undefined;
+				const detail = {
+					...courseDetail,
+					...(suggested
+						? {
+								...suggested,
+								description: `Курс «${suggested.title}» для студентів бакалаврату.`,
+							}
+						: {}),
+				};
+				const rating = savedRatings.get(courseId);
+				if (rating) {
+					const count = detail.ratings_count ?? 0;
+					return {
+						...detail,
+						ratings_count: count + 1,
+						avg_difficulty:
+							((detail.avg_difficulty ?? 0) * count + rating.difficulty) /
+							(count + 1),
+						avg_usefulness:
+							((detail.avg_usefulness ?? 0) * count + rating.usefulness) /
+							(count + 1),
+					};
+				}
+				return reviews === "empty"
 					? {
-							...courseDetail,
+							...detail,
 							avg_difficulty: null,
 							avg_usefulness: null,
 							ratings_count: 0,
 						}
-					: courseDetail,
+					: detail;
+			},
 		],
 		[
 			/^\/ratings\/[^/]+\/comments\/$/,
@@ -188,14 +312,69 @@ export async function mockBackend(
 		],
 		[
 			/^\/students\/me\/grades\/$/,
-			() => ({ items: MY_GRADES, many: MY_GRADES_MANY, empty: [] })[grades],
+			() => {
+				const items =
+					ratingSuggestions === "items"
+						? MY_GRADES.map((course) => {
+								const item = suggestions.find(
+									(item) => item.course_id === course.course_id,
+								);
+								return item
+									? {
+											...course,
+											course_title: item.course_title,
+											semester: item.semester,
+											rated: saved.has(item.course_id)
+												? {
+														id: `saved-${item.course_id}`,
+														difficulty: 3,
+														usefulness: 4,
+														comment: "",
+														is_anonymous: true,
+														instructors: [],
+													}
+												: null,
+										}
+									: course;
+							})
+						: MY_GRADES;
+				return { items, many: MY_GRADES_MANY, empty: [] }[grades];
+			},
 		],
 		[
 			/^\/students\/me\/courses\/$/,
-			() => (myCourses === "none" ? [] : myCoursesFor(myCourses)),
+			() => [
+				...(myCourses === "none"
+					? []
+					: myCoursesFor(myCourses).map((course) => ({
+							...course,
+							offerings: course.offerings.map((offering) => ({
+								...offering,
+								rated: savedRatings.get(course.id!) ?? offering.rated,
+							})),
+						}))),
+				...(ratingSuggestions === "items"
+					? suggestions.map((item) => ({
+							id: item.course_id,
+							offerings: [
+								{
+									id: item.course_offering_id,
+									course_id: item.course_id,
+									year: item.semester.year,
+									season: item.semester.season,
+									can_rate: true,
+									rated: savedRatings.get(item.course_id) ?? null,
+								},
+							],
+						}))
+					: []),
+			],
 		],
 	];
 	const failing: ReadonlyArray<RegExp> = [
+		...(ratingSuggestions === "error"
+			? [/^\/students\/me\/rating-suggestions\/$/]
+			: []),
 		...(feed === "error" ? [/^\/feed\/$/] : []),
 		...(courses === "error" ? [/^\/courses\/$/, /^\/analytics\/$/] : []),
 	];
@@ -210,6 +389,34 @@ export async function mockBackend(
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = new URL(route.request().url());
 		const path = url.pathname.replace(/^\/api\/v1/, "");
+		if (
+			route.request().method() === "POST" &&
+			/^\/courses\/[^/]+\/ratings\/$/.test(path)
+		) {
+			const payload = route.request().postDataJSON();
+			if (saveRating === "error") {
+				await route.fulfill({
+					status: 500,
+					json: { detail: "shots: forced save failure" },
+				});
+				return;
+			}
+			const courseId = path.split("/")[2];
+			saved.add(courseId);
+			savedRatings.set(courseId, {
+				id: `saved-${courseId}`,
+				difficulty: payload.difficulty,
+				usefulness: payload.usefulness,
+				comment: payload.comment ?? "",
+				is_anonymous: payload.is_anonymous,
+				instructors: [],
+			});
+			await route.fulfill({
+				status: 201,
+				json: { id: "new-rating", ...payload },
+			});
+			return;
+		}
 		// Left unanswered: the page stays in its loading state for the shot.
 		if (loading && !shell.some((pattern) => pattern.test(path))) return;
 		if (failing.some((pattern) => pattern.test(path))) {
