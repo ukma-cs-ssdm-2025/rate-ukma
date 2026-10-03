@@ -279,6 +279,34 @@ test("course refresh is visible before the delayed thank-you popup", async ({
 	).toHaveCount(1);
 });
 
+test("delete confirmation during the pause is not interrupted by thanks", async ({
+	page,
+}) => {
+	await mockBackend(page, {
+		ratingSuggestions: "items",
+		myCourses: "rateable",
+	});
+	await page.goto(`/courses/${COURSE.id}`);
+	await page.getByRole("button", { name: "Оцінити курс", exact: true }).click();
+	await score(page);
+	await page.clock.install();
+	await page.clock.pauseAt(new Date(Date.now() + 100));
+	await page.getByTestId(testIds.rating.submitButton).click();
+	await page.clock.runFor(100);
+	await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible();
+	await expect(page.getByTestId("rating-saved-modal")).toHaveCount(0);
+	await page
+		.getByRole("button", { name: "Видалити оцінку", exact: true })
+		.click();
+	await expect(page.getByRole("alertdialog")).toBeVisible();
+	await page.clock.fastForward(1000);
+	await expect(page.getByRole("alertdialog")).toBeVisible();
+	await expect(page.getByTestId("rating-saved-modal")).toHaveCount(0);
+	await page.getByRole("button", { name: "Скасувати", exact: true }).click();
+	await page.clock.fastForward(1000);
+	await expect(page.getByTestId("rating-saved-modal")).toHaveCount(0);
+});
+
 test("navigating during the pause cancels the thank-you popup", async ({
 	page,
 }) => {
