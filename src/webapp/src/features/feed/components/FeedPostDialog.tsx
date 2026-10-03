@@ -41,7 +41,7 @@ export function FeedPostDialog({
 							<img
 								src={item.imageUrl}
 								alt={item.title}
-								className="size-16 flex-shrink-0 rounded-lg object-cover"
+								className="hidden size-16 flex-shrink-0 rounded-lg object-cover sm:block"
 								loading="lazy"
 							/>
 						)}

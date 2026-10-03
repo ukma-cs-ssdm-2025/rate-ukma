@@ -124,13 +124,13 @@ export function FeedPromoItem({
 		<>
 			<article
 				className={cn(
-					"relative flex gap-4 overflow-hidden rounded-xl border p-5 text-card-foreground",
+					"relative flex gap-3 overflow-hidden rounded-xl border p-4 text-card-foreground sm:gap-4 sm:p-5",
 					accent.tone === "primary"
 						? "border-primary/20 bg-primary/5"
 						: accent.tone === "muted"
 							? "bg-accent"
 							: "border-destructive/20 bg-destructive/5",
-					"pl-6",
+					"sm:pl-6",
 				)}
 			>
 				{accent.tone && (
@@ -147,18 +147,19 @@ export function FeedPromoItem({
 					/>
 				)}
 
-				{/* Left: Image */}
+				{/* Image */}
 				{item.imageUrl && (
 					<img
 						src={item.imageUrl}
 						alt={item.title}
-						className="size-32 flex-shrink-0 rounded-lg object-cover"
+						className="size-16 flex-shrink-0 rounded-lg object-cover sm:size-32"
 						loading="lazy"
 					/>
 				)}
 
-				{/* Right: Content */}
+				{/* Content: Header + Title + Description + Footer */}
 				<div className="flex flex-1 flex-col">
+					{/* Header: Label + Pin */}
 					<div className="flex items-center justify-between gap-2">
 						<span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
 							<span
@@ -187,9 +188,10 @@ export function FeedPromoItem({
 						)}
 					</div>
 
+					{/* Title */}
 					<button
 						onClick={handleOpenDialog}
-						className="mt-2 cursor-pointer text-left font-semibold leading-snug hover:opacity-75 transition-opacity"
+						className="mt-1 cursor-pointer text-left font-semibold leading-snug hover:opacity-75 transition-opacity"
 						type="button"
 					>
 						{item.title}

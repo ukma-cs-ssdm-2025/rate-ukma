@@ -110,22 +110,22 @@ export function FeedReviewItem({
 		</p>
 	);
 	const meta = (
-		<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+		<div className="flex flex-col gap-2 text-xs text-muted-foreground">
 			{isTruncated && (
 				<Button
 					onClick={handleOpenDialog}
 					variant="ghost"
 					size="sm"
-					className="h-auto p-0 text-xs font-medium text-primary"
+					className="h-auto w-fit p-0 text-xs font-medium text-primary"
 					data-testid={testIds.feed.readMoreButton}
 				>
 					Читати більше
 				</Button>
 			)}
-			<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
-			{semesterLabel && (
-				<span className="ml-auto shrink-0">{semesterLabel}</span>
-			)}
+			<div className="flex items-center justify-between gap-2">
+				<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
+				{semesterLabel && <span className="shrink-0">{semesterLabel}</span>}
+			</div>
 		</div>
 	);
 

@@ -37,14 +37,10 @@ export function truncateText(
 	maxLength: number = 300,
 	options: { addEllipsis?: boolean } = {},
 ): { truncated: string; isTruncated: boolean } {
-	if (text.length <= maxLength) {
-		return { truncated: text, isTruncated: false };
-	}
-
 	const plainText = stripMarkdown(text);
 
 	if (plainText.length <= maxLength) {
-		return { truncated: text, isTruncated: false };
+		return { truncated: plainText, isTruncated: false };
 	}
 
 	let truncated = plainText.substring(0, maxLength);

@@ -44,13 +44,13 @@ export function FeedCommentItem({
 					</Link>
 				}
 				footer={
-					<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+					<div className="flex flex-col gap-2 text-xs text-muted-foreground">
 						{isBanner && isTruncated && (
 							<Button
 								onClick={handleOpenDialog}
 								variant="ghost"
 								size="sm"
-								className="h-auto p-0 text-xs font-medium text-primary"
+								className="h-auto w-fit p-0 text-xs font-medium text-primary"
 								data-testid={testIds.feed.readMoreButton}
 							>
 								Читати більше
