@@ -1,3 +1,5 @@
+import { useContext } from "react";
+
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -10,12 +12,6 @@ import {
 import { toast } from "@/components/ui/Toaster";
 import type { Instructor, RatingInstructor } from "@/lib/api/generated";
 import {
-	getCoursesListQueryKey,
-	getCoursesRatingsListQueryKey,
-	getCoursesRetrieveQueryKey,
-	getFeedListInfiniteQueryKey,
-	getStudentsMeCoursesRetrieveQueryKey,
-	getStudentsMeGradesRetrieveQueryKey,
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
@@ -23,6 +19,8 @@ import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { RatingForm, type RatingFormData } from "./RatingForm";
+import { RatingContinuationContext } from "../RatingContinuationContext";
+import { refreshRatingQueries } from "../refreshRatingQueries";
 
 interface ExistingRating {
 	id?: string;
@@ -42,6 +40,8 @@ interface RatingModalProps {
 	readonly courseName?: string;
 	readonly existingRating?: ExistingRating | null;
 	readonly onSuccess?: () => void;
+	readonly initialAnonymous?: boolean;
+	readonly offerNext?: boolean;
 }
 
 export function RatingModal({
@@ -52,8 +52,11 @@ export function RatingModal({
 	courseName,
 	existingRating,
 	onSuccess,
+	initialAnonymous = false,
+	offerNext = true,
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
+	const continuation = useContext(RatingContinuationContext);
 	const queryClient = useQueryClient();
 	const { user } = useAuth();
 	// Matches the backend byline, which is "last first".
@@ -66,29 +69,6 @@ export function RatingModal({
 
 	const createMutation = useCoursesRatingsCreate();
 	const updateMutation = useCoursesRatingsPartialUpdate();
-
-	const invalidateRatingQueries = async () => {
-		await Promise.all([
-			queryClient.invalidateQueries({
-				queryKey: getStudentsMeCoursesRetrieveQueryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getStudentsMeGradesRetrieveQueryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getCoursesRatingsListQueryKey(courseId),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getCoursesRetrieveQueryKey(courseId),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getCoursesListQueryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: getFeedListInfiniteQueryKey(),
-			}),
-		]);
-	};
 
 	const handleSubmit = async (data: RatingFormData) => {
 		// A non-empty selection supersedes the legacy text; an empty one leaves it,
@@ -130,12 +110,19 @@ export function RatingModal({
 				});
 			}
 
-			toast.success(
-				isEditMode ? "Оцінку успішно оновлено" : "Оцінку успішно додано",
-			);
-			await invalidateRatingQueries();
-			onSuccess?.();
-			onClose();
+			if (isEditMode) {
+				toast.success("Оцінку успішно оновлено");
+				await refreshRatingQueries(queryClient, courseId);
+				onSuccess?.();
+				onClose();
+			} else {
+				continuation?.complete(
+					{ courseId, isAnonymous: data.is_anonymous },
+					offerNext,
+				);
+				onClose();
+				onSuccess?.();
+			}
 		} catch (error) {
 			console.error("Failed to submit rating:", error);
 			toast.error("Не вдалося зберегти оцінку. Спробуйте ще раз");
@@ -161,7 +148,16 @@ export function RatingModal({
 				instructor: existingRating.instructor ?? "",
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
-		: undefined;
+		: initialAnonymous
+			? {
+					difficulty: 0,
+					usefulness: 0,
+					comment: "",
+					instructor_ids: [],
+					instructor: "",
+					is_anonymous: true,
+				}
+			: undefined;
 
 	const isLoading = createMutation.isPending || updateMutation.isPending;
 
