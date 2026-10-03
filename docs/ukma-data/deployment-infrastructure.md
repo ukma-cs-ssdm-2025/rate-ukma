@@ -187,15 +187,15 @@ graph LR
 
 **Architectural Decision Records (rate-ukma):**
 
-- [ADR-0002: v1.0 Deployment Strategy](../../architecture/decisions/0002-initial-deployment-strategy.md) — Initial single-VM per environment pattern.
-- [ADR-0007: Migrate Deployment from AWS EC2 to Hetzner Cloud](../../architecture/decisions/0007-hetzner-deployment.md) — Current production deployment on Hetzner; Docker Compose + Nginx + Certbot; GitHub Environments for secrets.
-- [ADR-0003: Technology Stack](../../architecture/decisions/0003-tech-stack.md) — Django/Python backend, React frontend; provides context for container-based deployment.
+- [ADR-0002: v1.0 Deployment Strategy](../architecture/decisions/0002-initial-deployment-strategy.md) — Initial single-VM per environment pattern.
+- [ADR-0007: Migrate Deployment from AWS EC2 to Hetzner Cloud](../architecture/decisions/0007-hetzner-deployment.md) — Current production deployment on Hetzner; Docker Compose + Nginx + Certbot; GitHub Environments for secrets.
+- [ADR-0003: Technology Stack](../architecture/decisions/0003-tech-stack.md) — Django/Python backend, React frontend; provides context for container-based deployment.
 
 **Rate-UKMA Codebase:**
 
-- [`.github/workflows/`](../../../.github/workflows/) — Existing CI/CD workflows (build.yml, deploy.yml, prod-pipeline.yml, etc.).
-- [`scripts/ci/deploy.sh`](../../../scripts/ci/deploy.sh) — Current deployment script; pattern for extending to Terraform + K8s.
-- [`src/backend/scraper/`](../../../src/backend/scraper/) — Parser service codebase to be extracted.
+- [`.github/workflows/`](../../.github/workflows/) — Existing CI/CD workflows (build.yml, deploy.yml, prod-pipeline.yml, etc.).
+- [`scripts/ci/deploy.sh`](../../scripts/ci/deploy.sh) — Current deployment script; pattern for extending to Terraform + K8s.
+- [`src/backend/scraper/`](../../src/backend/scraper/) — Parser service codebase to be extracted.
 
 **External Technologies & Documentation:**
 
