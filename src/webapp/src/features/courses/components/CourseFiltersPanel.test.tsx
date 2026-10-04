@@ -117,9 +117,9 @@ describe("CourseFiltersPanel", () => {
 
 			// Assert
 			for (const name of [
-				"Спеціальність і тип курсу",
+				"Спеціальність і тип дисципліни",
 				"Семестр",
-				"Оцінки курсу",
+				"Оцінки дисципліни",
 				"Факультет і кафедра",
 			]) {
 				expect(screen.getByRole("group", { name })).toBeInTheDocument();

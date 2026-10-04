@@ -26,7 +26,7 @@ export function RatingSaved({
 					Дякуємо за вашу оцінку!
 				</DialogTitle>
 				<DialogDescription>
-					Ваш досвід допоможе іншим обрати курс.
+					Ваш досвід допоможе іншим обрати дисципліну.
 				</DialogDescription>
 			</div>
 			{isLoading ? (

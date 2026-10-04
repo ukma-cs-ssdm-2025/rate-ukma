@@ -125,7 +125,7 @@ function CourseDetailsRoute() {
 		return (
 			<Layout>
 				<ErrorState
-					title="Не вдалося завантажити інформацію про курс"
+					title="Не вдалося завантажити інформацію про дисципліну"
 					role="alert"
 				/>
 			</Layout>
@@ -147,7 +147,7 @@ function CourseDetailsRoute() {
 		!ratedOffering && hasAttendedCourse && selectedOffering ? (
 			<div className="flex flex-col gap-3 rounded-xl bg-card-user p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
 				<div className="min-w-0 space-y-0.5">
-					<p className="font-medium">Ви слухали цей курс</p>
+					<p className="font-medium">Ви слухали цю дисципліну</p>
 					<p className="text-sm text-muted-foreground">
 						{canRateNow
 							? "Ваша оцінка допоможе іншим обрати"
@@ -158,7 +158,7 @@ function CourseDetailsRoute() {
 					canRate={canRateNow}
 					onClick={() => setIsRatingModalOpen(true)}
 				>
-					Оцінити курс
+					Оцінити дисципліну
 				</RatingButton>
 			</div>
 		) : null;
@@ -211,7 +211,7 @@ function CourseDetailsRoute() {
 							/>
 						) : null}
 
-						{/* Phones read one column: scores and the call to rate, then «Про курс»,
+						{/* Phones read one column: scores and the call to rate, then «Про дисципліну»,
 						    then reviews. Rendered once: the rate button's test id must stay unique. */}
 						{isDesktop ? null : rateAction}
 						{isDesktop ? null : about}
