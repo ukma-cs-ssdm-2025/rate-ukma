@@ -20,6 +20,7 @@ import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 import { RatingContinuationContext } from "../RatingContinuationContext";
+import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { refreshRatingQueries } from "../refreshRatingQueries";
 
 interface ExistingRating {
@@ -57,6 +58,7 @@ export function RatingModal({
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
 	const continuation = useContext(RatingContinuationContext);
+	const flowEnabled = useRatingFlowEnabled();
 	const queryClient = useQueryClient();
 	const { user } = useAuth();
 	// Matches the backend byline, which is "last first".
@@ -110,8 +112,10 @@ export function RatingModal({
 				});
 			}
 
-			if (isEditMode) {
-				toast.success("Оцінку успішно оновлено");
+			if (isEditMode || !flowEnabled) {
+				toast.success(
+					isEditMode ? "Оцінку успішно оновлено" : "Оцінку успішно додано",
+				);
 				await refreshRatingQueries(queryClient, courseId);
 				onSuccess?.();
 				onClose();

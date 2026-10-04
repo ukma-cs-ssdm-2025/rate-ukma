@@ -59,3 +59,11 @@ def test_non_allowlisted_flag_is_never_exposed(api_client, settings):
 
     assert response.status_code == 200
     assert "fe_secret_internal" not in response.json()["flags"]
+
+
+@pytest.mark.django_db
+def test_rate_flow_flag_is_public_and_off_by_default(api_client):
+    response = api_client.get(FLAGS_URL)
+
+    assert response.status_code == 200
+    assert response.json()["flags"]["fe_rate_flow"] is False

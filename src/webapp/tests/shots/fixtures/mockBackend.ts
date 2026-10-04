@@ -39,6 +39,8 @@ export interface MockOptions {
 	readonly loading?: boolean;
 	readonly ratingSuggestions?: "items" | "empty" | "error";
 	readonly saveRating?: "success" | "error";
+	/** `fe_rate_flow`: `pending` never answers the flags request, so flags stay unresolved. */
+	readonly rateFlow?: "on" | "off" | "pending";
 }
 
 const courseList = {
@@ -73,6 +75,7 @@ export async function mockBackend(
 		loading = false,
 		ratingSuggestions = "empty",
 		saveRating = "success",
+		rateFlow = "on",
 	}: MockOptions = {},
 ): Promise<void> {
 	const saved = new Set<string>();
@@ -168,7 +171,13 @@ export async function mockBackend(
 		[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
 		[
 			/^\/flags\/$/,
-			() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
+			() => ({
+				flags: {
+					fe_feed: true,
+					fe_faculty_colors: true,
+					fe_rate_flow: rateFlow === "on",
+				},
+			}),
 		],
 		[/^\/promo-banner\/$/, () => ({ banner: null })],
 		[
@@ -389,6 +398,9 @@ export async function mockBackend(
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = new URL(route.request().url());
 		const path = url.pathname.replace(/^\/api\/v1/, "");
+		if (rateFlow === "pending" && path === "/flags/") {
+			await new Promise(() => {});
+		}
 		if (
 			route.request().method() === "POST" &&
 			/^\/courses\/[^/]+\/ratings\/$/.test(path)

@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { render, screen } from "@/test-utils/render";
+import { RatingContinuationContext } from "../RatingContinuationContext";
 import { RatingModal, type RatingFormData } from "./RatingModal";
 
 vi.mock("@/lib/api/generated", async (importOriginal) => {
@@ -143,4 +144,71 @@ describe("RatingModal title", () => {
 			"Редагувати оцінку",
 		);
 	});
+});
+
+describe("RatingModal new-rating continuation behind fe_rate_flow", () => {
+	function renderCreate(flags: Record<string, boolean>, flagsReady = true) {
+		vi.mocked(useCoursesRatingsPartialUpdate).mockReturnValue({
+			mutateAsync: vi.fn(),
+			isPending: false,
+		} as unknown as ReturnType<typeof useCoursesRatingsPartialUpdate>);
+		vi.mocked(useCoursesRatingsCreate).mockReturnValue({
+			mutateAsync: vi.fn().mockResolvedValue({}),
+			isPending: false,
+		} as unknown as ReturnType<typeof useCoursesRatingsCreate>);
+		const complete = vi.fn();
+		const onClose = vi.fn();
+		const onSuccess = vi.fn();
+		render(
+			<RatingContinuationContext.Provider
+				value={{
+					complete,
+					followUp: null,
+					beginFollowUp: vi.fn(),
+					cancelFollowUp: vi.fn(),
+				}}
+			>
+				<RatingModal
+					isOpen
+					onClose={onClose}
+					onSuccess={onSuccess}
+					courseId="22222222-2222-2222-2222-222222222222"
+					offeringId="44444444-4444-4444-4444-444444444444"
+				/>
+			</RatingContinuationContext.Provider>,
+			{ flags, flagsReady },
+		);
+		return { complete, onClose, onSuccess };
+	}
+
+	it("hands the saved rating to the continuation when the flag is on", async () => {
+		const { complete, onClose } = renderCreate({ fe_rate_flow: true });
+
+		await capturedSubmit?.(formData({ is_anonymous: true }));
+
+		expect(complete).toHaveBeenCalledWith(
+			{
+				courseId: "22222222-2222-2222-2222-222222222222",
+				isAnonymous: true,
+			},
+			true,
+		);
+		expect(onClose).toHaveBeenCalled();
+	});
+
+	it.each([
+		["off", { fe_rate_flow: false }, true],
+		["unresolved", { fe_rate_flow: true }, false],
+	])(
+		"saves and closes without a continuation when the flag is %s",
+		async (_name, flags, flagsReady) => {
+			const { complete, onClose, onSuccess } = renderCreate(flags, flagsReady);
+
+			await capturedSubmit?.(formData({}));
+
+			expect(complete).not.toHaveBeenCalled();
+			expect(onSuccess).toHaveBeenCalled();
+			expect(onClose).toHaveBeenCalled();
+		},
+	);
 });

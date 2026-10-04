@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { useStudentsMeRatingSuggestionsList } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
+import { useRatingFlowEnabled } from "./useRatingFlowEnabled";
 
 const ratingSuggestionSchema = z.object({
 	course_id: z.string().min(1),
@@ -21,8 +22,14 @@ const parseSuggestions = (data: unknown): RatingSuggestion[] =>
 
 export function useRatingSuggestions(excludeCourse?: string, enabled = true) {
 	const { isStudent } = useAuth();
+	const flowEnabled = useRatingFlowEnabled();
 	return useStudentsMeRatingSuggestionsList(
 		excludeCourse ? { exclude_course: excludeCourse } : undefined,
-		{ query: { enabled: enabled && isStudent, select: parseSuggestions } },
+		{
+			query: {
+				enabled: enabled && isStudent && flowEnabled,
+				select: parseSuggestions,
+			},
+		},
 	);
 }

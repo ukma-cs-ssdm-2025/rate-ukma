@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import type { RatingSuggestion } from "../hooks/useRatingSuggestions";
+import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { useRatingSuggestions } from "../hooks/useRatingSuggestions";
 import { RatingModal } from "./RatingModal";
 import { RatingSuggestions } from "./RatingSuggestions";
@@ -16,9 +17,12 @@ export function RatingSuggestionPrompt({
 	excludeCourse,
 	stacked = false,
 }: RatingSuggestionPromptProps) {
+	const flowEnabled = useRatingFlowEnabled();
 	const { data: suggestions } = useRatingSuggestions(excludeCourse);
 	const [selected, setSelected] = useState<RatingSuggestion | null>(null);
 	const items = compact ? suggestions?.slice(0, 1) : suggestions;
+
+	if (!flowEnabled) return null;
 
 	return (
 		<>

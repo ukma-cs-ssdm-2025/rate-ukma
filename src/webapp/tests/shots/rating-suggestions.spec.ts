@@ -292,8 +292,14 @@ test("delete confirmation during the pause is not interrupted by thanks", async 
 	await page.clock.install();
 	await page.clock.pauseAt(new Date(Date.now() + 100));
 	await page.getByTestId(testIds.rating.submitButton).click();
-	await page.clock.runFor(100);
-	await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible();
+	// A paused clock also stalls React Query's notifications, so advance it in
+	// small steps until the refreshed rating shows, well inside the 500 ms pause.
+	await expect(async () => {
+		await page.clock.runFor(50);
+		await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible({
+			timeout: 250,
+		});
+	}).toPass();
 	await expect(page.getByTestId("rating-saved-modal")).toHaveCount(0);
 	await page
 		.getByRole("button", { name: "Видалити оцінку", exact: true })
@@ -322,6 +328,87 @@ test("navigating during the pause cancels the thank-you popup", async ({
 	await page.getByRole("link", { name: "Курси", exact: true }).first().click();
 	await expect(page).toHaveURL(/\/$/);
 	await page.clock.install();
+	await page.clock.fastForward(1000);
+	await expect(page.getByTestId("rating-saved-modal")).toHaveCount(0);
+});
+
+for (const rateFlow of ["off", "pending"] as const) {
+	test(`fe_rate_flow ${rateFlow}: no invitations and no suggestions request`, async ({
+		page,
+	}) => {
+		const suggestionRequests: string[] = [];
+		page.on("request", (request) => {
+			if (request.url().includes("/rating-suggestions/"))
+				suggestionRequests.push(request.url());
+		});
+		await mockBackend(page, {
+			ratingSuggestions: "items",
+			myCourses: "rated",
+			rateFlow,
+		});
+		await page.goto("/my-ratings");
+		await expect(
+			page.getByRole("heading", { name: "Мої оцінки", exact: true }),
+		).toBeVisible();
+		await page.goto(`/courses/${COURSE.id}`);
+		await expect(
+			page.getByRole("heading", { name: COURSE.title, exact: true }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("region", { name: "Дисципліни до оцінювання" }),
+		).toHaveCount(0);
+		expect(suggestionRequests).toEqual([]);
+	});
+}
+
+test("fe_rate_flow off: saving still refreshes the page with no thanks or suggestions request", async ({
+	page,
+}) => {
+	const suggestionRequests: string[] = [];
+	page.on("request", (request) => {
+		if (request.url().includes("/rating-suggestions/"))
+			suggestionRequests.push(request.url());
+	});
+	await mockBackend(page, {
+		ratingSuggestions: "items",
+		myCourses: "rateable",
+		rateFlow: "off",
+	});
+	await page.goto(`/courses/${COURSE.id}`);
+	await page.getByRole("button", { name: "Оцінити курс", exact: true }).click();
+	await score(page);
+	await page.getByTestId(testIds.rating.submitButton).click();
+	await expect(page.getByText("Оцінку успішно додано")).toBeVisible();
+	await expect(page.getByTestId(testIds.rating.modal)).toHaveCount(0);
+	await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible();
+	await page.waitForTimeout(1000);
+	await expect(page.getByTestId("rating-saved-modal")).toHaveCount(0);
+	await expect(
+		page.getByRole("region", { name: "Дисципліни до оцінювання" }),
+	).toHaveCount(0);
+	expect(suggestionRequests).toEqual([]);
+});
+
+test("turning fe_rate_flow off during the pause cancels the thank-you popup", async ({
+	page,
+}) => {
+	await mockBackend(page, {
+		ratingSuggestions: "items",
+		myCourses: "rateable",
+	});
+	await page.goto(`/courses/${COURSE.id}`);
+	await page.getByRole("button", { name: "Оцінити курс", exact: true }).click();
+	await score(page);
+	await page.clock.install();
+	await page.getByTestId(testIds.rating.submitButton).click();
+	await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible();
+	await page.evaluate(() =>
+		(
+			globalThis as unknown as {
+				featureFlags: { set: (name: string, value: boolean) => void };
+			}
+		).featureFlags.set("fe_rate_flow", false),
+	);
 	await page.clock.fastForward(1000);
 	await expect(page.getByTestId("rating-saved-modal")).toHaveCount(0);
 });
