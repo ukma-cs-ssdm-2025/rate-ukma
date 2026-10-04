@@ -377,11 +377,12 @@ test("fe_rate_flow off: saving still refreshes the page with no thanks or sugges
 	await page.goto(`/courses/${COURSE.id}`);
 	await page.getByRole("button", { name: "Оцінити курс", exact: true }).click();
 	await score(page);
+	await page.clock.install();
 	await page.getByTestId(testIds.rating.submitButton).click();
 	await expect(page.getByText("Оцінку успішно додано")).toBeVisible();
 	await expect(page.getByTestId(testIds.rating.modal)).toHaveCount(0);
 	await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible();
-	await page.waitForTimeout(1000);
+	await page.clock.fastForward(1000);
 	await expect(page.getByTestId("rating-saved-modal")).toHaveCount(0);
 	await expect(
 		page.getByRole("region", { name: "Дисципліни до оцінювання" }),
@@ -400,8 +401,15 @@ test("turning fe_rate_flow off during the pause cancels the thank-you popup", as
 	await page.getByRole("button", { name: "Оцінити курс", exact: true }).click();
 	await score(page);
 	await page.clock.install();
+	await page.clock.pauseAt(new Date(Date.now() + 100));
 	await page.getByTestId(testIds.rating.submitButton).click();
-	await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible();
+	// Step the paused clock until the refresh lands; the 500 ms thanks timer is then pending.
+	await expect(async () => {
+		await page.clock.runFor(50);
+		await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible({
+			timeout: 250,
+		});
+	}).toPass();
 	await page.evaluate(() =>
 		(
 			globalThis as unknown as {

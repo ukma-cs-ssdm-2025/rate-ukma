@@ -4,10 +4,15 @@ import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
 } from "@/lib/api/generated";
+import { toast } from "@/components/ui/Toaster";
 import { testIds } from "@/lib/test-ids";
 import { render, screen } from "@/test-utils/render";
 import { RatingContinuationContext } from "../RatingContinuationContext";
 import { RatingModal, type RatingFormData } from "./RatingModal";
+
+vi.mock("@/components/ui/Toaster", () => ({
+	toast: { success: vi.fn(), error: vi.fn() },
+}));
 
 vi.mock("@/lib/api/generated", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("@/lib/api/generated")>();
@@ -207,6 +212,7 @@ describe("RatingModal new-rating continuation behind fe_rate_flow", () => {
 			await capturedSubmit?.(formData({}));
 
 			expect(complete).not.toHaveBeenCalled();
+			expect(toast.success).toHaveBeenCalledWith("Оцінку успішно додано");
 			expect(onSuccess).toHaveBeenCalled();
 			expect(onClose).toHaveBeenCalled();
 		},

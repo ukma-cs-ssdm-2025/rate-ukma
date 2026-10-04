@@ -65,6 +65,7 @@ describe("RatingSuggestionPrompt behind fe_rate_flow", () => {
 				screen.queryByRole("region", { name: "Дисципліни до оцінювання" }),
 			).toBeNull();
 			const calls = vi.mocked(useStudentsMeRatingSuggestionsList).mock.calls;
+			expect(calls.length).toBeGreaterThan(0);
 			for (const [, options] of calls) {
 				expect(options?.query?.enabled).toBe(false);
 			}

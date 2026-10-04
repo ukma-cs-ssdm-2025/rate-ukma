@@ -69,7 +69,6 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 		<RatingContinuationContext.Provider
 			value={{
 				complete: (rating, offerNext) => {
-					if (!flowEnabled) return;
 					setVisible(false);
 					if (offerNext) {
 						setCompletion({ ...rating, pathname });

@@ -62,6 +62,7 @@ def test_non_allowlisted_flag_is_never_exposed(api_client, settings):
 
 
 @pytest.mark.django_db
+@pytest.mark.integration
 def test_rate_flow_flag_is_public_and_off_by_default(api_client):
     response = api_client.get(FLAGS_URL)
 
