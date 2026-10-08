@@ -42,7 +42,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - **Student**: a person from САЗ rosters, with email, last name, first name, patronymic and programme.
 - **Enrolment**: one student on one offering, with a status and a group.
 - **Run**: one pass of the worker over one part of a source, for example САЗ courses of 2026-27.
-- **Page snapshot**: every field of an HTML page as text, or a JSON response as it came.
+- **Page snapshot**: an HTML page without the parts that change on every request, such as the security token, or a JSON response as it came. It keeps the page's tables and labels, so a later parser can read new fields from it.
 - **Review case**: a match the service could not decide, published with its safe answer and waiting for staff.
 - **Decision**: a staff answer to a review case, stored as its own row.
 - **Change number**: the number of the last change to a row, from one counter for the whole service.
@@ -54,9 +54,9 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 2. The worker stores a page snapshot when its hash changes, then parses the snapshot. A parser fix re-parses stored snapshots and sends no request to the source. Raw HTML is kept only when a snapshot fails: САЗ puts a new security token into every response, so raw HTML never hashes the same.
 3. A run visits each course page once and fetches its card and roster together.
 4. Soft delete: no row is ever deleted. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Вступ до аналізу даних». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
-5. Every change, removals included, gets the next number from one counter. Runs and decisions write one at a time, so a reader never sees a number before all smaller numbers. A reader asks for rows with a number above the highest one it saved, and saves the new highest number only after it has stored every page. A row that changes during a sync gets a new number, so it comes later in the same sync or in the next one. Readers never sync by time: a row gets its time when its write starts but becomes visible only when the write commits, so a sync in between skips it.
+5. Every change, removals included, gets the next number from one counter, and writes take turns, so the numbers appear in order. A reader asks for rows above the highest number it saved, and saves the new one only after it has stored every page. Readers never sync by time: a slow write can appear after a later one and be skipped.
 6. A run publishes new and changed rows at once. When it would remove more of the offerings it covers than a set threshold allows, it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and becomes a review case.
-7. An offering can run in more than one term, for example in fall and in spring. The service stores every term of an offering and has no single "semester" field.
+7. An offering can run in more than one term, for example in fall and in spring. The service stores every term of an offering and has no single "semester" field. Rate UKMA picks one term for its own semester field when it syncs, as its importer does today.
 8. The service keeps what it read from a page apart from what it works out from it: which course an offering belongs to and which teachers teach it. These links are computed from stored pages plus decisions. A better matching rule runs again on stored data and needs no new crawl.
 9. The first import takes Rate UKMA's current courses as the course groups, so every course and its ratings keep their place. After that, the safe answers are:
    - a new offering with no clear course starts a new course, not a merge;
