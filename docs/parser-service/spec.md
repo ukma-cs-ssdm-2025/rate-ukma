@@ -27,6 +27,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 | Hosting | Rate UKMA monorepo, own folder and own database. | Shared context and CI. HTTP is the only link to Rate UKMA. |
 | | Kubernetes on Hetzner, set up with Terraform ([deployment](deployment-infrastructure.md)). | Rate UKMA already runs on Hetzner. Terraform keeps the new cluster in code. |
 | | `data.rateukma.com` | `rateukma.com/api/` is already Rate UKMA's API. |
+| Observability | Sentry for errors, logs and alerts from the first release. | Rate UKMA already uses it. Rate UKMA keeps working when the service fails, so without alerts a failure is silent. |
 
 ## Glossary
 
@@ -104,6 +105,20 @@ Every list takes `updatedAfter` and uses cursor pagination. Every response says 
 - The audit log records key changes, extra runs, decisions and every read of student data. It stores no data values.
 - No real student data in fixtures, logs, screenshots or issues.
 
+## Observability
+
+Rate UKMA keeps working when the service fails, so nobody sees a failure unless something reports it. For example, САЗ renames a field on the course card. Every page fails to parse and keeps its last good version, so the data stops changing and no user sees an error.
+
+Every run and Rate UKMA's daily sync check in to a Sentry cron monitor. Sentry events and logs carry ids and counts, never student names, emails or page content.
+
+| Signal | Alert when | Seen in |
+| --- | --- | --- |
+| A run fails, including a failed САЗ sign-in | at once | Sentry |
+| A source part, or Rate UKMA's sync, has no successful run | 26 hours | Sentry cron monitors |
+| Pages that fail to parse in one run | more than 5% | Sentry, staff section |
+| Open review cases, and the age of the oldest | oldest is older than 7 days | Sentry, staff section |
+| Requests to САЗ and their errors, requests per key | САЗ errors (429, 5xx) above 5% | Sentry, staff section |
+
 ## Acceptance criteria
 
 - [ ] Every endpoint returns 403 to a key without its scope, and the 403 names that scope. A new key reads offerings but not students.
@@ -117,6 +132,9 @@ Every list takes `updatedAfter` and uses cursor pagination. Every response says 
 - [ ] An extra run for a part that already has a queued run returns that run.
 - [ ] Rate UKMA data is less than one day old, Rate UKMA works with the service stopped, and `src/backend/scraper` is deleted.
 - [ ] Some 2026-27 offerings in Rate UKMA have a teacher.
+- [ ] A run where more than 5% of pages fail to parse sends a Sentry alert.
+- [ ] When Rate UKMA's daily sync does not run, a Sentry alert fires within 26 hours.
+- [ ] No Sentry event or log line holds a student name or email.
 
 ## Out of scope
 
@@ -131,3 +149,4 @@ Not planned:
 Later, no priority now:
 
 - САЗ schedule files.
+- Metrics dashboards and tracing beyond Sentry (Prometheus, Loki), with the observability ADR from the [deployment](deployment-infrastructure.md) doc.
