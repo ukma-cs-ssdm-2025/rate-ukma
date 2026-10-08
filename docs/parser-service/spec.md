@@ -54,7 +54,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 3. A run visits each course page once and fetches its card and roster together.
 4. Soft delete: no row is ever deleted. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Вступ до аналізу даних». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
 5. Every row has `updatedAt`, and readers sync by asking for rows updated after their last sync, removals included. Runs apply their changes one at a time, so a reader never misses a row.
-6. A run publishes new and changed rows at once. When it would remove more than 10% of the offerings it covers, it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and becomes a review case.
+6. A run publishes new and changed rows at once. When it would remove more of the offerings it covers than a set threshold allows, it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and becomes a review case.
 7. An offering can run in more than one term, for example in fall and in spring. The service stores every term of an offering and has no single "semester" field.
 8. The service keeps what it read from a page apart from what it works out from it: which course an offering belongs to and which teachers teach it. These links are computed from stored pages plus decisions. A better matching rule runs again on stored data and needs no new crawl.
 9. The first import takes Rate UKMA's current courses as the course groups, so every course and its ratings keep their place. After that, the safe answers are:
@@ -111,30 +111,21 @@ Rate UKMA keeps working when the service fails, so nobody sees a failure unless 
 
 Every run and Rate UKMA's daily sync check in to a Sentry cron monitor. Sentry events and logs carry ids and counts, never student names, emails or page content.
 
-| Signal | Alert when | Seen in |
-| --- | --- | --- |
-| A run fails, including a failed САЗ sign-in | at once | Sentry |
-| A source part, or Rate UKMA's sync, has no successful run | 26 hours | Sentry cron monitors |
-| Pages that fail to parse in one run | more than 5% | Sentry, staff section |
-| Open review cases, and the age of the oldest | oldest is older than 7 days | Sentry, staff section |
-| Requests to САЗ and their errors, requests per key | САЗ errors (429, 5xx) above 5% | Sentry, staff section |
+Each signal alerts when it crosses a threshold. Thresholds are settings, picked after the first weeks of real runs.
 
-## Acceptance criteria
+| Signal | Seen in |
+| --- | --- |
+| A run fails, including a failed САЗ sign-in | Sentry |
+| A source part, or Rate UKMA's sync, has no successful run for too long | Sentry cron monitors |
+| Pages that fail to parse in one run | Sentry, staff section |
+| Open review cases, and the age of the oldest | Sentry, staff section |
+| Requests to САЗ and their errors (429, 5xx), requests per key | Sentry, staff section |
 
-- [ ] Every endpoint returns 403 to a key without its scope, and the 403 names that scope. A new key reads offerings but not students.
-- [ ] A key without the students scope gets no student name or email from any endpoint.
-- [ ] Every САЗ code that Rate UKMA holds for 2018 to 2025 exists in the service.
-- [ ] A run that would remove more than 10% of its offerings publishes its other changes and removes nothing until a decision.
-- [ ] Re-parsing every stored snapshot sends no request to САЗ.
-- [ ] Recomputing course groups and teacher links keeps every decision.
-- [ ] A list read with `updatedAfter` returns every row added, changed or removed since then.
-- [ ] A merged course has `removedAt` and `mergedInto`, and Rate UKMA redirects its old page.
-- [ ] An extra run for a part that already has a queued run returns that run.
-- [ ] Rate UKMA data is less than one day old, Rate UKMA works with the service stopped, and `src/backend/scraper` is deleted.
-- [ ] Some 2026-27 offerings in Rate UKMA have a teacher.
-- [ ] A run where more than 5% of pages fail to parse sends a Sentry alert.
-- [ ] When Rate UKMA's daily sync does not run, a Sentry alert fires within 26 hours.
-- [ ] No Sentry event or log line holds a student name or email.
+## Done when
+
+- Rate UKMA syncs from the service every day, works with the service stopped, and `src/backend/scraper` is deleted.
+- Every САЗ code that Rate UKMA holds for 2018 to 2025 exists in the service.
+- Some 2026-27 offerings in Rate UKMA have a teacher.
 
 ## Out of scope
 
