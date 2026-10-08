@@ -54,8 +54,8 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 2. The worker stores a page snapshot when its hash changes, then parses the snapshot. A parser fix re-parses stored snapshots and sends no request to the source. Raw HTML is kept only when a snapshot fails: САЗ puts a new security token into every response, so raw HTML never hashes the same.
 3. A run visits each course page once and fetches its card and roster together.
 4. Soft delete: no row is ever deleted. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Вступ до аналізу даних». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
-5. Every change, removals included, gets the next number from one counter, and writes take turns, so the numbers appear in order. A reader asks for rows above the highest number it saved, and saves the new one only after it has stored every page. Readers never sync by time: a slow write can appear after a later one and be skipped.
-6. A run publishes new and changed rows at once. When it would remove more of the offerings it covers than a set threshold allows, it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and becomes a review case.
+5. Every change, removals included, gets the next number from one counter, and writes take turns, so the numbers appear in order. A reader keeps one saved number per list, asks each list for rows above its number, and saves the list's new number only after it has stored every page of it. Readers never sync by time: a slow write can appear after a later one and be skipped.
+6. A run publishes new and changed rows at once. It removes rows only when it read its whole part of the source without errors, so a partial crawl removes nothing. When it would remove more of the offerings it covers than a set threshold allows, it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and becomes a review case.
 7. An offering can run in more than one term, for example in fall and in spring. The service stores every term of an offering and has no single "semester" field. Rate UKMA picks one term for its own semester field when it syncs, as its importer does today.
 8. The service keeps what it read from a page apart from what it works out from it: which course an offering belongs to and which teachers teach it. These links are computed from stored pages plus decisions. A better matching rule runs again on stored data and needs no new crawl.
 9. The first import takes Rate UKMA's current courses as the course groups, so every course and its ratings keep their place. After that, the safe answers are:
@@ -113,7 +113,7 @@ Rate UKMA keeps working when the service fails, so nobody sees a failure unless 
 
 Every run and Rate UKMA's daily sync check in to a Sentry cron monitor. Sentry events and logs carry ids and counts, never student names, emails or page content.
 
-Each signal alerts when it crosses a threshold. Thresholds are settings, picked after the first weeks of real runs.
+Each signal alerts when it crosses a threshold. Thresholds are settings. Each gets a starting value before the first release and is tuned after the first weeks of real runs.
 
 | Signal | Seen in |
 | --- | --- |
