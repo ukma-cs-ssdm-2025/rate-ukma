@@ -45,6 +45,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - **Page snapshot**: every field of an HTML page as text, or a JSON response as it came.
 - **Review case**: a match the service could not decide, published with its safe answer and waiting for staff.
 - **Decision**: a staff answer to a review case, stored as its own row.
+- **Change number**: the number of the last change to a row, from one counter for the whole service.
 - **Scope**: one permission on a key.
 
 ## Rules
@@ -53,7 +54,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 2. The worker stores a page snapshot when its hash changes, then parses the snapshot. A parser fix re-parses stored snapshots and sends no request to the source. Raw HTML is kept only when a snapshot fails: САЗ puts a new security token into every response, so raw HTML never hashes the same.
 3. A run visits each course page once and fetches its card and roster together.
 4. Soft delete: no row is ever deleted. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Вступ до аналізу даних». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
-5. Every row has `updatedAt`, and readers sync by asking for rows updated after their last sync, removals included. Runs apply their changes one at a time, so a reader never misses a row.
+5. Every change, removals included, gets the next number from one counter. Runs and decisions write one at a time, so a reader never sees a number before all smaller numbers. A reader asks for rows with a number above the highest one it saved, and saves the new highest number only after it has stored every page. A row that changes during a sync gets a new number, so it comes later in the same sync or in the next one. Readers never sync by time: a row gets its time when its write starts but becomes visible only when the write commits, so a sync in between skips it.
 6. A run publishes new and changed rows at once. When it would remove more of the offerings it covers than a set threshold allows, it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and becomes a review case.
 7. An offering can run in more than one term, for example in fall and in spring. The service stores every term of an offering and has no single "semester" field.
 8. The service keeps what it read from a page apart from what it works out from it: which course an offering belongs to and which teachers teach it. These links are computed from stored pages plus decisions. A better matching rule runs again on stored data and needs no new crawl.
@@ -81,11 +82,12 @@ JSON under `/v1`. The OpenAPI file is generated from the code and is the contrac
 | | an extra run of one source part | Start runs |
 | Review cases | open cases, their safe answers, decisions | Decide review cases |
 
-Every list takes `updatedAfter` and uses cursor pagination. Every response says when its data was last updated.
+Every list takes the change number a reader saved and uses cursor pagination. Every response says when its data was last updated.
 
 ## Access and personal data
 
 - A key goes in a header. It is shown once, stored as a hash, expires and can be revoked.
+- The first key comes from the service's command line. Every later key is made with a key that can manage keys.
 - Scopes are picked when a key is created. To change them, issue a new key and revoke the old one.
 
 | Scope | Gives | Default |
@@ -132,7 +134,7 @@ Each signal alerts when it crosses a threshold. Thresholds are settings, picked 
 Not planned:
 
 - keys that students create, and a sign-in page for keys;
-- a separate change feed, because `updatedAfter` covers it;
+- a separate change feed, because lists by change number cover it;
 - a UI inside the service;
 - write endpoints other than an extra run and decisions;
 - live seat counts.
