@@ -887,9 +887,28 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "teaching-trends",
+		section: "Викладачу",
+		note: "Usefulness across semesters against the faculty average",
+		run: async (page) => {
+			await openTeaching(page);
+			await scrollToHeading(page, "Динаміка");
+		},
+	},
+	{
+		name: "teaching-trends-participation",
+		section: "Викладачу",
+		note: "Share of enrolled students who rated, per semester",
+		run: async (page) => {
+			await openTeaching(page);
+			await page.getByRole("radio", { name: "Участь" }).click();
+			await scrollToHeading(page, "Динаміка");
+		},
+	},
+	{
 		name: "teaching-distribution",
 		section: "Викладачу",
-		note: "How the scores spread, and every semester side by side",
+		note: "How the scores spread",
 		run: async (page) => {
 			await openTeaching(page);
 			await scrollToHeading(page, "Розподіл оцінок");
@@ -907,11 +926,14 @@ const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "teaching-past-semester",
 		section: "Викладачу",
-		note: "An earlier semester picked from the table",
+		note: "An earlier semester picked in the select",
 		run: async (page) => {
 			await openTeaching(page);
-			await page.getByRole("cell", { name: "Весна 2025" }).click();
-			await page.getByRole("heading", { name: "Розподіл оцінок" }).waitFor();
+			await page.getByTestId("teaching-offering-select").click();
+			await page.getByRole("option", { name: "Весна 2025" }).click();
+			await scrollToHeading(page, "Динаміка");
+			// The picked option sat over the chart; move off so no tooltip shows.
+			await page.mouse.move(0, 0);
 		},
 	},
 	{

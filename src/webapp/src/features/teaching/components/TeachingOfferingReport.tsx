@@ -12,10 +12,10 @@ import {
 import { CourseStatsHero } from "@/features/courses/components/CourseStatsCards";
 import { getSemesterDisplay } from "@/features/courses/courseFormatting";
 import { MIN_RATED_TO_SHOW, type TeachingCourse } from "../types";
-import { OfferingHistory } from "./OfferingHistory";
 import { ParticipationCard } from "./ParticipationCard";
 import { ScoreDistribution } from "./ScoreDistribution";
 import { TeachingComments } from "./TeachingComments";
+import { TeachingTrends } from "./TeachingTrends";
 
 function TooFewRatings({ rated }: Readonly<{ rated: number }>) {
 	return (
@@ -89,31 +89,27 @@ export function TeachingOfferingReport({
 			{hidden ? (
 				<TooFewRatings rated={offering.rated} />
 			) : (
-				<>
-					<CourseStatsHero
-						difficulty={offering.avg_difficulty}
-						usefulness={offering.avg_usefulness}
-						ratingsCount={offering.rated}
-					/>
-					<ScoreDistribution
-						difficulty={offering.difficulty_counts}
-						usefulness={offering.usefulness_counts}
-					/>
-				</>
+				<CourseStatsHero
+					difficulty={offering.avg_difficulty}
+					usefulness={offering.avg_usefulness}
+					ratingsCount={offering.rated}
+				/>
 			)}
 
 			{course.offerings.length > 1 ? (
-				<section className="space-y-3">
-					<h3 className="text-lg font-semibold tracking-tight">
-						За семестрами
-					</h3>
-					<OfferingHistory
-						offerings={course.offerings}
-						selectedId={offering.id}
-						onSelect={onOfferingChange}
-					/>
-				</section>
+				<TeachingTrends
+					offerings={course.offerings}
+					selectedId={offering.id}
+					onSelect={onOfferingChange}
+				/>
 			) : null}
+
+			{hidden ? null : (
+				<ScoreDistribution
+					difficulty={offering.difficulty_counts}
+					usefulness={offering.usefulness_counts}
+				/>
+			)}
 
 			{hidden ? null : <TeachingComments comments={offering.comments} />}
 		</div>

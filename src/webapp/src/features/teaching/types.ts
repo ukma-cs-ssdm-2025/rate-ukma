@@ -29,6 +29,9 @@ export interface TeachingOffering {
 	readonly difficulty_counts: ScoreCounts;
 	readonly usefulness_counts: ScoreCounts;
 	readonly comments: readonly TeachingComment[];
+	/** Same semester, every course of the faculty, for comparison. */
+	readonly faculty_avg_difficulty: number | null;
+	readonly faculty_avg_usefulness: number | null;
 }
 
 export interface TeachingCourse {

@@ -704,6 +704,7 @@ function teachingOffering(
 	difficulty: Counts,
 	usefulness: Counts,
 	comments: TeachingOffering["comments"] = [],
+	faculty: readonly [number, number] = [3.3, 3.8],
 ): TeachingOffering {
 	return {
 		id,
@@ -716,6 +717,8 @@ function teachingOffering(
 		difficulty_counts: difficulty,
 		usefulness_counts: usefulness,
 		comments,
+		faculty_avg_difficulty: faculty[0],
+		faculty_avg_usefulness: faculty[1],
 	};
 }
 
@@ -761,6 +764,7 @@ export const TEACHING_COURSES: TeachingCourseList = {
 							Date.parse("2025-12-20T10:00:00Z") - index * 86_400_000 * 3,
 						).toISOString(),
 					})),
+					[3.3, 3.8],
 				),
 				teachingOffering(
 					"t-algo-2025-spring",
@@ -785,6 +789,7 @@ export const TEACHING_COURSES: TeachingCourseList = {
 							created_at: "2025-05-21T10:00:00Z",
 						},
 					],
+					[3.2, 3.7],
 				),
 				teachingOffering(
 					"t-algo-2024-fall",
@@ -793,6 +798,28 @@ export const TEACHING_COURSES: TeachingCourseList = {
 					98,
 					[1, 2, 4, 3, 2],
 					[1, 2, 3, 4, 2],
+					[],
+					[3.3, 3.7],
+				),
+				teachingOffering(
+					"t-algo-2024-spring",
+					2024,
+					"SPRING",
+					104,
+					[0, 1, 4, 3, 1],
+					[1, 2, 4, 2, 0],
+					[],
+					[3.2, 3.6],
+				),
+				teachingOffering(
+					"t-algo-2023-fall",
+					2023,
+					"FALL",
+					90,
+					[0, 1, 2, 2, 1],
+					[1, 2, 2, 1, 0],
+					[],
+					[3.3, 3.6],
 				),
 			],
 		},
