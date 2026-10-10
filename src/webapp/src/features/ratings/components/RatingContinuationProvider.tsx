@@ -13,7 +13,13 @@ import { refreshRatingQueries } from "../refreshRatingQueries";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { useRatingSuggestions } from "../hooks/useRatingSuggestions";
 import { toast } from "@/components/ui/Toaster";
+import {
+	useCoursesRetrieve,
+	useStudentsMeGradesRetrieve,
+	type StudentRatingsDetailed,
+} from "@/lib/api/generated";
 import { RatingSaved } from "./RatingSaved";
+import type { SemesterStoryData } from "./SemesterStory";
 
 interface Completion extends SavedRating {
 	readonly pathname: string;
@@ -28,6 +34,15 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 	const [followUp, setFollowUp] = useState<FollowUpRating | null>(null);
 	const flowEnabled = useRatingFlowEnabled();
 	const suggestions = useRatingSuggestions(completion?.courseId, !!completion);
+	const course = useCoursesRetrieve(completion?.courseId ?? "", {
+		query: { enabled: !!completion },
+	});
+	const grades = useStudentsMeGradesRetrieve({
+		query: { enabled: !!completion },
+	});
+	const story = completion
+		? semesterStory(grades.data, completion.courseId)
+		: null;
 
 	useEffect(() => {
 		if (!completion) return;
@@ -101,7 +116,18 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 					data-testid="rating-saved-modal"
 				>
 					<RatingSaved
-						suggestions={(suggestions.data ?? []).slice(0, 2)}
+						suggestions={(suggestions.data ?? []).slice(0, story ? 1 : 2)}
+						scores={
+							completion
+								? {
+										difficulty: completion.difficulty,
+										usefulness: completion.usefulness,
+										avgDifficulty: course.data?.avg_difficulty,
+										avgUsefulness: course.data?.avg_usefulness,
+									}
+								: undefined
+						}
+						story={story}
 						isLoading={suggestions.isLoading}
 						isError={suggestions.isError}
 						onSelect={(item) => {
@@ -119,4 +145,34 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 			</Dialog>
 		</RatingContinuationContext.Provider>
 	);
+}
+
+/** The saved course's semester, once every rateable course in it has a rating. */
+function semesterStory(
+	data: StudentRatingsDetailed | StudentRatingsDetailed[] | undefined,
+	courseId: string,
+): SemesterStoryData | null {
+	if (!data) return null;
+	const items = Array.isArray(data) ? data : [data];
+	const semester = items.find((item) => item.course_id === courseId)?.semester;
+	if (!semester?.year || !semester.season) return null;
+	const inSemester = items.filter(
+		(item) =>
+			item.semester?.year === semester.year &&
+			item.semester?.season === semester.season,
+	);
+	if (inSemester.some((item) => item.can_rate && !item.rated)) return null;
+	const ratings = inSemester.flatMap((item) =>
+		item.rated?.difficulty && item.rated.usefulness
+			? [
+					{
+						title: item.course_title ?? "",
+						difficulty: item.rated.difficulty,
+						usefulness: item.rated.usefulness,
+					},
+				]
+			: [],
+	);
+	if (ratings.length < 2) return null;
+	return { year: semester.year, season: semester.season, ratings };
 }

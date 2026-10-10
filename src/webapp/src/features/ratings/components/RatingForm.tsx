@@ -29,6 +29,8 @@ import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
 } from "../definitions/ratingDefinitions";
+import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
+import { QuickTags } from "./QuickTags";
 import { RatingCardBody } from "./RatingCardBody";
 
 const ratingSchema = z.object({
@@ -225,6 +227,7 @@ function RatingFormFields({
 	const difficulty = useWatch({ control, name: "difficulty" });
 	const usefulness = useWatch({ control, name: "usefulness" });
 	const instructorIds = useWatch({ control, name: "instructor_ids" });
+	const flowEnabled = useRatingFlowEnabled();
 	const [previewOpen, setPreviewOpen] = React.useState(false);
 	const { data: courseInstructors } = useCoursesInstructorsRetrieve(
 		courseId ?? "",
@@ -349,6 +352,8 @@ function RatingFormFields({
 					)}
 				/>
 			</div>
+
+			{flowEnabled && <QuickTags />}
 
 			<FormField<RatingFormData, "instructor_ids">
 				control={control}

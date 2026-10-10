@@ -36,6 +36,10 @@ vi.mock("@/features/promo/components/PromoBanner", () => {
 });
 
 // Covered by its own test; stubbed here so this file needs no flags provider.
+vi.mock("@/features/promo/components/FacultyProgress", () => ({
+	FacultyProgress: () => null,
+}));
+
 vi.mock("@/features/feed/components/FeedStrip", () => {
 	return {
 		FeedStrip: () => null,

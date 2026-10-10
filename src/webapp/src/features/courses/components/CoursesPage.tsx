@@ -11,6 +11,7 @@ import {
 	USEFULNESS_RANGE,
 } from "@/features/courses/courseFormatting";
 import { FeedStrip } from "@/features/feed/components/FeedStrip";
+import { FacultyProgress } from "@/features/promo/components/FacultyProgress";
 import { PromoBanner } from "@/features/promo/components/PromoBanner";
 import type { CoursesListParams } from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
@@ -68,6 +69,7 @@ export function CoursesPage() {
 		<Layout>
 			<div className="space-y-8">
 				<PromoBanner />
+				<FacultyProgress />
 				<FeedStrip />
 				{isError ? (
 					<CoursesErrorState onRetry={handleRetry} />

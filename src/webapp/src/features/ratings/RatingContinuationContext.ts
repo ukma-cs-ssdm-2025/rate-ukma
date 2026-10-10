@@ -5,6 +5,8 @@ import type { RatingSuggestion } from "./hooks/useRatingSuggestions";
 export interface SavedRating {
 	readonly courseId: string;
 	readonly isAnonymous: boolean;
+	readonly difficulty: number;
+	readonly usefulness: number;
 }
 
 export interface FollowUpRating extends RatingSuggestion {

@@ -195,6 +195,8 @@ describe("RatingModal new-rating continuation behind fe_rate_flow", () => {
 			{
 				courseId: "22222222-2222-2222-2222-222222222222",
 				isAnonymous: true,
+				difficulty: 3,
+				usefulness: 4,
 			},
 			true,
 		);
