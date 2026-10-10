@@ -156,6 +156,27 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             "id",
         )
 
+    def mentioned_on_course(
+        self, *, course_id: uuid.UUID, offering_id: uuid.UUID | None = None
+    ) -> QuerySet[InstructorModel]:
+        """Instructors named in ratings of ``course_id``, with mention counts.
+
+        ``ratings_count`` covers every offering of the course,
+        ``offering_ratings_count`` only ``offering_id`` (zero when omitted).
+        Ordered by this offering first, then the whole course, then name.
+        """
+        offering_filter = (
+            Q(ratings__course_offering_id=offering_id) if offering_id else Q(pk__in=[])
+        )
+        return (
+            InstructorModel.objects.filter(ratings__course_offering__course_id=course_id)
+            .annotate(
+                ratings_count=Count("ratings", distinct=True),
+                offering_ratings_count=Count("ratings", filter=offering_filter, distinct=True),
+            )
+            .order_by("-offering_ratings_count", "-ratings_count", "last_name", "first_name", "id")
+        )
+
     def get_many_by_ids(self, ids: list[uuid.UUID]) -> list[InstructorModel]:
         if not ids:
             return []

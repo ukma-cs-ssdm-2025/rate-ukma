@@ -161,6 +161,7 @@ export const testIds = {
 		usefulnessSlider: "rating-usefulness-slider",
 		commentTextarea: "rating-comment-textarea",
 		instructorMultiSelect: "rating-instructor-multiselect",
+		instructorQuickPicks: "rating-instructor-quick-picks",
 		legacyInstructorText: "rating-legacy-instructor-text",
 		anonymousCheckbox: "rating-anonymous-checkbox",
 		submitButton: "rating-submit-button",

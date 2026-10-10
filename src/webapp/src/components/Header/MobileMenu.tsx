@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { Link } from "@tanstack/react-router";
-import { LogOut, Moon, Sun, X } from "lucide-react";
+import { LogOut, X } from "lucide-react";
 
 import { Drawer } from "@/components/ui/Drawer";
 import {
@@ -11,6 +11,7 @@ import {
 import type { AuthUser } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import type { NavigationItem, ThemeOption } from "./navigationData";
+import { themeOptions } from "./navigationData";
 import { Logo } from "../Logo";
 import { Button } from "../ui/Button";
 
@@ -52,31 +53,34 @@ function ThemeSwitcher({
 	theme,
 	setTheme,
 }: Readonly<Pick<MobileMenuProps, "theme" | "setTheme">>) {
-	const toggleTheme = () => {
-		if (theme === "system") {
-			const systemTheme = globalThis.matchMedia("(prefers-color-scheme: dark)")
-				.matches
-				? "dark"
-				: "light";
-			setTheme(systemTheme === "dark" ? "light" : "dark");
-		} else {
-			setTheme(theme === "dark" ? "light" : "dark");
-		}
-	};
-
 	return (
 		<div className="mb-3 flex items-center justify-between">
 			<span className="text-sm text-muted-foreground">Тема</span>
-			<Button
-				variant="ghost"
-				size="icon"
-				onClick={toggleTheme}
-				className="h-9 w-9"
+			<div
+				className="flex items-center gap-1"
+				role="group"
+				aria-label="Обрати тему"
 			>
-				<Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-				<Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-				<span className="sr-only">Перемкнути тему</span>
-			</Button>
+				{themeOptions.map((option) => {
+					const Icon = option.icon;
+					const isActive = theme === option.value;
+					return (
+						<Button
+							key={option.value}
+							variant={isActive ? "secondary" : "ghost"}
+							size="icon"
+							onClick={() => setTheme(option.value)}
+							className="h-9 w-9"
+							aria-pressed={isActive}
+							title={option.label}
+							data-testid={`${testIds.header.themeToggle}-mobile-${option.value}`}
+						>
+							<Icon className="h-[1.2rem] w-[1.2rem]" />
+							<span className="sr-only">{option.label}</span>
+						</Button>
+					);
+				})}
+			</div>
 		</div>
 	);
 }

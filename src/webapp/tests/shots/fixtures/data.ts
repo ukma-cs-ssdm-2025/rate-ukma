@@ -2,6 +2,7 @@ import type {
 	CommentList,
 	CourseAnalytics,
 	CourseDetail,
+	CourseInstructorList,
 	CourseList,
 	CourseOffering,
 	CourseOfferingListResponse,
@@ -122,6 +123,43 @@ export const ANALYTICS = COURSES.map((course) => ({
 	ratings_count: course.ratings_count,
 	faculty_name: course.faculty_name,
 })) satisfies CourseAnalytics[];
+
+// Teachers other students named on the course; the third has a single old tag,
+// below the form's threshold, so only two show as picks.
+export const COURSE_INSTRUCTORS = {
+	items: [
+		{
+			instructor: {
+				id: "i-1",
+				first_name: "Олена",
+				patronymic: "Петрівна",
+				last_name: "Демченко",
+			},
+			ratings_count: 6,
+			offering_ratings_count: 3,
+		},
+		{
+			instructor: {
+				id: "i-2",
+				first_name: "Дмитро",
+				patronymic: "Олегович",
+				last_name: "Демчук",
+			},
+			ratings_count: 2,
+			offering_ratings_count: 0,
+		},
+		{
+			instructor: {
+				id: "i-3",
+				first_name: "Андрій",
+				patronymic: "",
+				last_name: "Коваль",
+			},
+			ratings_count: 1,
+			offering_ratings_count: 0,
+		},
+	],
+} satisfies CourseInstructorList;
 
 export const FILTER_OPTIONS = {
 	instructors: [{ id: "i-1", name: "Олена Демченко", department: null }],
