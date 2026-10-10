@@ -378,6 +378,52 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "rating-modal-teacher-preview",
+		section: "Оцінювання",
+		note: "Preview of the review with a chosen teacher, as others will see it",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rateable" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("heading", { level: 1, name: COURSE.title })
+				.waitFor();
+			await page.getByTestId("course-details-rate-button").click();
+			const modal = page.getByTestId(testIds.rating.modal);
+			await modal
+				.getByRole("button", { name: "Додати: Демченко Олена Петрівна" })
+				.click();
+			await modal
+				.getByTestId(testIds.rating.commentTextarea)
+				.fill("Чіткі пояснення і корисні практичні.");
+			await modal.getByRole("button", { name: "Як побачать інші" }).click();
+			const preview = modal.getByRole("region", {
+				name: "Попередній перегляд відгуку",
+			});
+			await preview.scrollIntoViewIfNeeded();
+		},
+	},
+	{
+		name: "rating-modal-teacher-chip-hover",
+		section: "Оцінювання",
+		note: "Pointer over a chosen teacher: the whole badge removes it",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rateable" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("heading", { level: 1, name: COURSE.title })
+				.waitFor();
+			await page.getByTestId("course-details-rate-button").click();
+			const modal = page.getByTestId(testIds.rating.modal);
+			await modal
+				.getByRole("button", { name: "Додати: Демченко Олена Петрівна" })
+				.click();
+			await modal
+				.getByTestId(testIds.rating.instructorMultiSelect)
+				.getByText("Демченко Олена Петрівна")
+				.hover();
+		},
+	},
+	{
 		name: "rating-modal-no-named-teachers",
 		section: "Оцінювання",
 		note: "Rating form on a course where nobody named a teacher yet: the hint stays",

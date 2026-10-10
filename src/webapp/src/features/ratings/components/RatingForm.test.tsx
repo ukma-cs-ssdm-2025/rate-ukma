@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { testIds } from "@/lib/test-ids";
-import { render, screen } from "@/test-utils/render";
+import { render, screen, within } from "@/test-utils/render";
 import { RatingForm } from "./RatingForm";
 import userEvent from "@testing-library/user-event";
 
@@ -108,6 +108,56 @@ describe("RatingForm", () => {
 			expect(
 				screen.queryByTestId(testIds.rating.instructorQuickPicks),
 			).not.toBeInTheDocument();
+		});
+
+		it("previews the chosen teacher and removes it by tapping its badge", async () => {
+			const user = userEvent.setup();
+			vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
+				data: {
+					items: [
+						{
+							instructor: {
+								id: "i-1",
+								first_name: "Олена",
+								patronymic: "Петрівна",
+								last_name: "Демченко",
+							},
+							ratings_count: 2,
+							offering_ratings_count: 1,
+						},
+					],
+				},
+			} as unknown as CourseInstructorsQuery);
+			render(
+				<RatingForm
+					onSubmit={vi.fn()}
+					onCancel={vi.fn()}
+					courseId="c-1"
+					offeringId="o-1"
+				/>,
+			);
+
+			await user.click(
+				screen.getByRole("button", { name: "Додати: Демченко Олена Петрівна" }),
+			);
+			await user.click(
+				screen.getByRole("button", { name: "Як побачать інші" }),
+			);
+			const preview = screen.getByRole("region", {
+				name: "Попередній перегляд відгуку",
+			});
+			expect(preview).toHaveTextContent("Викладач:Демченко Олена Петрівна");
+
+			// The name itself is part of the remove target, not only the ×.
+			await user.click(
+				within(
+					screen.getByTestId(testIds.rating.instructorMultiSelect),
+				).getByText("Демченко Олена Петрівна"),
+			);
+			expect(preview).not.toHaveTextContent("Демченко");
+			expect(
+				screen.getByRole("button", { name: "Додати: Демченко Олена Петрівна" }),
+			).toBeInTheDocument();
 		});
 
 		it("shows the previous free-text instructor read-only next to the multi-select", () => {

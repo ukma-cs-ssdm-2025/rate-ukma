@@ -106,6 +106,53 @@ describe("InstructorMultiSelect", () => {
 			expect(onChange).toHaveBeenCalledWith(["b"]);
 		});
 
+		it("removes a teacher when the chip's name is clicked, not only the ×", async () => {
+			const user = userEvent.setup();
+			const onChange = vi.fn();
+			const a = createMockInstructor({ id: "a", last_name: "Алексенко" });
+			const b = createMockInstructor({ id: "b", last_name: "Борисенко" });
+
+			renderWithProviders(
+				<InstructorMultiSelect
+					value={["a", "b"]}
+					onChange={onChange}
+					initialOptions={[a, b]}
+				/>,
+			);
+
+			await user.click(screen.getByText(/Алексенко/));
+
+			expect(onChange).toHaveBeenCalledWith(["b"]);
+			// Removing must not open the list as a side effect.
+			expect(screen.getByRole("combobox")).toHaveAttribute(
+				"aria-expanded",
+				"false",
+			);
+		});
+
+		it("removes a teacher with Enter on the focused chip", async () => {
+			const user = userEvent.setup();
+			const onChange = vi.fn();
+			const a = createMockInstructor({ id: "a", last_name: "Алексенко" });
+
+			renderWithProviders(
+				<InstructorMultiSelect
+					value={["a"]}
+					onChange={onChange}
+					initialOptions={[a]}
+				/>,
+			);
+
+			screen.getByRole("button", { name: /Видалити Алексенко/ }).focus();
+			await user.keyboard("{Enter}");
+
+			expect(onChange).toHaveBeenCalledWith([]);
+			expect(screen.getByRole("combobox")).toHaveAttribute(
+				"aria-expanded",
+				"false",
+			);
+		});
+
 		it("should keep a selected chip when search results no longer include it", async () => {
 			const user = userEvent.setup();
 			const selectedInstructor = createMockInstructor({

@@ -243,6 +243,22 @@ function RatingFormFields({
 		],
 		[initialInstructors, courseInstructors],
 	);
+	// Teachers found by search are not in the options above, so remember each
+	// one the student adds; the preview needs their names too.
+	const [searchedInstructors, setSearchedInstructors] = React.useState<
+		ReadonlyMap<string, Instructor>
+	>(() => new Map());
+	const rememberInstructor = React.useCallback((instructor: Instructor) => {
+		const { id } = instructor;
+		if (!id) return;
+		setSearchedInstructors((current) => new Map(current).set(id, instructor));
+	}, []);
+	const selectedInstructors = (instructorIds ?? []).flatMap((id) => {
+		const instructor =
+			searchedInstructors.get(id) ??
+			instructorOptions.find((option) => option.id === id);
+		return instructor ? [instructor] : [];
+	});
 	const signature = isAnonymous
 		? ANONYMOUS_REVIEW_NAME
 		: author?.name || DEFAULT_STUDENT_NAME;
@@ -358,6 +374,7 @@ function RatingFormFields({
 							<InstructorMultiSelect
 								value={field.value ?? []}
 								onChange={field.onChange}
+								onOptionPicked={rememberInstructor}
 								initialOptions={instructorOptions}
 								courseOfferingId={offeringId}
 								courseId={courseId}
@@ -454,6 +471,8 @@ function RatingFormFields({
 									difficulty={difficulty || undefined}
 									usefulness={usefulness || undefined}
 									comment={comment.trim() || null}
+									instructors={selectedInstructors}
+									instructor={legacyInstructor}
 									commentEmptyMessage="Без текстового відгуку"
 									upvotes={0}
 									downvotes={0}
