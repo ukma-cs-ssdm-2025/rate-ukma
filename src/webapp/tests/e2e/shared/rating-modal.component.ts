@@ -128,6 +128,13 @@ export class RatingModal {
 		return names;
 	}
 
+	/** The one-tap pick under the field for a teacher others named on the course. */
+	instructorQuickPick(fullName: string): Locator {
+		return this.modal
+			.getByTestId(testIds.rating.instructorQuickPicks)
+			.getByRole("button", { name: `Додати: ${fullName}`, exact: true });
+	}
+
 	/** Remove the chip at `index` by clicking its × button. */
 	async removeInstructorChipByIndex(index: number): Promise<void> {
 		await this.instructorChips.nth(index).locator("button").click();
