@@ -10,16 +10,19 @@ export interface FacultyStats {
 	ratings: number;
 	difficulty: number;
 	usefulness: number;
-	/** Students whose speciality belongs to this faculty. */
-	students: number;
-	studentsWhoRated: number;
+	/** Current students whose speciality belongs to this faculty. */
+	currentStudents: number;
+	currentWithAccount: number;
+	currentWhoRated: number;
 }
 
 export interface PlatformStats {
 	ratings: number;
 	ratedCourses: number;
-	students: number;
-	studentsSignedIn: number;
+	/** Students enrolled in 2025–26 or later, i.e. not graduates. */
+	currentStudents: number;
+	currentWithAccount: number;
+	currentWhoRated: number;
 	studentsWhoRated: number;
 	withComment: number;
 	anonymous: number;
@@ -28,12 +31,15 @@ export interface PlatformStats {
 	upvotes: number;
 	/** Average scores of anonymous vs signed ratings. */
 	byAnonymity: { group: string; difficulty: number; usefulness: number }[];
-	/** Students who rated, bucketed by how many ratings each wrote. */
-	ratersByCount: { bucket: string; students: number }[];
-	/** Rated courses with at least N ratings. */
-	coursesByRatings: { bucket: string; courses: number }[];
 	/** Years between the course and its rating. */
 	lag: { years: number; ratings: number }[];
+	/** Score counts 1..5 split by whether the rating was anonymous. */
+	scoresByAnonymity: Record<
+		"anonymous" | "named",
+		{ difficulty: number[]; usefulness: number[] }
+	>;
+	ratingsPerStudent: { n: number; students: number }[];
+	ratingsPerCourse: { n: number; courses: number }[];
 	byAcademicYear: { year: number; ratings: number; courses: number }[];
 	/** Index 0 is a score of 1. */
 	difficulty: number[];
@@ -46,8 +52,9 @@ export interface PlatformStats {
 export const PLATFORM_STATS: PlatformStats = {
 	ratings: 1793,
 	ratedCourses: 559,
-	students: 12766,
-	studentsSignedIn: 1226,
+	currentStudents: 5741,
+	currentWithAccount: 1191,
+	currentWhoRated: 219,
 	studentsWhoRated: 221,
 	withComment: 850,
 	anonymous: 1099,
@@ -57,18 +64,6 @@ export const PLATFORM_STATS: PlatformStats = {
 		{ group: "Анонімно", difficulty: 2.82, usefulness: 3.06 },
 		{ group: "З іменем", difficulty: 2.8, usefulness: 3.49 },
 	],
-	ratersByCount: [
-		{ bucket: "1", students: 65 },
-		{ bucket: "2–3", students: 42 },
-		{ bucket: "4–10", students: 61 },
-		{ bucket: "11+", students: 53 },
-	],
-	coursesByRatings: [
-		{ bucket: "3+", courses: 194 },
-		{ bucket: "5+", courses: 102 },
-		{ bucket: "10+", courses: 35 },
-		{ bucket: "20+", courses: 7 },
-	],
 	lag: [
 		{ years: 0, ratings: 57 },
 		{ years: 1, ratings: 967 },
@@ -76,6 +71,76 @@ export const PLATFORM_STATS: PlatformStats = {
 		{ years: 3, ratings: 164 },
 		{ years: 4, ratings: 52 },
 		{ years: 5, ratings: 11 },
+	],
+	scoresByAnonymity: {
+		anonymous: {
+			difficulty: [166, 319, 272, 227, 115],
+			usefulness: [161, 270, 239, 196, 233],
+		},
+		named: {
+			difficulty: [104, 193, 198, 134, 65],
+			usefulness: [67, 104, 154, 159, 210],
+		},
+	},
+	ratingsPerStudent: [
+		{ n: 1, students: 65 },
+		{ n: 2, students: 26 },
+		{ n: 3, students: 16 },
+		{ n: 4, students: 12 },
+		{ n: 5, students: 9 },
+		{ n: 6, students: 9 },
+		{ n: 7, students: 10 },
+		{ n: 8, students: 7 },
+		{ n: 9, students: 3 },
+		{ n: 10, students: 11 },
+		{ n: 11, students: 8 },
+		{ n: 12, students: 3 },
+		{ n: 13, students: 2 },
+		{ n: 14, students: 1 },
+		{ n: 15, students: 6 },
+		{ n: 17, students: 1 },
+		{ n: 18, students: 2 },
+		{ n: 19, students: 1 },
+		{ n: 21, students: 1 },
+		{ n: 22, students: 5 },
+		{ n: 23, students: 2 },
+		{ n: 24, students: 2 },
+		{ n: 25, students: 2 },
+		{ n: 29, students: 1 },
+		{ n: 30, students: 3 },
+		{ n: 31, students: 2 },
+		{ n: 32, students: 2 },
+		{ n: 33, students: 1 },
+		{ n: 35, students: 1 },
+		{ n: 37, students: 1 },
+		{ n: 39, students: 1 },
+		{ n: 43, students: 2 },
+		{ n: 45, students: 2 },
+		{ n: 52, students: 1 },
+	],
+	ratingsPerCourse: [
+		{ n: 1, courses: 250 },
+		{ n: 2, courses: 115 },
+		{ n: 3, courses: 62 },
+		{ n: 4, courses: 30 },
+		{ n: 5, courses: 27 },
+		{ n: 6, courses: 16 },
+		{ n: 7, courses: 11 },
+		{ n: 8, courses: 7 },
+		{ n: 9, courses: 6 },
+		{ n: 10, courses: 5 },
+		{ n: 11, courses: 7 },
+		{ n: 12, courses: 6 },
+		{ n: 14, courses: 2 },
+		{ n: 15, courses: 3 },
+		{ n: 16, courses: 2 },
+		{ n: 19, courses: 3 },
+		{ n: 23, courses: 1 },
+		{ n: 24, courses: 1 },
+		{ n: 25, courses: 1 },
+		{ n: 28, courses: 2 },
+		{ n: 36, courses: 1 },
+		{ n: 64, courses: 1 },
 	],
 	byAcademicYear: [
 		{ year: 2021, ratings: 11, courses: 11 },
@@ -110,8 +175,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 885,
 			difficulty: 2.99,
 			usefulness: 3.18,
-			students: 1794,
-			studentsWhoRated: 106,
+			currentStudents: 824,
+			currentWithAccount: 422,
+			currentWhoRated: 105,
 		},
 		{
 			abbr: "ФГН",
@@ -122,8 +188,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 301,
 			difficulty: 2.75,
 			usefulness: 3.49,
-			students: 2474,
-			studentsWhoRated: 24,
+			currentStudents: 1055,
+			currentWithAccount: 171,
+			currentWhoRated: 24,
 		},
 		{
 			abbr: "ФСНСТ",
@@ -134,8 +201,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 266,
 			difficulty: 2.73,
 			usefulness: 3.5,
-			students: 2323,
-			studentsWhoRated: 40,
+			currentStudents: 1125,
+			currentWithAccount: 193,
+			currentWhoRated: 40,
 		},
 		{
 			abbr: "ФЕН",
@@ -146,8 +214,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 152,
 			difficulty: 2.43,
 			usefulness: 2.84,
-			students: 2454,
-			studentsWhoRated: 31,
+			currentStudents: 1131,
+			currentWithAccount: 238,
+			currentWhoRated: 31,
 		},
 		{
 			abbr: "ФОЗ",
@@ -158,8 +227,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 91,
 			difficulty: 2.4,
 			usefulness: 2.64,
-			students: 959,
-			studentsWhoRated: 4,
+			currentStudents: 480,
+			currentWithAccount: 79,
+			currentWhoRated: 4,
 		},
 		{
 			abbr: "ФПрН",
@@ -170,8 +240,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 47,
 			difficulty: 2.13,
 			usefulness: 2.77,
-			students: 775,
-			studentsWhoRated: 6,
+			currentStudents: 264,
+			currentWithAccount: 30,
+			currentWhoRated: 6,
 		},
 		{
 			abbr: "ФПвН",
@@ -182,8 +253,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 38,
 			difficulty: 3.42,
 			usefulness: 3.82,
-			students: 1810,
-			studentsWhoRated: 9,
+			currentStudents: 690,
+			currentWithAccount: 49,
+			currentWhoRated: 8,
 		},
 	],
 };

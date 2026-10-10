@@ -22,12 +22,11 @@ import {
 import {
 	type ChartConfig,
 	ChartContainer,
-	ChartLegend,
-	ChartLegendContent,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/Chart";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import type { FacultyStats, PlatformStats } from "../statsData";
 
 const number = new Intl.NumberFormat("uk-UA");
@@ -293,67 +292,160 @@ export function ActivityChart({ stats }: Readonly<{ stats: PlatformStats }>) {
 	);
 }
 
-const scoresConfig = {
-	difficulty: { label: "Складність", color: "var(--destructive)" },
-	usefulness: { label: "Корисність", color: "var(--primary)" },
-} satisfies ChartConfig;
+const SCORE_KEYS = ["s1", "s2", "s3", "s4", "s5"] as const;
+// Lightest for 1, full colour for 5: one hue per metric, darker means higher.
+const SCORE_OPACITY = [0.22, 0.4, 0.58, 0.78, 1];
+
+type ScoreRow = { label: string; counts: number[] };
+
+function scoreRows(rows: ScoreRow[]) {
+	return rows.map((row) => {
+		const total = row.counts.reduce((sum, c) => sum + c, 0) || 1;
+		const entry: Record<string, number | string> = {
+			label: row.label,
+			avg: row.counts.reduce((sum, c, i) => sum + c * (i + 1), 0) / total,
+		};
+		row.counts.forEach((count, i) => {
+			entry[SCORE_KEYS[i]] = percent(count, total);
+			entry[`${SCORE_KEYS[i]}Count`] = count;
+		});
+		return entry;
+	});
+}
+
+const scoreConfig = Object.fromEntries(
+	SCORE_KEYS.map((key, i) => [key, { label: `Оцінка ${i + 1}` }]),
+) satisfies ChartConfig;
+
+const ROW_HEIGHT = 40;
+
+/** 100% bars of how often each score from 1 to 5 was given, one row per group. */
+function ScoreSplitPanel({
+	title,
+	color,
+	rows,
+}: Readonly<{ title: string; color: string; rows: ScoreRow[] }>) {
+	const data = scoreRows(rows);
+	// Phones leave a segment too narrow for its percentage; the tooltip has it.
+	const showLabels = useMediaQuery("(min-width: 640px)");
+	return (
+		<div>
+			<div className="mb-2 flex items-baseline justify-between gap-3">
+				<p className="text-sm font-medium">{title}</p>
+				<p className="text-xs text-muted-foreground">середнє</p>
+			</div>
+			<div className="grid grid-cols-[minmax(0,1fr)_2.5rem] items-center gap-3">
+				<ChartContainer
+					config={scoreConfig}
+					className="aspect-auto w-full"
+					style={{ height: data.length * ROW_HEIGHT }}
+				>
+					<BarChart
+						data={data}
+						layout="vertical"
+						margin={{ left: 0, right: 0, top: 0, bottom: 0 }}
+						barCategoryGap={8}
+					>
+						<XAxis type="number" hide domain={[0, 100]} />
+						<YAxis
+							type="category"
+							dataKey="label"
+							tickLine={false}
+							axisLine={false}
+							width={76}
+						/>
+						<ChartTooltip
+							cursor={false}
+							content={
+								<ChartTooltipContent
+									hideIndicator
+									formatter={percentFormatter(scoreConfig)}
+								/>
+							}
+						/>
+						{SCORE_KEYS.map((key, i) => (
+							<Bar
+								key={key}
+								isAnimationActive={animate}
+								dataKey={key}
+								stackId="split"
+								fill={color}
+								fillOpacity={SCORE_OPACITY[i]}
+								stroke="var(--card)"
+								strokeWidth={2}
+								radius={i === 0 ? [4, 0, 0, 4] : i === 4 ? [0, 4, 4, 0] : 0}
+							>
+								<LabelList
+									dataKey={key}
+									position="center"
+									formatter={(v: number) =>
+										showLabels && v >= 9 ? formatPercent(v) : ""
+									}
+									className={i >= 3 ? "fill-white" : "fill-foreground"}
+									fontSize={11}
+								/>
+							</Bar>
+						))}
+					</BarChart>
+				</ChartContainer>
+				<div>
+					{data.map((row) => (
+						<p
+							key={String(row.label)}
+							className="text-right text-sm font-semibold tabular-nums"
+							style={{ lineHeight: `${ROW_HEIGHT}px` }}
+						>
+							{Number(row.avg).toFixed(1)}
+						</p>
+					))}
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function ScoreScale({ color }: Readonly<{ color: string }>) {
+	return (
+		<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+			<span>1</span>
+			{SCORE_OPACITY.map((opacity) => (
+				<span
+					key={opacity}
+					className="h-2.5 w-5 rounded-[2px]"
+					style={{ backgroundColor: color, opacity }}
+				/>
+			))}
+			<span>5</span>
+		</div>
+	);
+}
 
 export function ScoresChart({ stats }: Readonly<{ stats: PlatformStats }>) {
-	const total = stats.ratings;
-	const data = [1, 2, 3, 4, 5].map((score) => ({
-		score: String(score),
-		difficulty: percent(stats.difficulty[score - 1], total),
-		usefulness: percent(stats.usefulness[score - 1], total),
-		difficultyCount: stats.difficulty[score - 1],
-		usefulnessCount: stats.usefulness[score - 1],
-	}));
+	const rows = (metric: "difficulty" | "usefulness") => [
+		{ label: "Усі", counts: stats[metric] },
+		{ label: "Анонімно", counts: stats.scoresByAnonymity.anonymous[metric] },
+		{ label: "З іменем", counts: stats.scoresByAnonymity.named[metric] },
+	];
 	return (
-		<section className="space-y-4">
-			<div>
-				<h2 className="text-lg font-semibold tracking-tight">Як оцінюють</h2>
-				<p className="text-sm text-muted-foreground">
-					Частка кожної оцінки від 1 до 5
-				</p>
+		<section className="space-y-5">
+			<SectionTitle
+				title="Як оцінюють"
+				description="Частка кожної оцінки від 1 до 5"
+			/>
+			<ScoreSplitPanel
+				title="Складність"
+				color="var(--destructive)"
+				rows={rows("difficulty")}
+			/>
+			<ScoreSplitPanel
+				title="Корисність"
+				color="var(--primary)"
+				rows={rows("usefulness")}
+			/>
+			<div className="flex flex-wrap gap-x-6 gap-y-2">
+				<ScoreScale color="var(--destructive)" />
+				<ScoreScale color="var(--primary)" />
 			</div>
-			<ChartContainer config={scoresConfig} className="aspect-auto h-72 w-full">
-				<BarChart data={data} margin={{ left: 4, right: 4, top: 8 }} barGap={3}>
-					<CartesianGrid vertical={false} />
-					<XAxis
-						dataKey="score"
-						tickLine={false}
-						axisLine={false}
-						tickMargin={8}
-					/>
-					<YAxis
-						tickLine={false}
-						axisLine={false}
-						width={36}
-						tickFormatter={(v: number) => `${v}%`}
-					/>
-					<ChartTooltip
-						cursor={false}
-						content={
-							<ChartTooltipContent
-								formatter={percentFormatter(scoresConfig)}
-								labelFormatter={(value) => `Оцінка ${value}`}
-							/>
-						}
-					/>
-					<ChartLegend content={<ChartLegendContent />} />
-					<Bar
-						isAnimationActive={animate}
-						dataKey="difficulty"
-						fill="var(--color-difficulty)"
-						radius={4}
-					/>
-					<Bar
-						isAnimationActive={animate}
-						dataKey="usefulness"
-						fill="var(--color-usefulness)"
-						radius={4}
-					/>
-				</BarChart>
-			</ChartContainer>
 		</section>
 	);
 }
@@ -494,185 +586,156 @@ export function FacultyMap({
 	);
 }
 
-// Recharts wraps label text on spaces, and uk-UA numbers contain one.
-function RowLabel(
-	props: Readonly<{
-		x?: number | string;
-		y?: number | string;
-		width?: number | string;
-		height?: number | string;
-		value?: number | string;
-	}>,
-) {
-	const x = Number(props.x ?? 0) + Number(props.width ?? 0) + 6;
-	const y = Number(props.y ?? 0) + Number(props.height ?? 0) / 2;
-	return (
-		<text
-			x={x}
-			y={y}
-			dy="0.35em"
-			className="fill-foreground text-xs tabular-nums"
-		>
-			{props.value}
-		</text>
-	);
-}
-
-/** Horizontal bars with one row per item and the value printed after the bar. */
-function RowBars({
-	data,
-	config,
-	rowHeight = 34,
-	labelWidth = 56,
-	max,
-	tooltip,
-}: Readonly<{
-	data: {
-		key: string;
-		value: number;
-		display: string;
-		color?: string;
-		tooltip?: string;
-	}[];
-	config: ChartConfig;
-	rowHeight?: number;
-	labelWidth?: number;
-	max?: number;
-	tooltip?: boolean;
-}>) {
-	return (
-		<ChartContainer
-			config={config}
-			className="aspect-auto w-full"
-			style={{ height: data.length * rowHeight }}
-		>
-			<BarChart
-				data={data}
-				layout="vertical"
-				margin={{ left: 0, right: 84, top: 0, bottom: 0 }}
-			>
-				<XAxis type="number" hide domain={[0, max ?? "dataMax"]} />
-				<YAxis
-					type="category"
-					dataKey="key"
-					tickLine={false}
-					axisLine={false}
-					width={labelWidth}
-				/>
-				{tooltip ? (
-					<ChartTooltip
-						cursor={false}
-						content={
-							<ChartTooltipContent
-								hideIndicator
-								formatter={(_, __, item) => (
-									<span className="font-mono tabular-nums">
-										{item.payload.tooltip}
-									</span>
-								)}
-							/>
-						}
-					/>
-				) : null}
-				<Bar
-					isAnimationActive={animate}
-					dataKey="value"
-					radius={4}
-					barSize={16}
-					fill="var(--primary)"
-					background={{ fill: "var(--muted)", radius: 4 }}
-				>
-					{data.map((d) => (
-						<Cell key={d.key} fill={d.color ?? "var(--primary)"} />
-					))}
-					<LabelList dataKey="display" content={<RowLabel />} />
-				</Bar>
-			</BarChart>
-		</ChartContainer>
-	);
-}
-
 function Caption({ children }: Readonly<{ children: string }>) {
 	return <p className="mb-3 text-sm font-medium">{children}</p>;
 }
 
-const rowConfig = {
-	value: { label: "Частка", color: "var(--primary)" },
+const reachConfig = {
+	rated: { label: "Оцінили" },
+	account: { label: "Лише увійшли" },
+	rest: { label: "Не заходили" },
 } satisfies ChartConfig;
 
-/** Who the numbers come from: students per faculty, the funnel, course coverage. */
+/** Current students per faculty as one 100% bar: rated, signed in only, never came. */
 export function ParticipationSection({
 	stats,
 }: Readonly<{ stats: PlatformStats }>) {
-	const faculties = stats.faculties
-		.map((f) => {
-			const share = percent(f.studentsWhoRated, f.students);
-			return {
-				key: f.abbr,
-				value: share,
-				display: formatPercent(share),
-				color: f.color,
-				tooltip: `${f.studentsWhoRated} з ${formatNumber(f.students)} студентів`,
-			};
-		})
-		.sort((a, b) => b.value - a.value);
-	const funnel = [
-		{ key: "Усі", value: stats.students, prev: stats.students },
-		{ key: "Увійшли", value: stats.studentsSignedIn, prev: stats.students },
-		{
-			key: "Оцінили",
-			value: stats.studentsWhoRated,
-			prev: stats.studentsSignedIn,
-		},
-	].map((step, i) => ({
-		key: step.key,
-		value: step.value,
-		display:
-			i === 0
-				? formatNumber(step.value)
-				: `${formatNumber(step.value)} (${formatPercent(percent(step.value, step.prev))})`,
-		tooltip:
-			i === 0
-				? ""
-				: `${formatPercent(percent(step.value, step.prev))} від попереднього кроку`,
-	}));
-	const coverage = stats.coursesByRatings.map((c) => {
-		const share = percent(c.courses, stats.ratedCourses);
-		return {
-			key: `${c.bucket}`,
-			value: share,
-			display: `${formatPercent(share)} (${formatNumber(c.courses)})`,
-			color: "var(--chart-2)",
-			tooltip: `${formatNumber(c.courses)} курсів мають ${c.bucket} оцінок`,
-		};
+	const row = (
+		key: string,
+		color: string,
+		total: number,
+		account: number,
+		rated: number,
+	) => ({
+		key,
+		color,
+		rated: percent(rated, total),
+		account: percent(account - rated, total),
+		rest: percent(total - account, total),
+		ratedCount: rated,
+		accountCount: account - rated,
+		restCount: total - account,
+		ratedShare: formatPercent(percent(rated, total)),
+		accountShare: formatPercent(percent(account, total)),
 	});
+	const data = [
+		row(
+			"Усі",
+			"var(--foreground)",
+			stats.currentStudents,
+			stats.currentWithAccount,
+			stats.currentWhoRated,
+		),
+		...stats.faculties
+			.map((f) =>
+				row(
+					f.abbr,
+					f.color,
+					f.currentStudents,
+					f.currentWithAccount,
+					f.currentWhoRated,
+				),
+			)
+			.sort((x, y) => y.rated - x.rated),
+	];
+	const segments = [
+		{ key: "rated", opacity: 1 },
+		{ key: "account", opacity: 0.35 },
+	] as const;
 	return (
-		<section className="space-y-6">
+		<section className="space-y-5">
 			<SectionTitle
 				title="Хто оцінює"
-				description="Наскільки повно оцінки описують університет"
+				description={`Студенти, що навчаються зараз: ${formatNumber(stats.currentStudents)}, без випускників`}
 			/>
-			<div className="grid gap-8 lg:grid-cols-2 lg:gap-0 lg:divide-x [&>*]:lg:px-6 [&>*:first-child]:lg:pl-0 [&>*:last-child]:lg:pr-0">
-				<div>
-					<Caption>Частка студентів факультету, що оцінили</Caption>
-					<RowBars data={faculties} config={rowConfig} tooltip />
-				</div>
-				<div className="space-y-6">
-					<div>
-						<Caption>Студенти</Caption>
-						<RowBars data={funnel} config={rowConfig} labelWidth={72} tooltip />
-					</div>
-					<div>
-						<Caption>{`Курси, з ${formatNumber(stats.ratedCourses)} оцінених`}</Caption>
-						<RowBars
-							data={coverage}
-							config={rowConfig}
-							labelWidth={72}
-							max={100}
-							tooltip
+			<div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4">
+				<span />
+				<p className="text-right text-xs text-muted-foreground">
+					<span>оцінили</span>
+					<span className="ml-2">увійшли</span>
+				</p>
+				<ChartContainer
+					config={reachConfig}
+					className="aspect-auto w-full"
+					style={{ height: data.length * ROW_HEIGHT }}
+				>
+					<BarChart
+						data={data}
+						layout="vertical"
+						margin={{ left: 0, right: 0, top: 0, bottom: 0 }}
+						barCategoryGap={10}
+					>
+						<XAxis type="number" hide domain={[0, 100]} />
+						<YAxis
+							type="category"
+							dataKey="key"
+							tickLine={false}
+							axisLine={false}
+							width={56}
 						/>
-					</div>
+						<ChartTooltip
+							cursor={false}
+							content={
+								<ChartTooltipContent
+									hideIndicator
+									formatter={percentFormatter(reachConfig)}
+								/>
+							}
+						/>
+						{segments.map((segment, i) => (
+							<Bar
+								key={segment.key}
+								isAnimationActive={animate}
+								dataKey={segment.key}
+								stackId="reach"
+								radius={i === 0 ? [4, 0, 0, 4] : 0}
+							>
+								{data.map((d) => (
+									<Cell
+										key={d.key}
+										fill={d.color}
+										fillOpacity={segment.opacity}
+									/>
+								))}
+							</Bar>
+						))}
+						<Bar
+							isAnimationActive={animate}
+							dataKey="rest"
+							stackId="reach"
+							fill="var(--muted)"
+							radius={[0, 4, 4, 0]}
+						/>
+					</BarChart>
+				</ChartContainer>
+				<div>
+					{data.map((d) => (
+						<p
+							key={d.key}
+							className="text-right text-sm tabular-nums"
+							style={{ lineHeight: `${ROW_HEIGHT}px` }}
+						>
+							<span className="font-semibold">{d.ratedShare}</span>
+							<span className="ml-2 text-muted-foreground">
+								{d.accountShare}
+							</span>
+						</p>
+					))}
 				</div>
+			</div>
+			<div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
+				<span className="flex items-center gap-1.5">
+					<span className="h-2.5 w-2.5 rounded-[2px] bg-foreground" />
+					Оцінили
+				</span>
+				<span className="flex items-center gap-1.5">
+					<span className="h-2.5 w-2.5 rounded-[2px] bg-foreground/35" />
+					Увійшли, але не оцінили
+				</span>
+				<span className="flex items-center gap-1.5">
+					<span className="h-2.5 w-2.5 rounded-[2px] bg-muted" />
+					Не заходили
+				</span>
 			</div>
 		</section>
 	);
@@ -736,120 +799,96 @@ function DonutStat({
 	);
 }
 
-const anonymityConfig = {
-	difficulty: { label: "Складність", color: "var(--destructive)" },
-	usefulness: { label: "Корисність", color: "var(--primary)" },
+const histogramConfig = {
+	value: { label: "Кількість", color: "var(--primary)" },
 } satisfies ChartConfig;
 
-/** Anonymous raters call courses less useful; difficulty barely moves. */
-function AnonymityCompare({ stats }: Readonly<{ stats: PlatformStats }>) {
-	return (
-		<div>
-			<Caption>Анонімні оцінки суворіші до корисності</Caption>
-			<ChartContainer
-				config={anonymityConfig}
-				className="aspect-auto h-48 w-full"
-			>
-				<BarChart
-					data={stats.byAnonymity}
-					layout="vertical"
-					margin={{ left: 0, right: 40 }}
-					barGap={4}
-				>
-					<XAxis type="number" hide domain={[0, 5]} />
-					<YAxis
-						type="category"
-						dataKey="group"
-						tickLine={false}
-						axisLine={false}
-						width={80}
-					/>
-					<ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-					<ChartLegend content={<ChartLegendContent />} />
-					{(["difficulty", "usefulness"] as const).map((key) => (
-						<Bar
-							key={key}
-							isAnimationActive={animate}
-							dataKey={key}
-							fill={`var(--color-${key})`}
-							radius={4}
-							barSize={16}
-						>
-							<LabelList
-								dataKey={key}
-								position="right"
-								formatter={(v: number) => v.toFixed(2)}
-								className="fill-foreground"
-								fontSize={12}
-							/>
-						</Bar>
-					))}
-				</BarChart>
-			</ChartContainer>
-		</div>
-	);
-}
-
-const RATER_LABELS: Record<string, string> = {
-	"1": "1 курс",
-	"2–3": "2–3 курси",
-	"4–10": "4–10 курсів",
-	"11+": "11+ курсів",
-};
-
-const ratersConfig = {
-	share: { label: "Студентів", color: "var(--primary)" },
-} satisfies ChartConfig;
-
-function RatersChart({ stats }: Readonly<{ stats: PlatformStats }>) {
-	const raters = stats.ratersByCount.map((r) => ({
-		bucket: r.bucket,
-		share: percent(r.students, stats.studentsWhoRated),
-		count: r.students,
+/** Counts per bin; bins are labelled by how many ratings they hold. */
+function Histogram({
+	title,
+	unit,
+	bins,
+	color,
+}: Readonly<{
+	title: string;
+	unit: string;
+	bins: { label: string; value: number }[];
+	color: string;
+}>) {
+	const total = bins.reduce((sum, bin) => sum + bin.value, 0);
+	const data = bins.map((bin) => ({
+		...bin,
+		share: formatPercent(percent(bin.value, total)),
 	}));
 	return (
 		<div>
-			<Caption>Скільки курсів оцінив кожен студент</Caption>
-			<ChartContainer config={ratersConfig} className="aspect-auto h-48 w-full">
-				<BarChart data={raters} margin={{ left: 4, right: 4, top: 20 }}>
+			<Caption>{title}</Caption>
+			<ChartContainer
+				config={histogramConfig}
+				className="aspect-auto h-52 w-full"
+			>
+				<BarChart
+					data={data}
+					margin={{ left: 4, right: 4, top: 20 }}
+					barCategoryGap={2}
+				>
 					<CartesianGrid vertical={false} />
 					<XAxis
-						dataKey="bucket"
+						dataKey="label"
 						tickLine={false}
 						axisLine={false}
 						tickMargin={8}
-						tickFormatter={(v: string) => RATER_LABELS[v] ?? v}
 					/>
-					<YAxis hide />
+					<YAxis tickLine={false} axisLine={false} width={32} />
 					<ChartTooltip
 						cursor={false}
 						content={
 							<ChartTooltipContent
-								labelFormatter={(value) =>
-									RATER_LABELS[String(value)] ?? String(value)
-								}
-								formatter={percentFormatter(ratersConfig, "count")}
+								hideIndicator
+								labelFormatter={(value) => `${value} оцінок`}
+								formatter={(value, _, item) => (
+									<span className="font-mono tabular-nums">
+										{`${formatNumber(Number(value))} ${unit} (${item.payload.share})`}
+									</span>
+								)}
 							/>
 						}
 					/>
 					<Bar
 						isAnimationActive={animate}
-						dataKey="share"
-						fill="var(--color-share)"
-						radius={[6, 6, 0, 0]}
+						dataKey="value"
+						fill={color}
+						radius={[4, 4, 0, 0]}
 					>
 						<LabelList
-							dataKey="share"
+							dataKey="value"
 							position="top"
-							formatter={formatPercent}
 							className="fill-foreground"
-							fontSize={12}
+							fontSize={11}
 						/>
 					</Bar>
 				</BarChart>
 			</ChartContainer>
 		</div>
 	);
+}
+
+/** Groups exact counts into bins like "6–10", given the bins' lower bounds. */
+function bin<T extends { n: number }>(
+	rows: T[],
+	value: (row: T) => number,
+	starts: number[],
+) {
+	return starts.map((start, i) => {
+		const end = starts[i + 1];
+		const sum = rows
+			.filter((r) => r.n >= start && (end === undefined || r.n < end))
+			.reduce((acc, r) => acc + value(r), 0);
+		let label = `${start}+`;
+		if (end !== undefined)
+			label = end - start === 1 ? String(start) : `${start}–${end - 1}`;
+		return { label, value: sum };
+	});
 }
 
 export function ReviewsSection({ stats }: Readonly<{ stats: PlatformStats }>) {
@@ -880,8 +919,26 @@ export function ReviewsSection({ stats }: Readonly<{ stats: PlatformStats }>) {
 				/>
 			</div>
 			<div className="grid gap-8 border-t pt-6 lg:grid-cols-2 lg:gap-0 lg:divide-x [&>*]:lg:px-6 [&>*:first-child]:lg:pl-0 [&>*:last-child]:lg:pr-0">
-				<AnonymityCompare stats={stats} />
-				<RatersChart stats={stats} />
+				<Histogram
+					title="Студенти за кількістю своїх оцінок"
+					unit="студентів"
+					color="var(--primary)"
+					bins={bin(
+						stats.ratingsPerStudent,
+						(r) => r.students,
+						[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+					)}
+				/>
+				<Histogram
+					title="Курси за кількістю оцінок"
+					unit="курсів"
+					color="var(--chart-2)"
+					bins={bin(
+						stats.ratingsPerCourse,
+						(r) => r.courses,
+						[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+					)}
+				/>
 			</div>
 		</section>
 	);
