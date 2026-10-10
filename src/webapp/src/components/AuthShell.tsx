@@ -87,7 +87,7 @@ const DOTS = [
 		4.12,
 		36,
 	],
-	[95, 82, "bg-faculty-teal/35", "Психологія впливу", HEALTH, 4.06, 1.74, 12],
+	[58, 90, "bg-faculty-teal/35", "Психологія впливу", HEALTH, 4.06, 1.74, 12],
 	[
 		85,
 		58,
@@ -139,6 +139,16 @@ const DOTS = [
 		1.92,
 		14,
 	],
+	[
+		94,
+		80,
+		"bg-faculty-yellow/35",
+		"Військова соціологія",
+		SOCIAL_SCIENCES,
+		3.58,
+		3.21,
+		14,
+	],
 ] as const;
 
 // Like on the map, a dot's area grows with the number of reviews.
@@ -149,11 +159,15 @@ function dotSize(ratingsCount: number) {
 }
 
 // Dots that take turns showing their tooltip on their own, one per faculty. They sit
-// in the edge zones, so a tooltip opening towards the centre never covers the form.
+// in the edge zones or below the form, so a tooltip never covers it.
 const SPOTLIGHTS = [0, 8, 2, 13, 5, 11, 10];
 
 // Share of the width on each side where a tooltip has room to open towards the centre.
 const EDGE_ZONE = 17;
+// Below this line there is no form, so a tooltip is free to open towards the centre.
+const BOTTOM_ZONE = 80;
+// Faculty names longer than this get a wider tooltip, so the badge stays on one line.
+const LONG_FACULTY_NAME = 50;
 
 const SPOTLIGHT_START_MS = 1200;
 const SPOTLIGHT_SHOW_MS = 3200;
@@ -228,7 +242,10 @@ function CourseTooltip({
 	// Like the map's tooltip: a corner of the card lands inside the dot. Edge dots open
 	// towards the centre, the rest open outwards, away from the form.
 	const inset = `${size * 0.3}rem`;
-	const opensRight = x < EDGE_ZONE || (x >= 50 && x <= 100 - EDGE_ZONE);
+	const opensRight =
+		y >= BOTTOM_ZONE
+			? x < 50
+			: x < EDGE_ZONE || (x >= 50 && x <= 100 - EDGE_ZONE);
 	const opensDown = y <= 55;
 	return (
 		<div
@@ -243,7 +260,10 @@ function CourseTooltip({
 				transformOrigin: `${opensDown ? "top" : "bottom"} ${opensRight ? "left" : "right"}`,
 			}}
 			className={cn(
-				"absolute w-56 rounded-md border bg-popover p-3 text-left text-sm text-popover-foreground shadow-md transition-[opacity,scale,translate] duration-700 ease-in-out motion-reduce:transition-none",
+				"absolute rounded-md border bg-popover p-3 text-left text-sm text-popover-foreground shadow-md transition-[opacity,scale,translate] duration-700 ease-in-out motion-reduce:transition-none",
+				faculty.length > LONG_FACULTY_NAME
+					? "w-max max-w-[27rem] min-w-56"
+					: "w-56",
 				!visible && "translate-y-1 scale-[0.97] opacity-0",
 			)}
 		>
