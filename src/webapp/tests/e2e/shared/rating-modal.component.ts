@@ -141,6 +141,17 @@ export class RatingModal {
 			.getByRole("button", { name: `Додати: ${fullName}`, exact: true });
 	}
 
+	/** Full names of the teachers offered as one-tap picks, best first. */
+	async getQuickPickNames(): Promise<string[]> {
+		const picks = this.modal
+			.getByTestId(testIds.rating.instructorQuickPicks)
+			.getByRole("button", { name: /^Додати: / });
+		const labels = await picks.evaluateAll((buttons) =>
+			buttons.map((button) => button.getAttribute("aria-label") ?? ""),
+		);
+		return labels.map((label) => label.replace(/^Додати: /, ""));
+	}
+
 	/** Remove the chip at `index`; the whole chip is the remove target. */
 	async removeInstructorChipByIndex(index: number): Promise<void> {
 		await this.instructorChips.nth(index).click();

@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Page, Response } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 import type { RatingModal } from "../shared/rating-modal.component";
@@ -101,23 +101,34 @@ test.describe("Rating instructor multi-select", () => {
 		await page.getByTestId(testIds.rating.modal).waitFor({ state: "hidden" });
 	});
 
-	// Our own saved rating names a teacher on this offering, which is enough
-	// for a pick. Unselecting that teacher in the edit modal must bring the
-	// pick back, and tapping it must re-add the teacher.
+	// Rate with a teacher that is sure to be offered once our rating is saved.
+	// Unselecting that teacher in the edit modal must bring the pick back, and
+	// tapping it must re-add the teacher.
 	test("offers a teacher named on this offering and adds it in one tap", async ({
 		page,
 		coursePage,
 		ratingModal,
 		ratingCleanup,
 	}) => {
+		const picksLoaded = page.waitForResponse(isCourseInstructorsResponse);
 		await coursePage.clickRateButton();
+		await picksLoaded;
 		await fillRequiredFields(page, ratingModal, "quick-pick");
 
-		await ratingModal.openInstructorPicker();
-		const [teacherName] = await ratingModal.getListedInstructorNames(1);
-		expect(teacherName).toBeTruthy();
-		await ratingModal.pickInstructorByText(teacherName);
-		await ratingModal.closeInstructorPicker();
+		// A teacher offered now is in the top two, and our rating only adds to
+		// its count. With no picks nobody qualifies yet, so the teacher we name
+		// becomes the only one.
+		const [offeredName] = await ratingModal.getQuickPickNames();
+		let teacherName = offeredName;
+		if (teacherName) {
+			await ratingModal.instructorQuickPick(teacherName).click();
+		} else {
+			await ratingModal.openInstructorPicker();
+			[teacherName] = await ratingModal.getListedInstructorNames(1);
+			expect(teacherName).toBeTruthy();
+			await ratingModal.pickInstructorByText(teacherName);
+			await ratingModal.closeInstructorPicker();
+		}
 
 		await ratingModal.submitRating();
 		await ratingModal.waitForHidden();
@@ -158,4 +169,10 @@ async function fillRequiredFields(
 	await ratingModal.setDifficultyRating(testData.difficulty);
 	await ratingModal.setUsefulnessRating(testData.usefulness);
 	await ratingModal.setComment(testData.comment);
+}
+
+function isCourseInstructorsResponse(response: Response): boolean {
+	return /^\/api\/v1\/courses\/[^/]+\/instructors\/$/.test(
+		new URL(response.url()).pathname,
+	);
 }
