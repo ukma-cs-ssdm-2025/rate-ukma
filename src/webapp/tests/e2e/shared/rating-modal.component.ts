@@ -112,8 +112,13 @@ export class RatingModal {
 	}
 
 	private get instructorChips(): Locator {
-		// Each chip is one remove button labelled "Видалити <name>".
-		return this.instructorTrigger.getByRole("button", { name: /^Видалити / });
+		// Each chip is one remove button labelled "Видалити <name>". The open
+		// picker is modal and hides the rest of the page from the a11y tree, so
+		// the chips are looked up with includeHidden.
+		return this.instructorTrigger.getByRole("button", {
+			name: /^Видалити /,
+			includeHidden: true,
+		});
 	}
 
 	async getSelectedInstructorCount(): Promise<number> {
@@ -127,6 +132,24 @@ export class RatingModal {
 			names.push((await this.instructorChips.nth(i).innerText()).trim());
 		}
 		return names;
+	}
+
+	/** The one-tap pick under the field for a teacher others named on the course. */
+	instructorQuickPick(fullName: string): Locator {
+		return this.modal
+			.getByTestId(testIds.rating.instructorQuickPicks)
+			.getByRole("button", { name: `Додати: ${fullName}`, exact: true });
+	}
+
+	/** Full names of the teachers offered as one-tap picks, best first. */
+	async getQuickPickNames(): Promise<string[]> {
+		const picks = this.modal
+			.getByTestId(testIds.rating.instructorQuickPicks)
+			.getByRole("button", { name: /^Додати: / });
+		const labels = await picks.evaluateAll((buttons) =>
+			buttons.map((button) => button.getAttribute("aria-label") ?? ""),
+		);
+		return labels.map((label) => label.replace(/^Додати: /, ""));
 	}
 
 	/** Remove the chip at `index`; the whole chip is the remove target. */
