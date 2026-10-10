@@ -8,6 +8,7 @@ import {
 	getUsefulnessTone,
 } from "@/features/courses/courseFormatting";
 import { getFacultyColors } from "@/lib/faculty-colors";
+import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 
 const INFORMATICS = "Факультет інформатики";
@@ -169,12 +170,12 @@ const BOTTOM_ZONE = 80;
 // Faculty names longer than this get a wider tooltip, so the badge stays on one line.
 const LONG_FACULTY_NAME = 50;
 
-const SPOTLIGHT_START_MS = 1200;
-const SPOTLIGHT_SHOW_MS = 3200;
+export const SPOTLIGHT_START_MS = 1200;
+export const SPOTLIGHT_SHOW_MS = 3200;
 // Pause with nothing shown, so one tooltip has left before the next one arrives.
-const SPOTLIGHT_REST_MS = 900;
+export const SPOTLIGHT_REST_MS = 900;
 // Longer pause after the visitor stops hovering, before the carousel moves on.
-const SPOTLIGHT_RESUME_MS = 2000;
+export const SPOTLIGHT_RESUME_MS = 2000;
 const TOOLTIP_DECIMAL_PLACES = 2;
 
 // Tooltips only fit beside and below the form on wide, tall enough screens, and the
@@ -350,6 +351,8 @@ function CourseTooltip({
 	return (
 		<div
 			ref={ref}
+			data-testid={testIds.authShell.tooltip}
+			data-state={visible ? "open" : "closed"}
 			style={{
 				// Until the card is measured it is placed by its corner alone.
 				...(position ?? {
@@ -422,6 +425,7 @@ function MapBackdrop() {
 				{DOTS.map(([x, y, tone, , , , , ratingsCount], index) => (
 					<span
 						key={`${x}-${y}`}
+						data-testid={testIds.authShell.dot}
 						onMouseEnter={() => setHoveredDot(index)}
 						onMouseLeave={() => setHoveredDot(null)}
 						style={{
