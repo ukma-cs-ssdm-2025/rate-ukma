@@ -177,9 +177,10 @@ const SPOTLIGHT_REST_MS = 900;
 const SPOTLIGHT_RESUME_MS = 2000;
 const TOOLTIP_DECIMAL_PLACES = 2;
 
-// Tooltips only fit on wide screens, and the carousel is motion the visitor did not ask for.
+// Tooltips only fit beside and below the form on wide, tall enough screens, and the
+// carousel is motion the visitor did not ask for.
 const SPOTLIGHT_MEDIA =
-	"(min-width: 80rem) and (prefers-reduced-motion: no-preference)";
+	"(min-width: 80rem) and (min-height: 38rem) and (prefers-reduced-motion: no-preference)";
 
 // The dot the carousel is currently on, or null before it starts, while it is paused
 // on a screen that does not qualify, or when motion is reduced.
@@ -231,31 +232,134 @@ function useSpotlightDot(paused: boolean) {
 	return enabled && step >= 0 && step % 2 === 0 ? SPOTLIGHTS[step / 2] : null;
 }
 
+// Gap kept between a tooltip and the edge of the shell.
+const TOOLTIP_MARGIN_PX = 8;
+// Dots above this line prefer to open their tooltip downwards.
+const OPENS_DOWN_ABOVE = 55;
+
+type TooltipBox = {
+	cardWidth: number;
+	cardHeight: number;
+	shellWidth: number;
+	shellHeight: number;
+	rem: number;
+};
+
+// Sizes of a tooltip and of the shell it is placed in, or null until both are laid out
+// (they are not rendered below the `xl` breakpoint).
+function useTooltipBox() {
+	const ref = useRef<HTMLDivElement>(null);
+	const [box, setBox] = useState<TooltipBox | null>(null);
+
+	useEffect(() => {
+		const card = ref.current;
+		const shell = card?.offsetParent;
+		if (
+			!card ||
+			!(shell instanceof HTMLElement) ||
+			!globalThis.ResizeObserver
+		) {
+			return;
+		}
+		const measure = () => {
+			const next = {
+				cardWidth: card.offsetWidth,
+				cardHeight: card.offsetHeight,
+				shellWidth: shell.clientWidth,
+				shellHeight: shell.clientHeight,
+				rem: Number.parseFloat(
+					getComputedStyle(document.documentElement).fontSize,
+				),
+			};
+			const laidOut = next.cardHeight > 0 && next.shellHeight > 0;
+			setBox((current) => {
+				if (!laidOut) {
+					return null;
+				}
+				const unchanged =
+					current !== null &&
+					Object.entries(next).every(
+						([key, value]) => current[key as keyof TooltipBox] === value,
+					);
+				return unchanged ? current : next;
+			});
+		};
+		const observer = new ResizeObserver(measure);
+		observer.observe(card);
+		observer.observe(shell);
+		return () => observer.disconnect();
+	}, []);
+
+	return [ref, box] as const;
+}
+
+function clamp(value: number, min: number, max: number) {
+	return Math.max(min, Math.min(value, max));
+}
+
 function CourseTooltip({
 	dot,
 	visible,
 }: Readonly<{ dot: number; visible: boolean }>) {
 	const [x, y, , name, faculty, usefulness, difficulty, ratingsCount] =
 		DOTS[dot];
-	const size = dotSize(ratingsCount);
 	const facultyColors = getFacultyColors(faculty);
+	const [ref, box] = useTooltipBox();
 	// Like the map's tooltip: a corner of the card lands inside the dot. Edge dots open
 	// towards the centre, the rest open outwards, away from the form.
-	const inset = `${size * 0.3}rem`;
+	const insetRem = dotSize(ratingsCount) * 0.3;
 	const opensRight =
 		y >= BOTTOM_ZONE
 			? x < 50
 			: x < EDGE_ZONE || (x >= 50 && x <= 100 - EDGE_ZONE);
-	const opensDown = y <= 55;
+	let opensDown = y <= OPENS_DOWN_ABOVE;
+	let position: { left: number; top: number } | null = null;
+	if (box) {
+		const inset = insetRem * box.rem;
+		const dotLeft = (box.shellWidth * x) / 100;
+		const dotTop = (box.shellHeight * y) / 100;
+		// Open on the preferred side when the card fits there, otherwise on the side
+		// with more room.
+		const roomBelow = box.shellHeight - dotTop - inset - TOOLTIP_MARGIN_PX;
+		const roomAbove = dotTop - inset - TOOLTIP_MARGIN_PX;
+		const roomPreferred = opensDown ? roomBelow : roomAbove;
+		const roomOpposite = opensDown ? roomAbove : roomBelow;
+		if (box.cardHeight > roomPreferred && roomOpposite > roomPreferred) {
+			opensDown = !opensDown;
+		}
+		// Whatever the side, never let the card leave the shell.
+		position = {
+			left: clamp(
+				opensRight ? dotLeft + inset : dotLeft - inset - box.cardWidth,
+				TOOLTIP_MARGIN_PX,
+				Math.max(
+					TOOLTIP_MARGIN_PX,
+					box.shellWidth - box.cardWidth - TOOLTIP_MARGIN_PX,
+				),
+			),
+			top: clamp(
+				opensDown ? dotTop + inset : dotTop - inset - box.cardHeight,
+				TOOLTIP_MARGIN_PX,
+				Math.max(
+					TOOLTIP_MARGIN_PX,
+					box.shellHeight - box.cardHeight - TOOLTIP_MARGIN_PX,
+				),
+			),
+		};
+	}
 	return (
 		<div
+			ref={ref}
 			style={{
-				...(opensRight
-					? { left: `calc(${x}% + ${inset})` }
-					: { right: `calc(${100 - x}% + ${inset})` }),
-				...(opensDown
-					? { top: `calc(${y}% + ${inset})` }
-					: { bottom: `calc(${100 - y}% + ${inset})` }),
+				// Until the card is measured it is placed by its corner alone.
+				...(position ?? {
+					...(opensRight
+						? { left: `calc(${x}% + ${insetRem}rem)` }
+						: { right: `calc(${100 - x}% + ${insetRem}rem)` }),
+					...(opensDown
+						? { top: `calc(${y}% + ${insetRem}rem)` }
+						: { bottom: `calc(${100 - y}% + ${insetRem}rem)` }),
+				}),
 				// Unfolds out of the dot it belongs to.
 				transformOrigin: `${opensDown ? "top" : "bottom"} ${opensRight ? "left" : "right"}`,
 			}}
