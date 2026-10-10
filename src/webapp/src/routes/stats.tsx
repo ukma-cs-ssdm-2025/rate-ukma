@@ -6,10 +6,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
 import {
 	ActivityChart,
-	CoverageChart,
 	FacultyMap,
 	KpiStrip,
-	ParticipationChart,
+	ParticipationSection,
 	ReviewsSection,
 	ScoresChart,
 	formatNumber,
@@ -76,9 +75,8 @@ function StatsPage() {
 				</Card>
 
 				<Card className="shadow-sm">
-					<CardContent className="grid gap-10 p-4 sm:p-6 lg:grid-cols-2 lg:gap-0 lg:divide-x [&>*]:lg:px-6 [&>*:first-child]:lg:pl-0 [&>*:last-child]:lg:pr-0">
-						<ParticipationChart stats={stats} />
-						<CoverageChart stats={stats} />
+					<CardContent className="p-4 sm:p-6">
+						<ParticipationSection stats={stats} />
 					</CardContent>
 				</Card>
 			</div>

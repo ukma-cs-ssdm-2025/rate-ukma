@@ -294,7 +294,7 @@ export function ActivityChart({ stats }: Readonly<{ stats: PlatformStats }>) {
 }
 
 const scoresConfig = {
-	difficulty: { label: "Складність", color: "var(--chart-5)" },
+	difficulty: { label: "Складність", color: "var(--destructive)" },
 	usefulness: { label: "Корисність", color: "var(--primary)" },
 } satisfies ChartConfig;
 
@@ -494,42 +494,72 @@ export function FacultyMap({
 	);
 }
 
-const participationConfig = {
-	share: { label: "Оцінили", color: "var(--primary)" },
-} satisfies ChartConfig;
-
-export function ParticipationChart({
-	stats,
-}: Readonly<{ stats: PlatformStats }>) {
-	const data = stats.faculties
-		.map((f) => ({
-			abbr: f.abbr,
-			color: f.color,
-			share: Math.round((f.studentsWhoRated / f.students) * 1000) / 10,
-			label: `${f.studentsWhoRated} з ${formatNumber(f.students)}`,
-		}))
-		.sort((a, b) => b.share - a.share);
+// Recharts wraps label text on spaces, and uk-UA numbers contain one.
+function RowLabel(
+	props: Readonly<{
+		x?: number | string;
+		y?: number | string;
+		width?: number | string;
+		height?: number | string;
+		value?: number | string;
+	}>,
+) {
+	const x = Number(props.x ?? 0) + Number(props.width ?? 0) + 6;
+	const y = Number(props.y ?? 0) + Number(props.height ?? 0) / 2;
 	return (
-		<section className="space-y-4">
-			<div>
-				<h2 className="text-lg font-semibold tracking-tight">Хто оцінює</h2>
-				<p className="text-sm text-muted-foreground">
-					{`${formatNumber(stats.studentsWhoRated)} з ${formatNumber(stats.students)} студентів, частка за факультетом`}
-				</p>
-			</div>
-			<ChartContainer
-				config={participationConfig}
-				className="aspect-auto h-72 w-full"
+		<text
+			x={x}
+			y={y}
+			dy="0.35em"
+			className="fill-foreground text-xs tabular-nums"
+		>
+			{props.value}
+		</text>
+	);
+}
+
+/** Horizontal bars with one row per item and the value printed after the bar. */
+function RowBars({
+	data,
+	config,
+	rowHeight = 34,
+	labelWidth = 56,
+	max,
+	tooltip,
+}: Readonly<{
+	data: {
+		key: string;
+		value: number;
+		display: string;
+		color?: string;
+		tooltip?: string;
+	}[];
+	config: ChartConfig;
+	rowHeight?: number;
+	labelWidth?: number;
+	max?: number;
+	tooltip?: boolean;
+}>) {
+	return (
+		<ChartContainer
+			config={config}
+			className="aspect-auto w-full"
+			style={{ height: data.length * rowHeight }}
+		>
+			<BarChart
+				data={data}
+				layout="vertical"
+				margin={{ left: 0, right: 84, top: 0, bottom: 0 }}
 			>
-				<BarChart data={data} layout="vertical" margin={{ left: 0, right: 48 }}>
-					<XAxis type="number" hide domain={[0, "dataMax"]} />
-					<YAxis
-						type="category"
-						dataKey="abbr"
-						tickLine={false}
-						axisLine={false}
-						width={52}
-					/>
+				<XAxis type="number" hide domain={[0, max ?? "dataMax"]} />
+				<YAxis
+					type="category"
+					dataKey="key"
+					tickLine={false}
+					axisLine={false}
+					width={labelWidth}
+				/>
+				{tooltip ? (
 					<ChartTooltip
 						cursor={false}
 						content={
@@ -537,71 +567,146 @@ export function ParticipationChart({
 								hideIndicator
 								formatter={(_, __, item) => (
 									<span className="font-mono tabular-nums">
-										{item.payload.label} студентів
+										{item.payload.tooltip}
 									</span>
 								)}
 							/>
 						}
 					/>
-					<Bar
-						isAnimationActive={animate}
-						dataKey="share"
-						radius={4}
-						barSize={18}
-					>
-						{data.map((d) => (
-							<Cell key={d.abbr} fill={d.color} />
-						))}
-						<LabelList
-							dataKey="share"
-							position="right"
-							formatter={(value: number) => `${value}%`}
-							className="fill-muted-foreground"
-							fontSize={12}
+				) : null}
+				<Bar
+					isAnimationActive={animate}
+					dataKey="value"
+					radius={4}
+					barSize={16}
+					fill="var(--primary)"
+					background={{ fill: "var(--muted)", radius: 4 }}
+				>
+					{data.map((d) => (
+						<Cell key={d.key} fill={d.color ?? "var(--primary)"} />
+					))}
+					<LabelList dataKey="display" content={<RowLabel />} />
+				</Bar>
+			</BarChart>
+		</ChartContainer>
+	);
+}
+
+function Caption({ children }: Readonly<{ children: string }>) {
+	return <p className="mb-3 text-sm font-medium">{children}</p>;
+}
+
+const rowConfig = {
+	value: { label: "Частка", color: "var(--primary)" },
+} satisfies ChartConfig;
+
+/** Who the numbers come from: students per faculty, the funnel, course coverage. */
+export function ParticipationSection({
+	stats,
+}: Readonly<{ stats: PlatformStats }>) {
+	const faculties = stats.faculties
+		.map((f) => {
+			const share = percent(f.studentsWhoRated, f.students);
+			return {
+				key: f.abbr,
+				value: share,
+				display: formatPercent(share),
+				color: f.color,
+				tooltip: `${f.studentsWhoRated} з ${formatNumber(f.students)} студентів`,
+			};
+		})
+		.sort((a, b) => b.value - a.value);
+	const funnel = [
+		{ key: "Усі", value: stats.students, prev: stats.students },
+		{ key: "Увійшли", value: stats.studentsSignedIn, prev: stats.students },
+		{
+			key: "Оцінили",
+			value: stats.studentsWhoRated,
+			prev: stats.studentsSignedIn,
+		},
+	].map((step, i) => ({
+		key: step.key,
+		value: step.value,
+		display:
+			i === 0
+				? formatNumber(step.value)
+				: `${formatNumber(step.value)} (${formatPercent(percent(step.value, step.prev))})`,
+		tooltip:
+			i === 0
+				? ""
+				: `${formatPercent(percent(step.value, step.prev))} від попереднього кроку`,
+	}));
+	const coverage = stats.coursesByRatings.map((c) => {
+		const share = percent(c.courses, stats.ratedCourses);
+		return {
+			key: `${c.bucket}`,
+			value: share,
+			display: `${formatPercent(share)} (${formatNumber(c.courses)})`,
+			color: "var(--chart-2)",
+			tooltip: `${formatNumber(c.courses)} курсів мають ${c.bucket} оцінок`,
+		};
+	});
+	return (
+		<section className="space-y-6">
+			<SectionTitle
+				title="Хто оцінює"
+				description="Наскільки повно оцінки описують університет"
+			/>
+			<div className="grid gap-8 lg:grid-cols-2 lg:gap-0 lg:divide-x [&>*]:lg:px-6 [&>*:first-child]:lg:pl-0 [&>*:last-child]:lg:pr-0">
+				<div>
+					<Caption>Частка студентів факультету, що оцінили</Caption>
+					<RowBars data={faculties} config={rowConfig} tooltip />
+				</div>
+				<div className="space-y-6">
+					<div>
+						<Caption>Студенти</Caption>
+						<RowBars data={funnel} config={rowConfig} labelWidth={72} tooltip />
+					</div>
+					<div>
+						<Caption>{`Курси, з ${formatNumber(stats.ratedCourses)} оцінених`}</Caption>
+						<RowBars
+							data={coverage}
+							config={rowConfig}
+							labelWidth={72}
+							max={100}
+							tooltip
 						/>
-					</Bar>
-				</BarChart>
-			</ChartContainer>
+					</div>
+				</div>
+			</div>
 		</section>
 	);
 }
 
-/** One share out of a whole, with the share written in the hole. */
-function Donut({
+/** A ring for one share, with what it means written beside it. */
+function DonutStat({
 	part,
 	total,
-	partLabel,
-	restLabel,
-}: Readonly<{
-	part: number;
-	total: number;
-	partLabel: string;
-	restLabel: string;
-}>) {
+	title,
+	caption,
+}: Readonly<{ part: number; total: number; title: string; caption: string }>) {
 	const config = {
-		part: { label: partLabel, color: "var(--primary)" },
-		rest: { label: restLabel, color: "var(--muted)" },
+		part: { label: title, color: "var(--primary)" },
+		rest: { label: "Решта", color: "var(--muted)" },
 	} satisfies ChartConfig;
 	const data = [
 		{ key: "part", value: part, fill: "var(--color-part)" },
 		{ key: "rest", value: total - part, fill: "var(--color-rest)" },
 	];
 	return (
-		<div className="flex flex-col items-center">
-			<ChartContainer config={config} className="aspect-square h-44">
+		<div className="flex items-center gap-4">
+			<ChartContainer config={config} className="aspect-square h-24 shrink-0">
 				<PieChart>
-					<ChartTooltip
-						cursor={false}
-						content={<ChartTooltipContent nameKey="key" hideLabel />}
-					/>
 					<Pie
 						isAnimationActive={animate}
 						data={data}
 						dataKey="value"
 						nameKey="key"
-						innerRadius={52}
-						outerRadius={72}
-						strokeWidth={3}
+						innerRadius="72%"
+						outerRadius="100%"
+						startAngle={90}
+						endAngle={-270}
+						strokeWidth={2}
 						stroke="var(--card)"
 					>
 						<Label
@@ -613,21 +718,9 @@ function Donut({
 										y={viewBox.cy}
 										textAnchor="middle"
 										dominantBaseline="middle"
+										className="fill-foreground text-lg font-bold"
 									>
-										<tspan
-											x={viewBox.cx}
-											y={viewBox.cy}
-											className="fill-foreground text-2xl font-bold"
-										>
-											{formatPercent(percent(part, total))}
-										</tspan>
-										<tspan
-											x={viewBox.cx}
-											y={(viewBox.cy ?? 0) + 20}
-											className="fill-muted-foreground text-xs"
-										>
-											{partLabel}
-										</tspan>
+										{formatPercent(percent(part, total))}
 									</text>
 								);
 							}}
@@ -635,19 +728,16 @@ function Donut({
 					</Pie>
 				</PieChart>
 			</ChartContainer>
+			<div className="min-w-0">
+				<p className="font-medium">{title}</p>
+				<p className="text-sm text-muted-foreground">{caption}</p>
+			</div>
 		</div>
 	);
 }
 
-const RATER_LABELS: Record<string, string> = {
-	"1": "1 курс",
-	"2–3": "2–3 курси",
-	"4–10": "4–10 курсів",
-	"11+": "11+ курсів",
-};
-
 const anonymityConfig = {
-	difficulty: { label: "Складність", color: "var(--chart-5)" },
+	difficulty: { label: "Складність", color: "var(--destructive)" },
 	usefulness: { label: "Корисність", color: "var(--primary)" },
 } satisfies ChartConfig;
 
@@ -655,12 +745,10 @@ const anonymityConfig = {
 function AnonymityCompare({ stats }: Readonly<{ stats: PlatformStats }>) {
 	return (
 		<div>
-			<p className="text-sm text-muted-foreground">
-				Анонімні оцінки суворіші до корисності
-			</p>
+			<Caption>Анонімні оцінки суворіші до корисності</Caption>
 			<ChartContainer
 				config={anonymityConfig}
-				className="mt-2 aspect-auto h-44 w-full"
+				className="aspect-auto h-48 w-full"
 			>
 				<BarChart
 					data={stats.byAnonymity}
@@ -685,7 +773,7 @@ function AnonymityCompare({ stats }: Readonly<{ stats: PlatformStats }>) {
 							dataKey={key}
 							fill={`var(--color-${key})`}
 							radius={4}
-							barSize={14}
+							barSize={16}
 						>
 							<LabelList
 								dataKey={key}
@@ -702,130 +790,45 @@ function AnonymityCompare({ stats }: Readonly<{ stats: PlatformStats }>) {
 	);
 }
 
+const RATER_LABELS: Record<string, string> = {
+	"1": "1 курс",
+	"2–3": "2–3 курси",
+	"4–10": "4–10 курсів",
+	"11+": "11+ курсів",
+};
+
 const ratersConfig = {
 	share: { label: "Студентів", color: "var(--primary)" },
 } satisfies ChartConfig;
 
-export function ReviewsSection({ stats }: Readonly<{ stats: PlatformStats }>) {
+function RatersChart({ stats }: Readonly<{ stats: PlatformStats }>) {
 	const raters = stats.ratersByCount.map((r) => ({
 		bucket: r.bucket,
 		share: percent(r.students, stats.studentsWhoRated),
 		count: r.students,
 	}));
 	return (
-		<section className="space-y-6">
-			<SectionTitle
-				title="Відгуки"
-				description={`Ще ${formatNumber(stats.votes)} разів студенти голосували за чужі відгуки`}
-			/>
-			<div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_2fr]">
-				<Donut
-					part={stats.anonymous}
-					total={stats.ratings}
-					partLabel="анонімно"
-					restLabel="з іменем"
-				/>
-				<Donut
-					part={stats.withComment}
-					total={stats.ratings}
-					partLabel="з відгуком"
-					restLabel="лише оцінки"
-				/>
-				<div className="sm:col-span-2 lg:col-span-1">
-					<p className="text-sm text-muted-foreground">
-						Скільки курсів оцінив кожен студент
-					</p>
-					<ChartContainer
-						config={ratersConfig}
-						className="mt-2 aspect-auto h-44 w-full"
-					>
-						<BarChart data={raters} margin={{ left: 4, right: 12, top: 20 }}>
-							<CartesianGrid vertical={false} />
-							<XAxis
-								dataKey="bucket"
-								tickLine={false}
-								axisLine={false}
-								tickMargin={8}
-							/>
-							<YAxis hide />
-							<ChartTooltip
-								cursor={false}
-								content={
-									<ChartTooltipContent
-										labelFormatter={(value) =>
-											RATER_LABELS[String(value)] ?? String(value)
-										}
-										formatter={percentFormatter(ratersConfig, "count")}
-									/>
-								}
-							/>
-							<Bar
-								isAnimationActive={animate}
-								dataKey="share"
-								fill="var(--color-share)"
-								radius={[6, 6, 0, 0]}
-							>
-								<LabelList
-									dataKey="share"
-									position="top"
-									formatter={formatPercent}
-									className="fill-foreground"
-									fontSize={12}
-								/>
-							</Bar>
-						</BarChart>
-					</ChartContainer>
-				</div>
-			</div>
-			<div className="grid gap-8 border-t pt-6 sm:grid-cols-2 lg:grid-cols-[3fr_1fr]">
-				<AnonymityCompare stats={stats} />
-				<Donut
-					part={stats.upvotes}
-					total={stats.votes}
-					partLabel="«корисно»"
-					restLabel="«не корисно»"
-				/>
-			</div>
-		</section>
-	);
-}
-
-const coverageConfig = {
-	share: { label: "Курсів", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
-/** How many rated courses have enough ratings to trust their average. */
-export function CoverageChart({ stats }: Readonly<{ stats: PlatformStats }>) {
-	const data = stats.coursesByRatings.map((c) => ({
-		bucket: `${c.bucket} ${Number.parseInt(c.bucket, 10) < 5 ? "оцінки" : "оцінок"}`,
-		share: percent(c.courses, stats.ratedCourses),
-		count: c.courses,
-	}));
-	return (
-		<section className="space-y-4">
-			<SectionTitle
-				title="Наскільки повні дані"
-				description={`Частка з ${formatNumber(stats.ratedCourses)} оцінених курсів`}
-			/>
-			<ChartContainer
-				config={coverageConfig}
-				className="aspect-auto h-64 w-full"
-			>
-				<BarChart data={data} layout="vertical" margin={{ left: 0, right: 48 }}>
-					<XAxis type="number" hide domain={[0, 100]} />
-					<YAxis
-						type="category"
+		<div>
+			<Caption>Скільки курсів оцінив кожен студент</Caption>
+			<ChartContainer config={ratersConfig} className="aspect-auto h-48 w-full">
+				<BarChart data={raters} margin={{ left: 4, right: 4, top: 20 }}>
+					<CartesianGrid vertical={false} />
+					<XAxis
 						dataKey="bucket"
 						tickLine={false}
 						axisLine={false}
-						width={80}
+						tickMargin={8}
+						tickFormatter={(v: string) => RATER_LABELS[v] ?? v}
 					/>
+					<YAxis hide />
 					<ChartTooltip
 						cursor={false}
 						content={
 							<ChartTooltipContent
-								hideLabel
-								formatter={percentFormatter(coverageConfig, "count")}
+								labelFormatter={(value) =>
+									RATER_LABELS[String(value)] ?? String(value)
+								}
+								formatter={percentFormatter(ratersConfig, "count")}
 							/>
 						}
 					/>
@@ -833,20 +836,53 @@ export function CoverageChart({ stats }: Readonly<{ stats: PlatformStats }>) {
 						isAnimationActive={animate}
 						dataKey="share"
 						fill="var(--color-share)"
-						radius={4}
-						barSize={18}
-						background={{ fill: "var(--muted)", radius: 4 }}
+						radius={[6, 6, 0, 0]}
 					>
 						<LabelList
 							dataKey="share"
-							position="right"
+							position="top"
 							formatter={formatPercent}
-							className="fill-muted-foreground"
+							className="fill-foreground"
 							fontSize={12}
 						/>
 					</Bar>
 				</BarChart>
 			</ChartContainer>
+		</div>
+	);
+}
+
+export function ReviewsSection({ stats }: Readonly<{ stats: PlatformStats }>) {
+	return (
+		<section className="space-y-6">
+			<SectionTitle
+				title="Відгуки"
+				description="Як студенти пишуть і читають оцінки"
+			/>
+			<div className="grid gap-6 sm:grid-cols-3">
+				<DonutStat
+					part={stats.anonymous}
+					total={stats.ratings}
+					title="Анонімні"
+					caption={`${formatNumber(stats.anonymous)} з ${formatNumber(stats.ratings)} оцінок`}
+				/>
+				<DonutStat
+					part={stats.withComment}
+					total={stats.ratings}
+					title="З текстом"
+					caption={`${formatNumber(stats.withComment)} письмових відгуків`}
+				/>
+				<DonutStat
+					part={stats.upvotes}
+					total={stats.votes}
+					title="Голоси «корисно»"
+					caption={`${formatNumber(stats.upvotes)} з ${formatNumber(stats.votes)} голосів`}
+				/>
+			</div>
+			<div className="grid gap-8 border-t pt-6 lg:grid-cols-2 lg:gap-0 lg:divide-x [&>*]:lg:px-6 [&>*:first-child]:lg:pl-0 [&>*:last-child]:lg:pr-0">
+				<AnonymityCompare stats={stats} />
+				<RatersChart stats={stats} />
+			</div>
 		</section>
 	);
 }
