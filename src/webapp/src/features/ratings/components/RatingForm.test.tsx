@@ -1,9 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { testIds } from "@/lib/test-ids";
 import { render, screen } from "@/test-utils/render";
 import { RatingForm } from "./RatingForm";
 import userEvent from "@testing-library/user-event";
+
+vi.mock("@/lib/api/generated", async () => {
+	const actual = await vi.importActual("@/lib/api/generated");
+	return {
+		...actual,
+		useCoursesInstructorsRetrieve: vi.fn(function () {
+			return { data: undefined };
+		}),
+	};
+});
+
+const { useCoursesInstructorsRetrieve } = await import("@/lib/api/generated");
+type CourseInstructorsQuery = ReturnType<typeof useCoursesInstructorsRetrieve>;
 
 describe("RatingForm", () => {
 	it("uses a viewport-safe layout for long reviews", () => {
@@ -32,12 +45,69 @@ describe("RatingForm", () => {
 	});
 
 	describe("instructor field", () => {
+		afterEach(() => {
+			vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
+				data: undefined,
+			} as unknown as CourseInstructorsQuery);
+		});
+
 		it("shows the multi-select", () => {
 			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
 			expect(
 				screen.getByTestId(testIds.rating.instructorMultiSelect),
 			).toBeInTheDocument();
+		});
+
+		it("offers teachers others named on this course one tap away", async () => {
+			const user = userEvent.setup();
+			vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
+				data: {
+					items: [
+						{
+							instructor: {
+								id: "i-1",
+								first_name: "Олена",
+								patronymic: "Петрівна",
+								last_name: "Демченко",
+							},
+							ratings_count: 4,
+							offering_ratings_count: 1,
+						},
+						{
+							instructor: {
+								id: "i-2",
+								first_name: "Іван",
+								last_name: "Разовий",
+							},
+							ratings_count: 1,
+							offering_ratings_count: 0,
+						},
+					],
+				},
+			} as unknown as CourseInstructorsQuery);
+			render(
+				<RatingForm
+					onSubmit={vi.fn()}
+					onCancel={vi.fn()}
+					courseId="c-1"
+					offeringId="o-1"
+				/>,
+			);
+
+			const picks = screen.getByTestId(testIds.rating.instructorQuickPicks);
+			// One old mention on the course is not enough to offer a teacher.
+			expect(picks).not.toHaveTextContent("Разовий");
+			await user.click(
+				screen.getByRole("button", { name: "Додати: Демченко Олена Петрівна" }),
+			);
+
+			expect(
+				screen.getByTestId(testIds.rating.instructorMultiSelect),
+			).toHaveTextContent("Демченко Олена Петрівна");
+			expect(
+				screen.queryByTestId(testIds.rating.instructorQuickPicks),
+			).not.toBeInTheDocument();
 		});
 
 		it("shows the previous free-text instructor read-only next to the multi-select", () => {

@@ -12,6 +12,7 @@ import type { Instructor, RatingInstructor } from "@/lib/api/generated";
 import {
 	getCoursesListQueryKey,
 	getCoursesRatingsListQueryKey,
+	getCoursesInstructorsRetrieveQueryKey,
 	getCoursesRetrieveQueryKey,
 	getFeedListInfiniteQueryKey,
 	getStudentsMeCoursesRetrieveQueryKey,
@@ -80,6 +81,10 @@ export function RatingModal({
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getCoursesRetrieveQueryKey(courseId),
+			}),
+			// Prefix match also covers the offering-scoped variant.
+			queryClient.invalidateQueries({
+				queryKey: getCoursesInstructorsRetrieveQueryKey(courseId),
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getCoursesListQueryKey(),

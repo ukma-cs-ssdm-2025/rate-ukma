@@ -46,6 +46,27 @@ class InstructorListParams(BaseModel):
     )
 
 
+class CourseInstructorsPathParams(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    course_id: uuid.UUID = Field(description="Course whose ratings name the instructors")
+
+
+class CourseInstructorsQueryParams(BaseModel):
+    model_config = {
+        "alias_generator": to_snake,
+        "populate_by_name": True,
+    }
+
+    offering_id: uuid.UUID | None = Field(
+        default=None,
+        description="Also count mentions on this offering, and rank them first",
+    )
+
+
 @dataclass(frozen=True)
 class InstructorInput:
     first_name: str
@@ -67,3 +88,10 @@ class Instructor:
 class InstructorListResult:
     items: list[Instructor]
     pagination: PaginationMetadata
+
+
+@dataclass(frozen=True)
+class CourseInstructorMentions:
+    instructor: Instructor
+    ratings_count: int
+    offering_ratings_count: int

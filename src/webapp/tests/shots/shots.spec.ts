@@ -354,6 +354,44 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.waitFor();
 			await page.getByTestId("course-details-rate-button").click();
 			await page.getByTestId("rating-modal").waitFor();
+			await page.getByTestId(testIds.rating.instructorQuickPicks).waitFor();
+		},
+	},
+	{
+		name: "rating-modal-teacher-picked",
+		section: "Оцінювання",
+		note: "Rating form after tapping a teacher others named on this course",
+		run: async (page) => {
+			await mockBackend(page, { myCourses: "rateable" });
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("heading", { level: 1, name: COURSE.title })
+				.waitFor();
+			await page.getByTestId("course-details-rate-button").click();
+			await page
+				.getByRole("button", { name: "Додати: Демченко Олена Петрівна" })
+				.click();
+			await page
+				.getByTestId(testIds.rating.instructorMultiSelect)
+				.getByText("Демченко Олена Петрівна")
+				.waitFor();
+		},
+	},
+	{
+		name: "rating-modal-no-named-teachers",
+		section: "Оцінювання",
+		note: "Rating form on a course where nobody named a teacher yet: the hint stays",
+		run: async (page) => {
+			await mockBackend(page, {
+				myCourses: "rateable",
+				courseInstructors: "none",
+			});
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("heading", { level: 1, name: COURSE.title })
+				.waitFor();
+			await page.getByTestId("course-details-rate-button").click();
+			await page.getByText("Можна обрати кількох викладачів").waitFor();
 		},
 	},
 	{
