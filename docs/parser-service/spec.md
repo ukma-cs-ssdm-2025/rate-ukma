@@ -16,7 +16,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 | | Rate UKMA keeps its own copy of the data it needs and syncs once a day. | When the service is down, Rate UKMA keeps working. Its data only gets older. |
 | Data | Keep every year that САЗ shows, and students with full name and email. | Rate UKMA shows student names today. |
 | | Group offerings into courses across years. | Every reader needs the same course identity. |
-| | Link smart.ukma teachers to offerings by title, department, term and credits. | smart.ukma disciplines have an `optimaCode`, a code from the university's Optima system, but it was empty in every sampled row, so no shared code joins smart.ukma to САЗ. |
+| | Link smart.ukma teachers to offerings by title, department, term and credits. | No code joins the two sources. smart.ukma has an `optimaCode` from the university's Optima system, but it was empty in every sampled row. |
 | | The service decides clear cases itself. An unclear case gets the safe answer at once and waits for staff review. | One unclear course does not block the others, and the safe answer is easy to undo. |
 | Crawling | A scheduled worker crawls. A key with the right scope can ask for an extra run. | Load on САЗ does not grow with the number of readers. |
 | | The worker signs in with a team member's own account. | There is no service account yet. |
@@ -51,7 +51,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 ## Rules
 
 1. Ids are ours, permanent and opaque, with a type prefix (`off_...`). Source ids, like the САЗ code, are only lookup keys.
-2. The worker stores a page snapshot when its hash changes, then parses the snapshot. A parser fix re-parses stored snapshots and sends no request to the source. Raw HTML is kept only when a snapshot fails: САЗ puts a new security token into every response, so raw HTML never hashes the same.
+2. The worker stores a page snapshot when its hash changes, then parses the snapshot. A parser fix re-parses stored snapshots and sends no request to the source. Raw HTML is kept only when a snapshot fails.
 3. A run visits each course page once and fetches its card and enrollments together.
 4. Soft delete: no row is ever deleted. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Вступ до аналізу даних». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
 5. Every change, removals included, gets the next number from one counter, and writes take turns, so the numbers appear in order. A reader keeps one saved number per list, asks each list for rows above its number, and saves the list's new number only after it has stored every page of it. Readers never sync by time: a slow write can appear after a later one and be skipped.
@@ -60,7 +60,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 8. The service keeps what it read from a page apart from what it works out from it: which course an offering belongs to and which teachers teach it. These links are computed from stored pages plus decisions. A better matching rule runs again on stored data and needs no new crawl.
 9. The first import takes Rate UKMA's current courses as the course groups, so every course and its ratings keep their place. When the service is not sure, it picks the answer that is easy to undo: a new course rather than a merge, and no teacher link rather than a guess. The matching rules are not fixed here: they start simple and change as we work with the data.
 10. A decision only changes rows, and readers get it with their next sync. Staff can merge two courses or split one. When two courses merge, the old course gets `removedAt` and `mergedInto`, the id of the course that now holds its offerings. A split moves some offerings to a new course, for example when one title covers two different courses of two programmes.
-11. Every change has a trail. Each run records the rows it added, changed and removed. Each decision records the key that made it, the Rate UKMA superuser who clicked it in the staff section, when, and the rows it changed. The staff section shows both.
+11. Every change has a trail. Each run records the rows it added, changed and removed. Each decision records who made it (the key, and the superuser when it came from the staff section), when, and the rows it changed. The staff section shows both.
 12. Adding a source needs no change to the database schema.
 
 ## API
