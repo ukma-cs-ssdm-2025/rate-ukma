@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -14,6 +14,7 @@ import {
 	getDifficultyTone,
 	getUsefulnessTone,
 } from "../courseFormatting";
+import { ScoreTrend, type YearScore, formatAcademicYear } from "./ScoreTrend";
 
 const SCALE_STEPS = 5;
 const SCALE_KEYS = Array.from({ length: SCALE_STEPS }, (_, i) => `s-${i}`);
@@ -22,6 +23,9 @@ interface CourseStatsHeroProps {
 	difficulty: number | null;
 	usefulness: number | null;
 	ratingsCount: number | null;
+	/** Yearly averages, oldest first; drawn when there are two or more. */
+	difficultyTrend?: YearScore[];
+	usefulnessTrend?: YearScore[];
 }
 
 function getDescription(
@@ -161,6 +165,7 @@ function ScorePanel({
 	formatted,
 	accent,
 	barColor,
+	trend,
 }: Readonly<{
 	title: string;
 	value: number | null;
@@ -168,32 +173,60 @@ function ScorePanel({
 	formatted: string;
 	accent: string;
 	barColor: string;
+	trend?: YearScore[];
 }>) {
 	const ref = useScoreReveal(value);
+	const [active, setActive] = useState<number | null>(null);
+	const hasTrend = value != null && trend != null && trend.length >= 2;
+	const year = hasTrend && active != null ? trend[active] : null;
+	const shown = year?.value ?? value;
 	return (
 		<Card
 			className="shadow-sm"
 			title={value === null ? undefined : getDetailedDescription(value, type)}
 		>
 			<CardContent ref={ref} className="p-4 sm:p-5">
-				<p className="text-sm font-medium text-muted-foreground">{title}</p>
-				<p className="mt-1 flex items-baseline gap-1.5">
-					<span
-						data-score
-						className={cn(
-							"text-4xl font-bold tabular-nums sm:text-5xl",
-							value == null ? "text-muted-foreground" : accent,
-						)}
-					>
-						{formatted}
-					</span>
-					<span className="text-sm text-muted-foreground">з 5</span>
-				</p>
+				<div className="flex items-center justify-between gap-2">
+					<p className="text-sm font-medium text-muted-foreground">{title}</p>
+					{/* Phones have no room beside the score; the line rides the title row. */}
+					{hasTrend ? (
+						<ScoreTrend
+							points={trend}
+							active={active}
+							onActiveChange={setActive}
+							label={`${title} за роками`}
+							className={cn("h-5 w-12 sm:hidden", accent)}
+						/>
+					) : null}
+				</div>
+				<div className="mt-1 flex items-end justify-between gap-2">
+					<p className="flex items-baseline gap-1.5">
+						<span
+							data-score
+							className={cn(
+								"text-4xl font-bold tabular-nums sm:text-5xl",
+								shown == null ? "text-muted-foreground" : accent,
+							)}
+						>
+							{year ? year.value.toFixed(1) : formatted}
+						</span>
+						<span className="text-sm text-muted-foreground">з 5</span>
+					</p>
+					{hasTrend ? (
+						<ScoreTrend
+							points={trend}
+							active={active}
+							onActiveChange={setActive}
+							label={`${title} за роками`}
+							className={cn("mb-1 hidden h-11 w-28 sm:block", accent)}
+						/>
+					) : null}
+				</div>
 				<div className="mt-3">
-					<ScaleBar value={value} accent={barColor} />
+					<ScaleBar value={shown} accent={barColor} />
 				</div>
 				<p className="mt-2 text-sm text-muted-foreground">
-					{getDescription(value, type)}
+					{year ? formatAcademicYear(year.year) : getDescription(value, type)}
 				</p>
 			</CardContent>
 		</Card>
@@ -204,6 +237,8 @@ export function CourseStatsHero({
 	difficulty,
 	usefulness,
 	ratingsCount,
+	difficultyTrend,
+	usefulnessTrend,
 }: Readonly<CourseStatsHeroProps>) {
 	// Only scores in the valid range are meaningful; treat the rest as missing
 	const diff =
@@ -233,6 +268,7 @@ export function CourseStatsHero({
 			formatted: diff?.toFixed(1) ?? "—",
 			accent: getDifficultyTone(diff),
 			barColor: getBarColor("difficulty", diff),
+			trend: difficultyTrend,
 		},
 		{
 			title: "Корисність",
@@ -241,6 +277,7 @@ export function CourseStatsHero({
 			formatted: useful?.toFixed(1) ?? "—",
 			accent: getUsefulnessTone(useful),
 			barColor: getBarColor("usefulness", useful),
+			trend: usefulnessTrend,
 		},
 	];
 
