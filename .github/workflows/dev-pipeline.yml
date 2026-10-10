@@ -19,6 +19,7 @@ jobs:
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      parser_changed: ${{ fromJSON(needs.changes-filter.outputs.parser_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
 
   openapi-validation:
     needs: changes-filter
@@ -43,3 +44,4 @@ jobs:
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
+      parser_changed: ${{ fromJSON(needs.changes-filter.outputs.parser_changed) }}

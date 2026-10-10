@@ -18,11 +18,17 @@ on:
         required: false
         type: boolean
         default: true
+      parser_changed:
+        description: "Whether parser code has changed"
+        required: false
+        type: boolean
+        default: true
 
 env:
   PYTHON_VERSION: "3.12"
   BACKEND_DIR: src/backend
   WEBAPP_DIR: src/webapp
+  PARSER_DIR: src/parser
   SRC_DIR: src
   BRANCH: ${{ github.head_ref || github.ref_name }}
   COVERAGE_BADGE_FILE: coverage.svg
@@ -95,6 +101,23 @@ jobs:
       - name: Run lint and format checks
         working-directory: ${{ env.WEBAPP_DIR }}
         run: pnpm check
+
+  check-parser:
+    if: inputs.parser_changed == true && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.BRANCH }}
+
+      - name: Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          working-directory: ${{ env.PARSER_DIR }}
+
+      - name: Run lint, format, typecheck and tests
+        working-directory: ${{ env.PARSER_DIR }}
+        run: pnpm check:all
 
   test-backend:
     if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'

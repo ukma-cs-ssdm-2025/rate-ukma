@@ -139,6 +139,43 @@ services:
     profiles:
       - prod
 
+  parser-api:
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser:${PARSER_IMAGE_TAG:-latest}
+    container_name: "${COMPOSE_PROJECT_NAME}_parser_api"
+    restart: unless-stopped
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    command: api
+    environment:
+      - PORT=8080
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - backend
+    profiles:
+      - dev
+      - prod
+
+  parser-worker:
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser:${PARSER_IMAGE_TAG:-latest}
+    container_name: "${COMPOSE_PROJECT_NAME}_parser_worker"
+    restart: unless-stopped
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    command: worker
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-rateukma:5432/${POSTGRES_DB}
+    networks:
+      - backend
+    depends_on:
+      db-rateukma:
+        condition: service_healthy
+    profiles:
+      - dev
+      - prod
+
 volumes:
   postgres_data:
   redis_data:
