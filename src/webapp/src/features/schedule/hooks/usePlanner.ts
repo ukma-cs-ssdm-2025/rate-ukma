@@ -614,7 +614,7 @@ export const usePlanner = (): Planner => {
 			url,
 			google: `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(url.replace(/^https?:/, "webcal:"))}`,
 			apple: url.replace(/^https?:/, "webcal:"),
-			outlook: `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(url)}&name=${encodeURIComponent("Розклад НаУКМА")}`,
+			outlook: `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(url)}&name=${encodeURIComponent("Розклад Rate UKMA")}`,
 		};
 	}, [me]);
 

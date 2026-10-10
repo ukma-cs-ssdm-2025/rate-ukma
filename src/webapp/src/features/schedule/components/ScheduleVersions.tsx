@@ -431,7 +431,7 @@ function ChangeRow(props: { line: ChangeLine }) {
 			className="flex gap-2 rounded-md bg-muted/40 px-2 py-1.5"
 		>
 			<span
-				className={`w-3 shrink-0 text-center font-mono ${KIND[line.kind].tone}`}
+				className={`w-3 shrink-0 text-center tabular-nums ${KIND[line.kind].tone}`}
 				title={KIND[line.kind].title}
 			>
 				{CHANGE_MARK[line.kind]}

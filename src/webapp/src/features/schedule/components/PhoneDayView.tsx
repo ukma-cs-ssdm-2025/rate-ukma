@@ -321,7 +321,7 @@ function DaySection(props: {
 					{agendaDay}
 				</span>
 				{date !== undefined && (
-					<span className="font-mono text-xs text-muted-foreground">
+					<span className="tabular-nums text-xs text-muted-foreground">
 						{shortDate(date)}
 					</span>
 				)}
@@ -350,7 +350,7 @@ function DaySection(props: {
 									<span
 										className={
 											offGrid
-												? "font-mono text-xs font-medium text-foreground/80"
+												? "tabular-nums text-xs font-medium text-foreground/80"
 												: "text-xs font-medium text-foreground/80"
 										}
 									>
@@ -360,7 +360,7 @@ function DaySection(props: {
 										className={
 											offGrid
 												? "text-meta text-muted-foreground"
-												: "font-mono text-meta text-muted-foreground"
+												: "tabular-nums text-meta text-muted-foreground"
 										}
 									>
 										{offGrid ? pairs : clockOf(time)}

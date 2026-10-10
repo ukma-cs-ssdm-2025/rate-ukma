@@ -19,7 +19,6 @@ import {
 	LessonEditor,
 } from "@/features/schedule/components/LessonEditor";
 import { PlannerCalendar } from "@/features/schedule/components/PlannerCalendar";
-import { Account } from "@/features/schedule/components/rail/Account";
 import { Brand } from "@/features/schedule/components/rail/Brand";
 import { Sidebar } from "@/features/schedule/components/Sidebar";
 import { Toolbar } from "@/features/schedule/components/Toolbar";
@@ -104,10 +103,7 @@ function Planner() {
 			<Sidebar
 				className="lg:top-[calc(4rem+1px)] lg:h-[calc(100svh-4rem-1px)]"
 				browseSignal={browseSignal}
-				head={<Brand planner={planner} />}
-				foot={
-					<Account planner={planner} onShowKeys={() => setKeysOpen(true)} />
-				}
+				head={<Brand planner={planner} onShowKeys={() => setKeysOpen(true)} />}
 				semester={semester}
 				inp={inp}
 				offerings={planner.pickedOfferings}

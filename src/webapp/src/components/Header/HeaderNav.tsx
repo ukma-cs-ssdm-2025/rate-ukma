@@ -26,9 +26,12 @@ export function HeaderNav({
 					<NavigationMenuItem key={item.href}>
 						<NavigationMenuLink
 							asChild
-							className="group inline-flex h-10 items-center justify-center rounded-lg px-6 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
+							className="group inline-flex h-10 items-center justify-center rounded-lg px-6 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50 data-[status=active]:bg-accent data-[status=active]:text-accent-foreground"
 						>
-							<Link to={item.href}>{item.label}</Link>
+							{/* The page you are on reads as selected; «Курси» only on the home page itself. */}
+							<Link to={item.href} activeOptions={{ exact: item.href === "/" }}>
+								{item.label}
+							</Link>
 						</NavigationMenuLink>
 					</NavigationMenuItem>
 				))}

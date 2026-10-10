@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/Button";
 import {
 	Sidebar as SidebarShell,
 	SidebarContent,
-	SidebarFooter,
 	SidebarHeader,
 	SidebarRail,
 } from "@/components/ui/Sidebar";
@@ -61,9 +60,8 @@ interface Props {
 	browseSignal?: number;
 	/** The feed to subscribe to; absent for a past semester. */
 	calendar?: CalendarLink | undefined;
-	/** The brand row and the account row: the rail is the app's frame now. */
+	/** The semester row; the student and sign-out are in Rate UKMA's header. */
 	head: React.ReactNode;
-	foot: React.ReactNode;
 	/** Where the fixed rail sits under the site header. */
 	className?: string | undefined;
 }
@@ -209,9 +207,6 @@ export function Sidebar(props: Props) {
 					}
 				/>
 			</SidebarContent>
-			<SidebarFooter className="border-t border-sidebar-border p-0 pb-[env(safe-area-inset-bottom)]">
-				{props.foot}
-			</SidebarFooter>
 			<SidebarRail />
 			<AddDiscipline
 				semester={semester}

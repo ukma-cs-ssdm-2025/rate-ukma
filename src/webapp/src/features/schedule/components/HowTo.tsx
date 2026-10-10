@@ -67,7 +67,9 @@ export function HowTo({ open, onOpenChange }: Props) {
 						{KEYS.map(([key, what]) => (
 							<div key={key} className="contents">
 								<dt>
-									<Kbd className="font-mono text-xs text-foreground">{key}</Kbd>
+									<Kbd className="tabular-nums text-xs text-foreground">
+										{key}
+									</Kbd>
 								</dt>
 								<dd className="text-muted-foreground">{what}</dd>
 							</div>

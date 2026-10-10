@@ -264,7 +264,7 @@ export function PlannerCalendar(props: Props) {
 								>
 									{day}
 									{date && (
-										<span className="ml-1.5 font-mono text-meta font-normal text-muted-foreground">
+										<span className="ml-1.5 tabular-nums text-meta font-normal text-muted-foreground">
 											{shortDate(date)}
 										</span>
 									)}
@@ -285,7 +285,7 @@ export function PlannerCalendar(props: Props) {
 									<div className="text-xs font-semibold text-foreground">
 										{index + 1} пара
 									</div>
-									<div className="font-mono text-mini whitespace-nowrap text-muted-foreground tabular-nums">
+									<div className="tabular-nums text-mini whitespace-nowrap text-muted-foreground tabular-nums">
 										{start}–{end}
 									</div>
 								</th>

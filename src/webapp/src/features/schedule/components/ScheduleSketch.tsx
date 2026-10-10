@@ -47,14 +47,14 @@ export function ScheduleSketch() {
 				{DAYS.map((day) => (
 					<div
 						key={day}
-						className="pb-1 text-center font-mono text-mini font-medium text-muted-foreground lg:text-xs"
+						className="pb-1 text-center tabular-nums text-mini font-medium text-muted-foreground lg:text-xs"
 					>
 						{day}
 					</div>
 				))}
 				{SLOTS.map((time, slot) => (
 					<div key={time} className="contents">
-						<div className="pt-1 font-mono text-[9px] text-muted-foreground/70 sm:text-mini lg:text-xs">
+						<div className="pt-1 tabular-nums text-[9px] text-muted-foreground/70 sm:text-mini lg:text-xs">
 							{time}
 						</div>
 						{DAYS.map((_, day) => (

@@ -56,7 +56,7 @@ export const buildIcs = (semester: Semester, lessons: PlanLessons): string =>
 				},
 			],
 			{
-				name: `Розклад НаУКМА, ${semester.name}`,
+				name: `Розклад Rate UKMA, ${semester.name}`,
 				origin: window.location.origin,
 			},
 		),

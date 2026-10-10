@@ -636,7 +636,7 @@ function WeeksField(props: {
 							value={String(week)}
 							aria-label={`Тиждень ${week}`}
 							title={span ? formatSpan(span.start, span.end) : undefined}
-							className="w-8 font-mono pointer-coarse:h-10 pointer-coarse:w-10 data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+							className="w-8 tabular-nums pointer-coarse:h-10 pointer-coarse:w-10 data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
 						>
 							{week}
 						</ToggleGroupItem>
