@@ -84,74 +84,54 @@ describe("InstructorMultiSelect", () => {
 			expect(screen.getByText("Обрати викладача…")).toBeInTheDocument();
 		});
 
-		it("should call onChange without the removed id when a chip is removed", async () => {
-			const user = userEvent.setup();
-			const onChange = vi.fn();
-			const a = createMockInstructor({ id: "a", last_name: "Алексенко" });
-			const b = createMockInstructor({ id: "b", last_name: "Борисенко" });
+		// The whole chip is the remove target: the ×, the name, or Enter on it.
+		it.each([
+			[
+				"its × is clicked",
+				(user: ReturnType<typeof userEvent.setup>) =>
+					user.click(
+						screen
+							.getByRole("button", { name: /Видалити Алексенко/ })
+							.querySelector("svg") as Element,
+					),
+			],
+			[
+				"its name is clicked",
+				(user: ReturnType<typeof userEvent.setup>) =>
+					user.click(screen.getByText(/Алексенко/)),
+			],
+			[
+				"Enter is pressed on it",
+				async (user: ReturnType<typeof userEvent.setup>) => {
+					screen.getByRole("button", { name: /Видалити Алексенко/ }).focus();
+					await user.keyboard("{Enter}");
+				},
+			],
+		])(
+			"removes a teacher when %s, without opening the list",
+			async (_, act) => {
+				const user = userEvent.setup();
+				const onChange = vi.fn();
+				const a = createMockInstructor({ id: "a", last_name: "Алексенко" });
+				const b = createMockInstructor({ id: "b", last_name: "Борисенко" });
 
-			renderWithProviders(
-				<InstructorMultiSelect
-					value={["a", "b"]}
-					onChange={onChange}
-					initialOptions={[a, b]}
-				/>,
-			);
+				renderWithProviders(
+					<InstructorMultiSelect
+						value={["a", "b"]}
+						onChange={onChange}
+						initialOptions={[a, b]}
+					/>,
+				);
 
-			const removeButton = screen.getByRole("button", {
-				name: /Видалити Алексенко/,
-			});
-			await user.click(removeButton);
+				await act(user);
 
-			expect(onChange).toHaveBeenCalledWith(["b"]);
-		});
-
-		it("removes a teacher when the chip's name is clicked, not only the ×", async () => {
-			const user = userEvent.setup();
-			const onChange = vi.fn();
-			const a = createMockInstructor({ id: "a", last_name: "Алексенко" });
-			const b = createMockInstructor({ id: "b", last_name: "Борисенко" });
-
-			renderWithProviders(
-				<InstructorMultiSelect
-					value={["a", "b"]}
-					onChange={onChange}
-					initialOptions={[a, b]}
-				/>,
-			);
-
-			await user.click(screen.getByText(/Алексенко/));
-
-			expect(onChange).toHaveBeenCalledWith(["b"]);
-			// Removing must not open the list as a side effect.
-			expect(screen.getByRole("combobox")).toHaveAttribute(
-				"aria-expanded",
-				"false",
-			);
-		});
-
-		it("removes a teacher with Enter on the focused chip", async () => {
-			const user = userEvent.setup();
-			const onChange = vi.fn();
-			const a = createMockInstructor({ id: "a", last_name: "Алексенко" });
-
-			renderWithProviders(
-				<InstructorMultiSelect
-					value={["a"]}
-					onChange={onChange}
-					initialOptions={[a]}
-				/>,
-			);
-
-			screen.getByRole("button", { name: /Видалити Алексенко/ }).focus();
-			await user.keyboard("{Enter}");
-
-			expect(onChange).toHaveBeenCalledWith([]);
-			expect(screen.getByRole("combobox")).toHaveAttribute(
-				"aria-expanded",
-				"false",
-			);
-		});
+				expect(onChange).toHaveBeenCalledWith(["b"]);
+				expect(screen.getByRole("combobox")).toHaveAttribute(
+					"aria-expanded",
+					"false",
+				);
+			},
+		);
 
 		it("should keep a selected chip when search results no longer include it", async () => {
 			const user = userEvent.setup();

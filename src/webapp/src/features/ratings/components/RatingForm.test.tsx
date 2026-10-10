@@ -18,6 +18,41 @@ vi.mock("@/lib/api/generated", async () => {
 const { useCoursesInstructorsRetrieve } = await import("@/lib/api/generated");
 type CourseInstructorsQuery = ReturnType<typeof useCoursesInstructorsRetrieve>;
 
+const DEMCHENKO = {
+	id: "i-1",
+	first_name: "Олена",
+	patronymic: "Петрівна",
+	last_name: "Демченко",
+};
+
+function mockCourseInstructors(
+	items: ReadonlyArray<{
+		instructor: {
+			id: string;
+			first_name: string;
+			patronymic?: string;
+			last_name: string;
+		};
+		ratings_count: number;
+		offering_ratings_count: number;
+	}>,
+) {
+	vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
+		data: { items },
+	} as unknown as CourseInstructorsQuery);
+}
+
+function renderWithCourse() {
+	render(
+		<RatingForm
+			onSubmit={vi.fn()}
+			onCancel={vi.fn()}
+			courseId="c-1"
+			offeringId="o-1"
+		/>,
+	);
+}
+
 describe("RatingForm", () => {
 	it("uses a viewport-safe layout for long reviews", () => {
 		render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
@@ -61,39 +96,15 @@ describe("RatingForm", () => {
 
 		it("offers teachers others named on this course one tap away", async () => {
 			const user = userEvent.setup();
-			vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
-				data: {
-					items: [
-						{
-							instructor: {
-								id: "i-1",
-								first_name: "Олена",
-								patronymic: "Петрівна",
-								last_name: "Демченко",
-							},
-							ratings_count: 4,
-							offering_ratings_count: 1,
-						},
-						{
-							instructor: {
-								id: "i-2",
-								first_name: "Іван",
-								last_name: "Разовий",
-							},
-							ratings_count: 1,
-							offering_ratings_count: 0,
-						},
-					],
+			mockCourseInstructors([
+				{ instructor: DEMCHENKO, ratings_count: 4, offering_ratings_count: 1 },
+				{
+					instructor: { id: "i-2", first_name: "Іван", last_name: "Разовий" },
+					ratings_count: 1,
+					offering_ratings_count: 0,
 				},
-			} as unknown as CourseInstructorsQuery);
-			render(
-				<RatingForm
-					onSubmit={vi.fn()}
-					onCancel={vi.fn()}
-					courseId="c-1"
-					offeringId="o-1"
-				/>,
-			);
+			]);
+			renderWithCourse();
 
 			const picks = screen.getByTestId(testIds.rating.instructorQuickPicks);
 			// One old mention on the course is not enough to offer a teacher.
@@ -112,30 +123,10 @@ describe("RatingForm", () => {
 
 		it("previews the chosen teacher and removes it by tapping its badge", async () => {
 			const user = userEvent.setup();
-			vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
-				data: {
-					items: [
-						{
-							instructor: {
-								id: "i-1",
-								first_name: "Олена",
-								patronymic: "Петрівна",
-								last_name: "Демченко",
-							},
-							ratings_count: 2,
-							offering_ratings_count: 1,
-						},
-					],
-				},
-			} as unknown as CourseInstructorsQuery);
-			render(
-				<RatingForm
-					onSubmit={vi.fn()}
-					onCancel={vi.fn()}
-					courseId="c-1"
-					offeringId="o-1"
-				/>,
-			);
+			mockCourseInstructors([
+				{ instructor: DEMCHENKO, ratings_count: 2, offering_ratings_count: 1 },
+			]);
+			renderWithCourse();
 
 			await user.click(
 				screen.getByRole("button", { name: "Додати: Демченко Олена Петрівна" }),
