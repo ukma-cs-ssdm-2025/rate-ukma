@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import {
 	getCoursesListQueryKey,
+	getCoursesInstructorsRetrieveQueryKey,
 	getCoursesRatingsListQueryKey,
 	getCoursesRetrieveQueryKey,
 	getFeedListInfiniteQueryKey,
@@ -17,6 +18,8 @@ export function refreshRatingQueries(
 	const pageKeys = [
 		getCoursesRatingsListQueryKey(courseId),
 		getCoursesRetrieveQueryKey(courseId),
+		// Prefix match also covers the offering-scoped variant.
+		getCoursesInstructorsRetrieveQueryKey(courseId),
 		getStudentsMeCoursesRetrieveQueryKey(),
 		getStudentsMeGradesRetrieveQueryKey(),
 	];

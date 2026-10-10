@@ -25,6 +25,8 @@ const SEARCH_DEBOUNCE_MS = 200;
 interface InstructorMultiSelectProps {
 	readonly value: readonly string[];
 	readonly onChange: (next: string[]) => void;
+	/** Called with the full record whenever a teacher is added from the list. */
+	readonly onOptionPicked?: (instructor: Instructor) => void;
 	readonly initialOptions?: readonly Instructor[];
 	readonly courseOfferingId?: string;
 	readonly courseId?: string;
@@ -41,6 +43,7 @@ interface InstructorMultiSelectProps {
 function InstructorMultiSelect({
 	value,
 	onChange,
+	onOptionPicked,
 	initialOptions = [],
 	courseOfferingId,
 	courseId,
@@ -133,6 +136,7 @@ function InstructorMultiSelect({
 			next.set(id, instr);
 			return next;
 		});
+		onOptionPicked?.(instr);
 		onChange([...value, id]);
 	};
 
@@ -189,22 +193,26 @@ function InstructorMultiSelect({
 						</span>
 					) : (
 						selectedInstructors.map((instr) => (
-							<span
+							// The whole chip removes the teacher: a bigger target than
+							// the × alone, which stays as the visual cue.
+							<button
 								key={instr.id}
-								className="bg-secondary text-secondary-foreground inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-xs"
+								type="button"
+								aria-label={`Видалити ${formatInstructorName(instr)}`}
+								className="group/chip bg-secondary text-secondary-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-ring/50 inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-0.5 text-left text-xs transition-colors outline-none focus-visible:ring-[3px] motion-reduce:transition-none"
+								onClick={(e) => removeValue(e, instr.id)}
+								// Enter and Space belong to the chip, not the trigger that
+								// would open the list instead.
+								onKeyDown={(e) => e.stopPropagation()}
 							>
 								<span className="break-words">
 									{formatInstructorName(instr)}
 								</span>
-								<button
-									type="button"
-									aria-label={`Видалити ${formatInstructorName(instr)}`}
-									className="hover:text-destructive cursor-pointer"
-									onClick={(e) => removeValue(e, instr.id)}
-								>
-									<XIcon className="size-3" />
-								</button>
-							</span>
+								<XIcon
+									className="size-3 shrink-0 text-current opacity-60 group-hover/chip:opacity-100"
+									aria-hidden="true"
+								/>
+							</button>
 						))
 					)}
 					{/* Stable open target: chips cover the rest of the trigger. */}

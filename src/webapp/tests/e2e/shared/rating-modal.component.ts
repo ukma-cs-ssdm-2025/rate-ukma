@@ -112,7 +112,8 @@ export class RatingModal {
 	}
 
 	private get instructorChips(): Locator {
-		return this.instructorTrigger.locator("span[class*='bg-secondary']");
+		// Each chip is one remove button labelled "Видалити <name>".
+		return this.instructorTrigger.getByRole("button", { name: /^Видалити / });
 	}
 
 	async getSelectedInstructorCount(): Promise<number> {
@@ -128,9 +129,9 @@ export class RatingModal {
 		return names;
 	}
 
-	/** Remove the chip at `index` by clicking its × button. */
+	/** Remove the chip at `index`; the whole chip is the remove target. */
 	async removeInstructorChipByIndex(index: number): Promise<void> {
-		await this.instructorChips.nth(index).locator("button").click();
+		await this.instructorChips.nth(index).click();
 	}
 
 	async waitForHidden(): Promise<void> {

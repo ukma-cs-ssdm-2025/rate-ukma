@@ -23,6 +23,16 @@ import { RatingContinuationContext } from "../RatingContinuationContext";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { refreshRatingQueries } from "../refreshRatingQueries";
 
+// Module-level so the form isn't reset on every render.
+const ANONYMOUS_DEFAULTS: RatingFormData = {
+	difficulty: 0,
+	usefulness: 0,
+	comment: "",
+	instructor_ids: [],
+	instructor: "",
+	is_anonymous: true,
+};
+
 interface ExistingRating {
 	id?: string;
 	difficulty?: number;
@@ -153,14 +163,7 @@ export function RatingModal({
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
 		: initialAnonymous
-			? {
-					difficulty: 0,
-					usefulness: 0,
-					comment: "",
-					instructor_ids: [],
-					instructor: "",
-					is_anonymous: true,
-				}
+			? ANONYMOUS_DEFAULTS
 			: undefined;
 
 	const isLoading = createMutation.isPending || updateMutation.isPending;
