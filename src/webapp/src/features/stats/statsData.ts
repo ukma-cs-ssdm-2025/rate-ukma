@@ -19,7 +19,7 @@ export interface FacultyStats {
 export interface PlatformStats {
 	ratings: number;
 	ratedCourses: number;
-	/** Students enrolled in 2025–26 or later, i.e. not graduates. */
+	/** Students with an enrollment in 2026–27, i.e. studying now. */
 	currentStudents: number;
 	currentWithAccount: number;
 	currentWhoRated: number;
@@ -52,9 +52,9 @@ export interface PlatformStats {
 export const PLATFORM_STATS: PlatformStats = {
 	ratings: 1793,
 	ratedCourses: 559,
-	currentStudents: 5741,
-	currentWithAccount: 1191,
-	currentWhoRated: 219,
+	currentStudents: 4055,
+	currentWithAccount: 1046,
+	currentWhoRated: 188,
 	studentsWhoRated: 221,
 	withComment: 850,
 	anonymous: 1099,
@@ -175,9 +175,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 885,
 			difficulty: 2.99,
 			usefulness: 3.18,
-			currentStudents: 824,
-			currentWithAccount: 422,
-			currentWhoRated: 105,
+			currentStudents: 579,
+			currentWithAccount: 364,
+			currentWhoRated: 92,
 		},
 		{
 			abbr: "ФГН",
@@ -188,9 +188,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 301,
 			difficulty: 2.75,
 			usefulness: 3.49,
-			currentStudents: 1055,
-			currentWithAccount: 171,
-			currentWhoRated: 24,
+			currentStudents: 737,
+			currentWithAccount: 152,
+			currentWhoRated: 19,
 		},
 		{
 			abbr: "ФСНСТ",
@@ -201,9 +201,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 266,
 			difficulty: 2.73,
 			usefulness: 3.5,
-			currentStudents: 1125,
-			currentWithAccount: 193,
-			currentWhoRated: 40,
+			currentStudents: 843,
+			currentWithAccount: 171,
+			currentWhoRated: 34,
 		},
 		{
 			abbr: "ФЕН",
@@ -214,9 +214,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 152,
 			difficulty: 2.43,
 			usefulness: 2.84,
-			currentStudents: 1131,
-			currentWithAccount: 238,
-			currentWhoRated: 31,
+			currentStudents: 826,
+			currentWithAccount: 217,
+			currentWhoRated: 28,
 		},
 		{
 			abbr: "ФОЗ",
@@ -227,9 +227,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 91,
 			difficulty: 2.4,
 			usefulness: 2.64,
-			currentStudents: 480,
-			currentWithAccount: 79,
-			currentWhoRated: 4,
+			currentStudents: 330,
+			currentWithAccount: 67,
+			currentWhoRated: 3,
 		},
 		{
 			abbr: "ФПрН",
@@ -240,9 +240,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 47,
 			difficulty: 2.13,
 			usefulness: 2.77,
-			currentStudents: 264,
-			currentWithAccount: 30,
-			currentWhoRated: 6,
+			currentStudents: 169,
+			currentWithAccount: 27,
+			currentWhoRated: 5,
 		},
 		{
 			abbr: "ФПвН",
@@ -253,9 +253,9 @@ export const PLATFORM_STATS: PlatformStats = {
 			ratings: 38,
 			difficulty: 3.42,
 			usefulness: 3.82,
-			currentStudents: 690,
-			currentWithAccount: 49,
-			currentWhoRated: 8,
+			currentStudents: 454,
+			currentWithAccount: 39,
+			currentWhoRated: 6,
 		},
 	],
 };

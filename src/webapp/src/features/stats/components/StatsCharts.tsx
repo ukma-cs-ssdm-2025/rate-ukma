@@ -646,7 +646,7 @@ export function ParticipationSection({
 		<section className="space-y-5">
 			<SectionTitle
 				title="Хто оцінює"
-				description={`Студенти, що навчаються зараз: ${formatNumber(stats.currentStudents)}, без випускників`}
+				description={`${formatNumber(stats.currentStudents)} студентів, що навчаються зараз`}
 			/>
 			<div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4">
 				<span />
