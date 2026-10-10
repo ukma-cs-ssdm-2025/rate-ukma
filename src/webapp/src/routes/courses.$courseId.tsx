@@ -29,8 +29,10 @@ import {
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
 import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
+import { RatingSuggestionPrompt } from "@/features/ratings/components/RatingSuggestionPrompt";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
 import { RatingButton } from "@/features/ratings/components/RatingButton";
+import { RatingContinuationContext } from "@/features/ratings/RatingContinuationContext";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
 import {
@@ -43,6 +45,15 @@ import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
+	const continuation = React.useContext(RatingContinuationContext);
+	const followUp =
+		continuation?.followUp?.course_id === courseId
+			? continuation.followUp
+			: null;
+	const [arrival, setArrival] = React.useState<{
+		courseId: string;
+		rated: boolean;
+	} | null>(null);
 	const {
 		data: course,
 		isLoading: isCourseLoading,
@@ -63,11 +74,44 @@ function CourseDetailsRoute() {
 		rating: userRating,
 		ratingId,
 		ratedOffering,
+		attendedOfferings,
 		hasAttendedCourse,
 		selectedOffering,
 		attendedCourseId,
 		isLoading: isUserRatingLoading,
 	} = useUserCourseRating(courseId);
+
+	React.useEffect(() => {
+		if (!isUserRatingLoading && arrival?.courseId !== courseId)
+			setArrival({ courseId, rated: !!ratedOffering });
+	}, [arrival, courseId, isUserRatingLoading, ratedOffering]);
+
+	React.useEffect(() => {
+		if (
+			!followUp ||
+			followUp.status !== "requested" ||
+			isUserRatingLoading ||
+			isCourseLoading ||
+			isOfferingsLoading
+		)
+			return;
+		const offering = attendedOfferings.find(
+			(item) => item.id === followUp.course_offering_id,
+		);
+		if (offering?.can_rate && !offering.rated) {
+			setIsRatingModalOpen(true);
+			continuation?.beginFollowUp();
+		} else {
+			continuation?.cancelFollowUp();
+		}
+	}, [
+		followUp,
+		attendedOfferings,
+		continuation,
+		isUserRatingLoading,
+		isCourseLoading,
+		isOfferingsLoading,
+	]);
 
 	if (isCourseLoading || isUserRatingLoading || isOfferingsLoading) {
 		return (
@@ -118,6 +162,10 @@ function CourseDetailsRoute() {
 				</RatingButton>
 			</div>
 		) : null;
+	const nextSuggestion =
+		ratedOffering && arrival?.courseId === courseId && arrival.rated ? (
+			<RatingSuggestionPrompt limit={1} excludeCourse={courseId} />
+		) : null;
 	const about = (
 		<CourseAbout
 			description={course.description}
@@ -167,6 +215,7 @@ function CourseDetailsRoute() {
 						    then reviews. Rendered once: the rate button's test id must stay unique. */}
 						{isDesktop ? null : rateAction}
 						{isDesktop ? null : about}
+						{isDesktop ? null : nextSuggestion}
 
 						<CourseRatingsList
 							courseId={courseId}
@@ -184,7 +233,10 @@ function CourseDetailsRoute() {
 							{/* Capped to the viewport so a rail taller than the screen scrolls
 							    on its own instead of hiding its end until the page bottom. */}
 							<div className="lg:sticky lg:top-24 lg:-mr-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pr-3 lg:[scrollbar-gutter:stable] lg:[scrollbar-width:thin]">
-								{about}
+								<div className="space-y-6">
+									{about}
+									{nextSuggestion}
+								</div>
 							</div>
 						</aside>
 					) : null}
@@ -194,11 +246,16 @@ function CourseDetailsRoute() {
 			{selectedOffering?.id && attendedCourseId && (
 				<RatingModal
 					isOpen={isRatingModalOpen}
-					onClose={() => setIsRatingModalOpen(false)}
+					onClose={() => {
+						setIsRatingModalOpen(false);
+						if (followUp) continuation?.cancelFollowUp();
+					}}
 					courseId={attendedCourseId}
-					offeringId={selectedOffering.id}
+					offeringId={followUp?.course_offering_id ?? selectedOffering.id}
 					courseName={course.title}
-					existingRating={ratedOffering?.rated || null}
+					existingRating={followUp ? null : ratedOffering?.rated || null}
+					initialAnonymous={followUp?.isAnonymous}
+					offerNext={!followUp}
 				/>
 			)}
 

@@ -128,6 +128,13 @@ def course_detailed_rating_stats():
 
 
 @once
+def student_rating_suggestions():
+    return StudentStatisticsViewSet.as_view(
+        {"get": "get_rating_suggestions"}, student_service=student_service()
+    )
+
+
+@once
 def instructor_detail_view():
     return InstructorViewSet.as_view({"get": "retrieve"}, instructor_service=instructor_service())
 
@@ -336,6 +343,11 @@ def rest_urlpatterns() -> list:
             "students/me/courses/",
             course_rating_stats(),
             name="student-courses-stats",
+        ),
+        path(
+            "students/me/rating-suggestions/",
+            student_rating_suggestions(),
+            name="student-rating-suggestions",
         ),
         path(
             "students/me/grades/",
