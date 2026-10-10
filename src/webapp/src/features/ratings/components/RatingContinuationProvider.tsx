@@ -32,6 +32,8 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 	useEffect(() => {
 		if (!completion) return;
 		if (!flowEnabled || completion.pathname !== pathname) {
+			// The rating is saved either way; only the invitation is dropped.
+			void refreshRatingQueries(queryClient, completion.courseId);
 			setCompletion(null);
 			setVisible(false);
 			return;
