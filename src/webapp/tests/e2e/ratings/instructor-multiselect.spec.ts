@@ -8,6 +8,9 @@ import { createTestRatingData } from "../framework/test-config";
 import { RatingModal } from "../shared/rating-modal.component";
 
 test.describe("Rating instructor multi-select", () => {
+	// Both tests rate the same first unrated course, so they must not overlap.
+	test.describe.configure({ mode: "serial" });
+
 	let coursePage: CourseDetailsPage;
 	let ratingModal: RatingModal;
 	let myRatingsPage: MyRatingsPage;
@@ -41,7 +44,7 @@ test.describe("Rating instructor multi-select", () => {
 	test("select, deselect, persist and re-open with saved instructors", async ({
 		page,
 	}) => {
-		await withRatingCleanup(coursePage, async (markCreated) => {
+		await withRatingCleanup(page, coursePage, async (markCreated) => {
 			await startRating(page, "instructor");
 
 			// Take two real names from the directory instead of hardcoding staff who
@@ -128,7 +131,7 @@ test.describe("Rating instructor multi-select", () => {
 	test("offers a teacher named on this offering and adds it in one tap", async ({
 		page,
 	}) => {
-		await withRatingCleanup(coursePage, async (markCreated) => {
+		await withRatingCleanup(page, coursePage, async (markCreated) => {
 			await startRating(page, "quick-pick");
 
 			await ratingModal.openInstructorPicker();
