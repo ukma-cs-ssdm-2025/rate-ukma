@@ -41,20 +41,9 @@ import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
-const MOCK_DIFFICULTY = [
-	{ year: 2021, value: 4.9, count: 6 },
-	{ year: 2022, value: 4.8, count: 11 },
-	{ year: 2023, value: 4.7, count: 14 },
-	{ year: 2024, value: 4.3, count: 18 },
-	{ year: 2025, value: 4.2, count: 9 },
-];
-const MOCK_USEFULNESS = [
-	{ year: 2021, value: 4.3, count: 6 },
-	{ year: 2022, value: 4.5, count: 11 },
-	{ year: 2023, value: 4.6, count: 14 },
-	{ year: 2024, value: 4.9, count: 18 },
-	{ year: 2025, value: 5.0, count: 9 },
-];
+// MOCKUP: invented score splits until the API serves them.
+const MOCK_DIFFICULTY = [0, 1, 2, 9, 12];
+const MOCK_USEFULNESS = [0, 0, 2, 4, 18];
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();
@@ -175,9 +164,8 @@ function CourseDetailsRoute() {
 								difficulty={course.avg_difficulty ?? null}
 								usefulness={course.avg_usefulness ?? null}
 								ratingsCount={course.ratings_count ?? null}
-								// MOCKUP: invented yearly averages until the API serves them.
-								difficultyTrend={MOCK_DIFFICULTY}
-								usefulnessTrend={MOCK_USEFULNESS}
+								difficultySplit={MOCK_DIFFICULTY}
+								usefulnessSplit={MOCK_USEFULNESS}
 							/>
 						) : null}
 

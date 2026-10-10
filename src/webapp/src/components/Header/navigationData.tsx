@@ -12,6 +12,7 @@ export type ThemeOption = "light" | "dark" | "system";
 export const navigationItems: NavigationItem[] = [
 	{ label: "Курси", href: "/" },
 	{ label: "Мої оцінки", href: "/my-ratings" },
+	{ label: "Статистика", href: "/stats" },
 ];
 
 export const themeOptions: {

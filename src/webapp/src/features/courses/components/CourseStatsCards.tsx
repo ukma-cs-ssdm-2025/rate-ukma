@@ -14,7 +14,7 @@ import {
 	getDifficultyTone,
 	getUsefulnessTone,
 } from "../courseFormatting";
-import { ScoreTrend, type YearScore, formatAcademicYear } from "./ScoreTrend";
+import { MIN_SPLIT_RATINGS, ScoreDistribution } from "./ScoreDistribution";
 
 const SCALE_STEPS = 5;
 const SCALE_KEYS = Array.from({ length: SCALE_STEPS }, (_, i) => `s-${i}`);
@@ -23,9 +23,9 @@ interface CourseStatsHeroProps {
 	difficulty: number | null;
 	usefulness: number | null;
 	ratingsCount: number | null;
-	/** Yearly averages, oldest first; drawn when there are two or more. */
-	difficultyTrend?: YearScore[];
-	usefulnessTrend?: YearScore[];
+	/** How many students gave each score, index 0 is a score of 1. */
+	difficultySplit?: number[];
+	usefulnessSplit?: number[];
 }
 
 function getDescription(
@@ -165,7 +165,7 @@ function ScorePanel({
 	formatted,
 	accent,
 	barColor,
-	trend,
+	split,
 }: Readonly<{
 	title: string;
 	value: number | null;
@@ -173,13 +173,22 @@ function ScorePanel({
 	formatted: string;
 	accent: string;
 	barColor: string;
-	trend?: YearScore[];
+	split?: number[];
 }>) {
 	const ref = useScoreReveal(value);
 	const [active, setActive] = useState<number | null>(null);
-	const hasTrend = value != null && trend != null && trend.length >= 2;
-	const year = hasTrend && active != null ? trend[active] : null;
-	const shown = year?.value ?? value;
+	const total = split?.reduce((sum, count) => sum + count, 0) ?? 0;
+	const hasSplit = value != null && split != null && total >= MIN_SPLIT_RATINGS;
+	const chart = (className: string) =>
+		hasSplit ? (
+			<ScoreDistribution
+				counts={split}
+				active={active}
+				onActiveChange={setActive}
+				label={title}
+				className={cn(className, accent)}
+			/>
+		) : null;
 	return (
 		<Card
 			className="shadow-sm"
@@ -188,16 +197,8 @@ function ScorePanel({
 			<CardContent ref={ref} className="p-4 sm:p-5">
 				<div className="flex items-center justify-between gap-2">
 					<p className="text-sm font-medium text-muted-foreground">{title}</p>
-					{/* Phones have no room beside the score; the line rides the title row. */}
-					{hasTrend ? (
-						<ScoreTrend
-							points={trend}
-							active={active}
-							onActiveChange={setActive}
-							label={`${title} за роками`}
-							className={cn("h-5 w-12 sm:hidden", accent)}
-						/>
-					) : null}
+					{/* Phones have no room beside the score; the columns ride the title row. */}
+					{chart("h-5 w-12 sm:hidden")}
 				</div>
 				<div className="mt-1 flex items-end justify-between gap-2">
 					<p className="flex items-baseline gap-1.5">
@@ -205,28 +206,22 @@ function ScorePanel({
 							data-score
 							className={cn(
 								"text-4xl font-bold tabular-nums sm:text-5xl",
-								shown == null ? "text-muted-foreground" : accent,
+								value == null ? "text-muted-foreground" : accent,
 							)}
 						>
-							{year ? year.value.toFixed(1) : formatted}
+							{formatted}
 						</span>
 						<span className="text-sm text-muted-foreground">з 5</span>
 					</p>
-					{hasTrend ? (
-						<ScoreTrend
-							points={trend}
-							active={active}
-							onActiveChange={setActive}
-							label={`${title} за роками`}
-							className={cn("mb-1 hidden h-11 w-28 sm:block", accent)}
-						/>
-					) : null}
+					{chart("mb-1.5 hidden h-10 w-24 sm:flex")}
 				</div>
 				<div className="mt-3">
-					<ScaleBar value={shown} accent={barColor} />
+					<ScaleBar value={value} accent={barColor} />
 				</div>
 				<p className="mt-2 text-sm text-muted-foreground">
-					{year ? formatAcademicYear(year.year) : getDescription(value, type)}
+					{hasSplit && active != null
+						? `Оцінку ${active} поставили ${split[active - 1]}`
+						: getDescription(value, type)}
 				</p>
 			</CardContent>
 		</Card>
@@ -237,8 +232,8 @@ export function CourseStatsHero({
 	difficulty,
 	usefulness,
 	ratingsCount,
-	difficultyTrend,
-	usefulnessTrend,
+	difficultySplit,
+	usefulnessSplit,
 }: Readonly<CourseStatsHeroProps>) {
 	// Only scores in the valid range are meaningful; treat the rest as missing
 	const diff =
@@ -268,7 +263,7 @@ export function CourseStatsHero({
 			formatted: diff?.toFixed(1) ?? "—",
 			accent: getDifficultyTone(diff),
 			barColor: getBarColor("difficulty", diff),
-			trend: difficultyTrend,
+			split: difficultySplit,
 		},
 		{
 			title: "Корисність",
@@ -277,7 +272,7 @@ export function CourseStatsHero({
 			formatted: useful?.toFixed(1) ?? "—",
 			accent: getUsefulnessTone(useful),
 			barColor: getBarColor("usefulness", useful),
-			trend: usefulnessTrend,
+			split: usefulnessSplit,
 		},
 	];
 

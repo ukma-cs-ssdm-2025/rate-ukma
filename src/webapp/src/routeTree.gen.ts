@@ -15,6 +15,7 @@ import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyRatingsRouteImport } from './routes/my-ratings'
+import { Route as StatsRouteImport } from './routes/stats'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
 import { Route as LoginFailedRouteImport } from './routes/login.failed'
@@ -49,6 +50,11 @@ const MyRatingsRoute = MyRatingsRouteImport.update({
   path: '/my-ratings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoursesCourseIdRoute = CoursesCourseIdRouteImport.update({
   id: '/courses/$courseId',
   path: '/courses/$courseId',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/feed': typeof FeedRoute
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
+  '/stats': typeof StatsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
   '/login/': typeof LoginIndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/my-ratings': typeof MyRatingsRoute
+  '/stats': typeof StatsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
   '/login': typeof LoginIndexRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/feed': typeof FeedRoute
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
+  '/stats': typeof StatsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
   '/login/': typeof LoginIndexRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/feed'
     | '/login'
     | '/my-ratings'
+    | '/stats'
     | '/courses/$courseId'
     | '/login/failed'
     | '/login/'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/feed'
     | '/my-ratings'
+    | '/stats'
     | '/courses/$courseId'
     | '/login/failed'
     | '/login'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/feed'
     | '/login'
     | '/my-ratings'
+    | '/stats'
     | '/courses/$courseId'
     | '/login/failed'
     | '/login/'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   FeedRoute: typeof FeedRoute
   LoginRoute: typeof LoginRouteWithChildren
   MyRatingsRoute: typeof MyRatingsRoute
+  StatsRoute: typeof StatsRoute
   CoursesCourseIdRoute: typeof CoursesCourseIdRoute
 }
 
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyRatingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/courses/$courseId': {
       id: '/courses/$courseId'
       path: '/courses/$courseId'
@@ -230,6 +250,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeedRoute: FeedRoute,
   LoginRoute: LoginRouteWithChildren,
   MyRatingsRoute: MyRatingsRoute,
+  StatsRoute: StatsRoute,
   CoursesCourseIdRoute: CoursesCourseIdRoute,
 }
 export const routeTree = rootRouteImport
