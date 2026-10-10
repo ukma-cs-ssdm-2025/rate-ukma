@@ -18,9 +18,6 @@ function ThemeProbe() {
 			<button type="button" onClick={() => setTheme("system")}>
 				to-system
 			</button>
-			<button type="button" onClick={() => setTheme("banana" as "light")}>
-				to-invalid
-			</button>
 		</div>
 	);
 }
@@ -82,17 +79,6 @@ describe("ThemeProvider", () => {
 
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 		expect(localStorage.getItem(STORAGE_KEY)).toBe("system");
-		expect(colorScheme()).toBeUndefined();
-	});
-
-	it("ignores invalid theme values passed to setTheme", async () => {
-		const user = userEvent.setup();
-		renderProvider();
-
-		await user.click(screen.getByRole("button", { name: "to-invalid" }));
-
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
-		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
 		expect(colorScheme()).toBeUndefined();
 	});
 });

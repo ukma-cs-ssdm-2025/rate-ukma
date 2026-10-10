@@ -7,7 +7,7 @@ import {
 	useState,
 } from "react";
 
-export type Theme = "dark" | "light" | "system";
+type Theme = "dark" | "light" | "system";
 
 type ThemeProviderProps = {
 	children: React.ReactNode;
@@ -55,7 +55,6 @@ export function ThemeProvider({
 
 	const setTheme = useCallback(
 		(newTheme: Theme) => {
-			if (!isTheme(newTheme)) return;
 			localStorage.setItem(storageKey, newTheme);
 			setThemeState(newTheme);
 		},

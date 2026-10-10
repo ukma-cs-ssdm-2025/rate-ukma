@@ -20,7 +20,6 @@ export function ModeToggle() {
 				<Button
 					variant="ghost"
 					size="icon"
-					aria-label="Обрати тему"
 					data-testid={testIds.header.themeToggle}
 				>
 					<Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
