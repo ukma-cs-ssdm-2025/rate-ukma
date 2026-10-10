@@ -15,7 +15,13 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, Filter, Maximize2, Search } from "lucide-react";
+import {
+	ChevronDown,
+	Filter,
+	Maximize2,
+	MessageSquare,
+	Search,
+} from "lucide-react";
 
 import { DataTable, DataTableSkeleton } from "@/components/DataTable/DataTable";
 import { Badge } from "@/components/ui/Badge";
@@ -183,33 +189,55 @@ function buildCoursesTableColumns({
 		{
 			id: "title",
 			accessorKey: "title",
-			header: ({ column }) => (
-				<CourseColumnHeader
-					column={column}
-					title="Назва курсу"
-					className={compact ? "ml-0 px-0 has-[>svg]:px-0" : undefined}
-				/>
-			),
+			header: ({ column }) =>
+				compact ? (
+					// Phones fold the reviews column into this one: the sort menu
+					// sits at the right edge, next to the score columns.
+					<div className="flex items-center justify-between gap-1">
+						<CourseColumnHeader
+							column={column}
+							title="Назва курсу"
+							className="ml-0 px-0"
+						/>
+						<CoursesReviewsSortMenu
+							value={reviewsSortValue}
+							onValueChange={onReviewsSortChange}
+							variant="mobile"
+						/>
+					</div>
+				) : (
+					<CourseColumnHeader column={column} title="Назва курсу" />
+				),
 			cell: ({ row }) => {
 				const course = row.original;
 				const courseId = course.id;
 				return (
-					// Phones fit four columns, so long words hyphenate (or break) to fit.
 					<span
-						lang="uk"
-						className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words max-sm:hyphens-auto max-sm:[overflow-wrap:anywhere]"
+						className={cn(
+							"inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words",
+							compact && "flex w-full",
+						)}
 					>
 						{courseId ? (
 							<Link
 								to="/courses/$courseId"
 								params={{ courseId }}
-								className="line-clamp-2 text-sm font-medium transition-colors motion-reduce:transition-none underline-offset-4 hover:text-primary hover:underline md:text-base"
+								className={cn(
+									"line-clamp-2 text-sm font-medium transition-colors motion-reduce:transition-none underline-offset-4 hover:text-primary hover:underline md:text-base",
+									// Phones keep badges and the review count on their own line.
+									compact && "basis-full",
+								)}
 								data-testid={testIds.courses.tableTitleLink}
 							>
 								{course.title}
 							</Link>
 						) : (
-							<span className="line-clamp-2 text-sm font-medium md:text-base">
+							<span
+								className={cn(
+									"line-clamp-2 text-sm font-medium md:text-base",
+									compact && "basis-full",
+								)}
+							>
 								{course.title}
 							</span>
 						)}
@@ -227,11 +255,18 @@ function buildCoursesTableColumns({
 							</Tooltip>
 						)}
 						<CourseSpecialityBadges specialities={course.specialities} />
+						{compact && (
+							<span className="ml-auto inline-flex items-center gap-1 text-xs font-medium tabular-nums text-muted-foreground">
+								<MessageSquare className="size-3" aria-hidden="true" />
+								<span className="sr-only">Відгуків:</span>
+								{course.ratings_count ?? 0}
+							</span>
+						)}
 					</span>
 				);
 			},
 			enableSorting: false,
-			size: 300,
+			size: compact ? 140 : 300,
 			meta: {
 				label: "Назва курсу",
 				placeholder: "Пошук курсів...",
@@ -242,19 +277,21 @@ function buildCoursesTableColumns({
 		{
 			id: "ratings_count",
 			accessorKey: "ratings_count",
-			header: () => (
-				<div className="text-muted-foreground">
-					<CoursesReviewsSortMenu
-						value={reviewsSortValue}
-						onValueChange={onReviewsSortChange}
-						variant={compact ? "mobile" : "desktop"}
-					/>
-				</div>
-			),
+			// On phones the sort menu lives in the title header instead.
+			header: () =>
+				compact ? null : (
+					<div className="text-muted-foreground">
+						<CoursesReviewsSortMenu
+							value={reviewsSortValue}
+							onValueChange={onReviewsSortChange}
+						/>
+					</div>
+				),
 			cell: ({ row }) => {
+				if (compact) return null;
 				const count = row.getValue("ratings_count") as number;
 				return (
-					<div className="flex items-center justify-center">
+					<div className="hidden sm:flex items-center justify-center">
 						<span className="text-sm font-medium tabular-nums text-muted-foreground md:text-base">
 							{count}
 						</span>
@@ -262,10 +299,11 @@ function buildCoursesTableColumns({
 				);
 			},
 			enableSorting: false,
-			size: compact ? 48 : undefined,
 			meta: {
 				label: "Відгуки",
 				align: "center",
+				// Phones show the count on the title line instead.
+				hideOnMobile: true,
 			},
 		},
 		{
