@@ -34,6 +34,15 @@ pnpm check      # lint + format:check + typecheck, same as CI
 pnpm check:all  # the above plus unit tests
 ```
 
+## E2E tests (Playwright)
+
+Specs in `tests/e2e` follow standard Playwright patterns:
+
+- **Fixtures, not wrappers:** a spec that creates data imports `test` and `expect` from `tests/e2e/framework/fixtures.ts` and takes page objects (`coursePage`, `ratingModal`, `myRatingsPage`) as fixtures. Read-only specs may import from `@playwright/test` directly.
+- **Cleanup lives in fixture teardown:** a test that saves data calls `ratingCleanup.markCreated()` right after saving, and the fixture deletes it after the test, pass or fail. Don't hand-roll `try`/`catch`/`finally` cleanup or callback wrappers in specs. A new kind of test data gets its own fixture in `framework/fixtures.ts`.
+- **Own your data:** create what the test needs on staging instead of hunting for existing records.
+- **Page objects** live next to their area (`courses/*.page.ts`, `shared/*.component.ts`); locators use `testIds` or roles.
+
 ## Feature flags
 
 Gate UI with `useFeatureFlag("fe_<name>")` from `@/lib/feature-flags` (mirrors
