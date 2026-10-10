@@ -31,6 +31,14 @@ function isTheme(value: string | null): value is Theme {
 	return value === "dark" || value === "light" || value === "system";
 }
 
+function readStoredTheme(storageKey: string): string | null {
+	try {
+		return localStorage.getItem(storageKey);
+	} catch {
+		return null;
+	}
+}
+
 export function ThemeProvider({
 	children,
 	defaultTheme = "system",
@@ -38,7 +46,7 @@ export function ThemeProvider({
 	...props
 }: Readonly<ThemeProviderProps>) {
 	const [theme, setTheme] = useState<Theme>(() => {
-		const stored = localStorage.getItem(storageKey);
+		const stored = readStoredTheme(storageKey);
 		return isTheme(stored) ? stored : defaultTheme;
 	});
 
@@ -55,7 +63,11 @@ export function ThemeProvider({
 
 	const persistTheme = useCallback(
 		(newTheme: Theme) => {
-			localStorage.setItem(storageKey, newTheme);
+			try {
+				localStorage.setItem(storageKey, newTheme);
+			} catch {
+				// Storage blocked: the pick still applies for this session.
+			}
 			setTheme(newTheme);
 		},
 		[storageKey],

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 
@@ -39,6 +39,10 @@ function renderProvider() {
 beforeEach(() => {
 	localStorage.clear();
 	delete document.documentElement.dataset.colorScheme;
+});
+
+afterEach(() => {
+	vi.restoreAllMocks();
 });
 
 describe("ThemeProvider", () => {
@@ -80,5 +84,22 @@ describe("ThemeProvider", () => {
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 		expect(localStorage.getItem(STORAGE_KEY)).toBe("system");
 		expect(colorScheme()).toBeUndefined();
+	});
+
+	it("still works when storage is blocked", async () => {
+		const blocked = () => {
+			throw new DOMException("blocked", "SecurityError");
+		};
+		vi.spyOn(Storage.prototype, "getItem").mockImplementation(blocked);
+		vi.spyOn(Storage.prototype, "setItem").mockImplementation(blocked);
+		const user = userEvent.setup();
+		renderProvider();
+
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+
+		await user.click(screen.getByRole("button", { name: "to-dark" }));
+
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+		expect(colorScheme()).toBe("dark");
 	});
 });
