@@ -243,20 +243,28 @@ section > p.big { margin: 0 0 22px; max-width: 900px; }
 .app .rate.use .segs span.on { background: #71717a; }
 .app .rate .h { font-size: 12px; color: #71717a; margin-top: 12px; }
 
-/* Schedule page inside the Rate UKMA shell: sidebar with disciplines, week grid.
-   Colours follow ukma-schedule: own group filled blue, lectures pale blue. */
+/* Schedule page inside the Rate UKMA shell: rail with disciplines, week grid,
+   both in Rate UKMA tokens (primary #0074a3, zinc neutrals, amber pills). */
 .app .bar nav span.on { color: var(--primary); font-weight: 600; }
-.app .sched { display: grid; grid-template-columns: 330px 1fr; min-height: 452px; }
-.app .sched .side { background: #f8fafc; border-right: 1px solid #e4e4e7; padding: 20px 18px; font-size: 15px; }
-.app .sched .nudge { background: #e0f2fe; color: #0369a1; border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; }
-.app .sched .nudge b { display: block; font-size: 15px; }
-.app .sched .side h5 { margin: 0 0 8px; font-size: 15px; font-weight: 650; }
-.app .sched .d { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f1f5f9; }
-.app .sched .d i { font-style: normal; font-size: 12px; font-weight: 500; color: #71717a; background: #f4f4f5; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
-.app .sched .d i b { color: #18181b; }
-.app .sched .grid { display: grid; grid-template-columns: 90px repeat(4, 1fr); gap: 8px; padding: 18px; align-content: start; font-size: 13px; }
-.app .sched .grid .h { font-weight: 600; color: #3f3f46; padding-bottom: 4px; }
-.app .sched .grid .t { color: #71717a; font-size: 12px; }
-.app .sched .l { border-radius: 8px; padding: 8px 10px; background: #e0e7ff; border-left: 3px solid #93a5f5; min-height: 54px; }
-.app .sched .l.g { background: #1d4ed8; color: #fff; border-left: none; }
-.app .sched .l small { display: block; opacity: .75; margin-top: 2px; }
+.appframe.sch { height: 448px; }
+.appframe.sch .app { width: 1268px; }
+.app .sched { display: grid; grid-template-columns: 320px 1fr; height: 446px; }
+.app .sched .side { background: #fafafa; border-right: 1px solid #e4e4e7; padding: 20px 18px; }
+.app .sched .nudge { background: #fef3c7; color: #b45309; border-radius: 12px; padding: 12px 14px; margin-bottom: 20px; font-size: 14px; line-height: 1.4; }
+.app .sched .nudge b { display: block; font-weight: 600; }
+.app .sched .side h5 { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #18181b; }
+.app .sched .d { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f4f4f5; }
+.app .sched .d span { font-size: 14px; font-weight: 500; color: #18181b; line-height: 1.3; }
+.app .sched .d span small { display: block; font-size: 12px; font-weight: 400; color: #71717a; margin-top: 2px; }
+.app .sched .d i { font-style: normal; font-size: 12px; color: #52525b; background: #f4f4f5; border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.app .sched .d i b { color: #18181b; font-weight: 600; }
+.app .sched .grid { display: grid; grid-template-columns: 70px repeat(4, 1fr); grid-auto-rows: auto; gap: 8px 12px; padding: 16px 22px; align-content: start; }
+.app .sched .grid .h { font-size: 14px; font-weight: 600; color: #18181b; padding-bottom: 2px; }
+.app .sched .grid .h small { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 400; color: #a1a1aa; margin-left: 6px; }
+.app .sched .grid .t { font-size: 13px; font-weight: 600; color: #3f3f46; padding-top: 6px; line-height: 1.4; }
+.app .sched .grid .t small { display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 400; color: #71717a; }
+.app .sched .grid .e { min-height: 62px; border-radius: 10px; border: 1px dashed #ececef; }
+.app .sched .l { min-height: 62px; border-radius: 10px; padding: 10px 12px; background: #eef6fa; border-left: 3px solid var(--primary); font-size: 14px; font-weight: 600; color: #18181b; line-height: 1.3; }
+.app .sched .l small { display: block; font-size: 12px; font-weight: 400; color: #52525b; margin-top: 4px; }
+.app .sched .l.g { background: var(--primary); color: #fff; border-left: none; box-shadow: 0 4px 12px rgba(0, 116, 163, .25); }
+.app .sched .l.g small { color: rgba(255, 255, 255, .82); }
