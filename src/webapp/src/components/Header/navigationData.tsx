@@ -14,6 +14,12 @@ export const navigationItems: NavigationItem[] = [
 	{ label: "Мої оцінки", href: "/my-ratings" },
 ];
 
+/** Shown after the others while `fe_schedule` is on. */
+export const scheduleItem: NavigationItem = {
+	label: "Розклад",
+	href: "/schedule",
+};
+
 export const themeOptions: {
 	value: ThemeOption;
 	label: string;

@@ -19,6 +19,7 @@ import {
 	MY_GRADES_MANY,
 	NOTIFICATIONS,
 	RATING_COMMENTS,
+	SCHEDULE,
 	SESSION,
 } from "./data";
 
@@ -35,6 +36,8 @@ export interface MockOptions {
 	readonly specialities?: "one" | "many";
 	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
 	readonly title?: "short" | "long";
+	/** Turns on `fe_schedule` and answers the prototype `/schedule/me/`. */
+	readonly schedule?: boolean;
 	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
 }
@@ -69,6 +72,7 @@ export async function mockBackend(
 		specialities = "one",
 		title = "short",
 		loading = false,
+		schedule = false,
 	}: MockOptions = {},
 ): Promise<void> {
 	const many = specialities === "many";
@@ -96,7 +100,13 @@ export async function mockBackend(
 		[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
 		[
 			/^\/flags\/$/,
-			() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
+			() => ({
+				flags: {
+					fe_feed: true,
+					fe_faculty_colors: true,
+					fe_schedule: schedule,
+				},
+			}),
 		],
 		[/^\/promo-banner\/$/, () => ({ banner: null })],
 		[
@@ -172,6 +182,7 @@ export async function mockBackend(
 					? COMMENT_REPLIES
 					: EMPTY_COMMENT_LIST,
 		],
+		[/^\/schedule\/me\/$/, () => SCHEDULE],
 		[/^\/analytics\/$/, () => ANALYTICS],
 		[/^\/analytics\/[^/]+\/$/, () => ANALYTICS[0]],
 		[

@@ -196,6 +196,29 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "schedule",
+		section: "Розклад",
+		note: "Prototype /schedule behind fe_schedule: week grid, course scores, rate nudge",
+		run: async (page) => {
+			await mockBackend(page, { schedule: true });
+			await page.goto("/schedule");
+			await page.getByText("Курси семестру").waitFor();
+		},
+	},
+	{
+		name: "schedule-menu",
+		section: "Розклад",
+		note: "Phone menu with the Розклад item while fe_schedule is on",
+		widths: ["phone"],
+		run: async (page) => {
+			await mockBackend(page, { schedule: true });
+			await page.goto("/schedule");
+			await page.getByText("Курси семестру").waitFor();
+			await page.getByRole("button", { name: "Відкрити меню" }).click();
+			await page.getByRole("link", { name: "Розклад" }).waitFor();
+		},
+	},
+	{
 		name: "my-ratings",
 		section: "Мої оцінки",
 		note: "Мої оцінки with rated and unrated courses across two years",
