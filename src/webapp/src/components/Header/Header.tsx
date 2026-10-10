@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useAuth } from "@/lib/auth";
+import { useFeatureFlags } from "@/lib/feature-flags";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { testIds } from "@/lib/test-ids";
 import { HeaderNav } from "./HeaderNav";
@@ -20,6 +21,10 @@ export default function Header() {
 	const { status, user, logout } = useAuth();
 	const { theme, setTheme } = useTheme();
 	const isAuthenticated = status === "authenticated";
+	const { flags } = useFeatureFlags();
+	const visibleNavigation = navigationItems.filter(
+		(item) => !item.flag || flags[item.flag],
+	);
 
 	useEffect(() => {
 		if (typeof document === "undefined") {
@@ -60,7 +65,7 @@ export default function Header() {
 
 					<div className="flex items-center justify-center flex-1">
 						<HeaderNav
-							items={navigationItems}
+							items={visibleNavigation}
 							className="hidden md:flex"
 							data-testid={testIds.header.nav}
 						/>
@@ -101,7 +106,7 @@ export default function Header() {
 			<MobileMenu
 				isOpen={isMobileMenuOpen}
 				onClose={closeMobileMenu}
-				navigationItems={navigationItems}
+				navigationItems={visibleNavigation}
 				isAuthenticated={isAuthenticated}
 				user={user}
 				logout={logout}

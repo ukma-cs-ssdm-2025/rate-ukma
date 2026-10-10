@@ -104,6 +104,24 @@ async function openRatingWithPickedTeacher(page: Page) {
 	return modal;
 }
 
+/** Teacher reports prototype with a teacher signed in. */
+async function openTeaching(page: Page) {
+	await mockBackend(page, { session: "teacher", teaching: "courses" });
+	await page.goto("/teaching");
+	await page
+		.getByRole("heading", { level: 2, name: "Алгоритми та структури даних" })
+		.waitFor();
+}
+
+async function scrollToHeading(page: Page, name: string) {
+	const heading = page.getByRole("heading", { name });
+	await heading.evaluate((el) => {
+		// Clears the sticky header.
+		const top = el.getBoundingClientRect().top + window.scrollY - 88;
+		window.scrollTo(0, top);
+	});
+}
+
 const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "home",
@@ -858,6 +876,68 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await mockBackend(page);
 			await page.goto("/connection-error");
 			await page.locator("h1").first().waitFor();
+		},
+	},
+	{
+		name: "teaching",
+		section: "Викладачу",
+		note: "Teacher reports prototype: participation and average scores",
+		run: async (page) => {
+			await openTeaching(page);
+		},
+	},
+	{
+		name: "teaching-distribution",
+		section: "Викладачу",
+		note: "How the scores spread, and every semester side by side",
+		run: async (page) => {
+			await openTeaching(page);
+			await scrollToHeading(page, "Розподіл оцінок");
+		},
+	},
+	{
+		name: "teaching-comments",
+		section: "Викладачу",
+		note: "Students' comments, without names",
+		run: async (page) => {
+			await openTeaching(page);
+			await scrollToHeading(page, "Коментарі");
+		},
+	},
+	{
+		name: "teaching-past-semester",
+		section: "Викладачу",
+		note: "An earlier semester picked from the table",
+		run: async (page) => {
+			await openTeaching(page);
+			await page.getByRole("cell", { name: "Весна 2025" }).click();
+			await page.getByRole("heading", { name: "Розподіл оцінок" }).waitFor();
+		},
+	},
+	{
+		name: "teaching-too-few",
+		section: "Викладачу",
+		note: "A course fewer than five students rated keeps its scores hidden",
+		run: async (page) => {
+			await openTeaching(page);
+			const title = "Вступ до програмування для гуманітаріїв";
+			if ((page.viewportSize()?.width ?? 0) < 1024) {
+				await page.getByTestId("teaching-course-select").click();
+				await page.getByRole("option", { name: title }).click();
+			} else {
+				await page.getByRole("button", { name: new RegExp(title) }).click();
+			}
+			await page.getByText("Покажемо оцінки").waitFor();
+		},
+	},
+	{
+		name: "teaching-off",
+		section: "Викладачу",
+		note: "The page with the flag off",
+		run: async (page) => {
+			await mockBackend(page, { session: "teacher" });
+			await page.goto("/teaching");
+			await page.getByText("Тут будуть ваші дисципліни").waitFor();
 		},
 	},
 ];

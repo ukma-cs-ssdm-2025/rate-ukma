@@ -3877,9 +3877,13 @@ components:
         fe_faculty_colors:
           type: boolean
           description: Whether `fe_faculty_colors` is enabled for the current user.
+        fe_teacher_reports:
+          type: boolean
+          description: Whether `fe_teacher_reports` is enabled for the current user.
       required:
       - fe_faculty_colors
       - fe_feed
+      - fe_teacher_reports
     RatingCreateRequest:
       properties:
         course_offering:

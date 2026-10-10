@@ -2,9 +2,13 @@ import type { ReactNode } from "react";
 
 import { Monitor, Moon, Sun } from "lucide-react";
 
+import type { FeatureFlagName } from "@/lib/feature-flags";
+
 export type NavigationItem = {
 	label: string;
 	href: string;
+	/** Shown only while this flag is on. */
+	flag?: FeatureFlagName;
 };
 
 export type ThemeOption = "light" | "dark" | "system";
@@ -12,6 +16,7 @@ export type ThemeOption = "light" | "dark" | "system";
 export const navigationItems: NavigationItem[] = [
 	{ label: "Курси", href: "/" },
 	{ label: "Мої оцінки", href: "/my-ratings" },
+	{ label: "Викладачу", href: "/teaching", flag: "fe_teacher_reports" },
 ];
 
 export const themeOptions: {

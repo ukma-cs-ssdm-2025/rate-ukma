@@ -21,6 +21,8 @@ import {
 	NOTIFICATIONS,
 	RATING_COMMENTS,
 	SESSION,
+	TEACHER_SESSION,
+	TEACHING_COURSES,
 } from "./data";
 
 export interface MockOptions {
@@ -31,13 +33,15 @@ export interface MockOptions {
 	readonly comments?: "empty" | "thread";
 	readonly reviews?: "items" | "empty";
 	readonly notifications?: "none" | "items";
-	readonly session?: "student" | "guest";
+	readonly session?: "student" | "guest" | "teacher";
 	/** `many` gives the first course twenty specialities, like a general course. */
 	readonly specialities?: "one" | "many";
 	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
 	readonly title?: "short" | "long";
 	/** `none` is a course nobody has named a teacher on yet. */
 	readonly courseInstructors?: "named" | "none";
+	/** `off` keeps `fe_teacher_reports` off; the others turn it on with or without courses. */
+	readonly teaching?: "off" | "courses" | "none";
 	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
 }
@@ -72,6 +76,7 @@ export async function mockBackend(
 		specialities = "one",
 		title = "short",
 		courseInstructors = "named",
+		teaching = "off",
 		loading = false,
 	}: MockOptions = {},
 ): Promise<void> {
@@ -93,14 +98,22 @@ export async function mockBackend(
 		[
 			/^\/auth\/session\/$/,
 			() =>
-				session === "guest"
-					? { is_authenticated: false, user: null, expires_at: null }
-					: SESSION,
+				({
+					guest: { is_authenticated: false, user: null, expires_at: null },
+					student: SESSION,
+					teacher: TEACHER_SESSION,
+				})[session],
 		],
 		[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
 		[
 			/^\/flags\/$/,
-			() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
+			() => ({
+				flags: {
+					fe_feed: true,
+					fe_faculty_colors: true,
+					fe_teacher_reports: teaching !== "off",
+				},
+			}),
 		],
 		[/^\/promo-banner\/$/, () => ({ banner: null })],
 		[
@@ -202,6 +215,10 @@ export async function mockBackend(
 		[
 			/^\/students\/me\/courses\/$/,
 			() => (myCourses === "none" ? [] : myCoursesFor(myCourses)),
+		],
+		[
+			/^\/teachers\/me\/courses\/$/,
+			() => (teaching === "courses" ? TEACHING_COURSES : { items: [] }),
 		],
 	];
 	const failing: ReadonlyArray<RegExp> = [

@@ -14,6 +14,10 @@ import type {
 	StudentRatingsDetailed,
 	StudentRatingsLight,
 } from "../../../src/lib/api/generated";
+import type {
+	TeachingCourseList,
+	TeachingOffering,
+} from "../../../src/features/teaching/types";
 
 // Every value here is invented: no real students, teachers or reviews.
 
@@ -666,3 +670,159 @@ export const COMMENT_REPLIES = {
 	next_page: null,
 	previous_page: null,
 } satisfies CommentList;
+
+// --- Teacher reports prototype (fe_teacher_reports) ---
+
+export const TEACHER_SESSION = {
+	...SESSION,
+	user: {
+		...SESSION.user,
+		email: "teacher@example.invalid",
+		first_name: "Олена",
+		last_name: "Демченко",
+		patronymic: "Петрівна",
+	},
+	is_student: false,
+	speciality: null,
+} satisfies Session;
+
+type Counts = TeachingOffering["difficulty_counts"];
+
+const average = (counts: Counts) => {
+	const total = counts.reduce((sum, count) => sum + count, 0);
+	if (total === 0) return null;
+	return (
+		counts.reduce((sum, count, index) => sum + count * (index + 1), 0) / total
+	);
+};
+
+function teachingOffering(
+	id: string,
+	year: number,
+	term: string,
+	enrolled: number,
+	difficulty: Counts,
+	usefulness: Counts,
+	comments: TeachingOffering["comments"] = [],
+): TeachingOffering {
+	return {
+		id,
+		year,
+		term,
+		enrolled,
+		rated: difficulty.reduce((sum, count) => sum + count, 0),
+		avg_difficulty: average(difficulty),
+		avg_usefulness: average(usefulness),
+		difficulty_counts: difficulty,
+		usefulness_counts: usefulness,
+		comments,
+	};
+}
+
+const TEACHING_COMMENTS = [
+	[
+		"Дуже структуровані лекції, після кожної теми є практика. Хотілося б більше часу на останні теми.",
+		4,
+		5,
+	],
+	[
+		"Критерії оцінювання зрозумілі з першого тижня. Дедлайни іноді збігалися з іншими дисциплінами.",
+		3,
+		4,
+	],
+	["Найкорисніше за семестр: розбір реальних задач на семінарах.", 4, 5],
+	[
+		"Матеріалу забагато для одного семестру, частину тем довелося вчити самостійно. Але викладачка завжди відповідала на питання в чаті.",
+		5,
+		4,
+	],
+	["Хотілося б записів лекцій.", 3, 3],
+] as const;
+
+export const TEACHING_COURSES: TeachingCourseList = {
+	items: [
+		{
+			id: "t-algo",
+			title: "Алгоритми та структури даних",
+			offerings: [
+				teachingOffering(
+					"t-algo-2025-fall",
+					2025,
+					"FALL",
+					125,
+					[1, 4, 11, 15, 7],
+					[0, 2, 6, 14, 16],
+					TEACHING_COMMENTS.map(([text, difficulty, usefulness], index) => ({
+						id: `t-c-${index}`,
+						text,
+						difficulty,
+						usefulness,
+						created_at: new Date(
+							Date.parse("2025-12-20T10:00:00Z") - index * 86_400_000 * 3,
+						).toISOString(),
+					})),
+				),
+				teachingOffering(
+					"t-algo-2025-spring",
+					2025,
+					"SPRING",
+					110,
+					[2, 5, 9, 8, 3],
+					[1, 3, 8, 10, 5],
+					[
+						{
+							id: "t-c-s-0",
+							text: "Темп швидкий, але домашні завдання добре закріплюють матеріал.",
+							difficulty: 4,
+							usefulness: 4,
+							created_at: "2025-05-28T10:00:00Z",
+						},
+						{
+							id: "t-c-s-1",
+							text: "Бракувало зворотного звʼязку щодо контрольних.",
+							difficulty: 3,
+							usefulness: 3,
+							created_at: "2025-05-21T10:00:00Z",
+						},
+					],
+				),
+				teachingOffering(
+					"t-algo-2024-fall",
+					2024,
+					"FALL",
+					98,
+					[1, 2, 4, 3, 2],
+					[1, 2, 3, 4, 2],
+				),
+			],
+		},
+		{
+			id: "t-db",
+			title: "Бази даних",
+			offerings: [
+				teachingOffering(
+					"t-db-2025-fall",
+					2025,
+					"FALL",
+					64,
+					[2, 6, 8, 4, 1],
+					[0, 1, 5, 9, 6],
+				),
+			],
+		},
+		{
+			id: "t-intro",
+			title: "Вступ до програмування для гуманітаріїв",
+			offerings: [
+				teachingOffering(
+					"t-intro-2025-fall",
+					2025,
+					"FALL",
+					40,
+					[1, 1, 1, 0, 0],
+					[0, 0, 1, 1, 1],
+				),
+			],
+		},
+	],
+};
