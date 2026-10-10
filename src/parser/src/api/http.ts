@@ -14,7 +14,7 @@ export const SystemApiHandlers = HttpApiBuilder.group(
 		),
 );
 
-export const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
+const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
 	Layer.provide(SystemApiHandlers),
 );
 
