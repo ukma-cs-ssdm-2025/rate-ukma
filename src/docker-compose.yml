@@ -155,7 +155,6 @@ services:
       - backend
     profiles:
       - dev
-      - prod
 
   parser-worker:
     image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser:${PARSER_IMAGE_TAG:-latest}
@@ -174,7 +173,6 @@ services:
         condition: service_healthy
     profiles:
       - dev
-      - prod
 
 volumes:
   postgres_data:

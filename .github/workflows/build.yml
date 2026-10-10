@@ -25,9 +25,8 @@ on:
         type: boolean
       parser_changed:
         description: "Whether parser code has changed"
-        required: false
+        required: true
         type: boolean
-        default: false
 
 env:
   SOURCE_CODE_DIR: src
@@ -108,7 +107,7 @@ jobs:
         env:
           PARSER_IMAGE_TAG: ${{ inputs.version_tag || 'dry-run-version' }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
-        run: docker compose --profile prod build parser-api
+        run: docker compose --profile dev build parser-api
 
       - name: Push parser image
         if: inputs.version_tag
