@@ -37,7 +37,7 @@ export function ThemeProvider({
 	storageKey = "rate-ukma-theme",
 	...props
 }: Readonly<ThemeProviderProps>) {
-	const [theme, setThemeState] = useState<Theme>(() => {
+	const [theme, setTheme] = useState<Theme>(() => {
 		const stored = localStorage.getItem(storageKey);
 		return isTheme(stored) ? stored : defaultTheme;
 	});
@@ -53,10 +53,10 @@ export function ThemeProvider({
 		}
 	}, [theme]);
 
-	const setTheme = useCallback(
+	const persistTheme = useCallback(
 		(newTheme: Theme) => {
 			localStorage.setItem(storageKey, newTheme);
-			setThemeState(newTheme);
+			setTheme(newTheme);
 		},
 		[storageKey],
 	);
@@ -64,9 +64,9 @@ export function ThemeProvider({
 	const value = useMemo(
 		() => ({
 			theme,
-			setTheme,
+			setTheme: persistTheme,
 		}),
-		[theme, setTheme],
+		[theme, persistTheme],
 	);
 
 	return (

@@ -109,9 +109,7 @@ code {
 	--sidebar-accent-foreground: oklch(0.21 0.006 285.885);
 	--sidebar-border: oklch(0.92 0.004 286.32);
 	--sidebar-ring: oklch(0.52 0.18 230);
-}
 
-:root {
 	@variant dark {
 		color-scheme: dark;
 		--background: oklch(0.16 0.005 285.823);

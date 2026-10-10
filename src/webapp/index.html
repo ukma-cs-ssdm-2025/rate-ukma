@@ -34,7 +34,9 @@
 				if (storedTheme === "light" || storedTheme === "dark") {
 					document.documentElement.dataset.colorScheme = storedTheme;
 				}
-			} catch (error) {}
+			} catch {
+				// Storage blocked (e.g. privacy mode): CSS falls back to System.
+			}
 		</script>
 	</head>
 	<body>

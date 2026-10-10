@@ -89,7 +89,8 @@ function readTokens(block: "light" | "dark"): Map<string, Rgb> {
 	const cssPath = join(dirname(fileURLToPath(import.meta.url)), "styles.css");
 	const css = readFileSync(cssPath, "utf8");
 	const selector = block === "light" ? ":root" : "@variant dark";
-	const body = new RegExp(`${selector}\\s*\\{([^{}]*)\\}`).exec(css)?.[1];
+	// Light tokens sit in `:root` before its nested `@variant dark` block.
+	const body = new RegExp(`${selector}\\s*\\{([^{}]*)`).exec(css)?.[1];
 	expect(body, `missing ${selector} block in styles.css`).toBeDefined();
 	const tokens = new Map<string, Rgb>();
 	const pattern =
