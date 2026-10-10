@@ -4,6 +4,7 @@ import {
 	ANALYTICS,
 	COMMENT_REPLIES,
 	COURSE_DETAIL,
+	COURSE_INSTRUCTORS,
 	COURSE_OFFERINGS,
 	COURSE_OFFERINGS_MANY,
 	COURSE_RATINGS,
@@ -35,6 +36,8 @@ export interface MockOptions {
 	readonly specialities?: "one" | "many";
 	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
 	readonly title?: "short" | "long";
+	/** `none` is a course nobody has named a teacher on yet. */
+	readonly courseInstructors?: "named" | "none";
 	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
 }
@@ -68,6 +71,7 @@ export async function mockBackend(
 		session = "student",
 		specialities = "one",
 		title = "short",
+		courseInstructors = "named",
 		loading = false,
 	}: MockOptions = {},
 ): Promise<void> {
@@ -130,6 +134,11 @@ export async function mockBackend(
 				);
 				return { ...visibleCourseList, items, total: items.length };
 			},
+		],
+		[
+			/^\/courses\/[^/]+\/instructors\/$/,
+			() =>
+				courseInstructors === "named" ? COURSE_INSTRUCTORS : { items: [] },
 		],
 		[
 			/^\/courses\/[^/]+\/offerings\/$/,
