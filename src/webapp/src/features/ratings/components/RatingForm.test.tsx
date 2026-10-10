@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { testIds } from "@/lib/test-ids";
 import { render, screen, within } from "@/test-utils/render";
@@ -12,10 +12,12 @@ vi.mock("@/lib/api/generated", async () => {
 		useCoursesInstructorsRetrieve: vi.fn(function () {
 			return { data: undefined };
 		}),
+		useInstructorsListInfinite: vi.fn(),
 	};
 });
 
-const { useCoursesInstructorsRetrieve } = await import("@/lib/api/generated");
+const { useCoursesInstructorsRetrieve, useInstructorsListInfinite } =
+	await import("@/lib/api/generated");
 type CourseInstructorsQuery = ReturnType<typeof useCoursesInstructorsRetrieve>;
 
 const DEMCHENKO = {
@@ -42,6 +44,17 @@ function mockCourseInstructors(
 	} as unknown as CourseInstructorsQuery);
 }
 
+/** What the picker's directory search returns. */
+function mockDirectory(items: ReadonlyArray<typeof DEMCHENKO>) {
+	vi.mocked(useInstructorsListInfinite).mockReturnValue({
+		data: { pages: [{ items, total: items.length, next_page: null }] },
+		fetchNextPage: vi.fn(),
+		hasNextPage: false,
+		isFetchingNextPage: false,
+		isLoading: false,
+	} as unknown as ReturnType<typeof useInstructorsListInfinite>);
+}
+
 function renderWithCourse() {
 	render(
 		<RatingForm
@@ -54,6 +67,8 @@ function renderWithCourse() {
 }
 
 describe("RatingForm", () => {
+	beforeEach(() => mockDirectory([]));
+
 	it("uses a viewport-safe layout for long reviews", () => {
 		render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
@@ -149,6 +164,34 @@ describe("RatingForm", () => {
 			expect(
 				screen.getByRole("button", { name: "Додати: Демченко Олена Петрівна" }),
 			).toBeInTheDocument();
+		});
+
+		it("keeps a teacher found by search in the preview after the search changes", async () => {
+			const user = userEvent.setup();
+			Element.prototype.scrollIntoView = vi.fn();
+			mockDirectory([DEMCHENKO]);
+			renderWithCourse();
+
+			await user.click(
+				screen.getByTestId(testIds.rating.instructorMultiSelect),
+			);
+			await user.click(
+				within(
+					await screen.findByTestId(
+						`${testIds.rating.instructorMultiSelect}-list`,
+					),
+				).getByText("Демченко Олена Петрівна"),
+			);
+			await user.keyboard("{Escape}");
+			// A new search no longer lists the teacher; the preview still names them.
+			mockDirectory([]);
+			await user.click(
+				screen.getByRole("button", { name: "Як побачать інші" }),
+			);
+
+			expect(
+				screen.getByRole("region", { name: "Попередній перегляд відгуку" }),
+			).toHaveTextContent("Викладач:Демченко Олена Петрівна");
 		});
 
 		it("shows the previous free-text instructor read-only next to the multi-select", () => {
