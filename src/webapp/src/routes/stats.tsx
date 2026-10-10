@@ -3,104 +3,75 @@ import { Helmet } from "react-helmet-async";
 
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
-import { SectionHeader } from "@/components/SectionHeader";
+import { Card, CardContent } from "@/components/ui/Card";
 import {
-	ChartCard,
-	ColumnChart,
-	FacultyList,
-	Funnel,
-	MonthStrip,
-	ParticipationList,
-	ScoreSplit,
-	StatTile,
+	ActivityChart,
+	FacultyMap,
+	KpiStrip,
+	ParticipationChart,
+	ScoresChart,
 	formatNumber,
 } from "@/features/stats/components/StatsCharts";
 import { PLATFORM_STATS as stats } from "@/features/stats/statsData";
 import { formatPageTitle } from "@/lib/app-metadata";
 import { withAuth } from "@/lib/auth";
 
+const mean = (counts: number[]) =>
+	counts.reduce((sum, count, i) => sum + count * (i + 1), 0) /
+	counts.reduce((sum, count) => sum + count, 0);
+
 function StatsPage() {
-	const commentShare = Math.round((stats.withComment / stats.ratings) * 100);
+	const averages = {
+		difficulty: mean(stats.difficulty),
+		usefulness: mean(stats.usefulness),
+	};
 	return (
 		<Layout>
 			<Helmet>
 				<title>{formatPageTitle("Статистика")}</title>
 			</Helmet>
-			<div className="space-y-10 pb-16">
+			<div className="space-y-8 pb-16">
 				<PageHeader
 					title="Статистика"
 					description="Як студенти НаУКМА оцінюють курси"
 				/>
 
-				<div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-					<StatTile label="Оцінок" value={formatNumber(stats.ratings)} />
-					<StatTile
-						label="Курсів оцінено"
-						value={formatNumber(stats.ratedCourses)}
-					/>
-					<StatTile
-						label="Студентів оцінили"
-						value={formatNumber(stats.studentsWhoRated)}
-					/>
-					<StatTile label="З відгуком" value={`${commentShare}%`} />
-				</div>
+				<KpiStrip
+					items={[
+						{ label: "Оцінок", value: formatNumber(stats.ratings) },
+						{
+							label: "Курсів оцінено",
+							value: formatNumber(stats.ratedCourses),
+						},
+						{
+							label: "Студентів оцінили",
+							value: formatNumber(stats.studentsWhoRated),
+						},
+						{
+							label: "З письмовим відгуком",
+							value: `${Math.round((stats.withComment / stats.ratings) * 100)}%`,
+						},
+					]}
+				/>
 
-				<section className="space-y-4">
-					<SectionHeader title="Оцінки" />
-					<div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
-						<ChartCard title="За навчальним роком курсу">
-							<ColumnChart
-								barClassName="bg-primary"
-								items={stats.byAcademicYear.map((y) => ({
-									key: String(y.year),
-									label: `${String(y.year).slice(2)}–${String(y.year + 1).slice(2)}`,
-									value: y.ratings,
-								}))}
-							/>
-						</ChartCard>
-						<ChartCard title="Коли пишуть">
-							<MonthStrip byMonth={stats.byMonth} />
-						</ChartCard>
-					</div>
-				</section>
+				<Card className="shadow-sm">
+					<CardContent className="p-4 sm:p-6">
+						<ActivityChart stats={stats} />
+					</CardContent>
+				</Card>
 
-				<section className="space-y-4">
-					<SectionHeader title="Як оцінюють" />
-					<div className="grid grid-cols-2 gap-3 sm:gap-4">
-						<ChartCard title="Складність">
-							<ScoreSplit counts={stats.difficulty} barClassName="bg-chart-5" />
-						</ChartCard>
-						<ChartCard title="Корисність">
-							<ScoreSplit counts={stats.usefulness} barClassName="bg-primary" />
-						</ChartCard>
-					</div>
-				</section>
+				<Card className="shadow-sm">
+					<CardContent className="grid gap-10 p-4 sm:p-6 lg:grid-cols-2 lg:gap-0 lg:divide-x [&>*]:lg:px-6 [&>*:first-child]:lg:pl-0 [&>*:last-child]:lg:pr-0">
+						<FacultyMap stats={stats} averages={averages} />
+						<ScoresChart stats={stats} />
+					</CardContent>
+				</Card>
 
-				<section className="space-y-4">
-					<SectionHeader title="Хто оцінює" />
-					<div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
-						<ChartCard title="Студенти">
-							<Funnel
-								steps={[
-									{ label: "Усього", value: stats.students },
-									{ label: "Увійшли на сайт", value: stats.studentsSignedIn },
-									{
-										label: "Оцінили хоч один курс",
-										value: stats.studentsWhoRated,
-									},
-								]}
-							/>
-						</ChartCard>
-						<ChartCard title="Частка студентів, що оцінили">
-							<ParticipationList faculties={stats.faculties} />
-						</ChartCard>
-					</div>
-				</section>
-
-				<section className="space-y-4">
-					<SectionHeader title="Факультети" />
-					<FacultyList faculties={stats.faculties} />
-				</section>
+				<Card className="shadow-sm">
+					<CardContent className="p-4 sm:p-6">
+						<ParticipationChart stats={stats} />
+					</CardContent>
+				</Card>
 			</div>
 		</Layout>
 	);

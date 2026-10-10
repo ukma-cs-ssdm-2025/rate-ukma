@@ -3,6 +3,8 @@
 export interface FacultyStats {
 	abbr: string;
 	name: string;
+	/** Faculty colour token from styles.css. */
+	color: string;
 	courses: number;
 	ratedCourses: number;
 	ratings: number;
@@ -24,8 +26,8 @@ export interface PlatformStats {
 	/** Index 0 is a score of 1. */
 	difficulty: number[];
 	usefulness: number[];
-	/** Ratings written per calendar month, index 0 is January. */
-	byMonth: number[];
+	/** Ratings written per calendar month, oldest first. */
+	timeline: { month: string; ratings: number }[];
 	faculties: FacultyStats[];
 }
 
@@ -45,10 +47,24 @@ export const PLATFORM_STATS: PlatformStats = {
 	],
 	difficulty: [270, 512, 470, 361, 180],
 	usefulness: [228, 374, 393, 355, 443],
-	byMonth: [0, 1, 794, 361, 109, 95, 59, 41, 88, 9, 2, 234],
+	timeline: [
+		{ month: "2025-11", ratings: 2 },
+		{ month: "2025-12", ratings: 234 },
+		{ month: "2026-01", ratings: 0 },
+		{ month: "2026-02", ratings: 1 },
+		{ month: "2026-03", ratings: 794 },
+		{ month: "2026-04", ratings: 361 },
+		{ month: "2026-05", ratings: 109 },
+		{ month: "2026-06", ratings: 95 },
+		{ month: "2026-07", ratings: 59 },
+		{ month: "2026-08", ratings: 41 },
+		{ month: "2026-09", ratings: 88 },
+		{ month: "2026-10", ratings: 9 },
+	],
 	faculties: [
 		{
 			abbr: "ФІ",
+			color: "var(--color-faculty-purple)",
 			name: "Факультет інформатики",
 			courses: 660,
 			ratedCourses: 172,
@@ -60,6 +76,7 @@ export const PLATFORM_STATS: PlatformStats = {
 		},
 		{
 			abbr: "ФГН",
+			color: "var(--color-faculty-blue)",
 			name: "Факультет гуманітарних наук",
 			courses: 972,
 			ratedCourses: 124,
@@ -71,6 +88,7 @@ export const PLATFORM_STATS: PlatformStats = {
 		},
 		{
 			abbr: "ФСНСТ",
+			color: "var(--color-faculty-yellow)",
 			name: "Факультет соціальних наук і соціальних технологій",
 			courses: 1289,
 			ratedCourses: 105,
@@ -82,6 +100,7 @@ export const PLATFORM_STATS: PlatformStats = {
 		},
 		{
 			abbr: "ФЕН",
+			color: "var(--color-faculty-orange)",
 			name: "Факультет економічних наук",
 			courses: 443,
 			ratedCourses: 70,
@@ -93,6 +112,7 @@ export const PLATFORM_STATS: PlatformStats = {
 		},
 		{
 			abbr: "ФОЗ",
+			color: "var(--color-faculty-teal)",
 			name: "Факультет охорони здоров\u2019я",
 			courses: 447,
 			ratedCourses: 40,
@@ -104,6 +124,7 @@ export const PLATFORM_STATS: PlatformStats = {
 		},
 		{
 			abbr: "ФПрН",
+			color: "var(--color-faculty-rose)",
 			name: "Факультет правничих наук",
 			courses: 482,
 			ratedCourses: 19,
@@ -115,6 +136,7 @@ export const PLATFORM_STATS: PlatformStats = {
 		},
 		{
 			abbr: "ФПвН",
+			color: "var(--color-faculty-green)",
 			name: "Факультет природничих наук",
 			courses: 736,
 			ratedCourses: 22,
