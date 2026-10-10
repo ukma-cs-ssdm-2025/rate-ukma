@@ -1,12 +1,14 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Config, Effect, Layer } from "effect";
-import { HttpRouter } from "effect/http";
+import { HttpMiddleware, HttpRouter } from "effect/http";
 import { HttpApiBuilder } from "effect/http-api";
 import { Api } from "./Api.ts";
 
 const SystemApiHandlers = HttpApiBuilder.group(Api, "system", (handlers) =>
-	handlers.handle("health", () => Effect.void),
+	handlers.handle("health", () =>
+		HttpMiddleware.withLoggerDisabled(Effect.void),
+	),
 );
 
 export const ApiRoutes = HttpApiBuilder.layer(Api).pipe(

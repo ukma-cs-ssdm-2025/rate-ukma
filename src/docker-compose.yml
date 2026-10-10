@@ -9,6 +9,7 @@ services:
       - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./parser/init-db.sql:/docker-entrypoint-initdb.d/ukma_data.sql:ro
     profiles:
       - dev
       - prod
@@ -165,7 +166,7 @@ services:
       dockerfile: Dockerfile
     command: worker
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-rateukma:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgres://ukma_data:ukma_data_pwd@db-rateukma:5432/ukma_data
     networks:
       - backend
     depends_on:

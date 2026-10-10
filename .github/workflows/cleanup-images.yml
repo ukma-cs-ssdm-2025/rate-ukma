@@ -19,7 +19,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        package: [rate-ukma/backend, rate-ukma/webapp]
+        package: [rate-ukma/backend, rate-ukma/webapp, rate-ukma/parser]
     env:
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
     steps:
