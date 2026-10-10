@@ -1,20 +1,25 @@
-import { NodeHttpServer } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { HttpClient, HttpRouter } from "effect/http";
-import { ApiRoutes } from "./http.ts";
+import { HttpServer } from "effect/http";
+import { HttpApiTest } from "effect/http-api";
+import { Api } from "./Api.ts";
+import { SystemApiHandlers } from "./http.ts";
 
-const TestServer = HttpRouter.serve(ApiRoutes, {
-	disableLogger: true,
-	disableListenLog: true,
-}).pipe(Layer.provideMerge(NodeHttpServer.layerTest));
+const makeClient = HttpApiTest.groups(Api, ["system"]);
 
-layer(TestServer)("GET /health", (it) => {
-	it.effect("returns 200 without a key", () =>
-		Effect.gen(function* () {
-			const response = yield* HttpClient.get("/health");
+layer(Layer.mergeAll(SystemApiHandlers, HttpServer.layerServices))(
+	"GET /health",
+	(it) => {
+		it.effect("returns 200 without a key", () =>
+			Effect.gen(function* () {
+				const client = yield* makeClient;
 
-			assert.strictEqual(response.status, 200);
-		}),
-	);
-});
+				const response = yield* client.health({
+					responseMode: "response-only",
+				});
+
+				assert.strictEqual(response.status, 200);
+			}),
+		);
+	},
+);

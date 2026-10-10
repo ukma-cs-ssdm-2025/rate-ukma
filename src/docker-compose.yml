@@ -9,7 +9,6 @@ services:
       - "127.0.0.1:${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./parser/init-db.sql:/docker-entrypoint-initdb.d/ukma_data.sql:ro
     profiles:
       - dev
       - prod
@@ -157,6 +156,22 @@ services:
     profiles:
       - dev
 
+  parser-db-init:
+    image: postgres:15
+    container_name: "${COMPOSE_PROJECT_NAME}_parser_db_init"
+    command: psql -v ON_ERROR_STOP=1 -h db-rateukma -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /init-db.sql
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./parser/init-db.sql:/init-db.sql:ro
+    networks:
+      - backend
+    depends_on:
+      db-rateukma:
+        condition: service_healthy
+    profiles:
+      - dev
+
   parser-worker:
     image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser:${PARSER_IMAGE_TAG:-latest}
     container_name: "${COMPOSE_PROJECT_NAME}_parser_worker"
@@ -170,8 +185,8 @@ services:
     networks:
       - backend
     depends_on:
-      db-rateukma:
-        condition: service_healthy
+      parser-db-init:
+        condition: service_completed_successfully
     profiles:
       - dev
 

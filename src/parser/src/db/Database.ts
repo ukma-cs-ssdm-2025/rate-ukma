@@ -6,7 +6,7 @@ export const PgLive = PgClient.layerConfig({
 	url: Config.Redacted("DATABASE_URL"),
 });
 
-export const migrate = PgMigrator.run({
+export const runMigrations = PgMigrator.run({
 	loader: PgMigrator.fromRecord({ "0001_init": Init }),
 }).pipe(
 	Effect.tap((applied) =>
