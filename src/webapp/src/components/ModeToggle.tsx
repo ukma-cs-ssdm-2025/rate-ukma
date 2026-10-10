@@ -1,4 +1,4 @@
-import { Check, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 
 import { themeOptions } from "@/components/Header/navigationData";
 import { useTheme } from "@/components/ThemeProvider";
@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/Button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuItem,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
 import { testIds } from "@/lib/test-ids";
@@ -28,22 +29,22 @@ export function ModeToggle() {
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">
-				{themeOptions.map((option) => {
-					const Icon = option.icon;
-					const isActive = theme === option.value;
-					return (
-						<DropdownMenuItem
-							key={option.value}
-							onSelect={() => setTheme(option.value)}
-							className="pr-8"
-							data-testid={`${testIds.header.themeToggle}-option-${option.value}`}
-						>
-							<Icon className="size-4" />
-							{option.label}
-							{isActive && <Check className="absolute right-2 size-4" />}
-						</DropdownMenuItem>
-					);
-				})}
+				<DropdownMenuRadioGroup value={theme}>
+					{themeOptions.map((option) => {
+						const Icon = option.icon;
+						return (
+							<DropdownMenuRadioItem
+								key={option.value}
+								value={option.value}
+								onSelect={() => setTheme(option.value)}
+								data-testid={`${testIds.header.themeToggle}-option-${option.value}`}
+							>
+								<Icon className="size-4" />
+								{option.label}
+							</DropdownMenuRadioItem>
+						);
+					})}
+				</DropdownMenuRadioGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

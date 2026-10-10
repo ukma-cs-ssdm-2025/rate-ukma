@@ -39,6 +39,19 @@ describe("ModeToggle", () => {
 		).toHaveTextContent("Система");
 	});
 
+	it("exposes the current theme as the checked menu radio", async () => {
+		localStorage.setItem(STORAGE_KEY, "dark");
+		const user = userEvent.setup();
+		renderToggle();
+
+		await user.click(screen.getByTestId(testIds.header.themeToggle));
+
+		expect(screen.getByRole("menuitemradio", { name: "Темна" })).toBeChecked();
+		expect(
+			screen.getByRole("menuitemradio", { name: "Система" }),
+		).not.toBeChecked();
+	});
+
 	it("selecting System persists the choice and hands the scheme to CSS", async () => {
 		localStorage.setItem(STORAGE_KEY, "dark");
 		const user = userEvent.setup();
