@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { testIds } from "@/lib/test-ids";
-import { render, screen } from "@/test-utils/render";
+import { render, screen, within } from "@/test-utils/render";
 import { RatingForm } from "./RatingForm";
 import userEvent from "@testing-library/user-event";
 
@@ -12,13 +12,63 @@ vi.mock("@/lib/api/generated", async () => {
 		useCoursesInstructorsRetrieve: vi.fn(function () {
 			return { data: undefined };
 		}),
+		useInstructorsListInfinite: vi.fn(),
 	};
 });
 
-const { useCoursesInstructorsRetrieve } = await import("@/lib/api/generated");
+const { useCoursesInstructorsRetrieve, useInstructorsListInfinite } =
+	await import("@/lib/api/generated");
 type CourseInstructorsQuery = ReturnType<typeof useCoursesInstructorsRetrieve>;
 
+const DEMCHENKO = {
+	id: "i-1",
+	first_name: "Олена",
+	patronymic: "Петрівна",
+	last_name: "Демченко",
+};
+
+function mockCourseInstructors(
+	items: ReadonlyArray<{
+		instructor: {
+			id: string;
+			first_name: string;
+			patronymic?: string;
+			last_name: string;
+		};
+		ratings_count: number;
+		offering_ratings_count: number;
+	}>,
+) {
+	vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
+		data: { items },
+	} as unknown as CourseInstructorsQuery);
+}
+
+/** What the picker's directory search returns. */
+function mockDirectory(items: ReadonlyArray<typeof DEMCHENKO>) {
+	vi.mocked(useInstructorsListInfinite).mockReturnValue({
+		data: { pages: [{ items, total: items.length, next_page: null }] },
+		fetchNextPage: vi.fn(),
+		hasNextPage: false,
+		isFetchingNextPage: false,
+		isLoading: false,
+	} as unknown as ReturnType<typeof useInstructorsListInfinite>);
+}
+
+function renderWithCourse() {
+	render(
+		<RatingForm
+			onSubmit={vi.fn()}
+			onCancel={vi.fn()}
+			courseId="c-1"
+			offeringId="o-1"
+		/>,
+	);
+}
+
 describe("RatingForm", () => {
+	beforeEach(() => mockDirectory([]));
+
 	it("uses a viewport-safe layout for long reviews", () => {
 		render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
@@ -61,39 +111,15 @@ describe("RatingForm", () => {
 
 		it("offers teachers others named on this course one tap away", async () => {
 			const user = userEvent.setup();
-			vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
-				data: {
-					items: [
-						{
-							instructor: {
-								id: "i-1",
-								first_name: "Олена",
-								patronymic: "Петрівна",
-								last_name: "Демченко",
-							},
-							ratings_count: 4,
-							offering_ratings_count: 1,
-						},
-						{
-							instructor: {
-								id: "i-2",
-								first_name: "Іван",
-								last_name: "Разовий",
-							},
-							ratings_count: 1,
-							offering_ratings_count: 0,
-						},
-					],
+			mockCourseInstructors([
+				{ instructor: DEMCHENKO, ratings_count: 4, offering_ratings_count: 1 },
+				{
+					instructor: { id: "i-2", first_name: "Іван", last_name: "Разовий" },
+					ratings_count: 1,
+					offering_ratings_count: 0,
 				},
-			} as unknown as CourseInstructorsQuery);
-			render(
-				<RatingForm
-					onSubmit={vi.fn()}
-					onCancel={vi.fn()}
-					courseId="c-1"
-					offeringId="o-1"
-				/>,
-			);
+			]);
+			renderWithCourse();
 
 			const picks = screen.getByTestId(testIds.rating.instructorQuickPicks);
 			// One old mention on the course is not enough to offer a teacher.
@@ -108,6 +134,64 @@ describe("RatingForm", () => {
 			expect(
 				screen.queryByTestId(testIds.rating.instructorQuickPicks),
 			).not.toBeInTheDocument();
+		});
+
+		it("previews the chosen teacher and removes it by tapping its badge", async () => {
+			const user = userEvent.setup();
+			mockCourseInstructors([
+				{ instructor: DEMCHENKO, ratings_count: 2, offering_ratings_count: 1 },
+			]);
+			renderWithCourse();
+
+			await user.click(
+				screen.getByRole("button", { name: "Додати: Демченко Олена Петрівна" }),
+			);
+			await user.click(
+				screen.getByRole("button", { name: "Як побачать інші" }),
+			);
+			const preview = screen.getByRole("region", {
+				name: "Попередній перегляд відгуку",
+			});
+			expect(preview).toHaveTextContent("Викладач:Демченко Олена Петрівна");
+
+			// The name itself is part of the remove target, not only the ×.
+			await user.click(
+				within(
+					screen.getByTestId(testIds.rating.instructorMultiSelect),
+				).getByText("Демченко Олена Петрівна"),
+			);
+			expect(preview).not.toHaveTextContent("Демченко");
+			expect(
+				screen.getByRole("button", { name: "Додати: Демченко Олена Петрівна" }),
+			).toBeInTheDocument();
+		});
+
+		it("keeps a teacher found by search in the preview after the search changes", async () => {
+			const user = userEvent.setup();
+			Element.prototype.scrollIntoView = vi.fn();
+			mockDirectory([DEMCHENKO]);
+			renderWithCourse();
+
+			await user.click(
+				screen.getByTestId(testIds.rating.instructorMultiSelect),
+			);
+			await user.click(
+				within(
+					await screen.findByTestId(
+						`${testIds.rating.instructorMultiSelect}-list`,
+					),
+				).getByText("Демченко Олена Петрівна"),
+			);
+			await user.keyboard("{Escape}");
+			// A new search no longer lists the teacher; the preview still names them.
+			mockDirectory([]);
+			await user.click(
+				screen.getByRole("button", { name: "Як побачать інші" }),
+			);
+
+			expect(
+				screen.getByRole("region", { name: "Попередній перегляд відгуку" }),
+			).toHaveTextContent("Викладач:Демченко Олена Петрівна");
 		});
 
 		it("shows the previous free-text instructor read-only next to the multi-select", () => {
