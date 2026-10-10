@@ -112,8 +112,13 @@ export class RatingModal {
 	}
 
 	private get instructorChips(): Locator {
-		// Each chip is one remove button labelled "Видалити <name>".
-		return this.instructorTrigger.getByRole("button", { name: /^Видалити / });
+		// Each chip is one remove button labelled "Видалити <name>". The open
+		// picker is modal and hides the rest of the page from the a11y tree, so
+		// the chips are looked up with includeHidden.
+		return this.instructorTrigger.getByRole("button", {
+			name: /^Видалити /,
+			includeHidden: true,
+		});
 	}
 
 	async getSelectedInstructorCount(): Promise<number> {
