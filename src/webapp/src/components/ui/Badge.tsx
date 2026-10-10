@@ -22,6 +22,9 @@ const badgeVariants = cva(
 				"soft-destructive":
 					"border-transparent bg-destructive/10 text-destructive",
 				success: "border-transparent bg-success/10 text-success",
+				warning: "border-transparent bg-warning/12 text-warning",
+				/** On a primary-coloured surface, such as a chosen lesson. */
+				inverse: "border-transparent bg-white/15 text-primary-foreground",
 			},
 		},
 		defaultVariants: {

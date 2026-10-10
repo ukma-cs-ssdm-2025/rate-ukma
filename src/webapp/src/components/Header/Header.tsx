@@ -16,7 +16,12 @@ import { Logo } from "../Logo";
 import { ModeToggle } from "../ModeToggle";
 import { Button } from "../ui/Button";
 
-export default function Header() {
+interface HeaderProps {
+	/** Full-width app pages (the schedule) run the header edge to edge too. */
+	fluid?: boolean;
+}
+
+export default function Header({ fluid = false }: Readonly<HeaderProps>) {
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const { status, user, logout } = useAuth();
 	const { theme, setTheme } = useTheme();
@@ -60,7 +65,13 @@ export default function Header() {
 				className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
 				data-testid={testIds.header.root}
 			>
-				<div className="container mx-auto px-6 max-w-7xl flex h-16 items-center justify-between">
+				<div
+					className={
+						fluid
+							? "flex h-16 items-center justify-between px-4"
+							: "container mx-auto px-6 max-w-7xl flex h-16 items-center justify-between"
+					}
+				>
 					<Logo />
 
 					<div className="flex items-center justify-center flex-1">

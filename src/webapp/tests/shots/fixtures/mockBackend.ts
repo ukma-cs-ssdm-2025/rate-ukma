@@ -19,7 +19,6 @@ import {
 	MY_GRADES_MANY,
 	NOTIFICATIONS,
 	RATING_COMMENTS,
-	SCHEDULE,
 	SESSION,
 } from "./data";
 
@@ -36,7 +35,7 @@ export interface MockOptions {
 	readonly specialities?: "one" | "many";
 	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
 	readonly title?: "short" | "long";
-	/** Turns on `fe_schedule` and answers the prototype `/schedule/me/`. */
+	/** Turns on `fe_schedule`; `mockSchedule` serves the schedule service itself. */
 	readonly schedule?: boolean;
 	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
@@ -182,7 +181,6 @@ export async function mockBackend(
 					? COMMENT_REPLIES
 					: EMPTY_COMMENT_LIST,
 		],
-		[/^\/schedule\/me\/$/, () => SCHEDULE],
 		[/^\/analytics\/$/, () => ANALYTICS],
 		[/^\/analytics\/[^/]+\/$/, () => ANALYTICS[0]],
 		[

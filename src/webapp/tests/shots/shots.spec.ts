@@ -12,6 +12,8 @@ import { join, resolve } from "node:path";
 import { testIds } from "../../src/lib/test-ids";
 import { COURSE } from "./fixtures/data";
 import { mockBackend } from "./fixtures/mockBackend";
+import { ME_FIRST_VISIT } from "./fixtures/schedule/me";
+import { mockSchedule } from "./fixtures/schedule/mockSchedule";
 
 /**
  * Screenshot every state of the webapp at desktop and phone widths, light and
@@ -198,24 +200,53 @@ const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "schedule",
 		section: "Розклад",
-		note: "Prototype /schedule behind fe_schedule: week grid, course scores, rate nudge",
+		note: "/schedule: the ported planner under Rate UKMA's header, current week",
 		run: async (page) => {
 			await mockBackend(page, { schedule: true });
+			await mockSchedule(page);
 			await page.goto("/schedule");
-			await page.getByText("Курси семестру").waitFor();
+			await page.getByTestId("planner-calendar").waitFor();
 		},
 	},
 	{
-		name: "schedule-menu",
+		name: "schedule-semester",
 		section: "Розклад",
-		note: "Phone menu with the Розклад item while fe_schedule is on",
+		note: "/schedule on the whole semester, every alternative group on the grid",
+		widths: ["desktop"],
+		run: async (page) => {
+			await mockBackend(page, { schedule: true });
+			await mockSchedule(page);
+			await page.goto("/schedule");
+			await page.getByTestId("planner-calendar").waitFor();
+			await page.getByRole("radio", { name: "Весь семестр" }).click();
+		},
+	},
+	{
+		name: "schedule-first-visit",
+		section: "Розклад",
+		note: "/schedule on a first visit: ІНП loaded, two groups still to pick",
+		run: async (page) => {
+			await mockBackend(page, { schedule: true });
+			await mockSchedule(page, { me: ME_FIRST_VISIT });
+			await page.goto("/schedule");
+			await page.getByTestId("planner-calendar").waitFor();
+		},
+	},
+	{
+		name: "schedule-rail",
+		section: "Розклад",
+		note: "/schedule rail opened as a sheet on a phone",
 		widths: ["phone"],
 		run: async (page) => {
 			await mockBackend(page, { schedule: true });
+			await mockSchedule(page);
 			await page.goto("/schedule");
-			await page.getByText("Курси семестру").waitFor();
-			await page.getByRole("button", { name: "Відкрити меню" }).click();
-			await page.getByRole("link", { name: "Розклад" }).waitFor();
+			await page.getByTestId("planner-calendar").waitFor();
+			await page
+				.getByRole("button", { name: /дисципліни/i })
+				.first()
+				.click();
+			await page.getByTestId("add-discipline").waitFor();
 		},
 	},
 	{

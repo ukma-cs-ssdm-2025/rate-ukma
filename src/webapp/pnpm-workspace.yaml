@@ -2,6 +2,7 @@ allowBuilds:
   "@scarf/scarf": false
   "@sentry/cli": true
   esbuild: true
+  msgpackr-extract: false
   msw: true
 minimumReleaseAgeExclude:
   - "@orval/angular@8.24.0"

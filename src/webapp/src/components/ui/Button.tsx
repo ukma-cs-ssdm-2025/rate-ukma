@@ -28,6 +28,12 @@ const buttonVariants = cva(
 				icon: "size-9",
 				"icon-sm": "size-8",
 				"icon-lg": "size-10",
+				/** Dense app surfaces (the schedule planner): text-xs steps. */
+				compact:
+					"h-7 gap-1.5 px-2.5 text-xs has-[>svg]:px-2 [&_svg:not([class*='size-'])]:size-3.5",
+				xs: "h-6 gap-1 rounded-sm px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+				"icon-compact": "size-7 [&_svg:not([class*='size-'])]:size-3.5",
+				"icon-xs": "size-6 rounded-sm [&_svg:not([class*='size-'])]:size-3",
 			},
 		},
 		defaultVariants: {

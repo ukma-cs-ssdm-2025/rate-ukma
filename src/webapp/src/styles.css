@@ -58,6 +58,7 @@ code {
 	--accent-foreground: oklch(0.21 0.006 285.885);
 	--destructive: oklch(0.54 0.235 27.325);
 	--success: oklch(0.52 0.13 150);
+	--warning: oklch(0.52 0.12 65);
 	--term-fall: oklch(0.5 0.11 65);
 	--term-spring: oklch(0.52 0.19 355);
 	--term-summer: oklch(0.5 0.11 165);
@@ -112,6 +113,7 @@ code {
 	--accent-foreground: oklch(0.96 0.002 285.823);
 	--destructive: oklch(0.64 0.215 25);
 	--success: oklch(0.74 0.15 150);
+	--warning: oklch(0.8 0.13 75);
 	--term-fall: oklch(0.83 0.12 80);
 	--term-spring: oklch(0.82 0.11 350);
 	--term-summer: oklch(0.83 0.13 165);
@@ -165,6 +167,16 @@ code {
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
 	--color-success: var(--success);
+	--color-warning: var(--warning);
+	/* Dense app surfaces (the schedule planner): two sizes under text-xs. */
+	--text-mini: 0.625rem;
+	--text-meta: 0.6875rem;
+	--ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-in-quad: cubic-bezier(0.5, 0, 0.75, 0);
+	--shadow-popover:
+		0 10px 28px -8px oklch(0 0 0 / 0.18), 0 2px 6px -2px oklch(0 0 0 / 0.08);
+	--shadow-dialog:
+		0 24px 56px -16px oklch(0 0 0 / 0.28), 0 4px 12px -4px oklch(0 0 0 / 0.08);
 	--color-term-fall: var(--term-fall);
 	--color-term-spring: var(--term-spring);
 	--color-term-summer: var(--term-summer);
