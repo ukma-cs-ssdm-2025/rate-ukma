@@ -1,46 +1,47 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 
-import type { RatingSuggestion } from "../hooks/useRatingSuggestions";
+import { cn } from "@/lib/utils";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
-import { useRatingSuggestions } from "../hooks/useRatingSuggestions";
+import {
+	useRatingSuggestions,
+	type RatingSuggestion,
+} from "../hooks/useRatingSuggestions";
 import { RatingModal } from "./RatingModal";
 import { RatingSuggestions } from "./RatingSuggestions";
 
 interface RatingSuggestionPromptProps {
-	readonly compact?: boolean;
 	readonly excludeCourse?: string;
-	readonly stacked?: boolean;
+	readonly limit?: number;
+	readonly className?: string;
 }
 
 export function RatingSuggestionPrompt({
-	compact = false,
 	excludeCourse,
-	stacked = false,
+	limit = 3,
+	className,
 }: RatingSuggestionPromptProps) {
+	const titleId = useId();
 	const flowEnabled = useRatingFlowEnabled();
-	const { data: suggestions } = useRatingSuggestions(excludeCourse);
+	const { data } = useRatingSuggestions(excludeCourse);
 	const [selected, setSelected] = useState<RatingSuggestion | null>(null);
-	const items = compact ? suggestions?.slice(0, 1) : suggestions;
+	const items = data?.slice(0, limit) ?? [];
 
 	if (!flowEnabled) return null;
 
 	return (
 		<>
-			{items && items.length > 0 && (
-				<section aria-label="Дисципліни до оцінювання" className="space-y-3">
-					{!compact && (
-						<div className="space-y-1">
-							<h2 className="text-lg font-semibold">З чого почнемо?</h2>
-							<p className="text-sm text-muted-foreground">
-								Оберіть дисципліну, яку пам’ятаєте найкраще.
-							</p>
-						</div>
-					)}
+			{items.length > 0 && (
+				<section
+					aria-labelledby={titleId}
+					className={cn("space-y-3", className)}
+				>
+					<h2 id={titleId} className="text-lg font-semibold">
+						Що оцінити далі
+					</h2>
 					<RatingSuggestions
 						items={items}
 						onSelect={setSelected}
-						compact={compact}
-						stacked={stacked}
+						className={limit > 1 ? "sm:grid-cols-3" : undefined}
 					/>
 				</section>
 			)}

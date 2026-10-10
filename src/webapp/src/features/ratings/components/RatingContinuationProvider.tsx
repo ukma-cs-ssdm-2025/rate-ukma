@@ -75,7 +75,7 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 					} else {
 						setFollowUp(null);
 						void refreshRatingQueries(queryClient, rating.courseId).then(() =>
-							toast.success("Оцінку збережено"),
+							toast.success("Оцінку успішно додано"),
 						);
 					}
 				},

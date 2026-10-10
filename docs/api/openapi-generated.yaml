@@ -4131,21 +4131,31 @@ components:
         course_id:
           type: string
           format: uuid
-          readOnly: true
         course_offering_id:
           type: string
           format: uuid
-          readOnly: true
         course_title:
           type: string
-          readOnly: true
         semester:
-          allOf:
-          - $ref: '#/components/schemas/InlineSemester'
-          readOnly: true
+          $ref: '#/components/schemas/RatingSuggestionSemester'
         ratings_count:
           type: integer
-          readOnly: true
+      required:
+      - course_id
+      - course_offering_id
+      - course_title
+      - ratings_count
+      - semester
+    RatingSuggestionSemester:
+      type: object
+      properties:
+        year:
+          type: integer
+        season:
+          type: string
+      required:
+      - season
+      - year
     RatingVoteCreateRequest:
       properties:
         vote_type:

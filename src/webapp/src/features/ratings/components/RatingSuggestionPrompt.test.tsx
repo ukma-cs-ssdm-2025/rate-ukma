@@ -33,13 +33,10 @@ function renderPrompt(flags: Record<string, boolean>, flagsReady = true) {
 	vi.mocked(useStudentsMeRatingSuggestionsList).mockImplementation(((
 		_params: unknown,
 		options?: {
-			query?: { enabled?: boolean; select?: (d: unknown) => unknown };
+			query?: { enabled?: boolean };
 		},
 	) => ({
-		data:
-			options?.query?.enabled === false
-				? undefined
-				: options?.query?.select?.([SUGGESTION]),
+		data: options?.query?.enabled === false ? undefined : [SUGGESTION],
 	})) as unknown as typeof useStudentsMeRatingSuggestionsList);
 	render(<RatingSuggestionPrompt />, { flags, flagsReady });
 }
@@ -49,7 +46,7 @@ describe("RatingSuggestionPrompt behind fe_rate_flow", () => {
 		renderPrompt({ fe_rate_flow: true });
 
 		expect(
-			screen.queryByRole("region", { name: "Дисципліни до оцінювання" }),
+			screen.queryByRole("region", { name: "Що оцінити далі" }),
 		).not.toBeNull();
 	});
 
@@ -62,7 +59,7 @@ describe("RatingSuggestionPrompt behind fe_rate_flow", () => {
 			renderPrompt(flags, ready);
 
 			expect(
-				screen.queryByRole("region", { name: "Дисципліни до оцінювання" }),
+				screen.queryByRole("region", { name: "Що оцінити далі" }),
 			).toBeNull();
 			const calls = vi.mocked(useStudentsMeRatingSuggestionsList).mock.calls;
 			expect(calls.length).toBeGreaterThan(0);
