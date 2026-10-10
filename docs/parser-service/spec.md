@@ -8,6 +8,39 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - Rate UKMA knows a course's teachers only from ratings: a student picks teachers when they rate. No offering has an official teacher.
 - UKMA Schedule crawls the same САЗ pages every hour on its own. One service can crawl once for both.
 
+## Overview
+
+```mermaid
+flowchart LR
+  SAZ["САЗ"] --> Worker
+  Smart["smart.ukma"] --> Worker
+  subgraph Data["UKMA Data"]
+    Worker["Worker: runs, snapshots, parsing, matching"] --> DB[("Database")]
+    DB --> API["API /v1"]
+  end
+  API -- "daily sync by change number" --> RB["Rate UKMA backend"]
+  RB --> RDB[("Rate UKMA database")]
+  Staff["Staff page in the Rate UKMA SPA, superusers only"] --> RB
+  RB -- "review cases, decisions, extra runs" --> API
+  API --> Other["UKMA Schedule and other readers"]
+```
+
+An unclear match, from the run that finds it to Rate UKMA:
+
+```mermaid
+sequenceDiagram
+  participant W as Worker
+  participant A as UKMA Data API
+  participant R as Rate UKMA backend
+  participant S as Staff page
+  W->>A: publish the safe answer (a new course) and open a review case
+  R->>A: daily sync gets the new course
+  S->>R: superuser opens the case and clicks Merge
+  R->>A: decision with Rate UKMA's key and the superuser
+  A->>A: old course gets removedAt and mergedInto, offerings move
+  R->>A: next sync gets the changed rows
+```
+
 ## Decisions
 
 | Area | Decision | Why |
