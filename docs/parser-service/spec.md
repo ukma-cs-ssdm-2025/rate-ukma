@@ -15,14 +15,11 @@ flowchart LR
   SAZ["САЗ"] --> Worker
   Smart["smart.ukma"] --> Worker
   subgraph Data["UKMA Data"]
-    Worker["Worker: runs, snapshots, parsing, matching"] --> DB[("Database")]
-    DB --> API["API /v1"]
+    Worker --> DB[("Database")] --> API
   end
-  API -- "daily sync by change number" --> RB["Rate UKMA backend"]
-  RB --> RDB[("Rate UKMA database")]
-  Staff["Staff page in the Rate UKMA SPA, superusers only"] --> RB
-  RB -- "review cases, decisions, extra runs" --> API
-  API --> Other["UKMA Schedule and other readers"]
+  API <-- "daily sync, decisions" --> Backend["Rate UKMA backend"]
+  Backend <--> Staff["Staff page in Rate UKMA"]
+  API --> Other["Other readers"]
 ```
 
 An unclear match, from the run that finds it to Rate UKMA:
@@ -30,15 +27,14 @@ An unclear match, from the run that finds it to Rate UKMA:
 ```mermaid
 sequenceDiagram
   participant W as Worker
-  participant A as UKMA Data API
-  participant R as Rate UKMA backend
+  participant A as UKMA Data
+  participant R as Rate UKMA
   participant S as Staff page
-  W->>A: publish the safe answer (a new course) and open a review case
-  R->>A: daily sync gets the new course
-  S->>R: superuser opens the case and clicks Merge
-  R->>A: decision with Rate UKMA's key and the superuser
-  A->>A: old course gets removedAt and mergedInto, offerings move
-  R->>A: next sync gets the changed rows
+  W->>A: new course and a review case
+  R->>A: daily sync
+  S->>R: superuser merges
+  R->>A: decision
+  R->>A: next sync gets the merge
 ```
 
 ## Decisions
