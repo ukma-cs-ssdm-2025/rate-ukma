@@ -880,7 +880,10 @@ for (const width of WIDTHS) {
 					localStorage.setItem("rate-ukma-theme", value);
 				}, theme);
 				await state.run(page);
-				await expect(page.locator("html")).toHaveClass(new RegExp(theme));
+				await expect(page.locator("html")).toHaveAttribute(
+					"data-color-scheme",
+					theme,
+				);
 				await page.evaluate(() => document.fonts.ready);
 				mkdirSync(out, { recursive: true });
 				await page.screenshot({
