@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { testIds } from "@/lib/test-ids";
 import { render, screen } from "@/test-utils/render";
@@ -45,6 +45,12 @@ describe("RatingForm", () => {
 	});
 
 	describe("instructor field", () => {
+		afterEach(() => {
+			vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
+				data: undefined,
+			} as unknown as CourseInstructorsQuery);
+		});
+
 		it("shows the multi-select", () => {
 			render(<RatingForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
@@ -102,9 +108,6 @@ describe("RatingForm", () => {
 			expect(
 				screen.queryByTestId(testIds.rating.instructorQuickPicks),
 			).not.toBeInTheDocument();
-			vi.mocked(useCoursesInstructorsRetrieve).mockReturnValue({
-				data: undefined,
-			} as unknown as CourseInstructorsQuery);
 		});
 
 		it("shows the previous free-text instructor read-only next to the multi-select", () => {
