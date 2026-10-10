@@ -22,6 +22,18 @@ export interface PlatformStats {
 	studentsSignedIn: number;
 	studentsWhoRated: number;
 	withComment: number;
+	anonymous: number;
+	/** Upvotes and downvotes on reviews. */
+	votes: number;
+	upvotes: number;
+	/** Average scores of anonymous vs signed ratings. */
+	byAnonymity: { group: string; difficulty: number; usefulness: number }[];
+	/** Students who rated, bucketed by how many ratings each wrote. */
+	ratersByCount: { bucket: string; students: number }[];
+	/** Rated courses with at least N ratings. */
+	coursesByRatings: { bucket: string; courses: number }[];
+	/** Years between the course and its rating. */
+	lag: { years: number; ratings: number }[];
 	byAcademicYear: { year: number; ratings: number; courses: number }[];
 	/** Index 0 is a score of 1. */
 	difficulty: number[];
@@ -38,6 +50,33 @@ export const PLATFORM_STATS: PlatformStats = {
 	studentsSignedIn: 1226,
 	studentsWhoRated: 221,
 	withComment: 850,
+	anonymous: 1099,
+	votes: 548,
+	upvotes: 496,
+	byAnonymity: [
+		{ group: "Анонімно", difficulty: 2.82, usefulness: 3.06 },
+		{ group: "З іменем", difficulty: 2.8, usefulness: 3.49 },
+	],
+	ratersByCount: [
+		{ bucket: "1", students: 65 },
+		{ bucket: "2–3", students: 42 },
+		{ bucket: "4–10", students: 61 },
+		{ bucket: "11+", students: 53 },
+	],
+	coursesByRatings: [
+		{ bucket: "3+", courses: 194 },
+		{ bucket: "5+", courses: 102 },
+		{ bucket: "10+", courses: 35 },
+		{ bucket: "20+", courses: 7 },
+	],
+	lag: [
+		{ years: 0, ratings: 57 },
+		{ years: 1, ratings: 967 },
+		{ years: 2, ratings: 542 },
+		{ years: 3, ratings: 164 },
+		{ years: 4, ratings: 52 },
+		{ years: 5, ratings: 11 },
+	],
 	byAcademicYear: [
 		{ year: 2021, ratings: 11, courses: 11 },
 		{ year: 2022, ratings: 61, courses: 48 },
