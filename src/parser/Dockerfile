@@ -1,4 +1,4 @@
-FROM node:22.23.2-alpine AS build
+FROM node:24.21.0-alpine AS build
 RUN npm install -g pnpm@11.20.0
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

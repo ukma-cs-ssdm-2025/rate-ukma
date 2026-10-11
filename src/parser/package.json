@@ -5,14 +5,14 @@
 	"type": "module",
 	"packageManager": "pnpm@11.20.0",
 	"engines": {
-		"node": ">=22.18.0",
+		"node": ">=24",
 		"pnpm": ">=11.20.0"
 	},
 	"scripts": {
 		"api": "node src/main.ts api",
 		"worker": "node src/main.ts worker",
 		"migrate": "node src/main.ts migrate",
-		"build": "esbuild src/main.ts --bundle --platform=node --format=esm --target=node22 --outfile=dist/main.js --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+		"build": "esbuild src/main.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/main.js --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
 		"test": "vitest run",
 		"format": "oxfmt",
 		"format:check": "oxfmt --check",
@@ -30,7 +30,7 @@
 	"devDependencies": {
 		"@effect/vitest": "^4.0.2",
 		"@oxlint/plugins": "1.87.0",
-		"@types/node": "^22.20.5",
+		"@types/node": "^24.19.2",
 		"esbuild": "0.28.2",
 		"oxfmt": "0.62.0",
 		"oxlint": "1.87.0",
