@@ -162,6 +162,7 @@ services:
     command: psql -v ON_ERROR_STOP=1 -h db-rateukma -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /init-db.sql
     environment:
       - PGPASSWORD=${POSTGRES_PASSWORD}
+      - UKMA_DATA_DB_PASSWORD=${UKMA_DATA_DB_PASSWORD}
     volumes:
       - ./parser/init-db.sql:/init-db.sql:ro
     networks:
@@ -181,7 +182,7 @@ services:
       dockerfile: Dockerfile
     command: worker
     environment:
-      - DATABASE_URL=postgres://ukma_data:ukma_data_pwd@db-rateukma:5432/ukma_data
+      - DATABASE_URL=postgres://ukma_data:${UKMA_DATA_DB_PASSWORD}@db-rateukma:5432/ukma_data
     networks:
       - backend
     depends_on:

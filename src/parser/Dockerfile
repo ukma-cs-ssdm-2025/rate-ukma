@@ -1,5 +1,5 @@
 FROM node:24.21.0-alpine AS build
-RUN npm install -g pnpm@11.20.0
+RUN npm install -g --ignore-scripts pnpm@11.20.0
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
