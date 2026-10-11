@@ -5,7 +5,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 ## Run
 
 - Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`.
-- Docker: `docker compose --profile dev` in `src` starts `parser-api`, `parser-worker` and `parser-db-init` (creates the `ukma_data` database and role).
+- Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role and `parser-migrate` applies migrations.
 - Settings: `DATABASE_URL` (worker and migrate) and `PORT` (api, default 8080).
 
 ## Layout

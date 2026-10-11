@@ -10,3 +10,7 @@ Installed plugins, registered in `src/parser/.oxlintrc.json`:
 Dependencies: `oxlint` and `@oxlint/plugins` pinned to the same exact version, 1.87.0.
 
 Intentional deviations: none.
+
+## Updating
+
+Copy `skills/install-anti-slop/assets/anti-slop/` from a newer upstream commit over this directory, update the commit above, keep the plugin and `oxlint` versions in step, and run `pnpm check:all` in `src/parser`. `vendor/eslint-stylistic/UPSTREAM.md` is upstream's own record and stays byte for byte: the tests and `pnpm sync:skill-assets` it names live in the upstream repository, not here.

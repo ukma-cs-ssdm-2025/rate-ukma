@@ -8,7 +8,9 @@ export const WorkerLive = Layer.effectDiscard(
 		yield* sql`SELECT 1`;
 		yield* Effect.logInfo("Worker connected to Postgres");
 
-		yield* Effect.logInfo("Worker tick").pipe(
+		yield* sql`SELECT 1`.pipe(
+			Effect.andThen(Effect.logInfo("Worker tick")),
+			Effect.catch((error) => Effect.logError("Postgres check failed", error)),
 			Effect.repeat(Schedule.spaced("1 minute")),
 			Effect.forkScoped,
 		);

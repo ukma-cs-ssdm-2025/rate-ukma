@@ -173,6 +173,23 @@ services:
     profiles:
       - dev
 
+  parser-migrate:
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser:${PARSER_IMAGE_TAG:-latest}
+    container_name: "${COMPOSE_PROJECT_NAME}_parser_migrate"
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    command: migrate
+    environment:
+      - DATABASE_URL=postgres://ukma_data:${UKMA_DATA_DB_PASSWORD}@db-rateukma:5432/ukma_data
+    networks:
+      - backend
+    depends_on:
+      parser-db-init:
+        condition: service_completed_successfully
+    profiles:
+      - dev
+
   parser-worker:
     image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser:${PARSER_IMAGE_TAG:-latest}
     container_name: "${COMPOSE_PROJECT_NAME}_parser_worker"
@@ -186,7 +203,7 @@ services:
     networks:
       - backend
     depends_on:
-      parser-db-init:
+      parser-migrate:
         condition: service_completed_successfully
     profiles:
       - dev
