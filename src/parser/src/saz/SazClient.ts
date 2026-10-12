@@ -20,6 +20,8 @@ import {
 
 export const SAZ_URL = "https://my.ukma.edu.ua";
 
+const MICROSOFT_URL = "https://login.microsoftonline.com";
+
 const MAX_REDIRECTS = 10;
 
 export class SazSignInFailed extends Schema.TaggedError<SazSignInFailed>()(
@@ -83,8 +85,12 @@ export class SazClient extends Context.Service<
 	static readonly layerNoDeps = Layer.effect(
 		SazClient,
 		Effect.gen(function* () {
-			const email = yield* Config.String("CORPORATE_EMAIL");
-			const password = yield* Config.Redacted("CORPORATE_PASSWORD");
+			const email = yield* Config.NonEmptyString("CORPORATE_EMAIL");
+
+			const password = yield* Config.schema(
+				Schema.Redacted(Schema.NonEmptyString),
+				"CORPORATE_PASSWORD",
+			);
 
 			const gap = yield* Config.Duration("SAZ_REQUEST_GAP").pipe(
 				Config.withDefault(Duration.seconds(1)),
@@ -171,9 +177,16 @@ export class SazClient extends Context.Service<
 				);
 
 				const form = yield* readForm(start);
+				const target = new URL(form.urlPost, start.request.url);
+
+				if (target.origin !== MICROSOFT_URL) {
+					return yield* new SazSignInFailed({
+						reason: `the sign-in form posts to ${target.host}`,
+					});
+				}
 
 				const response = yield* send(
-					HttpClientRequest.post(new URL(form.urlPost, start.request.url)).pipe(
+					HttpClientRequest.post(target).pipe(
 						HttpClientRequest.bodyUrlParams({
 							login: email,
 							loginfmt: email,
@@ -200,11 +213,7 @@ export class SazClient extends Context.Service<
 				}
 
 				yield* Effect.logInfo("Signed in to САЗ");
-			}).pipe(
-				Effect.catchTag("SazRequestFailed", (error) =>
-					Effect.fail(new SazSignInFailed({ reason: `HTTP ${error.status}` })),
-				),
-			);
+			});
 
 			const fetchPage = (path: string) =>
 				Effect.gen(function* () {

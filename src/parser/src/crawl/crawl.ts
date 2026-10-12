@@ -1,4 +1,4 @@
-import { Clock, Effect } from "effect";
+import { Cause, Clock, Effect } from "effect";
 import { catalogPath, parseCatalogPage } from "../saz/catalog.ts";
 import { SazClient } from "../saz/SazClient.ts";
 import { type ClaimedPage, CrawlStore, type QueuedPage } from "./CrawlStore.ts";
@@ -36,7 +36,7 @@ const linkedPages = (
 };
 
 /** Crawls one academic year into page snapshots. A page that fails is marked
- *  failed and the run goes on; a failed sign-in fails the run. */
+ *  failed and the run goes on; a failed sign-in or catalog page fails the run. */
 export const crawlYear = Effect.fn("crawlYear")(function* (year: number) {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
@@ -82,9 +82,17 @@ export const crawlYear = Effect.fn("crawlYear")(function* (year: number) {
 		}
 	});
 
-	const finish = (status: "succeeded" | "failed") =>
+	const finish = (crashed: boolean) =>
 		Effect.gen(function* () {
 			const pages = yield* store.tally(runId);
+
+			// A failed catalog page hides the courses it lists.
+			const status =
+				crashed ||
+				pages.some((tally) => tally.kind === "catalog" && tally.failed > 0)
+					? "failed"
+					: "succeeded";
+
 			const now = yield* Clock.currentTimeMillis;
 
 			const report = {
@@ -100,8 +108,11 @@ export const crawlYear = Effect.fn("crawlYear")(function* (year: number) {
 			);
 		});
 
+	// An interrupted run stays `running`, so a restart can tell it never ended.
 	yield* crawl.pipe(
-		Effect.tapError(() => finish("failed")),
-		Effect.andThen(finish("succeeded")),
+		Effect.tapCause((cause) =>
+			Cause.hasInterruptsOnly(cause) ? Effect.void : finish(true),
+		),
+		Effect.andThen(finish(false)),
 	);
 });
