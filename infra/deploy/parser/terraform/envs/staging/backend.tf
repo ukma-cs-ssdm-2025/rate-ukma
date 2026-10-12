@@ -6,10 +6,10 @@ terraform {
   backend "s3" {
     bucket = "rate-ukma-parser-tfstate"
     key    = "staging/terraform.tfstate"
-    region = "nbg1"
+    region = "hel1"
 
     endpoints = {
-      s3 = "https://nbg1.your-objectstorage.com"
+      s3 = "https://hel1.your-objectstorage.com"
     }
 
     use_lockfile = true
