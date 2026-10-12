@@ -1,16 +1,12 @@
-import { Config, Effect, Layer, Schedule } from "effect";
+import { Effect, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
-import { crawlYear } from "../crawl/crawl.ts";
+import { crawlAllYears } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
 import { SazClient } from "../saz/SazClient.ts";
 
 export const WorkerLive = Layer.effectDiscard(
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
-
-		const year = yield* Config.Int("SAZ_ACADEMIC_YEAR").pipe(
-			Config.withDefault(2025),
-		);
 
 		yield* sql`SELECT 1`;
 		yield* Effect.logInfo("Worker connected to Postgres");
@@ -22,7 +18,7 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.forkScoped,
 		);
 
-		yield* crawlYear(year).pipe(
+		yield* crawlAllYears().pipe(
 			Effect.catchCause((cause) => Effect.logError("Crawl failed", cause)),
 			Effect.forkScoped,
 		);

@@ -30,18 +30,36 @@ const KindTally = Schema.Struct({
 
 export type KindTally = typeof KindTally.Type;
 
+const PageFailure = Schema.Struct({
+	path: Schema.String,
+	error: Schema.String,
+});
+
+export type PageFailure = typeof PageFailure.Type;
+
+/** `seconds` runs from the first claim, so a resumed run counts the time it
+ *  was down; `failures` lists the first `MAX_LISTED_FAILURES` failed pages. */
 export interface RunReport {
-	readonly sourcePart: string;
 	readonly seconds: number;
 	readonly pages: ReadonlyArray<KindTally>;
+	readonly failures: ReadonlyArray<PageFailure>;
 }
+
+const MAX_LISTED_FAILURES = 100;
+
+const OpenRun = Schema.Struct({ id: Schema.BigInt, sourcePart: Schema.String });
+
+export type OpenRun = typeof OpenRun.Type;
 
 const RunId = Schema.Struct({ id: Schema.BigInt });
 
 export class CrawlStore extends Context.Service<
 	CrawlStore,
 	{
-		startRun(sourcePart: string, first: QueuedPage): Effect.Effect<bigint>;
+		startRun(sourcePart: string, first: QueuedPage): Effect.Effect<OpenRun>;
+		/** The runs a crash left open, oldest first, with the pages they had
+		 *  claimed back in the queue. */
+		openRuns: Effect.Effect<ReadonlyArray<OpenRun>>;
 		/** The next pending page of the run, claimed so another worker skips it. */
 		claim(runId: bigint): Effect.Effect<ClaimedPage | undefined>;
 		/** Marks the page done, stores its snapshot when the content hash differs
@@ -53,7 +71,7 @@ export class CrawlStore extends Context.Service<
 			next: ReadonlyArray<QueuedPage>,
 		): Effect.Effect<void>;
 		fail(page: ClaimedPage, error: string): Effect.Effect<void>;
-		tally(runId: bigint): Effect.Effect<ReadonlyArray<KindTally>>;
+		report(runId: bigint): Effect.Effect<RunReport>;
 		finishRun(
 			runId: bigint,
 			status: "succeeded" | "failed",
@@ -92,10 +110,26 @@ export class CrawlStore extends Context.Service<
 					.withTransaction(
 						insertRun(sourcePart).pipe(
 							Effect.tap(({ id }) => queue(id, [first])),
-							Effect.map(({ id }) => id),
+							Effect.map(({ id }) => ({ id, sourcePart })),
 						),
 					)
 					.pipe(Effect.orDie);
+
+			const findOpenRuns = SqlSchema.findAll({
+				Request: Schema.Void,
+				Result: OpenRun,
+				execute: () => sql`
+					SELECT id, source_part AS "sourcePart" FROM runs
+					WHERE status = 'running'
+					ORDER BY id
+				`,
+			});
+
+			const openRuns = sql`
+				UPDATE run_pages SET status = 'pending'
+				WHERE status = 'claimed'
+					AND run_id IN (SELECT id FROM runs WHERE status = 'running')
+			`.pipe(Effect.andThen(findOpenRuns()), sql.withTransaction, Effect.orDie);
 
 			const claimNext = SqlSchema.findOneOption({
 				Request: Schema.BigInt,
@@ -197,7 +231,33 @@ export class CrawlStore extends Context.Service<
 				`,
 			});
 
-			const tally = (runId: bigint) => tallyOf(runId).pipe(Effect.orDie);
+			const failuresOf = SqlSchema.findAll({
+				Request: Schema.BigInt,
+				Result: PageFailure,
+				execute: (runId) => sql`
+					SELECT path, error FROM run_pages
+					WHERE run_id = ${runId} AND status = 'failed'
+					ORDER BY id
+					LIMIT ${MAX_LISTED_FAILURES}
+				`,
+			});
+
+			const secondsOf = SqlSchema.findOne({
+				Request: Schema.BigInt,
+				Result: Schema.Struct({ seconds: Schema.Number }),
+				execute: (runId) => sql`
+					SELECT coalesce(extract(epoch FROM now() - min(claimed_at)), 0)::int AS seconds
+					FROM run_pages
+					WHERE run_id = ${runId}
+				`,
+			});
+
+			const report = (runId: bigint) =>
+				Effect.all({
+					seconds: secondsOf(runId).pipe(Effect.map(({ seconds }) => seconds)),
+					pages: tallyOf(runId),
+					failures: failuresOf(runId),
+				}).pipe(Effect.orDie);
 
 			const finishRun = (
 				runId: bigint,
@@ -212,10 +272,11 @@ export class CrawlStore extends Context.Service<
 
 			return CrawlStore.of({
 				startRun,
+				openRuns,
 				claim,
 				complete,
 				fail,
-				tally,
+				report,
 				finishRun,
 			});
 		}),

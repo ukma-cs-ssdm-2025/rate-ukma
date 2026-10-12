@@ -2,22 +2,29 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { catalogPath } from "../saz/catalog.ts";
 import { SazClient, SazRequestFailed } from "../saz/SazClient.ts";
-import { crawlYear } from "./crawl.ts";
+import { crawlAllYears } from "./crawl.ts";
 import {
-	type ClaimedPage,
 	CrawlStore,
 	type KindTally,
-	type PageKind,
+	type OpenRun,
+	type QueuedPage,
 	type RunReport,
 } from "./CrawlStore.ts";
 
 const card = (code: string) =>
 	`<a class="btn btn-block btn-default" href="/course/${code}">Детальніше</a>`;
 
+const YEARS = `<select id="coursefilter-academic_year" name="filter[academic_year][]" multiple>
+<option value="2031">2031–2032</option>
+<option value="2032">2032–2033</option>
+</select>`;
+
 const PAGER = `<li class="last"><a href="${catalogPath(2031, 2).replace("&", "&amp;")}" data-page="1">&raquo;</a></li>`;
 
-/** Two catalog pages of 2031-32; course 100002 is gone. */
+/** 2031-32 lists courses on two catalog pages and course 100002 is gone;
+ *  the 2032-33 catalog does not load. */
 const SAZ_PAGES = new Map([
+	["/course/catalog", YEARS],
 	[catalogPath(2031, 1), card("100001") + card("100002") + PAGER],
 	[catalogPath(2031, 2), card("100003")],
 	["/course/100001", "<html>course 100001</html>"],
@@ -26,98 +33,186 @@ const SAZ_PAGES = new Map([
 	["/course/100003/students", "[]"],
 ]);
 
-const FakeSaz = Layer.succeed(SazClient, {
-	get: (path) => {
-		const body = SAZ_PAGES.get(path);
+const makeFakeSaz = () => {
+	const fetched: Array<string> = [];
 
-		return body === undefined
-			? Effect.fail(new SazRequestFailed({ path, status: 404 }))
-			: Effect.succeed(body);
-	},
-});
+	const layer = Layer.succeed(SazClient, {
+		get: (path) => {
+			fetched.push(path);
 
-/** The queue in memory, one run at a time. */
+			const body = SAZ_PAGES.get(path);
+
+			return body === undefined
+				? Effect.fail(new SazRequestFailed({ path, status: 404 }))
+				: Effect.succeed(body);
+		},
+	});
+
+	return { fetched, layer };
+};
+
+interface MemoryPage extends QueuedPage {
+	readonly id: bigint;
+	readonly runId: bigint;
+	status: string;
+}
+
+/** The run queue in memory. */
 const makeMemoryStore = () => {
-	const pages: Array<ClaimedPage & { status: string }> = [];
-	const finished: Array<{ status: string; report: RunReport }> = [];
+	const runs: Array<OpenRun & { status: string }> = [];
+	const pages: Array<MemoryPage> = [];
+	const finished: Array<{ sourcePart: string; status: string }> = [];
 
-	const queue = (page: { kind: PageKind; path: string }) => {
-		if (!pages.some((queued) => queued.path === page.path)) {
-			pages.push({ ...page, id: BigInt(pages.length + 1), status: "pending" });
+	const queue = (runId: bigint, page: QueuedPage, status = "pending") => {
+		if (!pages.some((row) => row.runId === runId && row.path === page.path)) {
+			pages.push({ ...page, id: BigInt(pages.length + 1), runId, status });
 		}
 	};
 
-	const mark = (page: ClaimedPage, status: string) =>
+	const mark = (id: bigint, status: string) =>
 		Effect.sync(() => {
-			const row = pages.find((queued) => queued.id === page.id);
+			const row = pages.find((page) => page.id === id);
 
 			if (row) row.status = status;
 		});
 
+	const startRun = (sourcePart: string, first: QueuedPage) =>
+		Effect.sync(() => {
+			const run = {
+				id: BigInt(runs.length + 1),
+				sourcePart,
+				status: "running",
+			};
+
+			runs.push(run);
+			queue(run.id, first);
+
+			return { id: run.id, sourcePart };
+		});
+
+	const tally = (runId: bigint, kind: KindTally["kind"]): KindTally => {
+		const ofKind = pages.filter(
+			(page) => page.runId === runId && page.kind === kind,
+		);
+
+		return {
+			kind,
+			done: ofKind.filter((page) => page.status === "done").length,
+			failed: ofKind.filter((page) => page.status === "failed").length,
+			stored: 0,
+		};
+	};
+
+	const report = (runId: bigint): RunReport => ({
+		seconds: 0,
+		pages: (["catalog", "course", "students"] as const).map((kind) =>
+			tally(runId, kind),
+		),
+		failures: [],
+	});
+
 	const layer = Layer.succeed(CrawlStore, {
-		startRun: (_, first) => Effect.sync(() => (queue(first), 1n)),
-		claim: () =>
+		startRun,
+		openRuns: Effect.sync(() => {
+			for (const page of pages) {
+				if (page.status === "claimed") page.status = "pending";
+			}
+
+			return runs.flatMap(({ id, sourcePart, status }) =>
+				status === "running" ? [{ id, sourcePart }] : [],
+			);
+		}),
+		claim: (runId) =>
 			Effect.sync(() => {
-				const next = pages.find((page) => page.status === "pending");
+				const next = pages.find(
+					(page) => page.runId === runId && page.status === "pending",
+				);
 
 				if (next) next.status = "claimed";
 
 				return next;
 			}),
-		complete: (_, page, __, next) =>
-			mark(page, "done").pipe(
-				Effect.andThen(Effect.sync(() => next.forEach(queue))),
+		complete: (runId, page, _, next) =>
+			mark(page.id, "done").pipe(
+				Effect.andThen(
+					Effect.sync(() => next.forEach((linked) => queue(runId, linked))),
+				),
 			),
-		fail: (page) => mark(page, "failed"),
-		tally: () =>
-			Effect.sync(() =>
-				(["catalog", "course", "students"] as const).map((kind): KindTally => ({
-					kind,
-					done: pages.filter((p) => p.kind === kind && p.status === "done")
-						.length,
-					failed: pages.filter((p) => p.kind === kind && p.status === "failed")
-						.length,
-					stored: 0,
-				})),
-			),
-		finishRun: (_, status, report) =>
-			Effect.sync(() => void finished.push({ status, report })),
+		fail: (page) => mark(page.id, "failed"),
+		report: (runId) => Effect.sync(() => report(runId)),
+		finishRun: (runId, status) =>
+			Effect.sync(() => {
+				const run = runs.find((open) => open.id === runId);
+
+				if (run) {
+					run.status = status;
+					finished.push({ sourcePart: run.sourcePart, status });
+				}
+			}),
 	});
 
-	return { pages, finished, layer };
+	return { pages, finished, queue, startRun, layer };
 };
 
-describe("crawlYear", () => {
-	it.effect("visits every catalog page and each listed course", () => {
+describe("crawlAllYears", () => {
+	it.effect("crawls each year the catalog offers", () => {
 		const store = makeMemoryStore();
+		const saz = makeFakeSaz();
 
 		return Effect.gen(function* () {
-			yield* crawlYear(2031);
+			yield* crawlAllYears();
 
 			assert.deepStrictEqual(
-				store.pages.map((page) => `${page.status} ${page.path}`),
+				store.pages.map((page) => `${page.runId} ${page.status} ${page.path}`),
 				[
-					`done ${catalogPath(2031, 1)}`,
-					`done ${catalogPath(2031, 2)}`,
-					"done /course/100001",
-					"done /course/100001/students",
-					"failed /course/100002",
-					"failed /course/100002/students",
-					"done /course/100003",
-					"done /course/100003/students",
+					`1 done ${catalogPath(2031, 1)}`,
+					`2 failed ${catalogPath(2032, 1)}`,
+					`1 done ${catalogPath(2031, 2)}`,
+					"1 done /course/100001",
+					"1 done /course/100001/students",
+					"1 failed /course/100002",
+					"1 failed /course/100002/students",
+					"1 done /course/100003",
+					"1 done /course/100003/students",
 				],
 			);
-			assert.strictEqual(store.finished[0]?.status, "succeeded");
-		}).pipe(Effect.provide([store.layer, FakeSaz]));
+
+			assert.deepStrictEqual(store.finished, [
+				{ sourcePart: "saz-courses:2031-32", status: "succeeded" },
+				{ sourcePart: "saz-courses:2032-33", status: "failed" },
+			]);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 
-	it.effect("fails the run when a catalog page fails", () => {
+	it.effect("resumes an open run without fetching its finished pages", () => {
 		const store = makeMemoryStore();
+		const saz = makeFakeSaz();
 
 		return Effect.gen(function* () {
-			yield* crawlYear(2032);
+			const run = yield* store.startRun("saz-courses:2031-32", {
+				kind: "catalog",
+				path: catalogPath(2031, 1),
+			});
 
-			assert.strictEqual(store.finished[0]?.status, "failed");
-		}).pipe(Effect.provide([store.layer, FakeSaz]));
+			yield* Effect.sync(() => {
+				for (const page of store.pages) page.status = "done";
+
+				store.queue(run.id, { kind: "course", path: "/course/100001" }, "done");
+
+				store.queue(
+					run.id,
+					{ kind: "students", path: "/course/100001/students" },
+					"claimed",
+				);
+			});
+
+			yield* crawlAllYears();
+
+			assert.deepStrictEqual(saz.fetched, ["/course/100001/students"]);
+
+			assert.deepStrictEqual(store.finished, [
+				{ sourcePart: "saz-courses:2031-32", status: "succeeded" },
+			]);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 });
