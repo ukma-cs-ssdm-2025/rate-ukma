@@ -26,6 +26,9 @@ on:
       webapp_changed:
         description: "Whether webapp code changed in the caller ref"
         value: ${{ jobs.filter.outputs.webapp_changed }}
+      parser_changed:
+        description: "Whether parser code changed in the caller ref"
+        value: ${{ jobs.filter.outputs.parser_changed }}
       openapi_changed:
         description: "Whether openapi schema changed in the caller ref"
         value: ${{ jobs.filter.outputs.openapi_changed }}
@@ -39,6 +42,7 @@ on:
 env:
   BACKEND_DIR: src/backend
   WEBAPP_DIR: src/webapp
+  PARSER_DIR: src/parser
   OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
   CI_DIR: .github
   INFRA_DIR: infra
@@ -49,6 +53,7 @@ jobs:
     outputs:
       backend_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.backend == 'true' }}
       webapp_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.webapp == 'true' }}
+      parser_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.parser == 'true' }}
       openapi_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.openapi == 'true' }}
       ci_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.ci == 'true' }}
       infra_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.infra == 'true' }}
@@ -70,6 +75,8 @@ jobs:
             webapp:
               - '${{ env.WEBAPP_DIR }}/**'
               - '${{ env.OPENAPI_SCHEMA_FILE }}'
+            parser:
+              - '${{ env.PARSER_DIR }}/**'
             openapi:
               - '${{ env.OPENAPI_SCHEMA_FILE }}'
             ci:
