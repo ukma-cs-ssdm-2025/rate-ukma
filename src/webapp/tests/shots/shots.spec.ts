@@ -144,6 +144,18 @@ const ALL_STATES: ReadonlyArray<State> = [
 		},
 	},
 	{
+		name: "product-switcher",
+		section: "Шапка",
+		note: "The header's switcher: the schedule one click away, same account",
+		run: async (page) => {
+			await mockBackend(page);
+			await page.goto("/feed");
+			await page.getByTestId("feed-list").waitFor();
+			await page.getByTestId("header-product-switcher").click();
+			await page.getByTestId("product-schedule").waitFor();
+		},
+	},
+	{
 		name: "feed-loading",
 		section: "Стрічка",
 		note: "/feed while items load",

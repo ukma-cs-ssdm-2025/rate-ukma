@@ -82,6 +82,7 @@ export const testIds = {
 	header: {
 		root: "header",
 		logo: "header-logo",
+		productSwitcher: "header-product-switcher",
 		nav: "header-nav",
 		mobileMenuButton: "header-mobile-menu-button",
 		mobileMenu: "header-mobile-menu",

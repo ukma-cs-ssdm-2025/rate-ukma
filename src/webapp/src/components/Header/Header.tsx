@@ -11,6 +11,7 @@ import { testIds } from "@/lib/test-ids";
 import { HeaderNav } from "./HeaderNav";
 import { MobileMenu } from "./MobileMenu";
 import { navigationItems, scheduleItem } from "./navigationData";
+import { ProductSwitcher } from "./ProductSwitcher";
 import { UserMenu } from "./UserMenu";
 import { Logo } from "../Logo";
 import { ModeToggle } from "../ModeToggle";
@@ -72,7 +73,10 @@ export default function Header({ fluid = false }: Readonly<HeaderProps>) {
 							: "container mx-auto px-6 max-w-7xl flex h-16 items-center justify-between"
 					}
 				>
-					<Logo />
+					<div className="flex items-center gap-1">
+						<Logo />
+						<ProductSwitcher current="rate" />
+					</div>
 
 					<div className="flex items-center justify-center flex-1">
 						<HeaderNav
