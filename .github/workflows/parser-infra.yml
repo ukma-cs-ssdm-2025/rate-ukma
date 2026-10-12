@@ -72,6 +72,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_KEY }}
       AWS_SSE_CUSTOMER_KEY: ${{ secrets.TF_STATE_SSE_CUSTOMER_KEY }}
+      TF_VAR_ssh_public_key: ${{ vars.PARSER_SSH_PUBLIC_KEY }}
     defaults:
       run:
         working-directory: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}
@@ -102,3 +103,13 @@ jobs:
       - name: Apply
         if: inputs.action == 'apply'
         run: terraform apply -input=false parser.tfplan
+
+      - name: Outputs
+        if: inputs.action == 'apply'
+        run: |
+          {
+            echo "### Outputs (${{ inputs.environment }})"
+            echo '```'
+            terraform output
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

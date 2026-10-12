@@ -1,0 +1,26 @@
+#cloud-config
+# Runs once, on first boot.
+
+users:
+  - name: ${admin_user}
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+disable_root: true
+ssh_pwauth: false
+
+package_update: true
+package_upgrade: true
+
+write_files:
+  # k3s reads this on every start. Traefik (bundled) is the ingress controller.
+  - path: /etc/rancher/k3s/config.yaml
+    permissions: "0600"
+    content: |
+      secrets-encryption: true
+
+runcmd:
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - server
