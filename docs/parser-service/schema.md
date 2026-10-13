@@ -62,12 +62,12 @@ Terms are never removed.
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | text | `prg_...` |
-| `name` | text | as on the card or in a students list (D12) |
-| `level` | text null | `bachelor`, `master`; null when only a students list names it |
+| `name` | text unique | as on the card or in a students list (D12) |
+| `level` | text null | `bachelor`, `master`, from the cards; null when only a students list names it |
 | `saz_filter_id` | text null | `filter[spec][]` option value |
 | `change_no`, `removed_at` | | |
 
-Unique on (`name`, `level`). Cards and lists name programmes the same way for the 34 names they share, so an exact match is enough.
+Cards and lists name programmes the same way for the 34 names they share, so a list finds its programme by exact name and adds one only when no card has named it.
 
 ## Catalog
 
@@ -168,11 +168,11 @@ A person (glossary: Student).
 | --- | --- | --- |
 | `id` | text | `stu_...` |
 | `email` | text null unique | lower-case (D5); null for the few records with none (D3) |
-| `full_name` | text | whitespace collapsed; set by the latest list (D6, D7) |
+| `full_name` | text | whitespace collapsed; set by the latest list, but a name with `*` never replaces one without it (D6, D7) |
 | `last_name`, `first_name`, `patronymic` | text null | filled only when the name has three words |
 | `change_no`, `removed_at` | | removed when no enrollment of the person is left |
 
-A student is found by email, else by `cdoc`, never by name (D7).
+A student is found by email, else by `cdoc`, never by name (D7). When a `cdoc` shows a new email, the latest list wins and the record moves to that student (D1).
 
 ### `student_programmes`
 
@@ -209,7 +209,8 @@ One `cdoc`: a student on one programme (D1).
 | --- | --- | --- | --- |
 | `runs` | `trigger` | text | `schedule` or `key` |
 | | `key_id` | text null | the key that asked for an extra run |
-| | `removals` | text | `applied`, `held`, `skipped` (see below) |
+| | `offering_removals` | text | `applied`, `held` or `skipped` (see below) |
+| | `lists_kept` | integer | offerings whose students page failed, so their enrollments were kept |
 | `run_pages` | `http_status` | smallint null | 500 for the A2 pages |
 | `page_snapshots` | `parse_status` | text | `ok` or `failed` |
 | | `parse_error` | text null | |
@@ -296,7 +297,7 @@ Rule 6 removes rows only after a run read its whole source part without errors. 
 
 - Offerings, terms and programmes of a year: removed when every catalog page and every course page of the run loaded. A failed students page does not block them. The threshold applies here: if the run would remove more of the year's offerings than the threshold allows, it holds the removals as a `removals_held` review case.
 - Enrollments of one offering: replaced only when that offering's students page loaded in the run. A failed page keeps the offering's last good enrollments, or none.
-- `runs.removals` records which scopes ran: `applied` when every scope ran, `held` when a review case holds them, `skipped` when a catalog or course page failed.
+- `runs.offering_removals` is `applied`, `held` when a review case holds them, or `skipped` when a catalog or course page failed. `runs.lists_kept` counts the offerings whose enrollments the run kept.
 
 For example, the run for 2018-19 loads every catalog and course page and fails on 60 students pages. It may remove 2018-19 offerings that left the catalog, and it publishes no enrollments for the 60 offerings until САЗ serves their lists.
 
