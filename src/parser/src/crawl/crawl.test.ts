@@ -21,16 +21,51 @@ const YEARS = `<select id="coursefilter-academic_year" name="filter[academic_yea
 
 const PAGER = `<li class="last"><a href="${catalogPath(2031, 2).replace("&", "&amp;")}" data-page="1">&raquo;</a></li>`;
 
-/** 2031-32 lists courses on two catalog pages, course 100002 is gone and
- *  course 100003 drops the connection once; the 2032-33 catalog does not load. */
+/** The 2031-32 catalog, two pages long. 100004 is a master's course that is
+ *  not recommended, so the catalog's default filters hide it. */
+const CATALOG = [
+	{ code: "100001", page: 1, level: "1", selected: "1" },
+	{ code: "100002", page: 1, level: "1", selected: "1" },
+	{ code: "100004", page: 1, level: "2", selected: "0" },
+	{ code: "100003", page: 2, level: "1", selected: "1" },
+];
+
+/** Filters the catalog as САЗ does, falling back to `Бакалавр` and
+ *  `рекомендовано` when the request leaves them out. */
+const catalogPage = (path: string) => {
+	const params = new URLSearchParams(path.slice(path.indexOf("?") + 1));
+
+	const filter = (name: string) => {
+		const values = params.getAll(`filter[${name}][]`);
+
+		return values.length > 0 ? values : ["1"];
+	};
+
+	if (params.get("filter[academic_year][]") !== "2031") return undefined;
+
+	const page = Number(params.get("page"));
+
+	const cards = CATALOG.flatMap((course) =>
+		course.page === page &&
+		filter("level").includes(course.level) &&
+		filter("selected").includes(course.selected)
+			? [card(course.code)]
+			: [],
+	);
+
+	return cards.join("") + (page === 1 ? PAGER : "");
+};
+
+/** Course 100002 is gone and course 100003 drops the connection once; the
+ *  2032-33 catalog does not load. */
 const SAZ_PAGES = new Map([
 	["/course/catalog", YEARS],
-	[catalogPath(2031, 1), card("100001") + card("100002") + PAGER],
-	[catalogPath(2031, 2), card("100003")],
 	["/course/100001", "<html>course 100001</html>"],
 	["/course/100001/students", "[]"],
 	["/course/100003", "<html>course 100003</html>"],
 	["/course/100003/students", "[]"],
+	["/course/100004", "<html>course 100004</html>"],
+	["/course/100004/students", "[]"],
 ]);
 
 const makeFakeSaz = () => {
@@ -40,7 +75,9 @@ const makeFakeSaz = () => {
 		get: (path) => {
 			fetched.push(path);
 
-			const body = SAZ_PAGES.get(path);
+			const body = path.startsWith("/course/catalog?")
+				? catalogPage(path)
+				: SAZ_PAGES.get(path);
 
 			if (path === "/course/100003" && !fetched.slice(0, -1).includes(path)) {
 				return Effect.fail(new SazRequestFailed({ path, status: 0 }));
@@ -210,6 +247,8 @@ describe("crawlAllYears", () => {
 					"1 done /course/100001/students",
 					"1 failed /course/100002",
 					"1 failed /course/100002/students",
+					"1 done /course/100004",
+					"1 done /course/100004/students",
 					"1 done /course/100003",
 					"1 done /course/100003/students",
 				],
@@ -226,6 +265,20 @@ describe("crawlAllYears", () => {
 				),
 				[1, 2],
 			);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("finds the courses the catalog's default filters hide", () => {
+		const store = makeMemoryStore();
+		const saz = makeFakeSaz();
+
+		return Effect.gen(function* () {
+			yield* crawlAllYears();
+
+			assert.includeMembers(saz.fetched, [
+				"/course/100004",
+				"/course/100004/students",
+			]);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 
