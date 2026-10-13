@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { catalogPath } from "../saz/catalog.ts";
 import { SazClient, SazRequestFailed } from "../saz/SazClient.ts";
-import { crawlAllYears } from "./crawl.ts";
+import { crawlAllYears, NoAcademicYears } from "./crawl.ts";
 import {
 	CrawlStore,
 	type KindTally,
@@ -227,6 +227,21 @@ describe("crawlAllYears", () => {
 				[1, 2],
 			);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("fails when the catalog offers no years", () => {
+		const store = makeMemoryStore();
+
+		const saz = Layer.succeed(SazClient, {
+			get: () => Effect.succeed("<html></html>"),
+		});
+
+		return Effect.gen(function* () {
+			const error = yield* Effect.flip(crawlAllYears());
+
+			assert.instanceOf(error, NoAcademicYears);
+			assert.deepStrictEqual(store.pages, []);
+		}).pipe(Effect.provide([store.layer, saz]));
 	});
 
 	it.effect("resumes an open run without fetching its finished pages", () => {

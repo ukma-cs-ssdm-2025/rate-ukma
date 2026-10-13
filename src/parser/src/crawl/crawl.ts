@@ -1,4 +1,4 @@
-import { Cause, Effect } from "effect";
+import { Cause, Effect, Schema } from "effect";
 import {
 	catalogPath,
 	parseAcademicYears,
@@ -15,6 +15,12 @@ import {
 import { snapshotOf } from "./snapshot.ts";
 
 const TRANSPORT_ERROR = "transport error";
+
+/** The catalog's year filter listed nothing, so its markup likely changed. */
+export class NoAcademicYears extends Schema.TaggedError<NoAcademicYears>()(
+	"NoAcademicYears",
+	{},
+) {}
 
 /** `2025` is the academic year 2025-26, as in the САЗ catalog filter. */
 export const sourcePartOf = (year: number): string =>
@@ -143,17 +149,20 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 	const saz = yield* SazClient;
 	const resumed = yield* store.openRuns;
 
-	const runs =
-		resumed.length > 0
-			? resumed
-			: yield* Effect.forEach(
-					parseAcademicYears(yield* saz.get("/course/catalog")),
-					(year) =>
-						store.startRun(sourcePartOf(year), {
-							kind: "catalog",
-							path: catalogPath(year, 1),
-						}),
-				);
+	const startRuns = Effect.gen(function* () {
+		const years = parseAcademicYears(yield* saz.get("/course/catalog"));
+
+		if (years.length === 0) return yield* new NoAcademicYears();
+
+		return yield* Effect.forEach(years, (year) =>
+			store.startRun(sourcePartOf(year), {
+				kind: "catalog",
+				path: catalogPath(year, 1),
+			}),
+		);
+	});
+
+	const runs = resumed.length > 0 ? resumed : yield* startRuns;
 
 	yield* Effect.logInfo("Crawl started", {
 		runs: runs.length,
