@@ -52,6 +52,15 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
 
+	const fail = (page: ClaimedPage, error: string) =>
+		store
+			.fail(page, error)
+			.pipe(
+				Effect.andThen(
+					Effect.logWarning("Page failed", { path: page.path, error }),
+				),
+			);
+
 	const visit = (page: ClaimedPage) =>
 		saz.get(page.path).pipe(
 			Effect.flatMap((body) =>
@@ -59,12 +68,11 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 			),
 			Effect.catchTags({
 				SazRequestFailed: (error) =>
-					store.fail(
+					fail(
 						page,
 						error.status === 0 ? "transport error" : `HTTP ${error.status}`,
 					),
-				SazSignedOut: () =>
-					store.fail(page, "signed out after a fresh sign-in"),
+				SazSignedOut: () => fail(page, "signed out after a fresh sign-in"),
 			}),
 		);
 
