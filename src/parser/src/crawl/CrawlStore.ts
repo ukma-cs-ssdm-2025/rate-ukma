@@ -71,6 +71,9 @@ export class CrawlStore extends Context.Service<
 			next: ReadonlyArray<QueuedPage>,
 		): Effect.Effect<void>;
 		fail(page: ClaimedPage, error: string): Effect.Effect<void>;
+		/** Puts the run's pages that failed once with `error` back in the queue,
+		 *  and returns how many. */
+		requeue(runId: bigint, error: string): Effect.Effect<number>;
 		report(runId: bigint): Effect.Effect<RunReport>;
 		finishRun(
 			runId: bigint,
@@ -215,6 +218,16 @@ export class CrawlStore extends Context.Service<
 					WHERE id = ${page.id}
 				`.pipe(Effect.asVoid, Effect.orDie);
 
+			const requeue = (runId: bigint, error: string) =>
+				sql`
+					UPDATE run_pages SET status = 'pending', error = NULL, finished_at = NULL
+					WHERE run_id = ${runId} AND status = 'failed' AND error = ${error} AND attempts = 1
+					RETURNING id
+				`.pipe(
+					Effect.map((rows) => rows.length),
+					Effect.orDie,
+				);
+
 			const tallyOf = SqlSchema.findAll({
 				Request: Schema.BigInt,
 				Result: KindTally,
@@ -276,6 +289,7 @@ export class CrawlStore extends Context.Service<
 				claim,
 				complete,
 				fail,
+				requeue,
 				report,
 				finishRun,
 			});

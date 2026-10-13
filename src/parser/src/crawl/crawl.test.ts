@@ -21,8 +21,8 @@ const YEARS = `<select id="coursefilter-academic_year" name="filter[academic_yea
 
 const PAGER = `<li class="last"><a href="${catalogPath(2031, 2).replace("&", "&amp;")}" data-page="1">&raquo;</a></li>`;
 
-/** 2031-32 lists courses on two catalog pages and course 100002 is gone;
- *  the 2032-33 catalog does not load. */
+/** 2031-32 lists courses on two catalog pages, course 100002 is gone and
+ *  course 100003 drops the connection once; the 2032-33 catalog does not load. */
 const SAZ_PAGES = new Map([
 	["/course/catalog", YEARS],
 	[catalogPath(2031, 1), card("100001") + card("100002") + PAGER],
@@ -42,6 +42,10 @@ const makeFakeSaz = () => {
 
 			const body = SAZ_PAGES.get(path);
 
+			if (path === "/course/100003" && !fetched.slice(0, -1).includes(path)) {
+				return Effect.fail(new SazRequestFailed({ path, status: 0 }));
+			}
+
 			return body === undefined
 				? Effect.fail(new SazRequestFailed({ path, status: 404 }))
 				: Effect.succeed(body);
@@ -55,6 +59,8 @@ interface MemoryPage extends QueuedPage {
 	readonly id: bigint;
 	readonly runId: bigint;
 	status: string;
+	attempts: number;
+	error?: string;
 }
 
 /** The run queue in memory. */
@@ -65,7 +71,13 @@ const makeMemoryStore = () => {
 
 	const queue = (runId: bigint, page: QueuedPage, status = "pending") => {
 		if (!pages.some((row) => row.runId === runId && row.path === page.path)) {
-			pages.push({ ...page, id: BigInt(pages.length + 1), runId, status });
+			pages.push({
+				...page,
+				id: BigInt(pages.length + 1),
+				runId,
+				status,
+				attempts: 0,
+			});
 		}
 	};
 
@@ -128,7 +140,10 @@ const makeMemoryStore = () => {
 					(page) => page.runId === runId && page.status === "pending",
 				);
 
-				if (next) next.status = "claimed";
+				if (next) {
+					next.status = "claimed";
+					next.attempts += 1;
+				}
 
 				return next;
 			}),
@@ -138,7 +153,30 @@ const makeMemoryStore = () => {
 					Effect.sync(() => next.forEach((linked) => queue(runId, linked))),
 				),
 			),
-		fail: (page) => mark(page.id, "failed"),
+		fail: (page, error) =>
+			mark(page.id, "failed").pipe(
+				Effect.andThen(
+					Effect.sync(() => {
+						const row = pages.find((queued) => queued.id === page.id);
+
+						if (row) row.error = error;
+					}),
+				),
+			),
+		requeue: (runId, error) =>
+			Effect.sync(() => {
+				const failed = pages.filter(
+					(page) =>
+						page.runId === runId &&
+						page.status === "failed" &&
+						page.error === error &&
+						page.attempts === 1,
+				);
+
+				for (const page of failed) page.status = "pending";
+
+				return failed.length;
+			}),
 		report: (runId) => Effect.sync(() => report(runId)),
 		finishRun: (runId, status) =>
 			Effect.sync(() => {
@@ -181,6 +219,13 @@ describe("crawlAllYears", () => {
 				{ sourcePart: "saz-courses:2031-32", status: "succeeded" },
 				{ sourcePart: "saz-courses:2032-33", status: "failed" },
 			]);
+
+			assert.deepStrictEqual(
+				["/course/100002", "/course/100003"].map(
+					(path) => saz.fetched.filter((fetched) => fetched === path).length,
+				),
+				[1, 2],
+			);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 

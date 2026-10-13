@@ -14,6 +14,8 @@ import {
 } from "./CrawlStore.ts";
 import { snapshotOf } from "./snapshot.ts";
 
+const TRANSPORT_ERROR = "transport error";
+
 /** `2025` is the academic year 2025-26, as in the САЗ catalog filter. */
 export const sourcePartOf = (year: number): string =>
 	`saz-courses:${year}-${String(year + 1).slice(2)}`;
@@ -70,13 +72,13 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 				SazRequestFailed: (error) =>
 					fail(
 						page,
-						error.status === 0 ? "transport error" : `HTTP ${error.status}`,
+						error.status === 0 ? TRANSPORT_ERROR : `HTTP ${error.status}`,
 					),
 				SazSignedOut: () => fail(page, "signed out after a fresh sign-in"),
 			}),
 		);
 
-	const crawl = Effect.gen(function* () {
+	const drain = Effect.gen(function* () {
 		let page = yield* store.claim(run.id);
 
 		while (page !== undefined) {
@@ -84,6 +86,13 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 			page = yield* store.claim(run.id);
 		}
 	});
+
+	// A transport error that outlasts the client's retries is a network blip and
+	// gets one more pass; a САЗ 500 repeats on every try, so it does not.
+	const crawl = drain.pipe(
+		Effect.andThen(store.requeue(run.id, TRANSPORT_ERROR)),
+		Effect.andThen((requeued) => (requeued > 0 ? drain : Effect.void)),
+	);
 
 	const finish = (crashed: boolean) =>
 		Effect.gen(function* () {
