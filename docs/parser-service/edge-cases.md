@@ -10,7 +10,7 @@ Every variation found in the САЗ pages that UKMA Data stores, with a count, u
 
 Counts are pages unless a case says entries (one student on one students page). Examples are invented: no real title, teacher, student or email appears here. The queries that produce every count are kept outside the repository with the survey notes.
 
-## Summary
+## Main cases
 
 | Case | Count | Handled by |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ Counts are pages unless a case says entries (one student on one students page). 
 
 - Count: all 634 catalog pages carry two filters the crawler did not ask for: level `Бакалавр` and `рекомендовано`. Rate UKMA holds 21,188 codes for 2018-19 to 2025-26, and 10,602 of them have no snapshot: 9,021 master's and 1,581 bachelor courses. Every stored course page says `Бакалавр`. For 2026-27, 1,507 of 3,055 are missing.
 - Codes: 209470, 209487, 209505 (master's), 208933, 208935 (bachelor).
-- Handled by: a crawler rule. The catalog request must set every level and both `selected` values, but no other filter: Rate UKMA's scraper selects every option of every filter, and that drops the cases in [Rate UKMA codes](#rate-ukma-codes). Which request returns the whole year needs one check against САЗ before #763.
+- Handled by: a crawler rule, proposed for #761. The catalog request must set every level and both `selected` values, but no other filter: Rate UKMA's scraper selects every option of every filter, and that drops the cases in [Rate UKMA codes](#rate-ukma-codes). Which request returns the whole year needs one check against САЗ before #763.
 
 ```html
 <select name="filter[level][]"><option value="1" selected>Бакалавр</option><option value="2">Магістр</option></select>
@@ -38,7 +38,7 @@ Counts are pages unless a case says entries (one student on one students page). 
 
 ### A2. Students page fails with HTTP 500
 
-- Count: 298 students pages in runs 6 to 10 (2018-19: 60, 2019-20: 84, 2020-21: 88, 2021-22: 47, 2022-23: 19). Each course page loaded. A refetch of four of them (208974, 242614, 258195, 275521) got 500 again, so САЗ fails on them every time.
+- Count: 298 students pages in runs 6 to 10 (2018-19: 60, 2019-20: 84, 2020-21: 88, 2021-22: 47, 2022-23: 19). Each course page loaded. During the #761 crawl, a refetch of four of them (208974, 242614, 258195, 275521) got 500 again, so САЗ fails on them every time.
 - Codes: 208930, 224760, 241753, 258195, 275521.
 - Handled by: `run_pages.http_status` and the removal scopes in [schema](schema.md#when-a-run-may-remove-rows). The offering is published, its enrollments are not.
 
@@ -48,7 +48,7 @@ GET /course/900123/students -> 500
 
 ### A3. Course page fails while its students page loads
 
-- Count: 1 (2026-27). A refetch by hand got it; since `10a3599c` a run retries such a page itself.
+- Count: 1 (2026-27). A refetch during the #761 crawl got it, and a run now retries such a page once more at the end (#761).
 - Codes: 364653.
 - Handled by: a parser rule. A students list is parsed only after its offering exists.
 
@@ -67,7 +67,7 @@ GET /course/900123/students -> 500
 
 - Count: 12,603 of 12,603 course pages show the account owner's name in the navbar. 749 pages highlight the owner's own programme row with `class="success"`.
 - Codes: 208930, 209013, 209014, 209020, 209023 (highlighted row).
-- Handled by: a snapshot rule. Before hashing, the worker drops the navbar and the `success` class. Otherwise a sign-in with another account changes the hash of every page, and every page is stored again.
+- Handled by: a snapshot rule, proposed for #763. Before hashing, the worker drops the navbar and the `success` class. Otherwise a sign-in with another account changes the hash of every page, and every page is stored again.
 
 ```html
 <li><a href="/profile"><span class="glyphicon glyphicon-user"></span> Зразок Олена Петрівна</a></li>
@@ -187,7 +187,7 @@ GET /course/900123/students -> 500
 
 ### B10. Control type of a term
 
-- Count: `залік` on 8,426 cards, `екзамен` 4,088, `теза` 576, `не має контролю` 293, `захист дипломної роботи` 5. On 11,864 cards the lecture, seminar and practice hours are totals for the term, although their `title` says "per week".
+- Count: cards with at least one term of each control: `залік` 8,426, `екзамен` 4,088, `теза` 576, `не має контролю` 293, `захист дипломної роботи` 5. A card with two terms can count twice. On 11,864 cards the lecture, seminar and practice hours are totals for the term, although their `title` says "per week".
 - Codes: 209153, 209181 (`не має контролю`); 209573, 225340, 242519 (`захист дипломної роботи`).
 - Handled by: `offering_terms.control` with 5 values. Rate UKMA's scraper maps every unknown value to an exam, so a thesis term becomes an exam there. The parser reads the label text, never the `title`.
 
@@ -230,7 +230,7 @@ GET /course/900123/students -> 500
 
 ### B14. Card count and list disagree
 
-- Count: on 10,271 of 10,352 cards the active count equals the list entries with status 10 and an active student; on 81 it does not.
+- Count: 10,650 cards have the count; 298 of them are the A2 offerings with no stored list. On 10,271 of the other 10,352 the count equals the list entries with status 10 and an active student; on 81 it does not.
 - Codes: 341247, 341742, 341844, 340965, 341761.
 - Handled by: both are stored; the list is the source for enrollments and a mismatch fails nothing.
 
@@ -259,14 +259,14 @@ GET /course/900123/students -> 500
 
 ### C1. Parallel sections
 
-- Count: 782 groups of 2 to 6 codes share title, department and year: 1,817 cards. Their students lists are often the same: 312 groups of lists, 937 pages, have the same content hash.
+- Count: 782 groups of 2 to 6 codes share title, department and year: 1,817 cards. Counted by department; the course rule (C2) uses faculty. Their students lists are often the same: 312 groups of lists, 937 pages, have the same content hash.
 - Codes: 209028, 209263, 209511, 209541, 210410 (one group).
 - Handled by: each code stays its own offering with its own enrollments. The course rule puts them in one course.
 
 ### C2. Same course across years
 
 - Count: 2,809 groups by title and department; 2,022 span two or more years and 420 span all nine.
-- Handled by: the first course rule, as in Rate UKMA's importer: title, faculty, programmes and level. The САЗ code never links years (A8).
+- Handled by: the first course rule, as in Rate UKMA's importer: title, faculty, programmes and level. The counts use title and department, a close stand-in. The САЗ code never links years (A8).
 
 ### C3. Titles that differ a little between years
 
@@ -286,7 +286,7 @@ Every list is a JSON array of objects with the same 17 keys (449,049 entries).
 ### D1. `cdoc` is the student's programme record
 
 - Count: `cdoc` never equals the course code. There are 11,872 values; each has one name and one programme. 156 emails have 2 or 3 values, and 1 value has 2 emails.
-- Handled by: `student_programmes.saz_cdoc`. A student is a person (email), a programme record is a `cdoc`.
+- Handled by: `student_programmes.saz_cdoc`. A student is a person (email), a programme record is a `cdoc`. When a record shows a new email, the latest list wins: the record moves to the student with that email.
 
 ```json
 {"cdoc": 600123, "name": "Зразок Олена Петрівна", "email": "o.zrazok@ukma.edu.ua", "specName": "Економіка", "grade": 3}
@@ -312,7 +312,7 @@ Every list is a JSON array of objects with the same 17 keys (449,049 entries).
 
 - Count: 51 entries in 2019-20 to 2022-23, all of one programme record, end with `@ukma.edu.u`.
 - Codes: 226135, 226137, 226140, 226185, 226196.
-- Handled by: kept as read. The record links the entries.
+- Handled by: stored as read in `students.email`. No list has the full address for that record, so nothing collides; the record links the entries.
 
 ### D5. Upper-case email
 
@@ -324,7 +324,7 @@ Every list is a JSON array of objects with the same 17 keys (449,049 entries).
 
 - Count: three words 445,934 entries, two 1,582, four 1,441, five 92. 105 have extra spaces. 17,367 use a backtick for the apostrophe. 258 entries in 2024-25 to 2026-27 hold `*` inside the name.
 - Codes: 314804, 314809, 314810 (`*`); 209057 (extra space).
-- Handled by: `students.full_name` keeps the name with whitespace collapsed. `last_name`, `first_name` and `patronymic` are filled only for three words and are null otherwise.
+- Handled by: `students.full_name` keeps the name with whitespace collapsed. A name with `*` never replaces one without it. `last_name`, `first_name` and `patronymic` are filled only for three words and are null otherwise.
 
 ```json
 {"name": "Зразок-Приклад Марія"}
@@ -380,7 +380,7 @@ Every list is a JSON array of objects with the same 17 keys (449,049 entries).
 
 - Count: the largest list has 1,360 entries; the longest page is 541,029 characters.
 - Codes: 362858, 314804, 340216.
-- Handled by: no special rule; the API pages enrollments.
+- Handled by: the API's cursor pagination of enrollments; the parser needs no rule.
 
 ## Rate UKMA codes
 
