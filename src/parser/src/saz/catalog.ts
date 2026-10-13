@@ -5,11 +5,22 @@ const COURSE_BUTTON =
 
 const LAST_PAGE = /<li class="last"><a href="[^"]*[?&;]page=(\d+)"/u;
 
+/** Without these the catalog falls back to `Бакалавр` and `рекомендовано`,
+ *  which hides master's and not recommended courses. Any other filter must stay
+ *  unset: selecting all of its options drops the courses that have no value for it. */
+const WHOLE_YEAR: ReadonlyArray<[string, string]> = [
+	["filter[level][]", "1"],
+	["filter[level][]", "2"],
+	["filter[selected][]", "1"],
+	["filter[selected][]", "0"],
+];
+
 export const catalogPath = (year: number, page: number): string =>
-	`/course/catalog?${new URLSearchParams({
-		"filter[academic_year][]": String(year),
-		page: String(page),
-	}).toString()}`;
+	`/course/catalog?${new URLSearchParams([
+		["filter[academic_year][]", String(year)],
+		...WHOLE_YEAR,
+		["page", String(page)],
+	]).toString()}`;
 
 export interface CatalogPage {
 	readonly codes: ReadonlyArray<string>;

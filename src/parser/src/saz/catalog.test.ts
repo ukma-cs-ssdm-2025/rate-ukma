@@ -38,10 +38,19 @@ describe("parseCatalogPage", () => {
 });
 
 describe("catalogPath", () => {
-	it("filters by the academic year's first calendar year", () => {
-		assert.strictEqual(
-			catalogPath(2031, 3),
-			"/course/catalog?filter%5Bacademic_year%5D%5B%5D=2031&page=3",
+	it("asks for the academic year with every level and recommendation", () => {
+		const params = new URLSearchParams(
+			catalogPath(2031, 3).slice("/course/catalog?".length),
+		);
+
+		assert.deepStrictEqual(
+			[
+				"filter[academic_year][]",
+				"filter[level][]",
+				"filter[selected][]",
+				"page",
+			].map((name) => params.getAll(name)),
+			[["2031"], ["1", "2"], ["1", "0"], ["3"]],
 		);
 	});
 });
