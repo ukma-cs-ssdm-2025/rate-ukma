@@ -18,6 +18,7 @@ terraform {
     }
 
     use_lockfile = true
+    encrypt      = true
 
     # Not AWS: skip the AWS-only account, region and checksum checks.
     skip_credentials_validation = true
