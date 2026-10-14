@@ -2,6 +2,11 @@
 # That backend uses the AWS SDK, so it reads the Hetzner S3 keys from the
 # standard AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY variables (CI fills them
 # from TF_STATE_ACCESS_KEY / TF_STATE_SECRET_KEY)
+#
+# State is encrypted with SSE-C
+# Backend reads the key from AWS_SSE_CUSTOMER_KEY (CI fills it from TF_STATE_SSE_CUSTOMER_KEY)
+# Key never appears here. 
+# Every plan and apply needs the same key: losing it makes the state unreadable
 terraform {
   backend "s3" {
     bucket = "rate-ukma-parser-tfstate"

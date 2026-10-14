@@ -39,6 +39,8 @@ jobs:
         environment: [staging]
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - uses: hashicorp/setup-terraform@v4
         with:
@@ -67,11 +69,14 @@ jobs:
       HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_KEY }}
+      AWS_SSE_CUSTOMER_KEY: ${{ secrets.TF_STATE_SSE_CUSTOMER_KEY }}
     defaults:
       run:
         working-directory: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - uses: hashicorp/setup-terraform@v4
         with:
