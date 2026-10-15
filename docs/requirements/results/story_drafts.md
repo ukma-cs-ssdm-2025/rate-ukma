@@ -34,7 +34,7 @@
 | US-3.1 | 3. Scans map | P1 | As a planner, I want to see my candidates on a usefulness × difficulty map, so that the "hard and useless" ones drop out at a glance. | Pain: stuck for a semester · Pain: 20 tabs | live 
 | US-3.2 | 3. Scans map | P1 | As a planner, I want to click a point to open that course, so that I can go from overview to details in one move. | Pain: 20 tabs, losing track | live 
 | US-3.3 | 3. Scans map | P1 | As a planner, I want the map to follow my filters, so that it shows only my candidates, not the whole university. | Job: compare 15–20 courses | live 
-| US-3.4 | 3. Scans map | P1 | As a planner, I want each point to show how many ratings it's based on, so that I don't trust a position built on one review. | Pain: zero or two reviews · Risk 3 | new 
+| US-3.4 | 3. Scans map | P1 | As a planner, I want each point to show how many ratings it's based on, so that I don't trust a position built on one review. | Pain: zero or two reviews · Risk 3 | live 
 | US-3.5 | 3. Scans map | P1 | As a planner, I want to add a course to my plan straight from the map, so that I don't lose it among open tabs. | Pain: 20 tabs · Gain: ranked shortlist | new 
 | US-3.6 | 3. Scans map | P1 | As a planner, I want to compare 2–4 courses side by side (workload, usefulness, credits, reviews), so that I decide without switching pages. | Gain: courses side by side (partial gap) | new 
 | US-3.7 | 3. Scans map | P1 | As a planner, I want courses from other faculties highlighted on the map, so that I spot cross-faculty options quickly. | Pain: cross-faculty course, no one to ask · Risk 4 | new 
