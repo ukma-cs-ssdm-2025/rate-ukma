@@ -37,7 +37,7 @@ export default Effect.gen(function* () {
 		CREATE TABLE faculties (
 			id text PRIMARY KEY DEFAULT 'fac_' || ulid(),
 			name text NOT NULL UNIQUE,
-			saz_filter_id text
+			saz_filter_id text UNIQUE
 		)
 	`;
 
@@ -45,7 +45,7 @@ export default Effect.gen(function* () {
 		CREATE TABLE departments (
 			id text PRIMARY KEY DEFAULT 'dep_' || ulid(),
 			name text NOT NULL UNIQUE,
-			saz_filter_id text,
+			saz_filter_id text UNIQUE,
 			faculty_id text REFERENCES faculties (id)
 		)
 	`;

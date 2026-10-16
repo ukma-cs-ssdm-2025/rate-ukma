@@ -5,6 +5,7 @@ import type {
 	ParsedOffering,
 	Season,
 } from "../saz/coursePage.ts";
+import { planUnits } from "./units.ts";
 
 type Level = ParsedOffering["level"];
 
@@ -69,9 +70,9 @@ export class OfferingStore extends Context.Service<
 		): Effect.Effect<ReadonlyArray<StoredPage>>;
 		/** Any catalog page carries the filters, so the latest one is enough. */
 		latestCatalogPage: Effect.Effect<string | undefined>;
-		/** Upserts the rows by their САЗ code or name, so ids stay, and replaces
-		 *  the terms and programmes of each offering in the batch. A filter id the
-		 *  catalog page did not list keeps its stored value. */
+		/** Upserts the rows by their САЗ code, filter id or name, so ids stay,
+		 *  and replaces the terms and programmes of each offering in the batch. A
+		 *  filter id the catalog page did not list keeps its stored value. */
 		write(rows: OfferingRows): Effect.Effect<void>;
 	}
 >()("ukma-data/offerings/OfferingStore") {
@@ -130,30 +131,63 @@ export class OfferingStore extends Context.Service<
 
 			const json = (rows: ReadonlyArray<object>) => JSON.stringify(rows);
 
+			const findUnits = SqlSchema.findAll({
+				Request: Schema.Literals(["faculties", "departments"]),
+				Result: Schema.Struct({
+					id: Schema.String,
+					name: Schema.String,
+					sazFilterId: Schema.NullOr(Schema.String),
+				}),
+				execute: (table) =>
+					sql`SELECT id, name, saz_filter_id AS "sazFilterId" FROM ${sql(table)}`,
+			});
+
 			const write = (rows: OfferingRows) =>
 				Effect.gen(function* () {
 					const codes = json(
 						rows.offerings.map(({ sazCode }) => ({ sazCode })),
 					);
 
+					const faculties = planUnits(
+						yield* findUnits("faculties"),
+						rows.faculties,
+					);
+
+					yield* sql`
+						UPDATE faculties t SET name = r.name, saz_filter_id = r."sazFilterId"
+						FROM jsonb_to_recordset(${json(faculties.updates)}::jsonb)
+							AS r(id text, name text, "sazFilterId" text)
+						WHERE t.id = r.id
+					`;
+
 					yield* sql`
 						INSERT INTO faculties (name, saz_filter_id)
 						SELECT name, "sazFilterId"
-						FROM jsonb_to_recordset(${json(rows.faculties)}::jsonb)
+						FROM jsonb_to_recordset(${json(faculties.inserts)}::jsonb)
 							AS r(name text, "sazFilterId" text)
-						ON CONFLICT (name) DO UPDATE
-						SET saz_filter_id = coalesce(EXCLUDED.saz_filter_id, faculties.saz_filter_id)
+					`;
+
+					const departments = planUnits(
+						yield* findUnits("departments"),
+						rows.departments,
+					);
+
+					yield* sql`
+						UPDATE departments t
+						SET name = r.name, saz_filter_id = r."sazFilterId",
+							faculty_id = coalesce(f.id, t.faculty_id)
+						FROM jsonb_to_recordset(${json(departments.updates)}::jsonb)
+							AS r(id text, name text, faculty text, "sazFilterId" text)
+						LEFT JOIN faculties f ON f.name = r.faculty
+						WHERE t.id = r.id
 					`;
 
 					yield* sql`
 						INSERT INTO departments (name, saz_filter_id, faculty_id)
 						SELECT r.name, r."sazFilterId", f.id
-						FROM jsonb_to_recordset(${json(rows.departments)}::jsonb)
+						FROM jsonb_to_recordset(${json(departments.inserts)}::jsonb)
 							AS r(name text, faculty text, "sazFilterId" text)
 						LEFT JOIN faculties f ON f.name = r.faculty
-						ON CONFLICT (name) DO UPDATE
-						SET saz_filter_id = coalesce(EXCLUDED.saz_filter_id, departments.saz_filter_id),
-							faculty_id = coalesce(EXCLUDED.faculty_id, departments.faculty_id)
 					`;
 
 					yield* sql`

@@ -105,6 +105,29 @@ describe("offeringRowsOf", () => {
 		);
 	});
 
+	it("takes a programme's level from the catalog when the card's level has none", () => {
+		const { programmes, offeringProgrammes } = offeringRowsOf(
+			[
+				{
+					snapshotId: 14n,
+					offering: offering("900004", {
+						level: "master",
+						programmes: [{ name: "Уявна економіка", kind: "elective" }],
+					}),
+				},
+			],
+			{
+				...FILTERS,
+				programmes: new Map([["Уявна економіка (Бакалавр)", "5003"]]),
+			},
+		);
+
+		assert.deepStrictEqual(programmes, [
+			{ name: "Уявна економіка", level: "bachelor", sazFilterId: "5003" },
+		]);
+		assert.strictEqual(offeringProgrammes[0]?.level, "bachelor");
+	});
+
 	it("keys child rows by САЗ code and term code", () => {
 		assert.deepStrictEqual(
 			rows.offerings.map(({ sazCode, snapshotId }) => [sazCode, snapshotId]),

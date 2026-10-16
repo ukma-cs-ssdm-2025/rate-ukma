@@ -33,6 +33,31 @@ const unique = <T>(rows: ReadonlyArray<T>, key: (row: T) => string) => [
 	...new Map(rows.map((row) => [key(row), row])).values(),
 ];
 
+const LEVELS: ReadonlyArray<ParsedOffering["level"]> = ["bachelor", "master"];
+
+/** A card names its programmes without a level. The catalog lists each
+ *  programme with one, and a card of one level can count for a programme that
+ *  exists only at the other, so the catalog decides; the card's level is the
+ *  fallback. */
+const programmeOf = (
+	name: string,
+	cardLevel: ParsedOffering["level"],
+	filters: CatalogFilters,
+) => {
+	for (const level of [
+		cardLevel,
+		...LEVELS.filter((other) => other !== cardLevel),
+	]) {
+		const sazFilterId = filters.programmes.get(
+			`${name} (${levelLabel(level)})`,
+		);
+
+		if (sazFilterId !== undefined) return { name, level, sazFilterId };
+	}
+
+	return { name, level: cardLevel, sazFilterId: null };
+};
+
 export interface ParsedPage {
 	readonly snapshotId: bigint;
 	readonly offering: ParsedOffering;
@@ -75,12 +100,7 @@ export const offeringRowsOf = (
 		),
 		programmes: unique(
 			offerings.flatMap(({ level, programmes }) =>
-				programmes.map(({ name }) => ({
-					name,
-					level,
-					sazFilterId:
-						filters.programmes.get(`${name} (${levelLabel(level)})`) ?? null,
-				})),
+				programmes.map(({ name }) => programmeOf(name, level, filters)),
 			),
 			({ name, level }) => `${level} ${name}`,
 		),
@@ -111,7 +131,12 @@ export const offeringRowsOf = (
 			})),
 		),
 		offeringProgrammes: offerings.flatMap(({ sazCode, level, programmes }) =>
-			programmes.map(({ name, kind }) => ({ sazCode, name, level, kind })),
+			programmes.map(({ name, kind }) => ({
+				sazCode,
+				name,
+				level: programmeOf(name, level, filters).level,
+				kind,
+			})),
 		),
 	};
 };
