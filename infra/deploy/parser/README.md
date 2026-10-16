@@ -61,7 +61,7 @@ Each environment is one Hetzner VM running single-node k3s:
 
    | Name | Kind | Value |
    | --- | --- | --- |
-   | `PARSER_SSH_PUBLIC_KEY` | variable | contents of `parser-staging.pub` |
+   | `PARSER_SSH_PUBLIC_KEY` | secret | contents of `parser-staging.pub` |
    | `PARSER_SSH_KEY` | secret | contents of `parser-staging` (the private key) |
 
    Then delete the local private key, or store it in the team password manager.
