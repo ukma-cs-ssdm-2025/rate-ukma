@@ -18,6 +18,15 @@ export class UnknownKey extends Schema.TaggedError<UnknownKey>()("UnknownKey", {
 	}
 }
 
+export class ScopesAndAllScopes extends Schema.TaggedError<ScopesAndAllScopes>()(
+	"ScopesAndAllScopes",
+	{},
+) {
+	override get message() {
+		return "Pass --scope or --all-scopes, not both";
+	}
+}
+
 /** One line of `list-keys`: never the hash. */
 export const describeKey = (key: KeyRow, now: number): string => {
 	const status =
@@ -65,20 +74,28 @@ const createKey = Command.make(
 	},
 	({ name, scopes, allScopes, expiresInDays }) =>
 		Effect.gen(function* () {
+			if (allScopes && scopes.length > 0) {
+				return yield* new ScopesAndAllScopes();
+			}
+
 			const keys = yield* Keys;
+
+			const granted = allScopes
+				? SCOPES
+				: scopes.length > 0
+					? scopes
+					: DEFAULT_SCOPES;
 
 			const key = yield* keys.create({
 				name,
-				scopes: allScopes
-					? SCOPES
-					: scopes.length > 0
-						? scopes
-						: DEFAULT_SCOPES,
+				scopes: granted,
 				expiresInDays,
 				createdBy: null,
 			});
 
-			yield* Console.log(`${key.id} expires ${key.expiresAt.toISOString()}`);
+			yield* Console.log(
+				`${key.id} ${granted.join(",")} expires ${key.expiresAt.toISOString()}`,
+			);
 			// Printed once to stdout and never logged: logs go to Sentry.
 			yield* Console.log(Redacted.value(key.token));
 		}).pipe(Effect.provide(KeysLive)),

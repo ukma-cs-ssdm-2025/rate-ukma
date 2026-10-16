@@ -24,6 +24,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
 - Every other endpoint sits in a group with `.middleware(ApiKeyAuth)` and is annotated with `RequiredScopes`; without the annotation it refuses every key. A list handler calls `Caller.countRows`, so the audit row has the count and never the values.
+- A write endpoint (start a run, decide a case) records its audit row inside its own transaction, so a failed audit write cannot leave work done behind a 500.
 - A token is a `Redacted` value everywhere but the one `create-key` print; never log it.
 - The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`/`create-key`/`revoke-key`/`list-keys`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
 - No real student data in fixtures, logs or tests.
