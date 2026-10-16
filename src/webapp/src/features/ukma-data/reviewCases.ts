@@ -19,7 +19,7 @@ export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
 };
 
 export const SAFE_ANSWER_LABELS: Record<CaseKind, string> = {
-	course_match: "окремий новий курс",
+	course_match: "окремий курс",
 	instructor_match: "без звʼязку з викладачем",
 	removals_held: "нічого не вилучено",
 };
@@ -36,11 +36,11 @@ export const DECISION_LABELS: Record<DecisionKind, string> = {
 
 export const DECISION_EFFECTS: Record<DecisionKind, string> = {
 	merge:
-		"Пропозиція перейде до наявного курсу, а новий курс буде вилучено з mergedInto. Оцінки залишаться на пропозиції.",
+		"Пропозиція перейде до наявного курсу, а створений для неї курс буде вилучено з посиланням на наявний. Оцінки залишаться на пропозиції.",
 	keep_apart:
 		"Курси залишаться окремими, і правила зіставлення більше не питатимуть про цю пару.",
 	split:
-		"Пропозиція повернеться в окремий новий курс. Це скасовує попереднє обʼєднання.",
+		"Пропозиція повернеться в окремий курс. Це скасовує попереднє обʼєднання.",
 	link_instructor:
 		"Викладач зʼявиться на пропозиції в Rate UKMA після наступної синхронізації.",
 	keep_unlinked: "Пропозиція залишиться без викладача.",

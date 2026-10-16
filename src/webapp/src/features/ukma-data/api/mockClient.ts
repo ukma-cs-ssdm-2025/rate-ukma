@@ -47,7 +47,7 @@ function changedRows(
 				{
 					list: "courses",
 					id: `crs_${reviewCase.subject.sazCode}`,
-					change: "новий курс",
+					change: "створено",
 				},
 			];
 		case "link_instructor":
