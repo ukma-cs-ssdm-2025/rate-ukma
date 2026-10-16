@@ -4,15 +4,17 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 ## Run
 
-- Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`.
+- Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`, `pnpm crawl-smart`.
 - Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role and `parser-migrate` applies migrations.
-- Settings: `DATABASE_URL` (worker and migrate), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account) and `SAZ_REQUEST_GAP` (default 1 second).
+- Settings: `DATABASE_URL` (worker, migrate and crawl-smart), `PORT` (api, default 8080), `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the university account for САЗ and smart.ukma), `SAZ_REQUEST_GAP` and `SMART_REQUEST_GAP` (default 1 second).
 
 ## Layout
 
-- `src/main.ts`: the `api`, `worker` and `migrate` commands.
+- `src/main.ts`: the `api`, `worker`, `migrate` and `crawl-smart` commands.
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer.
 - `src/worker/`: the background loop.
+- `src/microsoft/`: the cookie session and Microsoft password sign-in both clients use.
+- `src/smart/`: the smart.ukma client and its crawl. The sign-in redirect chain ends on `/get-user?accessToken=…&refreshToken=…`; the API on `smart.ukma.edu.ua` takes `Authorization: Bearer`, the access token lives 5 minutes and the client refreshes it before expiry.
 - `src/db/Database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
 
 ## Rules
@@ -20,7 +22,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - A new migration is added by hand to the `fromRecord` list in `src/db/Database.ts`. Its number only grows: an id at or below the highest applied one is skipped silently.
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
-- The container contract (one image, commands `api`/`worker`/`migrate`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
+- The container contract (one image, commands `api`/`worker`/`migrate`/`crawl-smart`, `DATABASE_URL`, `PORT`, the university account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
 - No real student data in fixtures, logs or tests.
 
 ## Effect

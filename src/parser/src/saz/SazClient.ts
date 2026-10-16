@@ -4,25 +4,17 @@ import {
 	Duration,
 	Effect,
 	Layer,
-	Redacted,
-	Ref,
 	Schedule,
 	Schema,
-	Semaphore,
 } from "effect";
 import {
-	Cookies,
 	FetchHttpClient,
-	HttpClient,
 	HttpClientRequest,
 	type HttpClientResponse,
 } from "effect/http";
+import { MicrosoftSessions } from "../microsoft/session.ts";
 
 export const SAZ_URL = "https://my.ukma.edu.ua";
-
-const MICROSOFT_URL = "https://login.microsoftonline.com";
-
-const MAX_REDIRECTS = 10;
 
 export class SazSignInFailed extends Schema.TaggedError<SazSignInFailed>()(
 	"SazSignInFailed",
@@ -45,22 +37,6 @@ export class SazSignedOut extends Schema.TaggedError<SazSignedOut>()(
 ) {}
 
 export type SazError = SazSignInFailed | SazRequestFailed | SazSignedOut;
-
-/** The fields of Microsoft's `$Config` the password form needs. */
-const MicrosoftForm = Schema.fromJsonString(
-	Schema.Struct({
-		urlPost: Schema.String,
-		sFT: Schema.String,
-		sCtx: Schema.String,
-		canary: Schema.String,
-		pgid: Schema.optional(Schema.String),
-		sErrorCode: Schema.optional(Schema.String),
-	}),
-);
-
-const decodeMicrosoftForm = Schema.decodeUnknownEffect(MicrosoftForm);
-
-const MICROSOFT_CONFIG = /\$Config=(\{.*?\});/su;
 
 const isTransient = (error: SazError): boolean =>
 	error instanceof SazRequestFailed &&
@@ -96,124 +72,32 @@ export class SazClient extends Context.Service<
 				Config.withDefault(Duration.seconds(1)),
 			);
 
-			const http = yield* HttpClient.HttpClient;
-			// Node fetch drops Set-Cookie on redirects it follows, and the sign-in
-			// sets cookies on both hosts mid-chain, so redirects are walked here.
-			const jar = yield* Ref.make(new Map<string, Cookies.Cookies>());
-			const gate = yield* Semaphore.make(1);
-
-			const execute = (request: HttpClientRequest.HttpClientRequest) =>
-				Effect.gen(function* () {
-					const host = new URL(request.url).host;
-					const held = (yield* Ref.get(jar)).get(host) ?? Cookies.empty;
-
-					const response = yield* gate.withPermit(
-						http
-							.execute(
-								HttpClientRequest.setHeader(
-									request,
-									"cookie",
-									Cookies.toCookieHeader(held),
-								),
-							)
-							.pipe(Effect.ensuring(Effect.sleep(gap))),
-					);
-
-					yield* Ref.update(jar, (hosts) =>
-						new Map(hosts).set(host, Cookies.merge(held, response.cookies)),
-					);
-
-					return response;
-				});
+			const sessions = yield* MicrosoftSessions;
+			const session = yield* sessions.open({ email, password }, gap);
 
 			const send = (
 				request: HttpClientRequest.HttpClientRequest,
 				path: string,
-			): Effect.Effect<
-				HttpClientResponse.HttpClientResponse,
-				SazRequestFailed
-			> =>
-				Effect.gen(function* () {
-					let response = yield* execute(request);
+			) =>
+				session
+					.send(request)
+					.pipe(
+						Effect.catchTag("HttpClientError", () =>
+							Effect.fail(new SazRequestFailed({ path, status: 0 })),
+						),
+					);
 
-					for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
-						const location = response.headers.location;
-
-						if (response.status < 300 || response.status >= 400 || !location) {
-							return response;
-						}
-
-						response = yield* execute(
-							HttpClientRequest.get(new URL(location, response.request.url)),
-						);
-					}
-
-					return response;
-				}).pipe(
-					Effect.catchTag("HttpClientError", () =>
-						Effect.fail(new SazRequestFailed({ path, status: 0 })),
-					),
-				);
-
-			const readForm = (response: HttpClientResponse.HttpClientResponse) =>
-				response.text.pipe(
-					Effect.flatMap((body) =>
-						decodeMicrosoftForm(MICROSOFT_CONFIG.exec(body)?.[1]),
-					),
-					Effect.mapError(
-						() =>
-							new SazSignInFailed({
-								reason: "the Microsoft form did not parse",
-							}),
-					),
-				);
-
-			const signIn = Effect.gen(function* () {
-				yield* Ref.set(jar, new Map());
-
-				const start = yield* send(
-					HttpClientRequest.get(`${SAZ_URL}/auth/o365`),
-					"/auth/o365",
-				);
-
-				const form = yield* readForm(start);
-				const target = new URL(form.urlPost, start.request.url);
-
-				if (target.origin !== MICROSOFT_URL) {
-					return yield* new SazSignInFailed({
-						reason: `the sign-in form posts to ${target.host}`,
-					});
-				}
-
-				const response = yield* send(
-					HttpClientRequest.post(target).pipe(
-						HttpClientRequest.bodyUrlParams({
-							login: email,
-							loginfmt: email,
-							passwd: Redacted.value(password),
-							ctx: form.sCtx,
-							flowToken: form.sFT,
-							canary: form.canary,
-							type: "11",
-							LoginOptions: "3",
-						}),
-					),
-					"/auth/o365",
-				);
-
-				if (isOnMicrosoft(response)) {
-					const next = yield* readForm(response);
-
-					return yield* new SazSignInFailed({
-						reason:
-							next.sErrorCode === undefined
-								? `stopped on the Microsoft page ${next.pgid ?? "unknown"}`
-								: `Microsoft error ${next.sErrorCode}`,
-					});
-				}
-
-				yield* Effect.logInfo("Signed in to САЗ");
-			});
+			const signIn = session.signIn(`${SAZ_URL}/auth/o365`).pipe(
+				Effect.catchTags({
+					MicrosoftSignInFailed: ({ reason }) =>
+						Effect.fail(new SazSignInFailed({ reason })),
+					HttpClientError: () =>
+						Effect.fail(
+							new SazRequestFailed({ path: "/auth/o365", status: 0 }),
+						),
+				}),
+				Effect.andThen(Effect.logInfo("Signed in to САЗ")),
+			);
 
 			const fetchPage = (path: string) =>
 				Effect.gen(function* () {
@@ -256,6 +140,7 @@ export class SazClient extends Context.Service<
 	);
 
 	static readonly layer = this.layerNoDeps.pipe(
+		Layer.provide(MicrosoftSessions.layer),
 		Layer.provide(FetchHttpClient.layer),
 		Layer.provide(
 			Layer.succeed(FetchHttpClient.RequestInit, { redirect: "manual" }),
