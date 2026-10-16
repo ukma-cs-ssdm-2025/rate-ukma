@@ -1,7 +1,13 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Result } from "effect";
 import { parseCoursePage } from "./coursePage.ts";
-import { coursePage, label, LIMITS, row } from "./coursePage.fixture.ts";
+import {
+	coursePage,
+	ENROLLMENT,
+	label,
+	LIMITS,
+	row,
+} from "./coursePage.fixture.ts";
 
 const parse = (html: string, code = "900123") => parseCoursePage(html, code);
 
@@ -352,9 +358,75 @@ describe("parseCoursePage", () => {
 
 	it("keeps an entity past the last code point as written", () => {
 		assert.strictEqual(
-			parsed(coursePage({ title: "Системи &#99999999;" })).title,
-			"Системи &#99999999;",
+			parsed(coursePage({ title: "Системи &#99999999; &#0; &#xD800;" })).title,
+			"Системи &#99999999; &#0; &#xD800;",
 		);
+	});
+
+	it("fails a page with a row it does not know, so a rename keeps the last good rows", () => {
+		const renamed = coursePage({ teachers: "Зразок О. П." }).replace(
+			"<th>Викладач</th>",
+			"<th>Викладачі</th>",
+		);
+
+		assert.strictEqual(failure(renamed), "unknown row");
+		assert.strictEqual(
+			failure(
+				coursePage().replace("<th>Освітній рівень</th>", "<th>Рівень</th>"),
+			),
+			"unknown row",
+		);
+		assert.strictEqual(
+			failure(coursePage({ annotation: "Текст" }).replace("--info", "--about")),
+			"unknown block",
+		);
+	});
+
+	it("fails an enrollment block without its count, and an annotation with markup", () => {
+		assert.strictEqual(
+			failure(coursePage({ enrollment: ENROLLMENT.slice(1) })),
+			"invalid enrolledActive",
+		);
+		assert.strictEqual(
+			failure(coursePage({ annotation: "<div>Перший абзац.</div> Другий." })),
+			"annotation markup",
+		);
+	});
+
+	it("fails credits the column cannot hold", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					info: [
+						label("1000 кред."),
+						label("90 год."),
+						label("1 рік"),
+						label("Формат 2015"),
+					],
+				}),
+			),
+			"invalid credits",
+		);
+	});
+
+	it("keeps term credits that differ from the card's (B5)", () => {
+		const offering = parsed(
+			coursePage({
+				terms: [
+					row("Семестри", label("Семестр 1")),
+					row("Осінь", [label("2.0 кред."), label("залік")].join(" ")),
+				],
+			}),
+		);
+
+		assert.deepStrictEqual(
+			[offering.credits, offering.terms[0]?.credits],
+			[4.5, 2],
+		);
+	});
+
+	it("stores an empty teacher cell as null", () => {
+		assert.strictEqual(parsed(coursePage({ teachers: " " })).sazTeachers, null);
 	});
 
 	it("fails a page that is not the card of its code", () => {
@@ -362,6 +434,10 @@ describe("parseCoursePage", () => {
 		assert.strictEqual(
 			failure("<html><body>Увійдіть</body></html>"),
 			"no course card",
+		);
+		assert.strictEqual(
+			failure(coursePage().replace("<small>", "<span>")),
+			"no title",
 		);
 	});
 });

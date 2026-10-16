@@ -81,6 +81,11 @@ export interface ParseReport {
 	}>;
 }
 
+export interface StoredProgramme {
+	readonly name: string;
+	readonly level: Level;
+}
+
 export class OfferingStore extends Context.Service<
 	OfferingStore,
 	{
@@ -91,11 +96,13 @@ export class OfferingStore extends Context.Service<
 		): Effect.Effect<ReadonlyArray<StoredPage>>;
 		/** Any catalog page carries the filters, so the latest one is enough. */
 		latestCatalogPage: Effect.Effect<string | undefined>;
-		/** Upserts the rows by their САЗ code, filter id or name, so ids stay,
+		/** Every stored programme, for the level of one the catalog does not list. */
+		programmes: Effect.Effect<ReadonlyArray<StoredProgramme>>;
+		/** Upserts the rows by their САЗ code, name or filter id, so ids stay,
 		 *  and replaces the terms and programmes of each offering in the batch. A
-		 *  filter id the catalog page did not list keeps its stored value. An
-		 *  offering already parsed from a newer snapshot keeps its rows, so a
-		 *  parse that overlaps a crawl cannot roll it back. */
+		 *  programme filter id the catalog page did not list keeps its stored
+		 *  value. An offering already parsed from a newer snapshot keeps its
+		 *  rows, so a parse that overlaps a crawl cannot roll it back. */
 		write(rows: OfferingRows): Effect.Effect<void>;
 		startParse(trigger: ParseTrigger): Effect.Effect<bigint>;
 		recordFailures(
@@ -158,7 +165,18 @@ export class OfferingStore extends Context.Service<
 				Effect.orDie,
 			);
 
-			const json = (rows: ReadonlyArray<object>) => JSON.stringify(rows);
+			/** Rows sent as one `jsonb` value. `columns` names every key of the
+			 *  row with its Postgres type, so the compiler keeps the two in step:
+			 *  a key missing from the record set would read as null. */
+			const recordset = <T extends object>(
+				rows: ReadonlyArray<T>,
+				columns: { readonly [K in keyof T]-?: string },
+			) =>
+				sql`jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS r(${sql.unsafe(
+					Object.entries(columns)
+						.map(([key, type]) => `"${key}" ${type}`)
+						.join(", "),
+				)})`;
 
 			const findUnits = SqlSchema.findAll({
 				Request: Schema.Literals(["faculties", "departments"]),
@@ -171,14 +189,21 @@ export class OfferingStore extends Context.Service<
 					sql`SELECT id, name, saz_filter_id AS "sazFilterId" FROM ${sql(table)}`,
 			});
 
+			const findProgrammes = SqlSchema.findAll({
+				Request: Schema.Void,
+				Result: Schema.Struct({
+					name: Schema.String,
+					level: Schema.Literals(["bachelor", "master"]),
+				}),
+				execute: () => sql`SELECT name, level FROM programmes`,
+			});
+
+			const programmes = findProgrammes().pipe(Effect.orDie);
+
 			const write = (rows: OfferingRows) =>
 				Effect.gen(function* () {
-					const codes = json(
-						rows.offerings.map(({ sazCode, snapshotId }) => ({
-							sazCode,
-							snapshotId,
-						})),
-					);
+					// One writer at a time, so two parses never plan the same insert.
+					yield* sql`SELECT pg_advisory_xact_lock(hashtext('ukma-data/write'))`;
 
 					const faculties = planUnits(
 						yield* findUnits("faculties"),
@@ -186,17 +211,20 @@ export class OfferingStore extends Context.Service<
 					);
 
 					yield* sql`
+						UPDATE faculties SET saz_filter_id = NULL
+						WHERE id IN ${sql.in(faculties.released)}
+					`.pipe(Effect.when(Effect.succeed(faculties.released.length > 0)));
+
+					yield* sql`
 						UPDATE faculties t SET name = r.name, saz_filter_id = r."sazFilterId"
-						FROM jsonb_to_recordset(${json(faculties.updates)}::jsonb)
-							AS r(id text, name text, "sazFilterId" text)
+						FROM ${recordset(faculties.updates, { id: "text", name: "text", sazFilterId: "text" })}
 						WHERE t.id = r.id
 					`;
 
 					yield* sql`
 						INSERT INTO faculties (name, saz_filter_id)
 						SELECT name, "sazFilterId"
-						FROM jsonb_to_recordset(${json(faculties.inserts)}::jsonb)
-							AS r(name text, "sazFilterId" text)
+						FROM ${recordset(faculties.inserts, { name: "text", sazFilterId: "text" })}
 					`;
 
 					const departments = planUnits(
@@ -205,11 +233,15 @@ export class OfferingStore extends Context.Service<
 					);
 
 					yield* sql`
+						UPDATE departments SET saz_filter_id = NULL
+						WHERE id IN ${sql.in(departments.released)}
+					`.pipe(Effect.when(Effect.succeed(departments.released.length > 0)));
+
+					yield* sql`
 						UPDATE departments t
 						SET name = r.name, saz_filter_id = r."sazFilterId",
 							faculty_id = coalesce(f.id, t.faculty_id)
-						FROM jsonb_to_recordset(${json(departments.updates)}::jsonb)
-							AS r(id text, name text, faculty text, "sazFilterId" text)
+						FROM ${recordset(departments.updates, { id: "text", name: "text", faculty: "text", sazFilterId: "text" })}
 						LEFT JOIN faculties f ON f.name = r.faculty
 						WHERE t.id = r.id
 					`;
@@ -217,16 +249,14 @@ export class OfferingStore extends Context.Service<
 					yield* sql`
 						INSERT INTO departments (name, saz_filter_id, faculty_id)
 						SELECT r.name, r."sazFilterId", f.id
-						FROM jsonb_to_recordset(${json(departments.inserts)}::jsonb)
-							AS r(name text, faculty text, "sazFilterId" text)
+						FROM ${recordset(departments.inserts, { name: "text", faculty: "text", sazFilterId: "text" })}
 						LEFT JOIN faculties f ON f.name = r.faculty
 					`;
 
 					yield* sql`
 						INSERT INTO programmes (name, level, saz_filter_id)
 						SELECT name, level, "sazFilterId"
-						FROM jsonb_to_recordset(${json(rows.programmes)}::jsonb)
-							AS r(name text, level text, "sazFilterId" text)
+						FROM ${recordset(rows.programmes, { name: "text", level: "text", sazFilterId: "text" })}
 						ON CONFLICT (name, level) DO UPDATE
 						SET saz_filter_id = coalesce(EXCLUDED.saz_filter_id, programmes.saz_filter_id)
 					`;
@@ -234,8 +264,7 @@ export class OfferingStore extends Context.Service<
 					yield* sql`
 						INSERT INTO terms (code, academic_year, season)
 						SELECT code, "academicYear", season
-						FROM jsonb_to_recordset(${json(rows.terms)}::jsonb)
-							AS r(code text, "academicYear" smallint, season text)
+						FROM ${recordset(rows.terms, { code: "text", academicYear: "smallint", season: "text" })}
 						ON CONFLICT (code) DO NOTHING
 					`;
 
@@ -252,15 +281,29 @@ export class OfferingStore extends Context.Service<
 							r.annotation, r."sazTeachers", r."maxStudents", r."maxGroups",
 							r."computedMaxStudents", r."groupSizeMin", r."groupSizeMax",
 							r."enrolledActive", r."snapshotId"
-						FROM jsonb_to_recordset(${json(rows.offerings)}::jsonb) AS r(
-							"sazCode" text, "academicYear" smallint, title text, faculty text,
-							department text, level text, format text, credits numeric,
-							hours integer, "studyYear" smallint, status text, "isPractical" boolean,
-							annotation text, "sazTeachers" text, "maxStudents" integer,
-							"maxGroups" integer, "computedMaxStudents" integer,
-							"groupSizeMin" integer, "groupSizeMax" integer,
-							"enrolledActive" integer, "snapshotId" bigint
-						)
+						FROM ${recordset(rows.offerings, {
+							sazCode: "text",
+							academicYear: "smallint",
+							title: "text",
+							faculty: "text",
+							department: "text",
+							level: "text",
+							format: "text",
+							credits: "numeric",
+							hours: "integer",
+							studyYear: "smallint",
+							status: "text",
+							isPractical: "boolean",
+							annotation: "text",
+							sazTeachers: "text",
+							maxStudents: "integer",
+							maxGroups: "integer",
+							computedMaxStudents: "integer",
+							groupSizeMin: "integer",
+							groupSizeMax: "integer",
+							enrolledActive: "integer",
+							snapshotId: "bigint",
+						})}
 						LEFT JOIN faculties f ON f.name = r.faculty
 						LEFT JOIN departments d ON d.name = r.department
 						ON CONFLICT (saz_code) DO UPDATE SET
@@ -289,9 +332,13 @@ export class OfferingStore extends Context.Service<
 
 					const batchOfferings = sql`
 						SELECT o.id FROM offerings o
-						JOIN jsonb_to_recordset(${codes}::jsonb)
-							AS r("sazCode" text, "snapshotId" bigint)
-							ON o.saz_code = r."sazCode" AND o.snapshot_id = r."snapshotId"
+						JOIN ${recordset(
+							rows.offerings.map(({ sazCode, snapshotId }) => ({
+								sazCode,
+								snapshotId,
+							})),
+							{ sazCode: "text", snapshotId: "bigint" },
+						)} ON o.saz_code = r."sazCode" AND o.snapshot_id = r."snapshotId"
 					`;
 
 					yield* sql`DELETE FROM offering_terms WHERE offering_id IN (${batchOfferings})`;
@@ -304,11 +351,17 @@ export class OfferingStore extends Context.Service<
 						)
 						SELECT o.id, t.id, r.semesters, r.credits, r."hoursPerWeek",
 							r."lectureHours", r."seminarHours", r."practiceHours", r.control
-						FROM jsonb_to_recordset(${json(rows.offeringTerms)}::jsonb) AS r(
-							"sazCode" text, "termCode" text, semesters smallint[], credits numeric,
-							"hoursPerWeek" integer, "lectureHours" integer, "seminarHours" integer,
-							"practiceHours" integer, control text
-						)
+						FROM ${recordset(rows.offeringTerms, {
+							sazCode: "text",
+							termCode: "text",
+							semesters: "smallint[]",
+							credits: "numeric",
+							hoursPerWeek: "integer",
+							lectureHours: "integer",
+							seminarHours: "integer",
+							practiceHours: "integer",
+							control: "text",
+						})}
 						JOIN offerings o ON o.saz_code = r."sazCode"
 							AND o.id IN (${batchOfferings})
 						JOIN terms t ON t.code = r."termCode"
@@ -317,8 +370,7 @@ export class OfferingStore extends Context.Service<
 					yield* sql`
 						INSERT INTO offering_programmes (offering_id, programme_id, kind)
 						SELECT o.id, p.id, r.kind
-						FROM jsonb_to_recordset(${json(rows.offeringProgrammes)}::jsonb)
-							AS r("sazCode" text, name text, level text, kind text)
+						FROM ${recordset(rows.offeringProgrammes, { sazCode: "text", name: "text", level: "text", kind: "text" })}
 						JOIN offerings o ON o.saz_code = r."sazCode"
 							AND o.id IN (${batchOfferings})
 						JOIN programmes p ON p.name = r.name AND p.level = r.level
@@ -365,6 +417,7 @@ export class OfferingStore extends Context.Service<
 				latestCoursePages,
 				coursePages,
 				latestCatalogPage,
+				programmes,
 				write,
 				startParse,
 				recordFailures,

@@ -13,6 +13,7 @@ describe("planUnits", () => {
 				{ name: "Факультет уявних та вигаданих наук", sazFilterId: "901" },
 			]),
 			{
+				released: [],
 				updates: [
 					{
 						id: "fac_1",
@@ -25,33 +26,51 @@ describe("planUnits", () => {
 		);
 	});
 
-	it("falls back to the name, and a row without an id takes the new one", () => {
+	it("matches by name first, so the filter id follows the name", () => {
 		assert.deepStrictEqual(
 			planUnits(STORED, [
-				{ name: "Факультет вигаданих мистецтв", sazFilterId: "902" },
-				{ name: "Факультет уявних наук", sazFilterId: null },
-			]).updates,
-			[
-				{
-					id: "fac_2",
-					name: "Факультет вигаданих мистецтв",
-					sazFilterId: "902",
-				},
-				{ id: "fac_1", name: "Факультет уявних наук", sazFilterId: "901" },
-			],
+				{ name: "Факультет уявних наук", sazFilterId: "904" },
+				{ name: "Факультет вигаданих мистецтв", sazFilterId: null },
+			]),
+			{
+				released: [],
+				updates: [
+					{ id: "fac_1", name: "Факультет уявних наук", sazFilterId: "904" },
+					{
+						id: "fac_2",
+						name: "Факультет вигаданих мистецтв",
+						sazFilterId: null,
+					},
+				],
+				inserts: [],
+			},
 		);
 	});
 
-	it("adds a new unit, and one whose name matches a row of another id", () => {
+	it("moves a filter id to the row whose name now carries it", () => {
 		assert.deepStrictEqual(
 			planUnits(STORED, [
-				{ name: "Факультет нових наук", sazFilterId: "903" },
-				{ name: "Факультет уявних наук", sazFilterId: "904" },
-			]).inserts,
-			[
-				{ name: "Факультет нових наук", sazFilterId: "903" },
-				{ name: "Факультет уявних наук", sazFilterId: "904" },
-			],
+				{ name: "Факультет вигаданих мистецтв", sazFilterId: "901" },
+			]),
+			{
+				released: ["fac_1"],
+				updates: [
+					{
+						id: "fac_2",
+						name: "Факультет вигаданих мистецтв",
+						sazFilterId: "901",
+					},
+				],
+				inserts: [],
+			},
+		);
+	});
+
+	it("adds a unit no row matches", () => {
+		assert.deepStrictEqual(
+			planUnits(STORED, [{ name: "Факультет нових наук", sazFilterId: "903" }])
+				.inserts,
+			[{ name: "Факультет нових наук", sazFilterId: "903" }],
 		);
 	});
 });

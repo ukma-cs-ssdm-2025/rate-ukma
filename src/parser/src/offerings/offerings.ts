@@ -6,11 +6,12 @@ import {
 	parseCoursePage,
 } from "../saz/coursePage.ts";
 import {
-	OfferingStore,
 	type OfferingRows,
+	OfferingStore,
 	type ParseFailure,
 	type ParseReport,
 	type ParseTrigger,
+	type StoredProgramme,
 } from "./OfferingStore.ts";
 
 const BATCH_SIZE = 500;
@@ -43,17 +44,18 @@ const LEVELS: ReadonlyArray<ParsedOffering["level"]> = ["bachelor", "master"];
 
 /** A card names its programmes without a level. The catalog lists each
  *  programme with one, and a card of one level can count for a programme that
- *  exists only at the other, so the catalog decides; the card's level is the
- *  fallback. */
+ *  exists only at the other, so the catalog decides. When it lists neither, a
+ *  stored programme of that name keeps its level, so its id stays; the card's
+ *  level is the last fallback. */
 const programmeOf = (
 	name: string,
 	cardLevel: ParsedOffering["level"],
 	filters: CatalogFilters,
+	stored: ReadonlySet<string>,
 ) => {
-	for (const level of [
-		cardLevel,
-		...LEVELS.filter((other) => other !== cardLevel),
-	]) {
+	const levels = [cardLevel, ...LEVELS.filter((other) => other !== cardLevel)];
+
+	for (const level of levels) {
 		const sazFilterId = filters.programmes.get(
 			`${name} (${levelLabel(level)})`,
 		);
@@ -61,7 +63,10 @@ const programmeOf = (
 		if (sazFilterId !== undefined) return { name, level, sazFilterId };
 	}
 
-	return { name, level: cardLevel, sazFilterId: null };
+	const level =
+		levels.find((candidate) => stored.has(`${candidate} ${name}`)) ?? cardLevel;
+
+	return { name, level, sazFilterId: null };
 };
 
 export interface ParsedPage {
@@ -73,8 +78,13 @@ export interface ParsedPage {
 export const offeringRowsOf = (
 	pages: ReadonlyArray<ParsedPage>,
 	filters: CatalogFilters,
+	storedProgrammes: ReadonlyArray<StoredProgramme> = [],
 ): OfferingRows => {
 	const offerings = pages.map(({ offering }) => offering);
+
+	const stored = new Set(
+		storedProgrammes.map(({ name, level }) => `${level} ${name}`),
+	);
 
 	return {
 		faculties: unique(
@@ -106,7 +116,7 @@ export const offeringRowsOf = (
 		),
 		programmes: unique(
 			offerings.flatMap(({ level, programmes }) =>
-				programmes.map(({ name }) => programmeOf(name, level, filters)),
+				programmes.map(({ name }) => programmeOf(name, level, filters, stored)),
 			),
 			({ name, level }) => `${level} ${name}`,
 		),
@@ -140,7 +150,7 @@ export const offeringRowsOf = (
 			programmes.map(({ name, kind }) => ({
 				sazCode,
 				name,
-				level: programmeOf(name, level, filters).level,
+				level: programmeOf(name, level, filters, stored).level,
 				kind,
 			})),
 		),
@@ -192,9 +202,35 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			});
 		}
 
-		yield* store.write(offeringRowsOf(pages, filters));
+		const rows = offeringRowsOf(pages, filters, yield* store.programmes);
+
+		// A batch the database rejects keeps its last good rows, like a page that
+		// fails to parse, and the run goes on to the next batch.
+		const written = yield* store.write(rows).pipe(
+			Effect.as(true),
+			Effect.catchCause((cause) =>
+				Effect.logError("Offering batch failed to store", {
+					first_snapshot_id: String(ids[0]),
+					last_snapshot_id: String(ids.at(-1)),
+					cause,
+				}).pipe(Effect.as(false)),
+			),
+		);
+
+		if (written) {
+			parsed += pages.length;
+		} else {
+			failed.set("store", (failed.get("store") ?? 0) + pages.length);
+			failures.push(
+				...pages.map(({ snapshotId, offering }) => ({
+					snapshotId,
+					path: `/course/${offering.sazCode}`,
+					reason: "store",
+				})),
+			);
+		}
+
 		yield* store.recordFailures(parseId, failures);
-		parsed += pages.length;
 	}
 
 	const report: ParseReport = {

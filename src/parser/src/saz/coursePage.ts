@@ -1,15 +1,25 @@
-import { Result, Schema, SchemaTransformation } from "effect";
+import {
+	Predicate,
+	Result,
+	Schema,
+	SchemaIssue,
+	SchemaTransformation,
+} from "effect";
 import { textOf, unescapeHtml } from "./html.ts";
 
 const decodeWith = <T, E>(decode: (input: E) => T, encode: (input: T) => E) =>
 	SchemaTransformation.transform({ decode, encode });
 
-/** Digits only: `FiniteFromString` alone reads an empty cell as 0. */
-const Amount = Schema.String.check(Schema.isPattern(/^\d+(?:\.\d+)?$/u)).pipe(
-	Schema.decodeTo(Schema.Finite, SchemaTransformation.numberFromString),
-);
+// Digits only, since `FiniteFromString` reads an empty cell as 0, and bounded
+// by the columns (`numeric(4,1)`, `smallint`), so a wild value fails its page
+// instead of the batch write.
+const Credits = Schema.String.check(
+	Schema.isPattern(/^\d{1,3}(?:\.\d)?$/u),
+).pipe(Schema.decodeTo(Schema.Finite, SchemaTransformation.numberFromString));
 
-const Count = Amount.check(Schema.isInt());
+const Count = Schema.String.check(Schema.isPattern(/^\d{1,4}$/u)).pipe(
+	Schema.decodeTo(Schema.Int, SchemaTransformation.numberFromString),
+);
 
 /** `необмежено` is no limit. */
 const Limit = Schema.Union([
@@ -86,7 +96,7 @@ const ProgrammeKind = Schema.Literals([
 
 const CardTerm = Schema.Struct({
 	season: Season,
-	credits: Amount,
+	credits: Credits,
 	hoursPerWeek: Schema.NullOr(Count),
 	lectureHours: Schema.NullOr(Count),
 	seminarHours: Schema.NullOr(Count),
@@ -99,7 +109,7 @@ const CardTerm = Schema.Struct({
 const CourseCard = Schema.Struct({
 	code: Schema.String,
 	title: Schema.NonEmptyString,
-	credits: Amount,
+	credits: Credits,
 	hours: Count,
 	studyYear: Count,
 	format: Schema.String,
@@ -169,6 +179,41 @@ const ANNOTATION =
 
 const PROGRAMMES =
 	/<div class="collapse text-justify" id="course-card--\d+--spec">(.*?)<\/div>/su;
+
+/** Any collapse block of the card; only `info` and `spec` are known. */
+const BLOCK_ID = /id="course-card--\d+--([^"]*)"/gu;
+
+const KNOWN_BLOCKS = new Set(["info", "spec"]);
+
+/** Every row header a card may have; another one fails the page, so a renamed
+ *  row keeps the offering's last good rows instead of turning into null. */
+const KNOWN_ROWS = new Set([
+	"Код",
+	"Інформація",
+	"Факультет",
+	"Кафедра",
+	"Освітній рівень",
+	"Навчальний рік",
+	"Викладач",
+	"Деталі по семестрах",
+	"Семестри",
+	"Осінь",
+	"Весна",
+	"Літо",
+	"Встановлені ліміти",
+	"Максимальна кількість студентів",
+	"Максимальна кількість груп",
+	"Кількість студентів в групі",
+	"Обрахована максимальна кількість студентів",
+	"Інформація про запис",
+	"Загальна кількість записаних чинних студентів",
+	"Кількість у затверджених групах",
+	"Кількість затверджених груп",
+	"Кількість чинних студентів у затверджених групах",
+	"Можна добрати студентів в групи",
+]);
+
+const ENROLLMENT_SECTION = "Інформація про запис";
 
 const ROW = /<tr[^>]*>(.*?)<\/tr>/gsu;
 
@@ -248,23 +293,32 @@ const readLabels = <K extends string>(
 	return Result.succeed(values);
 };
 
-/** The card's rows by their header text; the first of two equal headers wins
- *  (`Кількість затверджених груп` appears twice). */
-const rowsOf = (card: string): Map<string, string> => {
-	const rows = new Map<string, string>();
+interface CardRows {
+	/** Every row header, section headers included. */
+	readonly headers: ReadonlySet<string>;
+	/** The cell of each header that has one; the first of two equal headers
+	 *  wins (`Кількість затверджених груп` appears twice). */
+	readonly cells: ReadonlyMap<string, string>;
+}
+
+const rowsOf = (card: string): CardRows => {
+	const headers = new Set<string>();
+	const cells = new Map<string, string>();
 
 	for (const [, row = ""] of card.matchAll(ROW)) {
 		const header = HEADER_CELL.exec(row);
-		const [cell] = Array.from(row.matchAll(CELL), ([, value]) => value ?? "");
 
-		if (header === null || cell === undefined) continue;
+		if (header === null) continue;
 
 		const name = textOf(header[1] ?? "");
+		const [cell] = Array.from(row.matchAll(CELL), ([, value]) => value ?? "");
 
-		if (!rows.has(name)) rows.set(name, cell);
+		headers.add(name);
+
+		if (cell !== undefined && !cells.has(name)) cells.set(name, cell);
 	}
 
-	return rows;
+	return { headers, cells };
 };
 
 const programmesOf = (block: string | undefined): RawCard["programmes"] =>
@@ -291,13 +345,42 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 		const card = page.replace(ANNOTATION, "").replace(PROGRAMMES, "");
 		const end = card.indexOf("</table>");
 
-		if (start === -1 || title === undefined || end === -1) {
+		if (start === -1 || end === -1) {
 			return yield* Result.fail(
 				new CoursePageError({ reason: "no course card", detail: "" }),
 			);
 		}
 
-		const rows = rowsOf(card.slice(0, end));
+		if (title === undefined) {
+			return yield* Result.fail(
+				new CoursePageError({ reason: "no title", detail: "" }),
+			);
+		}
+
+		const block = Array.from(page.matchAll(BLOCK_ID), ([, id = ""]) => id).find(
+			(id) => !KNOWN_BLOCKS.has(id),
+		);
+
+		if (block !== undefined) {
+			return yield* Result.fail(
+				new CoursePageError({ reason: "unknown block", detail: block }),
+			);
+		}
+
+		if (annotation?.includes("<")) {
+			return yield* Result.fail(
+				new CoursePageError({ reason: "annotation markup", detail: "" }),
+			);
+		}
+
+		const { headers, cells: rows } = rowsOf(card.slice(0, end));
+		const unknownRow = [...headers].find((header) => !KNOWN_ROWS.has(header));
+
+		if (unknownRow !== undefined) {
+			return yield* Result.fail(
+				new CoursePageError({ reason: "unknown row", detail: unknownRow }),
+			);
+		}
 
 		const text = (name: string) => {
 			const cell = rows.get(name);
@@ -347,7 +430,7 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 			department: text("Кафедра") ?? null,
 			level: text("Освітній рівень"),
 			academicYear: text("Навчальний рік"),
-			sazTeachers: text("Викладач") ?? null,
+			sazTeachers: text("Викладач") || null,
 			annotation: annotationText === "" ? null : annotationText,
 			programmes: programmesOf(programmes),
 			semesters: labelsOf(rows.get("Семестри") ?? ""),
@@ -357,8 +440,11 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 			computedMaxStudents: text("Обрахована максимальна кількість студентів"),
 			groupSizeMin: groupSize?.[1],
 			groupSizeMax: groupSize?.[2],
-			enrolledActive:
-				text("Загальна кількість записаних чинних студентів") ?? null,
+			// Without the enrollment block the count is null; within it the row is
+			// required.
+			enrolledActive: headers.has(ENROLLMENT_SECTION)
+				? text("Загальна кількість записаних чинних студентів")
+				: null,
 		};
 	});
 
@@ -396,8 +482,16 @@ const offeringOf = ({
 
 const decodeCard = Schema.decodeUnknownResult(CourseCard);
 
-/** The card field a decoding issue points at, as in `at ["level"]`. */
-const ISSUE_FIELD = /at \["(\w+)"\]/u;
+const formatIssue = SchemaIssue.makeFormatterStandardSchemaV1();
+
+/** The card field the first decoding issue points at. */
+const fieldOf = (issue: SchemaIssue.Issue): string => {
+	const [key] = formatIssue(issue).issues[0]?.path ?? [];
+
+	return key === undefined
+		? "card"
+		: String(Predicate.isObject(key) ? key.key : key);
+};
 
 /** Parses the stored page of `/course/<code>` into an offering. */
 export const parseCoursePage = (
@@ -411,7 +505,7 @@ export const parseCoursePage = (
 					Result.mapError(
 						(error) =>
 							new CoursePageError({
-								reason: `invalid ${ISSUE_FIELD.exec(error.message)?.[1] ?? "card"}`,
+								reason: `invalid ${fieldOf(error.issue)}`,
 								detail: error.message,
 							}),
 					),

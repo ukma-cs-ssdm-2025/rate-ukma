@@ -128,6 +128,26 @@ describe("offeringRowsOf", () => {
 		assert.strictEqual(offeringProgrammes[0]?.level, "bachelor");
 	});
 
+	it("keeps a stored programme's level when the catalog lists neither", () => {
+		const { programmes } = offeringRowsOf(
+			[
+				{
+					snapshotId: 15n,
+					offering: offering("900005", {
+						level: "master",
+						programmes: [{ name: "Уявна економіка", kind: "elective" }],
+					}),
+				},
+			],
+			{ ...FILTERS, programmes: new Map() },
+			[{ name: "Уявна економіка", level: "bachelor" }],
+		);
+
+		assert.deepStrictEqual(programmes, [
+			{ name: "Уявна економіка", level: "bachelor", sazFilterId: null },
+		]);
+	});
+
 	it("keys child rows by САЗ code and term code", () => {
 		assert.deepStrictEqual(
 			rows.offerings.map(({ sazCode, snapshotId }) => [sazCode, snapshotId]),

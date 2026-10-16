@@ -7,10 +7,13 @@ const NAMED_ENTITIES = new Map([
 	["nbsp", " "],
 ]);
 
-/** An entity past the last code point stays as written; `fromCodePoint`
- *  would throw and stop the whole parse step. */
+/** An entity that is not a character Postgres text can hold (0, a surrogate,
+ *  past the last code point) stays as written; `fromCodePoint` would throw and
+ *  `jsonb` would reject the batch. */
 const codePointOf = (code: number, entity: string): string =>
-	code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+	code === 0 || (code >= 0xd800 && code <= 0xdfff) || code > 0x10ffff
+		? entity
+		: String.fromCodePoint(code);
 
 export const unescapeHtml = (text: string): string =>
 	text.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/giu, (entity, name: string) => {
