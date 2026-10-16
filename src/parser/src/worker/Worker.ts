@@ -2,6 +2,8 @@ import { Effect, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { crawlAllYears } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
+import { parseOfferings } from "../offerings/offerings.ts";
+import { OfferingStore } from "../offerings/OfferingStore.ts";
 import { SazClient } from "../saz/SazClient.ts";
 
 export const WorkerLive = Layer.effectDiscard(
@@ -19,8 +21,9 @@ export const WorkerLive = Layer.effectDiscard(
 		);
 
 		yield* crawlAllYears().pipe(
+			Effect.andThen(parseOfferings()),
 			Effect.catchCause((cause) => Effect.logError("Crawl failed", cause)),
 			Effect.forkScoped,
 		);
 	}),
-).pipe(Layer.provide([CrawlStore.layer, SazClient.layer]));
+).pipe(Layer.provide([CrawlStore.layer, OfferingStore.layer, SazClient.layer]));
