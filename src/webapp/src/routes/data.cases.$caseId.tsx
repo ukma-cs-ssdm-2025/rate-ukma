@@ -28,14 +28,16 @@ function ReviewCaseDetail() {
 	const decisionsQuery = useDecisions({ reviewCaseId: caseId });
 	const [instructorId, setInstructorId] = useState<string | null>(null);
 	const reviewCase = caseQuery.data;
-	const decisions = decisionsQuery.data ?? [];
+	const decisions = decisionsQuery.data;
 
 	if (caseQuery.isLoading) return <Skeleton className="h-96 rounded-xl" />;
 	if (!reviewCase) {
 		return (
 			<ErrorState
-				title="Справу не знайдено"
-				description="Можливо, її вже закрив новий запуск."
+				title="Не вдалося відкрити справу"
+				description="Такої справи може не бути, або сервіс недоступний."
+				onRetry={caseQuery.refetch}
+				isRetrying={caseQuery.isRefetching}
 			/>
 		);
 	}
@@ -72,15 +74,29 @@ function ReviewCaseDetail() {
 				selectedInstructorId={instructorId}
 				onSelectInstructor={setInstructorId}
 			/>
-			<DecisionActions
-				reviewCase={reviewCase}
-				decision={decisions.find((item) => item.id === reviewCase.decisionId)}
-				selectedInstructorId={instructorId}
-			/>
-			<section className="space-y-3">
-				<SectionHeader title="Рішення у справі" />
-				<DecisionTrail decisions={decisions} />
-			</section>
+			{decisions ? (
+				<>
+					<DecisionActions
+						reviewCase={reviewCase}
+						decision={decisions.find(
+							(item) => item.id === reviewCase.decisionId,
+						)}
+						selectedInstructorId={instructorId}
+					/>
+					<section className="space-y-3">
+						<SectionHeader title="Рішення у справі" />
+						<DecisionTrail decisions={decisions} />
+					</section>
+				</>
+			) : decisionsQuery.isLoading ? (
+				<Skeleton className="h-32 rounded-xl" />
+			) : (
+				<ErrorState
+					title="Не вдалося завантажити рішення у справі"
+					onRetry={decisionsQuery.refetch}
+					isRetrying={decisionsQuery.isRefetching}
+				/>
+			)}
 		</div>
 	);
 }

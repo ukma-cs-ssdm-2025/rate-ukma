@@ -49,7 +49,10 @@ const httpClient: UkmaDataClient = {
 		),
 };
 
-export const ukmaDataClient: UkmaDataClient =
-	env.VITE_UKMA_DATA_SOURCE === "api" ? httpClient : createMockClient();
+export const isUkmaDataMocked =
+	(env.VITE_UKMA_DATA_SOURCE ??
+		(env.VITE_ENVIRONMENT === "live" ? "api" : "mock")) === "mock";
 
-export const isUkmaDataMocked = env.VITE_UKMA_DATA_SOURCE === "mock";
+export const ukmaDataClient: UkmaDataClient = isUkmaDataMocked
+	? createMockClient()
+	: httpClient;

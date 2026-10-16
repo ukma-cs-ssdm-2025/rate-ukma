@@ -28,6 +28,7 @@ import {
 } from "../reviewCases";
 
 const ALL = "all";
+const percent = new Intl.NumberFormat("uk-UA", { style: "percent" });
 
 export function useCaseFilterParams() {
 	return useQueryStates({
@@ -78,7 +79,7 @@ export function ReviewCaseFilters() {
 
 function caseMeta(reviewCase: ReviewCase): string {
 	if (reviewCase.kind === "removals_held") {
-		return `${reviewCase.liveOfferings} пропозицій у році, поріг ${reviewCase.threshold * 100}%`;
+		return `${reviewCase.liveOfferings} пропозицій у році, поріг ${percent.format(reviewCase.threshold)}`;
 	}
 	const { sazCode, academicYear } = reviewCase.subject;
 	return `САЗ ${sazCode}, ${formatAcademicYear(academicYear)}`;

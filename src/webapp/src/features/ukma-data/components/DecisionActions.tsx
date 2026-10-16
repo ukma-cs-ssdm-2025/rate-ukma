@@ -26,11 +26,17 @@ export function DecisionActions({
 	decision: Decision | undefined;
 	selectedInstructorId: string | null;
 }>) {
+	// The kind outlives `open` so the dialog keeps its text while it fades out.
 	const [pending, setPending] = useState<DecisionKind | null>(null);
+	const [open, setOpen] = useState(false);
 	const decide = useDecide();
 	const kinds = availableDecisions(reviewCase, decision);
 	if (kinds.length === 0) return null;
 
+	const ask = (kind: DecisionKind) => {
+		setPending(kind);
+		setOpen(true);
+	};
 	const confirm = () => {
 		if (!pending) return;
 		decide.mutate(
@@ -48,7 +54,7 @@ export function DecisionActions({
 				onError: () => toast.error("Не вдалося зберегти рішення"),
 			},
 		);
-		setPending(null);
+		setOpen(false);
 	};
 
 	return (
@@ -61,14 +67,14 @@ export function DecisionActions({
 						decide.isPending ||
 						(kind === "link_instructor" && !selectedInstructorId)
 					}
-					onClick={() => setPending(kind)}
+					onClick={() => ask(kind)}
 				>
 					{DECISION_LABELS[kind]}
 				</Button>
 			))}
 			<ConfirmDialog
-				open={pending !== null}
-				onOpenChange={(open) => !open && setPending(null)}
+				open={open}
+				onOpenChange={setOpen}
 				onConfirm={confirm}
 				title={pending ? `${DECISION_LABELS[pending]}?` : ""}
 				description={pending ? DECISION_EFFECTS[pending] : ""}

@@ -17,8 +17,9 @@ const rawEnv = createEnv({
 			.enum(["development", "staging", "live"])
 			.default("development"),
 		// `mock` serves the staff section from invented in-memory data until the
-		// backend proxies UKMA Data; `api` calls /api/v1/data/.
-		VITE_UKMA_DATA_SOURCE: z.enum(["mock", "api"]).default("mock"),
+		// backend proxies UKMA Data; `api` calls /api/v1/data/. Unset means `api`
+		// on live, so nobody decides on invented data there.
+		VITE_UKMA_DATA_SOURCE: z.enum(["mock", "api"]).optional(),
 	},
 
 	/**
