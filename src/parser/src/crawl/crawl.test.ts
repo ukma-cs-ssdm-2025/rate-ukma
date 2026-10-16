@@ -1,8 +1,17 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Layer } from "effect";
+import { Effect, Exit, Layer } from "effect";
 import { catalogPath } from "../saz/catalog.ts";
-import { SazClient, SazRequestFailed } from "../saz/SazClient.ts";
-import { crawlAllYears, NoAcademicYears } from "./crawl.ts";
+import {
+	type SazError,
+	SazClient,
+	SazRequestFailed,
+	SazSignInFailed,
+} from "../saz/SazClient.ts";
+import {
+	CrawlAlreadyRunning,
+	crawlAllYears,
+	NoAcademicYears,
+} from "./crawl.ts";
 import {
 	CrawlStore,
 	type KindTally,
@@ -21,26 +30,77 @@ const YEARS = `<select id="coursefilter-academic_year" name="filter[academic_yea
 
 const PAGER = `<li class="last"><a href="${catalogPath(2031, 2).replace("&", "&amp;")}" data-page="1">&raquo;</a></li>`;
 
-/** 2031-32 lists courses on two catalog pages, course 100002 is gone and
- *  course 100003 drops the connection once; the 2032-33 catalog does not load. */
+/** The 2031-32 catalog, two pages long. 100004 is a master's course that is
+ *  not recommended, so the catalog's default filters hide it. */
+const CATALOG = [
+	{ code: "100001", page: 1, level: "1", selected: "1" },
+	{ code: "100002", page: 1, level: "1", selected: "1" },
+	{ code: "100004", page: 1, level: "2", selected: "0" },
+	{ code: "100003", page: 2, level: "1", selected: "1" },
+];
+
+/** Filters the catalog as САЗ does, falling back to `Бакалавр` and
+ *  `рекомендовано` when the request leaves them out. */
+const catalogPage = (path: string) => {
+	const params = new URLSearchParams(path.slice(path.indexOf("?") + 1));
+
+	const filter = (name: string) => {
+		const values = params.getAll(`filter[${name}][]`);
+
+		return values.length > 0 ? values : ["1"];
+	};
+
+	if (params.get("filter[academic_year][]") !== "2031") return undefined;
+
+	const page = Number(params.get("page"));
+
+	const listed = CATALOG.filter(
+		(course) =>
+			filter("level").includes(course.level) &&
+			filter("selected").includes(course.selected),
+	);
+
+	const cards = listed.filter((course) => course.page === page);
+	const before = listed.filter((course) => course.page < page).length;
+
+	const summary = `<div class="summary">Показані <b>${before + 1}-${before + cards.length}</b> із <b>${listed.length}</b> записів.</div>`;
+
+	return (
+		summary +
+		cards.map((course) => card(course.code)).join("") +
+		(page === 1 ? PAGER : "")
+	);
+};
+
+/** Course 100002 is gone and course 100003 drops the connection once; the
+ *  2032-33 catalog does not load. */
 const SAZ_PAGES = new Map([
 	["/course/catalog", YEARS],
-	[catalogPath(2031, 1), card("100001") + card("100002") + PAGER],
-	[catalogPath(2031, 2), card("100003")],
 	["/course/100001", "<html>course 100001</html>"],
 	["/course/100001/students", "[]"],
 	["/course/100003", "<html>course 100003</html>"],
 	["/course/100003/students", "[]"],
+	["/course/100004", "<html>course 100004</html>"],
+	["/course/100004/students", "[]"],
 ]);
 
-const makeFakeSaz = () => {
+/** The fake САЗ; `answers` replaces what it serves for some paths. */
+const makeFakeSaz = (
+	answers: Record<string, Effect.Effect<string, SazError>> = {},
+) => {
 	const fetched: Array<string> = [];
 
 	const layer = Layer.succeed(SazClient, {
 		get: (path) => {
 			fetched.push(path);
 
-			const body = SAZ_PAGES.get(path);
+			const answer = answers[path];
+
+			if (answer) return answer;
+
+			const body = path.startsWith("/course/catalog?")
+				? catalogPage(path)
+				: SAZ_PAGES.get(path);
 
 			if (path === "/course/100003" && !fetched.slice(0, -1).includes(path)) {
 				return Effect.fail(new SazRequestFailed({ path, status: 0 }));
@@ -63,8 +123,9 @@ interface MemoryPage extends QueuedPage {
 	error?: string;
 }
 
-/** The run queue in memory. */
-const makeMemoryStore = () => {
+/** The run queue in memory; completing `crashOn` dies, as a lost database
+ *  would. */
+const makeMemoryStore = (crashOn?: string, locked = true) => {
 	const runs: Array<OpenRun & { status: string }> = [];
 	const pages: Array<MemoryPage> = [];
 	const finished: Array<{ sourcePart: string; status: string }> = [];
@@ -124,6 +185,7 @@ const makeMemoryStore = () => {
 	});
 
 	const layer = Layer.succeed(CrawlStore, {
+		lockCrawl: Effect.succeed(locked),
 		startRun,
 		openRuns: Effect.sync(() => {
 			for (const page of pages) {
@@ -148,7 +210,10 @@ const makeMemoryStore = () => {
 				return next;
 			}),
 		complete: (runId, page, _, next) =>
-			mark(page.id, "done").pipe(
+			(page.path === crashOn
+				? Effect.die(new Error("connection lost"))
+				: mark(page.id, "done")
+			).pipe(
 				Effect.andThen(
 					Effect.sync(() => next.forEach((linked) => queue(runId, linked))),
 				),
@@ -163,13 +228,13 @@ const makeMemoryStore = () => {
 					}),
 				),
 			),
-		requeue: (runId, error) =>
+		requeue: (runId, errors) =>
 			Effect.sync(() => {
 				const failed = pages.filter(
 					(page) =>
 						page.runId === runId &&
 						page.status === "failed" &&
-						page.error === error &&
+						errors.includes(page.error ?? "") &&
 						page.attempts === 1,
 				);
 
@@ -210,6 +275,8 @@ describe("crawlAllYears", () => {
 					"1 done /course/100001/students",
 					"1 failed /course/100002",
 					"1 failed /course/100002/students",
+					"1 done /course/100004",
+					"1 done /course/100004/students",
 					"1 done /course/100003",
 					"1 done /course/100003/students",
 				],
@@ -226,6 +293,20 @@ describe("crawlAllYears", () => {
 				),
 				[1, 2],
 			);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("finds the courses the catalog's default filters hide", () => {
+		const store = makeMemoryStore();
+		const saz = makeFakeSaz();
+
+		return Effect.gen(function* () {
+			yield* crawlAllYears();
+
+			assert.includeMembers(saz.fetched, [
+				"/course/100004",
+				"/course/100004/students",
+			]);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 
@@ -273,6 +354,95 @@ describe("crawlAllYears", () => {
 			assert.deepStrictEqual(store.finished, [
 				{ sourcePart: "saz-courses:2031-32", status: "succeeded" },
 			]);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("fails the run when the first catalog page lost its pager", () => {
+		const store = makeMemoryStore();
+		const first = catalogPath(2031, 1);
+
+		const saz = makeFakeSaz({
+			[first]: Effect.succeed(catalogPage(first)?.replace(PAGER, "") ?? ""),
+		});
+
+		return Effect.gen(function* () {
+			yield* crawlAllYears();
+
+			assert.deepStrictEqual(
+				store.pages.map((page) => `${page.runId} ${page.status} ${page.path}`),
+				[`1 failed ${first}`, `2 failed ${catalogPath(2032, 1)}`],
+			);
+			assert.strictEqual(store.finished[0]?.status, "failed");
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("fails the run and stops when the sign-in fails", () => {
+		const store = makeMemoryStore();
+
+		const saz = makeFakeSaz({
+			"/course/100001": Effect.fail(
+				new SazSignInFailed({ reason: "Microsoft error 50053" }),
+			),
+		});
+
+		return Effect.gen(function* () {
+			const exit = yield* Effect.exit(crawlAllYears());
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.deepStrictEqual(store.finished, [
+				{ sourcePart: "saz-courses:2031-32", status: "failed" },
+			]);
+			assert.notInclude(saz.fetched, "/course/100001/students");
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("leaves the runs running when the database is lost", () => {
+		const store = makeMemoryStore("/course/100001");
+		const saz = makeFakeSaz();
+
+		return Effect.gen(function* () {
+			const exit = yield* Effect.exit(crawlAllYears());
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.deepStrictEqual(store.finished, []);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("does not start while another crawl holds the lock", () => {
+		const store = makeMemoryStore(undefined, false);
+		const saz = makeFakeSaz();
+
+		return Effect.gen(function* () {
+			const error = yield* Effect.flip(crawlAllYears());
+
+			assert.instanceOf(error, CrawlAlreadyRunning);
+			assert.deepStrictEqual(saz.fetched, []);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("gives a page that САЗ rate-limited one more pass", () => {
+		const store = makeMemoryStore();
+		let limited = false;
+
+		const saz = makeFakeSaz({
+			"/course/100004": Effect.suspend(() => {
+				if (limited) return Effect.succeed("<html>course 100004</html>");
+
+				limited = true;
+
+				return Effect.fail(
+					new SazRequestFailed({ path: "/course/100004", status: 429 }),
+				);
+			}),
+		});
+
+		return Effect.gen(function* () {
+			yield* crawlAllYears();
+
+			assert.strictEqual(
+				store.pages.find((page) => page.path === "/course/100004")?.status,
+				"done",
+			);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 });
