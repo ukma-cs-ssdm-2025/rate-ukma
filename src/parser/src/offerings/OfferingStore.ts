@@ -314,18 +314,21 @@ export class OfferingStore extends Context.Service<
 
 							yield* release("departments", departments.released);
 
+							// A department keeps the faculty it was first stored with: cards
+							// of different years can name different faculties, and following
+							// each batch would renumber it on every parse.
 							yield* track(
 								"departments",
 								sql`
 									UPDATE departments t
 									SET name = r.name, saz_filter_id = r."sazFilterId",
-										faculty_id = coalesce(f.id, t.faculty_id),
+										faculty_id = coalesce(t.faculty_id, f.id),
 										change_no = nextval('change_no_seq')
 									FROM ${recordset(departments.updates, { id: "text", name: "text", faculty: "text", sazFilterId: "text" })}
 									LEFT JOIN faculties f ON f.name = r.faculty
 									WHERE t.id = r.id
 										AND (t.name, t.saz_filter_id, t.faculty_id) IS DISTINCT FROM
-											(r.name, r."sazFilterId", coalesce(f.id, t.faculty_id))
+											(r.name, r."sazFilterId", coalesce(t.faculty_id, f.id))
 									RETURNING t.id, t.change_no, 'change' AS action
 								`,
 							);

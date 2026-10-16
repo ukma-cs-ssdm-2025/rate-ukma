@@ -14,8 +14,8 @@ export default Effect.gen(function* () {
 
 	yield* sql`CREATE SEQUENCE change_no_seq`;
 
-	// The default numbers the stored rows once. Without it, a write that skips
-	// ChangeLog fails instead of taking a number out of turn.
+	// The default numbers the stored rows once and is then dropped, so an
+	// insert that does not take a number in turn fails.
 	for (const table of NUMBERED) {
 		yield* sql`
 			ALTER TABLE ${sql(table)}
@@ -30,6 +30,12 @@ export default Effect.gen(function* () {
 	}
 
 	yield* sql`ALTER TABLE offerings ADD COLUMN row_hash text`;
+
+	// The restore check of a removed offering looks up its page's latest fetch.
+	yield* sql`
+		CREATE INDEX run_pages_done_path ON run_pages (path, finished_at)
+		WHERE status = 'done'
+	`;
 
 	yield* sql`
 		ALTER TABLE runs ADD COLUMN offering_removals text

@@ -24,8 +24,8 @@ const Survey = Schema.Struct({
 	candidates: Schema.Array(Schema.String),
 });
 
-/** Every method but `undecidedRuns` writes numbered rows, so it runs inside
- *  `ChangeLog.withTurn`. */
+/** Every method but `undecidedRuns` runs inside `ChangeLog.withTurn`, so a
+ *  run's survey and its decision see the same rows. */
 export class RemovalStore extends Context.Service<
 	RemovalStore,
 	{
@@ -41,7 +41,8 @@ export class RemovalStore extends Context.Service<
 			academicYear: number,
 			ids: ReadonlyArray<string>,
 		): Effect.Effect<number>;
-		/** Opens a `removals_held` review case in place of the year's open one. */
+		/** Opens a `removals_held` review case in place of the year's open one,
+		 *  or keeps that one when it holds the same offerings. */
 		hold(
 			runId: bigint,
 			academicYear: number,
@@ -118,7 +119,13 @@ export class RemovalStore extends Context.Service<
 					Effect.orDie,
 				);
 
-			const closeHeld = (runId: bigint, year: number) =>
+			/** Closes the year's open held removals, except one that holds
+			 *  exactly `keep`, so staff keep looking at the same case. */
+			const closeHeld = (
+				runId: bigint,
+				year: number,
+				keep: ReadonlyArray<string> = [],
+			) =>
 				changes.track(
 					"review_cases",
 					{ runId },
@@ -127,6 +134,7 @@ export class RemovalStore extends Context.Service<
 						SET status = 'obsolete', change_no = nextval('change_no_seq')
 						WHERE kind = 'removals_held' AND status = 'open'
 							AND (candidates ->> 'academicYear')::int = ${year}
+							AND candidates -> 'offeringIds' <> ${JSON.stringify(keep)}::jsonb
 						RETURNING id, change_no, 'change' AS action
 					`,
 				);
@@ -155,7 +163,9 @@ export class RemovalStore extends Context.Service<
 
 			const hold = (runId: bigint, year: number, ids: ReadonlyArray<string>) =>
 				Effect.gen(function* () {
-					yield* closeHeld(runId, year);
+					const candidates = { academicYear: year, offeringIds: ids };
+
+					yield* closeHeld(runId, year, ids);
 					yield* changes.track(
 						"review_cases",
 						{ runId },
@@ -163,13 +173,13 @@ export class RemovalStore extends Context.Service<
 							INSERT INTO review_cases (
 								kind, subject_id, candidates, safe_answer, run_id, change_no
 							)
-							VALUES (
-								'removals_held', ${`run_${runId}`},
-								jsonb_build_object(
-									'academicYear', ${year}::int,
-									'offeringIds', ${JSON.stringify(ids)}::jsonb
-								),
+							SELECT 'removals_held', ${`run_${runId}`},
+								${JSON.stringify(candidates)}::jsonb,
 								'{"removals": "held"}', ${runId}, nextval('change_no_seq')
+							WHERE NOT EXISTS (
+								SELECT 1 FROM review_cases
+								WHERE kind = 'removals_held' AND status = 'open'
+									AND candidates = ${JSON.stringify(candidates)}::jsonb
 							)
 							RETURNING id, change_no, 'add' AS action
 						`,

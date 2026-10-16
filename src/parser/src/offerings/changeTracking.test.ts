@@ -1,11 +1,16 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
 import { sourcePartOf } from "../crawl/crawl.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
-import { parseOfferings } from "./offerings.ts";
+import { parseCoursePage } from "../saz/coursePage.ts";
+import {
+	catalogFiltersOf,
+	offeringRowsOf,
+	parseOfferings,
+} from "./offerings.ts";
 import { OfferingStore } from "./OfferingStore.ts";
 import { RemovalStore } from "./RemovalStore.ts";
 import { removeOfferings } from "./removals.ts";
@@ -18,8 +23,24 @@ const TestLive = Layer.mergeAll(OfferingStore.layer, RemovalStore.layer).pipe(
 interface Listed {
 	readonly code: string;
 	readonly title?: string;
+	readonly unit?: ReadonlyArray<string>;
 	readonly failed?: boolean;
 }
+
+const unitRow = (header: string, name: string) =>
+	`<tr><th><abbr title="${header}">${header.split(",")[0]}</abbr></th><td>${name}</td></tr>`;
+
+/** The fixture's department under another faculty. */
+const MOVED_DEPARTMENT = [
+	unitRow(
+		"Факультет, який забезпечує викладання дисципліни",
+		"Факультет уявних мистецтв",
+	),
+	unitRow(
+		"Кафедра, яка забезпечує викладання дисципліни",
+		"Кафедра вигаданих систем",
+	),
+];
 
 /** Stores a finished run of one year that lists these courses, as the crawl
  *  does: a page whose content did not change keeps its latest snapshot. */
@@ -40,7 +61,7 @@ const crawl = (year: number, listed: ReadonlyArray<Listed>) =>
 			VALUES (${runId}, 'catalog', ${`/course/catalog?year=${year}`}, 'done', now())
 		`;
 
-		for (const { code, title, failed = false } of listed) {
+		for (const { code, title, unit, failed = false } of listed) {
 			const path = `/course/${code}`;
 
 			if (failed) {
@@ -51,7 +72,12 @@ const crawl = (year: number, listed: ReadonlyArray<Listed>) =>
 				continue;
 			}
 
-			const content = coursePage({ code, title, year: `${year}–${year + 1}` });
+			const content = coursePage({
+				code,
+				title,
+				unit,
+				year: `${year}–${year + 1}`,
+			});
 
 			const [latest] = yield* sql<{
 				readonly id: bigint;
@@ -276,6 +302,23 @@ describe.skipIf(testDatabaseUrl === undefined)("change tracking", () => {
 						},
 					]);
 
+					// The same removals again keep the case staff are looking at.
+					const again = yield* crawl(2034, [
+						...codes.slice(0, 18).map((code) => ({ code })),
+						{ code: "940020" },
+					]);
+
+					yield* removeOfferings(0.05);
+					assert.strictEqual(yield* removalsOf(again), "held");
+
+					const open = yield* sql<{ readonly runId: bigint }>`
+						SELECT run_id AS "runId" FROM review_cases
+						WHERE kind = 'removals_held' AND status = 'open'
+							AND (candidates ->> 'academicYear')::int = 2034
+					`;
+
+					assert.deepStrictEqual(open, [{ runId: shrunk }]);
+
 					yield* crawl(
 						2034,
 						[...codes, "940020"].map((code) => ({ code })),
@@ -287,6 +330,70 @@ describe.skipIf(testDatabaseUrl === undefined)("change tracking", () => {
 					`;
 
 					assert.strictEqual(closed?.status, "obsolete");
+				}),
+		);
+
+		it.effect(
+			"leaves an older run undecided while a newer run of its year is open",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+
+					yield* crawl(2036, [{ code: "960001" }, { code: "960002" }]);
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(1);
+
+					const older = yield* crawl(2036, [{ code: "960001" }]);
+
+					yield* sql`INSERT INTO runs (source_part) VALUES (${sourcePartOf(2036)})`;
+					yield* removeOfferings(1);
+
+					assert.isNull(yield* removalsOf(older));
+					assert.isFalse((yield* offeringsOf(2036)).get("960002")?.removed);
+				}),
+		);
+
+		it.effect(
+			"keeps a department's faculty when cards in two batches disagree",
+			() =>
+				Effect.gen(function* () {
+					const store = yield* OfferingStore;
+
+					yield* crawl(2037, [
+						{ code: "970001" },
+						{ code: "970002", unit: MOVED_DEPARTMENT },
+					]);
+
+					const parsed = (yield* store.coursePages(
+						yield* store.latestCoursePages,
+					)).flatMap(({ id, path, content }) => {
+						const code = path.slice("/course/".length);
+						const result = parseCoursePage(content, code);
+
+						return code.startsWith("97") && Result.isSuccess(result)
+							? [{ snapshotId: id, offering: result.success }]
+							: [];
+					});
+
+					const batches = parsed.map((page) =>
+						offeringRowsOf([page], catalogFiltersOf("")),
+					);
+
+					const parseId = yield* store.startParse("reparse");
+					const passes = [];
+
+					for (let pass = 0; pass < 2; pass++) {
+						const counts = [];
+
+						for (const rows of batches) {
+							counts.push(yield* store.write(rows, parseId));
+						}
+
+						passes.push(counts);
+					}
+
+					assert.strictEqual(batches.length, 2);
+					assert.deepStrictEqual(passes[1], [[], []]);
 				}),
 		);
 	});
