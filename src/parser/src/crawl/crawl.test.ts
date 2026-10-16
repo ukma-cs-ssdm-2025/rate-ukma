@@ -1,8 +1,17 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Layer } from "effect";
+import { Effect, Exit, Layer } from "effect";
 import { catalogPath } from "../saz/catalog.ts";
-import { SazClient, SazRequestFailed } from "../saz/SazClient.ts";
-import { crawlAllYears, NoAcademicYears } from "./crawl.ts";
+import {
+	type SazError,
+	SazClient,
+	SazRequestFailed,
+	SazSignInFailed,
+} from "../saz/SazClient.ts";
+import {
+	CrawlAlreadyRunning,
+	crawlAllYears,
+	NoAcademicYears,
+} from "./crawl.ts";
 import {
 	CrawlStore,
 	type KindTally,
@@ -45,15 +54,22 @@ const catalogPage = (path: string) => {
 
 	const page = Number(params.get("page"));
 
-	const cards = CATALOG.flatMap((course) =>
-		course.page === page &&
-		filter("level").includes(course.level) &&
-		filter("selected").includes(course.selected)
-			? [card(course.code)]
-			: [],
+	const listed = CATALOG.filter(
+		(course) =>
+			filter("level").includes(course.level) &&
+			filter("selected").includes(course.selected),
 	);
 
-	return cards.join("") + (page === 1 ? PAGER : "");
+	const cards = listed.filter((course) => course.page === page);
+	const before = listed.filter((course) => course.page < page).length;
+
+	const summary = `<div class="summary">Показані <b>${before + 1}-${before + cards.length}</b> із <b>${listed.length}</b> записів.</div>`;
+
+	return (
+		summary +
+		cards.map((course) => card(course.code)).join("") +
+		(page === 1 ? PAGER : "")
+	);
 };
 
 /** Course 100002 is gone and course 100003 drops the connection once; the
@@ -68,12 +84,19 @@ const SAZ_PAGES = new Map([
 	["/course/100004/students", "[]"],
 ]);
 
-const makeFakeSaz = () => {
+/** The fake САЗ; `answers` replaces what it serves for some paths. */
+const makeFakeSaz = (
+	answers: Record<string, Effect.Effect<string, SazError>> = {},
+) => {
 	const fetched: Array<string> = [];
 
 	const layer = Layer.succeed(SazClient, {
 		get: (path) => {
 			fetched.push(path);
+
+			const answer = answers[path];
+
+			if (answer) return answer;
 
 			const body = path.startsWith("/course/catalog?")
 				? catalogPage(path)
@@ -100,8 +123,9 @@ interface MemoryPage extends QueuedPage {
 	error?: string;
 }
 
-/** The run queue in memory. */
-const makeMemoryStore = () => {
+/** The run queue in memory; completing `crashOn` dies, as a lost database
+ *  would. */
+const makeMemoryStore = (crashOn?: string, locked = true) => {
 	const runs: Array<OpenRun & { status: string }> = [];
 	const pages: Array<MemoryPage> = [];
 	const finished: Array<{ sourcePart: string; status: string }> = [];
@@ -161,6 +185,7 @@ const makeMemoryStore = () => {
 	});
 
 	const layer = Layer.succeed(CrawlStore, {
+		lockCrawl: Effect.succeed(locked),
 		startRun,
 		openRuns: Effect.sync(() => {
 			for (const page of pages) {
@@ -185,7 +210,10 @@ const makeMemoryStore = () => {
 				return next;
 			}),
 		complete: (runId, page, _, next) =>
-			mark(page.id, "done").pipe(
+			(page.path === crashOn
+				? Effect.die(new Error("connection lost"))
+				: mark(page.id, "done")
+			).pipe(
 				Effect.andThen(
 					Effect.sync(() => next.forEach((linked) => queue(runId, linked))),
 				),
@@ -200,13 +228,13 @@ const makeMemoryStore = () => {
 					}),
 				),
 			),
-		requeue: (runId, error) =>
+		requeue: (runId, errors) =>
 			Effect.sync(() => {
 				const failed = pages.filter(
 					(page) =>
 						page.runId === runId &&
 						page.status === "failed" &&
-						page.error === error &&
+						errors.includes(page.error ?? "") &&
 						page.attempts === 1,
 				);
 
@@ -326,6 +354,95 @@ describe("crawlAllYears", () => {
 			assert.deepStrictEqual(store.finished, [
 				{ sourcePart: "saz-courses:2031-32", status: "succeeded" },
 			]);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("fails the run when the first catalog page lost its pager", () => {
+		const store = makeMemoryStore();
+		const first = catalogPath(2031, 1);
+
+		const saz = makeFakeSaz({
+			[first]: Effect.succeed(catalogPage(first)?.replace(PAGER, "") ?? ""),
+		});
+
+		return Effect.gen(function* () {
+			yield* crawlAllYears();
+
+			assert.deepStrictEqual(
+				store.pages.map((page) => `${page.runId} ${page.status} ${page.path}`),
+				[`1 failed ${first}`, `2 failed ${catalogPath(2032, 1)}`],
+			);
+			assert.strictEqual(store.finished[0]?.status, "failed");
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("fails the run and stops when the sign-in fails", () => {
+		const store = makeMemoryStore();
+
+		const saz = makeFakeSaz({
+			"/course/100001": Effect.fail(
+				new SazSignInFailed({ reason: "Microsoft error 50053" }),
+			),
+		});
+
+		return Effect.gen(function* () {
+			const exit = yield* Effect.exit(crawlAllYears());
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.deepStrictEqual(store.finished, [
+				{ sourcePart: "saz-courses:2031-32", status: "failed" },
+			]);
+			assert.notInclude(saz.fetched, "/course/100001/students");
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("leaves the runs running when the database is lost", () => {
+		const store = makeMemoryStore("/course/100001");
+		const saz = makeFakeSaz();
+
+		return Effect.gen(function* () {
+			const exit = yield* Effect.exit(crawlAllYears());
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.deepStrictEqual(store.finished, []);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("does not start while another crawl holds the lock", () => {
+		const store = makeMemoryStore(undefined, false);
+		const saz = makeFakeSaz();
+
+		return Effect.gen(function* () {
+			const error = yield* Effect.flip(crawlAllYears());
+
+			assert.instanceOf(error, CrawlAlreadyRunning);
+			assert.deepStrictEqual(saz.fetched, []);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("gives a page that САЗ rate-limited one more pass", () => {
+		const store = makeMemoryStore();
+		let limited = false;
+
+		const saz = makeFakeSaz({
+			"/course/100004": Effect.suspend(() => {
+				if (limited) return Effect.succeed("<html>course 100004</html>");
+
+				limited = true;
+
+				return Effect.fail(
+					new SazRequestFailed({ path: "/course/100004", status: 429 }),
+				);
+			}),
+		});
+
+		return Effect.gen(function* () {
+			yield* crawlAllYears();
+
+			assert.strictEqual(
+				store.pages.find((page) => page.path === "/course/100004")?.status,
+				"done",
+			);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 });
