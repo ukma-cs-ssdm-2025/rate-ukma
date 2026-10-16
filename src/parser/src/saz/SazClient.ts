@@ -7,6 +7,7 @@ import {
 	Schedule,
 	Schema,
 } from "effect";
+import { constFalse } from "effect/Function";
 import {
 	FetchHttpClient,
 	HttpClientRequest,
@@ -17,7 +18,6 @@ import {
 	SignedOut,
 	withSignIn,
 } from "../microsoft/session.ts";
-import { constFalse } from "effect/Function";
 
 export const SAZ_URL = "https://my.ukma.edu.ua";
 
@@ -38,9 +38,24 @@ export class SazRequestFailed extends Schema.TaggedError<SazRequestFailed>()(
 
 export type SazError = SazSignInFailed | SazRequestFailed;
 
-const isTransient = (error: SazError): boolean =>
-	error instanceof SazRequestFailed &&
-	(error.status === 0 || error.status === 429 || error.status >= 500);
+const isRequestFailed = Schema.is(SazRequestFailed);
+
+const isTransient = (status: number) =>
+	status === 0 || status === 429 || status >= 500;
+
+/** Retries one step, never the sign-in-and-retry around it, so a failure
+ *  after a sign-in that did not take cannot post the password again. */
+const retryTransient = <A, E, R>(
+	step: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> =>
+	step.pipe(
+		Effect.retry({
+			while: (error) => isRequestFailed(error) && isTransient(error.status),
+			schedule: Schedule.exponential("2 seconds").pipe(
+				Schedule.upTo({ times: 3 }),
+			),
+		}),
+	);
 
 const isOnMicrosoft = (response: HttpClientResponse.HttpClientResponse) =>
 	new URL(response.request.url).host !== new URL(SAZ_URL).host;
@@ -118,16 +133,13 @@ export class SazClient extends Context.Service<
 				});
 
 			const get = (path: string) =>
-				withSignIn(fetchPage(path), signIn).pipe(
+				withSignIn(
+					retryTransient(fetchPage(path)),
+					retryTransient(signIn),
+				).pipe(
 					Effect.catchTag("MicrosoftSignInFailed", ({ reason }) =>
 						Effect.fail(new SazSignInFailed({ reason })),
 					),
-					Effect.retry({
-						while: isTransient,
-						schedule: Schedule.exponential("2 seconds").pipe(
-							Schedule.upTo({ times: 3 }),
-						),
-					}),
 				);
 
 			return SazClient.of({ get });

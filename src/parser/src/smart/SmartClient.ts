@@ -66,9 +66,24 @@ const isRefusal = (error: unknown): error is SignedOut | SmartRequestFailed =>
 const isTokenHop = (next: URL) =>
 	next.origin === SMART_URL && next.pathname === "/get-user";
 
-const isTransient = (error: SmartError): boolean =>
-	error instanceof SmartRequestFailed &&
-	(error.status === 0 || error.status === 429 || error.status >= 500);
+const isRequestFailed = Schema.is(SmartRequestFailed);
+
+const isTransient = (status: number) =>
+	status === 0 || status === 429 || status >= 500;
+
+/** Retries one step, never the sign-in-and-retry around it, so a failure
+ *  after a sign-in that did not take cannot post the password again. */
+const retryTransient = <A, E, R>(
+	step: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> =>
+	step.pipe(
+		Effect.retry({
+			while: (error) => isRequestFailed(error) && isTransient(error.status),
+			schedule: Schedule.exponential("2 seconds").pipe(
+				Schedule.upTo({ times: 3 }),
+			),
+		}),
+	);
 
 /** The pair the sign-in hands the web app in the query of `/get-user`, and
  *  `PUT /api/auth/refresh-token` returns; each refresh replaces both. */
@@ -210,7 +225,7 @@ export class SmartClient extends Context.Service<
 				});
 
 			// Token reads and renewals take turns, so two requests never spend the
-			// same rotating refresh token or sign in twice for one expiry.
+			// same rotating refresh token.
 			const lock = yield* Semaphore.make(1);
 
 			const currentTokens = lock.withPermit(
@@ -290,19 +305,13 @@ export class SmartClient extends Context.Service<
 
 			const get = (path: string) =>
 				withSignIn(
-					fetchRenewing(path),
-					lock.withPermit(signIn),
-					fetchJson(path),
+					retryTransient(fetchRenewing(path)),
+					retryTransient(lock.withPermit(signIn)),
+					retryTransient(fetchJson(path)),
 				).pipe(
 					Effect.catchTag("MicrosoftSignInFailed", ({ reason }) =>
 						Effect.fail(new SmartSignInFailed({ reason })),
 					),
-					Effect.retry({
-						while: isTransient,
-						schedule: Schedule.exponential("2 seconds").pipe(
-							Schedule.upTo({ times: 3 }),
-						),
-					}),
 				);
 
 			return SmartClient.of({ get });
