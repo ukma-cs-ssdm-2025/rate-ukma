@@ -1,6 +1,7 @@
-import { Cause, Effect, Schema } from "effect";
+import { Cause, Effect, Result, Schema } from "effect";
 import {
 	catalogPath,
+	catalogProblem,
 	parseAcademicYears,
 	parseCatalogPage,
 	parseCatalogPath,
@@ -27,15 +28,19 @@ export const sourcePartOf = (year: number): string =>
 	`saz-courses:${year}-${String(year + 1).slice(2)}`;
 
 /** The pages a catalog page leads to: the other catalog pages (from page 1
- *  only, which carries the pager) and each listed course with its students. */
+ *  only, which carries the pager) and each listed course with its students;
+ *  or why the catalog page cannot be trusted. */
 const linkedPages = (
 	page: ClaimedPage,
 	body: string,
-): ReadonlyArray<QueuedPage> => {
-	if (page.kind !== "catalog") return [];
+): Result.Result<ReadonlyArray<QueuedPage>, string> => {
+	if (page.kind !== "catalog") return Result.succeed([]);
 
 	const catalog = parseCatalogPage(body);
 	const { year, page: number } = parseCatalogPath(page.path);
+	const problem = catalogProblem(catalog, number);
+
+	if (problem !== undefined) return Result.fail(problem);
 
 	const otherCatalogPages =
 		number === 1
@@ -45,17 +50,18 @@ const linkedPages = (
 				}))
 			: [];
 
-	return [
+	return Result.succeed([
 		...otherCatalogPages,
 		...catalog.codes.flatMap((code) => [
 			{ kind: "course" as const, path: `/course/${code}` },
 			{ kind: "students" as const, path: `/course/${code}/students` },
 		]),
-	];
+	]);
 };
 
 /** Works through one run's queue. A page that fails is marked failed and the
- *  run goes on; a failed sign-in or catalog page fails the run. */
+ *  run goes on; a failed sign-in or catalog page fails the run. A crash, such
+ *  as a lost database, leaves the run `running` to resume later. */
 const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
@@ -72,16 +78,18 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 	const visit = (page: ClaimedPage) =>
 		saz.get(page.path).pipe(
 			Effect.flatMap((body) =>
-				store.complete(run.id, page, snapshotOf(body), linkedPages(page, body)),
+				Result.match(linkedPages(page, body), {
+					onFailure: (problem) => fail(page, problem),
+					onSuccess: (next) =>
+						store.complete(run.id, page, snapshotOf(body), next),
+				}),
 			),
-			Effect.catchTags({
-				SazRequestFailed: (error) =>
-					fail(
-						page,
-						error.status === 0 ? TRANSPORT_ERROR : `HTTP ${error.status}`,
-					),
-				SazSignedOut: () => fail(page, "signed out after a fresh sign-in"),
-			}),
+			Effect.catchTag("SazRequestFailed", (error) =>
+				fail(
+					page,
+					error.status === 0 ? TRANSPORT_ERROR : `HTTP ${error.status}`,
+				),
+			),
 		);
 
 	const drain = Effect.gen(function* () {
@@ -133,10 +141,11 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 		}),
 	);
 
-	// An interrupted run stays `running`, so the next start resumes it.
+	// Only a failed sign-in ends the run as failed. An interrupted or crashed run
+	// stays `running`, so the next start resumes it.
 	return yield* crawl.pipe(
 		Effect.tapCause((cause) =>
-			Cause.hasInterruptsOnly(cause) ? Effect.void : finish(true),
+			Cause.hasFails(cause) ? finish(true) : Effect.void,
 		),
 		Effect.andThen(finish(false)),
 	);
