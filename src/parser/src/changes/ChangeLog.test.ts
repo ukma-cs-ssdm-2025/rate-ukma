@@ -9,8 +9,8 @@ const TestLive = ChangeLog.layer.pipe(
 );
 
 describe.skipIf(testDatabaseUrl === undefined)("ChangeLog", () => {
-	layer(TestLive, { timeout: 30_000 })((it) => {
-		it.live(
+	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
+		it.effect(
 			"numbers two concurrent writers in commit order, with no gap",
 			() =>
 				Effect.gen(function* () {

@@ -15,9 +15,8 @@ export const TestDatabase = (url: string) =>
 			const name = `ukma_data_test_${crypto.randomUUID().replaceAll("-", "")}`;
 			const admin = yield* PgClient.make({ url: Redacted.make(url) });
 
-			yield* Effect.acquireRelease(
-				admin`CREATE DATABASE ${admin(name)}`,
-				() => admin`DROP DATABASE ${admin(name)} WITH (FORCE)`.pipe(Effect.orDie),
+			yield* Effect.acquireRelease(admin`CREATE DATABASE ${admin(name)}`, () =>
+				admin`DROP DATABASE ${admin(name)} WITH (FORCE)`.pipe(Effect.orDie),
 			);
 
 			const target = new URL(url);

@@ -91,6 +91,11 @@ export interface ParseReport {
 	readonly changes: ReadonlyArray<ChangeCount>;
 }
 
+export interface StoredProgramme {
+	readonly name: string;
+	readonly level: Level;
+}
+
 export class OfferingStore extends Context.Service<
 	OfferingStore,
 	{
@@ -101,13 +106,15 @@ export class OfferingStore extends Context.Service<
 		): Effect.Effect<ReadonlyArray<StoredPage>>;
 		/** Any catalog page carries the filters, so the latest one is enough. */
 		latestCatalogPage: Effect.Effect<string | undefined>;
-		/** Upserts the rows by their САЗ code, filter id or name, so ids stay,
+		/** Every stored programme, for the level of one the catalog does not list. */
+		programmes: Effect.Effect<ReadonlyArray<StoredProgramme>>;
+		/** Upserts the rows by their САЗ code, name or filter id, so ids stay,
 		 *  in one writers' turn. A row takes a change number and a `changes` row
-		 *  only when its content changed, and an offering's terms and programmes
-		 *  are replaced only then. A filter id the catalog page did not list keeps
-		 *  its stored value. An offering already parsed from a newer snapshot
-		 *  keeps its rows, so a parse that overlaps a crawl cannot roll it back.
-		 *  Returns the rows numbered, by table and action. */
+		 *  only when its content changed, and only then are an offering's terms
+		 *  and programmes replaced. A programme filter id the catalog page did
+		 *  not list keeps its stored value. An offering already parsed from a
+		 *  newer snapshot keeps its rows, so a parse that overlaps a crawl cannot
+		 *  roll it back. Returns the rows numbered, by table and action. */
 		write(
 			rows: OfferingRows,
 			parseId: bigint,
@@ -174,7 +181,18 @@ export class OfferingStore extends Context.Service<
 				Effect.orDie,
 			);
 
-			const json = (rows: ReadonlyArray<object>) => JSON.stringify(rows);
+			/** Rows sent as one `jsonb` value. `columns` names every key of the
+			 *  row with its Postgres type, so the compiler keeps the two in step:
+			 *  a key missing from the record set would read as null. */
+			const recordset = <T extends object>(
+				rows: ReadonlyArray<T>,
+				columns: { readonly [K in keyof T]-?: string },
+			) =>
+				sql`jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS r(${sql.unsafe(
+					Object.entries(columns)
+						.map(([key, type]) => `"${key}" ${type}`)
+						.join(", "),
+				)})`;
 
 			const findUnits = SqlSchema.findAll({
 				Request: Schema.Literals(["faculties", "departments"]),
@@ -187,19 +205,41 @@ export class OfferingStore extends Context.Service<
 					sql`SELECT id, name, saz_filter_id AS "sazFilterId" FROM ${sql(table)}`,
 			});
 
-			const offeringRecords = (rows: OfferingRows) => sql`
-				jsonb_to_recordset(${json(rows.offerings)}::jsonb) AS r(
-					"sazCode" text, "academicYear" smallint, title text, faculty text,
-					department text, level text, format text, credits numeric,
-					hours integer, "studyYear" smallint, status text, "isPractical" boolean,
-					annotation text, "sazTeachers" text, "maxStudents" integer,
-					"maxGroups" integer, "computedMaxStudents" integer,
-					"groupSizeMin" integer, "groupSizeMax" integer,
-					"enrolledActive" integer, "snapshotId" bigint, "rowHash" text
-				)
-				LEFT JOIN faculties f ON f.name = r.faculty
-				LEFT JOIN departments d ON d.name = r.department
-			`;
+			const findProgrammes = SqlSchema.findAll({
+				Request: Schema.Void,
+				Result: Schema.Struct({
+					name: Schema.String,
+					level: Schema.Literals(["bachelor", "master"]),
+				}),
+				execute: () => sql`SELECT name, level FROM programmes`,
+			});
+
+			const programmes = findProgrammes().pipe(Effect.orDie);
+
+			const offeringColumns = {
+				sazCode: "text",
+				academicYear: "smallint",
+				title: "text",
+				faculty: "text",
+				department: "text",
+				level: "text",
+				format: "text",
+				credits: "numeric",
+				hours: "integer",
+				studyYear: "smallint",
+				status: "text",
+				isPractical: "boolean",
+				annotation: "text",
+				sazTeachers: "text",
+				maxStudents: "integer",
+				maxGroups: "integer",
+				computedMaxStudents: "integer",
+				groupSizeMin: "integer",
+				groupSizeMax: "integer",
+				enrolledActive: "integer",
+				snapshotId: "bigint",
+				rowHash: "text",
+			} as const;
 
 			/** Every statement numbers only the rows it really changes, so a
 			 *  parse of unchanged pages takes no number. */
@@ -207,7 +247,6 @@ export class OfferingStore extends Context.Service<
 				changes
 					.withTurn(
 						Effect.gen(function* () {
-							const source = { parseId };
 							const written: Array<ReadonlyArray<ChangeCount>> = [];
 
 							const track = (
@@ -215,7 +254,7 @@ export class OfferingStore extends Context.Service<
 								statement: Statement.Fragment,
 							) =>
 								changes
-									.track(table, source, statement)
+									.track(table, { parseId }, statement)
 									.pipe(
 										Effect.tap((rows) =>
 											Effect.sync(() =>
@@ -224,33 +263,48 @@ export class OfferingStore extends Context.Service<
 										),
 									);
 
+							const release = (
+								table: "faculties" | "departments",
+								ids: ReadonlyArray<string>,
+							) =>
+								track(
+									table,
+									sql`
+										UPDATE ${sql(table)}
+										SET saz_filter_id = NULL, change_no = nextval('change_no_seq')
+										WHERE id IN ${sql.in(ids)}
+										RETURNING id, change_no, 'change' AS action
+									`,
+								).pipe(Effect.when(Effect.succeed(ids.length > 0)));
+
 							const faculties = planUnits(
 								yield* findUnits("faculties"),
 								rows.faculties,
 							);
 
+							yield* release("faculties", faculties.released);
+
 							yield* track(
 								"faculties",
 								sql`
-							UPDATE faculties t
-							SET name = r.name, saz_filter_id = r."sazFilterId", change_no = nextval('change_no_seq')
-							FROM jsonb_to_recordset(${json(faculties.updates)}::jsonb)
-								AS r(id text, name text, "sazFilterId" text)
-							WHERE t.id = r.id
-								AND (t.name, t.saz_filter_id) IS DISTINCT FROM (r.name, r."sazFilterId")
-							RETURNING t.id, t.change_no, 'change' AS action
-						`,
+									UPDATE faculties t
+									SET name = r.name, saz_filter_id = r."sazFilterId",
+										change_no = nextval('change_no_seq')
+									FROM ${recordset(faculties.updates, { id: "text", name: "text", sazFilterId: "text" })}
+									WHERE t.id = r.id
+										AND (t.name, t.saz_filter_id) IS DISTINCT FROM (r.name, r."sazFilterId")
+									RETURNING t.id, t.change_no, 'change' AS action
+								`,
 							);
 
 							yield* track(
 								"faculties",
 								sql`
-							INSERT INTO faculties (name, saz_filter_id, change_no)
-							SELECT name, "sazFilterId", nextval('change_no_seq')
-							FROM jsonb_to_recordset(${json(faculties.inserts)}::jsonb)
-								AS r(name text, "sazFilterId" text)
-							RETURNING id, change_no, 'add' AS action
-						`,
+									INSERT INTO faculties (name, saz_filter_id, change_no)
+									SELECT name, "sazFilterId", nextval('change_no_seq')
+									FROM ${recordset(faculties.inserts, { name: "text", sazFilterId: "text" })}
+									RETURNING id, change_no, 'add' AS action
+								`,
 							);
 
 							const departments = planUnits(
@@ -258,97 +312,104 @@ export class OfferingStore extends Context.Service<
 								rows.departments,
 							);
 
-							yield* track(
-								"departments",
-								sql`
-							UPDATE departments t
-							SET name = r.name, saz_filter_id = r."sazFilterId",
-								faculty_id = coalesce(f.id, t.faculty_id), change_no = nextval('change_no_seq')
-							FROM jsonb_to_recordset(${json(departments.updates)}::jsonb)
-								AS r(id text, name text, faculty text, "sazFilterId" text)
-							LEFT JOIN faculties f ON f.name = r.faculty
-							WHERE t.id = r.id
-								AND (t.name, t.saz_filter_id, t.faculty_id)
-									IS DISTINCT FROM (r.name, r."sazFilterId", coalesce(f.id, t.faculty_id))
-							RETURNING t.id, t.change_no, 'change' AS action
-						`,
-							);
+							yield* release("departments", departments.released);
 
 							yield* track(
 								"departments",
 								sql`
-							INSERT INTO departments (name, saz_filter_id, faculty_id, change_no)
-							SELECT r.name, r."sazFilterId", f.id, nextval('change_no_seq')
-							FROM jsonb_to_recordset(${json(departments.inserts)}::jsonb)
-								AS r(name text, faculty text, "sazFilterId" text)
-							LEFT JOIN faculties f ON f.name = r.faculty
-							RETURNING id, change_no, 'add' AS action
-						`,
+									UPDATE departments t
+									SET name = r.name, saz_filter_id = r."sazFilterId",
+										faculty_id = coalesce(f.id, t.faculty_id),
+										change_no = nextval('change_no_seq')
+									FROM ${recordset(departments.updates, { id: "text", name: "text", faculty: "text", sazFilterId: "text" })}
+									LEFT JOIN faculties f ON f.name = r.faculty
+									WHERE t.id = r.id
+										AND (t.name, t.saz_filter_id, t.faculty_id) IS DISTINCT FROM
+											(r.name, r."sazFilterId", coalesce(f.id, t.faculty_id))
+									RETURNING t.id, t.change_no, 'change' AS action
+								`,
 							);
 
-							const programmes = sql`
-						jsonb_to_recordset(${json(rows.programmes)}::jsonb)
-							AS r(name text, level text, "sazFilterId" text)
-					`;
+							yield* track(
+								"departments",
+								sql`
+									INSERT INTO departments (name, saz_filter_id, faculty_id, change_no)
+									SELECT r.name, r."sazFilterId", f.id, nextval('change_no_seq')
+									FROM ${recordset(departments.inserts, { name: "text", faculty: "text", sazFilterId: "text" })}
+									LEFT JOIN faculties f ON f.name = r.faculty
+									RETURNING id, change_no, 'add' AS action
+								`,
+							);
+
+							const programmes = recordset(rows.programmes, {
+								name: "text",
+								level: "text",
+								sazFilterId: "text",
+							});
 
 							yield* track(
 								"programmes",
 								sql`
-							UPDATE programmes p
-							SET saz_filter_id = r."sazFilterId", change_no = nextval('change_no_seq')
-							FROM ${programmes}
-							WHERE p.name = r.name AND p.level IS NOT DISTINCT FROM r.level
-								AND r."sazFilterId" IS NOT NULL
-								AND p.saz_filter_id IS DISTINCT FROM r."sazFilterId"
-							RETURNING p.id, p.change_no, 'change' AS action
-						`,
+									UPDATE programmes p
+									SET saz_filter_id = r."sazFilterId", change_no = nextval('change_no_seq')
+									FROM ${programmes}
+									WHERE p.name = r.name AND p.level IS NOT DISTINCT FROM r.level
+										AND r."sazFilterId" IS NOT NULL
+										AND p.saz_filter_id IS DISTINCT FROM r."sazFilterId"
+									RETURNING p.id, p.change_no, 'change' AS action
+								`,
 							);
 
 							yield* track(
 								"programmes",
 								sql`
-							INSERT INTO programmes (name, level, saz_filter_id, change_no)
-							SELECT r.name, r.level, r."sazFilterId", nextval('change_no_seq')
-							FROM ${programmes}
-							WHERE NOT EXISTS (
-								SELECT 1 FROM programmes p
-								WHERE p.name = r.name AND p.level IS NOT DISTINCT FROM r.level
-							)
-							RETURNING id, change_no, 'add' AS action
-						`,
+									INSERT INTO programmes (name, level, saz_filter_id, change_no)
+									SELECT r.name, r.level, r."sazFilterId", nextval('change_no_seq')
+									FROM ${programmes}
+									WHERE NOT EXISTS (
+										SELECT 1 FROM programmes p
+										WHERE p.name = r.name AND p.level IS NOT DISTINCT FROM r.level
+									)
+									RETURNING id, change_no, 'add' AS action
+								`,
 							);
 
 							yield* track(
 								"terms",
 								sql`
-							INSERT INTO terms (code, academic_year, season, change_no)
-							SELECT code, "academicYear", season, nextval('change_no_seq')
-							FROM jsonb_to_recordset(${json(rows.terms)}::jsonb)
-								AS r(code text, "academicYear" smallint, season text)
-							WHERE NOT EXISTS (SELECT 1 FROM terms t WHERE t.code = r.code)
-							RETURNING id, change_no, 'add' AS action
-						`,
+									INSERT INTO terms (code, academic_year, season, change_no)
+									SELECT code, "academicYear", season, nextval('change_no_seq')
+									FROM ${recordset(rows.terms, { code: "text", academicYear: "smallint", season: "text" })}
+									WHERE NOT EXISTS (SELECT 1 FROM terms t WHERE t.code = r.code)
+									RETURNING id, change_no, 'add' AS action
+								`,
 							);
+
+							const offerings = sql`
+								${recordset(rows.offerings, offeringColumns)}
+								LEFT JOIN faculties f ON f.name = r.faculty
+								LEFT JOIN departments d ON d.name = r.department
+							`;
 
 							const added = yield* track(
 								"offerings",
 								sql`
-							INSERT INTO offerings (
-								saz_code, academic_year, title, faculty_id, department_id, level,
-								format, credits, hours, study_year, status, is_practical,
-								annotation, saz_teachers, max_students, max_groups,
-								computed_max_students, group_size_min, group_size_max,
-								enrolled_active, snapshot_id, row_hash, change_no
-							)
-							SELECT r."sazCode", r."academicYear", r.title, f.id, d.id, r.level,
-								r.format, r.credits, r.hours, r."studyYear", r.status, r."isPractical",
-								r.annotation, r."sazTeachers", r."maxStudents", r."maxGroups",
-								r."computedMaxStudents", r."groupSizeMin", r."groupSizeMax",
-								r."enrolledActive", r."snapshotId", r."rowHash", nextval('change_no_seq')
-							FROM ${offeringRecords(rows)}
-							WHERE NOT EXISTS (SELECT 1 FROM offerings o WHERE o.saz_code = r."sazCode")
-							RETURNING id, change_no, 'add' AS action
-						`,
+									INSERT INTO offerings (
+										saz_code, academic_year, title, faculty_id, department_id, level,
+										format, credits, hours, study_year, status, is_practical,
+										annotation, saz_teachers, max_students, max_groups,
+										computed_max_students, group_size_min, group_size_max,
+										enrolled_active, snapshot_id, row_hash, change_no
+									)
+									SELECT r."sazCode", r."academicYear", r.title, f.id, d.id, r.level,
+										r.format, r.credits, r.hours, r."studyYear", r.status, r."isPractical",
+										r.annotation, r."sazTeachers", r."maxStudents", r."maxGroups",
+										r."computedMaxStudents", r."groupSizeMin", r."groupSizeMax",
+										r."enrolledActive", r."snapshotId", r."rowHash", nextval('change_no_seq')
+									FROM ${offerings}
+									WHERE NOT EXISTS (SELECT 1 FROM offerings o WHERE o.saz_code = r."sazCode")
+									RETURNING id, change_no, 'add' AS action
+								`,
 							);
 
 							// A live row changes when its hash does. A removed row comes back
@@ -358,41 +419,50 @@ export class OfferingStore extends Context.Service<
 							const updated = yield* track(
 								"offerings",
 								sql`
-							UPDATE offerings o SET
-								academic_year = r."academicYear", title = r.title,
-								faculty_id = f.id, department_id = d.id, level = r.level,
-								format = r.format, credits = r.credits, hours = r.hours,
-								study_year = r."studyYear", status = r.status,
-								is_practical = r."isPractical", annotation = r.annotation,
-								saz_teachers = r."sazTeachers", max_students = r."maxStudents",
-								max_groups = r."maxGroups",
-								computed_max_students = r."computedMaxStudents",
-								group_size_min = r."groupSizeMin", group_size_max = r."groupSizeMax",
-								enrolled_active = r."enrolledActive", snapshot_id = r."snapshotId",
-								row_hash = r."rowHash", removed_at = NULL, change_no = nextval('change_no_seq')
-							FROM offerings prev, ${offeringRecords(rows)}
-							WHERE prev.id = o.id AND o.saz_code = r."sazCode"
-								AND o.snapshot_id <= r."snapshotId"
-								AND CASE WHEN o.removed_at IS NULL
-									THEN o.row_hash IS DISTINCT FROM r."rowHash"
-									ELSE EXISTS (
-										SELECT 1 FROM run_pages p
-										WHERE p.path = '/course/' || o.saz_code AND p.status = 'done'
-											AND p.finished_at > o.removed_at
-									)
-								END
-							RETURNING o.id, o.change_no,
-								CASE WHEN prev.removed_at IS NULL THEN 'change' ELSE 'restore' END AS action
-						`,
+									UPDATE offerings o SET
+										academic_year = r."academicYear", title = r.title,
+										faculty_id = f.id, department_id = d.id, level = r.level,
+										format = r.format, credits = r.credits, hours = r.hours,
+										study_year = r."studyYear", status = r.status,
+										is_practical = r."isPractical", annotation = r.annotation,
+										saz_teachers = r."sazTeachers", max_students = r."maxStudents",
+										max_groups = r."maxGroups",
+										computed_max_students = r."computedMaxStudents",
+										group_size_min = r."groupSizeMin",
+										group_size_max = r."groupSizeMax",
+										enrolled_active = r."enrolledActive",
+										snapshot_id = r."snapshotId", row_hash = r."rowHash",
+										removed_at = NULL, change_no = nextval('change_no_seq')
+									FROM offerings prev, ${offerings}
+									WHERE prev.id = o.id AND o.saz_code = r."sazCode"
+										AND o.snapshot_id <= r."snapshotId"
+										AND CASE WHEN o.removed_at IS NULL
+											THEN o.row_hash IS DISTINCT FROM r."rowHash"
+											ELSE EXISTS (
+												SELECT 1 FROM run_pages p
+												WHERE p.path = '/course/' || o.saz_code AND p.status = 'done'
+													AND p.finished_at > o.removed_at
+											)
+										END
+									RETURNING o.id, o.change_no,
+										CASE WHEN prev.removed_at IS NULL THEN 'change' ELSE 'restore' END
+											AS action
+								`,
 							);
 
 							yield* sql`
-						UPDATE offerings o SET snapshot_id = r."snapshotId"
-						FROM jsonb_to_recordset(${json(rows.offerings)}::jsonb)
-							AS r("sazCode" text, "snapshotId" bigint, "rowHash" text)
-						WHERE o.saz_code = r."sazCode" AND o.removed_at IS NULL
-							AND o.row_hash = r."rowHash" AND o.snapshot_id < r."snapshotId"
-					`;
+								UPDATE offerings o SET snapshot_id = r."snapshotId"
+								FROM ${recordset(
+									rows.offerings.map(({ sazCode, snapshotId, rowHash }) => ({
+										sazCode,
+										snapshotId,
+										rowHash,
+									})),
+									{ sazCode: "text", snapshotId: "bigint", rowHash: "text" },
+								)}
+								WHERE o.saz_code = r."sazCode" AND o.removed_at IS NULL
+									AND o.row_hash = r."rowHash" AND o.snapshot_id < r."snapshotId"
+							`;
 
 							const rewritten = [...added, ...updated].map(
 								({ rowId }) => rowId,
@@ -403,31 +473,36 @@ export class OfferingStore extends Context.Service<
 								yield* sql`DELETE FROM offering_programmes WHERE offering_id IN ${sql.in(rewritten)}`;
 
 								yield* sql`
-							INSERT INTO offering_terms (
-								offering_id, term_id, semesters, credits, hours_per_week,
-								lecture_hours, seminar_hours, practice_hours, control
-							)
-							SELECT o.id, t.id, r.semesters, r.credits, r."hoursPerWeek",
-								r."lectureHours", r."seminarHours", r."practiceHours", r.control
-							FROM jsonb_to_recordset(${json(rows.offeringTerms)}::jsonb) AS r(
-								"sazCode" text, "termCode" text, semesters smallint[], credits numeric,
-								"hoursPerWeek" integer, "lectureHours" integer, "seminarHours" integer,
-								"practiceHours" integer, control text
-							)
-							JOIN offerings o ON o.saz_code = r."sazCode"
-								AND o.id IN ${sql.in(rewritten)}
-							JOIN terms t ON t.code = r."termCode"
-						`;
+									INSERT INTO offering_terms (
+										offering_id, term_id, semesters, credits, hours_per_week,
+										lecture_hours, seminar_hours, practice_hours, control
+									)
+									SELECT o.id, t.id, r.semesters, r.credits, r."hoursPerWeek",
+										r."lectureHours", r."seminarHours", r."practiceHours", r.control
+									FROM ${recordset(rows.offeringTerms, {
+										sazCode: "text",
+										termCode: "text",
+										semesters: "smallint[]",
+										credits: "numeric",
+										hoursPerWeek: "integer",
+										lectureHours: "integer",
+										seminarHours: "integer",
+										practiceHours: "integer",
+										control: "text",
+									})}
+									JOIN offerings o ON o.saz_code = r."sazCode"
+										AND o.id IN ${sql.in(rewritten)}
+									JOIN terms t ON t.code = r."termCode"
+								`;
 
 								yield* sql`
-							INSERT INTO offering_programmes (offering_id, programme_id, kind)
-							SELECT o.id, p.id, r.kind
-							FROM jsonb_to_recordset(${json(rows.offeringProgrammes)}::jsonb)
-								AS r("sazCode" text, name text, level text, kind text)
-							JOIN offerings o ON o.saz_code = r."sazCode"
-								AND o.id IN ${sql.in(rewritten)}
-							JOIN programmes p ON p.name = r.name AND p.level = r.level
-						`;
+									INSERT INTO offering_programmes (offering_id, programme_id, kind)
+									SELECT o.id, p.id, r.kind
+									FROM ${recordset(rows.offeringProgrammes, { sazCode: "text", name: "text", level: "text", kind: "text" })}
+									JOIN offerings o ON o.saz_code = r."sazCode"
+										AND o.id IN ${sql.in(rewritten)}
+									JOIN programmes p ON p.name = r.name AND p.level = r.level
+								`;
 							}
 
 							return mergeChangeCounts(written.flat());
@@ -475,6 +550,7 @@ export class OfferingStore extends Context.Service<
 				latestCoursePages,
 				coursePages,
 				latestCatalogPage,
+				programmes,
 				write,
 				startParse,
 				recordFailures,

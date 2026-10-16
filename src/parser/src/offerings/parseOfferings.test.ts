@@ -10,8 +10,10 @@ import {
 	type StoredPage,
 } from "./OfferingStore.ts";
 
-/** Snapshots and the offering rows in memory, keyed by САЗ code. */
+/** Snapshots and the offering rows in memory, keyed by САЗ code. While
+ *  `rejectWrites` is set, every write dies as a database error would. */
 const makeMemoryStore = (snapshots: Array<StoredPage>) => {
+	const state = { rejectWrites: false };
 	const offerings = new Map<string, { title: string; snapshotId: string }>();
 	const parses: Array<{ trigger: ParseTrigger; report?: ParseReport }> = [];
 	const failures: Array<ParseFailure & { parseId: bigint }> = [];
@@ -25,20 +27,23 @@ const makeMemoryStore = (snapshots: Array<StoredPage>) => {
 		coursePages: (ids) =>
 			Effect.sync(() => snapshots.filter(({ id }) => ids.includes(id))),
 		latestCatalogPage: Effect.succeed(undefined),
+		programmes: Effect.succeed([]),
 		write: (rows) =>
-			Effect.sync(() => {
-				for (const { sazCode, title, snapshotId } of rows.offerings) {
-					offerings.set(sazCode, { title, snapshotId });
-				}
+			state.rejectWrites
+				? Effect.die("rejected")
+				: Effect.sync(() => {
+						for (const { sazCode, title, snapshotId } of rows.offerings) {
+							offerings.set(sazCode, { title, snapshotId });
+						}
 
-				return [
-					{
-						table: "offerings" as const,
-						action: "change" as const,
-						rows: rows.offerings.length,
-					},
-				];
-			}),
+						return [
+							{
+								table: "offerings" as const,
+								action: "change" as const,
+								rows: rows.offerings.length,
+							},
+						];
+					}),
 		startParse: (trigger) =>
 			Effect.sync(() => BigInt(parses.push({ trigger }))),
 		recordFailures: (parseId, failed) =>
@@ -54,7 +59,7 @@ const makeMemoryStore = (snapshots: Array<StoredPage>) => {
 			}),
 	});
 
-	return { offerings, parses, failures, layer };
+	return { state, offerings, parses, failures, layer };
 };
 
 describe("parseOfferings", () => {
@@ -123,4 +128,28 @@ describe("parseOfferings", () => {
 			}).pipe(Effect.provide(store.layer));
 		},
 	);
+
+	it.effect("records the pages of a batch the database rejects", () => {
+		const store = makeMemoryStore([
+			{ id: 1n, path: "/course/900123", content: coursePage() },
+		]);
+
+		return Effect.gen(function* () {
+			yield* parseOfferings("crawl");
+			store.state.rejectWrites = true;
+
+			const report = yield* parseOfferings("reparse");
+
+			assert.strictEqual(store.offerings.get("900123")?.snapshotId, "1");
+			assert.deepStrictEqual(store.failures, [
+				{
+					parseId: 2n,
+					snapshotId: 1n,
+					path: "/course/900123",
+					reason: "store",
+				},
+			]);
+			assert.deepStrictEqual(report.failed, [{ reason: "store", pages: 1 }]);
+		}).pipe(Effect.provide(store.layer));
+	});
 });
