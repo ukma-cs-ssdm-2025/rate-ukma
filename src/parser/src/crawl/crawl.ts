@@ -1,5 +1,9 @@
-import { Cause, Clock, Effect } from "effect";
-import { catalogPath, parseCatalogPage } from "../saz/catalog.ts";
+import { Cause, Clock, Effect, Result } from "effect";
+import {
+	catalogPath,
+	catalogProblem,
+	parseCatalogPage,
+} from "../saz/catalog.ts";
 import { SazClient } from "../saz/SazClient.ts";
 import { type ClaimedPage, CrawlStore, type QueuedPage } from "./CrawlStore.ts";
 import { snapshotOf } from "./snapshot.ts";
@@ -9,34 +13,39 @@ export const sourcePartOf = (year: number): string =>
 	`saz-courses:${year}-${String(year + 1).slice(2)}`;
 
 /** The pages a catalog page leads to: the other catalog pages (from page 1
- *  only, which carries the pager) and each listed course with its students. */
+ *  only, which carries the pager) and each listed course with its students;
+ *  or why the catalog page cannot be trusted. */
 const linkedPages = (
 	year: number,
 	page: ClaimedPage,
 	body: string,
-): ReadonlyArray<QueuedPage> => {
-	if (page.kind !== "catalog") return [];
+): Result.Result<ReadonlyArray<QueuedPage>, string> => {
+	if (page.kind !== "catalog") return Result.succeed([]);
 	const catalog = parseCatalogPage(body);
+	const isFirst = page.path === catalogPath(year, 1);
+	const problem = catalogProblem(catalog, isFirst ? 1 : 2);
 
-	const otherCatalogPages =
-		page.path === catalogPath(year, 1)
-			? Array.from({ length: catalog.lastPage - 1 }, (_, index) => ({
-					kind: "catalog" as const,
-					path: catalogPath(year, index + 2),
-				}))
-			: [];
+	if (problem !== undefined) return Result.fail(problem);
 
-	return [
+	const otherCatalogPages = isFirst
+		? Array.from({ length: catalog.lastPage - 1 }, (_, index) => ({
+				kind: "catalog" as const,
+				path: catalogPath(year, index + 2),
+			}))
+		: [];
+
+	return Result.succeed([
 		...otherCatalogPages,
 		...catalog.codes.flatMap((code) => [
 			{ kind: "course" as const, path: `/course/${code}` },
 			{ kind: "students" as const, path: `/course/${code}/students` },
 		]),
-	];
+	]);
 };
 
 /** Crawls one academic year into page snapshots. A page that fails is marked
- *  failed and the run goes on; a failed sign-in or catalog page fails the run. */
+ *  failed and the run goes on; a failed sign-in or catalog page fails the run. A
+ *  crash, such as a lost database, leaves the run `running` to resume later. */
 export const crawlYear = Effect.fn("crawlYear")(function* (year: number) {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
@@ -55,22 +64,18 @@ export const crawlYear = Effect.fn("crawlYear")(function* (year: number) {
 	const visit = (page: ClaimedPage) =>
 		saz.get(page.path).pipe(
 			Effect.flatMap((body) =>
-				store.complete(
-					runId,
+				Result.match(linkedPages(year, page, body), {
+					onFailure: (problem) => store.fail(page, problem),
+					onSuccess: (next) =>
+						store.complete(runId, page, snapshotOf(body), next),
+				}),
+			),
+			Effect.catchTag("SazRequestFailed", (error) =>
+				store.fail(
 					page,
-					snapshotOf(body),
-					linkedPages(year, page, body),
+					error.status === 0 ? "transport error" : `HTTP ${error.status}`,
 				),
 			),
-			Effect.catchTags({
-				SazRequestFailed: (error) =>
-					store.fail(
-						page,
-						error.status === 0 ? "transport error" : `HTTP ${error.status}`,
-					),
-				SazSignedOut: () =>
-					store.fail(page, "signed out after a fresh sign-in"),
-			}),
 		);
 
 	const crawl = Effect.gen(function* () {
@@ -108,10 +113,11 @@ export const crawlYear = Effect.fn("crawlYear")(function* (year: number) {
 			);
 		});
 
-	// An interrupted run stays `running`, so a restart can tell it never ended.
+	// Only a failed sign-in ends the run as failed. An interrupted or crashed run
+	// stays `running`, so a restart can tell it never ended.
 	yield* crawl.pipe(
 		Effect.tapCause((cause) =>
-			Cause.hasInterruptsOnly(cause) ? Effect.void : finish(true),
+			Cause.hasFails(cause) ? finish(true) : Effect.void,
 		),
 		Effect.andThen(finish(false)),
 	);

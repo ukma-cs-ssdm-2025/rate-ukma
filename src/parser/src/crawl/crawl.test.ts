@@ -1,7 +1,12 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Layer } from "effect";
+import { Effect, Exit, Layer } from "effect";
 import { catalogPath } from "../saz/catalog.ts";
-import { SazClient, SazRequestFailed } from "../saz/SazClient.ts";
+import {
+	type SazError,
+	SazClient,
+	SazRequestFailed,
+	SazSignInFailed,
+} from "../saz/SazClient.ts";
 import { crawlYear } from "./crawl.ts";
 import {
 	type ClaimedPage,
@@ -40,15 +45,22 @@ const catalogPage = (path: string) => {
 
 	const page = Number(params.get("page"));
 
-	const cards = CATALOG.flatMap((course) =>
-		course.page === page &&
-		filter("level").includes(course.level) &&
-		filter("selected").includes(course.selected)
-			? [card(course.code)]
-			: [],
+	const listed = CATALOG.filter(
+		(course) =>
+			filter("level").includes(course.level) &&
+			filter("selected").includes(course.selected),
 	);
 
-	return cards.join("") + (page === 1 ? PAGER : "");
+	const cards = listed.filter((course) => course.page === page);
+	const before = listed.filter((course) => course.page < page).length;
+
+	const summary = `<div class="summary">Показані <b>${before + 1}-${before + cards.length}</b> із <b>${listed.length}</b> записів.</div>`;
+
+	return (
+		summary +
+		cards.map((course) => card(course.code)).join("") +
+		(page === 1 ? PAGER : "")
+	);
 };
 
 /** Course 100002 is gone. */
@@ -61,20 +73,27 @@ const SAZ_PAGES = new Map([
 	["/course/100004/students", "[]"],
 ]);
 
-const FakeSaz = Layer.succeed(SazClient, {
-	get: (path) => {
-		const body = path.startsWith("/course/catalog?")
-			? catalogPage(path)
-			: SAZ_PAGES.get(path);
+const sazPage = (path: string): Effect.Effect<string, SazError> => {
+	const body = path.startsWith("/course/catalog?")
+		? catalogPage(path)
+		: SAZ_PAGES.get(path);
 
-		return body === undefined
-			? Effect.fail(new SazRequestFailed({ path, status: 404 }))
-			: Effect.succeed(body);
-	},
-});
+	return body === undefined
+		? Effect.fail(new SazRequestFailed({ path, status: 404 }))
+		: Effect.succeed(body);
+};
 
-/** The queue in memory, one run at a time. */
-const makeMemoryStore = () => {
+const FakeSaz = Layer.succeed(SazClient, { get: sazPage });
+
+/** The fake САЗ with one page answered differently. */
+const sazWith = (path: string, answer: Effect.Effect<string, SazError>) =>
+	Layer.succeed(SazClient, {
+		get: (requested) => (requested === path ? answer : sazPage(requested)),
+	});
+
+/** The queue in memory, one run at a time; completing `crashOn` dies, as a
+ *  lost database would. */
+const makeMemoryStore = (crashOn?: string) => {
 	const pages: Array<ClaimedPage & { status: string }> = [];
 	const finished: Array<{ status: string; report: RunReport }> = [];
 
@@ -102,9 +121,10 @@ const makeMemoryStore = () => {
 				return next;
 			}),
 		complete: (_, page, __, next) =>
-			mark(page, "done").pipe(
-				Effect.andThen(Effect.sync(() => next.forEach(queue))),
-			),
+			(page.path === crashOn
+				? Effect.die(new Error("connection lost"))
+				: mark(page, "done")
+			).pipe(Effect.andThen(Effect.sync(() => next.forEach(queue)))),
 		fail: (page) => mark(page, "failed"),
 		tally: () =>
 			Effect.sync(() =>
@@ -172,6 +192,64 @@ describe("crawlYear", () => {
 			yield* crawlYear(2032);
 
 			assert.strictEqual(store.finished[0]?.status, "failed");
+		}).pipe(Effect.provide([store.layer, FakeSaz]));
+	});
+
+	it.effect("fails the run when the first catalog page lost its pager", () => {
+		const store = makeMemoryStore();
+		const first = catalogPath(2031, 1);
+
+		return Effect.gen(function* () {
+			yield* crawlYear(2031);
+
+			assert.deepStrictEqual(
+				store.pages.map((page) => `${page.status} ${page.path}`),
+				[`failed ${first}`],
+			);
+			assert.strictEqual(store.finished[0]?.status, "failed");
+		}).pipe(
+			Effect.provide([
+				store.layer,
+				sazWith(
+					first,
+					sazPage(first).pipe(Effect.map((body) => body.replace(PAGER, ""))),
+				),
+			]),
+		);
+	});
+
+	it.effect("fails the run and stops when the sign-in fails", () => {
+		const store = makeMemoryStore();
+
+		return Effect.gen(function* () {
+			const exit = yield* Effect.exit(crawlYear(2031));
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.strictEqual(store.finished[0]?.status, "failed");
+			assert.strictEqual(
+				store.pages.find((page) => page.path === "/course/100001/students")
+					?.status,
+				"pending",
+			);
+		}).pipe(
+			Effect.provide([
+				store.layer,
+				sazWith(
+					"/course/100001",
+					Effect.fail(new SazSignInFailed({ reason: "Microsoft error 50053" })),
+				),
+			]),
+		);
+	});
+
+	it.effect("leaves the run running when the database is lost", () => {
+		const store = makeMemoryStore("/course/100001");
+
+		return Effect.gen(function* () {
+			const exit = yield* Effect.exit(crawlYear(2031));
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.deepStrictEqual(store.finished, []);
 		}).pipe(Effect.provide([store.layer, FakeSaz]));
 	});
 });
