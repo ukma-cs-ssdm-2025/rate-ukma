@@ -274,7 +274,7 @@ A decision wins over the matching rules, so the matching step reads the latest n
 | --- | --- | --- |
 | `id` | text | `key_...` |
 | `name` | text | |
-| `secret_hash` | text | the key is shown once |
+| `secret_hash` | text | SHA-256 of the secret; the token `ukd_<id>.<secret>` is shown once |
 | `scopes` | text[] | |
 | `created_by` | text null | the key that made it; null for the first, made on the command line |
 | `created_at`, `expires_at`, `revoked_at` | timestamptz | |
@@ -285,9 +285,10 @@ A decision wins over the matching rules, so the matching step reads the latest n
 | --- | --- | --- |
 | `id` | text | `aud_...` |
 | `at` | timestamptz | |
-| `key_id` | text | |
+| `key_id` | text null | null for an action from the command line |
 | `staff_user` | text null | |
-| `action` | text | `key_created`, `key_revoked`, `run_started`, `decision_made`, `students_read`, `snapshots_read` |
+| `action` | text | `request`, `request_denied`, `key_created`, `key_revoked`, `run_started`, `decision_made`, `students_read`, `snapshots_read` |
+| `route` | text null | the endpoint's method and path template, such as `GET /v1/offerings`; no ids or filter values |
 | `target_id` | text null | |
 | `row_count` | integer null | rows returned for a read; no data values |
 
