@@ -7,14 +7,18 @@ const NAMED_ENTITIES = new Map([
 	["nbsp", " "],
 ]);
 
+/** An entity past the last code point stays as written; `fromCodePoint`
+ *  would throw and stop the whole parse step. */
+const codePointOf = (code: number, entity: string): string =>
+	code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+
 export const unescapeHtml = (text: string): string =>
 	text.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/giu, (entity, name: string) => {
 		if (/^#x/iu.test(name)) {
-			return String.fromCodePoint(Number.parseInt(name.slice(2), 16));
+			return codePointOf(Number.parseInt(name.slice(2), 16), entity);
 		}
 
-		if (name.startsWith("#"))
-			return String.fromCodePoint(Number(name.slice(1)));
+		if (name.startsWith("#")) return codePointOf(Number(name.slice(1)), entity);
 
 		return NAMED_ENTITIES.get(name) ?? entity;
 	});

@@ -153,7 +153,7 @@ export class OfferingStore extends Context.Service<
 						LEFT JOIN faculties f ON f.name = r.faculty
 						ON CONFLICT (name) DO UPDATE
 						SET saz_filter_id = coalesce(EXCLUDED.saz_filter_id, departments.saz_filter_id),
-							faculty_id = EXCLUDED.faculty_id
+							faculty_id = coalesce(EXCLUDED.faculty_id, departments.faculty_id)
 					`;
 
 					yield* sql`

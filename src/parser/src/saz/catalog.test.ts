@@ -79,7 +79,7 @@ describe("parseFilterOptions", () => {
 	it("maps each option text of one filter to its value", () => {
 		const filters = `<form>
 <select name="filter[faculty][]" multiple>
-<option value="901">Факультет прикладних наук</option>
+<option value="901">Факультет вигаданих наук</option>
 <option value="902">Факультет уявних мистецтв</option>
 </select>
 <select name="filter[spec][]" multiple>

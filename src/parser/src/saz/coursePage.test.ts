@@ -27,7 +27,7 @@ interface PageParts {
 }
 
 const FACULTY_ROWS = [
-	`<tr><th><abbr title="Факультет, який забезпечує викладання дисципліни">Факультет</abbr></th><td>Факультет прикладних наук</td></tr>`,
+	`<tr><th><abbr title="Факультет, який забезпечує викладання дисципліни">Факультет</abbr></th><td>Факультет вигаданих наук</td></tr>`,
 	`<tr><th><abbr title="Кафедра, яка забезпечує викладання дисципліни">Кафедра</abbr></th><td>Кафедра вигаданих систем</td></tr>`,
 ];
 
@@ -145,7 +145,7 @@ describe("parseCoursePage", () => {
 			format: "2015",
 			status: "held",
 			isPractical: false,
-			faculty: "Факультет прикладних наук",
+			faculty: "Факультет вигаданих наук",
 			department: "Кафедра вигаданих систем",
 			level: "bachelor",
 			academicYear: 2031,
@@ -447,6 +447,31 @@ describe("parseCoursePage", () => {
 		assert.strictEqual(
 			failure(coursePage({ limits: LIMITS.slice(1) })),
 			"invalid maxStudents",
+		);
+	});
+
+	it("fails an empty number instead of reading it as 0", () => {
+		assert.strictEqual(
+			failure(coursePage({ terms: [row("Осінь", label("залік"))] })),
+			"invalid terms",
+		);
+		assert.strictEqual(
+			failure(
+				coursePage({
+					limits: [
+						row("Максимальна кількість студентів", ""),
+						...LIMITS.slice(1),
+					],
+				}),
+			),
+			"invalid maxStudents",
+		);
+	});
+
+	it("keeps an entity past the last code point as written", () => {
+		assert.strictEqual(
+			parsed(coursePage({ title: "Системи &#99999999;" })).title,
+			"Системи &#99999999;",
 		);
 	});
 

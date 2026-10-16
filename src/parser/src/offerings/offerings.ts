@@ -10,7 +10,7 @@ import { OfferingStore, type OfferingRows } from "./OfferingStore.ts";
 const BATCH_SIZE = 500;
 
 /** The catalog filter values, by the name a card uses. Programme options
- *  carry the level, as in `Економіка (Бакалавр)`. */
+ *  carry the level, as in `Вигадана інженерія (Бакалавр)`. */
 export interface CatalogFilters {
 	readonly faculties: ReadonlyMap<string, string>;
 	readonly departments: ReadonlyMap<string, string>;

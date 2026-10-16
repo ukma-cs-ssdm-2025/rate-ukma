@@ -4,7 +4,10 @@ import { textOf, unescapeHtml } from "./html.ts";
 const decodeWith = <T, E>(decode: (input: E) => T, encode: (input: T) => E) =>
 	SchemaTransformation.transform({ decode, encode });
 
-const Amount = Schema.FiniteFromString.check(Schema.isGreaterThanOrEqualTo(0));
+/** Digits only: `FiniteFromString` alone reads an empty cell as 0. */
+const Amount = Schema.String.check(Schema.isPattern(/^\d+(?:\.\d+)?$/u)).pipe(
+	Schema.decodeTo(Schema.Finite, SchemaTransformation.numberFromString),
+);
 
 const Count = Amount.check(Schema.isInt());
 
@@ -316,7 +319,7 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 
 			terms.push({
 				season,
-				credits: labels.get("credits") ?? "",
+				credits: labels.get("credits"),
 				hoursPerWeek: labels.get("hoursPerWeek") ?? null,
 				lectureHours: labels.get("lectureHours") ?? null,
 				seminarHours: labels.get("seminarHours") ?? null,

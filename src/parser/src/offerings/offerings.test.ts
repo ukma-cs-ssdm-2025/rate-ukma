@@ -14,7 +14,7 @@ const offering = (
 	format: "2015",
 	status: "held",
 	isPractical: false,
-	faculty: "Факультет прикладних наук",
+	faculty: "Факультет вигаданих наук",
 	department: "Кафедра вигаданих систем",
 	level: "bachelor",
 	academicYear: 2031,
@@ -43,7 +43,7 @@ const offering = (
 });
 
 const FILTERS = {
-	faculties: new Map([["Факультет прикладних наук", "901"]]),
+	faculties: new Map([["Факультет вигаданих наук", "901"]]),
 	departments: new Map<string, string>(),
 	programmes: new Map([
 		["Вигадана інженерія (Бакалавр)", "5001"],
@@ -77,12 +77,12 @@ describe("offeringRowsOf", () => {
 
 	it("lists each reference row once, with its catalog filter value", () => {
 		assert.deepStrictEqual(rows.faculties, [
-			{ name: "Факультет прикладних наук", sazFilterId: "901" },
+			{ name: "Факультет вигаданих наук", sazFilterId: "901" },
 		]);
 		assert.deepStrictEqual(rows.departments, [
 			{
 				name: "Кафедра вигаданих систем",
-				faculty: "Факультет прикладних наук",
+				faculty: "Факультет вигаданих наук",
 				sazFilterId: null,
 			},
 		]);
