@@ -22,7 +22,7 @@ const redirect = (location: string, cookie?: string) =>
 
 /** A fake САЗ and Microsoft sign-in: a САЗ page needs the session cookie,
  *  which only the right password leads to. */
-const makeFakeFetch = () => {
+const makeFakeFetch = (callback: "works" | "fails" | "forgets" = "works") => {
 	const visits: Array<string> = [];
 
 	const fetch = async (input: string | URL | Request, init?: RequestInit) => {
@@ -52,11 +52,18 @@ const makeFakeFetch = () => {
 		}
 
 		if (url.pathname === "/auth/o365") {
-			return url.searchParams.get("code") === "code-1"
-				? new Response("<html>signed in</html>", {
-						headers: { "set-cookie": "PHPSESSID=session-1; path=/" },
-					})
-				: redirect(`${MICROSOFT}/common/oauth2/authorize?client_id=saz`);
+			if (url.searchParams.get("code") !== "code-1") {
+				return redirect(`${MICROSOFT}/common/oauth2/authorize?client_id=saz`);
+			}
+
+			if (callback === "fails") return new Response("error", { status: 500 });
+
+			return new Response("<html>signed in</html>", {
+				headers:
+					callback === "works"
+						? { "set-cookie": "PHPSESSID=session-1; path=/" }
+						: {},
+			});
 		}
 
 		if (!cookie.includes("PHPSESSID=session-1")) return redirect("/auth/o365");
@@ -75,13 +82,18 @@ const clientWith = (password: string, fake: ReturnType<typeof makeFakeFetch>) =>
 		Layer.provide(
 			ConfigProvider.layer(
 				ConfigProvider.fromEnvRecord({
-					CORPORATE_EMAIL: "test.user@ukma.edu.ua",
+					CORPORATE_EMAIL: "test.user@example.com",
 					CORPORATE_PASSWORD: password,
 					SAZ_REQUEST_GAP: "0 millis",
 				}),
 			),
 		),
 	);
+
+const PASSWORD = "POST login.microsoftonline.com/common/login";
+
+const count = (visits: ReadonlyArray<string>, visit: string) =>
+	visits.filter((seen) => seen === visit).length;
 
 describe("SazClient", () => {
 	it.effect("signs in once and reuses the session", () => {
@@ -129,4 +141,31 @@ describe("SazClient", () => {
 			assert.strictEqual(error.status, 404);
 		}).pipe(Effect.provide(clientWith("right-password", makeFakeFetch()))),
 	);
+
+	it.effect("fails a sign-in whose callback answers 500", () => {
+		const fake = makeFakeFetch("fails");
+
+		return Effect.gen(function* () {
+			const saz = yield* SazClient;
+
+			const error = yield* Effect.flip(saz.get("/course/100001"));
+
+			assert.instanceOf(error, SazSignInFailed);
+			assert.strictEqual(error.reason, "the sign-in ended with HTTP 500");
+			assert.strictEqual(count(fake.visits, PASSWORD), 1);
+		}).pipe(Effect.provide(clientWith("right-password", fake)));
+	});
+
+	it.effect("fails when a fresh sign-in leaves the page signed out", () => {
+		const fake = makeFakeFetch("forgets");
+
+		return Effect.gen(function* () {
+			const saz = yield* SazClient;
+
+			const error = yield* Effect.flip(saz.get("/course/100001"));
+
+			assert.instanceOf(error, SazSignInFailed);
+			assert.strictEqual(count(fake.visits, PASSWORD), 1);
+		}).pipe(Effect.provide(clientWith("right-password", fake)));
+	});
 });

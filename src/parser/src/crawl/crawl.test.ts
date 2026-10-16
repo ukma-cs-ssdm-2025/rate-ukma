@@ -2,11 +2,14 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { catalogPath } from "../saz/catalog.ts";
 import { SazClient, SazRequestFailed } from "../saz/SazClient.ts";
+import { crawlSmart, SMART_PAGES, SmartCrawlFailed } from "../smart/crawl.ts";
+import { SmartClient, SmartRequestFailed } from "../smart/SmartClient.ts";
 import { crawlAllYears, NoAcademicYears } from "./crawl.ts";
 import {
 	CrawlStore,
 	type KindTally,
 	type OpenRun,
+	PageKind,
 	type QueuedPage,
 	type RunReport,
 } from "./CrawlStore.ts";
@@ -88,7 +91,7 @@ const makeMemoryStore = () => {
 			if (row) row.status = status;
 		});
 
-	const startRun = (sourcePart: string, first: QueuedPage) =>
+	const startRun = (sourcePart: string, queued: ReadonlyArray<QueuedPage>) =>
 		Effect.sync(() => {
 			const run = {
 				id: BigInt(runs.length + 1),
@@ -97,7 +100,7 @@ const makeMemoryStore = () => {
 			};
 
 			runs.push(run);
-			queue(run.id, first);
+			queued.forEach((page) => queue(run.id, page));
 
 			return { id: run.id, sourcePart };
 		});
@@ -117,23 +120,31 @@ const makeMemoryStore = () => {
 
 	const report = (runId: bigint): RunReport => ({
 		seconds: 0,
-		pages: (["catalog", "course", "students"] as const).map((kind) =>
-			tally(runId, kind),
-		),
+		pages: PageKind.literals.map((kind) => tally(runId, kind)),
 		failures: [],
 	});
 
 	const layer = Layer.succeed(CrawlStore, {
 		startRun,
-		openRuns: Effect.sync(() => {
-			for (const page of pages) {
-				if (page.status === "claimed") page.status = "pending";
-			}
+		openRuns: (source) =>
+			Effect.sync(() => {
+				const open = runs.flatMap(({ id, sourcePart, status }) =>
+					status === "running" && sourcePart.startsWith(`${source}:`)
+						? [{ id, sourcePart }]
+						: [],
+				);
 
-			return runs.flatMap(({ id, sourcePart, status }) =>
-				status === "running" ? [{ id, sourcePart }] : [],
-			);
-		}),
+				for (const page of pages) {
+					if (
+						page.status === "claimed" &&
+						open.some(({ id }) => id === page.runId)
+					) {
+						page.status = "pending";
+					}
+				}
+
+				return open;
+			}),
 		claim: (runId) =>
 			Effect.sync(() => {
 				const next = pages.find(
@@ -249,10 +260,9 @@ describe("crawlAllYears", () => {
 		const saz = makeFakeSaz();
 
 		return Effect.gen(function* () {
-			const run = yield* store.startRun("saz-courses:2031-32", {
-				kind: "catalog",
-				path: catalogPath(2031, 1),
-			});
+			const run = yield* store.startRun("saz-courses:2031-32", [
+				{ kind: "catalog", path: catalogPath(2031, 1) },
+			]);
 
 			yield* Effect.sync(() => {
 				for (const page of store.pages) page.status = "done";
@@ -274,5 +284,69 @@ describe("crawlAllYears", () => {
 				{ sourcePart: "saz-courses:2031-32", status: "succeeded" },
 			]);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+});
+
+describe("crawlSmart", () => {
+	const smartWith = (forbidden: string) =>
+		Layer.succeed(SmartClient, {
+			get: (path) =>
+				path === forbidden
+					? Effect.fail(new SmartRequestFailed({ path, status: 403 }))
+					: Effect.succeed({ items: [], total: 0 }),
+		});
+
+	it.effect(
+		"stores each list as a page and fails the run on one failed list",
+		() => {
+			const store = makeMemoryStore();
+
+			return Effect.gen(function* () {
+				const error = yield* Effect.flip(crawlSmart());
+
+				assert.instanceOf(error, SmartCrawlFailed);
+
+				assert.deepStrictEqual(
+					store.pages.map(
+						(page) => `${page.status} ${page.error ?? ""} ${page.path}`,
+					),
+					[
+						"done  /api/department",
+						"failed HTTP 403 /api/teacher",
+						"done  /api/discipline",
+						"done  /api/teacher/disciplines",
+					],
+				);
+
+				assert.match(
+					store.finished[0]?.sourcePart ?? "",
+					/^smart-ukma:\d{4}-\d{2}-\d{2}$/u,
+				);
+				assert.strictEqual(store.finished[0]?.status, "failed");
+			}).pipe(Effect.provide([store.layer, smartWith("/api/teacher")]));
+		},
+	);
+
+	it.effect("leaves an open САЗ run to the САЗ crawl", () => {
+		const store = makeMemoryStore();
+
+		return Effect.gen(function* () {
+			yield* store.startRun("saz-courses:2031-32", []);
+			yield* Effect.sync(() =>
+				store.queue(
+					1n,
+					{ kind: "catalog", path: catalogPath(2031, 1) },
+					"claimed",
+				),
+			);
+			yield* store.startRun("smart-ukma:2031-09-01", SMART_PAGES);
+
+			yield* crawlSmart();
+
+			assert.deepStrictEqual(store.finished, [
+				{ sourcePart: "smart-ukma:2031-09-01", status: "succeeded" },
+			]);
+			assert.strictEqual(store.pages[0]?.status, "claimed");
+		}).pipe(Effect.provide([store.layer, smartWith("none")]));
 	});
 });
