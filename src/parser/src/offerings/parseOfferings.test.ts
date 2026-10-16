@@ -30,6 +30,14 @@ const makeMemoryStore = (snapshots: Array<StoredPage>) => {
 				for (const { sazCode, title, snapshotId } of rows.offerings) {
 					offerings.set(sazCode, { title, snapshotId });
 				}
+
+				return [
+					{
+						table: "offerings" as const,
+						action: "change" as const,
+						rows: rows.offerings.length,
+					},
+				];
 			}),
 		startParse: (trigger) =>
 			Effect.sync(() => BigInt(parses.push({ trigger }))),
@@ -98,9 +106,18 @@ describe("parseOfferings", () => {
 					seconds: 0,
 					parsed: 1,
 					failed: [{ reason: "no course card", pages: 1 }],
+					changes: [{ table: "offerings", action: "change", rows: 1 }],
 				});
 				assert.deepStrictEqual(store.parses, [
-					{ trigger: "crawl", report: { seconds: 0, parsed: 2, failed: [] } },
+					{
+						trigger: "crawl",
+						report: {
+							seconds: 0,
+							parsed: 2,
+							failed: [],
+							changes: [{ table: "offerings", action: "change", rows: 2 }],
+						},
+					},
 					{ trigger: "reparse", report },
 				]);
 			}).pipe(Effect.provide(store.layer));

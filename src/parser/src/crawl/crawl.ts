@@ -26,6 +26,13 @@ export class NoAcademicYears extends Schema.TaggedError<NoAcademicYears>()(
 export const sourcePartOf = (year: number): string =>
 	`saz-courses:${year}-${String(year + 1).slice(2)}`;
 
+/** The inverse of `sourcePartOf`: `saz-courses:2025-26` is 2025. */
+export const academicYearOf = (sourcePart: string): number | undefined => {
+	const year = /^saz-courses:(\d{4})-\d{2}$/.exec(sourcePart)?.[1];
+
+	return year === undefined ? undefined : Number(year);
+};
+
 /** The pages a catalog page leads to: the other catalog pages (from page 1
  *  only, which carries the pager) and each listed course with its students. */
 const linkedPages = (

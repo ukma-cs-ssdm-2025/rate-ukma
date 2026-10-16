@@ -4,6 +4,7 @@ import Init from "./migrations/0001_init.ts";
 import SazSnapshots from "./migrations/0002_saz_snapshots.ts";
 import Offerings from "./migrations/0003_offerings.ts";
 import Parses from "./migrations/0004_parses.ts";
+import ChangeNumbers from "./migrations/0005_change_numbers.ts";
 
 export const PgLive = PgClient.layerConfig({
 	url: Config.Redacted("DATABASE_URL"),
@@ -15,6 +16,7 @@ export const runMigrations = PgMigrator.run({
 		"0002_saz_snapshots": SazSnapshots,
 		"0003_offerings": Offerings,
 		"0004_parses": Parses,
+		"0005_change_numbers": ChangeNumbers,
 	}),
 }).pipe(
 	Effect.tap((applied) =>
