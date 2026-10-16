@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { Snapshot } from "./snapshot.ts";
 
@@ -30,18 +30,46 @@ const KindTally = Schema.Struct({
 
 export type KindTally = typeof KindTally.Type;
 
+const PageFailure = Schema.Struct({
+	path: Schema.String,
+	error: Schema.String,
+});
+
+export type PageFailure = typeof PageFailure.Type;
+
+/** `seconds` runs from the first claim, so a resumed run counts the time it
+ *  was down; `failures` lists the first `MAX_LISTED_FAILURES` failed pages. */
 export interface RunReport {
-	readonly sourcePart: string;
 	readonly seconds: number;
 	readonly pages: ReadonlyArray<KindTally>;
+	readonly failures: ReadonlyArray<PageFailure>;
 }
 
+const MAX_LISTED_FAILURES = 100;
+
+const OpenRun = Schema.Struct({ id: Schema.BigInt, sourcePart: Schema.String });
+
+export type OpenRun = typeof OpenRun.Type;
+
 const RunId = Schema.Struct({ id: Schema.BigInt });
+
+/** The Postgres advisory lock key that only one crawl may hold. */
+const CRAWL_LOCK = 761;
+
+const decodeLocked = Schema.decodeUnknownEffect(
+	Schema.Tuple([Schema.Struct({ locked: Schema.Boolean })]),
+);
 
 export class CrawlStore extends Context.Service<
 	CrawlStore,
 	{
-		startRun(sourcePart: string, first: QueuedPage): Effect.Effect<bigint>;
+		/** Takes the crawl lock for the scope; `false` when another crawl holds
+		 *  it, since two would reset each other's claimed pages. */
+		lockCrawl: Effect.Effect<boolean, never, Scope.Scope>;
+		startRun(sourcePart: string, first: QueuedPage): Effect.Effect<OpenRun>;
+		/** The runs a crash left open, oldest first, with the pages they had
+		 *  claimed back in the queue. */
+		openRuns: Effect.Effect<ReadonlyArray<OpenRun>>;
 		/** The next pending page of the run, claimed so another worker skips it. */
 		claim(runId: bigint): Effect.Effect<ClaimedPage | undefined>;
 		/** Marks the page done, stores its snapshot when the content hash differs
@@ -53,7 +81,13 @@ export class CrawlStore extends Context.Service<
 			next: ReadonlyArray<QueuedPage>,
 		): Effect.Effect<void>;
 		fail(page: ClaimedPage, error: string): Effect.Effect<void>;
-		tally(runId: bigint): Effect.Effect<ReadonlyArray<KindTally>>;
+		/** Puts the run's pages that failed once with one of `errors` back in the
+		 *  queue, and returns how many. */
+		requeue(
+			runId: bigint,
+			errors: ReadonlyArray<string>,
+		): Effect.Effect<number>;
+		report(runId: bigint): Effect.Effect<RunReport>;
 		finishRun(
 			runId: bigint,
 			status: "succeeded" | "failed",
@@ -65,6 +99,30 @@ export class CrawlStore extends Context.Service<
 		CrawlStore,
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
+
+			// An advisory lock belongs to the session, so it is taken and released
+			// on a connection of its own.
+			const lockCrawl = Effect.gen(function* () {
+				const connection = yield* sql.reserve;
+
+				const [{ locked }] = yield* connection
+					.execute(
+						"SELECT pg_try_advisory_lock($1) AS locked",
+						[CRAWL_LOCK],
+						undefined,
+					)
+					.pipe(Effect.flatMap(decodeLocked));
+
+				if (locked) {
+					yield* Effect.addFinalizer(() =>
+						connection
+							.execute("SELECT pg_advisory_unlock($1)", [CRAWL_LOCK], undefined)
+							.pipe(Effect.ignore),
+					);
+				}
+
+				return locked;
+			}).pipe(Effect.orDie);
 
 			const insertRun = SqlSchema.findOne({
 				Request: Schema.String,
@@ -92,10 +150,26 @@ export class CrawlStore extends Context.Service<
 					.withTransaction(
 						insertRun(sourcePart).pipe(
 							Effect.tap(({ id }) => queue(id, [first])),
-							Effect.map(({ id }) => id),
+							Effect.map(({ id }) => ({ id, sourcePart })),
 						),
 					)
 					.pipe(Effect.orDie);
+
+			const findOpenRuns = SqlSchema.findAll({
+				Request: Schema.Void,
+				Result: OpenRun,
+				execute: () => sql`
+					SELECT id, source_part AS "sourcePart" FROM runs
+					WHERE status = 'running'
+					ORDER BY id
+				`,
+			});
+
+			const openRuns = sql`
+				UPDATE run_pages SET status = 'pending'
+				WHERE status = 'claimed'
+					AND run_id IN (SELECT id FROM runs WHERE status = 'running')
+			`.pipe(Effect.andThen(findOpenRuns()), sql.withTransaction, Effect.orDie);
 
 			const claimNext = SqlSchema.findOneOption({
 				Request: Schema.BigInt,
@@ -181,6 +255,16 @@ export class CrawlStore extends Context.Service<
 					WHERE id = ${page.id}
 				`.pipe(Effect.asVoid, Effect.orDie);
 
+			const requeue = (runId: bigint, errors: ReadonlyArray<string>) =>
+				sql`
+					UPDATE run_pages SET status = 'pending', error = NULL, finished_at = NULL
+					WHERE run_id = ${runId} AND status = 'failed' AND error IN ${sql.in(errors)} AND attempts = 1
+					RETURNING id
+				`.pipe(
+					Effect.map((rows) => rows.length),
+					Effect.orDie,
+				);
+
 			const tallyOf = SqlSchema.findAll({
 				Request: Schema.BigInt,
 				Result: KindTally,
@@ -197,7 +281,33 @@ export class CrawlStore extends Context.Service<
 				`,
 			});
 
-			const tally = (runId: bigint) => tallyOf(runId).pipe(Effect.orDie);
+			const failuresOf = SqlSchema.findAll({
+				Request: Schema.BigInt,
+				Result: PageFailure,
+				execute: (runId) => sql`
+					SELECT path, error FROM run_pages
+					WHERE run_id = ${runId} AND status = 'failed'
+					ORDER BY id
+					LIMIT ${MAX_LISTED_FAILURES}
+				`,
+			});
+
+			const secondsOf = SqlSchema.findOne({
+				Request: Schema.BigInt,
+				Result: Schema.Struct({ seconds: Schema.Number }),
+				execute: (runId) => sql`
+					SELECT coalesce(extract(epoch FROM now() - min(claimed_at)), 0)::int AS seconds
+					FROM run_pages
+					WHERE run_id = ${runId}
+				`,
+			});
+
+			const report = (runId: bigint) =>
+				Effect.all({
+					seconds: secondsOf(runId).pipe(Effect.map(({ seconds }) => seconds)),
+					pages: tallyOf(runId),
+					failures: failuresOf(runId),
+				}).pipe(Effect.orDie);
 
 			const finishRun = (
 				runId: bigint,
@@ -211,11 +321,14 @@ export class CrawlStore extends Context.Service<
 				`.pipe(Effect.asVoid, Effect.orDie);
 
 			return CrawlStore.of({
+				lockCrawl,
 				startRun,
+				openRuns,
 				claim,
 				complete,
 				fail,
-				tally,
+				requeue,
+				report,
 				finishRun,
 			});
 		}),
