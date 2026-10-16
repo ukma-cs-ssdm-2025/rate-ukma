@@ -60,6 +60,8 @@ jobs:
   terraform:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
+    # The environment (required reviewer, main only) gates the whole job, so approval comes before the plan.
+    # TBD: split into plan and apply jobs before adding live, so the approver sees the plan first.
     environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
     # Never run two plans/applies against the same state at once, even if the bucket ignores the S3 lockfile.
     concurrency:
