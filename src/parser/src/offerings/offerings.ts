@@ -129,7 +129,13 @@ export interface ParseReport {
  *  reference lists. A page that fails keeps the rows of its last good parse. */
 export const parseOfferings = Effect.fn("parseOfferings")(function* () {
 	const store = yield* OfferingStore;
-	const filters = catalogFiltersOf((yield* store.latestCatalogPage) ?? "");
+	const catalogPage = yield* store.latestCatalogPage;
+
+	if (catalogPage === undefined) {
+		yield* Effect.logWarning("No catalog page stored, so no filter ids");
+	}
+
+	const filters = catalogFiltersOf(catalogPage ?? "");
 	const failed = new Map<string, number>();
 	let parsed = 0;
 
@@ -147,14 +153,13 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* () {
 				continue;
 			}
 
-			const { reason, detail } = result.failure;
+			const { reason } = result.failure;
 
 			failed.set(reason, (failed.get(reason) ?? 0) + 1);
 			yield* Effect.logWarning("Course page failed to parse", {
 				path: page.path,
 				snapshot_id: String(page.id),
 				reason,
-				detail,
 			});
 		}
 

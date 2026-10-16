@@ -279,13 +279,6 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 	Result.gen(function* () {
 		const start = html.indexOf(CARD_START);
 		const title = TITLE.exec(html)?.[1];
-
-		if (start === -1 || title === undefined) {
-			return yield* Result.fail(
-				new CoursePageError({ reason: "no course card", detail: "" }),
-			);
-		}
-
 		const page = html.slice(start);
 		const annotation = ANNOTATION.exec(page)?.[1];
 		const programmes = PROGRAMMES.exec(page)?.[1];
@@ -293,7 +286,15 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 		// The programmes block holds a table of its own, so the card ends at the
 		// first table end only once both blocks are cut out.
 		const card = page.replace(ANNOTATION, "").replace(PROGRAMMES, "");
-		const rows = rowsOf(card.slice(0, card.indexOf("</table>")));
+		const end = card.indexOf("</table>");
+
+		if (start === -1 || title === undefined || end === -1) {
+			return yield* Result.fail(
+				new CoursePageError({ reason: "no course card", detail: "" }),
+			);
+		}
+
+		const rows = rowsOf(card.slice(0, end));
 
 		const text = (name: string) => {
 			const cell = rows.get(name);

@@ -21,8 +21,11 @@ export const WorkerLive = Layer.effectDiscard(
 		);
 
 		yield* crawlAllYears().pipe(
-			Effect.andThen(parseOfferings()),
 			Effect.catchCause((cause) => Effect.logError("Crawl failed", cause)),
+			Effect.andThen(parseOfferings()),
+			Effect.catchCause((cause) =>
+				Effect.logError("Parsing offerings failed", cause),
+			),
 			Effect.forkScoped,
 		);
 	}),

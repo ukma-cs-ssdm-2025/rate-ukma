@@ -70,7 +70,8 @@ export class OfferingStore extends Context.Service<
 		/** Any catalog page carries the filters, so the latest one is enough. */
 		latestCatalogPage: Effect.Effect<string | undefined>;
 		/** Upserts the rows by their САЗ code or name, so ids stay, and replaces
-		 *  the terms and programmes of each offering in the batch. */
+		 *  the terms and programmes of each offering in the batch. A filter id the
+		 *  catalog page did not list keeps its stored value. */
 		write(rows: OfferingRows): Effect.Effect<void>;
 	}
 >()("ukma-data/offerings/OfferingStore") {
@@ -140,7 +141,8 @@ export class OfferingStore extends Context.Service<
 						SELECT name, "sazFilterId"
 						FROM jsonb_to_recordset(${json(rows.faculties)}::jsonb)
 							AS r(name text, "sazFilterId" text)
-						ON CONFLICT (name) DO UPDATE SET saz_filter_id = EXCLUDED.saz_filter_id
+						ON CONFLICT (name) DO UPDATE
+						SET saz_filter_id = coalesce(EXCLUDED.saz_filter_id, faculties.saz_filter_id)
 					`;
 
 					yield* sql`
@@ -150,7 +152,8 @@ export class OfferingStore extends Context.Service<
 							AS r(name text, faculty text, "sazFilterId" text)
 						LEFT JOIN faculties f ON f.name = r.faculty
 						ON CONFLICT (name) DO UPDATE
-						SET saz_filter_id = EXCLUDED.saz_filter_id, faculty_id = EXCLUDED.faculty_id
+						SET saz_filter_id = coalesce(EXCLUDED.saz_filter_id, departments.saz_filter_id),
+							faculty_id = EXCLUDED.faculty_id
 					`;
 
 					yield* sql`
@@ -158,7 +161,8 @@ export class OfferingStore extends Context.Service<
 						SELECT name, level, "sazFilterId"
 						FROM jsonb_to_recordset(${json(rows.programmes)}::jsonb)
 							AS r(name text, level text, "sazFilterId" text)
-						ON CONFLICT (name, level) DO UPDATE SET saz_filter_id = EXCLUDED.saz_filter_id
+						ON CONFLICT (name, level) DO UPDATE
+						SET saz_filter_id = coalesce(EXCLUDED.saz_filter_id, programmes.saz_filter_id)
 					`;
 
 					yield* sql`
