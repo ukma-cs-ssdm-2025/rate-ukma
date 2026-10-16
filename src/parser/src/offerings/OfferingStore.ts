@@ -62,8 +62,6 @@ const SnapshotId = Schema.Struct({ id: Schema.BigInt });
 
 const ParseId = Schema.Struct({ id: Schema.BigInt });
 
-/** What started a parse: a crawl that stored pages, or the `reparse`
- *  command. */
 export type ParseTrigger = "crawl" | "reparse";
 
 /** A course page that did not parse; its rows stay as they were. */
@@ -95,7 +93,9 @@ export class OfferingStore extends Context.Service<
 		latestCatalogPage: Effect.Effect<string | undefined>;
 		/** Upserts the rows by their САЗ code, filter id or name, so ids stay,
 		 *  and replaces the terms and programmes of each offering in the batch. A
-		 *  filter id the catalog page did not list keeps its stored value. */
+		 *  filter id the catalog page did not list keeps its stored value. An
+		 *  offering already parsed from a newer snapshot keeps its rows, so a
+		 *  parse that overlaps a crawl cannot roll it back. */
 		write(rows: OfferingRows): Effect.Effect<void>;
 		startParse(trigger: ParseTrigger): Effect.Effect<bigint>;
 		recordFailures(
@@ -174,7 +174,10 @@ export class OfferingStore extends Context.Service<
 			const write = (rows: OfferingRows) =>
 				Effect.gen(function* () {
 					const codes = json(
-						rows.offerings.map(({ sazCode }) => ({ sazCode })),
+						rows.offerings.map(({ sazCode, snapshotId }) => ({
+							sazCode,
+							snapshotId,
+						})),
 					);
 
 					const faculties = planUnits(
@@ -281,12 +284,14 @@ export class OfferingStore extends Context.Service<
 							group_size_max = EXCLUDED.group_size_max,
 							enrolled_active = EXCLUDED.enrolled_active,
 							snapshot_id = EXCLUDED.snapshot_id
+						WHERE offerings.snapshot_id <= EXCLUDED.snapshot_id
 					`;
 
 					const batchOfferings = sql`
 						SELECT o.id FROM offerings o
-						JOIN jsonb_to_recordset(${codes}::jsonb) AS r("sazCode" text)
-							ON o.saz_code = r."sazCode"
+						JOIN jsonb_to_recordset(${codes}::jsonb)
+							AS r("sazCode" text, "snapshotId" bigint)
+							ON o.saz_code = r."sazCode" AND o.snapshot_id = r."snapshotId"
 					`;
 
 					yield* sql`DELETE FROM offering_terms WHERE offering_id IN (${batchOfferings})`;
@@ -305,6 +310,7 @@ export class OfferingStore extends Context.Service<
 							"practiceHours" integer, control text
 						)
 						JOIN offerings o ON o.saz_code = r."sazCode"
+							AND o.id IN (${batchOfferings})
 						JOIN terms t ON t.code = r."termCode"
 					`;
 
@@ -314,6 +320,7 @@ export class OfferingStore extends Context.Service<
 						FROM jsonb_to_recordset(${json(rows.offeringProgrammes)}::jsonb)
 							AS r("sazCode" text, name text, level text, kind text)
 						JOIN offerings o ON o.saz_code = r."sazCode"
+							AND o.id IN (${batchOfferings})
 						JOIN programmes p ON p.name = r.name AND p.level = r.level
 					`;
 				}).pipe(sql.withTransaction, Effect.orDie);
