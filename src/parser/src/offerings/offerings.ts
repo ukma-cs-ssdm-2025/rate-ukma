@@ -1,11 +1,17 @@
-import { Array as Arr, Effect, Result, Schema } from "effect";
+import { Array as Arr, Clock, Effect, Result, Schema } from "effect";
 import { parseFilterOptions } from "../saz/catalog.ts";
 import {
 	Level,
 	type ParsedOffering,
 	parseCoursePage,
 } from "../saz/coursePage.ts";
-import { OfferingStore, type OfferingRows } from "./OfferingStore.ts";
+import {
+	OfferingStore,
+	type OfferingRows,
+	type ParseFailure,
+	type ParseReport,
+	type ParseTrigger,
+} from "./OfferingStore.ts";
 
 const BATCH_SIZE = 500;
 
@@ -141,19 +147,15 @@ export const offeringRowsOf = (
 	};
 };
 
-export interface ParseReport {
-	readonly parsed: number;
-	/** Failed pages by reason. */
-	readonly failed: ReadonlyArray<{
-		readonly reason: string;
-		readonly pages: number;
-	}>;
-}
-
 /** Parses the latest snapshot of every course page into offerings and their
- *  reference lists. A page that fails keeps the rows of its last good parse. */
-export const parseOfferings = Effect.fn("parseOfferings")(function* () {
+ *  reference lists, and records the parse. A page that fails keeps the rows of
+ *  its last good parse, and the failure is recorded with its snapshot. */
+export const parseOfferings = Effect.fn("parseOfferings")(function* (
+	trigger: ParseTrigger,
+) {
 	const store = yield* OfferingStore;
+	const startedAt = yield* Clock.currentTimeMillis;
+	const parseId = yield* store.startParse(trigger);
 	const catalogPage = yield* store.latestCatalogPage;
 
 	if (catalogPage === undefined) {
@@ -166,6 +168,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* () {
 
 	for (const ids of Arr.chunksOf(yield* store.latestCoursePages, BATCH_SIZE)) {
 		const pages: Array<ParsedPage> = [];
+		const failures: Array<ParseFailure> = [];
 
 		for (const page of yield* store.coursePages(ids)) {
 			const result = parseCoursePage(
@@ -181,6 +184,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* () {
 			const { reason } = result.failure;
 
 			failed.set(reason, (failed.get(reason) ?? 0) + 1);
+			failures.push({ snapshotId: page.id, path: page.path, reason });
 			yield* Effect.logWarning("Course page failed to parse", {
 				path: page.path,
 				snapshot_id: String(page.id),
@@ -189,15 +193,20 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* () {
 		}
 
 		yield* store.write(offeringRowsOf(pages, filters));
+		yield* store.recordFailures(parseId, failures);
 		parsed += pages.length;
 	}
 
 	const report: ParseReport = {
+		seconds: Math.round(((yield* Clock.currentTimeMillis) - startedAt) / 1000),
 		parsed,
 		failed: Array.from(failed, ([reason, pages]) => ({ reason, pages })),
 	};
 
-	yield* Effect.logInfo("Offerings parsed", report);
+	yield* store.finishParse(parseId, report);
+	yield* Effect.logInfo("Offerings parsed", report).pipe(
+		Effect.annotateLogs({ parse_id: String(parseId), trigger }),
+	);
 
 	return report;
 });

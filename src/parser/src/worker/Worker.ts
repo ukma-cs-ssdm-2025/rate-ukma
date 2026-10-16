@@ -22,7 +22,7 @@ export const WorkerLive = Layer.effectDiscard(
 
 		yield* crawlAllYears().pipe(
 			Effect.catchCause((cause) => Effect.logError("Crawl failed", cause)),
-			Effect.andThen(parseOfferings()),
+			Effect.andThen(parseOfferings("crawl")),
 			Effect.catchCause((cause) =>
 				Effect.logError("Parsing offerings failed", cause),
 			),
