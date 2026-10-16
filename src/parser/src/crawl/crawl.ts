@@ -15,7 +15,7 @@ import {
 } from "./CrawlStore.ts";
 import { type Snapshot, snapshotOf } from "./snapshot.ts";
 
-export const TRANSPORT_ERROR = "transport error";
+const TRANSPORT_ERROR = "transport error";
 
 /** Why a page failed, as stored on it: an HTTP status or `TRANSPORT_ERROR`. */
 export class PageFailed extends Schema.TaggedError<PageFailed>()("PageFailed", {

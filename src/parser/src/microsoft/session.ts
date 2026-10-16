@@ -45,9 +45,6 @@ const decodeMicrosoftForm = Schema.decodeUnknownEffect(MicrosoftForm);
 
 const MICROSOFT_CONFIG = /\$Config=(\{.*?\});/su;
 
-const isOnMicrosoft = (response: HttpClientResponse.HttpClientResponse) =>
-	new URL(response.request.url).origin === MICROSOFT_URL;
-
 export interface Account {
 	readonly email: string;
 	readonly password: Redacted.Redacted<string>;
@@ -169,7 +166,9 @@ const open = Effect.fnUntraced(function* (
 				),
 			);
 
-			if (isOnMicrosoft(response)) {
+			const end = new URL(response.request.url).origin;
+
+			if (end === MICROSOFT_URL) {
 				const next = yield* readForm(response);
 
 				return yield* new MicrosoftSignInFailed({
@@ -177,6 +176,14 @@ const open = Effect.fnUntraced(function* (
 						next.sErrorCode === undefined
 							? `stopped on the Microsoft page ${next.pgid ?? "unknown"}`
 							: `Microsoft error ${next.sErrorCode}`,
+				});
+			}
+
+			// Another host, such as an MFA setup page, is a failed sign-in too;
+			// taken as a success, every later page would post the password again.
+			if (end !== new URL(start).origin) {
+				return yield* new MicrosoftSignInFailed({
+					reason: `stopped on ${new URL(end).host}`,
 				});
 			}
 

@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { catalogPath } from "../saz/catalog.ts";
 import { SazClient, SazRequestFailed } from "../saz/SazClient.ts";
-import { crawlSmart, SMART_PAGES } from "../smart/crawl.ts";
+import { crawlSmart, SMART_PAGES, SmartCrawlFailed } from "../smart/crawl.ts";
 import { SmartClient, SmartRequestFailed } from "../smart/SmartClient.ts";
 import { crawlAllYears, NoAcademicYears } from "./crawl.ts";
 import {
@@ -91,7 +91,7 @@ const makeMemoryStore = () => {
 			if (row) row.status = status;
 		});
 
-	const startRun = (sourcePart: string, first: ReadonlyArray<QueuedPage>) =>
+	const startRun = (sourcePart: string, queued: ReadonlyArray<QueuedPage>) =>
 		Effect.sync(() => {
 			const run = {
 				id: BigInt(runs.length + 1),
@@ -100,7 +100,7 @@ const makeMemoryStore = () => {
 			};
 
 			runs.push(run);
-			first.forEach((page) => queue(run.id, page));
+			queued.forEach((page) => queue(run.id, page));
 
 			return { id: run.id, sourcePart };
 		});
@@ -302,7 +302,9 @@ describe("crawlSmart", () => {
 			const store = makeMemoryStore();
 
 			return Effect.gen(function* () {
-				yield* crawlSmart();
+				const error = yield* Effect.flip(crawlSmart());
+
+				assert.instanceOf(error, SmartCrawlFailed);
 
 				assert.deepStrictEqual(
 					store.pages.map(
@@ -329,9 +331,14 @@ describe("crawlSmart", () => {
 		const store = makeMemoryStore();
 
 		return Effect.gen(function* () {
-			yield* store.startRun("saz-courses:2031-32", [
-				{ kind: "catalog", path: catalogPath(2031, 1) },
-			]);
+			yield* store.startRun("saz-courses:2031-32", []);
+			yield* Effect.sync(() =>
+				store.queue(
+					1n,
+					{ kind: "catalog", path: catalogPath(2031, 1) },
+					"claimed",
+				),
+			);
 			yield* store.startRun("smart-ukma:2031-09-01", SMART_PAGES);
 
 			yield* crawlSmart();
@@ -339,7 +346,7 @@ describe("crawlSmart", () => {
 			assert.deepStrictEqual(store.finished, [
 				{ sourcePart: "smart-ukma:2031-09-01", status: "succeeded" },
 			]);
-			assert.strictEqual(store.pages[0]?.status, "pending");
+			assert.strictEqual(store.pages[0]?.status, "claimed");
 		}).pipe(Effect.provide([store.layer, smartWith("none")]));
 	});
 });

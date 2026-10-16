@@ -72,7 +72,7 @@ sequenceDiagram
 - **Enrollment**: one student on one offering, with a status and a group.
 - **Source part**: one slice of a source that one run crawls, for example САЗ courses of 2026-27.
 - **Run**: one crawl of one source part.
-- **Page snapshot**: an HTML page without the parts that change on every request, such as the security token, or a JSON response as it came. It keeps the page's tables and labels, so a later parser can read new fields from it.
+- **Page snapshot**: an HTML page without the parts that change on every request, such as the security token, or a JSON response with its keys sorted. It keeps the page's tables and labels, so a later parser can read new fields from it.
 - **Safe answer**: the choice that is easy to undo: a new course rather than a merge, no teacher link rather than a guess, removals held rather than applied.
 - **Review case**: a question the service could not decide itself, published with its safe answer and waiting for staff. See [Review cases](#review-cases).
 - **Decision**: a staff answer, stored as its own row. It changes course groups, teacher links or held removals, or keeps the safe answer. It answers a review case, or staff start it themselves, for example a split.

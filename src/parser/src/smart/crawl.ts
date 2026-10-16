@@ -1,4 +1,4 @@
-import { DateTime, Effect } from "effect";
+import { DateTime, Effect, Schema } from "effect";
 import {
 	crawlRun,
 	PageFailed,
@@ -20,8 +20,14 @@ export const SMART_PAGES: ReadonlyArray<QueuedPage> = [
 ];
 
 /** smart.ukma lists have no academic year, so a run is named by its day. */
-export const smartSourcePartOf = (day: DateTime.DateTime): string =>
+const smartSourcePartOf = (day: DateTime.DateTime): string =>
 	`${SMART_SOURCE}:${DateTime.formatIsoDate(day)}`;
+
+/** A run ended `failed`, so a scheduled `crawl-smart` exits non-zero. */
+export class SmartCrawlFailed extends Schema.TaggedError<SmartCrawlFailed>()(
+	"SmartCrawlFailed",
+	{ sourcePart: Schema.String },
+) {}
 
 /** Fetches the smart.ukma lists into one run, or finishes the run a crash
  *  left open. Any failed list fails the run. */
@@ -53,5 +59,12 @@ export const crawlSmart = Effect.fn("crawlSmart")(function* () {
 		failsRun: (tally) => tally.failed > 0,
 	};
 
-	return yield* Effect.forEach(runs, (run) => crawlRun(run, source));
+	const results = yield* Effect.forEach(runs, (run) => crawlRun(run, source));
+	const failed = results.find(({ status }) => status === "failed");
+
+	if (failed !== undefined) {
+		return yield* new SmartCrawlFailed({ sourcePart: failed.sourcePart });
+	}
+
+	return results;
 });

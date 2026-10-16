@@ -5,6 +5,7 @@ import {
 	SmartClient,
 	SmartNotJson,
 	SmartRequestFailed,
+	SmartSignInFailed,
 } from "./SmartClient.ts";
 
 const MICROSOFT = "https://login.microsoftonline.com";
@@ -36,6 +37,10 @@ interface FakeOptions {
 	readonly expiry: number;
 	/** Access tokens the API answers with this status instead of the data. */
 	readonly rejected?: ReadonlyMap<string, number>;
+	/** Whether the refresh endpoint turns every refresh token down. */
+	readonly refreshRejected?: boolean;
+	/** Where Microsoft sends the account after the password, if not back. */
+	readonly detour?: string;
 }
 
 /** A fake smart.ukma: its Spring sign-in redirects through Microsoft and
@@ -58,6 +63,8 @@ const makeFakeFetch = (options: FakeOptions) => {
 		}
 
 		if (url.origin === MICROSOFT && url.pathname === "/common/login") {
+			if (options.detour !== undefined) return redirect(options.detour);
+
 			return redirect(
 				"https://smart.ukma.edu.ua/login/oauth2/code/azure?code=code-1",
 			);
@@ -79,7 +86,7 @@ const makeFakeFetch = (options: FakeOptions) => {
 		if (url.pathname === "/api/auth/refresh-token") {
 			const body = JSON.parse(String(init?.body));
 
-			return body.refreshToken === "refresh-1"
+			return body.refreshToken === "refresh-1" && !options.refreshRejected
 				? json({
 						accessToken: tokenOf("access-refreshed", 3600),
 						refreshToken: "refresh-2",
@@ -203,5 +210,59 @@ describe("SmartClient", () => {
 
 			assert.instanceOf(error, SmartNotJson);
 		}).pipe(Effect.provide(clientWith(makeFakeFetch({ expiry: 3600 })))),
+	);
+
+	it.effect("signs in again when the refresh token is turned down", () => {
+		const fake = makeFakeFetch({ expiry: 10, refreshRejected: true });
+
+		return Effect.gen(function* () {
+			const smart = yield* SmartClient;
+
+			yield* smart.get("/api/department");
+			yield* smart.get("/api/department");
+
+			assert.strictEqual(count(fake.visits, REFRESH), 1);
+			assert.strictEqual(count(fake.visits, SIGN_IN), 2);
+		}).pipe(Effect.provide(clientWith(fake)));
+	});
+
+	it.effect("reports a 401 that outlasts a fresh sign-in", () => {
+		const fake = makeFakeFetch({
+			expiry: 3600,
+			rejected: new Map([
+				[tokenOf("access-1", 3600), 401],
+				[tokenOf("access-2", 3600), 401],
+			]),
+		});
+
+		return Effect.gen(function* () {
+			const smart = yield* SmartClient;
+
+			const error = yield* Effect.flip(smart.get("/api/department"));
+
+			assert.instanceOf(error, SmartRequestFailed);
+			assert.strictEqual(error.status, 401);
+			assert.strictEqual(count(fake.visits, SIGN_IN), 2);
+		}).pipe(Effect.provide(clientWith(fake)));
+	});
+
+	it.effect("fails a sign-in that stops on another host", () =>
+		Effect.gen(function* () {
+			const smart = yield* SmartClient;
+
+			const error = yield* Effect.flip(smart.get("/api/department"));
+
+			assert.instanceOf(error, SmartSignInFailed);
+			assert.strictEqual(error.reason, "stopped on mfa.example.com");
+		}).pipe(
+			Effect.provide(
+				clientWith(
+					makeFakeFetch({
+						expiry: 3600,
+						detour: "https://mfa.example.com/setup",
+					}),
+				),
+			),
+		),
 	);
 });
