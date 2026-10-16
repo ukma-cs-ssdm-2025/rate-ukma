@@ -7,7 +7,8 @@ users:
     shell: /bin/bash
     sudo: "ALL=(ALL) NOPASSWD:ALL"
     ssh_authorized_keys:
-      - ${ssh_public_key}
+      # Quoted, so a key comment with ": " stays a string.
+      - ${chomp(yamlencode(trimspace(ssh_public_key)))}
 
 disable_root: true
 ssh_pwauth: false
@@ -16,11 +17,16 @@ package_update: true
 package_upgrade: true
 
 write_files:
-  # k3s reads this on every start. Traefik (bundled) is the ingress controller.
+  # k3s reads this on every start.
+  # Traefik (bundled) is the ingress controller.
   - path: /etc/rancher/k3s/config.yaml
     permissions: "0600"
     content: |
       secrets-encryption: true
 
 runcmd:
-  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - server
+  # "curl | sh" hides a failed download: sh gets no input and exits 0.
+  # Saving the installer first lets the failure reach cloud-init.
+  - >-
+    curl -fsSL --retry 5 --retry-all-errors -o /run/k3s-install.sh https://get.k3s.io &&
+    INSTALL_K3S_VERSION="${k3s_version}" sh /run/k3s-install.sh server
