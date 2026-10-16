@@ -32,6 +32,7 @@ jobs:
         ${{ inputs.version-tag == '' &&
         (fromJSON(needs.changes-filter.outputs.backend_changed) ||
         fromJSON(needs.changes-filter.outputs.webapp_changed) ||
+        fromJSON(needs.changes-filter.outputs.parser_changed) ||
         fromJSON(needs.changes-filter.outputs.infra_changed)) }}
     uses: ./.github/workflows/version.yml
 
@@ -41,6 +42,7 @@ jobs:
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      parser_changed: ${{ fromJSON(needs.changes-filter.outputs.parser_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
 
   openapi-validation:
     needs: changes-filter
@@ -70,6 +72,7 @@ jobs:
       version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      parser_changed: ${{ fromJSON(needs.changes-filter.outputs.parser_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
 
   release-needed:
     needs: [version]

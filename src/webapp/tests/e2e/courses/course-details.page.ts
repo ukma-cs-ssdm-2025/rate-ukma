@@ -128,6 +128,10 @@ export class CourseDetailsPage {
 		await this.deleteConfirmButton.click();
 	}
 
+	async expectNoUserRating(): Promise<void> {
+		await expect(this.userRatingDeleteButton).toBeHidden();
+	}
+
 	async waitForReviewsData(minReviews = 1): Promise<void> {
 		await expect(this.reviewsSection).toBeVisible();
 		await expect(this.reviewsCountStat).toBeVisible();

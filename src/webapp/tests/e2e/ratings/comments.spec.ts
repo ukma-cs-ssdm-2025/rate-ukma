@@ -1,16 +1,15 @@
-import {
-	expect,
-	type Locator,
-	type Page,
-	type Response as PlaywrightResponse,
-	type Route,
-	type TestInfo,
-	test,
+import type {
+	Locator,
+	Page,
+	Response as PlaywrightResponse,
+	Route,
+	TestInfo,
 } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 import { MyRatingsPage } from "./my-ratings.page";
 import { CourseDetailsPage } from "../courses/course-details.page";
+import { test as base, expect } from "../framework/fixtures";
 import { createTestRatingData } from "../framework/test-config";
 import { CommentsSection } from "../shared/comments-section.component";
 import { RatingModal } from "../shared/rating-modal.component";
@@ -45,136 +44,90 @@ interface CommentPayload {
 	[key: string]: unknown;
 }
 
+// Each test starts on a course with a fresh rating of ours to comment under;
+// teardown deletes that rating.
+const test = base.extend<{ seeded: SeededRatingContext }>({
+	seeded: async ({ page }, use, testInfo) => {
+		const context = await seedRating(page, testInfo);
+		await use(context);
+		await cleanupSeededRating(context);
+	},
+});
+
 test.describe("Rating comments workflow", () => {
-	test("posts a top-level comment under a rating", async ({ page }) => {
-		await withSeededRating(page, test.info(), async ({ comments }) => {
-			const comment = uniqueText(test.info(), "comment");
+	test("posts a top-level comment under a rating", async ({
+		seeded: { comments },
+	}) => {
+		const comment = uniqueText(test.info(), "comment");
 
-			await comments.createComment(comment);
-			await comments.expectCommentVisible(comment);
-		});
+		await comments.createComment(comment);
+		await comments.expectCommentVisible(comment);
 	});
 
-	test("posts and expands a nested reply", async ({ page }) => {
-		await withSeededRating(page, test.info(), async ({ comments }) => {
-			const parentComment = uniqueText(test.info(), "parent");
-			const reply = uniqueText(test.info(), "reply");
+	test("posts and expands a nested reply", async ({ seeded: { comments } }) => {
+		const parentComment = uniqueText(test.info(), "parent");
+		const reply = uniqueText(test.info(), "reply");
 
-			await comments.createComment(parentComment);
-			await comments.replyToComment(parentComment, reply);
-			await comments.expandReplies(parentComment);
-			await comments.expectCommentVisible(reply, "last");
-		});
+		await comments.createComment(parentComment);
+		await comments.replyToComment(parentComment, reply);
+		await comments.expandReplies(parentComment);
+		await comments.expectCommentVisible(reply, "last");
 	});
 
-	test("edits an own comment", async ({ page }) => {
-		await withSeededRating(page, test.info(), async ({ comments }) => {
-			const originalComment = uniqueText(test.info(), "edit-original");
-			const updatedComment = uniqueText(test.info(), "edit-updated");
+	test("edits an own comment", async ({ seeded: { comments } }) => {
+		const originalComment = uniqueText(test.info(), "edit-original");
+		const updatedComment = uniqueText(test.info(), "edit-updated");
 
-			await comments.createComment(originalComment);
-			await comments.editComment(originalComment, updatedComment);
+		await comments.createComment(originalComment);
+		await comments.editComment(originalComment, updatedComment);
 
-			await comments.expectCommentHidden(originalComment);
-			await comments.expectCommentVisible(updatedComment);
-		});
+		await comments.expectCommentHidden(originalComment);
+		await comments.expectCommentVisible(updatedComment);
 	});
 
 	test("deletes a comment through the confirmation dialog", async ({
-		page,
+		seeded: { comments },
 	}) => {
-		await withSeededRating(page, test.info(), async ({ comments }) => {
-			const comment = uniqueText(test.info(), "delete");
+		const comment = uniqueText(test.info(), "delete");
 
-			await comments.createComment(comment);
-			await comments.requestDeleteComment(comment);
-			await comments.cancelDelete();
-			await comments.expectCommentVisible(comment);
+		await comments.createComment(comment);
+		await comments.requestDeleteComment(comment);
+		await comments.cancelDelete();
+		await comments.expectCommentVisible(comment);
 
-			await comments.deleteComment(comment);
-		});
+		await comments.deleteComment(comment);
 	});
 
 	test("renders anonymous comments with the anonymous author", async ({
-		page,
+		seeded: { comments },
 	}) => {
-		await withSeededRating(page, test.info(), async ({ comments }) => {
-			const comment = uniqueText(test.info(), "anonymous");
+		const comment = uniqueText(test.info(), "anonymous");
 
-			await comments.createComment(comment, { anonymous: true });
+		await comments.createComment(comment, { anonymous: true });
 
-			const commentItem = await comments.expectCommentVisible(comment);
-			await expect(commentItem).toContainText(ANONYMOUS_COMMENT_NAME);
-		});
+		const commentItem = await comments.expectCommentVisible(comment);
+		await expect(commentItem).toContainText(ANONYMOUS_COMMENT_NAME);
 	});
 
 	test("hides edit and delete actions for non-owner comments", async ({
 		page,
+		seeded: { comments, coursePage, ratingComment },
 	}) => {
-		await withSeededRating(
-			page,
-			test.info(),
-			async ({ comments, coursePage, ratingComment }) => {
-				const comment = uniqueText(test.info(), "non-owner");
+		const comment = uniqueText(test.info(), "non-owner");
 
-				await comments.createComment(comment);
-				const stopMockingCommentOwner = await mockCommentAsNonOwner(
-					page,
-					comment,
-				);
-				try {
-					await page.reload();
-					await expect(
-						page.getByTestId(testIds.courseDetails.title),
-					).toBeVisible();
+		await comments.createComment(comment);
+		// The route lives only as long as this test's page, so no unroute.
+		await mockCommentAsNonOwner(page, comment);
+		await page.reload();
+		await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();
 
-					const reloadedCard =
-						await coursePage.findReviewCardByText(ratingComment);
-					const reloadedComments = new CommentsSection(page, reloadedCard);
+		const reloadedCard = await coursePage.findReviewCardByText(ratingComment);
+		const reloadedComments = new CommentsSection(page, reloadedCard);
 
-					await reloadedComments.expand();
-					await reloadedComments.expectManagementActionsHidden(comment);
-				} finally {
-					await stopMockingCommentOwner();
-				}
-			},
-		);
+		await reloadedComments.expand();
+		await reloadedComments.expectManagementActionsHidden(comment);
 	});
 });
-
-async function withSeededRating(
-	page: Page,
-	testInfo: TestInfo,
-	run: (context: SeededRatingContext) => Promise<void>,
-): Promise<void> {
-	let context: SeededRatingContext | undefined;
-	let mainError: unknown;
-
-	try {
-		context = await seedRating(page, testInfo);
-		await run(context);
-	} catch (error) {
-		mainError = error;
-	}
-
-	if (context) {
-		try {
-			await cleanupSeededRating(context);
-		} catch (cleanupError) {
-			if (!mainError) {
-				throw cleanupError;
-			}
-			console.warn(
-				"Failed to cleanup rating created by comments e2e test",
-				cleanupError,
-			);
-		}
-	}
-
-	if (mainError) {
-		throw mainError;
-	}
-}
 
 async function seedRating(
 	page: Page,
@@ -300,7 +253,7 @@ async function getCsrfToken(
 async function mockCommentAsNonOwner(
 	page: Page,
 	targetContent: string,
-): Promise<() => Promise<void>> {
+): Promise<void> {
 	const handler = async (route: Route) => {
 		const response = await route.fetch();
 
@@ -334,7 +287,6 @@ async function mockCommentAsNonOwner(
 	};
 
 	await page.route(COMMENTS_LIST_ROUTE, handler);
-	return () => page.unroute(COMMENTS_LIST_ROUTE, handler);
 }
 
 function isRatingCreateResponse(response: PlaywrightResponse): boolean {

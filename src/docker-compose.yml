@@ -139,6 +139,75 @@ services:
     profiles:
       - prod
 
+  parser-api:
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser:${PARSER_IMAGE_TAG:-latest}
+    container_name: "${COMPOSE_PROJECT_NAME}_parser_api"
+    restart: unless-stopped
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    command: api
+    environment:
+      - PORT=8080
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - backend
+    profiles:
+      - dev
+
+  parser-db-init:
+    image: postgres:15
+    container_name: "${COMPOSE_PROJECT_NAME}_parser_db_init"
+    command: psql -v ON_ERROR_STOP=1 -h db-rateukma -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /init-db.sql
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - UKMA_DATA_DB_PASSWORD=${UKMA_DATA_DB_PASSWORD}
+    volumes:
+      - ./parser/init-db.sql:/init-db.sql:ro
+    networks:
+      - backend
+    depends_on:
+      db-rateukma:
+        condition: service_healthy
+    profiles:
+      - dev
+
+  parser-migrate:
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser:${PARSER_IMAGE_TAG:-latest}
+    container_name: "${COMPOSE_PROJECT_NAME}_parser_migrate"
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    command: migrate
+    environment:
+      - DATABASE_URL=postgres://ukma_data:${UKMA_DATA_DB_PASSWORD}@db-rateukma:5432/ukma_data
+    networks:
+      - backend
+    depends_on:
+      parser-db-init:
+        condition: service_completed_successfully
+    profiles:
+      - dev
+
+  parser-worker:
+    image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser:${PARSER_IMAGE_TAG:-latest}
+    container_name: "${COMPOSE_PROJECT_NAME}_parser_worker"
+    restart: unless-stopped
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    command: worker
+    environment:
+      - DATABASE_URL=postgres://ukma_data:${UKMA_DATA_DB_PASSWORD}@db-rateukma:5432/ukma_data
+    networks:
+      - backend
+    depends_on:
+      parser-migrate:
+        condition: service_completed_successfully
+    profiles:
+      - dev
+
 volumes:
   postgres_data:
   redis_data:

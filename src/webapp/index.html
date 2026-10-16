@@ -26,6 +26,18 @@
 		<meta name="twitter:card" content="summary" />
 		<link rel="manifest" href="/manifest.json" />
 		<title>Rate UKMA - Оцінюй. Відгукуйся. Обирай найкращі курси НаУКМА</title>
+		<meta name="color-scheme" content="light dark" />
+		<!-- Apply an explicit theme pick before first paint; "System" is handled in CSS. -->
+		<script>
+			try {
+				var storedTheme = localStorage.getItem("rate-ukma-theme");
+				if (storedTheme === "light" || storedTheme === "dark") {
+					document.documentElement.dataset.colorScheme = storedTheme;
+				}
+			} catch {
+				// Storage blocked (e.g. privacy mode): CSS falls back to System.
+			}
+		</script>
 	</head>
 	<body>
 		<div id="app"></div>

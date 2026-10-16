@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 
 type Theme = "dark" | "light" | "system";
 
@@ -20,43 +27,58 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
+function isTheme(value: string | null): value is Theme {
+	return value === "dark" || value === "light" || value === "system";
+}
+
+function readStoredTheme(storageKey: string): string | null {
+	try {
+		return localStorage.getItem(storageKey);
+	} catch {
+		return null;
+	}
+}
+
 export function ThemeProvider({
 	children,
 	defaultTheme = "system",
 	storageKey = "rate-ukma-theme",
 	...props
 }: Readonly<ThemeProviderProps>) {
-	const [theme, setTheme] = useState<Theme>(
-		() => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
-	);
+	const [theme, setTheme] = useState<Theme>(() => {
+		const stored = readStoredTheme(storageKey);
+		return isTheme(stored) ? stored : defaultTheme;
+	});
 
+	// CSS resolves "system" via prefers-color-scheme (see styles.css), so only
+	// an explicit pick is written to <html>; OS changes need no JS.
 	useEffect(() => {
 		const root = globalThis.document.documentElement;
-
-		root.classList.remove("light", "dark");
-
 		if (theme === "system") {
-			const systemTheme = globalThis.matchMedia("(prefers-color-scheme: dark)")
-				.matches
-				? "dark"
-				: "light";
-
-			root.classList.add(systemTheme);
-			return;
+			delete root.dataset.colorScheme;
+		} else {
+			root.dataset.colorScheme = theme;
 		}
-
-		root.classList.add(theme);
 	}, [theme]);
+
+	const persistTheme = useCallback(
+		(newTheme: Theme) => {
+			try {
+				localStorage.setItem(storageKey, newTheme);
+			} catch {
+				// Storage blocked: the pick still applies for this session.
+			}
+			setTheme(newTheme);
+		},
+		[storageKey],
+	);
 
 	const value = useMemo(
 		() => ({
 			theme,
-			setTheme: (newTheme: Theme) => {
-				localStorage.setItem(storageKey, newTheme);
-				setTheme(newTheme);
-			},
+			setTheme: persistTheme,
 		}),
-		[theme, storageKey],
+		[theme, persistTheme],
 	);
 
 	return (

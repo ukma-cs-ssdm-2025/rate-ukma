@@ -23,6 +23,10 @@ on:
         description: "Whether webapp code has changed"
         required: true
         type: boolean
+      parser_changed:
+        description: "Whether parser code has changed"
+        required: true
+        type: boolean
 
 env:
   SOURCE_CODE_DIR: src
@@ -72,6 +76,45 @@ jobs:
           BACKEND_IMAGE_TAG: ${{ inputs.version_tag }}
         working-directory: ${{ env.SOURCE_CODE_DIR }}
         run: docker push ${{ steps.extract_name.outputs.backend_image }}:${BACKEND_IMAGE_TAG}
+
+  build-parser:
+    if: inputs.parser_changed == true || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Login to GitHub Container Registry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Copy default .env file
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          cp .env.sample .env
+
+      - name: Extract name from docker-compose.yml
+        id: extract_name
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: |
+          PARSER_IMAGE_TAGGED=$(awk '/parser-api:/, /profiles:/' docker-compose.yml | grep 'image:' | head -1 | awk '{print $2}')
+          PARSER_IMAGE=$(echo "$PARSER_IMAGE_TAGGED" | awk -F: '{print $1}')
+          echo "parser_image=${PARSER_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Parser image: $PARSER_IMAGE"
+
+      - name: Build parser
+        env:
+          PARSER_IMAGE_TAG: ${{ inputs.version_tag || 'dry-run-version' }}
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: docker compose --profile dev build parser-api
+
+      - name: Push parser image
+        if: inputs.version_tag
+        env:
+          PARSER_IMAGE_TAG: ${{ inputs.version_tag }}
+        working-directory: ${{ env.SOURCE_CODE_DIR }}
+        run: docker push "${{ steps.extract_name.outputs.parser_image }}:${PARSER_IMAGE_TAG}"
 
   build-webapp:
     if: inputs.webapp_changed == true || github.event_name == 'workflow_dispatch'

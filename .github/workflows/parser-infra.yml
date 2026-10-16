@@ -1,0 +1,104 @@
+---
+name: Parser Infra
+
+on:
+  pull_request:
+    paths:
+      - infra/deploy/parser/terraform/**
+      - .github/workflows/parser-infra.yml
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Parser environment to provision"
+        required: true
+        type: choice
+        options:
+          - staging
+      action:
+        description: "plan shows the changes - apply plans and then applies them"
+        required: true
+        type: choice
+        default: plan
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+
+env:
+  TF_VERSION: 1.16.5
+  TF_ROOT: infra/deploy/parser/terraform
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        environment: [staging]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Check formatting
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform fmt -check -recursive -diff
+
+      - name: Validate
+        working-directory: ${{ env.TF_ROOT }}/envs/${{ matrix.environment }}
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+  terraform:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    # The environment (required reviewer, main only) gates the whole job, so approval comes before the plan.
+    # TBD: split into plan and apply jobs before adding live, so the approver sees the plan first.
+    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
+    # Never run two plans/applies against the same state at once, even if the bucket ignores the S3 lockfile.
+    concurrency:
+      group: parser-infra-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_KEY }}
+      AWS_SSE_CUSTOMER_KEY: ${{ secrets.TF_STATE_SSE_CUSTOMER_KEY }}
+    defaults:
+      run:
+        working-directory: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Init
+        run: terraform init -input=false
+
+      - name: Plan
+        run: |
+          set -o pipefail
+          terraform plan -input=false -no-color -out=parser.tfplan | tee plan.txt
+          {
+            echo "### Terraform plan (${{ inputs.environment }})"
+            echo '```'
+            grep -E '^(Plan:|No changes\.)' plan.txt || echo "See job log for details."
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply
+        if: inputs.action == 'apply'
+        run: terraform apply -input=false parser.tfplan
