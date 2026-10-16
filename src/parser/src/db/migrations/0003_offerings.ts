@@ -33,20 +33,28 @@ export default Effect.gen(function* () {
 		)
 	`;
 
+	// A batch moves names and filter ids between rows (a rename, an id that
+	// follows its name), so uniqueness is checked at commit, not per row.
 	yield* sql`
 		CREATE TABLE faculties (
 			id text PRIMARY KEY DEFAULT 'fac_' || ulid(),
-			name text NOT NULL UNIQUE,
-			saz_filter_id text UNIQUE
+			name text NOT NULL,
+			saz_filter_id text,
+			CONSTRAINT faculties_name_key UNIQUE (name) DEFERRABLE INITIALLY DEFERRED,
+			CONSTRAINT faculties_saz_filter_id_key UNIQUE (saz_filter_id)
+				DEFERRABLE INITIALLY DEFERRED
 		)
 	`;
 
 	yield* sql`
 		CREATE TABLE departments (
 			id text PRIMARY KEY DEFAULT 'dep_' || ulid(),
-			name text NOT NULL UNIQUE,
-			saz_filter_id text UNIQUE,
-			faculty_id text REFERENCES faculties (id)
+			name text NOT NULL,
+			saz_filter_id text,
+			faculty_id text REFERENCES faculties (id),
+			CONSTRAINT departments_name_key UNIQUE (name) DEFERRABLE INITIALLY DEFERRED,
+			CONSTRAINT departments_saz_filter_id_key UNIQUE (saz_filter_id)
+				DEFERRABLE INITIALLY DEFERRED
 		)
 	`;
 
@@ -109,5 +117,14 @@ export default Effect.gen(function* () {
 			kind text NOT NULL CHECK (kind IN ('compulsory', 'prof_oriented', 'elective')),
 			PRIMARY KEY (offering_id, programme_id)
 		)
+	`;
+
+	yield* sql`CREATE INDEX departments_faculty_id ON departments (faculty_id)`;
+	yield* sql`CREATE INDEX offerings_faculty_id ON offerings (faculty_id)`;
+	yield* sql`CREATE INDEX offerings_department_id ON offerings (department_id)`;
+	yield* sql`CREATE INDEX offerings_snapshot_id ON offerings (snapshot_id)`;
+	yield* sql`CREATE INDEX offering_terms_term_id ON offering_terms (term_id)`;
+	yield* sql`
+		CREATE INDEX offering_programmes_programme_id ON offering_programmes (programme_id)
 	`;
 });
