@@ -172,13 +172,9 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 					snapshot: snapshotOf(body),
 					next: linkedPages(page, body),
 				})),
-				Effect.catchTags({
-					SazRequestFailed: ({ status }) => Effect.fail(pageFailedOf(status)),
-					SazSignedOut: () =>
-						Effect.fail(
-							new PageFailed({ reason: "signed out after a fresh sign-in" }),
-						),
-				}),
+				Effect.catchTag("SazRequestFailed", ({ status }) =>
+					Effect.fail(pageFailedOf(status)),
+				),
 			),
 		// A failed catalog page hides the courses it lists.
 		failsRun: (tally) => tally.kind === "catalog" && tally.failed > 0,

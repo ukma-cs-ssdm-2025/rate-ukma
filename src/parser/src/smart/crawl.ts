@@ -30,7 +30,8 @@ export class SmartCrawlFailed extends Schema.TaggedError<SmartCrawlFailed>()(
 ) {}
 
 /** Fetches the smart.ukma lists into one run, or finishes the run a crash
- *  left open. Any failed list fails the run. */
+ *  left open, which keeps the day it started under. Any failed list fails
+ *  the run. */
 export const crawlSmart = Effect.fn("crawlSmart")(function* () {
 	const store = yield* CrawlStore;
 	const smart = yield* SmartClient;

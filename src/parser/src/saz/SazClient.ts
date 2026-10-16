@@ -12,7 +12,12 @@ import {
 	HttpClientRequest,
 	type HttpClientResponse,
 } from "effect/http";
-import { MicrosoftSessions } from "../microsoft/session.ts";
+import {
+	MicrosoftSessions,
+	SignedOut,
+	withSignIn,
+} from "../microsoft/session.ts";
+import { constFalse } from "effect/Function";
 
 export const SAZ_URL = "https://my.ukma.edu.ua";
 
@@ -31,12 +36,7 @@ export class SazRequestFailed extends Schema.TaggedError<SazRequestFailed>()(
 	{ path: Schema.String, status: Schema.Number },
 ) {}
 
-export class SazSignedOut extends Schema.TaggedError<SazSignedOut>()(
-	"SazSignedOut",
-	{ path: Schema.String },
-) {}
-
-export type SazError = SazSignInFailed | SazRequestFailed | SazSignedOut;
+export type SazError = SazSignInFailed | SazRequestFailed;
 
 const isTransient = (error: SazError): boolean =>
 	error instanceof SazRequestFailed &&
@@ -87,15 +87,10 @@ export class SazClient extends Context.Service<
 						),
 					);
 
-			const signIn = session.signIn(`${SAZ_URL}/auth/o365`).pipe(
-				Effect.catchTags({
-					MicrosoftSignInFailed: ({ reason }) =>
-						Effect.fail(new SazSignInFailed({ reason })),
-					HttpClientError: () =>
-						Effect.fail(
-							new SazRequestFailed({ path: "/auth/o365", status: 0 }),
-						),
-				}),
+			const signIn = session.signIn(`${SAZ_URL}/auth/o365`, constFalse).pipe(
+				Effect.catchTag("HttpClientError", () =>
+					Effect.fail(new SazRequestFailed({ path: "/auth/o365", status: 0 })),
+				),
 				Effect.andThen(Effect.logInfo("Signed in to САЗ")),
 			);
 
@@ -107,7 +102,7 @@ export class SazClient extends Context.Service<
 					);
 
 					if (isSignInPage(response)) {
-						return yield* new SazSignedOut({ path });
+						return yield* new SignedOut({ path });
 					}
 
 					if (response.status !== 200) {
@@ -123,9 +118,9 @@ export class SazClient extends Context.Service<
 				});
 
 			const get = (path: string) =>
-				fetchPage(path).pipe(
-					Effect.catchTag("SazSignedOut", () =>
-						signIn.pipe(Effect.andThen(fetchPage(path))),
+				withSignIn(fetchPage(path), signIn).pipe(
+					Effect.catchTag("MicrosoftSignInFailed", ({ reason }) =>
+						Effect.fail(new SazSignInFailed({ reason })),
 					),
 					Effect.retry({
 						while: isTransient,

@@ -14,7 +14,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer.
 - `src/worker/`: the background loop.
 - `src/microsoft/`: the cookie session and Microsoft password sign-in both clients use.
-- `src/smart/`: the smart.ukma client and its crawl. The sign-in redirect chain ends on `/get-user?accessToken=…&refreshToken=…`; the API on `smart.ukma.edu.ua` takes `Authorization: Bearer`, the access token lives 5 minutes and the client refreshes it before expiry.
+- `src/smart/`: the smart.ukma client and its crawl. The sign-in redirect chain ends on `/get-user?accessToken=…&refreshToken=…`, read from the `Location` header and never requested so no span or log holds the tokens; the API on `smart.ukma.edu.ua` takes `Authorization: Bearer`, the access token lives 5 minutes and the client refreshes it before expiry.
 - `src/db/Database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
 
 ## Rules

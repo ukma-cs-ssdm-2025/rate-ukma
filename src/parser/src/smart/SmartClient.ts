@@ -10,14 +10,19 @@ import {
 	Ref,
 	Schedule,
 	Schema,
+	Semaphore,
 } from "effect";
 import {
 	FetchHttpClient,
 	HttpClientRequest,
 	type HttpClientResponse,
-	UrlParams,
 } from "effect/http";
-import { MicrosoftSessions } from "../microsoft/session.ts";
+import {
+	MicrosoftSessions,
+	MicrosoftSignInFailed,
+	SignedOut,
+	withSignIn,
+} from "../microsoft/session.ts";
 
 /** The web app's own host: its API answers here, while the contract's
  *  smart-services host rejects the same token with a 403. */
@@ -49,12 +54,17 @@ export class SmartNotJson extends Schema.TaggedError<SmartNotJson>()(
 	{ path: Schema.String },
 ) {}
 
-class SmartSignedOut extends Schema.TaggedError<SmartSignedOut>()(
-	"SmartSignedOut",
-	{ path: Schema.String },
-) {}
-
 export type SmartError = SmartSignInFailed | SmartRequestFailed | SmartNotJson;
+
+const isRefusal = (error: unknown): error is SignedOut | SmartRequestFailed =>
+	error instanceof SignedOut ||
+	(error instanceof SmartRequestFailed && error.status === 403);
+
+/** The last redirect of a sign-in: Spring hands the web app the token pair
+ *  in its query. It is read from the `Location` header and never requested,
+ *  so no request URL, log line or span holds the tokens. */
+const isTokenHop = (next: URL) =>
+	next.origin === SMART_URL && next.pathname === "/get-user";
 
 const isTransient = (error: SmartError): boolean =>
 	error instanceof SmartRequestFailed &&
@@ -125,22 +135,26 @@ export class SmartClient extends Context.Service<
 					);
 
 			const signIn = Effect.gen(function* () {
-				const response = yield* session.signIn(`${SMART_URL}/start-login`);
-				const end = new URL(response.request.url);
+				const landing = yield* session.signIn(
+					`${SMART_URL}/start-login`,
+					isTokenHop,
+				);
 
-				if (end.pathname !== "/get-user") {
-					return yield* new SmartSignInFailed({
-						reason: `the sign-in ended on ${end.host}${end.pathname}`,
+				if (!isTokenHop(landing)) {
+					return yield* new MicrosoftSignInFailed({
+						reason: `the sign-in ended on ${landing.host}${landing.pathname}`,
 					});
 				}
 
 				const tokens = yield* decodeTokens(
-					UrlParams.toRecord(response.request.urlParams),
+					Object.fromEntries(landing.searchParams),
 				).pipe(
 					Effect.fromOption,
 					Effect.mapError(
 						() =>
-							new SmartSignInFailed({ reason: "the sign-in gave no tokens" }),
+							new MicrosoftSignInFailed({
+								reason: "the sign-in gave no tokens",
+							}),
 					),
 				);
 
@@ -149,69 +163,92 @@ export class SmartClient extends Context.Service<
 
 				return tokens;
 			}).pipe(
-				Effect.catchTags({
-					MicrosoftSignInFailed: ({ reason }) =>
-						Effect.fail(new SmartSignInFailed({ reason })),
-					HttpClientError: () =>
-						Effect.fail(
-							new SmartRequestFailed({ path: "/start-login", status: 0 }),
+				Effect.catchTag("HttpClientError", () =>
+					Effect.fail(
+						new SmartRequestFailed({ path: "/start-login", status: 0 }),
+					),
+				),
+			);
+
+			/** A turned-down refresh token is `SignedOut`, so the caller signs in;
+			 *  a server or transport error keeps the pair for a retry. */
+			const refresh = (tokens: Tokens) =>
+				Effect.gen(function* () {
+					const response = yield* send(
+						HttpClientRequest.put(`${SMART_URL}${REFRESH_PATH}`).pipe(
+							HttpClientRequest.bodyJsonUnsafe({
+								refreshToken: Redacted.value(tokens.refreshToken),
+							}),
 						),
+						REFRESH_PATH,
+					);
+
+					if ([400, 401, 403].includes(response.status)) {
+						return yield* new SignedOut({ path: REFRESH_PATH });
+					}
+
+					if (response.status !== 200) {
+						return yield* new SmartRequestFailed({
+							path: REFRESH_PATH,
+							status: response.status,
+						});
+					}
+
+					const fresh = yield* response.json.pipe(
+						Effect.map(decodeTokens),
+						Effect.option,
+						Effect.map(Option.flatten),
+						Effect.flatMap(Effect.fromOption),
+						Effect.mapError(
+							() => new SmartRequestFailed({ path: REFRESH_PATH, status: 200 }),
+						),
+					);
+
+					yield* Ref.set(held, Option.some(fresh));
+
+					return fresh;
+				});
+
+			// Token reads and renewals take turns, so two requests never spend the
+			// same rotating refresh token or sign in twice for one expiry.
+			const lock = yield* Semaphore.make(1);
+
+			const currentTokens = lock.withPermit(
+				Effect.gen(function* () {
+					const tokens = yield* Ref.get(held);
+
+					if (Option.isNone(tokens)) return yield* signIn;
+
+					const now = yield* Clock.currentTimeMillis;
+
+					const expiring = expiresAt(tokens.value).pipe(
+						Option.exists(
+							(expiry) => expiry - Duration.toMillis(EXPIRY_MARGIN) <= now,
+						),
+					);
+
+					return expiring ? yield* refresh(tokens.value) : tokens.value;
 				}),
 			);
 
-			/** Swaps the pair for a new one, or signs in again when the refresh
-			 *  token is no longer accepted. */
-			const refresh = (tokens: Tokens) =>
-				send(
-					HttpClientRequest.put(`${SMART_URL}${REFRESH_PATH}`).pipe(
-						HttpClientRequest.bodyJsonUnsafe({
-							refreshToken: Redacted.value(tokens.refreshToken),
-						}),
-					),
-					REFRESH_PATH,
-				).pipe(
-					Effect.flatMap((response) =>
-						response.status === 200
-							? response.json.pipe(
-									Effect.map(decodeTokens),
-									Effect.option,
-									Effect.map(Option.flatten),
-								)
-							: Effect.succeed(Option.none<Tokens>()),
-					),
-					Effect.flatMap(
-						Option.match({
-							onNone: () => signIn,
-							onSome: (fresh) =>
-								Ref.set(held, Option.some(fresh)).pipe(Effect.as(fresh)),
-						}),
+			/** Refreshes `stale` unless another request already replaced it. */
+			const renew = (stale: Tokens) =>
+				lock.withPermit(
+					Ref.get(held).pipe(
+						Effect.flatMap((tokens) =>
+							Option.isSome(tokens) && tokens.value !== stale
+								? Effect.succeed(tokens.value)
+								: refresh(stale),
+						),
 					),
 				);
-
-			const currentTokens = Effect.gen(function* () {
-				const tokens = yield* Ref.get(held);
-
-				if (Option.isNone(tokens)) return yield* signIn;
-
-				const now = yield* Clock.currentTimeMillis;
-
-				const expiring = expiresAt(tokens.value).pipe(
-					Option.exists(
-						(expiry) => expiry - Duration.toMillis(EXPIRY_MARGIN) <= now,
-					),
-				);
-
-				return expiring ? yield* refresh(tokens.value) : tokens.value;
-			});
 
 			const read = (
 				response: HttpClientResponse.HttpClientResponse,
 				path: string,
 			) =>
 				Effect.gen(function* () {
-					if (response.status === 401) {
-						return yield* new SmartSignedOut({ path });
-					}
+					if (response.status === 401) return yield* new SignedOut({ path });
 
 					if (response.status !== 200) {
 						return yield* new SmartRequestFailed({
@@ -225,7 +262,7 @@ export class SmartClient extends Context.Service<
 					);
 				});
 
-			const fetchJson = (path: string, tokens: Tokens) =>
+			const fetchWith = (path: string, tokens: Tokens) =>
 				send(
 					HttpClientRequest.get(`${SMART_URL}${path}`).pipe(
 						HttpClientRequest.bearerToken(tokens.accessToken),
@@ -233,16 +270,32 @@ export class SmartClient extends Context.Service<
 					path,
 				).pipe(Effect.flatMap((response) => read(response, path)));
 
-			const get = (path: string) =>
+			const fetchJson = (path: string) =>
+				currentTokens.pipe(Effect.flatMap((tokens) => fetchWith(path, tokens)));
+
+			// The web app refreshes on a 403 too, so a 401 or 403 gets one refresh
+			// before a 403 counts as a refusal and a 401 as signed out.
+			const fetchRenewing = (path: string) =>
 				currentTokens.pipe(
-					Effect.flatMap((tokens) => fetchJson(path, tokens)),
-					Effect.catchTag("SmartSignedOut", () =>
-						signIn.pipe(
-							Effect.flatMap((tokens) => fetchJson(path, tokens)),
-							Effect.catchTag("SmartSignedOut", () =>
-								Effect.fail(new SmartRequestFailed({ path, status: 401 })),
+					Effect.flatMap((tokens) =>
+						fetchWith(path, tokens).pipe(
+							Effect.catchIf(isRefusal, () =>
+								renew(tokens).pipe(
+									Effect.flatMap((fresh) => fetchWith(path, fresh)),
+								),
 							),
 						),
+					),
+				);
+
+			const get = (path: string) =>
+				withSignIn(
+					fetchRenewing(path),
+					lock.withPermit(signIn),
+					fetchJson(path),
+				).pipe(
+					Effect.catchTag("MicrosoftSignInFailed", ({ reason }) =>
+						Effect.fail(new SmartSignInFailed({ reason })),
 					),
 					Effect.retry({
 						while: isTransient,

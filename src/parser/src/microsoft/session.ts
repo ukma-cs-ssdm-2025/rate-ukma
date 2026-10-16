@@ -8,6 +8,7 @@ import {
 	Schema,
 	Semaphore,
 } from "effect";
+import { constFalse, constTrue } from "effect/Function";
 import {
 	Cookies,
 	HttpClient,
@@ -45,6 +46,34 @@ const decodeMicrosoftForm = Schema.decodeUnknownEffect(MicrosoftForm);
 
 const MICROSOFT_CONFIG = /\$Config=(\{.*?\});/su;
 
+/** The app answered as if no one were signed in. */
+export class SignedOut extends Schema.TaggedError<SignedOut>()("SignedOut", {
+	path: Schema.String,
+}) {}
+
+/** Runs `attempt`; when it is signed out, signs in and runs `retry` once.
+ *  Signed out again right after a fresh sign-in means the sign-in does not
+ *  take, so it fails instead of posting the password for every request. */
+export const withSignIn = <A, E, B, E2>(
+	attempt: Effect.Effect<A, E>,
+	signIn: Effect.Effect<B, E2>,
+	retry: Effect.Effect<A, E> = attempt,
+) =>
+	attempt.pipe(
+		Effect.catchIf(Schema.is(SignedOut), () =>
+			signIn.pipe(
+				Effect.andThen(retry),
+				Effect.catchIf(Schema.is(SignedOut), ({ path }) =>
+					Effect.fail(
+						new MicrosoftSignInFailed({
+							reason: `still signed out of ${path} after a fresh sign-in`,
+						}),
+					),
+				),
+			),
+		),
+	);
+
 export interface Account {
 	readonly email: string;
 	readonly password: Redacted.Redacted<string>;
@@ -60,12 +89,14 @@ export interface Session {
 		HttpClientError.HttpClientError
 	>;
 	/** Drops every cookie, opens `start`, which redirects to Microsoft, and
-	 *  posts the account to its password form. Returns the response the
-	 *  redirects back to the app end on. */
+	 *  posts the account to its password form. Returns the URL the redirects
+	 *  back to the app land on: a redirect `stopAt` accepts, left unfetched,
+	 *  or a 200 page on `start`'s host. Anything else fails. */
 	signIn(
 		start: string,
+		stopAt: (next: URL) => boolean,
 	): Effect.Effect<
-		HttpClientResponse.HttpClientResponse,
+		URL,
 		MicrosoftSignInFailed | HttpClientError.HttpClientError
 	>;
 }
@@ -95,7 +126,10 @@ const open = Effect.fnUntraced(function* (
 							Cookies.toCookieHeader(held),
 						),
 					)
-					.pipe(Effect.ensuring(Effect.sleep(gap))),
+					.pipe(
+						Effect.provideService(HttpClient.TracerPropagationEnabled, false),
+						Effect.ensuring(Effect.sleep(gap)),
+					),
 			);
 
 			yield* Ref.update(jar, (hosts) =>
@@ -105,7 +139,12 @@ const open = Effect.fnUntraced(function* (
 			return response;
 		});
 
-	const send = (request: HttpClientRequest.HttpClientRequest) =>
+	/** Follows redirects from `request`; a hop `stopAt` accepts is returned
+	 *  as `stoppedAt` without a request. */
+	const walk = (
+		request: HttpClientRequest.HttpClientRequest,
+		stopAt: (next: URL) => boolean,
+	) =>
 		Effect.gen(function* () {
 			let response = yield* execute(request);
 
@@ -113,16 +152,21 @@ const open = Effect.fnUntraced(function* (
 				const location = response.headers.location;
 
 				if (response.status < 300 || response.status >= 400 || !location) {
-					return response;
+					break;
 				}
 
-				response = yield* execute(
-					HttpClientRequest.get(new URL(location, response.request.url)),
-				);
+				const next = new URL(location, response.request.url);
+
+				if (stopAt(next)) return { response, stoppedAt: next };
+
+				response = yield* execute(HttpClientRequest.get(next));
 			}
 
-			return response;
+			return { response, stoppedAt: undefined };
 		});
+
+	const send = (request: HttpClientRequest.HttpClientRequest) =>
+		walk(request, constFalse).pipe(Effect.map(({ response }) => response));
 
 	const readForm = (response: HttpClientResponse.HttpClientResponse) =>
 		response.text.pipe(
@@ -137,7 +181,7 @@ const open = Effect.fnUntraced(function* (
 			),
 		);
 
-	const signIn = (start: string) =>
+	const signIn = (start: string, stopAt: (next: URL) => boolean) =>
 		Effect.gen(function* () {
 			yield* Ref.set(jar, new Map());
 
@@ -151,7 +195,7 @@ const open = Effect.fnUntraced(function* (
 				});
 			}
 
-			const response = yield* send(
+			const { response, stoppedAt } = yield* walk(
 				HttpClientRequest.post(target).pipe(
 					HttpClientRequest.bodyUrlParams({
 						login: account.email,
@@ -164,7 +208,19 @@ const open = Effect.fnUntraced(function* (
 						LoginOptions: "3",
 					}),
 				),
+				stopAt,
+			).pipe(
+				// A retry would post the password again.
+				Effect.catchTag("HttpClientError", () =>
+					Effect.fail(
+						new MicrosoftSignInFailed({
+							reason: "the connection broke after the password",
+						}),
+					),
+				),
 			);
+
+			if (stoppedAt !== undefined) return stoppedAt;
 
 			const end = new URL(response.request.url).origin;
 
@@ -187,8 +243,17 @@ const open = Effect.fnUntraced(function* (
 				});
 			}
 
-			return response;
-		});
+			if (response.status !== 200) {
+				return yield* new MicrosoftSignInFailed({
+					reason: `the sign-in ended with HTTP ${response.status}`,
+				});
+			}
+
+			return new URL(response.request.url);
+		}).pipe(
+			// The callback URLs carry an OAuth code; keep them off client spans.
+			Effect.provideService(HttpClient.TracerDisabledWhen, constTrue),
+		);
 
 	return { send, signIn } satisfies Session;
 });
