@@ -17,9 +17,25 @@ import { snapshotOf } from "./snapshot.ts";
 
 const TRANSPORT_ERROR = "transport error";
 
+/** Failures a later try may not repeat. A САЗ 500 repeats for the same page,
+ *  so it is not one of them. */
+const PASSING_ERRORS = [
+	TRANSPORT_ERROR,
+	"HTTP 429",
+	"HTTP 502",
+	"HTTP 503",
+	"HTTP 504",
+];
+
 /** The catalog's year filter listed nothing, so its markup likely changed. */
 export class NoAcademicYears extends Schema.TaggedError<NoAcademicYears>()(
 	"NoAcademicYears",
+	{},
+) {}
+
+/** Another worker holds the crawl lock. */
+export class CrawlAlreadyRunning extends Schema.TaggedError<CrawlAlreadyRunning>()(
+	"CrawlAlreadyRunning",
 	{},
 ) {}
 
@@ -101,10 +117,9 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 		}
 	});
 
-	// A transport error that outlasts the client's retries is a network blip and
-	// gets one more pass; a САЗ 500 repeats on every try, so it does not.
+	// A passing failure that outlasts the client's retries gets one more pass.
 	const crawl = drain.pipe(
-		Effect.andThen(store.requeue(run.id, TRANSPORT_ERROR)),
+		Effect.andThen(store.requeue(run.id, PASSING_ERRORS)),
 		Effect.andThen((requeued) => (requeued > 0 ? drain : Effect.void)),
 	);
 
@@ -156,6 +171,9 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
+
+	if (!(yield* store.lockCrawl)) return yield* new CrawlAlreadyRunning();
+
 	const resumed = yield* store.openRuns;
 
 	const startRuns = Effect.gen(function* () {
@@ -191,4 +209,4 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 			stored: report.pages.reduce((sum, tally) => sum + tally.stored, 0),
 		})),
 	);
-});
+}, Effect.scoped);

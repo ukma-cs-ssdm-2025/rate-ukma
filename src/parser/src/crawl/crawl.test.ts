@@ -7,7 +7,11 @@ import {
 	SazRequestFailed,
 	SazSignInFailed,
 } from "../saz/SazClient.ts";
-import { crawlAllYears, NoAcademicYears } from "./crawl.ts";
+import {
+	CrawlAlreadyRunning,
+	crawlAllYears,
+	NoAcademicYears,
+} from "./crawl.ts";
 import {
 	CrawlStore,
 	type KindTally,
@@ -121,7 +125,7 @@ interface MemoryPage extends QueuedPage {
 
 /** The run queue in memory; completing `crashOn` dies, as a lost database
  *  would. */
-const makeMemoryStore = (crashOn?: string) => {
+const makeMemoryStore = (crashOn?: string, locked = true) => {
 	const runs: Array<OpenRun & { status: string }> = [];
 	const pages: Array<MemoryPage> = [];
 	const finished: Array<{ sourcePart: string; status: string }> = [];
@@ -181,6 +185,7 @@ const makeMemoryStore = (crashOn?: string) => {
 	});
 
 	const layer = Layer.succeed(CrawlStore, {
+		lockCrawl: Effect.succeed(locked),
 		startRun,
 		openRuns: Effect.sync(() => {
 			for (const page of pages) {
@@ -223,13 +228,13 @@ const makeMemoryStore = (crashOn?: string) => {
 					}),
 				),
 			),
-		requeue: (runId, error) =>
+		requeue: (runId, errors) =>
 			Effect.sync(() => {
 				const failed = pages.filter(
 					(page) =>
 						page.runId === runId &&
 						page.status === "failed" &&
-						page.error === error &&
+						errors.includes(page.error ?? "") &&
 						page.attempts === 1,
 				);
 
@@ -400,6 +405,44 @@ describe("crawlAllYears", () => {
 
 			assert.isTrue(Exit.isFailure(exit));
 			assert.deepStrictEqual(store.finished, []);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("does not start while another crawl holds the lock", () => {
+		const store = makeMemoryStore(undefined, false);
+		const saz = makeFakeSaz();
+
+		return Effect.gen(function* () {
+			const error = yield* Effect.flip(crawlAllYears());
+
+			assert.instanceOf(error, CrawlAlreadyRunning);
+			assert.deepStrictEqual(saz.fetched, []);
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("gives a page that САЗ rate-limited one more pass", () => {
+		const store = makeMemoryStore();
+		let limited = false;
+
+		const saz = makeFakeSaz({
+			"/course/100004": Effect.suspend(() => {
+				if (limited) return Effect.succeed("<html>course 100004</html>");
+
+				limited = true;
+
+				return Effect.fail(
+					new SazRequestFailed({ path: "/course/100004", status: 429 }),
+				);
+			}),
+		});
+
+		return Effect.gen(function* () {
+			yield* crawlAllYears();
+
+			assert.strictEqual(
+				store.pages.find((page) => page.path === "/course/100004")?.status,
+				"done",
+			);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 });
