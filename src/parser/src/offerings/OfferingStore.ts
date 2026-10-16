@@ -415,7 +415,8 @@ export class OfferingStore extends Context.Service<
 								`,
 							);
 
-							// A live row changes when its hash does. A removed row comes back
+							// A live row changes when its hash does, or when its faculty or
+							// department now resolves to another row. A removed row comes back
 							// only when a run fetched its page after the removal: its last
 							// snapshot stays the latest of its path, so every parse sees it.
 							// An offering already parsed from a newer snapshot keeps its rows.
@@ -441,6 +442,7 @@ export class OfferingStore extends Context.Service<
 										AND o.snapshot_id <= r."snapshotId"
 										AND CASE WHEN o.removed_at IS NULL
 											THEN o.row_hash IS DISTINCT FROM r."rowHash"
+												OR (o.faculty_id, o.department_id) IS DISTINCT FROM (f.id, d.id)
 											ELSE EXISTS (
 												SELECT 1 FROM run_pages p
 												WHERE p.path = '/course/' || o.saz_code AND p.status = 'done'

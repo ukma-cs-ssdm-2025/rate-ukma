@@ -18,7 +18,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 ## Rules
 
-- Every write to a numbered table (one with `change_no`) runs inside `ChangeLog.withTurn` and takes `nextval('change_no_seq')` only for rows whose content changed; `ChangeLog.track` adds their `changes` rows. The column has no default, so an insert that forgets the number fails.
+- Every write to a numbered table (one with `change_no`) runs inside `ChangeLog.withTurn` and takes `nextval('change_no_seq')` only for rows whose content changed; `ChangeLog.track` adds their `changes` rows. `track` requires the `Turn` service, which only `withTurn` provides, and the `require_turn` trigger fails a statement that writes `change_no` without the turn's lock.
 - A new migration is added by hand to the `fromRecord` list in `src/db/Database.ts`. Its number only grows: an id at or below the highest applied one is skipped silently.
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.

@@ -70,6 +70,11 @@ export const removeOfferings = Effect.fn("removeOfferings")(function* (
 				yield* store.hold(run.id, year, plan.ids);
 			} else {
 				yield* store.skip(run.id);
+				yield* Effect.logWarning("Run missed pages, so it removes nothing", {
+					run_id: String(run.id),
+					source_part: run.sourcePart,
+					missing_pages: survey.missingPages,
+				});
 			}
 
 			decided.push({
