@@ -12,7 +12,8 @@ infra/deploy/parser/
 └── k8s/
     └── platform/
         ├── operators/    # cert-manager, CloudNativePG (pinned upstream manifests)
-        └── config/       # parser namespace, Let's Encrypt ClusterIssuers
+        ├── config/       # parser namespace, Let's Encrypt ClusterIssuers
+        └── database/     # parser-db Postgres cluster
 ```
 
 Terraform runs from CI only, via [`.github/workflows/parser-infra.yml`](../../../.github/workflows/parser-infra.yml):
@@ -94,6 +95,7 @@ Cluster-wide add-ons, applied by [`.github/workflows/parser-platform.yml`](../..
 
 - **`operators/`:** upstream cert-manager and CloudNativePG manifests, pinned to exact releases.
 - **`config/`:** the `parser` namespace and the `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers. It needs the operator CRDs, so it is applied second.
+- **`database/`:** the `parser-db` Postgres cluster. It needs the CNPG CRDs and the `parser` namespace, so it is applied last.
 - **Ingress:** the Traefik bundled with k3s, IngressClass `traefik`. It is not in this folder.
 
 The workflow reaches the API server through [`.github/actions/k8s-tunnel`](../../../.github/actions/k8s-tunnel/action.yml), an SSH tunnel to `127.0.0.1:6443` on the node.
@@ -107,21 +109,38 @@ Add these secrets to the GitHub Environment, next to `PARSER_SSH_KEY` and `PARSE
 | Secret | Value |
 | --- | --- |
 | `PARSER_SSH_HOST` | the node's `ipv4` |
-| `PARSER_SSH_KNOWN_HOSTS` | the node's host key line, from `ssh-keyscan -t ed25519 <ipv4>` |
+| `PARSER_SSH_KNOWN_HOSTS` | the node's host key line, `<ipv4> ssh-ed25519 AAAA...` |
 
-Check the scanned key before saving it.
-Its fingerprint must match the one the node reports:
+Read the host key from the node itself, so there is nothing to compare by hand:
 
 ```bash
-ssh-keyscan -t ed25519 <ipv4> | ssh-keygen -lf -
-ssh deploy@<ipv4> ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+IP=<ipv4>
+echo "$IP $(ssh deploy@$IP cat /etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2)" \
+  | gh secret set PARSER_SSH_KNOWN_HOSTS --env "Parser Staging"
 ```
+
+If the VM is recreated, its IP and host key change: update both secrets.
 
 ### Check
 
 Run the workflow with `action: apply`.
-The run summary should show the cert-manager and CNPG pods `Running` and both ClusterIssuers `True`.
+The run summary should show the cert-manager and CNPG pods `Running`, both ClusterIssuers `True`, and `parser-db` in `Cluster in healthy state`.
 A following `diff` run should print no changes.
+
+### Database (`parser-db`)
+
+- **One instance**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`. The standby replica and backups come with #772.
+- **Credentials:** CNPG generates them and stores them in the `parser-db-app` Secret. Its `uri` key is the service's `DATABASE_URL`, so no DB password passes through GitHub or Terraform.
+- **Storage:** k3s `local-path`, a directory on the node under `/var/lib/rancher/k3s/storage`. Recreating the VM deletes the data.
+
+On the node:
+
+```bash
+sudo k3s kubectl -n parser get cluster parser-db               # STATUS: Cluster in healthy state
+sudo k3s kubectl -n parser exec -it parser-db-1 -- psql parser  # psql as the postgres superuser
+```
+
+Changing `imageName` (a minor Postgres update) or a parameter that needs a restart restarts the instance, so expect a short outage.
 
 ### Upgrading an operator
 
