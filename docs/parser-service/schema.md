@@ -128,7 +128,7 @@ Offerings of one subject across years (glossary: Course).
 | --- | --- | --- |
 | `id` | text | `crs_...` |
 | `title` | text | derived: from the latest offering |
-| `department_id` | text | derived: from the latest offering |
+| `department_id` | text null | derived: from the latest offering, null when it has none (B18) |
 | `level` | text | |
 | `merged_into` | text null | the course that now holds its offerings (rule 10) |
 | `change_no`, `removed_at` | | `removed_at` is set by a merge or when no offering is left |
