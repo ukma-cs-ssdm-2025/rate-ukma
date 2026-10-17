@@ -44,8 +44,9 @@ const linkedPages = (
 };
 
 /** Crawls one academic year into page snapshots. A page that fails is marked
- *  failed and the run goes on; a failed sign-in or catalog page fails the run. A
- *  crash, such as a lost database, leaves the run `running` to resume later. */
+ *  failed and the run goes on; a failed sign-in, a long rate limit or a failed
+ *  catalog page fails the run. A crash, such as a lost database, leaves the run
+ *  `running` to resume later. */
 export const crawlYear = Effect.fn("crawlYear")(function* (year: number) {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
@@ -113,7 +114,8 @@ export const crawlYear = Effect.fn("crawlYear")(function* (year: number) {
 			);
 		});
 
-	// Only a failed sign-in ends the run as failed. An interrupted or crashed run
+	// A failed sign-in or a long rate limit ends the run here as failed, leaving
+	// its other pages unfetched. An interrupted or crashed run
 	// stays `running`, so a restart can tell it never ended.
 	yield* crawl.pipe(
 		Effect.tapCause((cause) =>

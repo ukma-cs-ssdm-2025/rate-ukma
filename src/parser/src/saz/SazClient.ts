@@ -42,12 +42,19 @@ export class SazRequestFailed extends Schema.TaggedError<SazRequestFailed>()(
 	},
 ) {}
 
+/** САЗ asked for a wait over `MAX_RETRY_AFTER_SECONDS`. The limit likely
+ *  covers every page, so the crawl stops instead of going on to the next. */
+export class SazRateLimited extends Schema.TaggedError<SazRateLimited>()(
+	"SazRateLimited",
+	{ path: Schema.String, retryAfterSeconds: Schema.Number },
+) {}
+
 export class SazSignedOut extends Schema.TaggedError<SazSignedOut>()(
 	"SazSignedOut",
 	{ path: Schema.String },
 ) {}
 
-export type SazError = SazSignInFailed | SazRequestFailed;
+export type SazError = SazSignInFailed | SazRequestFailed | SazRateLimited;
 
 /** The fields of Microsoft's `$Config` the password form needs. */
 const MicrosoftForm = Schema.fromJsonString(
@@ -68,13 +75,11 @@ const MICROSOFT_CONFIG = /\$Config=(\{.*?\});/su;
 const MAX_RETRIES = 3;
 
 /** The longest `Retry-After` the client waits out. The crawl fetches one page
- *  at a time, so a longer wait would stall every page behind it; the request
- *  fails as a 429 instead, and the crawl tries the page again later. */
+ *  at a time, so a longer wait would stall every page behind it. */
 const MAX_RETRY_AFTER_SECONDS = 120;
 
 /** The wait before trying a failed request again, or `undefined` to give up.
- *  A САЗ 500 repeats for the same page, so a 5xx gets one retry only. A 429
- *  is never retried sooner than its `Retry-After` asks. */
+ *  A САЗ 500 repeats for the same page, so a 5xx gets one retry only. */
 const retryDelay = (
 	error: SazError,
 	retries: number,
@@ -84,10 +89,8 @@ const retryDelay = (
 	const backoff = Duration.seconds(2 * 2 ** retries);
 
 	if (error.status === 429 && retries < MAX_RETRIES) {
-		if (error.retryAfterSeconds === undefined) return backoff;
-
-		return error.retryAfterSeconds > MAX_RETRY_AFTER_SECONDS
-			? undefined
+		return error.retryAfterSeconds === undefined
+			? backoff
 			: Duration.seconds(error.retryAfterSeconds);
 	}
 
@@ -279,12 +282,22 @@ export class SazClient extends Context.Service<
 					if (response.status !== 200) {
 						const retryAfter = response.headers["retry-after"] ?? "";
 
+						const retryAfterSeconds = RETRY_AFTER_SECONDS.test(retryAfter)
+							? Number(retryAfter)
+							: undefined;
+
+						if (
+							response.status === 429 &&
+							retryAfterSeconds !== undefined &&
+							retryAfterSeconds > MAX_RETRY_AFTER_SECONDS
+						) {
+							return yield* new SazRateLimited({ path, retryAfterSeconds });
+						}
+
 						return yield* new SazRequestFailed({
 							path,
 							status: response.status,
-							retryAfterSeconds: RETRY_AFTER_SECONDS.test(retryAfter)
-								? Number(retryAfter)
-								: undefined,
+							retryAfterSeconds,
 						});
 					}
 

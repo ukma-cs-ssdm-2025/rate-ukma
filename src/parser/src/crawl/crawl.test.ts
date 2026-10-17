@@ -4,6 +4,7 @@ import { catalogPath } from "../saz/catalog.ts";
 import {
 	type SazError,
 	SazClient,
+	SazRateLimited,
 	SazRequestFailed,
 	SazSignInFailed,
 } from "../saz/SazClient.ts";
@@ -240,6 +241,30 @@ describe("crawlYear", () => {
 				),
 			]),
 		);
+	});
+
+	it.effect("fails the run and stops when САЗ asks for a long wait", () => {
+		const store = makeMemoryStore();
+		const fetched: Array<string> = [];
+
+		const saz = Layer.succeed(SazClient, {
+			get: (path) =>
+				Effect.suspend(() => {
+					fetched.push(path);
+
+					return path === "/course/100001"
+						? Effect.fail(new SazRateLimited({ path, retryAfterSeconds: 600 }))
+						: sazPage(path);
+				}),
+		});
+
+		return Effect.gen(function* () {
+			const exit = yield* Effect.exit(crawlYear(2031));
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.strictEqual(store.finished[0]?.status, "failed");
+			assert.strictEqual(fetched.at(-1), "/course/100001");
+		}).pipe(Effect.provide([store.layer, saz]));
 	});
 
 	it.effect("leaves the run running when the database is lost", () => {
