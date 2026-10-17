@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
+import { RatingSuggestionPrompt } from "@/features/ratings/components/RatingSuggestionPrompt";
 import { MyRatingsEmptyState } from "@/features/ratings/components/MyRatingsEmptyState";
 import { MyRatingsErrorState } from "@/features/ratings/components/MyRatingsErrorState";
 import { MyRatingsHeader } from "@/features/ratings/components/MyRatingsHeader";
@@ -108,6 +109,7 @@ function MyRatings() {
 					onlyUnrated={showOnlyUnrated}
 					onOnlyUnratedChange={setOnlyUnrated}
 				/>
+				<RatingSuggestionPrompt />
 				<div
 					className={showOnlyUnrated ? "space-y-1" : "space-y-8"}
 					data-testid={testIds.myRatings.list}
