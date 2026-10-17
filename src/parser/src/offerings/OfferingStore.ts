@@ -63,7 +63,9 @@ const SnapshotId = Schema.Struct({ id: Schema.BigInt });
 
 const ParseId = Schema.Struct({ id: Schema.BigInt });
 
-export type ParseTrigger = "crawl" | "reparse";
+export const ParseTrigger = Schema.Literals(["crawl", "reparse"]);
+
+export type ParseTrigger = typeof ParseTrigger.Type;
 
 /** A course page that did not parse; its rows stay as they were. */
 export interface ParseFailure {
@@ -378,7 +380,7 @@ export class OfferingStore extends Context.Service<
 				}).pipe(sql.withTransaction, Effect.orDie);
 
 			const insertParse = SqlSchema.findOne({
-				Request: Schema.String,
+				Request: ParseTrigger,
 				Result: ParseId,
 				execute: (trigger) =>
 					sql`INSERT INTO parses (trigger) VALUES (${trigger}) RETURNING id`,

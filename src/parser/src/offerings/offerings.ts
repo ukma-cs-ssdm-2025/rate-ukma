@@ -183,6 +183,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 	for (const ids of Arr.chunksOf(yield* store.latestCoursePages, BATCH_SIZE)) {
 		const pages: Array<ParsedPage> = [];
+		const paths: Array<{ snapshotId: bigint; path: string }> = [];
 		const failures: Array<ParseFailure> = [];
 
 		for (const page of yield* store.coursePages(ids)) {
@@ -193,6 +194,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 			if (Result.isSuccess(result)) {
 				pages.push({ snapshotId: page.id, offering: result.success });
+				paths.push({ snapshotId: page.id, path: page.path });
 				continue;
 			}
 
@@ -226,13 +228,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			parsed += pages.length;
 		} else {
 			failed.set("store", (failed.get("store") ?? 0) + pages.length);
-			failures.push(
-				...pages.map(({ snapshotId, offering }) => ({
-					snapshotId,
-					path: `/course/${offering.sazCode}`,
-					reason: "store",
-				})),
-			);
+			failures.push(...paths.map((page) => ({ ...page, reason: "store" })));
 		}
 
 		yield* store.recordFailures(parseId, failures);
