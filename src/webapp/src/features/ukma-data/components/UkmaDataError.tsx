@@ -8,7 +8,6 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { getAuthSessionRetrieveQueryKey } from "@/lib/api/generated";
 import { StaffOnlyState } from "./DataSectionHeader";
 
-/** The proxy's answer for a failed UKMA Data call: 403, 502, 503 or anything else. */
 export function UkmaDataError({
 	error,
 	title,

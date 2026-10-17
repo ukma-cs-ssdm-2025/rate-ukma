@@ -4,7 +4,7 @@ import { formatDateTime } from "../reviewCases";
 
 /** `candidates` and `safe_answer` are free JSON: ids only, as UKMA Data sent them. */
 function JsonValue({ value }: Readonly<{ value: unknown }>) {
-	if (value === null || value === undefined) return <>—</>;
+	if (value == null) return <>—</>;
 	if (typeof value === "string" || typeof value === "number") {
 		return <>{value}</>;
 	}
