@@ -1,9 +1,14 @@
 import MockAdapter from "axios-mock-adapter";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
 import { authorizedHttpClient } from "./apiClient";
 import { stubBrowserLocation } from "./browserMocks.test-support";
 import { CONNECTION_ERROR_PATH, resetRedirectFlag } from "./networkError";
+
+vi.mock("@/lib/auth/sessionExpiry", () => ({
+	notifySessionExpired: vi.fn(),
+}));
 
 const DEFAULT_WINDOW_LOCATION = {
 	pathname: "/courses",
@@ -157,5 +162,29 @@ describe("apiClient axios interceptor integration", () => {
 
 		// Assert
 		await expect(request).rejects.toMatchObject({ response: { status: 500 } });
+	});
+
+	it("treats a 403 as an expired session", async () => {
+		// Arrange
+		mockAxios.onGet("/api/v1/courses/").reply(403);
+
+		// Act
+		const request = authorizedHttpClient.get("/api/v1/courses/");
+
+		// Assert
+		await expect(request).rejects.toMatchObject({ response: { status: 403 } });
+		expect(notifySessionExpired).toHaveBeenCalledOnce();
+	});
+
+	it("keeps the session on a 403 from the UKMA Data proxy", async () => {
+		// Arrange
+		mockAxios.onGet("/api/v1/ukma-data/status/").reply(403);
+
+		// Act
+		const request = authorizedHttpClient.get("/api/v1/ukma-data/status/");
+
+		// Assert
+		await expect(request).rejects.toMatchObject({ response: { status: 403 } });
+		expect(notifySessionExpired).not.toHaveBeenCalled();
 	});
 });
