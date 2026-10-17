@@ -39,6 +39,7 @@ export interface AuthState {
 	user: AuthUser | null;
 	sessionExpired: boolean;
 	isStudent: boolean;
+	isSuperuser: boolean;
 	/** The signed-in student's own speciality; null for guests and staff. */
 	speciality: AuthSpeciality | null;
 }
@@ -102,6 +103,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				user: null,
 				sessionExpired: false,
 				isStudent: false,
+				isSuperuser: false,
 				speciality: null,
 			};
 		}
@@ -112,6 +114,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				user: null,
 				sessionExpired: false,
 				isStudent: false,
+				isSuperuser: false,
 				speciality: null,
 			};
 		}
@@ -122,6 +125,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				user: null,
 				sessionExpired,
 				isStudent: false,
+				isSuperuser: false,
 				speciality: null,
 			};
 		}
@@ -132,6 +136,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				user: null,
 				sessionExpired,
 				isStudent: false,
+				isSuperuser: false,
 				speciality: null,
 			};
 		}
@@ -151,6 +156,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				: null,
 			sessionExpired: false,
 			isStudent: sessionQuery.data.is_student,
+			isSuperuser: sessionQuery.data.is_superuser,
 			speciality: sessionQuery.data.speciality ?? null,
 		};
 	}, [
