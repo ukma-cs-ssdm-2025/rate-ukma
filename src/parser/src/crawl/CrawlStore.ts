@@ -170,8 +170,10 @@ export class CrawlStore extends Context.Service<
 				`,
 			});
 
+			// A claim the crash cut short gives back its attempt, so the page keeps
+			// its one requeue.
 			const openRuns = sql`
-				UPDATE run_pages SET status = 'pending'
+				UPDATE run_pages SET status = 'pending', attempts = attempts - 1
 				WHERE status = 'claimed'
 					AND run_id IN (SELECT id FROM runs WHERE status = 'running')
 			`.pipe(Effect.andThen(findOpenRuns()), sql.withTransaction, Effect.orDie);
@@ -181,7 +183,7 @@ export class CrawlStore extends Context.Service<
 				Result: ClaimedPage,
 				execute: (runId) => sql`
 					UPDATE run_pages
-					SET status = 'claimed', claimed_at = now(), attempts = attempts + 1
+					SET status = 'claimed', claimed_at = coalesce(claimed_at, now()), attempts = attempts + 1
 					WHERE id = (
 						SELECT id FROM run_pages
 						WHERE run_id = ${runId} AND status = 'pending'
