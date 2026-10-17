@@ -6,7 +6,7 @@ import { CrawlStore, type QueuedPage } from "./CrawlStore.ts";
 import { snapshotOf } from "./snapshot.ts";
 
 const TestLive = CrawlStore.layer.pipe(
-	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
 const FIRST: QueuedPage = { kind: "catalog", path: "/course/catalog?page=1" };
@@ -78,7 +78,7 @@ const pagesOf = (runId: bigint) =>
 		);
 	});
 
-describe.skipIf(testDatabaseUrl === undefined)("CrawlStore", () => {
+describe("CrawlStore", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("gives concurrent claimers different pages", () =>
 			Effect.gen(function* () {
