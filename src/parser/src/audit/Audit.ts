@@ -6,10 +6,6 @@ export const AuditAction = Schema.Literals([
 	"request_denied",
 	"key_created",
 	"key_revoked",
-	"run_started",
-	"decision_made",
-	"students_read",
-	"snapshots_read",
 ]);
 
 export type AuditAction = typeof AuditAction.Type;

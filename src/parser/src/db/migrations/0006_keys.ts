@@ -12,11 +12,8 @@ export default Effect.gen(function* () {
 			name text NOT NULL,
 			secret_hash text NOT NULL,
 			scopes text[] NOT NULL CHECK (
-				cardinality(scopes) > 0 AND scopes <@ ARRAY[
-					'catalog:read', 'runs:read', 'instructors:read', 'students:read',
-					'runs:start', 'review:decide', 'snapshots:read', 'audit:read',
-					'keys:manage'
-				]
+				cardinality(scopes) > 0
+				AND scopes <@ ARRAY['catalog:read', 'review:decide']
 			),
 			created_by text REFERENCES api_keys (id),
 			created_at timestamptz NOT NULL DEFAULT now(),
@@ -33,10 +30,8 @@ export default Effect.gen(function* () {
 			id text PRIMARY KEY DEFAULT 'aud_' || ulid(),
 			at timestamptz NOT NULL DEFAULT now(),
 			key_id text REFERENCES api_keys (id),
-			staff_user text,
 			action text NOT NULL CHECK (action IN (
-				'request', 'request_denied', 'key_created', 'key_revoked',
-				'run_started', 'decision_made', 'students_read', 'snapshots_read'
+				'request', 'request_denied', 'key_created', 'key_revoked'
 			)),
 			route text,
 			target_id text,

@@ -27,9 +27,9 @@ class ProbeGroup extends HttpApiGroup.make("probe")
 			RequiredScopes,
 			["catalog:read"],
 		),
-		HttpApiEndpoint.get("students", "/students", { success: Rows }).annotate(
+		HttpApiEndpoint.get("review", "/review", { success: Rows }).annotate(
 			RequiredScopes,
-			["students:read"],
+			["review:decide"],
 		),
 		HttpApiEndpoint.get("unmarked", "/unmarked", { success: Rows }),
 	)
@@ -49,7 +49,7 @@ const rowsFor = Effect.gen(function* () {
 const ProbeHandlers = HttpApiBuilder.group(ProbeApi, "probe", (handlers) =>
 	handlers
 		.handle("catalog", () => rowsFor)
-		.handle("students", () => rowsFor)
+		.handle("review", () => rowsFor)
 		.handle("unmarked", () => rowsFor),
 );
 
@@ -150,10 +150,10 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 
 		it.effect("refuses a key without the scope with 403 and audits it", () =>
 			Effect.gen(function* () {
-				const key = yield* newKey(["catalog:read", "runs:read"]);
+				const key = yield* newKey(["catalog:read"]);
 				const client = yield* probeAs(key.token);
 
-				const error = yield* Effect.flip(client.probe.students());
+				const error = yield* Effect.flip(client.probe.review());
 
 				assert.strictEqual(error._tag, "Forbidden");
 				assert.deepStrictEqual(
@@ -165,7 +165,7 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 					[
 						{
 							action: "request_denied",
-							route: "GET /v1/probe/students",
+							route: "GET /v1/probe/review",
 							reason: "missing_scope",
 						},
 					],
@@ -175,11 +175,7 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 
 		it.effect("refuses every key on a route that names no scope", () =>
 			Effect.gen(function* () {
-				const key = yield* newKey([
-					"catalog:read",
-					"students:read",
-					"keys:manage",
-				]);
+				const key = yield* newKey(["catalog:read", "review:decide"]);
 
 				const client = yield* probeAs(key.token);
 
@@ -324,7 +320,7 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 
 		it.effect("tells a key its id, scopes and expiry on GET /v1/key", () =>
 			Effect.gen(function* () {
-				const key = yield* newKey(["runs:read"]);
+				const key = yield* newKey(["review:decide"]);
 
 				const client = yield* HttpApiTest.groups(Api, ["key"]).pipe(
 					withToken(key.token),
@@ -334,7 +330,7 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 
 				assert.deepStrictEqual(current, {
 					id: key.id,
-					scopes: ["runs:read"],
+					scopes: ["review:decide"],
 					expiresAt: key.expiresAt.toISOString(),
 				});
 			}),
@@ -347,7 +343,7 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 				const client = yield* probeAs(key.token);
 
 				yield* client.probe.catalog();
-				yield* Effect.ignore(client.probe.students());
+				yield* Effect.ignore(client.probe.review());
 				yield* keys.revoke(key.id, null);
 				yield* Effect.ignore(client.probe.catalog());
 				yield* Effect.logDebug("probe done", { key: key.token });

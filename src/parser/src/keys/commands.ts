@@ -5,7 +5,8 @@ import { PgLive } from "../db/Database.ts";
 import { DEFAULT_EXPIRY_DAYS, type KeyRow, Keys } from "./Keys.ts";
 import { DEFAULT_SCOPES, SCOPES } from "./scopes.ts";
 
-const KeysLive = Keys.layer.pipe(
+/** `Keys` on the database of `DATABASE_URL`, for the container commands. */
+export const KeysLive = Keys.layer.pipe(
 	Layer.provide(Audit.layer),
 	Layer.provide(PgLive),
 );
@@ -98,7 +99,7 @@ const createKey = Command.make(
 			);
 			// Printed once to stdout and never logged: logs go to Sentry.
 			yield* Console.log(Redacted.value(key.token));
-		}).pipe(Effect.provide(KeysLive)),
+		}),
 ).pipe(Command.withDescription("Make an API key and print its token once"));
 
 const revokeKey = Command.make(
@@ -113,7 +114,7 @@ const revokeKey = Command.make(
 			}
 
 			yield* Console.log(`Revoked ${id}`);
-		}).pipe(Effect.provide(KeysLive)),
+		}),
 ).pipe(Command.withDescription("Revoke an API key"));
 
 const listKeys = Command.make("list-keys", {}, () =>
@@ -124,7 +125,14 @@ const listKeys = Command.make("list-keys", {}, () =>
 		for (const key of yield* keys.list) {
 			yield* Console.log(describeKey(key, now));
 		}
-	}).pipe(Effect.provide(KeysLive)),
+	}),
 ).pipe(Command.withDescription("List API keys with their scopes and status"));
 
-export const keyCommands = [createKey, revokeKey, listKeys] as const;
+/** The key commands with `Keys` from `keys`: `KeysLive` in the container, a
+ *  test database in tests. */
+export const keyCommands = <E, R>(keys: Layer.Layer<Keys, E, R>) =>
+	[
+		createKey.pipe(Command.provide(keys)),
+		revokeKey.pipe(Command.provide(keys)),
+		listKeys.pipe(Command.provide(keys)),
+	] as const;
