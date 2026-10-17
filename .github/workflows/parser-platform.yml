@@ -31,6 +31,8 @@ env:
   # Keep within one minor version of the cluster (k3s v1.36 on staging).
   KUBECTL_VERSION: v1.36.5
   PLATFORM_ROOT: infra/deploy/parser/k8s/platform
+  # Applied in this order: each one needs what the previous one installs.
+  PLATFORM_DIRS: operators config database
 
 jobs:
   render:
@@ -47,7 +49,7 @@ jobs:
 
       - name: Render kustomizations
         run: |
-          for dir in operators config; do
+          for dir in $PLATFORM_DIRS; do
             kubectl kustomize "$PLATFORM_ROOT/$dir" > /dev/null
             echo "$dir renders"
           done
@@ -87,13 +89,14 @@ jobs:
           installed=$(kubectl get namespace cert-manager cnpg-system --ignore-not-found -o name)
           if [ "$(grep -c . <<< "$installed")" -lt 2 ]; then
             echo "Operators are not installed yet. The first apply creates:"
-            for dir in operators config; do
+            for dir in $PLATFORM_DIRS; do
               kubectl kustomize "$PLATFORM_ROOT/$dir" | grep '^kind:' | sort | uniq -c
             done
             exit 0
           fi
+
           # kubectl diff exits 1 when there are changes, and >1 on errors.
-          for dir in operators config; do
+          for dir in $PLATFORM_DIRS; do
             kubectl diff --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/$dir" || [ $? -eq 1 ]
           done
 
@@ -102,6 +105,7 @@ jobs:
         run: |
           # Server-side apply: the CNPG CRDs are too large for the client-side last-applied annotation.
           kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/operators"
+
           # Wait for each rollout, not Available: during an upgrade the old pods keep Available=True.
           for ns in cert-manager cnpg-system; do
             # Assigned first, so a kubectl error fails the step instead of skipping the loop.
@@ -123,6 +127,27 @@ jobs:
           done
           kubectl wait --for=condition=Ready clusterissuer --all --timeout=3m
 
+      - name: Apply database
+        if: inputs.action == 'apply'
+        run: |
+          before=$(kubectl -n parser get cluster parser-db --ignore-not-found -o jsonpath='{.metadata.generation}')
+          kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/database"
+          after=$(kubectl -n parser get cluster parser-db -o jsonpath='{.metadata.generation}')
+
+          # CNPG reports no observedGeneration, so after a spec change Ready=True may still describe the old spec.
+          # Wait for the operator to pick the change up first; some changes need no restart and never drop Ready.
+          if [ -n "$before" ] && [ "$before" != "$after" ]; then
+            kubectl -n parser wait --for=condition=Ready=false cluster/parser-db --timeout=30s 2> /dev/null \
+              || echo "Ready stayed True: this change needed no restart."
+          fi
+
+          # The first start pulls the image and runs initdb, so allow several minutes.
+          kubectl -n parser wait --for=condition=Ready cluster/parser-db --timeout=10m
+
+          # The service reads DATABASE_URL from this Secret.
+          kubectl -n parser get secret parser-db-app -o jsonpath='{.data.uri}' | grep -q . \
+            || { echo "::error::parser-db-app has no uri key"; exit 1; }
+
       - name: Status
         if: always() && inputs.action == 'apply'
         run: |
@@ -132,5 +157,6 @@ jobs:
             kubectl get pods -n cert-manager
             kubectl get pods -n cnpg-system
             kubectl get clusterissuers
+            kubectl -n parser get cluster,pods,pvc
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
