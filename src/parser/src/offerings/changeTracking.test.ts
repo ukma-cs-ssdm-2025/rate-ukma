@@ -496,5 +496,76 @@ describe.skipIf(testDatabaseUrl === undefined)("change tracking", () => {
 					);
 				}),
 		);
+
+		it.effect(
+			"takes no number for catalog filter ids that did not change, nor for a released one",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+
+					const runId = yield* crawl(2039, [
+						{ code: "990001" },
+						{ code: "990002", unit: MOVED_DEPARTMENT },
+					]);
+
+					const storeCatalog = (faculties: string, programmes: string) =>
+						sql`
+							INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
+							VALUES (
+								${`/course/catalog?year=2039&v=${faculties.length}`}, 'catalog',
+								${`catalog ${faculties}`},
+								${`<form><select name="filter[faculty][]" multiple>${faculties}</select><select name="filter[spec][]" multiple>${programmes}</select></form>`},
+								${runId}
+							)
+						`;
+
+					const PROGRAMME = `<option value="5001">Вигадана інженерія (Бакалавр)</option>`;
+
+					yield* storeCatalog(
+						`<option value="901">Факультет вигаданих наук</option>`,
+						PROGRAMME,
+					);
+
+					yield* parseOfferings("crawl");
+
+					const [programme] = yield* sql<{ readonly sazFilterId: string }>`
+						SELECT saz_filter_id AS "sazFilterId" FROM programmes
+						WHERE name = 'Вигадана інженерія' AND level = 'bachelor'
+					`;
+
+					assert.strictEqual(programme?.sazFilterId, "5001");
+					assert.deepStrictEqual(
+						(yield* parseOfferings("reparse")).changes,
+						[],
+					);
+
+					// The filter id moves to the other faculty: the first one is
+					// released, the second one takes it.
+					yield* storeCatalog(
+						`<option value="901">Факультет уявних мистецтв</option><option value="902">Факультет вигаданих наук</option>`,
+						PROGRAMME,
+					);
+
+					const moved = yield* parseOfferings("reparse");
+
+					assert.deepStrictEqual(moved.changes, [
+						{ table: "faculties", action: "change", rows: 2 },
+					]);
+					assert.deepStrictEqual(
+						(yield* parseOfferings("reparse")).changes,
+						[],
+					);
+
+					const faculties = yield* sql<{ readonly line: string }>`
+						SELECT name || ' ' || saz_filter_id AS line FROM faculties
+						WHERE saz_filter_id IN ('901', '902') ORDER BY line
+					`;
+
+					assert.deepStrictEqual(
+						faculties.map(({ line }) => line),
+						["Факультет вигаданих наук 902", "Факультет уявних мистецтв 901"],
+					);
+				}),
+		);
 	});
 });
