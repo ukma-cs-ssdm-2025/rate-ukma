@@ -1,0 +1,134 @@
+---
+name: Parser Platform
+
+on:
+  pull_request:
+    paths:
+      - infra/deploy/parser/k8s/platform/**
+      - .github/actions/k8s-tunnel/**
+      - .github/workflows/parser-platform.yml
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Parser environment to update"
+        required: true
+        type: choice
+        options:
+          - staging
+      action:
+        description: "diff shows the changes - apply applies them"
+        required: true
+        type: choice
+        default: diff
+        options:
+          - diff
+          - apply
+
+permissions:
+  contents: read
+
+env:
+  # Keep within one minor version of the cluster (k3s v1.36 on staging).
+  KUBECTL_VERSION: v1.36.5
+  PLATFORM_ROOT: infra/deploy/parser/k8s/platform
+
+jobs:
+  render:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Render kustomizations
+        run: |
+          for dir in operators config; do
+            kubectl kustomize "$PLATFORM_ROOT/$dir" > /dev/null
+            echo "$dir renders"
+          done
+
+  platform:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    # Cluster-admin access: the environment's required reviewer gates every run.
+    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
+    concurrency:
+      group: parser-platform-${{ inputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - uses: ./.github/actions/k8s-tunnel
+        with:
+          host: ${{ secrets.PARSER_SSH_HOST }}
+          ssh_key: ${{ secrets.PARSER_SSH_KEY }}
+          known_hosts: ${{ secrets.PARSER_SSH_KNOWN_HOSTS }}
+          kubeconfig: ${{ secrets.PARSER_KUBECONFIG }}
+
+      - name: Diff
+        if: inputs.action == 'diff'
+        run: |
+          # Before the first apply, the operator namespaces and CRDs don't exist, so a server-side diff can't run.
+          # Only NotFound counts as "not installed"; any other error fails the step.
+          # No pipe here: without pipefail, a pipe would hide a kubectl error.
+          installed=$(kubectl get namespace cert-manager cnpg-system --ignore-not-found -o name)
+          if [ "$(grep -c . <<< "$installed")" -lt 2 ]; then
+            echo "Operators are not installed yet. The first apply creates:"
+            for dir in operators config; do
+              kubectl kustomize "$PLATFORM_ROOT/$dir" | grep '^kind:' | sort | uniq -c
+            done
+            exit 0
+          fi
+          # kubectl diff exits 1 when there are changes, and >1 on errors.
+          for dir in operators config; do
+            kubectl diff --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/$dir" || [ $? -eq 1 ]
+          done
+
+      - name: Apply operators
+        if: inputs.action == 'apply'
+        run: |
+          # Server-side apply: the CNPG CRDs are too large for the client-side last-applied annotation.
+          kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/operators"
+          # Wait for each rollout, not Available: during an upgrade the old pods keep Available=True.
+          for ns in cert-manager cnpg-system; do
+            # Assigned first, so a kubectl error fails the step instead of skipping the loop.
+            deployments=$(kubectl -n "$ns" get deployment -o name)
+            [ -n "$deployments" ] || { echo "::error::no Deployments in $ns"; exit 1; }
+            for deployment in $deployments; do
+              kubectl -n "$ns" rollout status "$deployment" --timeout=5m
+            done
+          done
+
+      - name: Apply config
+        if: inputs.action == 'apply'
+        run: |
+          # The cert-manager webhook can reject requests for a few seconds after its rollout finishes.
+          for attempt in 1 2 3 4 5; do
+            kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/config" && break
+            [ "$attempt" -eq 5 ] && exit 1
+            sleep 10
+          done
+          kubectl wait --for=condition=Ready clusterissuer --all --timeout=3m
+
+      - name: Status
+        if: always() && inputs.action == 'apply'
+        run: |
+          {
+            echo "### Platform (${{ inputs.environment }})"
+            echo '```'
+            kubectl get pods -n cert-manager
+            kubectl get pods -n cnpg-system
+            kubectl get clusterissuers
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
