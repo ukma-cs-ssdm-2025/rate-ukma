@@ -67,8 +67,14 @@ const MICROSOFT_CONFIG = /\$Config=(\{.*?\});/su;
 
 const MAX_RETRIES = 3;
 
+/** The longest `Retry-After` the client waits out. The crawl fetches one page
+ *  at a time, so a longer wait would stall every page behind it; the request
+ *  fails as a 429 instead, and the crawl tries the page again later. */
+const MAX_RETRY_AFTER_SECONDS = 120;
+
 /** The wait before trying a failed request again, or `undefined` to give up.
- *  A САЗ 500 repeats for the same page, so a 5xx gets one retry only. */
+ *  A САЗ 500 repeats for the same page, so a 5xx gets one retry only. A 429
+ *  is never retried sooner than its `Retry-After` asks. */
 const retryDelay = (
 	error: SazError,
 	retries: number,
@@ -78,8 +84,10 @@ const retryDelay = (
 	const backoff = Duration.seconds(2 * 2 ** retries);
 
 	if (error.status === 429 && retries < MAX_RETRIES) {
-		return error.retryAfterSeconds === undefined
-			? backoff
+		if (error.retryAfterSeconds === undefined) return backoff;
+
+		return error.retryAfterSeconds > MAX_RETRY_AFTER_SECONDS
+			? undefined
 			: Duration.seconds(error.retryAfterSeconds);
 	}
 

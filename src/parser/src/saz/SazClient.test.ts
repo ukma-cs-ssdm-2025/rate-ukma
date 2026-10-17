@@ -249,6 +249,31 @@ describe("SazClient", () => {
 	});
 
 	it.effect(
+		"fails a 429 at once when it asks for a wait over two minutes",
+		() => {
+			const fake = makeFakeFetch({
+				pages: {
+					"/course/100008": () =>
+						new Response("slow down", {
+							status: 429,
+							headers: { "retry-after": "121" },
+						}),
+				},
+			});
+
+			return Effect.gen(function* () {
+				const saz = yield* SazClient;
+
+				const error = yield* Effect.flip(saz.get("/course/100008"));
+
+				assert.instanceOf(error, SazRequestFailed);
+				assert.strictEqual(error.status, 429);
+				assert.strictEqual(asked(fake, "/course/100008"), 1);
+			}).pipe(Effect.provide(clientWith("right-password", fake)));
+		},
+	);
+
+	it.effect(
 		"gives up on a stalled response after the time limit and retries it",
 		() => {
 			const fake = makeFakeFetch({
