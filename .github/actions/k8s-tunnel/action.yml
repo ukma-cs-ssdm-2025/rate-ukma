@@ -60,9 +60,10 @@ runs:
     - name: Wait for the API server
       shell: bash
       run: |
+        # kubectl has no request timeout by default, so a hung API server would stall the loop.
         for _ in $(seq 1 10); do
-          kubectl get --raw /readyz >/dev/null 2>&1 && { kubectl version; exit 0; }
+          kubectl get --raw /readyz --request-timeout=5s >/dev/null 2>&1 && { kubectl version --request-timeout=5s; exit 0; }
           sleep 3
         done
         echo "::error::kube-apiserver is not reachable through the tunnel"
-        kubectl get --raw /readyz
+        kubectl get --raw /readyz --request-timeout=5s

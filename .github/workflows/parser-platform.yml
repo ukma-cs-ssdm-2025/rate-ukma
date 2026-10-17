@@ -100,13 +100,20 @@ jobs:
         run: |
           # Server-side apply: the CNPG CRDs are too large for the client-side last-applied annotation.
           kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/operators"
-          kubectl -n cert-manager wait --for=condition=Available deployment --all --timeout=5m
-          kubectl -n cnpg-system wait --for=condition=Available deployment --all --timeout=5m
+          # Wait for each rollout, not Available: during an upgrade the old pods keep Available=True.
+          for ns in cert-manager cnpg-system; do
+            # Assigned first, so a kubectl error fails the step instead of skipping the loop.
+            deployments=$(kubectl -n "$ns" get deployment -o name)
+            [ -n "$deployments" ] || { echo "::error::no Deployments in $ns"; exit 1; }
+            for deployment in $deployments; do
+              kubectl -n "$ns" rollout status "$deployment" --timeout=5m
+            done
+          done
 
       - name: Apply config
         if: inputs.action == 'apply'
         run: |
-          # The cert-manager webhook can reject requests for a few seconds after it reports Available.
+          # The cert-manager webhook can reject requests for a few seconds after its rollout finishes.
           for attempt in 1 2 3 4 5; do
             kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/config" && break
             [ "$attempt" -eq 5 ] && exit 1
