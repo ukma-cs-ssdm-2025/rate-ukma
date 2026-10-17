@@ -17,7 +17,7 @@ import {
 } from "./crawl.ts";
 import {
 	CrawlStore,
-	type KindTally,
+	type PageCounts,
 	type OpenRun,
 	type QueuedPage,
 	type RunReport,
@@ -166,7 +166,7 @@ const makeMemoryStore = (crashOn?: string, locked = true) => {
 			return { id: run.id, sourcePart };
 		});
 
-	const tally = (runId: bigint, kind: KindTally["kind"]): KindTally => {
+	const countsOf = (runId: bigint, kind: PageCounts["kind"]): PageCounts => {
 		const ofKind = pages.filter(
 			(page) => page.runId === runId && page.kind === kind,
 		);
@@ -182,7 +182,7 @@ const makeMemoryStore = (crashOn?: string, locked = true) => {
 	const report = (runId: bigint): RunReport => ({
 		seconds: 0,
 		pages: (["catalog", "course", "students"] as const).map((kind) =>
-			tally(runId, kind),
+			countsOf(runId, kind),
 		),
 		failures: [],
 	});
