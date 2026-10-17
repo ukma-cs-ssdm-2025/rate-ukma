@@ -27,7 +27,11 @@ const reset = Effect.gen(function* () {
 const startWith = (next: ReadonlyArray<QueuedPage>) =>
 	Effect.gen(function* () {
 		const store = yield* CrawlStore;
-		const run = yield* store.startRun("saz-courses:2031-32", FIRST);
+
+		const [run] = yield* store.startRuns([
+			{ sourcePart: "saz-courses:2031-32", first: FIRST },
+		]);
+
 		const first = yield* store.claim(run.id);
 
 		assert.isDefined(first);
@@ -40,7 +44,11 @@ const startWith = (next: ReadonlyArray<QueuedPage>) =>
 const fetchOnce = (path: string, body: string) =>
 	Effect.gen(function* () {
 		const store = yield* CrawlStore;
-		const run = yield* store.startRun("saz-courses:2031-32", course(path));
+
+		const [run] = yield* store.startRuns([
+			{ sourcePart: "saz-courses:2031-32", first: course(path) },
+		]);
+
 		const page = yield* store.claim(run.id);
 
 		assert.isDefined(page);
