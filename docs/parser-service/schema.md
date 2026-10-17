@@ -301,7 +301,7 @@ Decided 2026-10-17, spec rule 6: one removal scope per list, not per run. САЗ
 
 - Offerings of a year, with their term and programme rows: removed when every catalog page and every course page of the run loaded. A page that loaded but failed to parse counts as not loaded. A failed students page does not block them. The removal threshold is a setting, 5% of the year's offerings to start: if the run would remove more, it holds the removals as a `removals_held` review case. Faculties, departments and programmes are not removed in the first release.
 - Enrollments of one offering: replaced only when that offering's students page loaded in the run. A failed page keeps the offering's last good enrollments, or none.
-- `runs.offering_removals` is `applied`, `held` when a review case holds them, or `skipped` when a catalog or course page failed. `runs.lists_kept` counts the offerings whose enrollments the run kept.
+- `runs.offering_removals` is `applied`, `held` when a review case holds them, or `skipped` when a catalog or course page failed or when the distinct course codes the run saw differ from the total page 1 of its catalog reported (a course that leaves mid-run shifts one card onto a page already read); `runs.report.removalsSkipped` says why. `runs.lists_kept` counts the offerings whose enrollments the run kept.
 
 For example, the run for 2020-21 loads every catalog and course page and fails on 139 students pages. It may remove 2020-21 offerings that left the catalog, and it publishes no enrollments for the 139 offerings until САЗ serves their lists.
 
