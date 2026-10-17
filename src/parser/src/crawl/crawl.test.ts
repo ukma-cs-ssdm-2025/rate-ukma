@@ -503,22 +503,28 @@ describe.skipIf(testDatabaseUrl === undefined)(
 
 					yield* reset;
 
-					// The database goes away while the second year's run is inserted.
-					yield* sql`
-						CREATE FUNCTION lose_database() RETURNS trigger LANGUAGE plpgsql AS $$
-						BEGIN RAISE EXCEPTION 'connection lost'; END $$
-					`;
-					yield* sql`
-						CREATE TRIGGER lose_database BEFORE INSERT ON runs FOR EACH ROW
-						WHEN (NEW.source_part = 'saz-courses:2032-33')
-						EXECUTE FUNCTION lose_database()
-					`;
+					// The second year's insert fails, as a lost database would. The
+					// trigger is dropped before the retry, even when the crash hangs.
+					const failSecondYear = Effect.acquireRelease(
+						sql`
+							CREATE FUNCTION fail_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+							BEGIN RAISE EXCEPTION 'insert failed'; END $$
+						`.pipe(
+							Effect.andThen(sql`
+								CREATE TRIGGER fail_insert BEFORE INSERT ON runs FOR EACH ROW
+								WHEN (NEW.source_part = 'saz-courses:2032-33')
+								EXECUTE FUNCTION fail_insert()
+							`),
+						),
+						() => sql`DROP FUNCTION fail_insert CASCADE`.pipe(Effect.orDie),
+					);
 
-					const crashed = yield* Effect.exit(crawlAllYears());
+					const crashed = yield* failSecondYear.pipe(
+						Effect.andThen(Effect.exit(crawlAllYears())),
+						Effect.scoped,
+					);
 					const afterCrash = yield* runs;
 
-					yield* sql`DROP TRIGGER lose_database ON runs`;
-					yield* sql`DROP FUNCTION lose_database`;
 					yield* crawlAllYears();
 
 					assert.isTrue(Exit.hasDies(crashed));
