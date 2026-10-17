@@ -1,6 +1,7 @@
 import { assert, describe, layer } from "@effect/vitest";
 import { Effect, Exit, Layer } from "effect";
 import { SqlClient } from "effect/sql";
+import { ChangeLog } from "../changes/ChangeLog.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
 import { offering } from "./offering.fixture.ts";
@@ -8,6 +9,7 @@ import { OfferingStore } from "./OfferingStore.ts";
 import { offeringRowsOf, parseOfferings } from "./offerings.ts";
 
 const TestLive = OfferingStore.layer.pipe(
+	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
 );
 
@@ -15,7 +17,7 @@ const reset = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 
 	yield* sql`
-		TRUNCATE offering_terms, offering_programmes, offerings, programmes,
+		TRUNCATE changes, offering_terms, offering_programmes, offerings, programmes,
 			departments, faculties, terms, parse_failures, parses, page_snapshots,
 			run_pages, runs
 		RESTART IDENTITY
@@ -125,6 +127,7 @@ describe.skipIf(testDatabaseUrl === undefined)("reparse", () => {
 						],
 						NO_FILTERS,
 					),
+					yield* store.startParse("crawl"),
 				);
 
 				const before = yield* counts;
@@ -139,8 +142,10 @@ describe.skipIf(testDatabaseUrl === undefined)("reparse", () => {
 					seconds: report.seconds,
 					parsed: 1,
 					failed: [],
+					changes: [{ table: "offerings", action: "change", rows: 1 }],
 				});
 				assert.deepStrictEqual(yield* parses, [
+					{ trigger: "crawl", finished: null, report: null },
 					{ trigger: "reparse", finished: true, report },
 				]);
 				assert.deepStrictEqual(yield* failures, []);
