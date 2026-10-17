@@ -1,6 +1,7 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
+import { TURN_LOCK } from "../db/locks.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
 import { ChangeLog } from "./ChangeLog.ts";
 
@@ -40,7 +41,7 @@ const turnLock = (granted: boolean) =>
 
 		return yield* sql<{ readonly locks: bigint }>`
 			SELECT count(*) AS locks FROM pg_locks
-			WHERE locktype = 'advisory' AND objid = 7640001 AND granted = ${granted}
+			WHERE locktype = 'advisory' AND objid = ${TURN_LOCK} AND granted = ${granted}
 		`.pipe(
 			Effect.map(([row]) => row?.locks ?? 0n),
 			Effect.repeat({
@@ -129,13 +130,16 @@ describe.skipIf(testDatabaseUrl === undefined)("ChangeLog", () => {
 			Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
 				const changes = yield* ChangeLog;
-				const outside = yield* (yield* insertTerms(["T-D1"])).pipe(Effect.exit);
+				const outside = yield* (yield* insertTerms(["T-D1"])).pipe(Effect.flip);
 
 				const nested = yield* changes
 					.withTurn(Effect.void)
 					.pipe(sql.withTransaction, Effect.exit);
 
-				assert.isTrue(Exit.isFailure(outside));
+				assert.include(
+					Cause.pretty(Cause.fail(outside)),
+					"change_no written outside the writers' turn",
+				);
 				assert.isTrue(Exit.hasDies(nested));
 				assert.deepStrictEqual(yield* numbersOf(["T-D1"]), []);
 			}),

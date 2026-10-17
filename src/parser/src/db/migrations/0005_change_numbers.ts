@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
+import { TURN_LOCK } from "../locks.ts";
 
 const NUMBERED = [
 	"terms",
@@ -27,53 +28,19 @@ export default Effect.gen(function* () {
 		yield* sql`CREATE UNIQUE INDEX ${sql(`${table}_change_no`)} ON ${sql(table)} (change_no)`;
 	}
 
-	for (const table of NUMBERED.slice(1)) {
-		yield* sql`ALTER TABLE ${sql(table)} ADD COLUMN removed_at timestamptz`;
-	}
-
 	yield* sql`ALTER TABLE offerings ADD COLUMN row_hash text`;
-
-	// The restore check of a removed offering looks up its page's latest fetch.
-	yield* sql`
-		CREATE INDEX run_pages_done_path ON run_pages (path, finished_at)
-		WHERE status = 'done'
-	`;
-
-	yield* sql`
-		ALTER TABLE runs ADD COLUMN offering_removals text
-			CHECK (offering_removals IN ('applied', 'held', 'skipped'))
-	`;
-
-	yield* sql`
-		CREATE TABLE review_cases (
-			id text PRIMARY KEY DEFAULT 'rev_' || ulid(),
-			kind text NOT NULL
-				CHECK (kind IN ('course_match', 'instructor_match', 'removals_held')),
-			subject_id text NOT NULL,
-			candidates jsonb NOT NULL,
-			safe_answer jsonb NOT NULL,
-			status text NOT NULL DEFAULT 'open'
-				CHECK (status IN ('open', 'decided', 'obsolete')),
-			run_id bigint REFERENCES runs (id),
-			decision_id text,
-			opened_at timestamptz NOT NULL DEFAULT now(),
-			change_no bigint NOT NULL UNIQUE
-		)
-	`;
 
 	yield* sql`
 		CREATE TABLE changes (
 			change_no bigint PRIMARY KEY,
 			table_name text NOT NULL,
 			row_id text NOT NULL,
-			action text NOT NULL CHECK (action IN ('add', 'change', 'remove', 'restore')),
-			run_id bigint REFERENCES runs (id),
+			action text NOT NULL CHECK (action IN ('add', 'change')),
 			parse_id bigint REFERENCES parses (id),
 			decision_id text,
 			at timestamptz NOT NULL DEFAULT now()
 		)
 	`;
-	yield* sql`CREATE INDEX changes_run ON changes (run_id) WHERE run_id IS NOT NULL`;
 	yield* sql`CREATE INDEX changes_parse ON changes (parse_id) WHERE parse_id IS NOT NULL`;
 
 	for (const table of NUMBERED) {
@@ -90,7 +57,8 @@ export default Effect.gen(function* () {
 		BEGIN
 			IF NOT EXISTS (
 				SELECT 1 FROM pg_locks
-				WHERE locktype = 'advisory' AND classid = 0 AND objid = 7640001
+				WHERE locktype = 'advisory' AND classid = 0
+					AND objid = ${sql.literal(String(TURN_LOCK))}
 					AND objsubid = 1 AND pid = pg_backend_pid() AND granted
 			) THEN
 				RAISE EXCEPTION 'change_no written outside the writers'' turn';
@@ -101,7 +69,7 @@ export default Effect.gen(function* () {
 		$$
 	`;
 
-	for (const table of [...NUMBERED, "review_cases"]) {
+	for (const table of NUMBERED) {
 		yield* sql`
 			CREATE TRIGGER ${sql(`${table}_require_turn`)}
 			BEFORE INSERT OR UPDATE OF change_no ON ${sql(table)}

@@ -7,6 +7,7 @@ import {
 	mergeChangeCounts,
 	type NumberedTable,
 } from "../changes/ChangeLog.ts";
+import { recordsetOf } from "../db/recordset.ts";
 import type {
 	OfferingTerm,
 	ParsedOffering,
@@ -183,18 +184,7 @@ export class OfferingStore extends Context.Service<
 				Effect.orDie,
 			);
 
-			/** Rows sent as one `jsonb` value. `columns` names every key of the
-			 *  row with its Postgres type, so the compiler keeps the two in step:
-			 *  a key missing from the record set would read as null. */
-			const recordset = <T extends object>(
-				rows: ReadonlyArray<T>,
-				columns: { readonly [K in keyof T]-?: string },
-			) =>
-				sql`jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS r(${sql.unsafe(
-					Object.entries(columns)
-						.map(([key, type]) => `"${key}" ${type}`)
-						.join(", "),
-				)})`;
+			const recordset = recordsetOf(sql);
 
 			const findUnits = SqlSchema.findAll({
 				Request: Schema.Literals(["faculties", "departments"]),
