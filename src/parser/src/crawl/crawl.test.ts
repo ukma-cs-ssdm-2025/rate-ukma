@@ -188,7 +188,10 @@ const makeMemoryStore = (crashOn?: string, locked = true) => {
 
 	const layer = Layer.succeed(CrawlStore, {
 		lockCrawl: Effect.succeed(locked),
-		startRun,
+		startRuns: (open) =>
+			Effect.forEach(open, ({ sourcePart, first }) =>
+				startRun(sourcePart, first),
+			),
 		openRuns: Effect.sync(() => {
 			for (const page of pages) {
 				if (page.status === "claimed") page.status = "pending";
@@ -423,6 +426,13 @@ describe("crawlAllYears", () => {
 	});
 });
 
+/** Empties the crawl tables, so each test starts without runs. */
+const reset = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	yield* sql`TRUNCATE runs, run_pages, page_snapshots RESTART IDENTITY`;
+});
+
 describe.skipIf(testDatabaseUrl === undefined)(
 	"crawlAllYears on Postgres",
 	() => {
@@ -452,6 +462,7 @@ describe.skipIf(testDatabaseUrl === undefined)(
 					return Effect.gen(function* () {
 						const sql = yield* SqlClient.SqlClient;
 
+						yield* reset;
 						yield* crawlAllYears();
 
 						const pages = yield* sql<{
@@ -477,6 +488,47 @@ describe.skipIf(testDatabaseUrl === undefined)(
 					}).pipe(Effect.provide(saz.layer));
 				},
 			);
+
+			it.effect("starts every year after a crash while starting them", () => {
+				const saz = makeFakeSaz();
+
+				return Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+
+					const runs = sql<{ readonly sourcePart: string }>`
+						SELECT source_part AS "sourcePart" FROM runs ORDER BY id
+					`.pipe(
+						Effect.map((rows) => rows.map(({ sourcePart }) => sourcePart)),
+					);
+
+					yield* reset;
+
+					// The database goes away while the second year's run is inserted.
+					yield* sql`
+						CREATE FUNCTION lose_database() RETURNS trigger LANGUAGE plpgsql AS $$
+						BEGIN RAISE EXCEPTION 'connection lost'; END $$
+					`;
+					yield* sql`
+						CREATE TRIGGER lose_database BEFORE INSERT ON runs FOR EACH ROW
+						WHEN (NEW.source_part = 'saz-courses:2032-33')
+						EXECUTE FUNCTION lose_database()
+					`;
+
+					const crashed = yield* Effect.exit(crawlAllYears());
+					const afterCrash = yield* runs;
+
+					yield* sql`DROP TRIGGER lose_database ON runs`;
+					yield* sql`DROP FUNCTION lose_database`;
+					yield* crawlAllYears();
+
+					assert.isTrue(Exit.hasDies(crashed));
+					assert.deepStrictEqual(afterCrash, []);
+					assert.deepStrictEqual(yield* runs, [
+						"saz-courses:2031-32",
+						"saz-courses:2032-33",
+					]);
+				}).pipe(Effect.provide(saz.layer));
+			});
 		});
 	},
 );

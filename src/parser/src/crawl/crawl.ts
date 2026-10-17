@@ -174,11 +174,11 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 
 		if (years.length === 0) return yield* new NoAcademicYears();
 
-		return yield* Effect.forEach(years, (year) =>
-			store.startRun(sourcePartOf(year), {
-				kind: "catalog",
-				path: catalogPath(year, 1),
-			}),
+		return yield* store.startRuns(
+			years.map((year) => ({
+				sourcePart: sourcePartOf(year),
+				first: { kind: "catalog", path: catalogPath(year, 1) },
+			})),
 		);
 	});
 
