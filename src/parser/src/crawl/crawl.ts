@@ -125,7 +125,7 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 			const status =
 				crashed ||
 				report.pages.some(
-					(tally) => tally.kind === "catalog" && tally.failed > 0,
+					(counts) => counts.kind === "catalog" && counts.failed > 0,
 				)
 					? "failed"
 					: "succeeded";
@@ -199,9 +199,9 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 			sourcePart,
 			status,
 			seconds: report.seconds,
-			done: report.pages.reduce((sum, tally) => sum + tally.done, 0),
-			failed: report.pages.reduce((sum, tally) => sum + tally.failed, 0),
-			stored: report.pages.reduce((sum, tally) => sum + tally.stored, 0),
+			done: report.pages.reduce((sum, counts) => sum + counts.done, 0),
+			failed: report.pages.reduce((sum, counts) => sum + counts.failed, 0),
+			stored: report.pages.reduce((sum, counts) => sum + counts.stored, 0),
 		})),
 	);
 }, Effect.scoped);

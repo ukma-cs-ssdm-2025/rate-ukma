@@ -168,7 +168,7 @@ describe.skipIf(testDatabaseUrl === undefined)("CrawlStore", () => {
 						.report(runId)
 						.pipe(
 							Effect.map(({ pages }) =>
-								pages.reduce((sum, tally) => sum + tally.stored, 0),
+								pages.reduce((sum, counts) => sum + counts.stored, 0),
 							),
 						),
 				);
