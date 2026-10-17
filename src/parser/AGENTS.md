@@ -12,7 +12,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 - `src/main.ts`: the `api`, `worker`, `migrate` and `reparse` commands. `reparse` rebuilds the parsed tables from stored snapshots and sends nothing to САЗ.
 - `src/keys/`: API keys, their scopes, and the `create-key`, `revoke-key` and `list-keys` commands. `src/audit/Audit.ts` writes the audit log.
-- `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per keyed request.
+- `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per request whose key exists, a refused one with its reason.
 - `src/worker/`: the background loop: crawl, parse, then removals (`src/offerings/removals.ts`).
 - `src/changes/ChangeLog.ts`: the writers' turn, change numbers and the `changes` trail.
 - `src/db/Database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.

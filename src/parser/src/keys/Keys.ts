@@ -1,6 +1,14 @@
-import { Context, Effect, Layer, Option, type Redacted, Schema } from "effect";
+import {
+	Context,
+	Data,
+	Effect,
+	Layer,
+	Option,
+	type Redacted,
+	Schema,
+} from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { Audit } from "../audit/Audit.ts";
+import { Audit, type DenialReason } from "../audit/Audit.ts";
 import { Scope } from "./scopes.ts";
 import {
 	formatToken,
@@ -34,6 +42,22 @@ export interface KeyHolder {
 	readonly expiresAt: Date;
 }
 
+/** A token whose key id is unknown or malformed is `Unknown`: there is no key
+ *  to attach an audit row to. */
+export type KeyCheck = Data.TaggedEnum<{
+	Valid: { readonly holder: KeyHolder };
+	Denied: {
+		readonly keyId: string;
+		readonly reason: Extract<
+			DenialReason,
+			"wrong_secret" | "revoked" | "expired"
+		>;
+	};
+	Unknown: {};
+}>;
+
+export const KeyCheck = Data.taggedEnum<KeyCheck>();
+
 const KeyRow = Schema.Struct({
 	id: Schema.String,
 	name: Schema.String,
@@ -46,6 +70,34 @@ const KeyRow = Schema.Struct({
 
 export type KeyRow = typeof KeyRow.Type;
 
+const StoredKey = Schema.Struct({
+	scopes: Schema.Array(Scope),
+	expiresAt: Schema.Date,
+	secretHash: Schema.String,
+	revoked: Schema.Boolean,
+	expired: Schema.Boolean,
+});
+
+const checkKey = (
+	keyId: string,
+	secret: string,
+	key: Option.Option<typeof StoredKey.Type>,
+): KeyCheck => {
+	if (Option.isNone(key)) return KeyCheck.Unknown();
+
+	const { scopes, expiresAt, secretHash, revoked, expired } = key.value;
+
+	if (!secretMatches(secret, secretHash)) {
+		return KeyCheck.Denied({ keyId, reason: "wrong_secret" });
+	}
+
+	if (revoked) return KeyCheck.Denied({ keyId, reason: "revoked" });
+
+	if (expired) return KeyCheck.Denied({ keyId, reason: "expired" });
+
+	return KeyCheck.Valid({ holder: { keyId, scopes, expiresAt } });
+};
+
 export class Keys extends Context.Service<
 	Keys,
 	{
@@ -53,9 +105,7 @@ export class Keys extends Context.Service<
 		/** False when the key is unknown or already revoked. */
 		revoke(id: string, by: string | null): Effect.Effect<boolean>;
 		list: Effect.Effect<ReadonlyArray<KeyRow>>;
-		authenticate(
-			token: Redacted.Redacted<string>,
-		): Effect.Effect<Option.Option<KeyHolder>>;
+		authenticate(token: Redacted.Redacted<string>): Effect.Effect<KeyCheck>;
 	}
 >()("ukma-data/keys/Keys") {
 	static readonly layer = Layer.effect(
@@ -130,32 +180,23 @@ export class Keys extends Context.Service<
 				`,
 			});
 
-			const findValid = SqlSchema.findOneOption({
+			const findKey = SqlSchema.findOneOption({
 				Request: Schema.String,
-				Result: Schema.Struct({
-					scopes: Schema.Array(Scope),
-					expiresAt: Schema.Date,
-					secretHash: Schema.String,
-				}),
+				Result: StoredKey,
 				execute: (id) => sql`
-					SELECT scopes, expires_at AS "expiresAt", secret_hash AS "secretHash"
+					SELECT scopes, expires_at AS "expiresAt", secret_hash AS "secretHash",
+						revoked_at IS NOT NULL AS revoked, expires_at <= now() AS expired
 					FROM api_keys
-					WHERE id = ${id} AND revoked_at IS NULL AND expires_at > now()
+					WHERE id = ${id}
 				`,
 			});
 
 			const authenticate = (token: Redacted.Redacted<string>) =>
 				Option.match(parseToken(token), {
-					onNone: () => Effect.succeedNone,
+					onNone: () => Effect.succeed(KeyCheck.Unknown()),
 					onSome: ({ keyId, secret }) =>
-						findValid(keyId).pipe(
-							Effect.map(
-								Option.flatMap(({ scopes, expiresAt, secretHash }) =>
-									secretMatches(secret, secretHash)
-										? Option.some({ keyId, scopes, expiresAt })
-										: Option.none(),
-								),
-							),
+						findKey(keyId).pipe(
+							Effect.map((key) => checkKey(keyId, secret, key)),
 							Effect.orDie,
 						),
 				});

@@ -293,6 +293,7 @@ A decision wins over the matching rules, so the matching step reads the latest n
 | `route` | text null | the endpoint's method and path template, such as `GET /v1/offerings`; no ids or filter values |
 | `target_id` | text null | |
 | `row_count` | integer null | rows returned for a read; no data values |
+| `reason` | text null | on a `request_denied` row, why the request was refused: `wrong_secret`, `revoked`, `expired`, `missing_scope`, `no_required_scopes` |
 
 ## When a run may remove rows
 

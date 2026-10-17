@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Option, Ref } from "effect";
 import { HttpApiError } from "effect/http-api";
 import { Audit } from "../audit/Audit.ts";
-import { Keys } from "../keys/Keys.ts";
+import { KeyCheck, Keys } from "../keys/Keys.ts";
 import { missingScopes } from "../keys/scopes.ts";
 import { ApiKeyAuth, Caller, RequiredScopes } from "./Api.ts";
 
@@ -16,14 +16,23 @@ export const ApiKeyAuthLive = Layer.effect(
 				httpEffect,
 				{ credential, endpoint },
 			) {
-				const holder = yield* keys.authenticate(credential);
+				const check = yield* keys.authenticate(credential);
+				const route = `${endpoint.method} ${endpoint.path}`;
 
-				if (Option.isNone(holder)) {
+				if (KeyCheck.$is("Denied")(check)) {
+					yield* audit.record({
+						action: "request_denied",
+						keyId: check.keyId,
+						route,
+						reason: check.reason,
+					});
+				}
+
+				if (!KeyCheck.$is("Valid")(check)) {
 					return yield* new HttpApiError.Unauthorized({});
 				}
 
-				const { keyId, scopes, expiresAt } = holder.value;
-				const route = `${endpoint.method} ${endpoint.path}`;
+				const { keyId, scopes, expiresAt } = check.holder;
 
 				const required = Context.getOption(
 					endpoint.annotations,
@@ -34,7 +43,14 @@ export const ApiKeyAuthLive = Layer.effect(
 					Option.isNone(required) ||
 					missingScopes(scopes, required.value).length > 0
 				) {
-					yield* audit.record({ action: "request_denied", keyId, route });
+					yield* audit.record({
+						action: "request_denied",
+						keyId,
+						route,
+						reason: Option.isNone(required)
+							? "no_required_scopes"
+							: "missing_scope",
+					});
 
 					return yield* new HttpApiError.Forbidden({});
 				}

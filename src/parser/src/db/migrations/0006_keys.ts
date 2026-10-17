@@ -26,7 +26,8 @@ export default Effect.gen(function* () {
 	`;
 
 	// `key_id` is null for an action from the command line. `route` is the
-	// endpoint's path template, so it holds no ids or filter values.
+	// endpoint's path template, so it holds no ids or filter values. `reason`
+	// says why a `request_denied` row was refused.
 	yield* sql`
 		CREATE TABLE audit_log (
 			id text PRIMARY KEY DEFAULT 'aud_' || ulid(),
@@ -39,7 +40,11 @@ export default Effect.gen(function* () {
 			)),
 			route text,
 			target_id text,
-			row_count integer
+			row_count integer,
+			reason text CHECK (reason IN (
+				'wrong_secret', 'revoked', 'expired', 'missing_scope',
+				'no_required_scopes'
+			))
 		)
 	`;
 	yield* sql`CREATE INDEX audit_log_key ON audit_log (key_id, at)`;
