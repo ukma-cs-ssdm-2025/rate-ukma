@@ -54,11 +54,21 @@ export const studentRowsOf = (
 	const programmes = new Map<string, StudentRows["programmes"][number]>();
 	const students = new Map<string, StudentRows["students"][number]>();
 	const byAge = [...lists].sort((a, b) => Number(a.snapshotId - b.snapshotId));
+	const emails = new Map<string, string>();
+
+	// The newest email a record shows in the batch; a list without one does
+	// not split the person off (D3).
+	for (const { entries } of byAge) {
+		for (const { cdoc, email } of entries) {
+			if (email !== null) emails.set(cdoc, email);
+		}
+	}
 
 	for (const { snapshotId, sazCode, entries } of byAge) {
-		for (const { cdoc, email, fullName, specName } of entries) {
+		for (const { cdoc, fullName, specName } of entries) {
 			if ((stored.get(cdoc) ?? 0n) > snapshotId) continue;
 
+			const email = emails.get(cdoc) ?? null;
 			const key = email ?? `cdoc ${cdoc}`;
 
 			programmes.set(cdoc, {

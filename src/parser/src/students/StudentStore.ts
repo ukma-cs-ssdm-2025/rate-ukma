@@ -119,6 +119,22 @@ export class StudentStore extends Context.Service<
 				`,
 			});
 
+			const decodeFresh = Schema.decodeUnknownEffect(
+				Schema.Array(
+					Schema.Struct({
+						id: Schema.String,
+						cdoc: Schema.NullOr(Schema.String),
+						email: Schema.NullOr(Schema.String),
+						fullName: Schema.String,
+						snapshotId: Schema.String,
+					}),
+				),
+			);
+
+			const decodeCodes = Schema.decodeUnknownEffect(
+				Schema.Array(Schema.Struct({ sazCode: Schema.String })),
+			);
+
 			/** `p` is a person row; a name with `*` keeps a stored one without. */
 			const keptName = sql`
 				CASE WHEN p."fullName" LIKE '%*%' AND s.full_name NOT LIKE '%*%'
@@ -155,6 +171,10 @@ export class StudentStore extends Context.Service<
 								({ sazCode, snapshotId }) =>
 									(applied.get(sazCode) ?? 0n) <= snapshotId,
 							);
+
+							if (current.length === 0) {
+								return { changes: [], parsed: 0, emptied: [] };
+							}
 
 							const cdocs = [
 								...new Set(
@@ -208,18 +228,12 @@ export class StudentStore extends Context.Service<
 
 							// A person without an email gets an id here, so its programme
 							// record can point to it.
-							const fresh = yield* sql<{
-								readonly id: string;
-								readonly cdoc: string | null;
-								readonly email: string | null;
-								readonly fullName: string;
-								readonly snapshotId: string;
-							}>`
+							const fresh = yield* sql`
 								SELECT 'stu_' || ulid() AS id, p.cdoc, p.email, p."fullName",
 									p."snapshotId"::text AS "snapshotId"
 								FROM ${persons}
 								WHERE p."studentId" IS NULL
-							`;
+							`.pipe(Effect.flatMap(decodeFresh));
 
 							yield* track(
 								"students",
@@ -250,7 +264,9 @@ export class StudentStore extends Context.Service<
 											UNION ALL
 											SELECT e.offering_id FROM enrollments e
 											JOIN student_programmes sp ON sp.id = e.student_programme_id
+											JOIN offerings o ON o.id = e.offering_id
 											WHERE sp.saz_cdoc = r.cdoc AND e.removed_at IS NULL
+												AND o.saz_code NOT IN ${sql.in(current.map(({ sazCode }) => sazCode))}
 										)
 										HAVING count(DISTINCT pr.id) = 1
 									),
@@ -277,7 +293,8 @@ export class StudentStore extends Context.Service<
 
 							// The latest list moves a record to the student of its email (D1).
 							// A list names the programme without its level (D12); the cards of
-							// the record's offerings that list that name give it. A record
+							// the record's offerings that list that name give it, with this
+							// batch's lists in place of their stored enrollments. A record
 							// whose cards name both levels links only a name of one level.
 							yield* track(
 								"student_programmes",
@@ -383,13 +400,13 @@ export class StudentStore extends Context.Service<
 								JOIN offerings o ON o.saz_code = r."sazCode"
 							`;
 
-							const emptied = yield* sql<{ readonly sazCode: string }>`
+							const emptied = yield* sql`
 								SELECT r."sazCode" FROM ${listsOf}
 								WHERE r."entryCount" = 0 AND EXISTS (
 									SELECT 1 FROM enrollments e
 									WHERE e.offering_id = o.id AND e.removed_at IS NULL
 								)
-							`;
+							`.pipe(Effect.flatMap(decodeCodes));
 
 							yield* track(
 								"enrollments",
