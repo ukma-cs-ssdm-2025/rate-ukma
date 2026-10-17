@@ -19,8 +19,11 @@ export type RemovalPlan =
 
 /** A run that missed a catalog or course page removes nothing. Nor does a run
  *  whose catalog changed while it read the pages: a course that leaves shifts
- *  the cards after it, so one moves onto a page already read and the run never
- *  sees it, and then the codes it saw differ from page 1's total. Above the
+ *  the cards after it back, so one moves onto a page already read and the run
+ *  never sees it; one that arrives pushes a card onto a page past the last.
+ *  Either shows as a later page's total or the codes the run saw differing
+ *  from page 1's total. One course leaving and another arriving in the same
+ *  run still pass; the next run restores what that removed. Above the
  *  threshold the run removes nothing either and holds the removals as a review
  *  case; its new and changed rows are already published. */
 export const planRemovals = (
@@ -39,6 +42,15 @@ export const planRemovals = (
 
 	if (survey.listed === undefined) {
 		return { decision: "skipped", reason: "run stored no catalog page 1" };
+	}
+
+	const changed = survey.laterTotals.filter((total) => total !== survey.listed);
+
+	if (changed.length > 0) {
+		return {
+			decision: "skipped",
+			reason: `catalog total changed during the run: page 1 listed ${survey.listed}, a later page ${changed[0] ?? "none"}`,
+		};
 	}
 
 	if (survey.listed !== survey.seen) {
@@ -100,8 +112,8 @@ export const removeOfferings = Effect.fn("removeOfferings")(function* (
 			}
 
 			decided.push({
-				runId: String(run.id),
-				sourcePart: run.sourcePart,
+				run_id: String(run.id),
+				source_part: run.sourcePart,
 				decision: plan.decision,
 				live: survey.live,
 				candidates: survey.candidates.length,

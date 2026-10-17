@@ -8,12 +8,6 @@ export default Effect.gen(function* () {
 		yield* sql`ALTER TABLE ${sql(table)} ADD COLUMN removed_at timestamptz`;
 	}
 
-	// The restore check of a removed offering looks up its page's latest fetch.
-	yield* sql`
-		CREATE INDEX run_pages_done_path ON run_pages (path, finished_at)
-		WHERE status = 'done'
-	`;
-
 	yield* sql`
 		ALTER TABLE runs ADD COLUMN offering_removals text
 			CHECK (offering_removals IN ('applied', 'held', 'skipped'))
@@ -44,6 +38,14 @@ export default Effect.gen(function* () {
 
 	yield* sql`ALTER TABLE changes ADD COLUMN run_id bigint REFERENCES runs (id)`;
 	yield* sql`CREATE INDEX changes_run ON changes (run_id) WHERE run_id IS NOT NULL`;
+
+	// The restore check of a removed offering finds the run that removed it,
+	// then a later fetch of its page.
+	yield* sql`CREATE INDEX changes_removed ON changes (row_id) WHERE action = 'remove'`;
+	yield* sql`
+		CREATE INDEX run_pages_done_path ON run_pages (path, run_id)
+		WHERE status = 'done'
+	`;
 
 	yield* sql`ALTER TABLE changes DROP CONSTRAINT changes_action_check`;
 	yield* sql`

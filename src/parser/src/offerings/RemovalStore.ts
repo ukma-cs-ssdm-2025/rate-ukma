@@ -18,6 +18,8 @@ export interface RemovalSurvey {
 	/** The course total that page 1 of the run's catalog reported, when the
 	 *  run stored that page. */
 	readonly listed: number | undefined;
+	/** The totals the run's other catalog pages reported. */
+	readonly laterTotals: ReadonlyArray<number | undefined>;
 	/** The distinct course codes the run's catalog pages listed. */
 	readonly seen: number;
 	/** The year's offerings that are not removed. */
@@ -30,10 +32,14 @@ const Survey = Schema.Struct({
 	succeeded: Schema.Boolean,
 	missingPages: Schema.BigInt,
 	firstCatalogPage: Schema.NullOr(Schema.String),
+	laterCatalogPages: Schema.Array(Schema.String),
 	seen: Schema.BigInt,
 	live: Schema.BigInt,
 	candidates: Schema.Array(Schema.String),
 });
+
+const totalOf = (catalogPage: string) =>
+	parseCatalogPage(catalogPage).shown?.total;
 
 /** Every method but `undecidedRuns` needs the writers' turn, so a run's survey
  *  and its decision see the same rows. */
@@ -103,6 +109,12 @@ export class RemovalStore extends Context.Service<
 							WHERE p.run_id = r.id AND p.kind = 'catalog'
 								AND p.path = ${catalogPath(year, 1)}
 						) AS "firstCatalogPage",
+						ARRAY(
+							SELECT s.content FROM run_pages p
+							JOIN page_snapshots s ON s.id = p.snapshot_id
+							WHERE p.run_id = r.id AND p.kind = 'catalog'
+								AND p.path <> ${catalogPath(year, 1)}
+						) AS "laterCatalogPages",
 						(
 							SELECT count(DISTINCT p.path) FROM run_pages p
 							WHERE p.run_id = r.id AND p.kind = 'course'
@@ -133,6 +145,7 @@ export class RemovalStore extends Context.Service<
 							succeeded,
 							missingPages,
 							firstCatalogPage,
+							laterCatalogPages,
 							seen,
 							live,
 							candidates,
@@ -142,7 +155,8 @@ export class RemovalStore extends Context.Service<
 							listed:
 								firstCatalogPage === null
 									? undefined
-									: parseCatalogPage(firstCatalogPage).shown?.total,
+									: totalOf(firstCatalogPage),
+							laterTotals: laterCatalogPages.map(totalOf),
 							seen: Number(seen),
 							live: Number(live),
 							candidates,

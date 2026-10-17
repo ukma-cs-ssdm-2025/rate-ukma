@@ -10,6 +10,7 @@ const survey = (patch: Partial<RemovalSurvey>): RemovalSurvey => ({
 	complete: true,
 	missingPages: 0,
 	listed: 3250,
+	laterTotals: [3250, 3250],
 	seen: 3250,
 	live: 3250,
 	candidates: [],
@@ -56,10 +57,27 @@ describe("planRemovals", () => {
 		);
 	});
 
-	it("applies an empty removal, which closes an earlier held case", () => {
+	it("skips a run whose catalog grew while it was read", () => {
+		// A course arrived before page 3 was read: its total grew, the run saw
+		// as many codes as page 1 listed, and the last card went past the last
+		// page.
 		assert.deepStrictEqual(
-			planRemovals(survey({ listed: 0, seen: 0, live: 0 }), 0.05),
-			{ decision: "applied", ids: [] },
+			planRemovals(
+				survey({ laterTotals: [3250, 3251], candidates: ids(1) }),
+				0.05,
+			),
+			{
+				decision: "skipped",
+				reason:
+					"catalog total changed during the run: page 1 listed 3250, a later page 3251",
+			},
 		);
+	});
+
+	it("applies an empty removal, which closes an earlier held case", () => {
+		assert.deepStrictEqual(planRemovals(survey({}), 0.05), {
+			decision: "applied",
+			ids: [],
+		});
 	});
 });
