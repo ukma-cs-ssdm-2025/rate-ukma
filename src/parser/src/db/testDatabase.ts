@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { PgClient } from "@effect/sql-pg";
 import { Effect, Layer, Redacted } from "effect";
 import { Reactivity } from "effect/reactivity";
-import { runMigrations } from "./Database.ts";
+import { runMigrations } from "./database.ts";
 
 const url = process.env["TEST_DATABASE_URL"];
 

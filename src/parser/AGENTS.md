@@ -13,11 +13,11 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/main.ts`: the `api`, `worker` and `migrate` commands.
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer.
 - `src/worker/`: the background loop.
-- `src/db/Database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
+- `src/db/database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
 
 ## Rules
 
-- A new migration is added by hand to the `migrations` record in `src/db/Database.ts`; `Database.test.ts` checks that its keys are `NNNN_name`, unique by number and in order. Its number only grows: an id at or below the highest applied one is skipped silently.
+- A new migration is added by hand to the `migrations` record in `src/db/database.ts`; `database.test.ts` checks that its keys are `NNNN_name`, unique by number and in order. Its number only grows: an id at or below the highest applied one is skipped silently.
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
 - The container contract (one image, commands `api`/`worker`/`migrate`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
@@ -26,6 +26,12 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 ## Conventions
 
 Some older code predates these rules. Follow the rule, not the neighbouring file, and name the contradiction in the PR.
+
+Files:
+
+- `PascalCase.ts` when the file defines a class or `Context.Service` and is named after it, as `CrawlStore.ts`; `camelCase.ts` for a module of functions, as `snapshot.ts`.
+- `<file>.test.ts` sits beside the file it tests, and `<file>.fixture.ts` holds invented data for it.
+- `test` appears in a name only for test files; test helpers go in a `testing` module.
 
 Services and errors:
 
