@@ -23,6 +23,38 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - The container contract (one image, commands `api`/`worker`/`migrate`, `DATABASE_URL`, `PORT`, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
 - No real student data in fixtures, logs or tests.
 
+## Conventions
+
+Some older code predates these rules. Follow the rule, not the neighbouring file, and name the contradiction in the PR.
+
+Services and errors:
+
+- A service is a `Context.Service` with the id `ukma-data/<module>/<Name>` and a `static readonly layer`. Add `layerNoDeps` only when `layer` provides a dependency that tests replace, as `SazClient` does with its HTTP client.
+- A failure the caller acts on is a `Schema.TaggedError` in the error channel. A store turns SQL and decode errors into defects with `Effect.orDie`, so its signatures carry only domain errors. A signature keeps `SqlError` only when a caller recovers from it.
+- Queries use the `sql` template with `SqlSchema` or a `Schema` decode, and alias snake_case columns to camelCase. A raw string passed to `connection.execute` skips both.
+
+Database:
+
+- Number a new migration with the next free number at the top of the stack, and renumber it whenever a base branch adds one. Never change a merged migration. Two files with one number make the second one a silent skip on every database that ran the first.
+- A migration must work with the image that is still running. Add tables and columns first; drop or rename them in a later PR, after no deployed code reads them (expand, then contract).
+- Advisory-lock keys are named constants in `src/db/locks.ts`. A migration or test that needs a key interpolates the constant, never repeats the number. Prefer `pg_advisory_xact_lock`, which commit releases, as `ChangeLog.withTurn` does. A lock that spans transactions, such as the crawl's, is a session lock: take and release it on one reserved connection, since a pooled query may run on another session.
+- A worker step is safe to run twice: queue inserts use `ON CONFLICT`, snapshots dedupe by hash, a crashed run resumes instead of restarting, and `reparse` rebuilds from snapshots. A crash between two statements must not need a manual fix.
+- Every request to another system has a timeout and a capped, spaced retry, as `SazClient` has (`SAZ_REQUEST_TIMEOUT`, `SAZ_REQUEST_GAP`). Retry the single request, not the sign-in or crawl around it.
+
+Tests:
+
+- Test store SQL against real Postgres with `TestDatabase` (`src/db/testDatabase.ts`), one migrated database per test file. A `Layer.succeed` fake of a store passes with broken SQL, so use one only to test logic above a store that has its own Postgres suite.
+- When `CI` is set, a missing `TEST_DATABASE_URL` fails the Postgres suites; only a local run skips them. A green CI run with skipped suites proves nothing.
+- Postgres suites run with `excludeTestServices: true`: under `TestClock` a `Schedule` that polls the database never advances and the test times out. Use `TestClock` for code without a database, as `SazClient.test.ts` does.
+- A new test must fail when the code it covers breaks. Break the line, see the test fail, restore it, and say so in the PR. An assertion on a value the fake hard-codes proves nothing.
+- Tests sit next to the code as `<name>.test.ts`, and page fixtures as `<name>.fixture.ts`. Fixture names, emails and codes are invented, never copied from САЗ or smart.ukma, even trimmed.
+
+Logs and PRs:
+
+- Log annotation keys and fields are snake_case (`run_id`, `source_part`), the same as the columns, so one key finds a run across records. Log a report object under one key instead of spreading its fields.
+- Errors and logs name the key that failed, never the value: a `CoursePageError` `reason` is a short stable phrase, and personal data stays out of every log.
+- One feature per PR, about 400 changed lines of code at most, not counting tests, fixtures and generated files. Tests ship in the same PR. Split a larger change by layer, such as the pure parser before its persistence.
+
 ## Effect
 
 This repository uses the Effect Typescript library.
