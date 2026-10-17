@@ -80,7 +80,7 @@ export function ReviewCaseFilters() {
 
 function caseMeta(reviewCase: UkmaDataReviewCase): string {
 	return [
-		reviewCase.run_id ? `запуск ${reviewCase.run_id}` : null,
+		reviewCase.run_id ? `Запуск ${reviewCase.run_id}` : null,
 		reviewCase.opened_at
 			? `відкрито ${formatDateTime(reviewCase.opened_at)}`
 			: null,

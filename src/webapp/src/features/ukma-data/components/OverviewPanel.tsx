@@ -37,19 +37,20 @@ function KeyCard({ status }: Readonly<{ status: UkmaDataStatus }>) {
 				<CardTitle className="text-base">Дані САЗ</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-2 text-sm">
+				<p className="text-muted-foreground">
+					UKMA Data востаннє оновив дані з САЗ
+				</p>
 				<p className="text-2xl font-semibold">
 					{status.data_updated_at
 						? formatDateTime(status.data_updated_at)
 						: "Ще не оновлено"}
 				</p>
-				<p className="text-muted-foreground">
-					Коли UKMA Data востаннє прочитав САЗ.
-				</p>
 				<p className="pt-2 text-muted-foreground">
 					Ключ {status.key_id}, діє до{" "}
 					{status.key_expires_at ? formatDateTime(status.key_expires_at) : "—"}
 				</p>
-				<div className="flex flex-wrap gap-1">
+				<div className="flex flex-wrap items-center gap-1">
+					<span className="text-muted-foreground">Права ключа:</span>
 					{status.scopes?.map((scope) => (
 						<Badge key={scope} variant="outline">
 							{scope}

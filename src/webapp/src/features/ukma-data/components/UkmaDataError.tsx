@@ -41,7 +41,7 @@ export function UkmaDataError({
 				<ErrorState
 					icon={CloudOff}
 					title="UKMA Data зараз недоступний"
-					description="Rate UKMA не отримав від нього відповіді. Спробуйте трохи згодом."
+					description="Rate UKMA не отримав від нього правильної відповіді. Спробуйте трохи згодом."
 					onRetry={onRetry}
 					isRetrying={isRetrying}
 				/>
@@ -51,7 +51,7 @@ export function UkmaDataError({
 				<ErrorState
 					icon={Settings}
 					title="UKMA Data не налаштовано"
-					description="Серверу Rate UKMA бракує адреси або ключа UKMA Data. Зверніться до адміністратора."
+					description="Серверу Rate UKMA бракує адреси або ключа UKMA Data. Зверніться до адміністратора."
 				/>
 			);
 		default:

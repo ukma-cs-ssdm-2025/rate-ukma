@@ -43,7 +43,7 @@ export function StaffOnlyState() {
 		<ErrorState
 			icon={ShieldAlert}
 			title="Розділ лише для суперкористувачів"
-			description="Попросіть адміністратора Rate UKMA, якщо вам потрібен доступ."
+			description="Попросіть адміністратора Rate UKMA, якщо вам потрібен доступ."
 		/>
 	);
 }
