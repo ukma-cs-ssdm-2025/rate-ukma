@@ -230,12 +230,12 @@ The trail of each run and decision (rule 11).
 | `change_no` | bigint | key; the number the row got |
 | `table_name`, `row_id` | text | |
 | `action` | text | `add`, `change`, `remove`, `restore` |
-| `run_id` | bigint null | |
-| `parse_id` | bigint null | the parse that added or changed the row; a parse publishes what a crawl fetched, so a run's added and changed rows are those of the parse after it |
+| `run_id` | bigint null | the run whose removal step removed the row |
+| `parse_id` | bigint null | the parse that added, changed or restored the row; a parse publishes what a crawl fetched, so a run's added and changed rows are those of the parse after it |
 | `decision_id` | text null | |
 | `at` | timestamptz | |
 
-Each parse's `report` counts its rows by table and action. A department keeps the faculty it was first stored with.
+Each parse's `report` counts its rows by table and action. A removed offering comes back only when a run fetches its page after the removal: its last snapshot stays the latest of its path, so a reparse alone does not restore it, and until then it keeps the content of its last parse. A run that holds the same removals as the year's open `removals_held` case keeps that case. A department keeps the faculty it was first stored with. Faculties, departments and programmes are not removed yet.
 
 ## Review cases and decisions
 
@@ -301,7 +301,7 @@ Decided 2026-10-17, spec rule 6: one removal scope per list, not per run. САЗ
 
 - Offerings of a year, with their term and programme rows: removed when every catalog page and every course page of the run loaded. A page that loaded but failed to parse counts as not loaded. A failed students page does not block them. The removal threshold is a setting, 5% of the year's offerings to start: if the run would remove more, it holds the removals as a `removals_held` review case. Faculties, departments and programmes are not removed in the first release.
 - Enrollments of one offering: replaced only when that offering's students page loaded in the run. A failed page keeps the offering's last good enrollments, or none.
-- `runs.offering_removals` is `applied`, `held` when a review case holds them, or `skipped` when a catalog or course page failed. `runs.lists_kept` counts the offerings whose enrollments the run kept.
+- `runs.offering_removals` is `applied`, `held` when a review case holds them, or `skipped` when a catalog or course page failed or when the catalog changed during the run: a later catalog page reports another total than page 1, or the distinct course codes the run saw differ from page 1's total (a course that leaves mid-run shifts one card onto a page already read; one that arrives pushes a card past the last page). `runs.report.removalsSkipped` says why. One course leaving and another arriving in the same run still pass; the next run restores what that removed. A year whose catalog empties keeps its offerings, since a catalog page without a summary fails the run. `runs.lists_kept` counts the offerings whose enrollments the run kept.
 
 For example, the run for 2020-21 loads every catalog and course page and fails on 139 students pages. It may remove 2020-21 offerings that left the catalog, and it publishes no enrollments for the 139 offerings until САЗ serves their lists.
 

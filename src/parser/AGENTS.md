@@ -6,13 +6,13 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 - Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`, `pnpm reparse`.
 - Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role and `parser-migrate` applies migrations.
-- Settings: `DATABASE_URL` (worker, migrate and reparse), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account), `SAZ_REQUEST_GAP` (default 1 second) and `SAZ_REQUEST_TIMEOUT` (default 30 seconds, covering the response body).
+- Settings: `DATABASE_URL` (worker, migrate and reparse), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account), `SAZ_REQUEST_GAP` (default 1 second), `SAZ_REQUEST_TIMEOUT` (default 30 seconds, covering the response body) and `REMOVAL_THRESHOLD` (the share of a year's offerings one run may remove before the removals are held, default 0.05).
 
 ## Layout
 
 - `src/main.ts`: the `api`, `worker`, `migrate` and `reparse` commands. `reparse` rebuilds the parsed tables from stored snapshots and sends nothing to САЗ.
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer.
-- `src/worker/`: the background loop.
+- `src/worker/`: the background loop: crawl, parse, then removals (`src/offerings/removals.ts`).
 - `src/changes/ChangeLog.ts`: the writers' turn, change numbers and the `changes` trail.
 - `src/db/Database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
 
