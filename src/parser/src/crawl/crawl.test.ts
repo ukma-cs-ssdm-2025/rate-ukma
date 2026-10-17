@@ -12,7 +12,7 @@ import { crawlYear } from "./crawl.ts";
 import {
 	type ClaimedPage,
 	CrawlStore,
-	type KindTally,
+	type PageCounts,
 	type PageKind,
 	type RunReport,
 } from "./CrawlStore.ts";
@@ -127,16 +127,19 @@ const makeMemoryStore = (crashOn?: string) => {
 				: mark(page, "done")
 			).pipe(Effect.andThen(Effect.sync(() => next.forEach(queue)))),
 		fail: (page) => mark(page, "failed"),
-		tally: () =>
+		pageCounts: () =>
 			Effect.sync(() =>
-				(["catalog", "course", "students"] as const).map((kind): KindTally => ({
-					kind,
-					done: pages.filter((p) => p.kind === kind && p.status === "done")
-						.length,
-					failed: pages.filter((p) => p.kind === kind && p.status === "failed")
-						.length,
-					stored: 0,
-				})),
+				(["catalog", "course", "students"] as const).map(
+					(kind): PageCounts => ({
+						kind,
+						done: pages.filter((p) => p.kind === kind && p.status === "done")
+							.length,
+						failed: pages.filter(
+							(p) => p.kind === kind && p.status === "failed",
+						).length,
+						stored: 0,
+					}),
+				),
 			),
 		finishRun: (_, status, report) =>
 			Effect.sync(() => void finished.push({ status, report })),

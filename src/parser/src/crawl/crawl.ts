@@ -90,12 +90,12 @@ export const crawlYear = Effect.fn("crawlYear")(function* (year: number) {
 
 	const finish = (crashed: boolean) =>
 		Effect.gen(function* () {
-			const pages = yield* store.tally(runId);
+			const pages = yield* store.pageCounts(runId);
 
 			// A failed catalog page hides the courses it lists.
 			const status =
 				crashed ||
-				pages.some((tally) => tally.kind === "catalog" && tally.failed > 0)
+				pages.some((counts) => counts.kind === "catalog" && counts.failed > 0)
 					? "failed"
 					: "succeeded";
 

@@ -19,21 +19,21 @@ const ClaimedPage = Schema.Struct({
 
 export type ClaimedPage = typeof ClaimedPage.Type;
 
-/** One line of a run report: the pages of one kind and how many of them
- *  stored a new snapshot. */
-const KindTally = Schema.Struct({
+/** One line of a run report: the counts of one page kind, done, failed, and
+ *  how many of them stored a new snapshot. */
+const PageCounts = Schema.Struct({
 	kind: PageKind,
 	done: Schema.Number,
 	failed: Schema.Number,
 	stored: Schema.Number,
 });
 
-export type KindTally = typeof KindTally.Type;
+export type PageCounts = typeof PageCounts.Type;
 
 export interface RunReport {
 	readonly sourcePart: string;
 	readonly seconds: number;
-	readonly pages: ReadonlyArray<KindTally>;
+	readonly pages: ReadonlyArray<PageCounts>;
 }
 
 const RunId = Schema.Struct({ id: Schema.BigInt });
@@ -53,7 +53,7 @@ export class CrawlStore extends Context.Service<
 			next: ReadonlyArray<QueuedPage>,
 		): Effect.Effect<void>;
 		fail(page: ClaimedPage, error: string): Effect.Effect<void>;
-		tally(runId: bigint): Effect.Effect<ReadonlyArray<KindTally>>;
+		pageCounts(runId: bigint): Effect.Effect<ReadonlyArray<PageCounts>>;
 		finishRun(
 			runId: bigint,
 			status: "succeeded" | "failed",
@@ -181,9 +181,9 @@ export class CrawlStore extends Context.Service<
 					WHERE id = ${page.id}
 				`.pipe(Effect.asVoid, Effect.orDie);
 
-			const tallyOf = SqlSchema.findAll({
+			const pageCountsOf = SqlSchema.findAll({
 				Request: Schema.BigInt,
-				Result: KindTally,
+				Result: PageCounts,
 				execute: (runId) => sql`
 					SELECT p.kind,
 						count(*) FILTER (WHERE p.status = 'done')::int AS done,
@@ -197,7 +197,8 @@ export class CrawlStore extends Context.Service<
 				`,
 			});
 
-			const tally = (runId: bigint) => tallyOf(runId).pipe(Effect.orDie);
+			const pageCounts = (runId: bigint) =>
+				pageCountsOf(runId).pipe(Effect.orDie);
 
 			const finishRun = (
 				runId: bigint,
@@ -215,7 +216,7 @@ export class CrawlStore extends Context.Service<
 				claim,
 				complete,
 				fail,
-				tally,
+				pageCounts,
 				finishRun,
 			});
 		}),
