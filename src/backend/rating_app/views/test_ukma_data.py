@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlsplit
 from django.urls import reverse
 
 import pytest
+from pydantic.alias_generators import to_snake
 
 API_KEY = "test-ukma-data-key"
 DATA_UPDATED_AT = "2030-09-01T10:00:00.000Z"
@@ -100,6 +101,14 @@ def _page(*items, has_more=False):
         "hasMore": has_more,
         "dataUpdatedAt": DATA_UPDATED_AT,
     }
+
+
+def _snake_keys(value):
+    if isinstance(value, dict):
+        return {to_snake(k): _snake_keys(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_snake_keys(v) for v in value]
+    return value
 
 
 def _parse(value: str) -> datetime:
@@ -196,11 +205,7 @@ def test_offerings_returns_snake_case_page_when_superuser(
     assert body["cursor"] == 5
     assert body["has_more"] is True
     assert _parse(body["data_updated_at"]) == _parse(DATA_UPDATED_AT)
-    offering = body["items"][0]
-    assert offering["saz_code"] == "TST-0001"
-    assert offering["enrolled_active"] == 21
-    assert offering["terms"][0]["control"] == "exam"
-    assert offering["programmes"] == [{"programme_id": "p-1", "kind": "elective"}]
+    assert body["items"] == [_snake_keys(OFFERING)]
 
 
 @pytest.mark.django_db
@@ -215,7 +220,7 @@ def test_offerings_returns_snake_case_page_when_superuser(
         ("ukma-data-review-cases", "/v1/review-cases", REVIEW_CASE, "candidates", ["c-1", "c-2"]),
     ],
 )
-def test_list_returns_its_upstream_list(
+def test_list_returns_its_upstream_list_when_superuser(
     superuser_client, ukma_data, route, upstream_path, item, field, value
 ):
     ukma_data.reply(upstream_path, _page(item))
@@ -289,6 +294,7 @@ def test_offerings_returns_400_when_page_param_invalid(
     response = superuser_client.get(offerings_url, {param: value})
 
     assert response.status_code == 400
+    assert [error["loc"] for error in response.json()] == [[param]]
     assert ukma_data.received == []
 
 
@@ -354,7 +360,12 @@ def test_offerings_returns_502_when_upstream_down(superuser_client, settings, of
 @pytest.mark.integration
 @pytest.mark.parametrize(
     "body",
-    [{"items": [{"id": "o-1"}], "cursor": 1, "hasMore": False, "dataUpdatedAt": None}, b"<html>"],
+    [
+        {"items": [{"id": "o-1"}], "cursor": 1, "hasMore": False, "dataUpdatedAt": None},
+        _page({**OFFERING, "credits": "NaN"}),
+        b"<html>",
+    ],
+    ids=["missing-fields", "nan-credits", "not-json"],
 )
 def test_offerings_returns_502_when_upstream_breaks_contract(
     superuser_client, ukma_data, offerings_url, body
@@ -369,7 +380,7 @@ def test_offerings_returns_502_when_upstream_breaks_contract(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_status_returns_key_and_data_updated_at(superuser_client, ukma_data):
+def test_status_returns_key_and_data_updated_at_when_superuser(superuser_client, ukma_data):
     ukma_data.reply("/v1/key", KEY)
     ukma_data.reply("/v1/terms", _page(TERM))
 

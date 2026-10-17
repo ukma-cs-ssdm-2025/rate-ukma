@@ -57,7 +57,8 @@ class UkmaDataViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="UKMA Data key and freshness",
         description="The server key's id, scopes and expiry, and when UKMA Data last read its "
-        "source. Superusers only.",
+        "source. The freshness comes from the terms list, so a key without `catalog:read` "
+        "gets 502. Superusers only.",
         responses=R_UKMA_DATA_STATUS,
     )
     def get_status(self, request: Request) -> Response:

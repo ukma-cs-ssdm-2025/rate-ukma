@@ -158,6 +158,11 @@ def promo_banner_service() -> PromoBannerService:
 
 
 @once
+def ukma_data_service() -> UkmaDataService:
+    return UkmaDataService()
+
+
+@once
 def feed_update_service() -> FeedUpdateService:
     return FeedUpdateService(feed_event_repository=feed_event_repository())
 
@@ -283,8 +288,3 @@ __all__ = [
     "vote_service",
     "notification_service",
 ]
-
-
-@once
-def ukma_data_service() -> UkmaDataService:
-    return UkmaDataService()

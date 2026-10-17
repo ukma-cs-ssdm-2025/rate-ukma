@@ -71,8 +71,8 @@ class UkmaDataService:
         return self._get(path, query, page)
 
     def _get[M: BaseModel](self, path: str, query: dict[str, int], model: type[M]) -> M:
-        base_url = str(settings.UKMA_DATA_URL)
-        api_key = str(settings.UKMA_DATA_API_KEY)
+        base_url = settings.UKMA_DATA_URL
+        api_key = settings.UKMA_DATA_API_KEY
         if not base_url or not api_key:
             raise UkmaDataNotConfiguredError()
 

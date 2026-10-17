@@ -304,16 +304,16 @@ R_FEED = {
 }
 
 
-def ukma_data_responses(serializer) -> dict:
+def ukma_data_responses(serializer, include_400=True) -> dict:
     return {
         200: OpenApiResponse(serializer, "OK"),
-        **common_errors(),
+        **common_errors(include_400=include_400),
         502: OpenApiResponse(Err, "UKMA Data is down or failed", [EX_502_UKMA_DATA]),
         503: OpenApiResponse(Err, "UKMA Data is not configured", [EX_503_UKMA_DATA]),
     }
 
 
-R_UKMA_DATA_STATUS = ukma_data_responses(UkmaDataStatusSerializer)
+R_UKMA_DATA_STATUS = ukma_data_responses(UkmaDataStatusSerializer, include_400=False)
 R_UKMA_DATA_TERMS = ukma_data_responses(UkmaDataTermPageSerializer)
 R_UKMA_DATA_FACULTIES = ukma_data_responses(UkmaDataFacultyPageSerializer)
 R_UKMA_DATA_DEPARTMENTS = ukma_data_responses(UkmaDataDepartmentPageSerializer)

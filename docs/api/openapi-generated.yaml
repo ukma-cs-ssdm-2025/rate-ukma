@@ -3204,7 +3204,8 @@ paths:
     get:
       operationId: ukma_data_status_retrieve
       description: The server key's id, scopes and expiry, and when UKMA Data last
-        read its source. Superusers only.
+        read its source. The freshness comes from the terms list, so a key without
+        `catalog:read` gets 502. Superusers only.
       summary: UKMA Data key and freshness
       tags:
       - ukma-data
@@ -3218,21 +3219,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UkmaDataStatus'
           description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                ValidationError:
-                  value:
-                    detail: Validation failed
-                    status: 400
-                    fields:
-                      difficulty:
-                      - Must be between 1 and 5.
-                  summary: Validation error
-          description: Bad request
         '401':
           content:
             application/json:

@@ -79,7 +79,7 @@ class UkmaDataProgramme(UkmaDataModel):
 class UkmaDataOfferingTerm(UkmaDataModel):
     term_id: str
     semesters: list[int]
-    credits: float
+    credits: float = Field(allow_inf_nan=False)
     hours_per_week: int | None
     lecture_hours: int | None
     seminar_hours: int | None
@@ -101,7 +101,7 @@ class UkmaDataOffering(UkmaDataModel):
     department_id: str | None
     level: Level
     format: str
-    credits: float
+    credits: float = Field(allow_inf_nan=False)
     hours: int
     study_year: int
     status: OfferingStatus
