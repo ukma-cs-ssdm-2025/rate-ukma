@@ -5,7 +5,7 @@ The Postgres tables for the whole [spec](spec.md), drafted from the [САЗ edge
 ## Conventions
 
 - **Ids.** Every row a reader sees has `id text`: a type prefix and a ULID, for example `off_01JA2B3C4D5E6F7G8H9J0K1M2N`. Ids never change and carry no meaning (rule 1). The САЗ code, a smart.ukma id or a `cdoc` sits in its own `saz_*` or `smart_*` column as a lookup key. `runs`, `run_pages` and `page_snapshots` keep their `bigint` keys from #761; the API shows them as `run_<n>` and `snp_<n>`.
-- **Change numbers.** Every list a reader syncs has `change_no bigint`. A write takes `pg_advisory_xact_lock` on one fixed key, then `nextval('change_no_seq')`, and holds the lock until it commits, so writes take turns and the numbers commit in order (rule 5). Each list has an index on `change_no`. A row takes a number only when its content changed; for an offering, `row_hash` covers its card, terms and programmes.
+- **Change numbers.** Every list a reader syncs has `change_no bigint`. A write takes `pg_advisory_xact_lock` on one fixed key, then `nextval('change_no_seq')`, and holds the lock until it commits, so writes take turns and the numbers commit in order (rule 5). Each list has an index on `change_no`. A row takes a number only when its content changed; for an offering, `row_hash` covers its card, terms and programmes, and a faculty or department that now resolves to another row also counts. A trigger on each list fails a statement that writes `change_no` without the lock. Rows stored before change numbers have `add` trail rows with no run or parse.
 - **Removal.** Rows that come from a source have `removed_at timestamptz` and are never deleted (rule 4). A row that comes back gets `removed_at = null` and a new change number.
 - **API names.** Columns are snake_case; the API shows them in camelCase (`removedAt`, `mergedInto`, `changeNo`).
 - **Read and derived.** Columns read from a page are rewritten by every parse. Derived columns (marked "derived" below) are written only by the matching step from stored data plus decisions (rule 8).
@@ -62,12 +62,12 @@ Terms are never removed.
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | text | `prg_...` |
-| `name` | text unique | as on the card or in a students list (D12) |
-| `level` | text null | `bachelor`, `master`, from the cards; null when only a students list names it |
-| `saz_filter_id` | text null | `filter[spec][]` option value |
+| `name` | text | as on the card or in a students list |
+| `level` | text | `bachelor`, `master`, the level of the card that lists it (D12) |
+| `saz_filter_id` | text null | `filter[spec][]` option value; 8 card programmes have none |
 | `change_no`, `removed_at` | | |
 
-Cards and lists name programmes the same way for the 34 names they share, so a list finds its programme by exact name and adds one only when no card has named it.
+Unique on (`name`, `level`): 30 names exist at both levels (D12). Every name in a students list is also on a card, so a list finds its programme by exact name and a level (D12).
 
 ## Catalog
 
@@ -81,16 +81,17 @@ One САЗ card (glossary: Offering).
 | `saz_code` | text unique | never reused across years (A8) |
 | `academic_year` | smallint | from `Навчальний рік` |
 | `title` | text | unescaped, whitespace collapsed (B16) |
-| `faculty_id`, `department_id` | text | |
+| `faculty_id`, `department_id` | text null | null when the card has no `Факультет` and `Кафедра` rows (B18) |
 | `level` | text | `bachelor`, `master` (B17) |
+| `is_recommended` | boolean | false when the catalog card is `panel-danger`, "не рекомендовано" (A1) |
 | `format` | text | `2015` on every card so far |
 | `credits` | numeric(4,1) | 0 allowed (B4) |
 | `hours` | integer | |
 | `study_year` | smallint | the card's `N рік` |
-| `status` | text | `held`, `not_held`, `unknown` (B2) |
+| `status` | text | `held`, `not_held`, `may_hold`, `unknown` (B2) |
 | `is_practical` | boolean | `Практичний` label (B3) |
 | `annotation` | text null | (B15) |
-| `saz_teachers` | text null | the `Викладач` cell as read (B1); a hint for #767, not a link |
+| `saz_teachers` | text null | the `Викладач` cell as read, null when empty (B1); a hint for #767, not a link |
 | `max_students`, `max_groups`, `computed_max_students` | integer null | null is `необмежено` (B12) |
 | `group_size_min`, `group_size_max` | integer | |
 | `enrolled_active` | integer null | the card count; null without the enrollment block (B13, B14) |
@@ -108,7 +109,7 @@ One САЗ card (glossary: Offering).
 | `semesters` | smallint[] | the `Семестр N` labels of this season, `Nд` as N (B8) |
 | `credits` | numeric(4,1) | the term's credits, not reconciled with the card (B5) |
 | `hours_per_week`, `lecture_hours`, `seminar_hours`, `practice_hours` | integer null | the label text; lecture, seminar and practice are term totals (B10) |
-| `control` | text null | `pass_fail` (`залік`), `exam` (`екзамен`), `thesis` (`теза`), `none` (`не має контролю`), `thesis_defence` (`захист дипломної роботи`) |
+| `control` | text null | `pass_fail` (`залік`), `exam` (`екзамен`), `thesis` (`теза`), `none` (`не має контролю`), `thesis_defence` (`захист дипломної роботи`); null when the label is empty (B10) |
 
 Key (`offering_id`, `term_id`). An offering may have no terms (B7).
 
@@ -182,7 +183,8 @@ One `cdoc`: a student on one programme (D1).
 | --- | --- | --- |
 | `id` | text | `spr_...` |
 | `saz_cdoc` | text unique | |
-| `student_id`, `programme_id` | text | |
+| `student_id` | text | |
+| `programme_id` | text null | `specName` plus the level of the cards that list it; null while the level is open (D12) |
 | `change_no` | bigint | |
 
 ### `enrollments`
@@ -294,16 +296,12 @@ A decision wins over the matching rules, so the matching step reads the latest n
 
 ## When a run may remove rows
 
-Rule 6 removes rows only after a run read its whole source part without errors. САЗ fails every time on 298 students pages of 2018-19 to 2022-23 (A2), so under that rule those five years never remove anything.
+Decided 2026-10-17, spec rule 6: one removal scope per list, not per run. САЗ fails on every attempt at 456 students pages of 2018-19 to 2022-23 (A2), so a rule that needs the whole run without errors would never remove anything in those five years.
 
-**Recommendation: one removal scope per list, not per run.**
-
-- Offerings, terms and programmes of a year: removed when every catalog page and every course page of the run loaded. A failed students page does not block them. The threshold applies here: if the run would remove more of the year's offerings than the threshold allows, it holds the removals as a `removals_held` review case.
+- Offerings, terms and programmes of a year: removed when every catalog page and every course page of the run loaded. A page that loaded but failed to parse counts as not loaded. A failed students page does not block them. The removal threshold is a setting, 5% of the year's offerings to start: if the run would remove more, it holds the removals as a `removals_held` review case.
 - Enrollments of one offering: replaced only when that offering's students page loaded in the run. A failed page keeps the offering's last good enrollments, or none.
 - `runs.offering_removals` is `applied`, `held` when a review case holds them, or `skipped` when a catalog or course page failed. `runs.lists_kept` counts the offerings whose enrollments the run kept.
 
-For example, the run for 2018-19 loads every catalog and course page and fails on 60 students pages. It may remove 2018-19 offerings that left the catalog, and it publishes no enrollments for the 60 offerings until САЗ serves their lists.
+For example, the run for 2020-21 loads every catalog and course page and fails on 139 students pages. It may remove 2020-21 offerings that left the catalog, and it publishes no enrollments for the 139 offerings until САЗ serves their lists.
 
-This needs one sentence in rule 6: "a source part" becomes "the pages each list is read from".
-
-**Alternative: a list of known failures.** A run counts as complete when every page loaded or failed with the same HTTP status it had in the last run that staff accepted. Staff accept the list once with a decision. It keeps rule 6 as it is, but it adds a table and a staff step, and a page on the list can never remove its rows.
+Rejected: a list of known failures that staff accept, which kept the old rule 6 but added a table and a staff step, and a page on the list could never remove its rows.

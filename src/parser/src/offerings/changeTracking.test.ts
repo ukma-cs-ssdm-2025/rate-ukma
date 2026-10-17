@@ -396,5 +396,40 @@ describe.skipIf(testDatabaseUrl === undefined)("change tracking", () => {
 					assert.deepStrictEqual(passes[1], [[], []]);
 				}),
 		);
+
+		it.effect(
+			"renumbers an offering whose department now resolves to another row",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+
+					yield* crawl(2038, [{ code: "980001" }]);
+					yield* parseOfferings("crawl");
+
+					const before = (yield* offeringsOf(2038)).get("980001");
+
+					// The card is unchanged; only the row its department name resolves
+					// to differs, as after a department rename.
+					yield* sql`
+						UPDATE offerings SET department_id = NULL WHERE saz_code = '980001'
+					`;
+
+					const report = yield* parseOfferings("reparse");
+
+					const [after] = yield* sql<{ readonly departmentId: string | null }>`
+						SELECT department_id AS "departmentId" FROM offerings
+						WHERE saz_code = '980001'
+					`;
+
+					assert.deepStrictEqual(report.changes, [
+						{ table: "offerings", action: "change", rows: 1 },
+					]);
+					assert.isNotNull(after?.departmentId);
+					assert.isAbove(
+						Number((yield* offeringsOf(2038)).get("980001")?.changeNo),
+						Number(before?.changeNo),
+					);
+				}),
+		);
 	});
 });

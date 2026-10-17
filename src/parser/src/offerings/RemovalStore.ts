@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { ChangeLog } from "../changes/ChangeLog.ts";
+import { ChangeLog, type Turn } from "../changes/ChangeLog.ts";
 
 const UndecidedRun = Schema.Struct({
 	id: Schema.BigInt,
@@ -10,8 +10,10 @@ const UndecidedRun = Schema.Struct({
 export type UndecidedRun = typeof UndecidedRun.Type;
 
 export interface RemovalSurvey {
-	/** Every catalog and course page of the run loaded. */
+	/** The run succeeded and every catalog and course page of it loaded. */
 	readonly complete: boolean;
+	/** Catalog and course pages of the run that did not load. */
+	readonly missingPages: number;
 	/** The year's offerings that are not removed. */
 	readonly live: number;
 	/** The year's live offerings that no course page of the run lists. */
@@ -19,13 +21,14 @@ export interface RemovalSurvey {
 }
 
 const Survey = Schema.Struct({
-	complete: Schema.Boolean,
+	succeeded: Schema.Boolean,
+	missingPages: Schema.BigInt,
 	live: Schema.BigInt,
 	candidates: Schema.Array(Schema.String),
 });
 
-/** Every method but `undecidedRuns` runs inside `ChangeLog.withTurn`, so a
- *  run's survey and its decision see the same rows. */
+/** Every method but `undecidedRuns` needs the writers' turn, so a run's survey
+ *  and its decision see the same rows. */
 export class RemovalStore extends Context.Service<
 	RemovalStore,
 	{
@@ -33,22 +36,25 @@ export class RemovalStore extends Context.Service<
 		 *  removals are not decided yet. An older run is never decided, so it
 		 *  cannot remove what a newer run lists. */
 		undecidedRuns: Effect.Effect<ReadonlyArray<UndecidedRun>>;
-		survey(runId: bigint, academicYear: number): Effect.Effect<RemovalSurvey>;
+		survey(
+			runId: bigint,
+			academicYear: number,
+		): Effect.Effect<RemovalSurvey, never, Turn>;
 		/** Removes the offerings, closes the year's open held removals and
 		 *  returns how many rows it removed. */
 		apply(
 			runId: bigint,
 			academicYear: number,
 			ids: ReadonlyArray<string>,
-		): Effect.Effect<number>;
+		): Effect.Effect<number, never, Turn>;
 		/** Opens a `removals_held` review case in place of the year's open one,
 		 *  or keeps that one when it holds the same offerings. */
 		hold(
 			runId: bigint,
 			academicYear: number,
 			ids: ReadonlyArray<string>,
-		): Effect.Effect<void>;
-		skip(runId: bigint): Effect.Effect<void>;
+		): Effect.Effect<void, never, Turn>;
+		skip(runId: bigint): Effect.Effect<void, never, Turn>;
 	}
 >()("ukma-data/offerings/RemovalStore") {
 	static readonly layer = Layer.effect(
@@ -76,11 +82,12 @@ export class RemovalStore extends Context.Service<
 				Result: Survey,
 				execute: ({ runId, year }) => sql`
 					SELECT
-						r.status = 'succeeded' AND NOT EXISTS (
-							SELECT 1 FROM run_pages p
+						r.status = 'succeeded' AS succeeded,
+						(
+							SELECT count(*) FROM run_pages p
 							WHERE p.run_id = r.id AND p.kind IN ('catalog', 'course')
 								AND p.status <> 'done'
-						) AS complete,
+						) AS "missingPages",
 						(
 							SELECT count(*) FROM offerings o
 							WHERE o.academic_year = ${year} AND o.removed_at IS NULL
@@ -102,8 +109,9 @@ export class RemovalStore extends Context.Service<
 
 			const survey = (runId: bigint, year: number) =>
 				findSurvey({ runId, year }).pipe(
-					Effect.map(({ complete, live, candidates }) => ({
-						complete,
+					Effect.map(({ succeeded, missingPages, live, candidates }) => ({
+						complete: succeeded && missingPages === 0n,
+						missingPages: Number(missingPages),
 						live: Number(live),
 						candidates,
 					})),

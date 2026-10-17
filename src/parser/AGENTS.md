@@ -6,7 +6,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 - Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`, `pnpm reparse`, `pnpm create-key`.
 - Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role and `parser-migrate` applies migrations.
-- Settings: `DATABASE_URL` (every command), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account), `SAZ_REQUEST_GAP` (default 1 second) and `REMOVAL_THRESHOLD` (the share of a year's offerings one run may remove before the removals are held, default 0.05).
+- Settings: `DATABASE_URL` (every command), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account), `SAZ_REQUEST_GAP` (default 1 second), `SAZ_REQUEST_TIMEOUT` (default 30 seconds, covering the response body) and `REMOVAL_THRESHOLD` (the share of a year's offerings one run may remove before the removals are held, default 0.05).
 
 ## Layout
 
@@ -19,7 +19,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 ## Rules
 
-- Every write to a numbered table (one with `change_no`) runs inside `ChangeLog.withTurn` and takes `nextval('change_no_seq')` only for rows whose content changed; `ChangeLog.track` adds their `changes` rows. The column has no default, so an insert that forgets the number fails.
+- Every write to a numbered table (one with `change_no`) runs inside `ChangeLog.withTurn` and takes `nextval('change_no_seq')` only for rows whose content changed; `ChangeLog.track` adds their `changes` rows. `track` requires the `Turn` service, which only `withTurn` provides, and the `require_turn` trigger fails a statement that writes `change_no` without the turn's lock.
 - A new migration is added by hand to the `fromRecord` list in `src/db/Database.ts`. Its number only grows: an id at or below the highest applied one is skipped silently.
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.

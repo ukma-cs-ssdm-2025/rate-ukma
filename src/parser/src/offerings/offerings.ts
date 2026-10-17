@@ -84,6 +84,11 @@ const byKey =
 	(a: T, b: T) =>
 		key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0;
 
+/** Entries by key, so the hash does not depend on the order a parser builds
+ *  the fields in. */
+const sortedEntries = <T extends object>(row: T) =>
+	Object.entries(row).sort(byKey(([key]) => key));
+
 /** SHA-256 of what a reader gets for one offering: the card's columns and its
  *  sorted terms and programmes, without the snapshot it came from. A row whose
  *  hash did not change keeps its change number. */
@@ -95,9 +100,11 @@ export const rowHashOf = (
 	createHash("sha256")
 		.update(
 			JSON.stringify([
-				card,
-				[...terms].sort(byKey(({ termCode }) => termCode)),
-				[...programmes].sort(byKey(({ level, name }) => `${level} ${name}`)),
+				sortedEntries(card),
+				[...terms].sort(byKey(({ termCode }) => termCode)).map(sortedEntries),
+				[...programmes]
+					.sort(byKey(({ level, name }) => `${level} ${name}`))
+					.map(sortedEntries),
 			]),
 		)
 		.digest("hex");
