@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import MockAdapter from "axios-mock-adapter";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { authorizedHttpClient } from "@/lib/api/apiClient";
 import {
 	getAuthSessionRetrieveQueryKey,
+	type Session,
 	type UkmaDataReviewCasePage,
 } from "@/lib/api/generated";
 import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
@@ -24,6 +25,7 @@ vi.mock("@/lib/auth/sessionExpiry", () => ({
 }));
 
 const URL = "/api/v1/ukma-data/review-cases/";
+const SESSION_URL = "/api/v1/auth/session/";
 
 const PAGE: UkmaDataReviewCasePage = {
 	items: [
@@ -66,7 +68,6 @@ function renderCases(search = "?status=all") {
 	const queryClient = new QueryClient({
 		defaultOptions: { queries: { retry: false } },
 	});
-	const invalidate = vi.spyOn(queryClient, "invalidateQueries");
 	render(
 		<QueryClientProvider client={queryClient}>
 			<NuqsTestingAdapter searchParams={search}>
@@ -74,7 +75,7 @@ function renderCases(search = "?status=all") {
 			</NuqsTestingAdapter>
 		</QueryClientProvider>,
 	);
-	return { invalidate };
+	return { queryClient };
 }
 
 beforeEach(() => {
@@ -134,17 +135,36 @@ describe("/data/cases", () => {
 		).toBeInTheDocument();
 	});
 
-	it("shows the superusers-only page on 403 and keeps the user signed in", async () => {
+	it("shows the superusers-only page on 403 while the session lasts", async () => {
+		const session: Session = {
+			is_authenticated: true,
+			user: null,
+			is_student: true,
+			is_superuser: false,
+			speciality: null,
+		};
 		mockAxios.onGet(URL).reply(403, { detail: "x", status: 403 });
+		mockAxios.onGet(SESSION_URL).reply(200, session);
 
-		const { invalidate } = renderCases();
+		const { queryClient } = renderCases();
 
 		expect(
 			await screen.findByText("Розділ лише для суперкористувачів"),
 		).toBeInTheDocument();
+		await waitFor(() =>
+			expect(
+				queryClient.getQueryData(getAuthSessionRetrieveQueryKey()),
+			).toEqual(session),
+		);
 		expect(notifySessionExpired).not.toHaveBeenCalled();
-		expect(invalidate).toHaveBeenCalledWith({
-			queryKey: getAuthSessionRetrieveQueryKey(),
-		});
+	});
+
+	it("signs the user out on 403 when the session has ended", async () => {
+		mockAxios.onGet(URL).reply(403, { detail: "x", status: 403 });
+		mockAxios.onGet(SESSION_URL).reply(401);
+
+		renderCases();
+
+		await waitFor(() => expect(notifySessionExpired).toHaveBeenCalledOnce());
 	});
 });
