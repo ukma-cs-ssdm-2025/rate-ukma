@@ -102,17 +102,34 @@ export const overview = z.object({
 	}),
 	dataUpdatedAt: z.string(),
 	lists: z.array(z.object({ name: z.string(), rows: z.number().int() })),
-	openCases: z.record(z.enum(caseKinds), z.number().int()),
+	// The proxy may leave out a kind with no open cases.
+	openCases: z
+		.partialRecord(z.enum(caseKinds), z.number().int())
+		.transform(
+			(counts) =>
+				Object.fromEntries(
+					caseKinds.map((kind) => [kind, counts[kind] ?? 0]),
+				) as Record<CaseKind, number>,
+		),
 	oldestOpenAt: z.string().nullable(),
 });
 export type Overview = z.infer<typeof overview>;
 
-export interface DecisionInput {
-	readonly kind: DecisionKind;
-	readonly reviewCaseId: string;
-	readonly reversesId?: string;
-	readonly instructorId?: string;
-}
+export type DecisionInput =
+	| {
+			readonly kind: "link_instructor";
+			readonly reviewCaseId: string;
+			readonly instructorId: string;
+	  }
+	| {
+			readonly kind: "split";
+			readonly reviewCaseId: string;
+			readonly reversesId: string;
+	  }
+	| {
+			readonly kind: Exclude<DecisionKind, "link_instructor" | "split">;
+			readonly reviewCaseId: string;
+	  };
 
 export interface CaseFilter {
 	readonly kind?: CaseKind;

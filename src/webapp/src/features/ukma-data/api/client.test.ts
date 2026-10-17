@@ -59,7 +59,7 @@ afterEach(() => {
 });
 
 describe("VITE_UKMA_DATA_SOURCE", () => {
-	it.each(["development", "live"])(
+	it.each(["development", "staging", "live"])(
 		"calls the API when unset on %s",
 		async (environment) => {
 			vi.stubEnv("VITE_ENVIRONMENT", environment);
@@ -133,6 +133,18 @@ describe("API responses", () => {
 		http.onGet("/api/v1/data/review-cases/rev_1/").reply(200, body);
 
 		await expect(ukmaDataClient.reviewCase("rev_1")).rejects.toThrow();
+	});
+
+	it("counts a kind the overview leaves out as zero", async () => {
+		const { ukmaDataClient, http } = await loadClient();
+		http.onGet("/api/v1/data/overview/").reply(200, {
+			...OVERVIEW,
+			openCases: { course_match: 2 },
+		});
+
+		await expect(ukmaDataClient.overview()).resolves.toMatchObject({
+			openCases: { course_match: 2, instructor_match: 0, removals_held: 0 },
+		});
 	});
 
 	it("rejects an overview whose counts are not integers", async () => {

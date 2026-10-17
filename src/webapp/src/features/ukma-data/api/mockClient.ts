@@ -84,7 +84,7 @@ export function applyDecision(
 		id: `dec_${changeNo}`,
 		kind: input.kind,
 		reviewCaseId: target.id,
-		reversesId: input.reversesId ?? null,
+		reversesId: input.kind === "split" ? input.reversesId : null,
 		madeAt,
 		keyName: "rate-ukma",
 		staffUser: MOCK_STAFF,
