@@ -19,7 +19,11 @@ infra/deploy/parser/
 Terraform runs from CI only, via [`.github/workflows/parser-infra.yml`](../../../.github/workflows/parser-infra.yml):
 
 - **Pull requests** touching `terraform/` run `terraform fmt -check` and `terraform validate`. These need no credentials.
-- **Actions → Provision Parser VM → Run workflow** runs `plan`, or `plan` followed by `apply`, against the chosen environment. Applies are serialized per environment.
+- **Actions → Provision Parser VM → Run workflow** runs `plan`, or `plan` followed by `apply`, against the chosen environment:
+  1. The **plan** job runs at once and writes the full plan to the run summary.
+  2. The **apply** job waits for the reviewer, then applies exactly that plan. It is skipped when the plan has no changes.
+
+  One run per environment at a time, so nothing can change the state between plan and apply.
 
 Don't run `apply` from a laptop. The state holds secrets and must live only in the bucket.
 
@@ -36,17 +40,26 @@ These steps are manual because Terraform needs them before it can run.
    - an API token with read & write access (Security → API tokens);
    - an S3 credential pair (Object Storage → S3 credentials);
    - a state encryption key (SSE-C): `openssl rand -base64 32`. Store it in the team password manager too. Terraform needs this exact key for every later plan and apply, and the state can't be read without it.
-4. **GitHub Environment.** Create `Parser Staging` (later `Parser Live`) under Settings → Environments.
-   - Add a **required reviewer**. Every manual run, `plan` included, waits for approval, because both get the secrets below. Leave **Prevent self-review** off if you are the only reviewer.
-   - Under **Deployment branches and tags**, pick **Selected branches and tags** and allow only `main`. Otherwise a run from any branch could read the secrets.
-   - Add these secrets:
+4. **GitHub Environments.** Create two under Settings → Environments (later the same pair for `Live`):
+
+   | Environment | Used by | Required reviewer | `HCLOUD_TOKEN` |
+   | --- | --- | --- | --- |
+   | `Parser Staging Plan` | plan job | none | **read-only** token |
+   | `Parser Staging` | apply job, Parser Platform | yes | read & write token |
+
+   - On both, under **Deployment branches and tags**, pick **Selected branches and tags** and allow only `main`. Otherwise a run from any branch could read the secrets.
+   - On `Parser Staging`, leave **Prevent self-review** off if you are the only reviewer.
+   - With a read-only token in the plan environment, only an approved run can change Hetzner resources.
+   - Add these secrets to both:
 
      | Secret | Value |
      | --- | --- |
-     | `HCLOUD_TOKEN` | Hetzner API token |
+     | `HCLOUD_TOKEN` | Hetzner API token (see the table above) |
      | `TF_STATE_ACCESS_KEY` | S3 access key |
      | `TF_STATE_SECRET_KEY` | S3 secret key |
      | `TF_STATE_SSE_CUSTOMER_KEY` | state encryption key (base64, 32 bytes) |
+
+   The plan job also needs `PARSER_SSH_PUBLIC_KEY` (see below). The apply job doesn't: the saved plan already holds it.
 
 5. **Check.** Run the workflow with `action: plan`. On an empty environment it should report `No changes.`, and `staging/terraform.tfstate` should appear in the bucket after the first `apply`.
 
@@ -70,12 +83,12 @@ Each environment is one Hetzner VM running single-node k3s:
 ### Before the first `apply`
 
 1. Generate a key pair for the node: `ssh-keygen -t ed25519 -N "" -C parser-staging -f parser-staging` (no passphrase, so CI can use it).
-2. In the GitHub Environment, add:
+2. Add these secrets:
 
-   | Name | Kind | Value |
+   | Secret | Environment | Value |
    | --- | --- | --- |
-   | `PARSER_SSH_PUBLIC_KEY` | secret | contents of `parser-staging.pub` |
-   | `PARSER_SSH_KEY` | secret | contents of `parser-staging` (the private key) |
+   | `PARSER_SSH_PUBLIC_KEY` | `Parser Staging Plan` | contents of `parser-staging.pub` |
+   | `PARSER_SSH_KEY` | `Parser Staging` | contents of `parser-staging` (the private key) |
 
    Then delete the local private key, or store it in the team password manager.
 
@@ -126,12 +139,14 @@ Add these secrets to the GitHub Environment, next to `PARSER_SSH_KEY` and `PARSE
 | `PARSER_SSH_HOST` | the node's `ipv4` |
 | `PARSER_SSH_KNOWN_HOSTS` | the node's host key line, `<ipv4> ssh-ed25519 AAAA...` |
 
-Read the host key from the node itself, so there is nothing to compare by hand:
+Read the host key from the node itself, so there is nothing to compare by hand.
+The secret is only written if the key was read, so a failed login leaves the old value in place:
 
 ```bash
 IP=<ipv4>
-echo "$IP $(ssh deploy@$IP cat /etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2)" \
-  | gh secret set PARSER_SSH_KNOWN_HOSTS --env "Parser Staging"
+KEY=$(ssh deploy@$IP cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub) \
+  && [[ $KEY == "ssh-ed25519 "* ]] \
+  && gh secret set PARSER_SSH_KNOWN_HOSTS --env "Parser Staging" --body "$IP $KEY"
 ```
 
 If the VM is recreated, its IP and host key change: update both secrets.
