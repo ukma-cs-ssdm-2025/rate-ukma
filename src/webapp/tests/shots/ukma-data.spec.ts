@@ -160,7 +160,10 @@ for (const width of [1440, 390]) {
 		await expect(cases(page)).toHaveCount(3);
 		await shot(page, `cases-${width}`);
 
-		await cases(page).filter({ hasText: "off-test-3" }).getByRole("link").click();
+		await cases(page)
+			.filter({ hasText: "off-test-3" })
+			.getByRole("link")
+			.click();
 		await expect(page.getByText("inst-test-1, inst-test-2")).toBeVisible();
 		await expect(page.getByText("тут лише перегляд")).toBeVisible();
 		await shot(page, `case-instructor-${width}`);
