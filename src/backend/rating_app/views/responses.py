@@ -31,6 +31,15 @@ from rating_app.serializers.notification import (
     NotificationGroupSerializer,
     UnreadCountSerializer,
 )
+from rating_app.serializers.ukma_data import (
+    UkmaDataDepartmentPageSerializer,
+    UkmaDataFacultyPageSerializer,
+    UkmaDataOfferingPageSerializer,
+    UkmaDataProgrammePageSerializer,
+    UkmaDataReviewCasePageSerializer,
+    UkmaDataStatusSerializer,
+    UkmaDataTermPageSerializer,
+)
 
 NOT_FOUND = "Not found"
 BAD_REQUEST = "Bad request"
@@ -76,6 +85,19 @@ EX_403 = OpenApiExample(
         "status": 403,
     },
     status_codes=["403"],
+)
+EX_502_UKMA_DATA = OpenApiExample(
+    "UKMA Data unavailable",
+    value={"detail": "UKMA Data did not answer in time.", "status": 502},
+    status_codes=["502"],
+)
+EX_503_UKMA_DATA = OpenApiExample(
+    "UKMA Data not configured",
+    value={
+        "detail": "UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.",
+        "status": 503,
+    },
+    status_codes=["503"],
 )
 EX_404 = OpenApiExample(
     NOT_FOUND,
@@ -280,3 +302,21 @@ R_FEED = {
     400: OpenApiResponse(Err, "Malformed cursor", [EX_400_FEED_CURSOR]),
     401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
 }
+
+
+def ukma_data_responses(serializer, include_400=True) -> dict:
+    return {
+        200: OpenApiResponse(serializer, "OK"),
+        **common_errors(include_400=include_400),
+        502: OpenApiResponse(Err, "UKMA Data is down or failed", [EX_502_UKMA_DATA]),
+        503: OpenApiResponse(Err, "UKMA Data is not configured", [EX_503_UKMA_DATA]),
+    }
+
+
+R_UKMA_DATA_STATUS = ukma_data_responses(UkmaDataStatusSerializer, include_400=False)
+R_UKMA_DATA_TERMS = ukma_data_responses(UkmaDataTermPageSerializer)
+R_UKMA_DATA_FACULTIES = ukma_data_responses(UkmaDataFacultyPageSerializer)
+R_UKMA_DATA_DEPARTMENTS = ukma_data_responses(UkmaDataDepartmentPageSerializer)
+R_UKMA_DATA_PROGRAMMES = ukma_data_responses(UkmaDataProgrammePageSerializer)
+R_UKMA_DATA_OFFERINGS = ukma_data_responses(UkmaDataOfferingPageSerializer)
+R_UKMA_DATA_REVIEW_CASES = ukma_data_responses(UkmaDataReviewCasePageSerializer)
