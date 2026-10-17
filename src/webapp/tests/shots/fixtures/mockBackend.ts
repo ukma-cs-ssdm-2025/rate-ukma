@@ -154,10 +154,20 @@ export async function mockBackend(
 	> = [
 		[
 			/^\/auth\/session\/$/,
-			() =>
-				session === "guest"
-					? { is_authenticated: false, user: null, expires_at: null }
-					: { ...SESSION, is_superuser: session === "superuser" },
+			() => {
+				if (session === "guest") {
+					return { is_authenticated: false, user: null, expires_at: null };
+				}
+				if (session === "superuser") {
+					return {
+						...SESSION,
+						is_student: false,
+						is_superuser: true,
+						speciality: null,
+					};
+				}
+				return SESSION;
+			},
 		],
 		[
 			/^\/students\/me\/rating-suggestions\/$/,

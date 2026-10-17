@@ -32,7 +32,7 @@ class SessionSerializer(serializers.Serializer):
     user = SessionUserSerializer(allow_null=True)
     expires_at = serializers.DateTimeField(allow_null=True, required=False)
     is_student = serializers.BooleanField()
-    # Opens the staff section (/data); its backend calls must check it again.
+    # Opens staff-only UI; every staff endpoint must still check it on the server.
     is_superuser = serializers.BooleanField()
     # The student's own speciality, so course filters can offer it in one click.
     speciality = SessionSpecialitySerializer(allow_null=True)
