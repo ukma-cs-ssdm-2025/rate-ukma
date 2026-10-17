@@ -6,26 +6,32 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 - Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`.
 - Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role and `parser-migrate` applies migrations.
-- Settings: `DATABASE_URL` (worker and migrate) and `PORT` (api, default 8080).
+- Settings: `DATABASE_URL` (worker and migrate), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account), `SAZ_ACADEMIC_YEAR` (default 2025, meaning 2025-26) `SAZ_REQUEST_GAP` (default 1 second) and `SAZ_REQUEST_TIMEOUT` (default 30 seconds, covering the response body).
 
 ## Layout
 
 - `src/main.ts`: the `api`, `worker` and `migrate` commands.
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer.
 - `src/worker/`: the background loop.
-- `src/db/Database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
+- `src/db/database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
 
 ## Rules
 
-- A new migration is added by hand to the `fromRecord` list in `src/db/Database.ts`. Its number only grows: an id at or below the highest applied one is skipped silently.
+- A new migration is added by hand to the `fromRecord` list in `src/db/database.ts`. Its number only grows: an id at or below the highest applied one is skipped silently.
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
-- The container contract (one image, commands `api`/`worker`/`migrate`, `DATABASE_URL`, `PORT`, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
+- The container contract (one image, commands `api`/`worker`/`migrate`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
 - No real student data in fixtures, logs or tests.
 
 ## Conventions
 
 Some older code predates these rules. Follow the rule, not the neighbouring file, and name the contradiction in the PR.
+
+Files:
+
+- `PascalCase.ts` when the file defines a class or `Context.Service` and is named after it, as `CrawlStore.ts`; `camelCase.ts` for a module of functions, as `snapshot.ts`.
+- `<file>.test.ts` sits beside the file it tests, and `<file>.fixture.ts` holds invented data for it.
+- `test` appears in a name only for test files; test helpers go in a `testing` module.
 
 Services and errors:
 
