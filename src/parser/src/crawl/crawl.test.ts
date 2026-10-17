@@ -1,7 +1,7 @@
 import { assert, describe, it, layer } from "@effect/vitest";
 import { Effect, Exit, Layer } from "effect";
 import { SqlClient } from "effect/sql";
-import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { catalogPath } from "../saz/catalog.ts";
 import {
 	type SazError,

@@ -1,7 +1,7 @@
 import { assert, describe, layer } from "@effect/vitest";
 import { Deferred, Effect, Fiber, Layer } from "effect";
 import { SqlClient } from "effect/sql";
-import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { CrawlStore, type QueuedPage } from "./CrawlStore.ts";
 import { snapshotOf } from "./snapshot.ts";
 
