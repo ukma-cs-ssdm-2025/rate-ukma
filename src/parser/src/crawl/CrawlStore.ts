@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { Snapshot } from "./snapshot.ts";
 
@@ -53,9 +53,19 @@ export type OpenRun = typeof OpenRun.Type;
 
 const RunId = Schema.Struct({ id: Schema.BigInt });
 
+/** The Postgres advisory lock key that only one crawl may hold. */
+const CRAWL_LOCK = 761;
+
+const decodeLocked = Schema.decodeUnknownEffect(
+	Schema.Tuple([Schema.Struct({ locked: Schema.Boolean })]),
+);
+
 export class CrawlStore extends Context.Service<
 	CrawlStore,
 	{
+		/** Takes the crawl lock for the scope; `false` when another crawl holds
+		 *  it, since two would reset each other's claimed pages. */
+		lockCrawl: Effect.Effect<boolean, never, Scope.Scope>;
 		startRun(sourcePart: string, first: QueuedPage): Effect.Effect<OpenRun>;
 		/** The runs a crash left open, oldest first, with the pages they had
 		 *  claimed back in the queue. */
@@ -71,9 +81,12 @@ export class CrawlStore extends Context.Service<
 			next: ReadonlyArray<QueuedPage>,
 		): Effect.Effect<void>;
 		fail(page: ClaimedPage, error: string): Effect.Effect<void>;
-		/** Puts the run's pages that failed once with `error` back in the queue,
-		 *  and returns how many. */
-		requeue(runId: bigint, error: string): Effect.Effect<number>;
+		/** Puts the run's pages that failed once with one of `errors` back in the
+		 *  queue, and returns how many. */
+		requeue(
+			runId: bigint,
+			errors: ReadonlyArray<string>,
+		): Effect.Effect<number>;
 		report(runId: bigint): Effect.Effect<RunReport>;
 		finishRun(
 			runId: bigint,
@@ -86,6 +99,30 @@ export class CrawlStore extends Context.Service<
 		CrawlStore,
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
+
+			// An advisory lock belongs to the session, so it is taken and released
+			// on a connection of its own.
+			const lockCrawl = Effect.gen(function* () {
+				const connection = yield* sql.reserve;
+
+				const [{ locked }] = yield* connection
+					.execute(
+						"SELECT pg_try_advisory_lock($1) AS locked",
+						[CRAWL_LOCK],
+						undefined,
+					)
+					.pipe(Effect.flatMap(decodeLocked));
+
+				if (locked) {
+					yield* Effect.addFinalizer(() =>
+						connection
+							.execute("SELECT pg_advisory_unlock($1)", [CRAWL_LOCK], undefined)
+							.pipe(Effect.ignore),
+					);
+				}
+
+				return locked;
+			}).pipe(Effect.orDie);
 
 			const insertRun = SqlSchema.findOne({
 				Request: Schema.String,
@@ -218,10 +255,10 @@ export class CrawlStore extends Context.Service<
 					WHERE id = ${page.id}
 				`.pipe(Effect.asVoid, Effect.orDie);
 
-			const requeue = (runId: bigint, error: string) =>
+			const requeue = (runId: bigint, errors: ReadonlyArray<string>) =>
 				sql`
 					UPDATE run_pages SET status = 'pending', error = NULL, finished_at = NULL
-					WHERE run_id = ${runId} AND status = 'failed' AND error = ${error} AND attempts = 1
+					WHERE run_id = ${runId} AND status = 'failed' AND error IN ${sql.in(errors)} AND attempts = 1
 					RETURNING id
 				`.pipe(
 					Effect.map((rows) => rows.length),
@@ -284,6 +321,7 @@ export class CrawlStore extends Context.Service<
 				`.pipe(Effect.asVoid, Effect.orDie);
 
 			return CrawlStore.of({
+				lockCrawl,
 				startRun,
 				openRuns,
 				claim,
