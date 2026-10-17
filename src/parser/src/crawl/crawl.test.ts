@@ -1,5 +1,7 @@
-import { assert, describe, it } from "@effect/vitest";
+import { assert, describe, it, layer } from "@effect/vitest";
 import { Effect, Exit, Layer } from "effect";
+import { SqlClient } from "effect/sql";
+import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
 import { catalogPath } from "../saz/catalog.ts";
 import {
 	type SazError,
@@ -419,30 +421,62 @@ describe("crawlAllYears", () => {
 			assert.deepStrictEqual(saz.fetched, []);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
-
-	it.effect("gives a page that САЗ rate-limited one more pass", () => {
-		const store = makeMemoryStore();
-		let limited = false;
-
-		const saz = makeFakeSaz({
-			"/course/100004": Effect.suspend(() => {
-				if (limited) return Effect.succeed("<html>course 100004</html>");
-
-				limited = true;
-
-				return Effect.fail(
-					new SazRequestFailed({ path: "/course/100004", status: 429 }),
-				);
-			}),
-		});
-
-		return Effect.gen(function* () {
-			yield* crawlAllYears();
-
-			assert.strictEqual(
-				store.pages.find((page) => page.path === "/course/100004")?.status,
-				"done",
-			);
-		}).pipe(Effect.provide([store.layer, saz.layer]));
-	});
 });
+
+describe.skipIf(testDatabaseUrl === undefined)(
+	"crawlAllYears on Postgres",
+	() => {
+		layer(
+			CrawlStore.layer.pipe(
+				Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+			),
+			{ timeout: 30_000, excludeTestServices: true },
+		)((it) => {
+			it.effect(
+				"gives a page that failed with a passing error one more pass",
+				() => {
+					let limited = false;
+
+					const saz = makeFakeSaz({
+						"/course/100004": Effect.suspend(() => {
+							if (limited) return Effect.succeed("<html>course 100004</html>");
+
+							limited = true;
+
+							return Effect.fail(
+								new SazRequestFailed({ path: "/course/100004", status: 429 }),
+							);
+						}),
+					});
+
+					return Effect.gen(function* () {
+						const sql = yield* SqlClient.SqlClient;
+
+						yield* crawlAllYears();
+
+						const pages = yield* sql<{
+							readonly path: string;
+							readonly status: string;
+							readonly attempts: number;
+						}>`
+						SELECT path, status, attempts FROM run_pages
+						WHERE path IN ('/course/100002', '/course/100003', '/course/100004')
+						ORDER BY path
+					`;
+
+						assert.deepStrictEqual(
+							pages.map(
+								({ path, status, attempts }) => `${status} ${attempts} ${path}`,
+							),
+							[
+								"failed 1 /course/100002",
+								"done 2 /course/100003",
+								"done 2 /course/100004",
+							],
+						);
+					}).pipe(Effect.provide(saz.layer));
+				},
+			);
+		});
+	},
+);
