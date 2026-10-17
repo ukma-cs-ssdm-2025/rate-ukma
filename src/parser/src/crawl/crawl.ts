@@ -72,8 +72,9 @@ const linkedPages = (
 };
 
 /** Works through one run's queue. A page that fails is marked failed and the
- *  run goes on; a failed sign-in or catalog page fails the run. A crash, such
- *  as a lost database, leaves the run `running` to resume later. */
+ *  run goes on; a failed sign-in, a long rate limit or a failed catalog page
+ *  fails the run. A crash, such as a lost database, leaves the run `running`
+ *  to resume later. */
 const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
@@ -149,8 +150,9 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 		}),
 	);
 
-	// Only a failed sign-in ends the run as failed. An interrupted or crashed run
-	// stays `running`, so the next start resumes it.
+	// A failed sign-in or a long rate limit ends the run here as failed, leaving
+	// its other pages unfetched. An interrupted or crashed run stays `running`,
+	// so the next start resumes it.
 	return yield* crawl.pipe(
 		Effect.tapCause((cause) =>
 			Cause.hasFails(cause) ? finish(true) : Effect.void,

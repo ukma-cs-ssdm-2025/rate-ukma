@@ -6,6 +6,7 @@ import { catalogPath } from "../saz/catalog.ts";
 import {
 	type SazError,
 	SazClient,
+	SazRateLimited,
 	SazRequestFailed,
 	SazSignInFailed,
 } from "../saz/SazClient.ts";
@@ -398,6 +399,26 @@ describe("crawlAllYears", () => {
 				{ sourcePart: "saz-courses:2031-32", status: "failed" },
 			]);
 			assert.notInclude(saz.fetched, "/course/100001/students");
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
+	it.effect("fails the run and stops when САЗ asks for a long wait", () => {
+		const store = makeMemoryStore();
+
+		const saz = makeFakeSaz({
+			"/course/100001": Effect.fail(
+				new SazRateLimited({ path: "/course/100001", retryAfterSeconds: 600 }),
+			),
+		});
+
+		return Effect.gen(function* () {
+			const exit = yield* Effect.exit(crawlAllYears());
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.deepStrictEqual(store.finished, [
+				{ sourcePart: "saz-courses:2031-32", status: "failed" },
+			]);
+			assert.strictEqual(saz.fetched.at(-1), "/course/100001");
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 
