@@ -162,7 +162,7 @@ for (const width of [1440, 390]) {
 
 		await cases(page).filter({ hasText: "off-test-3" }).getByRole("link").click();
 		await expect(page.getByText("inst-test-1, inst-test-2")).toBeVisible();
-		await expect(page.getByRole("button")).toHaveCount(await page.getByRole("button").count());
+		await expect(page.getByText("тут лише перегляд")).toBeVisible();
 		await shot(page, `case-instructor-${width}`);
 
 		await page.goto("/data/cases/case-test-3");

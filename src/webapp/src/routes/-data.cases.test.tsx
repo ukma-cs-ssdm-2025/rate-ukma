@@ -96,7 +96,7 @@ describe("/data/cases", () => {
 		expect(items).toHaveLength(2);
 		expect(items[0]).toHaveTextContent("Збіг курсу");
 		expect(items[0]).toHaveTextContent("Обʼєкт off-test-1");
-		expect(items[0]).toHaveTextContent("запуск run-7");
+		expect(items[0]).toHaveTextContent("Запуск run-7");
 		expect(items[1]).toHaveTextContent("Вирішена");
 		expect(mockAxios.history.get[0].params).toEqual({ limit: 1000 });
 	});
