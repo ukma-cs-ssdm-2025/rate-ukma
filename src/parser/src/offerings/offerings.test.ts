@@ -51,6 +51,21 @@ describe("offeringRowsOf", () => {
 		]);
 	});
 
+	it("gives a department the faculty a card names, whatever the order", () => {
+		const departments = offeringRowsOf(
+			[
+				{ snapshotId: 11n, offering: offering("900001") },
+				{ snapshotId: 12n, offering: offering("900002", { faculty: null }) },
+			],
+			FILTERS,
+		).departments;
+
+		assert.deepStrictEqual(
+			departments.map(({ faculty }) => faculty),
+			["Факультет вигаданих наук"],
+		);
+	});
+
 	it("keeps a programme name of two levels as two programmes", () => {
 		assert.deepStrictEqual(rows.programmes, [
 			{ name: "Вигадана інженерія", level: "bachelor", sazFilterId: "5001" },

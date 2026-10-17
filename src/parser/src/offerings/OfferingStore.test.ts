@@ -221,6 +221,43 @@ describe.skipIf(testDatabaseUrl === undefined)("OfferingStore", () => {
 			}),
 		);
 
+		it.effect(
+			"writes a renamed faculty beside pages that show its old name",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					const sql = yield* SqlClient.SqlClient;
+
+					const filters = (name: string): CatalogFilters => ({
+						...NO_FILTERS,
+						faculties: new Map([[name, "901"]]),
+					});
+
+					yield* write(
+						[offering("900001", { faculty: "Факультет уявних наук" })],
+						filters("Факультет уявних наук"),
+					);
+					yield* write(
+						[
+							offering("900001", { faculty: "Факультет уявних наук" }),
+							offering("900002", { faculty: "Факультет нових наук" }),
+						],
+						filters("Факультет нових наук"),
+					);
+
+					const rows = yield* sql<{ readonly line: string }>`
+					SELECT coalesce(saz_filter_id, '-') || ' ' || name AS line
+					FROM faculties ORDER BY name
+				`;
+
+					assert.deepStrictEqual(
+						rows.map(({ line }) => line),
+						["901 Факультет нових наук", "- Факультет уявних наук"],
+					);
+				}),
+		);
+
 		it.effect("replaces the terms and programmes of the batch only", () =>
 			Effect.gen(function* () {
 				yield* reset;

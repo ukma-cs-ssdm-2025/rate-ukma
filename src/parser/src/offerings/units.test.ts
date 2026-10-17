@@ -66,6 +66,24 @@ describe("planUnits", () => {
 		);
 	});
 
+	it("gives a renamed unit's filter id to its new name, not its old one", () => {
+		assert.deepStrictEqual(
+			planUnits(STORED, [
+				{ name: "Факультет уявних наук", sazFilterId: null },
+				{ name: "Факультет уявних та вигаданих наук", sazFilterId: "901" },
+			]),
+			{
+				released: [],
+				updates: [
+					{ id: "fac_1", name: "Факультет уявних наук", sazFilterId: null },
+				],
+				inserts: [
+					{ name: "Факультет уявних та вигаданих наук", sazFilterId: "901" },
+				],
+			},
+		);
+	});
+
 	it("adds a unit no row matches", () => {
 		assert.deepStrictEqual(
 			planUnits(STORED, [{ name: "Факультет нових наук", sazFilterId: "903" }])
