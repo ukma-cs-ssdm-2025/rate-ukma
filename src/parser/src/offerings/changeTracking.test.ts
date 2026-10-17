@@ -4,6 +4,7 @@ import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
 import { sourcePartOf } from "../crawl/crawl.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { catalogPath } from "../saz/catalog.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
 import { parseCoursePage } from "../saz/coursePage.ts";
 import {
@@ -42,9 +43,44 @@ const MOVED_DEPARTMENT = [
 	),
 ];
 
-/** Stores a finished run of one year that lists these courses, as the crawl
- *  does: a page whose content did not change keeps its latest snapshot. */
-const crawl = (year: number, listed: ReadonlyArray<Listed>) =>
+/** The latest snapshot of a path, or a new one when its content changed, as
+ *  the crawl dedupes them. */
+const snapshotOf = (
+	runId: bigint,
+	path: string,
+	kind: "catalog" | "course",
+	content: string,
+) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+
+		const [latest] = yield* sql<{
+			readonly id: bigint;
+			readonly content: string;
+		}>`
+			SELECT id, content FROM page_snapshots
+			WHERE path = ${path} ORDER BY id DESC LIMIT 1
+		`;
+
+		if (latest?.content === content) return latest.id;
+
+		const [stored] = yield* sql<{ readonly id: bigint }>`
+			INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
+			VALUES (${path}, ${kind}, ${`hash ${content.length}`}, ${content}, ${runId})
+			RETURNING id
+		`;
+
+		return stored?.id ?? 0n;
+	});
+
+/** Stores a finished run of one year that lists these courses. `totals` are
+ *  the course totals its catalog pages reported, page 1 first; they differ
+ *  from the listed courses when the catalog changed during the run. */
+const crawl = (
+	year: number,
+	listed: ReadonlyArray<Listed>,
+	totals = [listed.length],
+) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 
@@ -56,10 +92,21 @@ const crawl = (year: number, listed: ReadonlyArray<Listed>) =>
 
 		const runId = run?.id ?? 0n;
 
-		yield* sql`
-			INSERT INTO run_pages (run_id, kind, path, status, finished_at)
-			VALUES (${runId}, 'catalog', ${`/course/catalog?year=${year}`}, 'done', now())
-		`;
+		for (const [index, total] of totals.entries()) {
+			const path = catalogPath(year, index + 1);
+
+			const snapshotId = yield* snapshotOf(
+				runId,
+				path,
+				"catalog",
+				`<div class="summary">Показані <b>1-${total}</b> із <b>${total}</b> записів.</div>`,
+			);
+
+			yield* sql`
+				INSERT INTO run_pages (run_id, kind, path, status, snapshot_id, finished_at)
+				VALUES (${runId}, 'catalog', ${path}, 'done', ${snapshotId}, now())
+			`;
+		}
 
 		for (const { code, title, unit, failed = false } of listed) {
 			const path = `/course/${code}`;
@@ -72,33 +119,16 @@ const crawl = (year: number, listed: ReadonlyArray<Listed>) =>
 				continue;
 			}
 
-			const content = coursePage({
-				code,
-				title,
-				unit,
-				year: `${year}–${year + 1}`,
-			});
-
-			const [latest] = yield* sql<{
-				readonly id: bigint;
-				readonly content: string;
-			}>`
-				SELECT id, content FROM page_snapshots
-				WHERE path = ${path} ORDER BY id DESC LIMIT 1
-			`;
-
-			const [stored] =
-				latest?.content === content
-					? [latest]
-					: yield* sql<{ readonly id: bigint }>`
-							INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
-							VALUES (${path}, 'course', ${`hash ${content.length}`}, ${content}, ${runId})
-							RETURNING id
-						`;
+			const snapshotId = yield* snapshotOf(
+				runId,
+				path,
+				"course",
+				coursePage({ code, title, unit, year: `${year}–${year + 1}` }),
+			);
 
 			yield* sql`
 				INSERT INTO run_pages (run_id, kind, path, status, snapshot_id, finished_at)
-				VALUES (${runId}, 'course', ${path}, 'done', ${stored?.id ?? null}, now())
+				VALUES (${runId}, 'course', ${path}, 'done', ${snapshotId}, now())
 			`;
 		}
 
@@ -252,6 +282,83 @@ describe.skipIf(testDatabaseUrl === undefined)("change tracking", () => {
 				assert.strictEqual(yield* removalsOf(partial), "skipped");
 				assert.isFalse((yield* offeringsOf(2033)).get("930002")?.removed);
 			}),
+		);
+
+		it.effect(
+			"skips the removals of a run that saw fewer courses than page 1 listed",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const codes = ["935001", "935002", "935003"];
+
+					yield* crawl(
+						2035,
+						codes.map((code) => ({ code })),
+					);
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(0.5);
+
+					// Page 1 still counted 3 courses; a course left after it was
+					// read, so 935003 moved onto a page the run had already read.
+					const shifted = yield* crawl(
+						2035,
+						codes.slice(0, 2).map((code) => ({ code })),
+						[3],
+					);
+
+					yield* removeOfferings(0.5);
+
+					const [run] = yield* sql<{ readonly reason: string | null }>`
+						SELECT report ->> 'removalsSkipped' AS reason FROM runs
+						WHERE id = ${shifted}
+					`;
+
+					assert.strictEqual(yield* removalsOf(shifted), "skipped");
+					assert.strictEqual(
+						run?.reason,
+						"catalog page 1 listed 3 courses, the run saw 2",
+					);
+					assert.isFalse((yield* offeringsOf(2035)).get("935003")?.removed);
+				}),
+		);
+
+		it.effect(
+			"skips the removals of a run whose catalog grew while it was read",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+
+					yield* crawl(2040, [
+						{ code: "941001" },
+						{ code: "941002" },
+						{ code: "941003" },
+					]);
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(0.5);
+
+					// 941004 arrived before page 2 was read and pushed 941003 past the
+					// last page: the run saw as many codes as page 1 listed.
+					const grown = yield* crawl(
+						2040,
+						[{ code: "941001" }, { code: "941002" }, { code: "941004" }],
+						[3, 4],
+					);
+
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(0.5);
+
+					const [run] = yield* sql<{ readonly reason: string | null }>`
+						SELECT report ->> 'removalsSkipped' AS reason FROM runs
+						WHERE id = ${grown}
+					`;
+
+					assert.strictEqual(yield* removalsOf(grown), "skipped");
+					assert.strictEqual(
+						run?.reason,
+						"catalog total changed during the run: page 1 listed 3, a later page 4",
+					);
+					assert.isFalse((yield* offeringsOf(2040)).get("941003")?.removed);
+				}),
 		);
 
 		it.effect(
@@ -428,6 +535,77 @@ describe.skipIf(testDatabaseUrl === undefined)("change tracking", () => {
 					assert.isAbove(
 						Number((yield* offeringsOf(2038)).get("980001")?.changeNo),
 						Number(before?.changeNo),
+					);
+				}),
+		);
+
+		it.effect(
+			"takes no number for catalog filter ids that did not change, nor for a released one",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+
+					const runId = yield* crawl(2039, [
+						{ code: "990001" },
+						{ code: "990002", unit: MOVED_DEPARTMENT },
+					]);
+
+					const storeCatalog = (faculties: string, programmes: string) =>
+						sql`
+							INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
+							VALUES (
+								${`/course/catalog?year=2039&v=${faculties.length}`}, 'catalog',
+								${`catalog ${faculties}`},
+								${`<form><select name="filter[faculty][]" multiple>${faculties}</select><select name="filter[spec][]" multiple>${programmes}</select></form>`},
+								${runId}
+							)
+						`;
+
+					const PROGRAMME = `<option value="5001">Вигадана інженерія (Бакалавр)</option>`;
+
+					yield* storeCatalog(
+						`<option value="901">Факультет вигаданих наук</option>`,
+						PROGRAMME,
+					);
+
+					yield* parseOfferings("crawl");
+
+					const [programme] = yield* sql<{ readonly sazFilterId: string }>`
+						SELECT saz_filter_id AS "sazFilterId" FROM programmes
+						WHERE name = 'Вигадана інженерія' AND level = 'bachelor'
+					`;
+
+					assert.strictEqual(programme?.sazFilterId, "5001");
+					assert.deepStrictEqual(
+						(yield* parseOfferings("reparse")).changes,
+						[],
+					);
+
+					// The filter id moves to the other faculty: the first one is
+					// released, the second one takes it.
+					yield* storeCatalog(
+						`<option value="901">Факультет уявних мистецтв</option><option value="902">Факультет вигаданих наук</option>`,
+						PROGRAMME,
+					);
+
+					const moved = yield* parseOfferings("reparse");
+
+					assert.deepStrictEqual(moved.changes, [
+						{ table: "faculties", action: "change", rows: 2 },
+					]);
+					assert.deepStrictEqual(
+						(yield* parseOfferings("reparse")).changes,
+						[],
+					);
+
+					const faculties = yield* sql<{ readonly line: string }>`
+						SELECT name || ' ' || saz_filter_id AS line FROM faculties
+						WHERE saz_filter_id IN ('901', '902') ORDER BY line
+					`;
+
+					assert.deepStrictEqual(
+						faculties.map(({ line }) => line),
+						["Факультет вигаданих наук 902", "Факультет уявних мистецтв 901"],
 					);
 				}),
 		);

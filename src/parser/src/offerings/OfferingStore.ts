@@ -7,6 +7,7 @@ import {
 	mergeChangeCounts,
 	type NumberedTable,
 } from "../changes/ChangeLog.ts";
+import { recordsetOf } from "../db/recordset.ts";
 import type {
 	OfferingTerm,
 	ParsedOffering,
@@ -70,7 +71,9 @@ const SnapshotId = Schema.Struct({ id: Schema.BigInt });
 
 const ParseId = Schema.Struct({ id: Schema.BigInt });
 
-export type ParseTrigger = "crawl" | "reparse";
+export const ParseTrigger = Schema.Literals(["crawl", "reparse"]);
+
+export type ParseTrigger = typeof ParseTrigger.Type;
 
 /** A course page that did not parse; its rows stay as they were. */
 export interface ParseFailure {
@@ -181,18 +184,7 @@ export class OfferingStore extends Context.Service<
 				Effect.orDie,
 			);
 
-			/** Rows sent as one `jsonb` value. `columns` names every key of the
-			 *  row with its Postgres type, so the compiler keeps the two in step:
-			 *  a key missing from the record set would read as null. */
-			const recordset = <T extends object>(
-				rows: ReadonlyArray<T>,
-				columns: { readonly [K in keyof T]-?: string },
-			) =>
-				sql`jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS r(${sql.unsafe(
-					Object.entries(columns)
-						.map(([key, type]) => `"${key}" ${type}`)
-						.join(", "),
-				)})`;
+			const recordset = recordsetOf(sql);
 
 			const findUnits = SqlSchema.findAll({
 				Request: Schema.Literals(["faculties", "departments"]),
@@ -356,7 +348,7 @@ export class OfferingStore extends Context.Service<
 									UPDATE programmes p
 									SET saz_filter_id = r."sazFilterId", change_no = nextval('change_no_seq')
 									FROM ${programmes}
-									WHERE p.name = r.name AND p.level IS NOT DISTINCT FROM r.level
+									WHERE p.name = r.name AND p.level = r.level
 										AND r."sazFilterId" IS NOT NULL
 										AND p.saz_filter_id IS DISTINCT FROM r."sazFilterId"
 									RETURNING p.id, p.change_no, 'change' AS action
@@ -371,7 +363,7 @@ export class OfferingStore extends Context.Service<
 									FROM ${programmes}
 									WHERE NOT EXISTS (
 										SELECT 1 FROM programmes p
-										WHERE p.name = r.name AND p.level IS NOT DISTINCT FROM r.level
+										WHERE p.name = r.name AND p.level = r.level
 									)
 									RETURNING id, change_no, 'add' AS action
 								`,
@@ -417,7 +409,7 @@ export class OfferingStore extends Context.Service<
 
 							// A live row changes when its hash does, or when its faculty or
 							// department now resolves to another row. A removed row comes back
-							// only when a run fetched its page after the removal: its last
+							// only when a run after the removing one fetched its page: its last
 							// snapshot stays the latest of its path, so every parse sees it.
 							// An offering already parsed from a newer snapshot keeps its rows.
 							const updated = yield* track(
@@ -446,7 +438,12 @@ export class OfferingStore extends Context.Service<
 											ELSE EXISTS (
 												SELECT 1 FROM run_pages p
 												WHERE p.path = '/course/' || o.saz_code AND p.status = 'done'
-													AND p.finished_at > o.removed_at
+													AND p.run_id > (
+														SELECT c.run_id FROM changes c
+														WHERE c.row_id = o.id AND c.action = 'remove'
+														ORDER BY c.change_no DESC
+														LIMIT 1
+													)
 											)
 										END
 									RETURNING o.id, o.change_no,
@@ -516,7 +513,7 @@ export class OfferingStore extends Context.Service<
 					.pipe(Effect.orDie);
 
 			const insertParse = SqlSchema.findOne({
-				Request: Schema.String,
+				Request: ParseTrigger,
 				Result: ParseId,
 				execute: (trigger) =>
 					sql`INSERT INTO parses (trigger) VALUES (${trigger}) RETURNING id`,

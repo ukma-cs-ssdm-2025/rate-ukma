@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { ChangeLog, type Turn } from "../changes/ChangeLog.ts";
+import { catalogPath, parseCatalogPage } from "../saz/catalog.ts";
 
 const UndecidedRun = Schema.Struct({
 	id: Schema.BigInt,
@@ -14,6 +15,13 @@ export interface RemovalSurvey {
 	readonly complete: boolean;
 	/** Catalog and course pages of the run that did not load. */
 	readonly missingPages: number;
+	/** The course total that page 1 of the run's catalog reported, when the
+	 *  run stored that page. */
+	readonly listed: number | undefined;
+	/** The totals the run's other catalog pages reported. */
+	readonly laterTotals: ReadonlyArray<number | undefined>;
+	/** The distinct course codes the run's catalog pages listed. */
+	readonly seen: number;
 	/** The year's offerings that are not removed. */
 	readonly live: number;
 	/** The year's live offerings that no course page of the run lists. */
@@ -23,9 +31,15 @@ export interface RemovalSurvey {
 const Survey = Schema.Struct({
 	succeeded: Schema.Boolean,
 	missingPages: Schema.BigInt,
+	firstCatalogPage: Schema.NullOr(Schema.String),
+	laterCatalogPages: Schema.Array(Schema.String),
+	seen: Schema.BigInt,
 	live: Schema.BigInt,
 	candidates: Schema.Array(Schema.String),
 });
+
+const totalOf = (catalogPage: string) =>
+	parseCatalogPage(catalogPage).shown?.total;
 
 /** Every method but `undecidedRuns` needs the writers' turn, so a run's survey
  *  and its decision see the same rows. */
@@ -54,7 +68,8 @@ export class RemovalStore extends Context.Service<
 			academicYear: number,
 			ids: ReadonlyArray<string>,
 		): Effect.Effect<void, never, Turn>;
-		skip(runId: bigint): Effect.Effect<void, never, Turn>;
+		/** Decides that the run removes nothing, and adds why to its report. */
+		skip(runId: bigint, reason: string): Effect.Effect<void, never, Turn>;
 	}
 >()("ukma-data/offerings/RemovalStore") {
 	static readonly layer = Layer.effect(
@@ -89,6 +104,22 @@ export class RemovalStore extends Context.Service<
 								AND p.status <> 'done'
 						) AS "missingPages",
 						(
+							SELECT s.content FROM run_pages p
+							JOIN page_snapshots s ON s.id = p.snapshot_id
+							WHERE p.run_id = r.id AND p.kind = 'catalog'
+								AND p.path = ${catalogPath(year, 1)}
+						) AS "firstCatalogPage",
+						ARRAY(
+							SELECT s.content FROM run_pages p
+							JOIN page_snapshots s ON s.id = p.snapshot_id
+							WHERE p.run_id = r.id AND p.kind = 'catalog'
+								AND p.path <> ${catalogPath(year, 1)}
+						) AS "laterCatalogPages",
+						(
+							SELECT count(DISTINCT p.path) FROM run_pages p
+							WHERE p.run_id = r.id AND p.kind = 'course'
+						) AS seen,
+						(
 							SELECT count(*) FROM offerings o
 							WHERE o.academic_year = ${year} AND o.removed_at IS NULL
 						) AS live,
@@ -109,23 +140,43 @@ export class RemovalStore extends Context.Service<
 
 			const survey = (runId: bigint, year: number) =>
 				findSurvey({ runId, year }).pipe(
-					Effect.map(({ succeeded, missingPages, live, candidates }) => ({
-						complete: succeeded && missingPages === 0n,
-						missingPages: Number(missingPages),
-						live: Number(live),
-						candidates,
-					})),
+					Effect.map(
+						({
+							succeeded,
+							missingPages,
+							firstCatalogPage,
+							laterCatalogPages,
+							seen,
+							live,
+							candidates,
+						}) => ({
+							complete: succeeded && missingPages === 0n,
+							missingPages: Number(missingPages),
+							listed:
+								firstCatalogPage === null
+									? undefined
+									: totalOf(firstCatalogPage),
+							laterTotals: laterCatalogPages.map(totalOf),
+							seen: Number(seen),
+							live: Number(live),
+							candidates,
+						}),
+					),
 					Effect.orDie,
 				);
 
-			const decide = (
-				runId: bigint,
-				decision: "applied" | "held" | "skipped",
-			) =>
+			const decide = (runId: bigint, decision: "applied" | "held") =>
 				sql`UPDATE runs SET offering_removals = ${decision} WHERE id = ${runId}`.pipe(
 					Effect.asVoid,
 					Effect.orDie,
 				);
+
+			const skip = (runId: bigint, reason: string) =>
+				sql`
+					UPDATE runs SET offering_removals = 'skipped',
+						report = coalesce(report, '{}') || jsonb_build_object('removalsSkipped', ${reason}::text)
+					WHERE id = ${runId}
+				`.pipe(Effect.asVoid, Effect.orDie);
 
 			/** Closes the year's open held removals, except one that holds
 			 *  exactly `keep`, so staff keep looking at the same case. */
@@ -200,7 +251,7 @@ export class RemovalStore extends Context.Service<
 				survey,
 				apply,
 				hold,
-				skip: (runId) => decide(runId, "skipped"),
+				skip,
 			});
 		}),
 	);

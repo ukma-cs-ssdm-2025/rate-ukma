@@ -1,9 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, type SqlError, type Statement } from "effect/sql";
-
-/** The one advisory lock key that every write of a numbered row takes. The
- *  `require_turn` trigger of migration 0005 checks for it. */
-const TURN_KEY = 7640001;
+import { TURN_LOCK } from "../db/locks.ts";
 
 /** Present only inside `ChangeLog.withTurn`. A write that numbers rows requires
  *  it, so a call outside a turn does not compile. */
@@ -101,9 +98,9 @@ export class ChangeLog extends Context.Service<
 					Effect.flatMap((open) =>
 						Option.isSome(open)
 							? Effect.die("ChangeLog.withTurn inside an open transaction")
-							: sql`SELECT pg_advisory_xact_lock(${TURN_KEY})`.pipe(
+							: sql`SELECT pg_advisory_xact_lock(${TURN_LOCK})`.pipe(
 									Effect.andThen(effect),
-									Effect.provideService(Turn, Turn.of({ key: TURN_KEY })),
+									Effect.provideService(Turn, Turn.of({ key: TURN_LOCK })),
 									sql.withTransaction,
 								),
 					),

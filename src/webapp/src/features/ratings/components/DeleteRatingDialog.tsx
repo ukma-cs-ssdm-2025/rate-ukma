@@ -10,6 +10,7 @@ import {
 	getFeedListInfiniteQueryKey,
 	getStudentsMeCoursesRetrieveQueryKey,
 	getStudentsMeGradesRetrieveQueryKey,
+	getStudentsMeRatingSuggestionsListQueryKey,
 	useCoursesRatingsDestroy,
 } from "@/lib/api/generated";
 
@@ -40,6 +41,9 @@ export function DeleteRatingDialog({
 
 	const invalidateRatingQueries = async () => {
 		await Promise.all([
+			queryClient.invalidateQueries({
+				queryKey: getStudentsMeRatingSuggestionsListQueryKey(),
+			}),
 			queryClient.invalidateQueries({
 				queryKey: getStudentsMeCoursesRetrieveQueryKey(),
 			}),
