@@ -1,4 +1,6 @@
+import { createHash } from "node:crypto";
 import { Array as Arr, Clock, Effect, Result, Schema } from "effect";
+import { type ChangeCount, mergeChangeCounts } from "../changes/ChangeLog.ts";
 import { parseFilterOptions } from "../saz/catalog.ts";
 import {
 	Level,
@@ -74,6 +76,68 @@ export interface ParsedPage {
 	readonly offering: ParsedOffering;
 }
 
+type OfferingRow = OfferingRows["offerings"][number];
+
+// By code unit, not locale, so every runtime sorts and hashes alike.
+const byKey =
+	<T>(key: (row: T) => string) =>
+	(a: T, b: T) =>
+		key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0;
+
+/** Entries by key, so the hash does not depend on the order a parser builds
+ *  the fields in. */
+const sortedEntries = <T extends object>(row: T) =>
+	Object.entries(row).sort(byKey(([key]) => key));
+
+/** SHA-256 of what a reader gets for one offering: the card's columns and its
+ *  sorted terms and programmes, without the snapshot it came from. A row whose
+ *  hash did not change keeps its change number. */
+export const rowHashOf = (
+	card: Omit<OfferingRow, "snapshotId" | "rowHash">,
+	terms: OfferingRows["offeringTerms"],
+	programmes: OfferingRows["offeringProgrammes"],
+): string =>
+	createHash("sha256")
+		.update(
+			JSON.stringify([
+				sortedEntries(card),
+				[...terms].sort(byKey(({ termCode }) => termCode)).map(sortedEntries),
+				[...programmes]
+					.sort(byKey(({ level, name }) => `${level} ${name}`))
+					.map(sortedEntries),
+			]),
+		)
+		.digest("hex");
+
+const rowsOfPage = (
+	{ snapshotId, offering: { terms, programmes, ...card } }: ParsedPage,
+	filters: CatalogFilters,
+	stored: ReadonlySet<string>,
+) => {
+	const offeringTerms = terms.map(({ season, ...term }) => ({
+		...term,
+		sazCode: card.sazCode,
+		termCode: termCode(card.academicYear, season),
+	}));
+
+	const offeringProgrammes = programmes.map(({ name, kind }) => ({
+		sazCode: card.sazCode,
+		name,
+		level: programmeOf(name, card.level, filters, stored).level,
+		kind,
+	}));
+
+	return {
+		offering: {
+			...card,
+			snapshotId: String(snapshotId),
+			rowHash: rowHashOf(card, offeringTerms, offeringProgrammes),
+		},
+		offeringTerms,
+		offeringProgrammes,
+	};
+};
+
 /** The rows of a batch of parsed pages, each reference row once. */
 export const offeringRowsOf = (
 	pages: ReadonlyArray<ParsedPage>,
@@ -85,6 +149,8 @@ export const offeringRowsOf = (
 	const stored = new Set(
 		storedProgrammes.map(({ name, level }) => `${level} ${name}`),
 	);
+
+	const pageRows = pages.map((page) => rowsOfPage(page, filters, stored));
 
 	return {
 		faculties: unique(
@@ -135,36 +201,18 @@ export const offeringRowsOf = (
 			),
 			({ code }) => code,
 		),
-		offerings: pages.map(
-			({
-				snapshotId,
-				offering: { terms: _terms, programmes: _programmes, ...offering },
-			}) => ({
-				...offering,
-				snapshotId: String(snapshotId),
-			}),
-		),
-		offeringTerms: offerings.flatMap(({ sazCode, academicYear, terms }) =>
-			terms.map(({ season, ...term }) => ({
-				...term,
-				sazCode,
-				termCode: termCode(academicYear, season),
-			})),
-		),
-		offeringProgrammes: offerings.flatMap(({ sazCode, level, programmes }) =>
-			programmes.map(({ name, kind }) => ({
-				sazCode,
-				name,
-				level: programmeOf(name, level, filters, stored).level,
-				kind,
-			})),
+		offerings: pageRows.map(({ offering }) => offering),
+		offeringTerms: pageRows.flatMap(({ offeringTerms }) => offeringTerms),
+		offeringProgrammes: pageRows.flatMap(
+			({ offeringProgrammes }) => offeringProgrammes,
 		),
 	};
 };
 
 /** Parses the latest snapshot of every course page into offerings and their
- *  reference lists, and records the parse. A page that fails keeps the rows of
- *  its last good parse, and the failure is recorded with its snapshot. */
+ *  reference lists, and records the parse with the rows it numbered. A page
+ *  that fails keeps the rows of its last good parse, and the failure is
+ *  recorded with its snapshot. */
 export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	trigger: ParseTrigger,
 ) {
@@ -179,6 +227,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 	const filters = catalogFiltersOf(catalogPage ?? "");
 	const failed = new Map<string, number>();
+	let changes: ReadonlyArray<ChangeCount> = [];
 	let parsed = 0;
 
 	for (const ids of Arr.chunksOf(yield* store.latestCoursePages, BATCH_SIZE)) {
@@ -213,19 +262,20 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 		// A batch the database rejects keeps its last good rows, like a page that
 		// fails to parse, and the run goes on to the next batch.
-		const written = yield* store.write(rows).pipe(
-			Effect.as(true),
+		const written = yield* store.write(rows, parseId).pipe(
+			Effect.map((counts) => ({ counts })),
 			Effect.catchCause((cause) =>
 				Effect.logError("Offering batch failed to store", {
 					first_snapshot_id: String(ids[0]),
 					last_snapshot_id: String(ids.at(-1)),
 					cause,
-				}).pipe(Effect.as(false)),
+				}).pipe(Effect.as(undefined)),
 			),
 		);
 
-		if (written) {
+		if (written !== undefined) {
 			parsed += pages.length;
+			changes = mergeChangeCounts([...changes, ...written.counts]);
 		} else {
 			failed.set("store", (failed.get("store") ?? 0) + pages.length);
 			failures.push(...paths.map((page) => ({ ...page, reason: "store" })));
@@ -238,6 +288,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 		seconds: Math.round(((yield* Clock.currentTimeMillis) - startedAt) / 1000),
 		parsed,
 		failed: Array.from(failed, ([reason, pages]) => ({ reason, pages })),
+		changes,
 	};
 
 	yield* store.finishParse(parseId, report);

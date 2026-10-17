@@ -5,7 +5,7 @@ The Postgres tables for the whole [spec](spec.md), drafted from the [САЗ edge
 ## Conventions
 
 - **Ids.** Every row a reader sees has `id text`: a type prefix and a ULID, for example `off_01JA2B3C4D5E6F7G8H9J0K1M2N`. Ids never change and carry no meaning (rule 1). The САЗ code, a smart.ukma id or a `cdoc` sits in its own `saz_*` or `smart_*` column as a lookup key. `runs`, `run_pages` and `page_snapshots` keep their `bigint` keys from #761; the API shows them as `run_<n>` and `snp_<n>`.
-- **Change numbers.** Every list a reader syncs has `change_no bigint`. A write takes `pg_advisory_xact_lock` on one fixed key, then `nextval('change_no_seq')`, and holds the lock until it commits, so writes take turns and the numbers commit in order (rule 5). Each list has an index on `change_no`.
+- **Change numbers.** Every list a reader syncs has `change_no bigint`. A write takes `pg_advisory_xact_lock` on one fixed key, then `nextval('change_no_seq')`, and holds the lock until it commits, so writes take turns and the numbers commit in order (rule 5). Each list has an index on `change_no`. A row takes a number only when its content changed; for an offering, `row_hash` covers its card, terms and programmes, and a faculty or department that now resolves to another row also counts. A trigger on each list fails a statement that writes `change_no` without the lock. Rows stored before change numbers have `add` trail rows with no run or parse.
 - **Removal.** Rows that come from a source have `removed_at timestamptz` and are never deleted (rule 4). A row that comes back gets `removed_at = null` and a new change number.
 - **API names.** Columns are snake_case; the API shows them in camelCase (`removedAt`, `mergedInto`, `changeNo`).
 - **Read and derived.** Columns read from a page are rewritten by every parse. Derived columns (marked "derived" below) are written only by the matching step from stored data plus decisions (rule 8).
@@ -231,8 +231,11 @@ The trail of each run and decision (rule 11).
 | `table_name`, `row_id` | text | |
 | `action` | text | `add`, `change`, `remove`, `restore` |
 | `run_id` | bigint null | |
+| `parse_id` | bigint null | the parse that added or changed the row; a parse publishes what a crawl fetched, so a run's added and changed rows are those of the parse after it |
 | `decision_id` | text null | |
 | `at` | timestamptz | |
+
+Each parse's `report` counts its rows by table and action. A department keeps the faculty it was first stored with.
 
 ## Review cases and decisions
 

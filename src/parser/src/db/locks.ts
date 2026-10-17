@@ -5,6 +5,7 @@
  *  claimed pages. */
 export const CRAWL_LOCK = 1;
 
-/** Held by an offering write until it commits: two writers would plan the same
- *  inserts. */
-export const WRITE_LOCK = 2;
+/** The writers' turn (`ChangeLog.withTurn`), held by every write of numbered
+ *  rows until it commits: numbers then commit in order, and two writers never
+ *  plan the same inserts. The `require_turn` trigger checks for it. */
+export const TURN_LOCK = 2;
