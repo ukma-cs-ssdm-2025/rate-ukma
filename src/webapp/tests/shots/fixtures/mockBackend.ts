@@ -31,7 +31,7 @@ export interface MockOptions {
 	readonly comments?: "empty" | "thread";
 	readonly reviews?: "items" | "empty";
 	readonly notifications?: "none" | "items";
-	readonly session?: "student" | "guest";
+	readonly session?: "student" | "guest" | "superuser";
 	/** `many` gives the first course twenty specialities, like a general course. */
 	readonly specialities?: "one" | "many";
 	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
@@ -154,10 +154,20 @@ export async function mockBackend(
 	> = [
 		[
 			/^\/auth\/session\/$/,
-			() =>
-				session === "guest"
-					? { is_authenticated: false, user: null, expires_at: null }
-					: SESSION,
+			() => {
+				if (session === "guest") {
+					return { is_authenticated: false, user: null, expires_at: null };
+				}
+				if (session === "superuser") {
+					return {
+						...SESSION,
+						is_student: false,
+						is_superuser: true,
+						speciality: null,
+					};
+				}
+				return SESSION;
+			},
 		],
 		[
 			/^\/students\/me\/rating-suggestions\/$/,

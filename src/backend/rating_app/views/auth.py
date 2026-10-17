@@ -179,6 +179,7 @@ def session(request):
         },
         "expires_at": _get_session_expiry(request),
         "is_student": bool(student_profile),
+        "is_superuser": user.is_superuser,
         "speciality": (
             {
                 "id": student_profile.speciality_id,
