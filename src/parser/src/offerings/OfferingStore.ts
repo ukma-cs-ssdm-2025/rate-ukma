@@ -70,7 +70,9 @@ const SnapshotId = Schema.Struct({ id: Schema.BigInt });
 
 const ParseId = Schema.Struct({ id: Schema.BigInt });
 
-export type ParseTrigger = "crawl" | "reparse";
+export const ParseTrigger = Schema.Literals(["crawl", "reparse"]);
+
+export type ParseTrigger = typeof ParseTrigger.Type;
 
 /** A course page that did not parse; its rows stay as they were. */
 export interface ParseFailure {
@@ -356,7 +358,7 @@ export class OfferingStore extends Context.Service<
 									UPDATE programmes p
 									SET saz_filter_id = r."sazFilterId", change_no = nextval('change_no_seq')
 									FROM ${programmes}
-									WHERE p.name = r.name AND p.level IS NOT DISTINCT FROM r.level
+									WHERE p.name = r.name AND p.level = r.level
 										AND r."sazFilterId" IS NOT NULL
 										AND p.saz_filter_id IS DISTINCT FROM r."sazFilterId"
 									RETURNING p.id, p.change_no, 'change' AS action
@@ -371,7 +373,7 @@ export class OfferingStore extends Context.Service<
 									FROM ${programmes}
 									WHERE NOT EXISTS (
 										SELECT 1 FROM programmes p
-										WHERE p.name = r.name AND p.level IS NOT DISTINCT FROM r.level
+										WHERE p.name = r.name AND p.level = r.level
 									)
 									RETURNING id, change_no, 'add' AS action
 								`,
@@ -516,7 +518,7 @@ export class OfferingStore extends Context.Service<
 					.pipe(Effect.orDie);
 
 			const insertParse = SqlSchema.findOne({
-				Request: Schema.String,
+				Request: ParseTrigger,
 				Result: ParseId,
 				execute: (trigger) =>
 					sql`INSERT INTO parses (trigger) VALUES (${trigger}) RETURNING id`,

@@ -9,6 +9,11 @@ from rating_app.application_schemas.semester import SemesterInput
 from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
 from rating_app.services.rating_service import RatingService
+from rating_app.services.rating_suggestions import (
+    RatingSuggestion,
+    SuggestionSemester,
+    rank_rating_suggestions,
+)
 from rating_app.services.semester_service import SemesterService
 
 logger = structlog.get_logger(__name__)
@@ -66,6 +71,32 @@ class StudentService:
                 course_semester, current_semester=current_semester, current_date=now
             )
         return result
+
+    def get_rating_suggestions(
+        self, student_id: str, exclude_course: str | None = None
+    ) -> list[RatingSuggestion]:
+        eligible = [
+            item
+            for item in self.get_ratings_detail(student_id)
+            if item["can_rate"] and not item["rated"]
+        ]
+        counts = self.student_stats_repository.get_course_rating_counts(
+            [item["course_id"] for item in eligible]
+        )
+        candidates = [
+            RatingSuggestion(
+                course_id=item["course_id"],
+                course_offering_id=item["course_offering_id"],
+                course_title=item["course_title"],
+                semester=SuggestionSemester(
+                    year=item["semester"]["year"], season=item["semester"]["season"]
+                ),
+                ratings_count=counts[item["course_id"]],
+            )
+            for item in eligible
+            if item["course_id"] in counts
+        ]
+        return rank_rating_suggestions(candidates, exclude_course)
 
     def link_student_to_user(self, student: StudentDTO) -> bool:
         if not student.email:

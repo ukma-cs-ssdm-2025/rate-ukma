@@ -19,7 +19,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 ## Rules
 
 - Every write to a numbered table (one with `change_no`) runs inside `ChangeLog.withTurn` and takes `nextval('change_no_seq')` only for rows whose content changed; `ChangeLog.track` adds their `changes` rows. `track` requires the `Turn` service, which only `withTurn` provides, and the `require_turn` trigger fails a statement that writes `change_no` without the turn's lock.
-- A new migration is added by hand to the `fromRecord` list in `src/db/Database.ts`. Its number only grows: an id at or below the highest applied one is skipped silently.
+- A new migration is added by hand to the `migrations` record in `src/db/Database.ts`; `Database.test.ts` checks that its keys are `NNNN_name`, unique by number and in order. Its number only grows: an id at or below the highest applied one is skipped silently.
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
 - The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
@@ -37,4 +37,4 @@ The personal `effect-ts` and `install-anti-slop` skills are not needed: everythi
 
 ## Checks
 
-`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The Postgres tests run only when `TEST_DATABASE_URL` names a server where they may create and drop databases, as CI's Postgres service does; without it they skip. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.
+`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The Postgres tests run only when `TEST_DATABASE_URL` names a server where they may create and drop databases, as CI's Postgres service does; without it they skip, and in CI (`CI` set) they fail. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.

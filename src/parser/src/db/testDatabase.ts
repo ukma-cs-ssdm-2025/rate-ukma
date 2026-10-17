@@ -5,8 +5,13 @@ import { Reactivity } from "effect/reactivity";
 import { runMigrations } from "./Database.ts";
 
 /** A Postgres server where tests may create databases, such as the CI
- *  service. Without it the Postgres tests skip. */
+ *  service. Without it the Postgres tests skip, except in CI, where a lost
+ *  setting would otherwise leave the job green with the tests unrun. */
 export const testDatabaseUrl = process.env["TEST_DATABASE_URL"];
+
+if (testDatabaseUrl === undefined && process.env["CI"] !== undefined) {
+	throw new Error("TEST_DATABASE_URL is required in CI");
+}
 
 /** A migrated database of its own for one test file, dropped afterwards. */
 export const TestDatabase = (url: string) =>

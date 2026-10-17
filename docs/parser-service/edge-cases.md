@@ -213,7 +213,7 @@ GET /course/900123/students -> 500
 
 - Count: 808 cards have no programmes block (2018-19: 224, 2019-20: 184; 662 are master's). 3,136 list two or more programmes, up to 36. 415 mix two kinds. 1 lists the same row twice.
 - Codes: 208940, 208941, 208947 (no block); 317578 (same row twice).
-- Handled by: `offering_programmes` with the key (offering, programme). A repeated row collapses into one. The programme's level is the card's level (D12).
+- Handled by: `offering_programmes` with the key (offering, programme). A repeated row collapses into one. The catalog filter gives the programme's level (D12).
 
 ```html
 <div class="collapse text-justify" id="course-card--900123--spec">
@@ -392,7 +392,7 @@ Every list is a JSON array of objects with the same 17 keys (575,305 entries).
 
 - Count: cards name 103 programmes: 43 bachelor's and 60 master's. 30 names exist at both levels, so a name alone does not identify a programme. The catalog filter `filter[spec][]` has 100 options, each with its level in brackets, and 23 of its names exist at both levels. 95 of the 103 card programmes have an option. The lists name 61 programmes, all of them also on cards, without a level.
 - Codes: any card with a programmes block.
-- Handled by: `programmes` is unique on (name, level). A card row takes the card's level. A programme record (`cdoc`) takes the level of the cards of its offerings that list its programme name. Of the 13,076 records whose name exists at both levels, 13,058 appear on such a card; 121 appear on cards of both levels and 18 on none. A rule for those 139 is open for #763.
+- Handled by: `programmes` is unique on (name, level). A card row takes the level of the catalog filter option of that name, the card's level first; without an option it keeps the level of a stored programme of that name, else takes the card's level. A programme record (`cdoc`) takes the programme of its name on the cards of its offerings, and stays unlinked when those cards name it at both levels. Of the 13,076 records whose name exists at both levels, 13,058 appear on such a card; 121 appear on cards of both levels and 18 on none. Such records stay unlinked (`programme_id` null): 43 in the full parse of #766.
 
 ```html
 <option value="900">Економіка (Бакалавр)</option>

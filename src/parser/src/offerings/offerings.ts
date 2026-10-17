@@ -166,18 +166,23 @@ export const offeringRowsOf = (
 			),
 			({ name }) => name,
 		),
+		// A card may name a department without its faculty; one that names it wins.
 		departments: unique(
-			offerings.flatMap(({ department, faculty }) =>
-				department === null
-					? []
-					: [
-							{
-								name: department,
-								faculty,
-								sazFilterId: filters.departments.get(department) ?? null,
-							},
-						],
-			),
+			offerings
+				.flatMap(({ department, faculty }) =>
+					department === null
+						? []
+						: [
+								{
+									name: department,
+									faculty,
+									sazFilterId: filters.departments.get(department) ?? null,
+								},
+							],
+				)
+				.sort(
+					(a, b) => Number(a.faculty !== null) - Number(b.faculty !== null),
+				),
 			({ name }) => name,
 		),
 		programmes: unique(
@@ -227,6 +232,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 	for (const ids of Arr.chunksOf(yield* store.latestCoursePages, BATCH_SIZE)) {
 		const pages: Array<ParsedPage> = [];
+		const paths: Array<{ snapshotId: bigint; path: string }> = [];
 		const failures: Array<ParseFailure> = [];
 
 		for (const page of yield* store.coursePages(ids)) {
@@ -237,6 +243,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 			if (Result.isSuccess(result)) {
 				pages.push({ snapshotId: page.id, offering: result.success });
+				paths.push({ snapshotId: page.id, path: page.path });
 				continue;
 			}
 
@@ -271,13 +278,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			changes = mergeChangeCounts([...changes, ...written.counts]);
 		} else {
 			failed.set("store", (failed.get("store") ?? 0) + pages.length);
-			failures.push(
-				...pages.map(({ snapshotId, offering }) => ({
-					snapshotId,
-					path: `/course/${offering.sazCode}`,
-					reason: "store",
-				})),
-			);
+			failures.push(...paths.map((page) => ({ ...page, reason: "store" })));
 		}
 
 		yield* store.recordFailures(parseId, failures);

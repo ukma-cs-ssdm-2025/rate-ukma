@@ -10,14 +10,17 @@ export const PgLive = PgClient.layerConfig({
 	url: Config.Redacted("DATABASE_URL"),
 });
 
+/** Keyed `<number>_<name>`; the migrator skips a key without a number. */
+export const migrations = {
+	"0001_init": Init,
+	"0002_saz_snapshots": SazSnapshots,
+	"0003_offerings": Offerings,
+	"0004_parses": Parses,
+	"0005_change_numbers": ChangeNumbers,
+};
+
 export const runMigrations = PgMigrator.run({
-	loader: PgMigrator.fromRecord({
-		"0001_init": Init,
-		"0002_saz_snapshots": SazSnapshots,
-		"0003_offerings": Offerings,
-		"0004_parses": Parses,
-		"0005_change_numbers": ChangeNumbers,
-	}),
+	loader: PgMigrator.fromRecord(migrations),
 }).pipe(
 	Effect.tap((applied) =>
 		Effect.logInfo(

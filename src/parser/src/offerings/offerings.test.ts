@@ -1,46 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
-import type { ParsedOffering } from "../saz/coursePage.ts";
+import { offering } from "./offering.fixture.ts";
 import { offeringRowsOf, termCode } from "./offerings.ts";
-
-const offering = (
-	sazCode: string,
-	overrides: Partial<ParsedOffering> = {},
-): ParsedOffering => ({
-	sazCode,
-	title: "Вступ до вигаданих систем",
-	credits: 3,
-	hours: 90,
-	studyYear: 1,
-	format: "2015",
-	status: "held",
-	isPractical: false,
-	faculty: "Факультет вигаданих наук",
-	department: "Кафедра вигаданих систем",
-	level: "bachelor",
-	academicYear: 2031,
-	sazTeachers: null,
-	annotation: null,
-	programmes: [{ name: "Вигадана інженерія", kind: "compulsory" }],
-	terms: [
-		{
-			season: "FALL",
-			semesters: [1],
-			credits: 3,
-			hoursPerWeek: 2,
-			lectureHours: 14,
-			seminarHours: 14,
-			practiceHours: null,
-			control: "pass_fail",
-		},
-	],
-	maxStudents: null,
-	maxGroups: null,
-	computedMaxStudents: null,
-	groupSizeMin: 15,
-	groupSizeMax: 30,
-	enrolledActive: null,
-	...overrides,
-});
 
 const FILTERS = {
 	faculties: new Map([["Факультет вигаданих наук", "901"]]),
@@ -89,6 +49,21 @@ describe("offeringRowsOf", () => {
 		assert.deepStrictEqual(rows.terms, [
 			{ code: "2031-32-FALL", academicYear: 2031, season: "FALL" },
 		]);
+	});
+
+	it("gives a department the faculty a card names, whatever the order", () => {
+		const departments = offeringRowsOf(
+			[
+				{ snapshotId: 11n, offering: offering("900001") },
+				{ snapshotId: 12n, offering: offering("900002", { faculty: null }) },
+			],
+			FILTERS,
+		).departments;
+
+		assert.deepStrictEqual(
+			departments.map(({ faculty }) => faculty),
+			["Факультет вигаданих наук"],
+		);
 	});
 
 	it("keeps a programme name of two levels as two programmes", () => {
