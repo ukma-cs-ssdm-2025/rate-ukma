@@ -4931,6 +4931,8 @@ components:
           nullable: true
         is_student:
           type: boolean
+        is_superuser:
+          type: boolean
         speciality:
           allOf:
           - $ref: '#/components/schemas/SessionSpeciality'
@@ -4938,6 +4940,7 @@ components:
       required:
       - is_authenticated
       - is_student
+      - is_superuser
       - speciality
       - user
     SessionSpeciality:
