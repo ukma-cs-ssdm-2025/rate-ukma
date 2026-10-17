@@ -2,7 +2,12 @@ import { assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Effect, Fiber, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { TestClock } from "effect/testing";
-import { SazClient, SazRequestFailed, SazSignInFailed } from "./SazClient.ts";
+import {
+	SazClient,
+	SazRateLimited,
+	SazRequestFailed,
+	SazSignInFailed,
+} from "./SazClient.ts";
 
 const MICROSOFT = "https://login.microsoftonline.com";
 
@@ -247,6 +252,56 @@ describe("SazClient", () => {
 			);
 		}).pipe(Effect.provide(clientWith("right-password", fake)));
 	});
+
+	it.effect("waits out a 429 that asks for exactly two minutes", () => {
+		const fake = makeFakeFetch({
+			pages: {
+				"/course/100009": (before) =>
+					before === 0
+						? new Response("slow down", {
+								status: 429,
+								headers: { "retry-after": "120" },
+							})
+						: new Response("<html>course 100009</html>"),
+			},
+		});
+
+		return Effect.gen(function* () {
+			const saz = yield* SazClient;
+			const fiber = yield* Effect.forkChild(saz.get("/course/100009"));
+
+			yield* TestClock.adjust("120 seconds");
+			assert.strictEqual(
+				yield* Fiber.join(fiber),
+				"<html>course 100009</html>",
+			);
+		}).pipe(Effect.provide(clientWith("right-password", fake)));
+	});
+
+	it.effect(
+		"fails a 429 at once when it asks for a wait over two minutes",
+		() => {
+			const fake = makeFakeFetch({
+				pages: {
+					"/course/100008": () =>
+						new Response("slow down", {
+							status: 429,
+							headers: { "retry-after": "121" },
+						}),
+				},
+			});
+
+			return Effect.gen(function* () {
+				const saz = yield* SazClient;
+
+				const error = yield* Effect.flip(saz.get("/course/100008"));
+
+				assert.instanceOf(error, SazRateLimited);
+				assert.strictEqual(error.retryAfterSeconds, 121);
+				assert.strictEqual(asked(fake, "/course/100008"), 1);
+			}).pipe(Effect.provide(clientWith("right-password", fake)));
+		},
+	);
 
 	it.effect(
 		"gives up on a stalled response after the time limit and retries it",

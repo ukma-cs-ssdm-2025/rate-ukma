@@ -64,7 +64,11 @@ export class CrawlStore extends Context.Service<
 		/** Takes the crawl lock for the scope; `false` when another crawl holds
 		 *  it, since two would reset each other's claimed pages. */
 		lockCrawl: Effect.Effect<boolean, never, Scope.Scope>;
-		startRun(sourcePart: string, first: QueuedPage): Effect.Effect<OpenRun>;
+		/** Opens one run per year with its first page queued, all or none, so a
+		 *  crash cannot leave some years open and the others never started. */
+		startRuns(
+			runs: ReadonlyArray<{ sourcePart: string; first: QueuedPage }>,
+		): Effect.Effect<ReadonlyArray<OpenRun>>;
 		/** The runs a crash left open, oldest first, with the pages they had
 		 *  claimed back in the queue. */
 		openRuns: Effect.Effect<ReadonlyArray<OpenRun>>;
@@ -146,15 +150,15 @@ export class CrawlStore extends Context.Service<
 							ON CONFLICT (run_id, path) DO NOTHING
 						`.pipe(Effect.asVoid);
 
-			const startRun = (sourcePart: string, first: QueuedPage) =>
-				sql
-					.withTransaction(
-						insertRun(sourcePart).pipe(
-							Effect.tap(({ id }) => queue(id, [first])),
-							Effect.map(({ id }) => ({ id, sourcePart })),
-						),
-					)
-					.pipe(Effect.orDie);
+			const startRuns = (
+				runs: ReadonlyArray<{ sourcePart: string; first: QueuedPage }>,
+			) =>
+				Effect.forEach(runs, ({ sourcePart, first }) =>
+					insertRun(sourcePart).pipe(
+						Effect.tap(({ id }) => queue(id, [first])),
+						Effect.map(({ id }) => ({ id, sourcePart })),
+					),
+				).pipe(sql.withTransaction, Effect.orDie);
 
 			const findOpenRuns = SqlSchema.findAll({
 				Request: Schema.Void,
@@ -323,7 +327,7 @@ export class CrawlStore extends Context.Service<
 
 			return CrawlStore.of({
 				lockCrawl,
-				startRun,
+				startRuns,
 				openRuns,
 				claim,
 				complete,
