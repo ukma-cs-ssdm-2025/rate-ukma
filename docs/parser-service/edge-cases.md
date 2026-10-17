@@ -21,7 +21,7 @@ Counts are pages unless a case says entries (one student on one students page). 
 | [B6](#b6-offering-in-several-terms) Offering in several terms | 1,454 | `offering_terms` |
 | [C1](#c1-parallel-sections) Parallel sections | 782 groups, 1,817 pages | course rule |
 | [D1](#d1-cdoc-is-the-students-programme-record) `cdoc` is the student's programme record | 11,872 records | `student_programmes.saz_cdoc` |
-| [D8](#d8-enrollment-status) Most entries say "не навчається" | 285,854 of 449,049 entries | `enrollments.student_state` |
+| [D8](#d8-enrollment-status) Most entries say "не навчається" | 285,854 of 449,049 entries | `enrollments.is_student_active` |
 
 ## A. Crawl and snapshots
 
@@ -349,7 +349,7 @@ Every list is a JSON array of objects with the same 17 keys (449,049 entries).
 | -10 | виписано | 4,358 |
 
   "не навчається" means the person is no longer a student, not that they left the course. `isForced` is true on 3,886 entries.
-- Handled by: `enrollments.status` is `enrolled` (10) or `unenrolled` (-10). `enrollments.student_state` keeps the label and `is_forced` the flag. Rate UKMA's scraper also counts "не навчається" as enrolled.
+- Handled by: `enrollments.status` is `enrolled` (10) or `unenrolled` (-10). `enrollments.is_student_active` keeps the person's state and `is_forced` the flag; the label follows from them. Rate UKMA's scraper also counts "не навчається" as enrolled.
 
 ```json
 {"status": 10, "statusLabel": "не навчається", "isStudentActive": false, "isEnrolled": true, "isUnenrolled": false, "isForced": false}

@@ -162,17 +162,17 @@ Derived links, a list of their own.
 
 ### `students`
 
-A person (glossary: Student).
+A person (glossary: Student). The only table with personal fields.
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | text | `stu_...` |
 | `email` | text null unique | lower-case (D5); null for the few records with none (D3) |
 | `full_name` | text | whitespace collapsed; set by the latest list, but a name with `*` never replaces one without it (D6, D7) |
-| `last_name`, `first_name`, `patronymic` | text null | filled only when the name has three words |
-| `change_no`, `removed_at` | | removed when no enrollment of the person is left |
+| `snapshot_id` | bigint | the list that last set the name |
+| `change_no`, `removed_at` | | removed when no programme record of the person is left |
 
-A student is found by email, else by `cdoc`, never by name (D7). When a `cdoc` shows a new email, the latest list wins and the record moves to that student (D1).
+A student is found by email, else by `cdoc`, never by name (D7). When a `cdoc` shows a new email, the latest list wins and the record moves to that student (D1). The name is not split into parts: 0.7% of names do not have three words.
 
 ### `student_programmes`
 
@@ -182,8 +182,11 @@ One `cdoc`: a student on one programme (D1).
 | --- | --- | --- |
 | `id` | text | `spr_...` |
 | `saz_cdoc` | text unique | |
-| `student_id`, `programme_id` | text | |
-| `change_no` | bigint | |
+| `student_id` | text | |
+| `spec_name` | text | the programme as the list names it, without a level (D12) |
+| `programme_id` | text null | the programme of that name and of the level the cards of the record's offerings give; null when they give both levels |
+| `snapshot_id` | bigint | the list that last set the row |
+| `change_no`, `removed_at` | | removed when no enrollment of the record is left |
 
 ### `enrollments`
 
@@ -193,13 +196,25 @@ One `cdoc`: a student on one programme (D1).
 | `offering_id`, `student_programme_id` | text | unique together; one person can be on a list twice (D2) |
 | `kind` | text | `compulsory`, `prof_oriented`, `elective` from `type` (D11) |
 | `status` | text | `enrolled` (10) or `unenrolled` (-10) |
-| `student_state` | text | `enrolled`, `not_studying`, `dropped`, `forced` from `statusLabel` (D8) |
+| `is_student_active` | boolean | false is "не навчається": the person, at crawl time, not the enrollment (D8) |
 | `is_forced` | boolean | |
 | `group_no` | smallint null | (D9) |
 | `grade` | smallint | the student's year of study then |
 | `saz_created_at`, `saz_updated_at` | timestamptz null | null when САЗ sends 0 (D10) |
-| `snapshot_id` | bigint | the students page this row was last parsed from |
 | `change_no`, `removed_at` | | |
+
+The labels (`statusLabel`, `typeLabel`, `statusDescription`) and `isEnrolled`, `isUnenrolled` follow from `status`, `is_student_active` and `is_forced`, so they are not stored.
+
+### `enrollment_lists`
+
+One row per offering whose students page was applied, empty or not. Not numbered: readers do not get it.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `offering_id` | text | key |
+| `snapshot_id` | bigint | the page applied; a crawl skips a list whose latest page this is |
+| `entry_count` | integer | 0 for `[]` |
+| `parsed_at` | timestamptz | |
 
 ## Runs and pages
 
