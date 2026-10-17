@@ -20,16 +20,16 @@ const ClaimedPage = Schema.Struct({
 
 export type ClaimedPage = typeof ClaimedPage.Type;
 
-/** One line of a run report: the pages of one kind and how many of them
- *  stored a new snapshot. */
-const KindTally = Schema.Struct({
+/** One line of a run report: the counts of one page kind, done, failed, and
+ *  how many of them stored a new snapshot. */
+const PageCounts = Schema.Struct({
 	kind: PageKind,
 	done: Schema.Number,
 	failed: Schema.Number,
 	stored: Schema.Number,
 });
 
-export type KindTally = typeof KindTally.Type;
+export type PageCounts = typeof PageCounts.Type;
 
 const PageFailure = Schema.Struct({
 	path: Schema.String,
@@ -42,7 +42,7 @@ export type PageFailure = typeof PageFailure.Type;
  *  was down; `failures` lists the first `MAX_LISTED_FAILURES` failed pages. */
 export interface RunReport {
 	readonly seconds: number;
-	readonly pages: ReadonlyArray<KindTally>;
+	readonly pages: ReadonlyArray<PageCounts>;
 	readonly failures: ReadonlyArray<PageFailure>;
 }
 
@@ -272,9 +272,9 @@ export class CrawlStore extends Context.Service<
 					Effect.orDie,
 				);
 
-			const tallyOf = SqlSchema.findAll({
+			const pageCountsOf = SqlSchema.findAll({
 				Request: Schema.BigInt,
-				Result: KindTally,
+				Result: PageCounts,
 				execute: (runId) => sql`
 					SELECT p.kind,
 						count(*) FILTER (WHERE p.status = 'done')::int AS done,
@@ -312,7 +312,7 @@ export class CrawlStore extends Context.Service<
 			const report = (runId: bigint) =>
 				Effect.all({
 					seconds: secondsOf(runId).pipe(Effect.map(({ seconds }) => seconds)),
-					pages: tallyOf(runId),
+					pages: pageCountsOf(runId),
 					failures: failuresOf(runId),
 				}).pipe(Effect.orDie);
 
