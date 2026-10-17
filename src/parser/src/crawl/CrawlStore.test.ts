@@ -284,18 +284,22 @@ describe.skipIf(testDatabaseUrl === undefined)("CrawlStore", () => {
 
 		it.effect("lets one crawl hold the lock at a time", () =>
 			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
 				const store = yield* CrawlStore;
 
 				const [first, second] = yield* Effect.scoped(
 					Effect.all([store.lockCrawl, Effect.scoped(store.lockCrawl)]),
 				);
 
-				const afterRelease = yield* Effect.scoped(store.lockCrawl);
+				// A pooled session takes its own lock again, so the release is
+				// checked in pg_locks rather than by locking once more.
+				const [{ held }] = yield* sql<{ readonly held: number }>`
+					SELECT count(*)::int AS held FROM pg_locks
+					WHERE locktype = 'advisory'
+						AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
+				`;
 
-				assert.deepStrictEqual(
-					[first, second, afterRelease],
-					[true, false, true],
-				);
+				assert.deepStrictEqual([first, second, held], [true, false, 0]);
 			}),
 		);
 	});
