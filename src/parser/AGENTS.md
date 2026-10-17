@@ -44,7 +44,7 @@ Database:
 Tests:
 
 - Test store SQL against real Postgres with `TestDatabase` (`src/db/testDatabase.ts`), one migrated database per test file. A `Layer.succeed` fake of a store passes with broken SQL, so use one only to test logic above a store that has its own Postgres suite.
-- When `CI` is set, a missing `TEST_DATABASE_URL` fails the Postgres suites; only a local run skips them. A green CI run with skipped suites proves nothing.
+- A missing `TEST_DATABASE_URL` always fails the Postgres suites, locally and in CI; they never skip. A green run with skipped suites proves nothing.
 - Postgres suites run with `excludeTestServices: true`: under `TestClock` a `Schedule` that polls the database never advances and the test times out. Use `TestClock` for code without a database, as `SazClient.test.ts` does.
 - A new test must fail when the code it covers breaks. Break the line, see the test fail, restore it, and say so in the PR. An assertion on a value the fake hard-codes proves nothing.
 - The no-real-data rule covers courses and teachers too: names, emails and codes in `<name>.fixture.ts` files are invented, never copied from САЗ or smart.ukma, even trimmed.
