@@ -50,7 +50,8 @@ export class ListReader extends Context.Service<
 				Request: Schema.Void,
 				Result: Schema.Struct({ at: Schema.NullOr(Schema.Date) }),
 				execute: () => sql`
-					SELECT max(finished_at) AS at FROM runs WHERE status = 'succeeded'
+					SELECT max(finished_at) AS at FROM runs
+					WHERE status = 'succeeded' AND source_part LIKE 'saz-courses:%'
 				`,
 			});
 

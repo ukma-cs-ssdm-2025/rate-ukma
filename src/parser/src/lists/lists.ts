@@ -49,7 +49,7 @@ export const Page = <S extends Schema.Top>(item: S, identifier: string) =>
 		}),
 		hasMore: Schema.Boolean,
 		dataUpdatedAt: Schema.NullOr(Schema.Date).annotate({
-			description: "When the latest successful run finished",
+			description: "When САЗ was last read: the latest successful run finished",
 		}),
 	}).annotate({ identifier });
 

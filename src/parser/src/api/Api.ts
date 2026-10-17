@@ -138,6 +138,6 @@ export class Api extends HttpApi.make("ukma-data")
 			},
 			servers: [{ url: "/" }],
 			description:
-				"Every list returns its rows in change-number order, removed rows included. A reader saves one change number per list, asks for `?after=<number>`, stores every page and saves the last page's `cursor` once `hasMore` is false.",
+				"Every list returns its rows in change-number order, removed rows included. A reader saves one change number per list, asks for `?after=<number>`, stores every page and saves the last page's `cursor` once `hasMore` is false. A bad `after` or `limit` gets 400. New fields may appear in a response without a new version.",
 		}),
 	) {}

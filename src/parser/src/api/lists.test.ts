@@ -10,12 +10,6 @@ import { ListReader } from "../lists/ListReader.ts";
 import { Api, ApiKeyAuth } from "./Api.ts";
 import { AuthLive, CatalogApiHandlers, ReviewApiHandlers } from "./http.ts";
 
-const TestLive = Layer.mergeAll(CatalogApiHandlers, ReviewApiHandlers).pipe(
-	Layer.provideMerge(Layer.mergeAll(ListReader.layer, AuthLive)),
-	Layer.provideMerge(HttpServer.layerServices),
-	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
-);
-
 const FROM_START = { after: 0, limit: 500 };
 
 const FINISHED_AT = new Date("2031-09-01T10:00:00Z");
@@ -31,6 +25,7 @@ const seed = Effect.gen(function* () {
 		VALUES ('saz-courses:2031-32', 'succeeded', ${FINISHED_AT})
 		RETURNING id
 	`;
+
 	const [snapshot] = yield* sql<{ readonly id: bigint }>`
 		INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
 		VALUES ('/course/930001', 'course', 'hash', '<html></html>', ${run?.id ?? 0n})
@@ -84,6 +79,13 @@ const seed = Effect.gen(function* () {
 	`;
 });
 
+const TestLive = Layer.mergeAll(CatalogApiHandlers, ReviewApiHandlers).pipe(
+	Layer.provideMerge(Layer.mergeAll(ListReader.layer, AuthLive)),
+	Layer.provideMerge(HttpServer.layerServices),
+	Layer.provideMerge(Layer.effectDiscard(seed)),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+);
+
 const clientAs = (scopes: ReadonlyArray<Scope>) =>
 	Effect.gen(function* () {
 		const keys = yield* Keys;
@@ -114,16 +116,16 @@ describe.skipIf(testDatabaseUrl === undefined)("list endpoints", () => {
 			"syncs offerings page by page in change-number order, removed rows included",
 			() =>
 				Effect.gen(function* () {
-					yield* seed;
-
 					const { client } = yield* clientAs(["catalog:read"]);
 
 					const first = yield* client.catalog.offerings({
 						query: { after: 0, limit: 2 },
 					});
+
 					const second = yield* client.catalog.offerings({
 						query: { after: first.cursor, limit: 2 },
 					});
+
 					const last = yield* client.catalog.offerings({
 						query: { after: second.cursor, limit: 2 },
 					});
@@ -173,12 +175,15 @@ describe.skipIf(testDatabaseUrl === undefined)("list endpoints", () => {
 				const { client } = yield* clientAs(["catalog:read"]);
 
 				const terms = yield* client.catalog.terms({ query: FROM_START });
+
 				const faculties = yield* client.catalog.faculties({
 					query: { ...FROM_START, after: terms.cursor },
 				});
+
 				const departments = yield* client.catalog.departments({
 					query: FROM_START,
 				});
+
 				const programmes = yield* client.catalog.programmes({
 					query: FROM_START,
 				});
@@ -213,6 +218,7 @@ describe.skipIf(testDatabaseUrl === undefined)("list endpoints", () => {
 					`;
 
 					const catalog = yield* clientAs(["catalog:read"]);
+
 					const error = yield* Effect.flip(
 						catalog.client.review.reviewCases({ query: FROM_START }),
 					);
@@ -220,6 +226,7 @@ describe.skipIf(testDatabaseUrl === undefined)("list endpoints", () => {
 					assert.strictEqual(error._tag, "Forbidden");
 
 					const reviewer = yield* clientAs(["review:decide"]);
+
 					const page = yield* reviewer.client.review.reviewCases({
 						query: FROM_START,
 					});
