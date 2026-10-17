@@ -6,7 +6,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 - Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`, `pnpm reparse`.
 - Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role and `parser-migrate` applies migrations.
-- Settings: `DATABASE_URL` (worker, migrate and reparse), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account) `SAZ_REQUEST_GAP` (default 1 second) and `SAZ_REQUEST_TIMEOUT` (default 30 seconds, covering the response body).
+- Settings: `DATABASE_URL` (worker, migrate and reparse), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account), `SAZ_REQUEST_GAP` (default 1 second) and `SAZ_REQUEST_TIMEOUT` (default 30 seconds, covering the response body).
 
 ## Layout
 
@@ -35,4 +35,4 @@ The personal `effect-ts` and `install-anti-slop` skills are not needed: everythi
 
 ## Checks
 
-`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.
+`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The Postgres tests run only when `TEST_DATABASE_URL` names a server where they may create and drop databases, as CI's Postgres service does; without it they skip, and in CI (`CI` set) they fail. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.

@@ -100,18 +100,23 @@ export const offeringRowsOf = (
 			),
 			({ name }) => name,
 		),
+		// A card may name a department without its faculty; one that names it wins.
 		departments: unique(
-			offerings.flatMap(({ department, faculty }) =>
-				department === null
-					? []
-					: [
-							{
-								name: department,
-								faculty,
-								sazFilterId: filters.departments.get(department) ?? null,
-							},
-						],
-			),
+			offerings
+				.flatMap(({ department, faculty }) =>
+					department === null
+						? []
+						: [
+								{
+									name: department,
+									faculty,
+									sazFilterId: filters.departments.get(department) ?? null,
+								},
+							],
+				)
+				.sort(
+					(a, b) => Number(a.faculty !== null) - Number(b.faculty !== null),
+				),
 			({ name }) => name,
 		),
 		programmes: unique(

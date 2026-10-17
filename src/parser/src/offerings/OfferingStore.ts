@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
+import { WRITE_LOCK } from "../db/locks.ts";
 import type {
 	OfferingTerm,
 	ParsedOffering,
@@ -202,8 +203,7 @@ export class OfferingStore extends Context.Service<
 
 			const write = (rows: OfferingRows) =>
 				Effect.gen(function* () {
-					// One writer at a time, so two parses never plan the same insert.
-					yield* sql`SELECT pg_advisory_xact_lock(hashtext('ukma-data/write'))`;
+					yield* sql`SELECT pg_advisory_xact_lock(${WRITE_LOCK})`;
 
 					const faculties = planUnits(
 						yield* findUnits("faculties"),
