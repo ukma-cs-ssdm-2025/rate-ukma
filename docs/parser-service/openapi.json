@@ -1,0 +1,1351 @@
+{
+	"openapi": "3.1.0",
+	"info": {
+		"title": "UKMA Data",
+		"version": "1",
+		"description": "Every list returns its rows in change-number order, removed rows included. A reader saves one change number per list, asks for `?after=<number>`, stores every page and saves the last page's `cursor` once `hasMore` is false. A bad `after` or `limit` gets 400. New fields may appear in a response without a new version.",
+		"license": {
+			"name": "GPL-3.0-or-later",
+			"url": "https://www.gnu.org/licenses/gpl-3.0.html"
+		}
+	},
+	"paths": {
+		"/health": {
+			"get": {
+				"tags": [
+					"system"
+				],
+				"operationId": "health",
+				"parameters": [],
+				"security": [],
+				"responses": {
+					"200": {
+						"description": "<No Content>"
+					}
+				},
+				"summary": "Liveness probe, keyless"
+			}
+		},
+		"/v1/key": {
+			"get": {
+				"tags": [
+					"key"
+				],
+				"operationId": "key.current",
+				"parameters": [],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string"
+										},
+										"scopes": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"enum": [
+													"catalog:read",
+													"runs:read",
+													"instructors:read",
+													"students:read",
+													"runs:start",
+													"review:decide",
+													"snapshots:read",
+													"audit:read",
+													"keys:manage"
+												]
+											}
+										},
+										"expiresAt": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"id",
+										"scopes",
+										"expiresAt"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "The calling key's id, scopes and expiry"
+			}
+		},
+		"/v1/terms": {
+			"get": {
+				"tags": [
+					"catalog"
+				],
+				"operationId": "catalog.terms",
+				"parameters": [
+					{
+						"name": "after",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "The change number saved after the last sync; 0 for all rows, default 0"
+						},
+						"required": false
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "Rows per page, 1 to 1000, default 500"
+						},
+						"required": false
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "TermPage",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TermPage"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Terms"
+			}
+		},
+		"/v1/faculties": {
+			"get": {
+				"tags": [
+					"catalog"
+				],
+				"operationId": "catalog.faculties",
+				"parameters": [
+					{
+						"name": "after",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "The change number saved after the last sync; 0 for all rows, default 0"
+						},
+						"required": false
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "Rows per page, 1 to 1000, default 500"
+						},
+						"required": false
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "FacultyPage",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/FacultyPage"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Faculties"
+			}
+		},
+		"/v1/departments": {
+			"get": {
+				"tags": [
+					"catalog"
+				],
+				"operationId": "catalog.departments",
+				"parameters": [
+					{
+						"name": "after",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "The change number saved after the last sync; 0 for all rows, default 0"
+						},
+						"required": false
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "Rows per page, 1 to 1000, default 500"
+						},
+						"required": false
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "DepartmentPage",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DepartmentPage"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Departments"
+			}
+		},
+		"/v1/programmes": {
+			"get": {
+				"tags": [
+					"catalog"
+				],
+				"operationId": "catalog.programmes",
+				"parameters": [
+					{
+						"name": "after",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "The change number saved after the last sync; 0 for all rows, default 0"
+						},
+						"required": false
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "Rows per page, 1 to 1000, default 500"
+						},
+						"required": false
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "ProgrammePage",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProgrammePage"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Programmes"
+			}
+		},
+		"/v1/offerings": {
+			"get": {
+				"tags": [
+					"catalog"
+				],
+				"operationId": "catalog.offerings",
+				"parameters": [
+					{
+						"name": "after",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "The change number saved after the last sync; 0 for all rows, default 0"
+						},
+						"required": false
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "Rows per page, 1 to 1000, default 500"
+						},
+						"required": false
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OfferingPage",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OfferingPage"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Offerings, each with its terms and programmes"
+			}
+		},
+		"/v1/review-cases": {
+			"get": {
+				"tags": [
+					"review"
+				],
+				"operationId": "review.reviewCases",
+				"parameters": [
+					{
+						"name": "after",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "The change number saved after the last sync; 0 for all rows, default 0"
+						},
+						"required": false
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "Rows per page, 1 to 1000, default 500"
+						},
+						"required": false
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "ReviewCasePage",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ReviewCasePage"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Review cases with their safe answers"
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"effect_HttpApiError_ForbiddenEncoded": {
+				"type": "object",
+				"properties": {
+					"_tag": {
+						"type": "string",
+						"enum": [
+							"Forbidden"
+						]
+					}
+				},
+				"required": [
+					"_tag"
+				],
+				"additionalProperties": false
+			},
+			"effect_HttpApiError_UnauthorizedEncoded": {
+				"type": "object",
+				"properties": {
+					"_tag": {
+						"type": "string",
+						"enum": [
+							"Unauthorized"
+						]
+					}
+				},
+				"required": [
+					"_tag"
+				],
+				"additionalProperties": false
+			},
+			"ReviewCasePage": {
+				"type": "object",
+				"properties": {
+					"items": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ReviewCase"
+						}
+					},
+					"cursor": {
+						"type": "integer",
+						"description": "The last item's change number, or `after` when the page is empty"
+					},
+					"hasMore": {
+						"type": "boolean"
+					},
+					"dataUpdatedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "When САЗ was last read: the latest successful run finished"
+					}
+				},
+				"required": [
+					"items",
+					"cursor",
+					"hasMore",
+					"dataUpdatedAt"
+				],
+				"additionalProperties": false
+			},
+			"ReviewCase": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"kind": {
+						"type": "string",
+						"enum": [
+							"course_match",
+							"instructor_match",
+							"removals_held"
+						]
+					},
+					"subjectId": {
+						"type": "string"
+					},
+					"candidates": {
+						"description": "Ids only"
+					},
+					"safeAnswer": {
+						"description": "What was published"
+					},
+					"status": {
+						"type": "string",
+						"enum": [
+							"open",
+							"decided",
+							"obsolete"
+						]
+					},
+					"runId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"decisionId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"openedAt": {
+						"type": "string"
+					},
+					"changeNo": {
+						"type": "integer"
+					}
+				},
+				"required": [
+					"id",
+					"kind",
+					"subjectId",
+					"candidates",
+					"safeAnswer",
+					"status",
+					"runId",
+					"decisionId",
+					"openedAt",
+					"changeNo"
+				],
+				"additionalProperties": false
+			},
+			"OfferingPage": {
+				"type": "object",
+				"properties": {
+					"items": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Offering"
+						}
+					},
+					"cursor": {
+						"type": "integer",
+						"description": "The last item's change number, or `after` when the page is empty"
+					},
+					"hasMore": {
+						"type": "boolean"
+					},
+					"dataUpdatedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "When САЗ was last read: the latest successful run finished"
+					}
+				},
+				"required": [
+					"items",
+					"cursor",
+					"hasMore",
+					"dataUpdatedAt"
+				],
+				"additionalProperties": false
+			},
+			"Offering": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"sazCode": {
+						"type": "string"
+					},
+					"academicYear": {
+						"type": "integer"
+					},
+					"title": {
+						"type": "string"
+					},
+					"facultyId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"departmentId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"level": {
+						"type": "string",
+						"enum": [
+							"bachelor",
+							"master"
+						]
+					},
+					"format": {
+						"type": "string"
+					},
+					"credits": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"Infinity",
+									"-Infinity",
+									"NaN"
+								]
+							}
+						]
+					},
+					"hours": {
+						"type": "integer"
+					},
+					"studyYear": {
+						"type": "integer"
+					},
+					"status": {
+						"type": "string",
+						"enum": [
+							"held",
+							"not_held",
+							"may_hold",
+							"unknown"
+						]
+					},
+					"isPractical": {
+						"type": "boolean"
+					},
+					"annotation": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"maxStudents": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"maxGroups": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"computedMaxStudents": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"groupSizeMin": {
+						"type": "integer"
+					},
+					"groupSizeMax": {
+						"type": "integer"
+					},
+					"enrolledActive": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"terms": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/OfferingTerm"
+						}
+					},
+					"programmes": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/OfferingProgramme"
+						}
+					},
+					"changeNo": {
+						"type": "integer"
+					},
+					"removedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Set when the row left its source; readers hide such rows"
+					}
+				},
+				"required": [
+					"id",
+					"sazCode",
+					"academicYear",
+					"title",
+					"facultyId",
+					"departmentId",
+					"level",
+					"format",
+					"credits",
+					"hours",
+					"studyYear",
+					"status",
+					"isPractical",
+					"annotation",
+					"maxStudents",
+					"maxGroups",
+					"computedMaxStudents",
+					"groupSizeMin",
+					"groupSizeMax",
+					"enrolledActive",
+					"terms",
+					"programmes",
+					"changeNo",
+					"removedAt"
+				],
+				"additionalProperties": false
+			},
+			"OfferingProgramme": {
+				"type": "object",
+				"properties": {
+					"programmeId": {
+						"type": "string"
+					},
+					"kind": {
+						"type": "string",
+						"enum": [
+							"compulsory",
+							"prof_oriented",
+							"elective"
+						]
+					}
+				},
+				"required": [
+					"programmeId",
+					"kind"
+				],
+				"additionalProperties": false
+			},
+			"OfferingTerm": {
+				"type": "object",
+				"properties": {
+					"termId": {
+						"type": "string"
+					},
+					"semesters": {
+						"type": "array",
+						"items": {
+							"type": "integer"
+						}
+					},
+					"credits": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"Infinity",
+									"-Infinity",
+									"NaN"
+								]
+							}
+						]
+					},
+					"hoursPerWeek": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"lectureHours": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"seminarHours": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"practiceHours": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"control": {
+						"anyOf": [
+							{
+								"type": "string",
+								"enum": [
+									"pass_fail",
+									"exam",
+									"thesis",
+									"none",
+									"thesis_defence"
+								]
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"termId",
+					"semesters",
+					"credits",
+					"hoursPerWeek",
+					"lectureHours",
+					"seminarHours",
+					"practiceHours",
+					"control"
+				],
+				"additionalProperties": false
+			},
+			"ProgrammePage": {
+				"type": "object",
+				"properties": {
+					"items": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Programme"
+						}
+					},
+					"cursor": {
+						"type": "integer",
+						"description": "The last item's change number, or `after` when the page is empty"
+					},
+					"hasMore": {
+						"type": "boolean"
+					},
+					"dataUpdatedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "When САЗ was last read: the latest successful run finished"
+					}
+				},
+				"required": [
+					"items",
+					"cursor",
+					"hasMore",
+					"dataUpdatedAt"
+				],
+				"additionalProperties": false
+			},
+			"Programme": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"level": {
+						"anyOf": [
+							{
+								"type": "string",
+								"enum": [
+									"bachelor",
+									"master"
+								]
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"sazFilterId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"changeNo": {
+						"type": "integer"
+					},
+					"removedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Set when the row left its source; readers hide such rows"
+					}
+				},
+				"required": [
+					"id",
+					"name",
+					"level",
+					"sazFilterId",
+					"changeNo",
+					"removedAt"
+				],
+				"additionalProperties": false
+			},
+			"DepartmentPage": {
+				"type": "object",
+				"properties": {
+					"items": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Department"
+						}
+					},
+					"cursor": {
+						"type": "integer",
+						"description": "The last item's change number, or `after` when the page is empty"
+					},
+					"hasMore": {
+						"type": "boolean"
+					},
+					"dataUpdatedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "When САЗ was last read: the latest successful run finished"
+					}
+				},
+				"required": [
+					"items",
+					"cursor",
+					"hasMore",
+					"dataUpdatedAt"
+				],
+				"additionalProperties": false
+			},
+			"Department": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"sazFilterId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"facultyId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"changeNo": {
+						"type": "integer"
+					},
+					"removedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Set when the row left its source; readers hide such rows"
+					}
+				},
+				"required": [
+					"id",
+					"name",
+					"sazFilterId",
+					"facultyId",
+					"changeNo",
+					"removedAt"
+				],
+				"additionalProperties": false
+			},
+			"FacultyPage": {
+				"type": "object",
+				"properties": {
+					"items": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Faculty"
+						}
+					},
+					"cursor": {
+						"type": "integer",
+						"description": "The last item's change number, or `after` when the page is empty"
+					},
+					"hasMore": {
+						"type": "boolean"
+					},
+					"dataUpdatedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "When САЗ was last read: the latest successful run finished"
+					}
+				},
+				"required": [
+					"items",
+					"cursor",
+					"hasMore",
+					"dataUpdatedAt"
+				],
+				"additionalProperties": false
+			},
+			"Faculty": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"sazFilterId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"changeNo": {
+						"type": "integer"
+					},
+					"removedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Set when the row left its source; readers hide such rows"
+					}
+				},
+				"required": [
+					"id",
+					"name",
+					"sazFilterId",
+					"changeNo",
+					"removedAt"
+				],
+				"additionalProperties": false
+			},
+			"TermPage": {
+				"type": "object",
+				"properties": {
+					"items": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Term"
+						}
+					},
+					"cursor": {
+						"type": "integer",
+						"description": "The last item's change number, or `after` when the page is empty"
+					},
+					"hasMore": {
+						"type": "boolean"
+					},
+					"dataUpdatedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "When САЗ was last read: the latest successful run finished"
+					}
+				},
+				"required": [
+					"items",
+					"cursor",
+					"hasMore",
+					"dataUpdatedAt"
+				],
+				"additionalProperties": false
+			},
+			"Term": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"code": {
+						"type": "string"
+					},
+					"academicYear": {
+						"type": "integer"
+					},
+					"season": {
+						"type": "string",
+						"enum": [
+							"FALL",
+							"SPRING",
+							"SUMMER"
+						]
+					},
+					"changeNo": {
+						"type": "integer"
+					}
+				},
+				"required": [
+					"id",
+					"code",
+					"academicYear",
+					"season",
+					"changeNo"
+				],
+				"additionalProperties": false
+			}
+		},
+		"securitySchemes": {
+			"bearer": {
+				"type": "http",
+				"scheme": "Bearer"
+			}
+		}
+	},
+	"security": [],
+	"tags": [
+		{
+			"name": "system",
+			"description": "Probes"
+		},
+		{
+			"name": "key",
+			"description": "The calling key"
+		},
+		{
+			"name": "catalog",
+			"description": "Reference lists and offerings: `catalog:read`"
+		},
+		{
+			"name": "review",
+			"description": "Review cases: `review:decide`"
+		}
+	],
+	"servers": [
+		{
+			"url": "/"
+		}
+	]
+}
