@@ -1,5 +1,11 @@
 import { assert, describe, it } from "@effect/vitest";
-import { catalogPath, catalogProblem, parseCatalogPage } from "./catalog.ts";
+import {
+	catalogPath,
+	catalogProblem,
+	parseAcademicYears,
+	parseCatalogPage,
+	parseCatalogPath,
+} from "./catalog.ts";
 
 const card = (code: string) => `<div class="panel panel-default">
 	<div class="panel-body">Код: ${code}</div>
@@ -119,5 +125,28 @@ describe("catalogPath", () => {
 			].map((name) => params.getAll(name)),
 			[["2031"], ["1", "2"], ["1", "0"], ["3"]],
 		);
+	});
+});
+
+describe("parseCatalogPath", () => {
+	it("reads back the year and page of a catalog path", () => {
+		assert.deepStrictEqual(parseCatalogPath(catalogPath(2031, 3)), {
+			year: 2031,
+			page: 3,
+		});
+	});
+});
+
+describe("parseAcademicYears", () => {
+	it("reads the years of the academic year filter only", () => {
+		const filters = `<form>
+<select name="filter[semester][]"><option value="1">1</option></select>
+<select id="coursefilter-academic_year" class="form-control" name="filter[academic_year][]" multiple>
+<option value="2031">2031–2032</option>
+<option value="2032" selected>2032–2033</option>
+</select>
+</form>`;
+
+		assert.deepStrictEqual(parseAcademicYears(filters), [2031, 2032]);
 	});
 });
