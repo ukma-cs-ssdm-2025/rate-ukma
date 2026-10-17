@@ -523,6 +523,7 @@ describe.skipIf(testDatabaseUrl === undefined)(
 						Effect.andThen(Effect.exit(crawlAllYears())),
 						Effect.scoped,
 					);
+
 					const afterCrash = yield* runs;
 
 					yield* crawlAllYears();
