@@ -14,7 +14,10 @@ export type NumberedTable =
 	| "departments"
 	| "programmes"
 	| "offerings"
-	| "review_cases";
+	| "review_cases"
+	| "students"
+	| "student_programmes"
+	| "enrollments";
 
 /** What made a change: a parse writes rows, a run's removal step removes them. */
 export interface ChangeSource {
