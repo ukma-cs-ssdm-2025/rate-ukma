@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
+import { WRITE_LOCK } from "../db/locks.ts";
 import type {
 	OfferingTerm,
 	ParsedOffering,
@@ -80,7 +81,8 @@ export class OfferingStore extends Context.Service<
 		/** Upserts the rows by their САЗ code, name or filter id, so ids stay,
 		 *  and replaces the terms and programmes of each offering in the batch. A
 		 *  programme filter id the catalog page did not list keeps its stored
-		 *  value. */
+		 *  value. An offering already parsed from a newer snapshot keeps its
+		 *  rows, so a parse that overlaps a crawl cannot roll it back. */
 		write(rows: OfferingRows): Effect.Effect<void>;
 	}
 >()("ukma-data/offerings/OfferingStore") {
@@ -174,8 +176,7 @@ export class OfferingStore extends Context.Service<
 
 			const write = (rows: OfferingRows) =>
 				Effect.gen(function* () {
-					// One writer at a time, so two parses never plan the same insert.
-					yield* sql`SELECT pg_advisory_xact_lock(hashtext('ukma-data/write'))`;
+					yield* sql`SELECT pg_advisory_xact_lock(${WRITE_LOCK})`;
 
 					const faculties = planUnits(
 						yield* findUnits("faculties"),
@@ -299,14 +300,18 @@ export class OfferingStore extends Context.Service<
 							group_size_max = EXCLUDED.group_size_max,
 							enrolled_active = EXCLUDED.enrolled_active,
 							snapshot_id = EXCLUDED.snapshot_id
+						WHERE offerings.snapshot_id <= EXCLUDED.snapshot_id
 					`;
 
 					const batchOfferings = sql`
 						SELECT o.id FROM offerings o
 						JOIN ${recordset(
-							rows.offerings.map(({ sazCode }) => ({ sazCode })),
-							{ sazCode: "text" },
-						)} ON o.saz_code = r."sazCode"
+							rows.offerings.map(({ sazCode, snapshotId }) => ({
+								sazCode,
+								snapshotId,
+							})),
+							{ sazCode: "text", snapshotId: "bigint" },
+						)} ON o.saz_code = r."sazCode" AND o.snapshot_id = r."snapshotId"
 					`;
 
 					yield* sql`DELETE FROM offering_terms WHERE offering_id IN (${batchOfferings})`;
@@ -331,6 +336,7 @@ export class OfferingStore extends Context.Service<
 							control: "text",
 						})}
 						JOIN offerings o ON o.saz_code = r."sazCode"
+							AND o.id IN (${batchOfferings})
 						JOIN terms t ON t.code = r."termCode"
 					`;
 
@@ -339,6 +345,7 @@ export class OfferingStore extends Context.Service<
 						SELECT o.id, p.id, r.kind
 						FROM ${recordset(rows.offeringProgrammes, { sazCode: "text", name: "text", level: "text", kind: "text" })}
 						JOIN offerings o ON o.saz_code = r."sazCode"
+							AND o.id IN (${batchOfferings})
 						JOIN programmes p ON p.name = r.name AND p.level = r.level
 					`;
 				}).pipe(sql.withTransaction, Effect.orDie);
