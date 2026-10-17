@@ -1,84 +1,60 @@
-import type {
-	CaseKind,
-	CaseStatus,
-	Decision,
-	DecisionKind,
-	ReviewCase,
-} from "./api/schemas";
+import {
+	type UkmaDataReviewCase,
+	UkmaDataReviewCaseKindEnum,
+	UkmaDataReviewCaseStatusEnum,
+} from "@/lib/api/generated";
 
-export const CASE_KIND_LABELS: Record<CaseKind, string> = {
+// UKMA Data's largest page; the proxy caps a bigger limit to it anyway.
+export const PAGE = { limit: 1000 } as const;
+// A 502 or 503 shows its own state with a Retry button at once, not after
+// three backoffs.
+export const NO_RETRY = { query: { retry: false } } as const;
+
+export const caseKinds = Object.values(UkmaDataReviewCaseKindEnum);
+export const caseStatuses = Object.values(UkmaDataReviewCaseStatusEnum);
+
+export const CASE_KIND_LABELS: Record<UkmaDataReviewCaseKindEnum, string> = {
 	course_match: "Збіг курсу",
 	instructor_match: "Викладач",
 	removals_held: "Утримані вилучення",
 };
 
-export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
-	open: "Відкрита",
-	decided: "Вирішена",
-	obsolete: "Неактуальна",
-};
+export const CASE_STATUS_LABELS: Record<UkmaDataReviewCaseStatusEnum, string> =
+	{
+		open: "Відкрита",
+		decided: "Вирішена",
+		obsolete: "Неактуальна",
+	};
 
-export const SAFE_ANSWER_LABELS: Record<CaseKind, string> = {
+export const SAFE_ANSWER_LABELS: Record<UkmaDataReviewCaseKindEnum, string> = {
 	course_match: "окремий курс",
 	instructor_match: "без звʼязку з викладачем",
 	removals_held: "нічого не вилучено",
 };
 
-export const DECISION_LABELS: Record<DecisionKind, string> = {
-	merge: "Обʼєднати",
-	keep_apart: "Залишити окремо",
-	split: "Розділити",
-	link_instructor: "Привʼязати викладача",
-	keep_unlinked: "Не привʼязувати",
-	apply_removals: "Застосувати вилучення",
-	drop_removals: "Скасувати вилучення",
-};
+// Every field of a generated read-only model is optional, though the proxy
+// always sends it.
+export const kindLabel = (kind: UkmaDataReviewCaseKindEnum | undefined) =>
+	kind ? CASE_KIND_LABELS[kind] : "—";
+export const statusLabel = (
+	status: UkmaDataReviewCaseStatusEnum | undefined,
+) => (status ? CASE_STATUS_LABELS[status] : "—");
 
-export const DECISION_EFFECTS: Record<DecisionKind, string> = {
-	merge:
-		"Пропозиція перейде до наявного курсу, а створений для неї курс буде вилучено з посиланням на наявний. Оцінки залишаться на пропозиції.",
-	keep_apart:
-		"Курси залишаться окремими, і правила зіставлення більше не питатимуть про цю пару.",
-	split:
-		"Пропозиція повернеться в окремий курс. Це скасовує попереднє обʼєднання.",
-	link_instructor:
-		"Викладач зʼявиться на пропозиції в Rate UKMA після наступної синхронізації.",
-	keep_unlinked: "Пропозиція залишиться без викладача.",
-	apply_removals:
-		"Усі пропозиції зі списку буде позначено вилученими, і вони зникнуть з Rate UKMA.",
-	drop_removals:
-		"Нічого не буде вилучено. Наступний повний запуск перерахує вилучення знову.",
-};
-
-/** Decisions staff can take now: the case's own pair, or a split that reverses a merge. */
-export function availableDecisions(
-	reviewCase: ReviewCase,
-	decision: Decision | undefined,
-): DecisionKind[] {
-	if (reviewCase.status === "decided") {
-		return decision?.kind === "merge" ? ["split"] : [];
-	}
-	if (reviewCase.status !== "open") return [];
-	switch (reviewCase.kind) {
-		case "course_match":
-			return ["merge", "keep_apart"];
-		case "instructor_match":
-			return reviewCase.candidates.length > 0
-				? ["link_instructor", "keep_unlinked"]
-				: ["keep_unlinked"];
-		case "removals_held":
-			return ["apply_removals", "drop_removals"];
-	}
+export interface CaseFilter {
+	readonly kind?: UkmaDataReviewCaseKindEnum;
+	readonly status?: UkmaDataReviewCaseStatusEnum;
 }
 
-export function caseTitle(reviewCase: ReviewCase): string {
-	return reviewCase.kind === "removals_held"
-		? `Запуск САЗ ${formatAcademicYear(reviewCase.academicYear)}: ${reviewCase.offerings.length} вилучень`
-		: reviewCase.subject.title;
-}
-
-export function formatAcademicYear(year: number): string {
-	return `${year}–${String(year + 1).slice(2)}`;
+/** The proxy has no filters, so the list filters the page it got. */
+export function filterCases(
+	cases: ReadonlyArray<UkmaDataReviewCase>,
+	{ kind, status }: CaseFilter,
+): UkmaDataReviewCase[] {
+	return cases.filter(
+		(item) =>
+			(kind === undefined || item.kind === kind) &&
+			(status === undefined || item.status === status),
+	);
 }
 
 const dateTime = new Intl.DateTimeFormat("uk-UA", {

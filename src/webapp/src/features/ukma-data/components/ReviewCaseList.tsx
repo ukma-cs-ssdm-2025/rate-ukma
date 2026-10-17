@@ -18,17 +18,18 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/Select";
-import { caseKinds, caseStatuses, type ReviewCase } from "../api/schemas";
+import type { UkmaDataReviewCase } from "@/lib/api/generated";
 import {
 	CASE_KIND_LABELS,
 	CASE_STATUS_LABELS,
-	caseTitle,
-	formatAcademicYear,
+	caseKinds,
+	caseStatuses,
 	formatDateTime,
+	kindLabel,
+	statusLabel,
 } from "../reviewCases";
 
 const ALL = "all";
-const percent = new Intl.NumberFormat("uk-UA", { style: "percent" });
 
 export function useCaseFilterParams() {
 	return useQueryStates({
@@ -77,17 +78,20 @@ export function ReviewCaseFilters() {
 	);
 }
 
-function caseMeta(reviewCase: ReviewCase): string {
-	if (reviewCase.kind === "removals_held") {
-		return `${reviewCase.liveOfferings} пропозицій у році, поріг ${percent.format(reviewCase.threshold)}`;
-	}
-	const { sazCode, academicYear } = reviewCase.subject;
-	return `САЗ ${sazCode}, ${formatAcademicYear(academicYear)}`;
+function caseMeta(reviewCase: UkmaDataReviewCase): string {
+	return [
+		reviewCase.run_id ? `запуск ${reviewCase.run_id}` : null,
+		reviewCase.opened_at
+			? `відкрито ${formatDateTime(reviewCase.opened_at)}`
+			: null,
+	]
+		.filter(Boolean)
+		.join(" · ");
 }
 
 export function ReviewCaseList({
 	cases,
-}: Readonly<{ cases: ReadonlyArray<ReviewCase> }>) {
+}: Readonly<{ cases: ReadonlyArray<UkmaDataReviewCase> }>) {
 	if (cases.length === 0) {
 		return (
 			<Empty className="border">
@@ -110,25 +114,24 @@ export function ReviewCaseList({
 					<Card asChild>
 						<Link
 							to="/data/cases/$caseId"
-							params={{ caseId: reviewCase.id }}
+							params={{ caseId: reviewCase.id ?? "" }}
 							className="block space-y-2 p-4 transition-colors hover:bg-accent/50"
 						>
 							<div className="flex flex-wrap items-center gap-2">
-								<Badge variant="soft">
-									{CASE_KIND_LABELS[reviewCase.kind]}
-								</Badge>
+								<Badge variant="soft">{kindLabel(reviewCase.kind)}</Badge>
 								<Badge
 									variant={
 										reviewCase.status === "open" ? "outline" : "secondary"
 									}
 								>
-									{CASE_STATUS_LABELS[reviewCase.status]}
+									{statusLabel(reviewCase.status)}
 								</Badge>
 							</div>
-							<p className="font-medium break-words">{caseTitle(reviewCase)}</p>
+							<p className="font-medium break-words">
+								Обʼєкт {reviewCase.subject_id}
+							</p>
 							<p className="text-sm text-muted-foreground">
-								{caseMeta(reviewCase)} · відкрито{" "}
-								{formatDateTime(reviewCase.openedAt)}
+								{caseMeta(reviewCase)}
 							</p>
 						</Link>
 					</Card>

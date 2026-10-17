@@ -2,11 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { ShieldAlert } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
-import { Badge } from "@/components/ui/Badge";
 import { buttonVariants } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { cn } from "@/lib/utils";
-import { isUkmaDataMocked } from "../api/client";
 
 const TABS = [
 	{ to: "/data", label: "Огляд", exact: true },
@@ -19,9 +17,6 @@ export function DataSectionHeader() {
 			<PageHeader
 				title="UKMA Data"
 				description="Синхронізація з САЗ і справи, які сервіс не вирішив сам"
-				actions={
-					isUkmaDataMocked ? <Badge variant="soft">Демо-дані</Badge> : null
-				}
 			/>
 			<nav aria-label="Розділи UKMA Data" className="flex gap-1 border-b">
 				{TABS.map((tab) => (

@@ -7,8 +7,8 @@ import {
 } from "@/features/ukma-data/components/DataSectionHeader";
 import { useAuth, withAuth } from "@/lib/auth";
 
-// The browser only hides the section; the /api/v1/data/ proxy (not built yet)
-// must check superuser on every call and hold the UKMA Data key (spec, Access).
+// The browser only hides the section; the /api/v1/ukma-data/ proxy checks
+// superuser on every call and holds the UKMA Data key.
 function DataSection() {
 	const { isSuperuser } = useAuth();
 	return (

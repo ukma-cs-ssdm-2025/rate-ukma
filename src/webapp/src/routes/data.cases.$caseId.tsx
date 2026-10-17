@@ -1,43 +1,48 @@
-import { useState } from "react";
-
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, SearchX } from "lucide-react";
 
-import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/Badge";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { CaseEvidence } from "@/features/ukma-data/components/CaseEvidence";
-import { DecisionActions } from "@/features/ukma-data/components/DecisionActions";
-import { DecisionTrail } from "@/features/ukma-data/components/DecisionTrail";
+import { CaseDetails } from "@/features/ukma-data/components/CaseDetails";
+import { UkmaDataError } from "@/features/ukma-data/components/UkmaDataError";
 import {
-	useDecisions,
-	useReviewCase,
-} from "@/features/ukma-data/hooks/useUkmaData";
-import {
-	CASE_KIND_LABELS,
-	CASE_STATUS_LABELS,
-	caseTitle,
-	formatDateTime,
+	kindLabel,
+	NO_RETRY,
+	PAGE,
 	SAFE_ANSWER_LABELS,
+	statusLabel,
 } from "@/features/ukma-data/reviewCases";
+import { useUkmaDataReviewCasesList } from "@/lib/api/generated";
 
+// The proxy has no single-case route, so the page reads the list's cached page.
 function ReviewCaseDetail() {
 	const { caseId } = Route.useParams();
-	const caseQuery = useReviewCase(caseId);
-	const decisionsQuery = useDecisions({ reviewCaseId: caseId });
-	const [instructorId, setInstructorId] = useState<string | null>(null);
-	const reviewCase = caseQuery.data;
-	const decisions = decisionsQuery.data;
+	const { data, isLoading, error, refetch, isRefetching } =
+		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
 
-	if (caseQuery.isLoading) return <Skeleton className="h-96 rounded-xl" />;
+	if (isLoading) return <Skeleton className="h-96 rounded-xl" />;
+	if (!data) {
+		return (
+			<UkmaDataError
+				error={error}
+				title="Не вдалося відкрити справу"
+				onRetry={refetch}
+				isRetrying={isRefetching}
+			/>
+		);
+	}
+	const reviewCase = data.items?.find((item) => item.id === caseId);
 	if (!reviewCase) {
 		return (
 			<ErrorState
-				title="Не вдалося відкрити справу"
-				description="Такої справи може не бути, або сервіс недоступний."
-				onRetry={caseQuery.refetch}
-				isRetrying={caseQuery.isRefetching}
+				icon={SearchX}
+				title="Справи не знайдено"
+				description={
+					data.has_more
+						? `Шукали серед перших ${PAGE.limit} справ.`
+						: "UKMA Data не має такої справи."
+				}
 			/>
 		);
 	}
@@ -53,50 +58,23 @@ function ReviewCaseDetail() {
 			</Link>
 			<div className="space-y-2">
 				<div className="flex flex-wrap items-center gap-2">
-					<Badge variant="soft">{CASE_KIND_LABELS[reviewCase.kind]}</Badge>
-					<Badge variant="outline">
-						{CASE_STATUS_LABELS[reviewCase.status]}
-					</Badge>
+					<Badge variant="soft">{kindLabel(reviewCase.kind)}</Badge>
+					<Badge variant="outline">{statusLabel(reviewCase.status)}</Badge>
 				</div>
 				<h2 className="text-xl font-semibold break-words">
-					{caseTitle(reviewCase)}
+					Справа {reviewCase.id}
 				</h2>
-				<p className="text-sm text-muted-foreground">
-					Відкрито {formatDateTime(reviewCase.openedAt)}, запуск №
-					{reviewCase.runId}.
-					{reviewCase.status === "open"
-						? ` Зараз опубліковано: ${SAFE_ANSWER_LABELS[reviewCase.kind]}.`
-						: null}
-				</p>
+				{reviewCase.status === "open" && reviewCase.kind ? (
+					<p className="text-sm text-muted-foreground">
+						Поки справа відкрита, опубліковано безпечну відповідь:{" "}
+						{SAFE_ANSWER_LABELS[reviewCase.kind]}.
+					</p>
+				) : null}
 			</div>
-			<CaseEvidence
-				reviewCase={reviewCase}
-				selectedInstructorId={instructorId}
-				onSelectInstructor={setInstructorId}
-			/>
-			{decisions ? (
-				<>
-					<DecisionActions
-						reviewCase={reviewCase}
-						decision={decisions.find(
-							(item) => item.id === reviewCase.decisionId,
-						)}
-						selectedInstructorId={instructorId}
-					/>
-					<section className="space-y-3">
-						<SectionHeader title="Рішення у справі" />
-						<DecisionTrail decisions={decisions} />
-					</section>
-				</>
-			) : decisionsQuery.isLoading ? (
-				<Skeleton className="h-32 rounded-xl" />
-			) : (
-				<ErrorState
-					title="Не вдалося завантажити рішення у справі"
-					onRetry={decisionsQuery.refetch}
-					isRetrying={decisionsQuery.isRefetching}
-				/>
-			)}
+			<CaseDetails reviewCase={reviewCase} />
+			<p className="text-sm text-muted-foreground">
+				Ухвалити рішення з Rate UKMA поки не можна: тут лише перегляд.
+			</p>
 		</div>
 	);
 }

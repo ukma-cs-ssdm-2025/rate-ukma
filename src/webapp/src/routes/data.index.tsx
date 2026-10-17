@@ -1,26 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { ErrorState } from "@/components/ui/ErrorState";
 import {
 	OverviewPanel,
 	OverviewPanelSkeleton,
 } from "@/features/ukma-data/components/OverviewPanel";
-import { useUkmaDataOverview } from "@/features/ukma-data/hooks/useUkmaData";
+import { UkmaDataError } from "@/features/ukma-data/components/UkmaDataError";
+import { NO_RETRY } from "@/features/ukma-data/reviewCases";
+import { useUkmaDataStatusRetrieve } from "@/lib/api/generated";
 
 function DataOverview() {
-	const { data, isLoading, isError, refetch, isRefetching } =
-		useUkmaDataOverview();
+	const { data, isLoading, error, refetch, isRefetching } =
+		useUkmaDataStatusRetrieve(NO_RETRY);
 	if (isLoading) return <OverviewPanelSkeleton />;
-	if (isError || !data) {
+	if (!data) {
 		return (
-			<ErrorState
+			<UkmaDataError
+				error={error}
 				title="Не вдалося завантажити огляд"
 				onRetry={refetch}
 				isRetrying={isRefetching}
 			/>
 		);
 	}
-	return <OverviewPanel data={data} />;
+	return <OverviewPanel status={data} />;
 }
 
 export const Route = createFileRoute("/data/")({
