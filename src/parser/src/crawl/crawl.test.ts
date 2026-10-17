@@ -6,6 +6,7 @@ import { catalogPath } from "../saz/catalog.ts";
 import {
 	type SazError,
 	SazClient,
+	SazRateLimited,
 	SazRequestFailed,
 	SazSignInFailed,
 } from "../saz/SazClient.ts";
@@ -16,7 +17,7 @@ import {
 } from "./crawl.ts";
 import {
 	CrawlStore,
-	type KindTally,
+	type PageCounts,
 	type OpenRun,
 	type QueuedPage,
 	type RunReport,
@@ -165,7 +166,7 @@ const makeMemoryStore = (crashOn?: string, locked = true) => {
 			return { id: run.id, sourcePart };
 		});
 
-	const tally = (runId: bigint, kind: KindTally["kind"]): KindTally => {
+	const countsOf = (runId: bigint, kind: PageCounts["kind"]): PageCounts => {
 		const ofKind = pages.filter(
 			(page) => page.runId === runId && page.kind === kind,
 		);
@@ -181,14 +182,17 @@ const makeMemoryStore = (crashOn?: string, locked = true) => {
 	const report = (runId: bigint): RunReport => ({
 		seconds: 0,
 		pages: (["catalog", "course", "students"] as const).map((kind) =>
-			tally(runId, kind),
+			countsOf(runId, kind),
 		),
 		failures: [],
 	});
 
 	const layer = Layer.succeed(CrawlStore, {
 		lockCrawl: Effect.succeed(locked),
-		startRun,
+		startRuns: (open) =>
+			Effect.forEach(open, ({ sourcePart, first }) =>
+				startRun(sourcePart, first),
+			),
 		openRuns: Effect.sync(() => {
 			for (const page of pages) {
 				if (page.status === "claimed") page.status = "pending";
@@ -398,6 +402,26 @@ describe("crawlAllYears", () => {
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
 
+	it.effect("fails the run and stops when САЗ asks for a long wait", () => {
+		const store = makeMemoryStore();
+
+		const saz = makeFakeSaz({
+			"/course/100001": Effect.fail(
+				new SazRateLimited({ path: "/course/100001", retryAfterSeconds: 600 }),
+			),
+		});
+
+		return Effect.gen(function* () {
+			const exit = yield* Effect.exit(crawlAllYears());
+
+			assert.isTrue(Exit.isFailure(exit));
+			assert.deepStrictEqual(store.finished, [
+				{ sourcePart: "saz-courses:2031-32", status: "failed" },
+			]);
+			assert.strictEqual(saz.fetched.at(-1), "/course/100001");
+		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+
 	it.effect("leaves the runs running when the database is lost", () => {
 		const store = makeMemoryStore("/course/100001");
 		const saz = makeFakeSaz();
@@ -421,6 +445,14 @@ describe("crawlAllYears", () => {
 			assert.deepStrictEqual(saz.fetched, []);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
 	});
+});
+
+/** Empties the crawl tables and the rows parsed from them, so each test
+ *  starts without runs. */
+const reset = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	yield* sql`TRUNCATE runs, run_pages, page_snapshots RESTART IDENTITY CASCADE`;
 });
 
 describe.skipIf(testDatabaseUrl === undefined)(
@@ -452,6 +484,7 @@ describe.skipIf(testDatabaseUrl === undefined)(
 					return Effect.gen(function* () {
 						const sql = yield* SqlClient.SqlClient;
 
+						yield* reset;
 						yield* crawlAllYears();
 
 						const pages = yield* sql<{
@@ -477,6 +510,54 @@ describe.skipIf(testDatabaseUrl === undefined)(
 					}).pipe(Effect.provide(saz.layer));
 				},
 			);
+
+			it.effect("starts every year after a crash while starting them", () => {
+				const saz = makeFakeSaz();
+
+				return Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+
+					const runs = sql<{ readonly sourcePart: string }>`
+						SELECT source_part AS "sourcePart" FROM runs ORDER BY id
+					`.pipe(
+						Effect.map((rows) => rows.map(({ sourcePart }) => sourcePart)),
+					);
+
+					yield* reset;
+
+					// The second year's insert fails, as a lost database would. The
+					// trigger is dropped before the retry, even when the crash hangs.
+					const failSecondYear = Effect.acquireRelease(
+						sql`
+							CREATE FUNCTION fail_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+							BEGIN RAISE EXCEPTION 'insert failed'; END $$
+						`.pipe(
+							Effect.andThen(sql`
+								CREATE TRIGGER fail_insert BEFORE INSERT ON runs FOR EACH ROW
+								WHEN (NEW.source_part = 'saz-courses:2032-33')
+								EXECUTE FUNCTION fail_insert()
+							`),
+						),
+						() => sql`DROP FUNCTION fail_insert CASCADE`.pipe(Effect.orDie),
+					);
+
+					const crashed = yield* failSecondYear.pipe(
+						Effect.andThen(Effect.exit(crawlAllYears())),
+						Effect.scoped,
+					);
+
+					const afterCrash = yield* runs;
+
+					yield* crawlAllYears();
+
+					assert.isTrue(Exit.hasDies(crashed));
+					assert.deepStrictEqual(afterCrash, []);
+					assert.deepStrictEqual(yield* runs, [
+						"saz-courses:2031-32",
+						"saz-courses:2032-33",
+					]);
+				}).pipe(Effect.provide(saz.layer));
+			});
 		});
 	},
 );

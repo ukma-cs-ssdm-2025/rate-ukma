@@ -17,7 +17,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 ## Rules
 
-- A new migration is added by hand to the `fromRecord` list in `src/db/Database.ts`. Its number only grows: an id at or below the highest applied one is skipped silently.
+- A new migration is added by hand to the `migrations` record in `src/db/Database.ts`; `Database.test.ts` checks that its keys are `NNNN_name`, unique by number and in order. Its number only grows: an id at or below the highest applied one is skipped silently.
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
 - The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.

@@ -28,7 +28,11 @@ const reset = Effect.gen(function* () {
 const startWith = (next: ReadonlyArray<QueuedPage>) =>
 	Effect.gen(function* () {
 		const store = yield* CrawlStore;
-		const run = yield* store.startRun("saz-courses:2031-32", FIRST);
+
+		const [run] = yield* store.startRuns([
+			{ sourcePart: "saz-courses:2031-32", first: FIRST },
+		]);
+
 		const first = yield* store.claim(run.id);
 
 		assert.isDefined(first);
@@ -41,7 +45,11 @@ const startWith = (next: ReadonlyArray<QueuedPage>) =>
 const fetchOnce = (path: string, body: string) =>
 	Effect.gen(function* () {
 		const store = yield* CrawlStore;
-		const run = yield* store.startRun("saz-courses:2031-32", course(path));
+
+		const [run] = yield* store.startRuns([
+			{ sourcePart: "saz-courses:2031-32", first: course(path) },
+		]);
+
 		const page = yield* store.claim(run.id);
 
 		assert.isDefined(page);
@@ -161,7 +169,7 @@ describe.skipIf(testDatabaseUrl === undefined)("CrawlStore", () => {
 						.report(runId)
 						.pipe(
 							Effect.map(({ pages }) =>
-								pages.reduce((sum, tally) => sum + tally.stored, 0),
+								pages.reduce((sum, counts) => sum + counts.stored, 0),
 							),
 						),
 				);
@@ -229,16 +237,45 @@ describe.skipIf(testDatabaseUrl === undefined)("CrawlStore", () => {
 				assert.deepStrictEqual(open, [crashed]);
 				assert.deepStrictEqual(yield* pagesOf(crashed.id), [
 					`done 1 ${FIRST.path}`,
-					"pending 1 /course/100001",
+					"pending 0 /course/100001",
 				]);
 				assert.deepStrictEqual(yield* pagesOf(failed.id), [
 					`done 1 ${FIRST.path}`,
 					"claimed 1 /course/100002",
 				]);
-				assert.strictEqual(
-					(yield* store.claim(crashed.id))?.path,
-					"/course/100001",
-				);
+				const reclaimed = yield* store.claim(crashed.id);
+
+				assert.strictEqual(reclaimed?.path, "/course/100001");
+
+				if (reclaimed !== undefined) yield* store.fail(reclaimed, "HTTP 429");
+
+				assert.strictEqual(yield* store.requeue(crashed.id, ["HTTP 429"]), 1);
+			}),
+		);
+
+		it.effect("counts the time a crash was down in the run's seconds", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				const [run] = yield* store.startRuns([
+					{ sourcePart: "saz-courses:2031-32", first: FIRST },
+				]);
+
+				// The crash hit the first page an hour ago.
+				yield* store.claim(run.id);
+				yield* sql`
+					UPDATE run_pages SET claimed_at = claimed_at - interval '1 hour'
+					WHERE run_id = ${run.id}
+				`;
+				yield* store.openRuns;
+				yield* store.claim(run.id);
+
+				const { seconds } = yield* store.report(run.id);
+
+				assert.isAtLeast(seconds, 3600);
 			}),
 		);
 
