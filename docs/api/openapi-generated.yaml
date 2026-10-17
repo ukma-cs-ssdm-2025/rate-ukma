@@ -2740,6 +2740,637 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/ukma-data/departments/:
+    get:
+      operationId: ukma_data_departments_list
+      description: One page of UKMA Data's list in change-number order, removed rows
+        included. Pass the response's `cursor` as `after` while `has_more` is true.
+        Superusers only.
+      summary: List UKMA Data departments
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+        description: Change number saved after the last sync; omit or 0 for all rows
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Rows per page; UKMA Data's default is 500, values above 1000
+          are capped
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataDepartmentPage'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+  /api/v1/ukma-data/faculties/:
+    get:
+      operationId: ukma_data_faculties_list
+      description: One page of UKMA Data's list in change-number order, removed rows
+        included. Pass the response's `cursor` as `after` while `has_more` is true.
+        Superusers only.
+      summary: List UKMA Data faculties
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+        description: Change number saved after the last sync; omit or 0 for all rows
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Rows per page; UKMA Data's default is 500, values above 1000
+          are capped
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataFacultyPage'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+  /api/v1/ukma-data/offerings/:
+    get:
+      operationId: ukma_data_offerings_list
+      description: One page of UKMA Data's list in change-number order, removed rows
+        included. Pass the response's `cursor` as `after` while `has_more` is true.
+        Superusers only.
+      summary: List UKMA Data course offerings
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+        description: Change number saved after the last sync; omit or 0 for all rows
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Rows per page; UKMA Data's default is 500, values above 1000
+          are capped
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataOfferingPage'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+  /api/v1/ukma-data/programmes/:
+    get:
+      operationId: ukma_data_programmes_list
+      description: One page of UKMA Data's list in change-number order, removed rows
+        included. Pass the response's `cursor` as `after` while `has_more` is true.
+        Superusers only.
+      summary: List UKMA Data programmes
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+        description: Change number saved after the last sync; omit or 0 for all rows
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Rows per page; UKMA Data's default is 500, values above 1000
+          are capped
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataProgrammePage'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+  /api/v1/ukma-data/review-cases/:
+    get:
+      operationId: ukma_data_review_cases_list
+      description: One page of UKMA Data's list in change-number order, removed rows
+        included. Pass the response's `cursor` as `after` while `has_more` is true.
+        Superusers only.
+      summary: List UKMA Data review cases
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+        description: Change number saved after the last sync; omit or 0 for all rows
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Rows per page; UKMA Data's default is 500, values above 1000
+          are capped
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataReviewCasePage'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+  /api/v1/ukma-data/status/:
+    get:
+      operationId: ukma_data_status_retrieve
+      description: The server key's id, scopes and expiry, and when UKMA Data last
+        read its source. Superusers only.
+      summary: UKMA Data key and freshness
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataStatus'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+  /api/v1/ukma-data/terms/:
+    get:
+      operationId: ukma_data_terms_list
+      description: One page of UKMA Data's list in change-number order, removed rows
+        included. Pass the response's `cursor` as `after` while `has_more` is true.
+        Superusers only.
+      summary: List UKMA Data terms
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+        description: Change number saved after the last sync; omit or 0 for all rows
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Rows per page; UKMA Data's default is 500, values above 1000
+          are capped
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataTermPage'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
   /courses/{course_id}/:
     get:
       operationId: courses_retrieve_2
@@ -2909,6 +3540,20 @@ components:
         replies_count:
           type: integer
           readOnly: true
+    ControlEnum:
+      enum:
+      - pass_fail
+      - exam
+      - thesis
+      - none
+      - thesis_defence
+      type: string
+      description: |-
+        * `pass_fail` - pass_fail
+        * `exam` - exam
+        * `thesis` - thesis
+        * `none` - none
+        * `thesis_defence` - thesis_defence
     CourseAnalytics:
       type: object
       description: Serializer for course analytics
@@ -3781,6 +4426,14 @@ components:
       required:
       - id
       - name
+    LevelEnum:
+      enum:
+      - bachelor
+      - master
+      type: string
+      description: |-
+        * `bachelor` - bachelor
+        * `master` - master
     Login:
       type: object
       properties:
@@ -4223,6 +4876,16 @@ components:
       - previous_page
       - total
       - total_pages
+    SeasonEnum:
+      enum:
+      - FALL
+      - SPRING
+      - SUMMER
+      type: string
+      description: |-
+        * `FALL` - FALL
+        * `SPRING` - SPRING
+        * `SUMMER` - SUMMER
     SemesterTermEnum:
       enum:
       - FALL
@@ -4381,6 +5044,460 @@ components:
         * `COMPULSORY` - Compulsory
         * `ELECTIVE` - Elective
         * `PROF_ORIENTED` - ProfOriented
+    UkmaDataDepartment:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        saz_filter_id:
+          type: string
+          readOnly: true
+          nullable: true
+        faculty_id:
+          type: string
+          readOnly: true
+          nullable: true
+        change_no:
+          type: integer
+          readOnly: true
+        removed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+    UkmaDataDepartmentPage:
+      type: object
+      properties:
+        cursor:
+          type: integer
+          readOnly: true
+          description: Pass as `after` for the next page; the last item's change number
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: When UKMA Data last finished a successful read of its source
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataDepartment'
+          readOnly: true
+    UkmaDataFaculty:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        saz_filter_id:
+          type: string
+          readOnly: true
+          nullable: true
+        change_no:
+          type: integer
+          readOnly: true
+        removed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+    UkmaDataFacultyPage:
+      type: object
+      properties:
+        cursor:
+          type: integer
+          readOnly: true
+          description: Pass as `after` for the next page; the last item's change number
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: When UKMA Data last finished a successful read of its source
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataFaculty'
+          readOnly: true
+    UkmaDataOffering:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        saz_code:
+          type: string
+          readOnly: true
+        academic_year:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        faculty_id:
+          type: string
+          readOnly: true
+          nullable: true
+        department_id:
+          type: string
+          readOnly: true
+          nullable: true
+        level:
+          allOf:
+          - $ref: '#/components/schemas/LevelEnum'
+          readOnly: true
+        format:
+          type: string
+          readOnly: true
+        credits:
+          type: number
+          format: double
+          readOnly: true
+        hours:
+          type: integer
+          readOnly: true
+        study_year:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataOfferingStatusEnum'
+          readOnly: true
+        is_practical:
+          type: boolean
+          readOnly: true
+        annotation:
+          type: string
+          readOnly: true
+          nullable: true
+        max_students:
+          type: integer
+          readOnly: true
+          nullable: true
+        max_groups:
+          type: integer
+          readOnly: true
+          nullable: true
+        computed_max_students:
+          type: integer
+          readOnly: true
+          nullable: true
+        group_size_min:
+          type: integer
+          readOnly: true
+        group_size_max:
+          type: integer
+          readOnly: true
+        enrolled_active:
+          type: integer
+          readOnly: true
+          nullable: true
+        terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataOfferingTerm'
+          readOnly: true
+        programmes:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataOfferingProgramme'
+          readOnly: true
+        change_no:
+          type: integer
+          readOnly: true
+        removed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+    UkmaDataOfferingPage:
+      type: object
+      properties:
+        cursor:
+          type: integer
+          readOnly: true
+          description: Pass as `after` for the next page; the last item's change number
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: When UKMA Data last finished a successful read of its source
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataOffering'
+          readOnly: true
+    UkmaDataOfferingProgramme:
+      type: object
+      properties:
+        programme_id:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataOfferingProgrammeKindEnum'
+          readOnly: true
+    UkmaDataOfferingProgrammeKindEnum:
+      enum:
+      - compulsory
+      - prof_oriented
+      - elective
+      type: string
+      description: |-
+        * `compulsory` - compulsory
+        * `prof_oriented` - prof_oriented
+        * `elective` - elective
+    UkmaDataOfferingStatusEnum:
+      enum:
+      - held
+      - not_held
+      - may_hold
+      - unknown
+      type: string
+      description: |-
+        * `held` - held
+        * `not_held` - not_held
+        * `may_hold` - may_hold
+        * `unknown` - unknown
+    UkmaDataOfferingTerm:
+      type: object
+      properties:
+        term_id:
+          type: string
+          readOnly: true
+        semesters:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+        credits:
+          type: number
+          format: double
+          readOnly: true
+        hours_per_week:
+          type: integer
+          readOnly: true
+          nullable: true
+        lecture_hours:
+          type: integer
+          readOnly: true
+          nullable: true
+        seminar_hours:
+          type: integer
+          readOnly: true
+          nullable: true
+        practice_hours:
+          type: integer
+          readOnly: true
+          nullable: true
+        control:
+          allOf:
+          - $ref: '#/components/schemas/ControlEnum'
+          readOnly: true
+          nullable: true
+    UkmaDataProgramme:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        level:
+          allOf:
+          - $ref: '#/components/schemas/LevelEnum'
+          readOnly: true
+          nullable: true
+        saz_filter_id:
+          type: string
+          readOnly: true
+          nullable: true
+        change_no:
+          type: integer
+          readOnly: true
+        removed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+    UkmaDataProgrammePage:
+      type: object
+      properties:
+        cursor:
+          type: integer
+          readOnly: true
+          description: Pass as `after` for the next page; the last item's change number
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: When UKMA Data last finished a successful read of its source
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataProgramme'
+          readOnly: true
+    UkmaDataReviewCase:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataReviewCaseKindEnum'
+          readOnly: true
+        subject_id:
+          type: string
+          readOnly: true
+        candidates:
+          readOnly: true
+          description: Ids only
+        safe_answer:
+          readOnly: true
+          description: What was published
+        status:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataReviewCaseStatusEnum'
+          readOnly: true
+        run_id:
+          type: string
+          readOnly: true
+          nullable: true
+        decision_id:
+          type: string
+          readOnly: true
+          nullable: true
+        opened_at:
+          type: string
+          format: date-time
+          readOnly: true
+        change_no:
+          type: integer
+          readOnly: true
+    UkmaDataReviewCaseKindEnum:
+      enum:
+      - course_match
+      - instructor_match
+      - removals_held
+      type: string
+      description: |-
+        * `course_match` - course_match
+        * `instructor_match` - instructor_match
+        * `removals_held` - removals_held
+    UkmaDataReviewCasePage:
+      type: object
+      properties:
+        cursor:
+          type: integer
+          readOnly: true
+          description: Pass as `after` for the next page; the last item's change number
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: When UKMA Data last finished a successful read of its source
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataReviewCase'
+          readOnly: true
+    UkmaDataReviewCaseStatusEnum:
+      enum:
+      - open
+      - decided
+      - obsolete
+      type: string
+      description: |-
+        * `open` - open
+        * `decided` - decided
+        * `obsolete` - obsolete
+    UkmaDataStatus:
+      type: object
+      properties:
+        key_id:
+          type: string
+          readOnly: true
+        scopes:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        key_expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        data_updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+    UkmaDataTerm:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        code:
+          type: string
+          readOnly: true
+        academic_year:
+          type: integer
+          readOnly: true
+        season:
+          allOf:
+          - $ref: '#/components/schemas/SeasonEnum'
+          readOnly: true
+        change_no:
+          type: integer
+          readOnly: true
+    UkmaDataTermPage:
+      type: object
+      properties:
+        cursor:
+          type: integer
+          readOnly: true
+          description: Pass as `after` for the next page; the last item's change number
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: When UKMA Data last finished a successful read of its source
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataTerm'
+          readOnly: true
     UnreadCount:
       type: object
       properties:

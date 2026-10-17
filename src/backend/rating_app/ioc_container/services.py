@@ -63,6 +63,7 @@ from rating_app.services.feed_item_provider import FeedItemProvider
 from rating_app.services.feed_service import FeedService
 from rating_app.services.feed_update_service import FeedUpdateService
 from rating_app.services.notification_service import NotificationService
+from rating_app.services.ukma_data_service import UkmaDataService
 
 
 @once
@@ -282,3 +283,8 @@ __all__ = [
     "vote_service",
     "notification_service",
 ]
+
+
+@once
+def ukma_data_service() -> UkmaDataService:
+    return UkmaDataService()
