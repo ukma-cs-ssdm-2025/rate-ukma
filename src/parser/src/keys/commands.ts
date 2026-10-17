@@ -97,7 +97,8 @@ const createKey = Command.make(
 			yield* Console.log(
 				`${key.id} ${granted.join(",")} expires ${key.expiresAt.toISOString()}`,
 			);
-			// Printed once to stdout and never logged: logs go to Sentry.
+			// Printed once to stdout, not through the logger, whose lines go to
+			// Sentry. A Job's stdout is a pod log too, so this runs by `kubectl exec`.
 			yield* Console.log(Redacted.value(key.token));
 		}),
 ).pipe(Command.withDescription("Make an API key and print its token once"));

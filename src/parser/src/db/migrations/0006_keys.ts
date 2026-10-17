@@ -39,7 +39,8 @@ export default Effect.gen(function* () {
 			reason text CHECK (reason IN (
 				'wrong_secret', 'revoked', 'expired', 'missing_scope',
 				'no_required_scopes'
-			))
+			)),
+			CHECK ((action = 'request_denied') = (reason IS NOT NULL))
 		)
 	`;
 	yield* sql`CREATE INDEX audit_log_key ON audit_log (key_id, at)`;

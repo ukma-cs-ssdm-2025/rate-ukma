@@ -141,7 +141,7 @@ graph LR
 
 **UKMA Data API:** `api` reads `DATABASE_URL` too: API keys and the audit log live in the database. Every endpoint but `/health` needs a key in `Authorization: Bearer ukd_...`.
 
-**UKMA Data keys:** `create-key --name <holder> [--scope <scope> ...] [--all-scopes] [--expires-in-days 365]`, `revoke-key <key id>` and `list-keys` run with only `DATABASE_URL`, through `kubectl exec` or a one-off Job. `create-key` prints the token once to stdout and stores only its hash; copy it into the reader's secret and do not keep the Job's output.
+**UKMA Data keys:** `create-key --name <holder> [--scope <scope> ...] [--all-scopes] [--expires-in-days 365]`, `revoke-key <key id>` and `list-keys` run with only `DATABASE_URL`. `create-key` prints the token once to stdout and stores only its hash, so run it through `kubectl exec`, not a Job: a Job's stdout is its pod log, which a log collector keeps. Copy the token into the reader's secret. `revoke-key` and `list-keys` print no token and may run as a Job.
 
 ### 8. Ingress & TLS
 

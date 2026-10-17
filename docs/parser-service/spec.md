@@ -148,7 +148,7 @@ Every list takes the change number a reader saved and uses cursor pagination. Ev
 - Example keys: Rate UKMA has the defaults plus instructors, students, start runs and decide review cases. UKMA Schedule has the defaults plus students. The team's own key has every scope, and only it can manage keys.
 - In the staff section, Rate UKMA's backend checks that the user is a superuser, then calls the service with Rate UKMA's key. The browser never holds a key.
 - The audit log records every request made with a key (the key, the route and the row count), key changes, extra runs, decisions and every read of student data. It stores no data values.
-- A refused request whose key exists (wrong secret, revoked, expired, missing scope) is recorded for that key with the reason. A token whose key id is unknown or malformed is not recorded: there is no key to attach it to.
+- A refused request whose key exists (wrong secret, revoked, expired, missing scope) is recorded for that key with the reason. A token whose key id is unknown or malformed is not recorded: there is no key to attach it to. Key ids are not secret, so anyone who knows one can add refused rows for it; there is no rate limit yet.
 - No real student data in fixtures, logs, screenshots or issues.
 
 ## Observability
