@@ -236,16 +236,45 @@ describe.skipIf(testDatabaseUrl === undefined)("CrawlStore", () => {
 				assert.deepStrictEqual(open, [crashed]);
 				assert.deepStrictEqual(yield* pagesOf(crashed.id), [
 					`done 1 ${FIRST.path}`,
-					"pending 1 /course/100001",
+					"pending 0 /course/100001",
 				]);
 				assert.deepStrictEqual(yield* pagesOf(failed.id), [
 					`done 1 ${FIRST.path}`,
 					"claimed 1 /course/100002",
 				]);
-				assert.strictEqual(
-					(yield* store.claim(crashed.id))?.path,
-					"/course/100001",
-				);
+				const reclaimed = yield* store.claim(crashed.id);
+
+				assert.strictEqual(reclaimed?.path, "/course/100001");
+
+				if (reclaimed !== undefined) yield* store.fail(reclaimed, "HTTP 429");
+
+				assert.strictEqual(yield* store.requeue(crashed.id, ["HTTP 429"]), 1);
+			}),
+		);
+
+		it.effect("counts the time a crash was down in the run's seconds", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				const [run] = yield* store.startRuns([
+					{ sourcePart: "saz-courses:2031-32", first: FIRST },
+				]);
+
+				// The crash hit the first page an hour ago.
+				yield* store.claim(run.id);
+				yield* sql`
+					UPDATE run_pages SET claimed_at = claimed_at - interval '1 hour'
+					WHERE run_id = ${run.id}
+				`;
+				yield* store.openRuns;
+				yield* store.claim(run.id);
+
+				const { seconds } = yield* store.report(run.id);
+
+				assert.isAtLeast(seconds, 3600);
 			}),
 		);
 
