@@ -15,17 +15,13 @@ import {
 } from "./CrawlStore.ts";
 import { snapshotOf } from "./snapshot.ts";
 
-const TRANSPORT_ERROR = "transport error";
+/** The `error` a failed request leaves on its page. */
+const requestError = (status: number): string =>
+	status === 0 ? "transport error" : `HTTP ${status}`;
 
 /** Failures a later try may not repeat. A САЗ 500 repeats for the same page,
  *  so it is not one of them. */
-const PASSING_ERRORS = [
-	TRANSPORT_ERROR,
-	"HTTP 429",
-	"HTTP 502",
-	"HTTP 503",
-	"HTTP 504",
-];
+const PASSING_ERRORS = [0, 429, 502, 503, 504].map(requestError);
 
 /** The catalog's year filter listed nothing, so its markup likely changed. */
 export class NoAcademicYears extends Schema.TaggedError<NoAcademicYears>()(
@@ -101,10 +97,7 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 				}),
 			),
 			Effect.catchTag("SazRequestFailed", (error) =>
-				fail(
-					page,
-					error.status === 0 ? TRANSPORT_ERROR : `HTTP ${error.status}`,
-				),
+				fail(page, requestError(error.status)),
 			),
 		);
 

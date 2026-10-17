@@ -35,4 +35,4 @@ The personal `effect-ts` and `install-anti-slop` skills are not needed: everythi
 
 ## Checks
 
-`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.
+`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The Postgres tests run only when `TEST_DATABASE_URL` names a server where they may create and drop databases, as CI's Postgres service does; without it they skip, and in CI (`CI` set) they fail. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.
