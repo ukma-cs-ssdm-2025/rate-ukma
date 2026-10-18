@@ -12,13 +12,18 @@ infra/deploy/parser/
 └── k8s/
     └── platform/
         ├── operators/    # cert-manager, CloudNativePG (pinned upstream manifests)
-        └── config/       # parser namespace, Let's Encrypt ClusterIssuers
+        ├── config/       # parser namespace, Let's Encrypt ClusterIssuers
+        └── database/     # parser-db Postgres cluster
 ```
 
 Terraform runs from CI only, via [`.github/workflows/parser-infra.yml`](../../../.github/workflows/parser-infra.yml):
 
 - **Pull requests** touching `terraform/` run `terraform fmt -check` and `terraform validate`. These need no credentials.
-- **Actions → Provision Parser VM → Run workflow** runs `plan`, or `plan` followed by `apply`, against the chosen environment. Applies are serialized per environment.
+- **Actions → Provision Parser VM → Run workflow** runs `plan`, or `plan` followed by `apply`, against the chosen environment:
+  1. The **plan** job runs at once and writes the full plan to the run summary.
+  2. The **apply** job waits for the reviewer, then applies exactly that plan. It is skipped when the plan has no changes.
+
+  One run per environment at a time, so nothing can change the state between plan and apply.
 
 Don't run `apply` from a laptop. The state holds secrets and must live only in the bucket.
 
@@ -35,17 +40,27 @@ These steps are manual because Terraform needs them before it can run.
    - an API token with read & write access (Security → API tokens);
    - an S3 credential pair (Object Storage → S3 credentials);
    - a state encryption key (SSE-C): `openssl rand -base64 32`. Store it in the team password manager too. Terraform needs this exact key for every later plan and apply, and the state can't be read without it.
-4. **GitHub Environment.** Create `Parser Staging` (later `Parser Live`) under Settings → Environments.
-   - Add a **required reviewer**. Every manual run, `plan` included, waits for approval, because both get the secrets below. Leave **Prevent self-review** off if you are the only reviewer.
-   - Under **Deployment branches and tags**, pick **Selected branches and tags** and allow only `main`. Otherwise a run from any branch could read the secrets.
-   - Add these secrets:
+4. **GitHub Environments.** Create two under Settings → Environments (later the same pair for `Live`):
+
+   | Environment | Used by | Required reviewer | `HCLOUD_TOKEN` |
+   | --- | --- | --- | --- |
+   | `Parser Staging Plan` | plan job | none | **read-only** token |
+   | `Parser Staging` | apply job, Parser Platform | yes | read & write token |
+
+   - On both, under **Deployment branches and tags**, pick **Selected branches and tags** and allow only `main`. Otherwise a run from any branch could read the secrets.
+   - On `Parser Staging`, leave **Prevent self-review** off if you are the only reviewer.
+   - With a read-only token in the plan environment, only an approved run can change Hetzner resources.
+   - Add these secrets to both:
 
      | Secret | Value |
      | --- | --- |
-     | `HCLOUD_TOKEN` | Hetzner API token |
+     | `HCLOUD_TOKEN` | Hetzner API token (see the table above) |
      | `TF_STATE_ACCESS_KEY` | S3 access key |
      | `TF_STATE_SECRET_KEY` | S3 secret key |
      | `TF_STATE_SSE_CUSTOMER_KEY` | state encryption key (base64, 32 bytes) |
+     | `TF_PLAN_ENCRYPTION_KEY` | plan file encryption key: `openssl rand -base64 32`. The plan is uploaded as an artifact, which anyone signed in to GitHub can download from this public repo |
+
+   The plan job also needs `PARSER_SSH_PUBLIC_KEY` (see below). The apply job doesn't: the saved plan already holds it.
 
 5. **Check.** Run the workflow with `action: plan`. On an empty environment it should report `No changes.`, and `staging/terraform.tfstate` should appear in the bucket after the first `apply`.
 
@@ -69,12 +84,12 @@ Each environment is one Hetzner VM running single-node k3s:
 ### Before the first `apply`
 
 1. Generate a key pair for the node: `ssh-keygen -t ed25519 -N "" -C parser-staging -f parser-staging` (no passphrase, so CI can use it).
-2. In the GitHub Environment, add:
+2. Add these secrets:
 
-   | Name | Kind | Value |
+   | Secret | Environment | Value |
    | --- | --- | --- |
-   | `PARSER_SSH_PUBLIC_KEY` | secret | contents of `parser-staging.pub` |
-   | `PARSER_SSH_KEY` | secret | contents of `parser-staging` (the private key) |
+   | `PARSER_SSH_PUBLIC_KEY` | `Parser Staging Plan` | contents of `parser-staging.pub` |
+   | `PARSER_SSH_KEY` | `Parser Staging` | contents of `parser-staging` (the private key) |
 
    Then delete the local private key, or store it in the team password manager.
 
@@ -88,7 +103,7 @@ Each environment is one Hetzner VM running single-node k3s:
    ```
 
    The node should be `Ready` and encryption `Enabled`.
-3. **Kubeconfig:** copy the admin kubeconfig into the `PARSER_KUBECONFIG` environment secret. Keep its `server: https://127.0.0.1:6443`, because CI reaches it through the tunnel.
+3. **Kubeconfig:** copy the admin kubeconfig into the `PARSER_KUBECONFIG` secret of both `Parser Staging Plan` and `Parser Staging`. Keep its `server: https://127.0.0.1:6443`, because CI reaches it through the tunnel.
 
    ```bash
    ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml
@@ -98,7 +113,10 @@ Each environment is one Hetzner VM running single-node k3s:
 
    ```bash
    ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml | grep client-certificate-data | awk '{print $2}' | base64 -d | openssl x509 -noout -enddate
-   ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml | gh secret set PARSER_KUBECONFIG --env "Parser Staging"
+   CONFIG=$(ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml) \
+     && for ENV in "Parser Staging Plan" "Parser Staging"; do
+          gh secret set PARSER_KUBECONFIG --env "$ENV" --body "$CONFIG"
+        done
    ```
 
 4. **Admin access from a laptop:** open a tunnel with `ssh -N -L 6443:127.0.0.1:6443 deploy@<ipv4>`, then use the kubeconfig as is.
@@ -109,34 +127,60 @@ Cluster-wide add-ons, applied by [`.github/workflows/parser-platform.yml`](../..
 
 - **`operators/`:** upstream cert-manager and CloudNativePG manifests, pinned to exact releases.
 - **`config/`:** the `parser` namespace and the `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers. It needs the operator CRDs, so it is applied second.
+- **`database/`:** the `parser-db` Postgres cluster. It needs the CNPG CRDs and the `parser` namespace, so it is applied last.
 - **Ingress:** the Traefik bundled with k3s, IngressClass `traefik`. It is not in this folder.
 
 The workflow reaches the API server through [`.github/actions/k8s-tunnel`](../../../.github/actions/k8s-tunnel/action.yml), an SSH tunnel to `127.0.0.1:6443` on the node.
 Pull requests only render the kustomizations.
-**Actions → Parser Platform → Run workflow** runs `diff` or `apply`, and waits for the environment's reviewer.
+**Actions → Parser Platform → Run workflow** runs `diff`, or `diff` followed by `apply`:
+1. The **diff** job runs at once in `Parser Staging Plan` and writes the diff to the run summary.
+2. The **apply** job waits for the reviewer in `Parser Staging`, then applies the same commit. It is skipped when there are no changes.
+
+The longer step scripts live in `scripts/ci/parser-platform-*.sh`.
 
 ### Before the first run
 
-Add these secrets to the GitHub Environment, next to `PARSER_SSH_KEY` and `PARSER_KUBECONFIG`:
+Both jobs open the tunnel, so add these secrets to **both** `Parser Staging Plan` and `Parser Staging`, next to `PARSER_SSH_KEY` and `PARSER_KUBECONFIG` (which both need too):
 
 | Secret | Value |
 | --- | --- |
 | `PARSER_SSH_HOST` | the node's `ipv4` |
-| `PARSER_SSH_KNOWN_HOSTS` | the node's host key line, from `ssh-keyscan -t ed25519 <ipv4>` |
+| `PARSER_SSH_KNOWN_HOSTS` | the node's host key line, `<ipv4> ssh-ed25519 AAAA...` |
 
-Check the scanned key before saving it.
-Its fingerprint must match the one the node reports:
+Read the host key from the node itself, so there is nothing to compare by hand.
+The secret is only written if the key was read, so a failed login leaves the old value in place:
 
 ```bash
-ssh-keyscan -t ed25519 <ipv4> | ssh-keygen -lf -
-ssh deploy@<ipv4> ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+IP=<ipv4>
+KEY=$(ssh deploy@$IP cat /etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2) \
+  && [[ $KEY == "ssh-ed25519 "* ]] \
+  && for ENV in "Parser Staging Plan" "Parser Staging"; do
+       gh secret set PARSER_SSH_KNOWN_HOSTS --env "$ENV" --body "$IP $KEY"
+     done
 ```
+
+If the VM is recreated, its IP and host key change: update both secrets.
 
 ### Check
 
 Run the workflow with `action: apply`.
-The run summary should show the cert-manager and CNPG pods `Running` and both ClusterIssuers `True`.
+The run summary should show the cert-manager and CNPG pods `Running`, both ClusterIssuers `True`, and `parser-db` in `Cluster in healthy state`.
 A following `diff` run should print no changes.
+
+### Database (`parser-db`)
+
+- **One instance**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`. The standby replica and backups come with #772.
+- **Credentials:** CNPG generates them and stores them in the `parser-db-app` Secret. Its `uri` key is the service's `DATABASE_URL`, so no DB password passes through GitHub or Terraform.
+- **Storage:** k3s `local-path`, a directory on the node under `/var/lib/rancher/k3s/storage`. Recreating the VM deletes the data.
+
+On the node:
+
+```bash
+sudo k3s kubectl -n parser get cluster parser-db               # STATUS: Cluster in healthy state
+sudo k3s kubectl -n parser exec -it parser-db-1 -- psql parser  # psql as the postgres superuser
+```
+
+Changing `imageName` (a minor Postgres update) or a parameter that needs a restart restarts the instance, so expect a short outage.
 
 ### Upgrading an operator
 

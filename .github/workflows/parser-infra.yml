@@ -26,6 +26,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: parser-infra-${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.ref }}
+  cancel-in-progress: false
+
 env:
   TF_VERSION: 1.16.5
   TF_ROOT: infra/deploy/parser/terraform
@@ -57,16 +61,11 @@ jobs:
           terraform init -backend=false -input=false
           terraform validate
 
-  terraform:
+  plan:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    # The environment (required reviewer, main only) gates the whole job, so approval comes before the plan.
-    # TBD: split into plan and apply jobs before adding live, so the approver sees the plan first.
-    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
-    # Never run two plans/applies against the same state at once, even if the bucket ignores the S3 lockfile.
-    concurrency:
-      group: parser-infra-${{ inputs.environment }}
-      cancel-in-progress: false
+    # Plan runs first, and the apply job's environment asks for approval.
+    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Plan
     env:
       HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY }}
@@ -76,6 +75,8 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -90,22 +91,94 @@ jobs:
         run: terraform init -input=false
 
       - name: Plan
+        id: plan
         run: |
-          set -o pipefail
-          terraform plan -input=false -no-color -out=parser.tfplan | tee plan.txt
+          # -detailed-exitcode: 0 = no changes, 1 = error, 2 = changes.
+          code=0
+          terraform plan -input=false -no-color -detailed-exitcode -out=parser.tfplan > plan.txt || code=$?
+          cat plan.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
+          echo "has_changes=$([ "$code" -eq 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           {
             echo "### Terraform plan (${{ inputs.environment }})"
             echo '```'
             grep -E '^(Plan:|No changes\.)' plan.txt || echo "See job log for details."
             echo '```'
+            echo '<details><summary>Full plan</summary>'
+            echo
+            echo '```'
+            terraform show -no-color parser.tfplan
+            echo '```'
+            echo '</details>'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # The plan file can hold sensitive values, and anyone signed in to GitHub can download
+      # this public repo's artifacts, so only the encrypted plan is uploaded.
+      - name: Encrypt plan
+        if: inputs.action == 'apply' && steps.plan.outputs.has_changes == 'true'
+        env:
+          TF_PLAN_ENCRYPTION_KEY: ${{ secrets.TF_PLAN_ENCRYPTION_KEY }}
+        run: |
+          [ -n "$TF_PLAN_ENCRYPTION_KEY" ] || { echo "::error::TF_PLAN_ENCRYPTION_KEY is not set"; exit 1; }
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 \
+            --output parser.tfplan.gpg parser.tfplan 3<<< "$TF_PLAN_ENCRYPTION_KEY"
+
+      - name: Upload plan
+        if: inputs.action == 'apply' && steps.plan.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tfplan-${{ inputs.environment }}
+          path: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}/parser.tfplan.gpg
+          # A pending approval can wait up to 30 days, the file is encrypted.
+          retention-days: 30
+          if-no-files-found: error
+
+  apply:
+    needs: plan
+    if: inputs.action == 'apply' && needs.plan.outputs.has_changes == 'true'
+    runs-on: ubuntu-24.04
+    # Required reviewer: approve after reading the plan in the run summary.
+    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
+    env:
+      HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_KEY }}
+      AWS_SSE_CUSTOMER_KEY: ${{ secrets.TF_STATE_SSE_CUSTOMER_KEY }}
+    defaults:
+      run:
+        working-directory: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}
+    steps:
+      # Same run, so the same commit and lock file as the plan.
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: tfplan-${{ inputs.environment }}
+          path: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}
+
+      # Fails if the key is wrong or the file was changed after upload.
+      - name: Decrypt plan
+        env:
+          TF_PLAN_ENCRYPTION_KEY: ${{ secrets.TF_PLAN_ENCRYPTION_KEY }}
+        run: |
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --decrypt \
+            --output parser.tfplan parser.tfplan.gpg 3<<< "$TF_PLAN_ENCRYPTION_KEY"
+
+      - name: Init
+        run: terraform init -input=false
+
+      # Applies exactly the reviewed plan. Terraform refuses it if the state changed since.
       - name: Apply
-        if: inputs.action == 'apply'
         run: terraform apply -input=false parser.tfplan
 
       - name: Outputs
-        if: inputs.action == 'apply'
         run: |
           {
             echo "### Outputs (${{ inputs.environment }})"
