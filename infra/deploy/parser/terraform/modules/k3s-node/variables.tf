@@ -20,7 +20,7 @@ variable "image" {
 }
 
 variable "k3s_version" {
-  description = "Pinned k3s release, e.g. v1.36.5+k3s1. Only used on first boot."
+  description = "Pinned k3s release, e.g. v1.36.5+k3s1. Only used on first boot: changing it doesn't upgrade a running node (see the README)."
   type        = string
 
   validation {

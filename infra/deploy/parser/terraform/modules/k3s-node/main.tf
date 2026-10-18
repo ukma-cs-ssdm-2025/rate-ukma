@@ -45,7 +45,15 @@ resource "hcloud_server" "node" {
     ipv6_enabled = true
   }
 
+  # Deleting the server wipes the cluster and its data, so it must be a separate, deliberate change.
+  # To rebuild on purpose: first merge a change that turns all three off.
+  delete_protection  = true # Hetzner refuses to delete it, also from the console
+  rebuild_protection = true # must match delete_protection
+
   lifecycle {
+    # A plan that would replace the server (new image or location, a rename) fails instead.
+    prevent_destroy = true
+
     # Changing either would rebuild the server and wipe the cluster.
     # They only matter on first boot; later changes are done on the node.
     ignore_changes = [user_data, ssh_keys]
