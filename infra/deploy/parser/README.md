@@ -53,6 +53,14 @@ Each environment is one Hetzner VM running single-node k3s:
 - **First boot:** cloud-init creates the `deploy` user, turns off root and password SSH logins, and installs the pinned k3s.
 - **k3s settings:** `/etc/rancher/k3s/config.yaml` turns on Secrets encryption at rest. The bundled Traefik is the ingress controller.
 - **Later changes:** Terraform ignores changes to `user_data` and SSH keys, because applying them would rebuild the server and wipe the cluster. Upgrade k3s and rotate keys on the node instead.
+- **Delete protection:** the server has Hetzner delete and rebuild protection and `prevent_destroy`, so a plan that would replace it (new `image` or `location`, a renamed resource, `terraform destroy`) fails. `server_type`, `name` and `labels` change in place. To rebuild on purpose, first merge a PR that turns the protection off.
+- **Upgrading k3s:** bumping `k3s_version` doesn't upgrade a running node. Upgrade on the node, one minor version at a time, then bump `k3s_version` to match so a rebuilt node gets the same version:
+
+  ```bash
+  ssh deploy@<ipv4> 'curl -fsSL -o /tmp/k3s-install.sh https://get.k3s.io && sudo INSTALL_K3S_VERSION=<new-version> sh /tmp/k3s-install.sh server'
+  ```
+
+  The installer keeps `/etc/rancher/k3s/config.yaml`, so Secrets encryption stays on. system-upgrade-controller can automate this later.
 
 ### Before the first `apply`
 
@@ -61,7 +69,7 @@ Each environment is one Hetzner VM running single-node k3s:
 
    | Name | Kind | Value |
    | --- | --- | --- |
-   | `PARSER_SSH_PUBLIC_KEY` | variable | contents of `parser-staging.pub` |
+   | `PARSER_SSH_PUBLIC_KEY` | secret | contents of `parser-staging.pub` |
    | `PARSER_SSH_KEY` | secret | contents of `parser-staging` (the private key) |
 
    Then delete the local private key, or store it in the team password manager.
