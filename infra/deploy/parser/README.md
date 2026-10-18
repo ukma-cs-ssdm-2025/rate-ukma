@@ -94,6 +94,13 @@ Each environment is one Hetzner VM running single-node k3s:
    ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml
    ```
 
+   Its client certificate is valid for 1 year. k3s renews it on the node when it starts within 90 days of expiry, but the secret keeps the old copy, and CI then fails with `Unauthorized`. Check the expiry and refresh the secret yearly:
+
+   ```bash
+   ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml | grep client-certificate-data | awk '{print $2}' | base64 -d | openssl x509 -noout -enddate
+   ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml | gh secret set PARSER_KUBECONFIG --env "Parser Staging"
+   ```
+
 4. **Admin access from a laptop:** open a tunnel with `ssh -N -L 6443:127.0.0.1:6443 deploy@<ipv4>`, then use the kubeconfig as is.
 
 ## Platform add-ons (`k8s/platform`)
