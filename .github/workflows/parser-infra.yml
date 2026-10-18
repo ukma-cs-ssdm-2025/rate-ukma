@@ -1,5 +1,5 @@
 ---
-name: Parser Infra
+name: Provision Parser VM
 
 on:
   pull_request:

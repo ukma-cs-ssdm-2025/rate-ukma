@@ -1,0 +1,8 @@
+---
+# Cluster config that needs the operator CRDs, so it is applied after operators/.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - cluster-issuers.yaml

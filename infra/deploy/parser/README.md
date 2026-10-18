@@ -4,17 +4,21 @@ Terraform and Kubernetes config for the UKMA Data service. Design and decisions:
 
 ```text
 infra/deploy/parser/
-└── terraform/
-    ├── modules/
-    │   └── k3s-node/     # Hetzner VM + firewall, k3s installed by cloud-init
-    └── envs/
-        └── staging/      # one root module (and one state file) per environment
+├── terraform/
+│   ├── modules/
+│   │   └── k3s-node/     # Hetzner VM + firewall, k3s installed by cloud-init
+│   └── envs/
+│       └── staging/      # one root module (and one state file) per environment
+└── k8s/
+    └── platform/
+        ├── operators/    # cert-manager, CloudNativePG (pinned upstream manifests)
+        └── config/       # parser namespace, Let's Encrypt ClusterIssuers
 ```
 
 Terraform runs from CI only, via [`.github/workflows/parser-infra.yml`](../../../.github/workflows/parser-infra.yml):
 
 - **Pull requests** touching `terraform/` run `terraform fmt -check` and `terraform validate`. These need no credentials.
-- **Actions → Parser Infra → Run workflow** runs `plan`, or `plan` followed by `apply`, against the chosen environment. Applies are serialized per environment.
+- **Actions → Provision Parser VM → Run workflow** runs `plan`, or `plan` followed by `apply`, against the chosen environment. Applies are serialized per environment.
 
 Don't run `apply` from a laptop. The state holds secrets and must live only in the bucket.
 
@@ -90,7 +94,54 @@ Each environment is one Hetzner VM running single-node k3s:
    ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml
    ```
 
+   Its client certificate is valid for 1 year. k3s renews it on the node when it starts within 90 days of expiry, but the secret keeps the old copy, and CI then fails with `Unauthorized`. Check the expiry and refresh the secret yearly:
+
+   ```bash
+   ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml | grep client-certificate-data | awk '{print $2}' | base64 -d | openssl x509 -noout -enddate
+   ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml | gh secret set PARSER_KUBECONFIG --env "Parser Staging"
+   ```
+
 4. **Admin access from a laptop:** open a tunnel with `ssh -N -L 6443:127.0.0.1:6443 deploy@<ipv4>`, then use the kubeconfig as is.
+
+## Platform add-ons (`k8s/platform`)
+
+Cluster-wide add-ons, applied by [`.github/workflows/parser-platform.yml`](../../../.github/workflows/parser-platform.yml):
+
+- **`operators/`:** upstream cert-manager and CloudNativePG manifests, pinned to exact releases.
+- **`config/`:** the `parser` namespace and the `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers. It needs the operator CRDs, so it is applied second.
+- **Ingress:** the Traefik bundled with k3s, IngressClass `traefik`. It is not in this folder.
+
+The workflow reaches the API server through [`.github/actions/k8s-tunnel`](../../../.github/actions/k8s-tunnel/action.yml), an SSH tunnel to `127.0.0.1:6443` on the node.
+Pull requests only render the kustomizations.
+**Actions → Parser Platform → Run workflow** runs `diff` or `apply`, and waits for the environment's reviewer.
+
+### Before the first run
+
+Add these secrets to the GitHub Environment, next to `PARSER_SSH_KEY` and `PARSER_KUBECONFIG`:
+
+| Secret | Value |
+| --- | --- |
+| `PARSER_SSH_HOST` | the node's `ipv4` |
+| `PARSER_SSH_KNOWN_HOSTS` | the node's host key line, from `ssh-keyscan -t ed25519 <ipv4>` |
+
+Check the scanned key before saving it.
+Its fingerprint must match the one the node reports:
+
+```bash
+ssh-keyscan -t ed25519 <ipv4> | ssh-keygen -lf -
+ssh deploy@<ipv4> ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+```
+
+### Check
+
+Run the workflow with `action: apply`.
+The run summary should show the cert-manager and CNPG pods `Running` and both ClusterIssuers `True`.
+A following `diff` run should print no changes.
+
+### Upgrading an operator
+
+Change its version in `operators/kustomization.yaml` and check the release notes for the supported Kubernetes versions.
+Run `diff`, then `apply`.
 
 ## Upgrading Terraform or providers
 
