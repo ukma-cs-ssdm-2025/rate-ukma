@@ -78,6 +78,8 @@ jobs:
 
       - name: Diff
         if: inputs.action == 'diff'
+        # Adds pipefail, so a failed kubectl kustomize fails the preview.
+        shell: bash
         run: |
           # Before the first apply, the operator namespaces and CRDs don't exist, so a server-side diff can't run.
           # Only NotFound counts as "not installed"; any other error fails the step.
