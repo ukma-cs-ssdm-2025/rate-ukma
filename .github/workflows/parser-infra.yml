@@ -129,7 +129,8 @@ jobs:
         with:
           name: tfplan-${{ inputs.environment }}
           path: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}/parser.tfplan.gpg
-          retention-days: 1
+          # A pending approval can wait up to 30 days, the file is encrypted.
+          retention-days: 30
           if-no-files-found: error
 
   apply:

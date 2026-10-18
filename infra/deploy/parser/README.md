@@ -149,9 +149,11 @@ The secret is only written if the key was read, so a failed login leaves the old
 
 ```bash
 IP=<ipv4>
-KEY=$(ssh deploy@$IP cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub) \
+KEY=$(ssh deploy@$IP cat /etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2) \
   && [[ $KEY == "ssh-ed25519 "* ]] \
-  && gh secret set PARSER_SSH_KNOWN_HOSTS --env "Parser Staging" --body "$IP $KEY"
+  && for ENV in "Parser Staging Plan" "Parser Staging"; do
+       gh secret set PARSER_SSH_KNOWN_HOSTS --env "$ENV" --body "$IP $KEY"
+     done
 ```
 
 If the VM is recreated, its IP and host key change: update both secrets.
