@@ -27,6 +27,12 @@ on:
 permissions:
   contents: read
 
+# One dispatch run per environment at a time, so nothing changes the cluster between diff and apply.
+# Pull requests get their own group, so rendering is never queued behind an approval.
+concurrency:
+  group: parser-platform-${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.ref }}
+  cancel-in-progress: false
+
 env:
   # Keep within one minor version of the cluster (k3s v1.36 on staging).
   KUBECTL_VERSION: v1.36.5
@@ -54,14 +60,13 @@ jobs:
             echo "$dir renders"
           done
 
-  platform:
+  diff:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    # Cluster-admin access: the environment's required reviewer gates every run.
-    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
-    concurrency:
-      group: parser-platform-${{ inputs.environment }}
-      cancel-in-progress: false
+    # No reviewer here: the diff runs first, and the apply job's environment asks for approval.
+    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Plan
+    outputs:
+      has_changes: ${{ steps.diff.outputs.has_changes }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -79,29 +84,35 @@ jobs:
           kubeconfig: ${{ secrets.PARSER_KUBECONFIG }}
 
       - name: Diff
-        if: inputs.action == 'diff'
-        # Adds pipefail, so a failed kubectl kustomize fails the preview.
-        shell: bash
-        run: |
-          # Before the first apply, the operator namespaces and CRDs don't exist, so a server-side diff can't run.
-          # Only NotFound counts as "not installed"; any other error fails the step.
-          # No pipe here: without pipefail, a pipe would hide a kubectl error.
-          installed=$(kubectl get namespace cert-manager cnpg-system --ignore-not-found -o name)
-          if [ "$(grep -c . <<< "$installed")" -lt 2 ]; then
-            echo "Operators are not installed yet. The first apply creates:"
-            for dir in $PLATFORM_DIRS; do
-              kubectl kustomize "$PLATFORM_ROOT/$dir" | grep '^kind:' | sort | uniq -c
-            done
-            exit 0
-          fi
+        id: diff
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: bash scripts/ci/parser-platform-diff.sh
 
-          # kubectl diff exits 1 when there are changes, and >1 on errors.
-          for dir in $PLATFORM_DIRS; do
-            kubectl diff --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/$dir" || [ $? -eq 1 ]
-          done
+  apply:
+    needs: diff
+    if: inputs.action == 'apply' && needs.diff.outputs.has_changes == 'true'
+    runs-on: ubuntu-24.04
+    # Cluster-admin with a required reviewer: approve after reading the diff in the run summary.
+    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
+    steps:
+      # Same run, the same commit and manifests as the diff.
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - uses: ./.github/actions/k8s-tunnel
+        with:
+          host: ${{ secrets.PARSER_SSH_HOST }}
+          ssh_key: ${{ secrets.PARSER_SSH_KEY }}
+          known_hosts: ${{ secrets.PARSER_SSH_KNOWN_HOSTS }}
+          kubeconfig: ${{ secrets.PARSER_KUBECONFIG }}
 
       - name: Apply operators
-        if: inputs.action == 'apply'
         run: |
           # Server-side apply: the CNPG CRDs are too large for the client-side last-applied annotation.
           kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/operators"
@@ -117,7 +128,6 @@ jobs:
           done
 
       - name: Apply config
-        if: inputs.action == 'apply'
         run: |
           # The cert-manager webhook can reject requests for a few seconds after its rollout finishes.
           for attempt in 1 2 3 4 5; do
@@ -128,28 +138,10 @@ jobs:
           kubectl wait --for=condition=Ready clusterissuer --all --timeout=3m
 
       - name: Apply database
-        if: inputs.action == 'apply'
-        run: |
-          before=$(kubectl -n parser get cluster parser-db --ignore-not-found -o jsonpath='{.metadata.generation}')
-          kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/database"
-          after=$(kubectl -n parser get cluster parser-db -o jsonpath='{.metadata.generation}')
-
-          # CNPG reports no observedGeneration, so after a spec change Ready=True may still describe the old spec.
-          # Wait for the operator to pick the change up first; some changes need no restart and never drop Ready.
-          if [ -n "$before" ] && [ "$before" != "$after" ]; then
-            kubectl -n parser wait --for=condition=Ready=false cluster/parser-db --timeout=30s 2> /dev/null \
-              || echo "Ready stayed True: this change needed no restart."
-          fi
-
-          # The first start pulls the image and runs initdb, so allow several minutes.
-          kubectl -n parser wait --for=condition=Ready cluster/parser-db --timeout=10m
-
-          # The service reads DATABASE_URL from this Secret.
-          kubectl -n parser get secret parser-db-app -o jsonpath='{.data.uri}' | grep -q . \
-            || { echo "::error::parser-db-app has no uri key"; exit 1; }
+        run: bash scripts/ci/parser-platform-apply-database.sh
 
       - name: Status
-        if: always() && inputs.action == 'apply'
+        if: always()
         run: |
           {
             echo "### Platform (${{ inputs.environment }})"

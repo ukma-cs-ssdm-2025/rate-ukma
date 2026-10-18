@@ -128,11 +128,15 @@ Cluster-wide add-ons, applied by [`.github/workflows/parser-platform.yml`](../..
 
 The workflow reaches the API server through [`.github/actions/k8s-tunnel`](../../../.github/actions/k8s-tunnel/action.yml), an SSH tunnel to `127.0.0.1:6443` on the node.
 Pull requests only render the kustomizations.
-**Actions → Parser Platform → Run workflow** runs `diff` or `apply`, and waits for the environment's reviewer.
+**Actions → Parser Platform → Run workflow** runs `diff`, or `diff` followed by `apply`:
+1. The **diff** job runs at once in `Parser Staging Plan` and writes the diff to the run summary.
+2. The **apply** job waits for the reviewer in `Parser Staging`, then applies the same commit. It is skipped when there are no changes.
+
+The longer step scripts live in `scripts/ci/parser-platform-*.sh`.
 
 ### Before the first run
 
-Add these secrets to the GitHub Environment, next to `PARSER_SSH_KEY` and `PARSER_KUBECONFIG`:
+Both jobs open the tunnel, so add these secrets to **both** `Parser Staging Plan` and `Parser Staging`, next to `PARSER_SSH_KEY` and `PARSER_KUBECONFIG` (which both need too):
 
 | Secret | Value |
 | --- | --- |
