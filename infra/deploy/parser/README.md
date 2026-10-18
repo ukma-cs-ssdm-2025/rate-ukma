@@ -103,7 +103,7 @@ Each environment is one Hetzner VM running single-node k3s:
    ```
 
    The node should be `Ready` and encryption `Enabled`.
-3. **Kubeconfig:** copy the admin kubeconfig into the `PARSER_KUBECONFIG` environment secret. Keep its `server: https://127.0.0.1:6443`, because CI reaches it through the tunnel.
+3. **Kubeconfig:** copy the admin kubeconfig into the `PARSER_KUBECONFIG` secret of both `Parser Staging Plan` and `Parser Staging`. Keep its `server: https://127.0.0.1:6443`, because CI reaches it through the tunnel.
 
    ```bash
    ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml
@@ -113,7 +113,10 @@ Each environment is one Hetzner VM running single-node k3s:
 
    ```bash
    ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml | grep client-certificate-data | awk '{print $2}' | base64 -d | openssl x509 -noout -enddate
-   ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml | gh secret set PARSER_KUBECONFIG --env "Parser Staging"
+   CONFIG=$(ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml) \
+     && for ENV in "Parser Staging Plan" "Parser Staging"; do
+          gh secret set PARSER_KUBECONFIG --env "$ENV" --body "$CONFIG"
+        done
    ```
 
 4. **Admin access from a laptop:** open a tunnel with `ssh -N -L 6443:127.0.0.1:6443 deploy@<ipv4>`, then use the kubeconfig as is.
