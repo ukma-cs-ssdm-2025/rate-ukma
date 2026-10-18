@@ -58,6 +58,7 @@ These steps are manual because Terraform needs them before it can run.
      | `TF_STATE_ACCESS_KEY` | S3 access key |
      | `TF_STATE_SECRET_KEY` | S3 secret key |
      | `TF_STATE_SSE_CUSTOMER_KEY` | state encryption key (base64, 32 bytes) |
+     | `TF_PLAN_ENCRYPTION_KEY` | plan file encryption key: `openssl rand -base64 32`. The plan is uploaded as an artifact, which anyone signed in to GitHub can download from this public repo |
 
    The plan job also needs `PARSER_SSH_PUBLIC_KEY` (see below). The apply job doesn't: the saved plan already holds it.
 
