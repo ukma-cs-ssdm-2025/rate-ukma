@@ -1,0 +1,25 @@
+---
+# UKMA Data: api, worker and the migrate Job, from one image.
+# The deploy applies the migrate Job first (-l app.kubernetes.io/component=migrate), then the rest.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: parser
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: ukma-data
+      app.kubernetes.io/part-of: ukma-data
+    includeSelectors: true
+
+resources:
+  - api.yaml
+  - worker.yaml
+  - migrate.yaml
+  - service.yaml
+  - ingress.yaml
+
+images:
+  # The deploy sets the tag; the placeholder name keeps every container on the same image.
+  - name: parser
+    newName: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser

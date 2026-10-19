@@ -1,0 +1,47 @@
+---
+name: Deploy Parser
+
+on:
+  pull_request:
+    paths:
+      - infra/deploy/parser/k8s/app/**
+      - .github/workflows/parser-deploy.yml
+
+permissions:
+  contents: read
+
+env:
+  # Must be within one minor of the cluster (k3s v1.36).
+  KUBECTL_VERSION: v1.36.5
+  KUBECONFORM_VERSION: v0.8.0
+  APP_ROOT: infra/deploy/parser/k8s/app
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        environment: [staging]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Install kubeconform
+        run: |
+          base="https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION"
+          cd "$RUNNER_TEMP"
+          curl -fsSLO "$base/kubeconform-linux-amd64.tar.gz"
+          curl -fsSL "$base/CHECKSUMS" | grep ' kubeconform-linux-amd64.tar.gz$' | sha256sum -c -
+          tar -xzf kubeconform-linux-amd64.tar.gz kubeconform
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Validate rendered manifests
+        shell: bash
+        run: |
+          kubectl kustomize "$APP_ROOT/overlays/${{ matrix.environment }}" \
+            | kubeconform -strict -summary -kubernetes-version "${KUBECTL_VERSION#v}"
