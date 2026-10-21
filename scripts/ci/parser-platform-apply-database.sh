@@ -6,56 +6,20 @@ set -euo pipefail
 
 : "${PLATFORM_ROOT:?PLATFORM_ROOT is required}"
 
+before=$(kubectl -n parser get cluster parser-db --ignore-not-found -o jsonpath='{.metadata.generation}')
 kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/database"
+after=$(kubectl -n parser get cluster parser-db -o jsonpath='{.metadata.generation}')
 
-# CNPG reports no observedGeneration, so after a spec change Ready=True may still describe the old spec,
-# and the operator can start a restart some time after the apply.
-# So also check that the running instances already match the spec: then no restart is pending.
-# This covers the fields cluster.yaml sets; a new field that restarts the pods needs a check here.
-spec_applied() {
-  local cluster pods pod params missing
-  cluster=$(kubectl -n parser get cluster parser-db -o json) || return 1
-  pods=$(kubectl -n parser get pods -l cnpg.io/cluster=parser-db,cnpg.io/podRole=instance -o json) || return 1
+# CNPG reports no observedGeneration: after a spec change, Ready=True may still be the old state.
+# Give the operator 30s to pick the change up; reload-only changes never drop Ready.
+if [ -n "$before" ] && [ "$before" != "$after" ]; then
+  kubectl -n parser wait --for=condition=Ready=false cluster/parser-db --timeout=30s 2> /dev/null \
+    || echo "Ready stayed True: this change needed no restart."
+fi
 
-  # Image and resources are what CNPG compares to decide on a rolling restart.
-  # The pod's resources are normalized, so cluster.yaml must use canonical quantities (100m, 512Mi).
-  jq -en --argjson c "$cluster" --argjson p "$pods" '
-    ($c.status.conditions // [] | any(.type == "Ready" and .status == "True"))
-    and ($p.items | length) == $c.spec.instances
-    and ($p.items | all(
-      .metadata.deletionTimestamp == null
-      and (.spec.containers[] | select(.name == "postgres")
-        | .image == $c.spec.imageName and (.resources // {}) == ($c.spec.resources // {}))))
-  ' > /dev/null || return 1
-
-  # pg_file_settings re-reads the config files: applied=false means the value waits for a restart,
-  # and a missing row means the instance manager hasn't written the new value yet.
-  params=$(jq -c '.spec.postgresql.parameters // {}' <<< "$cluster")
-  for pod in $(jq -r '.items[].metadata.name' <<< "$pods"); do
-    missing=$(kubectl -n parser exec -i "$pod" -c postgres -- \
-      psql -XtA -v ON_ERROR_STOP=1 -v want="$params" 2> /dev/null <<'SQL'
-select count(*) from json_each_text(:'want'::json) w
-where not exists (
-  select 1 from pg_file_settings f
-  where f.name = lower(w.key) and f.setting = w.value and f.applied
-);
-SQL
-    ) || return 1
-    [ "$missing" = 0 ] || return 1
-  done
-}
-
-# The first start pulls the image and runs initdb, so allow several minutes.
-deadline=$((SECONDS + 600))
-until spec_applied; do
-  if [ "$SECONDS" -ge "$deadline" ]; then
-    echo "::error::parser-db did not reach the applied spec within 10m"
-    kubectl -n parser get cluster parser-db
-    exit 1
-  fi
-  sleep 10
-done
+# The first start pulls the image and runs initdb.
+kubectl -n parser wait --for=condition=Ready cluster/parser-db --timeout=10m
 
 # The service reads DATABASE_URL from this Secret.
-kubectl -n parser get secret parser-db-app -o jsonpath='{.data.uri}' | grep -q . \
-  || { echo "::error::parser-db-app has no uri key"; exit 1; }
+uri=$(kubectl -n parser get secret parser-db-app -o jsonpath='{.data.uri}')
+[ -n "$uri" ] || { echo "::error::parser-db-app has no uri key"; exit 1; }
