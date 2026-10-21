@@ -17,12 +17,7 @@ diff_file=$(mktemp)
 # Only NotFound counts as "not installed"; any other error fails the script.
 installed=$(kubectl get namespace cert-manager cnpg-system parser --ignore-not-found -o name)
 if [ "$(grep -c . <<< "$installed")" -lt 3 ]; then
-  {
-    echo "Not installed yet. The first apply creates:"
-    for dir in $PLATFORM_DIRS; do
-      kubectl kustomize "$PLATFORM_ROOT/$dir" | grep '^kind:' | sort | uniq -c
-    done
-  } > "$diff_file"
+  echo "First install: apply creates everything." > "$diff_file"
   has_changes=true
 else
   # kubectl diff exits 1 when there are changes, and >1 on errors.

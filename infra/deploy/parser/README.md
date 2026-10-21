@@ -10,10 +10,14 @@ infra/deploy/parser/
 │   └── envs/
 │       └── staging/      # one root module (and one state file) per environment
 └── k8s/
-    └── platform/
-        ├── operators/    # cert-manager, CloudNativePG (pinned upstream manifests)
-        ├── config/       # parser namespace, Let's Encrypt ClusterIssuers
-        └── database/     # parser-db Postgres cluster
+    ├── platform/
+    │   ├── operators/    # cert-manager, CloudNativePG (pinned upstream manifests)
+    │   ├── config/       # parser namespace, Let's Encrypt ClusterIssuers
+    │   └── database/     # parser-db Postgres cluster
+    └── app/
+        ├── base/         # api, worker, migrate Job, Service, Ingress
+        └── overlays/
+            └── staging/  # host data.staging.rateukma.com
 ```
 
 Terraform runs from CI only, via [`.github/workflows/parser-infra.yml`](../../../.github/workflows/parser-infra.yml):
@@ -186,6 +190,43 @@ Changing `imageName` (a minor Postgres update) or a parameter that needs a resta
 
 Change its version in `operators/kustomization.yaml` and check the release notes for the supported Kubernetes versions.
 Run `diff`, then `apply`.
+
+## App (`k8s/app`)
+
+The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three workloads in the `parser` namespace:
+
+| Workload | Command | Notes |
+| --- | --- | --- |
+| `parser-api` Deployment | `api` | port 8080, probes on `GET /health`, reached through the `parser-api` Service and Ingress |
+| `parser-worker` Deployment | `worker` | no port; `Recreate`, so two workers never run at once |
+| `parser-migrate` Job | `migrate` | runs before each rollout |
+
+- **Database:** all three read `DATABASE_URL` from the `uri` key of the `parser-db-app` Secret.
+- **Security:** pods run as uid 1000 with a read-only root filesystem; `/tmp` is the only writable path. They meet Pod Security `restricted` and get no service account token.
+- **Image tag:** the base sets only the image name; the deploy sets the tag.
+- **Order:** apply the Job alone first (`-l app.kubernetes.io/component=migrate`) and wait for it, then the rest (`-l 'app.kubernetes.io/component!=migrate'`). A Job can't be updated, so delete the previous `parser-migrate` before applying a new one.
+- **Pull requests** render each overlay and validate it with kubeconform against the Kubernetes 1.36 schemas (`.github/workflows/parser-deploy.yml`).
+
+### Before the first deploy
+
+1. **Pull token.** The image is private, so the pods pull it with the `parser-ghcr-pull` Secret, which **Parser Platform** creates on apply.
+   - Create a **classic** personal access token with only **`read:packages`**. ghcr.io accepts no other kind.
+   - Add it to `Parser Staging` as `PARSER_GHCR_PULL_TOKEN`, and its owner's GitHub username as `PARSER_GHCR_PULL_USER`.
+   - **On a cluster installed before this Secret existed, and to rotate the token,** apply it over the admin tunnel. A Parser Platform run with no other changes skips apply. When rotating, update both GitHub secrets too.
+
+     ```bash
+     GHCR_PULL_USER=<user> GHCR_PULL_TOKEN=<token> bash scripts/ci/parser-platform-pull-secret.sh \
+       | kubectl apply --server-side --field-manager=parser-platform -f -
+     ```
+2. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
+
+### Check
+
+```bash
+curl -sI https://data.staging.rateukma.com/health          # HTTP/2 200, trusted certificate
+sudo k3s kubectl -n parser logs deploy/parser-worker        # "Worker connected to Postgres"
+sudo k3s kubectl -n parser get certificate parser-api-tls   # READY True
+```
 
 ## Upgrading Terraform or providers
 
