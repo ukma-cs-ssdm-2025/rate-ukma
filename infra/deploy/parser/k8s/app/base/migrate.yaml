@@ -18,6 +18,9 @@ spec:
     spec:
       restartPolicy: Never
       automountServiceAccountToken: false
+      # Created by the Parser Platform workflow, the image is private
+      imagePullSecrets:
+        - name: parser-ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
