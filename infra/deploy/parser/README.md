@@ -209,7 +209,15 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
 
 ### Before the first deploy
 
-1. **Public image.** The cluster pulls the image without credentials. In the organization's **Packages → `rate-ukma/parser` → Package settings**, set the visibility to **Public**. The repo and Dockerfile are public already.
+1. **Pull token.** The image is private, so the pods pull it with the `parser-ghcr-pull` Secret, which **Parser Platform** creates on apply.
+   - Create a **classic** personal access token with only **`read:packages`**. ghcr.io accepts no other kind.
+   - Add it to `Parser Staging` as `PARSER_GHCR_PULL_TOKEN`, and its owner's GitHub username as `PARSER_GHCR_PULL_USER`.
+   - **On a cluster installed before this Secret existed, and to rotate the token,** apply it over the admin tunnel. A Parser Platform run with no other changes skips apply. When rotating, update both GitHub secrets too.
+
+     ```bash
+     GHCR_PULL_USER=<user> GHCR_PULL_TOKEN=<token> bash scripts/ci/parser-platform-pull-secret.sh \
+       | kubectl apply --server-side --field-manager=parser-platform -f -
+     ```
 2. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
 
 ### Check
