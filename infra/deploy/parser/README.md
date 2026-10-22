@@ -64,7 +64,7 @@ These steps are manual because Terraform needs them before it can run.
      | `TF_STATE_SSE_CUSTOMER_KEY` | state encryption key (base64, 32 bytes) |
      | `TF_PLAN_ENCRYPTION_KEY` | plan file encryption key: `openssl rand -base64 32`. The plan is uploaded as an artifact, which anyone signed in to GitHub can download from this public repo |
 
-   The plan job also needs `PARSER_SSH_PUBLIC_KEY` (see below). The apply job doesn't: the saved plan already holds it.
+   The plan job also needs `PARSER_SSH_PUBLIC_KEY` and `PARSER_TUNNEL_SSH_PUBLIC_KEY` (see below). The apply job doesn't: the saved plan already holds them.
 
 5. **Check.** Run the workflow with `action: plan`. On an empty environment it should report `No changes.`, and `staging/terraform.tfstate` should appear in the bucket after the first `apply`.
 
@@ -73,7 +73,7 @@ These steps are manual because Terraform needs them before it can run.
 Each environment is one Hetzner VM running single-node k3s:
 
 - **Firewall:** only 22, 80 and 443 are open. The Kubernetes API (6443) is never public. Reach it through an SSH tunnel.
-- **First boot:** cloud-init creates the `deploy` user, turns off root and password SSH logins, and installs the pinned k3s.
+- **First boot:** cloud-init creates the `deploy` user (sudo) and the `tunnel` user, turns off root and password SSH logins, and installs the pinned k3s. `tunnel` has no shell and no sudo, and its key may only forward to `127.0.0.1:6443`. Deploy Parser logs in as `tunnel`, so an unreviewed deploy gets no shell on the node.
 - **k3s settings:** `/etc/rancher/k3s/config.yaml` turns on Secrets encryption at rest. The bundled Traefik is the ingress controller.
 - **Later changes:** Terraform ignores changes to `user_data` and SSH keys, because applying them would rebuild the server and wipe the cluster. Upgrade k3s and rotate keys on the node instead.
 - **Delete protection:** the server has Hetzner delete and rebuild protection and `prevent_destroy`, so a plan that would replace it (new `image` or `location`, a renamed resource, `terraform destroy`) fails. `server_type`, `name` and `labels` change in place. To rebuild on purpose, first merge a PR that turns the protection off.
@@ -87,15 +87,22 @@ Each environment is one Hetzner VM running single-node k3s:
 
 ### Before the first `apply`
 
-1. Generate a key pair for the node: `ssh-keygen -t ed25519 -N "" -C parser-staging -f parser-staging` (no passphrase, so CI can use it).
+1. Generate two key pairs for the node, with no passphrase so CI can use them:
+
+   ```bash
+   ssh-keygen -t ed25519 -N "" -C parser-staging -f parser-staging                # deploy (admin)
+   ssh-keygen -t ed25519 -N "" -C parser-staging-tunnel -f parser-staging-tunnel  # tunnel only
+   ```
 2. Add these secrets:
 
    | Secret | Environment | Value |
    | --- | --- | --- |
    | `PARSER_SSH_PUBLIC_KEY` | `Parser Staging Plan` | contents of `parser-staging.pub` |
    | `PARSER_SSH_KEY` | `Parser Staging` | contents of `parser-staging` (the private key) |
+   | `PARSER_TUNNEL_SSH_PUBLIC_KEY` | `Parser Staging Plan` | contents of `parser-staging-tunnel.pub` |
+   | `PARSER_TUNNEL_SSH_KEY` | `Parser Staging Deploy` | contents of `parser-staging-tunnel` (the private key) |
 
-   Then delete the local private key, or store it in the team password manager.
+   Then delete the local private keys, or store them in the team password manager.
 
 ### After the first `apply`
 
@@ -130,7 +137,7 @@ Each environment is one Hetzner VM running single-node k3s:
 Cluster-wide add-ons, applied by [`.github/workflows/parser-platform.yml`](../../../.github/workflows/parser-platform.yml):
 
 - **`operators/`:** upstream cert-manager and CloudNativePG manifests, pinned to exact releases.
-- **`config/`:** the `parser` namespace and the `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers. It needs the operator CRDs, so it is applied second.
+- **`config/`:** the `parser` namespace, the `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers, and the `parser-deployer` ServiceAccount that Deploy Parser uses. It needs the operator CRDs, so it is applied second.
 - **`database/`:** the `parser-db` Postgres cluster. It needs the CNPG CRDs and the `parser` namespace, so it is applied last.
 - **Ingress:** the Traefik bundled with k3s, IngressClass `traefik`. It is not in this folder.
 
@@ -158,12 +165,12 @@ The secret is only written if the key was read, so a failed login leaves the old
 IP=<ipv4>
 KEY=$(ssh deploy@$IP cat /etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2) \
   && [[ $KEY == "ssh-ed25519 "* ]] \
-  && for ENV in "Parser Staging Plan" "Parser Staging"; do
+  && for ENV in "Parser Staging Plan" "Parser Staging" "Parser Staging Deploy"; do
        gh secret set PARSER_SSH_KNOWN_HOSTS --env "$ENV" --body "$IP $KEY"
      done
 ```
 
-If the VM is recreated, its IP and host key change: update both secrets.
+If the VM is recreated, its IP and host key change: update both secrets, in every environment that has them.
 
 ### Check
 
@@ -205,7 +212,22 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
 - **Security:** pods run as uid 1000 with a read-only root filesystem; `/tmp` is the only writable path. They meet Pod Security `restricted` and get no service account token.
 - **Image tag:** the base sets only the image name; the deploy sets the tag.
 - **Order:** apply the Job alone first (`-l app.kubernetes.io/component=migrate`) and wait for it, then the rest (`-l 'app.kubernetes.io/component!=migrate'`). A Job can't be updated, so delete the previous `parser-migrate` before applying a new one.
-- **Pull requests** render each overlay and validate it with kubeconform against the Kubernetes 1.36 schemas (`.github/workflows/parser-deploy.yml`).
+
+Deploys run from [`.github/workflows/parser-deploy.yml`](../../../.github/workflows/parser-deploy.yml):
+
+- **Pull requests** render each overlay and validate it with kubeconform against the Kubernetes 1.36 schemas.
+- **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA) to the chosen environment. The `deploy` job:
+  1. picks the parser image with `scripts/ci/find-image-tags.sh`: the exact tag, or for a version the newest parser release at or below it, since the image is only built when `src/parser` changes;
+  2. renders the overlay with that tag;
+  3. opens the tunnel as the `tunnel` user with the `parser-deployer` kubeconfig, and checks with `kubectl auth can-i` that it can't read Secrets or change RBAC;
+  4. runs the `parser-migrate` Job (`scripts/ci/parser-deploy-migrate.sh`). If it fails, the deploy stops there and the old pods keep serving;
+  5. applies the rest and waits for both rollouts;
+  6. curls `https://<host>/health`, which checks the certificate too, and waits for the worker's `Worker connected to Postgres` log line.
+- There is no reviewer: one deploy per environment runs at a time, and a newer one waits for it.
+
+`parser-deployer` is a ServiceAccount in `parser` with a Role (`platform/config/deployer.yaml`) that allows only what the deploy does: apply the Deployments, Service, Ingress and Job, delete the Job, and read pods, logs and events.
+It can't read Secrets through the API, change RBAC or touch anything outside `parser`.
+It isn't a Secret boundary, though: a pod it deploys can mount any Secret in `parser`, as the app does with `parser-db-app`. Keep only the app's own Secrets in this namespace.
 
 ### Before the first deploy
 
@@ -219,8 +241,57 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
        | kubectl apply --server-side --field-manager=parser-platform -f -
      ```
 2. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
+3. **Tunnel user.** A node created before the `tunnel` user existed doesn't have it, and Terraform won't add it (it ignores `user_data`). Create it over the admin login, with the `parser-staging-tunnel` key pair from [Before the first `apply`](#before-the-first-apply):
+
+   ```bash
+   IP=<ipv4>
+   ADMIN_KEY=<the deploy private key file>
+   PUB=$(cat parser-staging-tunnel.pub)
+   ssh -i "$ADMIN_KEY" deploy@$IP sudo bash -s <<EOF
+   set -euo pipefail
+   id tunnel > /dev/null 2>&1 || useradd --create-home --shell /usr/sbin/nologin tunnel
+   install -d -m 700 -o tunnel -g tunnel /home/tunnel/.ssh
+   echo 'restrict,port-forwarding,permitopen="127.0.0.1:6443" $PUB' > /home/tunnel/.ssh/authorized_keys
+   chown tunnel:tunnel /home/tunnel/.ssh/authorized_keys
+   chmod 600 /home/tunnel/.ssh/authorized_keys
+   EOF
+   ```
+
+   Check that it can forward to the API server and do nothing else:
+
+   ```bash
+   ssh -i parser-staging-tunnel tunnel@$IP true                                # "This account is currently not available."
+   ssh -i parser-staging-tunnel -N -L 6443:127.0.0.1:6443 tunnel@$IP &         # the tunnel opens
+   kubectl --kubeconfig ~/.kube/parser-staging.yaml get --raw /readyz; echo   # ok
+   kill %1
+   ```
+4. **Deploy environment.** Create `Parser Staging Deploy` under Settings → Environments, with no reviewer and, under **Deployment branches and tags**, only `main` allowed. Add `PARSER_SSH_HOST` and `PARSER_SSH_KNOWN_HOSTS` with the same values as in `Parser Staging`, and `PARSER_TUNNEL_SSH_KEY`. Never add `PARSER_SSH_KEY` here: it logs in with sudo.
+   GitHub can't read a secret back, so it can't copy one between environments: set each again from its source. The host key is read from the node, as in [Before the first run](#before-the-first-run):
+
+   ```bash
+   ENV="Parser Staging Deploy"
+   KEY=$(ssh -i "$ADMIN_KEY" deploy@$IP cat /etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2) \
+     && [[ $KEY == "ssh-ed25519 "* ]] \
+     && gh secret set PARSER_SSH_HOST --env "$ENV" --body "$IP" \
+     && gh secret set PARSER_SSH_KNOWN_HOSTS --env "$ENV" --body "$IP $KEY" \
+     && gh secret set PARSER_TUNNEL_SSH_KEY --env "$ENV" < parser-staging-tunnel
+   ```
+
+   Then delete the local private keys, or store them in the team password manager.
+5. **Deploy access.** Run **Parser Platform** with `action: apply`, which creates `parser-deployer` and its token Secret `parser-deployer-token`. Then build the kubeconfig over the admin tunnel and store it as `PARSER_DEPLOY_KUBECONFIG`. Never put the admin kubeconfig in this environment: the deploy stops if it can read Secrets.
+
+   ```bash
+   bash scripts/ci/parser-deployer-kubeconfig.sh > /tmp/parser-deploy.yaml \
+     && gh secret set PARSER_DEPLOY_KUBECONFIG --env "Parser Staging Deploy" < /tmp/parser-deploy.yaml
+   rm -f /tmp/parser-deploy.yaml
+   ```
+
+   The token doesn't expire. To revoke it, delete the Secret (`kubectl -n parser delete secret parser-deployer-token`), run Parser Platform `apply` to create a new one, and run the commands above again.
 
 ### Check
+
+Run **Deploy Parser** with a parser tag CI pushed. Its run summary shows the image and the pods.
+By hand:
 
 ```bash
 curl -sI https://data.staging.rateukma.com/health          # HTTP/2 200, trusted certificate

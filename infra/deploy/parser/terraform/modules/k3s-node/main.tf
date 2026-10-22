@@ -35,9 +35,11 @@ resource "hcloud_server" "node" {
   labels       = local.labels
 
   user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-    admin_user     = var.admin_user
-    ssh_public_key = var.ssh_public_key
-    k3s_version    = var.k3s_version
+    admin_user            = var.admin_user
+    ssh_public_key        = var.ssh_public_key
+    tunnel_user           = var.tunnel_user
+    tunnel_ssh_public_key = var.tunnel_ssh_public_key
+    k3s_version           = var.k3s_version
   })
 
   public_net {

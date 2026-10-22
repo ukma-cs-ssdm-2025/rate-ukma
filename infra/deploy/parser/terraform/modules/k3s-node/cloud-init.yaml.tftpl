@@ -9,6 +9,11 @@ users:
     ssh_authorized_keys:
       # Quoted, so a key comment with ": " stays a string.
       - ${chomp(yamlencode(trimspace(ssh_public_key)))}
+  # Deploy Parser's login: it can only forward to the API server. No shell, no sudo, no other ports.
+  - name: ${tunnel_user}
+    shell: /usr/sbin/nologin
+    ssh_authorized_keys:
+      - ${chomp(yamlencode("restrict,port-forwarding,permitopen=\"127.0.0.1:6443\" ${trimspace(tunnel_ssh_public_key)}"))}
 
 disable_root: true
 ssh_pwauth: false
