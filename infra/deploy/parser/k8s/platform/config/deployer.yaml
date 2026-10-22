@@ -1,6 +1,7 @@
 ---
 # The identity Deploy Parser uses. It can roll out the app in the parser namespace only:
-# no Secrets, no RBAC, nothing cluster-wide.
+# no Secrets API, no RBAC, nothing cluster-wide.
+# Not a Secret boundary: a pod it deploys can still mount any Secret in parser, such as parser-db-app.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

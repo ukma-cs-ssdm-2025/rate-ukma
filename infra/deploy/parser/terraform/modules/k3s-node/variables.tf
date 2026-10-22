@@ -46,6 +46,22 @@ variable "ssh_public_key" {
   }
 }
 
+variable "tunnel_user" {
+  description = "Login user that can only forward to the API server (127.0.0.1:6443). Deploy Parser uses it."
+  type        = string
+  default     = "tunnel"
+}
+
+variable "tunnel_ssh_public_key" {
+  description = "Public key for tunnel_user. Its private half is the PARSER_TUNNEL_SSH_KEY secret used by Deploy Parser."
+  type        = string
+
+  validation {
+    condition     = can(regex("^ssh-ed25519 [A-Za-z0-9+/=]+", trimspace(var.tunnel_ssh_public_key)))
+    error_message = "tunnel_ssh_public_key must be an ed25519 public key (ssh-ed25519 AAAA...). Is the PARSER_TUNNEL_SSH_PUBLIC_KEY environment secret set?"
+  }
+}
+
 variable "labels" {
   description = "Extra Hetzner labels for all resources."
   type        = map(string)

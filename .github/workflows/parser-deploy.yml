@@ -73,9 +73,11 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    # No reviewer: every merge deploys. The parser-deployer kubeconfig can't read Secrets or change RBAC.
+    # No reviewer: every merge deploys. It reaches the node as the tunnel-only user, and the parser-deployer
+    # kubeconfig can't read Secrets directly or change RBAC.
     environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Deploy
     # One deploy per environment at a time; a newer one waits instead of cancelling a migration.
+    # Only the newest waiting deploy runs: the ones it replaces add nothing, since migrate applies every pending migration.
     concurrency:
       group: parser-deploy-${{ inputs.environment }}
       cancel-in-progress: false
@@ -129,10 +131,12 @@ jobs:
           fi
           echo "MANIFESTS=$manifests" >> "$GITHUB_ENV"
 
+      # The tunnel user can only forward to the API server, so this job gets no shell on the node.
       - uses: ./.github/actions/k8s-tunnel
         with:
           host: ${{ secrets.PARSER_SSH_HOST }}
-          ssh_key: ${{ secrets.PARSER_SSH_KEY }}
+          user: tunnel
+          ssh_key: ${{ secrets.PARSER_TUNNEL_SSH_KEY }}
           known_hosts: ${{ secrets.PARSER_SSH_KNOWN_HOSTS }}
           kubeconfig: ${{ secrets.PARSER_DEPLOY_KUBECONFIG }}
 
@@ -164,13 +168,15 @@ jobs:
           curl -fsS --retry 12 --retry-delay 10 --retry-all-errors --max-time 10 "https://$host/health"
           echo
 
-          # The worker logs this once it has reached the database.
-          for _ in $(seq 1 12); do
-            logs=$(kubectl -n parser logs deployment/parser-worker --tail=200)
-            grep -qF "Worker connected to Postgres" <<< "$logs" && { echo "Worker connected to Postgres"; exit 0; }
+          # A new worker logs "connected" at startup; one the rollout left unchanged logs "tick" every minute.
+          # Both follow a successful query, so either one in the last 2 minutes means the worker reaches Postgres.
+          for _ in $(seq 1 18); do
+            logs=$(kubectl -n parser logs deployment/parser-worker --since=2m)
+            match=$(grep -oE "Worker connected to Postgres|Worker tick" <<< "$logs" | tail -n1 || true)
+            [ -n "$match" ] && { echo "$match"; exit 0; }
             sleep 5
           done
-          echo "::error::the worker hasn't logged its database check"
+          echo "::error::the worker hasn't logged a database check in the last 2 minutes"
           echo "$logs"
           exit 1
 
