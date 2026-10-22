@@ -6,6 +6,28 @@ on:
     paths:
       - infra/deploy/parser/k8s/app/**
       - .github/workflows/parser-deploy.yml
+  workflow_call:
+    inputs:
+      environment:
+        description: "Parser environment to deploy to"
+        required: true
+        type: string
+      version_tag:
+        description: "Version to deploy (finds the best matching parser image)"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Parser environment to deploy to"
+        required: true
+        type: choice
+        options:
+          - staging
+      version_tag:
+        description: "Version or commit SHA to deploy (finds the best matching parser image)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -15,9 +37,11 @@ env:
   KUBECTL_VERSION: v1.36.5
   KUBECONFORM_VERSION: v0.8.0
   APP_ROOT: infra/deploy/parser/k8s/app
+  PARSER_IMAGE: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser
 
 jobs:
   validate:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -45,3 +69,121 @@ jobs:
         run: |
           kubectl kustomize "$APP_ROOT/overlays/${{ matrix.environment }}" \
             | kubeconform -strict -summary -kubernetes-version "${KUBECTL_VERSION#v}"
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    # No reviewer: every merge deploys. The parser-deployer kubeconfig can't read Secrets or change RBAC.
+    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Deploy
+    # One deploy per environment at a time; a newer one waits instead of cancelling a migration.
+    concurrency:
+      group: parser-deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Find image tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORG: ${{ github.repository_owner }}
+          TARGET_VERSION: ${{ inputs.version_tag }}
+        run: |
+          # The parser image is only built when src/parser changes, so a version may have none of its own.
+          tag=$(bash scripts/ci/find-image-tags.sh "rate-ukma/parser" "$TARGET_VERSION" "")
+          if ! [[ $tag =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "::error::not a valid image tag: '$tag'"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Render manifests
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          # A throwaway overlay on top of the environment's, so the tag is set by kustomize.
+          dir="$APP_ROOT/overlays/.deploy"
+          mkdir -p "$dir"
+          printf '%s\n' \
+            "resources: [../$ENVIRONMENT]" \
+            "images:" \
+            "  - name: $PARSER_IMAGE" \
+            "    newTag: \"$TAG\"" > "$dir/kustomization.yaml"
+          manifests="$RUNNER_TEMP/parser-app.yaml"
+          kubectl kustomize "$dir" > "$manifests"
+
+          # Every container must run the tag just resolved.
+          if grep -E '^\s+image:' "$manifests" | grep -vF "image: $PARSER_IMAGE:$TAG"; then
+            echo "::error::the images above don't use $PARSER_IMAGE:$TAG"
+            exit 1
+          fi
+          echo "MANIFESTS=$manifests" >> "$GITHUB_ENV"
+
+      - uses: ./.github/actions/k8s-tunnel
+        with:
+          host: ${{ secrets.PARSER_SSH_HOST }}
+          ssh_key: ${{ secrets.PARSER_SSH_KEY }}
+          known_hosts: ${{ secrets.PARSER_SSH_KNOWN_HOSTS }}
+          kubeconfig: ${{ secrets.PARSER_DEPLOY_KUBECONFIG }}
+
+      - name: Check deployer permissions
+        run: |
+          # Stops the deploy if the secret holds an admin kubeconfig instead of parser-deployer's.
+          for check in get:secrets create:rolebindings create:namespaces; do
+            verb=${check%%:*} resource=${check#*:}
+            if kubectl auth can-i "$verb" "$resource" -n parser > /dev/null; then
+              echo "::error::PARSER_DEPLOY_KUBECONFIG can $verb $resource; it must be the parser-deployer kubeconfig"
+              exit 1
+            fi
+          done
+          kubectl auth can-i patch deployments -n parser
+
+      - name: Migrate
+        run: bash scripts/ci/parser-deploy-migrate.sh
+
+      - name: Roll out
+        run: |
+          kubectl apply -f "$MANIFESTS" -l 'app.kubernetes.io/component!=migrate'
+          kubectl -n parser rollout status deployment/parser-api --timeout=5m
+          kubectl -n parser rollout status deployment/parser-worker --timeout=5m
+
+      - name: Check health
+        run: |
+          host=$(yq 'select(.kind == "Ingress") | .spec.rules[0].host' "$MANIFESTS")
+          # curl verifies the certificate, so this also checks TLS. A new certificate can take a minute to issue.
+          curl -fsS --retry 12 --retry-delay 10 --retry-all-errors --max-time 10 "https://$host/health"
+          echo
+
+          # The worker logs this once it has reached the database.
+          for _ in $(seq 1 12); do
+            logs=$(kubectl -n parser logs deployment/parser-worker --tail=200)
+            grep -qF "Worker connected to Postgres" <<< "$logs" && { echo "Worker connected to Postgres"; exit 0; }
+            sleep 5
+          done
+          echo "::error::the worker hasn't logged its database check"
+          echo "$logs"
+          exit 1
+
+      - name: Status
+        if: always() && env.MANIFESTS != ''
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          {
+            echo "### Parser deploy ($ENVIRONMENT)"
+            echo "Image: \`$PARSER_IMAGE:$TAG\`"
+            echo '```'
+            kubectl -n parser get deployments,jobs,pods,ingress || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

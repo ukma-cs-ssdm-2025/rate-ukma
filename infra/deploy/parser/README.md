@@ -130,7 +130,7 @@ Each environment is one Hetzner VM running single-node k3s:
 Cluster-wide add-ons, applied by [`.github/workflows/parser-platform.yml`](../../../.github/workflows/parser-platform.yml):
 
 - **`operators/`:** upstream cert-manager and CloudNativePG manifests, pinned to exact releases.
-- **`config/`:** the `parser` namespace and the `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers. It needs the operator CRDs, so it is applied second.
+- **`config/`:** the `parser` namespace, the `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers, and the `parser-deployer` ServiceAccount that Deploy Parser uses. It needs the operator CRDs, so it is applied second.
 - **`database/`:** the `parser-db` Postgres cluster. It needs the CNPG CRDs and the `parser` namespace, so it is applied last.
 - **Ingress:** the Traefik bundled with k3s, IngressClass `traefik`. It is not in this folder.
 
@@ -205,7 +205,21 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
 - **Security:** pods run as uid 1000 with a read-only root filesystem; `/tmp` is the only writable path. They meet Pod Security `restricted` and get no service account token.
 - **Image tag:** the base sets only the image name; the deploy sets the tag.
 - **Order:** apply the Job alone first (`-l app.kubernetes.io/component=migrate`) and wait for it, then the rest (`-l 'app.kubernetes.io/component!=migrate'`). A Job can't be updated, so delete the previous `parser-migrate` before applying a new one.
-- **Pull requests** render each overlay and validate it with kubeconform against the Kubernetes 1.36 schemas (`.github/workflows/parser-deploy.yml`).
+
+Deploys run from [`.github/workflows/parser-deploy.yml`](../../../.github/workflows/parser-deploy.yml):
+
+- **Pull requests** render each overlay and validate it with kubeconform against the Kubernetes 1.36 schemas.
+- **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA) to the chosen environment. The `deploy` job:
+  1. picks the parser image with `scripts/ci/find-image-tags.sh`: the exact tag, or for a version the newest parser release at or below it, since the image is only built when `src/parser` changes;
+  2. renders the overlay with that tag;
+  3. opens the tunnel with the `parser-deployer` kubeconfig and checks with `kubectl auth can-i` that it can't read Secrets or change RBAC;
+  4. runs the `parser-migrate` Job (`scripts/ci/parser-deploy-migrate.sh`). If it fails, the deploy stops there and the old pods keep serving;
+  5. applies the rest and waits for both rollouts;
+  6. curls `https://<host>/health`, which checks the certificate too, and waits for the worker's `Worker connected to Postgres` log line.
+- There is no reviewer: one deploy per environment runs at a time, and a newer one waits for it.
+
+`parser-deployer` is a ServiceAccount in `parser` with a Role (`platform/config/deployer.yaml`) that allows only what the deploy does: apply the Deployments, Service, Ingress and Job, delete the Job, and read pods, logs and events.
+It can't read Secrets, change RBAC or touch anything outside `parser`.
 
 ### Before the first deploy
 
@@ -219,8 +233,21 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
        | kubectl apply --server-side --field-manager=parser-platform -f -
      ```
 2. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
+3. **Deploy environment.** Create `Parser Staging Deploy` under Settings → Environments, with no reviewer and, under **Deployment branches and tags**, only `main` allowed. Add the tunnel secrets as in Parser Platform's [Before the first run](#before-the-first-run): `PARSER_SSH_HOST`, `PARSER_SSH_KNOWN_HOSTS` and `PARSER_SSH_KEY`.
+4. **Deploy access.** Run **Parser Platform** with `action: apply`, which creates `parser-deployer` and its token Secret `parser-deployer-token`. Then build the kubeconfig over the admin tunnel and store it as `PARSER_DEPLOY_KUBECONFIG`. Never put the admin kubeconfig in this environment: the deploy stops if it can read Secrets.
+
+   ```bash
+   bash scripts/ci/parser-deployer-kubeconfig.sh > /tmp/parser-deploy.yaml \
+     && gh secret set PARSER_DEPLOY_KUBECONFIG --env "Parser Staging Deploy" < /tmp/parser-deploy.yaml
+   rm -f /tmp/parser-deploy.yaml
+   ```
+
+   The token doesn't expire. To revoke it, delete the Secret (`kubectl -n parser delete secret parser-deployer-token`), run Parser Platform `apply` to create a new one, and run the commands above again.
 
 ### Check
+
+Run **Deploy Parser** with a parser tag CI pushed. Its run summary shows the image and the pods.
+By hand:
 
 ```bash
 curl -sI https://data.staging.rateukma.com/health          # HTTP/2 200, trusted certificate
