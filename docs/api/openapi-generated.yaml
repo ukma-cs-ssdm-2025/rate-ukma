@@ -3944,9 +3944,13 @@ components:
         fe_rate_flow:
           type: boolean
           description: Whether `fe_rate_flow` is enabled for the current user.
+        fe_personal_plan:
+          type: boolean
+          description: Whether `fe_personal_plan` is enabled for the current user.
       required:
       - fe_faculty_colors
       - fe_feed
+      - fe_personal_plan
       - fe_rate_flow
     RatingCreateRequest:
       properties:
