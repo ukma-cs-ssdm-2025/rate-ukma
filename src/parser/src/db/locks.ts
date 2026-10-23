@@ -8,6 +8,10 @@ import { SqlClient } from "effect/sql";
  *  claimed pages. */
 export const CRAWL_LOCK = 1;
 
+/** Held by an offering write until it commits: two writers would plan the same
+ *  inserts. */
+export const WRITE_LOCK = 2;
+
 const decodeLocked = Schema.decodeUnknownEffect(
 	Schema.Tuple([Schema.Struct({ locked: Schema.Boolean })]),
 );
