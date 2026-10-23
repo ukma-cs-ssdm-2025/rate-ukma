@@ -172,7 +172,8 @@ A following `diff` run should print no changes.
 
 ### Database (`parser-db`)
 
-- **One instance**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`. The standby replica and backups come with #772.
+- **Two instances**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`: a primary and a streaming standby. Backups come with #772.
+- **Failover:** when the primary pod fails, CNPG promotes the standby and moves the `parser-db-rw` Service to it, then recreates the old pod as the new standby. Both run on the one node, so a node failure still takes the database down. Replication is asynchronous, so a failover can lose the last commits not yet streamed.
 - **Credentials:** CNPG generates them and stores them in the `parser-db-app` Secret. Its `uri` key is the service's `DATABASE_URL`, so no DB password passes through GitHub or Terraform.
 - **Storage:** k3s `local-path`, a directory on the node under `/var/lib/rancher/k3s/storage`. Recreating the VM deletes the data.
 
@@ -180,10 +181,18 @@ On the node:
 
 ```bash
 sudo k3s kubectl -n parser get cluster parser-db               # STATUS: Cluster in healthy state
-sudo k3s kubectl -n parser exec -it parser-db-1 -- psql parser  # psql as the postgres superuser
+sudo k3s kubectl -n parser get pods -L cnpg.io/instanceRole     # which instance is the primary
+sudo k3s kubectl -n parser exec -it <primary> -- psql parser    # psql as the postgres superuser
 ```
 
-Changing `imageName` (a minor Postgres update) or a parameter that needs a restart restarts the instance, so expect a short outage.
+Changing `imageName` (a minor Postgres update) or a parameter that needs a restart restarts the standby first, then switches over to it (`primaryUpdateMethod: switchover`). Writes pause for a few seconds during the switchover.
+
+To check failover, delete the primary pod and watch the standby take over:
+
+```bash
+sudo k3s kubectl -n parser delete pod <primary>
+sudo k3s kubectl -n parser get cluster parser-db -w   # Failing over, then Cluster in healthy state with the other instance as primary
+```
 
 ### Upgrading an operator
 
