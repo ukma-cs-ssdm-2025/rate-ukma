@@ -38,7 +38,8 @@ const reset = Effect.gen(function* () {
 
 	yield* sql`
 		TRUNCATE offering_terms, offering_programmes, offerings, programmes,
-			departments, faculties, terms, page_snapshots, run_pages, runs
+			departments, faculties, terms, parse_failures, parses, page_snapshots,
+			run_pages, runs
 		RESTART IDENTITY
 	`;
 });
@@ -351,7 +352,7 @@ describe("parseOfferings", () => {
 				yield* snapshot("/course/900002", coursePage({ code: "900002" }));
 				yield* snapshot("/course/900003", "<html></html>");
 
-				const report = yield* parseOfferings();
+				const report = yield* parseOfferings("crawl");
 
 				const rows = yield* sql<{ readonly line: string }>`
 					SELECT o.saz_code || ' ' || o.title || ' ' || f.saz_filter_id AS line
@@ -364,6 +365,7 @@ describe("parseOfferings", () => {
 				`;
 
 				assert.deepStrictEqual(report, {
+					seconds: report.seconds,
 					parsed: 2,
 					failed: [{ reason: "no course card", pages: 1 }],
 				});
@@ -385,13 +387,13 @@ describe("parseOfferings", () => {
 					yield* reset;
 
 					yield* snapshot("/course/900001", coursePage({ code: "900001" }));
-					yield* parseOfferings();
+					yield* parseOfferings("crawl");
 
 					const before = yield* offeringRow("900001");
 
 					yield* snapshot("/course/900001", "<html></html>");
 
-					const report = yield* parseOfferings();
+					const report = yield* parseOfferings("crawl");
 
 					assert.deepStrictEqual(report.failed, [
 						{ reason: "no course card", pages: 1 },
