@@ -2,6 +2,7 @@ import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import { HttpServerLive } from "./api/http.ts";
+import { ChangeLog } from "./changes/ChangeLog.ts";
 import { PgLive, runMigrations } from "./db/database.ts";
 import { parseOfferings } from "./offerings/offerings.ts";
 import { OfferingStore } from "./offerings/OfferingStore.ts";
@@ -21,7 +22,7 @@ const migrate = Command.make("migrate", {}, () =>
 
 const reparse = Command.make("reparse", {}, () =>
 	parseOfferings("reparse").pipe(
-		Effect.provide(OfferingStore.layer),
+		Effect.provide(OfferingStore.layer.pipe(Layer.provide(ChangeLog.layer))),
 		Effect.provide(PgLive),
 	),
 ).pipe(
