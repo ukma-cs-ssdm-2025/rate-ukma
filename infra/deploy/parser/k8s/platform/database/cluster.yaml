@@ -1,0 +1,35 @@
+---
+# Postgres for the parser service, run by CloudNativePG.
+# CNPG creates the parser-db-app Secret;
+# its uri key becomes the service's DATABASE_URL.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: parser-db
+  namespace: parser
+spec:
+  # One instance for now; the standby replica and backups come with #772.
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-minimal-trixie
+
+  bootstrap:
+    initdb:
+      database: parser
+      owner: parser
+
+  storage:
+    # k3s local-path: a directory on the node. It does not enforce the size.
+    storageClass: local-path
+    size: 5Gi
+
+  # Sized for the 4 GB staging node.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 512Mi
+
+  postgresql:
+    parameters:
+      shared_buffers: 128MB
