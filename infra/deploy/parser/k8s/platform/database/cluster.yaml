@@ -8,8 +8,12 @@ metadata:
   name: parser-db
   namespace: parser
 spec:
-  # One instance for now; the standby replica and backups come with #772.
-  instances: 1
+  # A primary and a streaming standby. When the primary fails, CNPG promotes the standby
+  # and points parser-db-rw at it. Both run on the one node, so this covers pod failures only.
+  # Replication is asynchronous: a failover can lose the last commits not yet streamed.
+  instances: 2
+  # An update restarts the standby first, then switches over to it, instead of restarting the primary.
+  primaryUpdateMethod: switchover
   imageName: ghcr.io/cloudnative-pg/postgresql:18.6-minimal-trixie
 
   bootstrap:
@@ -22,7 +26,7 @@ spec:
     storageClass: local-path
     size: 5Gi
 
-  # Sized for the 4 GB staging node.
+  # Sized for the 4 GB staging node: two instances take 1 GiB.
   resources:
     requests:
       cpu: 100m
