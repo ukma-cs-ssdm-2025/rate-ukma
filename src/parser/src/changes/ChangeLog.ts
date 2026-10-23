@@ -8,7 +8,7 @@ export class Turn extends Context.Service<Turn, { readonly key: number }>()(
 	"ukma-data/changes/Turn",
 ) {}
 
-const ChangeAction = Schema.Literals(["add", "change"]);
+const ChangeAction = Schema.Literals(["add", "change", "remove", "restore"]);
 
 export type ChangeAction = typeof ChangeAction.Type;
 
@@ -17,11 +17,13 @@ export type NumberedTable =
 	| "faculties"
 	| "departments"
 	| "programmes"
-	| "offerings";
+	| "offerings"
+	| "review_cases";
 
-/** What made a change: the parse that wrote the rows. */
+/** What made a change: a parse writes rows, a run's removal step removes them. */
 export interface ChangeSource {
 	readonly parseId?: bigint;
+	readonly runId?: bigint;
 }
 
 const Written = Schema.Struct({ rowId: Schema.String, action: ChangeAction });
@@ -111,8 +113,9 @@ export class ChangeLog extends Context.Service<
 			) =>
 				sql`
 					WITH written AS (${write})
-					INSERT INTO changes (change_no, table_name, row_id, action, parse_id)
-					SELECT change_no, ${table}, id, action, ${source.parseId ?? null}::bigint
+					INSERT INTO changes (change_no, table_name, row_id, action, parse_id, run_id)
+					SELECT change_no, ${table}, id, action,
+						${source.parseId ?? null}::bigint, ${source.runId ?? null}::bigint
 					FROM written
 					RETURNING row_id AS "rowId", action
 				`.pipe(Effect.flatMap(decode), Effect.orDie);
