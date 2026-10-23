@@ -1,0 +1,83 @@
+/** Each card in the result list links its course with this button; the page
+ *  also links other courses outside the list, so a bare `/course/` href is not enough. */
+const COURSE_BUTTON =
+	/<a class="btn btn-block btn-default" href="\/course\/(\d+)">/gu;
+
+const LAST_PAGE = /<li class="last"><a href="[^"]*[?&;]page=(\d+)"/u;
+
+/** `Показані <b>3 381-3 398</b> із <b>3 398</b> записів.`; the numbers are
+ *  grouped with spaces. */
+const SUMMARY =
+	/<div class="summary">[^<]*<b>([\d\s]+)-([\d\s]+)<\/b>[^<]*<b>([\d\s]+)<\/b>/u;
+
+/** Without these the catalog falls back to `Бакалавр` and `рекомендовано`,
+ *  which hides master's and not recommended courses. Any other filter must stay
+ *  unset: selecting all of its options drops the courses that have no value for it. */
+const WHOLE_YEAR: ReadonlyArray<[string, string]> = [
+	["filter[level][]", "1"],
+	["filter[level][]", "2"],
+	["filter[selected][]", "1"],
+	["filter[selected][]", "0"],
+];
+
+export const catalogPath = (year: number, page: number): string =>
+	`/course/catalog?${new URLSearchParams([
+		["filter[academic_year][]", String(year)],
+		...WHOLE_YEAR,
+		["page", String(page)],
+	]).toString()}`;
+
+export interface CatalogPage {
+	readonly codes: ReadonlyArray<string>;
+	readonly lastPage: number;
+	/** The numbers of the summary line, missing on an empty list. */
+	readonly shown?: { first: number; last: number; total: number };
+}
+
+const numberOf = (grouped: string) => Number(grouped.replace(/\s/gu, ""));
+
+/** `lastPage` is 1 when the pager is missing, as on a one-page list. */
+export const parseCatalogPage = (html: string): CatalogPage => {
+	const summary = SUMMARY.exec(html);
+
+	return {
+		codes: [
+			...new Set(
+				Array.from(html.matchAll(COURSE_BUTTON), ([, code]) => code ?? ""),
+			),
+		],
+		lastPage: Number(LAST_PAGE.exec(html)?.[1] ?? 1),
+		...(summary && {
+			shown: {
+				first: numberOf(summary[1] ?? ""),
+				last: numberOf(summary[2] ?? ""),
+				total: numberOf(summary[3] ?? ""),
+			},
+		}),
+	};
+};
+
+/** Why page `page` of a catalog does not add up, or `undefined` when its cards
+ *  match its summary and page 1's pager covers the total. A run that trusted
+ *  a page with renamed cards or a missing pager would end with courses lost. */
+export const catalogProblem = (
+	catalog: CatalogPage,
+	page: number,
+): string | undefined => {
+	if (catalog.shown === undefined) return "catalog page has no summary";
+
+	const { first, last, total } = catalog.shown;
+
+	if (catalog.codes.length !== last - first + 1) {
+		return `catalog page lists ${catalog.codes.length} courses for ${first}-${last}`;
+	}
+
+	if (
+		page === 1 &&
+		catalog.lastPage !== Math.ceil(total / catalog.codes.length)
+	) {
+		return `catalog has ${catalog.lastPage} pages for ${total} courses`;
+	}
+
+	return undefined;
+};
