@@ -5,7 +5,7 @@ import { Command } from "effect/cli";
 import { SqlClient } from "effect/sql";
 import { TestConsole } from "effect/testing";
 import { Audit } from "../audit/Audit.ts";
-import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { keyCommands } from "./commands.ts";
 import { Keys } from "./Keys.ts";
 import { hashSecret } from "./token.ts";
@@ -76,10 +76,10 @@ const keyCount = Effect.gen(function* () {
 
 const TestLive = KeysTest.pipe(
 	Layer.provideMerge(NodeServices.layer),
-	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
-describe.skipIf(testDatabaseUrl === undefined)("key commands", () => {
+describe("key commands", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("create-key prints the token once and stores its hash", () =>
 			Effect.gen(function* () {

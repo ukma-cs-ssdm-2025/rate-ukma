@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import { HttpServerLive } from "./api/http.ts";
 import { ChangeLog } from "./changes/ChangeLog.ts";
-import { PgLive, runMigrations } from "./db/Database.ts";
+import { PgLive, runMigrations } from "./db/database.ts";
 import { KeysLive, keyCommands } from "./keys/commands.ts";
 import { parseOfferings } from "./offerings/offerings.ts";
 import { OfferingStore } from "./offerings/OfferingStore.ts";

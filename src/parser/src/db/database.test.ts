@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { migrations } from "./Database.ts";
+import { migrations } from "./database.ts";
 
 describe("migrations", () => {
 	it("numbers every migration once, in the order listed", () => {

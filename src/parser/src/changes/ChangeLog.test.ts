@@ -2,11 +2,11 @@ import { assert, describe, layer } from "@effect/vitest";
 import { Cause, Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { TURN_LOCK } from "../db/locks.ts";
-import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { ChangeLog } from "./ChangeLog.ts";
 
 const TestLive = ChangeLog.layer.pipe(
-	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
 const insertTerms = (codes: ReadonlyArray<string>) =>
@@ -51,7 +51,7 @@ const turnLock = (granted: boolean) =>
 		);
 	});
 
-describe.skipIf(testDatabaseUrl === undefined)("ChangeLog", () => {
+describe("ChangeLog", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect(
 			"numbers two concurrent writers in commit order, with no gap",

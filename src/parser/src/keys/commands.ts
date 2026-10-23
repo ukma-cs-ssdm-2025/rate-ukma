@@ -1,7 +1,7 @@
 import { Clock, Console, Effect, Layer, Redacted, Schema } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { Audit } from "../audit/Audit.ts";
-import { PgLive } from "../db/Database.ts";
+import { PgLive } from "../db/database.ts";
 import { DEFAULT_EXPIRY_DAYS, type KeyRow, Keys } from "./Keys.ts";
 import { DEFAULT_SCOPES, SCOPES } from "./scopes.ts";
 

@@ -10,7 +10,7 @@ import {
 	HttpApiTest,
 } from "effect/http-api";
 import { SqlClient } from "effect/sql";
-import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { Keys } from "../keys/Keys.ts";
 import type { Scope } from "../keys/scopes.ts";
 import { Api, ApiKeyAuth, Caller, RequiredScopes } from "./Api.ts";
@@ -64,7 +64,7 @@ const CaptureLogs = Logger.layer([
 const TestLive = Layer.mergeAll(ProbeHandlers, KeyApiHandlers).pipe(
 	Layer.provideMerge(AuthLive),
 	Layer.provideMerge(Layer.mergeAll(HttpServer.layerServices, CaptureLogs)),
-	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
 /** A client is bound to the client middleware present when it is made. */
@@ -114,7 +114,7 @@ const auditOf = (keyId: string) =>
 		);
 	});
 
-describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
+describe("ApiKeyAuth", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("serves a key with the scope and writes one audit row", () =>
 			Effect.gen(function* () {

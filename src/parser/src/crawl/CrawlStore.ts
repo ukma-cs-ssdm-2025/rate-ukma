@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { CRAWL_LOCK } from "../db/locks.ts";
+import { CRAWL_LOCK, sessionLock } from "../db/locks.ts";
 import type { Snapshot } from "./snapshot.ts";
 
 export const PageKind = Schema.Literals(["catalog", "course", "students"]);
@@ -54,10 +54,6 @@ export type OpenRun = typeof OpenRun.Type;
 
 const RunId = Schema.Struct({ id: Schema.BigInt });
 
-const decodeLocked = Schema.decodeUnknownEffect(
-	Schema.Tuple([Schema.Struct({ locked: Schema.Boolean })]),
-);
-
 export class CrawlStore extends Context.Service<
 	CrawlStore,
 	{
@@ -102,32 +98,9 @@ export class CrawlStore extends Context.Service<
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 
-			// An advisory lock belongs to the session, so it is taken and released
-			// on a connection of its own. Providing it as the transaction connection
-			// runs both statements there.
-			const lockCrawl = Effect.gen(function* () {
-				const connection = yield* sql.reserve;
-
-				const onSession = Effect.provideService(sql.transactionService, [
-					connection,
-					0,
-				] as const);
-
-				const [{ locked }] = yield* sql`
-					SELECT pg_try_advisory_lock(${CRAWL_LOCK}) AS locked
-				`.pipe(onSession, Effect.flatMap(decodeLocked));
-
-				if (locked) {
-					yield* Effect.addFinalizer(() =>
-						sql`SELECT pg_advisory_unlock(${CRAWL_LOCK})`.pipe(
-							onSession,
-							Effect.ignore,
-						),
-					);
-				}
-
-				return locked;
-			}).pipe(Effect.orDie);
+			const lockCrawl = sessionLock(CRAWL_LOCK).pipe(
+				Effect.provideService(SqlClient.SqlClient, sql),
+			);
 
 			const insertRun = SqlSchema.findOne({
 				Request: Schema.String,
