@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 
 # Diffs the platform kustomizations against the cluster. Run by .github/workflows/parser-platform.yml.
-# Prints the diff, writes has_changes to $GITHUB_OUTPUT and the diff to $GITHUB_STEP_SUMMARY.
+# Prints the diff and writes it to $GITHUB_STEP_SUMMARY.
 
 set -euo pipefail
 
 : "${PLATFORM_ROOT:?PLATFORM_ROOT is required}"
 : "${PLATFORM_DIRS:?PLATFORM_DIRS is required}"
 : "${ENVIRONMENT:?ENVIRONMENT is required}"
-: "${GITHUB_OUTPUT:?GITHUB_OUTPUT is required}"
 : "${GITHUB_STEP_SUMMARY:?GITHUB_STEP_SUMMARY is required}"
 
 diff_file=$(mktemp)
@@ -21,6 +20,14 @@ if [ "$(grep -c . <<< "$installed")" -lt 3 ]; then
     echo "Not installed yet. The first apply creates:"
     for dir in $PLATFORM_DIRS; do
       kubectl kustomize "$PLATFORM_ROOT/$dir" | grep '^kind:' | sort | uniq -c
+    done
+    # The operators are pinned upstream releases, too large to read; show our own manifests in full.
+    for dir in $PLATFORM_DIRS; do
+      if [ "$dir" != operators ]; then
+        echo
+        echo "# $dir"
+        kubectl kustomize "$PLATFORM_ROOT/$dir"
+      fi
     done
   } > "$diff_file"
   has_changes=true
@@ -36,7 +43,6 @@ else
 fi
 
 cat "$diff_file"
-echo "has_changes=$has_changes" >> "$GITHUB_OUTPUT"
 {
   echo "### Platform diff ($ENVIRONMENT)"
   if [ "$has_changes" = false ]; then
