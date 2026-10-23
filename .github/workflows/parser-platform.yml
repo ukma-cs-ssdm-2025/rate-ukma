@@ -64,9 +64,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     # No reviewer here: the diff runs first, and the apply job's environment asks for approval.
+    # Its PARSER_KUBECONFIG is the admin one, so a dispatch from an allowed branch is cluster-admin without
+    # approval. Accepted on staging: keep the environment's branch policy to main and the branch in review.
     environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Plan
-    outputs:
-      has_changes: ${{ steps.diff.outputs.has_changes }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -84,14 +84,14 @@ jobs:
           kubeconfig: ${{ secrets.PARSER_KUBECONFIG }}
 
       - name: Diff
-        id: diff
         env:
           ENVIRONMENT: ${{ inputs.environment }}
         run: bash scripts/ci/parser-platform-diff.sh
 
   apply:
     needs: diff
-    if: inputs.action == 'apply' && needs.diff.outputs.has_changes == 'true'
+    # Runs even with no changes, so the readiness checks repeat after an apply that failed on a wait.
+    if: inputs.action == 'apply'
     runs-on: ubuntu-24.04
     # Cluster-admin with a required reviewer: approve after reading the diff in the run summary.
     environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}

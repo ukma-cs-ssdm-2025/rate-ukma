@@ -89,7 +89,7 @@ Each environment is one Hetzner VM running single-node k3s:
    | Secret | Environment | Value |
    | --- | --- | --- |
    | `PARSER_SSH_PUBLIC_KEY` | `Parser Staging Plan` | contents of `parser-staging.pub` |
-   | `PARSER_SSH_KEY` | `Parser Staging` | contents of `parser-staging` (the private key) |
+   | `PARSER_SSH_KEY` | `Parser Staging Plan` and `Parser Staging` | contents of `parser-staging` (the private key) |
 
    Then delete the local private key, or store it in the team password manager.
 
@@ -134,9 +134,12 @@ The workflow reaches the API server through [`.github/actions/k8s-tunnel`](../..
 Pull requests only render the kustomizations.
 **Actions → Parser Platform → Run workflow** runs `diff`, or `diff` followed by `apply`:
 1. The **diff** job runs at once in `Parser Staging Plan` and writes the diff to the run summary.
-2. The **apply** job waits for the reviewer in `Parser Staging`, then applies the same commit. It is skipped when there are no changes.
+2. The **apply** job waits for the reviewer in `Parser Staging`, then applies the same commit. It runs even when there are no changes, so its readiness checks show whether an earlier failed apply has recovered.
 
 The longer step scripts live in `scripts/ci/parser-platform-*.sh`.
+
+`Parser Staging Plan` has no reviewer, but its `PARSER_KUBECONFIG` is the admin kubeconfig: a dispatch from any branch its deployment branch policy allows runs that branch's scripts as cluster-admin without approval.
+This is accepted on staging. Keep the policy to `main` plus the branch under review, and remove that branch once it is merged. A production environment needs a reviewer on the diff job too, or a scoped identity for it.
 
 ### Before the first run
 
