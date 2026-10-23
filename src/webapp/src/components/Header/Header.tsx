@@ -9,7 +9,7 @@ import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { testIds } from "@/lib/test-ids";
 import { HeaderNav } from "./HeaderNav";
 import { MobileMenu } from "./MobileMenu";
-import { navigationItems } from "./navigationData";
+import { useNavigationItems } from "./useNavigationItems";
 import { UserMenu } from "./UserMenu";
 import { Logo } from "../Logo";
 import { ModeToggle } from "../ModeToggle";
@@ -20,6 +20,7 @@ export default function Header() {
 	const { status, user, logout } = useAuth();
 	const { theme, setTheme } = useTheme();
 	const isAuthenticated = status === "authenticated";
+	const navigationItems = useNavigationItems();
 
 	useEffect(() => {
 		if (typeof document === "undefined") {

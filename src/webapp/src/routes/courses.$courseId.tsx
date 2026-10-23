@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 
 import Layout from "@/components/Layout";
+import { AddToPlanButton } from "@/features/personal-plan/components/AddToPlanButton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import {
 	CourseAbout,
@@ -201,6 +202,17 @@ function CourseDetailsRoute() {
 							terms={terms}
 							credits={load.credits}
 							weeklyHours={load.weeklyHours}
+							actions={
+								<AddToPlanButton
+									course={{
+										courseId,
+										title: course.title ?? "",
+										facultyName: course.faculty_name ?? null,
+										specialities: course.specialities ?? [],
+										offerings,
+									}}
+								/>
+							}
 						/>
 
 						{showStats ? (
