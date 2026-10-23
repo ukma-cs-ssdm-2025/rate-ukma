@@ -9,7 +9,8 @@ export const reset = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 
 	yield* sql`
-		TRUNCATE changes, review_cases, offering_terms, offering_programmes,
+		TRUNCATE changes, review_cases, enrollment_lists, enrollments,
+			student_programmes, students, offering_terms, offering_programmes,
 			offerings, programmes, departments, faculties, terms, parse_failures,
 			parses, page_snapshots, run_pages, runs
 		RESTART IDENTITY
