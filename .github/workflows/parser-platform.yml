@@ -137,6 +137,15 @@ jobs:
           done
           kubectl wait --for=condition=Ready clusterissuer --all --timeout=3m
 
+      # The parser image is private: the app pods pull it with this Secret.
+      - name: Apply pull secret
+        env:
+          GHCR_PULL_USER: ${{ secrets.PARSER_GHCR_PULL_USER }}
+          GHCR_PULL_TOKEN: ${{ secrets.PARSER_GHCR_PULL_TOKEN }}
+        run: |
+          bash scripts/ci/parser-platform-pull-secret.sh \
+            | kubectl apply --server-side --field-manager=parser-platform -f -
+
       - name: Apply database
         run: bash scripts/ci/parser-platform-apply-database.sh
 
