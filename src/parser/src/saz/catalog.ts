@@ -5,6 +5,13 @@ const COURSE_BUTTON =
 
 const LAST_PAGE = /<li class="last"><a href="[^"]*[?&;]page=(\d+)"/u;
 
+const YEAR_FILTER = "filter[academic_year][]";
+
+const YEAR_SELECT =
+	/<select[^>]*name="filter\[academic_year\]\[\]"[^>]*>(.*?)<\/select>/su;
+
+const YEAR_OPTION = /<option value="(\d{4})"/gu;
+
 /** `Показані <b>3 381-3 398</b> із <b>3 398</b> записів.`; the numbers are
  *  grouped with spaces. */
 const SUMMARY =
@@ -22,7 +29,7 @@ const WHOLE_YEAR: ReadonlyArray<[string, string]> = [
 
 export const catalogPath = (year: number, page: number): string =>
 	`/course/catalog?${new URLSearchParams([
-		["filter[academic_year][]", String(year)],
+		[YEAR_FILTER, String(year)],
 		...WHOLE_YEAR,
 		["page", String(page)],
 	]).toString()}`;
@@ -81,3 +88,25 @@ export const catalogProblem = (
 
 	return undefined;
 };
+
+export interface CatalogPath {
+	readonly year: number;
+	readonly page: number;
+}
+
+/** The year and page of a path made by `catalogPath`. */
+export const parseCatalogPath = (path: string): CatalogPath => {
+	const params = new URLSearchParams(path.slice(path.indexOf("?") + 1));
+
+	return {
+		year: Number(params.get(YEAR_FILTER)),
+		page: Number(params.get("page")),
+	};
+};
+
+/** The academic years the catalog filter offers, as their first calendar year. */
+export const parseAcademicYears = (html: string): ReadonlyArray<number> =>
+	Array.from(
+		YEAR_SELECT.exec(html)?.[1]?.matchAll(YEAR_OPTION) ?? [],
+		([, year]) => Number(year),
+	);
