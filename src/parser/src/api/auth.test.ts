@@ -10,7 +10,7 @@ import {
 	HttpApiTest,
 } from "effect/http-api";
 import { SqlClient } from "effect/sql";
-import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { Keys } from "../keys/Keys.ts";
 import type { Scope } from "../keys/scopes.ts";
 import { Api, ApiKeyAuth, Caller, RequiredScopes } from "./Api.ts";
@@ -27,9 +27,9 @@ class ProbeGroup extends HttpApiGroup.make("probe")
 			RequiredScopes,
 			["catalog:read"],
 		),
-		HttpApiEndpoint.get("students", "/students", { success: Rows }).annotate(
+		HttpApiEndpoint.get("review", "/review", { success: Rows }).annotate(
 			RequiredScopes,
-			["students:read"],
+			["review:decide"],
 		),
 		HttpApiEndpoint.get("unmarked", "/unmarked", { success: Rows }),
 	)
@@ -49,7 +49,7 @@ const rowsFor = Effect.gen(function* () {
 const ProbeHandlers = HttpApiBuilder.group(ProbeApi, "probe", (handlers) =>
 	handlers
 		.handle("catalog", () => rowsFor)
-		.handle("students", () => rowsFor)
+		.handle("review", () => rowsFor)
 		.handle("unmarked", () => rowsFor),
 );
 
@@ -64,7 +64,7 @@ const CaptureLogs = Logger.layer([
 const TestLive = Layer.mergeAll(ProbeHandlers, KeyApiHandlers).pipe(
 	Layer.provideMerge(AuthLive),
 	Layer.provideMerge(Layer.mergeAll(HttpServer.layerServices, CaptureLogs)),
-	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
 /** A client is bound to the client middleware present when it is made. */
@@ -95,6 +95,7 @@ const AuditRow = Schema.Struct({
 	route: Schema.NullOr(Schema.String),
 	target_id: Schema.NullOr(Schema.String),
 	row_count: Schema.NullOr(Schema.Number),
+	reason: Schema.NullOr(Schema.String),
 });
 
 const auditOf = (keyId: string) =>
@@ -113,7 +114,7 @@ const auditOf = (keyId: string) =>
 		);
 	});
 
-describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
+describe("ApiKeyAuth", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("serves a key with the scope and writes one audit row", () =>
 			Effect.gen(function* () {
@@ -149,81 +150,149 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 
 		it.effect("refuses a key without the scope with 403 and audits it", () =>
 			Effect.gen(function* () {
-				const key = yield* newKey(["catalog:read", "runs:read"]);
+				const key = yield* newKey(["catalog:read"]);
 				const client = yield* probeAs(key.token);
 
-				const error = yield* Effect.flip(client.probe.students());
+				const error = yield* Effect.flip(client.probe.review());
 
 				assert.strictEqual(error._tag, "Forbidden");
 				assert.deepStrictEqual(
-					(yield* auditOf(key.id)).map(({ action, route }) => ({
+					(yield* auditOf(key.id)).map(({ action, route, reason }) => ({
 						action,
 						route,
+						reason,
 					})),
-					[{ action: "request_denied", route: "GET /v1/probe/students" }],
+					[
+						{
+							action: "request_denied",
+							route: "GET /v1/probe/review",
+							reason: "missing_scope",
+						},
+					],
 				);
 			}),
 		);
 
 		it.effect("refuses every key on a route that names no scope", () =>
 			Effect.gen(function* () {
-				const key = yield* newKey([
-					"catalog:read",
-					"students:read",
-					"keys:manage",
-				]);
+				const key = yield* newKey(["catalog:read", "review:decide"]);
 
 				const client = yield* probeAs(key.token);
 
 				const error = yield* Effect.flip(client.probe.unmarked());
 
 				assert.strictEqual(error._tag, "Forbidden");
+				assert.deepStrictEqual(
+					(yield* auditOf(key.id)).map(({ reason }) => reason),
+					["no_required_scopes"],
+				);
 			}),
 		);
 
-		it.effect("refuses a revoked, an expired, a wrong and a missing key", () =>
-			Effect.gen(function* () {
-				const sql = yield* SqlClient.SqlClient;
-				const keys = yield* Keys;
+		it.effect(
+			"refuses a revoked, an expired and a wrong key with 401 and audits each",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const keys = yield* Keys;
 
-				const revoked = yield* newKey(["catalog:read"]);
-				const expired = yield* newKey(["catalog:read"]);
-				const valid = yield* newKey(["catalog:read"]);
+					const revoked = yield* newKey(["catalog:read"]);
+					const expired = yield* newKey(["catalog:read"]);
+					const valid = yield* newKey(["catalog:read"]);
 
-				assert.isTrue(yield* keys.revoke(revoked.id, null));
-				assert.isFalse(yield* keys.revoke(revoked.id, null));
-				yield* sql`
-					UPDATE api_keys SET expires_at = now() - interval '1 second'
-					WHERE id = ${expired.id}
-				`;
-
-				const wrongSecret = Redacted.make(
-					`${Redacted.value(valid.token).slice(0, -4)}AAAA`,
-				);
-
-				for (const token of [
-					revoked.token,
-					expired.token,
-					wrongSecret,
-					Redacted.make(""),
-				]) {
-					const client = yield* probeAs(token);
-					const error = yield* Effect.flip(client.probe.catalog());
-
-					assert.strictEqual(error._tag, "Unauthorized");
-				}
-
-				assert.deepStrictEqual(yield* auditOf(revoked.id), []);
-				assert.deepStrictEqual(
+					assert.isTrue(yield* keys.revoke(revoked.id, null));
+					assert.isFalse(yield* keys.revoke(revoked.id, null));
 					yield* sql`
-						SELECT key_id AS "keyId" FROM audit_log
-						WHERE action = 'key_revoked' AND target_id = ${revoked.id}
-					`,
-					[{ keyId: null }],
-				);
-				assert.deepStrictEqual(yield* auditOf(expired.id), []);
-				assert.deepStrictEqual(yield* auditOf(valid.id), []);
-			}),
+						UPDATE api_keys SET expires_at = now() - interval '1 second'
+						WHERE id = ${expired.id}
+					`;
+
+					const wrongSecret = Redacted.make(
+						`${Redacted.value(valid.token).slice(0, -4)}AAAA`,
+					);
+
+					for (const token of [revoked.token, expired.token, wrongSecret]) {
+						const client = yield* probeAs(token);
+						const error = yield* Effect.flip(client.probe.catalog());
+
+						assert.strictEqual(error._tag, "Unauthorized");
+					}
+
+					for (const [key, reason] of [
+						[revoked, "revoked"],
+						[expired, "expired"],
+						[valid, "wrong_secret"],
+					] as const) {
+						const audit = yield* auditOf(key.id);
+
+						assert.deepStrictEqual(
+							audit.map(({ action, route, row_count, reason }) => ({
+								action,
+								route,
+								row_count,
+								reason,
+							})),
+							[
+								{
+									action: "request_denied",
+									route: "GET /v1/probe/catalog",
+									row_count: null,
+									reason,
+								},
+							],
+						);
+
+						const token = Redacted.value(key.token);
+
+						assert.notInclude(
+							audit[0]?.raw,
+							token.slice(token.indexOf(".") + 1),
+						);
+					}
+
+					assert.notInclude(
+						(yield* auditOf(valid.id))[0]?.raw,
+						Redacted.value(wrongSecret).slice(-43),
+					);
+					assert.deepStrictEqual(
+						yield* sql`
+							SELECT key_id AS "keyId" FROM audit_log
+							WHERE action = 'key_revoked' AND target_id = ${revoked.id}
+						`,
+						[{ keyId: null }],
+					);
+				}),
+		);
+
+		it.effect(
+			"refuses an unknown or malformed token with 401 and audits nothing",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const known = yield* newKey(["catalog:read"]);
+					const secret = Redacted.value(known.token).slice(-43);
+
+					const denied = sql<{ readonly count: string }>`
+						SELECT count(*)::text AS count FROM audit_log
+						WHERE action = 'request_denied'
+					`;
+
+					const before = yield* denied;
+
+					for (const token of [
+						`ukd_key_00000000000000000000000000.${secret}`,
+						`ukd_${known.id}`,
+						"",
+					]) {
+						const client = yield* probeAs(Redacted.make(token));
+						const error = yield* Effect.flip(client.probe.catalog());
+
+						assert.strictEqual(error._tag, "Unauthorized");
+					}
+
+					assert.deepStrictEqual(yield* denied, before);
+					assert.deepStrictEqual(yield* auditOf(known.id), []);
+				}),
 		);
 
 		it.effect("stores the hash, not the token, and audits the new key", () =>
@@ -251,7 +320,7 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 
 		it.effect("tells a key its id, scopes and expiry on GET /v1/key", () =>
 			Effect.gen(function* () {
-				const key = yield* newKey(["runs:read"]);
+				const key = yield* newKey(["review:decide"]);
 
 				const client = yield* HttpApiTest.groups(Api, ["key"]).pipe(
 					withToken(key.token),
@@ -261,7 +330,7 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 
 				assert.deepStrictEqual(current, {
 					id: key.id,
-					scopes: ["runs:read"],
+					scopes: ["review:decide"],
 					expiresAt: key.expiresAt.toISOString(),
 				});
 			}),
@@ -274,7 +343,7 @@ describe.skipIf(testDatabaseUrl === undefined)("ApiKeyAuth", () => {
 				const client = yield* probeAs(key.token);
 
 				yield* client.probe.catalog();
-				yield* Effect.ignore(client.probe.students());
+				yield* Effect.ignore(client.probe.review());
 				yield* keys.revoke(key.id, null);
 				yield* Effect.ignore(client.probe.catalog());
 				yield* Effect.logDebug("probe done", { key: key.token });

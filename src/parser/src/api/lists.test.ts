@@ -3,7 +3,8 @@ import { Effect, Layer, Redacted } from "effect";
 import { HttpClientRequest, HttpServer } from "effect/http";
 import { HttpApiMiddleware, HttpApiTest } from "effect/http-api";
 import { SqlClient } from "effect/sql";
-import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { ChangeLog } from "../changes/ChangeLog.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { Keys } from "../keys/Keys.ts";
 import type { Scope } from "../keys/scopes.ts";
 import { ListReader } from "../lists/ListReader.ts";
@@ -16,7 +17,7 @@ const FINISHED_AT = new Date("2031-09-01T10:00:00Z");
 
 /** Invented catalog rows: three offerings, the second one removed after the
  *  third was added, so it comes last. */
-const seed = Effect.gen(function* () {
+const seedRows = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const next = sql`nextval('change_no_seq')`;
 
@@ -79,11 +80,18 @@ const seed = Effect.gen(function* () {
 	`;
 });
 
+const seed = Effect.gen(function* () {
+	const changes = yield* ChangeLog;
+
+	yield* changes.withTurn(seedRows);
+});
+
 const TestLive = Layer.mergeAll(CatalogApiHandlers, ReviewApiHandlers).pipe(
 	Layer.provideMerge(Layer.mergeAll(ListReader.layer, AuthLive)),
 	Layer.provideMerge(HttpServer.layerServices),
 	Layer.provideMerge(Layer.effectDiscard(seed)),
-	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+	Layer.provideMerge(ChangeLog.layer),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
 const clientAs = (scopes: ReadonlyArray<Scope>) =>
@@ -206,8 +214,9 @@ describe.skipIf(testDatabaseUrl === undefined)("list endpoints", () => {
 			() =>
 				Effect.gen(function* () {
 					const sql = yield* SqlClient.SqlClient;
+					const changes = yield* ChangeLog;
 
-					yield* sql`
+					yield* changes.withTurn(sql`
 						INSERT INTO review_cases (
 							kind, subject_id, candidates, safe_answer, run_id, change_no
 						)
@@ -215,7 +224,7 @@ describe.skipIf(testDatabaseUrl === undefined)("list endpoints", () => {
 							'{"offeringIds": ["off_930001"]}', '{"removals": "held"}', id,
 							nextval('change_no_seq')
 						FROM runs
-					`;
+					`);
 
 					const catalog = yield* clientAs(["catalog:read"]);
 

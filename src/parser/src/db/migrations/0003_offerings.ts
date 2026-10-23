@@ -62,9 +62,9 @@ export default Effect.gen(function* () {
 		CREATE TABLE programmes (
 			id text PRIMARY KEY DEFAULT 'prg_' || ulid(),
 			name text NOT NULL,
-			level text CHECK (level IN ('bachelor', 'master')),
+			level text NOT NULL CHECK (level IN ('bachelor', 'master')),
 			saz_filter_id text,
-			UNIQUE NULLS NOT DISTINCT (name, level)
+			UNIQUE (name, level)
 		)
 	`;
 

@@ -11,20 +11,54 @@ export const RemovalThreshold = Config.schema(
 ).pipe(Config.withDefault(0.05));
 
 export type RemovalPlan =
-	| { readonly decision: "skipped" }
+	| { readonly decision: "skipped"; readonly reason: string }
 	| {
 			readonly decision: "applied" | "held";
 			readonly ids: ReadonlyArray<string>;
 	  };
 
-/** A run that missed a catalog or course page removes nothing. Above the
+/** A run that missed a catalog or course page removes nothing. Nor does a run
+ *  whose catalog changed while it read the pages: a course that leaves shifts
+ *  the cards after it back, so one moves onto a page already read and the run
+ *  never sees it; one that arrives pushes a card onto a page past the last.
+ *  Either shows as a later page's total or the codes the run saw differing
+ *  from page 1's total. One course leaving and another arriving in the same
+ *  run still pass; the next run restores what that removed. Above the
  *  threshold the run removes nothing either and holds the removals as a review
  *  case; its new and changed rows are already published. */
 export const planRemovals = (
 	survey: RemovalSurvey,
 	threshold: number,
 ): RemovalPlan => {
-	if (!survey.complete) return { decision: "skipped" };
+	if (!survey.complete) {
+		return {
+			decision: "skipped",
+			reason:
+				survey.missingPages > 0
+					? `run missed ${survey.missingPages} pages`
+					: "run did not succeed",
+		};
+	}
+
+	if (survey.listed === undefined) {
+		return { decision: "skipped", reason: "run stored no catalog page 1" };
+	}
+
+	const changed = survey.laterTotals.filter((total) => total !== survey.listed);
+
+	if (changed.length > 0) {
+		return {
+			decision: "skipped",
+			reason: `catalog total changed during the run: page 1 listed ${survey.listed}, a later page ${changed[0] ?? "none"}`,
+		};
+	}
+
+	if (survey.listed !== survey.seen) {
+		return {
+			decision: "skipped",
+			reason: `catalog page 1 listed ${survey.listed} courses, the run saw ${survey.seen}`,
+		};
+	}
 
 	const ids = survey.candidates;
 
@@ -55,7 +89,7 @@ export const removeOfferings = Effect.fn("removeOfferings")(function* (
 					run_id: String(run.id),
 					source_part: run.sourcePart,
 				});
-				yield* store.skip(run.id);
+				yield* store.skip(run.id, "run has no academic year");
 				continue;
 			}
 
@@ -64,17 +98,22 @@ export const removeOfferings = Effect.fn("removeOfferings")(function* (
 
 			let removed = 0;
 
-			if (plan.decision === "applied") {
+			if (plan.decision === "skipped") {
+				yield* store.skip(run.id, plan.reason);
+				yield* Effect.logWarning("Run removes nothing", {
+					run_id: String(run.id),
+					source_part: run.sourcePart,
+					reason: plan.reason,
+				});
+			} else if (plan.decision === "applied") {
 				removed = yield* store.apply(run.id, year, plan.ids);
-			} else if (plan.decision === "held") {
-				yield* store.hold(run.id, year, plan.ids);
 			} else {
-				yield* store.skip(run.id);
+				yield* store.hold(run.id, year, plan.ids);
 			}
 
 			decided.push({
-				runId: String(run.id),
-				sourcePart: run.sourcePart,
+				run_id: String(run.id),
+				source_part: run.sourcePart,
 				decision: plan.decision,
 				live: survey.live,
 				candidates: survey.candidates.length,

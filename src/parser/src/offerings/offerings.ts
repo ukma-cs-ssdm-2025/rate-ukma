@@ -84,6 +84,11 @@ const byKey =
 	(a: T, b: T) =>
 		key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0;
 
+/** Entries by key, so the hash does not depend on the order a parser builds
+ *  the fields in. */
+const sortedEntries = <T extends object>(row: T) =>
+	Object.entries(row).sort(byKey(([key]) => key));
+
 /** SHA-256 of what a reader gets for one offering: the card's columns and its
  *  sorted terms and programmes, without the snapshot it came from. A row whose
  *  hash did not change keeps its change number. */
@@ -95,9 +100,11 @@ export const rowHashOf = (
 	createHash("sha256")
 		.update(
 			JSON.stringify([
-				card,
-				[...terms].sort(byKey(({ termCode }) => termCode)),
-				[...programmes].sort(byKey(({ level, name }) => `${level} ${name}`)),
+				sortedEntries(card),
+				[...terms].sort(byKey(({ termCode }) => termCode)).map(sortedEntries),
+				[...programmes]
+					.sort(byKey(({ level, name }) => `${level} ${name}`))
+					.map(sortedEntries),
 			]),
 		)
 		.digest("hex");
@@ -159,18 +166,23 @@ export const offeringRowsOf = (
 			),
 			({ name }) => name,
 		),
+		// A card may name a department without its faculty; one that names it wins.
 		departments: unique(
-			offerings.flatMap(({ department, faculty }) =>
-				department === null
-					? []
-					: [
-							{
-								name: department,
-								faculty,
-								sazFilterId: filters.departments.get(department) ?? null,
-							},
-						],
-			),
+			offerings
+				.flatMap(({ department, faculty }) =>
+					department === null
+						? []
+						: [
+								{
+									name: department,
+									faculty,
+									sazFilterId: filters.departments.get(department) ?? null,
+								},
+							],
+				)
+				.sort(
+					(a, b) => Number(a.faculty !== null) - Number(b.faculty !== null),
+				),
 			({ name }) => name,
 		),
 		programmes: unique(
@@ -220,6 +232,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 	for (const ids of Arr.chunksOf(yield* store.latestCoursePages, BATCH_SIZE)) {
 		const pages: Array<ParsedPage> = [];
+		const paths: Array<{ snapshotId: bigint; path: string }> = [];
 		const failures: Array<ParseFailure> = [];
 
 		for (const page of yield* store.coursePages(ids)) {
@@ -230,6 +243,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 			if (Result.isSuccess(result)) {
 				pages.push({ snapshotId: page.id, offering: result.success });
+				paths.push({ snapshotId: page.id, path: page.path });
 				continue;
 			}
 
@@ -264,13 +278,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			changes = mergeChangeCounts([...changes, ...written.counts]);
 		} else {
 			failed.set("store", (failed.get("store") ?? 0) + pages.length);
-			failures.push(
-				...pages.map(({ snapshotId, offering }) => ({
-					snapshotId,
-					path: `/course/${offering.sazCode}`,
-					reason: "store",
-				})),
-			);
+			failures.push(...paths.map((page) => ({ ...page, reason: "store" })));
 		}
 
 		yield* store.recordFailures(parseId, failures);

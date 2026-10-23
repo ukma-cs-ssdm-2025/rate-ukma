@@ -55,14 +55,7 @@
 												"type": "string",
 												"enum": [
 													"catalog:read",
-													"runs:read",
-													"instructors:read",
-													"students:read",
-													"runs:start",
-													"review:decide",
-													"snapshots:read",
-													"audit:read",
-													"keys:manage"
+													"review:decide"
 												]
 											}
 										},

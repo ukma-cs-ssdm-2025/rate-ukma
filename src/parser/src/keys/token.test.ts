@@ -55,10 +55,9 @@ describe("token", () => {
 
 describe("missingScopes", () => {
 	it("gives no student data with catalog scopes", () => {
-		assert.deepStrictEqual(
-			missingScopes(["catalog:read", "runs:read"], ["students:read"]),
-			["students:read"],
-		);
+		assert.deepStrictEqual(missingScopes(["catalog:read"], ["review:decide"]), [
+			"review:decide",
+		]);
 		assert.deepStrictEqual(
 			missingScopes(["catalog:read"], ["catalog:read"]),
 			[],

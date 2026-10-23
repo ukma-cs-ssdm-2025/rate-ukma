@@ -8,6 +8,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/Toaster";
+import { RatingContinuationProvider } from "@/features/ratings/components/RatingContinuationProvider";
 import { SentryUserSync } from "@/integrations/sentry/SentryUserSync";
 import { AppMetadataDefaults } from "@/lib/app-metadata";
 import { AuthProvider } from "@/lib/auth";
@@ -34,10 +35,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 					<FeatureFlagsProvider>
 						<SentryUserSync />
 						<ThemeProvider defaultTheme="system" storageKey="rate-ukma-theme">
-							<NuqsAdapter>
-								<Outlet />
-							</NuqsAdapter>
-							<Toaster />
+							<RatingContinuationProvider>
+								<NuqsAdapter>
+									<Outlet />
+								</NuqsAdapter>
+								<Toaster />
+							</RatingContinuationProvider>
 						</ThemeProvider>
 						<Suspense>
 							<TanStackRouterDevtools position="bottom-left" />

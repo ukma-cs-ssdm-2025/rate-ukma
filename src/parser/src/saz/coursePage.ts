@@ -5,7 +5,7 @@ import {
 	SchemaIssue,
 	SchemaTransformation,
 } from "effect";
-import { textOf, unescapeHtml } from "./html.ts";
+import { textOf, unescapeHtml, withoutComments } from "./html.ts";
 
 const decodeWith = <T, E>(decode: (input: E) => T, encode: (input: T) => E) =>
 	SchemaTransformation.transform({ decode, encode });
@@ -258,9 +258,9 @@ const TERM_LABELS: LabelPatterns<
 const GROUP_SIZE = /^від (\d+) до (\d+)$/u;
 
 const labelsOf = (cell: string): ReadonlyArray<string> =>
-	Array.from(cell.matchAll(LABEL), ([, label]) => textOf(label ?? "")).filter(
-		(label) => label !== "",
-	);
+	Array.from(withoutComments(cell).matchAll(LABEL), ([, label]) =>
+		textOf(label ?? ""),
+	).filter((label) => label !== "");
 
 /** The value each label gives, keyed by the pattern it matches. A label that
  *  matches nothing or repeats a key fails the page. */

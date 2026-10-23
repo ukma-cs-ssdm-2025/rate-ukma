@@ -16,7 +16,7 @@ The parser service (currently a Django app within the monolith at `src/backend/s
 
 ### Non-Functional Requirements & Constraints
 
-- **Monorepo coexistence**: deployment configuration (Terraform, Kubernetes manifests) is stored in the rate-ukma repository for now, in a new `infra/parser-service/` or similar subdirectory, with the understanding that this may be extracted to a separate infrastructure repository in the future.
+- **Monorepo coexistence**: deployment configuration (Terraform, Kubernetes manifests) is stored in the rate-ukma repository for now, in [`infra/deploy/parser/`](../../infra/deploy/parser/), with the understanding that this may be extracted to a separate infrastructure repository in the future.
 - **Reuse existing CI**: the parser service must not require a new CI system; deployment is triggered via the existing GitHub Actions workflows (`.github/workflows/`), extended with parser-specific build and rollout steps.
 - **Reuse existing cloud provider**: follow ADR-0007 and continue using Hetzner Cloud for VM provisioning, avoiding vendor lock-in to a new cloud or managed Kubernetes service (EKS, GKE, AKS).
 - **Resource-conscious sizing**: staging is budgeted at 4GB RAM (lightweight Kubernetes distro, fewer concurrent pods); production is budgeted at 16GB RAM (standard Kubernetes distro, single node, no multi-node HA). Both are single-node clusters.
@@ -44,8 +44,8 @@ graph LR
     F["STAGING 4GB<br/>k3s/microk8s<br/>kube-apiserver"]
     G["PROD 16GB<br/>kubeadm<br/>kube-apiserver"]
     
-    F2["Ingress-nginx<br/>cert-manager<br/>Parser Pods<br/>PostgreSQL Op.<br/>Backup Agent"]
-    G2["Ingress-nginx<br/>cert-manager<br/>Parser Pods<br/>PostgreSQL Op.<br/>Backup Agent"]
+    F2["Traefik<br/>cert-manager<br/>Parser Pods<br/>PostgreSQL Op.<br/>Backup Agent"]
+    G2["Traefik<br/>cert-manager<br/>Parser Pods<br/>PostgreSQL Op.<br/>Backup Agent"]
     
     A -->|code push| B
     B -->|image| A
@@ -92,7 +92,7 @@ graph LR
 | **Same distro both** (e.g., k3s everywhere)                         | Consistency; same ops/troubleshooting.            | k3s is lightweight; prod needs standard K8s without constraints. | ✗             |
 | **Lightweight staging, standard prod** (k3s/microk8s vs. kubeadm)   | Efficient 4GB staging; full standard K8s on prod. | Distro differences between envs.                                | ✓ **Decided** |
 
-**Rationale:** Staging: k3s or microk8s (lightweight, optimized for 4GB node). Production: kubeadm (standard, full-featured Kubernetes on 16GB node with no resource trade-offs).
+**Rationale:** Staging: k3s (lightweight, optimized for 4GB node). Production: kubeadm (standard, full-featured Kubernetes on 16GB node with no resource trade-offs).
 
 ### 4. Database: Managed Service / In-Cluster
 
@@ -133,7 +133,7 @@ graph LR
 | **Sealed Secrets / SOPS**                        | Version-controlled secrets; GitOps-friendly.                | New tooling; sealing/unsealing overhead; key management.                              | ✗             |
 | **External manager (Vault, KMS)**                | Centralized; audit logs; rotation.                          | Vendor lock-in; operational overhead; new auth mechanism.                             | ✗             |
 
-**Rationale:** Reuses ADR-0007 pattern (GitHub Environment secrets + Terraform); no new tooling. Secrets stored in Kubernetes Secrets; protect at rest via **Kubernetes API-server encryption-at-rest** (encrypts etcd data on disk). **Staging encryption setup** (k3s or microk8s): k3s has no built-in encryption-at-rest by default; configure via kube-apiserver flag `--encryption-provider-config` pointing to an encryption-at-rest provider (AES-CBC or KMS). microk8s similarly requires explicit configuration. **Validation**: after cluster setup, verify encryption is active: `kubectl get secrets -A -o json | jq '.items[0].data' | head` should show unreadable binary data, not base64-decodable plaintext. Add `kubectl get --raw /api/v1/secrets/default/test-secret -o json | od -c | head` to startup checks. **Terraform state protection**: Terraform state files (stored in Hetzner Object Storage) will contain plaintext secret values. Protect state with: (1) **Encryption at rest**: enable S3-compatible server-side encryption (SSE), (2) **Access control**: least-privileged IAM/bucket policies (CI runner credentials read/write only, human access restricted), (3) **Audit logging**: enable object storage access logging to detect unauthorized reads, (4) **Backup protection**: state backups inherit encryption; retention policies follow organization standards, (5) **Never commit state locally**: CI-only state management via remote backend. If plaintext state is unacceptable, future work should evaluate `terraform-vault-backend` or other secret-aware state backends.
+**Rationale:** Reuses ADR-0007 pattern (GitHub Environment secrets + Terraform); no new tooling. Secrets stored in Kubernetes Secrets; protect at rest via **Kubernetes API-server encryption-at-rest** (encrypts etcd data on disk). **Staging encryption setup** (k3s): k3s has it built in. The `secrets-encryption: true` server option (set by cloud-init in `/etc/rancher/k3s/config.yaml`) generates an AES-CBC key and encrypts Secrets in the datastore. **Validation**: `kubectl` always returns Secrets decrypted, so check on the node instead: `sudo k3s secrets-encrypt status` must report `Encryption Status: Enabled`. Production (kubeadm) needs an explicit `EncryptionConfiguration` passed via `--encryption-provider-config`. **Terraform state protection**: Terraform state files (stored in Hetzner Object Storage) will contain plaintext secret values. Protect state with: (1) **Encryption at rest**: enable S3-compatible server-side encryption (SSE), (2) **Access control**: least-privileged IAM/bucket policies (CI runner credentials read/write only, human access restricted), (3) **Audit logging**: enable object storage access logging to detect unauthorized reads, (4) **Backup protection**: state backups inherit encryption; retention policies follow organization standards, (5) **Never commit state locally**: CI-only state management via remote backend. If plaintext state is unacceptable, future work should evaluate `terraform-vault-backend` or other secret-aware state backends.
 
 **UKMA Data worker:** reads the САЗ account as `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` from a Kubernetes Secret, next to `DATABASE_URL`.
 
@@ -141,17 +141,18 @@ graph LR
 
 **UKMA Data API:** `api` reads `DATABASE_URL` too: API keys and the audit log live in the database. Every endpoint but `/health` needs a key in `Authorization: Bearer ukd_...`.
 
-**UKMA Data keys:** `create-key --name <holder> [--scope <scope> ...] [--all-scopes] [--expires-in-days 365]`, `revoke-key <key id>` and `list-keys` run with only `DATABASE_URL`, through `kubectl exec` or a one-off Job. `create-key` prints the token once to stdout and stores only its hash; copy it into the reader's secret and do not keep the Job's output.
+**UKMA Data keys:** `create-key --name <holder> [--scope <scope> ...] [--all-scopes] [--expires-in-days 365]`, `revoke-key <key id>` and `list-keys` run with only `DATABASE_URL`. `create-key` prints the token once to stdout and stores only its hash, so run it through `kubectl exec`, not a Job: a Job's stdout is its pod log, which a log collector keeps. Copy the token into the reader's secret. `revoke-key` and `list-keys` print no token and may run as a Job.
 
 ### 8. Ingress & TLS
 
-| Option                            | Pros                                                                                                         | Cons                                                    | Decision      |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- | ------------- |
-| **ingress-nginx + cert-manager**  | CNCF-backed; cert-manager automates TLS renewal; closest to ADR-0007 Nginx+Certbot (declarative K8s-native). | Learning curve; new component to monitor.               | ✓ **Decided** |
-| **Traefik**                       | Modern; auto service discovery; ingress+routing+TLS unified.                                                 | Less familiar to team; different from nginx.            | ✗             |
-| **Manual Nginx + Certbot in pod** | Mirrors ADR-0007 setup.                                                                                      | Stateful pod; manual renewal scripting; not K8s-native. | ✗             |
+| Option                                 | Pros                                                                                                    | Cons                                                                                     | Decision      |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------- |
+| **ingress-nginx + cert-manager**       | Closest to ADR-0007 Nginx+Certbot; team's Nginx knowledge transfers.                                    | Retired upstream: best-effort maintenance ended March 2026, so no further security fixes. | ✗             |
+| **Traefik (Ingress API) + cert-manager** | Bundled with k3s, so staging needs no extra controller; maintained; also implements Gateway API.        | Less familiar to the team than Nginx.                                                    | ✓ **Decided** |
+| **Gateway API (via Traefik)**          | Successor to Ingress; richer routing.                                                                   | More objects for one HTTP service; cert-manager setup is more involved.                  | Later         |
+| **Manual Nginx + Certbot in pod**      | Mirrors ADR-0007 setup.                                                                                 | Stateful pod; manual renewal scripting; not K8s-native.                                  | ✗             |
 
-**Rationale:** CNCF-backed production components; cert-manager automates Let's Encrypt renewal. Closest match to current setup but K8s-native. Team's Nginx knowledge transfers directly.
+**Rationale:** ingress-nginx was the original choice, but the project was retired, so it was revisited in #770. Traefik ships with k3s, so staging uses the bundled controller (IngressClass `traefik`) with no extra manifests; production (kubeadm) installs the same controller. cert-manager stays for Let's Encrypt certificates, using HTTP-01 challenges through Traefik (`letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers). Routes use the Ingress API for now; Traefik also implements Gateway API, so moving to it later doesn't change the controller.
 
 ### 9. Terraform State Backend
 
@@ -183,7 +184,7 @@ graph LR
 | **Database**            | PostgreSQL (primary + 1 replica)                       | PostgreSQL (primary + 1 replica)                       | Self-hosted via operator (CloudNativePG or Zalando); HA with automatic failover. Scheduled backups to Hetzner Object Storage.            |
 | **Database HA**         | Configured: primary + 1 standby, auto-promotion (pod-level only) | Configured: primary + 1 standby, auto-promotion (pod-level only) | Automatic failover on primary **pod** failure; near-zero downtime RTO for container crashes. Node/storage/control-plane failures require manual restore from backups. Multi-node HA is a future upgrade.                  |
 | **Image Registry**      | GitHub Container Registry (ghcr.io)                    | GitHub Container Registry (ghcr.io)                    | Built via GitHub Actions, pushed per commit/release.                                                                                      |
-| **Ingress & TLS**       | ingress-nginx + cert-manager                           | ingress-nginx + cert-manager                           | Let's Encrypt certificates; automatic renewal.                                                                                            |
+| **Ingress & TLS**       | Traefik (bundled with k3s) + cert-manager              | Traefik + cert-manager                                 | Let's Encrypt certificates; automatic renewal.                                                                                            |
 | **Secrets Management**  | GitHub Env Secrets → K8s Secrets (via Terraform + CI)  | GitHub Env Secrets → K8s Secrets (via Terraform + CI)  | No new secrets tooling; reuses ADR-0007 pattern.                                                                                          |
 | **Terraform State**     | Remote backend (Hetzner Object Storage, S3-compatible) | Remote backend (Hetzner Object Storage, S3-compatible) | Locked state per environment to prevent concurrent applies.                                                                               |
 | **CI/CD**               | Extended GitHub Actions workflows                      | Extended GitHub Actions workflows                      | Build → push → terraform apply → rollout within existing CI system.                                                                       |
@@ -217,7 +218,7 @@ graph LR
   - [Zalando postgres-operator](https://github.com/zalando/postgres-operator)
 
 - **Kubernetes Add-ons:**
-  - [ingress-nginx Controller](https://kubernetes.github.io/ingress-nginx/)
+  - [Traefik Kubernetes Ingress](https://doc.traefik.io/traefik/providers/kubernetes-ingress/)
   - [cert-manager Documentation](https://cert-manager.io/docs/)
 
 - **Infrastructure-as-Code:**
@@ -245,7 +246,7 @@ graph LR
 - **StatefulSet**: A Kubernetes workload for stateful services (databases, key-value stores). Used for PostgreSQL.
 - **Operator**: A Kubernetes controller that extends the API with domain-specific knowledge (e.g., a Postgres operator understands backup, replication, recovery).
 - **Ingress**: A Kubernetes API object that exposes HTTP(S) routes to services within the cluster to external clients.
-- **ingress-nginx**: An ingress controller that uses Nginx to route traffic; standard CNCF project.
+- **Traefik**: An ingress controller and reverse proxy; bundled with k3s and also implements Gateway API.
 - **cert-manager**: A Kubernetes controller that automates TLS certificate provisioning and renewal (e.g., via Let's Encrypt).
 - **Terraform State**: The source of truth for Terraform-managed infrastructure; typically stored in a remote backend for team collaboration and locking.
 - **GitHub Container Registry (ghcr.io)**: GitHub's container image registry; free for public and private repositories.
@@ -276,7 +277,7 @@ graph LR
 - **NetworkPolicy**: Once traffic patterns are understood, Kubernetes NetworkPolicy should be configured to restrict traffic between pods (defense-in-depth).
 - **Pod Security Standards (PSS)**: Kubernetes' Pod Security Standards should be enforced (at least "restricted" mode) to harden the cluster against common misconfigurations.
 - **RBAC (Role-Based Access Control)**: Least-privilege RBAC policies should be enforced for all service accounts and admin operations.
-- **API-Server Encryption at Rest (k3s/microk8s)**: Both k3s and microk8s distributions do not enable encryption-at-rest by default. Configure `--encryption-provider-config` for kube-apiserver to encrypt etcd data on disk (use AES-CBC or KMS provider). Test encryption via `kubectl get secrets --raw` and verify output is binary, not decodable base64. Include encryption verification in cluster bootstrap automation and operational runbooks.
+- **API-Server Encryption at Rest**: k3s (staging) enables it with the `secrets-encryption: true` server option; verify with `sudo k3s secrets-encrypt status`. kubeadm (production) needs an `EncryptionConfiguration` (AES-CBC or KMS) passed via `--encryption-provider-config`; verify by reading a Secret straight from etcd (`etcdctl get /registry/secrets/<ns>/<name>`) and checking it starts with `k8s:enc:`. `kubectl` can't show this, since the API always returns Secrets decrypted.
 - **Terraform State Security**: Enforce encryption at rest (SSE) on the Hetzner Object Storage bucket, restrict bucket access via least-privileged credentials (separate from general CI/CD credentials), enable access logging for audit trails, and document the policy: state files are managed by CI only, never committed locally or shared manually. State backups inherit encryption; automate cleanup per retention policy.
 - **CI/CD to Kubernetes Authentication**: Store kubeconfig in GitHub Secrets (separate per environment). GitHub Actions runner mounts kubeconfig from Secrets, uses least-privileged service account per cluster (staging + prod separate accounts). kube-apiserver endpoint: if public, restrict by GitHub Actions IP ranges (documented in GH docs); if private, establish tunnel (SSH bastion, VPN, or tailnet). Least-privilege RBAC: CI service account can create/update/patch/get/list Deployments/StatefulSets/Services in its namespace only — no cluster-wide permissions, no RBAC/Secrets modification. Test credentials with `kubectl auth can-i` during CI validation.
 - **Backup Testing**: Backup+restore procedures must be tested regularly (at least monthly); a runbook should document the process and expected RTOs/RPOs.

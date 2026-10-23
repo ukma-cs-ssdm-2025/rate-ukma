@@ -298,13 +298,22 @@ describe("parseCoursePage", () => {
 		);
 	});
 
-	it("reads a master's card without faculty and department rows (B17)", () => {
+	it("reads a master's card without faculty and department rows (B18)", () => {
 		const offering = parsed(coursePage({ level: "Магістр", unit: [] }));
 
 		assert.deepStrictEqual(
 			[offering.level, offering.faculty, offering.department],
 			["master", null, null],
 		);
+	});
+
+	it("skips a label САЗ commented out", () => {
+		const page = coursePage().replace(
+			label("4.5 кред.", "4.5 кредитів"),
+			`$&\n<!--\n${label("5 кред.")}\n-->`,
+		);
+
+		assert.strictEqual(parsed(page).credits, 4.5);
 	});
 
 	it("fails a page whose labels or rows it does not know", () => {
@@ -363,7 +372,7 @@ describe("parseCoursePage", () => {
 		);
 	});
 
-	it("fails a page with a row it does not know, so a rename keeps the last good rows", () => {
+	it("fails a page with a row it does not know", () => {
 		const renamed = coursePage({ teachers: "Зразок О. П." }).replace(
 			"<th>Викладач</th>",
 			"<th>Викладачі</th>",

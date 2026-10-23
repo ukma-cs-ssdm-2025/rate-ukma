@@ -82,11 +82,11 @@ sequenceDiagram
 ## Rules
 
 1. Ids are ours, permanent and opaque, with a type prefix (`off_...`). Source ids, like the САЗ code, are only lookup keys.
-2. The worker stores a page snapshot when its hash changes, then parses the snapshot. A parser fix re-parses stored snapshots and sends no request to the source. Raw HTML is kept only when a snapshot fails.
+2. The worker stores a page snapshot when its hash changes, then parses the snapshot. Every snapshot keeps its page, so a parser fix re-parses stored pages without a request to the source.
 3. A run visits each course page once and fetches its card and enrollments together.
-4. Soft delete: no row is ever deleted. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Вступ до аналізу даних». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
+4. Soft delete: no row is ever deleted, except an offering's term and programme rows, which every parse of its card replaces. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Теорія умовних прикладів». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
 5. Every change, removals included, gets the next number from one counter, and writes take turns, so the numbers appear in order. A reader keeps one saved number per list, asks each list for rows above its number, and saves the list's new number only after it has stored every page of it. Readers never sync by time: a slow write can appear after a later one and be skipped.
-6. A run publishes new and changed rows at once. It removes rows only when it read its whole source part without errors, so a partial crawl removes nothing. When it would remove more of the offerings it covers than a set threshold allows, it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and is reported (see [Observability](#observability)): the fix is parser code, not a staff decision.
+6. A run publishes new and changed rows at once. It removes rows only when it read the pages each list is read from without errors: a year's offerings, with their term and programme rows, when every catalog and course page of the run loaded and the catalog pages report the same total as the codes collected, and one offering's enrollments when its students page loaded and parsed. So a partial crawl removes nothing it did not read. When it would remove more of the year's offerings than the removal threshold allows (a setting, 5% to start), it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and is reported (see [Observability](#observability)): the fix is parser code, not a staff decision.
 7. An offering can run in more than one term, for example in fall and in spring. The service stores every term of an offering and has no single "semester" field. Rate UKMA picks one term for its own semester field when it syncs, as its importer does today.
 8. The service keeps what it read from a page apart from what it works out from it: which course an offering belongs to and which teachers teach it. These links are computed from stored pages plus decisions. A better matching rule runs again on stored data and needs no new crawl.
 9. The service owns the course groups, and Rate UKMA takes them from it. The first matching rules are those of Rate UKMA's current importer, and we improve them as we work with the data. Ratings stay in place because Rate UKMA attaches them to offerings, and a reader moves an offering when its course link changes. When the service is not sure, it publishes the safe answer and opens a review case.
@@ -144,9 +144,11 @@ Every list takes the change number a reader saved and uses cursor pagination. Ev
 | Read audit log | the audit log | no |
 | Manage keys | create and revoke keys | no |
 
+- The service defines a scope only once an endpoint needs it: today Read catalog (`catalog:read`, the default) and Decide review cases (`review:decide`). The others in this table come with their endpoints.
 - Example keys: Rate UKMA has the defaults plus instructors, students, start runs and decide review cases. UKMA Schedule has the defaults plus students. The team's own key has every scope, and only it can manage keys.
 - In the staff section, Rate UKMA's backend checks that the user is a superuser, then calls the service with Rate UKMA's key. The browser never holds a key.
 - The audit log records every request made with a key (the key, the route and the row count), key changes, extra runs, decisions and every read of student data. It stores no data values.
+- A refused request whose key exists (wrong secret, revoked, expired, missing scope) is recorded for that key with the reason. A token whose key id is unknown or malformed is not recorded: there is no key to attach it to. Key ids are not secret, so anyone who knows one can add refused rows for it; there is no rate limit yet.
 - No real student data in fixtures, logs, screenshots or issues.
 
 ## Observability

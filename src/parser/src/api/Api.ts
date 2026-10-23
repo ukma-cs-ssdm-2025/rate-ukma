@@ -40,9 +40,10 @@ export class RequiredScopes extends Context.Service<
 	ReadonlyArray<Scope>
 >()("ukma-data/api/RequiredScopes") {}
 
-/** `Authorization: Bearer ukd_...`. An unknown, revoked or expired key gets
- *  401; a valid key without a required scope gets 403. Every request with a
- *  valid key writes one audit row. */
+/** `Authorization: Bearer ukd_...`. An unknown, revoked or expired key or a
+ *  wrong secret gets 401; a valid key without a required scope gets 403.
+ *  Every request whose key exists writes one audit row, a refused one with
+ *  its reason. */
 export class ApiKeyAuth extends HttpApiMiddleware.Service<
 	ApiKeyAuth,
 	{ provides: Caller }
