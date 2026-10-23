@@ -7,34 +7,13 @@ import {
 	type ParseTrigger,
 } from "../offerings/OfferingStore.ts";
 import { parseStudentsPage } from "../saz/studentsPage.ts";
-import type { StudentList } from "./rows.ts";
+import { batchesOf, type StudentList } from "./rows.ts";
 import { StudentStore } from "./StudentStore.ts";
 
 const READ_SIZE = 100;
 
 /** Entries per write, not pages: one list can hold over a thousand (D13). */
 const BATCH_ENTRIES = 5000;
-
-/** Consecutive lists grouped until a group holds `size` entries. */
-export const batchesOf = (
-	lists: ReadonlyArray<StudentList>,
-	size: number,
-): ReadonlyArray<ReadonlyArray<StudentList>> => {
-	const batches: Array<Array<StudentList>> = [];
-	let entries = size;
-
-	for (const list of lists) {
-		if (entries >= size) {
-			batches.push([]);
-			entries = 0;
-		}
-
-		batches.at(-1)?.push(list);
-		entries += list.entries.length;
-	}
-
-	return batches;
-};
 
 /** `parsed` counts lists. A list that fails to parse or store is kept: its
  *  offering's enrollments stay as they were. */

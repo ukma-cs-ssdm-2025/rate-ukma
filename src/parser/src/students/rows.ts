@@ -7,6 +7,27 @@ export interface StudentList {
 	readonly entries: ReadonlyArray<StudentEntry>;
 }
 
+/** Consecutive lists grouped until a group holds `size` entries. */
+export const batchesOf = (
+	lists: ReadonlyArray<StudentList>,
+	size: number,
+): ReadonlyArray<ReadonlyArray<StudentList>> => {
+	const batches: Array<Array<StudentList>> = [];
+	let entries = size;
+
+	for (const list of lists) {
+		if (entries >= size) {
+			batches.push([]);
+			entries = 0;
+		}
+
+		batches.at(-1)?.push(list);
+		entries += list.entries.length;
+	}
+
+	return batches;
+};
+
 /** The rows one batch of lists gives, keyed by САЗ codes, `cdoc` and email;
  *  the store resolves them to ids. Snapshot ids are strings for `jsonb`. */
 export interface StudentRows {

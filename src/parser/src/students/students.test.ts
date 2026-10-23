@@ -1,8 +1,8 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Effect, Layer, Predicate } from "effect";
+import { Cause, Effect, Layer, Predicate } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
-import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { parseOfferings } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
@@ -12,7 +12,7 @@ import { StudentStore } from "./StudentStore.ts";
 
 const TestLive = Layer.mergeAll(OfferingStore.layer, StudentStore.layer).pipe(
 	Layer.provideMerge(ChangeLog.layer),
-	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
 /** Stores a page as a crawl does, in a run of its own. */
@@ -99,7 +99,7 @@ const personOf = (cdoc: string) =>
 		return person;
 	});
 
-describe.skipIf(testDatabaseUrl === undefined)("student tracking", () => {
+describe("student tracking", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("numbers each row once, so a second parse takes no number", () =>
 			Effect.gen(function* () {
@@ -214,6 +214,65 @@ describe.skipIf(testDatabaseUrl === undefined)("student tracking", () => {
 						parsed: 0,
 						listsKept: 1,
 					});
+				}),
+		);
+
+		it.effect(
+			"keeps the enrollments of a batch the database rejects and records its lists",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+
+					yield* offerings("987001");
+					yield* list(
+						"987001",
+						studentsPage(
+							studentEntry({ cdoc: 670001, email: "f.zrazok@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+
+					const kept = yield* enrollmentsOf("987001");
+
+					yield* list(
+						"987001",
+						studentsPage(
+							studentEntry({ cdoc: 670001, email: "f.zrazok@example.edu" }),
+							studentEntry({ cdoc: 670002, email: "f.pryklad@example.edu" }),
+						),
+					);
+					yield* sql`
+						CREATE FUNCTION reject_enrollment() RETURNS trigger LANGUAGE plpgsql
+						AS $$ BEGIN RAISE EXCEPTION 'rejected'; END $$
+					`;
+					yield* sql`
+						CREATE TRIGGER reject_enrollment BEFORE INSERT OR UPDATE ON enrollments
+						FOR EACH ROW EXECUTE FUNCTION reject_enrollment()
+					`;
+
+					const report = yield* parseStudents("crawl").pipe(
+						Effect.ensuring(
+							sql`DROP FUNCTION reject_enrollment CASCADE`.pipe(Effect.orDie),
+						),
+					);
+
+					const failures = yield* sql<{ readonly line: string }>`
+						SELECT path || ' ' || reason AS line FROM parse_failures
+						WHERE reason = 'store'
+					`;
+
+					// An earlier test left a page that fails to parse.
+					assert.deepInclude(report, { parsed: 0, changes: [] });
+					assert.deepInclude(report.failed, { reason: "store", pages: 1 });
+					assert.deepStrictEqual(failures, [
+						{ line: "/course/987001/students store" },
+					]);
+					assert.deepStrictEqual(yield* enrollmentsOf("987001"), kept);
+					assert.isUndefined(yield* personOf("670002"));
+
+					// The list was not applied, so the next crawl applies it.
+					assert.deepInclude(yield* parseStudents("crawl"), { parsed: 1 });
+					assert.lengthOf(yield* enrollmentsOf("987001"), 2);
 				}),
 		);
 
@@ -416,6 +475,23 @@ describe.skipIf(testDatabaseUrl === undefined)("student tracking", () => {
 					});
 					assert.deepStrictEqual(yield* enrollmentsOf("986001"), before);
 				}),
+		);
+
+		it.effect("fails a change number taken outside the turn", () =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+
+				for (const table of ["students", "student_programmes", "enrollments"]) {
+					const outside = yield* sql`
+						UPDATE ${sql(table)} SET change_no = nextval('change_no_seq') WHERE false
+					`.pipe(Effect.flip);
+
+					assert.include(
+						Cause.pretty(Cause.fail(outside)),
+						"change_no written outside the writers' turn",
+					);
+				}
+			}),
 		);
 	});
 });

@@ -60,6 +60,14 @@ export default Effect.gen(function* () {
 		)
 	`;
 
+	for (const table of ["students", "student_programmes", "enrollments"]) {
+		yield* sql`
+			CREATE TRIGGER ${sql(`${table}_require_turn`)}
+			BEFORE INSERT OR UPDATE OF change_no ON ${sql(table)}
+			FOR EACH STATEMENT EXECUTE FUNCTION require_turn()
+		`;
+	}
+
 	yield* sql`CREATE INDEX student_programmes_student_id ON student_programmes (student_id)`;
 	yield* sql`
 		CREATE INDEX student_programmes_programme_id ON student_programmes (programme_id)

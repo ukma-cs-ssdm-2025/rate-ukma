@@ -6,8 +6,7 @@ import {
 	studentsPage,
 } from "../saz/studentsPage.fixture.ts";
 import { parseStudentsPage, type StudentEntry } from "../saz/studentsPage.ts";
-import { type StudentList, studentRowsOf } from "./rows.ts";
-import { batchesOf } from "./students.ts";
+import { batchesOf, type StudentList, studentRowsOf } from "./rows.ts";
 
 const list = (
 	snapshotId: bigint,
