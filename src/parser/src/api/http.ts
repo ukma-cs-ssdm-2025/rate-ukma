@@ -76,7 +76,7 @@ export const AuthLive = ApiKeyAuthLive.pipe(
 	Layer.provideMerge(Audit.layer),
 );
 
-const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
+export const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
 	Layer.provide([
 		SystemApiHandlers,
 		KeyApiHandlers,

@@ -3,8 +3,8 @@ import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import { HttpServerLive } from "./api/http.ts";
 import { ChangeLog } from "./changes/ChangeLog.ts";
-import { PgLive, runMigrations } from "./db/Database.ts";
-import { keyCommands } from "./keys/commands.ts";
+import { PgLive, runMigrations } from "./db/database.ts";
+import { KeysLive, keyCommands } from "./keys/commands.ts";
 import { parseOfferings } from "./offerings/offerings.ts";
 import { OfferingStore } from "./offerings/OfferingStore.ts";
 import { parseStudents } from "./students/students.ts";
@@ -40,7 +40,13 @@ const reparse = Command.make("reparse", {}, () =>
 );
 
 Command.make("ukma-data").pipe(
-	Command.withSubcommands([api, worker, migrate, reparse, ...keyCommands]),
+	Command.withSubcommands([
+		api,
+		worker,
+		migrate,
+		reparse,
+		...keyCommands(KeysLive),
+	]),
 	Command.run({ version: "0.0.0" }),
 	Effect.provide(NodeServices.layer),
 	NodeRuntime.runMain,

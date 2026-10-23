@@ -6,7 +6,6 @@ import {
 	Layer,
 	Redacted,
 	Ref,
-	Schedule,
 	Schema,
 	Semaphore,
 } from "effect";
@@ -33,10 +32,21 @@ export class SazSignInFailed extends Schema.TaggedError<SazSignInFailed>()(
 	}
 }
 
-/** `status` 0 is a transport error. */
+/** `status` 0 is a transport error or a request that ran out of time. */
 export class SazRequestFailed extends Schema.TaggedError<SazRequestFailed>()(
 	"SazRequestFailed",
-	{ path: Schema.String, status: Schema.Number },
+	{
+		path: Schema.String,
+		status: Schema.Number,
+		retryAfterSeconds: Schema.optional(Schema.Number),
+	},
+) {}
+
+/** САЗ asked for a wait over `MAX_RETRY_AFTER_SECONDS`. The limit likely
+ *  covers every page, so the crawl stops instead of going on to the next. */
+export class SazRateLimited extends Schema.TaggedError<SazRateLimited>()(
+	"SazRateLimited",
+	{ path: Schema.String, retryAfterSeconds: Schema.Number },
 ) {}
 
 export class SazSignedOut extends Schema.TaggedError<SazSignedOut>()(
@@ -44,7 +54,7 @@ export class SazSignedOut extends Schema.TaggedError<SazSignedOut>()(
 	{ path: Schema.String },
 ) {}
 
-export type SazError = SazSignInFailed | SazRequestFailed | SazSignedOut;
+export type SazError = SazSignInFailed | SazRequestFailed | SazRateLimited;
 
 /** The fields of Microsoft's `$Config` the password form needs. */
 const MicrosoftForm = Schema.fromJsonString(
@@ -62,9 +72,36 @@ const decodeMicrosoftForm = Schema.decodeUnknownEffect(MicrosoftForm);
 
 const MICROSOFT_CONFIG = /\$Config=(\{.*?\});/su;
 
-const isTransient = (error: SazError): boolean =>
-	error instanceof SazRequestFailed &&
-	(error.status === 0 || error.status === 429 || error.status >= 500);
+const MAX_RETRIES = 3;
+
+/** The longest `Retry-After` the client waits out. The crawl fetches one page
+ *  at a time, so a longer wait would stall every page behind it. */
+const MAX_RETRY_AFTER_SECONDS = 120;
+
+/** The wait before trying a failed request again, or `undefined` to give up.
+ *  A САЗ 500 repeats for the same page, so a 5xx gets one retry only. */
+const retryDelay = (
+	error: SazError,
+	retries: number,
+): Duration.Duration | undefined => {
+	if (!(error instanceof SazRequestFailed)) return undefined;
+
+	const backoff = Duration.seconds(2 * 2 ** retries);
+
+	if (error.status === 429 && retries < MAX_RETRIES) {
+		return error.retryAfterSeconds === undefined
+			? backoff
+			: Duration.seconds(error.retryAfterSeconds);
+	}
+
+	if (error.status === 0 && retries < MAX_RETRIES) return backoff;
+
+	if (error.status >= 500 && retries < 1) return backoff;
+
+	return undefined;
+};
+
+const RETRY_AFTER_SECONDS = /^\d+$/u;
 
 const isOnMicrosoft = (response: HttpClientResponse.HttpClientResponse) =>
 	new URL(response.request.url).host !== new URL(SAZ_URL).host;
@@ -96,6 +133,10 @@ export class SazClient extends Context.Service<
 				Config.withDefault(Duration.seconds(1)),
 			);
 
+			const timeLimit = yield* Config.Duration("SAZ_REQUEST_TIMEOUT").pipe(
+				Config.withDefault(Duration.seconds(30)),
+			);
+
 			const http = yield* HttpClient.HttpClient;
 			// Node fetch drops Set-Cookie on redirects it follows, and the sign-in
 			// sets cookies on both hosts mid-chain, so redirects are walked here.
@@ -116,7 +157,13 @@ export class SazClient extends Context.Service<
 									Cookies.toCookieHeader(held),
 								),
 							)
-							.pipe(Effect.ensuring(Effect.sleep(gap))),
+							.pipe(
+								// The body is read here, inside the time limit; later reads
+								// get the cached bytes.
+								Effect.tap((response) => response.arrayBuffer),
+								Effect.timeout(timeLimit),
+								Effect.ensuring(Effect.sleep(gap)),
+							),
 					);
 
 					yield* Ref.update(jar, (hosts) =>
@@ -150,9 +197,7 @@ export class SazClient extends Context.Service<
 
 					return response;
 				}).pipe(
-					Effect.catchTag("HttpClientError", () =>
-						Effect.fail(new SazRequestFailed({ path, status: 0 })),
-					),
+					Effect.mapError(() => new SazRequestFailed({ path, status: 0 })),
 				);
 
 			const readForm = (response: HttpClientResponse.HttpClientResponse) =>
@@ -212,6 +257,14 @@ export class SazClient extends Context.Service<
 					});
 				}
 
+				// A callback that fails leaves no session, and signing in again for
+				// each page would send the password thousands of times.
+				if (response.status !== 200) {
+					return yield* new SazSignInFailed({
+						reason: `the САЗ sign-in answered ${response.status}`,
+					});
+				}
+
 				yield* Effect.logInfo("Signed in to САЗ");
 			});
 
@@ -227,9 +280,24 @@ export class SazClient extends Context.Service<
 					}
 
 					if (response.status !== 200) {
+						const retryAfter = response.headers["retry-after"] ?? "";
+
+						const retryAfterSeconds = RETRY_AFTER_SECONDS.test(retryAfter)
+							? Number(retryAfter)
+							: undefined;
+
+						if (
+							response.status === 429 &&
+							retryAfterSeconds !== undefined &&
+							retryAfterSeconds > MAX_RETRY_AFTER_SECONDS
+						) {
+							return yield* new SazRateLimited({ path, retryAfterSeconds });
+						}
+
 						return yield* new SazRequestFailed({
 							path,
 							status: response.status,
+							retryAfterSeconds,
 						});
 					}
 
@@ -238,18 +306,38 @@ export class SazClient extends Context.Service<
 					);
 				});
 
-			const get = (path: string) =>
+			const fetchSignedIn = (path: string) =>
 				fetchPage(path).pipe(
 					Effect.catchTag("SazSignedOut", () =>
-						signIn.pipe(Effect.andThen(fetchPage(path))),
-					),
-					Effect.retry({
-						while: isTransient,
-						schedule: Schedule.exponential("2 seconds").pipe(
-							Schedule.upTo({ times: 3 }),
+						signIn.pipe(
+							Effect.andThen(fetchPage(path)),
+							Effect.catchTag("SazSignedOut", () =>
+								Effect.fail(
+									new SazSignInFailed({
+										reason: `signed out of ${path} right after a fresh sign-in`,
+									}),
+								),
+							),
 						),
-					}),
+					),
 				);
+
+			const get = (path: string): Effect.Effect<string, SazError> => {
+				const attempt = (retries: number): Effect.Effect<string, SazError> =>
+					fetchSignedIn(path).pipe(
+						Effect.catch((error) => {
+							const delay = retryDelay(error, retries);
+
+							return delay === undefined
+								? Effect.fail(error)
+								: Effect.sleep(delay).pipe(
+										Effect.andThen(attempt(retries + 1)),
+									);
+						}),
+					);
+
+				return attempt(0);
+			};
 
 			return SazClient.of({ get });
 		}),

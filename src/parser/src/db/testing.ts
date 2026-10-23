@@ -2,11 +2,18 @@ import { NodeServices } from "@effect/platform-node";
 import { PgClient } from "@effect/sql-pg";
 import { Effect, Layer, Redacted } from "effect";
 import { Reactivity } from "effect/reactivity";
-import { runMigrations } from "./Database.ts";
+import { runMigrations } from "./database.ts";
 
-/** A Postgres server where tests may create databases, such as the CI
- *  service. Without it the Postgres tests skip. */
-export const testDatabaseUrl = process.env["TEST_DATABASE_URL"];
+const url = process.env["TEST_DATABASE_URL"];
+
+if (url === undefined) {
+	throw new Error(
+		"TEST_DATABASE_URL is missing: set it to a Postgres server where tests may create and drop databases, such as the docker compose Postgres in src as the postgres user (postgres://postgres:<password>@localhost:<port>/postgres)",
+	);
+}
+
+/** A Postgres server where tests may create databases, such as the CI service. */
+export const testDatabaseUrl: string = url;
 
 /** A migrated database of its own for one test file, dropped afterwards. */
 export const TestDatabase = (url: string) =>
