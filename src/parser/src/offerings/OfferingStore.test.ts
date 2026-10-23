@@ -2,7 +2,7 @@ import { assert, describe, layer } from "@effect/vitest";
 import { Effect, Exit, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
-import { TestDatabase, testDatabaseUrl } from "../db/testDatabase.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import type { OfferingTerm, ParsedOffering } from "../saz/coursePage.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
 import { offering } from "./offering.fixture.ts";
@@ -15,7 +15,7 @@ import {
 
 const TestLive = OfferingStore.layer.pipe(
 	Layer.provideMerge(ChangeLog.layer),
-	Layer.provideMerge(TestDatabase(testDatabaseUrl ?? "")),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
 const NO_FILTERS: CatalogFilters = {
@@ -145,7 +145,7 @@ const offeringRow = (sazCode: string) =>
 		return row;
 	});
 
-describe.skipIf(testDatabaseUrl === undefined)("OfferingStore", () => {
+describe("OfferingStore", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("gives each row a prefixed ULID and requires a level", () =>
 			Effect.gen(function* () {
@@ -342,7 +342,7 @@ const CATALOG = `<form>
 </select>
 </form>`;
 
-describe.skipIf(testDatabaseUrl === undefined)("parseOfferings", () => {
+describe("parseOfferings", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("parses the latest snapshot of each page with catalog ids", () =>
 			Effect.gen(function* () {

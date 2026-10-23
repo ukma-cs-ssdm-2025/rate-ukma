@@ -193,7 +193,7 @@ GET /course/900123/students -> 500
 
 - Count: 5,124 cards have a `Семестр Nд` label and exactly these 5,124 have a `Літо` row.
 - Codes: 208949, 208958, 208967.
-- Handled by: `offering_terms.season` = `SUMMER`, term id `2025-26-SUMMER`.
+- Handled by: `terms.season` = `SUMMER`, referenced by `offering_terms.term_id` `2025-26-SUMMER`.
 
 ### B10. Control type of a term
 
