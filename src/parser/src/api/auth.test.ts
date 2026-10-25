@@ -280,7 +280,7 @@ describe("ApiKeyAuth", () => {
 					const before = yield* denied;
 
 					for (const token of [
-						`ukd_key_00000000000000000000000000.${secret}`,
+						`ukd_key_0192f3a4-7b1c-7d3e-9a2b-4c5d6e7f8a9b.${secret}`,
 						`ukd_${known.id}`,
 						"",
 					]) {

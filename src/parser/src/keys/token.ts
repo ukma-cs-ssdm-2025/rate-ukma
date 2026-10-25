@@ -3,7 +3,8 @@ import { Option, Redacted } from "effect";
 
 /** `ukd_<key id>.<secret>`: the id finds the row, the secret proves the
  *  holder. Only the secret's hash is stored. */
-const TOKEN = /^ukd_(key_[0-9A-HJKMNP-TV-Z]{26})\.([A-Za-z0-9_-]{43})$/;
+const TOKEN =
+	/^ukd_(key_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.([A-Za-z0-9_-]{43})$/;
 
 export interface ParsedToken {
 	readonly keyId: string;

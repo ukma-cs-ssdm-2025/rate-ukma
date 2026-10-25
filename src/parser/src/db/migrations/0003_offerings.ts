@@ -4,29 +4,9 @@ import { SqlClient } from "effect/sql";
 export default Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 
-	// A ULID from the clock and 80 random bits of two UUIDs, skipping the
-	// version and variant bits.
-	yield* sql`
-		CREATE FUNCTION ulid() RETURNS text LANGUAGE plpgsql VOLATILE AS $$
-		DECLARE
-			alphabet constant text := '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-			ms bigint := floor(extract(epoch FROM clock_timestamp()) * 1000);
-			random bytea := substring(uuid_send(gen_random_uuid()) FROM 1 FOR 6)
-				|| substring(uuid_send(gen_random_uuid()) FROM 11 FOR 4);
-			bits bit(130) := B'00' || ms::bit(48) || ('x' || encode(random, 'hex'))::bit(80);
-			result text := '';
-		BEGIN
-			FOR i IN 0..25 LOOP
-				result := result || substr(alphabet, substring(bits FROM i * 5 + 1 FOR 5)::int + 1, 1);
-			END LOOP;
-			RETURN result;
-		END
-		$$
-	`;
-
 	yield* sql`
 		CREATE TABLE terms (
-			id text PRIMARY KEY DEFAULT 'trm_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'trm_' || uuidv7(),
 			code text NOT NULL UNIQUE,
 			academic_year smallint NOT NULL,
 			season text NOT NULL CHECK (season IN ('FALL', 'SPRING', 'SUMMER'))
@@ -37,7 +17,7 @@ export default Effect.gen(function* () {
 	// follows its name), so uniqueness is checked at commit, not per row.
 	yield* sql`
 		CREATE TABLE faculties (
-			id text PRIMARY KEY DEFAULT 'fac_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'fac_' || uuidv7(),
 			name text NOT NULL,
 			saz_filter_id text,
 			CONSTRAINT faculties_name_key UNIQUE (name) DEFERRABLE INITIALLY DEFERRED,
@@ -48,7 +28,7 @@ export default Effect.gen(function* () {
 
 	yield* sql`
 		CREATE TABLE departments (
-			id text PRIMARY KEY DEFAULT 'dep_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'dep_' || uuidv7(),
 			name text NOT NULL,
 			saz_filter_id text,
 			faculty_id text REFERENCES faculties (id),
@@ -60,7 +40,7 @@ export default Effect.gen(function* () {
 
 	yield* sql`
 		CREATE TABLE programmes (
-			id text PRIMARY KEY DEFAULT 'prg_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'prg_' || uuidv7(),
 			name text NOT NULL,
 			level text NOT NULL CHECK (level IN ('bachelor', 'master')),
 			saz_filter_id text,
@@ -70,7 +50,7 @@ export default Effect.gen(function* () {
 
 	yield* sql`
 		CREATE TABLE offerings (
-			id text PRIMARY KEY DEFAULT 'off_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'off_' || uuidv7(),
 			saz_code text NOT NULL UNIQUE,
 			academic_year smallint NOT NULL,
 			title text NOT NULL,

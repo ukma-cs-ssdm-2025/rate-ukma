@@ -9,11 +9,14 @@ import { offering } from "./offering.fixture.ts";
 import { OfferingStore } from "./OfferingStore.ts";
 import {
 	catalogFiltersOf,
+	missingFilters,
+	OfferingsNotStored,
 	offeringRowsOf,
 	parseOfferings,
+	reparseOfferings,
 	termCode,
 } from "./offerings.ts";
-import { crawl, offeringsOf, reset } from "./testing.ts";
+import { crawl, NO_FILTERS, offeringsOf, reset, snapshot } from "./testing.ts";
 
 const FILTERS = {
 	faculties: new Map([["Факультет вигаданих наук", "901"]]),
@@ -27,6 +30,22 @@ const FILTERS = {
 describe("termCode", () => {
 	it("names both calendar years and the season", () => {
 		assert.strictEqual(termCode(2031, "SPRING"), "2031-32-SPRING");
+	});
+});
+
+describe("missingFilters", () => {
+	it("names each catalog filter with no options", () => {
+		const filters = catalogFiltersOf(`
+			<select name="filter[faculty][]" multiple>
+			<option value="901">Факультет вигаданих наук</option>
+			</select>
+			<select name="filter[spec][]" multiple></select>
+		`);
+
+		assert.deepStrictEqual(missingFilters(filters), [
+			"filter[subfaculty]",
+			"filter[spec]",
+		]);
 	});
 });
 
@@ -164,26 +183,6 @@ const TestLive = OfferingStore.layer.pipe(
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
-/** Stores a course page as the crawl would, and returns its snapshot id. */
-const snapshot = (path: string, content: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
-
-		const [run] = yield* sql<{ readonly id: bigint }>`
-			INSERT INTO runs (source_part) VALUES ('saz-courses:2031-32') RETURNING id
-		`;
-
-		const [stored] = yield* sql<{ readonly id: bigint }>`
-			INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
-			VALUES (${path}, 'course', md5(${content}), ${content}, ${run?.id})
-			RETURNING id
-		`;
-
-		assert.isDefined(stored);
-
-		return stored.id;
-	});
-
 /** The offering's title, snapshot and terms, as one line. */
 const offeringLine = (sazCode: string) =>
 	Effect.gen(function* () {
@@ -236,12 +235,6 @@ const counts = Effect.gen(function* () {
 	return row?.line;
 });
 
-const NO_FILTERS = {
-	faculties: new Map(),
-	departments: new Map(),
-	programmes: new Map(),
-};
-
 describe("reparse", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("brings a parser fix to the tables without a crawl", () =>
@@ -271,7 +264,7 @@ describe("reparse", () => {
 				);
 
 				const before = yield* counts;
-				const report = yield* parseOfferings("reparse");
+				const report = yield* reparseOfferings;
 
 				assert.strictEqual(
 					yield* offeringLine("900001"),
@@ -283,6 +276,7 @@ describe("reparse", () => {
 					parsed: 1,
 					failed: [],
 					changes: [{ table: "offerings", action: "change", rows: 1 }],
+					missing: ["filter[faculty]", "filter[subfaculty]", "filter[spec]"],
 				});
 				assert.deepStrictEqual(yield* parses, [
 					{ trigger: "crawl", finished: null, report: null },
@@ -303,7 +297,7 @@ describe("reparse", () => {
 
 				yield* snapshot("/course/900001", "<html></html>");
 
-				const report = yield* parseOfferings("reparse");
+				const report = yield* reparseOfferings;
 
 				assert.strictEqual(
 					yield* offeringLine("900001"),
@@ -326,7 +320,7 @@ describe("reparse", () => {
 			}),
 		);
 
-		it.effect("records the pages of a batch the database rejects", () =>
+		it.effect("records a refused batch and fails the reparse", () =>
 			Effect.gen(function* () {
 				yield* reset;
 
@@ -348,7 +342,8 @@ describe("reparse", () => {
 					FOR EACH ROW EXECUTE FUNCTION reject_offering()
 				`;
 
-				const report = yield* parseOfferings("reparse").pipe(
+				const error = yield* reparseOfferings.pipe(
+					Effect.flip,
 					Effect.ensuring(
 						sql`DROP FUNCTION reject_offering CASCADE`.pipe(Effect.orDie),
 					),
@@ -359,7 +354,7 @@ describe("reparse", () => {
 					"Вступ до вигаданих систем #1 2031-32-FALL exam",
 				);
 				assert.deepStrictEqual(yield* failures, ["2 #2 /course/900001 store"]);
-				assert.deepStrictEqual(report.failed, [{ reason: "store", pages: 1 }]);
+				assert.deepStrictEqual(error, new OfferingsNotStored({ pages: 1 }));
 			}),
 		);
 
@@ -382,8 +377,15 @@ describe("reparse", () => {
 					])
 					.pipe(Effect.exit);
 
+				const unknownParse = yield* store
+					.recordFailures(parseId + 1n, [
+						{ snapshotId: page, path: "/course/900001", reason: "x" },
+					])
+					.pipe(Effect.exit);
+
 				assert.isTrue(Exit.isFailure(unknownTrigger));
 				assert.isTrue(Exit.isFailure(unknownSnapshot));
+				assert.isTrue(Exit.isFailure(unknownParse));
 				assert.deepStrictEqual(yield* parses, [
 					{ trigger: "reparse", finished: null, report: null },
 				]);

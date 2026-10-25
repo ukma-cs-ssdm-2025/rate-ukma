@@ -9,7 +9,7 @@ import {
 	secretMatches,
 } from "./token.ts";
 
-const KEY_ID = "key_01JABCDEFGHJKMNPQRSTVWXYZ0";
+const KEY_ID = "key_0192f3a4-7b1c-7d3e-9a2b-4c5d6e7f8a9c";
 
 describe("token", () => {
 	it("parses the id and secret it formatted", () => {
