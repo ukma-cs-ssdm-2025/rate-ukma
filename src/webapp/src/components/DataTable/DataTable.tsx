@@ -151,7 +151,7 @@ export function DataTable<TData>({
 										}}
 										className={cn(
 											getAlignmentClass(header.column.columnDef.meta),
-											"max-sm:px-2",
+											"max-sm:px-1.5",
 											header.column.columnDef.meta?.hideOnMobile &&
 												"hidden sm:table-cell",
 										)}
@@ -196,7 +196,7 @@ export function DataTable<TData>({
 												}}
 												className={cn(
 													getAlignmentClass(cell.column.columnDef.meta),
-													"max-sm:p-2",
+													"max-sm:px-1.5 max-sm:py-2",
 													cell.column.columnDef.meta?.hideOnMobile &&
 														"hidden sm:table-cell",
 												)}
