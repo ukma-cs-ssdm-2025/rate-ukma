@@ -49,7 +49,9 @@ const AcademicYear = Schema.String.check(
 );
 
 /** `Семестр 6д` is the summer after semester 6. */
-const Semester = Schema.String.check(Schema.isPattern(/^Семестр \d+д?$/u)).pipe(
+const Semester = Schema.String.check(
+	Schema.isPattern(/^Семестр \d{1,4}д?$/u),
+).pipe(
 	Schema.decodeTo(
 		Schema.Struct({ number: Schema.Int, summer: Schema.Boolean }),
 		SchemaTransformation.transform({
@@ -175,11 +177,9 @@ const TITLE = /<h1>(.*?)<small>/su;
 
 const CARD_START = '<div id="w0">';
 
-const ANNOTATION =
-	/<div class="collapse text-justify" id="course-card--\d+--info">(.*?)<\/div>/su;
+const ANNOTATION = /<div[^>]* id="course-card--\d+--info"[^>]*>(.*?)<\/div>/su;
 
-const PROGRAMMES =
-	/<div class="collapse text-justify" id="course-card--\d+--spec">(.*?)<\/div>/su;
+const PROGRAMMES = /<div[^>]* id="course-card--\d+--spec"[^>]*>(.*?)<\/div>/su;
 
 /** Any collapse block of the card; only `info` and `spec` are known. */
 const BLOCK_ID = /id="course-card--\d+--([^"]*)"/gu;
@@ -390,13 +390,23 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 			);
 		}
 
-		const block = Array.from(page.matchAll(BLOCK_ID), ([, id = ""]) => id).find(
-			(id) => !KNOWN_BLOCKS.has(id),
-		);
+		const blocks = Array.from(page.matchAll(BLOCK_ID), ([, id = ""]) => id);
+		const block = blocks.find((id) => !KNOWN_BLOCKS.has(id));
 
 		if (block !== undefined) {
 			return yield* Result.fail(
 				new CoursePageError({ reason: "unknown block", detail: block }),
+			);
+		}
+
+		// A block whose markup the patterns miss would read as no annotation or no
+		// programmes and overwrite the stored ones.
+		if (
+			(blocks.includes("info") && annotation === undefined) ||
+			(blocks.includes("spec") && programmes === undefined)
+		) {
+			return yield* Result.fail(
+				new CoursePageError({ reason: "unread block", detail: "" }),
 			);
 		}
 
