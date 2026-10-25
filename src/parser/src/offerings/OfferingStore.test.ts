@@ -1,6 +1,7 @@
 import { assert, describe, layer } from "@effect/vitest";
 import { Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
+import { ChangeLog } from "../changes/ChangeLog.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import type { OfferingTerm, ParsedOffering } from "../saz/coursePage.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
@@ -15,6 +16,7 @@ import {
 import { NO_FILTERS, reset, snapshot } from "./testing.ts";
 
 const TestLive = OfferingStore.layer.pipe(
+	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
@@ -43,7 +45,10 @@ const write = (
 			),
 		);
 
-		yield* store.write(offeringRowsOf(pages, filters, yield* store.programmes));
+		yield* store.write(
+			offeringRowsOf(pages, filters, yield* store.programmes),
+			yield* store.startParse("crawl"),
+		);
 
 		return pages.map(({ snapshotId }) => snapshotId);
 	});
@@ -136,10 +141,14 @@ describe("OfferingStore", () => {
 				yield* reset;
 
 				const sql = yield* SqlClient.SqlClient;
+				const changes = yield* ChangeLog;
 
-				const rejected = yield* sql`
-					INSERT INTO programmes (name, level) VALUES ('Вигадана логіка', NULL)
-				`.pipe(Effect.orDie, Effect.exit);
+				// In the writers' turn, so require_turn lets it reach the NOT NULL check.
+				const rejected = yield* changes
+					.withTurn(sql`
+						INSERT INTO programmes (name, level) VALUES ('Вигадана логіка', NULL)
+					`)
+					.pipe(Effect.orDie, Effect.exit);
 
 				assert.isTrue(Exit.isFailure(rejected));
 
@@ -293,9 +302,11 @@ describe("OfferingStore", () => {
 						newer,
 						offering("900001", { title: "Нова назва", terms: [SPRING] }),
 					),
+					yield* store.startParse("crawl"),
 				);
 				yield* store.write(
 					rowsOf(older, offering("900001", { title: "Стара назва" })),
+					yield* store.startParse("crawl"),
 				);
 
 				assert.deepStrictEqual(yield* offeringRow("900001"), {
@@ -353,6 +364,13 @@ describe("parseOfferings", () => {
 					seconds: report.seconds,
 					parsed: 2,
 					failed: [{ reason: "no course card", pages: 1 }],
+					changes: [
+						{ table: "faculties", action: "add", rows: 1 },
+						{ table: "departments", action: "add", rows: 1 },
+						{ table: "programmes", action: "add", rows: 1 },
+						{ table: "terms", action: "add", rows: 1 },
+						{ table: "offerings", action: "add", rows: 2 },
+					],
 					missing: ["filter[subfaculty]"],
 				});
 				assert.deepStrictEqual(
