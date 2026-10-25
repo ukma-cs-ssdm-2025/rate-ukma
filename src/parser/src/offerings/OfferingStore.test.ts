@@ -369,6 +369,7 @@ describe("parseOfferings", () => {
 				assert.deepStrictEqual(report, {
 					parsed: 2,
 					failed: [{ reason: "no course card", pages: 1 }],
+					missing: ["filter[subfaculty]"],
 				});
 				assert.deepStrictEqual(
 					rows.map(({ line }) => line),

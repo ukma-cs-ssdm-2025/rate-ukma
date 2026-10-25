@@ -1,6 +1,11 @@
 import { assert, describe, it } from "@effect/vitest";
 import { offering } from "./offering.fixture.ts";
-import { offeringRowsOf, termCode } from "./offerings.ts";
+import {
+	catalogFiltersOf,
+	missingFilters,
+	offeringRowsOf,
+	termCode,
+} from "./offerings.ts";
 
 const FILTERS = {
 	faculties: new Map([["Факультет вигаданих наук", "901"]]),
@@ -14,6 +19,22 @@ const FILTERS = {
 describe("termCode", () => {
 	it("names both calendar years and the season", () => {
 		assert.strictEqual(termCode(2031, "SPRING"), "2031-32-SPRING");
+	});
+});
+
+describe("missingFilters", () => {
+	it("names each catalog filter with no options", () => {
+		const filters = catalogFiltersOf(`
+			<select name="filter[faculty][]" multiple>
+			<option value="901">Факультет вигаданих наук</option>
+			</select>
+			<select name="filter[spec][]" multiple></select>
+		`);
+
+		assert.deepStrictEqual(missingFilters(filters), [
+			"filter[subfaculty]",
+			"filter[spec]",
+		]);
 	});
 });
 
