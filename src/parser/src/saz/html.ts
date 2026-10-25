@@ -1,4 +1,4 @@
-import { decodeHTMLStrict } from "entities";
+import { decodeHTML } from "entities";
 
 /** САЗ comments out markup it no longer shows, labels included. */
 export const withoutComments = (fragment: string): string =>
@@ -7,6 +7,6 @@ export const withoutComments = (fragment: string): string =>
 /** The text of an HTML fragment: comments and tags dropped, entities decoded,
  *  whitespace collapsed. */
 export const textOf = (fragment: string): string =>
-	decodeHTMLStrict(withoutComments(fragment).replace(/<[^>]*>/gu, " "))
+	decodeHTML(withoutComments(fragment).replace(/<[^>]*>/gu, " "))
 		.replace(/\s+/gu, " ")
 		.trim();

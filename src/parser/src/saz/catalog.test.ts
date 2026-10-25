@@ -153,14 +153,15 @@ describe("parseAcademicYears", () => {
 });
 
 describe("parseFilterOptions", () => {
-	it("maps each option text of one filter to its value", () => {
+	it("maps each option text of one filter to its value, skipping commented options", () => {
 		const filters = `<form>
 <select name="filter[faculty][]" multiple>
 <option value="901">Факультет вигаданих наук</option>
 <option value="902">Факультет уявних мистецтв</option>
 </select>
 <select name="filter[spec][]" multiple>
-<option value="5001">Вигадана інженерія (Бакалавр)</option>
+<option selected value="5001">Вигадана інженерія (Бакалавр)</option>
+<!-- <option value="5009">Вигадана інженерія (Бакалавр)</option> -->
 <option value="5002">Комп&#039;ютерні вигадки (Магістр)</option>
 </select>
 </form>`;

@@ -5,7 +5,7 @@ import {
 	SchemaIssue,
 	SchemaTransformation,
 } from "effect";
-import { decodeHTMLStrict } from "entities";
+import { decodeHTML } from "entities";
 import { textOf, withoutComments } from "./html.ts";
 
 // Digits only, since `FiniteFromString` reads an empty cell as 0, and bounded
@@ -481,7 +481,7 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 			text("Кількість студентів в групі") ?? "",
 		);
 
-		const annotationText = decodeHTMLStrict(annotation ?? "").trim();
+		const annotationText = decodeHTML(annotation ?? "").trim();
 
 		return {
 			code: text("Код"),

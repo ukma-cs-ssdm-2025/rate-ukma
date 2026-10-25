@@ -560,10 +560,10 @@ describe("parseCoursePage", () => {
 		);
 	});
 
-	it("keeps an entity without its semicolon as written", () => {
+	it("decodes an entity without its semicolon, as a browser does", () => {
 		assert.strictEqual(
 			parsed(coursePage({ title: "Системи &amp моделі" })).title,
-			"Системи &amp моделі",
+			"Системи & моделі",
 		);
 	});
 

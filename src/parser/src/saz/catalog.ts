@@ -1,4 +1,4 @@
-import { textOf } from "./html.ts";
+import { textOf, withoutComments } from "./html.ts";
 
 /** Each card in the result list links its course with this button; the page
  *  also links other courses outside the list, so a bare `/course/` href is not enough. */
@@ -14,7 +14,7 @@ const YEAR_SELECT =
 
 const YEAR_OPTION = /<option value="(\d{4})"/gu;
 
-const OPTION = /<option value="([^"]*)"[^>]*>(.*?)<\/option>/gsu;
+const OPTION = /<option\b[^>]*\bvalue="([^"]*)"[^>]*>(.*?)<\/option>/gsu;
 
 /** `Показані <b>3 381-3 398</b> із <b>3 398</b> записів.`; the numbers are
  *  grouped with spaces. */
@@ -123,7 +123,7 @@ export const parseFilterOptions = (
 	const select = new RegExp(
 		`<select[^>]*name="filter\\[${name}\\]\\[\\]"[^>]*>(.*?)</select>`,
 		"su",
-	).exec(html)?.[1];
+	).exec(withoutComments(html))?.[1];
 
 	return new Map(
 		Array.from(select?.matchAll(OPTION) ?? [], ([, value = "", text = ""]) => [
