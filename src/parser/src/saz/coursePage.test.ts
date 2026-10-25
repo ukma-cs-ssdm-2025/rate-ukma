@@ -342,6 +342,10 @@ describe("parseCoursePage", () => {
 			"invalid academicYear",
 		);
 		assert.strictEqual(
+			failure(coursePage({ year: "2031–2035" })),
+			"invalid academicYear",
+		);
+		assert.strictEqual(
 			failure(coursePage({ limits: LIMITS.slice(1) })),
 			"invalid maxStudents",
 		);
@@ -365,10 +369,10 @@ describe("parseCoursePage", () => {
 		);
 	});
 
-	it("keeps an entity past the last code point as written", () => {
+	it("replaces an entity that is not a character Postgres can hold", () => {
 		assert.strictEqual(
 			parsed(coursePage({ title: "Системи &#99999999; &#0; &#xD800;" })).title,
-			"Системи &#99999999; &#0; &#xD800;",
+			"Системи \uFFFD \uFFFD \uFFFD",
 		);
 	});
 
@@ -399,6 +403,142 @@ describe("parseCoursePage", () => {
 		assert.strictEqual(
 			failure(coursePage({ annotation: "<div>Перший абзац.</div> Другий." })),
 			"annotation markup",
+		);
+	});
+
+	it("fails text outside the labels instead of dropping it", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					terms: [
+						row("Семестри", "Семестр 3"),
+						row("Осінь", [label("3 кред."), label("залік")].join(" ")),
+					],
+				}),
+			),
+			"unlabelled text",
+		);
+		assert.strictEqual(
+			failure(
+				coursePage({
+					info: [
+						label("3 кред."),
+						label("90 год."),
+						label("1 рік"),
+						label("Формат 2015"),
+						"Курс відбувся",
+					],
+				}),
+			),
+			"unlabelled text",
+		);
+	});
+
+	it("fails a repeated row other than the approved groups count", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					terms: [
+						row("Семестри", label("Семестр 1")),
+						row("Осінь", [label("3 кред."), label("залік")].join(" ")),
+						row("Осінь", [label("2 кред."), label("екзамен")].join(" ")),
+					],
+				}),
+			),
+			"repeated row",
+		);
+	});
+
+	it("fails a programme listed with two kinds", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					programmes: [
+						["Вигадана інженерія", "Обов`язкова"],
+						["Вигадана інженерія", "Вільного вибору"],
+					],
+				}),
+			),
+			"programme kinds differ",
+		);
+	});
+
+	it("fails a semester without its season row, and a season row without a semester", () => {
+		const terms = (semesters: string, seasons: ReadonlyArray<string>) =>
+			coursePage({
+				terms: [
+					row("Семестри", semesters),
+					...seasons.map((season) =>
+						row(season, [label("3 кред."), label("залік")].join(" ")),
+					),
+				],
+			});
+
+		assert.strictEqual(
+			failure(terms(label("Семестр 4"), ["Осінь"])),
+			"semester without term",
+		);
+		assert.strictEqual(
+			failure(terms(label("Семестр 3"), ["Осінь", "Весна"])),
+			"term without semester",
+		);
+	});
+
+	it("fails a card with one unit row, or a unit row without a value", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					unit: [
+						"<tr><th>Факультет</th><td>Факультет вигаданих наук</td></tr>",
+					],
+				}),
+			),
+			"lone unit row",
+		);
+		assert.strictEqual(
+			failure(
+				coursePage({
+					unit: [
+						"<tr><th>Факультет</th><th>Факультет вигаданих наук</th></tr>",
+						"<tr><th>Кафедра</th><td>Кафедра вигаданих систем</td></tr>",
+					],
+				}),
+			),
+			"invalid faculty",
+		);
+	});
+
+	it("fails numbers past their column's precision or range", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					info: [
+						label("4.55 кред."),
+						label("90 год."),
+						label("1 рік"),
+						label("Формат 2015"),
+					],
+				}),
+			),
+			"invalid credits",
+		);
+		assert.strictEqual(
+			failure(
+				coursePage({
+					limits: [
+						row("Максимальна кількість студентів", "10000"),
+						...LIMITS.slice(1),
+					],
+				}),
+			),
+			"invalid maxStudents",
+		);
+	});
+
+	it("keeps an entity without its semicolon as written", () => {
+		assert.strictEqual(
+			parsed(coursePage({ title: "Системи &amp моделі" })).title,
+			"Системи &amp моделі",
 		);
 	});
 
