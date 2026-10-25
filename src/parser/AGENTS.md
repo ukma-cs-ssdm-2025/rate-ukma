@@ -13,6 +13,8 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/main.ts`: the `api`, `worker`, `migrate` and `reparse` commands. `reparse` rebuilds the parsed tables from stored snapshots and sends nothing to САЗ.
 - `src/keys/`: API keys, their scopes, and the `create-key`, `revoke-key` and `list-keys` commands. `src/audit/Audit.ts` writes the audit log.
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per request whose key exists, a refused one with its reason.
+- `src/lists/`: the read side of every list: wire schemas in camelCase, the `?after=&limit=` page and the SQL that reads it in change-number order.
+- `docs/parser-service/openapi.json` is generated from `Api.ts` by `pnpm openapi`; `src/api/openapi.test.ts` fails when the committed file is stale.
 - `src/worker/`: the background loop: crawl, parse, then removals (`src/offerings/removals.ts`).
 - `src/changes/ChangeLog.ts`: the writers' turn, change numbers and the `changes` trail.
 - `src/db/database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
@@ -24,6 +26,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
 - Every other endpoint sits in a group with `.middleware(ApiKeyAuth)` and is annotated with `RequiredScopes`; without the annotation it refuses every key. A list handler calls `Caller.countRows`, so the audit row has the count and never the values.
+- A list endpoint takes `PageQuery` and returns `Page(item)`: rows above `after` ordered by `change_no`, removed rows included, so readers apply removals. Never page by time or offset (spec rule 5).
 - A write endpoint (start a run, decide a case) records its audit row inside its own transaction, so a failed audit write cannot leave work done behind a 500.
 - A token is a `Redacted` value everywhere but the one `create-key` print; never log it.
 - The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`/`create-key`/`revoke-key`/`list-keys`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
