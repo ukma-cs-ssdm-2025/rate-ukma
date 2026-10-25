@@ -1,5 +1,5 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Effect, Exit, Layer } from "effect";
+import { Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import type { OfferingTerm, ParsedOffering } from "../saz/coursePage.ts";
@@ -10,6 +10,7 @@ import {
 	type CatalogFilters,
 	offeringRowsOf,
 	parseOfferings,
+	storeFailureOf,
 } from "./offerings.ts";
 
 const TestLive = OfferingStore.layer.pipe(
@@ -168,6 +169,29 @@ describe("OfferingStore", () => {
 					"trm",
 				]);
 				assert.isTrue(Exit.isFailure(nullLevel));
+			}),
+		);
+
+		it.effect("logs a rejected write without the failing row", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				const rejected = yield* sql`
+					INSERT INTO programmes (name, level) VALUES ('Вигадана логіка', NULL)
+				`.pipe(Effect.orDie, Effect.exit);
+
+				assert.isTrue(Exit.isFailure(rejected));
+
+				if (Exit.isFailure(rejected)) {
+					assert.deepStrictEqual(storeFailureOf(rejected.cause), {
+						reason: "ConstraintError",
+						code: "23502",
+						table: "programmes",
+						column: "level",
+					});
+				}
 			}),
 		);
 
@@ -379,6 +403,51 @@ describe("parseOfferings", () => {
 					],
 				);
 				assert.strictEqual(programme?.sazFilterId, "5001");
+			}),
+		);
+
+		it.effect("waits for a parse that holds the lock", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* OfferingStore;
+				const held = yield* Deferred.make<void>();
+				const release = yield* Deferred.make<void>();
+
+				yield* snapshot("/course/900001", coursePage({ code: "900001" }));
+
+				const holder = yield* Effect.forkChild(
+					store.lockParse.pipe(
+						Effect.andThen(Deferred.succeed(held, undefined)),
+						Effect.andThen(Deferred.await(release)),
+						Effect.scoped,
+					),
+				);
+
+				yield* Deferred.await(held);
+
+				const parse = yield* Effect.forkChild(parseOfferings());
+
+				yield* sql<{ readonly waiting: number }>`
+					SELECT count(*)::int AS waiting FROM pg_locks
+					WHERE locktype = 'advisory' AND NOT granted
+				`.pipe(
+					Effect.repeat({
+						until: ([row]) => row?.waiting === 1,
+						schedule: Schedule.spaced("20 millis"),
+					}),
+				);
+
+				const whileHeld = yield* offeringRow("900001");
+
+				yield* Deferred.succeed(release, undefined);
+				yield* Fiber.join(holder);
+
+				const report = yield* Fiber.join(parse);
+
+				assert.isUndefined(whileHeld);
+				assert.strictEqual(report.parsed, 1);
 			}),
 		);
 

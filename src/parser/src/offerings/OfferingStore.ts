@@ -1,6 +1,6 @@
-import { Context, Effect, Layer, Option, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { WRITE_LOCK } from "../db/locks.ts";
+import { PARSE_LOCK, sessionLock, WRITE_LOCK } from "../db/locks.ts";
 import type {
 	OfferingTerm,
 	ParsedOffering,
@@ -69,6 +69,8 @@ export interface StoredProgramme {
 export class OfferingStore extends Context.Service<
 	OfferingStore,
 	{
+		/** Waits for the parse lock and holds it for the scope. */
+		lockParse: Effect.Effect<void, never, Scope.Scope>;
 		/** The id of the latest snapshot of each course page, in id order. */
 		latestCoursePages: Effect.Effect<ReadonlyArray<bigint>>;
 		coursePages(
@@ -90,6 +92,11 @@ export class OfferingStore extends Context.Service<
 		OfferingStore,
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
+
+			const lockParse = sessionLock(PARSE_LOCK, true).pipe(
+				Effect.asVoid,
+				Effect.provideService(SqlClient.SqlClient, sql),
+			);
 
 			const findLatestCoursePages = SqlSchema.findAll({
 				Request: Schema.Void,
@@ -356,6 +363,7 @@ export class OfferingStore extends Context.Service<
 				}).pipe(sql.withTransaction, Effect.orDie);
 
 			return OfferingStore.of({
+				lockParse,
 				latestCoursePages,
 				coursePages,
 				latestCatalogPage,
