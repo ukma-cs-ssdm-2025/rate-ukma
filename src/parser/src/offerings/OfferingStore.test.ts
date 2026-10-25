@@ -150,7 +150,10 @@ describe("OfferingStore", () => {
 				yield* write([offering("900001")]);
 
 				const prefixes = (yield* ids).map((id) =>
-					id.replace(/^([a-z]{3})_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u, "$1"),
+					id.replace(
+						/^([a-z]{3})_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+						"$1",
+					),
 				);
 
 				const nullLevel = yield* sql`
