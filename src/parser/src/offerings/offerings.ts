@@ -1,5 +1,17 @@
 import { createHash } from "node:crypto";
-import { Array as Arr, Clock, Effect, Result, Schema } from "effect";
+import {
+	Array as Arr,
+	Cause,
+	Clock,
+	Effect,
+	Exit,
+	Option,
+	Record as Rec,
+	Result,
+	Schema,
+	Struct,
+} from "effect";
+import { SqlError } from "effect/sql";
 import { type ChangeCount, mergeChangeCounts } from "../changes/ChangeLog.ts";
 import { parseFilterOptions } from "../saz/catalog.ts";
 import {
@@ -18,6 +30,12 @@ import {
 
 const BATCH_SIZE = 500;
 
+/** Postgres refused at least one batch, so its pages kept their older rows. */
+export class OfferingsNotStored extends Schema.TaggedError<OfferingsNotStored>()(
+	"OfferingsNotStored",
+	{ pages: Schema.Number },
+) {}
+
 /** The catalog filter values, by the name a card uses. Programme options
  *  carry the level, as in `Вигадана інженерія (Бакалавр)`. */
 export interface CatalogFilters {
@@ -26,11 +44,24 @@ export interface CatalogFilters {
 	readonly programmes: ReadonlyMap<string, string>;
 }
 
-export const catalogFiltersOf = (html: string): CatalogFilters => ({
-	faculties: parseFilterOptions(html, "faculty"),
-	departments: parseFilterOptions(html, "subfaculty"),
-	programmes: parseFilterOptions(html, "spec"),
-});
+const FILTER_NAMES = {
+	faculties: "faculty",
+	departments: "subfaculty",
+	programmes: "spec",
+} as const satisfies Record<keyof CatalogFilters, string>;
+
+export const catalogFiltersOf = (html: string): CatalogFilters =>
+	Rec.map(FILTER_NAMES, (name) => parseFilterOptions(html, name));
+
+/** The filters with no options, as `filter[subfaculty]`. A unit or programme
+ *  new to the run gets no filter id from them, so a САЗ markup change that
+ *  drops one shows here instead of as quiet nulls. */
+export const missingFilters = (
+	filters: CatalogFilters,
+): ReadonlyArray<string> =>
+	Struct.keys(FILTER_NAMES).flatMap((key) =>
+		filters[key].size === 0 ? [`filter[${FILTER_NAMES[key]}]`] : [],
+	);
 
 const levelLabel = Schema.encodeSync(Level);
 
@@ -120,12 +151,19 @@ const rowsOfPage = (
 		termCode: termCode(card.academicYear, season),
 	}));
 
-	const offeringProgrammes = programmes.map(({ name, kind }) => ({
-		sazCode: card.sazCode,
-		name,
-		level: programmeOf(name, card.level, filters, stored).level,
+	const resolved = programmes.map(({ name, kind }) => ({
 		kind,
+		programme: programmeOf(name, card.level, filters, stored),
 	}));
+
+	const offeringProgrammes = resolved.map(
+		({ kind, programme: { name, level } }) => ({
+			sazCode: card.sazCode,
+			name,
+			level,
+			kind,
+		}),
+	);
 
 	return {
 		offering: {
@@ -135,6 +173,7 @@ const rowsOfPage = (
 		},
 		offeringTerms,
 		offeringProgrammes,
+		programmes: resolved.map(({ programme }) => programme),
 	};
 };
 
@@ -186,9 +225,7 @@ export const offeringRowsOf = (
 			({ name }) => name,
 		),
 		programmes: unique(
-			offerings.flatMap(({ level, programmes }) =>
-				programmes.map(({ name }) => programmeOf(name, level, filters, stored)),
-			),
+			pageRows.flatMap(({ programmes }) => programmes),
 			({ name, level }) => `${level} ${name}`,
 		),
 		terms: unique(
@@ -209,14 +246,40 @@ export const offeringRowsOf = (
 	};
 };
 
+const PgFields = Schema.Struct({
+	code: Schema.optional(Schema.String),
+	table: Schema.optional(Schema.String),
+	column: Schema.optional(Schema.String),
+	constraint: Schema.optional(Schema.String),
+});
+
+const pgFieldsOf = Schema.decodeUnknownOption(PgFields);
+
+/** Postgres puts the failing row in an error's `detail`, and an offering row
+ *  carries teacher names, so a failed write logs only what names the error. */
+export const storeFailureOf = (cause: Cause.Cause<unknown>) => {
+	const error = Cause.squash(cause);
+
+	if (!SqlError.isSqlError(error)) return { reason: "defect" };
+
+	return {
+		reason: error.reason._tag,
+		...Option.getOrUndefined(pgFieldsOf(error.reason.cause)),
+	};
+};
+
 /** Parses the latest snapshot of every course page into offerings and their
  *  reference lists, and records the parse with the rows it numbered. A page
  *  that fails keeps the rows of its last good parse, and the failure is
- *  recorded with its snapshot. */
+ *  recorded with its snapshot. Runs take turns, so each reads a catalog page
+ *  at least as new as the last. */
 export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	trigger: ParseTrigger,
 ) {
 	const store = yield* OfferingStore;
+
+	yield* store.lockParse;
+
 	const startedAt = yield* Clock.currentTimeMillis;
 	const parseId = yield* store.startParse(trigger);
 	const catalogPage = yield* store.latestCatalogPage;
@@ -226,13 +289,18 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	}
 
 	const filters = catalogFiltersOf(catalogPage ?? "");
+	const missing = missingFilters(filters);
+
+	if (catalogPage !== undefined && missing.length > 0) {
+		yield* Effect.logWarning("Catalog filters have no options", { missing });
+	}
+
 	const failed = new Map<string, number>();
 	let changes: ReadonlyArray<ChangeCount> = [];
 	let parsed = 0;
 
 	for (const ids of Arr.chunksOf(yield* store.latestCoursePages, BATCH_SIZE)) {
-		const pages: Array<ParsedPage> = [];
-		const paths: Array<{ snapshotId: bigint; path: string }> = [];
+		const pages: Array<ParsedPage & { readonly path: string }> = [];
 		const failures: Array<ParseFailure> = [];
 
 		for (const page of yield* store.coursePages(ids)) {
@@ -242,14 +310,16 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			);
 
 			if (Result.isSuccess(result)) {
-				pages.push({ snapshotId: page.id, offering: result.success });
-				paths.push({ snapshotId: page.id, path: page.path });
+				pages.push({
+					snapshotId: page.id,
+					path: page.path,
+					offering: result.success,
+				});
 				continue;
 			}
 
 			const { reason } = result.failure;
 
-			failed.set(reason, (failed.get(reason) ?? 0) + 1);
 			failures.push({ snapshotId: page.id, path: page.path, reason });
 			yield* Effect.logWarning("Course page failed to parse", {
 				path: page.path,
@@ -262,23 +332,28 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 		// A batch the database rejects keeps its last good rows, like a page that
 		// fails to parse, and the run goes on to the next batch.
-		const written = yield* store.write(rows, parseId).pipe(
-			Effect.map((counts) => ({ counts })),
-			Effect.catchCause((cause) =>
-				Effect.logError("Offering batch failed to store", {
-					first_snapshot_id: String(ids[0]),
-					last_snapshot_id: String(ids.at(-1)),
-					cause,
-				}).pipe(Effect.as(undefined)),
-			),
-		);
+		const written = yield* Effect.exit(store.write(rows, parseId));
 
-		if (written !== undefined) {
+		if (Exit.isSuccess(written)) {
 			parsed += pages.length;
-			changes = mergeChangeCounts([...changes, ...written.counts]);
+			changes = mergeChangeCounts([...changes, ...written.value]);
 		} else {
-			failed.set("store", (failed.get("store") ?? 0) + pages.length);
-			failures.push(...paths.map((page) => ({ ...page, reason: "store" })));
+			failures.push(
+				...pages.map(({ snapshotId, path }) => ({
+					snapshotId,
+					path,
+					reason: "store",
+				})),
+			);
+			yield* Effect.logError("Offering batch failed to store", {
+				first_snapshot_id: String(ids[0]),
+				last_snapshot_id: String(ids.at(-1)),
+				error: storeFailureOf(written.cause),
+			});
+		}
+
+		for (const { reason } of failures) {
+			failed.set(reason, (failed.get(reason) ?? 0) + 1);
 		}
 
 		yield* store.recordFailures(parseId, failures);
@@ -289,12 +364,25 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 		parsed,
 		failed: Array.from(failed, ([reason, pages]) => ({ reason, pages })),
 		changes,
+		missing,
 	};
 
 	yield* store.finishParse(parseId, report);
 	yield* Effect.logInfo("Offerings parsed", report).pipe(
 		Effect.annotateLogs({ parse_id: String(parseId), trigger }),
 	);
+
+	return report;
+}, Effect.scoped);
+
+/** A reparse with a refused batch fails, so its Job does not show Completed. */
+export const reparseOfferings = Effect.gen(function* () {
+	const report = yield* parseOfferings("reparse");
+	const refused = report.failed.find(({ reason }) => reason === "store");
+
+	if (refused !== undefined) {
+		return yield* new OfferingsNotStored({ pages: refused.pages });
+	}
 
 	return report;
 });
