@@ -7,9 +7,6 @@ import {
 } from "effect";
 import { textOf, unescapeHtml, withoutComments } from "./html.ts";
 
-const decodeWith = <T, E>(decode: (input: E) => T, encode: (input: T) => E) =>
-	SchemaTransformation.transform({ decode, encode });
-
 // Digits only, since `FiniteFromString` reads an empty cell as 0, and bounded
 // by the columns (`numeric(4,1)`, `smallint`), so a wild value fails its page
 // instead of the batch write.
@@ -26,10 +23,10 @@ const Limit = Schema.Union([
 	Schema.Literal("необмежено").pipe(
 		Schema.decodeTo(
 			Schema.Null,
-			decodeWith(
-				() => null,
-				() => "необмежено" as const,
-			),
+			SchemaTransformation.transform({
+				decode: () => null,
+				encode: () => "необмежено" as const,
+			}),
 		),
 	),
 	Count,
@@ -40,10 +37,10 @@ const AcademicYear = Schema.String.check(
 ).pipe(
 	Schema.decodeTo(
 		Schema.Int,
-		decodeWith(
-			(years) => Number(years.slice(0, 4)),
-			(year) => `${year}–${year + 1}`,
-		),
+		SchemaTransformation.transform({
+			decode: (years) => Number(years.slice(0, 4)),
+			encode: (year) => `${year}–${year + 1}`,
+		}),
 	),
 );
 
@@ -51,13 +48,13 @@ const AcademicYear = Schema.String.check(
 const Semester = Schema.String.check(Schema.isPattern(/^Семестр \d+д?$/u)).pipe(
 	Schema.decodeTo(
 		Schema.Struct({ number: Schema.Int, summer: Schema.Boolean }),
-		decodeWith(
-			(label) => ({
+		SchemaTransformation.transform({
+			decode: (label) => ({
 				number: Number.parseInt(label.slice("Семестр ".length), 10),
 				summer: label.endsWith("д"),
 			}),
-			({ number, summer }) => `Семестр ${number}${summer ? "д" : ""}`,
-		),
+			encode: ({ number, summer }) => `Семестр ${number}${summer ? "д" : ""}`,
+		}),
 	),
 );
 
