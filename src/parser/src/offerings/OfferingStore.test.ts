@@ -12,16 +12,11 @@ import {
 	parseOfferings,
 	storeFailureOf,
 } from "./offerings.ts";
+import { NO_FILTERS, reset, snapshot } from "./testing.ts";
 
 const TestLive = OfferingStore.layer.pipe(
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
-
-const NO_FILTERS: CatalogFilters = {
-	faculties: new Map(),
-	departments: new Map(),
-	programmes: new Map(),
-};
 
 const SPRING: OfferingTerm = {
 	season: "SPRING",
@@ -33,42 +28,6 @@ const SPRING: OfferingTerm = {
 	practiceHours: null,
 	control: "exam",
 };
-
-const reset = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-
-	yield* sql`
-		TRUNCATE offering_terms, offering_programmes, offerings, programmes,
-			departments, faculties, terms, page_snapshots, run_pages, runs
-		RESTART IDENTITY
-	`;
-});
-
-/** Stores a page as the crawl would, and returns its snapshot id. */
-const snapshot = (path: string, content: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
-
-		const [run] = yield* sql<{ readonly id: bigint }>`
-			INSERT INTO runs (source_part) VALUES ('saz-courses:2031-32') RETURNING id
-		`;
-
-		const [stored] = yield* sql<{ readonly id: bigint }>`
-			INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
-			VALUES (
-				${path},
-				${path.startsWith("/course/catalog") ? "catalog" : "course"},
-				md5(${content}),
-				${content},
-				${run?.id}
-			)
-			RETURNING id
-		`;
-
-		assert.isDefined(stored);
-
-		return stored.id;
-	});
 
 /** Writes these offerings, each parsed from a new snapshot of its page. */
 const write = (
@@ -378,7 +337,7 @@ describe("parseOfferings", () => {
 				yield* snapshot("/course/900002", coursePage({ code: "900002" }));
 				yield* snapshot("/course/900003", "<html></html>");
 
-				const report = yield* parseOfferings();
+				const report = yield* parseOfferings("crawl");
 
 				const rows = yield* sql<{ readonly line: string }>`
 					SELECT o.saz_code || ' ' || o.title || ' ' || f.saz_filter_id AS line
@@ -391,6 +350,7 @@ describe("parseOfferings", () => {
 				`;
 
 				assert.deepStrictEqual(report, {
+					seconds: report.seconds,
 					parsed: 2,
 					failed: [{ reason: "no course card", pages: 1 }],
 					missing: ["filter[subfaculty]"],
@@ -427,7 +387,7 @@ describe("parseOfferings", () => {
 
 				yield* Deferred.await(held);
 
-				const parse = yield* Effect.forkChild(parseOfferings());
+				const parse = yield* Effect.forkChild(parseOfferings("crawl"));
 
 				yield* sql<{ readonly waiting: number }>`
 					SELECT count(*)::int AS waiting FROM pg_locks
@@ -458,13 +418,13 @@ describe("parseOfferings", () => {
 					yield* reset;
 
 					yield* snapshot("/course/900001", coursePage({ code: "900001" }));
-					yield* parseOfferings();
+					yield* parseOfferings("crawl");
 
 					const before = yield* offeringRow("900001");
 
 					yield* snapshot("/course/900001", "<html></html>");
 
-					const report = yield* parseOfferings();
+					const report = yield* parseOfferings("crawl");
 
 					assert.deepStrictEqual(report.failed, [
 						{ reason: "no course card", pages: 1 },

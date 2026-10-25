@@ -61,6 +61,31 @@ export type StoredPage = typeof StoredPage.Type;
 
 const SnapshotId = Schema.Struct({ id: Schema.BigInt });
 
+const ParseId = Schema.Struct({ id: Schema.BigInt });
+
+export const ParseTrigger = Schema.Literals(["crawl", "reparse"]);
+
+export type ParseTrigger = typeof ParseTrigger.Type;
+
+/** A course page that did not parse; its rows stay as they were. */
+export interface ParseFailure {
+	readonly snapshotId: bigint;
+	readonly path: string;
+	readonly reason: string;
+}
+
+/** Failed pages are counted by reason; `parse_failures` lists each one. */
+export interface ParseReport {
+	readonly seconds: number;
+	readonly parsed: number;
+	readonly failed: ReadonlyArray<{
+		readonly reason: string;
+		readonly pages: number;
+	}>;
+	/** Catalog filters with no options, from `missingFilters`. */
+	readonly missing: ReadonlyArray<string>;
+}
+
 export interface StoredProgramme {
 	readonly name: string;
 	readonly level: Level;
@@ -86,6 +111,12 @@ export class OfferingStore extends Context.Service<
 		 *  value. An offering already parsed from a newer snapshot keeps its
 		 *  rows, so a parse that overlaps a crawl cannot roll it back. */
 		write(rows: OfferingRows): Effect.Effect<void>;
+		startParse(trigger: ParseTrigger): Effect.Effect<bigint>;
+		recordFailures(
+			parseId: bigint,
+			failures: ReadonlyArray<ParseFailure>,
+		): Effect.Effect<void>;
+		finishParse(parseId: bigint, report: ParseReport): Effect.Effect<void>;
 	}
 >()("ukma-data/offerings/OfferingStore") {
 	static readonly layer = Layer.effect(
@@ -362,6 +393,42 @@ export class OfferingStore extends Context.Service<
 					`;
 				}).pipe(sql.withTransaction, Effect.orDie);
 
+			const insertParse = SqlSchema.findOne({
+				Request: ParseTrigger,
+				Result: ParseId,
+				execute: (trigger) =>
+					sql`INSERT INTO parses (trigger) VALUES (${trigger}) RETURNING id`,
+			});
+
+			const startParse = (trigger: ParseTrigger) =>
+				insertParse(trigger).pipe(
+					Effect.map(({ id }) => id),
+					Effect.orDie,
+				);
+
+			const recordFailures = (
+				parseId: bigint,
+				failures: ReadonlyArray<ParseFailure>,
+			) =>
+				failures.length === 0
+					? Effect.void
+					: sql`
+							INSERT INTO parse_failures ${sql.insert(
+								failures.map(({ snapshotId, path, reason }) => ({
+									parse_id: parseId,
+									snapshot_id: snapshotId,
+									path,
+									reason,
+								})),
+							)}
+						`.pipe(Effect.asVoid, Effect.orDie);
+
+			const finishParse = (parseId: bigint, report: ParseReport) =>
+				sql`
+					UPDATE parses SET finished_at = now(), report = ${JSON.stringify(report)}::jsonb
+					WHERE id = ${parseId}
+				`.pipe(Effect.asVoid, Effect.orDie);
+
 			return OfferingStore.of({
 				lockParse,
 				latestCoursePages,
@@ -369,6 +436,9 @@ export class OfferingStore extends Context.Service<
 				latestCatalogPage,
 				programmes,
 				write,
+				startParse,
+				recordFailures,
+				finishParse,
 			});
 		}),
 	);

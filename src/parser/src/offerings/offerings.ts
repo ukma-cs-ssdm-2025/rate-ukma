@@ -1,6 +1,7 @@
 import {
 	Array as Arr,
 	Cause,
+	Clock,
 	Effect,
 	Exit,
 	Option,
@@ -19,10 +20,19 @@ import {
 import {
 	type OfferingRows,
 	OfferingStore,
+	type ParseFailure,
+	type ParseReport,
+	type ParseTrigger,
 	type StoredProgramme,
 } from "./OfferingStore.ts";
 
 const BATCH_SIZE = 500;
+
+/** Postgres refused at least one batch, so its pages kept their older rows. */
+export class OfferingsNotStored extends Schema.TaggedError<OfferingsNotStored>()(
+	"OfferingsNotStored",
+	{ pages: Schema.Number },
+) {}
 
 /** The catalog filter values, by the name a card uses. Programme options
  *  carry the level, as in `Вигадана інженерія (Бакалавр)`. */
@@ -185,17 +195,6 @@ export const offeringRowsOf = (
 	};
 };
 
-export interface ParseReport {
-	readonly parsed: number;
-	/** Failed pages by reason. */
-	readonly failed: ReadonlyArray<{
-		readonly reason: string;
-		readonly pages: number;
-	}>;
-	/** Catalog filters with no options, from `missingFilters`. */
-	readonly missing: ReadonlyArray<string>;
-}
-
 const PgFields = Schema.Struct({
 	code: Schema.optional(Schema.String),
 	table: Schema.optional(Schema.String),
@@ -219,13 +218,18 @@ export const storeFailureOf = (cause: Cause.Cause<unknown>) => {
 };
 
 /** Parses the latest snapshot of every course page into offerings and their
- *  reference lists. A page that fails keeps the rows of its last good parse.
- *  Runs take turns, so each reads a catalog page at least as new as the last. */
-export const parseOfferings = Effect.fn("parseOfferings")(function* () {
+ *  reference lists, and records the parse. A page that fails keeps the rows of
+ *  its last good parse, and the failure is recorded with its snapshot. Runs
+ *  take turns, so each reads a catalog page at least as new as the last. */
+export const parseOfferings = Effect.fn("parseOfferings")(function* (
+	trigger: ParseTrigger,
+) {
 	const store = yield* OfferingStore;
 
 	yield* store.lockParse;
 
+	const startedAt = yield* Clock.currentTimeMillis;
+	const parseId = yield* store.startParse(trigger);
 	const catalogPage = yield* store.latestCatalogPage;
 
 	if (catalogPage === undefined) {
@@ -243,7 +247,8 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* () {
 	let parsed = 0;
 
 	for (const ids of Arr.chunksOf(yield* store.latestCoursePages, BATCH_SIZE)) {
-		const pages: Array<ParsedPage> = [];
+		const pages: Array<ParsedPage & { readonly path: string }> = [];
+		const failures: Array<ParseFailure> = [];
 
 		for (const page of yield* store.coursePages(ids)) {
 			const result = parseCoursePage(
@@ -252,13 +257,17 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* () {
 			);
 
 			if (Result.isSuccess(result)) {
-				pages.push({ snapshotId: page.id, offering: result.success });
+				pages.push({
+					snapshotId: page.id,
+					path: page.path,
+					offering: result.success,
+				});
 				continue;
 			}
 
 			const { reason } = result.failure;
 
-			failed.set(reason, (failed.get(reason) ?? 0) + 1);
+			failures.push({ snapshotId: page.id, path: page.path, reason });
 			yield* Effect.logWarning("Course page failed to parse", {
 				path: page.path,
 				snapshot_id: String(page.id),
@@ -275,22 +284,50 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* () {
 		if (Exit.isSuccess(written)) {
 			parsed += pages.length;
 		} else {
-			failed.set("store", (failed.get("store") ?? 0) + pages.length);
+			failures.push(
+				...pages.map(({ snapshotId, path }) => ({
+					snapshotId,
+					path,
+					reason: "store",
+				})),
+			);
 			yield* Effect.logError("Offering batch failed to store", {
 				first_snapshot_id: String(ids[0]),
 				last_snapshot_id: String(ids.at(-1)),
 				error: storeFailureOf(written.cause),
 			});
 		}
+
+		for (const { reason } of failures) {
+			failed.set(reason, (failed.get(reason) ?? 0) + 1);
+		}
+
+		yield* store.recordFailures(parseId, failures);
 	}
 
 	const report: ParseReport = {
+		seconds: Math.round(((yield* Clock.currentTimeMillis) - startedAt) / 1000),
 		parsed,
 		failed: Array.from(failed, ([reason, pages]) => ({ reason, pages })),
 		missing,
 	};
 
-	yield* Effect.logInfo("Offerings parsed", report);
+	yield* store.finishParse(parseId, report);
+	yield* Effect.logInfo("Offerings parsed", report).pipe(
+		Effect.annotateLogs({ parse_id: String(parseId), trigger }),
+	);
 
 	return report;
 }, Effect.scoped);
+
+/** A reparse with a refused batch fails, so its Job does not show Completed. */
+export const reparseOfferings = Effect.gen(function* () {
+	const report = yield* parseOfferings("reparse");
+	const refused = report.failed.find(({ reason }) => reason === "store");
+
+	if (refused !== undefined) {
+		return yield* new OfferingsNotStored({ pages: refused.pages });
+	}
+
+	return report;
+});

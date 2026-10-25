@@ -28,6 +28,8 @@ erDiagram
   offerings ||--o{ enrollments : ""
   runs ||--o{ run_pages : visits
   page_snapshots ||--o{ run_pages : ""
+  parses ||--o{ parse_failures : records
+  page_snapshots ||--o{ parse_failures : ""
   review_cases ||--o| decisions : "answered by"
 ```
 
@@ -214,11 +216,10 @@ One `cdoc`: a student on one programme (D1).
 | | `offering_removals` | text | `applied`, `held` or `skipped` (see below) |
 | | `lists_kept` | integer | offerings whose students page failed, so their enrollments were kept |
 | `run_pages` | `http_status` | smallint null | 500 for the A2 pages |
-| `page_snapshots` | `parse_status` | text | `ok` or `failed` |
-| | `parse_error` | text null | |
-| | `parser_version` | text | a parser fix re-parses rows with an older version (rule 2) |
 
 A page that fails to parse keeps its last good rows, and `offerings.snapshot_id` still points at the snapshot they came from (rule 6).
+
+Each parse of the stored pages, after a crawl or from the `reparse` command, adds a `parses` row (`trigger` `crawl` or `reparse`, `started_at`, `finished_at`, and a `report` with the pages parsed and the failures counted by reason). Each page that fails adds a `parse_failures` row with the parse, the snapshot, the path and the reason. A `parses` row with no `finished_at` is a parse that is running or crashed. `reparse` parses the latest snapshot of every course page again, so no parser version is kept (rule 2).
 
 ### `changes`
 
