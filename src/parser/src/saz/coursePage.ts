@@ -35,6 +35,9 @@ const Limit = Schema.Union([
 
 const AcademicYear = Schema.String.check(
 	Schema.isPattern(/^\d{4}–\d{4}$/u),
+	Schema.makeFilter(
+		(years: string) => Number(years.slice(5)) === Number(years.slice(0, 4)) + 1,
+	),
 ).pipe(
 	Schema.decodeTo(
 		Schema.Int,
@@ -213,6 +216,9 @@ const KNOWN_ROWS = new Set([
 
 const ENROLLMENT_SECTION = "Інформація про запис";
 
+/** No card has only one of these (B18), so one alone means the other moved. */
+const UNIT_ROWS = ["Факультет", "Кафедра"];
+
 const ROW = /<tr[^>]*>(.*?)<\/tr>/gsu;
 
 const HEADER_CELL = /<th[^>]*>(.*?)<\/th>/su;
@@ -255,51 +261,70 @@ const TERM_LABELS: LabelPatterns<
 
 const GROUP_SIZE = /^від (\d+) до (\d+)$/u;
 
-const labelsOf = (cell: string): ReadonlyArray<string> =>
-	Array.from(withoutComments(cell).matchAll(LABEL), ([, label]) =>
-		textOf(label ?? ""),
-	).filter((label) => label !== "");
+/** Text outside the labels fails the page: a value САЗ moves out of its label
+ *  would otherwise be dropped unread. */
+const labelsOf = (
+	cell: string,
+): Result.Result<ReadonlyArray<string>, CoursePageError> => {
+	const shown = withoutComments(cell);
+	const loose = textOf(shown.replace(LABEL, " "));
 
-/** The value each label gives, keyed by the pattern it matches. A label that
- *  matches nothing or repeats a key fails the page. */
-const readLabels = <K extends string>(
-	labels: ReadonlyArray<string>,
-	patterns: LabelPatterns<K>,
-): Result.Result<Map<K, string>, CoursePageError> => {
-	const values = new Map<K, string>();
-
-	for (const label of labels) {
-		const match = patterns.find(([pattern]) => pattern.test(label));
-
-		if (match === undefined) {
-			return Result.fail(
-				new CoursePageError({ reason: "unknown label", detail: label }),
-			);
-		}
-
-		const [pattern, key] = match;
-
-		if (values.has(key)) {
-			return Result.fail(
-				new CoursePageError({ reason: "repeated label", detail: label }),
-			);
-		}
-
-		values.set(key, pattern.exec(label)?.[1] ?? "");
+	if (loose !== "") {
+		return Result.fail(
+			new CoursePageError({ reason: "unlabelled text", detail: loose }),
+		);
 	}
 
-	return Result.succeed(values);
+	return Result.succeed(
+		Array.from(shown.matchAll(LABEL), ([, label]) =>
+			textOf(label ?? ""),
+		).filter((label) => label !== ""),
+	);
 };
+
+/** A label that matches no pattern or repeats a key fails the page instead of
+ *  being dropped or overwriting the first. */
+const readLabels = <K extends string>(
+	cell: string,
+	patterns: LabelPatterns<K>,
+): Result.Result<Map<K, string>, CoursePageError> =>
+	Result.gen(function* () {
+		const values = new Map<K, string>();
+
+		for (const label of yield* labelsOf(cell)) {
+			const match = patterns.find(([pattern]) => pattern.test(label));
+
+			if (match === undefined) {
+				return yield* Result.fail(
+					new CoursePageError({ reason: "unknown label", detail: label }),
+				);
+			}
+
+			const [pattern, key] = match;
+
+			if (values.has(key)) {
+				return yield* Result.fail(
+					new CoursePageError({ reason: "repeated label", detail: label }),
+				);
+			}
+
+			values.set(key, pattern.exec(label)?.[1] ?? "");
+		}
+
+		return values;
+	});
+
+/** САЗ repeats this row with the same value in every enrollment block; any
+ *  other repeated row would lose its second cell. */
+const REPEATED_ROW = "Кількість затверджених груп";
 
 interface CardRows {
 	/** Every row header, section headers included. */
 	readonly headers: ReadonlySet<string>;
-	/** The cell of each header that has one; the first of two equal headers
-	 *  wins (`Кількість затверджених груп` appears twice). */
 	readonly cells: ReadonlyMap<string, string>;
 }
 
-const rowsOf = (card: string): CardRows => {
+const rowsOf = (card: string): Result.Result<CardRows, CoursePageError> => {
 	const headers = new Set<string>();
 	const cells = new Map<string, string>();
 
@@ -313,13 +338,23 @@ const rowsOf = (card: string): CardRows => {
 
 		headers.add(name);
 
-		if (cell !== undefined && !cells.has(name)) cells.set(name, cell);
+		if (cell === undefined) continue;
+
+		if (!cells.has(name)) {
+			cells.set(name, cell);
+		} else if (name !== REPEATED_ROW) {
+			return Result.fail(
+				new CoursePageError({ reason: "repeated row", detail: name }),
+			);
+		}
 	}
 
-	return { headers, cells };
+	return Result.succeed({ headers, cells });
 };
 
-const programmesOf = (block: string | undefined): RawCard["programmes"] =>
+const programmesOf = (
+	block: string | undefined,
+): ReadonlyArray<{ name: string; kind: string }> =>
 	Array.from(block?.matchAll(ROW) ?? [], ([, row = ""]) => {
 		const [name = "", kind = ""] = Array.from(row.matchAll(CELL), ([, cell]) =>
 			textOf(cell ?? ""),
@@ -328,8 +363,8 @@ const programmesOf = (block: string | undefined): RawCard["programmes"] =>
 		return { name, kind };
 	});
 
-/** Reads the card of a stored course page into strings, ready for
- *  `CourseCard` to decode. */
+/** Only finds text; every check of a value is `CourseCard`'s, so the reader and
+ *  the schema cannot disagree. */
 const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 	Result.gen(function* () {
 		const start = html.indexOf(CARD_START);
@@ -371,7 +406,7 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 			);
 		}
 
-		const { headers, cells: rows } = rowsOf(card.slice(0, end));
+		const { headers, cells: rows } = yield* rowsOf(card.slice(0, end));
 		const unknownRow = [...headers].find((header) => !KNOWN_ROWS.has(header));
 
 		if (unknownRow !== undefined) {
@@ -386,17 +421,14 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 			return cell === undefined ? undefined : textOf(cell);
 		};
 
-		const info = yield* readLabels(
-			labelsOf(rows.get("Інформація") ?? ""),
-			INFO_LABELS,
-		);
+		const info = yield* readLabels(rows.get("Інформація") ?? "", INFO_LABELS);
 
 		const terms: Array<Unchecked<(typeof CardTerm)["Encoded"]>> = [];
 
 		for (const [season, cell] of rows) {
 			if (!SEASONS.has(season)) continue;
 
-			const labels = yield* readLabels(labelsOf(cell), TERM_LABELS);
+			const labels = yield* readLabels(cell, TERM_LABELS);
 
 			terms.push({
 				season,
@@ -407,6 +439,32 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 				practiceHours: labels.get("practiceHours") ?? null,
 				control: labels.get("control") ?? null,
 			});
+		}
+
+		const unitRows = UNIT_ROWS.filter((name) => headers.has(name));
+
+		if (unitRows.length === 1) {
+			return yield* Result.fail(
+				new CoursePageError({
+					reason: "lone unit row",
+					detail: unitRows[0] ?? "",
+				}),
+			);
+		}
+
+		const programmeRows = programmesOf(programmes);
+
+		const clash = programmeRows.find(({ name, kind }) =>
+			programmeRows.some((other) => other.name === name && other.kind !== kind),
+		);
+
+		if (clash !== undefined) {
+			return yield* Result.fail(
+				new CoursePageError({
+					reason: "programme kinds differ",
+					detail: clash.name,
+				}),
+			);
 		}
 
 		const groupSize = GROUP_SIZE.exec(
@@ -424,22 +482,21 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 			format: info.get("format"),
 			status: info.get("status") ?? "",
 			isPractical: info.has("practical"),
-			faculty: text("Факультет") ?? null,
-			department: text("Кафедра") ?? null,
+			faculty: headers.has("Факультет") ? text("Факультет") : null,
+			department: headers.has("Кафедра") ? text("Кафедра") : null,
 			level: text("Освітній рівень"),
 			academicYear: text("Навчальний рік"),
 			sazTeachers: text("Викладач") || null,
 			annotation: annotationText === "" ? null : annotationText,
-			programmes: programmesOf(programmes),
-			semesters: labelsOf(rows.get("Семестри") ?? ""),
+			programmes: programmeRows,
+			semesters: yield* labelsOf(rows.get("Семестри") ?? ""),
 			terms,
 			maxStudents: text("Максимальна кількість студентів"),
 			maxGroups: text("Максимальна кількість груп"),
 			computedMaxStudents: text("Обрахована максимальна кількість студентів"),
 			groupSizeMin: groupSize?.[1],
 			groupSizeMax: groupSize?.[2],
-			// Without the enrollment block the count is null; within it the row is
-			// required.
+			// САЗ leaves the block out when the students list is empty (B13).
 			enrolledActive: headers.has(ENROLLMENT_SECTION)
 				? text("Загальна кількість записаних чинних студентів")
 				: null,
@@ -482,7 +539,7 @@ const decodeCard = Schema.decodeUnknownResult(CourseCard);
 
 const formatIssue = SchemaIssue.makeFormatterStandardSchemaV1();
 
-/** The card field the first decoding issue points at. */
+/** The field names the failure reason, so failures group by field. */
 const fieldOf = (issue: SchemaIssue.Issue): string => {
 	const [key] = formatIssue(issue).issues[0]?.path ?? [];
 
@@ -514,6 +571,37 @@ export const parseCoursePage = (
 		if (card.code !== code) {
 			return yield* Result.fail(
 				new CoursePageError({ reason: "code mismatch", detail: card.code }),
+			);
+		}
+
+		// Every semester has the term row of its season on all stored cards (B8),
+		// so a mismatch means a season row moved and its semesters would be lost.
+		const lone = card.semesters.find(
+			(semester) =>
+				!card.terms.some(({ season }) => isOfSeason(semester, season)),
+		);
+
+		if (lone !== undefined) {
+			return yield* Result.fail(
+				new CoursePageError({
+					reason: "semester without term",
+					detail: `${lone.number}${lone.summer ? "д" : ""}`,
+				}),
+			);
+		}
+
+		const bare = card.terms.find(
+			({ season }) =>
+				card.semesters.length > 0 &&
+				!card.semesters.some((semester) => isOfSeason(semester, season)),
+		);
+
+		if (bare !== undefined) {
+			return yield* Result.fail(
+				new CoursePageError({
+					reason: "term without semester",
+					detail: bare.season,
+				}),
 			);
 		}
 
