@@ -82,6 +82,8 @@ export interface ParseReport {
 		readonly reason: string;
 		readonly pages: number;
 	}>;
+	/** Catalog filters with no options, from `missingFilters`. */
+	readonly missing: ReadonlyArray<string>;
 }
 
 export interface StoredProgramme {

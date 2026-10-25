@@ -3,6 +3,7 @@ import {
 	Clock,
 	Effect,
 	Exit,
+	Record as Rec,
 	Result,
 	Schema,
 	Struct,
@@ -38,11 +39,24 @@ export interface CatalogFilters {
 	readonly programmes: ReadonlyMap<string, string>;
 }
 
-export const catalogFiltersOf = (html: string): CatalogFilters => ({
-	faculties: parseFilterOptions(html, "faculty"),
-	departments: parseFilterOptions(html, "subfaculty"),
-	programmes: parseFilterOptions(html, "spec"),
-});
+const FILTER_NAMES = {
+	faculties: "faculty",
+	departments: "subfaculty",
+	programmes: "spec",
+} as const satisfies Record<keyof CatalogFilters, string>;
+
+export const catalogFiltersOf = (html: string): CatalogFilters =>
+	Rec.map(FILTER_NAMES, (name) => parseFilterOptions(html, name));
+
+/** The filters with no options, as `filter[subfaculty]`. A unit or programme
+ *  new to the run gets no filter id from them, so a САЗ markup change that
+ *  drops one shows here instead of as quiet nulls. */
+export const missingFilters = (
+	filters: CatalogFilters,
+): ReadonlyArray<string> =>
+	Struct.keys(FILTER_NAMES).flatMap((key) =>
+		filters[key].size === 0 ? [`filter[${FILTER_NAMES[key]}]`] : [],
+	);
 
 const levelLabel = Schema.encodeSync(Level);
 
@@ -194,6 +208,12 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	}
 
 	const filters = catalogFiltersOf(catalogPage ?? "");
+	const missing = missingFilters(filters);
+
+	if (catalogPage !== undefined && missing.length > 0) {
+		yield* Effect.logWarning("Catalog filters have no options", { missing });
+	}
+
 	const failed = new Map<string, number>();
 	let parsed = 0;
 
@@ -260,6 +280,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 		seconds: Math.round(((yield* Clock.currentTimeMillis) - startedAt) / 1000),
 		parsed,
 		failed: Array.from(failed, ([reason, pages]) => ({ reason, pages })),
+		missing,
 	};
 
 	yield* store.finishParse(parseId, report);

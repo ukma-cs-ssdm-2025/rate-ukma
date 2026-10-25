@@ -6,6 +6,8 @@ import { coursePage } from "../saz/coursePage.fixture.ts";
 import { offering } from "./offering.fixture.ts";
 import { OfferingStore } from "./OfferingStore.ts";
 import {
+	catalogFiltersOf,
+	missingFilters,
 	OfferingsNotStored,
 	offeringRowsOf,
 	parseOfferings,
@@ -26,6 +28,22 @@ const FILTERS = {
 describe("termCode", () => {
 	it("names both calendar years and the season", () => {
 		assert.strictEqual(termCode(2031, "SPRING"), "2031-32-SPRING");
+	});
+});
+
+describe("missingFilters", () => {
+	it("names each catalog filter with no options", () => {
+		const filters = catalogFiltersOf(`
+			<select name="filter[faculty][]" multiple>
+			<option value="901">Факультет вигаданих наук</option>
+			</select>
+			<select name="filter[spec][]" multiple></select>
+		`);
+
+		assert.deepStrictEqual(missingFilters(filters), [
+			"filter[subfaculty]",
+			"filter[spec]",
+		]);
 	});
 });
 
@@ -253,6 +271,7 @@ describe("reparse", () => {
 					seconds: report.seconds,
 					parsed: 1,
 					failed: [],
+					missing: ["filter[faculty]", "filter[subfaculty]", "filter[spec]"],
 				});
 				assert.deepStrictEqual(yield* parses, [
 					{ trigger: "reparse", finished: true, report },
