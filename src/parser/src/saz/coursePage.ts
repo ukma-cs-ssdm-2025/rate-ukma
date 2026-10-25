@@ -5,7 +5,8 @@ import {
 	SchemaIssue,
 	SchemaTransformation,
 } from "effect";
-import { textOf, unescapeHtml, withoutComments } from "./html.ts";
+import { decodeHTMLStrict } from "entities";
+import { textOf, withoutComments } from "./html.ts";
 
 // Digits only, since `FiniteFromString` reads an empty cell as 0, and bounded
 // by the columns (`numeric(4,1)`, `smallint`), so a wild value fails its page
@@ -412,7 +413,7 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 			text("Кількість студентів в групі") ?? "",
 		);
 
-		const annotationText = unescapeHtml(annotation ?? "").trim();
+		const annotationText = decodeHTMLStrict(annotation ?? "").trim();
 
 		return {
 			code: text("Код"),

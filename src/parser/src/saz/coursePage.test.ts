@@ -365,10 +365,10 @@ describe("parseCoursePage", () => {
 		);
 	});
 
-	it("keeps an entity past the last code point as written", () => {
+	it("replaces an entity that is not a character Postgres can hold", () => {
 		assert.strictEqual(
 			parsed(coursePage({ title: "Системи &#99999999; &#0; &#xD800;" })).title,
-			"Системи &#99999999; &#0; &#xD800;",
+			"Системи \uFFFD \uFFFD \uFFFD",
 		);
 	});
 
