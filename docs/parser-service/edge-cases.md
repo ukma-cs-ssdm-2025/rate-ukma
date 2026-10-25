@@ -366,7 +366,7 @@ Every list is a JSON array of objects with the same 17 keys (575,305 entries).
 | -10 | виписано | 5,266 |
 
   "не навчається" means the person is no longer a student, not that they left the course. `isForced` is true on 6,602 entries.
-- Handled by: `enrollments.status` is `enrolled` (10) or `unenrolled` (-10). `enrollments.student_state` keeps the label and `is_forced` the flag. Rate UKMA's scraper also counts "не навчається" as enrolled.
+- Handled by: `enrollments.status` is `enrolled` (10) or `unenrolled` (-10). `enrollments.is_student_active` keeps the person's state and `is_forced` the flag; the label follows from them. Rate UKMA's scraper also counts "не навчається" as enrolled.
 
 ```json
 {"status": 10, "statusLabel": "не навчається", "isStudentActive": false, "isEnrolled": true, "isUnenrolled": false, "isForced": false}

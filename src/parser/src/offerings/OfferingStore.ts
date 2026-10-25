@@ -132,7 +132,10 @@ export class OfferingStore extends Context.Service<
 			parseId: bigint,
 			failures: ReadonlyArray<ParseFailure>,
 		): Effect.Effect<void>;
-		finishParse(parseId: bigint, report: ParseReport): Effect.Effect<void>;
+		finishParse(
+			parseId: bigint,
+			report: Omit<ParseReport, "missing">,
+		): Effect.Effect<void>;
 	}
 >()("ukma-data/offerings/OfferingStore") {
 	static readonly layer = Layer.effect(
@@ -554,7 +557,10 @@ export class OfferingStore extends Context.Service<
 							)}
 						`.pipe(Effect.asVoid, Effect.orDie);
 
-			const finishParse = (parseId: bigint, report: ParseReport) =>
+			const finishParse = (
+				parseId: bigint,
+				report: Omit<ParseReport, "missing">,
+			) =>
 				sql`
 					UPDATE parses SET finished_at = now(), report = ${JSON.stringify(report)}::jsonb
 					WHERE id = ${parseId}
