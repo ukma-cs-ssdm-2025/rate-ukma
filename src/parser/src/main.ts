@@ -5,7 +5,7 @@ import { HttpServerLive } from "./api/http.ts";
 import { ChangeLog } from "./changes/ChangeLog.ts";
 import { PgLive, runMigrations } from "./db/database.ts";
 import { KeysLive, keyCommands } from "./keys/commands.ts";
-import { parseOfferings } from "./offerings/offerings.ts";
+import { reparseOfferings } from "./offerings/offerings.ts";
 import { OfferingStore } from "./offerings/OfferingStore.ts";
 import { parseStudents } from "./students/students.ts";
 import { StudentStore } from "./students/StudentStore.ts";
@@ -24,7 +24,7 @@ const migrate = Command.make("migrate", {}, () =>
 ).pipe(Command.withDescription("Apply database migrations"));
 
 const reparse = Command.make("reparse", {}, () =>
-	parseOfferings("reparse").pipe(
+	reparseOfferings.pipe(
 		Effect.andThen(parseStudents("reparse")),
 		Effect.provide(
 			Layer.mergeAll(OfferingStore.layer, StudentStore.layer).pipe(

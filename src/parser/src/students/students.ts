@@ -17,7 +17,7 @@ const BATCH_ENTRIES = 5000;
 
 /** `parsed` counts lists. A list that fails to parse or store is kept: its
  *  offering's enrollments stay as they were. */
-export interface StudentParseReport extends ParseReport {
+export interface StudentParseReport extends Omit<ParseReport, "missing"> {
 	readonly listsEmptied: number;
 	readonly listsKept: number;
 }

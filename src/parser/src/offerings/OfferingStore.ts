@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
 import { SqlClient, SqlSchema, type Statement } from "effect/sql";
 import {
 	type ChangeCount,
@@ -7,6 +7,7 @@ import {
 	mergeChangeCounts,
 	type NumberedTable,
 } from "../changes/ChangeLog.ts";
+import { PARSE_LOCK, sessionLock } from "../db/locks.ts";
 import { recordsetOf } from "../db/recordset.ts";
 import type {
 	OfferingTerm,
@@ -92,6 +93,8 @@ export interface ParseReport {
 		readonly pages: number;
 	}>;
 	readonly changes: ReadonlyArray<ChangeCount>;
+	/** Catalog filters with no options, from `missingFilters`. */
+	readonly missing: ReadonlyArray<string>;
 }
 
 export interface StoredProgramme {
@@ -102,6 +105,8 @@ export interface StoredProgramme {
 export class OfferingStore extends Context.Service<
 	OfferingStore,
 	{
+		/** Waits for the parse lock and holds it for the scope. */
+		lockParse: Effect.Effect<void, never, Scope.Scope>;
 		/** The id of the latest snapshot of each course page, in id order. */
 		latestCoursePages: Effect.Effect<ReadonlyArray<bigint>>;
 		coursePages(
@@ -127,7 +132,10 @@ export class OfferingStore extends Context.Service<
 			parseId: bigint,
 			failures: ReadonlyArray<ParseFailure>,
 		): Effect.Effect<void>;
-		finishParse(parseId: bigint, report: ParseReport): Effect.Effect<void>;
+		finishParse(
+			parseId: bigint,
+			report: Omit<ParseReport, "missing">,
+		): Effect.Effect<void>;
 	}
 >()("ukma-data/offerings/OfferingStore") {
 	static readonly layer = Layer.effect(
@@ -135,6 +143,11 @@ export class OfferingStore extends Context.Service<
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const changes = yield* ChangeLog;
+
+			const lockParse = sessionLock(PARSE_LOCK, true).pipe(
+				Effect.asVoid,
+				Effect.provideService(SqlClient.SqlClient, sql),
+			);
 
 			const findLatestCoursePages = SqlSchema.findAll({
 				Request: Schema.Void,
@@ -259,15 +272,17 @@ export class OfferingStore extends Context.Service<
 								table: "faculties" | "departments",
 								ids: ReadonlyArray<string>,
 							) =>
-								track(
-									table,
-									sql`
-										UPDATE ${sql(table)}
-										SET saz_filter_id = NULL, change_no = nextval('change_no_seq')
-										WHERE id IN ${sql.in(ids)}
-										RETURNING id, change_no, 'change' AS action
-									`,
-								).pipe(Effect.when(Effect.succeed(ids.length > 0)));
+								ids.length === 0
+									? Effect.void
+									: track(
+											table,
+											sql`
+												UPDATE ${sql(table)}
+												SET saz_filter_id = NULL, change_no = nextval('change_no_seq')
+												WHERE id IN ${sql.in(ids)}
+												RETURNING id, change_no, 'change' AS action
+											`,
+										).pipe(Effect.asVoid);
 
 							const faculties = planUnits(
 								yield* findUnits("faculties"),
@@ -542,13 +557,17 @@ export class OfferingStore extends Context.Service<
 							)}
 						`.pipe(Effect.asVoid, Effect.orDie);
 
-			const finishParse = (parseId: bigint, report: ParseReport) =>
+			const finishParse = (
+				parseId: bigint,
+				report: Omit<ParseReport, "missing">,
+			) =>
 				sql`
 					UPDATE parses SET finished_at = now(), report = ${JSON.stringify(report)}::jsonb
 					WHERE id = ${parseId}
 				`.pipe(Effect.asVoid, Effect.orDie);
 
 			return OfferingStore.of({
+				lockParse,
 				latestCoursePages,
 				coursePages,
 				latestCatalogPage,

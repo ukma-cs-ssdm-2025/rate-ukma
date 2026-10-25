@@ -1,5 +1,5 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Effect, Exit, Layer } from "effect";
+import { Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
@@ -11,18 +11,14 @@ import {
 	type CatalogFilters,
 	offeringRowsOf,
 	parseOfferings,
+	storeFailureOf,
 } from "./offerings.ts";
+import { NO_FILTERS, reset, snapshot } from "./testing.ts";
 
 const TestLive = OfferingStore.layer.pipe(
 	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
-
-const NO_FILTERS: CatalogFilters = {
-	faculties: new Map(),
-	departments: new Map(),
-	programmes: new Map(),
-};
 
 const SPRING: OfferingTerm = {
 	season: "SPRING",
@@ -34,44 +30,6 @@ const SPRING: OfferingTerm = {
 	practiceHours: null,
 	control: "exam",
 };
-
-const reset = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-
-	yield* sql`
-		TRUNCATE changes, review_cases, enrollment_lists, enrollments, student_programmes,
-			students, offering_terms, offering_programmes, offerings, programmes,
-			departments, faculties, terms, parse_failures, parses, page_snapshots,
-			run_pages, runs
-		RESTART IDENTITY
-	`;
-});
-
-/** Stores a page as the crawl would, and returns its snapshot id. */
-const snapshot = (path: string, content: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
-
-		const [run] = yield* sql<{ readonly id: bigint }>`
-			INSERT INTO runs (source_part) VALUES ('saz-courses:2031-32') RETURNING id
-		`;
-
-		const [stored] = yield* sql<{ readonly id: bigint }>`
-			INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
-			VALUES (
-				${path},
-				${path.startsWith("/course/catalog") ? "catalog" : "course"},
-				md5(${content}),
-				${content},
-				${run?.id}
-			)
-			RETURNING id
-		`;
-
-		assert.isDefined(stored);
-
-		return stored.id;
-	});
 
 /** Writes these offerings, each parsed from a new snapshot of its page. */
 const write = (
@@ -148,7 +106,7 @@ const offeringRow = (sazCode: string) =>
 
 describe("OfferingStore", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
-		it.effect("gives each row a prefixed ULID and requires a level", () =>
+		it.effect("gives each row a prefixed UUIDv7 and requires a level", () =>
 			Effect.gen(function* () {
 				yield* reset;
 
@@ -157,7 +115,10 @@ describe("OfferingStore", () => {
 				yield* write([offering("900001")]);
 
 				const prefixes = (yield* ids).map((id) =>
-					id.replace(/^([a-z]{3})_[0-9A-HJKMNP-TV-Z]{26}$/u, "$1"),
+					id.replace(
+						/^([a-z]{3})_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+						"$1",
+					),
 				);
 
 				const nullLevel = yield* sql`
@@ -172,6 +133,33 @@ describe("OfferingStore", () => {
 					"trm",
 				]);
 				assert.isTrue(Exit.isFailure(nullLevel));
+			}),
+		);
+
+		it.effect("logs a rejected write without the failing row", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const changes = yield* ChangeLog;
+
+				// In the writers' turn, so require_turn lets it reach the NOT NULL check.
+				const rejected = yield* changes
+					.withTurn(sql`
+						INSERT INTO programmes (name, level) VALUES ('Вигадана логіка', NULL)
+					`)
+					.pipe(Effect.orDie, Effect.exit);
+
+				assert.isTrue(Exit.isFailure(rejected));
+
+				if (Exit.isFailure(rejected)) {
+					assert.deepStrictEqual(storeFailureOf(rejected.cause), {
+						reason: "ConstraintError",
+						code: "23502",
+						table: "programmes",
+						column: "level",
+					});
+				}
 			}),
 		);
 
@@ -383,6 +371,7 @@ describe("parseOfferings", () => {
 						{ table: "terms", action: "add", rows: 1 },
 						{ table: "offerings", action: "add", rows: 2 },
 					],
+					missing: ["filter[subfaculty]"],
 				});
 				assert.deepStrictEqual(
 					rows.map(({ line }) => line),
@@ -392,6 +381,51 @@ describe("parseOfferings", () => {
 					],
 				);
 				assert.strictEqual(programme?.sazFilterId, "5001");
+			}),
+		);
+
+		it.effect("waits for a parse that holds the lock", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* OfferingStore;
+				const held = yield* Deferred.make<void>();
+				const release = yield* Deferred.make<void>();
+
+				yield* snapshot("/course/900001", coursePage({ code: "900001" }));
+
+				const holder = yield* Effect.forkChild(
+					store.lockParse.pipe(
+						Effect.andThen(Deferred.succeed(held, undefined)),
+						Effect.andThen(Deferred.await(release)),
+						Effect.scoped,
+					),
+				);
+
+				yield* Deferred.await(held);
+
+				const parse = yield* Effect.forkChild(parseOfferings("crawl"));
+
+				yield* sql<{ readonly waiting: number }>`
+					SELECT count(*)::int AS waiting FROM pg_locks
+					WHERE locktype = 'advisory' AND NOT granted
+				`.pipe(
+					Effect.repeat({
+						until: ([row]) => row?.waiting === 1,
+						schedule: Schedule.spaced("20 millis"),
+					}),
+				);
+
+				const whileHeld = yield* offeringRow("900001");
+
+				yield* Deferred.succeed(release, undefined);
+				yield* Fiber.join(holder);
+
+				const report = yield* Fiber.join(parse);
+
+				assert.isUndefined(whileHeld);
+				assert.strictEqual(report.parsed, 1);
 			}),
 		);
 

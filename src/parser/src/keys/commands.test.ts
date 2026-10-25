@@ -28,7 +28,8 @@ const run = (args: ReadonlyArray<string>) =>
 		return { exit, lines };
 	}).pipe(Effect.provide(TestConsole.layer));
 
-const TOKEN = /^ukd_(key_[0-9A-Z]{26})\.([A-Za-z0-9_-]{43})$/;
+const TOKEN =
+	/^ukd_(key_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.([A-Za-z0-9_-]{43})$/;
 
 const created = (lines: ReadonlyArray<string>) => {
 	const token = lines.find((line) => line.startsWith("ukd_")) ?? "";
@@ -169,7 +170,7 @@ describe("key commands", () => {
 				assert.deepStrictEqual(first.lines, [`Revoked ${keyId}`]);
 				assert.isTrue((yield* storedKey(keyId))?.revoked);
 
-				for (const id of [keyId, "key_00000000000000000000000000"]) {
+				for (const id of [keyId, "key_0192f3a4-7b1c-7d3e-9a2b-4c5d6e7f8a9b"]) {
 					const again = yield* run(["revoke-key", id]);
 
 					assert.isTrue(Exit.isFailure(again.exit));

@@ -8,7 +8,7 @@ export default Effect.gen(function* () {
 	// is the list that last set the name, so an older list cannot set it back.
 	yield* sql`
 		CREATE TABLE students (
-			id text PRIMARY KEY DEFAULT 'stu_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'stu_' || uuidv7(),
 			email text UNIQUE CHECK (email = lower(email)),
 			full_name text NOT NULL,
 			snapshot_id bigint NOT NULL REFERENCES page_snapshots (id),
@@ -19,7 +19,7 @@ export default Effect.gen(function* () {
 
 	yield* sql`
 		CREATE TABLE student_programmes (
-			id text PRIMARY KEY DEFAULT 'spr_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'spr_' || uuidv7(),
 			saz_cdoc text NOT NULL UNIQUE,
 			student_id text NOT NULL REFERENCES students (id),
 			spec_name text NOT NULL,
@@ -32,7 +32,7 @@ export default Effect.gen(function* () {
 
 	yield* sql`
 		CREATE TABLE enrollments (
-			id text PRIMARY KEY DEFAULT 'enr_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'enr_' || uuidv7(),
 			offering_id text NOT NULL REFERENCES offerings (id),
 			student_programme_id text NOT NULL REFERENCES student_programmes (id),
 			kind text NOT NULL CHECK (kind IN ('compulsory', 'prof_oriented', 'elective')),

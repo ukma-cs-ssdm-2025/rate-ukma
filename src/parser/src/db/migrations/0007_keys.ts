@@ -8,7 +8,7 @@ export default Effect.gen(function* () {
 	// needs a migration that widens this check.
 	yield* sql`
 		CREATE TABLE api_keys (
-			id text PRIMARY KEY DEFAULT 'key_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'key_' || uuidv7(),
 			name text NOT NULL,
 			secret_hash text NOT NULL,
 			scopes text[] NOT NULL CHECK (
@@ -27,7 +27,7 @@ export default Effect.gen(function* () {
 	// says why a `request_denied` row was refused.
 	yield* sql`
 		CREATE TABLE audit_log (
-			id text PRIMARY KEY DEFAULT 'aud_' || ulid(),
+			id text PRIMARY KEY DEFAULT 'aud_' || uuidv7(),
 			at timestamptz NOT NULL DEFAULT now(),
 			key_id text REFERENCES api_keys (id),
 			action text NOT NULL CHECK (action IN (

@@ -229,7 +229,7 @@ export class StudentStore extends Context.Service<
 							// A person without an email gets an id here, so its programme
 							// record can point to it.
 							const fresh = yield* sql`
-								SELECT 'stu_' || ulid() AS id, p.cdoc, p.email, p."fullName",
+								SELECT 'stu_' || uuidv7() AS id, p.cdoc, p.email, p."fullName",
 									p."snapshotId"::text AS "snapshotId"
 								FROM ${persons}
 								WHERE p."studentId" IS NULL
