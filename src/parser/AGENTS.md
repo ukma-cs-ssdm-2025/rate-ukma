@@ -5,7 +5,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 ## Run
 
 - Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`, `pnpm reparse`.
-- Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role and `parser-migrate` applies migrations.
+- Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role on `parser-db` and `parser-migrate` applies migrations. `parser-db` is the parser's own Postgres 18 with its own volume, on `127.0.0.1:${PARSER_POSTGRES_PORT:-5433}`, as staging runs; the Django app keeps `db-rateukma` on Postgres 15.
 - Settings: `DATABASE_URL` (worker, migrate and reparse), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account), `SAZ_REQUEST_GAP` (default 1 second) and `SAZ_REQUEST_TIMEOUT` (default 30 seconds, covering the response body).
 
 ## Layout
@@ -73,4 +73,4 @@ The personal `effect-ts` and `install-anti-slop` skills are not needed: everythi
 
 ## Checks
 
-`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The Postgres tests always need `TEST_DATABASE_URL`, a server where they may create and drop databases (CI's Postgres service, or locally the docker compose Postgres as the `postgres` user); without it they fail, locally too. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.
+`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The Postgres tests always need `TEST_DATABASE_URL`, a server where they may create and drop databases (CI's Postgres 18 service, or locally the compose `parser-db` as the `postgres` user); without it they fail, locally too. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.

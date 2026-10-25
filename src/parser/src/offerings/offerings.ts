@@ -1,4 +1,12 @@
-import { Array as Arr, Clock, Effect, Result, Schema } from "effect";
+import {
+	Array as Arr,
+	Clock,
+	Effect,
+	Exit,
+	Result,
+	Schema,
+	Struct,
+} from "effect";
 import { parseFilterOptions } from "../saz/catalog.ts";
 import {
 	Level,
@@ -86,6 +94,15 @@ export const offeringRowsOf = (
 		storedProgrammes.map(({ name, level }) => `${level} ${name}`),
 	);
 
+	const offeringProgrammes = offerings.flatMap(
+		({ sazCode, level, programmes }) =>
+			programmes.map(({ name, kind }) => ({
+				sazCode,
+				kind,
+				programme: programmeOf(name, level, filters, stored),
+			})),
+	);
+
 	return {
 		faculties: unique(
 			offerings.flatMap(({ faculty }) =>
@@ -120,9 +137,7 @@ export const offeringRowsOf = (
 			({ name }) => name,
 		),
 		programmes: unique(
-			offerings.flatMap(({ level, programmes }) =>
-				programmes.map(({ name }) => programmeOf(name, level, filters, stored)),
-			),
+			offeringProgrammes.map(({ programme }) => programme),
 			({ name, level }) => `${level} ${name}`,
 		),
 		terms: unique(
@@ -135,15 +150,10 @@ export const offeringRowsOf = (
 			),
 			({ code }) => code,
 		),
-		offerings: pages.map(
-			({
-				snapshotId,
-				offering: { terms: _terms, programmes: _programmes, ...offering },
-			}) => ({
-				...offering,
-				snapshotId: String(snapshotId),
-			}),
-		),
+		offerings: pages.map(({ snapshotId, offering }) => ({
+			...Struct.omit(offering, ["terms", "programmes"]),
+			snapshotId: String(snapshotId),
+		})),
 		offeringTerms: offerings.flatMap(({ sazCode, academicYear, terms }) =>
 			terms.map(({ season, ...term }) => ({
 				...term,
@@ -151,13 +161,13 @@ export const offeringRowsOf = (
 				termCode: termCode(academicYear, season),
 			})),
 		),
-		offeringProgrammes: offerings.flatMap(({ sazCode, level, programmes }) =>
-			programmes.map(({ name, kind }) => ({
+		offeringProgrammes: offeringProgrammes.map(
+			({ sazCode, kind, programme: { name, level } }) => ({
 				sazCode,
 				name,
-				level: programmeOf(name, level, filters, stored).level,
+				level,
 				kind,
-			})),
+			}),
 		),
 	};
 };
@@ -214,18 +224,9 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 		// A batch the database rejects keeps its last good rows, like a page that
 		// fails to parse, and the run goes on to the next batch.
-		const written = yield* store.write(rows).pipe(
-			Effect.as(true),
-			Effect.catchCause((cause) =>
-				Effect.logError("Offering batch failed to store", {
-					first_snapshot_id: String(ids[0]),
-					last_snapshot_id: String(ids.at(-1)),
-					cause,
-				}).pipe(Effect.as(false)),
-			),
-		);
+		const written = yield* Effect.exit(store.write(rows));
 
-		if (written) {
+		if (Exit.isSuccess(written)) {
 			parsed += pages.length;
 		} else {
 			failures.push(
@@ -235,6 +236,11 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 					reason: "store",
 				})),
 			);
+			yield* Effect.logError("Offering batch failed to store", {
+				first_snapshot_id: String(ids[0]),
+				last_snapshot_id: String(ids.at(-1)),
+				cause: written.cause,
+			});
 		}
 
 		for (const { reason } of failures) {

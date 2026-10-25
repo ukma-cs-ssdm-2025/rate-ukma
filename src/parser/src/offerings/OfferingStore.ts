@@ -192,6 +192,17 @@ export class OfferingStore extends Context.Service<
 					sql`SELECT id, name, saz_filter_id AS "sazFilterId" FROM ${sql(table)}`,
 			});
 
+			const release = (
+				table: "faculties" | "departments",
+				ids: ReadonlyArray<string>,
+			) =>
+				ids.length === 0
+					? Effect.void
+					: sql`
+							UPDATE ${sql(table)} SET saz_filter_id = NULL
+							WHERE id IN ${sql.in(ids)}
+						`.pipe(Effect.asVoid);
+
 			const findProgrammes = SqlSchema.findAll({
 				Request: Schema.Void,
 				Result: Schema.Struct({
@@ -212,10 +223,7 @@ export class OfferingStore extends Context.Service<
 						rows.faculties,
 					);
 
-					yield* sql`
-						UPDATE faculties SET saz_filter_id = NULL
-						WHERE id IN ${sql.in(faculties.released)}
-					`.pipe(Effect.when(Effect.succeed(faculties.released.length > 0)));
+					yield* release("faculties", faculties.released);
 
 					yield* sql`
 						UPDATE faculties t SET name = r.name, saz_filter_id = r."sazFilterId"
@@ -234,10 +242,7 @@ export class OfferingStore extends Context.Service<
 						rows.departments,
 					);
 
-					yield* sql`
-						UPDATE departments SET saz_filter_id = NULL
-						WHERE id IN ${sql.in(departments.released)}
-					`.pipe(Effect.when(Effect.succeed(departments.released.length > 0)));
+					yield* release("departments", departments.released);
 
 					yield* sql`
 						UPDATE departments t
