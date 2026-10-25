@@ -5,11 +5,14 @@ import { crawlAllYears } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
 import { parseOfferings } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
+import { RemovalStore } from "../offerings/RemovalStore.ts";
+import { RemovalThreshold, removeOfferings } from "../offerings/removals.ts";
 import { SazClient } from "../saz/SazClient.ts";
 
 export const WorkerLive = Layer.effectDiscard(
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
+		const threshold = yield* RemovalThreshold;
 
 		yield* sql`SELECT 1`;
 		yield* Effect.logInfo("Worker connected to Postgres");
@@ -42,10 +45,19 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.catchCause((cause) =>
 				Effect.logError("Parsing offerings failed", cause),
 			),
+			Effect.andThen(removeOfferings(threshold)),
+			Effect.catchCause((cause) =>
+				Effect.logError("Removing offerings failed", cause),
+			),
 			Effect.forkScoped,
 		);
 	}),
 ).pipe(
-	Layer.provide([CrawlStore.layer, OfferingStore.layer, SazClient.layer]),
+	Layer.provide([
+		CrawlStore.layer,
+		OfferingStore.layer,
+		RemovalStore.layer,
+		SazClient.layer,
+	]),
 	Layer.provide(ChangeLog.layer),
 );

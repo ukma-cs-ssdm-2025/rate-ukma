@@ -2,7 +2,6 @@ import { assert, describe, it, layer } from "@effect/vitest";
 import { Effect, Exit, Layer, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
-import { sourcePartOf } from "../crawl/crawl.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
 import { parseCoursePage } from "../saz/coursePage.ts";
@@ -17,7 +16,7 @@ import {
 	reparseOfferings,
 	termCode,
 } from "./offerings.ts";
-import { NO_FILTERS, reset, snapshot } from "./testing.ts";
+import { crawl, NO_FILTERS, offeringsOf, reset, snapshot } from "./testing.ts";
 
 const FILTERS = {
 	faculties: new Map([["Факультет вигаданих наук", "901"]]),
@@ -395,12 +394,6 @@ describe("reparse", () => {
 	});
 });
 
-interface Listed {
-	readonly code: string;
-	readonly title?: string;
-	readonly unit?: ReadonlyArray<string>;
-}
-
 const unitRow = (header: string, name: string) =>
 	`<tr><th><abbr title="${header}">${header.split(",")[0]}</abbr></th><td>${name}</td></tr>`;
 
@@ -415,78 +408,6 @@ const MOVED_DEPARTMENT = [
 		"Кафедра вигаданих систем",
 	),
 ];
-
-/** Stores a finished run of one year that lists these courses, as the crawl
- *  does: a page whose content did not change keeps its latest snapshot. */
-const crawl = (year: number, listed: ReadonlyArray<Listed>) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
-
-		const [run] = yield* sql<{ readonly id: bigint }>`
-			INSERT INTO runs (source_part, status, finished_at)
-			VALUES (${sourcePartOf(year)}, 'succeeded', now())
-			RETURNING id
-		`;
-
-		const runId = run?.id ?? 0n;
-
-		yield* sql`
-			INSERT INTO run_pages (run_id, kind, path, status, finished_at)
-			VALUES (${runId}, 'catalog', ${`/course/catalog?year=${year}`}, 'done', now())
-		`;
-
-		for (const { code, title, unit } of listed) {
-			const path = `/course/${code}`;
-
-			const content = coursePage({
-				code,
-				title,
-				unit,
-				year: `${year}–${year + 1}`,
-			});
-
-			const [latest] = yield* sql<{
-				readonly id: bigint;
-				readonly content: string;
-			}>`
-				SELECT id, content FROM page_snapshots
-				WHERE path = ${path} ORDER BY id DESC LIMIT 1
-			`;
-
-			const [stored] =
-				latest?.content === content
-					? [latest]
-					: yield* sql<{ readonly id: bigint }>`
-							INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
-							VALUES (${path}, 'course', ${`hash ${content.length}`}, ${content}, ${runId})
-							RETURNING id
-						`;
-
-			yield* sql`
-				INSERT INTO run_pages (run_id, kind, path, status, snapshot_id, finished_at)
-				VALUES (${runId}, 'course', ${path}, 'done', ${stored?.id ?? null}, now())
-			`;
-		}
-
-		return runId;
-	});
-
-interface StoredOffering {
-	readonly id: string;
-	readonly changeNo: bigint;
-}
-
-const offeringsOf = (year: number) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
-
-		const rows = yield* sql<StoredOffering & { readonly sazCode: string }>`
-			SELECT id, saz_code AS "sazCode", change_no AS "changeNo"
-			FROM offerings WHERE academic_year = ${year}
-		`;
-
-		return new Map(rows.map(({ sazCode, ...row }) => [sazCode, row]));
-	});
 
 describe("change tracking", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
