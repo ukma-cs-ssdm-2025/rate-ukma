@@ -1,13 +1,16 @@
 import {
 	Array as Arr,
+	Cause,
 	Clock,
 	Effect,
 	Exit,
+	Option,
 	Record as Rec,
 	Result,
 	Schema,
 	Struct,
 } from "effect";
+import { SqlError } from "effect/sql";
 import { parseFilterOptions } from "../saz/catalog.ts";
 import {
 	Level,
@@ -192,13 +195,39 @@ export const offeringRowsOf = (
 	};
 };
 
+const PgFields = Schema.Struct({
+	code: Schema.optional(Schema.String),
+	table: Schema.optional(Schema.String),
+	column: Schema.optional(Schema.String),
+	constraint: Schema.optional(Schema.String),
+});
+
+const pgFieldsOf = Schema.decodeUnknownOption(PgFields);
+
+/** Postgres puts the failing row in an error's `detail`, and an offering row
+ *  carries teacher names, so a failed write logs only what names the error. */
+export const storeFailureOf = (cause: Cause.Cause<unknown>) => {
+	const error = Cause.squash(cause);
+
+	if (!SqlError.isSqlError(error)) return { reason: "defect" };
+
+	return {
+		reason: error.reason._tag,
+		...Option.getOrUndefined(pgFieldsOf(error.reason.cause)),
+	};
+};
+
 /** Parses the latest snapshot of every course page into offerings and their
  *  reference lists, and records the parse. A page that fails keeps the rows of
- *  its last good parse, and the failure is recorded with its snapshot. */
+ *  its last good parse, and the failure is recorded with its snapshot. Runs
+ *  take turns, so each reads a catalog page at least as new as the last. */
 export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	trigger: ParseTrigger,
 ) {
 	const store = yield* OfferingStore;
+
+	yield* store.lockParse;
+
 	const startedAt = yield* Clock.currentTimeMillis;
 	const parseId = yield* store.startParse(trigger);
 	const catalogPage = yield* store.latestCatalogPage;
@@ -265,7 +294,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			yield* Effect.logError("Offering batch failed to store", {
 				first_snapshot_id: String(ids[0]),
 				last_snapshot_id: String(ids.at(-1)),
-				cause: written.cause,
+				error: storeFailureOf(written.cause),
 			});
 		}
 
@@ -289,7 +318,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	);
 
 	return report;
-});
+}, Effect.scoped);
 
 /** A reparse with a refused batch fails, so its Job does not show Completed. */
 export const reparseOfferings = Effect.gen(function* () {

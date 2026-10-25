@@ -334,6 +334,10 @@ describe("parseCoursePage", () => {
 			"invalid semesters",
 		);
 		assert.strictEqual(
+			failure(coursePage({ terms: [row("Семестри", label("Семестр 40000"))] })),
+			"invalid semesters",
+		);
+		assert.strictEqual(
 			failure(coursePage({ level: "Доктор" })),
 			"invalid level",
 		);
@@ -392,6 +396,15 @@ describe("parseCoursePage", () => {
 		assert.strictEqual(
 			failure(coursePage({ annotation: "Текст" }).replace("--info", "--about")),
 			"unknown block",
+		);
+		assert.strictEqual(
+			failure(
+				coursePage({ annotation: "Текст" }).replace(
+					'<div class="collapse text-justify" id="course-card--900123--info">',
+					'<section class="collapse text-justify" id="course-card--900123--info">',
+				),
+			),
+			"unread block",
 		);
 	});
 
@@ -505,6 +518,18 @@ describe("parseCoursePage", () => {
 				}),
 			),
 			"invalid faculty",
+		);
+	});
+
+	it("reads blocks whatever their attribute order", () => {
+		assert.strictEqual(
+			parsed(
+				coursePage({ annotation: "Текст" }).replace(
+					'class="collapse text-justify" id="course-card--900123--info"',
+					'id="course-card--900123--info" class="collapse in text-justify"',
+				),
+			).annotation,
+			"Текст",
 		);
 	});
 
