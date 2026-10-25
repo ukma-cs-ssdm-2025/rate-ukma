@@ -137,7 +137,7 @@ graph LR
 
 **UKMA Data worker:** reads the САЗ account as `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` from a Kubernetes Secret, next to `DATABASE_URL`.
 
-**UKMA Data reparse:** `reparse` runs as a one-off Job with only `DATABASE_URL`. It rebuilds the parsed tables from stored snapshots after a parser fix and sends no request to САЗ.
+**UKMA Data reparse:** `reparse` runs as a one-off Job with only `DATABASE_URL`. It rebuilds the parsed tables from stored snapshots after a parser fix and sends no request to САЗ. It exits non-zero when Postgres refuses a batch, so the Job shows Failed; a page that only fails to parse does not fail it.
 
 ### 8. Ingress & TLS
 

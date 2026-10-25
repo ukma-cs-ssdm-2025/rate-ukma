@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import { HttpServerLive } from "./api/http.ts";
 import { PgLive, runMigrations } from "./db/database.ts";
-import { parseOfferings } from "./offerings/offerings.ts";
+import { reparseOfferings } from "./offerings/offerings.ts";
 import { OfferingStore } from "./offerings/OfferingStore.ts";
 import { WorkerLive } from "./worker/Worker.ts";
 
@@ -20,7 +20,7 @@ const migrate = Command.make("migrate", {}, () =>
 ).pipe(Command.withDescription("Apply database migrations"));
 
 const reparse = Command.make("reparse", {}, () =>
-	parseOfferings("reparse").pipe(
+	reparseOfferings.pipe(
 		Effect.provide(OfferingStore.layer),
 		Effect.provide(PgLive),
 	),

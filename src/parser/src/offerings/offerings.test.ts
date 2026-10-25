@@ -5,7 +5,13 @@ import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
 import { offering } from "./offering.fixture.ts";
 import { OfferingStore } from "./OfferingStore.ts";
-import { offeringRowsOf, parseOfferings, termCode } from "./offerings.ts";
+import {
+	OfferingsNotStored,
+	offeringRowsOf,
+	parseOfferings,
+	reparseOfferings,
+	termCode,
+} from "./offerings.ts";
 import { NO_FILTERS, reset, snapshot } from "./testing.ts";
 
 const FILTERS = {
@@ -236,7 +242,7 @@ describe("reparse", () => {
 				);
 
 				const before = yield* counts;
-				const report = yield* parseOfferings("reparse");
+				const report = yield* reparseOfferings;
 
 				assert.strictEqual(
 					yield* offeringLine("900001"),
@@ -266,7 +272,7 @@ describe("reparse", () => {
 
 				yield* snapshot("/course/900001", "<html></html>");
 
-				const report = yield* parseOfferings("reparse");
+				const report = yield* reparseOfferings;
 
 				assert.strictEqual(
 					yield* offeringLine("900001"),
@@ -289,7 +295,7 @@ describe("reparse", () => {
 			}),
 		);
 
-		it.effect("records the pages of a batch the database rejects", () =>
+		it.effect("records a refused batch and fails the reparse", () =>
 			Effect.gen(function* () {
 				yield* reset;
 
@@ -311,7 +317,8 @@ describe("reparse", () => {
 					FOR EACH ROW EXECUTE FUNCTION reject_offering()
 				`;
 
-				const report = yield* parseOfferings("reparse").pipe(
+				const error = yield* reparseOfferings.pipe(
+					Effect.flip,
 					Effect.ensuring(
 						sql`DROP FUNCTION reject_offering CASCADE`.pipe(Effect.orDie),
 					),
@@ -322,7 +329,7 @@ describe("reparse", () => {
 					"Вступ до вигаданих систем #1 2031-32-FALL exam",
 				);
 				assert.deepStrictEqual(yield* failures, ["2 #2 /course/900001 store"]);
-				assert.deepStrictEqual(report.failed, [{ reason: "store", pages: 1 }]);
+				assert.deepStrictEqual(error, new OfferingsNotStored({ pages: 1 }));
 			}),
 		);
 

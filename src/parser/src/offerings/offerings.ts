@@ -24,6 +24,12 @@ import {
 
 const BATCH_SIZE = 500;
 
+/** Postgres refused at least one batch, so its pages kept their older rows. */
+export class OfferingsNotStored extends Schema.TaggedError<OfferingsNotStored>()(
+	"OfferingsNotStored",
+	{ pages: Schema.Number },
+) {}
+
 /** The catalog filter values, by the name a card uses. Programme options
  *  carry the level, as in `Вигадана інженерія (Бакалавр)`. */
 export interface CatalogFilters {
@@ -260,6 +266,18 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	yield* Effect.logInfo("Offerings parsed", report).pipe(
 		Effect.annotateLogs({ parse_id: String(parseId), trigger }),
 	);
+
+	return report;
+});
+
+/** A reparse with a refused batch fails, so its Job does not show Completed. */
+export const reparseOfferings = Effect.gen(function* () {
+	const report = yield* parseOfferings("reparse");
+	const refused = report.failed.find(({ reason }) => reason === "store");
+
+	if (refused !== undefined) {
+		return yield* new OfferingsNotStored({ pages: refused.pages });
+	}
 
 	return report;
 });
