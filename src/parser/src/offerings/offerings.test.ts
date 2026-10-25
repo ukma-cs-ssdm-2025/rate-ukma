@@ -6,6 +6,7 @@ import { coursePage } from "../saz/coursePage.fixture.ts";
 import { offering } from "./offering.fixture.ts";
 import { OfferingStore } from "./OfferingStore.ts";
 import { offeringRowsOf, parseOfferings, termCode } from "./offerings.ts";
+import { NO_FILTERS, reset, snapshot } from "./testing.ts";
 
 const FILTERS = {
 	faculties: new Map([["Факультет вигаданих наук", "901"]]),
@@ -155,37 +156,6 @@ const TestLive = OfferingStore.layer.pipe(
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
-const reset = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-
-	yield* sql`
-		TRUNCATE offering_terms, offering_programmes, offerings, programmes,
-			departments, faculties, terms, parse_failures, parses, page_snapshots,
-			run_pages, runs
-		RESTART IDENTITY
-	`;
-});
-
-/** Stores a course page as the crawl would, and returns its snapshot id. */
-const snapshot = (path: string, content: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
-
-		const [run] = yield* sql<{ readonly id: bigint }>`
-			INSERT INTO runs (source_part) VALUES ('saz-courses:2031-32') RETURNING id
-		`;
-
-		const [stored] = yield* sql<{ readonly id: bigint }>`
-			INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
-			VALUES (${path}, 'course', md5(${content}), ${content}, ${run?.id})
-			RETURNING id
-		`;
-
-		assert.isDefined(stored);
-
-		return stored.id;
-	});
-
 /** The offering's title, snapshot and terms, as one line. */
 const offeringLine = (sazCode: string) =>
 	Effect.gen(function* () {
@@ -237,12 +207,6 @@ const counts = Effect.gen(function* () {
 
 	return row?.line;
 });
-
-const NO_FILTERS = {
-	faculties: new Map(),
-	departments: new Map(),
-	programmes: new Map(),
-};
 
 describe("reparse", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
@@ -381,8 +345,15 @@ describe("reparse", () => {
 					])
 					.pipe(Effect.exit);
 
+				const unknownParse = yield* store
+					.recordFailures(parseId + 1n, [
+						{ snapshotId: page, path: "/course/900001", reason: "x" },
+					])
+					.pipe(Effect.exit);
+
 				assert.isTrue(Exit.isFailure(unknownTrigger));
 				assert.isTrue(Exit.isFailure(unknownSnapshot));
+				assert.isTrue(Exit.isFailure(unknownParse));
 				assert.deepStrictEqual(yield* parses, [
 					{ trigger: "reparse", finished: null, report: null },
 				]);
