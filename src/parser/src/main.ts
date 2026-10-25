@@ -4,13 +4,14 @@ import { Command } from "effect/cli";
 import { HttpServerLive } from "./api/http.ts";
 import { ChangeLog } from "./changes/ChangeLog.ts";
 import { PgLive, runMigrations } from "./db/database.ts";
+import { KeysLive, keyCommands } from "./keys/commands.ts";
 import { reparseOfferings } from "./offerings/offerings.ts";
 import { OfferingStore } from "./offerings/OfferingStore.ts";
 import { WorkerLive } from "./worker/Worker.ts";
 
-const api = Command.make("api", {}, () => Layer.launch(HttpServerLive)).pipe(
-	Command.withDescription("Serve the HTTP API"),
-);
+const api = Command.make("api", {}, () =>
+	Layer.launch(HttpServerLive.pipe(Layer.provide(PgLive))),
+).pipe(Command.withDescription("Serve the HTTP API"));
 
 const worker = Command.make("worker", {}, () =>
 	Layer.launch(WorkerLive.pipe(Layer.provide(PgLive))),
@@ -32,7 +33,13 @@ const reparse = Command.make("reparse", {}, () =>
 );
 
 Command.make("ukma-data").pipe(
-	Command.withSubcommands([api, worker, migrate, reparse]),
+	Command.withSubcommands([
+		api,
+		worker,
+		migrate,
+		reparse,
+		...keyCommands(KeysLive),
+	]),
 	Command.run({ version: "0.0.0" }),
 	Effect.provide(NodeServices.layer),
 	NodeRuntime.runMain,

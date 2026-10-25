@@ -149,10 +149,14 @@ services:
     command: api
     environment:
       - PORT=8080
+      - DATABASE_URL=postgres://ukma_data:${UKMA_DATA_DB_PASSWORD}@db-rateukma:5432/ukma_data
     ports:
       - "127.0.0.1:8080:8080"
     networks:
       - backend
+    depends_on:
+      parser-migrate:
+        condition: service_completed_successfully
     profiles:
       - dev
 

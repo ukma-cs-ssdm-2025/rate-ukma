@@ -121,7 +121,7 @@ JSON under `/v1`. The OpenAPI file is generated from the code and is the contrac
 | | an extra run of one source part | Start runs |
 | Review cases and decisions | open cases, their safe answers, all decisions | Decide review cases |
 | Snapshots | page content of a run, with student names | Read snapshots |
-| Audit log | key changes, extra runs, decisions, reads of student data | Read audit log |
+| Audit log | every keyed request, key changes, extra runs, decisions, reads of student data | Read audit log |
 | Keys | create and revoke keys | Manage keys |
 
 Every list takes the change number a reader saved and uses cursor pagination. Every response says when its data was last updated.
@@ -144,9 +144,11 @@ Every list takes the change number a reader saved and uses cursor pagination. Ev
 | Read audit log | the audit log | no |
 | Manage keys | create and revoke keys | no |
 
+- The service defines a scope only once an endpoint needs it: today Read catalog (`catalog:read`, the default) and Decide review cases (`review:decide`). The others in this table come with their endpoints.
 - Example keys: Rate UKMA has the defaults plus instructors, students, start runs and decide review cases. UKMA Schedule has the defaults plus students. The team's own key has every scope, and only it can manage keys.
 - In the staff section, Rate UKMA's backend checks that the user is a superuser, then calls the service with Rate UKMA's key. The browser never holds a key.
-- The audit log records key changes, extra runs, decisions and every read of student data. It stores no data values.
+- The audit log records every request made with a key (the key, the route and the row count), key changes, extra runs, decisions and every read of student data. It stores no data values.
+- A refused request whose key exists (wrong secret, revoked, expired, missing scope) is recorded for that key with the reason. A token whose key id is unknown or malformed is not recorded: there is no key to attach it to. Key ids are not secret, so anyone who knows one can add refused rows for it; there is no rate limit yet.
 - No real student data in fixtures, logs, screenshots or issues.
 
 ## Observability
