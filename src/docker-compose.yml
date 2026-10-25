@@ -156,10 +156,32 @@ services:
     profiles:
       - dev
 
+  parser-db:
+    image: postgres:18
+    container_name: "${COMPOSE_PROJECT_NAME}_parser_postgres"
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${PARSER_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - parser_postgres_data:/var/lib/postgresql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    profiles:
+      - dev
+
   parser-db-init:
-    image: postgres:15
+    image: postgres:18
     container_name: "${COMPOSE_PROJECT_NAME}_parser_db_init"
-    command: psql -v ON_ERROR_STOP=1 -h db-rateukma -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /init-db.sql
+    command: psql -v ON_ERROR_STOP=1 -h parser-db -U ${POSTGRES_USER} -d postgres -f /init-db.sql
     environment:
       - PGPASSWORD=${POSTGRES_PASSWORD}
       - UKMA_DATA_DB_PASSWORD=${UKMA_DATA_DB_PASSWORD}
@@ -168,7 +190,7 @@ services:
     networks:
       - backend
     depends_on:
-      db-rateukma:
+      parser-db:
         condition: service_healthy
     profiles:
       - dev
@@ -181,7 +203,7 @@ services:
       dockerfile: Dockerfile
     command: migrate
     environment:
-      - DATABASE_URL=postgres://ukma_data:${UKMA_DATA_DB_PASSWORD}@db-rateukma:5432/ukma_data
+      - DATABASE_URL=postgres://ukma_data:${UKMA_DATA_DB_PASSWORD}@parser-db:5432/ukma_data
     networks:
       - backend
     depends_on:
@@ -199,7 +221,7 @@ services:
       dockerfile: Dockerfile
     command: worker
     environment:
-      - DATABASE_URL=postgres://ukma_data:${UKMA_DATA_DB_PASSWORD}@db-rateukma:5432/ukma_data
+      - DATABASE_URL=postgres://ukma_data:${UKMA_DATA_DB_PASSWORD}@parser-db:5432/ukma_data
       - CORPORATE_EMAIL=${CORPORATE_EMAIL}
       - CORPORATE_PASSWORD=${CORPORATE_PASSWORD}
     networks:
@@ -212,6 +234,7 @@ services:
 
 volumes:
   postgres_data:
+  parser_postgres_data:
   redis_data:
 
 

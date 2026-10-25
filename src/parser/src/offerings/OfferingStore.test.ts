@@ -141,7 +141,7 @@ const offeringRow = (sazCode: string) =>
 
 describe("OfferingStore", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
-		it.effect("gives each row a prefixed ULID and requires a level", () =>
+		it.effect("gives each row a prefixed UUIDv7 and requires a level", () =>
 			Effect.gen(function* () {
 				yield* reset;
 
@@ -150,7 +150,7 @@ describe("OfferingStore", () => {
 				yield* write([offering("900001")]);
 
 				const prefixes = (yield* ids).map((id) =>
-					id.replace(/^([a-z]{3})_[0-9A-HJKMNP-TV-Z]{26}$/u, "$1"),
+					id.replace(/^([a-z]{3})_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u, "$1"),
 				);
 
 				const nullLevel = yield* sql`

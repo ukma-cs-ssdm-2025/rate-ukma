@@ -4,7 +4,7 @@ The Postgres tables for the whole [spec](spec.md), drafted from the [САЗ edge
 
 ## Conventions
 
-- **Ids.** Every row a reader sees has `id text`: a type prefix and a ULID, for example `off_01JA2B3C4D5E6F7G8H9J0K1M2N`. Ids never change and carry no meaning (rule 1). The САЗ code, a smart.ukma id or a `cdoc` sits in its own `saz_*` or `smart_*` column as a lookup key. `runs`, `run_pages` and `page_snapshots` keep their `bigint` keys from #761; the API shows them as `run_<n>` and `snp_<n>`.
+- **Ids.** Every row a reader sees has `id text`: a type prefix and a UUIDv7 from Postgres's `uuidv7()`, for example `off_0192f3a4-7b1c-7d3e-9a2b-4c5d6e7f8a9b`. Ids never change and carry no meaning (rule 1). The САЗ code, a smart.ukma id or a `cdoc` sits in its own `saz_*` or `smart_*` column as a lookup key. `runs`, `run_pages` and `page_snapshots` keep their `bigint` keys from #761; the API shows them as `run_<n>` and `snp_<n>`.
 - **Change numbers.** Every list a reader syncs has `change_no bigint`. A write takes `pg_advisory_xact_lock` on one fixed key, then `nextval('change_no_seq')`, and holds the lock until it commits, so writes take turns and the numbers commit in order (rule 5). Each list has an index on `change_no`.
 - **Removal.** Rows that come from a source have `removed_at timestamptz` and are never deleted (rule 4). A row that comes back gets `removed_at = null` and a new change number.
 - **API names.** Columns are snake_case; the API shows them in camelCase (`removedAt`, `mergedInto`, `changeNo`).
