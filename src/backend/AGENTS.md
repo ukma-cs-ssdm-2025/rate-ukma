@@ -2,7 +2,7 @@
 
 ## API spec
 
-The OpenAPI spec at `docs/api/openapi-generated.yaml` is the source of truth for frontend API types. After changing serializers or endpoints, regenerate it with:
+The spec flow is in the root `AGENTS.md`. After changing serializers or endpoints, regenerate the spec with:
 
 ```bash
 .venv/bin/python manage.py spectacular --file ../../docs/api/openapi-generated.yaml
@@ -10,14 +10,7 @@ The OpenAPI spec at `docs/api/openapi-generated.yaml` is the source of truth for
 
 ## Feature flags
 
-Runtime toggles via [django-waffle](https://waffle.readthedocs.io/), evaluated
-per request user. Backend: a flag is exposed to the frontend only if its name is
-in `PUBLIC_FEATURE_FLAGS` (`rateukma/settings/_base.py`) — that allowlist is the
-security boundary, so never put a server-only/sensitive flag there. Check
-server-only flags with `waffle.flag_is_active(request, name)`. See
-[docs/feature-flags.md](../../docs/feature-flags.md) for adding, toggling, and
-removing flags, and [ADR-0009](../../docs/architecture/decisions/0009-feature-flags.md)
-for the rationale.
+The flag flow and the allowlist rule are in the root `AGENTS.md`. Backend flags are [django-waffle](https://waffle.readthedocs.io/) flags, evaluated per request user. A flag the webapp reads goes in `PUBLIC_FEATURE_FLAGS` (`rateukma/settings/_base.py`). Check server-only flags with `waffle.flag_is_active(request, name)`.
 
 ## Typechecking
 
