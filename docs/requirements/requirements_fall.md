@@ -10,11 +10,11 @@ A short specification of what we build this semester and how we check it. Each s
 | [Story Refinement](story_enhance.md) | How MVP stories were checked and split |
 | [Acceptance Criteria](acceptance_criteria_gherkin.md) | Full Given-When-Then scenarios and business rules |
 
-Related: [Value Proposition Canvas](../../product-discovery/results/value-proposition.md) · [Audience Analysis](../../product-discovery/results/audience-analysis.md) · [Critical Analysis](../../product-discovery/results/critical-analysis.md) · [Functional & Non-Functional Requirements](../requirements.md) · [User Stories (2025)](../user-stories.md)
+Related: [Value Proposition Canvas](../product-discovery/value-proposition.md) · [Audience Analysis](../product-discovery/audience-analysis.md) · [Critical Analysis](../product-discovery/critical-analysis.md) · [Functional & Non-Functional Requirements](requirements.md) · [User Stories (2025)](user-stories.md)
 
 ## 1. User Journey (Happy Path)
 
-**Persona:** the pre-registration planner with no one to ask. A second-year bachelor planning their third year (Profile 1 in the [audience analysis](../../product-discovery/results/audience-analysis.md)).
+**Persona:** the pre-registration planner with no one to ask. A second-year bachelor planning their third year (Profile 1 in the [audience analysis](../product-discovery/audience-analysis.md)).
 
 **Goal:** before March registration, turn 15–20 unfamiliar courses into one plan: a main pick for each slot, backups for risky courses, credits and hours that add up.
 
