@@ -18,4 +18,4 @@ This document serves as the central index and log for all significant **Architec
 * [ADR-0009](0009-feature-flags.md) - Feature Flags with django-waffle
 * [ADR-0010](0010-feed-event-table.md) - Feed Sources via a Materialised `feed_event` Table
 * [ADR-0011](0011-saz-data-service.md) - САЗ Data Through a Separate UKMA Data Service
-* [ADR-0012](0012-inp-plan-storage.md) - ІНП Plan Stored as `PlanItem` Rows in the Backend
+* [ADR-0012](0012-inp-plan-storage.md) - ІНП Plan Stored in the Backend as One Record per Planned Course
