@@ -16,12 +16,14 @@ if TYPE_CHECKING:
     from django.db.models.manager import RelatedManager
 
     from .course_offering_speciality import CourseOfferingSpeciality
+    from .course_offering_term import CourseOfferingTerm
     from .enrollment import Enrollment as EnrollmentType
 
 
 class CourseOffering(models.Model):
     enrollments: Manager[EnrollmentType]
     course_offering_specialities: RelatedManager[CourseOfferingSpeciality]
+    terms: RelatedManager[CourseOfferingTerm]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code = models.CharField(

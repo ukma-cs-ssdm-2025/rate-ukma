@@ -8,6 +8,8 @@ from .student import Student
 
 
 class Enrollment(models.Model):
+    ATTENDED_STATUSES = (EnrollmentStatus.ENROLLED, EnrollmentStatus.FORCED)
+
     student_id: uuid.UUID
     offering_id: uuid.UUID
 

@@ -21,6 +21,7 @@ from rating_app.models import (
     Faculty,
     FeedPost,
     Instructor,
+    PlannedCourse,
     PromoBanner,
     Rating,
     RatingVote,
@@ -36,6 +37,7 @@ from rating_app.models.choices import (
     ExamType,
     FeedPostAccent,
     InstructorRole,
+    PlanSlot,
     RatingVoteType,
     SemesterTerm,
 )
@@ -206,6 +208,17 @@ class EnrollmentFactory(DjangoModelFactory):
     student = factory.SubFactory(StudentFactory)
     offering = factory.SubFactory(CourseOfferingFactory)
     status = EnrollmentStatus.ENROLLED
+
+
+class PlannedCourseFactory(DjangoModelFactory):
+    class Meta:
+        model = PlannedCourse
+
+    student = factory.SubFactory(StudentFactory)
+    course = factory.SubFactory(CourseFactory)
+    study_year = 3
+    term = SemesterTerm.FALL
+    slot = PlanSlot.MAIN
 
 
 class RatingFactory(DjangoModelFactory):

@@ -4,7 +4,7 @@ from django.db.models import Prefetch, Q
 
 from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.exception.student_exceptions import StudentNotFoundError
-from rating_app.models import Course, CourseOffering, Rating, Student
+from rating_app.models import Course, CourseOffering, Enrollment, Rating, Student
 from rating_app.repositories.to_domain_mappers import StudentMapper
 
 
@@ -58,7 +58,7 @@ class StudentStatisticsRepository:
         offerings_qs = (
             CourseOffering.objects.filter(
                 Q(enrollments__student_id=student_id)
-                & (Q(enrollments__status="ENROLLED") | Q(enrollments__status="FORCED"))
+                & Q(enrollments__status__in=Enrollment.ATTENDED_STATUSES)
             )
             .select_related("course", "semester")
             .prefetch_related(student_ratings)
@@ -115,7 +115,7 @@ class StudentStatisticsRepository:
         offerings_qs = (
             CourseOffering.objects.filter(
                 Q(enrollments__student_id=student_id)
-                & (Q(enrollments__status="ENROLLED") | Q(enrollments__status="FORCED"))
+                & Q(enrollments__status__in=Enrollment.ATTENDED_STATUSES)
             )
             .select_related("course", "semester", "course__department__faculty")
             .prefetch_related(student_ratings)
