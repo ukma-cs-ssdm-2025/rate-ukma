@@ -138,7 +138,7 @@ Not allowed: a failed update changing what students see; restarting a finished u
 | TA-02 | Rate UKMA entities (courses, plans, ratings…) use UUIDs, and the API accepts only UUIDs (e.g. `course_id`). Only the external parser service uses text IDs with a type prefix plus a ULID (e.g. `off_01JA…`). Both never change and mean nothing. САЗ codes are stored in separate `saz_*` columns. |
 | TA-03 | Course, semester, credit, weekly-hour and enrolment data come only from САЗ, through the daily update. |
 | TA-04 | A course's type in each programme comes from САЗ (`compulsory` / `prof_oriented` / `elective`). |
-| TA-05 | Times are stored in UTC; a semester is written as academic year + season (`2026-27-FALL`, `SPRING`, `SUMMER`). |
+| TA-05 | Times are stored in UTC. A semester is two separate fields: the academic year (CourseTerm `academic_year`; in the API `academic_year_start`, e.g. `2026` for 2026–27) and the term, one of `FALL` / `SPRING` / `SUMMER` (CourseTerm `semester`; in the API `term`). |
 | TA-06 | Each student has one ІНП plan; the credit rules are fixed for bachelor programmes (240 / 54 / 25 / 58–62 / 24 h). |
 | TA-07 | A plan course uses the credits and hours from the latest academic year in САЗ. |
 | TA-08 | Ratings and reviews are backed up every 24 h (NFR-R-004). |
