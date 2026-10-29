@@ -1,3 +1,5 @@
+import { textOf, withoutComments } from "./html.ts";
+
 /** Each card in the result list links its course with this button; the page
  *  also links other courses outside the list, so a bare `/course/` href is not enough. */
 const COURSE_BUTTON =
@@ -11,6 +13,8 @@ const YEAR_SELECT =
 	/<select[^>]*name="filter\[academic_year\]\[\]"[^>]*>(.*?)<\/select>/su;
 
 const YEAR_OPTION = /<option value="(\d{4})"/gu;
+
+const OPTION = /<option\b[^>]*\bvalue="([^"]*)"[^>]*>(.*?)<\/option>/gsu;
 
 /** `Показані <b>3 381-3 398</b> із <b>3 398</b> записів.`; the numbers are
  *  grouped with spaces. */
@@ -110,3 +114,21 @@ export const parseAcademicYears = (html: string): ReadonlyArray<number> =>
 		YEAR_SELECT.exec(html)?.[1]?.matchAll(YEAR_OPTION) ?? [],
 		([, year]) => Number(year),
 	);
+
+/** The options of the catalog filter `filter[<name>][]`, by their text. */
+export const parseFilterOptions = (
+	html: string,
+	name: string,
+): ReadonlyMap<string, string> => {
+	const select = new RegExp(
+		`<select[^>]*name="filter\\[${name}\\]\\[\\]"[^>]*>(.*?)</select>`,
+		"su",
+	).exec(withoutComments(html))?.[1];
+
+	return new Map(
+		Array.from(select?.matchAll(OPTION) ?? [], ([, value = "", text = ""]) => [
+			textOf(text),
+			value,
+		]),
+	);
+};
