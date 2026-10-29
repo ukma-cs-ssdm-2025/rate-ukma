@@ -17,7 +17,7 @@ Scope: US-5.1, US-5.9, US-5.2, US-5.10a, US-5.10b, US-6.1, US-6.2, US-6.3, US-E.
 | Rating / Review | An existing anonymous rating (difficulty, usefulness) with optional text and the teacher(s) the reviewer says it is about (US-4.3). | id, course_id, student_id, difficulty 1–5, usefulness 1–5, text (optional), teachers (picked by the reviewer, optional) | N:1 Course; N:1 Student; N:M Teacher (picked by the reviewer) |
 | DataUpdate | One daily data import from САЗ. | id, started_at, finished_at, status, course_count, previous_course_count | 1:N CourseChange |
 | CourseChange | One change found by a data update. | id, update_id, course_id, kind (new / changed / removed), field, old_value, new_value | N:1 DataUpdate; N:1 Course |
-| AnalyticsEvent | One tracked user action. | id, name (visit / course_page_opened / review_started / rating_submitted / add_to_inp / mark_as_backup …), student_id (optional), course_id (optional), occurred_at | N:1 Student (optional); N:1 Course (optional) |
+| AnalyticsEvent | One tracked user action. | id, name (visit / course_page_opened / review_started / rating_submitted / add_to_inp / mark_as_backup …), visitor_id (always set: a random ID kept in the browser, the same before and after sign-in), student_id (optional, set once signed in), course_id (optional), occurred_at | N:1 Student (optional); N:1 Course (optional) |
 
 Not stored, calculated each time the plan opens: credits per semester and year, weekly hours, programme totals, warnings.
 Alerts to the data maintainer go through an external service and are not stored.
@@ -113,7 +113,7 @@ Not allowed: a failed update changing what students see; restarting a finished u
 | BR-17 | The maintainer gets an alert when an update fails or brings far fewer courses than last time, showing both counts. | US-E.2 |
 | BR-18 | Each update has a summary of new, changed (old and new value) and removed courses, or "no changes". | US-E.3 |
 | BR-19 | A course that disappears from САЗ is marked "gone from САЗ", not deleted, and students still see it with its ratings. | US-E.3 |
-| BR-20 | The funnel counts visits → course page opened → review started → rating submitted for a period, with the % between steps; no % when a step is 0. | US-E.5 |
+| BR-20 | The funnel counts visits → course page opened → review started → rating submitted for a period, with the % between steps; no % when a step is 0. Each step counts distinct `visitor_id`s (repeats by one visitor count once), and only visitors who also reached the previous step in that period, so every step is a subset of the one before. | US-E.5 |
 | BR-21 | Feature actions (e.g. "add to ІНП", "mark as backup") are counted per day; 0 if nobody used them. | US-E.6 |
 
 ## 4. Prohibitions
