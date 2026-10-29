@@ -22,7 +22,7 @@ The first version of the personal plan (ІНП) planner (#807, behind a feature 
 
 ## Decision
 
-We will store the ІНП in the backend as one plan per student, made of one record per planned course that refers to the course in our catalog. Each record keeps only the student's choices: the year of study, main or backup, and whether the course was added by the student or by the system. Everything derived from course data, such as credits, hours, totals and limit warnings, is calculated by the backend when the plan is read and is never stored.
+We will store the ІНП in the backend as one plan per student, made of one record per planned course that refers to the course in our catalog. Each record keeps only the student's choices: the year of study, main or backup, and whether the course was added by the student or by the system. Whether a course is locked (taken or mandatory) is checked against current САЗ data on every removal or switch to backup, not only against who added it, so a course the student added and later took also becomes locked (PR-01). Everything derived from course data, such as credits, hours, totals and limit warnings, is calculated by the backend when the plan is read and is never stored.
 
 ## Consequences
 

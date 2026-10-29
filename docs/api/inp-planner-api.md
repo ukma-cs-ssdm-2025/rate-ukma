@@ -1,6 +1,9 @@
 # ІНП Planner API
 
-Source: branch `draft/personal-plan-backend` (`PersonalPlanViewSet`). Error body: [Error Handling Contract](api-design.md#error-handling-contract).
+| | |
+|---|---|
+| Source | branch `draft/personal-plan-backend` (`PersonalPlanViewSet`) |
+| Error body | [Error Handling Contract](api-design.md#error-handling-contract) |
 
 ## Error codes
 
@@ -18,14 +21,15 @@ Source: branch `draft/personal-plan-backend` (`PersonalPlanViewSet`). Error body
 | `not_authenticated` (DRF) | 403 | No session | TA-01 |
 | `invalid` (DRF validation) | 400 | The body fails its Pydantic model; `fields` lists the bad fields | — |
 
+Mismatch: the Error Handling Contract gives 401 for missing authentication, but the configured DRF authentication returns 403 `not_authenticated`.
+
 ## Endpoints
 
 ### `GET /api/v1/students/me/plan/` — US-5.9 — `implemented`
 
-The plan by study year and semester: courses taken per САЗ, then the student's picks.
-
 | | |
 |---|---|
+| Does | The plan by study year and semester: courses taken per САЗ, then the student's picks |
 | Auth | Signed-in student (`require_student`) |
 | Request | none |
 
@@ -79,10 +83,9 @@ Mismatch: `is_mandatory` means "taken", so it is `true` for taken electives too.
 
 ### `PUT /api/v1/students/me/plan/courses/{course_id}/` — US-5.1 — `implemented`
 
-Adds the course to one semester, or moves it there. A repeat call moves it, so it is never duplicated (PR-02). Never blocked by limits (BR-14, PR-04).
-
 | | |
 |---|---|
+| Does | Adds the course to one semester, or moves it there; a repeat call moves it, so it is never duplicated (PR-02); never blocked by limits (BR-14, PR-04) |
 | Auth | Signed-in student (`require_student`) |
 
 | Param / field | In | Type | Required |
@@ -105,10 +108,9 @@ Mismatch: if the course does not run in `term`, credits come from another term o
 
 ### `DELETE /api/v1/students/me/plan/courses/{course_id}/` — US-5.10a — `implemented`
 
-Drops one of the student's own picks. Taken courses cannot be removed (PR-01).
-
 | | |
 |---|---|
+| Does | Drops one of the student's own picks; taken courses cannot be removed (PR-01) |
 | Auth | Signed-in student (`require_student`) |
 
 | Param | In | Type | Required |
@@ -121,10 +123,10 @@ Drops one of the student's own picks. Taken courses cannot be removed (PR-01).
 
 ### `GET /api/v1/students/me/plan/courses/{course_id}/` — US-5.1 — `proposed`
 
-Where one course sits in the plan, so the course page can show "Ваш курс вже додано в ІНП" (BR-03) without loading the whole plan. Shares the route and `PersonalPlanViewSet` with `PUT` / `DELETE` as a `get` → `placement` action.
-
 | | |
 |---|---|
+| Does | Where one course sits in the plan, so the course page can show "Ваш курс вже додано в ІНП" (BR-03) without loading the whole plan |
+| Implementation | Same route and `PersonalPlanViewSet` as `PUT` / `DELETE`, as a `get` → `placement` action |
 | Auth | Signed-in student (`require_student`) |
 
 | Param | In | Type | Required |
@@ -141,10 +143,10 @@ Where one course sits in the plan, so the course page can show "Ваш курс 
 
 ### `PATCH /api/v1/students/me/plan/courses/{course_id}/` — US-5.2, US-5.10b — `proposed`
 
-Switches `MAIN` ↔ `BACKUP` without resending the year and term. Backups are not counted anywhere (BR-07, PR-03). Promoting never fails on limits (PR-04). Validated by a new `PlanCourseSlotRequest` Pydantic model (ADR-0005).
-
 | | |
 |---|---|
+| Does | Switches `MAIN` ↔ `BACKUP` without resending the year and term; backups are not counted anywhere (BR-07, PR-03); promoting never fails on limits (PR-04) |
+| Implementation | New `PlanCourseSlotRequest` Pydantic model (ADR-0005) |
 | Auth | Signed-in student (`require_student`) |
 
 | Param / field | In | Type | Required |
@@ -162,10 +164,10 @@ Switches `MAIN` ↔ `BACKUP` without resending the year and term. Backups are no
 
 ### `GET /api/v1/students/me/plan/summary/` — US-6.1, US-6.2, US-6.3 — `proposed`
 
-Credit and hour checks, calculated in the backend from `MAIN` courses only (BR-07), so the rules have one source of truth (ADR-0012). Warnings only, never blocking (BR-14). A separate read leaves the implemented plan body unchanged; the webapp refetches it after `PUT`, `PATCH` and `DELETE`.
-
 | | |
 |---|---|
+| Does | Credit and hour checks from `MAIN` courses only (BR-07), calculated in the backend as the one source of truth (ADR-0012); warnings only, never blocking (BR-14) |
+| Implementation | Separate read, so the implemented plan body stays unchanged; the webapp refetches it after `PUT`, `PATCH` and `DELETE` |
 | Auth | Signed-in student (`require_student`) |
 | Request | none |
 
@@ -205,8 +207,8 @@ Credit and hour checks, calculated in the backend from `MAIN` courses only (BR-0
 | `YEAR_CREDITS_BELOW_MIN`, `YEAR_CREDITS_ABOVE_MAX` | BR-09 (58–62, summer included) |
 | `WEEKLY_HOURS_ABOVE_MAX` | BR-10 (24 h per semester) |
 | `PROF_ORIENTED_BELOW_MIN`, `FREE_CHOICE_ABOVE_MAX` | BR-11, BR-13 |
-
-The gap or excess is `credits` minus the bound, worked out by the client. `credits_left` covers BR-12.
+| Gap or excess: `credits` minus the bound, worked out by the client | BR-09 |
+| `credits_left` | BR-12 |
 
 **Errors:** `403 not_authenticated`, `403 only_student_action_allowed`.
 
