@@ -135,7 +135,7 @@ Not allowed: a failed update changing what students see; restarting a finished u
 | ID | Assumption |
 |---|---|
 | TA-01 | Sign-in uses the NaUKMA corporate email (already live, US-1.1); a session ends after 3 h without activity. |
-| TA-02 | IDs are text: a type prefix plus a ULID (e.g. `off_01JA…`); they never change and mean nothing. САЗ codes are stored in separate `saz_*` columns. |
+| TA-02 | Rate UKMA entities (courses, plans, ratings…) use UUIDs, and the API accepts only UUIDs (e.g. `course_id`). Only the external parser service uses text IDs with a type prefix plus a ULID (e.g. `off_01JA…`). Both never change and mean nothing. САЗ codes are stored in separate `saz_*` columns. |
 | TA-03 | Course, semester, credit, weekly-hour and enrolment data come only from САЗ, through the daily update. |
 | TA-04 | A course's type in each programme comes from САЗ (`compulsory` / `prof_oriented` / `elective`). |
 | TA-05 | Times are stored in UTC; a semester is written as academic year + season (`2026-27-FALL`, `SPRING`, `SUMMER`). |
