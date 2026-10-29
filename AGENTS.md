@@ -12,7 +12,7 @@ Each app has its own `AGENTS.md`. Read it before you edit in that app.
 - `src/webapp`: React SPA
 - `src/parser`: UKMA Data, collects САЗ and smart.ukma data behind its own API (Effect, TypeScript)
 
-Run it: `README.md`, Running Project.
+Run it: `docs/onboarding.md`, section 3 (sets `REDIS_HOST=redis`, which the README skips).
 
 ## Rules across apps
 
@@ -24,6 +24,6 @@ Run it: `README.md`, Running Project.
 
 ## Git and release
 
-- Commit and PR title: `<type>(#<issue>): <subject>`, checked by `semantic-commit.sh`. PRs squash-merge, so the PR title becomes the commit on main.
-- The type decides the release. A merge to main that touches `src/` with `feat`, `fix`, `refactor`, `style`, `test` or `security` cuts a version and deploys to staging, then to live automatically. `docs`, `chore` and `ci` do not.
+- Commit and PR title: `<type>(#<issue>): <subject>`. `semantic-commit.sh` checks the type and format; the issue scope is our convention. PRs squash-merge, so the PR title becomes the commit on main.
+- Every push to main that changes `src/`, `infra/` or `.github/` deploys to staging once tests and the build pass, whatever the commit type. If it also changes `src/backend`, `src/webapp`, `src/parser` or `infra/`, it cuts a version (`feat!` major, `feat` minor, any other type patch, `docs`, `chore` and `ci` included) and deploys that version to live.
 - Open a PR with its assignee set to the person responsible for it (`gh pr create --assignee @me`). Body: `.github/pull_request_template.md`. One feature per PR, one code-owner approval.
