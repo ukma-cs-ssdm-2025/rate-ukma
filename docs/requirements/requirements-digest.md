@@ -14,7 +14,7 @@ Scope: US-5.1, US-5.9, US-5.2, US-5.10a, US-5.10b, US-6.1, US-6.2, US-6.3, US-E.
 | Enrolment | A course the student has already taken, according to САЗ. | student_id, course_id, academic_year, semester | N:1 Student; N:1 Course |
 | ІНП Plan | The student's individual study plan (one per student). | id, student_id, created_at, updated_at | 1:1 Student; 1:N PlanItem |
 | PlanItem | One course in the plan, placed in one year of study. | id, plan_id, course_id, year_of_study, role (main / backup), origin (taken / mandatory / added by student) | N:1 ІНП Plan; N:1 Course; 1..N CourseTerm of that year |
-| Rating / Review | An existing anonymous rating (difficulty, usefulness) with optional text. | id, course_id, student_id, difficulty 1–5, usefulness 1–5, text (optional) | N:1 Course; N:1 Student |
+| Rating / Review | An existing anonymous rating (difficulty, usefulness) with optional text and the teacher(s) the reviewer says it is about (US-4.3). | id, course_id, student_id, difficulty 1–5, usefulness 1–5, text (optional), teachers (picked by the reviewer, optional) | N:1 Course; N:1 Student; N:M Teacher (picked by the reviewer) |
 | DataUpdate | One daily data import from САЗ. | id, started_at, finished_at, status, course_count, previous_course_count | 1:N CourseChange |
 | CourseChange | One change found by a data update. | id, update_id, course_id, kind (new / changed / removed), field, old_value, new_value | N:1 DataUpdate; N:1 Course |
 | AnalyticsEvent | One tracked user action. | id, name (visit / course_page_opened / review_started / rating_submitted / add_to_inp / mark_as_backup …), student_id (optional), course_id (optional), occurred_at | N:1 Student (optional); N:1 Course (optional) |
