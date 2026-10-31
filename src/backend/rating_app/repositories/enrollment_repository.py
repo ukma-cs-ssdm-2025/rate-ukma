@@ -4,9 +4,9 @@ from django.db.models import QuerySet
 
 from rating_app.application_schemas.enrollment import Enrollment as EnrollmentDTO
 from rating_app.application_schemas.enrollment import EnrollmentInput
+from rating_app.constants import ATTENDED_ENROLLMENT_STATUSES
 from rating_app.exception.enrollment_exceptions import EnrollmentNotFoundError
 from rating_app.models import Enrollment
-from rating_app.models.choices import EnrollmentStatus
 from rating_app.repositories.protocol import IDomainOrmRepository
 from rating_app.repositories.to_domain_mappers import EnrollmentMapper
 
@@ -105,14 +105,14 @@ class EnrollmentRepository(IDomainOrmRepository[EnrollmentDTO, Enrollment]):
         return Enrollment.objects.filter(
             student_id=student_id,
             offering_id=offering_id,
-            status__in=[EnrollmentStatus.ENROLLED, EnrollmentStatus.FORCED],
+            status__in=ATTENDED_ENROLLMENT_STATUSES,
         ).exists()
 
     def is_student_enrolled_in_course(self, student_id: str, course_id: str) -> bool:
         return Enrollment.objects.filter(
             student_id=student_id,
             offering__course_id=course_id,
-            status__in=[EnrollmentStatus.ENROLLED, EnrollmentStatus.FORCED],
+            status__in=ATTENDED_ENROLLMENT_STATUSES,
         ).exists()
 
     def _get_by_id(self, id: str) -> Enrollment:
