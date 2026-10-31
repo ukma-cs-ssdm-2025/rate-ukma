@@ -45,6 +45,7 @@ from rating_app.repositories import (
     SpecialityRepository,
     StudentRepository,
 )
+from rating_app.repositories.student_repository import normalize_first_name
 from rating_app.repositories.to_domain_mappers import StudentMapper
 from rating_app.services import StudentService
 from scraper.services.db_ingestion.progress_tracker import InjectionProgressTracker
@@ -390,7 +391,13 @@ class CourseDbInjector(IDbInjector):
             education_level = EducationLevel(student_data.education_level)
 
         key = (
-            ("email", student_data.email.lower(), "", "", "")
+            (
+                "email",
+                student_data.email.lower(),
+                normalize_first_name(student_data.first_name),
+                "",
+                "",
+            )
             if student_data.email
             else (
                 student_data.first_name,

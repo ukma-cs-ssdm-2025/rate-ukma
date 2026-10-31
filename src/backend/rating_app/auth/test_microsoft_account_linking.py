@@ -174,15 +174,15 @@ def test_oauth_does_not_relink_student_owned_by_another_user(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_oauth_handles_multiple_students_with_same_email(
+def test_oauth_links_newest_student_when_email_is_reused(
     adapter: MicrosoftSocialAccountAdapter,
     http_request: MagicMock,
     user_factory,
     student_factory,
 ):
     email = "duplicate@ukma.edu.ua"
-    student_factory(email=email, user=None)
-    student_factory(email=email, user=None)
+    student_factory(email=email, user=None, program_start_academic_year_start=2020)
+    newest = student_factory(email=email, user=None, program_start_academic_year_start=2026)
     sociallogin = _make_social_login(email)
 
     with patch(
@@ -195,7 +195,7 @@ def test_oauth_handles_multiple_students_with_same_email(
         user = adapter.save_user(http_request, sociallogin)
 
     assert user.email == email
-    assert not Student.objects.filter(user=user).exists()
+    assert Student.objects.get(user=user).id == newest.id
 
 
 def test_oauth_populate_user_sets_username_to_email(
