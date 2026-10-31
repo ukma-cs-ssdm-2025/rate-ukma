@@ -3,7 +3,7 @@ from typing import Literal, overload
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DataError
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 
 import structlog
 
@@ -22,6 +22,26 @@ User = settings.AUTH_USER_MODEL
 logger = structlog.get_logger(__name__)
 
 
+_APOSTROPHES = str.maketrans({"`": "'", "\u02bc": "'", "\u2019": "'"})
+
+
+def normalize_first_name(first_name: str) -> str:
+    return "".join(first_name.split()).casefold().translate(_APOSTROPHES)
+
+
+def account_name_matches(
+    student_first_name: str, account_first_name: str, account_last_name: str
+) -> bool:
+    """True when the account's name contains the student's first name, or carries no name.
+
+    Microsoft accounts sometimes swap first and last name, so any word of either counts.
+    """
+    account_words = {
+        normalize_first_name(word) for word in f"{account_first_name} {account_last_name}".split()
+    }
+    return not account_words or normalize_first_name(student_first_name) in account_words
+
+
 class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
     def __init__(self, mapper: StudentMapper) -> None:
         self._mapper = mapper
@@ -35,16 +55,30 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
         model = self._get_by_id(id)
         return self._map_to_domain_model(model)
 
-    def get_by_email(self, email: str) -> StudentDTO | None:
-        """Get a student by email that is not yet linked to a user."""
-        try:
-            model = self._build_base_queryset().get(email=email, user__isnull=True)
-            return self._map_to_domain_model(model)
-        except Student.DoesNotExist:
+    def get_by_email(
+        self, email: str, account_first_name: str = "", account_last_name: str = ""
+    ) -> StudentDTO | None:
+        """Get the newest student by email that is not yet linked to a user.
+
+        UKMA reuses emails across students years apart, so only students whose
+        first name the account carries qualify, and the most recent program start wins.
+        """
+        candidates = [
+            student
+            for student in self._build_base_queryset()
+            .filter(email=email, user__isnull=True)
+            .order_by(F("program_start_academic_year_start").desc(nulls_last=True), "id")
+            if account_name_matches(student.first_name, account_first_name, account_last_name)
+        ]
+        if not candidates:
             return None
-        except Student.MultipleObjectsReturned:
-            logger.warning("multiple_students_with_same_email", email=email)
-            return None
+        if len(candidates) > 1:
+            logger.warning(
+                "multiple_students_with_same_email",
+                email=email,
+                chosen_student_id=str(candidates[0].id),
+            )
+        return self._map_to_domain_model(candidates[0])
 
     @overload
     def get_or_create(
@@ -158,9 +192,14 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
 
     def _find_existing_for_upsert(self, data: StudentInput | StudentDTO) -> Student | None:
         if data.email:
-            email_matches = list(
-                self._build_base_queryset().filter(email=data.email).order_by("id")
-            )
+            # UKMA reuses an email (first-name initial + surname) for a later
+            # student; a surname change keeps the first name, so match on both.
+            first_name = normalize_first_name(data.first_name)
+            email_matches = [
+                student
+                for student in self._build_base_queryset().filter(email=data.email).order_by("id")
+                if normalize_first_name(student.first_name) == first_name
+            ]
             if email_matches:
                 linked_student = next(
                     (student for student in email_matches if student.user_id is not None),
