@@ -668,3 +668,58 @@ def test_injector_skips_offering_speciality_when_not_in_cache(injector, repo_moc
         injector.execute(models)
 
         mock_cos.update_or_create.assert_not_called()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_injector_keeps_reused_email_with_other_first_name_as_separate_students(
+    injector, repo_mocks
+):
+    first = SimpleNamespace(**{**vars(repo_mocks.student), "id": uuid4()})
+    second = SimpleNamespace(**{**vars(repo_mocks.student), "id": uuid4()})
+    repo_mocks.student_repo.get_or_upsert.side_effect = [(first, True), (second, True)]
+    models = [
+        create_mock_course(
+            offerings=[
+                create_mock_offering(
+                    enrollments=[
+                        create_mock_enrollment(
+                            first_name="Andrii", last_name="Example", email="aexample@ukma.edu.ua"
+                        ),
+                        create_mock_enrollment(
+                            first_name="Alina", last_name="Example", email="aexample@ukma.edu.ua"
+                        ),
+                    ],
+                )
+            ],
+        )
+    ]
+
+    injector.execute(models)
+
+    assert repo_mocks.student_repo.get_or_upsert.call_count == 2
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_injector_reuses_cached_student_after_surname_change(injector, repo_mocks):
+    models = [
+        create_mock_course(
+            offerings=[
+                create_mock_offering(
+                    enrollments=[
+                        create_mock_enrollment(
+                            first_name="Olena", last_name="Example", email="oexample@ukma.edu.ua"
+                        ),
+                        create_mock_enrollment(
+                            first_name=" olena ", last_name="Sample", email="OExample@ukma.edu.ua"
+                        ),
+                    ],
+                )
+            ],
+        )
+    ]
+
+    injector.execute(models)
+
+    repo_mocks.student_repo.get_or_upsert.assert_called_once()
