@@ -7,12 +7,16 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
+import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 
 export type CoursesReviewsSortOption = "by-count" | "newest";
 
 interface CoursesReviewsSortMenuProps {
 	value: CoursesReviewsSortOption | null;
 	onValueChange: (value: CoursesReviewsSortOption) => void;
+	/** Compact header to match the abbreviated score columns on phones. */
+	variant?: "desktop" | "mobile";
 }
 
 const SORT_OPTIONS: ReadonlyArray<{
@@ -26,7 +30,9 @@ const SORT_OPTIONS: ReadonlyArray<{
 export function CoursesReviewsSortMenu({
 	value,
 	onValueChange,
+	variant = "desktop",
 }: Readonly<CoursesReviewsSortMenuProps>) {
+	const isMobile = variant === "mobile";
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
@@ -34,15 +40,22 @@ export function CoursesReviewsSortMenu({
 					type="button"
 					variant="ghost"
 					size="sm"
-					className="-ml-2 inline-flex h-8 items-center gap-2 px-2 text-sm font-medium"
+					className={cn(
+						"-ml-2 inline-flex h-8 items-center gap-2 px-2 text-sm font-medium",
+						isMobile &&
+							"ml-0 h-10 gap-0.5 px-1 has-[>svg]:px-1 whitespace-nowrap text-xs text-muted-foreground [&_svg]:size-3",
+					)}
 					aria-label="Сортування за відгуками"
+					data-testid={
+						isMobile ? testIds.courses.reviewsSortButtonMobile : undefined
+					}
 				>
-					<span>Відгуки</span>
+					<span>{isMobile ? "Відг." : "Відгуки"}</span>
 					<ChevronDown className="h-4 w-4" />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
-				align="center"
+				align={isMobile ? "end" : "center"}
 				onCloseAutoFocus={(event) => event.preventDefault()}
 			>
 				{SORT_OPTIONS.map((option) => {
