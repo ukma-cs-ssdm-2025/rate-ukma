@@ -685,3 +685,66 @@ def test_place_puts_moved_course_last_in_its_slot(
         str(second.id),
         str(first.id),
     ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
+def test_get_plan_serves_repeat_read_from_cache(
+    token_client, me, offered_course, planned_course_factory, django_assert_num_queries
+):
+    planned_course_factory(student=me, offering=offered_course.offerings.first())
+    first = token_client.get(plan_url())
+
+    with django_assert_num_queries(1):  # only require_student's lookup
+        second = token_client.get(plan_url())
+
+    assert second.status_code == 200
+    assert second.json() == first.json()
+    assert [c["credits"] for c in semester(second.json(), 3, "FALL")["main"]] == ["5.0"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
+def test_place_invalidates_cached_plan(token_client, me, offered_course):
+    token_client.get(plan_url())
+
+    token_client.put(
+        course_url(offered_course.id),
+        {"study_year": 3, "semester_term": "FALL", "slot": "MAIN"},
+        format="json",
+    )
+
+    main = semester(token_client.get(plan_url()).json(), 3, "FALL")["main"]
+    assert [c["course_id"] for c in main] == [str(offered_course.id)]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
+def test_remove_invalidates_cached_plan(token_client, me, offered_course, planned_course_factory):
+    planned_course_factory(student=me, offering=offered_course.offerings.first())
+    token_client.get(plan_url())
+
+    token_client.delete(course_url(offered_course.id))
+
+    assert semester(token_client.get(plan_url()).json(), 3, "FALL")["main"] == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
+def test_get_plan_does_not_share_cache_between_students(
+    api_client, user_factory, student_factory, offered_course, planned_course_factory
+):
+    first = student_factory(user=user_factory(), program_start_academic_year_start=PROGRAM_START)
+    second = student_factory(user=user_factory(), program_start_academic_year_start=PROGRAM_START)
+    planned_course_factory(student=first, offering=offered_course.offerings.first())
+
+    api_client.force_authenticate(user=first.user)
+    api_client.get(plan_url())
+    api_client.force_authenticate(user=second.user)
+    response = api_client.get(plan_url())
+
+    assert semester(response.json(), 3, "FALL")["main"] == []

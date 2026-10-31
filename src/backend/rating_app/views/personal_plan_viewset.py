@@ -37,7 +37,7 @@ class PersonalPlanViewSet(viewsets.ViewSet):
     def retrieve(self, request, student: Student) -> Response:
         assert self.personal_plan_service is not None
 
-        plan = self.personal_plan_service.get_plan(student)
+        plan = self.personal_plan_service.get_plan(str(student.id))
         return Response(PersonalPlanSerializer(plan).data, status=status.HTTP_200_OK)
 
     @extend_schema(
