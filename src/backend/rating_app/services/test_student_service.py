@@ -121,6 +121,42 @@ class TestLinkStudentToUser:
         assert result is True
         student_repo.link_to_user.assert_called_once_with("student-id", user)
 
+    def test_returns_false_when_user_first_name_differs(self, service, user_repo, student_repo):
+        # Arrange
+        student = SimpleNamespace(
+            email="o.koval@ukma.edu.ua", user_id=None, id="older-student", first_name="Остап"
+        )
+        user = SimpleNamespace(
+            id=1, pk=1, email="o.koval@ukma.edu.ua", first_name="Олеся", student_profile=None
+        )
+        user_repo.get_by_email.return_value = user
+
+        # Act
+        result = service.link_student_to_user(student)
+
+        # Assert
+        assert result is False
+        student_repo.link_to_user.assert_not_called()
+
+    def test_links_when_user_first_name_matches_ignoring_case(
+        self, service, user_repo, student_repo
+    ):
+        # Arrange
+        student = SimpleNamespace(
+            email="o.koval@ukma.edu.ua", user_id=None, id="newer-student", first_name="Олеся"
+        )
+        user = SimpleNamespace(
+            id=1, pk=1, email="o.koval@ukma.edu.ua", first_name=" олеся", student_profile=None
+        )
+        user_repo.get_by_email.return_value = user
+
+        # Act
+        result = service.link_student_to_user(student)
+
+        # Assert
+        assert result is True
+        student_repo.link_to_user.assert_called_once_with("newer-student", user)
+
 
 class TestLinkUserToStudent:
     def test_returns_false_when_user_has_no_email(self, service):

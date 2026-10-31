@@ -8,6 +8,7 @@ from rateukma.caching.patterns import student_ratings_namespace
 from rating_app.application_schemas.semester import SemesterInput
 from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
+from rating_app.repositories.student_repository import normalize_first_name
 from rating_app.services.rating_service import RatingService
 from rating_app.services.rating_suggestions import (
     RatingSuggestion,
@@ -117,6 +118,19 @@ class StudentService:
                 user_email=user.email,
                 existing_student_id=str(existing_student.id),
                 new_student_id=str(student.id),
+            )
+            return False
+
+        # A reused email can belong to an older student; the account's own first
+        # name tells which person signed up.
+        user_first_name = getattr(user, "first_name", "")
+        if user_first_name and normalize_first_name(user_first_name) != normalize_first_name(
+            student.first_name
+        ):
+            logger.warning(
+                "user_first_name_differs_from_student",
+                user_id=user.pk,
+                student_id=str(student.id),
             )
             return False
 
