@@ -12,6 +12,7 @@ from .feed_post import FeedPost
 from .instructor import Instructor
 from .notification import Notification, NotificationCursor
 from .person import Person
+from .planned_course import PlannedCourse
 from .promo_banner import PromoBanner
 from .rating import Rating
 from .rating_vote import RatingVote
@@ -41,4 +42,5 @@ __all__ = [
     "PromoBanner",
     "FeedPost",
     "FeedEvent",
+    "PlannedCourse",
 ]
