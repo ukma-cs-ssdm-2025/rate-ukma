@@ -198,6 +198,49 @@ def test_oauth_links_newest_student_when_email_is_reused(
     assert Student.objects.get(user=user).id == newest.id
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("account_first_name", "account_last_name", "linked_first_name"),
+    [
+        ("Остап", "Коваль", "Остап"),
+        ("Коваль", "Остап", "Остап"),
+        ("Олеся", "Коваль", None),
+    ],
+)
+def test_oauth_links_student_whose_first_name_the_account_carries(
+    adapter: MicrosoftSocialAccountAdapter,
+    http_request: MagicMock,
+    user_factory,
+    student_factory,
+    account_first_name: str,
+    account_last_name: str,
+    linked_first_name: str | None,
+):
+    email = "o.koval@ukma.edu.ua"
+    student_factory(
+        email=email, user=None, first_name="Остап", program_start_academic_year_start=2019
+    )
+    student_factory(
+        email=email, user=None, first_name="Оксана", program_start_academic_year_start=2026
+    )
+    sociallogin = _make_social_login(email)
+
+    with patch(
+        "rating_app.auth.microsoft_account_adapters.DefaultSocialAccountAdapter.save_user",
+        autospec=True,
+        side_effect=lambda self, request, social_login, **kwargs: user_factory(
+            email=social_login.user.email,
+            first_name=account_first_name,
+            last_name=account_last_name,
+        ),
+    ):
+        user = adapter.save_user(http_request, sociallogin)
+
+    linked = Student.objects.filter(user=user).first()
+    assert (linked.first_name if linked else None) == linked_first_name
+
+
 def test_oauth_populate_user_sets_username_to_email(
     adapter: MicrosoftSocialAccountAdapter,
 ):

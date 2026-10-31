@@ -22,8 +22,24 @@ User = settings.AUTH_USER_MODEL
 logger = structlog.get_logger(__name__)
 
 
+_APOSTROPHES = str.maketrans({"`": "'", "\u02bc": "'", "\u2019": "'"})
+
+
 def normalize_first_name(first_name: str) -> str:
-    return "".join(first_name.split()).casefold()
+    return "".join(first_name.split()).casefold().translate(_APOSTROPHES)
+
+
+def account_name_matches(
+    student_first_name: str, account_first_name: str, account_last_name: str
+) -> bool:
+    """True when the account's name contains the student's first name, or carries no name.
+
+    Microsoft accounts sometimes swap first and last name, so any word of either counts.
+    """
+    account_words = {
+        normalize_first_name(word) for word in f"{account_first_name} {account_last_name}".split()
+    }
+    return not account_words or normalize_first_name(student_first_name) in account_words
 
 
 class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
@@ -39,17 +55,21 @@ class StudentRepository(IDomainOrmRepository[StudentDTO, Student]):
         model = self._get_by_id(id)
         return self._map_to_domain_model(model)
 
-    def get_by_email(self, email: str) -> StudentDTO | None:
+    def get_by_email(
+        self, email: str, account_first_name: str = "", account_last_name: str = ""
+    ) -> StudentDTO | None:
         """Get the newest student by email that is not yet linked to a user.
 
-        UKMA reuses emails across students years apart, so the most recent
-        program start wins.
+        UKMA reuses emails across students years apart, so only students whose
+        first name the account carries qualify, and the most recent program start wins.
         """
-        candidates = list(
-            self._build_base_queryset()
+        candidates = [
+            student
+            for student in self._build_base_queryset()
             .filter(email=email, user__isnull=True)
             .order_by(F("program_start_academic_year_start").desc(nulls_last=True), "id")
-        )
+            if account_name_matches(student.first_name, account_first_name, account_last_name)
+        ]
         if not candidates:
             return None
         if len(candidates) > 1:
