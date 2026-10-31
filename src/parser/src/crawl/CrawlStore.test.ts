@@ -16,11 +16,12 @@ const course = (code: string): QueuedPage => ({
 	path: `/course/${code}`,
 });
 
-/** Empties the crawl tables, so each test starts without runs. */
+/** Empties the crawl tables and the rows parsed from them, so each test
+ *  starts without runs. */
 const reset = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 
-	yield* sql`TRUNCATE runs, run_pages, page_snapshots RESTART IDENTITY`;
+	yield* sql`TRUNCATE runs, run_pages, page_snapshots RESTART IDENTITY CASCADE`;
 });
 
 /** Starts a run whose first page links to `next`, with the first page done. */
