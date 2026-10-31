@@ -379,6 +379,8 @@ def _place(service, plan_repo, course: PlanCourseSource) -> uuid.UUID:
     return plan_repo.place.call_args.args[2]
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 @freeze_time(TODAY)
 def test_place_course_prefers_professional_offering_over_newer_one(service, plan_repo):
     professional = _make_offering(
@@ -389,6 +391,8 @@ def test_place_course_prefers_professional_offering_over_newer_one(service, plan
     assert _place(service, plan_repo, course) == professional.id
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 @freeze_time(TODAY)
 def test_place_course_picks_newest_of_several_professional_offerings(service, plan_repo):
     kinds = {SPECIALITY_ID: CourseTypeKind.PROF_ORIENTED}
@@ -402,6 +406,8 @@ def test_place_course_picks_newest_of_several_professional_offerings(service, pl
     assert _place(service, plan_repo, course) == newest.id
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 @freeze_time(TODAY)
 def test_place_course_ignores_offerings_professional_for_another_speciality(service, plan_repo):
     newest = _make_offering(2024, SemesterTerm.FALL)
@@ -413,6 +419,8 @@ def test_place_course_ignores_offerings_professional_for_another_speciality(serv
     assert _place(service, plan_repo, course) == newest.id
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
 @freeze_time(TODAY)
 def test_place_course_picks_newest_offering_when_none_is_professional(service, plan_repo):
     newest = _make_offering(2024, SemesterTerm.FALL)

@@ -1,5 +1,6 @@
 import uuid
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.urls import reverse
 
@@ -8,6 +9,7 @@ from freezegun import freeze_time
 
 from rating_app.models import PlannedCourse
 from rating_app.models.choices import CourseTypeKind, PlanSlot, SemesterTerm
+from rating_app.repositories import PersonalPlanRepository
 
 # The 2024–2025 academic year: a student who started in 2023 is a second-year.
 TODAY = "2024-10-15"
@@ -622,6 +624,30 @@ def test_place_keeps_one_row_when_the_picked_offering_changes(
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(TODAY)
+def test_place_keeps_old_pick_when_saving_the_new_one_fails(
+    token_client, me, course_factory, make_offering, planned_course_factory
+):
+    course = course_factory()
+    stored = make_offering(course, 2023, SemesterTerm.FALL)
+    make_offering(course, 2024, SemesterTerm.FALL)
+    planned_course_factory(student=me, offering=stored)
+
+    with (
+        patch.object(PersonalPlanRepository, "place", side_effect=RuntimeError("save failed")),
+        pytest.raises(RuntimeError, match="save failed"),
+    ):
+        token_client.put(
+            course_url(course.id),
+            {"study_year": 3, "semester_term": "SPRING", "slot": "MAIN"},
+            format="json",
+        )
+
+    assert [row.offering for row in PlannedCourse.objects.filter(student=me)] == [stored]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
 def test_remove_drops_pick_of_any_offering_of_the_course(
     token_client, me, course_factory, make_offering, planned_course_factory
 ):
@@ -634,3 +660,28 @@ def test_remove_drops_pick_of_any_offering_of_the_course(
 
     assert response.status_code == 204
     assert not PlannedCourse.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_place_puts_moved_course_last_in_its_slot(
+    token_client, me, course_factory, make_offering, planned_course_factory
+):
+    first = course_factory()
+    second = course_factory()
+    with freeze_time("2024-10-01"):
+        planned_course_factory(student=me, offering=make_offering(first, 2024, SemesterTerm.FALL))
+    with freeze_time("2024-10-02"):
+        planned_course_factory(student=me, offering=make_offering(second, 2024, SemesterTerm.FALL))
+
+    with freeze_time("2024-10-03"):
+        response = token_client.put(
+            course_url(first.id),
+            {"study_year": 3, "semester_term": "FALL", "slot": "MAIN"},
+            format="json",
+        )
+
+    assert [c["course_id"] for c in semester(response.json(), 3, "FALL")["main"]] == [
+        str(second.id),
+        str(first.id),
+    ]
