@@ -2676,6 +2676,214 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/students/me/plan/:
+    get:
+      operationId: students_me_plan_retrieve
+      description: 'Study years with their semesters: courses taken per САЗ and the
+        programme''s mandatory courses in every year, the student''s picks for the
+        current and later ones.'
+      summary: The student's personal study plan.
+      tags:
+      - personal-plan
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalPlan'
+          description: OK
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+  /api/v1/students/me/plan/courses/{course_id}/:
+    put:
+      operationId: students_me_plan_courses_update
+      description: Adds the course, or moves it if it is already planned elsewhere.
+        Also promotes a backup to main and demotes a main course to backup. A course
+        that runs over several semesters goes to all of them from the chosen study
+        year, whichever term is sent.
+      summary: Put a course into a semester of the plan.
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - personal-plan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanCoursePutRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlanCoursePutRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlanCoursePutRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalPlan'
+          description: The plan after the change
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Conflict - the course is taken or mandatory
+    delete:
+      operationId: students_me_plan_courses_destroy
+      description: Removes the pick from all its semesters. Taken and mandatory courses
+        stay.
+      summary: Drop a course from the plan.
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - personal-plan
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: Removed
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Conflict - the course is taken or mandatory
   /api/v1/students/me/rating-suggestions/:
     get:
       operationId: students_me_rating_suggestions_list
@@ -3889,6 +4097,114 @@ components:
           type: boolean
       title: RatingPatchParams
       type: object
+    PersonalPlan:
+      type: object
+      properties:
+        enrollment_year_start:
+          type: integer
+          readOnly: true
+        current_year_start:
+          type: integer
+          readOnly: true
+        plan_years:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanYear'
+          readOnly: true
+    PlanCourse:
+      type: object
+      properties:
+        course_id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        type_kind:
+          allOf:
+          - $ref: '#/components/schemas/TypeKindEnum'
+          readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
+        credits:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+          readOnly: true
+        weekly_hours:
+          type: integer
+          readOnly: true
+        is_mandatory:
+          type: boolean
+          readOnly: true
+    PlanCoursePutRequest:
+      properties:
+        study_year:
+          minimum: 1
+          title: Study Year
+          type: integer
+        semester_term:
+          $ref: '#/components/schemas/SemesterTerm'
+        slot:
+          $ref: '#/components/schemas/PlanSlot'
+      required:
+      - study_year
+      - semester_term
+      - slot
+      title: PlanCoursePutRequest
+      type: object
+    PlanSemester:
+      type: object
+      properties:
+        semester_term:
+          allOf:
+          - $ref: '#/components/schemas/SemesterTermEnum'
+          readOnly: true
+        is_graduation_summer:
+          type: boolean
+          readOnly: true
+        main:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanCourse'
+          readOnly: true
+        backup:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanCourse'
+          readOnly: true
+    PlanSlot:
+      enum:
+      - MAIN
+      - BACKUP
+      title: PlanSlot
+      type: string
+    PlanYear:
+      type: object
+      properties:
+        study_year:
+          type: integer
+          readOnly: true
+        academic_year_start:
+          type: integer
+          readOnly: true
+        year_status:
+          allOf:
+          - $ref: '#/components/schemas/YearStatusEnum'
+          readOnly: true
+          description: |-
+            done: past, read-only. current: follows САЗ. planned: the student's picks.
+
+            * `done` - Done
+            * `current` - Current
+            * `planned` - Planned
+        semesters:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanSemester'
+          readOnly: true
     PracticeTypeEnum:
       enum:
       - PRACTICE
@@ -4223,6 +4539,13 @@ components:
       - previous_page
       - total
       - total_pages
+    SemesterTerm:
+      enum:
+      - FALL
+      - SPRING
+      - SUMMER
+      title: SemesterTerm
+      type: string
     SemesterTermEnum:
       enum:
       - FALL
@@ -4398,6 +4721,16 @@ components:
       description: |-
         * `DOWNVOTE` - Downvote
         * `UPVOTE` - Upvote
+    YearStatusEnum:
+      enum:
+      - done
+      - current
+      - planned
+      type: string
+      description: |-
+        * `done` - Done
+        * `current` - Current
+        * `planned` - Planned
   securitySchemes:
     cookieAuth:
       type: apiKey
