@@ -1,6 +1,8 @@
 import uuid
 from collections import defaultdict
 
+from django.db import transaction
+
 import structlog
 
 from rating_app.application_schemas.personal_plan import (
@@ -87,7 +89,14 @@ class PersonalPlanService:
         if not all(self._can_plan(timeline, year, term) for (year, term), _ in semesters):
             raise PlanSemesterUnavailableError()
 
-        self.personal_plan_repository.place(student.id, params, offering.id)
+        # A plan holds a course once, and the pick may now be another offering of it.
+        # A failed save must not lose the old pick, so both writes go together.
+        with transaction.atomic():
+            self.personal_plan_repository.remove_other_offerings(
+                student.id, params.course_id, offering.id
+            )
+            self.personal_plan_repository.place(student.id, params, offering.id)
+
         logger.info(
             "planned_course_placed",
             student_id=str(student.id),

@@ -106,11 +106,6 @@ class PersonalPlanRepository:
     def place(
         self, student_id: uuid.UUID, params: PlanCoursePutParams, offering_id: uuid.UUID
     ) -> None:
-        # A plan holds a course once, so a pick of another offering gives way to this one.
-        PlannedCourse.objects.filter(
-            student_id=student_id, offering__course_id=params.course_id
-        ).exclude(offering_id=offering_id).delete()
-
         PlannedCourse.objects.update_or_create(
             student_id=student_id,
             offering_id=offering_id,
@@ -120,6 +115,13 @@ class PersonalPlanRepository:
                 "slot": params.slot,
             },
         )
+
+    def remove_other_offerings(
+        self, student_id: uuid.UUID, course_id: uuid.UUID, offering_id: uuid.UUID
+    ) -> None:
+        PlannedCourse.objects.filter(student_id=student_id, offering__course_id=course_id).exclude(
+            offering_id=offering_id
+        ).delete()
 
     def remove(self, student_id: uuid.UUID, course_id: uuid.UUID) -> bool:
         deleted, _ = PlannedCourse.objects.filter(
