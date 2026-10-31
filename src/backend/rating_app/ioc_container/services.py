@@ -13,6 +13,7 @@ from rating_app.ioc_container.repositories import (
     instructor_repository,
     notification_cursor_repository,
     notification_repository,
+    personal_plan_repository,
     promo_banner_repository,
     rating_repository,
     rating_vote_mapper,
@@ -33,6 +34,7 @@ from rating_app.services import (
     DepartmentService,
     FacultyService,
     InstructorService,
+    PersonalPlanService,
     PromoBannerService,
     RatingFeedbackService,
     RatingService,
@@ -189,6 +191,14 @@ def student_service() -> StudentService:
         semester_service=semester_service(),
         user_repository=user_repository(),
         rating_service=rating_service(),
+    )
+
+
+@once
+def personal_plan_service() -> PersonalPlanService:
+    return PersonalPlanService(
+        personal_plan_repository=personal_plan_repository(),
+        semester_service=semester_service(),
     )
 
 
