@@ -14,6 +14,7 @@ from ..views import (
     FlagsViewSet,
     InstructorViewSet,
     NotificationViewSet,
+    PersonalPlanViewSet,
     PromoBannerViewSet,
     RatingViewSet,
     RatingVoteViewSet,
@@ -29,6 +30,7 @@ from .services import (
     feed_service,
     instructor_service,
     notification_service,
+    personal_plan_service,
     promo_banner_service,
     rating_service,
     student_service,
@@ -131,6 +133,24 @@ def course_detailed_rating_stats():
 def student_rating_suggestions():
     return StudentStatisticsViewSet.as_view(
         {"get": "get_rating_suggestions"}, student_service=student_service()
+    )
+
+
+@once
+def personal_plan_view():
+    return PersonalPlanViewSet.as_view(
+        {"get": "retrieve"},
+        student_service=student_service(),
+        personal_plan_service=personal_plan_service(),
+    )
+
+
+@once
+def personal_plan_course_view():
+    return PersonalPlanViewSet.as_view(
+        {"put": "place", "delete": "remove"},
+        student_service=student_service(),
+        personal_plan_service=personal_plan_service(),
     )
 
 
@@ -353,6 +373,16 @@ def rest_urlpatterns() -> list:
             "students/me/grades/",
             course_detailed_rating_stats(),
             name="student-courses-grades",
+        ),
+        path(
+            "students/me/plan/",
+            personal_plan_view(),
+            name="student-personal-plan",
+        ),
+        path(
+            "students/me/plan/courses/<str:course_id>/",
+            personal_plan_course_view(),
+            name="student-personal-plan-course",
         ),
         path(
             "instructors/",

@@ -13,6 +13,7 @@ from rating_app.serializers import (
     FilterOptionsSerializer,
     InstructorListResponseSerializer,
     InstructorSerializer,
+    PersonalPlanSerializer,
     PromoBannerResponseSerializer,
     RatingReadSerializer,
     RatingsWithUserListSerializer,
@@ -279,4 +280,22 @@ R_FEED = {
     200: OpenApiResponse(forced_singular_serializer(FeedPageSerializer), "OK"),
     400: OpenApiResponse(Err, "Malformed cursor", [EX_400_FEED_CURSOR]),
     401: OpenApiResponse(Err, UNAUTHORIZED, [EX_401]),
+}
+
+
+R_PERSONAL_PLAN = {
+    200: OpenApiResponse(PersonalPlanSerializer, "OK"),
+    **common_errors(include_400=False),
+}
+
+R_PERSONAL_PLAN_PLACE = {
+    200: OpenApiResponse(PersonalPlanSerializer, "The plan after the change"),
+    **common_errors(include_404=True),
+    409: OpenApiResponse(Err, "Conflict - the course is taken or mandatory"),
+}
+
+R_PERSONAL_PLAN_REMOVE = {
+    204: OpenApiResponse(description="Removed"),
+    **common_errors(include_404=True),
+    409: OpenApiResponse(Err, "Conflict - the course is taken or mandatory"),
 }
