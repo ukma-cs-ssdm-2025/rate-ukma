@@ -12,6 +12,7 @@ from .notification_repository import (
     NotificationCursorRepository,
     NotificationRepository,
 )
+from .personal_plan_repository import PersonalPlanRepository
 from .promo_banner_repository import PromoBannerRepository
 from .rating_repository import RatingRepository
 from .semester_repository import SemesterRepository
@@ -60,6 +61,7 @@ __all__ = [
     "NotificationCursorRepository",
     "NotificationGroupMapper",
     "PromoBannerRepository",
+    "PersonalPlanRepository",
     "FeedEventRepository",
     "FeedCommentMapper",
     "PromoBannerMapper",
