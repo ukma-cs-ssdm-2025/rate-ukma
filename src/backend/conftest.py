@@ -82,11 +82,13 @@ def mock_cache_manager(monkeypatch):
     from rating_app.ioc_container.services import (
         comment_cache_invalidator,
         feed_service,
+        personal_plan_service,
         rating_cache_invalidator,
         rating_vote_cache_invalidator,
     )
 
     monkeypatch.setattr(feed_service(), "cache_manager", cache)
+    monkeypatch.setattr(personal_plan_service(), "cache_manager", cache)
     monkeypatch.setattr(comment_cache_invalidator(), "cache_manager", cache)
     monkeypatch.setattr(rating_cache_invalidator(), "cache_manager", cache)
     monkeypatch.setattr(rating_vote_cache_invalidator(), "cache_manager", cache)

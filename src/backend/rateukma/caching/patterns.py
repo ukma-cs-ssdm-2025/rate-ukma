@@ -42,3 +42,7 @@ def comment_replies_namespace(comment_id: str) -> str:
 
 def student_ratings_namespace(student_id: str) -> str:
     return f"ratings:student:{student_id}"
+
+
+def student_plan_namespace(student_id: str) -> str:
+    return f"plan:student:{student_id}"

@@ -95,16 +95,32 @@ def plan_repo():
 
 
 @pytest.fixture
-def service(plan_repo):
+def student_repo():
+    return MagicMock()
+
+
+@pytest.fixture
+def service(plan_repo, student_repo):
     return PersonalPlanService(
         personal_plan_repository=plan_repo,
+        student_repository=student_repo,
         semester_service=SemesterService(semester_repository=MagicMock()),
+        cache_manager=MagicMock(),
     )
 
 
+@pytest.fixture
+def get_plan(service, student_repo):
+    def run(student: Student):
+        student_repo.get_by_id.return_value = student
+        return service.get_plan(str(student.id))
+
+    return run
+
+
 @freeze_time(TODAY)
-def test_get_plan_starts_at_current_year_when_student_has_no_history(service):
-    plan = service.get_plan(_make_student())
+def test_get_plan_starts_at_current_year_when_student_has_no_history(get_plan):
+    plan = get_plan(_make_student())
 
     assert plan.enrollment_year_start == 2024
     assert [year.year_status for year in plan.plan_years] == [
@@ -116,7 +132,7 @@ def test_get_plan_starts_at_current_year_when_student_has_no_history(service):
 
 
 @freeze_time(TODAY)
-def test_get_plan_adds_years_when_taken_courses_run_past_the_fourth(service, plan_repo):
+def test_get_plan_adds_years_when_taken_courses_run_past_the_fourth(get_plan, plan_repo):
     first = _make_offering(2019, SemesterTerm.FALL)
     last = _make_offering(2024, SemesterTerm.FALL)
     plan_repo.get_taken_courses.return_value = [
@@ -124,7 +140,7 @@ def test_get_plan_adds_years_when_taken_courses_run_past_the_fourth(service, pla
         TakenCourse(course=_make_course(last), offering=last),
     ]
 
-    plan = service.get_plan(_make_student())
+    plan = get_plan(_make_student())
 
     assert len(plan.plan_years) == 6
     assert _semester(plan, 6, SemesterTerm.SUMMER).is_graduation_summer is True
@@ -132,7 +148,7 @@ def test_get_plan_adds_years_when_taken_courses_run_past_the_fourth(service, pla
 
 
 @freeze_time(TODAY)
-def test_get_plan_merges_current_year_without_duplicating_taken_courses(service, plan_repo):
+def test_get_plan_merges_current_year_without_duplicating_taken_courses(get_plan, plan_repo):
     offering = _make_offering(
         2024, SemesterTerm.FALL, kinds={SPECIALITY_ID: CourseTypeKind.COMPULSORY}
     )
@@ -144,7 +160,7 @@ def test_get_plan_merges_current_year_without_duplicating_taken_courses(service,
         _make_pick(other, study_year=1),
     ]
 
-    plan = service.get_plan(_make_student())
+    plan = get_plan(_make_student())
 
     fall = _semester(plan, 1, SemesterTerm.FALL)
     assert [(c.course_id, c.is_mandatory, c.type_kind) for c in fall.main] == [
@@ -155,30 +171,30 @@ def test_get_plan_merges_current_year_without_duplicating_taken_courses(service,
 
 
 @freeze_time(TODAY)
-def test_get_plan_shows_only_taken_courses_in_past_years(service, plan_repo):
+def test_get_plan_shows_only_taken_courses_in_past_years(get_plan, plan_repo):
     stale = _make_course(_make_offering(2023, SemesterTerm.FALL))
     plan_repo.get_planned_courses.return_value = [_make_pick(stale, study_year=1)]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert _semester(plan, 1, SemesterTerm.FALL).main == []
 
 
 @freeze_time(TODAY)
-def test_get_plan_hides_pick_taken_in_another_semester(service, plan_repo):
+def test_get_plan_hides_pick_taken_in_another_semester(get_plan, plan_repo):
     offering = _make_offering(2024, SemesterTerm.FALL)
     course = _make_course(offering)
     plan_repo.get_taken_courses.return_value = [TakenCourse(course=course, offering=offering)]
     plan_repo.get_planned_courses.return_value = [_make_pick(course, study_year=3)]
 
-    plan = service.get_plan(_make_student())
+    plan = get_plan(_make_student())
 
     assert _semester(plan, 3, SemesterTerm.FALL).main == []
     assert [c.course_id for c in _semester(plan, 1, SemesterTerm.FALL).main] == [course.course_id]
 
 
 @freeze_time(TODAY)
-def test_get_plan_puts_multi_semester_pick_in_each_semester_with_its_credits(service, plan_repo):
+def test_get_plan_puts_multi_semester_pick_in_each_semester_with_its_credits(get_plan, plan_repo):
     offering = _make_multi_term_offering(
         (2023, SemesterTerm.FALL, "4.0"), (2024, SemesterTerm.SPRING, "2.5")
     )
@@ -186,27 +202,27 @@ def test_get_plan_puts_multi_semester_pick_in_each_semester_with_its_credits(ser
         _make_pick(_make_course(offering), term=SemesterTerm.SPRING, slot=PlanSlot.BACKUP)
     ]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert [c.credits for c in _semester(plan, 3, SemesterTerm.FALL).backup] == [Decimal("4.0")]
     assert [c.credits for c in _semester(plan, 3, SemesterTerm.SPRING).backup] == [Decimal("2.5")]
 
 
 @freeze_time(TODAY)
-def test_get_plan_carries_multi_year_pick_into_the_next_study_year(service, plan_repo):
+def test_get_plan_carries_multi_year_pick_into_the_next_study_year(get_plan, plan_repo):
     offering = _make_multi_term_offering(
         (2023, SemesterTerm.SPRING, "3.0"), (2023, SemesterTerm.FALL, "3.0")
     )
     plan_repo.get_planned_courses.return_value = [_make_pick(_make_course(offering))]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert len(_semester(plan, 3, SemesterTerm.SPRING).main) == 1
     assert len(_semester(plan, 4, SemesterTerm.FALL).main) == 1
 
 
 @freeze_time(TODAY)
-def test_get_plan_shows_taken_multi_semester_course_in_each_semester(service, plan_repo):
+def test_get_plan_shows_taken_multi_semester_course_in_each_semester(get_plan, plan_repo):
     offering = _make_multi_term_offering(
         (2023, SemesterTerm.FALL, "4.0"), (2024, SemesterTerm.SPRING, "2.5")
     )
@@ -214,7 +230,7 @@ def test_get_plan_shows_taken_multi_semester_course_in_each_semester(service, pl
         TakenCourse(course=_make_course(offering), offering=offering)
     ]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert [c.credits for c in _semester(plan, 1, SemesterTerm.FALL).main] == [Decimal("4.0")]
     assert [c.credits for c in _semester(plan, 1, SemesterTerm.SPRING).main] == [Decimal("2.5")]
@@ -236,12 +252,12 @@ def _compulsory_offering(year: int, credits: str = "3.0") -> PlanOffering:
 
 
 @freeze_time(TODAY)
-def test_get_plan_shows_mandatory_course_in_its_study_year(service, plan_repo):
+def test_get_plan_shows_mandatory_course_in_its_study_year(get_plan, plan_repo):
     offering = _compulsory_offering(2024)
     course = _make_course()
     plan_repo.get_mandatory_courses.return_value = [_make_mandatory(course, offering)]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert [
         (c.course_id, c.type_kind, c.is_mandatory)
@@ -250,18 +266,18 @@ def test_get_plan_shows_mandatory_course_in_its_study_year(service, plan_repo):
 
 
 @freeze_time(TODAY)
-def test_get_plan_shows_unfinished_mandatory_course_in_past_year(service, plan_repo):
+def test_get_plan_shows_unfinished_mandatory_course_in_past_year(get_plan, plan_repo):
     offering = _compulsory_offering(2023)
     course = _make_course()
     plan_repo.get_mandatory_courses.return_value = [_make_mandatory(course, offering, study_year=1)]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert [c.course_id for c in _semester(plan, 1, SemesterTerm.FALL).main] == [course.course_id]
 
 
 @freeze_time(TODAY)
-def test_get_plan_shows_taken_mandatory_course_once(service, plan_repo):
+def test_get_plan_shows_taken_mandatory_course_once(get_plan, plan_repo):
     taken_offering = _make_offering(2024, SemesterTerm.FALL)
     course = _make_course()
     plan_repo.get_taken_courses.return_value = [TakenCourse(course=course, offering=taken_offering)]
@@ -269,14 +285,14 @@ def test_get_plan_shows_taken_mandatory_course_once(service, plan_repo):
         _make_mandatory(course, _compulsory_offering(2024))
     ]
 
-    plan = service.get_plan(_make_student())
+    plan = get_plan(_make_student())
 
     assert _semester(plan, 3, SemesterTerm.FALL).main == []
     assert [c.course_id for c in _semester(plan, 1, SemesterTerm.FALL).main] == [course.course_id]
 
 
 @freeze_time(TODAY)
-def test_get_plan_uses_latest_curriculum_for_years_the_cohort_has_not_reached(service, plan_repo):
+def test_get_plan_uses_latest_curriculum_for_years_the_cohort_has_not_reached(get_plan, plan_repo):
     current = _make_course()
     dropped = _make_course()
     plan_repo.get_mandatory_courses.return_value = [
@@ -284,13 +300,13 @@ def test_get_plan_uses_latest_curriculum_for_years_the_cohort_has_not_reached(se
         _make_mandatory(current, _compulsory_offering(2024)),
     ]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert [c.course_id for c in _semester(plan, 3, SemesterTerm.FALL).main] == [current.course_id]
 
 
 @freeze_time(TODAY)
-def test_get_plan_uses_cohort_curriculum_for_years_already_reached(service, plan_repo):
+def test_get_plan_uses_cohort_curriculum_for_years_already_reached(get_plan, plan_repo):
     cohort = _make_course()
     newer = _make_course()
     plan_repo.get_mandatory_courses.return_value = [
@@ -298,68 +314,68 @@ def test_get_plan_uses_cohort_curriculum_for_years_already_reached(service, plan
         _make_mandatory(cohort, _compulsory_offering(2023), study_year=1),
     ]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert [c.course_id for c in _semester(plan, 1, SemesterTerm.FALL).main] == [cohort.course_id]
 
 
 @freeze_time(TODAY)
-def test_get_plan_lists_course_once_when_mandatory_in_two_offerings(service, plan_repo):
+def test_get_plan_lists_course_once_when_mandatory_in_two_offerings(get_plan, plan_repo):
     course = _make_course()
     plan_repo.get_mandatory_courses.return_value = [
         _make_mandatory(course, _compulsory_offering(2024, credits="2.0")),
         _make_mandatory(course, _make_offering(2025, SemesterTerm.SPRING, credits="5.0")),
     ]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     planned = [c for year in plan.plan_years for semester in year.semesters for c in semester.main]
     assert [c.credits for c in planned] == [Decimal("5.0")]
 
 
 @freeze_time(TODAY)
-def test_get_plan_hides_pick_of_a_mandatory_course(service, plan_repo):
+def test_get_plan_hides_pick_of_a_mandatory_course(get_plan, plan_repo):
     course = _make_course(_make_offering(2024, SemesterTerm.SPRING))
     plan_repo.get_mandatory_courses.return_value = [
         _make_mandatory(course, _compulsory_offering(2024))
     ]
     plan_repo.get_planned_courses.return_value = [_make_pick(course, term=SemesterTerm.SPRING)]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert _semester(plan, 3, SemesterTerm.SPRING).main == []
 
 
 @freeze_time(TODAY)
 def test_get_plan_starts_from_first_taken_course_when_programme_start_is_earlier(
-    service, plan_repo
+    get_plan, plan_repo
 ):
     offering = _make_offering(2023, SemesterTerm.FALL)
     plan_repo.get_taken_courses.return_value = [
         TakenCourse(course=_make_course(offering), offering=offering)
     ]
 
-    plan = service.get_plan(_make_student(program_start=2021))
+    plan = get_plan(_make_student(program_start=2021))
 
     assert plan.enrollment_year_start == 2023
     assert len(plan.plan_years) == 4
 
 
 @freeze_time(TODAY)
-def test_get_plan_starts_from_first_taken_course_when_programme_start_is_later(service, plan_repo):
+def test_get_plan_starts_from_first_taken_course_when_programme_start_is_later(get_plan, plan_repo):
     offering = _make_offering(2022, SemesterTerm.FALL)
     plan_repo.get_taken_courses.return_value = [
         TakenCourse(course=_make_course(offering), offering=offering)
     ]
 
-    plan = service.get_plan(_make_student(program_start=2023))
+    plan = get_plan(_make_student(program_start=2023))
 
     assert plan.enrollment_year_start == 2022
 
 
 @freeze_time(TODAY)
-def test_get_plan_uses_programme_start_when_student_has_no_history(service):
-    plan = service.get_plan(_make_student(program_start=2023))
+def test_get_plan_uses_programme_start_when_student_has_no_history(get_plan):
+    plan = get_plan(_make_student(program_start=2023))
 
     assert plan.enrollment_year_start == 2023
 

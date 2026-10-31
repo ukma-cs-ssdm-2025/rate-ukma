@@ -5,6 +5,9 @@ from django.db import transaction
 
 import structlog
 
+from rateukma.caching.cache_manager import ICacheManager
+from rateukma.caching.decorators import rcached
+from rateukma.caching.patterns import student_plan_namespace
 from rating_app.application_schemas.personal_plan import (
     MandatoryCourse,
     OfferingTermLoad,
@@ -30,7 +33,7 @@ from rating_app.exception.personal_plan_exceptions import (
     PlanSemesterUnavailableError,
 )
 from rating_app.models.choices import CourseTypeKind, PlanSlot, PlanYearStatus, SemesterTerm
-from rating_app.repositories import PersonalPlanRepository
+from rating_app.repositories import PersonalPlanRepository, StudentRepository
 from rating_app.services.semester_service import SemesterService
 
 logger = structlog.get_logger(__name__)
@@ -45,12 +48,20 @@ class PersonalPlanService:
     def __init__(
         self,
         personal_plan_repository: PersonalPlanRepository,
+        student_repository: StudentRepository,
         semester_service: SemesterService,
+        cache_manager: ICacheManager,
     ) -> None:
         self.personal_plan_repository = personal_plan_repository
+        self.student_repository = student_repository
         self.semester_service = semester_service
+        self.cache_manager = cache_manager
 
-    def get_plan(self, student: Student) -> PersonalPlan:
+    @rcached(ttl=3600, versioned_by=lambda self, student_id: student_plan_namespace(student_id))
+    def get_plan(self, student_id: str) -> PersonalPlan:
+        return self._build_plan(self.student_repository.get_by_id(id=student_id))
+
+    def _build_plan(self, student: Student) -> PersonalPlan:
         taken = self.personal_plan_repository.get_taken_courses(student.id)
         planned = self.personal_plan_repository.get_planned_courses(student.id)
 
@@ -97,6 +108,7 @@ class PersonalPlanService:
             )
             self.personal_plan_repository.place(student.id, params, offering.id)
 
+        self.cache_manager.bump_version(student_plan_namespace(str(student.id)))
         logger.info(
             "planned_course_placed",
             student_id=str(student.id),
@@ -106,7 +118,7 @@ class PersonalPlanService:
             term=params.semester_term,
             slot=params.slot,
         )
-        return self.get_plan(student)
+        return self._build_plan(student)
 
     def remove_course(self, student: Student, course_id: uuid.UUID) -> None:
         taken = self.personal_plan_repository.get_taken_courses(student.id)
@@ -115,6 +127,7 @@ class PersonalPlanService:
 
         if not self.personal_plan_repository.remove(student.id, course_id):
             raise PlannedCourseNotFoundError()
+        self.cache_manager.bump_version(student_plan_namespace(str(student.id)))
         logger.info("planned_course_removed", student_id=str(student.id), course_id=str(course_id))
 
     def _ensure_not_fixed(

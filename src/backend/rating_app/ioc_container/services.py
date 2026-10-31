@@ -198,7 +198,9 @@ def student_service() -> StudentService:
 def personal_plan_service() -> PersonalPlanService:
     return PersonalPlanService(
         personal_plan_repository=personal_plan_repository(),
+        student_repository=student_repository(),
         semester_service=semester_service(),
+        cache_manager=redis_cache_manager(),
     )
 
 
