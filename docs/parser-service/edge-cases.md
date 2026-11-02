@@ -8,6 +8,7 @@ Every variation found in the САЗ pages that UKMA Data stores, with a count, u
 - The course pages fall into three groups: 12,641 recommended bachelor's, 1,951 bachelor's marked "не рекомендовано" and 11,179 master's (2,128 of them not recommended). Counts below are for all three unless a case names a group. The first survey (runs 4 to 14) saw only the first group.
 - Rate UKMA's scraper (`src/backend/scraper`) and its tests, for the quirks it already handles.
 - The file Rate UKMA's importer loads (`scraper/state/courses.jsonl`, 24,255 codes, last written 2026-03-26), for the codes Rate UKMA holds. The local Rate UKMA database was empty, so the file stands in for it.
+- The manual САЗ refresh of 2026-10-31 through Rate UKMA's scraper ([runbook](../runbooks/saz-manual-refresh.md)): 24,004 offerings of 2018-19 to 2026-27, ingested into a local copy of live, then into staging and live. Cases B19, B20, C4, D14 and D15 come from it, and their counts are Rate UKMA rows, not САЗ pages.
 
 Counts are pages unless a case says entries (one student on one students page). Examples are invented: no real title, teacher, student or email appears here. The queries that produce every count are kept outside the repository with the survey notes.
 
@@ -21,8 +22,10 @@ Counts are pages unless a case says entries (one student on one students page). 
 | [B6](#b6-offering-in-several-terms) Offering in several terms | 2,395 | `offering_terms` |
 | [B18](#b18-no-faculty-and-department) No faculty and department | 266 | nullable `faculty_id`, `department_id` |
 | [C1](#c1-parallel-sections) Parallel sections | 2,055 groups, 4,707 pages | course rule |
+| [C4](#c4-a-faculty-reorganisation-rewrites-past-years) A faculty reorganisation rewrites past years | 549 Rate UKMA courses | course rule by department |
 | [D1](#d1-cdoc-is-the-students-programme-record) `cdoc` is the student's programme record | 15,821 records | `student_programmes.saz_cdoc` |
 | [D12](#d12-one-programme-name-at-two-levels) One programme name at two levels | 30 names | `programmes` unique on (name, level) |
+| [D14](#d14-one-email-two-people) One email, two people | 32 emails | student match by email and first name, [ADR-0013](../architecture/decisions/0013-student-identity.md) |
 
 ## A. Crawl and snapshots
 
@@ -270,20 +273,42 @@ GET /course/900123/students -> 500
 
 - Count: 266 master's cards have neither a `Факультет` nor a `Кафедра` row (2018-19: 140, 2019-20: 124, 2020-21: 2). No card lacks only one of them.
 - Codes: 211295, 211296, 211297, 211298, 211300.
-- Handled by: `offerings.faculty_id` and `department_id` are null. The course rule treats a missing faculty as a value of its own, so such an offering groups only with others that lack it.
+- Handled by: `offerings.faculty_id` and `department_id` are null. The course rule treats a missing department as a value of its own, so such an offering groups only with others that lack it.
+
+### B19. A new programme has no faculty
+
+- Count: 9 programmes first listed in 2026-27 had no faculty in Rate UKMA after the refresh of 2026-10-31. A card names a programme without its faculty, and Rate UKMA's scraper sets the faculty of a programme it has not seen to `""` (`SpecialtyExtractor` in `scraper/services/deduplication/extractors.py`), so all 9 landed under a faculty with an empty name.
+- Handled by: `programmes.faculty_id` is derived, not read: the faculty that owns most of the programme's compulsory offerings, not counting language and military departments. Staff can set it, and a programme with no such offering stays without a faculty until they do. On 2026-10-31 the rule gave 8 of the 9; the ninth had only 3 compulsory language courses, and the owner chose its faculty.
+
+| Programme | Faculty |
+| --- | --- |
+| Аналітика великих даних | Факультет інформатики |
+| Економічна дипломатія і GR-політики | Києво-Могилянська школа професійної та неперервної освіти |
+| Міжнародний бізнес | Факультет економічних наук |
+| Могилянські культурологічні студії | Факультет гуманітарних наук |
+| Російські студії: виклики міжнародній безпеці | Факультет міжнародних відносин і врядування |
+| Українська мова, компаративістика і психолінгвістика | Факультет гуманітарних наук |
+| Фізика ракетних та аерокосмічних систем | Факультет природничих наук |
+| Фізика та моделювання аеродинамічних систем | Факультет природничих наук |
+| Медицина | Факультет охорони здоров`я, соціальної роботи і психології (owner's choice) |
+
+### B20. Terms of an offering disappear
+
+- Count: 54 term rows of Rate UKMA offerings were gone from САЗ on 2026-10-31, mostly the spring and summer 2027 terms of 2026-27 offerings.
+- Handled by: rule 4. Every parse of a card replaces its `offering_terms` rows, so a dropped term leaves with the next parse and the offering gets a new change number. Rate UKMA re-picks its semester on sync.
 
 ## C. Course identity
 
 ### C1. Parallel sections
 
-- Count: 2,055 groups of 2 to 10 codes share title, department and year: 4,707 cards (612 groups are master's). Counted by department; the course rule (C2) uses faculty. Their students lists are often the same: 920 groups of lists, 3,162 pages, have the same content hash.
+- Count: 2,055 groups of 2 to 10 codes share title, department and year: 4,707 cards (612 groups are master's). Counted by department, as the course rule (C2) groups. Their students lists are often the same: 920 groups of lists, 3,162 pages, have the same content hash.
 - Codes: 209027, 209262, 209433, 209590, 210520 (one group).
 - Handled by: each code stays its own offering with its own enrollments. The course rule puts them in one course.
 
 ### C2. Same course across years
 
 - Count: 5,802 groups by title and department; 4,230 span two or more years and 911 span all nine. 183 title and department pairs exist at both levels.
-- Handled by: the first course rule, as in Rate UKMA's importer: title, faculty, programmes and level, so a bachelor's and a master's course with one title stay apart. The counts use title and department, a close stand-in. The САЗ code never links years (A8).
+- Handled by: the first course rule: title, department and level, so a bachelor's and a master's course with one title stay apart. Rate UKMA's importer groups by title, faculty, programmes and level, but a faculty can change for every year at once (C4), so the service groups by `department_id` and keeps the faculty as an attribute of the department. The САЗ code never links years (A8).
 
 ### C3. Titles that differ a little between years
 
@@ -294,6 +319,16 @@ GET /course/900123/students -> 500
 ```text
 Теорія умовних прикладів
 Теорія умовних прикладів (англ. мовою)
+```
+
+### C4. A faculty reorganisation rewrites past years
+
+- Count: by 2026-10-31 САЗ lists a new faculty, `Факультет міжнародних відносин і врядування`, and shows it on the offerings of two departments for every year from 2018-19, not only from 2026-27: `Кафедра міжнародних відносин` and `Кафедра "Києво-Могилянська школа врядування імені Андрія Мелешевича"`. 549 Rate UKMA courses moved to it: 352 from the law faculty and 197 from the social sciences faculty. Rate UKMA looks a department up by name and faculty, and a course by title, department and level. Without first moving the two departments to the new faculty, the ingest created both departments again and 455 duplicate courses.
+- Handled by: `departments.faculty_id` is an attribute that a parse may change; a department is found by name alone (`departments.name` is unique). The course rule groups by department (C2), so the move changes no course. A re-crawl can rewrite attributes of offerings years old, so a run that changes many old offerings is expected, not an error, and is not a removal (rule 6).
+
+```html
+<tr><th>Факультет</th><td>Факультет міжнародних відносин і врядування</td></tr>  <!-- 2018-19 card, after the change -->
+<tr><th>Кафедра</th><td>Кафедра міжнародних відносин</td></tr>
 ```
 
 ## D. Students lists
@@ -350,8 +385,8 @@ Every list is a JSON array of objects with the same 17 keys (575,305 entries).
 
 ### D7. A student's data drifts between lists
 
-- Count: 40 emails appear with two names, 238 names with two emails and 690 emails with two programmes.
-- Handled by: a student is found by email, else by `cdoc`, never by name. The latest list sets the name.
+- Count: 40 emails appear with two names, 238 names with two emails and 690 emails with two programmes. Some of the 40 are two people on one email (D14), not one person whose name changed.
+- Handled by: a programme record is found by `cdoc`; a new record joins a student by email and first name, never by email alone (D14, [ADR-0013](../architecture/decisions/0013-student-identity.md)). The latest list sets the name of a record's student.
 
 ### D8. Enrollment status
 
@@ -404,6 +439,22 @@ Every list is a JSON array of objects with the same 17 keys (575,305 entries).
 - Count: the largest list has 1,367 entries; the longest students page is 541,029 characters.
 - Codes: 362858, 314804, 362857.
 - Handled by: the API's cursor pagination of enrollments; the parser needs no rule.
+
+### D14. One email, two people
+
+- Count: in Rate UKMA's data on 2026-10-31, 32 emails belonged to more than one person: 23 with different first names, 9 where only the surname differs. 5 Rate UKMA accounts were linked to students on such emails; each belonged to the newer person and had no ratings, votes or comments.
+- Why: a UKMA email is the first-name initial and a transliteration of the surname. САЗ gives the address to a newer student after the older owner has left, years apart.
+- Handled by: a programme record (`cdoc`) is the unit; a new record joins an existing student only when the email and the first name match (case, spaces and the apostrophes `` ` ``, `ʼ`, `’` ignored). Rate UKMA's old ingest matched by email alone and merged both people into one student, with the enrollments of both and the account of one; PR #819 keeps them apart in Rate UKMA, and its sync from the service must not merge them again. When only the surname differs, the record is either one person who changed surname or a second person with the same first name: the service links it to the existing student and opens a review case. See [ADR-0013](../architecture/decisions/0013-student-identity.md).
+
+```json
+{"cdoc": 600201, "name": "Зразок Олена Петрівна", "email": "o.zrazok@ukma.edu.ua", "specName": "Економіка"}
+{"cdoc": 600877, "name": "Зразок Остап Іванович", "email": "o.zrazok@ukma.edu.ua", "specName": "Комп`ютерні науки"}
+```
+
+### D15. A student takes an offering of another level
+
+- Count: Rate UKMA's old ingest sets a student's level from the level of the course, and the last offering it processes wins. One run over all years at once gave 497 students another level than a run year by year. In the refresh of 2026-10-31, 781 students moved from bachelor's to master's, as expected when a bachelor starts a master's programme (D1).
+- Handled by: the level and programme belong to the programme record: `student_programmes.programme_id` and that programme's level, never the offering's level. A person with several records has several levels; a reader that keeps one level per person takes the record with the newest first enrollment. Until Rate UKMA syncs from the service, its manual refresh ingests each year from oldest to newest, so only newer data overwrites ([runbook](../runbooks/saz-manual-refresh.md)).
 
 ## Rate UKMA codes
 

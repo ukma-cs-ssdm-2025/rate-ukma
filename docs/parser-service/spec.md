@@ -65,10 +65,10 @@ sequenceDiagram
 - **Course page**: the САЗ page `/course/{id}`. It shows the card and loads the enrollments from the students page `/course/{id}/students`.
 - **Offering**: one САЗ course card, that is, one course in one academic year. It runs in one or more terms.
 - **Term**: one season of one academic year, written `2026-27-FALL`. Both years are in the id because САЗ and Rate UKMA count years differently.
-- **Course**: the offerings of one subject across years.
+- **Course**: the offerings of one subject across years, grouped by title, department and level. A faculty is an attribute of the department and may change for past years too.
 - **Programme**: a study programme that an offering counts for, as compulsory, professionally oriented or elective.
 - **Instructor**: the API name for a teacher from smart.ukma.
-- **Student**: a person from САЗ students pages, with email, last name, first name, patronymic and programme.
+- **Student**: a person from САЗ students pages, with email, last name, first name, patronymic and programme. An email is not a person: САЗ gives a former student's address to a newer one, so a student is matched by programme record (`cdoc`), then by email and first name ([ADR-0013](../architecture/decisions/0013-student-identity.md)).
 - **Enrollment**: one student on one offering, with a status and a group.
 - **Source part**: one slice of a source that one run crawls, for example САЗ courses of 2026-27.
 - **Run**: one crawl of one source part.
@@ -104,6 +104,7 @@ The cases below are where we start. We can add, change or drop cases as we work 
 | An offering may belong to an existing course | a new course | merge, or keep apart |
 | A teacher may teach an offering | no link | link, or keep unlinked |
 | A run would remove more offerings than the threshold allows | removals held | apply, or drop |
+| A programme record matches a student by email and first name, but not by surname | the same student | split, or keep together |
 
 ## API
 
