@@ -67,7 +67,7 @@ A department is found by name alone, so a faculty reorganisation moves the depar
 | `name` | text | as on the card or in a students list |
 | `level` | text | `bachelor`, `master`, from the catalog filter (D12) |
 | `saz_filter_id` | text null | `filter[spec][]` option value; 8 card programmes have none |
-| `faculty_id` | text null | derived: the faculty owning most of the programme's compulsory offerings, not counting language and military departments, null when no compulsory offering gives one (B19) |
+| `faculty_id` | text null | derived: the faculty owning most of the programme's compulsory offerings, not counting language and military departments, null when no compulsory offering gives one or two faculties tie (B19) |
 | `change_no`, `removed_at` | | |
 
 Unique on (`name`, `level`): 30 names exist at both levels (D12). A card names a programme without its level, so the catalog filter `Name (Бакалавр)` or `Name (Магістр)` gives it, the card's level first; a name the filter does not list keeps the level of a stored programme of that name, else takes the card's level. A students list also names a programme without its level: a programme record takes the programme of that name on the cards of its offerings.
@@ -177,7 +177,7 @@ A person (glossary: Student).
 | `last_name`, `first_name`, `patronymic` | text null | filled only when the name has three words |
 | `change_no`, `removed_at` | | removed when no enrollment of the person is left |
 
-A person is never found by email alone ([ADR-0013](../architecture/decisions/0013-student-identity.md)). A list entry finds its programme record by `cdoc`, and the record keeps its student. A new `cdoc` joins the student with the same `email` and `first_name_key`, else it starts a new student; a new `cdoc` without an email always starts a new student (D3). No unique key on (`email`, `first_name_key`): a staff split leaves two students with the same pair, and the existing `cdoc` link keeps each record with its student. When the email and first name match but the surname differs (D14), the record joins that student and a `student_match` review case asks staff whether it is a second person. When a `cdoc` shows a new email, the latest list wins and the record moves to the student that email and first name find (D1).
+A person is never found by email alone ([ADR-0013](../architecture/decisions/0013-student-identity.md)). A list entry finds its programme record by `cdoc`, and the record keeps its student. A new `cdoc` joins the student with the same `email` and `first_name_key`, else it starts a new student; a new `cdoc` without an email always starts a new student (D3). No unique key on (`email`, `first_name_key`): a staff split leaves two students with the same pair, and the existing `cdoc` link keeps each record with its student. When several students match a new `cdoc`, it joins the one with the newest first enrollment and a `student_match` review case opens. When the email and first name match but the surname differs (D14), the record joins that student and a `student_match` review case asks staff whether it is a second person. When a `cdoc` shows a new email, the record keeps its student and the student takes the new email (D1).
 
 ### `student_programmes`
 

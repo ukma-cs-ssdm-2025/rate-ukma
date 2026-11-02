@@ -75,7 +75,7 @@ sequenceDiagram
 - **Page snapshot**: an HTML page without the parts that change on every request, such as the security token, or a JSON response as it came. It keeps the page's tables and labels, so a later parser can read new fields from it.
 - **Safe answer**: the choice that is easy to undo: a new course rather than a merge, no teacher link rather than a guess, removals held rather than applied.
 - **Review case**: a question the service could not decide itself, published with its safe answer and waiting for staff. See [Review cases](#review-cases).
-- **Decision**: a staff answer, stored as its own row. It changes course groups, teacher links or held removals, or keeps the safe answer. It answers a review case, or staff start it themselves, for example a split.
+- **Decision**: a staff answer, stored as its own row. It changes course groups, teacher links, which student a programme record belongs to, or held removals, or keeps the safe answer. It answers a review case, or staff start it themselves, for example a split.
 - **Change number**: the number of the last change to a row, from one counter for the whole service.
 - **Scope**: one permission on a key.
 

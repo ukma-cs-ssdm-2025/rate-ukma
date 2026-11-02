@@ -338,7 +338,7 @@ Every list is a JSON array of objects with the same 17 keys (575,305 entries).
 ### D1. `cdoc` is the student's programme record
 
 - Count: `cdoc` never equals the course code. There are 15,821 values; each has one name and one programme. 1,375 emails have 2 to 4 values, most often a bachelor's and a later master's record (1,215 of them), and 1 value has 2 emails.
-- Handled by: `student_programmes.saz_cdoc`. A student is a person (email), a programme record is a `cdoc`. When a record shows a new email, the latest list wins: the record moves to the student with that email.
+- Handled by: `student_programmes.saz_cdoc`. A student is a person (email), a programme record is a `cdoc`. When a record shows a new email, the record keeps its student and the student takes the new email ([ADR-0013](../architecture/decisions/0013-student-identity.md)).
 
 ```json
 {"cdoc": 600123, "name": "Зразок Олена Петрівна", "email": "o.zrazok@ukma.edu.ua", "specName": "Економіка", "grade": 3}

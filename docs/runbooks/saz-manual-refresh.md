@@ -88,7 +88,8 @@ Expect changed attributes on offerings of past years: САЗ rewrites them (C4).
 ### 5. Backup and counts (host)
 
 ```bash
-ssh rate-ukma-live "sudo bash -o pipefail -c 'mkdir -p /opt/rateukma/backups && docker exec rate_ukma_postgres \
+HOST=rate-ukma-staging   # then rate-ukma-live
+ssh "$HOST" "sudo bash -o pipefail -c 'mkdir -p /opt/rateukma/backups && docker exec rate_ukma_postgres \
   pg_dump -U postgres -d rateukma -Fc | tee /opt/rateukma/backups/pre-saz-\$(date +%Y%m%d-%H%M).dump > /dev/null'"
 ```
 
