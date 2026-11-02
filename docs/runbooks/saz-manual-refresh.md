@@ -26,7 +26,7 @@ Runbook for refreshing Rate UKMA's courses, offerings, students and enrollments 
 
 ### 1. Scrape (local)
 
-Run from `src/backend`. The default files go to `scraper/state/`.
+Run from `src/backend`. The default files go to `scraper/state/`. Start each refresh with an empty `scraper/state/` (move the previous one away, except `storage_state.json`): `fetch_courses` skips codes already in its output, so an old file keeps old student lists.
 
 ```bash
 python manage.py prepare_filtered_url
@@ -35,7 +35,7 @@ python manage.py fetch_courses scraper/state/course_ids.jsonl --concurrency 16
 ```
 
 - `prepare_filtered_url` selects every filter option, both levels and both recommendation values (A1). Check that the years you need are selected.
-- `fetch_courses` resumes by default and skips codes already in its output. A run that fails with `ERR_NETWORK_CHANGED` or a timeout leaves gaps: run it again until it reports no failures.
+- `fetch_courses` resumes by default and skips codes already in its output. Use that only to retry within one refresh. A run that fails with `ERR_NETWORK_CHANGED` or a timeout leaves gaps: run it again until it reports no failures.
 - On 2026-10-31 this gave 24,004 offerings for 2018-19 to 2026-27.
 
 ### 2. Split by year and group (local)
@@ -88,8 +88,8 @@ Expect changed attributes on offerings of past years: САЗ rewrites them (C4).
 ### 5. Backup and counts (host)
 
 ```bash
-ssh rate-ukma-live "sudo mkdir -p /opt/rateukma/backups && sudo docker exec rate_ukma_postgres \
-  pg_dump -U postgres -d rateukma -Fc | sudo tee /opt/rateukma/backups/pre-saz-$(date +%Y%m%d-%H%M).dump > /dev/null"
+ssh rate-ukma-live "sudo bash -o pipefail -c 'mkdir -p /opt/rateukma/backups && docker exec rate_ukma_postgres \
+  pg_dump -U postgres -d rateukma -Fc | tee /opt/rateukma/backups/pre-saz-\$(date +%Y%m%d-%H%M).dump > /dev/null'"
 ```
 
 ```sql
@@ -125,6 +125,8 @@ The `SELECT` must list both departments before the ingest.
 
 ### 7. Delete the merged students on reused emails
 
+This is a one-time repair of data loaded before PR #819; staging and live had it on 2026-10-31. The query takes only emails that still have one student row, so a later run skips every email that #819 already split.
+
 Django's `on_delete=CASCADE` runs only in the ORM. Raw SQL deletes a student's enrollments first. The transaction aborts if any of these students has a rating or a rating vote; then stop and ask the owner. Comments belong to a user, not a student, so they are not touched. A linked account loses its student and gets the right one at its next sign-in.
 
 ```sql
@@ -132,7 +134,8 @@ BEGIN;
 CREATE TEMP TABLE reused_email (email text);
 \copy reused_email FROM 'reused_emails.txt'
 CREATE TEMP TABLE merged AS
-  SELECT s.id FROM rating_app_student s JOIN reused_email r ON r.email = lower(s.email);
+  SELECT s.id FROM rating_app_student s JOIN reused_email r ON r.email = lower(s.email)
+  WHERE (SELECT count(*) FROM rating_app_student o WHERE lower(o.email) = r.email) = 1;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM rating_app_rating r JOIN merged m ON m.id = r.student_id)
      OR EXISTS (SELECT 1 FROM rating_app_ratingvote v JOIN merged m ON m.id = v.student_id) THEN
@@ -154,7 +157,7 @@ Oldest to newest, so only newer data overwrites a student's level and programme:
 ```bash
 for y in 2018 2019 2020 2021 2022 2023 2024 2025 2026; do
   docker exec rate_ukma_django_backend_release \
-    python manage.py insert_scraped --file "/tmp/saz-refresh/$y.grouped.jsonl" || break
+    python manage.py insert_scraped --file "/tmp/saz-refresh/$y.grouped.jsonl" || exit $?
 done
 ```
 
@@ -216,7 +219,7 @@ SELECT s.name FROM rating_app_speciality s JOIN rating_app_faculty f ON f.id = s
 WHERE f.name = '';
 ```
 
-Then delete the uploaded files from both containers and the host folder.
+Then delete the uploaded files from both containers and the host folder, and the local files with student data: `scraper/state/` (except `storage_state.json`), `reused_emails.txt`, the snapshots and the live dump of step 4.
 
 ## Result of 2026-10-31
 

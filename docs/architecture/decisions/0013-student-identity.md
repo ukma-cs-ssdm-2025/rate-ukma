@@ -25,8 +25,8 @@ The UKMA Data [schema](../../parser-service/schema.md) made `students.email` uni
 We will treat a programme record (`cdoc`) as the unit and never find a person by email alone.
 
 1. A list entry finds its programme record by `cdoc`; the record keeps the student it has.
-2. A new record joins the student with the same email and normalised first name (lower case, no spaces, `` ` ``, `ʼ` and `’` as `'`), else the student of a record with no email, else starts a new student. `students` is unique on (`email`, `first_name_key`), not on `email`.
-3. When the email and first name match but the surname differs, the record joins that student, the safe answer for a surname change, and a `student_match` review case lets staff split it into a second person.
+2. A new record joins the student with the same email and normalised first name (lower case, no spaces, `` ` ``, `ʼ` and `’` as `'`), else it starts a new student. A new record without an email always starts a new student, because nothing identifies its person (D3). `students` has no unique key on email or first name: the rule picks a student, and a split (3) can leave two students with the same pair.
+3. When the email and first name match but the surname differs, the record joins that student, the safe answer for a surname change, and a `student_match` review case lets staff split it into a second person. A split moves the record to a new student, and rule 1 keeps it there on later runs.
 4. Rate UKMA's sync maps service students to its own students by service id and must keep the split of PR #819: it never merges two service students because they share an email.
 
 ## Consequences

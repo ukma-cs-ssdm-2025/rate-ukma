@@ -454,7 +454,7 @@ Every list is a JSON array of objects with the same 17 keys (575,305 entries).
 ### D15. A student takes an offering of another level
 
 - Count: Rate UKMA's old ingest sets a student's level from the level of the course, and the last offering it processes wins. One run over all years at once gave 497 students another level than a run year by year. In the refresh of 2026-10-31, 781 students moved from bachelor's to master's, as expected when a bachelor starts a master's programme (D1).
-- Handled by: the level and programme belong to the programme record: `student_programmes.programme_id` and that programme's level, never the offering's level. A person with several records has several levels; a reader that keeps one level per person takes the record with the newest first enrollment. Until Rate UKMA syncs from the service, its manual refresh ingests each year from oldest to newest, so only newer data overwrites ([runbook](../runbooks/saz-manual-refresh.md)).
+- Handled by: the level and programme belong to the programme record: `student_programmes.programme_id` and that programme's level, never the offering's level. A record whose programme stays unlinked (D12, 43 records) takes the level most of its offerings have. A person with several records has several levels; a reader that keeps one level per person takes the record with the newest first enrollment. Until Rate UKMA syncs from the service, its manual refresh ingests each year from oldest to newest, so only newer data overwrites ([runbook](../runbooks/saz-manual-refresh.md)).
 
 ## Rate UKMA codes
 
