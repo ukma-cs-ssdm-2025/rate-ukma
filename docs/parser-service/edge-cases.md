@@ -278,7 +278,7 @@ GET /course/900123/students -> 500
 ### B19. A new programme has no faculty
 
 - Count: 9 programmes first listed in 2026-27 had no faculty in Rate UKMA after the refresh of 2026-10-31. A card names a programme without its faculty, and Rate UKMA's scraper sets the faculty of a programme it has not seen to `""` (`SpecialtyExtractor` in `scraper/services/deduplication/extractors.py`), so all 9 landed under a faculty with an empty name.
-- Handled by: `programmes.faculty_id` is derived, not read: the faculty that owns most of the programme's compulsory offerings, not counting language and military departments. Staff can set it, and a programme with no such offering stays without a faculty until they do. On 2026-10-31 the rule gave 8 of the 9; the ninth had only 3 compulsory language courses, and the owner chose its faculty.
+- Handled by: `programmes.faculty_id` is derived, not read: the faculty that owns most of the programme's compulsory offerings, not counting language and military departments. A programme with no such offering stays without a faculty. On 2026-10-31 the rule gave 8 of the 9; the ninth had only 3 compulsory language courses, and the owner chose its faculty in Rate UKMA.
 
 | Programme | Faculty |
 | --- | --- |
@@ -385,7 +385,7 @@ Every list is a JSON array of objects with the same 17 keys (575,305 entries).
 
 ### D7. A student's data drifts between lists
 
-- Count: 40 emails appear with two names, 238 names with two emails and 690 emails with two programmes. Some of the 40 are two people on one email (D14), not one person whose name changed.
+- Count: 40 emails appear with two names, 238 names with two emails and 690 emails with two programmes. Some of the 40 can be two people on one email (D14), not one person whose name changed.
 - Handled by: a programme record is found by `cdoc`; a new record joins a student by email and first name, never by email alone (D14, [ADR-0013](../architecture/decisions/0013-student-identity.md)). The latest list sets the name of a record's student.
 
 ### D8. Enrollment status

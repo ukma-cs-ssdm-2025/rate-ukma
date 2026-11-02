@@ -33,9 +33,9 @@ We will treat a programme record (`cdoc`) as the unit and never find a person by
 
 * ✅ Two people on one email stay apart in the service and in Rate UKMA, with their own enrollments and accounts.
 * ✅ A surname change keeps one person.
-* ⚠️ Two people with one email and one first name merge until staff split them; the review case makes them visible.
+* ⚠️ Two people with one email and one first name merge until staff split them; the review case shows them only when the surnames differ.
 * ⚠️ A new review case kind and two decision kinds (`split_student`, `keep_student`) for the staff section.
-* ❌ A typo in a first name splits one person into two; staff can merge them only through a decision.
+* ❌ A typo in a first name splits one person into two, and no decision kind merges two students yet.
 
 ## Considered Alternatives
 
