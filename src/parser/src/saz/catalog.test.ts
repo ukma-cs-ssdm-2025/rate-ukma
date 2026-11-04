@@ -5,6 +5,7 @@ import {
 	parseAcademicYears,
 	parseCatalogPage,
 	parseCatalogPath,
+	parseFilterOptions,
 } from "./catalog.ts";
 
 const card = (code: string) => `<div class="panel panel-default">
@@ -148,5 +149,30 @@ describe("parseAcademicYears", () => {
 </form>`;
 
 		assert.deepStrictEqual(parseAcademicYears(filters), [2031, 2032]);
+	});
+});
+
+describe("parseFilterOptions", () => {
+	it("maps each option text of one filter to its value, skipping commented options", () => {
+		const filters = `<form>
+<select name="filter[faculty][]" multiple>
+<option value="901">Факультет вигаданих наук</option>
+<option value="902">Факультет уявних мистецтв</option>
+</select>
+<select name="filter[spec][]" multiple>
+<option selected value="5001">Вигадана інженерія (Бакалавр)</option>
+<!-- <option value="5009">Вигадана інженерія (Бакалавр)</option> -->
+<option value="5002">Комп&#039;ютерні вигадки (Магістр)</option>
+</select>
+</form>`;
+
+		assert.deepStrictEqual(
+			parseFilterOptions(filters, "spec"),
+			new Map([
+				["Вигадана інженерія (Бакалавр)", "5001"],
+				["Комп'ютерні вигадки (Магістр)", "5002"],
+			]),
+		);
+		assert.strictEqual(parseFilterOptions(filters, "subfaculty").size, 0);
 	});
 });
