@@ -185,6 +185,7 @@ A following `diff` run should print no changes.
 
 - **Two instances**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`: a primary and a streaming standby. Backups come with #772.
 - **Failover:** when the primary pod fails, CNPG promotes the standby and moves the `parser-db-rw` Service to it, then recreates the old pod as the new standby. Both run on the one node, so a node failure still takes the database down. Replication is asynchronous, so a failover can lose the last commits not yet streamed.
+- **WAL cap:** while the standby is down, its replication slot keeps WAL on the primary, up to `max_slot_wal_keep_size` (2GB), so it can't fill the node's disk. A standby further behind than that loses its slot and has to be recreated.
 - **Credentials:** CNPG generates them and stores them in the `parser-db-app` Secret. Its `uri` key is the service's `DATABASE_URL`, so no DB password passes through GitHub or Terraform.
 - **Storage:** k3s `local-path`, a directory on the node under `/var/lib/rancher/k3s/storage`. Recreating the VM deletes the data.
 

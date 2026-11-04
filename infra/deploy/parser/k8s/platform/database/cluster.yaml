@@ -37,3 +37,6 @@ spec:
   postgresql:
     parameters:
       shared_buffers: 128MB
+      # The standby's replication slot keeps WAL on the primary while the standby is down.
+      # local-path enforces no size, so without a cap that WAL could fill the node's disk.
+      max_slot_wal_keep_size: 2GB
