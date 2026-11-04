@@ -146,6 +146,15 @@ jobs:
           bash scripts/ci/parser-platform-pull-secret.sh \
             | kubectl apply --server-side --field-manager=parser-platform -f -
 
+      # The worker signs in to САЗ with this account.
+      - name: Apply САЗ secret
+        env:
+          SAZ_EMAIL: ${{ secrets.PARSER_CORPORATE_EMAIL }}
+          SAZ_PASSWORD: ${{ secrets.PARSER_CORPORATE_PASSWORD }}
+        run: |
+          bash scripts/ci/parser-platform-saz-secret.sh \
+            | kubectl apply --server-side --field-manager=parser-platform -f -
+
       - name: Apply database
         run: bash scripts/ci/parser-platform-apply-database.sh
 

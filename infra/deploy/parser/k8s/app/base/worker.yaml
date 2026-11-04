@@ -38,6 +38,17 @@ spec:
                 secretKeyRef:
                   name: parser-db-app
                   key: uri
+            # Created by the Parser Platform workflow; the worker won't start without it.
+            - name: CORPORATE_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: parser-saz
+                  key: email
+            - name: CORPORATE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: parser-saz
+                  key: password
           resources:
             requests:
               cpu: 50m

@@ -205,6 +205,8 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
 | `parser-migrate` Job | `migrate` | runs before each rollout |
 
 - **Database:** all three read `DATABASE_URL` from the `uri` key of the `parser-db-app` Secret.
+- **САЗ account:** the worker reads `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` from the `parser-saz` Secret. Without the Secret its pod stays in `CreateContainerConfigError` and the rollout fails.
+- **Crawling:** the worker crawls when it starts: it resumes unfinished runs, or else starts a new crawl of every academic year, about 15 hours at the default request gap. `kubectl apply` restarts it only when its pod template changes, so a deploy with the same image tag doesn't start a crawl.
 - **Security:** pods run as uid 1000 with a read-only root filesystem; `/tmp` is the only writable path. They meet Pod Security `restricted` and get no service account token.
 - **Image tag:** the base sets only the image name; the deploy sets the tag.
 - **Order:** apply the Job alone first (`-l app.kubernetes.io/component=migrate`) and wait for it, then the rest (`-l 'app.kubernetes.io/component!=migrate'`). A Job can't be updated, so delete the previous `parser-migrate` before applying a new one.
@@ -221,13 +223,16 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
      GHCR_PULL_USER=<user> GHCR_PULL_TOKEN=<token> bash scripts/ci/parser-platform-pull-secret.sh \
        | kubectl apply --server-side --field-manager=parser-platform -f -
      ```
-2. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
+2. **САЗ account.** There is no service account yet, so the worker signs in with a team member's own account. **The first deploy starts a crawl with it.**
+   - Add the account to `Parser Staging` as `PARSER_CORPORATE_EMAIL` and `PARSER_CORPORATE_PASSWORD`. **Parser Platform** creates the `parser-saz` Secret from them on apply.
+   - To change the account, update both GitHub secrets and run Parser Platform `apply`, then `kubectl -n parser rollout restart deployment/parser-worker`, since a running worker keeps the old values. A failed sign-in isn't retried until the worker restarts, and each try sends the password, so check the account before restarting.
+3. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
 
 ### Check
 
 ```bash
 curl -sI https://data.staging.rateukma.com/health          # HTTP/2 200, trusted certificate
-sudo k3s kubectl -n parser logs deploy/parser-worker        # "Worker connected to Postgres"
+sudo k3s kubectl -n parser logs deploy/parser-worker        # "Worker connected to Postgres", then "Signed in to САЗ"
 sudo k3s kubectl -n parser get certificate parser-api-tls   # READY True
 ```
 
