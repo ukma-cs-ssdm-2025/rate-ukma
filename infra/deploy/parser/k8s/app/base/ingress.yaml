@@ -8,6 +8,9 @@ metadata:
     app.kubernetes.io/component: api
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    # HTTPS only, so a client on http:// can't send its API key in the clear. cert-manager's
+    # HTTP-01 solver has its own Ingress, so the challenge still answers on port 80.
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
   ingressClassName: traefik
   tls:
