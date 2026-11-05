@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 170" width="1000" height="170" role="img" aria-label="A successful migration starts the rollout, a failed one stops the deploy">
+<style>
+text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:20px;fill:#111318}
+.mu{fill:#5c6470;font-size:17px}.c{text-anchor:middle}.ac{fill:#0074a3;font-weight:650}.wh{fill:#fff}
+.bd{fill:#fff;stroke:#c9ced4;stroke-width:1.5}.bd.ac{fill:#fff;stroke:#0074a3;stroke-width:2}.bd.now{fill:#0074a3;stroke:#0074a3}
+.bd.new{fill:#fff;stroke:#9aa3ad;stroke-width:1.5;stroke-dasharray:6 5}.bd.soft{fill:#f3f7fa;stroke:none}
+.ln{stroke:#9aa3ad;stroke-width:1.5;fill:none}.ln.ac{stroke:#0074a3;stroke-width:2}.ln.dash{stroke-dasharray:5 5}
+.hd{fill:#9aa3ad}.hd.ac{fill:#0074a3}
+</style>
+<defs><marker id="m9" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="hd ac"/></marker></defs>
+<rect class="bd now" x="0" y="35" width="280" height="100" rx="12"/>
+<text class="c wh" x="140" y="76">parser-migrate</text>
+<text class="c wh" x="140" y="106" style="font-size:17px">before every rollout</text>
+<path class="ln ac" d="M280 70 H420 V40 H496" marker-end="url(#m9)"/>
+<path class="ln ac" d="M280 100 H420 V130 H496" marker-end="url(#m9)"/>
+<text class="mu" x="300" y="56">success</text>
+<text class="mu" x="300" y="128">failure</text>
+<rect class="bd ac" x="500" y="0" width="500" height="76" rx="12"/>
+<text x="524" y="46">Update api and worker</text>
+<rect class="bd" x="500" y="94" width="500" height="76" rx="12"/>
+<text x="524" y="140">Deploy stopped, old pods keep running</text>
+</svg>
