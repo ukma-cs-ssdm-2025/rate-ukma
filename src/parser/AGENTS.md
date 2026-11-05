@@ -1,5 +1,7 @@
 # UKMA Data conventions
 
+Start with the one-page [overview](../../docs/parser-service/overview.md).
+
 UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serves it over a keyed HTTP API; Rate UKMA is its first reader. Read [spec.md](../../docs/parser-service/spec.md) for scope and [deployment-infrastructure.md](../../docs/parser-service/deployment-infrastructure.md) for how it runs.
 
 ## Run

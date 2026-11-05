@@ -2,6 +2,8 @@
 
 UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serves it over an HTTP API with keys. Rate UKMA is its first reader.
 
+For a one-page summary, read the [overview](overview.md).
+
 ## Motivation
 
 - Rate UKMA already parses course cards, terms, enrollments and course history since 2018, but a developer runs that scraper by hand for 2 to 3 hours. The last enrollment import was on 2026-07-05.
