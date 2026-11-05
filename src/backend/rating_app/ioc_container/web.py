@@ -18,6 +18,7 @@ from ..views import (
     RatingViewSet,
     RatingVoteViewSet,
     StudentStatisticsViewSet,
+    UkmaDataViewSet,
 )
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
 from ..views.course_page_view import CoursePageView
@@ -32,6 +33,7 @@ from .services import (
     promo_banner_service,
     rating_service,
     student_service,
+    ukma_data_service,
     vote_service,
 )
 
@@ -267,6 +269,62 @@ def promo_banner_list_view():
 
 
 @once
+def ukma_data_status_view():
+    return UkmaDataViewSet.as_view(
+        {"get": "get_status"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
+def ukma_data_terms_view():
+    return UkmaDataViewSet.as_view(
+        {"get": "terms"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
+def ukma_data_faculties_view():
+    return UkmaDataViewSet.as_view(
+        {"get": "faculties"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
+def ukma_data_departments_view():
+    return UkmaDataViewSet.as_view(
+        {"get": "departments"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
+def ukma_data_programmes_view():
+    return UkmaDataViewSet.as_view(
+        {"get": "programmes"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
+def ukma_data_offerings_view():
+    return UkmaDataViewSet.as_view(
+        {"get": "offerings"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
+def ukma_data_review_cases_view():
+    return UkmaDataViewSet.as_view(
+        {"get": "review_cases"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -423,6 +481,41 @@ def rest_urlpatterns() -> list:
             "feed/",
             feed_list_view(),
             name="feed-list",
+        ),
+        path(
+            "ukma-data/status/",
+            ukma_data_status_view(),
+            name="ukma-data-status",
+        ),
+        path(
+            "ukma-data/terms/",
+            ukma_data_terms_view(),
+            name="ukma-data-terms",
+        ),
+        path(
+            "ukma-data/faculties/",
+            ukma_data_faculties_view(),
+            name="ukma-data-faculties",
+        ),
+        path(
+            "ukma-data/departments/",
+            ukma_data_departments_view(),
+            name="ukma-data-departments",
+        ),
+        path(
+            "ukma-data/programmes/",
+            ukma_data_programmes_view(),
+            name="ukma-data-programmes",
+        ),
+        path(
+            "ukma-data/offerings/",
+            ukma_data_offerings_view(),
+            name="ukma-data-offerings",
+        ),
+        path(
+            "ukma-data/review-cases/",
+            ukma_data_review_cases_view(),
+            name="ukma-data-review-cases",
         ),
     ]
 

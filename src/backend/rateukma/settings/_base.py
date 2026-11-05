@@ -245,7 +245,8 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": "/api/v1/",
     "COMPONENT_NO_READ_ONLY_REQUIRED": True,
     "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
-    "ENUM_NAME_OVERRIDES": {},
+    # UKMA Data rows have their own `status` fields; keep the course one's name
+    "ENUM_NAME_OVERRIDES": {"StatusEnum": "rating_app.models.choices.CourseStatus"},
 }
 
 
@@ -313,6 +314,12 @@ CORPORATE_PASSWORD = config("CORPORATE_PASSWORD", default="")
 
 # Base URL for parsing
 PARSE_BASE_URL = "https://my.ukma.edu.ua"
+
+# UKMA Data read API, proxied to superusers under /api/v1/ukma-data/.
+# Empty URL or key means "not configured": those endpoints answer 503.
+UKMA_DATA_URL = config("UKMA_DATA_URL", default="")
+UKMA_DATA_API_KEY = config("UKMA_DATA_API_KEY", default="")
+UKMA_DATA_TIMEOUT_SECONDS = config("UKMA_DATA_TIMEOUT_SECONDS", default=10, cast=float)
 
 # Feature flags (django-waffle)
 # Only flags listed here are exposed via GET /api/v1/flags/. A flag is public
