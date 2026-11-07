@@ -12,7 +12,6 @@ labels:
       app.kubernetes.io/part-of: monitoring
 
 resources:
-  - namespace.yaml
   - rbac.yaml
   - alloy.yaml
 
