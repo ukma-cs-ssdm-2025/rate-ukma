@@ -42,10 +42,8 @@ class PersonalPlanViewSet(viewsets.ViewSet):
 
     @extend_schema(
         summary="Put a course into a semester of the plan.",
-        description="Adds the course, or moves it if it is already planned elsewhere. "
-        "Also promotes a backup to main and demotes a main course to backup. "
-        "A course that runs over several semesters goes to all of them from the chosen "
-        "study year, whichever term is sent.",
+        description="Adds, moves or switches the course between main and backup. "
+        "A multi-semester course goes to all its semesters in the chosen year.",
         request=PlanCoursePutRequest,
         responses=R_PERSONAL_PLAN_PLACE,
     )
