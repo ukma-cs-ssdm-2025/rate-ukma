@@ -1,0 +1,172 @@
+---
+name: Parser Platform
+
+on:
+  pull_request:
+    paths:
+      - infra/deploy/parser/k8s/platform/**
+      - .github/actions/k8s-tunnel/**
+      - .github/workflows/parser-platform.yml
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Parser environment to update"
+        required: true
+        type: choice
+        options:
+          - staging
+      action:
+        description: "diff shows the changes - apply applies them"
+        required: true
+        type: choice
+        default: diff
+        options:
+          - diff
+          - apply
+
+permissions:
+  contents: read
+
+# One dispatch run per environment at a time, so nothing changes the cluster between diff and apply.
+# Pull requests get their own group, so rendering is never queued behind an approval.
+concurrency:
+  group: parser-platform-${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Keep within one minor version of the cluster (k3s v1.36 on staging).
+  KUBECTL_VERSION: v1.36.5
+  PLATFORM_ROOT: infra/deploy/parser/k8s/platform
+  # Applied in this order: each one needs what the previous one installs.
+  PLATFORM_DIRS: operators config database
+
+jobs:
+  render:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Render kustomizations
+        run: |
+          for dir in $PLATFORM_DIRS; do
+            kubectl kustomize "$PLATFORM_ROOT/$dir" > /dev/null
+            echo "$dir renders"
+          done
+
+  diff:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    # No reviewer here: the diff runs first, and the apply job's environment asks for approval.
+    # Its PARSER_KUBECONFIG is the admin one, so a dispatch from an allowed branch is cluster-admin without
+    # approval. Accepted on staging: keep the environment's branch policy to main and the branch in review.
+    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Plan
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - uses: ./.github/actions/k8s-tunnel
+        with:
+          host: ${{ secrets.PARSER_SSH_HOST }}
+          ssh_key: ${{ secrets.PARSER_SSH_KEY }}
+          known_hosts: ${{ secrets.PARSER_SSH_KNOWN_HOSTS }}
+          kubeconfig: ${{ secrets.PARSER_KUBECONFIG }}
+
+      - name: Diff
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: bash scripts/ci/parser-platform-diff.sh
+
+  apply:
+    needs: diff
+    # Runs even with no changes, so the readiness checks repeat after an apply that failed on a wait.
+    if: inputs.action == 'apply'
+    runs-on: ubuntu-24.04
+    # Cluster-admin with a required reviewer: approve after reading the diff in the run summary.
+    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
+    steps:
+      # Same run, the same commit and manifests as the diff.
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - uses: ./.github/actions/k8s-tunnel
+        with:
+          host: ${{ secrets.PARSER_SSH_HOST }}
+          ssh_key: ${{ secrets.PARSER_SSH_KEY }}
+          known_hosts: ${{ secrets.PARSER_SSH_KNOWN_HOSTS }}
+          kubeconfig: ${{ secrets.PARSER_KUBECONFIG }}
+
+      - name: Apply operators
+        run: |
+          # Server-side apply: the CNPG CRDs are too large for the client-side last-applied annotation.
+          kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/operators"
+
+          # Wait for each rollout, not Available: during an upgrade the old pods keep Available=True.
+          for ns in cert-manager cnpg-system; do
+            # Assigned first, so a kubectl error fails the step instead of skipping the loop.
+            deployments=$(kubectl -n "$ns" get deployment -o name)
+            [ -n "$deployments" ] || { echo "::error::no Deployments in $ns"; exit 1; }
+            for deployment in $deployments; do
+              kubectl -n "$ns" rollout status "$deployment" --timeout=5m
+            done
+          done
+
+      - name: Apply config
+        run: |
+          # The cert-manager webhook can reject requests for a few seconds after its rollout finishes.
+          for attempt in 1 2 3 4 5; do
+            kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/config" && break
+            [ "$attempt" -eq 5 ] && exit 1
+            sleep 10
+          done
+          kubectl wait --for=condition=Ready clusterissuer --all --timeout=3m
+
+      # The parser image is private: the app pods pull it with this Secret.
+      - name: Apply pull secret
+        env:
+          GHCR_PULL_USER: ${{ secrets.PARSER_GHCR_PULL_USER }}
+          GHCR_PULL_TOKEN: ${{ secrets.PARSER_GHCR_PULL_TOKEN }}
+        run: |
+          bash scripts/ci/parser-platform-pull-secret.sh \
+            | kubectl apply --server-side --field-manager=parser-platform -f -
+
+      # The worker signs in to САЗ with this account.
+      - name: Apply САЗ secret
+        env:
+          SAZ_EMAIL: ${{ secrets.PARSER_CORPORATE_EMAIL }}
+          SAZ_PASSWORD: ${{ secrets.PARSER_CORPORATE_PASSWORD }}
+        run: |
+          bash scripts/ci/parser-platform-saz-secret.sh \
+            | kubectl apply --server-side --field-manager=parser-platform -f -
+
+      - name: Apply database
+        run: bash scripts/ci/parser-platform-apply-database.sh
+
+      - name: Status
+        if: always()
+        run: |
+          {
+            echo "### Platform (${{ inputs.environment }})"
+            echo '```'
+            kubectl get pods -n cert-manager
+            kubectl get pods -n cnpg-system
+            kubectl get clusterissuers
+            kubectl -n parser get cluster,pods,pvc
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
