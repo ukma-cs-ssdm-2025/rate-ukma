@@ -168,12 +168,26 @@ jobs:
           GRAFANA_LOKI_URL: ${{ secrets.GRAFANA_LOKI_URL }}
           GRAFANA_LOKI_USER: ${{ secrets.GRAFANA_LOKI_USER }}
         run: |
+          before=$(kubectl -n monitoring get secret grafana-cloud --ignore-not-found -o jsonpath='{.metadata.resourceVersion}')
+
           bash scripts/ci/parser-platform-grafana-secret.sh \
             | kubectl apply --server-side --field-manager=parser-platform -f -
+
+          after=$(kubectl -n monitoring get secret grafana-cloud -o jsonpath='{.metadata.resourceVersion}')
+
+          # Alloy reads the Secret only at start, so a rotated token needs a restart (in the next step).
+          if [ -n "$before" ] && [ "$before" != "$after" ]; then
+            echo "GRAFANA_SECRET_CHANGED=true" >> "$GITHUB_ENV"
+          fi
 
       - name: Apply monitoring
         run: |
           kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/monitoring"
+
+          if [ "${GRAFANA_SECRET_CHANGED:-}" = true ]; then
+            kubectl -n monitoring rollout restart deployment/alloy
+          fi
+
           kubectl -n monitoring rollout status deployment/alloy --timeout=3m
 
       - name: Status
