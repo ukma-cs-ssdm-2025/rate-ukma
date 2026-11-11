@@ -12,7 +12,6 @@ import {
 	Struct,
 } from "effect";
 import { SqlError } from "effect/sql";
-import { type ChangeCount, mergeChangeCounts } from "../changes/ChangeLog.ts";
 import { parseFilterOptions } from "../saz/catalog.ts";
 import {
 	Level,
@@ -205,11 +204,10 @@ export const offeringRowsOf = (
 			),
 			({ name }) => name,
 		),
-		// A card may name a department without its faculty; of those that name
-		// it, the newest wins, by year and then САЗ code, as in the store.
+		// A card may name a department without its faculty; one that names it wins.
 		departments: unique(
 			offerings
-				.flatMap(({ department, faculty, sazCode, academicYear }) =>
+				.flatMap(({ department, faculty }) =>
 					department === null
 						? []
 						: [
@@ -217,16 +215,11 @@ export const offeringRowsOf = (
 									name: department,
 									faculty,
 									sazFilterId: filters.departments.get(department) ?? null,
-									sazCode,
-									academicYear,
 								},
 							],
 				)
 				.sort(
-					(a, b) =>
-						Number(a.faculty !== null) - Number(b.faculty !== null) ||
-						a.academicYear - b.academicYear ||
-						byKey(({ sazCode }: { sazCode: string }) => sazCode)(a, b),
+					(a, b) => Number(a.faculty !== null) - Number(b.faculty !== null),
 				),
 			({ name }) => name,
 		),
@@ -284,8 +277,7 @@ const isRefusal = (cause: Cause.Cause<unknown>) => {
 	return !(SqlError.isSqlError(error) && error.isRetryable);
 };
 
-/** Writes the pages in one transaction and returns the ones it refused, with
- *  the rows it numbered. When
+/** Writes the pages in one transaction and returns the ones it refused. When
  *  Postgres refuses it, each half is written on its own, down to the pages it
  *  refuses; such a page keeps its last good rows, like a page that fails to
  *  parse. */
@@ -293,14 +285,7 @@ const writePages = Effect.fnUntraced(function* (
 	pages: ReadonlyArray<CoursePage>,
 	filters: CatalogFilters,
 	parseId: bigint,
-): Effect.fn.Return<
-	{
-		readonly refused: ReadonlyArray<CoursePage>;
-		readonly changes: ReadonlyArray<ChangeCount>;
-	},
-	never,
-	OfferingStore
-> {
+): Effect.fn.Return<ReadonlyArray<CoursePage>, never, OfferingStore> {
 	const store = yield* OfferingStore;
 
 	const written = yield* Effect.exit(
@@ -310,20 +295,15 @@ const writePages = Effect.fnUntraced(function* (
 		),
 	);
 
-	if (Exit.isSuccess(written)) return { refused: [], changes: written.value };
+	if (Exit.isSuccess(written)) return [];
 
 	if (pages.length > 1 && isRefusal(written.cause)) {
 		const [first, second] = Arr.splitAt(pages, Math.ceil(pages.length / 2));
 
-		const halves = [
-			yield* writePages(first, filters, parseId),
-			yield* writePages(second, filters, parseId),
+		return [
+			...(yield* writePages(first, filters, parseId)),
+			...(yield* writePages(second, filters, parseId)),
 		];
-
-		return {
-			refused: halves.flatMap(({ refused }) => refused),
-			changes: mergeChangeCounts(halves.flatMap(({ changes }) => changes)),
-		};
 	}
 
 	for (const { snapshotId, path } of pages) {
@@ -334,7 +314,7 @@ const writePages = Effect.fnUntraced(function* (
 		});
 	}
 
-	return { refused: pages, changes: [] };
+	return pages;
 });
 
 /** Parses the latest snapshot of every course page into offerings and their
@@ -365,7 +345,6 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	}
 
 	const failed = new Map<string, number>();
-	let changes: ReadonlyArray<ChangeCount> = [];
 	let parsed = 0;
 
 	for (const ids of Arr.chunksOf(yield* store.latestCoursePages, BATCH_SIZE)) {
@@ -397,11 +376,9 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			});
 		}
 
-		const written = yield* writePages(pages, filters, parseId);
-		const { refused } = written;
+		const refused = yield* writePages(pages, filters, parseId);
 
 		parsed += pages.length - refused.length;
-		changes = mergeChangeCounts([...changes, ...written.changes]);
 		failures.push(
 			...refused.map(({ snapshotId, path }) => ({
 				snapshotId,
@@ -421,7 +398,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 		seconds: Math.round(((yield* Clock.currentTimeMillis) - startedAt) / 1000),
 		parsed,
 		failed: Array.from(failed, ([reason, pages]) => ({ reason, pages })),
-		changes,
+		changes: yield* store.changeCounts(parseId),
 		missing,
 	};
 

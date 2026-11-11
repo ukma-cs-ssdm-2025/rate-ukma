@@ -28,41 +28,14 @@ const Written = Schema.Struct({ rowId: Schema.String, action: ChangeAction });
 
 export type Written = typeof Written.Type;
 
-/** Rows written, by table and action, for run and parse reports (rule 11). */
-export interface ChangeCount {
-	readonly table: NumberedTable;
-	readonly action: ChangeAction;
-	readonly rows: number;
-}
+/** Rows numbered, by table and action, for run and parse reports (rule 11). */
+export const ChangeCount = Schema.Struct({
+	table: Schema.String,
+	action: ChangeAction,
+	rows: Schema.Number,
+});
 
-export const countChanges = (
-	table: NumberedTable,
-	written: ReadonlyArray<Written>,
-): ReadonlyArray<ChangeCount> => {
-	const counts = new Map<ChangeAction, number>();
-
-	for (const { action } of written) {
-		counts.set(action, (counts.get(action) ?? 0) + 1);
-	}
-
-	return Array.from(counts, ([action, rows]) => ({ table, action, rows }));
-};
-
-/** Adds counts of the same table and action. */
-export const mergeChangeCounts = (
-	counts: ReadonlyArray<ChangeCount>,
-): ReadonlyArray<ChangeCount> => {
-	const merged = new Map<string, ChangeCount>();
-
-	for (const count of counts) {
-		const key = `${count.table} ${count.action}`;
-		const rows = (merged.get(key)?.rows ?? 0) + count.rows;
-
-		merged.set(key, { ...count, rows });
-	}
-
-	return [...merged.values()];
-};
+export type ChangeCount = typeof ChangeCount.Type;
 
 export class ChangeLog extends Context.Service<
 	ChangeLog,

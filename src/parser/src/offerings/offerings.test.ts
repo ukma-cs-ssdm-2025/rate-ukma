@@ -77,8 +77,6 @@ describe("offeringRowsOf", () => {
 				name: "Кафедра вигаданих систем",
 				faculty: "Факультет вигаданих наук",
 				sazFilterId: null,
-				sazCode: "900002",
-				academicYear: 2031,
 			},
 		]);
 		assert.deepStrictEqual(rows.terms, [
@@ -614,17 +612,14 @@ describe("change tracking", () => {
 					const passes = [];
 
 					for (let pass = 0; pass < 2; pass++) {
-						const counts = [];
+						for (const rows of batches) yield* store.write(rows, parseId);
 
-						for (const rows of batches) {
-							counts.push(yield* store.write(rows, parseId));
-						}
-
-						passes.push(counts);
+						passes.push(yield* store.changeCounts(parseId));
 					}
 
 					assert.strictEqual(batches.length, 2);
-					assert.deepStrictEqual(passes[1], [[], []]);
+					assert.isNotEmpty(passes[0]);
+					assert.deepStrictEqual(passes[1], passes[0]);
 				}),
 		);
 
