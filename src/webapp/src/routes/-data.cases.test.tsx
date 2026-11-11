@@ -102,6 +102,17 @@ describe("/data/cases", () => {
 		expect(mockAxios.history.get[0].params).toEqual({ limit: 1000 });
 	});
 
+	it("shows a student_match case with its own label", async () => {
+		mockAxios.onGet(URL).reply(200, {
+			...PAGE,
+			items: [{ ...PAGE.items?.[0], kind: "student_match" }],
+		});
+
+		renderCases();
+
+		expect(await screen.findByRole("listitem")).toHaveTextContent("Студент");
+	});
+
 	it("filters the page by status in the URL", async () => {
 		mockAxios.onGet(URL).reply(200, PAGE);
 

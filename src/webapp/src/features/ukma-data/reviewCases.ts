@@ -16,6 +16,7 @@ export const caseStatuses = Object.values(UkmaDataReviewCaseStatusEnum);
 export const CASE_KIND_LABELS: Record<UkmaDataReviewCaseKindEnum, string> = {
 	course_match: "Збіг курсу",
 	instructor_match: "Викладач",
+	student_match: "Студент",
 	removals_held: "Утримані вилучення",
 };
 
@@ -29,6 +30,7 @@ export const CASE_STATUS_LABELS: Record<UkmaDataReviewCaseStatusEnum, string> =
 export const SAFE_ANSWER_LABELS: Record<UkmaDataReviewCaseKindEnum, string> = {
 	course_match: "окремий курс",
 	instructor_match: "без звʼязку з викладачем",
+	student_match: "запис приєднано до наявного студента",
 	removals_held: "нічого не вилучено",
 };
 
