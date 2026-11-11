@@ -314,60 +314,6 @@ describe("reparse", () => {
 			}),
 		);
 
-		it.effect(
-			"falls back to the newest snapshot that parses for a page never stored",
-			() =>
-				Effect.gen(function* () {
-					yield* reset;
-
-					yield* snapshot(
-						"/course/900001",
-						coursePage({ code: "900001", title: "Вигадані системи, 1" }),
-					);
-					yield* snapshot(
-						"/course/900001",
-						coursePage({ code: "900001", title: "Вигадані системи, 2" }),
-					);
-					yield* snapshot("/course/900001", "<html></html>");
-
-					const report = yield* reparseOfferings;
-
-					assert.strictEqual(
-						yield* offeringLine("900001"),
-						"Вигадані системи, 2 #2 2031-32-FALL exam",
-					);
-					assert.deepStrictEqual(yield* failures, [
-						"1 #3 /course/900001 no course card",
-					]);
-					assert.deepStrictEqual(report.failed, [
-						{ reason: "no course card", pages: 1 },
-					]);
-				}),
-		);
-
-		it.effect(
-			"keeps a stored page's rows over an earlier unparsed snapshot",
-			() =>
-				Effect.gen(function* () {
-					yield* reset;
-
-					yield* snapshot("/course/900001", coursePage({ code: "900001" }));
-					yield* parseOfferings("crawl");
-					yield* snapshot(
-						"/course/900001",
-						coursePage({ code: "900001", title: "Вигадані системи, 2" }),
-					);
-					yield* snapshot("/course/900001", "<html></html>");
-
-					yield* reparseOfferings;
-
-					assert.strictEqual(
-						yield* offeringLine("900001"),
-						"Вступ до вигаданих систем #1 2031-32-FALL exam",
-					);
-				}),
-		);
-
 		it.effect("records a refused batch and fails the reparse", () =>
 			Effect.gen(function* () {
 				yield* reset;

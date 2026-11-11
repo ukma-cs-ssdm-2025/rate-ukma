@@ -101,11 +101,6 @@ export class OfferingStore extends Context.Service<
 		coursePages(
 			ids: ReadonlyArray<bigint>,
 		): Effect.Effect<ReadonlyArray<StoredPage>>;
-		/** The snapshots older than these ones of the same page, newest first by
-		 *  path, for pages no offering has been stored from yet. */
-		earlierCoursePages(
-			ids: ReadonlyArray<bigint>,
-		): Effect.Effect<ReadonlyArray<StoredPage>>;
 		/** Any catalog page carries the filters, so the latest one is enough. */
 		latestCatalogPage: Effect.Effect<string | undefined>;
 		/** Every stored programme, for the level of one the catalog does not list. */
@@ -164,28 +159,6 @@ export class OfferingStore extends Context.Service<
 
 			const coursePages = (ids: ReadonlyArray<bigint>) =>
 				findPages(ids).pipe(Effect.orDie);
-
-			const findEarlierPages = SqlSchema.findAll({
-				Request: Schema.Array(Schema.BigInt),
-				Result: StoredPage,
-				execute: (ids) => sql`
-					SELECT s.id, s.path, s.content
-					FROM page_snapshots latest
-					JOIN page_snapshots s ON s.path = latest.path AND s.id < latest.id
-					WHERE latest.id IN ${sql.in(ids)}
-						AND NOT EXISTS (
-							SELECT FROM offerings o
-							JOIN page_snapshots stored ON stored.id = o.snapshot_id
-							WHERE stored.path = latest.path
-						)
-					ORDER BY s.path, s.id DESC
-				`,
-			});
-
-			const earlierCoursePages = (ids: ReadonlyArray<bigint>) =>
-				ids.length === 0
-					? Effect.succeed([])
-					: findEarlierPages(ids).pipe(Effect.orDie);
 
 			const findLatestCatalogPage = SqlSchema.findOneOption({
 				Request: Schema.Void,
@@ -458,7 +431,6 @@ export class OfferingStore extends Context.Service<
 				lockParse,
 				latestCoursePages,
 				coursePages,
-				earlierCoursePages,
 				latestCatalogPage,
 				programmes,
 				write,

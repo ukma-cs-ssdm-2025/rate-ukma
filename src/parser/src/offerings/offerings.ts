@@ -23,7 +23,6 @@ import {
 	type ParseFailure,
 	type ParseReport,
 	type ParseTrigger,
-	type StoredPage,
 	type StoredProgramme,
 } from "./OfferingStore.ts";
 
@@ -220,9 +219,6 @@ export const storeFailureOf = (cause: Cause.Cause<unknown>) => {
 
 type CoursePage = ParsedPage & { readonly path: string };
 
-const parsePage = (page: StoredPage) =>
-	parseCoursePage(page.content, page.path.slice("/course/".length));
-
 /** A lost connection or a timeout fails every half as well, so halving would
  *  only repeat it once per page. */
 const isRefusal = (cause: Cause.Cause<unknown>) => {
@@ -301,7 +297,10 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 		const failures: Array<ParseFailure> = [];
 
 		for (const page of yield* store.coursePages(ids)) {
-			const result = parsePage(page);
+			const result = parseCoursePage(
+				page.content,
+				page.path.slice("/course/".length),
+			);
 
 			if (Result.isSuccess(result)) {
 				pages.push({
@@ -319,27 +318,6 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 				path: page.path,
 				snapshot_id: String(page.id),
 				reason,
-			});
-		}
-
-		// A failed page with no stored offering has no last good rows to keep,
-		// so its newest earlier snapshot that parses stands in for them.
-		const recovered = new Set<string>();
-
-		for (const page of yield* store.earlierCoursePages(
-			failures.map(({ snapshotId }) => snapshotId),
-		)) {
-			if (recovered.has(page.path)) continue;
-
-			const result = parsePage(page);
-
-			if (Result.isFailure(result)) continue;
-
-			recovered.add(page.path);
-			pages.push({
-				snapshotId: page.id,
-				path: page.path,
-				offering: result.success,
 			});
 		}
 
