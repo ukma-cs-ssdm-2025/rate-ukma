@@ -168,7 +168,12 @@ export const Offering = Schema.Struct({
 
 export const ReviewCase = Schema.Struct({
 	id: Schema.String,
-	kind: Schema.Literals(["course_match", "instructor_match", "removals_held"]),
+	kind: Schema.Literals([
+		"course_match",
+		"instructor_match",
+		"student_match",
+		"removals_held",
+	]),
 	subjectId: Schema.String,
 	candidates: Schema.Json.annotate({ description: "Ids only" }),
 	safeAnswer: Schema.Json.annotate({ description: "What was published" }),

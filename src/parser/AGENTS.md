@@ -30,7 +30,6 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - A write endpoint (start a run, decide a case) records its audit row inside its own transaction, so a failed audit write cannot leave work done behind a 500.
 - A token is a `Redacted` value everywhere but the one `create-key` print; never log it.
 - The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`/`create-key`/`revoke-key`/`list-keys`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
-- No real student data in fixtures, logs or tests.
 
 ## Conventions
 

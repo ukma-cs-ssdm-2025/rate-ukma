@@ -8,6 +8,7 @@ from rateukma.caching.patterns import student_ratings_namespace
 from rating_app.application_schemas.semester import SemesterInput
 from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.repositories import StudentRepository, StudentStatisticsRepository, UserRepository
+from rating_app.repositories.student_repository import account_name_matches
 from rating_app.services.rating_service import RatingService
 from rating_app.services.rating_suggestions import (
     RatingSuggestion,
@@ -120,6 +121,18 @@ class StudentService:
             )
             return False
 
+        # A reused email can belong to an older student; the account's own name
+        # tells which person signed up.
+        if not account_name_matches(
+            student.first_name, getattr(user, "first_name", ""), getattr(user, "last_name", "")
+        ):
+            logger.warning(
+                "user_first_name_differs_from_student",
+                user_id=user.pk,
+                student_id=str(student.id),
+            )
+            return False
+
         self.student_repository.link_to_user(str(student.id), user)
         logger.info(
             "student_linked_to_user",
@@ -136,7 +149,9 @@ class StudentService:
         if getattr(user, "student_profile", None) is not None:
             return False
 
-        student = self.student_repository.get_by_email(str(user.email))
+        student = self.student_repository.get_by_email(
+            str(user.email), user.first_name or "", user.last_name or ""
+        )
         if not student:
             return False
 
