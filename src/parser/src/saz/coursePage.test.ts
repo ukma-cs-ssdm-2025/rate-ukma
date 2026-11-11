@@ -316,6 +316,15 @@ describe("parseCoursePage", () => {
 		assert.strictEqual(parsed(page).credits, 4.5);
 	});
 
+	it("skips a row and a block САЗ commented out", () => {
+		const page = coursePage().replace(
+			"<tr><th>Освітній рівень</th>",
+			`<!--\n${row("Старий рядок", "1")}\n<div id="course-card--900123--old"></div>\n-->\n$&`,
+		);
+
+		assert.deepStrictEqual(parsed(page), parsed(coursePage()));
+	});
+
 	it("fails a page whose labels or rows it does not know", () => {
 		assert.strictEqual(
 			failure(coursePage({ info: [label("4 кред."), label("Новий ярлик")] })),
