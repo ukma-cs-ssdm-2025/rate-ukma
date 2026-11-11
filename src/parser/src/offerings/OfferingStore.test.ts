@@ -1,5 +1,5 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
@@ -158,11 +158,12 @@ describe("OfferingStore", () => {
 					.withTurn(sql`
 						INSERT INTO programmes (name, level) VALUES ('Вигадана логіка', NULL)
 					`)
-					.pipe(Effect.orDie, Effect.exit);
+					.pipe(Effect.exit);
 
 				assert.isTrue(Exit.isFailure(rejected));
 
 				if (Exit.isFailure(rejected)) {
+					assert.isTrue(Cause.hasDies(rejected.cause));
 					assert.deepStrictEqual(storeFailureOf(rejected.cause), {
 						reason: "ConstraintError",
 						code: "23502",
