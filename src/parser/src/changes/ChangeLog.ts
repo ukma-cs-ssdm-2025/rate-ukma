@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
-import { SqlClient, type SqlError, type Statement } from "effect/sql";
+import { SqlClient, SqlError, type Statement } from "effect/sql";
 import { TURN_LOCK } from "../db/locks.ts";
 
 /** Present only inside `ChangeLog.withTurn`. A write that numbers rows requires
@@ -77,10 +77,10 @@ export class ChangeLog extends Context.Service<
 		 *  after every earlier writer's rows are visible, and a reader that sees
 		 *  number n sees every row below it (spec rule 5). It dies inside an
 		 *  open transaction, where the lock would come after numbers already
-		 *  taken. */
+		 *  taken. No caller recovers from a SQL error, so it is a defect. */
 		withTurn<A, E, R>(
 			effect: Effect.Effect<A, E, R>,
-		): Effect.Effect<A, E | SqlError.SqlError, Exclude<R, Turn>>;
+		): Effect.Effect<A, Exclude<E, SqlError.SqlError>, Exclude<R, Turn>>;
 		/** Runs a write that returns `id`, `change_no` and `action` of each row it
 		 *  numbered, and adds the trail row of each to `changes`. */
 		track(
@@ -107,6 +107,7 @@ export class ChangeLog extends Context.Service<
 									sql.withTransaction,
 								),
 					),
+					Effect.catchIf(SqlError.isSqlError, Effect.die),
 				);
 
 			const track = (

@@ -23,4 +23,6 @@ export default Effect.gen(function* () {
 			PRIMARY KEY (parse_id, snapshot_id)
 		)
 	`;
+
+	yield* sql`CREATE INDEX parse_failures_snapshot_id ON parse_failures (snapshot_id)`;
 });
