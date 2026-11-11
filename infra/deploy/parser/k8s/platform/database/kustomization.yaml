@@ -1,0 +1,7 @@
+---
+# The parser's Postgres cluster. Needs the CNPG CRDs and the parser namespace, so it is applied last.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cluster.yaml
