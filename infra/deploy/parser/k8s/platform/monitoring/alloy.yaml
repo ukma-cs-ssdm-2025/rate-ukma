@@ -17,58 +17,71 @@ spec:
       labels:
         app: alloy
     spec:
+      # The image runs as root by default, its alloy user (473) only needs to read the host mounts.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 473
+        runAsGroup: 473
+        fsGroup: 473
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-      - args:
-        - run
-        - /etc/alloy/config.alloy
-        - --server.http.listen-addr=0.0.0.0:12345
-        - --storage.path=/var/lib/alloy/data
-        envFrom:
-        - secretRef:
-            name: grafana-cloud
-        image: grafana/alloy:v1.21.3
-        name: alloy
-        ports:
-        - containerPort: 12345
-        readinessProbe:
-          httpGet:
-            path: /-/ready
-            port: 12345
-          periodSeconds: 10
-        resources:
-          limits:
-            memory: 384Mi
-          requests:
-            cpu: 50m
-            memory: 128Mi
-        volumeMounts:
-        - mountPath: /etc/alloy
-          name: config
-        - mountPath: /var/lib/alloy/data
-          name: data
-        - mountPath: /host/proc
-          name: proc
-          readOnly: true
-        - mountPath: /host/sys
-          name: sys
-          readOnly: true
-        - mountPath: /host/root
-          mountPropagation: HostToContainer
-          name: root
-          readOnly: true
+        - args:
+            - run
+            - /etc/alloy/config.alloy
+            - --server.http.listen-addr=0.0.0.0:12345
+            - --storage.path=/var/lib/alloy/data
+          envFrom:
+            - secretRef:
+                name: grafana-cloud
+          image: grafana/alloy:v1.21.3
+          name: alloy
+          ports:
+            - containerPort: 12345
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 12345
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            limits:
+              memory: 384Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          volumeMounts:
+            - mountPath: /etc/alloy
+              name: config
+            - mountPath: /var/lib/alloy/data
+              name: data
+            - mountPath: /host/proc
+              name: proc
+              readOnly: true
+            - mountPath: /host/sys
+              name: sys
+              readOnly: true
+            - mountPath: /host/root
+              mountPropagation: HostToContainer
+              name: root
+              readOnly: true
       serviceAccountName: alloy
       volumes:
-      - configMap:
-          name: alloy-config
-        name: config
-      - emptyDir: {}
-        name: data
-      - hostPath:
-          path: /proc
-        name: proc
-      - hostPath:
-          path: /sys
-        name: sys
-      - hostPath:
-          path: /
-        name: root
+        - configMap:
+            name: alloy-config
+          name: config
+        - emptyDir: {}
+          name: data
+        - hostPath:
+            path: /proc
+          name: proc
+        - hostPath:
+            path: /sys
+          name: sys
+        - hostPath:
+            path: /
+          name: root
