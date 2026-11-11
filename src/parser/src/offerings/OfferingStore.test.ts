@@ -99,6 +99,16 @@ const offeringRow = (sazCode: string) =>
 		return row;
 	});
 
+const departmentRows = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	return yield* sql<{ readonly id: string; readonly faculty: string }>`
+		SELECT d.id, f.name AS faculty
+		FROM departments d JOIN faculties f ON f.id = d.faculty_id
+		ORDER BY d.id
+	`;
+});
+
 describe("OfferingStore", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("gives each row a prefixed UUIDv7 and requires a level", () =>
@@ -308,6 +318,25 @@ describe("OfferingStore", () => {
 				]);
 			}),
 		);
+
+		it.effect("moves a department to the faculty a later run names (C4)", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				yield* write([offering("900001")]);
+
+				const [before] = yield* departmentRows;
+
+				yield* write([
+					offering("900002", { faculty: "Факультет уявних мистецтв" }),
+				]);
+
+				assert.isDefined(before);
+				assert.deepStrictEqual(yield* departmentRows, [
+					{ id: before.id, faculty: "Факультет уявних мистецтв" },
+				]);
+			}),
+		);
 	});
 });
 
@@ -408,6 +437,49 @@ describe("parseOfferings", () => {
 
 				assert.isUndefined(whileHeld);
 				assert.strictEqual(report.parsed, 1);
+			}),
+		);
+
+		it.effect("stores the rest of a batch when Postgres refuses one page", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				yield* sql`
+					CREATE FUNCTION refuse_offering() RETURNS trigger LANGUAGE plpgsql AS $$
+					BEGIN
+						IF NEW.saz_code = '900002' THEN
+							RAISE EXCEPTION 'refused';
+						END IF;
+						RETURN NEW;
+					END $$
+				`;
+				yield* sql`
+					CREATE TRIGGER refuse_offering BEFORE INSERT ON offerings
+					FOR EACH ROW EXECUTE FUNCTION refuse_offering()
+				`;
+
+				for (const code of ["900001", "900002", "900003"]) {
+					yield* snapshot(`/course/${code}`, coursePage({ code }));
+				}
+
+				const report = yield* parseOfferings("crawl").pipe(
+					Effect.ensuring(
+						sql`DROP FUNCTION refuse_offering CASCADE`.pipe(Effect.orDie),
+					),
+				);
+
+				const rows = yield* sql<{ readonly sazCode: string }>`
+					SELECT saz_code AS "sazCode" FROM offerings ORDER BY saz_code
+				`;
+
+				assert.deepStrictEqual(report.parsed, 2);
+				assert.deepStrictEqual(report.failed, [{ reason: "store", pages: 1 }]);
+				assert.deepStrictEqual(
+					rows.map(({ sazCode }) => sazCode),
+					["900001", "900003"],
+				);
 			}),
 		);
 

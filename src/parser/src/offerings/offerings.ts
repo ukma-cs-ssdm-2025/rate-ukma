@@ -217,6 +217,44 @@ export const storeFailureOf = (cause: Cause.Cause<unknown>) => {
 	};
 };
 
+type CoursePage = ParsedPage & { readonly path: string };
+
+/** Writes the pages in one transaction and returns the ones it refused. When
+ *  Postgres refuses it, each half is written on its own, down to the pages it
+ *  refuses; such a page keeps its last good rows, like a page that fails to
+ *  parse. */
+const writePages = Effect.fnUntraced(function* (
+	pages: ReadonlyArray<CoursePage>,
+	filters: CatalogFilters,
+): Effect.fn.Return<ReadonlyArray<CoursePage>, never, OfferingStore> {
+	const store = yield* OfferingStore;
+
+	const written = yield* Effect.exit(
+		store.write(offeringRowsOf(pages, filters, yield* store.programmes)),
+	);
+
+	if (Exit.isSuccess(written)) return [];
+
+	if (pages.length > 1) {
+		const [first, second] = Arr.splitAt(pages, Math.ceil(pages.length / 2));
+
+		return [
+			...(yield* writePages(first, filters)),
+			...(yield* writePages(second, filters)),
+		];
+	}
+
+	for (const { snapshotId, path } of pages) {
+		yield* Effect.logError("Course page failed to store", {
+			path,
+			snapshot_id: String(snapshotId),
+			error: storeFailureOf(written.cause),
+		});
+	}
+
+	return pages;
+});
+
 /** Parses the latest snapshot of every course page into offerings and their
  *  reference lists, and records the parse. A page that fails keeps the rows of
  *  its last good parse, and the failure is recorded with its snapshot. Runs
@@ -247,7 +285,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	let parsed = 0;
 
 	for (const ids of Arr.chunksOf(yield* store.latestCoursePages, BATCH_SIZE)) {
-		const pages: Array<ParsedPage & { readonly path: string }> = [];
+		const pages: Array<CoursePage> = [];
 		const failures: Array<ParseFailure> = [];
 
 		for (const page of yield* store.coursePages(ids)) {
@@ -275,28 +313,16 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			});
 		}
 
-		const rows = offeringRowsOf(pages, filters, yield* store.programmes);
+		const refused = yield* writePages(pages, filters);
 
-		// A batch the database rejects keeps its last good rows, like a page that
-		// fails to parse, and the run goes on to the next batch.
-		const written = yield* Effect.exit(store.write(rows));
-
-		if (Exit.isSuccess(written)) {
-			parsed += pages.length;
-		} else {
-			failures.push(
-				...pages.map(({ snapshotId, path }) => ({
-					snapshotId,
-					path,
-					reason: "store",
-				})),
-			);
-			yield* Effect.logError("Offering batch failed to store", {
-				first_snapshot_id: String(ids[0]),
-				last_snapshot_id: String(ids.at(-1)),
-				error: storeFailureOf(written.cause),
-			});
-		}
+		parsed += pages.length - refused.length;
+		failures.push(
+			...refused.map(({ snapshotId, path }) => ({
+				snapshotId,
+				path,
+				reason: "store",
+			})),
+		);
 
 		for (const { reason } of failures) {
 			failed.set(reason, (failed.get(reason) ?? 0) + 1);
@@ -320,7 +346,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	return report;
 }, Effect.scoped);
 
-/** A reparse with a refused batch fails, so its Job does not show Completed. */
+/** A reparse with a refused page fails, so its Job does not show Completed. */
 export const reparseOfferings = Effect.gen(function* () {
 	const report = yield* parseOfferings("reparse");
 	const refused = report.failed.find(({ reason }) => reason === "store");
