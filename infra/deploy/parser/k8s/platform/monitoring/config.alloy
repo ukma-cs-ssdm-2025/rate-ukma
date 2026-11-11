@@ -93,27 +93,13 @@ prometheus.relabel "node" {
 	forward_to = [prometheus.remote_write.grafana_cloud.receiver]
 }
 
-//  Metrics: containers, kubelet cAdvisor through the API server proxy
-
-discovery.relabel "cadvisor" {
-	targets = discovery.kubernetes.nodes.targets
-
-	rule {
-		target_label = "__address__"
-		replacement  = "kubernetes.default.svc:443"
-	}
-
-	rule {
-		source_labels = ["__meta_kubernetes_node_name"]
-		regex         = "(.+)"
-		target_label  = "__metrics_path__"
-		replacement   = "/api/v1/nodes/$1/proxy/metrics/cadvisor"
-	}
-}
+//  Metrics: containers, scraped straight from the kubelet (port 10250 on the node's address).
+// The kubelet authorises /metrics/cadvisor with nodes/metrics, so Alloy needs no nodes/proxy.
 
 prometheus.scrape "cadvisor" {
-	targets           = discovery.relabel.cadvisor.output
+	targets           = discovery.kubernetes.nodes.targets
 	scheme            = "https"
+	metrics_path      = "/metrics/cadvisor"
 	bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
 	tls_config {
