@@ -218,6 +218,41 @@ export const storeFailureOf = (cause: Cause.Cause<unknown>) => {
 	};
 };
 
+/** Writes the pages in one transaction and returns how many it wrote. When
+ *  Postgres refuses it, each half is written on its own, down to the pages it
+ *  refuses; such a page keeps its last good rows, like a page that fails to
+ *  parse. */
+const writePages = Effect.fnUntraced(function* (
+	pages: ReadonlyArray<ParsedPage>,
+	filters: CatalogFilters,
+): Effect.fn.Return<number, never, OfferingStore> {
+	const store = yield* OfferingStore;
+
+	const written = yield* Effect.exit(
+		store.write(offeringRowsOf(pages, filters, yield* store.programmes)),
+	);
+
+	if (Exit.isSuccess(written)) return pages.length;
+
+	if (pages.length > 1) {
+		const [first, second] = Arr.splitAt(pages, Math.ceil(pages.length / 2));
+
+		return (
+			(yield* writePages(first, filters)) + (yield* writePages(second, filters))
+		);
+	}
+
+	for (const { snapshotId, offering } of pages) {
+		yield* Effect.logError("Course page failed to store", {
+			saz_code: offering.sazCode,
+			snapshot_id: String(snapshotId),
+			error: storeFailureOf(written.cause),
+		});
+	}
+
+	return 0;
+});
+
 /** Parses the latest snapshot of every course page into offerings and their
  *  reference lists. A page that fails keeps the rows of its last good parse.
  *  Runs take turns, so each reads a catalog page at least as new as the last. */
@@ -266,21 +301,12 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* () {
 			});
 		}
 
-		const rows = offeringRowsOf(pages, filters, yield* store.programmes);
+		const written = yield* writePages(pages, filters);
 
-		// A batch the database rejects keeps its last good rows, like a page that
-		// fails to parse, and the run goes on to the next batch.
-		const written = yield* Effect.exit(store.write(rows));
+		parsed += written;
 
-		if (Exit.isSuccess(written)) {
-			parsed += pages.length;
-		} else {
-			failed.set("store", (failed.get("store") ?? 0) + pages.length);
-			yield* Effect.logError("Offering batch failed to store", {
-				first_snapshot_id: String(ids[0]),
-				last_snapshot_id: String(ids.at(-1)),
-				error: storeFailureOf(written.cause),
-			});
+		if (written < pages.length) {
+			failed.set("store", (failed.get("store") ?? 0) + pages.length - written);
 		}
 	}
 
