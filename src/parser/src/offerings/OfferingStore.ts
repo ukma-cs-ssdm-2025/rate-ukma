@@ -29,6 +29,9 @@ export interface OfferingRows {
 		readonly name: string;
 		readonly faculty: string | null;
 		readonly sazFilterId: string | null;
+		/** The card the faculty comes from. */
+		readonly sazCode: string;
+		readonly academicYear: number;
 	}>;
 	readonly programmes: ReadonlyArray<{
 		readonly name: string;
@@ -345,21 +348,41 @@ export class OfferingStore extends Context.Service<
 
 							yield* release("departments", departments.released);
 
-							// A department keeps the faculty it was first stored with: cards
-							// of different years can name different faculties, and following
-							// each batch would renumber it on every parse.
+							// A department takes the faculty of its newest card (C4): the
+							// latest year, then the highest САЗ code, among its stored
+							// offerings and this batch's card. The answer does not depend on
+							// the order of the batches, so a parse of unchanged pages moves
+							// no department.
 							yield* track(
 								"departments",
 								sql`
 									UPDATE departments t
-									SET name = r.name, saz_filter_id = r."sazFilterId",
-										faculty_id = coalesce(t.faculty_id, f.id),
+									SET name = next.name, saz_filter_id = next."sazFilterId",
+										faculty_id = next.faculty_id,
 										change_no = nextval('change_no_seq')
-									FROM ${recordset(departments.updates, { id: "text", name: "text", faculty: "text", sazFilterId: "text" })}
-									LEFT JOIN faculties f ON f.name = r.faculty
-									WHERE t.id = r.id
+									FROM (
+										SELECT r.id, r.name, r."sazFilterId", coalesce((
+											SELECT card.faculty_id FROM (
+												SELECT o.academic_year, o.saz_code, o.faculty_id
+												FROM offerings o
+												WHERE o.department_id = r.id AND o.faculty_id IS NOT NULL
+													AND o.saz_code NOT IN (SELECT "sazCode" FROM ${recordset(
+														rows.offerings.map(({ sazCode }) => ({ sazCode })),
+														{ sazCode: "text" },
+													)})
+												UNION ALL
+												SELECT r."academicYear", r."sazCode", f.id WHERE f.id IS NOT NULL
+											) card
+											ORDER BY card.academic_year DESC, card.saz_code DESC
+											LIMIT 1
+										), d.faculty_id) AS faculty_id
+										FROM ${recordset(departments.updates, { id: "text", name: "text", faculty: "text", sazFilterId: "text", sazCode: "text", academicYear: "smallint" })}
+										JOIN departments d ON d.id = r.id
+										LEFT JOIN faculties f ON f.name = r.faculty
+									) next
+									WHERE t.id = next.id
 										AND (t.name, t.saz_filter_id, t.faculty_id) IS DISTINCT FROM
-											(r.name, r."sazFilterId", coalesce(t.faculty_id, f.id))
+											(next.name, next."sazFilterId", next.faculty_id)
 									RETURNING t.id, t.change_no, 'change' AS action
 								`,
 							);
@@ -369,7 +392,7 @@ export class OfferingStore extends Context.Service<
 								sql`
 									INSERT INTO departments (name, saz_filter_id, faculty_id, change_no)
 									SELECT r.name, r."sazFilterId", f.id, nextval('change_no_seq')
-									FROM ${recordset(departments.inserts, { name: "text", faculty: "text", sazFilterId: "text" })}
+									FROM ${recordset(departments.inserts, { name: "text", faculty: "text", sazFilterId: "text", sazCode: "text", academicYear: "smallint" })}
 									LEFT JOIN faculties f ON f.name = r.faculty
 									RETURNING id, change_no, 'add' AS action
 								`,

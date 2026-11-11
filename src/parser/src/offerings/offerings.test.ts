@@ -77,6 +77,8 @@ describe("offeringRowsOf", () => {
 				name: "Кафедра вигаданих систем",
 				faculty: "Факультет вигаданих наук",
 				sazFilterId: null,
+				sazCode: "900002",
+				academicYear: 2031,
 			},
 		]);
 		assert.deepStrictEqual(rows.terms, [
@@ -542,6 +544,19 @@ const offeringsOf = (year: number) =>
 		return new Map(rows.map(({ sazCode, ...row }) => [sazCode, row]));
 	});
 
+const departmentOf = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	return yield* sql<{
+		readonly id: string;
+		readonly faculty: string;
+		readonly changeNo: bigint;
+	}>`
+		SELECT d.id, f.name AS faculty, d.change_no AS "changeNo"
+		FROM departments d JOIN faculties f ON f.id = d.faculty_id
+	`;
+});
+
 describe("change tracking", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect(
@@ -586,7 +601,43 @@ describe("change tracking", () => {
 		);
 
 		it.effect(
-			"keeps a department's faculty when cards in two batches disagree",
+			"moves a department to the faculty its rewritten cards name (C4)",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					yield* crawl(2036, [{ code: "960001" }, { code: "960002" }]);
+					yield* parseOfferings("crawl");
+
+					const [before] = yield* departmentOf;
+
+					yield* crawl(2036, [
+						{ code: "960001", unit: MOVED_DEPARTMENT },
+						{ code: "960002", unit: MOVED_DEPARTMENT },
+					]);
+
+					const moved = yield* parseOfferings("crawl");
+					const after = yield* departmentOf;
+					const again = yield* parseOfferings("reparse");
+
+					assert.isDefined(before);
+					assert.deepInclude(moved.changes, {
+						table: "departments",
+						action: "change",
+						rows: 1,
+					});
+					assert.deepStrictEqual(
+						after.map(({ id, faculty }) => ({ id, faculty })),
+						[{ id: before.id, faculty: "Факультет уявних мистецтв" }],
+					);
+					assert.isAbove(Number(after[0]?.changeNo), Number(before.changeNo));
+					assert.deepStrictEqual(again.changes, []);
+					assert.deepStrictEqual(yield* departmentOf, after);
+				}),
+		);
+
+		it.effect(
+			"gives a department one faculty when cards in two batches disagree",
 			() =>
 				Effect.gen(function* () {
 					yield* reset;

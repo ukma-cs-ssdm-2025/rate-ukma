@@ -206,10 +206,11 @@ export const offeringRowsOf = (
 			),
 			({ name }) => name,
 		),
-		// A card may name a department without its faculty; one that names it wins.
+		// A card may name a department without its faculty; of those that name
+		// it, the newest wins, by year and then САЗ code, as in the store.
 		departments: unique(
 			offerings
-				.flatMap(({ department, faculty }) =>
+				.flatMap(({ department, faculty, sazCode, academicYear }) =>
 					department === null
 						? []
 						: [
@@ -217,11 +218,16 @@ export const offeringRowsOf = (
 									name: department,
 									faculty,
 									sazFilterId: filters.departments.get(department) ?? null,
+									sazCode,
+									academicYear,
 								},
 							],
 				)
 				.sort(
-					(a, b) => Number(a.faculty !== null) - Number(b.faculty !== null),
+					(a, b) =>
+						Number(a.faculty !== null) - Number(b.faculty !== null) ||
+						a.academicYear - b.academicYear ||
+						byKey(({ sazCode }: { sazCode: string }) => sazCode)(a, b),
 				),
 			({ name }) => name,
 		),

@@ -239,7 +239,7 @@ The trail of each run and decision (rule 11).
 | `decision_id` | text null | |
 | `at` | timestamptz | |
 
-Each parse's `report` counts its rows by table and action. A department keeps the faculty it was first stored with.
+Each parse's `report` counts its rows by table and action. A department takes the faculty of its newest card that names one (latest year, then highest САЗ code), so it moves when САЗ rewrites its cards (C4) and takes no new change number when a parse finds the same pages.
 
 ## Review cases and decisions
 
