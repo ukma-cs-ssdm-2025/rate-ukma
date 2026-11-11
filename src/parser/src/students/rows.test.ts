@@ -6,7 +6,12 @@ import {
 	studentsPage,
 } from "../saz/studentsPage.fixture.ts";
 import { parseStudentsPage, type StudentEntry } from "../saz/studentsPage.ts";
-import { batchesOf, type StudentList, studentRowsOf } from "./rows.ts";
+import {
+	batchesOf,
+	firstNameKeyOf,
+	type StudentList,
+	studentRowsOf,
+} from "./rows.ts";
 
 const list = (
 	snapshotId: bigint,
@@ -29,7 +34,7 @@ const OTHER = {
 };
 
 describe("studentRowsOf", () => {
-	it("takes a person's fields from the latest list, whatever the order", () => {
+	it("takes a record's fields from the latest list, whatever the order", () => {
 		const rows = studentRowsOf(
 			[
 				list(9n, "900002", studentEntry({ specName: "Вигадана економіка" })),
@@ -38,18 +43,12 @@ describe("studentRowsOf", () => {
 			new Map(),
 		);
 
-		assert.deepStrictEqual(rows.students, [
-			{
-				email: "o.zrazok@example.edu",
-				cdoc: null,
-				fullName: "Зразок Олена Петрівна",
-				snapshotId: "9",
-			},
-		]);
 		assert.deepStrictEqual(rows.programmes, [
 			{
 				cdoc: "600123",
 				email: "o.zrazok@example.edu",
+				fullName: "Зразок Олена Петрівна",
+				firstNameKey: "олена",
 				specName: "Вигадана економіка",
 				snapshotId: "9",
 				sazCodes: ["900001", "900002"],
@@ -67,17 +66,21 @@ describe("studentRowsOf", () => {
 			new Map(),
 		);
 
-		assert.strictEqual(rows.students[0]?.fullName, "Зразок Олена Петрівна");
+		assert.strictEqual(rows.programmes[0]?.fullName, "Зразок Олена Петрівна");
 	});
 
-	it("keys a person by email, else by `cdoc` (D2, D3)", () => {
+	it("gives each record its own row, even on one email (D2, D3, D14)", () => {
 		const rows = studentRowsOf(
 			[
 				list(
 					1n,
 					"900001",
 					studentEntry(),
-					studentEntry({ cdoc: 600124, specName: "Вигадана економіка" }),
+					studentEntry({
+						cdoc: 600124,
+						name: "Зразок Остап Іванович",
+						specName: "Вигадана економіка",
+					}),
 					studentEntry({ ...OTHER, email: "" }),
 				),
 			],
@@ -85,15 +88,24 @@ describe("studentRowsOf", () => {
 		);
 
 		assert.deepStrictEqual(
-			rows.students.map(({ email, cdoc }) => ({ email, cdoc })),
+			rows.programmes.map(({ cdoc, email, firstNameKey }) => ({
+				cdoc,
+				email,
+				firstNameKey,
+			})),
 			[
-				{ email: "o.zrazok@example.edu", cdoc: null },
-				{ email: null, cdoc: "600125" },
+				{
+					cdoc: "600123",
+					email: "o.zrazok@example.edu",
+					firstNameKey: "олена",
+				},
+				{
+					cdoc: "600124",
+					email: "o.zrazok@example.edu",
+					firstNameKey: "остап",
+				},
+				{ cdoc: "600125", email: null, firstNameKey: "марія" },
 			],
-		);
-		assert.deepStrictEqual(
-			rows.programmes.map(({ cdoc }) => cdoc),
-			["600123", "600124", "600125"],
 		);
 	});
 
@@ -111,14 +123,26 @@ describe("studentRowsOf", () => {
 		);
 
 		assert.deepStrictEqual(
-			rows.students.map(({ email }) => email),
-			["m.pryklad@example.edu"],
-		);
-		assert.deepStrictEqual(
 			rows.programmes.map(({ cdoc }) => cdoc),
 			["600125"],
 		);
 		assert.strictEqual(rows.enrollments.length, 2);
+	});
+});
+
+describe("firstNameKeyOf", () => {
+	it("ignores case and writes every apostrophe as `'`", () => {
+		assert.strictEqual(firstNameKeyOf("Зразок Мар`ЯНА Петрівна"), "мар'яна");
+		assert.strictEqual(
+			firstNameKeyOf("Зразок Марʼяна Петрівна"),
+			firstNameKeyOf("Приклад мар’яна Іванівна"),
+		);
+	});
+
+	it("gives no key to a name it cannot match with confidence (D6)", () => {
+		assert.isNull(firstNameKeyOf("Зразок-Приклад Марія"));
+		assert.isNull(firstNameKeyOf("Зразок Марія Петрівна Друга"));
+		assert.isNull(firstNameKeyOf("Зр*зок Олена Петрівна"));
 	});
 });
 

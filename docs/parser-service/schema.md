@@ -174,7 +174,7 @@ A person (glossary: Student). The only table with personal fields.
 | --- | --- | --- |
 | `id` | text | `stu_...` |
 | `email` | text null | lower-case (D5); null for the few records with none (D3). Not unique: one email can belong to two people (D14) |
-| `first_name_key` | text null | the first name lower-cased, without spaces, with `` ` ``, `ʼ` and `’` as `'`; the match key with `email` |
+| `first_name_key` | text null | the first name lower-cased, without spaces, with `` ` ``, `ʼ` and `’` as `'`; the match key with `email`. Null when the name does not have three words or holds `*` (D6), so a new record with such a name starts a new student |
 | `full_name` | text | whitespace collapsed; set by the latest list, but a name with `*` never replaces one without it (D6, D7) |
 | `snapshot_id` | bigint | the list that last set the name |
 | `change_no`, `removed_at` | | removed when no programme record of the person is left |

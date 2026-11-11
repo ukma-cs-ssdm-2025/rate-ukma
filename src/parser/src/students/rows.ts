@@ -28,26 +28,22 @@ export const batchesOf = (
 	return batches;
 };
 
-/** The rows one batch of lists gives, keyed by САЗ codes, `cdoc` and email;
- *  the store resolves them to ids. Snapshot ids are strings for `jsonb`. */
+/** The rows one batch of lists gives, keyed by САЗ codes and `cdoc`; the
+ *  store resolves them to ids. Snapshot ids are strings for `jsonb`. */
 export interface StudentRows {
 	readonly lists: ReadonlyArray<{
 		readonly sazCode: string;
 		readonly snapshotId: string;
 		readonly entryCount: number;
 	}>;
-	/** A person by email, else by `cdoc` when the entry has no email (D3). */
-	readonly students: ReadonlyArray<{
-		readonly email: string | null;
-		readonly cdoc: string | null;
-		readonly fullName: string;
-		readonly snapshotId: string;
-	}>;
-	/** `sazCodes` are the batch's lists that name the record, so the store
-	 *  can find its programme's level on their cards. */
+	/** One per programme record, with its person's fields from the latest list
+	 *  that names it. `sazCodes` are the batch's lists that name the record,
+	 *  so the store can find its programme's level on their cards. */
 	readonly programmes: ReadonlyArray<{
 		readonly cdoc: string;
 		readonly email: string | null;
+		readonly fullName: string;
+		readonly firstNameKey: string | null;
 		readonly specName: string;
 		readonly snapshotId: string;
 		readonly sazCodes: ReadonlyArray<string>;
@@ -65,15 +61,30 @@ export const preferredName = (stored: string | undefined, next: string) =>
 		? stored
 		: next;
 
-/** The rows of a batch of lists. A person's fields come from the latest list
- *  that names them. `stored` holds the snapshot each stored programme record
+/** The apostrophes САЗ writes, matched as `'` (D7). */
+export const APOSTROPHES = "`ʼ’";
+
+/** The first name of a three-word name, lower-cased, with every apostrophe as
+ *  `'` (ADR-0013). Null for any other shape or a name with `*`: such a record
+ *  cannot be matched with confidence, so it starts a new student (D6). */
+export const firstNameKeyOf = (fullName: string): string | null => {
+	const words = fullName.split(" ");
+
+	if (words.length !== 3 || fullName.includes("*")) return null;
+
+	return [...(words[1] ?? "").toLowerCase()]
+		.map((char) => (APOSTROPHES.includes(char) ? "'" : char))
+		.join("");
+};
+
+/** The rows of a batch of lists. A record's fields come from the latest list
+ *  that names it. `stored` holds the snapshot each stored programme record
  *  was last set from, so an older list cannot take a record back (D1, D7). */
 export const studentRowsOf = (
 	lists: ReadonlyArray<StudentList>,
 	stored: ReadonlyMap<string, bigint>,
 ): StudentRows => {
 	const programmes = new Map<string, StudentRows["programmes"][number]>();
-	const students = new Map<string, StudentRows["students"][number]>();
 	const byAge = [...lists].sort((a, b) => Number(a.snapshotId - b.snapshotId));
 	const emails = new Map<string, string>();
 
@@ -89,21 +100,17 @@ export const studentRowsOf = (
 		for (const { cdoc, fullName, specName } of entries) {
 			if ((stored.get(cdoc) ?? 0n) > snapshotId) continue;
 
-			const email = emails.get(cdoc) ?? null;
-			const key = email ?? `cdoc ${cdoc}`;
+			const previous = programmes.get(cdoc);
+			const name = preferredName(previous?.fullName, fullName);
 
 			programmes.set(cdoc, {
 				cdoc,
-				email,
+				email: emails.get(cdoc) ?? null,
+				fullName: name,
+				firstNameKey: firstNameKeyOf(name),
 				specName,
 				snapshotId: String(snapshotId),
-				sazCodes: [...(programmes.get(cdoc)?.sazCodes ?? []), sazCode],
-			});
-			students.set(key, {
-				email,
-				cdoc: email === null ? cdoc : null,
-				fullName: preferredName(students.get(key)?.fullName, fullName),
-				snapshotId: String(snapshotId),
+				sazCodes: [...(previous?.sazCodes ?? []), sazCode],
 			});
 		}
 	}
@@ -114,7 +121,6 @@ export const studentRowsOf = (
 			snapshotId: String(snapshotId),
 			entryCount: entries.length,
 		})),
-		students: [...students.values()],
 		programmes: [...programmes.values()],
 		enrollments: lists.flatMap(({ sazCode, entries }) =>
 			entries.map(

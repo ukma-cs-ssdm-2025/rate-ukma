@@ -1,5 +1,6 @@
-import { Array as Arr, Clock, Effect, Result } from "effect";
+import { Array as Arr, Clock, Effect, Exit, Result } from "effect";
 import { type ChangeCount, mergeChangeCounts } from "../changes/ChangeLog.ts";
+import { storeFailureOf } from "../offerings/offerings.ts";
 import {
 	OfferingStore,
 	type ParseFailure,
@@ -70,17 +71,14 @@ export const parseStudents = Effect.fn("parseStudents")(function* (
 		}
 
 		for (const batch of batchesOf(lists, BATCH_ENTRIES)) {
-			const written = yield* store.write(batch, parseId).pipe(
-				Effect.catchCause((cause) =>
-					Effect.logError("Students batch failed to store", {
-						first_snapshot_id: String(batch[0]?.snapshotId),
-						last_snapshot_id: String(batch.at(-1)?.snapshotId),
-						cause,
-					}).pipe(Effect.as(undefined)),
-				),
-			);
+			const written = yield* Effect.exit(store.write(batch, parseId));
 
-			if (written === undefined) {
+			if (Exit.isFailure(written)) {
+				yield* Effect.logError("Students batch failed to store", {
+					first_snapshot_id: String(batch[0]?.snapshotId),
+					last_snapshot_id: String(batch.at(-1)?.snapshotId),
+					error: storeFailureOf(written.cause),
+				});
 				fail("store", batch.length);
 				failures.push(
 					...batch.map(({ snapshotId, sazCode }) => ({
@@ -92,13 +90,13 @@ export const parseStudents = Effect.fn("parseStudents")(function* (
 				continue;
 			}
 
-			parsed += written.parsed;
-			emptied += written.emptied.length;
-			changes = mergeChangeCounts([...changes, ...written.changes]);
+			parsed += written.value.parsed;
+			emptied += written.value.emptied.length;
+			changes = mergeChangeCounts([...changes, ...written.value.changes]);
 
-			if (written.emptied.length > 0) {
+			if (written.value.emptied.length > 0) {
 				yield* Effect.logWarning("Students lists emptied", {
-					saz_codes: written.emptied,
+					saz_codes: written.value.emptied,
 				});
 			}
 		}

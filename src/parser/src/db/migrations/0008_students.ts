@@ -6,10 +6,12 @@ export default Effect.gen(function* () {
 
 	// The only personal fields, email and full name, live here. `snapshot_id`
 	// is the list that last set the name, so an older list cannot set it back.
+	// Email is not unique: САЗ gives an address to a newer student (D14).
 	yield* sql`
 		CREATE TABLE students (
 			id text PRIMARY KEY DEFAULT 'stu_' || uuidv7(),
-			email text UNIQUE CHECK (email = lower(email)),
+			email text CHECK (email = lower(email)),
+			first_name_key text,
 			full_name text NOT NULL,
 			snapshot_id bigint NOT NULL REFERENCES page_snapshots (id),
 			change_no bigint NOT NULL UNIQUE,
@@ -68,6 +70,7 @@ export default Effect.gen(function* () {
 		`;
 	}
 
+	yield* sql`CREATE INDEX students_email ON students (email, first_name_key)`;
 	yield* sql`CREATE INDEX student_programmes_student_id ON student_programmes (student_id)`;
 	yield* sql`
 		CREATE INDEX student_programmes_programme_id ON student_programmes (programme_id)

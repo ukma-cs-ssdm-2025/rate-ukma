@@ -99,6 +99,36 @@ const personOf = (cdoc: string) =>
 		return person;
 	});
 
+const studentIdOf = (cdoc: string) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+
+		const [record] = yield* sql<{ readonly studentId: string }>`
+			SELECT student_id AS "studentId" FROM student_programmes
+			WHERE saz_cdoc = ${cdoc}
+		`;
+
+		return record?.studentId;
+	});
+
+interface Case {
+	readonly status: string;
+	readonly candidates: unknown;
+	readonly safeAnswer: unknown;
+}
+
+const casesOf = (cdoc: string) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+
+		return yield* sql<Case>`
+			SELECT rc.status, rc.candidates, rc.safe_answer AS "safeAnswer"
+			FROM review_cases rc
+			JOIN student_programmes sp ON sp.id = rc.subject_id
+			WHERE rc.kind = 'student_match' AND sp.saz_cdoc = ${cdoc}
+		`;
+	});
+
 describe("student tracking", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
 		it.effect("numbers each row once, so a second parse takes no number", () =>
@@ -256,17 +286,14 @@ describe("student tracking", () => {
 						),
 					);
 
-					const failures = yield* sql<{ readonly line: string }>`
-						SELECT path || ' ' || reason AS line FROM parse_failures
-						WHERE reason = 'store'
+					const failures = yield* sql<{ readonly reason: string }>`
+						SELECT reason FROM parse_failures
+						WHERE path = '/course/987001/students'
+							AND parse_id = (SELECT max(id) FROM parses)
 					`;
 
-					// An earlier test left a page that fails to parse.
 					assert.deepInclude(report, { parsed: 0, changes: [] });
-					assert.deepInclude(report.failed, { reason: "store", pages: 1 });
-					assert.deepStrictEqual(failures, [
-						{ line: "/course/987001/students store" },
-					]);
+					assert.deepStrictEqual(failures, [{ reason: "store" }]);
 					assert.deepStrictEqual(yield* enrollmentsOf("987001"), kept);
 					assert.isUndefined(yield* personOf("670002"));
 
@@ -277,7 +304,7 @@ describe("student tracking", () => {
 		);
 
 		it.effect(
-			"moves a record to the student of its new email and restores a returning enrollment",
+			"keeps a record's student when its email changes and restores a returning enrollment",
 			() =>
 				Effect.gen(function* () {
 					yield* offerings("983001");
@@ -291,6 +318,7 @@ describe("student tracking", () => {
 					yield* parseStudents("crawl");
 
 					const listed = yield* enrollmentsOf("983001");
+					const student = yield* studentIdOf("630001");
 
 					yield* list(
 						"983001",
@@ -303,23 +331,23 @@ describe("student tracking", () => {
 						),
 					);
 
-					const moved = yield* parseStudents("crawl");
+					const changed = yield* parseStudents("crawl");
 
 					assert.sameDeepMembers(
-						[...moved.changes],
+						[...changed.changes],
 						[
-							{ table: "students", action: "add", rows: 1 },
-							{ table: "student_programmes", action: "change", rows: 1 },
+							{ table: "students", action: "change", rows: 1 },
 							{ table: "student_programmes", action: "remove", rows: 1 },
-							{ table: "students", action: "remove", rows: 2 },
+							{ table: "students", action: "remove", rows: 1 },
 							{ table: "enrollments", action: "remove", rows: 1 },
 						],
 					);
-					// A name with `*` is new here, so nothing older keeps it (D6).
+					// The student takes the email and keeps its name without `*` (D6).
+					assert.strictEqual(yield* studentIdOf("630001"), student);
 					assert.deepStrictEqual(yield* personOf("630001"), {
 						cdoc: "630001",
 						email: "c.zrazok@example.edu",
-						fullName: "Зр*зок Олена Петрівна",
+						fullName: "Зразок Олена Петрівна",
 						removed: false,
 					});
 					assert.isTrue((yield* personOf("630002"))?.removed);
@@ -327,7 +355,7 @@ describe("student tracking", () => {
 					yield* list(
 						"983001",
 						studentsPage(
-							studentEntry({ cdoc: 630001, email: "c.zrazok@example.edu" }),
+							studentEntry({ cdoc: 630001, email: "c.novyi@example.edu" }),
 							studentEntry({ cdoc: 630002, email: "c.pryklad@example.edu" }),
 						),
 					);
@@ -344,14 +372,262 @@ describe("student tracking", () => {
 							{ table: "students", action: "restore", rows: 1 },
 						],
 					);
+					assert.strictEqual(yield* studentIdOf("630001"), student);
 					assert.strictEqual(
-						(yield* personOf("630001"))?.fullName,
-						"Зразок Олена Петрівна",
+						(yield* personOf("630001"))?.email,
+						"c.novyi@example.edu",
 					);
 					assert.isFalse(after[1]?.removed);
 					assert.isAbove(
 						Number(after[1]?.changeNo),
 						Number(listed[1]?.changeNo),
+					);
+				}),
+		);
+
+		it.effect(
+			"keeps two people on one email apart when their first names differ (D14)",
+			() =>
+				Effect.gen(function* () {
+					yield* offerings("988001", "988002");
+					yield* list(
+						"988001",
+						studentsPage(
+							studentEntry({ cdoc: 680001, email: "g.zrazok@example.edu" }),
+							studentEntry({
+								cdoc: 680003,
+								email: "g.zrazok@example.edu",
+								name: "Зразок Остап Іванович",
+							}),
+						),
+					);
+
+					const first = yield* parseStudents("crawl");
+
+					assert.deepInclude(first.changes, {
+						table: "students",
+						action: "add",
+						rows: 2,
+					});
+					assert.notStrictEqual(
+						yield* studentIdOf("680001"),
+						yield* studentIdOf("680003"),
+					);
+
+					yield* list(
+						"988002",
+						studentsPage(
+							studentEntry({
+								cdoc: 680002,
+								email: "g.zrazok@example.edu",
+								name: "Зразок Остап Іванович",
+							}),
+						),
+					);
+
+					const second = yield* parseStudents("crawl");
+
+					// The new record joins the student of its first name, no case.
+					assert.sameDeepMembers(
+						[...second.changes],
+						[
+							{ table: "student_programmes", action: "add", rows: 1 },
+							{ table: "enrollments", action: "add", rows: 1 },
+						],
+					);
+					assert.strictEqual(
+						yield* studentIdOf("680002"),
+						yield* studentIdOf("680003"),
+					);
+					assert.strictEqual(
+						(yield* personOf("680001"))?.fullName,
+						"Зразок Олена Петрівна",
+					);
+					assert.strictEqual(
+						(yield* personOf("680002"))?.fullName,
+						"Зразок Остап Іванович",
+					);
+					assert.isEmpty(yield* casesOf("680002"));
+				}),
+		);
+
+		it.effect(
+			"joins a record whose surname differs and opens one case for it (D14)",
+			() =>
+				Effect.gen(function* () {
+					yield* offerings("989001", "989002");
+					yield* list(
+						"989001",
+						studentsPage(
+							studentEntry({ cdoc: 681001, email: "h.zrazok@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+					yield* list(
+						"989002",
+						studentsPage(
+							studentEntry({
+								cdoc: 681002,
+								email: "h.zrazok@example.edu",
+								name: "Приклад Олена Петрівна",
+							}),
+						),
+					);
+
+					const joined = yield* parseStudents("crawl");
+					const student = yield* studentIdOf("681001");
+
+					assert.strictEqual(yield* studentIdOf("681002"), student);
+					assert.deepInclude(joined.changes, {
+						table: "review_cases",
+						action: "add",
+						rows: 1,
+					});
+					assert.deepStrictEqual(yield* casesOf("681002"), [
+						{
+							status: "open",
+							candidates: { studentIds: [student] },
+							safeAnswer: { studentId: student },
+						},
+					]);
+					// The latest list names the student.
+					assert.strictEqual(
+						(yield* personOf("681001"))?.fullName,
+						"Приклад Олена Петрівна",
+					);
+
+					assert.deepInclude(yield* parseStudents("reparse"), { changes: [] });
+					assert.lengthOf(yield* casesOf("681002"), 1);
+				}),
+		);
+
+		it.effect(
+			"starts a new student for a new record without an email (D3)",
+			() =>
+				Effect.gen(function* () {
+					yield* offerings("990001", "990002");
+					yield* list(
+						"990001",
+						studentsPage(
+							studentEntry({ cdoc: 682001, email: "i.zrazok@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+					yield* list(
+						"990002",
+						studentsPage(
+							studentEntry({ cdoc: 682002, email: "" }),
+							studentEntry({ cdoc: 682003, email: "" }),
+						),
+					);
+					yield* parseStudents("crawl");
+
+					const ids = [
+						yield* studentIdOf("682001"),
+						yield* studentIdOf("682002"),
+						yield* studentIdOf("682003"),
+					];
+
+					assert.strictEqual(new Set(ids).size, 3);
+					assert.isEmpty(yield* casesOf("682002"));
+				}),
+		);
+
+		it.effect(
+			"joins the match with the newest first enrollment and opens a case on a tie",
+			() =>
+				Effect.gen(function* () {
+					yield* offerings("991001", "991002", "991003");
+					yield* list(
+						"991001",
+						studentsPage(
+							studentEntry({
+								cdoc: 683001,
+								email: "j.zrazok@example.edu",
+								createdAt: 1_700_000_000,
+							}),
+							studentEntry({
+								cdoc: 683002,
+								email: "j.pryklad@example.edu",
+								createdAt: 1_750_000_000,
+							}),
+						),
+					);
+					yield* parseStudents("crawl");
+					// The second student takes the first one's email: two students now
+					// share an email and a first name.
+					yield* list(
+						"991002",
+						studentsPage(
+							studentEntry({ cdoc: 683002, email: "j.zrazok@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+					yield* list(
+						"991003",
+						studentsPage(
+							studentEntry({ cdoc: 683003, email: "j.zrazok@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+
+					const older = yield* studentIdOf("683001");
+					const newer = yield* studentIdOf("683002");
+
+					assert.notStrictEqual(older, newer);
+					assert.strictEqual(yield* studentIdOf("683003"), newer);
+					assert.deepStrictEqual(yield* casesOf("683003"), [
+						{
+							status: "open",
+							candidates: { studentIds: [newer, older] },
+							safeAnswer: { studentId: newer },
+						},
+					]);
+				}),
+		);
+
+		it.effect(
+			"names a student from the newest list when two of its records are in one batch",
+			() =>
+				Effect.gen(function* () {
+					yield* offerings("992001", "992002", "992003");
+					yield* list(
+						"992001",
+						studentsPage(
+							studentEntry({ cdoc: 684001, email: "k.zrazok@example.edu" }),
+							studentEntry({ cdoc: 684002, email: "k.zrazok@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+					yield* list(
+						"992002",
+						studentsPage(
+							studentEntry({
+								cdoc: 684001,
+								email: "k.zrazok@example.edu",
+								name: "Приклад Олена Петрівна",
+							}),
+						),
+					);
+					yield* list(
+						"992003",
+						studentsPage(
+							studentEntry({
+								cdoc: 684002,
+								email: "k.zrazok@example.edu",
+								name: "Інша Олена Петрівна",
+							}),
+						),
+					);
+					yield* parseStudents("crawl");
+
+					assert.strictEqual(
+						yield* studentIdOf("684001"),
+						yield* studentIdOf("684002"),
+					);
+					assert.strictEqual(
+						(yield* personOf("684001"))?.fullName,
+						"Інша Олена Петрівна",
 					);
 				}),
 		);

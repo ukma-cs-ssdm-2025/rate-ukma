@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
 import { crawlAllYears } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
-import { parseOfferings } from "../offerings/offerings.ts";
+import { parseOfferings, storeFailureOf } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
 import { RemovalStore } from "../offerings/RemovalStore.ts";
 import { RemovalThreshold, removeOfferings } from "../offerings/removals.ts";
@@ -49,7 +49,9 @@ export const WorkerLive = Layer.effectDiscard(
 			),
 			Effect.andThen(parseStudents("crawl")),
 			Effect.catchCause((cause) =>
-				Effect.logError("Parsing students failed", cause),
+				Effect.logError("Parsing students failed", {
+					error: storeFailureOf(cause),
+				}),
 			),
 			Effect.andThen(removeOfferings(threshold)),
 			Effect.catchCause((cause) =>

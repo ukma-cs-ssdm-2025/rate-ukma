@@ -9,7 +9,7 @@ import {
 } from "../changes/ChangeLog.ts";
 import { recordsetOf } from "../db/recordset.ts";
 import type { ParseTrigger } from "../offerings/OfferingStore.ts";
-import { type StudentList, studentRowsOf } from "./rows.ts";
+import { APOSTROPHES, type StudentList, studentRowsOf } from "./rows.ts";
 
 const StudentsPage = Schema.Struct({
 	id: Schema.BigInt,
@@ -41,9 +41,10 @@ export class StudentStore extends Context.Service<
 		): Effect.Effect<ReadonlyArray<StudentsPage>>;
 		/** Replaces each offering's enrollments with its list, in one writers'
 		 *  turn: listed rows are upserted, unlisted live rows removed, and only
-		 *  rows whose content changed take a number. A person or programme
-		 *  record with no live enrollment left is removed, and restored when
-		 *  one returns. A list already applied from a newer page keeps its rows,
+		 *  rows whose content changed take a number. A new programme record
+		 *  joins a student by email and first name and may open a
+		 *  `student_match` case (ADR-0013). A person or programme record with
+		 *  no live enrollment left is removed, and restored when one returns. A list already applied from a newer page keeps its rows,
 		 *  so a parse that overlaps a crawl cannot roll it back. */
 		write(
 			lists: ReadonlyArray<StudentList>,
@@ -119,14 +120,26 @@ export class StudentStore extends Context.Service<
 				`,
 			});
 
-			const decodeFresh = Schema.decodeUnknownEffect(
+			const decodeStarted = Schema.decodeUnknownEffect(
 				Schema.Array(
 					Schema.Struct({
 						id: Schema.String,
-						cdoc: Schema.NullOr(Schema.String),
+						cdoc: Schema.String,
 						email: Schema.NullOr(Schema.String),
 						fullName: Schema.String,
+						firstNameKey: Schema.NullOr(Schema.String),
 						snapshotId: Schema.String,
+					}),
+				),
+			);
+
+			const decodePlaced = Schema.decodeUnknownEffect(
+				Schema.Array(
+					Schema.Struct({
+						cdoc: Schema.String,
+						studentId: Schema.String,
+						candidateIds: Schema.Array(Schema.String),
+						flagged: Schema.Boolean,
 					}),
 				),
 			);
@@ -135,11 +148,29 @@ export class StudentStore extends Context.Service<
 				Schema.Array(Schema.Struct({ sazCode: Schema.String })),
 			);
 
-			/** `p` is a person row; a name with `*` keeps a stored one without. */
-			const keptName = sql`
-				CASE WHEN p."fullName" LIKE '%*%' AND s.full_name NOT LIKE '%*%'
-					THEN s.full_name ELSE p."fullName" END
+			/** `p` is a person row; a name with `*` keeps a stored one without,
+			 *  and with it the stored first-name key. */
+			const starKept = sql`p."fullName" LIKE '%*%' AND s.full_name NOT LIKE '%*%'`;
+			const keptName = sql`CASE WHEN ${starKept} THEN s.full_name ELSE p."fullName" END`;
+
+			const keptKey = sql`
+				CASE WHEN ${starKept} THEN s.first_name_key ELSE p."firstNameKey" END
 			`;
+
+			/** The first word of a name, compared as `firstNameKeyOf` compares. */
+			const surnameOf = (name: Statement.Fragment) => sql`
+				lower(translate(split_part(${name}, ' ', 1), ${APOSTROPHES}, ${"'".repeat(APOSTROPHES.length)}))
+			`;
+
+			const recordColumns = {
+				cdoc: "text",
+				email: "text",
+				fullName: "text",
+				firstNameKey: "text",
+				specName: "text",
+				snapshotId: "bigint",
+				sazCodes: "text[]",
+			} as const;
 
 			const write = (lists: ReadonlyArray<StudentList>, parseId: bigint) =>
 				changes
@@ -176,6 +207,8 @@ export class StudentStore extends Context.Service<
 								return { changes: [], parsed: 0, emptied: [] };
 							}
 
+							const codes = current.map(({ sazCode }) => sazCode);
+
 							const cdocs = [
 								...new Set(
 									current.flatMap(({ entries }) =>
@@ -187,75 +220,111 @@ export class StudentStore extends Context.Service<
 							const stored =
 								cdocs.length === 0 ? [] : yield* findProgrammes(cdocs);
 
-							const rows = studentRowsOf(
-								current,
-								new Map(
-									stored.map(({ cdoc, snapshotId }) => [cdoc, snapshotId]),
-								),
+							const storedAt = new Map(
+								stored.map(({ cdoc, snapshotId }) => [cdoc, snapshotId]),
 							);
 
-							// A person is found by email, else, for an entry without one, by
-							// the student its `cdoc` already points to (D3).
-							const persons = sql`(
-								SELECT r.*, coalesce(
-									(SELECT s.id FROM students s WHERE s.email = r.email),
-									(SELECT sp.student_id FROM student_programmes sp
-										WHERE r.email IS NULL AND sp.saz_cdoc = r.cdoc)
-								) AS "studentId"
-								FROM ${recordset(rows.students, { email: "text", cdoc: "text", fullName: "text", snapshotId: "bigint" })}
-							) p`;
+							const rows = studentRowsOf(current, storedAt);
 
-							// An entry without an email does not rename a student that has one.
-							yield* track(
-								"students",
-								sql`
-									UPDATE students s
-									SET full_name = ${keptName}, snapshot_id = p."snapshotId",
-										change_no = nextval('change_no_seq')
-									FROM ${persons}
-									WHERE s.id = p."studentId" AND s.snapshot_id <= p."snapshotId"
-										AND (p.email IS NOT NULL OR s.email IS NULL)
-										AND s.full_name IS DISTINCT FROM ${keptName}
-									RETURNING s.id, s.change_no, 'change' AS action
-								`,
+							// A new record joins a student by email and first name, never by
+							// email alone (ADR-0013). Each pair no student has yet starts one,
+							// named by its newest record; a record without either starts its
+							// own (D3).
+							const fresh = rows.programmes.filter(
+								({ cdoc }) => !storedAt.has(cdoc),
 							);
 
-							yield* sql`
-								UPDATE students s SET snapshot_id = p."snapshotId"
-								FROM ${persons}
-								WHERE s.id = p."studentId" AND s.snapshot_id < p."snapshotId"
-							`;
+							const pairOf = sql`coalesce(r.email || ' ' || r."firstNameKey", r.cdoc)`;
 
-							// A person without an email gets an id here, so its programme
-							// record can point to it.
-							const fresh = yield* sql`
-								SELECT 'stu_' || uuidv7() AS id, p.cdoc, p.email, p."fullName",
-									p."snapshotId"::text AS "snapshotId"
-								FROM ${persons}
-								WHERE p."studentId" IS NULL
-							`.pipe(Effect.flatMap(decodeFresh));
+							const started =
+								fresh.length === 0
+									? []
+									: yield* sql`
+											SELECT 'stu_' || uuidv7() AS id, n.* FROM (
+												SELECT DISTINCT ON (${pairOf}) r.cdoc, r.email, r."fullName",
+													r."firstNameKey", r."snapshotId"::text AS "snapshotId"
+												FROM ${recordset(fresh, recordColumns)}
+												WHERE NOT EXISTS (
+													SELECT 1 FROM students s
+													WHERE s.email = r.email AND s.first_name_key = r."firstNameKey"
+												)
+												ORDER BY ${pairOf}, r."snapshotId" DESC, r.cdoc DESC
+											) n
+										`.pipe(Effect.flatMap(decodeStarted));
 
 							yield* track(
 								"students",
 								sql`
-									INSERT INTO students (id, email, full_name, snapshot_id, change_no)
-									SELECT id, email, "fullName", "snapshotId", nextval('change_no_seq')
-									FROM ${recordset(fresh, { id: "text", cdoc: "text", email: "text", fullName: "text", snapshotId: "bigint" })}
+									INSERT INTO students (
+										id, email, first_name_key, full_name, snapshot_id, change_no
+									)
+									SELECT id, email, "firstNameKey", "fullName", "snapshotId",
+										nextval('change_no_seq')
+									FROM ${recordset(started, { id: "text", cdoc: "text", email: "text", fullName: "text", firstNameKey: "text", snapshotId: "bigint" })}
 									RETURNING id, change_no, 'add' AS action
 								`,
-							).pipe(Effect.when(Effect.succeed(fresh.length > 0)));
+							).pipe(Effect.when(Effect.succeed(started.length > 0)));
 
-							const freshByCdoc = new Map(
-								fresh.flatMap(({ id, cdoc }) =>
-									cdoc === null ? [] : [[cdoc, id]],
+							const ownStudent = new Map(
+								started.flatMap(({ id, cdoc, email, firstNameKey }) =>
+									email === null || firstNameKey === null ? [[cdoc, id]] : [],
 								),
+							);
+
+							// Of several matching students the record joins the one with the
+							// newest first enrollment. A tie, or a surname other than its
+							// student's, flags the record for a `student_match` case (D14).
+							const placed =
+								fresh.length === 0
+									? []
+									: yield* sql`
+											SELECT r.cdoc, coalesce(r."studentId", m.ids[1]) AS "studentId",
+												coalesce(m.ids, '{}') AS "candidateIds",
+												coalesce(
+													cardinality(m.ids) > 1
+														OR ${surnameOf(sql`j.full_name`)} <> ${surnameOf(sql`r."fullName"`)},
+													false
+												) AS flagged
+											FROM ${recordset(
+												fresh.map(
+													({ cdoc, email, fullName, firstNameKey }) => ({
+														cdoc,
+														email,
+														fullName,
+														firstNameKey,
+														studentId: ownStudent.get(cdoc) ?? null,
+													}),
+												),
+												{
+													cdoc: "text",
+													email: "text",
+													fullName: "text",
+													firstNameKey: "text",
+													studentId: "text",
+												},
+											)}
+											LEFT JOIN LATERAL (
+												SELECT array_agg(c.id ORDER BY c.first DESC NULLS LAST, c.id DESC) AS ids
+												FROM (
+													SELECT s.id, (
+														SELECT min(e.saz_created_at) FROM student_programmes sp
+														JOIN enrollments e ON e.student_programme_id = sp.id
+														WHERE sp.student_id = s.id
+													) AS first
+													FROM students s
+													WHERE r."studentId" IS NULL AND s.email = r.email
+														AND s.first_name_key = r."firstNameKey"
+												) c
+											) m ON true
+											LEFT JOIN students j ON j.id = m.ids[1]
+										`.pipe(Effect.flatMap(decodePlaced));
+
+							const studentOf = new Map(
+								placed.map(({ cdoc, studentId }) => [cdoc, studentId]),
 							);
 
 							const programmes = sql`(
 								SELECT r.*, coalesce(
-									(SELECT s.id FROM students s WHERE s.email = r.email),
-									r."freshId"
-								) AS "ownerId", coalesce(
 									(
 										SELECT min(pr.id) FROM offering_programmes op
 										JOIN programmes pr ON pr.id = op.programme_id
@@ -266,7 +335,7 @@ export class StudentStore extends Context.Service<
 											JOIN student_programmes sp ON sp.id = e.student_programme_id
 											JOIN offerings o ON o.id = e.offering_id
 											WHERE sp.saz_cdoc = r.cdoc AND e.removed_at IS NULL
-												AND o.saz_code NOT IN ${sql.in(current.map(({ sazCode }) => sazCode))}
+												AND o.saz_code NOT IN ${sql.in(codes)}
 										)
 										HAVING count(DISTINCT pr.id) = 1
 									),
@@ -276,22 +345,25 @@ export class StudentStore extends Context.Service<
 									)
 								) AS "programmeId"
 								FROM ${recordset(
-									rows.programmes.map((programme) => ({
-										...programme,
-										freshId: freshByCdoc.get(programme.cdoc) ?? null,
-									})),
+									rows.programmes.map(
+										({ cdoc, specName, snapshotId, sazCodes }) => ({
+											cdoc,
+											specName,
+											snapshotId,
+											sazCodes,
+											studentId: studentOf.get(cdoc) ?? null,
+										}),
+									),
 									{
 										cdoc: "text",
-										email: "text",
 										specName: "text",
 										snapshotId: "bigint",
 										sazCodes: "text[]",
-										freshId: "text",
+										studentId: "text",
 									},
 								)}
 							) q`;
 
-							// The latest list moves a record to the student of its email (D1).
 							// A list names the programme without its level (D12); the cards of
 							// the record's offerings that list that name give it, with this
 							// batch's lists in place of their stored enrollments. A record
@@ -300,13 +372,12 @@ export class StudentStore extends Context.Service<
 								"student_programmes",
 								sql`
 									UPDATE student_programmes sp
-									SET student_id = coalesce(q."ownerId", sp.student_id),
-										spec_name = q."specName", programme_id = q."programmeId",
+									SET spec_name = q."specName", programme_id = q."programmeId",
 										snapshot_id = q."snapshotId", change_no = nextval('change_no_seq')
 									FROM ${programmes}
 									WHERE sp.saz_cdoc = q.cdoc
-										AND (sp.student_id, sp.spec_name, sp.programme_id) IS DISTINCT FROM
-											(coalesce(q."ownerId", sp.student_id), q."specName", q."programmeId")
+										AND (sp.spec_name, sp.programme_id) IS DISTINCT FROM
+											(q."specName", q."programmeId")
 									RETURNING sp.id, sp.change_no, 'change' AS action
 								`,
 							);
@@ -323,15 +394,80 @@ export class StudentStore extends Context.Service<
 									INSERT INTO student_programmes (
 										saz_cdoc, student_id, spec_name, programme_id, snapshot_id, change_no
 									)
-									SELECT q.cdoc, q."ownerId", q."specName", q."programmeId",
+									SELECT q.cdoc, q."studentId", q."specName", q."programmeId",
 										q."snapshotId", nextval('change_no_seq')
 									FROM ${programmes}
-									WHERE NOT EXISTS (
-										SELECT 1 FROM student_programmes sp WHERE sp.saz_cdoc = q.cdoc
-									)
+									WHERE q."studentId" IS NOT NULL
 									RETURNING id, change_no, 'add' AS action
 								`,
 							);
+
+							// A record keeps its student (D1). The newest record of each student
+							// in the batch sets its name and email, after the new records joined,
+							// so a second parse of the same lists changes nothing. An entry
+							// without an email does not rename a student that has one.
+							const persons = sql`(
+								SELECT DISTINCT ON (s.id) s.id AS "studentId", r.email,
+									r."fullName", r."firstNameKey", r."snapshotId"
+								FROM ${recordset(rows.programmes, recordColumns)}
+								JOIN student_programmes sp ON sp.saz_cdoc = r.cdoc
+								JOIN students s ON s.id = sp.student_id
+								WHERE r.email IS NOT NULL OR s.email IS NULL
+								ORDER BY s.id, r."snapshotId" DESC, r.cdoc DESC
+							) p`;
+
+							yield* track(
+								"students",
+								sql`
+									UPDATE students s
+									SET full_name = ${keptName}, first_name_key = ${keptKey},
+										email = coalesce(p.email, s.email), snapshot_id = p."snapshotId",
+										change_no = nextval('change_no_seq')
+									FROM ${persons}
+									WHERE s.id = p."studentId" AND s.snapshot_id <= p."snapshotId"
+										AND (s.full_name, s.first_name_key, s.email) IS DISTINCT FROM
+											(${keptName}, ${keptKey}, coalesce(p.email, s.email))
+									RETURNING s.id, s.change_no, 'change' AS action
+								`,
+							);
+
+							yield* sql`
+								UPDATE students s SET snapshot_id = p."snapshotId"
+								FROM ${persons}
+								WHERE s.id = p."studentId" AND s.snapshot_id < p."snapshotId"
+							`;
+
+							const flagged = placed.filter(({ flagged }) => flagged);
+
+							// The case's subject is the record and its safe answer the student
+							// it joined. A record is new only once; the guard keeps it so.
+							yield* track(
+								"review_cases",
+								sql`
+									INSERT INTO review_cases (
+										kind, subject_id, candidates, safe_answer, change_no
+									)
+									SELECT 'student_match', sp.id,
+										jsonb_build_object('studentIds', to_jsonb(c."candidateIds")),
+										jsonb_build_object('studentId', c."studentId"),
+										nextval('change_no_seq')
+									FROM ${recordset(
+										flagged.map(({ cdoc, studentId, candidateIds }) => ({
+											cdoc,
+											studentId,
+											candidateIds,
+										})),
+										{ cdoc: "text", studentId: "text", candidateIds: "text[]" },
+										"c",
+									)}
+									JOIN student_programmes sp ON sp.saz_cdoc = c.cdoc
+									WHERE NOT EXISTS (
+										SELECT 1 FROM review_cases rc
+										WHERE rc.kind = 'student_match' AND rc.subject_id = sp.id
+									)
+									RETURNING id, change_no, 'add' AS action
+								`,
+							).pipe(Effect.when(Effect.succeed(flagged.length > 0)));
 
 							const listed = sql`
 								${recordset(rows.enrollments, {
@@ -443,13 +579,21 @@ export class StudentStore extends Context.Service<
 									entry_count = excluded.entry_count, parsed_at = now()
 							`;
 
+							// Only records on this batch's lists, and their students, can
+							// have lost or regained their last enrollment.
+							const touched = sql`(
+								SELECT e.student_programme_id FROM enrollments e
+								JOIN offerings o ON o.id = e.offering_id
+								WHERE o.saz_code IN ${sql.in(codes)}
+							)`;
+
 							yield* track(
 								"student_programmes",
 								sql`
 									UPDATE student_programmes sp
 									SET removed_at = CASE WHEN sp.removed_at IS NULL THEN now() END,
 										change_no = nextval('change_no_seq')
-									WHERE (sp.removed_at IS NULL) <> EXISTS (
+									WHERE sp.id IN ${touched} AND (sp.removed_at IS NULL) <> EXISTS (
 										SELECT 1 FROM enrollments e
 										WHERE e.student_programme_id = sp.id AND e.removed_at IS NULL
 									)
@@ -465,7 +609,10 @@ export class StudentStore extends Context.Service<
 									UPDATE students s
 									SET removed_at = CASE WHEN s.removed_at IS NULL THEN now() END,
 										change_no = nextval('change_no_seq')
-									WHERE (s.removed_at IS NULL) <> EXISTS (
+									WHERE s.id IN (
+										SELECT sp.student_id FROM student_programmes sp
+										WHERE sp.id IN ${touched}
+									) AND (s.removed_at IS NULL) <> EXISTS (
 										SELECT 1 FROM student_programmes sp
 										WHERE sp.student_id = s.id AND sp.removed_at IS NULL
 									)
