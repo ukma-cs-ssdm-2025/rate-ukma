@@ -744,11 +744,7 @@ describe("student tracking", () => {
 						parseId,
 					);
 
-					assert.deepStrictEqual(older, {
-						changes: [],
-						parsed: 0,
-						emptied: [],
-					});
+					assert.deepStrictEqual(older, { parsed: 0, emptied: [] });
 					assert.deepStrictEqual(yield* enrollmentsOf("986001"), before);
 				}),
 		);

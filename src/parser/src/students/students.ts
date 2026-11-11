@@ -1,5 +1,4 @@
 import { Array as Arr, Clock, Effect, Exit, Result } from "effect";
-import { type ChangeCount, mergeChangeCounts } from "../changes/ChangeLog.ts";
 import { storeFailureOf } from "../offerings/offerings.ts";
 import {
 	OfferingStore,
@@ -34,7 +33,6 @@ export const parseStudents = Effect.fn("parseStudents")(function* (
 	const startedAt = yield* Clock.currentTimeMillis;
 	const parseId = yield* parses.startParse(trigger);
 	const failed = new Map<string, number>();
-	let changes: ReadonlyArray<ChangeCount> = [];
 	let parsed = 0;
 	let emptied = 0;
 
@@ -92,7 +90,6 @@ export const parseStudents = Effect.fn("parseStudents")(function* (
 
 			parsed += written.value.parsed;
 			emptied += written.value.emptied.length;
-			changes = mergeChangeCounts([...changes, ...written.value.changes]);
 
 			if (written.value.emptied.length > 0) {
 				yield* Effect.logWarning("Students lists emptied", {
@@ -108,7 +105,7 @@ export const parseStudents = Effect.fn("parseStudents")(function* (
 		seconds: Math.round(((yield* Clock.currentTimeMillis) - startedAt) / 1000),
 		parsed,
 		failed: Array.from(failed, ([reason, pages]) => ({ reason, pages })),
-		changes,
+		changes: yield* parses.changeCounts(parseId),
 		listsEmptied: emptied,
 		listsKept: [...failed.values()].reduce((sum, pages) => sum + pages, 0),
 	};
