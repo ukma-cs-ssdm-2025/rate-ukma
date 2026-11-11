@@ -16,15 +16,25 @@ parser_runs:
     - source_part: { usage: LABEL, description: "Source part (year)" }
     - status: { usage: LABEL, description: "Run status" }
     - total: { usage: GAUGE, description: "Runs with this status" }
-    - last_finished: { usage: GAUGE, description: "Unix time the last such run finished" }
+    - last_finished:
+        { usage: GAUGE, description: "Unix time the last such run finished" }
 
 parser_active_run:
+  # since_last_page is one value for the whole crawl, repeated on every row
+  # seconds since any page of a running run finished,
+  # or since the crawl started when none has finished yet
   query: |
+    WITH active AS (
+      SELECT id, started_at FROM runs WHERE status = 'running'
+    ), progress AS (
+      SELECT coalesce(max(rp.finished_at), (SELECT min(started_at) FROM active)) AS last_at
+      FROM run_pages rp
+      WHERE rp.run_id IN (SELECT id FROM active)
+    )
     SELECT rp.kind, rp.status, count(*) AS pages,
-           coalesce(extract(epoch FROM now() - max(rp.finished_at)), 0) AS since_last_page
+           extract(epoch FROM now() - (SELECT last_at FROM progress)) AS since_last_page
     FROM run_pages rp
-    JOIN runs r ON r.id = rp.run_id
-    WHERE r.status = 'running'
+    WHERE rp.run_id IN (SELECT id FROM active)
     GROUP BY rp.kind, rp.status
   target_databases: [parser]
   primary: true
@@ -32,4 +42,8 @@ parser_active_run:
     - kind: { usage: LABEL, description: "Page kind" }
     - status: { usage: LABEL, description: "Page status" }
     - pages: { usage: GAUGE, description: "Pages of running runs" }
-    - since_last_page: { usage: GAUGE, description: "Seconds since a page of a running run finished" }
+    - since_last_page:
+        {
+          usage: GAUGE,
+          description: "Seconds since a page of a running run finished, or since the crawl started",
+        }
