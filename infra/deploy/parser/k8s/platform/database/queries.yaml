@@ -1,0 +1,35 @@
+# Custom CNPG metrics for crawl health, in CNPG's monitoring-queries format.
+# CNPG prefixes each metric with cnpg_<query name>_, as in cnpg_parser_runs_total.
+# They run as cnpg_metrics_exporter (a pg_monitor member), which may read runs and run_pages only
+# page_snapshots holds student lists and stays out of reach.
+# kustomization.yaml turns this file into the parser-db-monitoring ConfigMap that cluster.yaml names.
+
+parser_runs:
+  query: |
+    SELECT source_part, status, count(*) AS total,
+           coalesce(extract(epoch FROM max(finished_at)), 0) AS last_finished
+    FROM runs
+    GROUP BY source_part, status
+  target_databases: [parser]
+  primary: true
+  metrics:
+    - source_part: { usage: LABEL, description: "Source part (year)" }
+    - status: { usage: LABEL, description: "Run status" }
+    - total: { usage: GAUGE, description: "Runs with this status" }
+    - last_finished: { usage: GAUGE, description: "Unix time the last such run finished" }
+
+parser_active_run:
+  query: |
+    SELECT rp.kind, rp.status, count(*) AS pages,
+           coalesce(extract(epoch FROM now() - max(rp.finished_at)), 0) AS since_last_page
+    FROM run_pages rp
+    JOIN runs r ON r.id = rp.run_id
+    WHERE r.status = 'running'
+    GROUP BY rp.kind, rp.status
+  target_databases: [parser]
+  primary: true
+  metrics:
+    - kind: { usage: LABEL, description: "Page kind" }
+    - status: { usage: LABEL, description: "Page status" }
+    - pages: { usage: GAUGE, description: "Pages of running runs" }
+    - since_last_page: { usage: GAUGE, description: "Seconds since a page of a running run finished" }
