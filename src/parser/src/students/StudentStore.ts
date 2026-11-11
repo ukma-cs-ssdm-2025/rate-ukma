@@ -1,12 +1,6 @@
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient, SqlSchema, type Statement } from "effect/sql";
-import {
-	type ChangeCount,
-	ChangeLog,
-	countChanges,
-	mergeChangeCounts,
-	type NumberedTable,
-} from "../changes/ChangeLog.ts";
+import { ChangeLog, type NumberedTable } from "../changes/ChangeLog.ts";
 import { recordsetOf } from "../db/recordset.ts";
 import type { ParseTrigger } from "../offerings/OfferingStore.ts";
 import { APOSTROPHES, type StudentList, studentRowsOf } from "./rows.ts";
@@ -23,7 +17,6 @@ export type StudentsPage = typeof StudentsPage.Type;
 /** What one batch of lists wrote: `parsed` lists, and the САЗ codes of the
  *  lists that had live enrollments and are now empty. */
 export interface ListsWritten {
-	readonly changes: ReadonlyArray<ChangeCount>;
 	readonly parsed: number;
 	readonly emptied: ReadonlyArray<string>;
 }
@@ -176,21 +169,10 @@ export class StudentStore extends Context.Service<
 				changes
 					.withTurn(
 						Effect.gen(function* () {
-							const written: Array<ReadonlyArray<ChangeCount>> = [];
-
 							const track = (
 								table: NumberedTable,
 								statement: Statement.Fragment,
-							) =>
-								changes
-									.track(table, { parseId }, statement)
-									.pipe(
-										Effect.tap((rows) =>
-											Effect.sync(() =>
-												written.push(countChanges(table, rows)),
-											),
-										),
-									);
+							) => changes.track(table, { parseId }, statement);
 
 							const applied = new Map(
 								(yield* findApplied(lists.map(({ sazCode }) => sazCode))).map(
@@ -204,7 +186,7 @@ export class StudentStore extends Context.Service<
 							);
 
 							if (current.length === 0) {
-								return { changes: [], parsed: 0, emptied: [] };
+								return { parsed: 0, emptied: [] };
 							}
 
 							const codes = current.map(({ sazCode }) => sazCode);
@@ -623,7 +605,6 @@ export class StudentStore extends Context.Service<
 							);
 
 							return {
-								changes: mergeChangeCounts(written.flat()),
 								parsed: current.length,
 								emptied: emptied.map(({ sazCode }) => sazCode),
 							};

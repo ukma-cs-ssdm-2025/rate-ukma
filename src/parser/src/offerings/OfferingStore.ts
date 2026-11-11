@@ -1,10 +1,8 @@
 import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
 import { SqlClient, SqlSchema, type Statement } from "effect/sql";
 import {
-	type ChangeCount,
+	ChangeCount,
 	ChangeLog,
-	countChanges,
-	mergeChangeCounts,
 	type NumberedTable,
 } from "../changes/ChangeLog.ts";
 import { PARSE_LOCK, sessionLock } from "../db/locks.ts";
@@ -14,7 +12,7 @@ import type {
 	ParsedOffering,
 	Season,
 } from "../saz/coursePage.ts";
-import { planUnits } from "./units.ts";
+import { planUnits, type StoredUnit } from "./units.ts";
 
 type Level = ParsedOffering["level"];
 
@@ -29,9 +27,6 @@ export interface OfferingRows {
 		readonly name: string;
 		readonly faculty: string | null;
 		readonly sazFilterId: string | null;
-		/** The card the faculty comes from. */
-		readonly sazCode: string;
-		readonly academicYear: number;
 	}>;
 	readonly programmes: ReadonlyArray<{
 		readonly name: string;
@@ -115,11 +110,6 @@ export class OfferingStore extends Context.Service<
 		coursePages(
 			ids: ReadonlyArray<bigint>,
 		): Effect.Effect<ReadonlyArray<StoredPage>>;
-		/** The snapshots older than these ones of the same page, newest first by
-		 *  path, for pages no offering has been stored from yet. */
-		earlierCoursePages(
-			ids: ReadonlyArray<bigint>,
-		): Effect.Effect<ReadonlyArray<StoredPage>>;
 		/** Any catalog page carries the filters, so the latest one is enough. */
 		latestCatalogPage: Effect.Effect<string | undefined>;
 		/** Every stored programme, for the level of one the catalog does not list. */
@@ -130,16 +120,15 @@ export class OfferingStore extends Context.Service<
 		 *  and programmes replaced. A programme filter id the catalog page did
 		 *  not list keeps its stored value. An offering already parsed from a
 		 *  newer snapshot keeps its rows, so a parse that overlaps a crawl cannot
-		 *  roll it back. Returns the rows numbered, by table and action. */
-		write(
-			rows: OfferingRows,
-			parseId: bigint,
-		): Effect.Effect<ReadonlyArray<ChangeCount>>;
+		 *  roll it back. */
+		write(rows: OfferingRows, parseId: bigint): Effect.Effect<void>;
 		startParse(trigger: ParseTrigger): Effect.Effect<bigint>;
 		recordFailures(
 			parseId: bigint,
 			failures: ReadonlyArray<ParseFailure>,
 		): Effect.Effect<void>;
+		/** The rows the parse numbered, by table and action. */
+		changeCounts(parseId: bigint): Effect.Effect<ReadonlyArray<ChangeCount>>;
 		finishParse(
 			parseId: bigint,
 			report: Omit<ParseReport, "missing">,
@@ -187,28 +176,6 @@ export class OfferingStore extends Context.Service<
 
 			const coursePages = (ids: ReadonlyArray<bigint>) =>
 				findPages(ids).pipe(Effect.orDie);
-
-			const findEarlierPages = SqlSchema.findAll({
-				Request: Schema.Array(Schema.BigInt),
-				Result: StoredPage,
-				execute: (ids) => sql`
-					SELECT s.id, s.path, s.content
-					FROM page_snapshots latest
-					JOIN page_snapshots s ON s.path = latest.path AND s.id < latest.id
-					WHERE latest.id IN ${sql.in(ids)}
-						AND NOT EXISTS (
-							SELECT FROM offerings o
-							JOIN page_snapshots stored ON stored.id = o.snapshot_id
-							WHERE stored.path = latest.path
-						)
-					ORDER BY s.path, s.id DESC
-				`,
-			});
-
-			const earlierCoursePages = (ids: ReadonlyArray<bigint>) =>
-				ids.length === 0
-					? Effect.succeed([])
-					: findEarlierPages(ids).pipe(Effect.orDie);
 
 			const findLatestCatalogPage = SqlSchema.findOneOption({
 				Request: Schema.Void,
@@ -284,19 +251,10 @@ export class OfferingStore extends Context.Service<
 			const write = (rows: OfferingRows, parseId: bigint) =>
 				changes.withTurn(
 					Effect.gen(function* () {
-						const written: Array<ReadonlyArray<ChangeCount>> = [];
-
 						const track = (
 							table: NumberedTable,
 							statement: Statement.Fragment,
-						) =>
-							changes
-								.track(table, { parseId }, statement)
-								.pipe(
-									Effect.tap((rows) =>
-										Effect.sync(() => written.push(countChanges(table, rows))),
-									),
-								);
+						) => changes.track(table, { parseId }, statement);
 
 						const release = (
 							table: "faculties" | "departments",
@@ -314,6 +272,30 @@ export class OfferingStore extends Context.Service<
 											`,
 									).pipe(Effect.asVoid);
 
+						const update = (
+							table: "faculties" | "departments",
+							units: ReadonlyArray<StoredUnit>,
+						) =>
+							track(
+								table,
+								sql`
+										UPDATE ${sql(table)} t
+										SET name = r.name, saz_filter_id = r."sazFilterId",
+											change_no = nextval('change_no_seq')
+										FROM ${recordset(
+											units.map(({ id, name, sazFilterId }) => ({
+												id,
+												name,
+												sazFilterId,
+											})),
+											{ id: "text", name: "text", sazFilterId: "text" },
+										)}
+										WHERE t.id = r.id
+											AND (t.name, t.saz_filter_id) IS DISTINCT FROM (r.name, r."sazFilterId")
+										RETURNING t.id, t.change_no, 'change' AS action
+									`,
+							);
+
 						const faculties = planUnits(
 							yield* units("faculties"),
 							rows.faculties,
@@ -321,18 +303,7 @@ export class OfferingStore extends Context.Service<
 
 						yield* release("faculties", faculties.released);
 
-						yield* track(
-							"faculties",
-							sql`
-									UPDATE faculties t
-									SET name = r.name, saz_filter_id = r."sazFilterId",
-										change_no = nextval('change_no_seq')
-									FROM ${recordset(faculties.updates, { id: "text", name: "text", sazFilterId: "text" })}
-									WHERE t.id = r.id
-										AND (t.name, t.saz_filter_id) IS DISTINCT FROM (r.name, r."sazFilterId")
-									RETURNING t.id, t.change_no, 'change' AS action
-								`,
-						);
+						yield* update("faculties", faculties.updates);
 
 						yield* track(
 							"faculties",
@@ -351,51 +322,14 @@ export class OfferingStore extends Context.Service<
 
 						yield* release("departments", departments.released);
 
-						// A department takes the faculty of its newest card (C4): the
-						// latest year, then the highest САЗ code, among its stored
-						// offerings and this batch's card. The answer does not depend on
-						// the order of the batches, so a parse of unchanged pages moves
-						// no department.
-						yield* track(
-							"departments",
-							sql`
-									UPDATE departments t
-									SET name = next.name, saz_filter_id = next."sazFilterId",
-										faculty_id = next.faculty_id,
-										change_no = nextval('change_no_seq')
-									FROM (
-										SELECT r.id, r.name, r."sazFilterId", coalesce((
-											SELECT card.faculty_id FROM (
-												SELECT o.academic_year, o.saz_code, o.faculty_id
-												FROM offerings o
-												WHERE o.department_id = r.id AND o.faculty_id IS NOT NULL
-													AND o.saz_code NOT IN (SELECT "sazCode" FROM ${recordset(
-														rows.offerings.map(({ sazCode }) => ({ sazCode })),
-														{ sazCode: "text" },
-													)})
-												UNION ALL
-												SELECT r."academicYear", r."sazCode", f.id WHERE f.id IS NOT NULL
-											) card
-											ORDER BY card.academic_year DESC, card.saz_code DESC
-											LIMIT 1
-										), d.faculty_id) AS faculty_id
-										FROM ${recordset(departments.updates, { id: "text", name: "text", faculty: "text", sazFilterId: "text", sazCode: "text", academicYear: "smallint" })}
-										JOIN departments d ON d.id = r.id
-										LEFT JOIN faculties f ON f.name = r.faculty
-									) next
-									WHERE t.id = next.id
-										AND (t.name, t.saz_filter_id, t.faculty_id) IS DISTINCT FROM
-											(next.name, next."sazFilterId", next.faculty_id)
-									RETURNING t.id, t.change_no, 'change' AS action
-								`,
-						);
+						yield* update("departments", departments.updates);
 
 						yield* track(
 							"departments",
 							sql`
 									INSERT INTO departments (name, saz_filter_id, faculty_id, change_no)
 									SELECT r.name, r."sazFilterId", f.id, nextval('change_no_seq')
-									FROM ${recordset(departments.inserts, { name: "text", faculty: "text", sazFilterId: "text", sazCode: "text", academicYear: "smallint" })}
+									FROM ${recordset(departments.inserts, { name: "text", faculty: "text", sazFilterId: "text" })}
 									LEFT JOIN faculties f ON f.name = r.faculty
 									RETURNING id, change_no, 'add' AS action
 								`,
@@ -531,6 +465,26 @@ export class OfferingStore extends Context.Service<
 									AND o.row_hash = r."rowHash" AND o.snapshot_id < r."snapshotId"
 							`;
 
+						// A department takes the faculty of its newest card (C4): the
+						// latest year, then the highest САЗ code. The batch is stored by
+						// now, so the answer does not depend on the order of the batches.
+						yield* track(
+							"departments",
+							sql`
+								UPDATE departments d
+								SET faculty_id = newest.faculty_id, change_no = nextval('change_no_seq')
+								FROM (
+									SELECT DISTINCT ON (department_id) department_id, faculty_id
+									FROM offerings
+									WHERE department_id IS NOT NULL AND faculty_id IS NOT NULL
+									ORDER BY department_id, academic_year DESC, saz_code DESC
+								) newest
+								WHERE d.id = newest.department_id
+									AND d.faculty_id IS DISTINCT FROM newest.faculty_id
+								RETURNING d.id, d.change_no, 'change' AS action
+							`,
+						);
+
 						const rewritten = [...added, ...updated].map(({ rowId }) => rowId);
 
 						if (rewritten.length > 0) {
@@ -569,8 +523,6 @@ export class OfferingStore extends Context.Service<
 									JOIN programmes p ON p.name = r.name AND p.level = r.level
 								`;
 						}
-
-						return mergeChangeCounts(written.flat());
 					}),
 				);
 
@@ -604,6 +556,21 @@ export class OfferingStore extends Context.Service<
 							)}
 						`.pipe(Effect.asVoid, Effect.orDie);
 
+			const findChangeCounts = SqlSchema.findAll({
+				Request: Schema.BigInt,
+				Result: ChangeCount,
+				execute: (parseId) => sql`
+					SELECT table_name AS "table", action, count(*)::int AS rows
+					FROM changes
+					WHERE parse_id = ${parseId}
+					GROUP BY table_name, action
+					ORDER BY min(change_no)
+				`,
+			});
+
+			const changeCounts = (parseId: bigint) =>
+				findChangeCounts(parseId).pipe(Effect.orDie);
+
 			const finishParse = (
 				parseId: bigint,
 				report: Omit<ParseReport, "missing">,
@@ -617,11 +584,11 @@ export class OfferingStore extends Context.Service<
 				lockParse,
 				latestCoursePages,
 				coursePages,
-				earlierCoursePages,
 				latestCatalogPage,
 				programmes,
 				write,
 				startParse,
+				changeCounts,
 				recordFailures,
 				finishParse,
 			});
