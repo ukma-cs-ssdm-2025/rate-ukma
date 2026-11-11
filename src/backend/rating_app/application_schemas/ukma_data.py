@@ -11,7 +11,7 @@ Season = Literal["FALL", "SPRING", "SUMMER"]
 Control = Literal["pass_fail", "exam", "thesis", "none", "thesis_defence"]
 ProgrammeKind = Literal["compulsory", "prof_oriented", "elective"]
 OfferingStatus = Literal["held", "not_held", "may_hold", "unknown"]
-ReviewCaseKind = Literal["course_match", "instructor_match", "removals_held"]
+ReviewCaseKind = Literal["course_match", "instructor_match", "student_match", "removals_held"]
 ReviewCaseStatus = Literal["open", "decided", "obsolete"]
 
 

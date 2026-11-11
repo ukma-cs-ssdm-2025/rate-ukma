@@ -2,7 +2,7 @@ import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import { HttpServerLive } from "./api/http.ts";
-import { PgLive, runMigrations } from "./db/Database.ts";
+import { PgLive, runMigrations } from "./db/database.ts";
 import { WorkerLive } from "./worker/Worker.ts";
 
 const api = Command.make("api", {}, () => Layer.launch(HttpServerLive)).pipe(

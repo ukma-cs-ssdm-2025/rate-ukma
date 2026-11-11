@@ -9,7 +9,9 @@ from urllib.parse import parse_qs, urlsplit
 from django.urls import reverse
 
 import pytest
+import requests
 from pydantic.alias_generators import to_snake
+from structlog.testing import capture_logs
 
 API_KEY = "test-ukma-data-key"
 DATA_UPDATED_AT = "2030-09-01T10:00:00.000Z"
@@ -218,6 +220,13 @@ def test_offerings_returns_snake_case_page_when_superuser(
         ("ukma-data-departments", "/v1/departments", DEPARTMENT, "faculty_id", "f-1"),
         ("ukma-data-programmes", "/v1/programmes", PROGRAMME, "level", "bachelor"),
         ("ukma-data-review-cases", "/v1/review-cases", REVIEW_CASE, "candidates", ["c-1", "c-2"]),
+        (
+            "ukma-data-review-cases",
+            "/v1/review-cases",
+            {**REVIEW_CASE, "kind": "student_match"},
+            "kind",
+            "student_match",
+        ),
     ],
 )
 def test_list_returns_its_upstream_list_when_superuser(
@@ -296,6 +305,39 @@ def test_offerings_returns_400_when_page_param_invalid(
     assert response.status_code == 400
     assert [error["loc"] for error in response.json()] == [[param]]
     assert ukma_data.received == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_offerings_does_not_log_the_invalid_query_input(superuser_client, ukma_data, offerings_url):
+    with capture_logs() as logs:
+        superuser_client.get(offerings_url, {"limit": "secret-value"})
+
+    assert [log["event"] for log in logs] == ["validation_error"]
+    assert "secret-value" not in str(logs)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_offerings_gives_connect_a_shorter_timeout_than_read(
+    superuser_client, ukma_data, settings, offerings_url, monkeypatch
+):
+    ukma_data.reply("/v1/offerings", _page())
+    settings.UKMA_DATA_TIMEOUT_SECONDS = 7
+    timeouts = []
+    real_get = requests.get
+
+    def spy(*args, **kwargs):
+        timeouts.append(kwargs["timeout"])
+        return real_get(*args, **kwargs)
+
+    monkeypatch.setattr(requests, "get", spy)
+
+    superuser_client.get(offerings_url)
+
+    ((connect, read),) = timeouts
+    assert read == 7
+    assert connect < read
 
 
 @pytest.mark.django_db

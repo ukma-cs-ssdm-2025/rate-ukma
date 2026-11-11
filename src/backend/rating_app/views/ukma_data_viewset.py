@@ -149,5 +149,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         try:
             return UkmaDataPageParams.model_validate(request.query_params.dict())
         except ModelValidationError as e:
-            logger.error("validation_error", errors=e.errors())
+            logger.error(
+                "validation_error", errors=e.errors(include_input=False, include_url=False)
+            )
             raise ValidationError(detail=e.errors()) from e

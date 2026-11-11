@@ -1,0 +1,69 @@
+---
+name: Kubernetes SSH tunnel
+description: Opens an SSH tunnel to a node's kube-apiserver and points kubectl at it. Needs kubectl on the runner.
+
+inputs:
+  host:
+    description: "Node address (IPv4 or DNS name)"
+    required: true
+  user:
+    description: "SSH login user on the node"
+    required: false
+    default: "deploy"
+  ssh_key:
+    description: "Private SSH key for the user"
+    required: true
+  known_hosts:
+    description: "known_hosts line(s) for the node, so the host key is checked instead of trusted on first use"
+    required: true
+  kubeconfig:
+    description: "Kubeconfig whose server is https://127.0.0.1:6443"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Write SSH and kubeconfig files
+      shell: bash
+      env:
+        SSH_KEY: ${{ inputs.ssh_key }}
+        KNOWN_HOSTS: ${{ inputs.known_hosts }}
+        KUBECONFIG_CONTENT: ${{ inputs.kubeconfig }}
+      run: |
+        dir="$RUNNER_TEMP/k8s-tunnel"
+        mkdir -p "$dir"
+        umask 077
+        printf '%s\n' "$SSH_KEY" > "$dir/id"
+        printf '%s\n' "$KNOWN_HOSTS" > "$dir/known_hosts"
+        printf '%s\n' "$KUBECONFIG_CONTENT" > "$dir/kubeconfig"
+        echo "KUBECONFIG=$dir/kubeconfig" >> "$GITHUB_ENV"
+
+    - name: Open tunnel
+      shell: bash
+      env:
+        HOST: ${{ inputs.host }}
+        SSH_USER: ${{ inputs.user }}
+      run: |
+        dir="$RUNNER_TEMP/k8s-tunnel"
+        # -f backgrounds ssh only once the forward is up; the runner VM is discarded after the job.
+        ssh -f -N \
+          -i "$dir/id" \
+          -o BatchMode=yes \
+          -o IdentitiesOnly=yes \
+          -o StrictHostKeyChecking=yes \
+          -o UserKnownHostsFile="$dir/known_hosts" \
+          -o ExitOnForwardFailure=yes \
+          -o ServerAliveInterval=30 \
+          -L 127.0.0.1:6443:127.0.0.1:6443 \
+          "$SSH_USER@$HOST"
+
+    - name: Wait for the API server
+      shell: bash
+      run: |
+        # kubectl has no request timeout by default, so a hung API server would stall the loop.
+        for _ in $(seq 1 10); do
+          kubectl get --raw /readyz --request-timeout=5s >/dev/null 2>&1 && { kubectl version --request-timeout=5s; exit 0; }
+          sleep 3
+        done
+        echo "::error::kube-apiserver is not reachable through the tunnel"
+        kubectl get --raw /readyz --request-timeout=5s
