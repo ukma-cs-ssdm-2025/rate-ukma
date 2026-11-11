@@ -326,4 +326,4 @@ UKMA_DATA_TIMEOUT_SECONDS = config("UKMA_DATA_TIMEOUT_SECONDS", default=10, cast
 # ONLY when added to this allowlist in a reviewed PR — the endpoint fails closed,
 # so server-only flags can never leak through a naming mistake. `fe_` is a soft
 # naming convention for client-facing flags, not the security boundary.
-PUBLIC_FEATURE_FLAGS = ["fe_feed", "fe_faculty_colors", "fe_rate_flow"]
+PUBLIC_FEATURE_FLAGS = ["fe_feed", "fe_faculty_colors", "fe_rate_flow", "fe_ukma_data"]
