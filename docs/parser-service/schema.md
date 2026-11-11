@@ -59,7 +59,7 @@ Terms are never removed.
 | `faculty_id` | text | departments only; a parse may change it, for every year at once (C4) |
 | `change_no`, `removed_at` | | |
 
-A department is found by name alone, so a faculty reorganisation moves the department instead of creating it again (C4).
+A department is found by name alone, so a faculty reorganisation moves the department instead of creating it again (C4). When САЗ renames a faculty or department, the row is found by its filter id instead and takes the new name, so its id and its offerings stay; the old name is not kept.
 
 ### `programmes`
 
@@ -237,7 +237,7 @@ One row per offering whose students page was applied, empty or not. Not numbered
 
 A page that fails to parse keeps its last good rows, and `offerings.snapshot_id` still points at the snapshot they came from (rule 6).
 
-Each parse of the stored pages, after a crawl or from the `reparse` command, adds a `parses` row (`trigger` `crawl` or `reparse`, `started_at`, `finished_at`, and a `report` with the pages parsed and the failures counted by reason). Each page that fails adds a `parse_failures` row with the parse, the snapshot, the path and the reason. A `parses` row with no `finished_at` is a parse that is running or crashed. `reparse` parses the latest snapshot of every course page again, so no parser version is kept (rule 2). When that snapshot fails and no offering was stored from the page yet, its newest earlier snapshot that parses is stored instead, and the failure is still recorded.
+Each parse of the stored pages, after a crawl or from the `reparse` command, adds a `parses` row (`trigger` `crawl` or `reparse`, `started_at`, `finished_at`, and a `report` with the pages parsed and the failures counted by reason). Each page that fails adds a `parse_failures` row with the parse, the snapshot, the path and the reason. A `parses` row with no `finished_at` is a parse that is running or crashed. `reparse` parses the latest snapshot of every course page again, so no parser version is kept (rule 2).
 
 ### `changes`
 
